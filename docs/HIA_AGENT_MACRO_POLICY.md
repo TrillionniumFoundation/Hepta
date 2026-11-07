@@ -10,7 +10,7 @@ build receipt and executable identity and runs the sealed native image. The
 response binds the exact request and upstream implementation.
 
 The available macro actions are `discover`, `propose`, `verify`, `emit`,
-`evaluate`, `adopt`, `use`, `rollback` and `stop`. The controller recommends only
+`evaluate`, `adopt`, `use`, `rollback`, `keep_existing`, `no_adopt` and `stop`. The controller recommends only
 the first action of a supplied finite plan. It does not generate source, run
 compiler optimizations, execute a tool, or grant adoption permission. Every
 actual `hia_*` tool still owns its existing proof, budget and state checks.
@@ -20,6 +20,37 @@ The native bridge is **required** for NDU advice. Missing or rejected bridges
 produce a retained `BLOCKED` outcome; there is no ordinary-planner fallback
 labelled as NDU. The existing bridge is a scalar cost evaluator. This integration
 does not establish a new multiobjective, risk-sensitive or stochastic NDU model.
+
+## Strong ordinary control and valid no-change outcomes
+
+`advise_ordinary` consumes the same frozen input, original lifecycle budget,
+sunk-cost ledger and supplied continuation forecasts as native advice. It
+examines every plan, excludes continuations that exceed either remaining wall
+time or remaining model tokens, and minimizes the complete conservative
+remaining cost. Keeping the incumbent wins ties; plan IDs make other ties
+independent of input order. Its own measured controller interval is retained.
+
+```sh
+python tools/hia_agent_macro_policy.py ordinary \
+  --input /absolute/path/to/macro-state.json \
+  --output /absolute/path/to/ordinary-advice.json
+```
+
+An empty candidate set may retain the incumbent. Explicit `keep_existing`,
+`no_adopt` and `stop` continuations are valid outcomes; a plan cannot combine
+retention/refusal with adoption. Stopping optimization does not prove the
+original task delivered: campaign completion still requires actual use of the
+selected artifact and every expected task output. Unknown costs or termination
+remain blocking and receive no invented zero. Timed-out and cancelled attempts
+remain charged to the original budget.
+
+This exact argmin is a strong ordinary baseline for the disclosed finite
+scalar-cost profile. It does not claim calibrated forecasts, general search
+optimality, monetary completeness or real Agent utility. The deterministic
+campaign arm uses it and retains its original advice. Provider-backed ordinary
+campaigns continue to use the actual same-model ordinary recommendation.
+See [the implementation and retained-evidence report](HIA_NDU_STRONG_CONTROL_20261107.md)
+for the verification scope and remaining real-workload gates.
 
 ## Reproducible state and cost accounting
 
@@ -32,9 +63,9 @@ The immutable input uses schema `hepta.hia.agent.macro-state.v1`:
 | `installation` | Exact worker, backend and catalog SHA-256 identities |
 | `generation` | Nonzero bounded policy generation |
 | `budget` | Original lifecycle wall-time and model-token allowances |
-| `ledger` | Every completed, failed, rejected or uncertain attempt |
+| `ledger` | Every completed, failed, rejected, timed out, cancelled or uncertain attempt |
 | `stop_remaining_ns` | Forecast remaining cost of retaining the incumbent |
-| `plans` | At most sixteen explicit plans, each ending in `stop` |
+| `plans` | Zero to sixteen explicit plans, each ending in `stop` |
 
 Each plan contains `id`, `actions`, `remaining_cost_ns`, `uncertainty_ns`,
 `model_tokens` and `support_sha256`. The forecast covers the complete remaining
@@ -158,7 +189,7 @@ registered expected result. Forecasts never replace that observation.
 | `ordinary` | Deterministic argmin of the complete supplied conservative costs |
 | `ndu` | Use the original source-bound native NDU value ABI on those costs |
 
-The ordinary arm is a strong scalar-cost heuristic for this narrow probe, but
+The ordinary arm exactly minimizes the disclosed scalar costs for this narrow probe, but
 it is **not the requested ordinary learned/model controller baseline**. Search
 forecasts extrapolate measured baseline stages. Candidate-use cost uses the
 previous incumbent batch as a proxy, while transition cost and uncertainty are

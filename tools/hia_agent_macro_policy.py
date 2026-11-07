@@ -14,7 +14,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_agent_macro_policy import (MAX_INPUT_BYTES, MacroPolicyRejected,
-    advise_macro, assess_macro_comparison)
+    advise_macro, advise_ordinary, assess_macro_comparison)
 
 
 def _read_input(path):
@@ -35,7 +35,7 @@ def _read_input(path):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", choices=("advise", "assess"))
+    parser.add_argument("mode", choices=("advise", "ordinary", "assess"))
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--native-binary", type=Path)
@@ -44,13 +44,16 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if bool(args.native_binary) != bool(args.native_build_receipt):
         parser.error("native binary and exact source-bound build receipt must be supplied together")
-    if args.mode == "assess" and args.native_binary:
-        parser.error("assessment consumes retained evidence and does not execute a native evaluator")
+    if args.mode != "advise" and args.native_binary:
+        parser.error("only advise uses a native evaluator")
     try:
         raw = _read_input(args.input)
         if args.mode == "advise":
             bridge = {"binary": str(args.native_binary), "build_receipt": str(args.native_build_receipt)} if args.native_binary else None
             result = advise_macro(raw, bridge=bridge, timeout_ns=args.timeout_ns)
+            succeeded = result["status"] == "ADVISORY"
+        elif args.mode == "ordinary":
+            result = advise_ordinary(raw)
             succeeded = result["status"] == "ADVISORY"
         else:
             result = assess_macro_comparison(raw)

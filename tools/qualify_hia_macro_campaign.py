@@ -24,7 +24,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from hepta.hia_agent_macro_policy import (ARMS, COMPARISON_SCHEMA, PHASES,
-    STATE_SCHEMA, advise_macro, assess_macro_comparison, digest, ledger_totals, wire)
+    STATE_SCHEMA, advise_macro, advise_ordinary, ordinary_plan_selection, assess_macro_comparison, digest, ledger_totals, wire)
 from tools.hia_agent_native_qualification import (Session, ToolClient,
     add_program, exhaustive_u8_workload)
 
@@ -262,6 +262,12 @@ def _decision(state, strategy, bridge):
         advice = advise_macro(wire(state), bridge=bridge)
         return {"selected_id": advice["selected_id"], "advice": advice,
                 "status": advice["status"], "selection_basis": CONTROL_DESCRIPTIONS[strategy]}
+    if strategy == "ordinary":
+        bounded_state = {key: value for key, value in state.items() if key != "fixture_one_step_cost_ns"}
+        advice = advise_ordinary(wire(bounded_state))
+        return {"selected_id": advice["selected_id"], "advice": None,
+                "ordinary_advice": advice, "status": advice["status"],
+                "selection_basis": CONTROL_DESCRIPTIONS[strategy]}
     plan = state["plans"][0]
     if strategy == "fixed":
         selected = plan["id"]
@@ -714,6 +720,22 @@ def verify_campaign(root):
                     and state["installation"]["worker_sha256"] == driver["worker_sha256"],
                     "decision does not consume the exact preceding ledger and installation")
                 _require(events[at]["output"] == detail["decision"], "executed decision differs from original event")
+                ordinary = detail["decision"].get("ordinary_advice")
+                if ordinary is not None:
+                    _require(arm["strategy"] == "ordinary" and not provider_enabled
+                        and ordinary["state_sha256"] == digest(state)
+                        and type(ordinary["controller_wall_ns"]) is int
+                        and type(ordinary["decision_elapsed_ns"]) is int
+                        and 0 <= ordinary["decision_elapsed_ns"] <= ordinary["controller_wall_ns"] <= events[at]["wall_ns"],
+                        "ordinary control must bind its original state and charged interval")
+                    expected = ordinary_plan_selection(state, elapsed_ns=ordinary["decision_elapsed_ns"])
+                    _require(all(ordinary[key] == value for key, value in expected.items())
+                        and detail["decision"]["selected_id"] == ordinary["selected_id"]
+                        and ordinary["policy"] == "full_budget_argmin"
+                        and ordinary["authority"] == "DENY_ALL"
+                        and ordinary["execution_authorized"] is False
+                        and ordinary["native_ndu_evaluated"] is False,
+                        "ordinary control changed the complete-cost or original-budget rule")
                 if provider_enabled:
                     receipt = result["provider_receipt"]
                     _require(receipt is not None and receipt["status"] == "completed", "decision lacks original complete provider")

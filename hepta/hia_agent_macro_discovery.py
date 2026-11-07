@@ -39,6 +39,8 @@ def macro_policy_guidance(installation):
             "adopt": "hia_adopt", "rollback": "hia_rollback",
             "use": "authorized runtime consumer acquire_slot/invoke_lease/release_slot",
             "stop": "retain incumbent; no further controller action",
+            "keep_existing": "retain the admitted incumbent; actual use remains separately owned",
+            "no_adopt": "discard the candidate for adoption; keep all search costs",
         },
         "cost_phases": sorted(PHASES),
         "cost_rules": [
@@ -67,6 +69,9 @@ def macro_policy_guidance(installation):
             "requires": "same Agent, original budgets and every registered real task; complete actual costs and downstream use",
             "hash_only_assessor": "reported arithmetic only; P1 HOLD until original receipts and task outcomes are independently checked",
             "successful_ndu_call_is_benefit": False,
+            "ordinary_baseline": "python tools/hia_agent_macro_policy.py ordinary --input STATE --output ADVICE",
+            "ordinary_profile": "all supplied finite plans, complete robust cost, original wall/token budgets, incumbent wins ties",
+            "legal_no_change_outcomes": ["keep_existing", "stop", "no_adopt"],
         },
         "authority": "DENY_ALL", "execution_authorized": False,
     }

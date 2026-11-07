@@ -24,8 +24,9 @@ MAX_NS = 1_000_000_000_000_000
 MAX_TOKENS = 100_000_000
 PHASES = frozenset({"setup", "discovery", "model", "search", "verification",
                     "emission", "evaluation", "adoption", "rollback", "future_use", "controller"})
-ACTIONS = frozenset({"discover", "propose", "verify", "emit", "evaluate", "adopt", "use", "rollback", "stop"})
+ACTIONS = frozenset({"discover", "propose", "verify", "emit", "evaluate", "adopt", "use", "rollback", "keep_existing", "no_adopt", "stop"})
 ARMS = frozenset({"fixed", "greedy", "ordinary", "ndu"})
+ATTEMPT_STATUSES = frozenset({"completed", "failed", "rejected", "timed_out", "cancelled", "unknown"})
 _HEX = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_.:-]{0,63}\Z")
 
@@ -123,7 +124,7 @@ def ledger_totals(entries):
             _fail("duplicate ledger entry")
         seen.add(identity)
         if (type(entry["phase"]) is not str or entry["phase"] not in PHASES
-                or type(entry["status"]) is not str or entry["status"] not in {"completed", "failed", "rejected", "unknown"}):
+                or type(entry["status"]) is not str or entry["status"] not in ATTEMPT_STATUSES):
             _fail("invalid ledger phase or status")
         receipt = entry["receipt_sha256"]
         if receipt is None:
@@ -146,7 +147,7 @@ def ledger_totals(entries):
             unknown.append(identity + ":completion")
         total_ns += entry["wall_ns"] or 0
         total_tokens += entry["model_tokens"] or 0
-        if entry["status"] in {"failed", "rejected"}:
+        if entry["status"] in {"failed", "rejected", "timed_out", "cancelled"}:
             failed_ns += entry["wall_ns"] or 0
     _integer(total_ns, "total observed wall cost")
     _integer(total_tokens, "total model tokens", MAX_TOKENS)
@@ -170,8 +171,8 @@ def _state(data):
     totals = ledger_totals(data["ledger"])
     _integer(data["stop_remaining_ns"], "stop continuation forecast")
     plans = data["plans"]
-    if type(plans) is not list or not 1 <= len(plans) <= 16:
-        _fail("one to sixteen explicit macro plans required")
+    if type(plans) is not list or not 0 <= len(plans) <= 16:
+        _fail("zero to sixteen explicit macro plans required")
     seen = {"abstain"}
     for plan in plans:
         _shape(plan, {"id", "actions", "remaining_cost_ns", "uncertainty_ns", "model_tokens", "support_sha256"}, "plan")
@@ -184,12 +185,88 @@ def _state(data):
                 or any(type(action) is not str or action not in ACTIONS for action in actions)
                 or actions[-1] != "stop" or "stop" in actions[:-1]):
             _fail("finite macro plan must end with exactly one stop")
+        if (sum(action in {"keep_existing", "no_adopt"} for action in actions) > 1
+                or any(action in {"keep_existing", "no_adopt"} for action in actions) and "adopt" in actions):
+            _fail("retain/no-adopt plans cannot also adopt or select two terminal dispositions")
         for key in ("remaining_cost_ns", "uncertainty_ns"):
             _integer(plan[key], key)
         _integer(plan["model_tokens"], "planned model tokens", MAX_TOKENS)
         _sha(plan["support_sha256"], "plan support")
         _integer(plan["remaining_cost_ns"] + plan["uncertainty_ns"], "robust plan cost")
     return totals
+
+
+
+def ordinary_plan_selection(data, *, elapsed_ns=0):
+    """Exact ordinary control over every supplied finite continuation plan.
+
+    This consumes the same frozen state, robust-cost objective and original
+    allowances as native advice. It is a strong baseline for this finite scalar
+    profile, not an oracle for undisclosed plans or stochastic task dynamics.
+    Ties retain the incumbent. Unknown costs never receive an invented zero.
+    """
+    totals = _state(data)
+    _integer(elapsed_ns, "controller elapsed time")
+    remaining_wall = data["budget"]["wall_ns"] - totals["observed_wall_ns"] - elapsed_ns
+    remaining_tokens = data["budget"]["model_tokens"] - totals["observed_model_tokens"]
+    result = {"selected_id": "abstain", "next_action": "stop", "disposition": "keep_existing",
+              "status": "ADVISORY", "reason": "incumbent_minimum_or_tie",
+              "remaining_wall_ns": remaining_wall, "remaining_model_tokens": remaining_tokens,
+              "considered_plans": [], "forecast_is_observed_benefit": False}
+    if not totals["complete"]:
+        result.update(status="BLOCKED", reason="unknown_observed_costs")
+        return result
+    if remaining_wall <= 0 or remaining_tokens < 0:
+        result.update(status="BLOCKED", reason="lifecycle_budget_exhausted")
+        return result
+    # Incumbent wins ties; stable plan ID ordering avoids source-order bias.
+    best = (data["stop_remaining_ns"], 0, "abstain")
+    for plan in sorted(data["plans"], key=lambda row: row["id"]):
+        robust_cost = plan["remaining_cost_ns"] + plan["uncertainty_ns"]
+        feasible = robust_cost <= remaining_wall and plan["model_tokens"] <= remaining_tokens
+        result["considered_plans"].append({"id": plan["id"], "robust_cost_ns": robust_cost,
+            "model_tokens": plan["model_tokens"], "budget_feasible": feasible})
+        if feasible and (robust_cost, 1, plan["id"]) < best:
+            best = (robust_cost, 1, plan["id"])
+    if best[2] != "abstain":
+        plan = next(plan for plan in data["plans"] if plan["id"] == best[2])
+        disposition = ("no_adopt" if "no_adopt" in plan["actions"] else
+                       "keep_existing" if "keep_existing" in plan["actions"] else
+                       "stop" if plan["actions"] == ["stop"] else "continue")
+        result.update(selected_id=plan["id"], next_action=plan["actions"][0],
+                      disposition=disposition, reason="ordinary_full_budget_minimum")
+    return result
+
+
+def advise_ordinary(raw):
+    """Costed deterministic baseline; no native/provider call or side effect."""
+    started = time.perf_counter_ns()
+    data = _decode(raw)
+    _state(data)
+    next_entry_id = "controller." + str(len(data["ledger"]))
+    if next_entry_id in {row["id"] for row in data["ledger"]}:
+        _fail("controller ledger id collision")
+    if len(data["ledger"]) >= 4096:
+        _fail("controller ledger capacity exhausted")
+    # The budget observation has an explicit instant. Selection and hashing
+    # remain charged after that instant; operation owners recheck on dispatch.
+    decision_elapsed = time.perf_counter_ns() - started
+    selected = ordinary_plan_selection(data, elapsed_ns=decision_elapsed)
+    result = {"schema": "hepta.hia.agent.ordinary-advice.v1", "state_sha256": digest(data),
+              "context_sha256": data["context_sha256"], "installation": data["installation"],
+              "policy": "full_budget_argmin", "decision_elapsed_ns": decision_elapsed,
+              "authority": "DENY_ALL", "execution_authorized": False,
+              "native_ndu_evaluated": False, "net_benefit_established": False, **selected}
+    elapsed = time.perf_counter_ns() - started
+    result["controller_wall_ns"] = elapsed
+    entry = {"id": next_entry_id, "phase": "controller",
+             "status": "completed" if result["status"] == "ADVISORY" else "rejected",
+             "wall_ns": elapsed, "model_tokens": 0, "receipt_sha256": digest(result)}
+    updated = deepcopy(data)
+    updated["ledger"].append(entry)
+    result.update(ledger_entry=entry, next_state=updated,
+                  observed_costs=ledger_totals(updated["ledger"]))
+    return result
 
 
 def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
@@ -341,7 +418,7 @@ def assess_macro_comparison(raw):
             if (row["input_sha256"] != task["input_sha256"]
                     or row["qualification_receipt_sha256"] != task["qualification_receipt_sha256"]):
                 _fail("task or qualification identity drift")
-            if (type(row["status"]) is not str or row["status"] not in {"completed", "failed", "rejected", "unknown"}
+            if (type(row["status"]) is not str or row["status"] not in ATTEMPT_STATUSES
                     or type(row["correct"]) is not bool):
                 _fail("invalid task completion")
             if row["status"] != "completed" or row["correct"] is not True:
