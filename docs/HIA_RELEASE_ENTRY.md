@@ -139,8 +139,9 @@ input source, output images and loader receipts
 must demonstrate B1=B2=B3 and a changed source reaching M2=M3 with M2 different
 from B2. B0's binary and linker identities are measured by that actual cold build;
 the release lock only pins the seed implementation before a binary exists.
-The matrix separately records unsupported owned resources, recursive calls,
-external relocations and general object linking. The explicit `selfhost_elf`
+The v6 matrix admits direct tail self calls with no additional native stack
+frames. Non-tail recursion, mutual recursion, owned resources, external
+relocations and general object linking remain unsupported. The explicit `selfhost_elf`
 profile emits bounded ELF64 ET_REL objects in HIA and has independent system
 linker and execution checks. Success for that subset cannot close broader gates.
 

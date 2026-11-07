@@ -50,7 +50,7 @@ BOOTSTRAP_FILES = (
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
 )
-ENTRY_FILES = ("README.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
+ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
