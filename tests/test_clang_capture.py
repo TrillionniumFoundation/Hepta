@@ -25,13 +25,12 @@ class CaptureBudgets(unittest.TestCase):
     def test_real_clang_c_preprocess(self):
         compiler = shutil.which('clang')
         # This is a real compiler/input/output smoke test, not a Clang startup
-        # latency requirement. The Visual Studio Clang on a fresh Windows
-        # runner can exceed ten seconds; retain the ordinary bounded capture
-        # default there. Dedicated timeout/descendant tests keep their short
-        # explicit deadlines and continue to require actual termination.
-        timeout = 30 if os.name == 'nt' else 10
+        # latency requirement. Fresh Windows and Linux CI runners have exceeded
+        # ten seconds; use the existing thirty-second bounded capture default.
+        # Dedicated timeout/descendant tests keep their short explicit deadlines
+        # and continue to require actual termination.
         result = run_bounded([compiler, '-x', 'c', '-std=c11', '-E', '-'],
-                             input_text='#define OFFSET 7\nint demo = OFFSET;\n', timeout=timeout)
+                             input_text='#define OFFSET 7\nint demo = OFFSET;\n')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('int demo = 7;', result.stdout)
 
