@@ -1,0 +1,51 @@
+name: Package kind schema
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/packages.py'
+      - 'tests/test_package_kind_schema.py'
+      - 'docs/PACKAGE_KIND_SCHEMA.md'
+      - '.github/workflows/package-kind-schema.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  schema:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree}
+          python --version
+      - name: Run package schema and JSON controls without skips
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -B - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_package_kind_schema.py')
+          assert suite.countTestCases() == 10, 'package schema test inventory changed'
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 10 and not result.skipped and result.wasSuccessful()
+          PY
+      - name: Verify source remains unchanged
+        if: always()
+        run: test -z "$(git status --porcelain)"
