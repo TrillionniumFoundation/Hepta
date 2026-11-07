@@ -7,10 +7,13 @@ import importlib.util
 import json
 from pathlib import Path
 import re
+import sys
 import tempfile
 import unittest
 
 HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
 
 
 def load(name: str, path: Path):
@@ -23,6 +26,7 @@ def load(name: str, path: Path):
 matrix = load("profile_publication_matrix", HERE / "run_matrix.py")
 build = load("profile_publication_build", HERE / "build.py")
 guard = load("profile_publication_guard", HERE / "publication_guard.py")
+verifier = load("profile_publication_verifier", HERE / "verify_profile_result.py")
 summary_path = HERE / "perf_sample_summary.py"
 summary = load("profile_publication_samples", summary_path) if summary_path.is_file() else None
 
@@ -51,9 +55,10 @@ class BuildReceiptPrivacyTests(unittest.TestCase):
         pem = "-----BEGIN PRIVATE KEY-----\nFAKE_PRIVATE_MATERIAL\n-----END PRIVATE KEY-----"
         static = "-----BEGIN OpenVPN Static key V1-----\nFAKE_STATIC_MATERIAL\n-----END OpenVPN Static key V1-----"
         token = "github_pat_" + "a" * 32
+        aws = "aws_secret_access_key=" + "b" * 32
         original = {
             "ok": True,
-            "commands": [{"argv": ["tool", pem, static, token]}],
+            "commands": [{"argv": ["tool", pem, static, token, aws]}],
             "runner": {"GITHUB_SHA": "0123456789abcdef0123456789abcdef01234567"},
         }
         safe = sanitizer(original)
@@ -61,11 +66,14 @@ class BuildReceiptPrivacyTests(unittest.TestCase):
         self.assertNotIn("BEGIN PRIVATE KEY", encoded)
         self.assertNotIn("BEGIN OpenVPN Static key", encoded)
         self.assertNotIn(token, encoded)
+        self.assertNotIn("FAKE_PRIVATE_MATERIAL", encoded)
+        self.assertNotIn("FAKE_STATIC_MATERIAL", encoded)
+        self.assertNotIn(aws, encoded)
         self.assertEqual(safe["ok"], True)
         receipt = safe.get("public_redactions", {})
         self.assertEqual(receipt.get("schema"), "hepta.openvpn-hia.public-redactions.v1")
-        self.assertEqual(receipt.get("count"), 3)
-        self.assertEqual(len(receipt.get("entries", [])), 3)
+        self.assertEqual(receipt.get("count"), 4)
+        self.assertEqual(len(receipt.get("entries", [])), 4)
         self.assertTrue(all(re.fullmatch(r"[0-9a-f]{64}", item.get("sha256", "")) for item in receipt["entries"]))
 
     def test_sanitized_build_receipt_passes_the_same_publication_guard(self):
@@ -101,6 +109,38 @@ class PerfSampleSummaryTests(unittest.TestCase):
         self.assertFalse(result["raw_sample_content_published"])
         self.assertNotIn("private_stack_frame", json.dumps(result))
         self.assertLess(len(json.dumps(result).encode()), 64 * 1024 * 1024)
+
+
+    def test_profile_verifier_binds_bounded_sample_summary_to_profile_counters(self):
+        digest = "a" * 64
+        summary = {
+            "schema": "hepta.openvpn-hia.perf-sample-summary.v1",
+            "raw_stdout_sha256": digest,
+            "raw_stdout_bytes": 1234,
+            "sample_headers": 2,
+            "openvpn_sample_headers_by_role": {"client": 1, "server": 1},
+            "kernel_symbol_lines": 2,
+            "ovpn_symbol_lines": 1,
+            "raw_sample_content_published": False,
+            "perf_exit_code": 0,
+            "perf_timed_out": False,
+            "raw_stderr_sha256": "b" * 64,
+            "raw_stderr_bytes": 0,
+        }
+        profile = {
+            "raw_samples_sha256": digest,
+            "raw_samples_bytes": 1234,
+            "actual_sample_headers": 2,
+            "openvpn_sample_headers_by_role": {"client": 1, "server": 1},
+            "kernel_symbol_lines": 2,
+            "ovpn_symbol_lines": 1,
+            "raw_sample_content_published": False,
+        }
+        verifier.verify_sample_summary(summary, profile)
+        with self.assertRaisesRegex(ValueError, "disagrees with the profile receipt"):
+            verifier.verify_sample_summary({**summary, "sample_headers": 3}, profile)
+        with self.assertRaisesRegex(ValueError, "must remain private"):
+            verifier.verify_sample_summary({**summary, "raw_sample_content_published": True}, profile)
 
 
 if __name__ == "__main__":
