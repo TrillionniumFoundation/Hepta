@@ -44,6 +44,8 @@ def upgrade_replay(previous_evidence, output):
             or receipt.get("input_sha256") != V4["source_sha256"]
             or receipt.get("produced_sha256") != V4["B3_sha256"]):
         raise ValueError("historical v4 source, B3 image or receipt differs from the pinned upgrade input")
+    if contract["profile"] != "selfhost-core-linux-x86_64-v5":
+        raise ValueError("historical v4-to-v5 upgrade requires the pinned v5 source checkout")
     if any(p.is_symlink() for p in (output, *output.parents)) or output.exists():
         raise ValueError("upgrade replay requires a new nonsymbolic output path")
     output = output.resolve()

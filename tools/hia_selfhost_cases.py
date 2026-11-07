@@ -47,7 +47,8 @@ def recursion_refusals():
             '  v4:u32 = call(v3) {"function":"f1"}\n  ret(v4)\nend\n')
     unused = HEADER + '  v3:u32 = const() {"value":7}\n  ret(v3)\nend\n'
     return {
-        "direct-recursion": (root + scalar_function(1, 1)).encode(),
+        "non-tail-direct-recursion": (root + scalar_function(1, 1).replace(
+            "  ret(v3)\n", "  v4:u32 = int.add.wrap(v3,v1)\n  ret(v4)\n")).encode(),
         "mutual-recursion": (root + scalar_function(1, 2) + scalar_function(2, 1)).encode(),
         "unreachable-cycle": (unused + scalar_function(1, 2) + scalar_function(2, 1)).encode(),
     }

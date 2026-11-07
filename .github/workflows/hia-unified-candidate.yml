@@ -2,7 +2,7 @@ name: HIA unified candidate source qualification
 
 on:
   push:
-    branches: [codex/hia-p0-p3-20261107]
+    branches: [main, codex/hia-p0-p3-20261107, codex/hia-followup-20261107-faa85]
   pull_request:
     paths:
       - 'hepta/**'
@@ -21,6 +21,10 @@ on:
       - 'tests/test_hia_agent_native*'
       - 'tests/test_hia_machine_plan.py'
       - 'tests/test_hia_machine_registers.py'
+      - 'tests/test_hia_machine_leaf_registers.py'
+      - 'tests/test_hia_agent_first_use_recovery.py'
+      - 'tests/test_hia_macro_multistep.py'
+      - 'tests/test_hia_registered_followup.py'
       - 'tests/test_hia_native_byte_abi.py'
       - 'tests/test_hia_bootstrap_components.py'
       - 'tests/test_hia_selfhost.py'
@@ -48,6 +52,15 @@ on:
       - 'tools/generate_hia_selfhost.py'
       - 'tools/hia_selfhost_cases.py'
       - 'tools/hia_selfhost_resources.py'
+      - 'tools/hia_selfhost_tailcalls.py'
+      - 'tools/hia_agent_fresh_session.py'
+      - 'tools/hia_agent_codex_transport.py'
+      - 'tools/qualify_hia_selfhost_leaf_plans.py'
+      - 'tools/*hia*multistep*.py'
+      - 'tools/*hia*followup*.py'
+      - 'tools/hia_macro_exec_adapter.py'
+      - 'tools/prepare_hia_macro_launcher.py'
+      - 'benchmarks/hia_macro_multistep/**'
       - 'tools/hia_selfhost_contract.py'
       - 'tools/generate_hia_selfhost_contract.py'
       - 'tools/replay_hia_selfhost_cold.py'
@@ -195,6 +208,17 @@ jobs:
             --hepta-root "$RUNNER_TEMP/hia-unified-cold/hepta" \
             --runtime-checkout "$RUNNER_TEMP/hia-unified-cold/runtime" \
             2>&1 | tee "$RUNNER_TEMP/hia-unified/release-check.log"
+      - name: Reproduce the locked release through the default public GitHub URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/hia_release.py materialize \
+            --directory "$RUNNER_TEMP/hia-unified-public-remote" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/release-public-materialize.log"
+          python -B tools/hia_release.py check \
+            --hepta-root "$RUNNER_TEMP/hia-unified-public-remote/hepta" \
+            --runtime-checkout "$RUNNER_TEMP/hia-unified-public-remote/runtime" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/release-public-check.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

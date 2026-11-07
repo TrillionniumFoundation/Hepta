@@ -25,7 +25,11 @@ class SelfhostContractTests(unittest.TestCase):
             self.assertEqual(files[path.relative_to(ROOT).as_posix()], sha256(path.read_bytes()).hexdigest())
         self.assertFalse(contract["claims"]["whole_HIA_language_self_hosted"])
         status = {row["area"]: row["status"] for row in contract["support"]}
-        self.assertEqual(status["recursion"], "rejected")
+        self.assertEqual(status["recursion"], "bounded_subset")
+        recursion = next(row for row in contract["support"] if row["area"] == "recursion")
+        self.assertEqual(recursion["limits"]["additional_frames_per_self_tail_call"], 0)
+        self.assertFalse(recursion["limits"]["runtime_termination_proved"])
+        self.assertIn("tools/hia_selfhost_tailcalls.py", files)
         resources = next(row for row in contract["support"] if row["area"] == "resources")
         self.assertIn("buffer.swap with both bounds before access", resources["items"])
         self.assertIn("tools/hia_selfhost_resources.py", files)

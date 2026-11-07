@@ -93,6 +93,54 @@ unrequested spill decisions or run an allocation/profitability search. General
 caller-saved allocation, vectors, rematerialization and whole-backend formal
 refinement remain outside this profile.
 
+## Reviewed v4 caller-clobbered leaf values
+
+`hepta.hia.agent.machine-plan.v4` retains all v3 fields and choices and adds
+`r8` and `r9` to the explicit scalar value map. This is opt-in: v3 still rejects
+these two registers, and an empty canonical v4 plan retains canonical bytes.
+The backend does not select a plan or replace the default lowering.
+
+The new class is motivated by actual RIP sampling of the complete Selfhost-Core
+compiler on its own source. The bounded follow-up records 1,018 dynamic samples
+from three exact native compilations, with every produced compiler byte checked.
+The byte-word helpers `get` and `put` account for 335 and 229 samples respectively.
+This observation chooses the functions to investigate; a static symbol table
+is used only to attribute those sampled addresses. The performance qualification
+then compares explicit plans on the same complete compiler workload.
+
+The independent checker applies these additional rules to the **whole function**
+whenever any value uses `r8` or `r9`:
+
+| Boundary | Required preservation rule |
+| --- | --- |
+| Opcode inventory | Every operation belongs to the fixed `LEAF_VALUE_OPS` set: the reviewed scalar integer/bit/boolean/comparison/cast/select forms and `buffer.len/load/store`. Newly registered Core operations are not automatically admitted. |
+| Calls | All Core calls are rejected, including self calls, calls on an untaken path and calls where the selected value appears dead. Allocation, deallocation, owner operations, chains and libc-backed bulk operations are excluded. |
+| Implicit registers | `buffer.swap` is excluded because its canonical lowering writes `r8`. Accepted scalar lowering uses `rax/rcx/rdx/r10/r11` scratch. Address/length checks, shifts, comparison flags, edge staging and return-array writes do not implicitly overwrite `r8/r9`. |
+| Types | Assigned values remain existing integers or booleans. Parameters may be scalars or borrowed buffers; returns must be scalars. Capability pairs and owners cannot occupy these scalar registers. |
+| Lifetimes | The existing inclusive closed-block interference checker applies to all seven available registers. Dead definitions and parameters still occupy their definition points. Unassigned values stay in their canonical stack slots. |
+| ABI and edges | External argument registers are copied to the wrapper's array before the internal call. Internal parameter preload reads that array with fixed scratch; block edges stage all sources before target writes. Only the five callee-saved registers are saved/restored; `r8/r9` are caller-clobbered. |
+| Failure path | Checked arithmetic and bounds keep the original trap path: `abort` followed by `UD2`, with no returning continuation across which a selected value must survive. Successful paths contain no call in an admitted leaf function. |
+
+For example, the v3 `plus7` fixture can use
+`{"plus7":{"x":"r8","seven":"r9","answer":"r12"}}` under the v4 tag;
+its same Core-bound plan under the v3 tag remains invalid.
+
+Independent native checks cover every admitted scalar opcode with both selected
+inputs still live afterward, both select encodings, parallel loop permutations,
+multiple internal results, canonical spills, dirty narrow incoming registers,
+fifth/sixth and stack arguments, stack page probes and all callee saves. Borrowed
+byte load/store/length observations check actual bytes and pre-write aborts;
+checked arithmetic retains abort behavior. These finite observations and the
+separate lifetime/leaf witness do not establish a whole-backend proof.
+
+The native workload campaign retains canonical, two-register v3/v4, full
+five-register v3 and seven-register v4 plans. The noncanonical arms use identical
+immediate, scratch, layout and select choices; the two-register pair assigns the
+same SSA values to isolate the register-class change. Source/plan validation,
+emission, linking, fresh-process application and canonical fallback costs are
+recorded separately. The result remains specific to the measured host/workload;
+it neither establishes general speedup nor measures NDU or model effectiveness.
+
 ## Use through the existing tool family
 
 1. Read `hia_describe` and its `plan_schema` resource.

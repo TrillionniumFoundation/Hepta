@@ -183,6 +183,9 @@ def parse_params(s:readbuf, w:mutbuf, signature:u64) -> u64:
     return count
 
 def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    # This block-local pending result is separate from the v5 node counter at
+    # 248. A self call is admitted only when the next token is its exact ret.
+    put(w, 256, 0)
     expect(s, w, @block@)
     separated(w)
     b = expect(s, w, 258)
@@ -220,11 +223,15 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if t != get(w, FBASE + get(w, 72) * FSTRIDE + 32):
             fail(w, 13)
         expect(s, w, 41)
-        load_var(o, w, 0, v, 0)
-        mem(o, w, 139, 2, 5, 18446744073709551608)
-        mem(o, w, 137, 0, 2, 0)
-        emit(o, w, 201)
-        emit(o, w, 195)
+        if get(w, 256) != 0:
+            if v + 1 != get(w, 256):
+                fail(w, 59)
+        else:
+            load_var(o, w, 0, v, 0)
+            mem(o, w, 139, 2, 5, 18446744073709551608)
+            mem(o, w, 137, 0, 2, 0)
+            emit(o, w, 201)
+            emit(o, w, 195)
     else:
         if get(w, 8) == @jump@:
             next_token(s, w)
@@ -388,8 +395,11 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             if x >= 128:
                 fail(w, 23)
             else:
-                if get(w, 48) == 0:
-                    store(w, CBASE + get(w, 72) * 128 + x, 1)
+                if x == get(w, 72):
+                    put(w, 256, v + 1)
+                else:
+                    if get(w, 48) == 0:
+                        store(w, CBASE + get(w, 72) * 128 + x, 1)
             if get(w, 48) > 0:
                 if x >= get(w, 1024):
                     fail(w, 23)
@@ -406,11 +416,26 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                         fail(w, 25)
                     copy_argument(o, w, av, i, typ)
                     i = i + 1
-                mem(o, w, 141, 7, 5, 0 - frame(w))
-                mem(o, w, 141, 6, 5, 0 - frame(w) + 512)
-                emit(o, w, 232)
-                relocation(o, w, 1, x)
-                mem(o, w, 139, 0, 5, 0 - frame(w) + 512)
+                if x == get(w, 72):
+                    # All arguments were staged before overwriting any entry
+                    # parameter. Keep the frame and original result pointer;
+                    # b0 begins after the prologue, including stack probes.
+                    i = 0
+                    while i < n:
+                        mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16)
+                        store_var(o, w, i, 0)
+                        if get(w, fb + 48 + i * 8) >= 6:
+                            mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16 + 8)
+                            store_var(o, w, i, 1)
+                        i = i + 1
+                    emit(o, w, 233)
+                    relocation(o, w, 2, get(w, fb + 8))
+                else:
+                    mem(o, w, 141, 7, 5, 0 - frame(w))
+                    mem(o, w, 141, 6, 5, 0 - frame(w) + 512)
+                    emit(o, w, 232)
+                    relocation(o, w, 1, x)
+                    mem(o, w, 139, 0, 5, 0 - frame(w) + 512)
         else:
             if op == @int.cast@:
                 account_nodes(w, 1)
@@ -428,11 +453,14 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 operation(o, w, op, n, a, b, at, bt, t)
     if t != 0:
         define(w, v, t)
-        store_var(o, w, v, 0)
+        if get(w, 256) == 0:
+            store_var(o, w, v, 0)
     else:
         if op != @buffer.store@ and op != @buffer.swap@:
             fail(w, 27)
     expect(s, w, 10)
+    if get(w, 256) != 0 and get(w, 8) != @ret@:
+        fail(w, 59)
     return 0
 
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
@@ -823,20 +851,10 @@ def fix_all(o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def emit8(o:mutbuf, w:mutbuf, x:u64) -> u64:
-    i = 0
-    while i < 8:
-        emit(o, w, x & 255)
-        x = x >> 8
-        i = i + 1
-    return 0
+    return emit_bytes(o, w, x, 8)
 
 def emit4(o:mutbuf, w:mutbuf, x:u64) -> u64:
-    i = 0
-    while i < 4:
-        emit(o, w, x & 255)
-        x = x >> 8
-        i = i + 1
-    return 0
+    return emit_bytes(o, w, x, 4)
 
 def emit(o:mutbuf, w:mutbuf, x:u64) -> u64:
     phase = get(w, 48)
@@ -1091,6 +1109,12 @@ def account_nodes(w:mutbuf, amount:u64) -> u64:
     if nodes > MAX_CORE_NODES:
         return fail(w, 58)
     return 0
+
+def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
+    if remaining == 0:
+        return 0
+    emit(o, w, x & 255)
+    return emit_bytes(o, w, x >> 8, remaining - 1)
 '''
 
 
@@ -1220,7 +1244,8 @@ def document():
     nodes=ast.parse(source_program()).body
     # Source order deliberately contains backward direct calls. The HIA
     # compiler's call-graph checker, not author-time topological numbering,
-    # admits this DAG and rejects direct or indirect recursion.
+    # admits its non-self DAG and checked direct tail self calls. General
+    # recursive cycles remain outside the native fixed profile.
     ordered=nodes
     assert ordered[0].name=='compile'
     names={n.name:'f'+str(i) for i,n in enumerate(ordered)}

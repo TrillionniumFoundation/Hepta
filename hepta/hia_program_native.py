@@ -164,6 +164,9 @@ class _Function:
         # its canonical slot is reserved but no stale spill is ever read.
         self.saved_registers = {reg: self.allocate(1) for reg in VALUE_REGISTERS
                                 if reg in self.value_registers.values()}
+        # v4 r8/r9 values are caller-clobbered and are never saved here. The
+        # independent plan checker restricts the entire function to its exact
+        # leaf inventory (including exclusion of buffer.swap's implicit r8).
         self.frame = (self.cursor + 15) & -16
         if self.frame > MAX_FRAME_BYTES:
             _reject("function stack frame exceeds 64 KiB: " + fn["name"], "E_HIA_PROGRAM_LIMIT")

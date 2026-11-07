@@ -33,7 +33,8 @@ retained observations.
 The [2026-11-07 closure record](docs/HIA_PRODUCT_CLOSURE_20261107.md) separates
 the observed exact v4 deployment from this integrated source candidate. The
 candidate adds an opt-in [Safe Core final-image validation chain](docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md),
-Selfhost-Core v5 with 8,192 instructions, strict original-task reconciliation,
+Selfhost-Core v6 with 8,192 instructions and checked direct tail self calls,
+strict original-task reconciliation,
 and a [strong ordinary optimization control](docs/HIA_NDU_STRONG_CONTROL_20261107.md).
 The current source lock is the authority for new installations; previous v4
 receipts do not qualify this changed worker. Live cancellation, fresh-Agent
@@ -45,6 +46,14 @@ nonreturning `abort` call, and prevents incomplete comparison arms from
 producing a headline NDU saving. Its release lock also hashes this default
 README. These changes require new source and worker identities; the observed
 live v4 service continues to have its separately retained older identity.
+
+The v6 compiler uses its new same-frame tail-call path when emitting its own
+successor. Non-tail and mutually recursive cycles, owned allocation and
+ownership transfer remain outside the fixed self-hosting subset. Machine-plan
+v4 additionally permits explicit `r8`/`r9` scalar assignments in independently
+checked leaf functions. Its admission excludes calls and implicit scratch uses;
+the canonical default remains unchanged. The source contract also binds the
+fresh-Agent runner and its original-deadline, failure and cleanup receipts.
 
 The standalone **HIA Core v1-v8 profiles** accept AI-authored typed SSA programs
 without original high-level source. `python -m hepta hia verify`, `run`,

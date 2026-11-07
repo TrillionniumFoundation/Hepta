@@ -44,6 +44,7 @@ BOOTSTRAP_FILES = (
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",
     "tools/hia_selfhost_cases.py", "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py", "tools/hia_selfhost_capacity.py",
     "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
@@ -66,6 +67,7 @@ CANDIDATE_FILES = (
     "experiments/hia_product_closure_20261107/http-client/tools/hia_original_reconcile.py",
     "tools/hia_agent_codex_transport.py", "tools/hia_agent_fresh_session.py",
     "tests/test_hia_agent_first_use_recovery.py", "docs/HIA_AGENT_FIRST_USE.md",
+    "tools/qualify_hia_selfhost_leaf_plans.py", "tests/test_hia_machine_leaf_registers.py",
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",

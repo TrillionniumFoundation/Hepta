@@ -30,6 +30,7 @@ NEW_SUITES = (
     "tests.test_hia_agent_native_campaign",
     "tests.test_hia_machine_plan",
     "tests.test_hia_machine_registers",
+    "tests.test_hia_machine_leaf_registers",
     "tests.test_hia_native_byte_abi",
     "tests.test_hia_bootstrap_components",
     "tests.test_hia_selfhost",
@@ -42,6 +43,7 @@ NEW_SUITES = (
     "tests.test_hia_release",
     "tests.test_hia_first_use",
     "tests.test_hia_agent_provider",
+    "tests.test_hia_agent_first_use_recovery",
 )
 
 

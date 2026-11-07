@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v5`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v6`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -112,7 +112,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
-| Calls | Scalar-return direct `call` to any numbered function in an acyclic call graph, with exact parameter/return types |
+| Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
 
@@ -126,7 +126,7 @@ its source/output extents and required workspace before parsing.
 
 Each function returns exactly one scalar; returned loans and owners are excluded.
 There are no allocations, deallocations, foreign calls, callbacks, arbitrary
-pointers, recursion, exceptions, indirect branches or host library imports in
+pointers, non-tail or mutual recursion, exceptions, indirect branches or host library imports in
 the subset. The fixed exported function `f0` accepts exactly three buffers
 `(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
 scalar and borrowed-buffer parameters.
@@ -135,11 +135,12 @@ The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
 edge signatures, existing targets and graph reachability. Inbound edges to
 `b0` are forbidden. The native HIA checker records the complete directed call
-graph, rejects missing targets, and marks functions whose callees are already
-acyclic. After at most one pass per function, every function must be marked.
-Backward calls are therefore admitted when they do not create a cycle. Direct
-and indirect recursion are rejected, including cycles in unused helper
-functions. Repeated mutable buffer arguments in one call or edge
+graph, rejects missing targets, and marks functions whose non-self callees are
+already acyclic. After at most one pass per function, every function must be
+marked. Backward calls are admitted when they do not create a cycle. A direct
+self call is excluded from that graph only after the parser enforces the exact
+tail shape. Non-tail self calls and all mutual cycles are rejected, including
+cycles in unused helper functions. Repeated mutable buffer arguments in one call or edge
 are rejected. Every edge also rejects repeated `readbuf` SSA arguments, matching
 Core's linear capability transfer rule, even on a statically untaken branch.
 Calls may pass the same read-only loan more than once. Buffers can only originate in parameters and flow through checked
@@ -161,7 +162,8 @@ The bounds are part of the compiler profile:
 | Relative relocations | 12,000 |
 
 These bounds also bound stack frames and the accepted Core structure. The
-checked acyclic graph bounds native call depth by the 128-function limit.
+checked non-self graph bounds live native frames by the 128-function limit;
+each admitted tail self call adds zero frames.
 The call graph and its marks occupy bytes 858,368 through 875,775 of the
 existing 1 MiB workspace, after the complete relative-relocation table; they
 do not overlap live parser, SSA or relocation state. Every compilation clears
@@ -184,12 +186,14 @@ reimplemented as a dependency of the native compiler.
 
 ### v5 capacity qualification
 
-The previous v4 profile allowed 3,072 instructions; v5 raises this to 8,192
+The previous v4 profile allowed 3,072 instructions; v5 raised this to 8,192
 without increasing source, output or workspace bytes, stack/CPU/address-space
-limits, or child deadlines. The current compiler contains 3,044 instructions,
-leaving 5,148 instruction slots in the v5 profile. Owned resources, returned
-loans, recursion, arbitrary identifiers and general external linking remain
-outside this profile.
+limits, or child deadlines. The v5 compiler contained 3,044 instructions.
+v6 retains these limits and all exact capacity fixtures while adding the tail
+self-call checker and lowering. The current instruction count is recorded by
+the authoring aid and each B0/generation receipt. Owned resources, returned
+loans, non-tail/mutual recursion, arbitrary identifiers and general external
+linking remain outside this profile.
 
 The relocation table remains 12,000 records in the same workspace layout.
 An instruction contributes at most one call relocation, a block at most two
@@ -213,7 +217,7 @@ All source bytes, raw invocation logs, output hashes, counters and independent
 reference outcomes are retained, including the refusal cases. These checks run
 inside the source-only cold replay and do not weaken its acceptance conditions.
 
-An additional upgrade replay consumes the retained v4 B3 image and source from
+The historical v5 upgrade replay consumes the retained v4 B3 image and source from
 the exact `894d2dfce54ff25271b8de2c18c902394484d5cc` source release. Their expected
 SHA-256 digests are pinned in the replay tool, and its original receipt must
 agree. It first demonstrates the old 3,073-operation refusal, then has that
@@ -223,11 +227,62 @@ U2 compiles U3, all three must match, and U3 must compile and execute the
 external assembler/linker. It does reuse, rather than freshly rebuild, the
 historical v4 B3; the independent v5 cold replay still starts from B0.
 
+Run that historical replay from the pinned v5 source release. Its script refuses
+to apply the v4-to-v5 label to a v6 checkout: v4/v5 did not admit self calls, and
+this round does not claim a native-only historical upgrade into the new source.
+
 ```sh
 python tools/replay_hia_selfhost_upgrade.py \
   --previous-evidence <retained-v4-qualification.evidence> \
   --output <new-upgrade-report.json>
 ```
+
+### v6 direct tail self calls
+
+A direct call to the current function is admitted only when it is the last
+instruction of its block and the immediately following terminator is
+`ret(vN)` for exactly that call's result. A following arithmetic instruction,
+edge, branch, or return of a different value is refused with error 59. The call
+still passes the ordinary arity, exact type, scalar return, SSA and mutable
+alias checks. Both parse passes before output writing check the tail shape;
+invalid tail syntax therefore leaves the output allocation unchanged.
+
+Lowering first copies every actual argument into the existing call scratch
+slots. It then copies all staged words into `b0` parameter slots and emits one
+relative jump to `b0`, after the function prologue and its stack probes. This
+parallel copy preserves exchanged scalar arguments and both words of borrowed
+buffers. It does not overwrite the original result pointer at `rbp-8`, push a
+return address, allocate another frame, or execute a second prologue. A later
+ordinary return stores through that original pointer and returns to the
+original caller. Self-call relocations use the existing block relocation kind;
+the v5 relocation upper bound is unchanged. Header word 256 stores the pending
+result plus one and is reset at every block; word 248 remains the exact Core
+node counter.
+
+This is a bound on stack growth, not a termination proof. Just as accepted
+ordinary loops can run forever, a tail self call need not decrease an argument.
+The unchanged child limits enforce 10 CPU seconds, a 20-second parent deadline,
+256 MiB address space and an 8 MiB stack. General recursion and mutual tail
+cycles remain excluded.
+
+The compiler itself uses a recursive `emit_bytes` helper: `emit4` and `emit8`
+call it with 4 and 8 remaining bytes. Thus every B0/B1/B2 compiler actually
+executes the new form while compiling its complete successor; B1=B2=B3 and the
+modified M2=M3 chain must still hold. B0 retains its ordinary native call
+implementation and executes only the bounded 4/8-byte recursion. Successors
+perform the checked same-frame lowering.
+
+Qualification retains independent recursive Core VM observations for scalar
+argument exchange at depths 0, 1, 62, 63 and 127 and for recursive byte copies.
+The buffer VM wrapper allocates, initializes and inspects owners; its recursive
+helper is unchanged from the native fixture. Native output and scalar results
+must agree in both the original and modified compilers. A separate 1,000,001
+iteration fixture uses SSA index 2047, a 33,328-byte frame and a closed integer
+recurrence oracle (each step exchanges arguments and adds the remaining count)
+under the same 8 MiB stack cap. Its recursive VM call-budget refusal is
+explicitly retained and is not reported as a VM deep-recursion success.
+Tail-related type/arity/alias refusals, valid-general-Core non-tail refusals,
+one-byte-short output and matching flat/ELF `.text` are part of the cold replay.
 
 ## Parse, validate and generate
 

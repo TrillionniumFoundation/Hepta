@@ -13,13 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v5"
+PROFILE = "selfhost-core-linux-x86_64-v6"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
     "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_cases.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py",
     "tools/hia_selfhost_capacity.py",
     "tools/qualify_hia_selfhost.py",
@@ -81,6 +82,7 @@ def support_contract(root=ROOT):
             "instructions": MAX_INSTRUCTIONS, "core_structural_nodes": MAX_CORE_NODES,
             "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
+            "tail_self_call_additional_frames": 0,
         },
         "capacity_derivation": {
             "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,
@@ -109,10 +111,16 @@ def support_contract(root=ROOT):
                        "block reachability", "no inbound entry edges"]},
             {"area": "calls", "status": "bounded_subset",
              "items": ["scalar return", "exact signatures", "forward direct calls",
-                       "backward direct calls", "HIA-checked acyclic call graph"]},
-            {"area": "recursion", "status": "rejected",
-             "items": ["direct recursion", "mutual recursion",
-                       "cycles in non-entry-reachable functions"]},
+                       "backward direct calls", "HIA-checked non-self acyclic call graph"]},
+            {"area": "recursion", "status": "bounded_subset",
+             "items": ["direct self call immediately returned by the same block",
+                       "parallel argument staging and same-frame entry jump",
+                       "non-tail self calls and mutual recursion rejected",
+                       "non-tail cycles in non-entry-reachable functions rejected"],
+             "limits": {"additional_frames_per_self_tail_call": 0,
+                        "runtime_termination_proved": False,
+                        "iteration_bound": "external CPU/wall budget, as for accepted loops",
+                        "pending_result_workspace_offset": 256}},
             {"area": "owned_resources", "status": "not_implemented",
              "items": ["allocation", "deallocation", "owner transfer",
                        "returned loans", "recursive owner chains"]},

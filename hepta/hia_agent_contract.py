@@ -239,7 +239,7 @@ BLOCK_PLAN_SCHEMA = obj({
 })
 
 # Artifact-referenced plans preserve the eleven-tool wire catalog. Discovery
-# publishes the original layout profile and the explicit v2/v3 choices.
+# publishes the original layout profile and the explicit v2/v3/v4 choices.
 MACHINE_PLAN_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.machine-plan.v2"},
     "core_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -264,4 +264,12 @@ VALUE_REGISTER_PLAN_SCHEMA = obj({
         "additionalProperties": {"type": "object", "maxProperties": 65536,
             "additionalProperties": {"enum": ["rbx", "r12", "r13", "r14", "r15"]}}},
 })
-PLAN_SCHEMA = {"oneOf": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA]}
+LEAF_REGISTER_PLAN_SCHEMA = obj({
+    **VALUE_REGISTER_PLAN_SCHEMA["properties"],
+    "schema": {"const": "hepta.hia.agent.machine-plan.v4"},
+    "value_registers": {"type": "object", "maxProperties": 1024,
+        "additionalProperties": {"type": "object", "maxProperties": 65536,
+            "additionalProperties": {"enum": ["rbx", "r12", "r13", "r14", "r15", "r8", "r9"]}}},
+})
+PLAN_SCHEMA = {"oneOf": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA,
+                         LEAF_REGISTER_PLAN_SCHEMA]}

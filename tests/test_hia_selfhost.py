@@ -71,10 +71,20 @@ class SelfhostSourceTests(unittest.TestCase):
         assemble_program(backward_chain_source())
         for name, source in recursion_refusals().items():
             with self.subTest(case=name):
-                assemble_program(source)  # valid general Core; outside the acyclic native profile
+                assemble_program(source)  # valid general Core; outside this bounded recursive profile
         for name, source in call_graph_invalid_sources(SAMPLE.read_bytes()).items():
             with self.subTest(case=name), self.assertRaises(HIAProgramRejected):
                 assemble_program(source)
+
+    def test_tail_reference_uses_real_recursion_and_preserves_vm_budget_refusal(self):
+        from tools.hia_selfhost_tailcalls import independent_tail_reference
+        result = independent_tail_reference()
+        self.assertEqual(len(result["scalar_cases"]), 5)
+        self.assertEqual(len(result["buffer_cases"]), 3)
+        self.assertEqual(len(result["rejections"]), 6)
+        self.assertEqual(sum(r["general_core"] == "accepted" for r in result["rejections"]), 3)
+        self.assertEqual(result["deep_case"]["reference_result"]["status"], "budget_exceeded")
+        self.assertGreater(result["deep_case"]["native_frame_bytes"] * result["deep_case"]["count"], 8 << 20)
 
     def test_expanded_capacity_has_independent_execution_and_exact_structural_boundary(self):
         from tools.hia_selfhost_capacity import independent_capacity_reference
@@ -176,7 +186,7 @@ class SelfhostNativeTests(unittest.TestCase):
         references = self.report["independent_core_reference"]["general_core_observations"]
         self.assertEqual(references[-1]["result"], 127)
 
-    def test_recursion_and_bad_backward_signatures_are_transactionally_refused(self):
+    def test_non_tail_recursion_and_bad_backward_signatures_are_transactionally_refused(self):
         results = [row for row in self.report["call_graph_observations"] if "-reject-" in row["case"]]
         self.assertEqual(len(results), 14)
         for result in results:
@@ -185,6 +195,17 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertTrue(result.get("source_unchanged"), result)
         differences = self.report["independent_core_reference"]["admission_differences"]
         self.assertEqual(sum(row["general_core"] == "accepted" for row in differences), 3)
+
+    def test_tail_self_calls_bootstrap_and_keep_frame_resource_and_capacity_boundaries(self):
+        self.assertTrue(self.report["checks"]["own_compiler_uses_direct_tail_self_calls"])
+        for name, accepted in self.report["checks"].items():
+            if "-tail-" in name:
+                self.assertTrue(accepted, name)
+        rejections = [r for r in self.report["tail_call_observations"] if "-tail-refuse-" in r["case"]]
+        self.assertEqual(len(rejections), 12)
+        for result in rejections:
+            self.assertEqual(result["core_u32"], INVALID)
+            self.assertTrue(result["output_unchanged"])
 
     def test_hia_writes_elf_objects_that_link_and_rebuild_the_compiler(self):
         rows = [row for row in self.report["elf_object_observations"] if "inventory" in row]

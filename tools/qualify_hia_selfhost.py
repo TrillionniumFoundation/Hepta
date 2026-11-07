@@ -79,6 +79,12 @@ def build_seed(directory, source=None):
             {"caller": fn["name"], "callee": op["attrs"]["function"]}
             for fn in document["functions"] for block in fn["blocks"] for op in block["ops"]
             if op["op"] == "call" and int(op["attrs"]["function"][1:]) < int(fn["name"][1:])],
+        "direct_tail_self_calls": [
+            {"caller": fn["name"], "block": block["id"]}
+            for fn in document["functions"] for block in fn["blocks"]
+            if block["ops"] and block["ops"][-1]["op"] == "call"
+            and block["ops"][-1]["attrs"]["function"] == fn["name"]
+            and block["term"] == {"op": "ret", "values": [block["ops"][-1]["out"][0]["name"]]}],
     }
     receipt["support_contract_sha256"] = digest((ROOT / CONTRACT_PATH).read_bytes())
     receipt["python"] = {"path": str(Path(sys.executable).resolve()),
@@ -267,8 +273,8 @@ def invalid_sources(sample):
 def independent_call_reference(sample):
     """Record the general Core's distinct acceptance and scalar-execution view.
 
-    Called before B0. Typed recursion is legal in general Core but deliberately
-    refused by this finite native profile; never label that as Core invalidity.
+    Called before B0. The non-tail/mutual fixtures are legal general Core but
+    refused by this native profile; never label that as Core invalidity.
     """
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected, execute_program
@@ -429,6 +435,9 @@ def qualify(output):
     from tools.hia_selfhost_capacity import independent_capacity_reference, qualify_capacity
     capacity_reference = independent_capacity_reference()
     (directory / "independent-capacity-reference.json").write_text(json.dumps(capacity_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_tailcalls import independent_tail_reference, qualify_tailcalls
+    tail_reference = independent_tail_reference()
+    (directory / "independent-tail-reference.json").write_text(json.dumps(tail_reference, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -440,6 +449,7 @@ def qualify(output):
     original = previous
     checks = {"support_contract_matches_source": True, "three_native_self_compilations": True,
               "own_compiler_uses_backward_direct_calls": bool(seed_receipt["source_structure"]["backward_direct_calls"]),
+              "own_compiler_uses_direct_tail_self_calls": bool(seed_receipt["source_structure"]["direct_tail_self_calls"]),
               "B1_B2_B3_byte_identical": len({x["produced_sha256"] for x in stages}) == 1,
               "no_host_compiler_modules_in_successors": all(not x["forbidden_compiler_modules_loaded"] for x in stages)}
     changed = mutate_compiler(source)
@@ -506,9 +516,10 @@ def qualify(output):
         (("original", original, source), ("modified", previous, changed)), sample, checks)
     resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
+    tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
-        "schema": "hepta.hia.selfhost-qualification.v5",
+        "schema": "hepta.hia.selfhost-qualification.v6",
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"], "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
@@ -522,6 +533,7 @@ def qualify(output):
         "elf_object_observations": elf_observations,
         "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
+        "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,

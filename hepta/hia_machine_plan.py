@@ -9,8 +9,22 @@ from __future__ import annotations
 LAYOUT_V1 = "hepta.hia.agent.block-layout.v1"
 MACHINE_V2 = "hepta.hia.agent.machine-plan.v2"
 MACHINE_V3 = "hepta.hia.agent.machine-plan.v3"
+MACHINE_V4 = "hepta.hia.agent.machine-plan.v4"
 SCRATCH = frozenset({"r10", "r11"})
 VALUE_REGISTERS = ("rbx", "r12", "r13", "r14", "r15")
+LEAF_VALUE_REGISTERS = ("r8", "r9")
+# Exact finite opcode inventory audited against _Function.operation and its
+# helpers. Returning calls, allocation/bulk helpers and buffer.swap (implicit
+# r8 scratch) are deliberately excluded. Future opcodes do not inherit access.
+LEAF_VALUE_OPS = frozenset({
+    "const", "int.add.wrap", "int.add.checked", "int.sub.wrap", "int.sub.checked",
+    "int.mul.wrap", "int.mul.checked", "int.div.checked", "int.rem.checked",
+    "int.shl.checked", "int.shr.checked", "int.neg.checked", "int.cast",
+    "bit.and", "bit.or", "bit.xor", "bit.not", "compare.eq", "compare.ne",
+    "compare.lt", "compare.le", "compare.gt", "compare.ge",
+    "bool.and", "bool.or", "bool.not", "select",
+    "buffer.len", "buffer.load", "buffer.store",
+})
 VALUE_TYPES = frozenset({f"{sign}{width}" for sign in ("i", "u") for width in (8, 16, 32, 64)}) | {
     "isize", "usize", "bool"}
 MOVE_CHOICES = frozenset({"movabs", "mov32_if_exact"})
@@ -44,7 +58,7 @@ def _terminal_arguments(term):
     return []
 
 
-def register_assignment_witness(checked, assignments):
+def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
     """Independently check caller-supplied scalar register lifetimes.
 
     Verified Core blocks are closed: every incoming value is an explicit block
@@ -56,18 +70,29 @@ def register_assignment_witness(checked, assignments):
     no instruction-specific read-before-write assumption is needed here.
 
     This validates an assignment, not a register allocator or profitability
-    search. It only relies on the fixed callee-saved register set below.
+    search. v3 uses only the fixed callee-saved set. v4 additionally admits
+    r8/r9 only in functions whose complete lowering has no returning call or
+    implicit write to these registers. All reaching edges retain staged copies.
     """
     _require(type(assignments) is dict, "value_registers must be a function map")
     functions = {fn["name"]: fn for fn in checked.as_dict()["functions"]}
     _require(all(type(name) is str and name in functions for name in assignments),
              "unknown function in value register assignment")
     witnesses = {}
+    allowed = VALUE_REGISTERS + (LEAF_VALUE_REGISTERS if allow_leaf_registers else ())
     for name, mapping in assignments.items():
         _require(type(mapping) is dict and all(type(value) is str and type(reg) is str
-                 and reg in VALUE_REGISTERS for value, reg in mapping.items()),
-                 "value registers must be explicit rbx/r12/r13/r14/r15 assignments")
+                 and reg in allowed for value, reg in mapping.items()),
+                 "value registers must be explicit assignments admitted by this plan version")
         fn = functions[name]
+        leaf_registers = [reg for reg in LEAF_VALUE_REGISTERS if reg in mapping.values()]
+        leaf_ops = sorted({op["op"] for block in fn["blocks"] for op in block["ops"]})
+        if leaf_registers:
+            _require(all(op in LEAF_VALUE_OPS for op in leaf_ops),
+                     "caller-clobbered value registers require a leaf opcode whitelist; no calls, swap or allocation/bulk helpers")
+            _require(all(p["type"] in VALUE_TYPES | {"readbuf", "mutbuf"} for p in fn["params"])
+                     and all(t in VALUE_TYPES for t in fn["returns"]),
+                     "leaf registers require scalar/borrowed parameters and scalar returns")
         definitions = {p["name"]: p["type"] for block in fn["blocks"]
                        for p in block["params"] + [p for op in block["ops"] for p in op["out"]]}
         _require(all(value in definitions and definitions[value] in VALUE_TYPES for value in mapping),
@@ -83,7 +108,7 @@ def register_assignment_witness(checked, assignments):
                     ends[value] = position
             for value in _terminal_arguments(block["term"]):
                 ends[value] = len(block["ops"]) + 1
-            by_register = {reg: [] for reg in VALUE_REGISTERS}
+            by_register = {reg: [] for reg in allowed}
             for value in sorted(starts):
                 if value in mapping:
                     row = {"block": block["id"], "value": value, "type": definitions[value],
@@ -98,6 +123,9 @@ def register_assignment_witness(checked, assignments):
                              f"{left['value']} and {right['value']} share {register}")
         witnesses[name] = {"callee_saved_registers": [reg for reg in VALUE_REGISTERS if reg in mapping.values()],
                            "intervals": intervals}
+        if allow_leaf_registers:
+            witnesses[name].update(caller_clobbered_leaf_registers=leaf_registers,
+                                   leaf_opcode_inventory=leaf_ops if leaf_registers else [])
     return {"rule": "closed-block inclusive lifetimes; all edge sources staged before target writes",
             "functions": witnesses}
 
@@ -116,21 +144,21 @@ def validate_plan(checked, plan):
     except HIAProgramRejected as exc:
         raise MachinePlanRejected("E_HIA_MACHINE_PLAN: plan requires bounded plain JSON data") from exc
     schema = plan.get("schema")
-    _require(type(schema) is str and schema in {LAYOUT_V1, MACHINE_V2, MACHINE_V3}, "unknown plan schema")
+    _require(type(schema) is str and schema in {LAYOUT_V1, MACHINE_V2, MACHINE_V3, MACHINE_V4}, "unknown plan schema")
     fields = {"schema", "core_sha256", "block_order"}
-    if schema in {MACHINE_V2, MACHINE_V3}:
+    if schema in {MACHINE_V2, MACHINE_V3, MACHINE_V4}:
         fields |= {"function_order", "scratch_registers", "instruction_selection", "function_alignment"}
-    if schema == MACHINE_V3:
+    if schema in {MACHINE_V3, MACHINE_V4}:
         fields.add("value_registers")
     _require(set(plan) == fields, "plan has missing or unreviewed fields")
     _require(plan["core_sha256"] == checked.sha256, "plan belongs to a different Core")
     functions = {fn["name"]: fn for fn in checked.as_dict()["functions"]}
     orders = plan["block_order"]
-    _require(type(orders) is dict and (bool(orders) or schema in {MACHINE_V2, MACHINE_V3}), "invalid block order map")
+    _require(type(orders) is dict and (bool(orders) or schema in {MACHINE_V2, MACHINE_V3, MACHINE_V4}), "invalid block order map")
     for name, order in orders.items():
         _require(type(name) is str and name in functions, "unknown function in block order")
         _permutation(order, [block["id"] for block in functions[name]["blocks"]], "block order")
-    if schema in {MACHINE_V2, MACHINE_V3}:
+    if schema in {MACHINE_V2, MACHINE_V3, MACHINE_V4}:
         _permutation(plan["function_order"], functions, "function order")
         registers = plan["scratch_registers"]
         _require(type(registers) is dict and set(registers) == SCRATCH
@@ -138,7 +166,7 @@ def validate_plan(checked, plan):
                  and set(registers.values()) == SCRATCH,
                  "scratch assignment must bijectively rename only r10 and r11")
         choices = plan["instruction_selection"]
-        choice_fields = {"move_immediate", "alu_immediate"} | ({"scalar_select"} if schema == MACHINE_V3 else set())
+        choice_fields = {"move_immediate", "alu_immediate"} | ({"scalar_select"} if schema in {MACHINE_V3, MACHINE_V4} else set())
         _require(type(choices) is dict and set(choices) == choice_fields,
                  "instruction choices must be explicit and complete")
         _require(type(choices["move_immediate"]) is str and choices["move_immediate"] in MOVE_CHOICES,
@@ -147,10 +175,13 @@ def validate_plan(checked, plan):
                  "unreviewed immediate arithmetic encoding")
         _require(type(plan["function_alignment"]) is int and plan["function_alignment"] in ALIGNMENTS,
                  "unreviewed function alignment")
-        if schema == MACHINE_V3:
+        if schema in {MACHINE_V3, MACHINE_V4}:
             _require(type(choices["scalar_select"]) is str and choices["scalar_select"] in SELECT_CHOICES,
                      "unreviewed scalar select encoding")
-            register_assignment_witness(checked, plan["value_registers"])
+            if schema == MACHINE_V4:
+                register_assignment_witness(checked, plan["value_registers"], allow_leaf_registers=True)
+            else:
+                register_assignment_witness(checked, plan["value_registers"])
     return plan  # This exact detached snapshot was checked and is emitted.
 
 
@@ -166,7 +197,7 @@ def preservation_checks(plan, checked=None):
     """Separate claims, with no promotion to whole-backend refinement."""
     checks = [{"choice": "block_layout", "checked": True,
                "rule": "exact block permutations; every terminator transfers explicitly"}]
-    if plan["schema"] in {MACHINE_V2, MACHINE_V3}:
+    if plan["schema"] in {MACHINE_V2, MACHINE_V3, MACHINE_V4}:
         checks.extend([
             {"choice": "scratch_registers", "checked": True,
              "rule": "bijection on explicit caller-clobbered r10/r11; implicit ISA and ABI registers fixed"},
@@ -175,14 +206,19 @@ def preservation_checks(plan, checked=None):
             {"choice": "function_layout", "checked": True,
              "rule": "exact function permutation, symbol relocations retained, NOPs only between functions"},
         ])
-    if plan["schema"] == MACHINE_V3:
+    if plan["schema"] in {MACHINE_V3, MACHINE_V4}:
         _require(checked is not None and plan["core_sha256"] == checked.sha256,
                  "register preservation witness requires the exact verified Core")
         checks.extend([
             {"choice": "value_registers", "checked": True,
              "rule": "noninterfering scalar lifetimes; staged edge copies; all used callee-saved registers saved/restored",
-             "witness": register_assignment_witness(checked, plan["value_registers"])},
+             "witness": (register_assignment_witness(checked, plan["value_registers"], allow_leaf_registers=True)
+                         if plan["schema"] == MACHINE_V4 else register_assignment_witness(checked, plan["value_registers"]))},
             {"choice": "scalar_select", "checked": True,
              "rule": "explicit branch or register-only CMOV; all operands already defined scalars; MOV loads preserve TEST flags"},
         ])
+        if plan["schema"] == MACHINE_V4:
+            checks.append({"choice": "caller_clobbered_leaf_values", "checked": True,
+                "rule": "r8/r9 only; exact leaf opcode inventory; no returning call; no implicit r8/r9 scratch; scalar values; inclusive lifetimes; staged entry/edge copies",
+                "trap_rule": "all trap paths call abort then UD2 and have no returning continuation"})
     return checks
