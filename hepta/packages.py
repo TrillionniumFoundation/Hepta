@@ -39,7 +39,10 @@ def _inside(path: Path, root: Path, message: str):
     return path
 
 
-def load_package(root, _stack=None, _cache=None) -> Package:
+def load_package(root, _stack=None, _cache=None, *, _resolution=None) -> Package:
+    if _resolution is None:
+        from .package_resolution import resolve_package
+        return resolve_package(root, _stack, _cache)
     root = Path(root).resolve()
     stack = [] if _stack is None else _stack
     cache = {} if _cache is None else _cache
@@ -48,6 +51,25 @@ def load_package(root, _stack=None, _cache=None) -> Package:
         fail("E_PACKAGE_CYCLE", "Dependency cycle: " + " -> ".join(str(p) for p in stack + [root]), manifest)
     if root in cache:
         return cache[root]
+    package, deps = _resolution.read(root)
+    for alias, spec in sorted(deps.items()):
+        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", alias):
+            fail("E_PACKAGE_NAME", "Dependency aliases must be ASCII identifiers", manifest)
+        if isinstance(spec, dict) and set(spec) == {"path"} and isinstance(spec["path"], str):
+            dep_root = (root / spec["path"]).resolve()
+        else:
+            dep_root = _resolution.choose(root, alias, spec)
+        dep = load_package(dep_root, stack + [root], cache, _resolution=_resolution)
+        if dep.kind != "lib":
+            fail("E_PACKAGE_DEPENDENCY", "Dependencies must declare kind = \"lib\"", dep_root)
+        package.dependencies[alias] = dep
+    cache[root] = package
+    return package
+
+
+def read_package(root: Path) -> tuple[Package, dict]:
+    """Read one package without resolving or executing its dependencies."""
+    manifest = root / "hepta.toml"
     if not manifest.is_file():
         fail("E_PACKAGE_MANIFEST", "Expected a hepta.toml manifest", manifest)
     data = manifest.read_bytes()
@@ -80,18 +102,7 @@ def load_package(root, _stack=None, _cache=None) -> Package:
     deps = config.get("dependencies", {})
     if not isinstance(deps, dict):
         fail("E_PACKAGE_SCHEMA", "dependencies must be a table", manifest)
-    for alias, spec in sorted(deps.items()):
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", alias):
-            fail("E_PACKAGE_NAME", "Dependency aliases must be ASCII identifiers", manifest)
-        if not isinstance(spec, dict) or set(spec) != {"path"} or not isinstance(spec["path"], str):
-            fail("E_PACKAGE_DEPENDENCY", "Dependencies require exactly { path = \"...\" }; network/registry resolution is not implemented", manifest)
-        dep_root = (root / spec["path"]).resolve()
-        dep = load_package(dep_root, stack + [root], cache)
-        if dep.kind != "lib":
-            fail("E_PACKAGE_DEPENDENCY", "Dependencies must declare kind = \"lib\"", dep_root)
-        package.dependencies[alias] = dep
-    cache[root] = package
-    return package
+    return package, deps
 
 
 def find_manifest(source: Path) -> Path | None:

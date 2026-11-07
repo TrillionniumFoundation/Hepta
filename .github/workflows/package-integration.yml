@@ -1,0 +1,72 @@
+name: Local resolver and lock review integration
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_modules.py'
+      - 'tests/*package*'
+      - 'tests/*lock_diff*'
+      - 'tools/qualify_package_integration.py'
+      - 'docs/PACKAGE_INTEGRATION.md'
+      - '.github/workflows/package-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-integration:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+        python: ['3.11', '3.13']
+        backend: [c, rust]
+    env:
+      HEPTA_PACKAGE_TEST_BACKEND: ${{ matrix.backend }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      CC: gcc
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned native Rust
+        if: matrix.backend == 'rust'
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          rustup default 1.90.0
+          printf 'PATH rustc: '; command -v rustc
+          printf 'Resolved PATH rustc: '; readlink -f "$(command -v rustc)"
+          rustc_path="$(rustup which --toolchain 1.90.0 rustc)"
+          test -x "$rustc_path"
+          printf 'RUSTC=%s\n' "$rustc_path" >> "$GITHUB_ENV"
+          "$rustc_path" -vV
+      - name: Verify exact source identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree}
+          python --version
+          gcc --version
+      - name: Run strict combined gate and all independent oracles
+        run: |
+          set -o pipefail
+          python -B tools/qualify_package_integration.py 2>&1 | tee "$RUNNER_TEMP/package-integration.log"
+      - name: Verify final checkout identity
+        if: always()
+        run: git diff --exit-code && git diff --cached --exit-code && test -z "$(git ls-files --others --exclude-standard)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: package-integration-${{ matrix.os }}-py${{ matrix.python }}-${{ matrix.backend }}
+          path: ${{ runner.temp }}/package-integration.log
+          if-no-files-found: error
