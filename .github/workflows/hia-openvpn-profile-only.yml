@@ -105,7 +105,7 @@ jobs:
         if: always() && steps.publication_privacy.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: openvpn-hia-profile-\${{ github.sha }}-\${{ github.run_attempt }}
-          path: \${{ runner.temp }}/ovpn-hia-target/public/
+          name: openvpn-hia-profile-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ovpn-hia-target/public/
           if-no-files-found: error
           retention-days: 14
