@@ -183,6 +183,9 @@ class AgentStore:
         self.artifacts.mkdir(mode=0o700, exist_ok=True)
         if self.artifacts.is_symlink():
             reject("E_HIA_STORE", "artifact directory cannot be a symbolic link")
+        info = self.artifacts.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.geteuid() or info.st_mode & 0o022:
+            reject("E_HIA_STORE", "artifact directory must be owned and not writable by other users")
         database = self.root / "state.sqlite3"
         if database.exists() or database.is_symlink():
             info = database.lstat()
