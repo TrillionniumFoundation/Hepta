@@ -344,6 +344,26 @@ class DcoReplayEvidenceTests(unittest.TestCase):
     def device_drop_receipt(self):
         return {"rx_dropped": 1, "rx_packets": 0, "rx_bytes": 0}
 
+    def test_dco_path_scope_uses_real_ovpn_snapshot_shape(self):
+        server_path = {
+            "kind": "ovpn", "ifindex": 7, "netns_inode": 200,
+            "link": {"ifname": "tunbench-s", "linkinfo": {"info_kind": "ovpn"}},
+            "underlay": {"ifname": "ovpn-us"},
+        }
+        before = {"ifindex": 7, "netns_inode": 200}
+        after = copy.deepcopy(before)
+        self.assertTrue(verifier.verify_dco_path_scope(server_path, before, after))
+        invalid = []
+        wrong_kind = copy.deepcopy(server_path); wrong_kind["kind"] = "tun"; invalid.append(wrong_kind)
+        wrong_link = copy.deepcopy(server_path); wrong_link["link"]["ifname"] = "tunbench-c"; invalid.append(wrong_link)
+        wrong_underlay = copy.deepcopy(server_path); wrong_underlay["underlay"]["ifname"] = "eth0"; invalid.append(wrong_underlay)
+        wrong_ifindex = copy.deepcopy(server_path); wrong_ifindex["ifindex"] = 8; invalid.append(wrong_ifindex)
+        wrong_netns = copy.deepcopy(server_path); wrong_netns["netns_inode"] = 201; invalid.append(wrong_netns)
+        for candidate in invalid:
+            with self.subTest(candidate=candidate):
+                with self.assertRaises(ValueError):
+                    verifier.verify_dco_path_scope(candidate, before, after)
+
     def test_dco_device_drop_delta_requires_exactly_one_drop_without_delivery(self):
         before = self.device()
         after = self.device(dropped=11)
