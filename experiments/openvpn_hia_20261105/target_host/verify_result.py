@@ -143,13 +143,47 @@ def verify_udp_delivery(value, workload, policy):
 
 
 
-def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False):
-    """Independently verify active-peer ingress or a prior-session peer ID after reconnect."""
+def verify_dco_device_drop_delta(before, after):
+    """Independently bind one kernel ovpn RX drop to no VPN-facing device delivery."""
+    require(isinstance(before, list) and len(before) == 1
+            and isinstance(after, list) and len(after) == 1,
+            "DCO device snapshot must contain exactly one interface")
+    old, new_row = before[0], after[0]
+    require(old.get("ifname") == "tunbench-s" and new_row.get("ifname") == "tunbench-s",
+            "DCO device snapshot names the wrong interface")
+    require(isinstance(old.get("ifindex"), int) and not isinstance(old.get("ifindex"), bool)
+            and old.get("ifindex") == new_row.get("ifindex"),
+            "DCO device ifindex changed or is malformed")
+    require(old.get("linkinfo", {}).get("info_kind") == "ovpn"
+            and new_row.get("linkinfo", {}).get("info_kind") == "ovpn",
+            "DCO device snapshot is not the kernel ovpn interface")
+    old_rx = old.get("stats64", {}).get("rx", {})
+    new_rx = new_row.get("stats64", {}).get("rx", {})
+    keys = ("dropped", "packets", "bytes")
+    require(all(isinstance(old_rx.get(key), int) and not isinstance(old_rx.get(key), bool)
+                and isinstance(new_rx.get(key), int) and not isinstance(new_rx.get(key), bool)
+                for key in keys),
+            "DCO device RX counters are missing or malformed")
+    delta = {key: new_rx[key] - old_rx[key] for key in keys}
+    require(all(value >= 0 for value in delta.values()), "DCO device RX counters reset")
+    require(delta["dropped"] == 1,
+            "DCO device did not record exactly one isolated RX drop")
+    require(delta["packets"] == 0 and delta["bytes"] == 0,
+            "injected packet was delivered to the VPN-facing DCO device")
+    return {"rx_dropped": delta["dropped"], "rx_packets": delta["packets"],
+            "rx_bytes": delta["bytes"]}
+
+
+def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False,
+                               device_drop_delta=None):
+    """Independently verify peer counters and the DCO device RX-drop witness."""
     require(type(allow_stale_peer_id) is bool, "stale peer-ID allowance is not boolean")
     require(packet_peer_id is None or
             (isinstance(packet_peer_id, int) and not isinstance(packet_peer_id, bool)
              and 0 <= packet_peer_id <= 0xffffff),
             "OpenVPN data-v2 peer ID is malformed")
+    require(device_drop_delta == {"rx_dropped": 1, "rx_packets": 0, "rx_bytes": 0},
+            "DCO device did not record one isolated receive drop without VPN delivery")
     for key in ("ifindex", "netns_inode", "family_id"):
         require(before.get(key) == after.get(key), "DCO peer scope changed: " + key)
     first = {row["peer_id"]: row for row in before.get("peers", [])}
@@ -171,11 +205,8 @@ def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_p
         require(stale_peer or packet_peer_id is None or packet_peer_id == peer_id,
                 "encrypted datagram peer ID differs from the active DCO peer")
         if stale_peer:
-            require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
-                    "stale prior-session peer packet did not reach current DCO peer ingress")
-            require(all(value == 0 for key, value in delta.items()
-                        if key not in ("link_rx_packets", "link_rx_bytes")),
-                    "stale prior-session packet changed non-ingress DCO peer counters")
+            require(all(value == 0 for value in delta.values()),
+                    "stale prior-session peer unexpectedly changed active peer counters")
         else:
             require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
                     "DCO peer did not account incoming encrypted link traffic")
@@ -507,8 +538,29 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                         "DCO peer Netlink command identity/namespace is invalid: " + action)
             packet_peer_id=ingress.get("packet_peer_id")
             stale_peer_expected=(action=="after-reconnect-replay" and expected_mode=="replay")
+            device_before_path=beneath(target,dco.get("device_before_path",""))
+            device_after_path=beneath(target,dco.get("device_after_path",""))
+            require(digest(device_before_path)==dco.get("device_before_sha256")
+                    and digest(device_after_path)==dco.get("device_after_sha256"),
+                    "DCO device snapshot digest changed: "+action)
+            device_before=read(device_before_path);device_after=read(device_after_path)
+            require(dco.get("device_netns_inode")==server_path.get("netns_inode")
+                    and len(device_before)==1 and len(device_after)==1
+                    and device_before[0].get("ifindex")==server_path.get("ifindex")
+                    and device_after[0].get("ifindex")==server_path.get("ifindex"),
+                    "DCO device snapshots do not bind the measured server namespace/ifindex: "+action)
+            computed_device=verify_dco_device_drop_delta(device_before,device_after)
+            require(dco.get("device_delta")==computed_device,
+                    "DCO device RX-drop delta differs from raw before/after snapshots: "+action)
+            expected_device_argv=["ip","-d","-s","-j","link","show","dev","tunbench-s"]
+            for command in (dco.get("device_before_command",{}),dco.get("device_after_command",{})):
+                require(command.get("exit_code")==0 and not command.get("timed_out")
+                        and command.get("namespace")==case.get("namespaces",{}).get("server")
+                        and command.get("argv")==expected_device_argv,
+                        "DCO device-stat command identity/namespace is invalid: "+action)
             computed = verify_dco_rejection_delta(before, after, packet_peer_id=packet_peer_id,
-                                                  allow_stale_peer_id=stale_peer_expected)
+                                                  allow_stale_peer_id=stale_peer_expected,
+                                                  device_drop_delta=computed_device)
             active_peer_id=before["peers"][0]["peer_id"]
             require(dco.get("delta") == computed,
                     "DCO peer counter delta differs from raw before/after snapshots: " + action)
