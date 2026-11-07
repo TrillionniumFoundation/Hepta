@@ -294,6 +294,47 @@ def negotiated_profile(observation, epoch):
     return latest
 
 
+def active_peer_endpoint(status_text, server_log, expected_ip='192.0.2.2',
+                         common_name='OpenVPN-HIA-client'):
+    """Bind a replay's outer UDP source port to the currently authenticated peer."""
+    if not isinstance(status_text, str) or not isinstance(server_log, str):
+        raise ValueError('active peer status/log must be text')
+    header = None
+    rows = []
+    for line in status_text.splitlines():
+        fields = line.split('\t')
+        if len(fields) >= 3 and fields[0] == 'HEADER' and fields[1] == 'CLIENT_LIST':
+            header = fields[2:]
+        elif fields and fields[0] == 'CLIENT_LIST':
+            if header is None or len(fields) - 1 != len(header):
+                raise ValueError('OpenVPN CLIENT_LIST row has no matching status header')
+            row = dict(zip(header, fields[1:]))
+            if row.get('Common Name') == common_name:
+                rows.append(row)
+    if len(rows) != 1:
+        raise ValueError('expected exactly one authenticated OpenVPN client in server status')
+    remote = rows[0].get('Real Address', '')
+    match = re.fullmatch(r'udp4:([0-9.]+):([0-9]+)', remote)
+    if not match or match.group(1) != expected_ip:
+        raise ValueError('authenticated peer status has an unexpected UDP endpoint')
+    port = int(match.group(2))
+    peer_id_text = rows[0].get('Peer ID', '')
+    if not 1 <= port <= 65535 or not peer_id_text.isdecimal():
+        raise ValueError('authenticated peer status has an invalid port or peer ID')
+    pattern = re.compile(
+        r'udp4:' + re.escape(expected_ip) + r':([0-9]+) \[' + re.escape(common_name) +
+        r'\] Peer Connection Initiated with \[AF_INET\]' + re.escape(expected_ip) + r':([0-9]+)')
+    matches = [(line, pattern.search(line)) for line in server_log.splitlines()]
+    matches = [(line, found) for line, found in matches if found]
+    if not matches:
+        raise ValueError('server log has no authenticated peer initialization endpoint')
+    peer_init_line, found = matches[-1]
+    if int(found.group(1)) != port or int(found.group(2)) != port:
+        raise ValueError('server status endpoint differs from the latest authenticated peer')
+    return {'remote_address': remote, 'source_ip': expected_ip, 'source_port': port,
+            'peer_id': int(peer_id_text), 'peer_init_line': peer_init_line}
+
+
 def peer_delta(before, after):
     for key in ('ifindex','netns_inode','family_id'):
         if before.get(key) != after.get(key): raise ValueError('DCO peer scope changed: '+key)
@@ -783,19 +824,27 @@ def strict_probe(pair,label,port):
     save(pair.folder/(label+'-result.json'),result);return result
 
 
-def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
+def inject(pair,capture,old_receiver,label,mode,traffic_sender=None,peer_endpoint=None):
     if old_receiver.proc.poll() is not None:raise RuntimeError('old-payload receiver is no longer alive before '+label)
+    source_port=None
+    if peer_endpoint is not None:
+        current=active_peer_endpoint(read_text(pair.folder/'server.status'),pair.processes['server'].text())
+        if current != peer_endpoint:
+            raise RuntimeError('authenticated server peer endpoint changed before encrypted replay')
+        source_port=current['source_port']
     spec=importlib.util.spec_from_file_location('encrypted_packet_helper',HERE/'encrypted_capture.py')
     helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
     captured=read_json(capture)
     frame=Path(capture).with_name('frame.bin').read_bytes()
     if hashlib.sha256(frame).hexdigest()!=captured['frame_sha256']:
         raise RuntimeError('original ciphertext capture changed before injection')
-    expected=hashlib.sha256(helper.parse_frame(helper.submitted_frame(frame,mode))['payload']).hexdigest()
+    expected=hashlib.sha256(helper.parse_frame(helper.submitted_frame(frame,mode,source_port=source_port))['payload']).hexdigest()
     witness_dir=pair.folder/(label+'-witness')
-    witness=pair.spawn('server',[sys.executable,str(HERE/'encrypted_capture.py'),'witness','--interface','ovpn-us',
-                      '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--ciphertext-sha256',expected,
-                      '--deadline','3','--out',str(witness_dir)],label+'-witness')
+    witness_argv=[sys.executable,str(HERE/'encrypted_capture.py'),'witness','--interface','ovpn-us',
+                  '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194']
+    if source_port is not None:witness_argv.extend(['--sport',str(source_port)])
+    witness_argv.extend(['--ciphertext-sha256',expected,'--deadline','3','--out',str(witness_dir)])
+    witness=pair.spawn('server',witness_argv,label+'-witness')
     pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
     dco_server=pair.arms['server'].endswith('dco')
     traffic_pause=None
@@ -819,8 +868,11 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
                                       '--out',str(dco_before_path)],label+'-dco-peer-before')
         dco_before=read_json(dco_before_path)
     out=pair.folder/label
-    row=pair.command('client',[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
-                              '--capture',str(capture),'--mode',mode,'--count','1','--out',str(out)],label+'-submit')
+    submit_argv=[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
+                 '--capture',str(capture),'--mode',mode]
+    if source_port is not None:submit_argv.extend(['--source-port',str(source_port)])
+    submit_argv.extend(['--count','1','--out',str(out)])
+    row=pair.command('client',submit_argv,label+'-submit')
     metadata=read_json(out/'result.json')
     if metadata.get('status')!='injection_submitted':raise RuntimeError('encrypted injection was not submitted')
     if metadata.get('submitted_ciphertext_sha256')!=expected:raise RuntimeError('submission differs from expected encrypted datagram')
@@ -865,6 +917,7 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
     server_after=pair.observation('server')
     rejection_lines=pair.processes['server'].text().splitlines()[server_line_before:]
     result={'submission':metadata,'peer_exact_witness':arrival,'expected_ciphertext_sha256':expected,
+            'active_peer_endpoint':peer_endpoint,
             'old_receiver_alive_before_and_after_observation':True,'observation_finished_monotonic_ns':observation_end,
             'injection_command':row.row,'witness_command':witness.row,
             'server_log_start_line':server_line_before+1,'server_log_observed_lines':rejection_lines,
@@ -923,7 +976,16 @@ def run_behavior(pair,plan,epoch):
         raise RuntimeError('reconnect success is not ordered after requested hard signal')
     pair.protocol_gate(epoch)
     pair.result['post_reconnect_payload']=strict_probe(pair,'after-reconnect-valid',51003)
-    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-reconnect-replay','replay',continuous['sender']))
+    def endpoint_ready():
+        try:
+            active_peer_endpoint(read_text(pair.folder/'server.status'),pair.processes['server'].text())
+            return True
+        except ValueError:
+            return False
+    pair.wait_until(endpoint_ready,3,'server status reflects the authenticated post-reconnect peer endpoint')
+    endpoint=active_peer_endpoint(read_text(pair.folder/'server.status'),pair.processes['server'].text())
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-reconnect-replay','replay',
+                             continuous['sender'],peer_endpoint=endpoint))
     pair.result['injections']=injections
     pair.result['continuity']=probe_finish(continuous,required=False)
     cont=pair.result['continuity']
