@@ -1,0 +1,92 @@
+name: Standard library slice ordering
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/ordering/**'
+      - 'docs/STDLIB_ORDERING.md'
+      - 'examples/ordering/**'
+      - 'tests/test_stdlib_ordering.py'
+      - 'tests/stdlib_ordering_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-ordering.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hepta/**'
+      - 'stdlib/ordering/**'
+      - 'docs/STDLIB_ORDERING.md'
+      - 'examples/ordering/**'
+      - 'tests/test_stdlib_ordering.py'
+      - 'tests/stdlib_ordering_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-ordering.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-orderings:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: c
+            python: '3.11'
+          - os: ubuntu-24.04-arm
+            backend: c
+            python: '3.13'
+          - os: ubuntu-24.04
+            backend: rust
+            python: '3.13'
+          - os: ubuntu-24.04-arm
+            backend: rust
+            python: '3.11'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HEPTA_ORDERING_BACKEND: ${{ matrix.backend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned Rust
+        if: matrix.backend == 'rust'
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and tools
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+          python --version
+          gcc --version
+          if [ "$HEPTA_ORDERING_BACKEND" = rust ]; then "$RUSTC" -vV; fi
+      - name: Require full ordering suite
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p test_stdlib_ordering.py -v 2>&1 | tee ordering-tests.log
+          test "$(grep -c '^test_.* \.\.\. ok$' ordering-tests.log)" -eq 12
+          ! grep -Ei 'skipped|expected failure|unexpected success' ordering-tests.log
+          git diff --exit-code
+      - name: Independent generated-C oracle
+        if: matrix.backend == 'c'
+        run: |
+          set -o pipefail
+          python tests/stdlib_ordering_oracle.py --output ordering-oracle.json 2>&1 | tee ordering-oracle.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ordering-tests-${{ matrix.os }}-${{ matrix.backend }}
+          path: |
+            ordering-tests.log
+            ordering-oracle.log
+            ordering-oracle.json
+          if-no-files-found: error

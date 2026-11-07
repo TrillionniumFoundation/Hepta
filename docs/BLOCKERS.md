@@ -58,3 +58,13 @@ P10 当前 namespace sandbox 探测失败，生产 provider 模式在启动适�
 - C 导入带公开结构、配对元数据、源码/主机身份及可见原始头文件哈希检查；未经验证的跨目标复用拒绝。
 
 准确的测试数、当前编译器身份、性能样本和运行结果，以最终验收报告及其绑定的证据为准。任何未执行、未知或环境阻塞项目均保持其真实状态。
+
+## P12 composed source-library gate
+
+[STDLIB_INTEGRATION.md](STDLIB_INTEGRATION.md) composes four unchanged experimental
+source libraries: byte codecs, ordering, runtime UTF-8 and canonical Base64.
+A real content-locked packet consumer and independent oracles exercise their
+interactions. This is a finite integration gate, not production standard-library
+qualification. P12 remains PARTIAL; native platforms, packaging, distribution,
+Unicode text ownership, networking and the other ledger conditions remain open.
+

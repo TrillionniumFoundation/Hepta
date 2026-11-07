@@ -1,0 +1,104 @@
+name: Canonical Base64 source library
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/base64/**'
+      - 'examples/packages/base64_packet/**'
+      - 'tests/test_stdlib_base64.py'
+      - 'tools/stdlib_base64_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-base64.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hepta/**'
+      - 'stdlib/base64/**'
+      - 'examples/packages/base64_packet/**'
+      - 'tests/test_stdlib_base64.py'
+      - 'tools/stdlib_base64_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-base64.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  native-base64:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: c
+            python: '3.11'
+          - os: ubuntu-24.04-arm
+            backend: c
+            python: '3.13'
+          - os: ubuntu-24.04
+            backend: rust
+            python: '3.13'
+          - os: ubuntu-24.04-arm
+            backend: rust
+            python: '3.11'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      HEPTA_BASE64_BACKEND: ${{ matrix.backend }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned Rust
+        if: matrix.backend == 'rust'
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and tools
+        run: |
+          {
+            test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+            test -z "$(git status --porcelain)"
+            git rev-parse HEAD HEAD^{tree}
+            python --version
+            gcc --version
+            sha256sum "$(command -v gcc)" stdlib/base64/src/lib.hepta tests/test_stdlib_base64.py tools/stdlib_base64_oracle.py
+            if [ "$HEPTA_BASE64_BACKEND" = rust ]; then "$RUSTC" -vV; sha256sum "$RUSTC"; fi
+          } 2>&1 | tee "$RUNNER_TEMP/base64-identities.log"
+      - name: Require complete public consumer suite
+        run: |
+          python - <<'PY' 2>&1 | tee "$RUNNER_TEMP/base64-public.log"
+          import sys, unittest
+          sys.path.insert(0, 'tests')
+          suite = unittest.defaultTestLoader.loadTestsFromName('test_stdlib_base64')
+          assert suite.countTestCases() == 11, suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 11, result.testsRun
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+          PY
+      - name: Independent native C oracle
+        if: matrix.backend == 'c'
+        run: python tools/stdlib_base64_oracle.py 2>&1 | tee "$RUNNER_TEMP/base64-oracle.log"
+      - name: Require unchanged source
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: base64-${{ matrix.os }}-${{ matrix.backend }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/base64-*.log
+          if-no-files-found: error

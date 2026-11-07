@@ -1,0 +1,158 @@
+// Experimental source-only ordering over explicit half-open slice ranges.
+// Iterative heapsort; no allocation, foreign calls or unsafe operations.
+module hepta_ordering;
+
+// ok means valid range, not presence of a searched value.
+pub struct SearchIndex { index: usize, ok: bool }
+
+fn sift_i32(values: mut [i32], start: usize, count: usize, root_index: usize) -> Unit
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut root = root_index;
+    // A root below count / 2 has a left child. This also bounds 2 * root + 1.
+    while root < count / 2 {
+        let mut child = root * 2 + 1;
+        if child + 1 < count {
+            if values[start + child] < values[start + child + 1] { child = child + 1; }
+        }
+        if values[start + root] >= values[start + child] { return; }
+        let previous = values[start + root];
+        values[start + root] = values[start + child];
+        values[start + child] = previous;
+        root = child;
+    }
+}
+
+pub fn sort_i32(values: mut [i32], start: usize, end: usize) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return false; }
+    if end > len(read values) { return false; }
+    let count = end - start;
+    let mut parent = count / 2;
+    while parent > 0 {
+        parent = parent - 1;
+        sift_i32(mut values, start, count, parent);
+    }
+    let mut remaining = count;
+    while remaining > 1 {
+        remaining = remaining - 1;
+        let greatest = values[start];
+        values[start] = values[start + remaining];
+        values[start + remaining] = greatest;
+        sift_i32(mut values, start, remaining, 0);
+    }
+    return true;
+}
+
+// Requires the selected range to be nondecreasing. Returns an absolute index.
+pub fn lower_bound_i32(values: read [i32], start: usize, end: usize, needle: i32) -> SearchIndex
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return SearchIndex { index: 0, ok: false }; }
+    if end > len(read values) { return SearchIndex { index: 0, ok: false }; }
+    let mut low = start;
+    let mut high = end;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        if values[middle] < needle { low = middle + 1; }
+        else { high = middle; }
+    }
+    return SearchIndex { index: low, ok: true };
+}
+
+// Requires the selected range to be nondecreasing. Returns an absolute index.
+pub fn upper_bound_i32(values: read [i32], start: usize, end: usize, needle: i32) -> SearchIndex
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return SearchIndex { index: 0, ok: false }; }
+    if end > len(read values) { return SearchIndex { index: 0, ok: false }; }
+    let mut low = start;
+    let mut high = end;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        if values[middle] <= needle { low = middle + 1; }
+        else { high = middle; }
+    }
+    return SearchIndex { index: low, ok: true };
+}
+
+fn sift_u64(values: mut [u64], start: usize, count: usize, root_index: usize) -> Unit
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut root = root_index;
+    // A root below count / 2 has a left child. This also bounds 2 * root + 1.
+    while root < count / 2 {
+        let mut child = root * 2 + 1;
+        if child + 1 < count {
+            if values[start + child] < values[start + child + 1] { child = child + 1; }
+        }
+        if values[start + root] >= values[start + child] { return; }
+        let previous = values[start + root];
+        values[start + root] = values[start + child];
+        values[start + child] = previous;
+        root = child;
+    }
+}
+
+pub fn sort_u64(values: mut [u64], start: usize, end: usize) -> bool
+effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return false; }
+    if end > len(read values) { return false; }
+    let count = end - start;
+    let mut parent = count / 2;
+    while parent > 0 {
+        parent = parent - 1;
+        sift_u64(mut values, start, count, parent);
+    }
+    let mut remaining = count;
+    while remaining > 1 {
+        remaining = remaining - 1;
+        let greatest = values[start];
+        values[start] = values[start + remaining];
+        values[start + remaining] = greatest;
+        sift_u64(mut values, start, remaining, 0);
+    }
+    return true;
+}
+
+// Requires the selected range to be nondecreasing. Returns an absolute index.
+pub fn lower_bound_u64(values: read [u64], start: usize, end: usize, needle: u64) -> SearchIndex
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return SearchIndex { index: 0, ok: false }; }
+    if end > len(read values) { return SearchIndex { index: 0, ok: false }; }
+    let mut low = start;
+    let mut high = end;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        if values[middle] < needle { low = middle + 1; }
+        else { high = middle; }
+    }
+    return SearchIndex { index: low, ok: true };
+}
+
+// Requires the selected range to be nondecreasing. Returns an absolute index.
+pub fn upper_bound_u64(values: read [u64], start: usize, end: usize, needle: u64) -> SearchIndex
+effects { panic }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    if start > end { return SearchIndex { index: 0, ok: false }; }
+    if end > len(read values) { return SearchIndex { index: 0, ok: false }; }
+    let mut low = start;
+    let mut high = end;
+    while low < high {
+        let middle = low + (high - low) / 2;
+        if values[middle] <= needle { low = middle + 1; }
+        else { high = middle; }
+    }
+    return SearchIndex { index: low, ok: true };
+}

@@ -1,0 +1,119 @@
+name: Composed source-library integration
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/**'
+      - 'examples/packages/**'
+      - 'examples/ordering/**'
+      - 'tests/*stdlib*'
+      - 'tests/test_parser.py'
+      - 'tests/test_checker.py'
+      - 'tools/stdlib_*'
+      - 'toolchain-lock.json'
+      - 'pyproject.toml'
+      - '.github/workflows/stdlib-integration.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hepta/**'
+      - 'stdlib/**'
+      - 'examples/packages/**'
+      - 'examples/ordering/**'
+      - 'tests/*stdlib*'
+      - 'tests/test_parser.py'
+      - 'tests/test_checker.py'
+      - 'tools/stdlib_*'
+      - 'toolchain-lock.json'
+      - 'pyproject.toml'
+      - '.github/workflows/stdlib-integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  composed-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: c
+            python: '3.11'
+          - os: ubuntu-24.04-arm
+            backend: c
+            python: '3.13'
+          - os: ubuntu-24.04
+            backend: rust
+            python: '3.13'
+          - os: ubuntu-24.04-arm
+            backend: rust
+            python: '3.11'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      HEPTA_INTEGRATION_BACKEND: ${{ matrix.backend }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned Rust
+        if: matrix.backend == 'rust'
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and tools
+        run: |
+          {
+            test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+            test -z "$(git status --porcelain)"
+            git rev-parse HEAD HEAD^{tree}
+            python --version
+            gcc --version
+            sha256sum "$(command -v gcc)" examples/packages/indexed_text/src/packet.hepta tools/stdlib_integration_components.json
+            if [ "$HEPTA_INTEGRATION_BACKEND" = rust ]; then "$RUSTC" -vV; sha256sum "$RUSTC"; fi
+          } 2>&1 | tee "$RUNNER_TEMP/integration-identities.log"
+      - name: Require 60 unique public methods and zero skips
+        run: python tools/stdlib_integration_gate.py 2>&1 | tee "$RUNNER_TEMP/integration-public.log"
+      - name: Require 149 unchanged parser and checker controls
+        run: |
+          python - <<'PY' 2>&1 | tee "$RUNNER_TEMP/integration-compatibility.log"
+          import sys, unittest
+          sys.path.insert(0, 'tests')
+          suite = unittest.defaultTestLoader.loadTestsFromNames(['test_parser', 'test_checker'])
+          assert suite.countTestCases() == 149, suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 149
+          assert result.wasSuccessful() and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses
+          PY
+      - name: Independent native C component and composition oracles
+        if: matrix.backend == 'c'
+        run: |
+          python tests/stdlib_bytes_boundary_oracle.py 2>&1 | tee "$RUNNER_TEMP/integration-bytes-oracle.log"
+          python tests/stdlib_ordering_oracle.py 2>&1 | tee "$RUNNER_TEMP/integration-ordering-oracle.log"
+          python tools/stdlib_utf8_oracle.py 2>&1 | tee "$RUNNER_TEMP/integration-utf8-oracle.log"
+          python tools/stdlib_base64_oracle.py 2>&1 | tee "$RUNNER_TEMP/integration-base64-oracle.log"
+          python tools/stdlib_integration_oracle.py 2>&1 | tee "$RUNNER_TEMP/integration-composed-oracle.log"
+      - name: Require unchanged source
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-${{ matrix.os }}-${{ matrix.backend }}-py${{ matrix.python }}
+          path: ${{ runner.temp }}/integration-*.log
+          if-no-files-found: error

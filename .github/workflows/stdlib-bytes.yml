@@ -1,0 +1,85 @@
+name: Standard library byte codecs
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'stdlib/bytes/**'
+      - 'examples/packages/byte_packet/**'
+      - 'tests/test_stdlib_bytes.py'
+      - 'tests/stdlib_bytes_boundary_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-bytes.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hepta/**'
+      - 'stdlib/bytes/**'
+      - 'examples/packages/byte_packet/**'
+      - 'tests/test_stdlib_bytes.py'
+      - 'tests/stdlib_bytes_boundary_oracle.py'
+      - 'toolchain-lock.json'
+      - '.github/workflows/stdlib-bytes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-codecs:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            backend: c
+            python: '3.11'
+          - os: ubuntu-24.04-arm
+            backend: c
+            python: '3.13'
+          - os: ubuntu-24.04
+            backend: rust
+            python: '3.13'
+          - os: ubuntu-24.04-arm
+            backend: rust
+            python: '3.11'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      HEPTA_BYTES_BACKEND: ${{ matrix.backend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Select pinned Rust
+        if: matrix.backend == 'rust'
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal
+          echo "RUSTC=$(rustup which --toolchain 1.90.0 rustc)" >> "$GITHUB_ENV"
+      - name: Record exact source and tools
+        run: |
+          git rev-parse HEAD
+          git rev-parse HEAD^{tree}
+          python --version
+          gcc --version
+          if [ "$HEPTA_BYTES_BACKEND" = rust ]; then "$RUSTC" -vV; fi
+      - name: Require full codec suite
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -p test_stdlib_bytes.py -v 2>&1 | tee codec-tests.log
+          test "$(grep -c '^test_.* \.\.\. ok$' codec-tests.log)" -eq 13
+          ! grep -Ei 'skipped|expected failure|unexpected success' codec-tests.log
+          python tests/stdlib_bytes_boundary_oracle.py 2>&1 | tee codec-oracle.log
+          git diff --exit-code
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codec-tests-${{ matrix.os }}-${{ matrix.backend }}
+          path: |
+            codec-tests.log
+            codec-oracle.log
+          if-no-files-found: error

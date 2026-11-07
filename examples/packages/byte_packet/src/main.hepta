@@ -1,0 +1,21 @@
+// A small wire header: magic (big endian), length (little endian), sequence.
+import bytes;
+
+fn main() -> i32 effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut packet: [u8; 14] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    assert(bytes::write_u16_be(mut packet, 0, 18512));
+    assert(bytes::write_u32_le(mut packet, 2, 4096));
+    assert(bytes::write_u64_be(mut packet, 6, 123456789));
+    let magic = bytes::read_u16_be(read packet, 0);
+    let length = bytes::read_u32_le(read packet, 2);
+    let sequence = bytes::read_u64_be(read packet, 6);
+    assert(magic.ok && magic.value == 18512);
+    assert(length.ok && length.value == 4096);
+    assert(sequence.ok && sequence.value == 123456789);
+    assert(!bytes::write_u64_le(mut packet, 7, 0));
+    let unchanged = bytes::read_u64_be(read packet, 6);
+    assert(unchanged.ok && unchanged.value == sequence.value);
+    return 0;
+}

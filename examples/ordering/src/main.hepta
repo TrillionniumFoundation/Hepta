@@ -1,0 +1,13 @@
+import order;
+fn main() -> Unit effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let mut samples: [i32; 8] = [99, 7, -2, 7, 0, -2, 5, 88];
+    assert(order::sort_i32(mut samples, 1, 7));
+    assert(samples[0] == 99 && samples[7] == 88);
+    let low = order::lower_bound_i32(read samples, 1, 7, 7);
+    let high = order::upper_bound_i32(read samples, 1, 7, 7);
+    assert(low.ok && high.ok);
+    assert(low.index == 5 && high.index == 7);
+    assert(high.index - low.index == 2);
+}
