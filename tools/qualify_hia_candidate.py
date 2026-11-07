@@ -46,6 +46,7 @@ NEW_SUITES = (
     "tests.test_hia_agent_first_use_recovery",
     "tests.test_hia_macro_multistep",
     "tests.test_hia_macro_exec_adapter",
+    "tests.hia_agent_owned_uid_integration",
 )
 
 

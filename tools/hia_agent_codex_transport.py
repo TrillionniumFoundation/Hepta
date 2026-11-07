@@ -427,7 +427,13 @@ def _group_snapshot(pgid):
     rows = []
     for line in result.stdout.decode("ascii").splitlines():
         values = line.split()
-        if len(values) != 5 or not all(v.isdigit() for v in values[:4]):
+        # Darwin ps can render system UIDs as signed decimal (e.g. nobody=-2).
+        # PID/PPID/PGID stay unsigned; malformed rows still fail closed. This
+        # does not relax the caller's exact owned UID/zombie/reap/EOF checks.
+        if len(values) != 5 or not all(v.isdigit() for v in values[:3]):
+            raise RuntimeError("E_PILOT_GROUP_OBSERVATION_SHAPE")
+        uid = values[3]
+        if not (uid.isdigit() or uid.startswith("-") and uid[1:].isdigit()):
             raise RuntimeError("E_PILOT_GROUP_OBSERVATION_SHAPE")
         row = [int(v) for v in values[:4]] + values[4:]
         if row[2] == pgid:
