@@ -91,6 +91,16 @@ The inherited `completed_comparison` gate keeps the qualified NDU saving `null`
 until all four registered arms have delivered every task within their original
 allowances. Raw arithmetic remains separately labelled.
 
+The v2 comparison uses `tools/hia_macro_multistep_assessment.py`, an explicit
+six-task entry point with exactly two calibration and four heldout purposes.
+It checks the same closed ledgers, four complete arms and original allowances.
+The separate v1 assessor still requires eight to 128 registered tasks. No task
+padding or denominator reduction is used to make either contract pass. A new
+offline verifier can check an earlier v2 bundle without editing its original
+failed verifier receipts. Such an integrity observation does not turn an
+undelivered task into a pass. If any dispatched model event lacks usage, total
+usage fields remain `null`; known counters are reported only as a partial sum.
+
 Billing, response-echoed model identity, generalization and statistical
 confidence are separate missing evidence. This single synthetic campaign keeps
 `economic_benefit_established: false` and `p1_acceptance: HOLD`, including after a
@@ -150,6 +160,7 @@ python -B tools/qualify_hia_macro_multistep.py prepare \
   --feasibility /absolute/new-native-feasibility/QUALIFICATION.json \
   --codex /absolute/new-launcher/codex_exec_v2.py \
   --launcher-binding /absolute/new-launcher/BINDING.json \
+  --registered-warnings /absolute/new-launcher/REGISTERED_WARNINGS.json \
   --model explicitly-qualified-model \
   --native-binary /absolute/hia-ndu-bridge \
   --native-build-receipt /absolute/build-receipt.json \
@@ -172,6 +183,26 @@ group. Per-invocation restrictions include an empty MCP/plugin configuration,
 read-only sandbox and the registered tool-feature disable list. No global
 configuration, credential or network setting is changed. Registered feature
 names and requested flags alone do not attest the effective tool inventory.
+
+Launch configuration v3 keeps the existing `code_mode_host` dependency enabled
+and records the sibling host binary's identity before exec. An actual Linux
+pre-turn failure showed that disabling this host prevents the selected path
+from starting. Its presence and requested flag do not prove which resolver
+the CLI used or that the host has no capabilities. Historical v2 flags remain
+reconstructable for offline receipt checks; new v3 execution requires the new
+dependency binding. The only registered startup warning is the exact, once
+observed `skip_host_skill_discovery` development warning. A different or repeated
+warning, host-unavailable error, tool item, missing usage or unsettled process
+still fails closed.
+
+`tools/qualify_hia_cli_public_capability.py` can separately prepare a tiny public
+compatibility pilot. Its prompt requests only `{"assembly":"READY"}` and loads
+no private maintenance task. The frozen allowance is one CLI session, at most
+60 seconds and an 8,192 input+output+reasoning terminal token review. It retains
+all original streams and cleanup, and never changes unknown prior usage to
+zero. Preparation calls no model; the `run` subcommand requires the exact plan
+SHA after separate review. A pilot result authorizes neither a campaign restart
+nor a formal MCP first-use claim.
 
 After that concrete plan and its budget are reviewed and frozen:
 

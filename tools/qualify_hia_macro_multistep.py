@@ -24,18 +24,20 @@ if str(ROOT) not in sys.path:
 
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_agent_contract import installation_manifest
-from hepta.hia_agent_macro_policy import COMPARISON_SCHEMA, assess_macro_comparison, digest, ledger_totals, wire
+from hepta.hia_agent_macro_policy import COMPARISON_SCHEMA, digest, ledger_totals, wire
 from hepta.hia_agent_runner import run_native_batch
 from hepta.hia_agent_service import HIAAgentService
 from hepta.hia_ndu_optimizer import _bridge_identity, _native_rank, ns_to_ms_q32
 from tools.hia_agent_native_qualification import ToolClient
 from tools.hia_macro_multistep_provider import StructuredProvider, request_document, verify_receipt
+from tools.hia_macro_multistep_assessment import assess_multistep_comparison
 from tools.qualify_hia_macro_campaign import (ARM_ORDER, CampaignRejected, CapturingSession,
     Evidence, Journal, _json, _native_result_correct, _new_file, _read_regular)
 
 SCHEMA = 'hepta.hia.agent.macro-multistep.v2'
 PROTOCOL_PATH = ROOT / 'benchmarks/hia_macro_multistep/PROTOCOL.json'
 SOURCES = ('tools/qualify_hia_macro_multistep.py', 'tools/hia_macro_multistep_provider.py',
+    'tools/hia_macro_multistep_assessment.py',
     'tools/qualify_hia_macro_campaign.py', 'tools/hia_macro_codex_provider.py',
     'tools/hia_agent_codex_transport.py', 'tools/hia_agent_native_qualification.py',
     'tools/prepare_hia_followup_tasks.py', 'benchmarks/hia_macro_multistep/PROTOCOL.json',
@@ -581,6 +583,7 @@ def verify(root):
     usage = {name:0 for name in ('input_tokens','cached_input_tokens','cache_write_input_tokens',
                                'output_tokens','reasoning_output_tokens')}
     counters = {'provider_cli_sessions':0,'provider_receipts':0,'content_rejections':0,
+                'unknown_usage_model_events':0,'missing_provider_receipt_events':0,
                 'native_ndu_evaluations':0,'actual_completed_quality_cells':0,'events':0}
     by_arm = {}
     for arm in comparison['arms']:
@@ -668,15 +671,20 @@ def verify(root):
                         require(result['rounds'][round_index]['request_sha256'] == receipt['request_sha256'],
                                 'scheduled round/request mismatch')
                         if receipt['process'] is not None:
-                            counters['provider_cli_sessions'] += 1
+                            counters['provider_cli_sessions'] += int('pid' in receipt['process'])
                         if receipt.get('recoverable_content_rejection'):
                             counters['content_rejections'] += 1
                         if receipt.get('usage') is not None:
                             for key in usage:
                                 usage[key] += receipt['usage'][key]
+                        elif receipt['status'] != 'not_attempted':
+                            counters['unknown_usage_model_events'] += 1
                         if receipt.get('status') == 'completed' and receipt.get('answer') is not None:
                             require(result['rounds'][round_index]['assembly'] == receipt['answer']['assembly'],
                                     'candidate text not the actual model output')
+                    else:
+                        counters['missing_provider_receipt_events'] += 1
+                        counters['unknown_usage_model_events'] += 1
                 prefix_ledger.append(ledger)
             for phase,summary in row['phase_inventory'].items():
                 phase_receipt = obj(summary['receipt_sha256'])
@@ -849,7 +857,9 @@ def verify(root):
                 and row['status'] == ('completed' if completed else 'failed'), 'task completion verdict differs')
             counters['actual_completed_quality_cells'] += int(completed)
             arm_rows.append({'task_id':row['task_id'],'purpose':task_plan['purpose'],
-                'quality_complete':completed,'wall_ns':cursor,'model_tokens':costs['observed_model_tokens'],
+                'quality_complete':completed,'wall_ns':cursor,
+                'model_tokens':None if any(e['model_tokens'] is None for e in row['ledger']) else costs['observed_model_tokens'],
+                'known_subset_model_tokens':costs['observed_model_tokens'],
                 'provider_rounds':len(model_events)})
             if task_plan['purpose'] == 'calibration':
                 expected_calibration.append({'task_id':row['task_id'],'quality_complete':completed,
@@ -863,11 +873,15 @@ def verify(root):
     require(manifest['measurement']['charged_cells_wall_ns'] == sum(a['wall_ns'] for a in by_arm.values())
         and manifest['measurement']['outer_wall_ns_to_manifest'] >= manifest['measurement']['charged_cells_wall_ns']
         and manifest['measurement']['nested_durations_added_again'] is False, 'outer/nested cost accounting differs')
-    assessed = assess_macro_comparison(wire(comparison))
+    assessed = assess_multistep_comparison(wire(comparison),
+        {row['id']:row['purpose'] for row in plan['tasks']})
+    complete_usage = counters['unknown_usage_model_events'] == 0
+    total_usage = {key:value if complete_usage else None for key,value in usage.items()}
     return {'schema':SCHEMA,'original_byte_integrity':True,'planned_cells':24,'counters':counters,
-        'arm_quality_and_wall':by_arm,'original_usage_counters':usage,
-        'input_plus_output_tokens':usage['input_tokens'] + usage['output_tokens'],
-        'source_conservative_charged_tokens':usage['input_tokens'] + usage['output_tokens'] + usage['reasoning_output_tokens'],
+        'arm_quality_and_wall':by_arm,'original_usage_counters':total_usage,
+        'known_subset_usage_counters':usage,'usage_aggregate_complete':complete_usage,
+        'input_plus_output_tokens':usage['input_tokens'] + usage['output_tokens'] if complete_usage else None,
+        'source_conservative_charged_tokens':usage['input_tokens'] + usage['output_tokens'] + usage['reasoning_output_tokens'] if complete_usage else None,
         'completed_comparison':assessed['completed_comparison'],
         'ndu_saving_ns':assessed['completed_comparison']['ndu_saving_ns'],
         'raw_ndu_wall_difference_ns':assessed['raw_ndu_wall_difference_ns'],

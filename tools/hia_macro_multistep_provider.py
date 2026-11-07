@@ -14,7 +14,7 @@ from pathlib import Path
 
 from tools.hia_agent_codex_transport import checked_usage, identity, run_owned, strict_json
 from tools.hia_macro_codex_provider import MacroEvents, charged_tokens, read_raw, store_raw
-from tools.hia_macro_exec_adapter import adapt, restrictions
+from tools.hia_macro_exec_adapter import adapt, restrictions, EXACT_SKIP_SKILL_WARNING
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = 'hepta.hia.agent.multistep-provider.v2'
@@ -130,6 +130,10 @@ class StructuredProvider:
                 and launcher_binding['configuration']['adapter_module_sha256'] == sha256(
                     (ROOT/'tools/hia_macro_exec_adapter.py').read_bytes()).hexdigest(),
                 'explicit launcher/underlying CLI/source binding differs')
+            require(launcher_binding['configuration']['schema'] == 'hepta.hia.explicit-codex-launch-config.v3'
+                and list(warnings) == [EXACT_SKIP_SKILL_WARNING]
+                and launcher_binding['configuration']['registered_startup_warnings'] == list(warnings),
+                'new launches require the fixed host dependency policy and only its exact observed startup warning')
 
     def description(self):
         return {'schema': SCHEMA, 'invocation_path': str(self.binary), 'cli_identity': self.cli_identity,
@@ -209,6 +213,9 @@ class StructuredProvider:
 def validate_launch(launch, process, binding):
     config = binding['configuration']
     actual, _ = adapt(process['argv'][1:],Path(process['cwd']),config)
+    if config.get('schema') == 'hepta.hia.explicit-codex-launch-config.v3':
+        require(launch.get('host_dependency_observation') == config['host_dependency_identity'],
+            'original Code Mode host dependency observation differs')
     require(launch['schema'] == 'hepta.hia.explicit-codex-exec-adapter.v2'
         and launch['incoming_argv'] == process['argv'] and launch['actual_exec_argv'] == actual
         and launch['cwd'] == process['cwd'] and launch['actual_cli'] == binding['underlying_cli']

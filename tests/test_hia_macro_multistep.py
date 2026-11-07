@@ -21,6 +21,9 @@ from tools.qualify_hia_macro_multistep import (checked_pool_selection, calibrati
 from tools.qualify_hia_macro_campaign import Evidence
 from hepta.hia_agent_macro_policy import ledger_totals
 from tools import qualify_hia_macro_multistep as campaign_module
+from tools.hia_macro_exec_adapter import EXACT_SKIP_SKILL_WARNING
+from tools.hia_macro_multistep_assessment import assess_multistep_comparison
+from hepta.hia_agent_macro_policy import MacroPolicyRejected, assess_macro_comparison, wire
 
 USAGE = {'input_tokens':100,'cached_input_tokens':75,'cache_write_input_tokens':0,
          'output_tokens':10,'reasoning_output_tokens':2}
@@ -34,6 +37,23 @@ def stream(text, *, extra=(), usage=None):
 
 
 class StructuredOutputTests(unittest.TestCase):
+    def test_only_the_exact_once_observed_pre_turn_warning_is_allowed(self):
+        rows = [json.loads(line) for line in stream('{"assembly":"READY"}').splitlines()]
+        warning = {'type':'item.completed','item':{'id':'startup','type':'error',
+            'message':EXACT_SKIP_SKILL_WARNING}}
+        encode = lambda value:b''.join(json.dumps(row).encode()+b'\n' for row in value)
+        accepted = parse_stream(encode([rows[0],warning,*rows[1:]]),[EXACT_SKIP_SKILL_WARNING])
+        self.assertTrue(accepted['stream_valid'])
+        self.assertEqual(accepted['usage'],USAGE)
+        for rejected in ([rows[0],warning,warning,*rows[1:]],
+                [rows[0],{**warning,'item':{**warning['item'],'message':EXACT_SKIP_SKILL_WARNING+' extra'}},*rows[1:]],
+                [rows[0],warning,{'type':'item.completed','item':{'id':'host','type':'error',
+                    'message':'Code Mode is unavailable because code-mode host is disabled.'}}]):
+            observed = parse_stream(encode(rejected),[EXACT_SKIP_SKILL_WARNING])
+            self.assertFalse(observed['stream_valid'])
+        self.assertIsNone(observed['usage'])
+        self.assertIsNone(observed['charged_model_tokens'])
+
     def test_valid_envelope_does_not_skip_core_checker(self):
         row = parse_stream(stream(json.dumps({'assembly':'not a program'})))
         self.assertTrue(row['stream_valid'])
@@ -138,6 +158,54 @@ class StructuredOutputTests(unittest.TestCase):
                     self.assertIsNone(later['process'])
                     self.assertEqual(invoke.call_count,1)
                     self.assertFalse((Path(temporary)/'later').exists())
+
+
+class SixTaskAssessmentTests(unittest.TestCase):
+    def fixture(self):
+        from tests.test_hia_agent_macro_policy import comparison, registration
+        value = comparison()
+        value['task_inventory'] = value['task_inventory'][:6]
+        value['budget'] = {'wall_ns':180_000_000_000,'model_tokens':32768}
+        for arm in value['arms']:
+            arm['observations'] = arm['observations'][:6]
+            arm['budget'] = deepcopy(value['budget'])
+        registration(value)
+        purposes = {row['id']:'calibration' if i<2 else 'heldout'
+            for i,row in enumerate(value['task_inventory'])}
+        return value,purposes
+
+    def test_six_task_v2_and_original_eight_task_v1_are_distinct(self):
+        from tests.test_hia_agent_macro_policy import comparison
+        value,purposes = self.fixture()
+        with self.assertRaisesRegex(MacroPolicyRejected,'eight to 128'):
+            assess_macro_comparison(wire(value))
+        result = assess_multistep_comparison(wire(value),purposes)
+        self.assertEqual(result['registered_tasks'],6)
+        self.assertTrue(result['completed_comparison']['eligible'])
+        self.assertFalse(result['economic_benefit_established'])
+        self.assertEqual(result['p1_acceptance'],'HOLD')
+        self.assertEqual(assess_macro_comparison(wire(comparison()))['registered_tasks'],8)
+
+    def test_extra_missing_relabelled_tasks_or_changed_allowance_reject(self):
+        for change in ('extra','missing','purpose','real','budget'):
+            value,purposes = self.fixture()
+            if change=='extra':value['task_inventory'].append(deepcopy(value['task_inventory'][0]))
+            elif change=='missing':value['task_inventory'].pop()
+            elif change=='purpose':purposes['task0']='heldout'
+            elif change=='real':value['task_inventory'][0]['qualification']='real_agent_task'
+            elif change=='budget':value['budget']['model_tokens']+=1
+            with self.subTest(change=change),self.assertRaises(MacroPolicyRejected):
+                assess_multistep_comparison(wire(value),purposes)
+
+    def test_incomplete_or_unknown_cost_can_never_be_a_completed_control(self):
+        value,purposes = self.fixture()
+        row=value['arms'][0]['observations'][0]
+        row['status']='failed';row['correct']=False;row['ledger'][0]['model_tokens']=None
+        result=assess_multistep_comparison(wire(value),purposes)
+        self.assertFalse(result['completed_comparison']['eligible'])
+        self.assertIsNone(result['completed_comparison']['ndu_saving_ns'])
+        self.assertNotIn('fixed',result['completed_comparison']['complete_controls'])
+        self.assertFalse(result['arm_costs']['fixed'][0]['complete'])
 
 
 class ProposalReservationTests(unittest.TestCase):

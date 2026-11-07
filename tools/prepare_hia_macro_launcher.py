@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0,str(ROOT))
 
-from tools.hia_macro_exec_adapter import DISABLED_FEATURES
+from tools.hia_macro_exec_adapter import DISABLED_FEATURES, ENABLED_DEPENDENCIES, EXACT_SKIP_SKILL_WARNING
 from tools.hia_agent_codex_transport import identity
 from tools.hia_macro_multistep_provider import RESPONSE_SCHEMA, encoded
 from tools.qualify_hia_macro_campaign import _json,_read_regular,_new_file
@@ -35,15 +35,18 @@ def prepare(registration_path,feature_list_path,output,*,real_cli,model,campaign
             raise ValueError('unexpected original feature-list shape')
         registry[parsed[1]] = parsed[2]
     if any(name not in registry or registry[name] == 'removed'
-           for name in (*DISABLED_FEATURES,'skip_host_skill_discovery')):
+           for name in (*DISABLED_FEATURES,*ENABLED_DEPENDENCIES,'skip_host_skill_discovery')):
         raise ValueError('a required local restriction is not a registered usable feature')
     if type(model) is not str or not model or model.startswith('-'):
         raise ValueError('explicit model selector required')
     cli = identity(real_cli)
     source = (ROOT/'tools/hia_macro_exec_adapter.py').read_bytes()
-    config = {'schema':'hepta.hia.explicit-codex-launch-config.v2','real_cli':cli,'model':model,
+    config = {'schema':'hepta.hia.explicit-codex-launch-config.v3','real_cli':cli,'model':model,
         'campaign_root':str(Path(campaign_root).absolute()),'task_ids':[r['id'] for r in rows],
         'max_rounds':3,'disabled_features':list(DISABLED_FEATURES),
+        'enabled_dependencies':list(ENABLED_DEPENDENCIES),
+        'registered_startup_warnings':[EXACT_SKIP_SKILL_WARNING],
+        'host_dependency_identity':identity(Path(real_cli).with_name('codex-code-mode-host')),
         'feature_list_sha256':sha256(feature_raw).hexdigest(),
         'response_schema_sha256':sha256(encoded(RESPONSE_SCHEMA)+b'\n').hexdigest(),
         'adapter_module_sha256':sha256(source).hexdigest(),
@@ -61,6 +64,7 @@ def prepare(registration_path,feature_list_path,output,*,real_cli,model,campaign
         'source_scope':'exact source module embedded, launcher and underlying CLI identities separately recorded',
         'complete_capability_isolation_attested':False}
     _new_file(output/'BINDING.json',encoded(binding)+b'\n')
+    _new_file(output/'REGISTERED_WARNINGS.json',encoded([EXACT_SKIP_SKILL_WARNING])+b'\n')
     return binding
 
 

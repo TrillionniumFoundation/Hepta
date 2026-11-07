@@ -70,6 +70,7 @@ CANDIDATE_FILES = (
     "tools/qualify_hia_selfhost_leaf_plans.py", "tests/test_hia_machine_leaf_registers.py",
     "tools/prepare_hia_followup_tasks.py", "tools/qualify_hia_followup_tasks.py",
     "tools/qualify_hia_macro_multistep.py", "tools/hia_macro_multistep_provider.py",
+    "tools/hia_macro_multistep_assessment.py", "tools/qualify_hia_cli_public_capability.py",
     "tools/hia_macro_exec_adapter.py", "tools/prepare_hia_macro_launcher.py",
     "benchmarks/hia_macro_multistep/PROTOCOL.json", "docs/HIA_AGENT_MACRO_MULTISTEP.md",
     "tests/test_hia_macro_multistep.py", "tests/test_hia_macro_exec_adapter.py",

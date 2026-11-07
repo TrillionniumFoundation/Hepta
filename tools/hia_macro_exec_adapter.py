@@ -13,7 +13,7 @@ import stat
 import sys
 import time
 
-DISABLED_FEATURES = (
+LEGACY_DISABLED_FEATURES = (
     'apps','apps_early_resource_discovery','plugins','plugin_sharing','remote_plugin',
     'plugin_discovery_prefetch','hooks','shell_tool','shell_snapshot','shell_snapshot_v2',
     'unified_exec','unified_exec_tty','incremental_exec_tools','deferred_executor',
@@ -26,14 +26,33 @@ DISABLED_FEATURES = (
     'code_mode_host_grpc','code_mode_tool_search','artifact','request_permissions_tool',
     'executor_capability_discovery','executor_capability_discovery_v2','standalone_web_search')
 
+# This stable host is a dependency of the selected CLI/model path. Disabling it
+# produced an actual pre-turn failure. Keeping it available is not a claim that
+# all tools/capabilities are absent; original tool items still fail the parser.
+DISABLED_FEATURES = tuple(name for name in LEGACY_DISABLED_FEATURES if name != 'code_mode_host')
+ENABLED_DEPENDENCIES = ('code_mode_host',)
+EXACT_SKIP_SKILL_WARNING = (
+    'Under-development features enabled: skip_host_skill_discovery. Under-development features '
+    'are incomplete and may behave unpredictably. To suppress this warning, set '
+    '`suppress_unstable_features_warning = true` in /root/.codex/config.toml.')
+
 
 def restrictions(config):
-    if config['disabled_features'] != list(DISABLED_FEATURES):
+    legacy = config.get('schema') == 'hepta.hia.explicit-codex-launch-config.v2'
+    if not legacy and config.get('schema') != 'hepta.hia.explicit-codex-launch-config.v3':
+        raise ValueError('explicit launch policy version required')
+    expected = LEGACY_DISABLED_FEATURES if legacy else DISABLED_FEATURES
+    if config['disabled_features'] != list(expected):
         raise ValueError('registered feature restriction set differs')
+    if not legacy and (config.get('enabled_dependencies') != list(ENABLED_DEPENDENCIES)
+            or config.get('registered_startup_warnings') != [EXACT_SKIP_SKILL_WARNING]):
+        raise ValueError('registered host dependency or exact startup warning differs')
     argv = ['--ignore-user-config','--color','never']
     settings = ['approval_policy="never"','mcp_servers={}','plugins={}',
         'web_search="disabled"','project_doc_max_bytes=0','features.skip_host_skill_discovery=true']
-    settings += ['features.' + name + '=false' for name in DISABLED_FEATURES]
+    settings += ['features.' + name + '=false' for name in expected]
+    if not legacy:
+        settings += ['features.' + name + '=true' for name in ENABLED_DEPENDENCIES]
     for setting in settings:
         argv += ['-c',setting]
     return argv
@@ -82,6 +101,8 @@ def checked_bytes(path, expected_sha256, *, maximum):
 
 
 def execute(config):
+    if config.get('schema') != 'hepta.hia.explicit-codex-launch-config.v3':
+        raise ValueError('legacy v2 restriction policy is retained only for original-byte verification')
     start = time.monotonic_ns()
     cwd = Path.cwd().resolve()
     actual,root = adapt(sys.argv[1:],cwd,config)
@@ -91,6 +112,9 @@ def execute(config):
     size = checked_bytes(cli['path'],cli['sha256'],maximum=512*1024*1024)
     if size != cli['bytes']:
         raise ValueError('underlying CLI byte length changed')
+    host = config['host_dependency_identity']
+    if checked_bytes(host['path'],host['sha256'],maximum=512*1024*1024) != host['bytes']:
+        raise ValueError('registered Code Mode host dependency changed')
     checked_bytes(root/'response-schema.json',config['response_schema_sha256'],maximum=65536)
     receipt = {'schema':'hepta.hia.explicit-codex-exec-adapter.v2',
         'role':'launch adapter, not underlying CLI binary','incoming_argv':sys.argv,
@@ -98,6 +122,8 @@ def execute(config):
         'adapter_path':str(Path(__file__).resolve()),
         'adapter_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'adapter_module_sha256':config['adapter_module_sha256'],
+        'host_dependency_observation':host,
+        'host_dependency_scope':'exact existing binary checked before exec; this hash does not attest the CLI resolver or absence of host capabilities',
         'pid_before_exec':os.getpid(),'pgid_before_exec':os.getpgrp(),
         'capability_restrictions':restrictions(config),
         'registered_feature_list_sha256':config['feature_list_sha256'],
