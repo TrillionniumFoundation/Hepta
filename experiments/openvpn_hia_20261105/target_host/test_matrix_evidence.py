@@ -378,11 +378,11 @@ class DcoReplayEvidenceTests(unittest.TestCase):
                 function(before, after, packet_peer_id=1, allow_stale_peer_id=True)
 
     def test_data_v2_frame_exposes_24bit_peer_id(self):
-        payload = bytes([0x48]) + (0x123456).to_bytes(3, "big") + bytes(range(1, 285))
+        payload = bytes([0x48]) + (0x123456).to_bytes(3, "big") + bytes((i % 256 for i in range(1, 285)))
         parsed = encrypted.parse_frame(self.frame(payload))
         self.assertEqual(parsed["opcode"], 9)
         self.assertEqual(parsed["peer_id"], 0x123456)
-        legacy = encrypted.parse_frame(self.frame(bytes([0x30]) + bytes(range(1, 285))))
+        legacy = encrypted.parse_frame(self.frame(bytes([0x30]) + bytes((i % 256 for i in range(1, 285)))))
         self.assertEqual(legacy["opcode"], 6)
         self.assertIsNone(legacy["peer_id"])
 
