@@ -1,6 +1,19 @@
 name: OpenVPN HIA target profile-only evidence
 
 on:
+  pull_request:
+    branches: [fix/openvpn-hia-p2p-read-fairness-20261106-gpt6]
+    paths:
+      - .github/workflows/hia-openvpn-profile-only.yml
+      - experiments/openvpn_hia_20261105/target_host/*.py
+      - experiments/openvpn_hia_20261105/target_host/*.sh
+      - experiments/openvpn_hia_20261105/target_host/source-lock.json
+      - experiments/openvpn_hia_20261105/target_host/plan.json
+      - experiments/openvpn_hia_20261105/target_host/patches/*.patch
+      - experiments/openvpn_hia_20261105/packet_program.py
+      - experiments/openvpn_hia_20261105/openvpn_hia_adapter.*
+      - experiments/openvpn_hia_20261105/baseline_link.mk
+      - experiments/openvpn_hia_20261105/openvpn_hia_trace.c
   push:
     branches: [fix/openvpn-hia-profile-only-20261107-gpt6]
     paths:
