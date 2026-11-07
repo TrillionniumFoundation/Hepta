@@ -334,6 +334,81 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             }],
         }
 
+    def device(self, dropped=10, packets=20, byte_count=2000, ifindex=7, kind="ovpn"):
+        return [{
+            "ifname": "tunbench-s", "ifindex": ifindex,
+            "linkinfo": {"info_kind": kind},
+            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count}},
+        }]
+
+    def device_drop_receipt(self):
+        return {"rx_dropped": 1, "rx_packets": 0, "rx_bytes": 0}
+
+    def test_dco_path_scope_uses_real_ovpn_snapshot_shape(self):
+        server_path = {
+            "kind": "ovpn", "ifindex": 7, "netns_inode": 200,
+            "link": {"ifname": "tunbench-s", "linkinfo": {"info_kind": "ovpn"}},
+            "underlay": {"ifname": "ovpn-us"},
+        }
+        before = {"ifindex": 7, "netns_inode": 200}
+        after = copy.deepcopy(before)
+        self.assertTrue(verifier.verify_dco_path_scope(server_path, before, after))
+        invalid = []
+        wrong_kind = copy.deepcopy(server_path); wrong_kind["kind"] = "tun"; invalid.append(wrong_kind)
+        wrong_link = copy.deepcopy(server_path); wrong_link["link"]["ifname"] = "tunbench-c"; invalid.append(wrong_link)
+        wrong_underlay = copy.deepcopy(server_path); wrong_underlay["underlay"]["ifname"] = "eth0"; invalid.append(wrong_underlay)
+        wrong_ifindex = copy.deepcopy(server_path); wrong_ifindex["ifindex"] = 8; invalid.append(wrong_ifindex)
+        wrong_netns = copy.deepcopy(server_path); wrong_netns["netns_inode"] = 201; invalid.append(wrong_netns)
+        for candidate in invalid:
+            with self.subTest(candidate=candidate):
+                with self.assertRaises(ValueError):
+                    verifier.verify_dco_path_scope(candidate, before, after)
+
+    def test_dco_device_command_binding_requires_finished_ledger_and_exact_stdout(self):
+        command = {
+            "label": "00010-server-replay-dco-device-before",
+            "argv": ["ip", "netns", "exec", "ohia-test-s", "ip", "-d", "-s", "-j",
+                     "link", "show", "dev", "tunbench-s"],
+            "namespace": "ohia-test-s",
+            "stdout": "cases/common-c-dco/00010-server-replay-dco-device-before.stdout",
+            "stdout_sha256": "a" * 64,
+            "exit_code": 0,
+            "timed_out": False,
+        }
+        ledger = [{"event": "spawn", "label": command["label"]},
+                  {"event": "finished", **command}]
+        self.assertTrue(verifier.verify_dco_device_command_binding(
+            command, ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"]))
+        bad_command = copy.deepcopy(command)
+        bad_command["stdout"] = "cases/other.stdout"
+        with self.assertRaises(ValueError):
+            verifier.verify_dco_device_command_binding(
+                bad_command, ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"])
+        duplicate_ledger = ledger + [{"event": "finished", **command}]
+        with self.assertRaises(ValueError):
+            verifier.verify_dco_device_command_binding(
+                command, duplicate_ledger, "ohia-test-s", command["stdout"], command["stdout_sha256"])
+
+    def test_dco_device_drop_delta_requires_exactly_one_drop_without_delivery(self):
+        before = self.device()
+        after = self.device(dropped=11)
+        expected = self.device_drop_receipt()
+        for function in (matrix.dco_device_drop_delta, verifier.verify_dco_device_drop_delta):
+            self.assertEqual(function(before, after), expected)
+            for invalid in (
+                self.device(dropped=10),
+                self.device(dropped=12),
+                self.device(dropped=11, packets=21),
+                self.device(dropped=11, byte_count=2001),
+                self.device(dropped=11, ifindex=8),
+                self.device(dropped=11, kind="tun"),
+                [{"ifname": "tunbench-c", "ifindex": 7, "linkinfo": {"info_kind": "ovpn"},
+                  "stats64": {"rx": {"dropped": 11, "packets": 20, "bytes": 2000}}}],
+            ):
+                with self.subTest(invalid=invalid):
+                    with self.assertRaises(ValueError):
+                        function(before, invalid)
+
     def test_dco_replay_delta_requires_link_rx_without_vpn_rx(self):
         before = self.peer()
         after = copy.deepcopy(before)
@@ -345,8 +420,8 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             "link_rx_bytes": 354, "link_tx_bytes": 0,
             "link_rx_packets": 1, "link_tx_packets": 0,
         }}
-        self.assertEqual(matrix.dco_rejection_delta(before, after), expected)
-        self.assertEqual(verifier.verify_dco_rejection_delta(before, after), expected)
+        self.assertEqual(matrix.dco_rejection_delta(before, after, device_drop_delta=self.device_drop_receipt()), expected)
+        self.assertEqual(verifier.verify_dco_rejection_delta(before, after, device_drop_delta=self.device_drop_receipt()), expected)
 
     def test_dco_replay_delta_rejects_vpn_delivery(self):
         before = self.peer()
@@ -357,7 +432,7 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         after["peers"][0]["vpn_rx_packets"] += 1
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
-                function(before, after)
+                function(before, after, device_drop_delta=self.device_drop_receipt())
 
     def test_dco_replay_delta_rejects_missing_link_ingress(self):
         before = self.peer()
@@ -365,28 +440,67 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         after["peers"][0]["vpn_tx_bytes"] += 1
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
-                function(before, after)
+                function(before, after, device_drop_delta=self.device_drop_receipt())
 
-    def test_dco_replay_accepts_zero_current_peer_delta_for_prior_peer_id_after_reconnect(self):
+    def test_dco_replay_rejects_stale_prior_peer_without_device_drop_witness(self):
         before = self.peer()
         before["peers"][0]["peer_id"] = 1
         after = copy.deepcopy(before)
-        expected = {"1": {key: 0 for key in matrix.PEER_COUNTERS}}
-        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
-            self.assertEqual(
-                function(before, after, packet_peer_id=0, allow_stale_peer_id=True),
-                expected,
-            )
-
-    def test_dco_replay_rejects_counter_change_for_prior_peer_id(self):
-        before = self.peer()
-        before["peers"][0]["peer_id"] = 1
-        after = copy.deepcopy(before)
-        after["peers"][0]["link_rx_bytes"] += 350
-        after["peers"][0]["link_rx_packets"] += 1
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
                 function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
+
+    def test_dco_replay_accepts_stale_peer_id_only_with_device_drop_and_unchanged_peer(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        expected = {"1": {key: 0 for key in (
+            "vpn_rx_bytes", "vpn_tx_bytes", "vpn_rx_packets", "vpn_tx_packets",
+            "link_rx_bytes", "link_tx_bytes", "link_rx_packets", "link_tx_packets",
+        )}}
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            self.assertEqual(
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True,
+                         device_drop_delta=self.device_drop_receipt()),
+                expected,
+            )
+
+    def test_dco_replay_rejects_stale_peer_id_when_active_peer_counters_change(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 72
+        after["peers"][0]["link_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True,
+                         device_drop_delta=self.device_drop_receipt())
+
+    def test_dco_replay_rejects_stale_prior_peer_id_when_vpn_receives_packet(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 72
+        after["peers"][0]["link_rx_packets"] += 1
+        after["peers"][0]["vpn_rx_bytes"] += 1
+        after["peers"][0]["vpn_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True,
+                         device_drop_delta=self.device_drop_receipt())
+
+    def test_dco_replay_rejects_stale_prior_peer_id_when_link_transmit_changes(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 72
+        after["peers"][0]["link_rx_packets"] += 1
+        after["peers"][0]["link_tx_bytes"] += 1
+        after["peers"][0]["link_tx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True,
+                         device_drop_delta=self.device_drop_receipt())
 
     def test_dco_replay_rejects_stale_peer_id_without_explicit_reconnect_scope(self):
         before = self.peer()
@@ -394,7 +508,8 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         after = copy.deepcopy(before)
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
-                function(before, after, packet_peer_id=0, allow_stale_peer_id=False)
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=False,
+                         device_drop_delta=self.device_drop_receipt())
 
     def test_dco_replay_rejects_stale_mode_when_packet_uses_active_peer_id(self):
         before = self.peer()
@@ -402,7 +517,8 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         after = copy.deepcopy(before)
         for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
             with self.assertRaises(ValueError):
-                function(before, after, packet_peer_id=1, allow_stale_peer_id=True)
+                function(before, after, packet_peer_id=1, allow_stale_peer_id=True,
+                         device_drop_delta=self.device_drop_receipt())
 
     def test_data_v2_frame_exposes_24bit_peer_id(self):
         payload = bytes([0x48]) + (0x123456).to_bytes(3, "big") + bytes((i % 256 for i in range(1, 285)))
