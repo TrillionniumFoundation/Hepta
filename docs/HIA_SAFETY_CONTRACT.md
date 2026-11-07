@@ -43,6 +43,19 @@ The runner does not replace or wrap the Core verifier and does not admit an
 otherwise rejected program. Adding a future schema requires a deliberate
 matrix review; it cannot inherit these guarantees merely by changing a version.
 
+The explicit direct-machine route now has a separate reviewed boundary row.
+Its existing regressions check re-verification of actual Core, forged artifact
+rejection, unsupported targets, object emission without LLVM or an external
+process, system-linker execution, scalar register/stack calls, isolated traps,
+allocation/free observations and exact linked-text relocation boundaries.
+The registry names this Linux x86-64/System V AMD64 route without granting an
+entry ABI through catalog membership. The encoder, ELF writer and lowering
+remain explicit trusted components. These finite checks establish no
+Core-to-native refinement theorem, native unwind, process resource bound or
+performance superiority. A historical projection retains the entire previous
+reviewed matrix, including all 562 selectors and every unproved claim; the nine
+direct-machine selectors are additive.
+
 Integrated qualification explicitly enables the mandatory Linux native
 artifact-session regressions before starting its fresh test processes. Direct
 CLI use and CI use the same requirement. Missing tools or a skipped selected

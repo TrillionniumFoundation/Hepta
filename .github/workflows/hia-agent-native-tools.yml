@@ -1,0 +1,65 @@
+name: HIA Agent native tools
+
+on:
+  push:
+    branches: [feat/hia-agent-native-tools-20261106]
+  pull_request:
+    paths:
+      - 'hepta/hia_agent_*.py'
+      - 'hepta/hia_program_native.py'
+      - 'hepta/hia_machine_*.py'
+      - 'docs/HIA_AGENT_NATIVE_*'
+      - 'tests/test_hia_agent_native*'
+      - 'tools/hia_agent_native_qualification.py'
+      - 'tools/generate_hia_agent_native_contract.py'
+      - '.github/workflows/hia-agent-native-tools.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  worker-and-direct-backend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare the exact source and schema checker
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'jsonschema==4.25.1'
+          command -v ld
+          mkdir "$RUNNER_TEMP/hia-agent-native"
+      - name: Exercise tool contracts, native evaluation, plans and version ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/hia-agent-native/worker-tests.log"
+      - name: Preserve the complete existing direct backend qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_direct_native.py \
+            --output "$RUNNER_TEMP/hia-agent-native/direct-native.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-agent-native/direct-native-tests.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-agent-native-${{ env.HEPTA_SOURCE_SHA }}
+          path: ${{ runner.temp }}/hia-agent-native/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,5 +1,6 @@
 """A reduced test selection must not inherit the reviewed safety qualification."""
 from copy import deepcopy
+from hashlib import sha256
 import json
 from pathlib import Path
 import subprocess
@@ -8,6 +9,20 @@ import unittest
 from unittest.mock import patch
 
 from tools import qualify_hia_safety_contract as safety
+
+
+PRE_DIRECT_MACHINE_CONTRACT_SHA256 = "eadf83d6d465898504dd4a63e554191ac81df54c13568c87ccd6dad995e421ed"
+DIRECT_MACHINE_SELECTORS = (
+    "tests.test_hia_program_native.DirectObjectTests.test_forged_verified_core_is_reverified_before_emission",
+    "tests.test_hia_program_native.DirectObjectTests.test_artifact_mutation_rejected_even_with_recomputed_object_digest",
+    "tests.test_hia_program_native.DirectObjectTests.test_foreign_target_is_explicitly_rejected",
+    "tests.test_hia_program_native.DirectObjectTests.test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch",
+    "tests.test_hia_program_native.DirectSystemLinkerTests.test_system_linker_alone_produces_callable_shared_library",
+    "tests.test_hia_program_native.DirectExecutionTests.test_scalar_c_abi_register_and_stack_arguments",
+    "tests.test_hia_program_native.DirectExecutionTests.test_checked_failures_abort_in_isolated_native_processes",
+    "tests.test_hia_program_native.DirectExecutionTests.test_allocator_observer_checks_actual_frees_and_failed_allocation",
+    "tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_linked_text_changes_only_declared_call_displacements",
+)
 
 
 class ReviewedSafetyProtocolTests(unittest.TestCase):
@@ -24,9 +39,35 @@ class ReviewedSafetyProtocolTests(unittest.TestCase):
         # Retain the 100 reviewed source/Rust and v4/response/lifecycle
         # boundaries, migration/proof/reuse increments and the separate v3
         # budget and normal-success qualification controls, plus the complete
-        # round8 native/context/post-test boundary matrix.
-        self.assertGreaterEqual(len(expected), 364)
+        # round8 native/context/post-test boundary matrix and the separately
+        # reviewed direct-machine admission/artifact/ABI/trap boundaries.
+        self.assertGreaterEqual(len(expected), 571)
         self.assertEqual(safety.validate_contract(self.contract), expected)
+
+    def test_direct_machine_review_preserves_the_entire_previous_contract(self):
+        previous = deepcopy(self.contract)
+        additions = [row for row in previous["capabilities"]
+                     if row["id"] == "direct_machine_lowering"]
+        self.assertEqual(len(additions), 1)
+        self.assertEqual(tuple(additions[0]["regression_selectors"]), DIRECT_MACHINE_SELECTORS)
+        self.assertEqual(additions[0]["guarantee"], "independent_finite_comparison_only")
+        previous["capabilities"].remove(additions[0])
+        self.assertEqual(previous["trusted_computing_base"][-1]["component"],
+                         "Direct x86-64 encoder, ELF writer and Core-to-machine lowering")
+        previous["trusted_computing_base"].pop()
+        catalog = previous["registry"]["instruction_catalog"]
+        catalog["backend_scope"] = (
+            "VM and direct LLVM have separate supported-target/entry-ABI checks; "
+            "catalog inclusion grants no native entry ABI")
+        catalog["catalog_sha256"] = "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54"
+        # Preserve all old capability scopes, selectors, trust assumptions and
+        # false universal claims, not merely the number of selected tests.
+        self.assertEqual(sha256(safety.wire(previous)).hexdigest(),
+                         PRE_DIRECT_MACHINE_CONTRACT_SHA256)
+        old_selectors = {selector for row in previous["capabilities"]
+                         for selector in row["regression_selectors"]}
+        self.assertEqual(len(old_selectors), 562)
+        self.assertTrue(old_selectors.isdisjoint(DIRECT_MACHINE_SELECTORS))
 
     def test_json_formatting_and_object_key_order_do_not_change_protocol(self):
         reordered = {key: self.contract[key] for key in reversed(self.contract)}

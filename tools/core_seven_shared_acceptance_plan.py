@@ -101,8 +101,30 @@ ROUND6_ADDITIONS = (
     'rust/hia-ndu-dynamic-model/upstream.json',
 )
 LINUX_ADDITIONS = ('hepta/hia_linux_kernel.py',)
-METADATA_RESERVE = 224589
-RAW_GLOBAL = 819891
+# Reviewed direct-machine encoder/emitter and Agent execution boundaries. This
+# explicit addition is not discovered from the filesystem: a future module
+# still requires a new reviewed count/commitment and historical projection.
+NATIVE_AGENT_ADDITIONS = (
+    'hepta/hia_agent_contract.py',
+    'hepta/hia_agent_exec.py',
+    'hepta/hia_agent_runner.py',
+    'hepta/hia_agent_service.py',
+    'hepta/hia_agent_store.py',
+    'hepta/hia_agent_worker.py',
+    'hepta/hia_machine_elf.py',
+    'hepta/hia_machine_x64.py',
+    'hepta/hia_program_native.py',
+)
+# The legacy identity cap describes 239 source records. The reviewed shared
+# closure has 323 source records and the same 780 support records: canonical
+# JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
+# 156044 bytes. This covers all 84 reviewed additions; the latest nine account
+# for 1098 bytes. Transfer only the 11331-byte increase from raw logs; keep the
+# legacy protocol and the aggregate evidence, source, module and time caps.
+IDENTITY_CAP = 156044
+IDENTITY_RESERVE_DELTA = 11331
+METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
+RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
                raw_stage=507392, metadata=262144, evidence_display=1048576,
                container=143654912, display=4096, process_ns=60000000000,
@@ -185,14 +207,16 @@ def flags(success=False):
 
 
 # Frozen exact identity paths: do not hash files merely to discover their names.
-SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS, *ROUND6_ADDITIONS, *LINUX_ADDITIONS)))
+SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
+                                    *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
+                                    *NATIVE_AGENT_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 314 and commitment(paths) == 'a48ba3c0244975ebaf4219e6409a0293fa3ae7339704554dc4ba1f3e0c6eb86c',
+    require(len(paths) == len(set(paths)) == 323 and commitment(paths) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
             'reviewed exact source identity closure')
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
@@ -257,7 +281,7 @@ def cap(name):
     if name in MODULE_FILES: return BUDGETS['module']
     if name in LOG_FILES: return BUDGETS['raw_stage']
     if name in ('PLAN.json', 'shared-manifest.json'): return 32768
-    if name == 'IDENTITY.json': return 144713
+    if name == 'IDENTITY.json': return IDENTITY_CAP
     if name == 'RUN.json': return 630
     return 16384
 

@@ -282,6 +282,33 @@
     },
     {
       "entrypoints": [
+        "hepta.hia_program_native.emit_program_machine",
+        "hepta.hia_program_native.compile_program_machine",
+        "hepta.hia_program_native.build_program_machine"
+      ],
+      "exclusions": [
+        "no Core-to-native refinement theorem or native memory-safety guarantee follows from the finite comparisons",
+        "only the declared Linux x86-64/System V AMD64 target and public scalar ABI; catalog membership grants no resource or foreign ABI",
+        "checked traps terminate a disposable process with SIGABRT; no native resource unwind or automatic process-crash recovery is claimed",
+        "VM step, heap and call budgets are not native CPU, stack or RSS bounds; no optimizer or performance-superiority claim"
+      ],
+      "guarantee": "independent_finite_comparison_only",
+      "id": "direct_machine_lowering",
+      "regression_selectors": [
+        "tests.test_hia_program_native.DirectObjectTests.test_forged_verified_core_is_reverified_before_emission",
+        "tests.test_hia_program_native.DirectObjectTests.test_artifact_mutation_rejected_even_with_recomputed_object_digest",
+        "tests.test_hia_program_native.DirectObjectTests.test_foreign_target_is_explicitly_rejected",
+        "tests.test_hia_program_native.DirectObjectTests.test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch",
+        "tests.test_hia_program_native.DirectSystemLinkerTests.test_system_linker_alone_produces_callable_shared_library",
+        "tests.test_hia_program_native.DirectExecutionTests.test_scalar_c_abi_register_and_stack_arguments",
+        "tests.test_hia_program_native.DirectExecutionTests.test_checked_failures_abort_in_isolated_native_processes",
+        "tests.test_hia_program_native.DirectExecutionTests.test_allocator_observer_checks_actual_frees_and_failed_allocation",
+        "tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_linked_text_changes_only_declared_call_displacements"
+      ],
+      "scope": "Explicit x86_64-unknown-linux-gnu/System V AMD64 native route from reverified Core. Repo-owned x86-64 and ELF emission runs without LLVM or an external assembler; target/profile and public scalar ABI checks remain separate from opcode catalog membership. Existing finite regressions compare scalar calls, allocation/free observations and isolated traps, and constrain linked instruction changes to declared relocations."
+    },
+    {
+      "entrypoints": [
         "hepta.hia_rust_crosscheck.crosscheck_rust_shadow",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution",
         "hepta.hia_rust_crosscheck.crosscheck_rust_execution_v2",
@@ -1660,8 +1687,8 @@
     ],
     "instruction_catalog": {
       "admission_authority": "hepta.hia_program.verify_program",
-      "backend_scope": "VM and direct LLVM have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
-      "catalog_sha256": "dd6fc836b5e71db165dcf81bfcdd233fda25dc6888f720dcc472dcdcf986ee54",
+      "backend_scope": "VM, direct LLVM and direct x86-64 machine backends have separate supported-target/entry-ABI checks; catalog inclusion grants no native entry ABI",
+      "catalog_sha256": "ca5e51df74cd7cc7ad8eeb1354c98a403f1278a115c9016ccb88ca0a627f7f10",
       "conditional_effects": {
         "call": "all callee effects",
         "int.cast": "checked mode requires trap"
@@ -2876,6 +2903,10 @@
     {
       "component": "Rust scoped-abort reservation/inventory audit/discharge and the explicit foreign parent-checkpoint protocol with fixed sealed worker",
       "reason": "Separate finite implementation profiles only; logical journal preallocation is not general host resource safety, and the foreign worker, compiler, loader and existing process owner remain trusted."
+    },
+    {
+      "component": "Direct x86-64 encoder, ELF writer and Core-to-machine lowering",
+      "reason": "The explicit direct native profile trusts these implementation components plus the system linker, allocator, loader, OS and hardware; finite byte and execution checks do not establish Core-to-native refinement."
     }
   ],
   "unproved_claims": {

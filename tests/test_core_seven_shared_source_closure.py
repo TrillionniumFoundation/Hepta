@@ -15,11 +15,23 @@ ROUND6_INPUTS = plan.ROUND6_ADDITIONS
 LINUX_INPUTS = plan.LINUX_ADDITIONS
 ROUND6_COMPILER_INPUTS = ('hepta/hia_ndu_module_costs.py', 'hepta/hia_ndu_policy.py')
 LINUX_COMPILER_INPUTS = ('hepta/hia_linux_kernel.py',)
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS)
+NATIVE_AGENT_INPUTS = (
+    'hepta/hia_agent_contract.py',
+    'hepta/hia_agent_exec.py',
+    'hepta/hia_agent_runner.py',
+    'hepta/hia_agent_service.py',
+    'hepta/hia_agent_store.py',
+    'hepta/hia_agent_worker.py',
+    'hepta/hia_machine_elf.py',
+    'hepta/hia_machine_x64.py',
+    'hepta/hia_program_native.py',
+)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS)
 PRIOR_COMMITMENT = '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0'
 ROUND4_COMMITMENT = 'ffc0f4bd9585328bb21e99d0fe3bac7717b65d823a72cb5de9987886018055db'
 ROUND5_COMMITMENT = 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55'
-CURRENT_COMMITMENT = 'a48ba3c0244975ebaf4219e6409a0293fa3ae7339704554dc4ba1f3e0c6eb86c'
+LINUX_COMMITMENT = 'a48ba3c0244975ebaf4219e6409a0293fa3ae7339704554dc4ba1f3e0c6eb86c'
+CURRENT_COMMITMENT = 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0'
 
 
 @contextmanager
@@ -38,8 +50,12 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 314)
-        round5 = tuple(name for name in actual if name not in (*ROUND6_INPUTS, *LINUX_INPUTS))
+        self.assertEqual(len(actual), 323)
+        self.assertEqual(plan.NATIVE_AGENT_ADDITIONS, NATIVE_AGENT_INPUTS)
+        linux = tuple(name for name in actual if name not in NATIVE_AGENT_INPUTS)
+        self.assertEqual(len(linux), 314)
+        self.assertEqual(plan.commitment(linux), LINUX_COMMITMENT)
+        round5 = tuple(name for name in linux if name not in (*ROUND6_INPUTS, *LINUX_INPUTS))
         self.assertEqual(len(round5), 267)
         self.assertEqual(plan.commitment(round5), ROUND5_COMMITMENT)
         round4 = tuple(name for name in round5 if name not in ROUND5_VALIDATION_INPUTS)
@@ -51,18 +67,18 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
         self.assertEqual(sum(name.startswith('hepta/') and name.count('/') == 1
-                             and name.endswith('.py') for name in actual), 189)
+                             and name.endswith('.py') for name in actual), 198)
         for name in NEW_INPUTS:
             self.assertTrue((plan.ROOT / name).is_file(), name)
 
     def test_each_new_compiler_module_is_required(self):
         with compiler_directory() as root, patch.object(plan, 'ROOT', root):
-            for name in (*CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS):
+            for name in (*CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS):
                 with self.subTest(name=name):
                     (root / name).unlink()
                     with self.assertRaisesRegex(ValueError, 'complete actual compiler_hash input set'):

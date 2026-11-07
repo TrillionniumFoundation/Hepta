@@ -24,8 +24,13 @@ class CaptureBudgets(unittest.TestCase):
     @unittest.skipUnless(shutil.which('clang'), 'Clang required')
     def test_real_clang_c_preprocess(self):
         compiler = shutil.which('clang')
+        # This is a real compiler/input/output smoke test, not a Clang startup
+        # latency requirement. Fresh Windows and Linux CI runners have exceeded
+        # ten seconds; use the existing thirty-second bounded capture default.
+        # Dedicated timeout/descendant tests keep their short explicit deadlines
+        # and continue to require actual termination.
         result = run_bounded([compiler, '-x', 'c', '-std=c11', '-E', '-'],
-                             input_text='#define OFFSET 7\nint demo = OFFSET;\n', timeout=10)
+                             input_text='#define OFFSET 7\nint demo = OFFSET;\n')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('int demo = 7;', result.stdout)
 
