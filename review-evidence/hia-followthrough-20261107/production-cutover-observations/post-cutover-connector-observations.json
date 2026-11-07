@@ -1,0 +1,74 @@
+{
+  "schema": "hepta.hia.post-cutover-connector-observations.v1",
+  "observed_at_utc": "2026-11-07 09:24:52 UTC",
+  "original_job_id": "1a1b54d0050-fc05-8be3",
+  "original_output_directory": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/production-cutover-c81-205-r1",
+  "production_outcome": "UNKNOWN",
+  "observations": {
+    "first_wait": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.process_wait`\n\nCaused by:\n    Mcp error: -32603: Internal error"
+        }
+      ],
+      "isError": true
+    },
+    "status": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.process_status`\n\nCaused by:\n    Mcp error: -32603: Internal error"
+        }
+      ],
+      "isError": true
+    },
+    "effective_config": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.effective_config`\n\nCaused by:\n    Mcp error: -32603: Internal error"
+        }
+      ],
+      "isError": true
+    },
+    "known_result_binary_read": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.binary_read`\n\nCaused by:\n    Mcp error: -32603: Internal error"
+        }
+      ],
+      "isError": true
+    }
+  },
+  "chat_catalog": {
+    "schema": "hepta.hia.chat-catalog-post-cutover-observation.v1",
+    "general_h_tool_count": 70,
+    "hia_tool_count": 0,
+    "hia_tool_names": [],
+    "observed_after_cutover_submission": true,
+    "production_outcome_observed": false,
+    "refresh_capability_exposed": false,
+    "observed_at_utc": "2026-11-07 09:24:52 UTC"
+  },
+  "independent_observation": {
+    "path": "evidence/production-cutover-c81-205-p3-observation/status-once-20261107T092105Z.json",
+    "sha256": "f9341b41ad6b5816a6211b0e6be8e7325108b261ba10ca8eb3c0bf3a6be2a15a"
+  },
+  "limits": {
+    "service_down_proved": false,
+    "production_success_proved": false,
+    "rollback_proved": false,
+    "job_timeout_proved": false,
+    "original_job_terminal_observed": false,
+    "shadow_cancelled": false
+  },
+  "next_observations": [
+    "Recover the existing h connection/session without resubmitting the deployment.",
+    "Read the original job and its already selected result.json.",
+    "Determine whether guarded rollback ran, the new release is active, or another failure needs repair.",
+    "Observe/stop only the owned shadow job 1a1b53eeced-fc05-8ba9; its launch has a 1800-second timeout, but expiry has not been observed.",
+    "Retrieve the completed HTTP loop r2 original public output and remaining deployment originals."
+  ]
+}

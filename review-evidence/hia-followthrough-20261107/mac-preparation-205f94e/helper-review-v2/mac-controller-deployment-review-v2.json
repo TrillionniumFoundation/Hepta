@@ -1,0 +1,97 @@
+{
+  "existing_actual_mac_rehearsal": {
+    "helper_sha256": "25e2d857d37b0146b3a8f1c20c60fe9e75a427b64889056e3acba8f5323dcc32",
+    "path": "/workspace/scratch/372e7da9bde9/evidence/mac-stage-205f94e/public-atomic-swap-rehearsal.json",
+    "scope": "Original file/symlink exchange, xattrs, original inode rollback and concurrent displacement; these implementations are unchanged in v2. The Mac rehearsal was not rerun against v2.",
+    "sha256": "a5e46d0696135590783a89b89ad7e09660975702f230960b4c16e8deffd8962c",
+    "status": "passed"
+  },
+  "fix": {
+    "evidence": "The original HTTP terminal/read receipts remain fsynced in http-events.jsonl; the new sentinel_verification is explicitly derived.",
+    "publication_rule": "Verification runs before production_deployed=True. Failure enters the existing conditional rollback path.",
+    "stderr_policy": "Complete nonempty or non-UTF-8 stderr is accepted and preserved by original receipt and derived digest.",
+    "stdout_required_bytes": "RESTART_BEGIN\nONCE_CONTENT=1\nRESTART_END\n",
+    "stream_requirements": [
+      "stdout and stderr eof must be true",
+      "offset must be integer zero",
+      "next_offset and size must be nonnegative integers and equal",
+      "hex must decode to exactly size bytes",
+      "text must equal UTF-8 replacement decoding of original bytes"
+    ],
+    "terminal_and_read_job_id": "Both must equal the known original sentinel job ID. Missing or mismatched IDs reject.",
+    "terminal_fields_required_true": [
+      "output_complete",
+      "output_durable",
+      "terminal_publication_confirmed"
+    ],
+    "terminal_state_required": "succeeded"
+  },
+  "helper": {
+    "bytes": 37279,
+    "path": "/workspace/scratch/372e7da9bde9/mac-controller-deployment.py",
+    "sha256": "043fc6c6045ca3024c898f9878b5fefd743c05de78bcaab577316e5e91340993"
+  },
+  "local_tests": {
+    "log_path": "/workspace/scratch/372e7da9bde9/mac-controller-deployment-tests-v2.log",
+    "log_sha256": "ed0fcc1c375de8b9e08a5d6e01d96c12d68d02c721370172cf5269b66c93ae9a",
+    "new_cases_cover": [
+      "Missing, false, null and non-boolean terminal durability/publication fields",
+      "Missing or mismatched terminal/read job IDs and failed state",
+      "Incomplete streams, invalid cursor/size types, absent fields, invalid hex and inconsistent bytes/text",
+      "Missing, additional, duplicate or reordered sentinel stdout lines",
+      "Valid complete logs including empty, nonempty and non-UTF-8 stderr; original input receipts are unmodified"
+    ],
+    "new_test_groups": 5,
+    "passed": 12,
+    "path": "/workspace/scratch/372e7da9bde9/test_mac_controller_deployment.py",
+    "previous_tests": 7,
+    "sha256": "7c8e37ee7ec35506929f545ec6819d12b1289f1980dbeea97b8cff270c4a05c0"
+  },
+  "original_finding": {
+    "area": "terminal acceptance",
+    "description": "The prior helper accepted succeeded and visible log text without explicitly requiring durable output and confirmed terminal publication. The selected runtime intentionally accepts legacy terminal receipts missing the additive durability fields, so succeeded alone was insufficient.",
+    "resolved": true
+  },
+  "prior_helper": {
+    "path": "/workspace/scratch/372e7da9bde9/mac-controller-deployment-25e2d857.py",
+    "preserved_unchanged": true,
+    "sha256": "25e2d857d37b0146b3a8f1c20c60fe9e75a427b64889056e3acba8f5323dcc32"
+  },
+  "production_cutover_performed_by_reviewer": false,
+  "production_result": "Not observed by this review; the root agent owns final shadow validation and cutover.",
+  "remaining_material_findings": [],
+  "reviewed_utc": "2026-11-07T07:11:10.708803+00:00",
+  "reviewer": "p1_macro",
+  "schema": "hepta.mac-controller-deployment-independent-review.v2",
+  "scope": "Material cutover, conditional rollback, launchd reload and gated durable sentinel; no runtime source change or Mac mutation by reviewer.",
+  "status": "reviewed-fixed-and-frozen",
+  "unchanged_functions_or_classes_verified_by_ast": [
+    "OwnedSwap",
+    "PublicationConflict",
+    "atomic_exchange",
+    "check_config_addition",
+    "check_plist_change",
+    "controller_resources",
+    "copy_xattrs",
+    "deployment_lock",
+    "dump",
+    "entry",
+    "json_bytes",
+    "launch_pid",
+    "load_module",
+    "mapped_executable",
+    "publish_swap",
+    "read_xattrs",
+    "reload_service",
+    "require",
+    "sentinel_source",
+    "sha",
+    "trusted_bytes",
+    "verify_swap_sdk",
+    "write_new"
+  ],
+  "unchanged_staged_configuration_constants": {
+    "NEW_PLIST_SHA": "7425729f95d18044c1d6077ad8209756d340218297b2d7604ef46b7e75bd1f2a",
+    "TRUSTED_TMPDIR": "/Users/qianqi/.local/state/hepta-runtime-mac/tmp-hia-205f94e"
+  }
+}

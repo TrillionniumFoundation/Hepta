@@ -1,0 +1,66 @@
+{
+  "source_commit": "14dfb09aa3263ed35b4f88e8c301f8492d63fea7",
+  "ledger_path": "docs/rea-native/compatibility/REA_6_8_0_LEDGER.json",
+  "method": "Validated the stored ordered immutable snapshots through existing check_mapping guards; reused existing assemble_ledger and write_json. No raw input cache was read or fabricated.",
+  "raw_reference_authenticity": "NOT_REVERIFIED",
+  "original_failure_retained": "../runtime-14dfb09-ci",
+  "before_sha256": "ecb364c5f42fd46058c58b0edfb6b6d79591eaeb0dcbbc6c5edadb4aa763cd19",
+  "after_sha256": "0b3e6f97da1f398c887d47a6e2618a07044b01df2b48085de0d148cf21c96158",
+  "after_git_blob_sha1": "05b68cff69233f7614e1b2ad060512181ad8c0f8",
+  "bytes": 779161,
+  "generator_sha256": "3e6ccb06e7a41f39e7a5ce1d27adff62e37fc3302ee585f514de350d7113478a",
+  "changed_source_files": 13,
+  "changed_leaf_values": 27,
+  "qualified_tools": 0,
+  "open_tools": 229,
+  "applies_only_to_exact14df": true,
+  "validation": [
+    {
+      "name": "ledger-29-tests-verified",
+      "argv": [
+        "/workspace/scratch/9fda32f7f9ab/hia-venv/bin/python",
+        "-B",
+        "tests/rea_compatibility_ledger_tests.py",
+        "-v"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log_sha256": "6a8d43bf375d3505b8f9ac7599c27ffd29601b6b66f90075856bcf610b5361b2",
+      "passed": true
+    },
+    {
+      "name": "check-mapping-verified",
+      "argv": [
+        "/workspace/scratch/9fda32f7f9ab/hia-venv/bin/python",
+        "-B",
+        "scripts/rea_compatibility_ledger.py",
+        "check-mapping"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "log_sha256": "af0e109ae363cc6df85a93ff5f4bfeb9eec16037931bfe9fab4454be5db9df4b",
+      "passed": true
+    },
+    {
+      "name": "check-mapping-strict-verified",
+      "argv": [
+        "/workspace/scratch/9fda32f7f9ab/hia-venv/bin/python",
+        "-B",
+        "scripts/rea_compatibility_ledger.py",
+        "check-mapping",
+        "--require-parity"
+      ],
+      "exit_code": 3,
+      "expected_exit": 3,
+      "log_sha256": "af0e109ae363cc6df85a93ff5f4bfeb9eec16037931bfe9fab4454be5db9df4b",
+      "passed": true
+    }
+  ],
+  "diff_check_exit": 0,
+  "only_changed_path": "docs/rea-native/compatibility/REA_6_8_0_LEDGER.json",
+  "cargo_build_projection_entries": 958,
+  "changed_path_in_cargo_build_projection": false,
+  "future_source_projection_valid": false,
+  "scope_notice": "This candidate is for exact 14df only. Future platform test/source changes require a new generator reassembly.",
+  "commit_or_push_performed": false
+}

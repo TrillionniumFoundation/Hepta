@@ -1,0 +1,24 @@
+{
+  "schema": "hia-unicode-glob-fixture-review-v1",
+  "candidate_root": "/workspace/scratch/372e7da9bde9/runtime-mac-r5",
+  "changed_path": "src/mcp/runtime/search_jobs_tests.rs",
+  "test_sha256": "ebb26a37294d1e964b65dfce86bb0f87eb5f832284ae1660bab8ae70526c9a49",
+  "patch_sha256": "c3959d37f070ef52212a2a435484f6825c4492e837ae93ba89af954cdcf4aa6a",
+  "production_code_modified": false,
+  "root_cause_observed": "APFS in the actual candidate workspace aliases original unicode/Å.txt and unicode/å.txt to one inode, so the on-disk ripgrep inventory had two Unicode files while the in-memory candidate list had three.",
+  "fix": "Keep both Unicode byte cases in distinct upper/lower directories, keep the CJK sample separately, adjust literal and one/two-byte glob patterns to the common wildcard directory and add positive three-byte CJK coverage. Create fixtures with create_new to reject future physical aliases.",
+  "native_mac_probe": {
+    "job_id": "1a1b4f61e21-fc05-8aba",
+    "state": "succeeded",
+    "exit_code": 0,
+    "output_complete": true,
+    "output_durable": true,
+    "terminal_publication_confirmed": true,
+    "literal_and_byte_pattern_cases": 10,
+    "passed": 10,
+    "report_sha256": "50148acebc34f69cc05c277e6ec88ed59cbe44cb70a70de11a96f772c4c7b3bb"
+  },
+  "rust_tests_executed": false,
+  "remaining_gate": "p3 owns combined formatting and the exact final Rust all-target both-feature platform gates.",
+  "commit_or_push_performed": false
+}

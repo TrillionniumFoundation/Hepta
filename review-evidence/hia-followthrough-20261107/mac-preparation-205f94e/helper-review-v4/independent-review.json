@@ -1,0 +1,21 @@
+{
+  "existing_v3_nonmain_ast_changed": [],
+  "existing_v3_nonmain_ast_count": 24,
+  "experiments_run": false,
+  "material_findings": [],
+  "prior_review_sha256": "bf82cfd213d0b50db83eeec09afb3ff61f549e26903c77e610863523c043d5a7",
+  "prior_reviewed_draft_sha256": "ba0807ad1149fa3e62294c705acbb0385527704e29b8ba0dcfd2e4b17ae4e262",
+  "production_mutated": false,
+  "read_only": true,
+  "recorded_utc": "2026-11-07T08:09:17.356006+00:00",
+  "remaining_evidence_requirement": "Actual original-job terminal/read and Mac shadow lsof receipts must establish execution; static review and local tests alone do not establish it.",
+  "reviewed_deltas": [
+    "Every resumed event with URL must match the isolated 8791 endpoint; missing URL is accepted only for the exact known v3 event-file digest.",
+    "The shadow probe requires executable mapping of the selected PID to the selected release and a TCP listener on exact127.0.0.1:8791 owned by that same PID, before and after HTTP observations.",
+    "Cutover admission requires both retained shadow mappings to the selected release and identical before/after PID."
+  ],
+  "reviewed_helper_sha256": "6aae1a5e41c02fb6ba1f78dab09b0882a3615edb2dd68b11ed955ecb2b812d29",
+  "reviewer": "bootstrap/evidence agent; not author of async or shadow-identity delta",
+  "runtime_source_edited": false,
+  "schema": "hepta.hia.deployment-helper-independent-review.v1"
+}

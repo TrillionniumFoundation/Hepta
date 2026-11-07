@@ -1,0 +1,74 @@
+{
+  "assessment": "No material Linux coverage weakening or resource-admission bypass found in the frozen r4f changes. Dynamic qualification remains conditional on final exact-byte gate results.",
+  "findings": [
+    {
+      "area": "Linux coverage",
+      "facts": [
+        "Six integration test files retain all 16 original test functions and bodies; only crate-level macOS aarch64 exclusion added.",
+        "New guards on test helpers/imports match their already-Linux callers.",
+        "No ignore markers or test filtering added.",
+        "The Linux JSON EOF tracker remains enabled; its existing tests already live in the Linux-only evidence-file test module."
+      ],
+      "result": "preserved"
+    },
+    {
+      "area": "Mandatory worker resources",
+      "facts": [
+        "Binary, model, archive, ASAR and AST worker source is unchanged. Each applies mandatory finite RLIMIT_AS and other limits before reading or parsing hostile input.",
+        "Every setrlimit failure propagates as an error; no fallback bypass added.",
+        "Non-Linux evidence-file reader still rejects linux-descriptor-close-lifecycle-required.",
+        "Non-Linux static provider profiles still reject before path/profile admission.",
+        "Non-Linux predecessor process/PTY replay still rejects when predecessor state exists."
+      ],
+      "result": "unchanged and fail-closed by source review"
+    },
+    {
+      "area": "Mac refusal replacements",
+      "facts": [
+        "Five new tests invoke CARGO_BIN_EXE_hepta-runtime in the matching worker mode, with a private inert read-only stdin fixture and cleared environment.",
+        "Each requires unsuccessful exit, empty stdout, worker-specific resource-limits diagnostic and EINVAL, and unchanged fixture bytes.",
+        "These cover the common admission boundary for all six excluded suites, but do not reproduce their successful parsing or full MCP-controller behaviors on Mac.",
+        "Two provider tests explicitly require the existing non-Linux platform error while preserving Linux successful admission checks."
+      ],
+      "result": "real binary coverage added; successful parsing not qualified"
+    },
+    {
+      "area": "Production portability edits",
+      "facts": [
+        "Added type annotations and moved a shared result struct to make non-Linux rejection branches typecheck.",
+        "Device identity comparison uses checked conversion to u64 and rejects negative or out-of-range identities; new test covers signed negative, overflow, equality and mismatch.",
+        "Other new cfg and expect(dead_code) attributes restrict unreachable Linux-specific helpers; they do not suppress general warnings or change Linux branches."
+      ],
+      "result": "no observed semantic relaxation"
+    },
+    {
+      "area": "Rust qualification runner",
+      "facts": [
+        "Cargo check, clippy and nextest all use --all-targets with both --all-features and --no-default-features.",
+        "Rust 1.95.0 and nextest 0.9.137 are pinned; tests run serially with zero retries and no-fail-fast.",
+        "Private canonical TMPDIR, explicit nofile soft/hard 8192 and umask 022 are recorded.",
+        "Runner preserves per-stage logs/hashes/exit codes and compares full source snapshots before and after.",
+        "This runner is the Rust gate subset, not all Python and deployment steps in the repository GitHub CI workflow."
+      ],
+      "result": "requested all-target feature scope preserved"
+    }
+  ],
+  "material_source_findings": [],
+  "remaining_qualification_requirements": [
+    "Final Mac and Linux gate receipts must match r4f patch/manifest and pass all configured stages.",
+    "Mac proof is refusal on the observed unsupported resource profile, not successful parsing or Linux seccomp equivalence.",
+    "Do not report this independent static review as an additional dynamic test pass."
+  ],
+  "review_mode": "read-only independent source and qualification-runner review; no additional builds or tests launched",
+  "reviewer": "p1_macro",
+  "schema": "hepta-runtime-independent-platform-source-review.v1",
+  "source": {
+    "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+    "changed_files_verified": 22,
+    "gate_runner_sha256": "a869c80c9cdef739ff5e6a2f05eb53dad8a3f10b9a7a1708a9374da69dc9c013",
+    "manifest_sha256": "6e70635aace2aec6b7f308fce3d8b5b7b29fb8fa3a4e376f3726710c31cb5821",
+    "patch_sha256": "1f9623c34cfc34fe7c2b625f6bd8198a43cd8ba81988f5eadd723abda7e97760",
+    "root": "/workspace/scratch/372e7da9bde9/runtime-mac",
+    "worktree_changes_exactly_manifest": true
+  }
+}

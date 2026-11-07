@@ -1,0 +1,157 @@
+diff --git a/src/jobctl_engine_scratch_tests.rs b/src/jobctl_engine_scratch_tests.rs
+--- a/src/jobctl_engine_scratch_tests.rs
++++ b/src/jobctl_engine_scratch_tests.rs
+@@ -208,17 +208,39 @@
+ 		let request: Request = serde_json::from_value(json!({
+ 			"op":"start", "job_id":"unsupported-job", "executable":"/bin/true",
+ 			"cwd":state,
+-		})).unwrap();
+-		assert_eq!(start(request, interactive).unwrap_err().to_string(), expected);
+-		assert_eq!(supervise("unsupported-job", interactive).unwrap_err().to_string(), expected);
++		}))
++		.unwrap();
++		assert_eq!(
++			start(request, interactive).unwrap_err().to_string(),
++			expected
++		);
++		assert_eq!(
++			supervise("unsupported-job", interactive)
++				.unwrap_err()
++				.to_string(),
++			expected
++		);
+ 	}
+-	assert_eq!(engine_owner::ScratchOwner::prepare(&state, "unsupported-job", "unissued").err().unwrap().to_string(), "Static engine scratch lifecycle requires Linux");
+-	let mut child = Command::new("/bin/sleep").arg("5").process_group(0).spawn().unwrap();
++	assert_eq!(
++		engine_owner::ScratchOwner::prepare(&state, "unsupported-job", "unissued")
++			.err()
++			.unwrap()
++			.to_string(),
++		"Static engine scratch lifecycle requires Linux"
++	);
++	let mut child = Command::new("/bin/sleep")
++		.arg("5")
++		.process_group(0)
++		.spawn()
++		.unwrap();
+ 	let refusal = engine_owner::stop_original_group(child.id());
+ 	let observed = child.try_wait();
+ 	let _ = child.kill();
+ 	let reaped = child.wait();
+-	assert_eq!(refusal.unwrap_err().to_string(), "Static engine scratch lifecycle requires Linux");
++	assert_eq!(
++		refusal.unwrap_err().to_string(),
++		"Static engine scratch lifecycle requires Linux"
++	);
+ 	assert!(observed.unwrap().is_none());
+ 	reaped.unwrap();
+ 	assert_eq!(fs::read_dir(&state).unwrap().count(), 1);
+diff --git a/src/mcp/rea_engine_scratch_tests.rs b/src/mcp/rea_engine_scratch_tests.rs
+--- a/src/mcp/rea_engine_scratch_tests.rs
++++ b/src/mcp/rea_engine_scratch_tests.rs
+@@ -147,8 +147,20 @@
+ 	std::fs::write(&sentinel, b"existing private data").unwrap();
+ 	let held = std::fs::metadata(&existing).unwrap();
+ 	let error = "Static engine scratch lifecycle requires Linux";
+-	assert_eq!(Directory::create(&parent, "new-owned").err().unwrap().to_string(), error);
+-	assert_eq!(Directory::open(&existing, held.dev(), held.ino()).err().unwrap().to_string(), error);
++	assert_eq!(
++		Directory::create(&parent, "new-owned")
++			.err()
++			.unwrap()
++			.to_string(),
++		error
++	);
++	assert_eq!(
++		Directory::open(&existing, held.dev(), held.ino())
++			.err()
++			.unwrap()
++			.to_string(),
++		error
++	);
+ 	let owner = serde_json::to_string(&OwnerBinding {
+ 		schema: "hepta.rea.engine-scratch-owner.v1".into(),
+ 		job_id: "owned-job".into(),
+@@ -156,15 +168,36 @@
+ 		path: existing.clone(),
+ 		device: held.dev(),
+ 		inode: held.ino(),
+-	}).unwrap();
++	})
++	.unwrap();
+ 	for engine in ["ghidra", "jadx"] {
+-		assert_eq!(create(&parent, engine, None, None).err().unwrap().to_string(), error);
+-		assert_eq!(create(&parent, engine, Some(owner.clone()), Some("owned-job".into())).err().unwrap().to_string(), error);
++		assert_eq!(
++			create(&parent, engine, None, None)
++				.err()
++				.unwrap()
++				.to_string(),
++			error
++		);
++		assert_eq!(
++			create(
++				&parent,
++				engine,
++				Some(owner.clone()),
++				Some("owned-job".into())
++			)
++			.err()
++			.unwrap()
++			.to_string(),
++			error
++		);
+ 	}
+ 	assert_eq!(std::fs::read_dir(&parent).unwrap().count(), 1);
+ 	assert_eq!(std::fs::read_dir(&existing).unwrap().count(), 1);
+ 	assert!(!existing.join("claim.json").exists());
+ 	assert_eq!(std::fs::read(sentinel).unwrap(), b"existing private data");
+ 	let after = std::fs::metadata(existing).unwrap();
+-	assert_eq!((held.dev(), held.ino(), held.mode()), (after.dev(), after.ino(), after.mode()));
+-}
++	assert_eq!(
++		(held.dev(), held.ino(), held.mode()),
++		(after.dev(), after.ino(), after.mode())
++	);
++}
+diff --git a/src/mcp/runtime/effect_owner_fence_tests.rs b/src/mcp/runtime/effect_owner_fence_tests.rs
+--- a/src/mcp/runtime/effect_owner_fence_tests.rs
++++ b/src/mcp/runtime/effect_owner_fence_tests.rs
+@@ -861,7 +861,10 @@
+ 			("main", None),
+ 		] {
+ 			assert_eq!(
+-				permit.require_new_process_identity(host, key).unwrap_err().to_string(),
++				permit
++					.require_new_process_identity(host, key)
++					.unwrap_err()
++					.to_string(),
+ 				"V11 predecessor replay validation requires supported Linux controller",
+ 				"registry={registry}, host={host}, key={key:?}"
+ 			);
+@@ -1022,7 +1025,10 @@
+ 				("main", None),
+ 			] {
+ 				assert_eq!(
+-					permit.require_new_pty_identity(host, key).unwrap_err().to_string(),
++					permit
++						.require_new_pty_identity(host, key)
++						.unwrap_err()
++						.to_string(),
+ 					"V11 predecessor PTY replay validation requires Linux",
+ 					"registry={registry}, host={host}, key={key:?}"
+ 				);
+diff --git a/src/mcp/runtime/jobs_inventory_streaming_tests.rs b/src/mcp/runtime/jobs_inventory_streaming_tests.rs
+--- a/src/mcp/runtime/jobs_inventory_streaming_tests.rs
++++ b/src/mcp/runtime/jobs_inventory_streaming_tests.rs
+@@ -378,7 +378,8 @@
+ 					}
+ 					Err(error) => panic!("cannot construct invalid-name fixture: {error}"),
+ 				};
+-				file.write_all(b"not decoded before filename refusal").unwrap();
++				file.write_all(b"not decoded before filename refusal")
++					.unwrap();
+ 				"invalid durable job record name"
+ 			}
+ 			_ => unreachable!(),

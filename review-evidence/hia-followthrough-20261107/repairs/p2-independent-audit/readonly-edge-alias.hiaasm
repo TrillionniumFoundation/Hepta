@@ -1,0 +1,8 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  jump b1(v0,v0)
+block b1(v3:readbuf,v4:readbuf)
+  v5:u32 = const() {"value":0}
+  ret(v5)
+end

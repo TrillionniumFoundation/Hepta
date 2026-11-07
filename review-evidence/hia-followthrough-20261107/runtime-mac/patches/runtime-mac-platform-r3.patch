@@ -1,0 +1,49 @@
+--- a/src/mcp/rea_evidence_file.rs
++++ b/src/mcp/rea_evidence_file.rs
+@@ -79,7 +79,10 @@
+ #[serde(rename_all = "kebab-case")]
+ #[cfg_attr(
+ 	not(target_os = "linux"),
+-	expect(dead_code, reason = "shared error rendering retains Linux acquisition reasons")
++	expect(
++		dead_code,
++		reason = "shared error rendering retains Linux acquisition reasons"
++	)
+ )]
+ pub(super) enum FileReason {
+ 	Missing,
+@@ -107,7 +110,10 @@
+ #[serde(tag = "kind", rename_all = "kebab-case")]
+ #[cfg_attr(
+ 	not(target_os = "linux"),
+-	expect(dead_code, reason = "shared error rendering retains the Linux reader result contract")
++	expect(
++		dead_code,
++		reason = "shared error rendering retains the Linux reader result contract"
++	)
+ )]
+ pub(super) enum FileReadError {
+ 	File {
+@@ -162,7 +168,10 @@
+ #[derive(Debug, Default)]
+ #[cfg_attr(
+ 	not(target_os = "linux"),
+-	expect(dead_code, reason = "shared object-order accessors retain the Linux parser tree contract")
++	expect(
++		dead_code,
++		reason = "shared object-order accessors retain the Linux parser tree contract"
++	)
+ )]
+ enum OrderNode {
+ 	#[default]
+--- a/src/mcp/runtime/effect_owner_fence.rs
++++ b/src/mcp/runtime/effect_owner_fence.rs
+@@ -19,7 +19,7 @@
+ #[cfg(target_os = "linux")]
+ use std::collections::HashSet;
+ use std::ffi::CString;
+-#[cfg(target_os = "linux")]
++#[cfg(any(target_os = "linux", test))]
+ use std::fs;
+ use std::fs::File;
+ use std::io::Read;

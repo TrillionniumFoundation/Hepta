@@ -1,0 +1,639 @@
+{
+  "schema": "hepta-runtime-pinned-ci-platform-gates-v7",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "published_commit": "c81a938150d2e533843a42af77739cb888812338",
+  "published_tree": "aa10bb33f641bc208a3fd11bef5737f6ba026f90",
+  "patch_sha256": "a8ed39aea7d98bd291c5e1f8697df78674d224bc7163a86554881a728d924f6d",
+  "source_manifest_sha256": "d40ea879a9cb1e6014d2e7c22e996c8ba532590c88b8d8fa6a9a7a96776dff83",
+  "qualified_files_sha256": "3173737df8ac231a28cd29c3e9505514570be340bf0b13b6834b760eaff15832",
+  "qualified_file_count": 959,
+  "platform": "Linux",
+  "input_scope": "pinned 958 build inputs plus exact compatibility ledger; not the complete repository byte tree",
+  "input_exclusions": [
+    "historical docs/qualification artifacts",
+    "historical tests/evidence archives",
+    "other non-build repository files outside the retained source projection"
+  ],
+  "expected_projection_sha256": "3173737df8ac231a28cd29c3e9505514570be340bf0b13b6834b760eaff15832",
+  "expected_target_inventory_sha256": "5dadeaa773aa899e780bf38d96db841318c5a0147bef6497bd8c19b6a4f991ec",
+  "runner_sha256": "68941d96374a8f7541e2ed3ddb05ab4d6bbc8f2c494023c049b19f4bc5fc6e15",
+  "machine": "x86_64",
+  "started_utc": "2026-11-07T08:31:20.631421+00:00",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:31:20.687303+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 1.1510027921758592,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "check-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:31:21.839449+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-check-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 6.168591680936515,
+      "log_sha256": "079f9f81e5f394ff433fdde8b51c18cfd6d3c632606a2f58e85c6af3d5071a12",
+      "log_bytes": 165
+    },
+    {
+      "name": "check-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:31:28.010615+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-check-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 6.074665727792308,
+      "log_sha256": "a334fc76e8026ad563fcbe86c9374a35dda091d25ade45fa35ad92d7f77eecf1",
+      "log_bytes": 165
+    },
+    {
+      "name": "clippy-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:31:34.086604+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-clippy-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 13.49911201116629,
+      "log_sha256": "80dee1e5a7859ad9f5256efb3413e3be8eabdb0c00bfa17f980f596350b95f90",
+      "log_bytes": 166
+    },
+    {
+      "name": "clippy-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:31:47.586950+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-clippy-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 13.357867071870714,
+      "log_sha256": "a468a514768c3179891565f056fb48621f656fcb70a8c38ee0ad89a112437718",
+      "log_bytes": 166
+    },
+    {
+      "name": "nextest-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:32:00.945977+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-nextest-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 287.38649783981964,
+      "log_sha256": "d881f2c72f985b3166df694024efd4dd88380395e8ae32e1f1e17c28c1dacfa0",
+      "log_bytes": 353033
+    },
+    {
+      "name": "nextest-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:36:48.334177+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-nextest-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 282.49386668996885,
+      "log_sha256": "5a9bec2505a54423864f1821c1463480830bee191233336b1329bb5b0ab5a6d8",
+      "log_bytes": 349035
+    }
+  ],
+  "environment": {
+    "TMPDIR": "/home/qq/hia-tmp-l8",
+    "umask": "022",
+    "prior_nofile": [
+      1024,
+      1048576
+    ],
+    "qualified_nofile": [
+      8192,
+      8192
+    ],
+    "inodes_available_before": 114559733,
+    "bytes_available_before": 410630303744
+  },
+  "nextest": {
+    "path": "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/tools/bin/cargo-nextest",
+    "sha256": "1955bec48554fad35e1e59ee3b8770c7f88f6a065d8c7960600b6c4b64c0c9d0",
+    "version": "cargo-nextest 0.9.137 (75ddba7e9 2026-05-26)\nrelease: 0.9.137\ncommit-hash: 75ddba7e911b44c5c0700dac0415d824403de9bd\ncommit-date: 2026-05-26\nhost: x86_64-unknown-linux-gnu\n"
+  },
+  "ripgrep": {
+    "path": "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/tools/bin/rg",
+    "sha256": "e9c104b09fcfa3972d8bbd49088f1f363bcc5e7b1276d0c7c4a264a1dec69a58",
+    "version": "ripgrep 14.1.1\n\nfeatures:-pcre2\nsimd(compile):+SSE2,-SSSE3,-AVX2\nsimd(runtime):+SSE2,+SSSE3,+AVX2\n\nPCRE2 is not available in this build of ripgrep.\n"
+  },
+  "cargo_target_inventory": [
+    {
+      "feature_mode": "all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--format-version",
+        "1",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "metadata_path": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-metadata-all-features.json",
+      "metadata_sha256": "f4ecb84405bc87b69fc609d05e2fcc48ce9d0c680c411340273d3ede617687cf",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_count": 19,
+      "matches_complete_pinned_target_source_inventory": true,
+      "targets": [
+        {
+          "source": "src/lib.rs",
+          "name": "hepta_runtime",
+          "kind": [
+            "lib"
+          ],
+          "required_features": [],
+          "sha256": "a76d1776aa8b9465a7a45747a804d752ce992d6bae6a9b3c8b48e5eb0bba7abe",
+          "bytes": 1150
+        },
+        {
+          "source": "src/bin/hepta-effect-ownerctl.rs",
+          "name": "hepta-effect-ownerctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "5e51419cd66b0233432b565474bd403d4fd79d7b82a4de6bcd11d69179bcc995",
+          "bytes": 24716
+        },
+        {
+          "source": "src/main.rs",
+          "name": "hepta-runtime",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [
+            "remote-fs"
+          ],
+          "sha256": "c7d92845ca693e192a878a340d7532accdef99ebe77fdb6853d2fba269b0020e",
+          "bytes": 12843
+        },
+        {
+          "source": "src/bin/jobctl.rs",
+          "name": "hepta-runtime-jobctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "8bfd4b4bbef9a90da3c6ded73cdb83f833a4e4fd3e6cb078397c69ffcab5c241",
+          "bytes": 50858
+        },
+        {
+          "source": "examples/native_output_probe.rs",
+          "name": "native_output_probe",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "762d3e94545f36d961f83a6fff47507b33e5cfb0dfe94d6d26e420138e26149e",
+          "bytes": 2496
+        },
+        {
+          "source": "examples/native_process_driver.rs",
+          "name": "native_process_driver",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "b5ce82bc3efac411fd903cc2bf47174eeea6b9274c90c41d8a7a0dd39c96165c",
+          "bytes": 2287
+        },
+        {
+          "source": "tests/rea_application_external.rs",
+          "name": "rea_application_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "a82a41e04779f33fd60349b1c716096265aa48d42d3b0a331eeb4df6f1cd257a",
+          "bytes": 6851
+        },
+        {
+          "source": "tests/rea_artifact_zip_worker.rs",
+          "name": "rea_artifact_zip_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "d6844b13dfb83202c6f87324add7d48dba89acbf48d1d201113f97da3d8a89fc",
+          "bytes": 2878
+        },
+        {
+          "source": "tests/rea_asar_external.rs",
+          "name": "rea_asar_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "1185c41d53113140717a21af63bc6a72c616c28c1ac6334dce0023be8254a439",
+          "bytes": 10667
+        },
+        {
+          "source": "tests/rea_javascript_graph_external.rs",
+          "name": "rea_javascript_graph_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "21a7d901eee043331f85e4a9906b10ecd98f01eeb99417dac74c73374bbb0b53",
+          "bytes": 13091
+        },
+        {
+          "source": "tests/rea_macos_resource_refusal.rs",
+          "name": "rea_macos_resource_refusal",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3fe3e86e7edb2c4d9b33357bea04bdd2ff057d6924c5d0f7f3f94224ed8b275f",
+          "bytes": 2608
+        },
+        {
+          "source": "tests/rea_mcp_external.rs",
+          "name": "rea_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "c819f3ebc34af368a9351c7393455e483b02e6fc9f0f98877befc2a707aac90c",
+          "bytes": 12055
+        },
+        {
+          "source": "tests/rea_model_session_external.rs",
+          "name": "rea_model_session_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3393fba0af8b0e857f748c332e82b5a4ccc37da36a9994ed6e7e5191d7ff3519",
+          "bytes": 1485
+        },
+        {
+          "source": "tests/rea_model_worker.rs",
+          "name": "rea_model_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "7ceb4989c992fa10870bb69b5e04d8c8feabb32c30f8952d5cf454d4a9cb4fa3",
+          "bytes": 5264
+        },
+        {
+          "source": "tests/rea_static_external.rs",
+          "name": "rea_static_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "62e135e719934ff7f2a25da22d0233343f4c017c552a8e412dee7a5afc8f5b5a",
+          "bytes": 17065
+        },
+        {
+          "source": "tests/rea_web_external.rs",
+          "name": "rea_web_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "25626b841b67957e03ff559dc591f320ac9d735c00867a0aff7688a772903e7b",
+          "bytes": 7890
+        },
+        {
+          "source": "tests/rea_worker.rs",
+          "name": "rea_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "5485705763cf93b823d1e67fc15f58354c2d983bc0f463715bfe105251ac7e5a",
+          "bytes": 3429
+        },
+        {
+          "source": "tests/weight_forward_external.rs",
+          "name": "weight_forward_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "91ed590447f2a32623fdfc05e7cda0753710f8f73ed2d6d5da1c090e7eee46f3",
+          "bytes": 10555
+        },
+        {
+          "source": "tests/weight_mcp_external.rs",
+          "name": "weight_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "ebb97dabc9a6fb3772bc5553d65506ddb4de23a95d6f47c9a925a024855fe6c8",
+          "bytes": 12604
+        }
+      ]
+    },
+    {
+      "feature_mode": "no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--format-version",
+        "1",
+        "--no-default-features"
+      ],
+      "exit_code": 0,
+      "metadata_path": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r6-final-metadata-no-default.json",
+      "metadata_sha256": "f4ecb84405bc87b69fc609d05e2fcc48ce9d0c680c411340273d3ede617687cf",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_count": 19,
+      "matches_complete_pinned_target_source_inventory": true,
+      "targets": [
+        {
+          "source": "src/lib.rs",
+          "name": "hepta_runtime",
+          "kind": [
+            "lib"
+          ],
+          "required_features": [],
+          "sha256": "a76d1776aa8b9465a7a45747a804d752ce992d6bae6a9b3c8b48e5eb0bba7abe",
+          "bytes": 1150
+        },
+        {
+          "source": "src/bin/hepta-effect-ownerctl.rs",
+          "name": "hepta-effect-ownerctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "5e51419cd66b0233432b565474bd403d4fd79d7b82a4de6bcd11d69179bcc995",
+          "bytes": 24716
+        },
+        {
+          "source": "src/main.rs",
+          "name": "hepta-runtime",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [
+            "remote-fs"
+          ],
+          "sha256": "c7d92845ca693e192a878a340d7532accdef99ebe77fdb6853d2fba269b0020e",
+          "bytes": 12843
+        },
+        {
+          "source": "src/bin/jobctl.rs",
+          "name": "hepta-runtime-jobctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "8bfd4b4bbef9a90da3c6ded73cdb83f833a4e4fd3e6cb078397c69ffcab5c241",
+          "bytes": 50858
+        },
+        {
+          "source": "examples/native_output_probe.rs",
+          "name": "native_output_probe",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "762d3e94545f36d961f83a6fff47507b33e5cfb0dfe94d6d26e420138e26149e",
+          "bytes": 2496
+        },
+        {
+          "source": "examples/native_process_driver.rs",
+          "name": "native_process_driver",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "b5ce82bc3efac411fd903cc2bf47174eeea6b9274c90c41d8a7a0dd39c96165c",
+          "bytes": 2287
+        },
+        {
+          "source": "tests/rea_application_external.rs",
+          "name": "rea_application_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "a82a41e04779f33fd60349b1c716096265aa48d42d3b0a331eeb4df6f1cd257a",
+          "bytes": 6851
+        },
+        {
+          "source": "tests/rea_artifact_zip_worker.rs",
+          "name": "rea_artifact_zip_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "d6844b13dfb83202c6f87324add7d48dba89acbf48d1d201113f97da3d8a89fc",
+          "bytes": 2878
+        },
+        {
+          "source": "tests/rea_asar_external.rs",
+          "name": "rea_asar_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "1185c41d53113140717a21af63bc6a72c616c28c1ac6334dce0023be8254a439",
+          "bytes": 10667
+        },
+        {
+          "source": "tests/rea_javascript_graph_external.rs",
+          "name": "rea_javascript_graph_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "21a7d901eee043331f85e4a9906b10ecd98f01eeb99417dac74c73374bbb0b53",
+          "bytes": 13091
+        },
+        {
+          "source": "tests/rea_macos_resource_refusal.rs",
+          "name": "rea_macos_resource_refusal",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3fe3e86e7edb2c4d9b33357bea04bdd2ff057d6924c5d0f7f3f94224ed8b275f",
+          "bytes": 2608
+        },
+        {
+          "source": "tests/rea_mcp_external.rs",
+          "name": "rea_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "c819f3ebc34af368a9351c7393455e483b02e6fc9f0f98877befc2a707aac90c",
+          "bytes": 12055
+        },
+        {
+          "source": "tests/rea_model_session_external.rs",
+          "name": "rea_model_session_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3393fba0af8b0e857f748c332e82b5a4ccc37da36a9994ed6e7e5191d7ff3519",
+          "bytes": 1485
+        },
+        {
+          "source": "tests/rea_model_worker.rs",
+          "name": "rea_model_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "7ceb4989c992fa10870bb69b5e04d8c8feabb32c30f8952d5cf454d4a9cb4fa3",
+          "bytes": 5264
+        },
+        {
+          "source": "tests/rea_static_external.rs",
+          "name": "rea_static_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "62e135e719934ff7f2a25da22d0233343f4c017c552a8e412dee7a5afc8f5b5a",
+          "bytes": 17065
+        },
+        {
+          "source": "tests/rea_web_external.rs",
+          "name": "rea_web_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "25626b841b67957e03ff559dc591f320ac9d735c00867a0aff7688a772903e7b",
+          "bytes": 7890
+        },
+        {
+          "source": "tests/rea_worker.rs",
+          "name": "rea_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "5485705763cf93b823d1e67fc15f58354c2d983bc0f463715bfe105251ac7e5a",
+          "bytes": 3429
+        },
+        {
+          "source": "tests/weight_forward_external.rs",
+          "name": "weight_forward_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "91ed590447f2a32623fdfc05e7cda0753710f8f73ed2d6d5da1c090e7eee46f3",
+          "bytes": 10555
+        },
+        {
+          "source": "tests/weight_mcp_external.rs",
+          "name": "weight_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "ebb97dabc9a6fb3772bc5553d65506ddb4de23a95d6f47c9a925a024855fe6c8",
+          "bytes": 12604
+        }
+      ]
+    }
+  ],
+  "source_unchanged": true,
+  "passed": true,
+  "completed_utc": "2026-11-07T08:41:30.858187+00:00"
+}

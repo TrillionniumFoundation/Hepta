@@ -1,0 +1,62 @@
+diff --git a/src/mcp/fs/parity_ops.rs b/src/mcp/fs/parity_ops.rs
+index 98d47b2..65a861d 100644
+--- a/src/mcp/fs/parity_ops.rs
++++ b/src/mcp/fs/parity_ops.rs
+@@ -37,7 +37,7 @@ pub async fn execute_directory_create(call: &McpToolCall) -> Result<String> {
+ 		.and_then(|v| v.as_str())
+ 		.ok_or_else(|| anyhow!("path must be a string"))?;
+ 	let path = scoped_local(name, &call.workdir)?;
+-	let (display, created) = tokio::task::spawn_blocking(move || {
++	let (display, created): (String, bool) = tokio::task::spawn_blocking(move || {
+ 		#[cfg(target_os = "linux")]
+ 		{
+ 			let created = local_linux::make_directories(&path)?;
+diff --git a/src/mcp/fs/text_file_write.rs b/src/mcp/fs/text_file_write.rs
+index b22d4f7..f531d2a 100644
+--- a/src/mcp/fs/text_file_write.rs
++++ b/src/mcp/fs/text_file_write.rs
+@@ -13,6 +13,13 @@ use std::path::{Path, PathBuf};
+ 
+ const MAX_TEXT_INPUT: usize = 64 * 1024;
+ 
++struct Published {
++	bytes: usize,
++	sha256: String,
++	version: String,
++	was_new_file: bool,
++}
++
+ fn local_workspace_path(path: &str, workdir: &Path) -> Result<PathBuf> {
+ 	if crate::mcp::runtime::config::maybe_runtime_config().is_none() {
+ 		bail!("Plain-text publishing requires an explicit configured controller workspace");
+@@ -67,7 +74,7 @@ pub async fn execute_text_file_write(call: &McpToolCall) -> Result<String> {
+ 	let expected = expected.to_owned();
+ 	let content = content.to_owned();
+ 	let target_name = target.display().to_string();
+-	let result = tokio::task::spawn_blocking(move || {
++	let result: Published = tokio::task::spawn_blocking(move || {
+ 		#[cfg(target_os = "linux")]
+ 		{
+ 			linux::publish(&target, &mode, &expected, &content)
+@@ -107,6 +114,7 @@ fn valid_expectation(mode: &str, expected: &str) -> bool {
+ 
+ #[cfg(target_os = "linux")]
+ mod linux {
++	use super::Published;
+ 	use anyhow::{anyhow, bail, Context, Result};
+ 	use sha2::{Digest, Sha256};
+ 	use std::ffi::CString;
+@@ -118,13 +126,6 @@ mod linux {
+ 	const MAX_EXISTING_BYTES: u64 = 4 * 1024 * 1024;
+ 	const MAX_RESULT_BYTES: usize = 4 * 1024 * 1024 + super::MAX_TEXT_INPUT;
+ 
+-	pub struct Published {
+-		pub bytes: usize,
+-		pub sha256: String,
+-		pub version: String,
+-		pub was_new_file: bool,
+-	}
+-
+ 	fn split_path(path: &Path) -> Result<(OwnedFd, CString)> {
+ 		if !path.is_absolute() {
+ 			bail!("Expected an absolute controller path");

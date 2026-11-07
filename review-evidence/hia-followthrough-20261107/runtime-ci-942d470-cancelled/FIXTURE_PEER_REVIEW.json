@@ -1,0 +1,23 @@
+{
+  "findings_scope": {
+    "privileged_fixture": "select.select waits for real stdout readiness and does not consume bytes. Fixture wait is capped at10s; failure kills/waits for its own child. Production capture deadline remains timeout_seconds=1.0, computed after Popen returns; timeout/code/authority/confirmed-exit/exact8bytes/capture-error assertions remain or are strengthened. This test establishes capture after readiness, not a startup-latency contract.",
+    "unicode_fixture": "Upper/lower Unicode samples have different parent directories and all three samples remain in the same in-memory/on-disk inventory. Common unicode/*/ wildcard includes both cases in the comparator loop. create_new detects physical aliases; 1/2byte queries retained and3byte CJK positive query added. Existing rg comparison and both ignore_case modes retained."
+  },
+  "material_findings": [],
+  "new_experiments_run": false,
+  "production_unchanged_against14df": {
+    "src/mcp/runtime/inspect.rs": "be9416a05d0a48ae63665ff3d2cca6f84bb4fb7231e8159754dba0d66b396aa2",
+    "src/mcp/runtime/search_worker.py": "7a196c3906bb50baf073c6b718c3d2ad1618c84a2d2927be29044f8c18de45a7"
+  },
+  "recorded_utc": "2026-11-07T08:00:08.379798+00:00",
+  "reported_published_commit": "942d470d155c65ba7235eb19c5bbfd07f1ce2ad0",
+  "reported_published_tree": "a19f1dd724bdf80a388ddae17d828b01e5fc42f0",
+  "reviewed_local_files": {
+    "src/mcp/runtime/inspect_security_tests.rs": "75694611c8f4354c57a01592e3687c58495573fa2f76fc32f828221db66de4c6",
+    "src/mcp/runtime/search_jobs_tests.rs": "ebb26a37294d1e964b65dfce86bb0f87eb5f832284ae1660bab8ae70526c9a49"
+  },
+  "reviewer": "parallel bootstrap/evidence agent; not author of either reviewed fixture",
+  "schema": "hepta.runtime.r5-fixture-independent-review.v1",
+  "source_edits": false,
+  "whole_runtime_gate_claimed": false
+}

@@ -1,0 +1,664 @@
+{
+  "schema": "hepta-runtime-pinned-ci-platform-gates-v6",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "published_commit": "942d470d155c65ba7235eb19c5bbfd07f1ce2ad0",
+  "published_tree": "a19f1dd724bdf80a388ddae17d828b01e5fc42f0",
+  "patch_sha256": "368318303922a57cb36478b9ca328e0d7f6b375663847d32527c948e091a27ea",
+  "source_manifest_sha256": "77dd2250a91b7a8ed179a0afe488d54370d684d382011ed04725037c02c550fe",
+  "qualified_files_sha256": "f6f2061d675d02f75b86d7120fc657aa681531d46c6117052530a7522ddcf794",
+  "qualified_file_count": 959,
+  "platform": "Darwin",
+  "input_scope": "pinned 958 build inputs plus exact compatibility ledger; not the complete repository byte tree",
+  "input_exclusions": [
+    "historical docs/qualification artifacts",
+    "historical tests/evidence archives",
+    "other non-build repository files outside the retained source projection"
+  ],
+  "expected_projection_sha256": "f6f2061d675d02f75b86d7120fc657aa681531d46c6117052530a7522ddcf794",
+  "expected_target_inventory_sha256": "30bdf8b3dc731e9e47f7a35e75dca3535257bb9ba4c70c50bcc90210b7312cbc",
+  "runner_sha256": "dce90c9c2a16c5dfa36fa65599a64ebc663f0798ae02ca83c294ff583cc0fc37",
+  "machine": "arm64",
+  "started_utc": "2026-11-07T08:00:47.842246+00:00",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:00:47.925923+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 1.008207208,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "check-all-features",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:00:48.935705+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-check-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 4.631134790999999,
+      "log_sha256": "9953de858f931300b181d438973c880cfeab2c136ce7fc7d9e6f8e0e4714bfbf",
+      "log_bytes": 155
+    },
+    {
+      "name": "check-no-default",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:00:53.567887+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-check-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 3.7256860420000004,
+      "log_sha256": "2aea1c7a6b267b7eb5f86983701c92f3fa33c6489b9d4e35dd5bb8942f1b05cf",
+      "log_bytes": 155
+    },
+    {
+      "name": "clippy-all-features",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:00:57.294621+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-clippy-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 7.520065959000002,
+      "log_sha256": "9219f10dcbb0a8d341140d0d341c0181e9b348667a2e0630e135d517d153f791",
+      "log_bytes": 155
+    },
+    {
+      "name": "clippy-no-default",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:01:04.815931+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-clippy-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 7.440695291000001,
+      "log_sha256": "2c56ef504d769394d287b189cb33b35ccaf3b6711b64fb981b62cf4f7ec5a8ac",
+      "log_bytes": 155
+    },
+    {
+      "name": "nextest-all-features",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:01:12.258238+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-nextest-all-features.log",
+      "exit_code": 100,
+      "elapsed_seconds": 872.444027458,
+      "log_sha256": "8eb14817f21e1c3f7f00d7bbeb58e80d8646510d364454ad6e105bf0a4bfe265",
+      "log_bytes": 293628
+    },
+    {
+      "name": "nextest-no-default",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:15:44.719263+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-nextest-no-default.log",
+      "exit_code": 100,
+      "elapsed_seconds": 832.7889915410001,
+      "log_sha256": "4b1285f299bc2d3466f52eabb9c060a9ed1acce9ef132921524beff9f75afbfb",
+      "log_bytes": 291281
+    },
+    {
+      "name": "release",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "build",
+        "--offline",
+        "--locked",
+        "--release",
+        "--all-features",
+        "--bins",
+        "--examples",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T08:29:37.433155+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-release.log",
+      "exit_code": 0,
+      "elapsed_seconds": 148.85471020900013,
+      "log_sha256": "6ba97fed51466efd2ba117f0db1b77ac2ec00ca7938d81bcc09c48575c523e48",
+      "log_bytes": 160
+    }
+  ],
+  "environment": {
+    "TMPDIR": "/private/tmp/hr372e7-m6",
+    "umask": "022",
+    "prior_nofile": [
+      256,
+      9223372036854775807
+    ],
+    "qualified_nofile": [
+      8192,
+      8192
+    ]
+  },
+  "nextest": {
+    "path": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/tools/bin/cargo-nextest",
+    "sha256": "297bc9b3be802c06b179bc4410de38f21138417bed5796ba0b281dd8fe75e387",
+    "version": "cargo-nextest 0.9.137 (75ddba7e9 2026-05-26)\nrelease: 0.9.137\ncommit-hash: 75ddba7e911b44c5c0700dac0415d824403de9bd\ncommit-date: 2026-05-26\nhost: aarch64-apple-darwin\n"
+  },
+  "ripgrep": {
+    "path": "/opt/homebrew/bin/rg",
+    "sha256": "bd9f4c328a191f387c84f5d867a0a3e539560002489a0a97d3fc16de8190bd67",
+    "version": "ripgrep 15.2.0\n\nfeatures:+pcre2\nsimd(compile):+NEON\nsimd(runtime):+NEON\n\nPCRE2 10.45 is available (JIT is available)\n"
+  },
+  "cargo_target_inventory": [
+    {
+      "feature_mode": "all-features",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--format-version",
+        "1",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "metadata_path": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-metadata-all-features.json",
+      "metadata_sha256": "8efbb4f32501abb75ff598473621c889bf9de321209e97613a132d82fb06b2d5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_count": 19,
+      "matches_complete_pinned_target_source_inventory": true,
+      "targets": [
+        {
+          "source": "src/lib.rs",
+          "name": "hepta_runtime",
+          "kind": [
+            "lib"
+          ],
+          "required_features": [],
+          "sha256": "a76d1776aa8b9465a7a45747a804d752ce992d6bae6a9b3c8b48e5eb0bba7abe",
+          "bytes": 1150
+        },
+        {
+          "source": "src/bin/hepta-effect-ownerctl.rs",
+          "name": "hepta-effect-ownerctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "5e51419cd66b0233432b565474bd403d4fd79d7b82a4de6bcd11d69179bcc995",
+          "bytes": 24716
+        },
+        {
+          "source": "src/main.rs",
+          "name": "hepta-runtime",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [
+            "remote-fs"
+          ],
+          "sha256": "c7d92845ca693e192a878a340d7532accdef99ebe77fdb6853d2fba269b0020e",
+          "bytes": 12843
+        },
+        {
+          "source": "src/bin/jobctl.rs",
+          "name": "hepta-runtime-jobctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "8bfd4b4bbef9a90da3c6ded73cdb83f833a4e4fd3e6cb078397c69ffcab5c241",
+          "bytes": 50858
+        },
+        {
+          "source": "examples/native_output_probe.rs",
+          "name": "native_output_probe",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "762d3e94545f36d961f83a6fff47507b33e5cfb0dfe94d6d26e420138e26149e",
+          "bytes": 2496
+        },
+        {
+          "source": "examples/native_process_driver.rs",
+          "name": "native_process_driver",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "b5ce82bc3efac411fd903cc2bf47174eeea6b9274c90c41d8a7a0dd39c96165c",
+          "bytes": 2287
+        },
+        {
+          "source": "tests/rea_application_external.rs",
+          "name": "rea_application_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "a82a41e04779f33fd60349b1c716096265aa48d42d3b0a331eeb4df6f1cd257a",
+          "bytes": 6851
+        },
+        {
+          "source": "tests/rea_artifact_zip_worker.rs",
+          "name": "rea_artifact_zip_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "d6844b13dfb83202c6f87324add7d48dba89acbf48d1d201113f97da3d8a89fc",
+          "bytes": 2878
+        },
+        {
+          "source": "tests/rea_asar_external.rs",
+          "name": "rea_asar_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "1185c41d53113140717a21af63bc6a72c616c28c1ac6334dce0023be8254a439",
+          "bytes": 10667
+        },
+        {
+          "source": "tests/rea_javascript_graph_external.rs",
+          "name": "rea_javascript_graph_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "21a7d901eee043331f85e4a9906b10ecd98f01eeb99417dac74c73374bbb0b53",
+          "bytes": 13091
+        },
+        {
+          "source": "tests/rea_macos_resource_refusal.rs",
+          "name": "rea_macos_resource_refusal",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3fe3e86e7edb2c4d9b33357bea04bdd2ff057d6924c5d0f7f3f94224ed8b275f",
+          "bytes": 2608
+        },
+        {
+          "source": "tests/rea_mcp_external.rs",
+          "name": "rea_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "c819f3ebc34af368a9351c7393455e483b02e6fc9f0f98877befc2a707aac90c",
+          "bytes": 12055
+        },
+        {
+          "source": "tests/rea_model_session_external.rs",
+          "name": "rea_model_session_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3393fba0af8b0e857f748c332e82b5a4ccc37da36a9994ed6e7e5191d7ff3519",
+          "bytes": 1485
+        },
+        {
+          "source": "tests/rea_model_worker.rs",
+          "name": "rea_model_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "7ceb4989c992fa10870bb69b5e04d8c8feabb32c30f8952d5cf454d4a9cb4fa3",
+          "bytes": 5264
+        },
+        {
+          "source": "tests/rea_static_external.rs",
+          "name": "rea_static_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "62e135e719934ff7f2a25da22d0233343f4c017c552a8e412dee7a5afc8f5b5a",
+          "bytes": 17065
+        },
+        {
+          "source": "tests/rea_web_external.rs",
+          "name": "rea_web_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "25626b841b67957e03ff559dc591f320ac9d735c00867a0aff7688a772903e7b",
+          "bytes": 7890
+        },
+        {
+          "source": "tests/rea_worker.rs",
+          "name": "rea_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "5485705763cf93b823d1e67fc15f58354c2d983bc0f463715bfe105251ac7e5a",
+          "bytes": 3429
+        },
+        {
+          "source": "tests/weight_forward_external.rs",
+          "name": "weight_forward_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "91ed590447f2a32623fdfc05e7cda0753710f8f73ed2d6d5da1c090e7eee46f3",
+          "bytes": 10555
+        },
+        {
+          "source": "tests/weight_mcp_external.rs",
+          "name": "weight_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "ebb97dabc9a6fb3772bc5553d65506ddb4de23a95d6f47c9a925a024855fe6c8",
+          "bytes": 12604
+        }
+      ]
+    },
+    {
+      "feature_mode": "no-default",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "metadata",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--format-version",
+        "1",
+        "--no-default-features"
+      ],
+      "exit_code": 0,
+      "metadata_path": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r5-final-metadata-no-default.json",
+      "metadata_sha256": "8efbb4f32501abb75ff598473621c889bf9de321209e97613a132d82fb06b2d5",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "target_count": 19,
+      "matches_complete_pinned_target_source_inventory": true,
+      "targets": [
+        {
+          "source": "src/lib.rs",
+          "name": "hepta_runtime",
+          "kind": [
+            "lib"
+          ],
+          "required_features": [],
+          "sha256": "a76d1776aa8b9465a7a45747a804d752ce992d6bae6a9b3c8b48e5eb0bba7abe",
+          "bytes": 1150
+        },
+        {
+          "source": "src/bin/hepta-effect-ownerctl.rs",
+          "name": "hepta-effect-ownerctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "5e51419cd66b0233432b565474bd403d4fd79d7b82a4de6bcd11d69179bcc995",
+          "bytes": 24716
+        },
+        {
+          "source": "src/main.rs",
+          "name": "hepta-runtime",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [
+            "remote-fs"
+          ],
+          "sha256": "c7d92845ca693e192a878a340d7532accdef99ebe77fdb6853d2fba269b0020e",
+          "bytes": 12843
+        },
+        {
+          "source": "src/bin/jobctl.rs",
+          "name": "hepta-runtime-jobctl",
+          "kind": [
+            "bin"
+          ],
+          "required_features": [],
+          "sha256": "8bfd4b4bbef9a90da3c6ded73cdb83f833a4e4fd3e6cb078397c69ffcab5c241",
+          "bytes": 50858
+        },
+        {
+          "source": "examples/native_output_probe.rs",
+          "name": "native_output_probe",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "762d3e94545f36d961f83a6fff47507b33e5cfb0dfe94d6d26e420138e26149e",
+          "bytes": 2496
+        },
+        {
+          "source": "examples/native_process_driver.rs",
+          "name": "native_process_driver",
+          "kind": [
+            "example"
+          ],
+          "required_features": [],
+          "sha256": "b5ce82bc3efac411fd903cc2bf47174eeea6b9274c90c41d8a7a0dd39c96165c",
+          "bytes": 2287
+        },
+        {
+          "source": "tests/rea_application_external.rs",
+          "name": "rea_application_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "a82a41e04779f33fd60349b1c716096265aa48d42d3b0a331eeb4df6f1cd257a",
+          "bytes": 6851
+        },
+        {
+          "source": "tests/rea_artifact_zip_worker.rs",
+          "name": "rea_artifact_zip_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "d6844b13dfb83202c6f87324add7d48dba89acbf48d1d201113f97da3d8a89fc",
+          "bytes": 2878
+        },
+        {
+          "source": "tests/rea_asar_external.rs",
+          "name": "rea_asar_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "1185c41d53113140717a21af63bc6a72c616c28c1ac6334dce0023be8254a439",
+          "bytes": 10667
+        },
+        {
+          "source": "tests/rea_javascript_graph_external.rs",
+          "name": "rea_javascript_graph_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "21a7d901eee043331f85e4a9906b10ecd98f01eeb99417dac74c73374bbb0b53",
+          "bytes": 13091
+        },
+        {
+          "source": "tests/rea_macos_resource_refusal.rs",
+          "name": "rea_macos_resource_refusal",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3fe3e86e7edb2c4d9b33357bea04bdd2ff057d6924c5d0f7f3f94224ed8b275f",
+          "bytes": 2608
+        },
+        {
+          "source": "tests/rea_mcp_external.rs",
+          "name": "rea_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "c819f3ebc34af368a9351c7393455e483b02e6fc9f0f98877befc2a707aac90c",
+          "bytes": 12055
+        },
+        {
+          "source": "tests/rea_model_session_external.rs",
+          "name": "rea_model_session_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "3393fba0af8b0e857f748c332e82b5a4ccc37da36a9994ed6e7e5191d7ff3519",
+          "bytes": 1485
+        },
+        {
+          "source": "tests/rea_model_worker.rs",
+          "name": "rea_model_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "7ceb4989c992fa10870bb69b5e04d8c8feabb32c30f8952d5cf454d4a9cb4fa3",
+          "bytes": 5264
+        },
+        {
+          "source": "tests/rea_static_external.rs",
+          "name": "rea_static_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "62e135e719934ff7f2a25da22d0233343f4c017c552a8e412dee7a5afc8f5b5a",
+          "bytes": 17065
+        },
+        {
+          "source": "tests/rea_web_external.rs",
+          "name": "rea_web_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "25626b841b67957e03ff559dc591f320ac9d735c00867a0aff7688a772903e7b",
+          "bytes": 7890
+        },
+        {
+          "source": "tests/rea_worker.rs",
+          "name": "rea_worker",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "5485705763cf93b823d1e67fc15f58354c2d983bc0f463715bfe105251ac7e5a",
+          "bytes": 3429
+        },
+        {
+          "source": "tests/weight_forward_external.rs",
+          "name": "weight_forward_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "91ed590447f2a32623fdfc05e7cda0753710f8f73ed2d6d5da1c090e7eee46f3",
+          "bytes": 10555
+        },
+        {
+          "source": "tests/weight_mcp_external.rs",
+          "name": "weight_mcp_external",
+          "kind": [
+            "test"
+          ],
+          "required_features": [],
+          "sha256": "ebb97dabc9a6fb3772bc5553d65506ddb4de23a95d6f47c9a925a024855fe6c8",
+          "bytes": 12604
+        }
+      ]
+    }
+  ],
+  "source_unchanged": true,
+  "passed": false,
+  "binary_sha256": {
+    "hepta-runtime": "f5d518388576dea8f083006d0ac2fc697242e501e31aea0ef5a56d8328d6c4d9",
+    "hepta-runtime-jobctl": "9f9a6f32cd7d777a3fc35da8dac197c98ca4b11e755afa2ec056ca779fc2ba9e"
+  },
+  "completed_utc": "2026-11-07T08:32:06.401028+00:00"
+}

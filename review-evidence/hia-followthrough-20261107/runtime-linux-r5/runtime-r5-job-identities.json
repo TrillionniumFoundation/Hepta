@@ -1,0 +1,86 @@
+{
+  "mac_r4f_terminal": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"at_unix_ms\": 1794038086029,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1b4e3b8a2-fc05-8a3b\",\n  \"launch_nonce\": \"3ca12ad549e75510b0102128e9c6038c\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 101799,\n      \"stored\": 101799\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "linux_r5_original_terminal": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"at_unix_ms\": 1794038819880,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1b5043412-fc05-8af7\",\n  \"launch_nonce\": \"e06ca0a4466d82d68b48ca2cbc5a85b8\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 23232,\n      \"stored\": 23232\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "linux_r5_original_start": {
+    "job": {
+      "host": "ai395",
+      "root": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate",
+      "kind": "linux",
+      "key": "hia-runtime-linux-942d-r5-final-gates-372e7da9-r1"
+    },
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-c\",\n      \"from pathlib import Path\\nimport tarfile,hashlib,json,subprocess,sys,os\\nr=Path(\\\"/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate\\\")\\np=r/'runtime-r5-platform-gate-bundle.tar.gz'\\nexpected=json.loads(\\\"{\\\\\\\"sha256\\\\\\\":\\\\\\\"c1e1044df39888c177e7e5fb3f4b41ec0b81792e9d99009457f42275b9476a25\\\\\\\",\\\\\\\"bytes\\\\\\\":205024,\\\\\\\"files\\\\\\\":{\\\\\\\"runtime-stage-r5-and-gates.py\\\\\\\":{\\\\\\\"bytes\\\\\\\":3717,\\\\\\\"sha256\\\\\\\":\\\\\\\"c0385886e774319e9e25ee0c561cb847d7a494617da01a31f4fded3b36ab13db\\\\\\\"},\\\\\\\"runtime-ci-gates-r5.py\\\\\\\":{\\\\\\\"bytes\\\\\\\":11120,\\\\\\\"sha256\\\\\\\":\\\\\\\"dce90c9c2a16c5dfa36fa65599a64ebc663f0798ae02ca83c294ff583cc0fc37\\\\\\\"},\\\\\\\"runtime-mac-r5-source.json\\\\\\\":{\\\\\\\"bytes\\\\\\\":14614,\\\\\\\"sha256\\\\\\\":\\\\\\\"77dd2250a91b7a8ed179a0afe488d54370d684d382011ed04725037c02c550fe\\\\\\\"},\\\\\\\"runtime-mac-compatibility-r5.patch\\\\\\\":{\\\\\\\"bytes\\\\\\\":64506,\\\\\\\"sha256\\\\\\\":\\\\\\\"368318303922a57cb36478b9ca328e0d7f6b375663847d32527c948e091a27ea\\\\\\\"},\\\\\\\"runtime-mac-platform-r5.patch\\\\\\\":{\\\\\\\"bytes\\\\\\\":26743,\\\\\\\"sha256\\\\\\\":\\\\\\\"2b52c4d30e4f9af28e199bfca608a0ab9b944bcd6e0acdeb2f0b92a71accc592\\\\\\\"},\\\\\\\"runtime-r5-formatted-input-projection.json\\\\\\\":{\\\\\\\"bytes\\\\\\\":107406,\\\\\\\"sha256\\\\\\\":\\\\\\\"34fba720f5488824fbc99e269af6c58531c7768407084b39bb3c829f4629f15e\\\\\\\"},\\\\\\\"runtime-r5-expected-input-projection.json\\\\\\\":{\\\\\\\"bytes\\\\\\\":107531,\\\\\\\"sha256\\\\\\\":\\\\\\\"f6f2061d675d02f75b86d7120fc657aa681531d46c6117052530a7522ddcf794\\\\\\\"},\\\\\\\"runtime-r5-expected-targets.json\\\\\\\":{\\\\\\\"bytes\\\\\\\":3336,\\\\\\\"sha256\\\\\\\":\\\\\\\"30bdf8b3dc731e9e47f7a35e75dca3535257bb9ba4c70c50bcc90210b7312cbc\\\\\\\"},\\\\\\\"runtime-r5-final-ledger.json\\\\\\\":{\\\\\\\"bytes\\\\\\\":779161,\\\\\\\"sha256\\\\\\\":\\\\\\\"d5bb6f5d1be05d67970dc55dccf0a3c0450c6d4f54beef93a2689237ed3be532\\\\\\\"}}}\\\")\\nassert hashlib.sha256(p.read_bytes()).hexdigest()==expected['sha256']\\nassert p.stat().st_size==expected['bytes']\\nwith tarfile.open(p,'r:gz') as t:\\n members=t.getmembers()\\n assert sorted(m.name for m in members)==sorted(expected['files'])\\n for m in members:\\n  assert m.isfile() and '/' not in m.name and m.name not in ('.','..')\\n  data=t.extractfile(m).read();info=expected['files'][m.name]\\n  assert len(data)==info['bytes'] and hashlib.sha256(data).hexdigest()==info['sha256']\\n  dest=r/m.name\\n  if dest.exists():assert dest.is_file() and not dest.is_symlink() and hashlib.sha256(dest.read_bytes()).hexdigest()==info['sha256']\\n  else:\\n   with dest.open('xb') as f:f.write(data);f.flush();os.fsync(f.fileno())\\nprint(json.dumps({'bundle_sha256':expected['sha256'],'bundle_files_verified':len(members),'host_kind':\\\"linux\\\"}),flush=True)\\nraise SystemExit(subprocess.run([sys.executable,str(r/'runtime-stage-r5-and-gates.py'),'--root',str(r),'--host-kind',\\\"linux\\\"],cwd=r).returncode)\\n\"\n    ],\n    \"created_unix_ms\": 1794038314002,\n    \"cwd\": \"/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1b5043412-fc05-8af7\",\n    \"idempotency_key\": \"hia-runtime-linux-942d-r5-final-gates-372e7da9-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1b5043412-fc05-8af7\",\n    \"request_digest\": \"65f93bf19f769d1b8ef1c5cb07aeedcd548360dc5b4ce9db059d7aae95aa51da\",\n    \"request_fingerprint\": 7347970175980182811,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1b5043412-fc05-8af7\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1b5043412-fc05-8af7\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      }
+    }
+  },
+  "mac_r5_original_start_timeout": {
+    "job": {
+      "host": "main",
+      "root": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9",
+      "kind": "mac",
+      "key": "hia-runtime-mac-942d-r5-final-gates-release-372e7da9-r1"
+    },
+    "result": {
+      "status": "fulfilled",
+      "value": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      }
+    }
+  },
+  "linux_r5_inode_recheck_start": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/runtime-linux-r5-nextest-inode-recheck.py\"\n    ],\n    \"created_unix_ms\": 1794039171632,\n    \"cwd\": \"/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"ai395\",\n    \"id\": \"1a1b5114a30-fc05-8b19\",\n    \"idempotency_key\": \"hia-runtime-linux-942d-r5-inode-recheck-372e7da9-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/home/qq/.local/state/hepta-runtime-mac-worker/jobs/1a1b5114a30-fc05-8b19\",\n    \"request_digest\": \"4d91d667f16d73a5457953d8497fa96586f5858bb81142c47c9ffd85ccc33f5a\",\n    \"request_fingerprint\": 5589484354463953829,\n    \"ssh_target\": \"ai395-lan\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1b5114a30-fc05-8b19\"\n  },\n  \"launch\": {\n    \"backend\": \"systemd\",\n    \"launcher_pid\": null,\n    \"ok\": true,\n    \"unit\": \"hepta-runtime-job-1a1b5114a30-fc05-8b19\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+      }
+    ],
+    "structuredContent": null,
+    "isError": false
+  },
+  "mac_r5_job_correlation": {
+    "id": "1a1b506154c-fc05-8afe",
+    "matching_bounded_stdout": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1b506154c-fc05-8afe\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b2262756e646c655f736861323536223a202263316531303434646633393838386331373765376535666233663462343165633062383137393265396439393030393435376634323237356239343736613235222c202262756e646c655f66696c65735f7665726966696564223a20392c2022686f73745f6b696e64223a20226d6163227d0a7b22736368656d61223a202268657074612d72756e74696d652d72352d70726f6a65637465642d736f757263652d73746167696e672d7631222c20227075626c69736865645f636f6d6d6974223a202239343264343730643135356336356261373233356562313963356262666430376631636532616430222c20227075626c69736865645f74726565223a202261313966316464373234626466383061333838646461653137643832386230316535666334326630222c20227072696f725f676174655f736861323536223a202238356531393430303465646366653439383762303734623635626266346365646461373065643961346437623263313663306232626536393965353432656335222c20227072696f725f676174655f706173736564223a2066616c73652c20226e61746976655f70726f6a656374696f6e5f736861323536223a20223334666261373230663534383838323466626339396532363961663663353835333163373736383430373038346233\",\n    \"eof\": false,\n    \"next_offset\": 512,\n    \"offset\": 0,\n    \"size\": 5671,\n    \"text\": \"{\\\"bundle_sha256\\\": \\\"c1e1044df39888c177e7e5fb3f4b41ec0b81792e9d99009457f42275b9476a25\\\", \\\"bundle_files_verified\\\": 9, \\\"host_kind\\\": \\\"mac\\\"}\\n{\\\"schema\\\": \\\"hepta-runtime-r5-projected-source-staging-v1\\\", \\\"published_commit\\\": \\\"942d470d155c65ba7235eb19c5bbfd07f1ce2ad0\\\", \\\"published_tree\\\": \\\"a19f1dd724bdf80a388ddae17d828b01e5fc42f0\\\", \\\"prior_gate_sha256\\\": \\\"85e194004edcfe4987b074b65bbf4cedda70ed9a4d7b2c16c0b2be699e542ec5\\\", \\\"prior_gate_passed\\\": false, \\\"native_projection_sha256\\\": \\\"34fba720f5488824fbc99e269af6c58531c7768407084b3\"\n  }\n}"
+        }
+      ],
+      "structuredContent": null,
+      "isError": false
+    }
+  }
+}

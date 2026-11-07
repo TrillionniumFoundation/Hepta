@@ -1,0 +1,104 @@
+{
+  "schema": "hepta-runtime-pinned-platform-gates-v3",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "patch_sha256": "c3a29505f87c270b0b57fd3ecab5175ad60343dbc10d2c9d6aeb8ab2d6d90157",
+  "source_manifest_sha256": "e4f5196cbd96b1a76e9e77ab2afb8b18ade9e35544112698702dd895c767103f",
+  "qualified_files_sha256": "8e67b9b0fd12e2c3ee2a052403c58015923ddb1e1dd66a0d4ed0518be8e17a35",
+  "qualified_file_count": 955,
+  "platform": "Linux",
+  "machine": "x86_64",
+  "started_utc": "2026-11-07T06:37:00.937950+00:00",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:37:00.937975+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r3-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 1.382100983057171,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:37:02.320493+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r3-clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 34.78119593416341,
+      "log_sha256": "8447446fc270a4fc660f727534c979a763c51c79fbf95db556ac9f51c3fd4cfa",
+      "log_bytes": 9831
+    },
+    {
+      "name": "all-tests",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--no-fail-fast",
+        "-j",
+        "4",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:37:37.102121+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r3-all-tests.log",
+      "exit_code": 101,
+      "elapsed_seconds": 314.211978337029,
+      "log_sha256": "c3a89ebfcadea812351a07eef0dd4e224512e58a292b5137fca28ac996a600e7",
+      "log_bytes": 286872
+    },
+    {
+      "name": "hia-lib-tests",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--lib",
+        "hia",
+        "-j",
+        "4",
+        "--",
+        "--nocapture"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:42:51.315927+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r3-hia-lib-tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.45375795592553914,
+      "log_sha256": "2a5362f1c2e775b077dc0eac0dcdbe58d3bb892b21f6b1494e81c34df2df9eb4",
+      "log_bytes": 2573
+    }
+  ],
+  "source_unchanged": true,
+  "passed": false,
+  "completed_utc": "2026-11-07T06:42:51.851576+00:00"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "hia-privileged-timeout-review-v1",
+  "source_commit_observed": "14dfb09aa3263ed35b4f88e8c301f8492d63fea7",
+  "candidate_root": "/workspace/scratch/372e7da9bde9/runtime-mac-r5",
+  "changed_path": "src/mcp/runtime/inspect_security_tests.rs",
+  "test_sha256": "75694611c8f4354c57a01592e3687c58495573fa2f76fc32f828221db66de4c6",
+  "production_source_sha256": "be9416a05d0a48ae63665ff3d2cca6f84bb4fb7231e8159754dba0d66b396aa2",
+  "production_code_modified": false,
+  "patch_sha256": "9cc309ae0440f991f5861d95bbe9ace872feb818133b0e39bf48bba1610bbd93",
+  "original_diagnostic_job": "1a1b4ed136d-fc05-8a7a",
+  "marker_diagnostic_job": "1a1b4f06677-fc05-8a92",
+  "readiness_validation_job": "1a1b4f250a9-fc05-8a9f",
+  "observed_failure": "At a one-second action deadline, the fresh shell fixture had not executed even its first independent marker command; no stdout bytes existed. The three-second case produced both the marker and all eight stdout bytes.",
+  "fixture_change": "Test-only Popen wrapper waits up to ten seconds for actual stdout descriptor readiness without consuming bytes, then returns the real child/pipes to unchanged production capture code. Readiness timeout kills and reaps that owned child and fails. The real one-second action timeout and original stdout/exit assertions remain, with additional timeout/authority/byte-count assertions.",
+  "mac_python_fixture_validation": {
+    "cases": 2,
+    "passed": 2,
+    "rust_tests_executed": false,
+    "report_sha256": "ef6f7d60af43fcc1fd26a021597cacd2aca6065122402eae940926a7755d3deb"
+  },
+  "source_diff_check_exit": 0,
+  "scope_limits": [
+    "No whole Rust suite or format gate run by this reviewer; p3 owns final combined formatting and platform qualification.",
+    "Original 14df full-gate failures and prior two-case diagnostic preserved.",
+    "Does not qualify privileged action execution or descendant termination."
+  ],
+  "commit_or_push_performed": false
+}

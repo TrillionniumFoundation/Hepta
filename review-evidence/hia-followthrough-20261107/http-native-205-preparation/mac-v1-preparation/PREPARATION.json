@@ -1,0 +1,110 @@
+{
+  "schema": "hia-http-isolated-mac-preparation-v1",
+  "status": "prepared",
+  "archive_sha256": "aa5782c2e7cd7ec9e6cdf3f22a58915bb41600602068e9b7e71725b92d40e4f0",
+  "archive_bytes": 560716,
+  "destination": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1",
+  "adapter_sha256": "5adf4d38ab95d80c961bd943dbd3d8dea32e2574f11b4b6319e8382b12859c9c",
+  "source": {
+    "source_commit": "205f94ec811018f89fbf68c987c6ab8e826bb15b",
+    "files": [
+      {
+        "path": "tools/hia_agent_native_qualification.py",
+        "bytes": 17478,
+        "sha256": "eb0840101b3a9fdbcf4792ad85f569d1bbf641f348cef0745fe40f54e4ac8b90",
+        "git_blob_sha1": "3cd5423f676de75edd100ebe812985172806ff80"
+      },
+      {
+        "path": "tools/hia_agent_native_transport.py",
+        "bytes": 5934,
+        "sha256": "9a82aa1f0eced5782763dc6898da04d0f5d12f54766f56b651d8505d28148a4a",
+        "git_blob_sha1": "b486ccee04810f8a5e82737213e7348dbce00fcd"
+      },
+      {
+        "path": "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json",
+        "bytes": 183835,
+        "sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+        "git_blob_sha1": "6dd8f5a76037152fdf8af05de477da7e25ff7bcd"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "name": "create-venv",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "-m",
+        "venv",
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 4.466348125133663,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "offline-install",
+      "argv": [
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+        "-m",
+        "pip",
+        "install",
+        "--disable-pip-version-check",
+        "--no-index",
+        "--no-deps",
+        "--require-hashes",
+        "--find-links",
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/mac-wheels",
+        "-r",
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/requirements-mac.lock"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.9890916249714792,
+      "stdout_sha256": "76cfe3d0d4b814eca1bf71b073e140627c0b0ec446578de8cb4f4acd039540c8",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "adapter-tests",
+      "argv": [
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "test_http_qualification"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.09174245782196522,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "619da59ef820abcf7a294a87486288d4740537e3274672cea393ad4bc494082c"
+    },
+    {
+      "name": "catalog-schema-validation",
+      "argv": [
+        "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+        "-B",
+        "-c",
+        "import importlib.metadata,json,pathlib,sys;from jsonschema import Draft202012Validator;c=json.loads(pathlib.Path('docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json').read_bytes());[(Draft202012Validator.check_schema(t['inputSchema']),Draft202012Validator.check_schema(t['outputSchema'])) for t in c['tools']];print(json.dumps({'python':sys.version,'executable':sys.executable,'validated_schemas':2*len(c['tools']),'dependencies':{n:importlib.metadata.version(n) for n in ['jsonschema','jsonschema-specifications','referencing','rpds-py','attrs']}}))"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 1.6327939578332007,
+      "stdout_sha256": "ebda7d842c66eba773ff782b0cc7e6c11ffcf4a1a6f55583044f5afb1768854c",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "actual_environment": {
+    "python": "3.14.3 (main, Feb  3 2026, 15:32:20) [Clang 17.0.0 (clang-1700.6.3.2)]",
+    "executable": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+    "validated_schemas": 22,
+    "dependencies": {
+      "jsonschema": "4.25.1",
+      "jsonschema-specifications": "2025.9.1",
+      "referencing": "0.37.0",
+      "rpds-py": "2026.9.1",
+      "attrs": "26.1.0"
+    }
+  },
+  "global_install_performed": false,
+  "token_read": false,
+  "http_calls_performed": false
+}

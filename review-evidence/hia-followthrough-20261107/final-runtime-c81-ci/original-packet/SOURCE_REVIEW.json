@@ -1,0 +1,23 @@
+{
+  "schema": "hia-runtime-r6-independent-static-review-v1",
+  "commit": "c81a938150d2e533843a42af77739cb888812338",
+  "source_identity": "SOURCE_IDENTITY.json",
+  "material_findings": [],
+  "reviewed_change": "Only one checkpoint test function changes; all production files and the mapping/validator/workflow bytes remain identical to independently verified 942.",
+  "assertions_preserved": [
+    "Watch-backed outside-write invalidation still requires cached(None).",
+    "Without a content watch, identical bytes require full validated Record equality and refreshed persisted stamp.",
+    "The unwatched path additionally corrupts tool_name with equal-length otherwise valid JSON and requires OriginalRecordConflict::Identity; changed bytes remain unmodified by the refusal.",
+    "Original bytes are restored by the test before the existing unsafe-cache mode rejection assertion."
+  ],
+  "qualification_claims": {
+    "static_review_completed": true,
+    "ledger_tests_29_passed": true,
+    "mapping_check_passed": true,
+    "strict_parity_open": true,
+    "full_hosted_gate_observed": false,
+    "platform_gate_observed": false
+  },
+  "test_fixture_author": "P3; this reviewer did not edit the r6 fixture",
+  "ledger": "Fresh reassembly uses pinned repository snapshots only; NOT_REVERIFIED, 229 OPEN, 0 QUALIFIED."
+}

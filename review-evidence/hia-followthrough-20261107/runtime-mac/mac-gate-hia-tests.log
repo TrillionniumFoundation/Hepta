@@ -1,0 +1,660 @@
+warning: unused import: `super::rea_files`
+  --> src/mcp/rea_evidence_file.rs:25:5
+   |
+25 | use super::rea_files;
+   |     ^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `SeekFrom` and `Seek`
+  --> src/mcp/rea_evidence_file.rs:33:38
+   |
+33 | use std::io::{self, BufReader, Read, Seek, SeekFrom};
+   |                                      ^^^^  ^^^^^^^^
+
+warning: unused import: `Path`
+  --> src/mcp/rea_evidence_file.rs:34:17
+   |
+34 | use std::path::{Path, PathBuf};
+   |                 ^^^^
+
+warning: unused import: `bail`
+  --> src/mcp/rea_worker_transport.rs:25:14
+   |
+25 | use anyhow::{bail, Context, Result};
+   |              ^^^^
+
+warning: unused import: `Sha256`
+  --> src/mcp/runtime/effect_owner_fence.rs:17:20
+   |
+17 | use sha2::{Digest, Sha256};
+   |                    ^^^^^^
+
+warning: unused import: `std::collections::HashSet`
+  --> src/mcp/runtime/effect_owner_fence.rs:18:5
+   |
+18 | use std::collections::HashSet;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `self`
+  --> src/mcp/runtime/effect_owner_fence.rs:20:15
+   |
+20 | use std::fs::{self, File};
+   |               ^^^^
+
+warning: unused import: `Digest`
+  --> src/mcp/runtime/effect_owner_fence.rs:17:12
+   |
+17 | use sha2::{Digest, Sha256};
+   |            ^^^^^^
+
+warning: constant `CHUNK` is never used
+  --> src/mcp/rea_evidence_file.rs:41:7
+   |
+41 | const CHUNK: usize = 64 * 1024;
+   |       ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `NATIVE_JSON_THRESHOLD` is never used
+  --> src/mcp/rea_evidence_file.rs:42:7
+   |
+42 | const NATIVE_JSON_THRESHOLD: u64 = 8 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `BOM_MESSAGE` is never used
+  --> src/mcp/rea_evidence_file.rs:43:7
+   |
+43 | const BOM_MESSAGE: &str = "JSON input begins with a UTF-8 byte-order mark (EF BB BF), which strict JSON input does not accept. Save ...
+   |       ^^^^^^^^^^^
+
+warning: constant `UTF8_MESSAGE` is never used
+  --> src/mcp/rea_evidence_file.rs:44:7
+   |
+44 | const UTF8_MESSAGE: &str = "JSON input is not valid UTF-8";
+   |       ^^^^^^^^^^^^
+
+warning: variants `Missing`, `NotFile`, and `Io` are never constructed
+  --> src/mcp/rea_evidence_file.rs:66:2
+   |
+65 | pub(super) enum FileReason {
+   |                 ---------- variants in this enum
+66 |     Missing,
+   |     ^^^^^^^
+67 |     PathLimit,
+68 |     NotFile,
+   |     ^^^^^^^
+69 |     Io,
+   |     ^^
+   |
+   = note: `FileReason` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: variants `File`, `InvalidJson`, `RootString`, `Cancelled`, and `Cleanup` are never constructed
+   --> src/mcp/rea_evidence_file.rs:90:2
+    |
+ 89 | pub(super) enum FileReadError {
+    |                 ------------- variants in this enum
+ 90 |     File {
+    |     ^^^^
+...
+ 94 |     InvalidJson {
+    |     ^^^^^^^^^^^
+...
+100 |     RootString,
+    |     ^^^^^^^^^^
+101 |     Cancelled,
+    |     ^^^^^^^^^
+...
+106 |     Cleanup {
+    |     ^^^^^^^
+    |
+    = note: `FileReadError` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: variants `Array` and `Object` are never constructed
+   --> src/mcp/rea_evidence_file.rs:143:2
+    |
+140 | enum OrderNode {
+    |      --------- variants in this enum
+...
+143 |     Array(Vec<OrderNode>),
+    |     ^^^^^
+144 |     Object {
+    |     ^^^^^^
+    |
+    = note: `OrderNode` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: struct `Parsed` is never constructed
+   --> src/mcp/rea_evidence_file.rs:191:8
+    |
+191 | struct Parsed {
+    |        ^^^^^^
+
+warning: function `leaf` is never used
+   --> src/mcp/rea_evidence_file.rs:195:4
+    |
+195 | fn leaf(value: Value) -> Parsed {
+    |    ^^^^
+
+warning: function `active` is never used
+   --> src/mcp/rea_evidence_file.rs:214:4
+    |
+214 | fn active(cancellation: &CancellationToken) -> Result<()> {
+    |    ^^^^^^
+
+warning: function `invalid_json` is never used
+   --> src/mcp/rea_evidence_file.rs:221:4
+    |
+221 | fn invalid_json(message: &str, user_message: bool) -> FileReadError {
+    |    ^^^^^^^^^^^^
+
+warning: function `physical` is never used
+   --> src/mcp/rea_evidence_file.rs:227:4
+    |
+227 | fn physical(error: io::Error) -> FileReadError {
+    |    ^^^^^^^^
+
+warning: function `changed` is never used
+   --> src/mcp/rea_evidence_file.rs:236:4
+    |
+236 | fn changed() -> FileReadError {
+    |    ^^^^^^^
+
+warning: struct `State` is never constructed
+   --> src/mcp/rea_evidence_file.rs:614:8
+    |
+614 | struct State {
+    |        ^^^^^
+
+warning: associated items `new`, `digest`, `bom`, `fail`, and `admit` are never used
+   --> src/mcp/rea_evidence_file.rs:628:5
+    |
+627 | impl State {
+    | ---------- associated items in this implementation
+628 |     fn new(cancellation: CancellationToken, limits: NativeJsonLimits, small: bool) -> Self {
+    |        ^^^
+...
+643 |     fn digest(&self) -> String {
+    |        ^^^^^^
+...
+651 |     fn bom(&self) -> bool {
+    |        ^^^
+...
+654 |     fn fail<E: de::Error>(&mut self, error: FileReadError) -> E {
+    |        ^^^^
+...
+660 |     fn admit<E: de::Error>(&mut self, bytes: u64) -> std::result::Result<(), E> {
+    |        ^^^^^
+
+warning: struct `Utf8` is never constructed
+   --> src/mcp/rea_evidence_file.rs:675:8
+    |
+675 | struct Utf8 {
+    |        ^^^^
+
+warning: methods `accept_slice` and `accept` are never used
+   --> src/mcp/rea_evidence_file.rs:681:5
+    |
+680 | impl Utf8 {
+    | --------- methods in this implementation
+681 |     fn accept_slice(&mut self, bytes: &[u8]) -> bool {
+    |        ^^^^^^^^^^^^
+...
+690 |     fn accept(&mut self, byte: u8) -> bool {
+    |        ^^^^^^
+
+warning: struct `TokenMeter` is never constructed
+   --> src/mcp/rea_evidence_file.rs:744:8
+    |
+744 | struct TokenMeter {
+    |        ^^^^^^^^^^
+
+warning: methods `accept_slice` and `accept` are never used
+   --> src/mcp/rea_evidence_file.rs:750:5
+    |
+749 | impl TokenMeter {
+    | --------------- methods in this implementation
+750 |     fn accept_slice(&mut self, bytes: &[u8], maximum: usize) -> bool {
+    |        ^^^^^^^^^^^^
+...
+765 |     fn accept(&mut self, byte: u8, maximum: usize) -> bool {
+    |        ^^^^^^
+
+warning: struct `CheckedReader` is never constructed
+   --> src/mcp/rea_evidence_file.rs:790:8
+    |
+790 | struct CheckedReader<R> {
+    |        ^^^^^^^^^^^^^
+
+warning: associated items `new` and `refuse` are never used
+   --> src/mcp/rea_evidence_file.rs:799:5
+    |
+798 | impl<R> CheckedReader<R> {
+    | ------------------------ associated items in this implementation
+799 |     fn new(inner: R, expected: u64, state: Rc<RefCell<State>>, meter: bool) -> Self {
+    |        ^^^
+...
+810 |     fn refuse(&self, error: FileReadError) -> io::Error {
+    |        ^^^^^^
+
+warning: function `take_reader_error` is never used
+   --> src/mcp/rea_evidence_file.rs:880:4
+    |
+880 | fn take_reader_error(state: &Rc<RefCell<State>>, fallback: io::Error) -> FileReadError {
+    |    ^^^^^^^^^^^^^^^^^
+
+warning: function `parse_reader` is never used
+   --> src/mcp/rea_evidence_file.rs:888:4
+    |
+888 | fn parse_reader<R: Read>(reader: R, expected: u64, state: Rc<RefCell<State>>) -> Result<Parsed> {
+    |    ^^^^^^^^^^^^
+
+warning: struct `Seed` is never constructed
+   --> src/mcp/rea_evidence_file.rs:951:8
+    |
+951 | struct Seed {
+    |        ^^^^
+
+warning: function `array_index` is never used
+   --> src/mcp/rea_evidence_file.rs:975:4
+    |
+975 | fn array_index(key: &str) -> Option<u32> {
+    |    ^^^^^^^^^^^
+
+warning: function `js_number` is never used
+   --> src/mcp/rea_evidence_file.rs:984:4
+    |
+984 | fn js_number(number: f64) -> Option<Number> {
+    |    ^^^^^^^^^
+
+warning: constant `CONTEXT` is never used
+  --> src/mcp/rea_json_eof.rs:26:7
+   |
+26 | const CONTEXT: usize = 10;
+   |       ^^^^^^^
+
+warning: constant `SHORT` is never used
+  --> src/mcp/rea_json_eof.rs:27:7
+   |
+27 | const SHORT: usize = CONTEXT * 2;
+   |       ^^^^^
+
+warning: enum `Frame` is never used
+  --> src/mcp/rea_json_eof.rs:30:6
+   |
+30 | enum Frame {
+   |      ^^^^^
+
+warning: enum `Escape` is never used
+  --> src/mcp/rea_json_eof.rs:44:6
+   |
+44 | enum Escape {
+   |      ^^^^^^
+
+warning: enum `Number` is never used
+  --> src/mcp/rea_json_eof.rs:51:6
+   |
+51 | enum Number {
+   |      ^^^^^^
+
+warning: enum `Token` is never used
+  --> src/mcp/rea_json_eof.rs:63:6
+   |
+63 | enum Token {
+   |      ^^^^^
+
+warning: enum `ErrorKind` is never used
+  --> src/mcp/rea_json_eof.rs:71:6
+   |
+71 | enum ErrorKind {
+   |      ^^^^^^^^^
+
+warning: struct `FirstError` is never constructed
+  --> src/mcp/rea_json_eof.rs:76:8
+   |
+76 | struct FirstError {
+   |        ^^^^^^^^^^
+
+warning: struct `Tracker` is never constructed
+  --> src/mcp/rea_json_eof.rs:86:19
+   |
+86 | pub(super) struct Tracker {
+   |                   ^^^^^^^
+
+warning: multiple associated items are never used
+   --> src/mcp/rea_json_eof.rs:107:16
+    |
+106 | impl Tracker {
+    | ------------ associated items in this implementation
+107 |     pub(super) fn new() -> Self {
+    |                   ^^^
+...
+131 |     pub(super) fn accept(&mut self, mut bytes: &[u8]) {
+    |                   ^^^^^^
+...
+190 |     fn accept_horizontal_whitespace(&mut self, bytes: &[u8]) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+221 |     fn accept_character(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^^^
+...
+262 |     fn reject(&mut self, kind: ErrorKind) {
+    |        ^^^^^^
+...
+276 |     fn unexpected(&mut self, character: char) {
+    |        ^^^^^^^^^^
+...
+288 |     fn accept_grammar(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^
+...
+308 |     fn accept_structure(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^^^
+...
+352 |     fn start_value(&mut self, character: char) {
+    |        ^^^^^^^^^^^
+...
+373 |     fn push(&mut self, frame: Frame) {
+    |        ^^^^
+...
+382 |     fn complete_value(&mut self) {
+    |        ^^^^^^^^^^^^^^
+...
+395 |     fn accept_string(&mut self, character: char, key: bool, escape: Escape) {
+    |        ^^^^^^^^^^^^^
+...
+439 |     fn accept_number(&mut self, character: char, number: Number) {
+    |        ^^^^^^^^^^^^^
+...
+483 |     pub(super) fn complete_root_string(&self) -> bool {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+498 |     fn syntax_message(&self, error: &FirstError) -> Option<String> {
+    |        ^^^^^^^^^^^^^^
+...
+534 |     pub(super) fn finish(mut self) -> Option<String> {
+    |                   ^^^^^^
+
+warning: variants `BeforeRename`, `BeforeParentSync`, and `AfterParentSync` are never constructed
+   --> src/mcp/rea_model_session_store.rs:206:2
+    |
+205 | pub(super) enum CommitPhase {
+    |                 ----------- variants in this enum
+206 |     BeforeRename,
+    |     ^^^^^^^^^^^^
+207 |     BeforeParentSync,
+    |     ^^^^^^^^^^^^^^^^
+208 |     AfterParentSync,
+    |     ^^^^^^^^^^^^^^^
+    |
+    = note: `CommitPhase` has derived impls for the traits `Debug` and `Clone`, but these are intentionally ignored during dead code analysis
+
+warning: method `arguments` is never used
+   --> src/mcp/rea_provider.rs:208:16
+    |
+174 | impl StaticProvider {
+    | ------------------- method in this implementation
+...
+208 |     pub(crate) fn arguments(
+    |                   ^^^^^^^^^
+
+warning: constant `MAX_MANIFEST_BYTES` is never used
+  --> src/mcp/rea_engine_profile.rs:17:18
+   |
+17 | pub(crate) const MAX_MANIFEST_BYTES: u64 = 8 * 1024 * 1024;
+   |                  ^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_INSTALLATION_FILES` is never used
+  --> src/mcp/rea_engine_profile.rs:18:18
+   |
+18 | pub(crate) const MAX_INSTALLATION_FILES: usize = 20_000;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `GHIDRA_V4_GPL_REQUIRED` is never used
+  --> src/mcp/rea_engine_profile.rs:20:18
+   |
+20 | pub(crate) const GHIDRA_V4_GPL_REQUIRED: [(&str, &str); 2] = [
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `installation_subtrees` is never used
+  --> src/mcp/rea_engine_profile.rs:31:15
+   |
+31 | pub(crate) fn installation_subtrees(revision: Option<u32>) -> &'static [&'static str] {
+   |               ^^^^^^^^^^^^^^^^^^^^^
+
+warning: struct `InstallationManifest` is never constructed
+  --> src/mcp/rea_engine_profile.rs:56:19
+   |
+56 | pub(crate) struct InstallationManifest {
+   |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: function `validate_manifest` is never used
+   --> src/mcp/rea_engine_profile.rs:138:15
+    |
+138 | pub(crate) fn validate_manifest(
+    |               ^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_PREDECESSOR_JOBS` is never used
+  --> src/mcp/runtime/effect_owner_fence.rs:37:7
+   |
+37 | const MAX_PREDECESSOR_JOBS: usize = 65_536;
+   |       ^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_PREDECESSOR_TOTAL_BYTES` is never used
+  --> src/mcp/runtime/effect_owner_fence.rs:38:7
+   |
+38 | const MAX_PREDECESSOR_TOTAL_BYTES: u64 = 128 * 1024 * 1024;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAX_PREDECESSOR_SCAN_SECS` is never used
+  --> src/mcp/runtime/effect_owner_fence.rs:39:7
+   |
+39 | const MAX_PREDECESSOR_SCAN_SECS: u64 = 30;
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `authority_path` is never read
+  --> src/mcp/runtime/effect_owner_fence.rs:71:2
+   |
+66 | pub struct AdmissionPermit {
+   |            --------------- field in this struct
+...
+71 |     authority_path: Option<PathBuf>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `AdmissionPermit` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: struct `LegacyJobKey` is never constructed
+   --> src/mcp/runtime/effect_owner_fence.rs:282:8
+    |
+282 | struct LegacyJobKey {
+    |        ^^^^^^^^^^^^
+
+warning: `hepta-runtime` (lib) generated 57 warnings (run `cargo fix --lib -p hepta-runtime` to apply 7 suggestions)
+   Compiling hepta-runtime v0.1.0 (/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/source)
+warning: unused import: `serde_json::Value`
+  --> src/mcp/rea_binary_tests.rs:21:5
+   |
+21 | use serde_json::Value;
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::rea_files`
+  --> src/mcp/rea_evidence_file.rs:25:5
+   |
+25 | use super::rea_files;
+   |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `serde_json::json`
+ --> src/mcp/rea_worker_transport_tests.rs:8:5
+  |
+8 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::os::unix::fs::PermissionsExt`
+ --> src/mcp/runtime/jobs_registry_coalescing_tests.rs:7:5
+  |
+7 | use std::os::unix::fs::PermissionsExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Condvar`
+ --> src/mcp/runtime/jobs_registry_coalescing_tests.rs:8:5
+  |
+8 | use std::sync::Condvar;
+  |     ^^^^^^^^^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> src/mcp/rea_json_eof.rs:107:16
+    |
+106 | impl Tracker {
+    | ------------ associated items in this implementation
+107 |     pub(super) fn new() -> Self {
+    |                   ^^^
+...
+131 |     pub(super) fn accept(&mut self, mut bytes: &[u8]) {
+    |                   ^^^^^^
+...
+190 |     fn accept_horizontal_whitespace(&mut self, bytes: &[u8]) {
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+221 |     fn accept_character(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^^^
+...
+262 |     fn reject(&mut self, kind: ErrorKind) {
+    |        ^^^^^^
+...
+276 |     fn unexpected(&mut self, character: char) {
+    |        ^^^^^^^^^^
+...
+288 |     fn accept_grammar(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^
+...
+308 |     fn accept_structure(&mut self, character: char) {
+    |        ^^^^^^^^^^^^^^^^
+...
+352 |     fn start_value(&mut self, character: char) {
+    |        ^^^^^^^^^^^
+...
+373 |     fn push(&mut self, frame: Frame) {
+    |        ^^^^
+...
+382 |     fn complete_value(&mut self) {
+    |        ^^^^^^^^^^^^^^
+...
+395 |     fn accept_string(&mut self, character: char, key: bool, escape: Escape) {
+    |        ^^^^^^^^^^^^^
+...
+439 |     fn accept_number(&mut self, character: char, number: Number) {
+    |        ^^^^^^^^^^^^^
+...
+483 |     pub(super) fn complete_root_string(&self) -> bool {
+    |                   ^^^^^^^^^^^^^^^^^^^^
+...
+494 |     pub(super) fn has_syntax_error(&self) -> bool {
+    |                   ^^^^^^^^^^^^^^^^
+...
+498 |     fn syntax_message(&self, error: &FirstError) -> Option<String> {
+    |        ^^^^^^^^^^^^^^
+...
+534 |     pub(super) fn finish(mut self) -> Option<String> {
+    |                   ^^^^^^
+
+warning: function `permit` is never used
+ --> src/mcp/rea_evidence_import_tests.rs:9:10
+  |
+9 | async fn permit() -> Arc<runtime::effect_owner_fence::AdmissionPermit> {
+  |          ^^^^^^
+
+warning: function `payload` is never used
+  --> src/mcp/rea_evidence_import_tests.rs:17:4
+   |
+17 | fn payload(result: &CallToolResult) -> Value {
+   |    ^^^^^^^
+
+warning: function `call` is never used
+  --> src/mcp/rea_evidence_import_tests.rs:82:10
+   |
+82 | async fn call(
+   |          ^^^^
+
+warning: `hepta-runtime` (lib test) generated 57 warnings (48 duplicates) (run `cargo fix --lib -p hepta-runtime --tests` to apply 5 suggestions)
+error[E0308]: mismatched types
+   --> src/bin/../mcp/rea_engine_usage.rs:103:22
+    |
+103 |                 if held.dev() != before.st_dev || held.ino() != before.st_ino || !held.is_dir() {
+    |                                  ^^^^^^^^^^^^^ expected `u64`, found `i32`
+
+error[E0277]: can't compare `u64` with `i32`
+    --> src/bin/../mcp/rea_engine_usage.rs:103:19
+     |
+ 103 |                 if held.dev() != before.st_dev || held.ino() != before.st_ino || !held.is_dir() {
+     |                               ^^ no implementation for `u64 == i32`
+     |
+     = help: the trait `PartialEq<i32>` is not implemented for `u64`
+help: the following other types implement trait `PartialEq<Rhs>`
+    --> /Users/qianqi/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1876:13
+     |
+1876 |               impl const PartialEq for $t {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `u64` implements `PartialEq`
+...
+1898 | /     partial_eq_impl! {
+1899 | |         bool char usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128
+1900 | |     }
+     | |_____- in this macro invocation
+     |
+    ::: /Users/qianqi/work/hepta-runtime-mac-controller-20261103/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/value/partial_eq.rs:76:13
+     |
+  76 |               impl PartialEq<Value> for $ty {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `u64` implements `PartialEq<serde_json::Value>`
+...
+  97 | / partialeq_numeric! {
+  98 | |     eq_i64[i8 i16 i32 i64 isize]
+  99 | |     eq_u64[u8 u16 u32 u64 usize]
+ 100 | |     eq_f32[f32]
+ 101 | |     eq_f64[f64]
+ 102 | |     eq_bool[bool]
+ 103 | | }
+     | |_- in this macro invocation
+     = note: this error originates in the macro `partial_eq_impl` which comes from the expansion of the macro `partialeq_numeric` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0308]: mismatched types
+   --> src/bin/../mcp/rea_engine_usage.rs:112:26
+    |
+112 |                         if after.st_dev == held.dev()
+    |                                            ^^^^^^^^^^ expected `i32`, found `u64`
+
+error[E0277]: can't compare `i32` with `u64`
+    --> src/bin/../mcp/rea_engine_usage.rs:112:23
+     |
+ 112 |                         if after.st_dev == held.dev()
+     |                                         ^^ no implementation for `i32 == u64`
+     |
+     = help: the trait `PartialEq<u64>` is not implemented for `i32`
+help: the following other types implement trait `PartialEq<Rhs>`
+    --> /Users/qianqi/.rustup/toolchains/1.95.0-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/cmp.rs:1876:13
+     |
+1876 |               impl const PartialEq for $t {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `PartialEq`
+...
+1898 | /     partial_eq_impl! {
+1899 | |         bool char usize u8 u16 u32 u64 u128 isize i8 i16 i32 i64 i128 f16 f32 f64 f128
+1900 | |     }
+     | |_____- in this macro invocation
+     |
+    ::: /Users/qianqi/work/hepta-runtime-mac-controller-20261103/cargo-home/registry/src/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.151/src/value/partial_eq.rs:76:13
+     |
+  76 |               impl PartialEq<Value> for $ty {
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `i32` implements `PartialEq<serde_json::Value>`
+...
+  97 | / partialeq_numeric! {
+  98 | |     eq_i64[i8 i16 i32 i64 isize]
+  99 | |     eq_u64[u8 u16 u32 u64 usize]
+ 100 | |     eq_f32[f32]
+ 101 | |     eq_f64[f64]
+ 102 | |     eq_bool[bool]
+ 103 | | }
+     | |_- in this macro invocation
+     = note: this error originates in the macro `partial_eq_impl` which comes from the expansion of the macro `partialeq_numeric` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0277, E0308.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `hepta-runtime` (bin "hepta-runtime-jobctl" test) due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...

@@ -1,0 +1,196 @@
+{
+  "schema": "hepta-runtime-pinned-ci-platform-gates-v4",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "patch_sha256": "1f9623c34cfc34fe7c2b625f6bd8198a43cd8ba81988f5eadd723abda7e97760",
+  "source_manifest_sha256": "6e70635aace2aec6b7f308fce3d8b5b7b29fb8fa3a4e376f3726710c31cb5821",
+  "qualified_files_sha256": "917d9cee14704aa8be9d4c5c714ce236b89e1a580b905f28c903124ceb818c7a",
+  "qualified_file_count": 957,
+  "platform": "Linux",
+  "machine": "x86_64",
+  "started_utc": "2026-11-07T06:59:11.863453+00:00",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:59:11.953970+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 1.1487705949693918,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "check-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:59:13.103345+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-check-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 28.866894195089117,
+      "log_sha256": "7f24c3a138cc39868fd03b67febe57c1c17570604e7d212fa88d93edb2ada94a",
+      "log_bytes": 776
+    },
+    {
+      "name": "check-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "check",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:59:41.972682+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-check-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 30.720915815094486,
+      "log_sha256": "29327c73f18ad9baae82ea71cf3793a5e8e72f338af8dd536ae890d12a2e0a51",
+      "log_bytes": 1446
+    },
+    {
+      "name": "clippy-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T07:00:12.694168+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-clippy-all-features.log",
+      "exit_code": 0,
+      "elapsed_seconds": 31.432398718083277,
+      "log_sha256": "533e6381dc4be02027c701f89712e7ad9a1919f5ea9e0bb7bfd0ab0f4aaea0dc",
+      "log_bytes": 166
+    },
+    {
+      "name": "clippy-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T07:00:44.149460+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-clippy-no-default.log",
+      "exit_code": 0,
+      "elapsed_seconds": 30.658842361997813,
+      "log_sha256": "f61b3efc69c87739fc450a81f99ee262b7ace714686afb4175c45fe603498e95",
+      "log_bytes": 166
+    },
+    {
+      "name": "nextest-all-features",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T07:01:14.808848+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-nextest-all-features.log",
+      "exit_code": 100,
+      "elapsed_seconds": 258.95595492213033,
+      "log_sha256": "a33e0559109a9981ef0cea43c74d09a957f136004c4fb5e4de954337211de1a6",
+      "log_bytes": 357971
+    },
+    {
+      "name": "nextest-no-default",
+      "argv": [
+        "/home/qq/.cargo/bin/cargo",
+        "+1.95.0",
+        "nextest",
+        "run",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--no-default-features",
+        "--test-threads",
+        "1",
+        "--retries",
+        "0",
+        "--no-fail-fast"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T07:05:33.765953+00:00",
+      "log": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-nextest-no-default.log",
+      "exit_code": 100,
+      "elapsed_seconds": 339.3371653689537,
+      "log_sha256": "8fb52ef3af2b394a5f4f320c2d81a7bd3e359dc8167c7018c86d8a80229ada2a",
+      "log_bytes": 355253
+    }
+  ],
+  "environment": {
+    "TMPDIR": "/home/qq/hepta-hia-unified-20261107-372e7da9/runtime-linux-gate/linux-r4f-tmp",
+    "umask": "022",
+    "prior_nofile": [
+      1024,
+      1048576
+    ],
+    "qualified_nofile": [
+      8192,
+      8192
+    ]
+  },
+  "nextest": {
+    "path": "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/tools/bin/cargo-nextest",
+    "sha256": "1955bec48554fad35e1e59ee3b8770c7f88f6a065d8c7960600b6c4b64c0c9d0",
+    "version": "cargo-nextest 0.9.137 (75ddba7e9 2026-05-26)\nrelease: 0.9.137\ncommit-hash: 75ddba7e911b44c5c0700dac0415d824403de9bd\ncommit-date: 2026-05-26\nhost: x86_64-unknown-linux-gnu\n"
+  },
+  "ripgrep": {
+    "path": "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/tools/bin/rg",
+    "sha256": "e9c104b09fcfa3972d8bbd49088f1f363bcc5e7b1276d0c7c4a264a1dec69a58",
+    "version": "ripgrep 14.1.1\n\nfeatures:-pcre2\nsimd(compile):+SSE2,-SSSE3,-AVX2\nsimd(runtime):+SSE2,+SSSE3,+AVX2\n\nPCRE2 is not available in this build of ripgrep.\n"
+  },
+  "source_unchanged": true,
+  "passed": false,
+  "completed_utc": "2026-11-07T07:11:13.133919+00:00"
+}

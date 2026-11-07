@@ -1,0 +1,54 @@
+{
+  "attempts": [
+    {
+      "host": "ai395 and x230",
+      "preserved_in": "initial-readiness-prelaunch-errors.json",
+      "reason": "h_process_start requires absolute executable; python3 did not launch",
+      "status": "prelaunch invalid argument",
+      "step": "initial readiness"
+    },
+    {
+      "exit_code": 1,
+      "host": "ai395",
+      "job_id": "1a1b4b52410-fc05-895a",
+      "preserved_in": [
+        "ai395-stage-read-tool-receipt.json",
+        "ai395-stage-status-tool-receipt.json"
+      ],
+      "reason": "post-checkout assertion incorrectly required remote worker working_directory equal local controller checkout",
+      "status": "failed",
+      "step": "staging after successful bundle verification and detached checkout"
+    },
+    {
+      "config_input_modified": false,
+      "host": "ai395",
+      "job_id": "1a1b4b7b2a1-fc05-896c",
+      "preserved_in": [
+        "ai395-stage-verification.public.json",
+        "ai395-stage-verification-status-tool-receipt.json"
+      ],
+      "private_worker_profile_fields_removed": true,
+      "source_clean": true,
+      "status": "succeeded",
+      "step": "separate read-only source and configuration verification"
+    },
+    {
+      "host": "x230",
+      "job_id": "1a1b4c5a0e0-fc05-89cc",
+      "preserved_in": [
+        "x230-after-qualification-read-tool-receipt.json",
+        "x230-after-qualification-status-tool-receipt.json"
+      ],
+      "source_clean": true,
+      "status": "succeeded",
+      "step": "separate read-only worker verification after completed 39-call qualification"
+    }
+  ],
+  "original_failures_overwritten": false,
+  "private_configuration_file_distributed": false,
+  "qualification_archive_sha256": "f4f6431c898c5b25005749af8f38d46a30e8199f752e9ed1f7b4834a4ea6ce78",
+  "schema": "hepta.hia.final-linux-p0-attempt-history.v1",
+  "scope": "public original failures plus separately labeled read-only verification; final actual successful loop retained in immutable sibling archive",
+  "source_commit": "205f94ec811018f89fbf68c987c6ab8e826bb15b",
+  "source_tree": "d57b1f75e4ca05e5a2fd018906b5e2c32e2fa70e"
+}

@@ -1,0 +1,37 @@
+{
+  "added_helpers": [
+    "pending_hia_identity",
+    "original_hia_report",
+    "call_hia",
+    "resume_hia_describe"
+  ],
+  "comparison_base_sha256": "a9c15b78cf8cee36d93b5e81b73a925de4cfa46e3c33648dd38bad3f5e451726",
+  "existing_nonmain_ast_changed": [],
+  "existing_nonmain_functions_and_classes": 24,
+  "experiments_run": false,
+  "followup_recommendations": [
+    {
+      "detail": "The reviewed v3 probe code has a single fixed endpoint, http://127.0.0.1:8791/mcp. The current known v3 record may be resumed under that documented provenance; future records with an explicit URL should validate it, and missing URL migration should be limited to the known original event digest.",
+      "topic": "endpoint migration"
+    },
+    {
+      "detail": "The helper probe verifies the supplied binary file but does not itself bind the 8791 listener to that file. Retain independent shadow launcher PID and executable-mapping evidence. A matching HTTP catalog does not distinguish compatible runtime generations.",
+      "topic": "actual shadow executable identity"
+    }
+  ],
+  "material_async_path_findings": [],
+  "production_mutated": false,
+  "recorded_utc": "2026-11-07T08:08:17.956365+00:00",
+  "review_scope": [
+    "preserve the original accepted operation and observe its durable terminal",
+    "read exact continuous bounded stdout and stderr streams from offset zero",
+    "bind a complete worker report to the original job request and installed public pins",
+    "use the provider exact-repeat existing-binding path to validate private profile and output contract",
+    "compare completed response with the complete original worker report, without conflating pending and domain request IDs",
+    "resume known v3 failed isolated probe with unchanged candidate identities and event-file digest"
+  ],
+  "reviewed_helper_phase": "v4 draft before endpoint resume pin addition; not a deployed artifact",
+  "reviewed_helper_sha256": "ba0807ad1149fa3e62294c705acbb0385527704e29b8ba0dcfd2e4b17ae4e262",
+  "runtime_source_edited": false,
+  "schema": "hepta.hia.deployment-helper-independent-review.v1"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "hepta.mac.deployment-helper-binary-name-correction.v1",
+  "prior_helper_sha256": "043fc6c6045ca3024c898f9878b5fefd743c05de78bcaab577316e5e91340993",
+  "changed_behavior": "Use actual Cargo binary name hepta-runtime-jobctl for staged binary copy and two main integrity checks",
+  "primary_reference": {
+    "repository_commit": "14dfb09aa3263ed35b4f88e8c301f8492d63fea7",
+    "path": "Cargo.toml",
+    "bin_name": "hepta-runtime-jobctl",
+    "bin_source": "src/bin/jobctl.rs"
+  },
+  "non_main_functions_unchanged": true,
+  "existing_tests": {
+    "count": 12,
+    "exit_code": 0
+  },
+  "production_modified": false,
+  "files": {
+    "mac-controller-deployment.py": {
+      "sha256": "a9c15b78cf8cee36d93b5e81b73a925de4cfa46e3c33648dd38bad3f5e451726",
+      "bytes": 37295
+    },
+    "mac-install-runtime-release.py": {
+      "sha256": "13b677288f3296b7190175c3e7ba10c77602b0e4583dd81034fea449b9cb0c04",
+      "bytes": 4812
+    },
+    "mac-controller-deployment-tests-v3.log": {
+      "sha256": "2e11a7e0ed72957397427d8e0403d79c36041e8bd4644506956a80b4cb9bdc5e",
+      "bytes": 2322
+    }
+  }
+}

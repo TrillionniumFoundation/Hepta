@@ -1,0 +1,48 @@
+{
+  "schema": "hia-http-registered-execution-plan-v1",
+  "status": "planned_not_started",
+  "host": "main",
+  "executable": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+  "args": [
+    "-B",
+    "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r2/http_qualification.py",
+    "--url",
+    "http://127.0.0.1:8791/mcp",
+    "--token-file",
+    "/Users/qianqi/.config/hepta-runtime-mac/token",
+    "--output",
+    "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-loop-r1",
+    "--runtime-commit",
+    "c81a938150d2e533843a42af77739cb888812338",
+    "--target-slot",
+    "qualification-http-c81a938150d2-372e7da9-r1",
+    "--prefix",
+    "http-c81a938-372e7da9-r1"
+  ],
+  "cwd": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r2",
+  "env": {
+    "PATH": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin:/opt/homebrew/bin:/opt/homebrew/opt/node/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  },
+  "timeout_seconds": 1800,
+  "idempotency_key": "hia-http205-c81-native-loop-372e7da9-r1",
+  "adapter_sha256": "ab896592663cb8ddfb55aa1a164894f5bb52979205ef00028c043b399ce15d29",
+  "hepta_commit": "205f94ec811018f89fbf68c987c6ab8e826bb15b",
+  "output_directory": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-loop-r1",
+  "expected_application_calls": 39,
+  "expected_hia_tools": 11,
+  "slot_mapping": {
+    "original": "qualification",
+    "owned": "qualification-http-c81a938150d2-372e7da9-r1"
+  },
+  "initial_expected_current": {
+    "generation": "0",
+    "epoch": "0"
+  },
+  "expected_final_current": {
+    "generation": "0",
+    "epoch": "2"
+  },
+  "prerequisite": "Root provides qualified shadow report and original PID/binary/listener binding immediately before execution. Root independently verifies the same mapping after execution. No HTTP call before that handoff.",
+  "automatic_full_loop_retry": false,
+  "unknown_original_operation_policy": "Retain exact request intent, body and original identity; no fresh slot or request-key retry without an explicit separately registered task."
+}

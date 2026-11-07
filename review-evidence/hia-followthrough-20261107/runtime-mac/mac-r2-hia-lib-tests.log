@@ -1,0 +1,140 @@
+   Compiling hepta-runtime v0.1.0 (/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/source)
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:28:4
+   |
+28 |             fs::create_dir(directory).unwrap();
+   |             ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::mcp::runtime::effect_owner_fence::tests::isolated_pty_replay_tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+ 5 + use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:29:4
+   |
+29 |             fs::set_permissions(directory, fs::Permissions::from_mode(0o700)).unwrap();
+   |             ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::mcp::runtime::effect_owner_fence::tests::isolated_pty_replay_tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+ 5 + use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:29:35
+   |
+29 |             fs::set_permissions(directory, fs::Permissions::from_mode(0o700)).unwrap();
+   |                                            ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+help: consider importing this struct
+   |
+ 5 + use std::fs::Permissions;
+   |
+help: if you import `Permissions`, refer to it directly
+   |
+29 -             fs::set_permissions(directory, fs::Permissions::from_mode(0o700)).unwrap();
+29 +             fs::set_permissions(directory, Permissions::from_mode(0o700)).unwrap();
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:43:4
+   |
+43 |             fs::write(&path, bytes).unwrap();
+   |             ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::mcp::runtime::effect_owner_fence::tests::isolated_pty_replay_tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+ 5 + use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:44:4
+   |
+44 |             fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+   |             ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: module `crate::mcp::runtime::effect_owner_fence::tests::isolated_pty_replay_tests::fs` exists but is inaccessible
+help: consider importing this module
+   |
+ 5 + use std::fs;
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:44:30
+   |
+44 |             fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+   |                                       ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+help: consider importing this struct
+   |
+ 5 + use std::fs::Permissions;
+   |
+help: if you import `Permissions`, refer to it directly
+   |
+44 -             fs::set_permissions(path, fs::Permissions::from_mode(0o600)).unwrap();
+44 +             fs::set_permissions(path, Permissions::from_mode(0o600)).unwrap();
+   |
+
+error[E0433]: cannot find module or crate `fs` in this scope
+  --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:58:3
+   |
+58 |         fs::OpenOptions::new()
+   |         ^^ use of unresolved module or unlinked crate `fs`
+   |
+   = help: if you wanted to use a crate named `fs`, use `cargo add fs` to add it to your `Cargo.toml`
+   = note: struct `crate::mcp::runtime::privileged_ledger::tests::OpenOptions` exists but is inaccessible
+help: consider importing this struct
+   |
+ 5 + use std::fs::OpenOptions;
+   |
+help: if you import `OpenOptions`, refer to it directly
+   |
+58 -         fs::OpenOptions::new()
+58 +         OpenOptions::new()
+   |
+
+warning: unused import: `serde_json::Value`
+  --> src/mcp/rea_binary_tests.rs:21:5
+   |
+21 | use serde_json::Value;
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `serde_json::json`
+ --> src/mcp/rea_worker_transport_tests.rs:8:5
+  |
+8 | use serde_json::json;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::os::unix::fs::PermissionsExt`
+ --> src/mcp/runtime/effect_owner_fence_acquisition_tests.rs:7:5
+  |
+7 | use std::os::unix::fs::PermissionsExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::os::unix::fs::PermissionsExt`
+ --> src/mcp/runtime/jobs_registry_coalescing_tests.rs:7:5
+  |
+7 | use std::os::unix::fs::PermissionsExt;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Condvar`
+ --> src/mcp/runtime/jobs_registry_coalescing_tests.rs:8:5
+  |
+8 | use std::sync::Condvar;
+  |     ^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `hepta-runtime` (lib test) generated 5 warnings
+error: could not compile `hepta-runtime` (lib test) due to 7 previous errors; 5 warnings emitted

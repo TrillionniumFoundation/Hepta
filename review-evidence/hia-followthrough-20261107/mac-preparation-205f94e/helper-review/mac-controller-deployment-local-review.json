@@ -1,0 +1,21 @@
+{
+  "helper_sha256": "25e2d857d37b0146b3a8f1c20c60fe9e75a427b64889056e3acba8f5323dcc32",
+  "known_boundary": "The helper serializes its own deployments and detects an unexpected displaced inode/value after an atomic exchange. It preserves conflict files and refuses blind rollback. It does not claim a kernel content-CAS against arbitrary writers that ignore its lock.",
+  "mac_mutated": false,
+  "original_helper_sha256": "447306db0b43aba34dbb798c2d3041ac1ef062e7250c48579a51d6fc07aab3be",
+  "returncode": 0,
+  "schema": "hepta.mac-controller-deployment-local-review.v1",
+  "scope": "isolated Linux temporary directories using renameat2 RENAME_EXCHANGE for exchange/fault semantics; actual Mac cutover is not claimed",
+  "sdk_readonly_review": {
+    "header": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/xattr.h",
+    "observed_declarations": {
+      "fgetxattr": "ssize_t fgetxattr(int fd, const char *name, void *value, size_t size, u_int32_t position, int options);",
+      "flistxattr": "ssize_t flistxattr(int fd, char *namebuff, size_t size, int options);",
+      "fsetxattr": "int fsetxattr(int fd, const char *name, const void *value, size_t size, u_int32_t position, int options);"
+    },
+    "source": "read-only h_view of installed SDK, 2026-11-07"
+  },
+  "test_log_sha256": "cb4912f756e292adb1596359752557bb2e9e3e6d67cd282c3cdb8b22256ef6bb",
+  "test_sha256": "28c4b282117ca4ee26b966dcc6001f2ad0930af27509b2a1485e8a4ed1c01728",
+  "tests": 7
+}

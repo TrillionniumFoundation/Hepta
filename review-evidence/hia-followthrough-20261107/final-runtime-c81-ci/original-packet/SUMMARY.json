@@ -1,0 +1,257 @@
+{
+  "schema": "hia-runtime-exact-head-ci-evidence-v1",
+  "repository": "TrillionniumFoundation/hepta-runtime",
+  "source_commit": "c81a938150d2e533843a42af77739cb888812338",
+  "source_tree": "aa10bb33f641bc208a3fd11bef5737f6ba026f90",
+  "run_id": 42355662079,
+  "run_url": "https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42355662079",
+  "event": "push",
+  "run_attempt": 1,
+  "exact_head_job_id": 128353158255,
+  "terminal_status": "completed",
+  "conclusion": "success",
+  "source_head_in_raw_log_verified": true,
+  "all_features": {
+    "target_scope": "--all-targets",
+    "tests_run": 2354,
+    "tests_passed": 2354,
+    "tests_skipped": 40,
+    "binaries": 19,
+    "seconds": 205.287,
+    "conclusion": "passed"
+  },
+  "no_default_features": {
+    "target_scope": "--all-targets",
+    "tests_run": 2325,
+    "tests_passed": 2325,
+    "tests_skipped": 28,
+    "binaries": 18,
+    "seconds": 209.415,
+    "conclusion": "passed"
+  },
+  "ledger_mapping_step": "success",
+  "release_build_and_steps_20_to_24": "success",
+  "prospective_merge_job": {
+    "id": 128353159481,
+    "conclusion": "skipped",
+    "reason": "push event",
+    "merge_gate_claimed": false
+  },
+  "raw_job_log": {
+    "path": "job-128353158255.log",
+    "bytes": 1133055,
+    "sha256": "b585efbcc8af5b5364208069624c0cd807dccbc24adbee6fa4414d53ca4fe059"
+  },
+  "workflow_sha256": "4f4e1a94e3444e23a58c22bc851eefa0bb0bad4b44d2542c05ad862119996146",
+  "relevant_workflow_commands": [
+    "run: cargo fmt --all -- --check",
+    "run: cargo check --locked --all-targets --all-features",
+    "run: cargo check --locked --all-targets --no-default-features",
+    "run: cargo clippy --locked --all-targets --all-features -- -D warnings",
+    "run: cargo clippy --locked --all-targets --no-default-features -- -D warnings",
+    "cargo nextest run --locked --all-targets --all-features \\",
+    "cargo nextest run --locked --all-targets --no-default-features \\",
+    "run: cargo build --locked --all-features --release --bins --examples"
+  ],
+  "artifacts": [
+    {
+      "id": 13568965715,
+      "name": "rea-js-cancellation-runtime-head-ci-c81a938150d2e533843a42af77739cb888812338-1",
+      "bytes": 12358,
+      "sha256": "bedc83ce36b780f919e58d4ecc7f03d40a1abd5726ab2a48bd6befe8cef7fb26",
+      "downloaded_and_github_digest_matched": true,
+      "source_and_run_binding_verified": true
+    },
+    {
+      "id": 13568284012,
+      "name": "rea-zip-preview-c81a938150d2e533843a42af77739cb888812338-1",
+      "bytes": 5372,
+      "sha256": "17bb89b4389d44b67e1779775007ec56e41d2c28f89ca13bfb0f19c2a567d30f",
+      "downloaded_and_github_digest_matched": true,
+      "source_and_run_binding_verified": true
+    }
+  ],
+  "javascript_cancellation": {
+    "qualified": true,
+    "harness_source_sha256": "7c7e504f2227846d6434ba1306454455aea1c3178799def379e5c37f1f54735d",
+    "harness_matches_published_source": true,
+    "artifact_content_manifest_verified": true,
+    "release_binary_sha256_reported_by_harness": "5125ec0215d1c3f2a66423fbcc66f9b7272dfa9209ba6a305b2944e5b37786d4",
+    "direct_worker_cancel_seconds": 0.020874866,
+    "all_four_gates_passed": true,
+    "manual_worker_sigkill_sent": false,
+    "same_live_owner_recovery": true,
+    "scope": "one owned Linux MCP parent and its actual stopped direct JavaScript worker; cancellation and same-owner recovery"
+  },
+  "zip_preview": {
+    "fixture_digest_matches_result": true,
+    "four_malformed_inputs_have_empty_stdout_and_nonempty_errors": true,
+    "scope": "independent structural fixtures and shipped Linux release worker; no APK signature or full REA compatibility claim",
+    "rea_evidence_compatible": false,
+    "coverage": "partial"
+  },
+  "full_hosted_exact_head_gate_passed": true,
+  "platform_gates_and_deployment_are_separate": true,
+  "raw_reference_authenticity": "NOT_REVERIFIED",
+  "open_tools": 229,
+  "qualified_upstream_tools": 0,
+  "signed_download_urls_excluded_from_public_packet": true,
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 1
+    },
+    {
+      "name": "Checkout exact source HEAD",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 2
+    },
+    {
+      "name": "Verify checked-out source identity",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 3
+    },
+    {
+      "name": "Install pinned Rust toolchain",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 4
+    },
+    {
+      "name": "Format",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 5
+    },
+    {
+      "name": "Check all targets",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 6
+    },
+    {
+      "name": "Check all targets without remote filesystem",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 7
+    },
+    {
+      "name": "Clippy",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 8
+    },
+    {
+      "name": "Clippy without remote filesystem",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 9
+    },
+    {
+      "name": "Install pinned nextest",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 10
+    },
+    {
+      "name": "Install integration test tools",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 11
+    },
+    {
+      "name": "Test in isolated processes",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 12
+    },
+    {
+      "name": "Descriptor-relative file safety",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 13
+    },
+    {
+      "name": "Frozen REA local mapping checks",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 14
+    },
+    {
+      "name": "REA qualification evidence regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 15
+    },
+    {
+      "name": "Control-plane regression",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 16
+    },
+    {
+      "name": "X230 qualification evidence regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 17
+    },
+    {
+      "name": "Test without remote filesystem in isolated processes",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 18
+    },
+    {
+      "name": "Release build",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 19
+    },
+    {
+      "name": "Release JavaScript MCP cancellation and recovery",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 20
+    },
+    {
+      "name": "Retain JavaScript cancellation evidence",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 21
+    },
+    {
+      "name": "Release binary REA parser and Linux syscall-denial smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 22
+    },
+    {
+      "name": "Independent Python ZIP writer to shipped Rust worker static checks",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 23
+    },
+    {
+      "name": "Retain independent static ZIP fixtures and result",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 24
+    },
+    {
+      "name": "Post Checkout exact source HEAD",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 48
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success",
+      "number": 49
+    }
+  ]
+}

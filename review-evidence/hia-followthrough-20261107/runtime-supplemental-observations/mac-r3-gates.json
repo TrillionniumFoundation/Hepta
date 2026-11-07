@@ -1,0 +1,104 @@
+{
+  "schema": "hepta-runtime-pinned-platform-gates-v3",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "patch_sha256": "c3a29505f87c270b0b57fd3ecab5175ad60343dbc10d2c9d6aeb8ab2d6d90157",
+  "source_manifest_sha256": "e4f5196cbd96b1a76e9e77ab2afb8b18ade9e35544112698702dd895c767103f",
+  "qualified_files_sha256": "8e67b9b0fd12e2c3ee2a052403c58015923ddb1e1dd66a0d4ed0518be8e17a35",
+  "qualified_file_count": 955,
+  "platform": "Darwin",
+  "machine": "arm64",
+  "started_utc": "2026-11-07T06:35:24.049073+00:00",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:35:24.049228+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r3-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.882879875,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log_bytes": 0
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:35:24.932621+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r3-clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 46.211629083,
+      "log_sha256": "4ed90c5371fbd819813802b1cdbd45e637acc68fef152d7634b89569e54009ba",
+      "log_bytes": 9807
+    },
+    {
+      "name": "all-tests",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--no-fail-fast",
+        "-j",
+        "4",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:36:11.145866+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r3-all-tests.log",
+      "exit_code": 101,
+      "elapsed_seconds": 358.039813708,
+      "log_sha256": "e89199c27fb521f365212a738eb8c3869339f80d657954e9374bfb5caa88041c",
+      "log_bytes": 461171
+    },
+    {
+      "name": "hia-lib-tests",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--lib",
+        "hia",
+        "-j",
+        "4",
+        "--",
+        "--nocapture"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:42:09.195109+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r3-hia-lib-tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.15424037499997212,
+      "log_sha256": "90d35900135fd8a768d279c641bcf7fca9018d800e1f2322b046a97aa770c045",
+      "log_bytes": 6891
+    }
+  ],
+  "source_unchanged": true,
+  "passed": false,
+  "completed_utc": "2026-11-07T06:42:09.387561+00:00"
+}

@@ -1,0 +1,64 @@
+[
+  {
+    "name": "create-venv",
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "-m",
+      "venv",
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv"
+    ],
+    "exit_code": 0,
+    "duration_seconds": 4.466348125133663,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "offline-install",
+    "argv": [
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "--no-index",
+      "--no-deps",
+      "--require-hashes",
+      "--find-links",
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/mac-wheels",
+      "-r",
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/requirements-mac.lock"
+    ],
+    "exit_code": 0,
+    "duration_seconds": 0.9890916249714792,
+    "stdout_sha256": "76cfe3d0d4b814eca1bf71b073e140627c0b0ec446578de8cb4f4acd039540c8",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "name": "adapter-tests",
+    "argv": [
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+      "-B",
+      "-m",
+      "unittest",
+      "-v",
+      "test_http_qualification"
+    ],
+    "exit_code": 0,
+    "duration_seconds": 0.09174245782196522,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "619da59ef820abcf7a294a87486288d4740537e3274672cea393ad4bc494082c"
+  },
+  {
+    "name": "catalog-schema-validation",
+    "argv": [
+      "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/http-native-qualification-205-c81-r1/venv/bin/python",
+      "-B",
+      "-c",
+      "import importlib.metadata,json,pathlib,sys;from jsonschema import Draft202012Validator;c=json.loads(pathlib.Path('docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json').read_bytes());[(Draft202012Validator.check_schema(t['inputSchema']),Draft202012Validator.check_schema(t['outputSchema'])) for t in c['tools']];print(json.dumps({'python':sys.version,'executable':sys.executable,'validated_schemas':2*len(c['tools']),'dependencies':{n:importlib.metadata.version(n) for n in ['jsonschema','jsonschema-specifications','referencing','rpds-py','attrs']}}))"
+    ],
+    "exit_code": 0,
+    "duration_seconds": 1.6327939578332007,
+    "stdout_sha256": "ebda7d842c66eba773ff782b0cc7e6c11ffcf4a1a6f55583044f5afb1768854c",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

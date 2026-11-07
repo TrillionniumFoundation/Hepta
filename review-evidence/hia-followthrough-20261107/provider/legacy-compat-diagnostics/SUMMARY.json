@@ -1,0 +1,144 @@
+{
+  "adapter_commit": "959ee89922a60f1e025e8bd5da34df09d26d449e",
+  "adapter_sha256": "0de7c16479dea117b5c6533c0ba5083eb0e66ce24bfbe5e48f935219f5f96602",
+  "availability_attempts": [
+    {
+      "account_block_observed": false,
+      "available": false,
+      "cleanup_confirmed": true,
+      "diagnosis": "unsupported_selector",
+      "generation_turn_observed": true,
+      "leader_reaped": true,
+      "model": "gpt-5.5",
+      "original_result": "main/availability-gpt55/RESULT.json",
+      "process_status": "process_failure",
+      "provider_messages": [
+        "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.5' model is not supported when using Codex with a ChatGPT account.\",\"code\":\"model_not_found\"}}"
+      ],
+      "returncode": 1,
+      "status": "blocked",
+      "streams_complete": true,
+      "usage": null,
+      "wall_limit_seconds": 60,
+      "wall_ns": 17638847292
+    },
+    {
+      "account_block_observed": false,
+      "available": false,
+      "cleanup_confirmed": true,
+      "diagnosis": "unsupported_selector",
+      "generation_turn_observed": true,
+      "leader_reaped": true,
+      "model": "gpt-5.3-codex",
+      "original_result": "main/availability-gpt53codex/RESULT.json",
+      "process_status": "process_failure",
+      "provider_messages": [
+        "{\"type\":\"error\",\"status\":400,\"error\":{\"type\":\"invalid_request_error\",\"message\":\"The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account.\",\"code\":\"model_not_found\"}}"
+      ],
+      "returncode": 1,
+      "status": "blocked",
+      "streams_complete": true,
+      "usage": null,
+      "wall_limit_seconds": 90,
+      "wall_ns": 10696404833
+    }
+  ],
+  "catalog": {
+    "account_entitlement_attested": false,
+    "cleanup_confirmed": true,
+    "client_model_metadata_parser_error_observed": "unknown variant max; expected none/minimal/low/medium/high/xhigh",
+    "leader_reaped": true,
+    "model_generation_requests": 0,
+    "models": [
+      {
+        "id": "gpt-5.5",
+        "isDefault": true,
+        "model": "gpt-5.5"
+      },
+      {
+        "id": "gpt-5.4",
+        "isDefault": false,
+        "model": "gpt-5.4"
+      },
+      {
+        "id": "gpt-5.4-mini",
+        "isDefault": false,
+        "model": "gpt-5.4-mini"
+      },
+      {
+        "id": "gpt-5.3-codex",
+        "isDefault": false,
+        "model": "gpt-5.3-codex"
+      },
+      {
+        "id": "gpt-5.2",
+        "isDefault": false,
+        "model": "gpt-5.2"
+      }
+    ],
+    "original_result": "main/catalog/RESULT.json",
+    "status": "catalog_observed",
+    "streams_complete": true,
+    "transport_form": "codex app-server; default stdio; no --stdio option",
+    "wall_ns": 2566499375
+  },
+  "cost_scope": {
+    "complete_end_to_end_agent_cost": false,
+    "missing_provider_usage_filled_with_zero": false,
+    "network_and_model_internal_activity_not_inferred_from_silent_stream": true,
+    "observation_sum_is_a_comparable_campaign_budget": false,
+    "provider_monetary_cost": null,
+    "transfer_and_operator_wall_cost_complete": false
+  },
+  "dependency_commit": "3da166c26b08159831e395cc3756fc4258ba0f2c",
+  "dependency_manifest_sha256": "dc68e30c3976ca79fe2f6645fc45fe581a81641354a45f7c735fefc7fd0b44b5",
+  "earlier_failed_catalog_later_pid_group_absence_observed": true,
+  "earlier_failed_catalog_original_cleanup_confirmed": false,
+  "earlier_failed_catalog_rewritten": false,
+  "economic_benefit_established": false,
+  "mechanism_smoke_performed": false,
+  "native_macro_campaign_with_actual_provider_performed": false,
+  "observed_process_wall_ns_sum": 96756995438,
+  "original_raw_stderr_bodies_published": false,
+  "p1_acceptance": "HOLD",
+  "previous_packet": "macro-provider-diagnostics-20261107",
+  "process_wall_observations_including_prior_packet": [
+    {
+      "phase": "local/catalog",
+      "wall_ns": 5719478983
+    },
+    {
+      "phase": "local/availability",
+      "wall_ns": 60008613455
+    },
+    {
+      "phase": "main/initial-stdio-catalog",
+      "wall_ns": 127151500
+    },
+    {
+      "phase": "main/default-stdio-catalog",
+      "wall_ns": 2566499375
+    },
+    {
+      "phase": "main/availability/gpt-5.5",
+      "wall_ns": 17638847292
+    },
+    {
+      "phase": "main/availability/gpt-5.3-codex",
+      "wall_ns": 10696404833
+    }
+  ],
+  "reason_smoke_not_performed": "neither explicitly diagnosed main selector produced an available complete response; local availability timed out",
+  "redaction_record": "STDERR_REDACTIONS.json",
+  "schema": "hepta.hia.macro-provider-diagnostic-continuation.v1",
+  "scope": "separate registered diagnostics; no result inserted into a prior native campaign",
+  "selector_search": {
+    "account_or_credential_config_changed": false,
+    "automatic_retries_or_enumeration": false,
+    "local_explicit_selectors": [
+      "gpt-6.1-sol"
+    ],
+    "main_initial_explicit_selector": "gpt-5.5",
+    "main_later_explicitly_authorized_selector": "gpt-5.3-codex"
+  }
+}

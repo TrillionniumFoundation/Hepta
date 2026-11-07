@@ -1,0 +1,103 @@
+{
+  "schema": "hia-runtime-r5-source-diff-review-v1",
+  "commit": "942d470d155c65ba7235eb19c5bbfd07f1ce2ad0",
+  "tree": "a19f1dd724bdf80a388ddae17d828b01e5fc42f0",
+  "changed_files": 15,
+  "source_identity_proof": "SOURCE_IDENTITY.json",
+  "material_defects_identified": [],
+  "production_review": [
+    "On macOS only, cold-cache validation now takes an OFD exclusive whole-file range lock on the same open file description that is passed into redb. No unlock/reopen gap was introduced; validation still follows private_cache and holds the lock across seal verification and database opening.",
+    "The non-macOS cache locking branch retains the existing try_lock behavior and exact conflict/error mapping; Linux coverage was not cfg-disabled by this change.",
+    "Linux-only isolated launch and REA engine scratch entrypoints reject unsupported platforms before policy/registry/scratch creation or numerical group signalling. On Linux these guards return Ok and leave existing logic in force.",
+    "All formerly present tests in each modified test module remain present. Linux-only positive fixtures are paired with new non-Linux refusal checks rather than being reported as successful operations.",
+    "Non-Linux successor replay tests cover absent, empty and populated predecessor registries, multiple host/key combinations, and explicit refusal text. The no-predecessor path remains exercised for permitted new identities.",
+    "APFS invalid-name handling only admits the platform EILSEQ construction refusal and verifies the original registry remains readable; symlink/hardlink/directory/FIFO cases continue through both readers. The race fixture still requires rejection, selecting the earlier duplicate-binding diagnosis only when the actual registry has no content watcher."
+  ],
+  "ledger_review": {
+    "leaf_changes": 39,
+    "mapped_source_records_changed": 19,
+    "all_non_runtime_fields_unchanged": true,
+    "raw_reference_authenticity": "NOT_REVERIFIED",
+    "open_tools": 229,
+    "qualified_tools": 0,
+    "29_tests_exit": 0,
+    "ordinary_mapping_exit": 0,
+    "strict_mapping_exit": 3
+  },
+  "test_inventory_checks": [
+    {
+      "path": "src/jobctl_engine_scratch_tests.rs",
+      "original_test_functions_retained": 4,
+      "added_test_functions": [
+        "unsupported_engine_launch_refuses_before_state_changes_or_group_signals"
+      ],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/rea_engine_scratch_tests.rs",
+      "original_test_functions_retained": 4,
+      "added_test_functions": [
+        "unsupported_platform_refuses_creation_and_adoption_without_scratch_changes"
+      ],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/rea_engine_usage_tests.rs",
+      "original_test_functions_retained": 6,
+      "added_test_functions": [],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/effect_owner_fence_tests.rs",
+      "original_test_functions_retained": 27,
+      "added_test_functions": [
+        "successor_process_replay_refuses_without_linux_support",
+        "successor_pty_replay_refuses_without_linux_support"
+      ],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/inspect_security_tests.rs",
+      "original_test_functions_retained": 2,
+      "added_test_functions": [],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/jobs_inventory_streaming_tests.rs",
+      "original_test_functions_retained": 11,
+      "added_test_functions": [],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/jobs_tests.rs",
+      "original_test_functions_retained": 80,
+      "added_test_functions": [],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/request_archive_index_tests.rs",
+      "original_test_functions_retained": 49,
+      "added_test_functions": [
+        "cache_validation_lock_survives_database_open_and_excludes_other_openers"
+      ],
+      "removed_test_functions": []
+    },
+    {
+      "path": "src/mcp/runtime/search_jobs_tests.rs",
+      "original_test_functions_retained": 19,
+      "added_test_functions": [],
+      "removed_test_functions": []
+    }
+  ],
+  "reviewer_authorship_scope": "Reviewer authored the inspect_security_tests.rs readiness fixture and search_jobs_tests.rs Unicode fixture changes. These two changes have separate actual Mac diagnostic evidence and are not presented as independent review of the reviewer's own code. Other production/test changes and publication identity were read independently.",
+  "authored_fixture_evidence": [
+    "../runtime-r5-privileged-timeout/SUMMARY.json",
+    "../runtime-r5-unicode-glob-fixture/SUMMARY.json"
+  ],
+  "limits": [
+    "Static review and local ledger checks do not establish that the pending complete GitHub or Mac platform gates pass.",
+    "This push event has no prospective merge gate.",
+    "No live deployment is asserted by this review."
+  ],
+  "new_tests_or_code_edits_during_review": false
+}

@@ -1,0 +1,231 @@
+{
+  "artifacts": {
+    "downloads_performed": 0,
+    "explanation": "Both always-run upload steps report no files; prerequisite release and evidence-producing steps were skipped after the failure.",
+    "total_count": 0
+  },
+  "completed_observation_utc": "2026-11-07T07:26:38.259247+00:00",
+  "event": "push",
+  "exact_head_job_id": 128333906877,
+  "failure": {
+    "command": "/usr/bin/python3 -B scripts/rea_compatibility_ledger.py check-mapping",
+    "exit_code": 2,
+    "original_diagnostic": {
+      "error": "stored ledger differs from current repository mapping/source projection",
+      "inventory_check": "FAIL"
+    },
+    "prior_ledger_unit_tests": {
+      "run": 29,
+      "status": "passed"
+    },
+    "scope": "Repository stored mapping/source projection gate; runtime CI is not qualified by this failed run. Root was informed immediately; no rerun or code edit performed by observer.",
+    "step_name": "Frozen REA local mapping checks",
+    "step_number": 14
+  },
+  "github_conclusion": "failure",
+  "job_steps": [
+    {
+      "conclusion": "success",
+      "name": "Set up job",
+      "number": 1,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Checkout exact source HEAD",
+      "number": 2,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Verify checked-out source identity",
+      "number": 3,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Install pinned Rust toolchain",
+      "number": 4,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Format",
+      "number": 5,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Check all targets",
+      "number": 6,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Check all targets without remote filesystem",
+      "number": 7,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Clippy",
+      "number": 8,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Clippy without remote filesystem",
+      "number": 9,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Install pinned nextest",
+      "number": 10,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Install integration test tools",
+      "number": 11,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Test in isolated processes",
+      "number": 12,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Descriptor-relative file safety",
+      "number": 13,
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "name": "Frozen REA local mapping checks",
+      "number": 14,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "REA qualification evidence regressions",
+      "number": 15,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Control-plane regression",
+      "number": 16,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "X230 qualification evidence regressions",
+      "number": 17,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Test without remote filesystem in isolated processes",
+      "number": 18,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Release build",
+      "number": 19,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Release JavaScript MCP cancellation and recovery",
+      "number": 20,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Retain JavaScript cancellation evidence",
+      "number": 21,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Release binary REA parser and Linux syscall-denial smoke",
+      "number": 22,
+      "status": "completed"
+    },
+    {
+      "conclusion": "skipped",
+      "name": "Independent Python ZIP writer to shipped Rust worker static checks",
+      "number": 23,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Retain independent static ZIP fixtures and result",
+      "number": 24,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Post Checkout exact source HEAD",
+      "number": 48,
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "name": "Complete job",
+      "number": 49,
+      "status": "completed"
+    }
+  ],
+  "log": {
+    "bytes": 561836,
+    "capture": "Full decoded job log returned by GitHub connector, encoded as UTF-8 with BOM preserved; this SHA256 covers captured local bytes.",
+    "path": "job-128333906877.log",
+    "sha256": "0d1dbbe397875655420eae54d345f0578e30eefc0e0329a5649bd2e110eb3246"
+  },
+  "observation_limitations": [
+    {
+      "attempt": "intermediate job logs while running",
+      "receipt": "job-logs-intermediate-tool.json",
+      "result": "GitHub BlobNotFound 404; final complete log successfully retrieved after terminal failure"
+    },
+    {
+      "attempt": "generic fetch known job URL",
+      "receipt": "job-fetch-preflight-error.json",
+      "result": "Connector endpoint selector rejected before retrieval; supported workflow-jobs API used subsequently"
+    }
+  ],
+  "observer_mutations": {
+    "github_comments_sent": false,
+    "github_rerun_requested": false,
+    "runtime_source_edited": false
+  },
+  "passed_file_capability_tests": 9,
+  "passed_rust_nextest_all_features": {
+    "all_targets": true,
+    "elapsed_seconds": 210.755,
+    "passed": 2353,
+    "retries": 0,
+    "skipped": 40,
+    "test_threads": 1,
+    "tests_run": 2353
+  },
+  "prospective_merge": {
+    "job_id": 128333907543,
+    "merge_gate_passed": false,
+    "reason": "Push event; workflow merge job requires pull_request",
+    "status": "skipped"
+  },
+  "run_attempt": 1,
+  "run_id": 42349329505,
+  "run_url": "https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42349329505",
+  "schema": "hepta.runtime.github-ci-observation.v1",
+  "source_commit": "14dfb09aa3263ed35b4f88e8c301f8492d63fea7",
+  "source_identity_verified_in_original_log": true,
+  "source_tree": "130ef2bd17fbcd5195d8e8d3655096240d360280",
+  "status": "failed"
+}

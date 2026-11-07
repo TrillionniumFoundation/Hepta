@@ -1,0 +1,92 @@
+{
+  "schema": "hepta-runtime-macos-required-gates-v2",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "patch_sha256": "b0d32e15de0bcc6aa068d3e105cb1ca0ecd632007b3bf274b56336fa2485aade",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:28:45.264961+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r2-fmt.log",
+      "exit_code": 1,
+      "elapsed_seconds": 0.9298204999999999,
+      "log_sha256": "01a6181991bc1e02fba6058e07754d014f21694e4927f4eeb700f5d900efd22e"
+    },
+    {
+      "name": "clippy",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "-j",
+        "4",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:28:46.195500+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r2-clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 8.844435833,
+      "log_sha256": "ee7f13f130d3670832c9df179cdeff4384db163fca343bb3dbc4dfc9ea9d0b30"
+    },
+    {
+      "name": "all-tests",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--no-fail-fast",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:28:55.040573+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r2-all-tests.log",
+      "exit_code": 101,
+      "elapsed_seconds": 40.978612084,
+      "log_sha256": "ee5cee93f0be97109d1a6f6e72acfdfea5da034a6c44abb2e11c4fc6fe16808d"
+    },
+    {
+      "name": "hia-lib-tests",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--lib",
+        "hia",
+        "-j",
+        "4",
+        "--",
+        "--nocapture"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:29:36.020559+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-r2-hia-lib-tests.log",
+      "exit_code": 101,
+      "elapsed_seconds": 10.641681958000007,
+      "log_sha256": "3a68d12423fe8eb65d11d38128917893272e289ca3c0ab9828d6c597811507ff"
+    }
+  ],
+  "source_unchanged": true,
+  "passed": false,
+  "completed_utc": "2026-11-07T06:29:46.689118+00:00"
+}

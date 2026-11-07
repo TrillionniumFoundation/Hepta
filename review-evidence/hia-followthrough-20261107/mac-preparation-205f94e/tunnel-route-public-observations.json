@@ -1,0 +1,156 @@
+{
+  "schema": "hepta.hia.tunnel-route-public-observations.v1",
+  "observations": [
+    {
+      "request": {
+        "host": "main",
+        "executable": "/usr/bin/python3",
+        "args": [
+          "-B",
+          "-c",
+          "import json,plistlib,pathlib,urllib.parse\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\nd=plistlib.loads(p.read_bytes())\na=d.get('ProgramArguments',[])\nr={'schema':'hepta.hia.existing-tunnel-route-observation.v1','label':d.get('Label'),'program_basename':pathlib.Path(d.get('Program') or (a[0] if a else '')).name,'argument_flags':[x.split('=',1)[0] for x in a if isinstance(x,str) and x.startswith('--')],'environment_keys':sorted(d.get('EnvironmentVariables',{})),'loopback_urls':[],'config_paths':[],'production_modified':False}\nfor i,x in enumerate(a):\n if not isinstance(x,str): continue\n if x.startswith(('http://127.0.0.1:','http://localhost:','https://127.0.0.1:','https://localhost:')):\n  u=urllib.parse.urlsplit(x);r['loopback_urls'].append({'scheme':u.scheme,'host':u.hostname,'port':u.port})\n if x=='--config' and i+1<len(a):r['config_paths'].append(a[i+1])\n if x.startswith('--config='):r['config_paths'].append(x.split('=',1)[1])\nprint(json.dumps(r,sort_keys=True))\n"
+        ],
+        "cwd": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9",
+        "idempotency_key": "hia-existing-tunnel-route-safe-projection-372e7da9-r1",
+        "timeout_seconds": 30
+      },
+      "start": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-B\",\n      \"-c\",\n      \"import json,plistlib,pathlib,urllib.parse\\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\\nd=plistlib.loads(p.read_bytes())\\na=d.get('ProgramArguments',[])\\nr={'schema':'hepta.hia.existing-tunnel-route-observation.v1','label':d.get('Label'),'program_basename':pathlib.Path(d.get('Program') or (a[0] if a else '')).name,'argument_flags':[x.split('=',1)[0] for x in a if isinstance(x,str) and x.startswith('--')],'environment_keys':sorted(d.get('EnvironmentVariables',{})),'loopback_urls':[],'config_paths':[],'production_modified':False}\\nfor i,x in enumerate(a):\\n if not isinstance(x,str): continue\\n if x.startswith(('http://127.0.0.1:','http://localhost:','https://127.0.0.1:','https://localhost:')):\\n  u=urllib.parse.urlsplit(x);r['loopback_urls'].append({'scheme':u.scheme,'host':u.hostname,'port':u.port})\\n if x=='--config' and i+1<len(a):r['config_paths'].append(a[i+1])\\n if x.startswith('--config='):r['config_paths'].append(x.split('=',1)[1])\\nprint(json.dumps(r,sort_keys=True))\\n\"\n    ],\n    \"created_unix_ms\": 1794041600139,\n    \"cwd\": \"/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"main\",\n    \"id\": \"1a1b536588b-fc05-8b88\",\n    \"idempotency_key\": \"hia-existing-tunnel-route-safe-projection-372e7da9-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/Users/qianqi/.local/state/hepta-runtime-mac-worker/jobs/1a1b536588b-fc05-8b88\",\n    \"request_digest\": \"b74e7ae5a3d0ca16fdc1a221ecfe74f626b063416c2eccf77b23777df2d54d81\",\n    \"request_fingerprint\": 13208629883838712342,\n    \"ssh_target\": \"hepta-mac-local\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1b536588b-fc05-8b88\"\n  },\n  \"launch\": {\n    \"backend\": \"detached\",\n    \"launcher_pid\": 65669,\n    \"ok\": true,\n    \"systemd_error\": \"systemd user units unavailable on this platform\",\n    \"unit\": \"hepta-runtime-job-1a1b536588b-fc05-8b88\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      },
+      "status": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794041600439,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1b536588b-fc05-8b88\",\n  \"launch_nonce\": \"4a2070579d2ba2591bd4f18afc6ee865\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 296,\n      \"stored\": 296\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      },
+      "read": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1b536588b-fc05-8b88\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b22617267756d656e745f666c616773223a205b222d2d70726f66696c652d66696c65225d2c2022636f6e6669675f7061746873223a205b5d2c2022656e7669726f6e6d656e745f6b657973223a205b2250415448225d2c20226c6162656c223a20226f72672e7472696c6c696f6e6e69756d2e68657074612e636861746770742d74756e6e656c2d3661656561613566222c20226c6f6f706261636b5f75726c73223a205b5d2c202270726f64756374696f6e5f6d6f646966696564223a2066616c73652c202270726f6772616d5f626173656e616d65223a202274756e6e656c2d636c69656e74222c2022736368656d61223a202268657074612e6869612e6578697374696e672d74756e6e656c2d726f7574652d6f62736572766174696f6e2e7631227d0a\",\n    \"eof\": true,\n    \"next_offset\": 296,\n    \"offset\": 0,\n    \"size\": 296,\n    \"text\": \"{\\\"argument_flags\\\": [\\\"--profile-file\\\"], \\\"config_paths\\\": [], \\\"environment_keys\\\": [\\\"PATH\\\"], \\\"label\\\": \\\"org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f\\\", \\\"loopback_urls\\\": [], \\\"production_modified\\\": false, \\\"program_basename\\\": \\\"tunnel-client\\\", \\\"schema\\\": \\\"hepta.hia.existing-tunnel-route-observation.v1\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "request": {
+        "host": "main",
+        "executable": "/usr/bin/python3",
+        "args": [
+          "-B",
+          "-c",
+          "import json,plistlib,pathlib,urllib.parse,hashlib,stat\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\nd=plistlib.loads(p.read_bytes());a=d['ProgramArguments'];i=a.index('--profile-file');profile=pathlib.Path(a[i+1]);raw=profile.read_bytes();value=json.loads(raw)\nroutes=[]\ndef visit(v):\n if isinstance(v,dict):\n  for q in v.values():visit(q)\n elif isinstance(v,list):\n  for q in v:visit(q)\n elif isinstance(v,str) and v.startswith(('http://','https://')):\n  u=urllib.parse.urlsplit(v)\n  if u.hostname in ('127.0.0.1','localhost','::1'):routes.append({'scheme':u.scheme,'host':u.hostname,'port':u.port,'path_is_mcp':u.path=='/mcp'})\nvisit(value)\ns=profile.stat()\nprint(json.dumps({'schema':'hepta.hia.tunnel-local-route-projection.v1','profile_sha256':hashlib.sha256(raw).hexdigest(),'profile_mode':oct(stat.S_IMODE(s.st_mode)),'profile_owner':s.st_uid,'loopback_routes':routes,'raw_profile_exported':False,'credentials_exported':False,'production_modified':False},sort_keys=True))\n"
+        ],
+        "cwd": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9",
+        "idempotency_key": "hia-existing-tunnel-local-route-projection-372e7da9-r1",
+        "timeout_seconds": 30
+      },
+      "start": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-B\",\n      \"-c\",\n      \"import json,plistlib,pathlib,urllib.parse,hashlib,stat\\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\\nd=plistlib.loads(p.read_bytes());a=d['ProgramArguments'];i=a.index('--profile-file');profile=pathlib.Path(a[i+1]);raw=profile.read_bytes();value=json.loads(raw)\\nroutes=[]\\ndef visit(v):\\n if isinstance(v,dict):\\n  for q in v.values():visit(q)\\n elif isinstance(v,list):\\n  for q in v:visit(q)\\n elif isinstance(v,str) and v.startswith(('http://','https://')):\\n  u=urllib.parse.urlsplit(v)\\n  if u.hostname in ('127.0.0.1','localhost','::1'):routes.append({'scheme':u.scheme,'host':u.hostname,'port':u.port,'path_is_mcp':u.path=='/mcp'})\\nvisit(value)\\ns=profile.stat()\\nprint(json.dumps({'schema':'hepta.hia.tunnel-local-route-projection.v1','profile_sha256':hashlib.sha256(raw).hexdigest(),'profile_mode':oct(stat.S_IMODE(s.st_mode)),'profile_owner':s.st_uid,'loopback_routes':routes,'raw_profile_exported':False,'credentials_exported':False,'production_modified':False},sort_keys=True))\\n\"\n    ],\n    \"created_unix_ms\": 1794041635092,\n    \"cwd\": \"/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"main\",\n    \"id\": \"1a1b536e114-fc05-8b8b\",\n    \"idempotency_key\": \"hia-existing-tunnel-local-route-projection-372e7da9-r1\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/Users/qianqi/.local/state/hepta-runtime-mac-worker/jobs/1a1b536e114-fc05-8b8b\",\n    \"request_digest\": \"32117d3aa781ed7fa5f7ce237fa58f5c921d95ea20fc1b42962738ab6bb3ff3e\",\n    \"request_fingerprint\": 3607802467372363135,\n    \"ssh_target\": \"hepta-mac-local\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1b536e114-fc05-8b8b\"\n  },\n  \"launch\": {\n    \"backend\": \"detached\",\n    \"launcher_pid\": 65763,\n    \"ok\": true,\n    \"systemd_error\": \"systemd user units unavailable on this platform\",\n    \"unit\": \"hepta-runtime-job-1a1b536e114-fc05-8b8b\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      },
+      "status": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794041635393,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 1,\n  \"job_id\": \"1a1b536e114-fc05-8b8b\",\n  \"launch_nonce\": \"4c9032c0034cb77fcce89e88d34b80c1\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 770,\n      \"stored\": 770\n    },\n    \"stdout\": {\n      \"seen\": 0,\n      \"stored\": 0\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"failed\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      },
+      "read": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1b536e114-fc05-8b8b\",\n  \"stderr\": {\n    \"bytes_hex\": \"54726163656261636b20286d6f737420726563656e742063616c6c206c617374293a0a202046696c6520223c737472696e673e222c206c696e6520332c20696e203c6d6f64756c653e0a202046696c6520222f4170706c69636174696f6e732f58636f64652e6170702f436f6e74656e74732f446576656c6f7065722f4c6962726172792f4672616d65776f726b732f507974686f6e332e6672616d65776f726b2f56657273696f6e732f332e392f6c69622f707974686f6e332e392f6a736f6e2f5f5f696e69745f5f2e7079222c206c696e65203334362c20696e206c6f6164730a2020202072657475726e205f64656661756c745f6465636f6465722e6465636f64652873290a202046696c6520222f4170706c69636174696f6e732f58636f64652e6170702f436f6e74656e74732f446576656c6f7065722f4c6962726172792f4672616d65776f726b732f507974686f6e332e6672616d65776f726b2f56657273696f6e732f332e392f6c69622f707974686f6e332e392f6a736f6e2f6465636f6465722e7079222c206c696e65203333372c20696e206465636f64650a202020206f626a2c20656e64203d2073656c662e7261775f6465636f646528732c206964783d5f7728732c2030292e656e642829290a202046696c6520222f4170706c69636174696f6e732f58636f64652e6170702f436f6e74656e74732f446576656c6f7065722f4c6962726172792f4672616d65776f726b732f507974686f6e332e6672616d65776f726b2f56657273696f6e732f332e392f6c69622f707974686f6e332e392f6a736f6e2f6465636f6465722e7079222c206c696e65203335352c20696e207261775f6465636f64650a202020207261697365204a534f4e4465636f64654572726f722822457870656374696e672076616c7565222c20732c206572722e76616c7565292066726f6d204e6f6e650a6a736f6e2e6465636f6465722e4a534f4e4465636f64654572726f723a20457870656374696e672076616c75653a206c696e65203120636f6c756d6e20312028636861722030290a\",\n    \"eof\": true,\n    \"next_offset\": 770,\n    \"offset\": 0,\n    \"size\": 770,\n    \"text\": \"Traceback (most recent call last):\\n  File \\\"<string>\\\", line 3, in <module>\\n  File \\\"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/__init__.py\\\", line 346, in loads\\n    return _default_decoder.decode(s)\\n  File \\\"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/decoder.py\\\", line 337, in decode\\n    obj, end = self.raw_decode(s, idx=_w(s, 0).end())\\n  File \\\"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/json/decoder.py\\\", line 355, in raw_decode\\n    raise JSONDecodeError(\\\"Expecting value\\\", s, err.value) from None\\njson.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)\\n\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    },
+    {
+      "request": {
+        "host": "main",
+        "executable": "/usr/bin/python3",
+        "args": [
+          "-B",
+          "-c",
+          "import json,plistlib,pathlib,urllib.parse,hashlib,stat,re\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\nd=plistlib.loads(p.read_bytes());a=d['ProgramArguments'];i=a.index('--profile-file');profile=pathlib.Path(a[i+1]);raw=profile.read_bytes()\nroutes=[]\nfor m in re.finditer(rb'https?://(?:127[.]0[.]0[.]1|localhost|\\\\[::1\\\\]):[0-9]+(?:/[A-Za-z0-9._/-]*)?',raw):\n u=urllib.parse.urlsplit(m.group().decode('ascii'));routes.append({'scheme':u.scheme,'host':u.hostname,'port':u.port,'path_is_mcp':u.path=='/mcp'})\ns=profile.stat()\nprint(json.dumps({'schema':'hepta.hia.tunnel-local-route-projection.v2','profile_suffix':profile.suffix,'profile_sha256':hashlib.sha256(raw).hexdigest(),'profile_mode':oct(stat.S_IMODE(s.st_mode)),'profile_owner':s.st_uid,'loopback_url_literals':routes,'observation_scope':'bounded loopback URL literals in active profile file; format not interpreted','raw_profile_exported':False,'credentials_exported':False,'production_modified':False},sort_keys=True))\n"
+        ],
+        "cwd": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9",
+        "idempotency_key": "hia-existing-tunnel-local-route-projection-372e7da9-r2",
+        "timeout_seconds": 30
+      },
+      "start": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"audit_recorded\": true,\n  \"job\": {\n    \"args\": [\n      \"-B\",\n      \"-c\",\n      \"import json,plistlib,pathlib,urllib.parse,hashlib,stat,re\\np=pathlib.Path('/Users/qianqi/Library/LaunchAgents/org.trillionnium.hepta.chatgpt-tunnel-6aeeaa5f.plist')\\nd=plistlib.loads(p.read_bytes());a=d['ProgramArguments'];i=a.index('--profile-file');profile=pathlib.Path(a[i+1]);raw=profile.read_bytes()\\nroutes=[]\\nfor m in re.finditer(rb'https?://(?:127[.]0[.]0[.]1|localhost|\\\\\\\\[::1\\\\\\\\]):[0-9]+(?:/[A-Za-z0-9._/-]*)?',raw):\\n u=urllib.parse.urlsplit(m.group().decode('ascii'));routes.append({'scheme':u.scheme,'host':u.hostname,'port':u.port,'path_is_mcp':u.path=='/mcp'})\\ns=profile.stat()\\nprint(json.dumps({'schema':'hepta.hia.tunnel-local-route-projection.v2','profile_suffix':profile.suffix,'profile_sha256':hashlib.sha256(raw).hexdigest(),'profile_mode':oct(stat.S_IMODE(s.st_mode)),'profile_owner':s.st_uid,'loopback_url_literals':routes,'observation_scope':'bounded loopback URL literals in active profile file; format not interpreted','raw_profile_exported':False,'credentials_exported':False,'production_modified':False},sort_keys=True))\\n\"\n    ],\n    \"created_unix_ms\": 1794041676686,\n    \"cwd\": \"/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9\",\n    \"env_keys\": [],\n    \"executable\": \"/usr/bin/python3\",\n    \"execution_mode\": \"operator\",\n    \"host\": \"main\",\n    \"id\": \"1a1b537838e-fc05-8b8f\",\n    \"idempotency_key\": \"hia-existing-tunnel-local-route-projection-372e7da9-r2\",\n    \"launch_error\": null,\n    \"launch_state\": \"launched\",\n    \"remote_job_dir\": \"/Users/qianqi/.local/state/hepta-runtime-mac-worker/jobs/1a1b537838e-fc05-8b8f\",\n    \"request_digest\": \"9e7a0fc271ac3bcd324cbd3fcb3ce55acc8a615f0efdf89bfa8405d64ebedc1f\",\n    \"request_fingerprint\": 11419457132956498893,\n    \"ssh_target\": \"hepta-mac-local\",\n    \"system_jobctl\": false,\n    \"unit\": \"hepta-runtime-job-1a1b537838e-fc05-8b8f\"\n  },\n  \"launch\": {\n    \"backend\": \"detached\",\n    \"launcher_pid\": 65974,\n    \"ok\": true,\n    \"systemd_error\": \"systemd user units unavailable on this platform\",\n    \"unit\": \"hepta-runtime-job-1a1b537838e-fc05-8b8f\"\n  },\n  \"local_record_pending\": false,\n  \"reused\": false\n}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      },
+      "status": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"at_unix_ms\": 1794041676973,\n  \"audit_recorded\": true,\n  \"automatic_retry\": false,\n  \"cancelled\": false,\n  \"exit_code\": 0,\n  \"job_id\": \"1a1b537838e-fc05-8b8f\",\n  \"launch_nonce\": \"502b54081f273e616e512f2031f916d3\",\n  \"log_bytes\": {\n    \"stderr\": {\n      \"seen\": 0,\n      \"stored\": 0\n    },\n    \"stdout\": {\n      \"seen\": 513,\n      \"stored\": 513\n    }\n  },\n  \"log_errors\": {\n    \"stderr\": null,\n    \"stdout\": null\n  },\n  \"log_synced\": {\n    \"stderr\": true,\n    \"stdout\": true\n  },\n  \"log_truncated\": {\n    \"stderr\": false,\n    \"stdout\": false\n  },\n  \"output_complete\": true,\n  \"output_durable\": true,\n  \"state\": \"succeeded\",\n  \"terminal_publication_confirmed\": true,\n  \"terminal_publication_protocol\": 1,\n  \"timed_out\": false\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      },
+      "read": {
+        "status": "fulfilled",
+        "value": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"audit_recorded\": true,\n  \"job_id\": \"1a1b537838e-fc05-8b8f\",\n  \"stderr\": {\n    \"bytes_hex\": \"\",\n    \"eof\": true,\n    \"next_offset\": 0,\n    \"offset\": 0,\n    \"size\": 0,\n    \"text\": \"\"\n  },\n  \"stdout\": {\n    \"bytes_hex\": \"7b2263726564656e7469616c735f6578706f72746564223a2066616c73652c20226c6f6f706261636b5f75726c5f6c69746572616c73223a205b7b22686f7374223a20223132372e302e302e31222c2022706174685f69735f6d6370223a20747275652c2022706f7274223a20383739302c2022736368656d65223a202268747470227d5d2c20226f62736572766174696f6e5f73636f7065223a2022626f756e646564206c6f6f706261636b2055524c206c69746572616c7320696e206163746976652070726f66696c652066696c653b20666f726d6174206e6f7420696e746572707265746564222c202270726f64756374696f6e5f6d6f646966696564223a2066616c73652c202270726f66696c655f6d6f6465223a2022306f363030222c202270726f66696c655f6f776e6572223a203530312c202270726f66696c655f736861323536223a202236626139636465396265373634316661393031653332323535336131366163383965376263356230353037636164646133316263393764623863636566306438222c202270726f66696c655f737566666978223a20222e79616d6c222c20227261775f70726f66696c655f6578706f72746564223a2066616c73652c2022736368656d61223a202268657074612e6869612e74756e6e656c2d6c6f63616c2d726f7574652d70726f6a656374696f6e2e7632227d0a\",\n    \"eof\": true,\n    \"next_offset\": 513,\n    \"offset\": 0,\n    \"size\": 513,\n    \"text\": \"{\\\"credentials_exported\\\": false, \\\"loopback_url_literals\\\": [{\\\"host\\\": \\\"127.0.0.1\\\", \\\"path_is_mcp\\\": true, \\\"port\\\": 8790, \\\"scheme\\\": \\\"http\\\"}], \\\"observation_scope\\\": \\\"bounded loopback URL literals in active profile file; format not interpreted\\\", \\\"production_modified\\\": false, \\\"profile_mode\\\": \\\"0o600\\\", \\\"profile_owner\\\": 501, \\\"profile_sha256\\\": \\\"6ba9cde9be7641fa901e322553a16ac89e7bc5b0507cadda31bc97db8ccef0d8\\\", \\\"profile_suffix\\\": \\\".yaml\\\", \\\"raw_profile_exported\\\": false, \\\"schema\\\": \\\"hepta.hia.tunnel-local-route-projection.v2\\\"}\\n\"\n  }\n}"
+            }
+          ],
+          "structuredContent": null,
+          "isError": false
+        }
+      }
+    }
+  ],
+  "scope": "Only launch profile identity and bounded loopback URL literals were emitted. The first attempted JSON parser failed because the existing profile is YAML. No profile bytes, public ingress URL, credential or header was exported. No production state was modified."
+}

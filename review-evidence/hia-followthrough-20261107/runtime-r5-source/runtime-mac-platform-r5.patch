@@ -1,0 +1,826 @@
+diff --git a/src/bin/jobctl.rs b/src/bin/jobctl.rs
+--- a/src/bin/jobctl.rs
++++ b/src/bin/jobctl.rs
+@@ -50,7 +50,14 @@
+ 		.trim()
+ 		.to_owned())
+ }
++fn require_linux_launch() -> Result<()> {
++	if !cfg!(target_os = "linux") {
++		bail!("Isolated job launch requires Linux");
++	}
++	Ok(())
++}
+ fn launch_nonce() -> Result<String> {
++	require_linux_launch()?;
+ 	// The worker adoption and witnessed terminal wire share this exact format.
+ 	// Existing records retain their original nonce; only a new launch calls here.
+ 	let nonce = fs::read_to_string("/proc/sys/kernel/random/uuid")?
+@@ -998,6 +1005,9 @@
+ 	Ok(json!({"job_id":id,"result":"stop_requested","invocation_id":r.invocation_id}))
+ }
+ fn start(mut q: Request, interactive: bool) -> Result<Value> {
++	// New isolated dispatch requires systemd, /proc identities and group custody.
++	// Check before policy/lock acquisition can create a registry namespace.
++	require_linux_launch()?;
+ 	let p = policy()?;
+ 	validate(&mut q, &p)?;
+ 	let lock = Lock::acquire()?;
+@@ -1513,6 +1523,7 @@
+ 	}
+ }
+ fn supervise(id: &str, interactive: bool) -> Result<()> {
++	require_linux_launch()?;
+ 	if unsafe { libc::geteuid() } == 0 {
+ 		bail!("supervisor must never execute as root");
+ 	}
+diff --git a/src/jobctl_engine_scratch_tests.rs b/src/jobctl_engine_scratch_tests.rs
+--- a/src/jobctl_engine_scratch_tests.rs
++++ b/src/jobctl_engine_scratch_tests.rs
+@@ -8,11 +8,12 @@
+ use std::os::unix::process::CommandExt;
+ 
+ // Compile the real worker consumer into this producer contract test. Its async
+-// entry is unused here; no replacement parser or handwritten valid nonce exists.
++// entry is unused here. Linux adoption fixtures use the production nonce issuer.
+ #[allow(dead_code)]
+ #[path = "mcp/rea_engine_scratch.rs"]
+ mod worker_scratch;
+ 
++#[cfg(target_os = "linux")]
+ fn engine_record(nonce: String) -> Record {
+ 	Record {
+ 		job_id: "owned-job".into(),
+@@ -27,6 +28,7 @@
+ 	}
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn production_nonce_is_accepted_by_the_real_worker_and_terminal_projection() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -64,6 +66,7 @@
+ 	assert_eq!(projected["output_durable"], true);
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn restricted_group_visibility_preserves_unknown_and_readable_retention() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -131,6 +134,7 @@
+ 	assert!(sentinel.exists());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn engine_scratch_owner_stops_original_group_before_reap_and_publishes_cleanup() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -174,6 +178,7 @@
+ 	assert!(!temp.path().join("engine-scratch").exists());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn engine_scratch_lost_child_custody_never_authorizes_numeric_group_cleanup() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -189,3 +194,55 @@
+ 	assert_eq!(receipt["removed"], false);
+ 	assert!(temp.path().join("engine-scratch").exists());
+ }
++
++#[cfg(not(target_os = "linux"))]
++#[test]
++fn unsupported_engine_launch_refuses_before_state_changes_or_group_signals() {
++	let temp = tempfile::tempdir().unwrap();
++	let state = fs::canonicalize(temp.path()).unwrap();
++	let sentinel = state.join("sentinel");
++	fs::write(&sentinel, b"original state").unwrap();
++	let expected = "Isolated job launch requires Linux";
++	assert_eq!(launch_nonce().unwrap_err().to_string(), expected);
++	for interactive in [false, true] {
++		let request: Request = serde_json::from_value(json!({
++			"op":"start", "job_id":"unsupported-job", "executable":"/bin/true",
++			"cwd":state,
++		}))
++		.unwrap();
++		assert_eq!(
++			start(request, interactive).unwrap_err().to_string(),
++			expected
++		);
++		assert_eq!(
++			supervise("unsupported-job", interactive)
++				.unwrap_err()
++				.to_string(),
++			expected
++		);
++	}
++	assert_eq!(
++		engine_owner::ScratchOwner::prepare(&state, "unsupported-job", "unissued")
++			.err()
++			.unwrap()
++			.to_string(),
++		"Static engine scratch lifecycle requires Linux"
++	);
++	let mut child = Command::new("/bin/sleep")
++		.arg("5")
++		.process_group(0)
++		.spawn()
++		.unwrap();
++	let refusal = engine_owner::stop_original_group(child.id());
++	let observed = child.try_wait();
++	let _ = child.kill();
++	let reaped = child.wait();
++	assert_eq!(
++		refusal.unwrap_err().to_string(),
++		"Static engine scratch lifecycle requires Linux"
++	);
++	assert!(observed.unwrap().is_none());
++	reaped.unwrap();
++	assert_eq!(fs::read_dir(&state).unwrap().count(), 1);
++	assert_eq!(fs::read(sentinel).unwrap(), b"original state");
++}
+diff --git a/src/mcp/rea_engine_directory.rs b/src/mcp/rea_engine_directory.rs
+--- a/src/mcp/rea_engine_directory.rs
++++ b/src/mcp/rea_engine_directory.rs
+@@ -12,6 +12,15 @@
+ use std::os::unix::fs::MetadataExt;
+ use std::path::{Component, Path, PathBuf};
+ use std::time::{Duration, Instant};
++
++pub(crate) fn require_supported_platform() -> Result<()> {
++	// Mount identity, descendant observation and cleanup use the Linux /proc
++	// contracts. Refuse before creating or adopting a namespace on other OSes.
++	if !cfg!(target_os = "linux") {
++		bail!("Static engine scratch lifecycle requires Linux");
++	}
++	Ok(())
++}
+ 
+ pub(crate) fn open_at(parent: &File, name: &OsStr) -> Result<File> {
+ 	let name = CString::new(name.as_bytes())?;
+@@ -63,6 +72,7 @@
+ 
+ impl Directory {
+ 	pub(crate) fn create(parent: &Path, name: &str) -> Result<Self> {
++		require_supported_platform()?;
+ 		if name.is_empty() || name == "." || name == ".." || name.contains('/') {
+ 			bail!("invalid private engine directory name");
+ 		}
+@@ -87,6 +97,7 @@
+ 	}
+ 
+ 	pub(crate) fn open(path: &Path, device: u64, inode: u64) -> Result<Self> {
++		require_supported_platform()?;
+ 		let parent_path = path.parent().context("engine directory parent absent")?;
+ 		let parent = open_path(parent_path)?;
+ 		let file = open_at(
+@@ -112,6 +123,7 @@
+ 	}
+ 
+ 	pub(crate) fn verify(&self) -> Result<()> {
++		require_supported_platform()?;
+ 		let parent_path = self
+ 			.path
+ 			.parent()
+diff --git a/src/mcp/rea_engine_job_owner.rs b/src/mcp/rea_engine_job_owner.rs
+--- a/src/mcp/rea_engine_job_owner.rs
++++ b/src/mcp/rea_engine_job_owner.rs
+@@ -214,6 +214,7 @@
+ /// Stops residual engine descendants before reaping releases the original PGID.
+ /// An observation failure or timeout retains scratch and grants no later signal.
+ pub(crate) fn stop_original_group(pid: u32) -> Result<()> {
++	directory::require_supported_platform()?;
+ 	let mut mounts = Vec::new();
+ 	File::open("/proc/self/mountinfo")?
+ 		.take(1048577)
+diff --git a/src/mcp/rea_engine_scratch.rs b/src/mcp/rea_engine_scratch.rs
+--- a/src/mcp/rea_engine_scratch.rs
++++ b/src/mcp/rea_engine_scratch.rs
+@@ -131,6 +131,7 @@
+ 	owner: Option<String>,
+ 	job_id: Option<String>,
+ ) -> Result<Scratch> {
++	directory::require_supported_platform()?;
+ 	if !matches!(engine, "jadx" | "ghidra") {
+ 		bail!("unknown fixed engine scratch kind");
+ 	}
+diff --git a/src/mcp/rea_engine_scratch_tests.rs b/src/mcp/rea_engine_scratch_tests.rs
+--- a/src/mcp/rea_engine_scratch_tests.rs
++++ b/src/mcp/rea_engine_scratch_tests.rs
+@@ -4,8 +4,10 @@
+ //! Scratch adoption and replacement safety at real filesystem boundaries.
+ 
+ use super::*;
++#[cfg(target_os = "linux")]
+ use std::os::unix::fs::symlink;
+ 
++#[cfg(target_os = "linux")]
+ fn binding(root: &Directory) -> String {
+ 	let (device, inode) = root.identity();
+ 	serde_json::to_string(&OwnerBinding {
+@@ -19,6 +21,7 @@
+ 	.unwrap()
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn worker_adopts_exact_owner_and_defers_removal_to_original_owner() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -54,6 +57,7 @@
+ 	assert!(!path.exists());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn cleanup_refuses_rebound_parent_even_when_absolute_leaf_inode_is_unchanged() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -75,6 +79,7 @@
+ 	assert!(old_parent.join(&leaf).is_dir());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn wrong_owner_or_substituted_inode_cannot_be_adopted() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -105,6 +110,7 @@
+ 	assert!(!replacement.path.join("claim.json").exists());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn cleanup_refuses_a_replaced_root_and_unlinks_symlinks_without_following_them() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -127,3 +133,71 @@
+ 	assert!(path.join("preserve").is_file());
+ 	assert!(temp.path().join("retained-owned").is_dir());
+ }
++
++#[cfg(not(target_os = "linux"))]
++#[test]
++fn unsupported_platform_refuses_creation_and_adoption_without_scratch_changes() {
++	use std::os::unix::fs::{MetadataExt, PermissionsExt};
++	let temp = tempfile::tempdir().unwrap();
++	let parent = std::fs::canonicalize(temp.path()).unwrap();
++	let existing = parent.join("engine-scratch");
++	std::fs::create_dir(&existing).unwrap();
++	std::fs::set_permissions(&existing, std::fs::Permissions::from_mode(0o700)).unwrap();
++	let sentinel = existing.join("sentinel");
++	std::fs::write(&sentinel, b"existing private data").unwrap();
++	let held = std::fs::metadata(&existing).unwrap();
++	let error = "Static engine scratch lifecycle requires Linux";
++	assert_eq!(
++		Directory::create(&parent, "new-owned")
++			.err()
++			.unwrap()
++			.to_string(),
++		error
++	);
++	assert_eq!(
++		Directory::open(&existing, held.dev(), held.ino())
++			.err()
++			.unwrap()
++			.to_string(),
++		error
++	);
++	let owner = serde_json::to_string(&OwnerBinding {
++		schema: "hepta.rea.engine-scratch-owner.v1".into(),
++		job_id: "owned-job".into(),
++		launch_nonce: "a".repeat(32),
++		path: existing.clone(),
++		device: held.dev(),
++		inode: held.ino(),
++	})
++	.unwrap();
++	for engine in ["ghidra", "jadx"] {
++		assert_eq!(
++			create(&parent, engine, None, None)
++				.err()
++				.unwrap()
++				.to_string(),
++			error
++		);
++		assert_eq!(
++			create(
++				&parent,
++				engine,
++				Some(owner.clone()),
++				Some("owned-job".into())
++			)
++			.err()
++			.unwrap()
++			.to_string(),
++			error
++		);
++	}
++	assert_eq!(std::fs::read_dir(&parent).unwrap().count(), 1);
++	assert_eq!(std::fs::read_dir(&existing).unwrap().count(), 1);
++	assert!(!existing.join("claim.json").exists());
++	assert_eq!(std::fs::read(sentinel).unwrap(), b"existing private data");
++	let after = std::fs::metadata(existing).unwrap();
++	assert_eq!(
++		(held.dev(), held.ino(), held.mode()),
++		(after.dev(), after.ino(), after.mode())
++	);
++}
+diff --git a/src/mcp/rea_engine_usage_tests.rs b/src/mcp/rea_engine_usage_tests.rs
+--- a/src/mcp/rea_engine_usage_tests.rs
++++ b/src/mcp/rea_engine_usage_tests.rs
+@@ -4,6 +4,7 @@
+ //! Deterministic live-sample races on private fixtures; no engine qualification.
+ 
+ use super::*;
++#[cfg(target_os = "linux")]
+ use std::os::unix::fs::{symlink, PermissionsExt};
+ 
+ #[test]
+@@ -15,6 +16,7 @@
+ 	assert!(!same_device(u128::from(u64::MAX) + 1, 0));
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn vanished_enumerated_file_is_a_sample_absence_with_owned_root_unchanged() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -31,6 +33,7 @@
+ 	directory.verify().unwrap();
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn sampling_refuses_replaced_entries_and_root_rebinding() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -61,6 +64,7 @@
+ 	assert!(directory.path.is_dir());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn sampling_preserves_permission_symlink_and_resource_errors() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -87,6 +91,7 @@
+ 	assert_eq!(std::fs::read(outside).unwrap(), b"preserved");
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn sampling_never_treats_a_disappeared_root_as_an_empty_sample() {
+ 	let temp = tempfile::tempdir().unwrap();
+@@ -95,6 +100,7 @@
+ 	assert!(sample(&directory, 1024, 32).is_err());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn sampling_distinguishes_an_unlinked_open_directory_from_a_live_renamed_directory() {
+ 	for removed in [true, false] {
+diff --git a/src/mcp/runtime/effect_owner_fence_tests.rs b/src/mcp/runtime/effect_owner_fence_tests.rs
+--- a/src/mcp/runtime/effect_owner_fence_tests.rs
++++ b/src/mcp/runtime/effect_owner_fence_tests.rs
+@@ -679,6 +679,9 @@
+ 	assert!(verify_root_path_identity(&f.v4_state, &pinned).is_err());
+ }
+ 
++// Predecessor replay inspection is implemented only on Linux; the explicit
++// unsupported-platform refusal is exercised separately below.
++#[cfg(target_os = "linux")]
+ #[test]
+ fn successor_replay_rejects_predecessor_host_and_key_but_allows_new_key() {
+ 	let f = Fixture::new();
+@@ -706,6 +709,7 @@
+ 	assert!(guard.require_new_process_identity("main", None).is_err());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn successor_replay_denies_uncertain_or_corrupt_legacy_registry() {
+ 	let f = Fixture::new();
+@@ -732,6 +736,7 @@
+ 		.is_err());
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn successor_replay_can_scan_predecessor_past_old_32768_job_limit() {
+ 	let f = Fixture::new();
+@@ -773,6 +778,7 @@
+ 	);
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn successor_replay_cache_uses_same_pinned_authority_and_denies_stale_registry() {
+ 	let f = Fixture::new();
+@@ -805,6 +811,7 @@
+ 	fs::remove_file(&marker).unwrap();
+ }
+ 
++#[cfg(target_os = "linux")]
+ #[test]
+ fn successor_replay_cache_cannot_be_used_by_second_authority_epoch() {
+ 	let f = Fixture::new();
+@@ -825,6 +832,44 @@
+ 	assert!(later
+ 		.require_new_process_identity("main", Some("SAFE_KEY"))
+ 		.is_err());
++}
++
++#[cfg(not(target_os = "linux"))]
++#[test]
++fn successor_process_replay_refuses_without_linux_support() {
++	for registry in ["absent", "empty", "populated"] {
++		let f = Fixture::new();
++		let jobs = f.v4_state.join("jobs");
++		if registry != "absent" {
++			fs::create_dir(&jobs).unwrap();
++			fs::set_permissions(&jobs, fs::Permissions::from_mode(0o700)).unwrap();
++		}
++		if registry == "populated" {
++			let row = serde_json::json!({"id":"1a14-cafe-1","host":"main",
++				"idempotency_key":"old-key","request_digest":"a".repeat(64)});
++			let path = jobs.join("1a14-cafe-1.json");
++			fs::write(&path, serde_json::to_vec(&row).unwrap()).unwrap();
++			fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
++		}
++		f.write_state("v11", "admitting", 8);
++		let permit = f.admit("v11").unwrap();
++		assert!(permit.has_predecessor_state());
++		for (host, key) in [
++			("main", Some("old-key")),
++			("main", Some("new-key")),
++			("other-host", Some("old-key")),
++			("main", None),
++		] {
++			assert_eq!(
++				permit
++					.require_new_process_identity(host, key)
++					.unwrap_err()
++					.to_string(),
++				"V11 predecessor replay validation requires supported Linux controller",
++				"registry={registry}, host={host}, key={key:?}"
++			);
++		}
++	}
+ }
+ 
+ #[test]
+@@ -915,6 +960,7 @@
+ 			.require_new_pty_identity("main", Some("owned"))
+ 			.is_err());
+ 	}
++	#[cfg(target_os = "linux")]
+ 	#[test]
+ 	fn successor_can_start_first_keyed_pty_when_old_terminal_store_absent() {
+ 		let (_t, root, old, new) = fixture();
+@@ -935,8 +981,14 @@
+ 		d["predecessor_state_root"] = serde_json::Value::Null;
+ 		std::fs::write(root.join(".owner.json"), serde_json::to_vec(&d).unwrap()).unwrap();
+ 		let permit = acquire_from_root(&root, "v4", &old).unwrap();
++		assert!(!permit.has_predecessor_state());
++		assert!(permit.require_new_process_identity("main", None).is_ok());
++		assert!(permit
++			.require_new_process_identity("main", Some("new-key"))
++			.is_ok());
+ 		assert!(permit.require_new_pty_identity("main", None).is_ok());
+ 	}
++	#[cfg(target_os = "linux")]
+ 	#[test]
+ 	fn successor_rejects_predecessor_pty_key_before_new_session() {
+ 		let (_t, root, old, new) = fixture();
+@@ -953,4 +1005,34 @@
+ 			.is_ok());
+ 		assert!(permit.require_new_pty_identity("main", None).is_err());
+ 	}
+-}
++
++	#[cfg(not(target_os = "linux"))]
++	#[test]
++	fn successor_pty_replay_refuses_without_linux_support() {
++		for registry in ["absent", "empty", "populated"] {
++			let (_t, root, old, new) = fixture();
++			if registry == "absent" {
++				std::fs::remove_dir(old.join("terminals")).unwrap();
++			} else if registry == "populated" {
++				persist_old_pty(&old, "main", "old-key");
++			}
++			let permit = acquire_from_root(&root, "v11", &new).unwrap();
++			assert!(permit.has_predecessor_state());
++			for (host, key) in [
++				("main", Some("old-key")),
++				("main", Some("new-key")),
++				("other-host", Some("old-key")),
++				("main", None),
++			] {
++				assert_eq!(
++					permit
++						.require_new_pty_identity(host, key)
++						.unwrap_err()
++						.to_string(),
++					"V11 predecessor PTY replay validation requires Linux",
++					"registry={registry}, host={host}, key={key:?}"
++				);
++			}
++		}
++	}
++}
+diff --git a/src/mcp/runtime/inspect_security_tests.rs b/src/mcp/runtime/inspect_security_tests.rs
+--- a/src/mcp/runtime/inspect_security_tests.rs
++++ b/src/mcp/runtime/inspect_security_tests.rs
+@@ -17,9 +17,24 @@
+ 
+ 	let old_path = std::env::var("PATH").unwrap_or_default();
+ 	let path = format!("{}:{old_path}", dir.path().display());
++	// Fresh executable startup can exceed the action deadline on macOS. These
++	// fixtures test capture after output exists, so wait without reading the pipe
++	// before the production helper starts its unchanged timeout/capture loop.
++	let launch_ready = r#"
++import select, subprocess
++fixture_popen = subprocess.Popen
++def launch_fixture_ready(*args, **kwargs):
++    child = fixture_popen(*args, **kwargs)
++    if not select.select([child.stdout], [], [], 10)[0]:
++        child.kill()
++        child.wait(timeout=5)
++        raise RuntimeError("fixture stdout was not ready within 10 seconds")
++    return child
++subprocess.Popen = launch_fixture_ready
++"#;
+ 	let mut child = Command::new("python3")
+ 		.arg("-c")
+-		.arg(PRIVILEGED_CODE)
++		.arg(format!("{launch_ready}\n{PRIVILEGED_CODE}"))
+ 		.env("PATH", path)
+ 		.stdin(Stdio::piped())
+ 		.stdout(Stdio::piped())
+@@ -46,7 +61,12 @@
+ fn privileged_timeout_with_stdout_is_json_serializable() {
+ 	let output = run_fake_sudo("#!/bin/sh\nprintf 'started\\n'\nexec sleep 4\n", 1.0);
+ 	assert_eq!(output["exit_code"], 124);
++	assert_eq!(output["timed_out"], true);
++	assert_eq!(output["exit_code_authoritative"], false);
++	assert_eq!(output["process_exit_confirmed"], true);
+ 	assert_eq!(output["stdout"], "started\n");
++	assert_eq!(output["stdout_bytes_seen"], 8);
++	assert_eq!(output["capture_error"], Value::Null);
+ }
+ 
+ #[test]
+diff --git a/src/mcp/runtime/jobs_inventory_streaming_tests.rs b/src/mcp/runtime/jobs_inventory_streaming_tests.rs
+--- a/src/mcp/runtime/jobs_inventory_streaming_tests.rs
++++ b/src/mcp/runtime/jobs_inventory_streaming_tests.rs
+@@ -330,7 +330,7 @@
+ #[test]
+ fn unselected_nonregular_hardlinked_and_non_utf8_receipts_are_not_skipped() {
+ 	use std::os::unix::ffi::{OsStrExt, OsStringExt};
+-	use std::os::unix::fs::symlink;
++	use std::os::unix::fs::{symlink, OpenOptionsExt};
+ 	for case in ["symlink", "hardlink", "directory", "fifo", "filename"] {
+ 		let root = tempfile::tempdir().unwrap();
+ 		write_record(root.path(), &record("selected", "main", 1));
+@@ -361,10 +361,25 @@
+ 			}
+ 			"filename" => {
+ 				let name = std::ffi::OsString::from_vec(b"non-utf8-\xff.json".to_vec());
+-				write_bytes(
+-					&root.path().join(name),
+-					b"not decoded before filename refusal",
+-				);
++				let opened = OpenOptions::new()
++					.create_new(true)
++					.write(true)
++					.mode(0o600)
++					.open(root.path().join(name));
++				let mut file = match opened {
++					Ok(file) => file,
++					#[cfg(target_os = "macos")]
++					Err(error) if error.raw_os_error() == Some(libc::EILSEQ) => {
++						// APFS rejects this name before a directory entry exists.
++						// The other four unsafe entries still exercise both readers.
++						assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
++						assert_eq!(assert_same_response(root.path(), Some("main"))["total"], 1);
++						continue;
++					}
++					Err(error) => panic!("cannot construct invalid-name fixture: {error}"),
++				};
++				file.write_all(b"not decoded before filename refusal")
++					.unwrap();
+ 				"invalid durable job record name"
+ 			}
+ 			_ => unreachable!(),
+diff --git a/src/mcp/runtime/jobs_tests.rs b/src/mcp/runtime/jobs_tests.rs
+--- a/src/mcp/runtime/jobs_tests.rs
++++ b/src/mcp/runtime/jobs_tests.rs
+@@ -1648,6 +1648,7 @@
+ 
+ 	let mut duplicate = inserted.clone();
+ 	duplicate.id = "second-conflicting-id".into();
++	let content_watch = registry_has_content_watch(&registry_epoch(root.path()).unwrap());
+ 	let rejected_existing =
+ 		scan_idempotent_binding_in_with_observer(root.path(), "main", "never-accepted", || {
+ 			std::thread::sleep(Duration::from_millis(5));
+@@ -1655,10 +1656,14 @@
+ 		})
+ 		.unwrap_err()
+ 		.to_string();
+-	assert!(
+-		rejected_existing.contains("registry changed during scan"),
+-		"{rejected_existing}"
+-	);
++	// The no-watch fallback performs a second complete scan before comparing
++	// directory epochs, so it diagnoses the newly inserted duplicate first.
++	let expected = if content_watch {
++		"registry changed during scan"
++	} else {
++		"duplicate original"
++	};
++	assert!(rejected_existing.contains(expected), "{rejected_existing}");
+ 	assert!(
+ 		scan_idempotent_binding_in(root.path(), "main", "never-accepted")
+ 			.unwrap_err()
+diff --git a/src/mcp/runtime/request_archive_index.rs b/src/mcp/runtime/request_archive_index.rs
+--- a/src/mcp/runtime/request_archive_index.rs
++++ b/src/mcp/runtime/request_archive_index.rs
+@@ -1050,6 +1050,41 @@
+ 		);
+ 	}
+ }
++fn lock_cache_for_validation(file: &File) -> Result<()> {
++	#[cfg(target_os = "macos")]
++	{
++		// redb 4.4 uses OFD range locks on macOS. A prior flock conflicts even
++		// on this same descriptor, so take its lock class before checking the
++		// seal and keep the same description locked through create_file().
++		// A zero-length range covers the complete file and future growth.
++		let mut lock: libc::flock = unsafe { std::mem::zeroed() };
++		lock.l_type = libc::F_WRLCK;
++		lock.l_whence = libc::SEEK_SET.try_into()?;
++		loop {
++			if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_OFD_SETLK, &mut lock) } == 0 {
++				return Ok(());
++			}
++			let error = std::io::Error::last_os_error();
++			if error.kind() == std::io::ErrorKind::Interrupted {
++				continue;
++			}
++			if matches!(error.raw_os_error(), Some(libc::EAGAIN | libc::EACCES)) {
++				return Err(redb::DatabaseError::DatabaseAlreadyOpen.into());
++			}
++			return Err(error.into());
++		}
++	}
++	#[cfg(not(target_os = "macos"))]
++	{
++		match file.try_lock() {
++			Ok(()) => Ok(()),
++			Err(std::fs::TryLockError::WouldBlock) => {
++				Err(redb::DatabaseError::DatabaseAlreadyOpen.into())
++			}
++			Err(std::fs::TryLockError::Error(error)) => Err(error.into()),
++		}
++	}
++}
+ fn cached(slot: &Slot, deadline: Instant) -> Result<Option<ValidatedDatabase>> {
+ 	let file = match open_at(&slot.root, CACHE_NAME, libc::O_RDWR | libc::O_NONBLOCK, 0) {
+ 		Ok(file) => file,
+@@ -1064,13 +1099,7 @@
+ 	};
+ 	private_cache(&file)?;
+ 	let opened = Instant::now();
+-	match file.try_lock() {
+-		Ok(()) => {}
+-		Err(std::fs::TryLockError::WouldBlock) => {
+-			return Err(redb::DatabaseError::DatabaseAlreadyOpen.into());
+-		}
+-		Err(std::fs::TryLockError::Error(error)) => return Err(error.into()),
+-	}
++	lock_cache_for_validation(&file)?;
+ 	let sealed = seal::verified(slot, &file, deadline)?;
+ 	cold_phase(
+ 		if sealed {
+diff --git a/src/mcp/runtime/request_archive_index_tests.rs b/src/mcp/runtime/request_archive_index_tests.rs
+--- a/src/mcp/runtime/request_archive_index_tests.rs
++++ b/src/mcp/runtime/request_archive_index_tests.rs
+@@ -1321,6 +1321,71 @@
+ 		state.retired = false;
+ 	}
+ 	slot
++}
++
++#[test]
++fn cache_validation_lock_survives_database_open_and_excludes_other_openers() {
++	let root = private_root();
++	let path = root.path().join(CACHE_NAME);
++	let file = std::fs::OpenOptions::new()
++		.read(true)
++		.write(true)
++		.create_new(true)
++		.mode(0o600)
++		.open(&path)
++		.unwrap();
++	private_cache(&file).unwrap();
++	lock_cache_for_validation(&file).unwrap();
++	let hint = file.try_clone().unwrap();
++	let excluded = || {
++		let other = std::fs::OpenOptions::new()
++			.read(true)
++			.write(true)
++			.open(&path)
++			.unwrap();
++		let error = lock_cache_for_validation(&other).unwrap_err();
++		assert!(matches!(
++			error.downcast_ref::<redb::DatabaseError>(),
++			Some(redb::DatabaseError::DatabaseAlreadyOpen)
++		));
++		let error = match open_database(other, Instant::now() + Duration::from_secs(5)) {
++			Err(error) => error,
++			Ok(_) => panic!("independent database opener acquired a held validation lock"),
++		};
++		assert!(matches!(
++			error.downcast_ref::<redb::DatabaseError>(),
++			Some(redb::DatabaseError::DatabaseAlreadyOpen)
++		));
++	};
++	// The same open description keeps custody before the seal is read, while
++	// redb takes ownership, and after a real commit. No unlock/relock handoff.
++	excluded();
++	let (db, _) = open_database(file, Instant::now() + Duration::from_secs(5)).unwrap();
++	excluded();
++	let table = TableDefinition::<u64, u64>::new("validation_lock_probe");
++	let write = db.begin_write().unwrap();
++	write.open_table(table).unwrap().insert(10, 17).unwrap();
++	write.commit().unwrap();
++	excluded();
++	drop(db);
++	drop(hint);
++	let other = std::fs::OpenOptions::new()
++		.read(true)
++		.write(true)
++		.open(&path)
++		.unwrap();
++	let (db, _) = open_database(other, Instant::now() + Duration::from_secs(5)).unwrap();
++	assert_eq!(
++		db.begin_read()
++			.unwrap()
++			.open_table(table)
++			.unwrap()
++			.get(10)
++			.unwrap()
++			.unwrap()
++			.value(),
++		17
++	);
+ }
+ 
+ #[test]
+diff --git a/src/mcp/runtime/search_jobs_tests.rs b/src/mcp/runtime/search_jobs_tests.rs
+--- a/src/mcp/runtime/search_jobs_tests.rs
++++ b/src/mcp/runtime/search_jobs_tests.rs
+@@ -135,9 +135,10 @@
+ 		"names/star*.txt",
+ 		"names/q?.txt",
+ 		"!bang.txt",
+-		"unicode/Å.txt",
+-		"unicode/å.txt",
+-		"unicode/中.txt",
++		// Separate directories retain both Unicode cases on case-insensitive filesystems.
++		"unicode/upper/Å.txt",
++		"unicode/lower/å.txt",
++		"unicode/cjk/中.txt",
+ 		"a1.txt",
+ 		"a2.txt",
+ 		"new\nline.txt",
+@@ -145,7 +146,13 @@
+ 	for path in paths {
+ 		let full = temporary.path().join(path);
+ 		std::fs::create_dir_all(full.parent().unwrap()).unwrap();
+-		std::fs::write(full, "needle").unwrap();
++		std::fs::OpenOptions::new()
++			.write(true)
++			.create_new(true)
++			.open(full)
++			.unwrap()
++			.write_all(b"needle")
++			.unwrap();
+ 	}
+ 	let patterns = [
+ 		"*.txt|!secret.txt",
+@@ -161,7 +168,7 @@
+ 		"#comment|*.js",
+ 		"*.{txt,js}|!src/**|src/a.js",
+ 		"dir/",
+-		"unicode/Å.txt",
++		"unicode/*/Å.txt",
+ 		"*.txt| | !secret.txt",
+ 	];
+ 	let mut requests = Vec::new();
+@@ -225,8 +232,9 @@
+ 		("src/*.{js,ts}", vec![]),
+ 		("src/**", vec![]),
+ 		(r"names/q\?.txt", vec![]),
+-		("unicode/?.txt", vec![]),
+-		("unicode/??.txt", vec![]),
++		("unicode/*/?.txt", vec![]),
++		("unicode/*/??.txt", vec![]),
++		("unicode/*/???.txt", vec![]),
+ 		("a[!2].txt", vec![]),
+ 		("*", vec!["*.txt", "!a.txt"]),
+ 		("*", vec!["dir/", "!dir/a.txt"]),

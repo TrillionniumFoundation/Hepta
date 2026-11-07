@@ -1,0 +1,28 @@
+{
+  "change": [
+    "Preserve the original cache-miss assertion whenever the actual content watch exists.",
+    "Without a watch, require a successful complete cold reload after identical-byte rewriting, exact Record equality, a changed fresh stamp, and that fresh stamp in the stored row.",
+    "Without a watch, change the unique host_list string to equal-length file_info in valid Record JSON; require OriginalRecordConflict::Identity and verify the supplied changed bytes were not rewritten by validation.",
+    "Retain the original cache permission refusal after restoring the owned fixture."
+  ],
+  "fixture_author": "bootstrap/evidence agent; this is an author implementation record, not independent review of the new test",
+  "frozen_r5_changed": false,
+  "git_add_or_commit_performed": false,
+  "native_format_and_validation": "delegated to platform-gate owner; pending at this snapshot",
+  "original_failure": "Mac checkpoint_verifies_every_inode_and_ctime_on_cold_load expected cached(None) after same-byte rewrite; Linux content-watch assumption is absent on Mac.",
+  "original_published_commit": "942d470d155c65ba7235eb19c5bbfd07f1ce2ad0",
+  "original_source_projection_sha256": "f6f2061d675d02f75b86d7120fc657aa681531d46c6117052530a7522ddcf794",
+  "original_test_sha256": "1a0eca5421d483251c9b31607a1db860b36795affd48b91048ac486ff71e1a36",
+  "outside_the_single_test_function_changed": false,
+  "pre_format_patch_sha256": "2d29fd455da41eeddf104a2650db11bf56cc59587ff4f27a053ca84cc4fa773f",
+  "pre_format_test_sha256": "3968dae86952b84570ed0ed5abb19d61c075c09f5514953afcb5f434dd28e94a",
+  "production_analysis": [
+    "namespace_version::content_version returns None on non-Linux; ParallelEpoch::capture likewise uses the serial path.",
+    "cached unconditionally calls content::validate_cached after successful cold row validation. That reads full original records with before/after named and descriptor stamps, preserves immutable identity/terminal rules in apply, then fully rechecks all members and coverage.",
+    "The frozen index/content implementations both preserve nanosecond stamps on Linux and Mac. The zero-nanosecond fallback is for other targets and does not describe the tested Mac."
+  ],
+  "production_files_changed": false,
+  "recorded_utc": "2026-11-07T08:25:15.521166+00:00",
+  "schema": "hepta.runtime.cold-load-capability-review.v1",
+  "tests_executed_by_this_record": false
+}

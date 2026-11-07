@@ -1,0 +1,30 @@
+{
+  "production_modified": false,
+  "label": "org.trillionnium.hepta.hia-resource-probe-205f94e",
+  "bootstrap": {
+    "returncode": 0,
+    "stderr": ""
+  },
+  "observed_child": {
+    "pid": 98826,
+    "uid": 501,
+    "nofile": [
+      8192,
+      8192
+    ],
+    "tmpdir": "/Users/qianqi/.local/state/hepta-runtime-mac/tmp-hia-205f94e"
+  },
+  "launchctl_resource_excerpt": [
+    "\t\timport resource,os,json; print(json.dumps({'pid':os.getpid(),'uid':os.getuid(),'nofile':list(resource.getrlimit(resource.RLIMIT_NOFILE)),'tmpdir':os.environ.get('TMPDIR')}),flush=True)",
+    "\t\tTMPDIR => /Users/qianqi/.local/state/hepta-runtime-mac/tmp-hia-205f94e",
+    "\tresource limits = {",
+    "\t\tmaxfiles (soft) => 8192",
+    "\t\tmaxfiles (hard) => 8192",
+    "\t}"
+  ],
+  "status": "passed",
+  "cleanup": {
+    "returncode": 0,
+    "stderr": ""
+  }
+}

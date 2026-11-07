@@ -1,0 +1,119 @@
+{
+  "schema": "hia-http-adapter-v3-independent-readonly-review-v1",
+  "reviewer": "p3_plans",
+  "reviewed_utc": "2026-11-07T09:11:41.448880+00:00",
+  "verdict": "no blocking finding within the scoped parser and failed-loop review",
+  "v2_sha256": "ab896592663cb8ddfb55aa1a164894f5bb52979205ef00028c043b399ce15d29",
+  "v3_sha256": "e2fd5513e1844b42df57fab4e0a111634f4d59210b191f2dc51ab5ea7848d684",
+  "native_source_modified": false,
+  "runtime_or_hepta_source_modified": false,
+  "additional_http_calls": 0,
+  "additional_qualification_tests_run": 0,
+  "analysis_actions": [
+    "read retained source/body/receipts",
+    "compare source diff and AST without executing adapter",
+    "verify hashes and journal/control-flow consistency"
+  ],
+  "source_diff": {
+    "only_changed_top_level_ast": [
+      "response_messages"
+    ],
+    "rpc_id_matching_unchanged": true,
+    "pending_original_job_reconciliation_unchanged": true,
+    "request_key_and_target_slot_rules_unchanged": true,
+    "automatic_retry_policy_unchanged": true
+  },
+  "parser_scope": {
+    "new_ignored_predicate": "joined SSE data payload.strip() is empty",
+    "predicate_is_whitespace_aware": "Python str.strip includes Unicode whitespace; the exact statement is nonblank JSON payloads are still parsed and malformed nonblank JSON raises",
+    "nonblank_payload_passed_unchanged_to_json_loads": true,
+    "malformed_nonblank_json_errors_not_caught_or_suppressed": true,
+    "all_blank_or_no_rpc_response_still_refused": true,
+    "original_body_bytes": 674,
+    "original_body_sha256": "00eccc93f6abd5157626b6c6372196bd550d4c8c17024a952587658aa4139977",
+    "fixture_is_original_body_exactly": true,
+    "body_shape": "empty priming data event with id/retry metadata, followed by one JSON-RPC initialize response id=1",
+    "full_SSE_conformance_claimed": false
+  },
+  "failed_loop": {
+    "job_id": "1a1b5409bda-fc05-8bb3",
+    "exit_code": 1,
+    "durable_terminal_fields": {
+      "output_complete": true,
+      "output_durable": true,
+      "terminal_publication_confirmed": true
+    },
+    "journal_stages": [
+      "intent",
+      "response",
+      "error"
+    ],
+    "wire_ids": [
+      1
+    ],
+    "only_request_method": "initialize",
+    "http_status": 200,
+    "error_type": "JSONDecodeError",
+    "domain_tool_calls_recorded": 0,
+    "control_flow_basis": "MCPHTTP.__init__ raises from initialize parsing before notifications/initialized; main has not reached list_tools, ToolClient, OwnedSlotSession, or scripted_loop. Every adapter wire request logs intent before opener.open. Result has no transport/client and no calls.",
+    "claim_boundary": "This zero-domain-call conclusion applies to the failed r1 loop, not the separately retained before-loop probe or unrelated requests to the server. No independent packet capture is claimed."
+  },
+  "existing_regression_evidence": {
+    "local_tests": 11,
+    "local_exit_code": 0,
+    "mac_tests_exit_code": 0,
+    "mac_validated_schemas": 22,
+    "mac_preparation_sha256": "cfbd267cac45b76482018cafa0a2f414c386b3a7c3197948d6e458b743bdc45f",
+    "tests_not_rerun_by_reviewer": true
+  },
+  "files": {
+    "http-native-qualification-205/adapter-v2-original/http_qualification.py": {
+      "bytes": 20251,
+      "sha256": "ab896592663cb8ddfb55aa1a164894f5bb52979205ef00028c043b399ce15d29"
+    },
+    "http-native-qualification-205/http_qualification.py": {
+      "bytes": 20317,
+      "sha256": "e2fd5513e1844b42df57fab4e0a111634f4d59210b191f2dc51ab5ea7848d684"
+    },
+    "http-native-qualification-205/test_http_qualification.py": {
+      "bytes": 9259,
+      "sha256": "39beeb58413db7a50146b7b335f04f8b030d84dbbf57e230c464c2e46f4e2de0"
+    },
+    "http-native-qualification-205/fixtures/observed-initialize-empty-sse.bin": {
+      "bytes": 674,
+      "sha256": "00eccc93f6abd5157626b6c6372196bd550d4c8c17024a952587658aa4139977"
+    },
+    "evidence/http-native-205-c81-loop-r1/http-events.jsonl": {
+      "bytes": 658,
+      "sha256": "bfb6df484b6fcbef46d23006cd03f7b088fd0b426f4c921d8047853ec049934e"
+    },
+    "evidence/http-native-205-c81-loop-r1/result.json": {
+      "bytes": 2078,
+      "sha256": "1fe15ace2f7af29205fbcaa36058813a749105eeee511f7425774344c1f85a53"
+    },
+    "evidence/http-native-205-c81-loop-r1/registration.json": {
+      "bytes": 1537,
+      "sha256": "777303d268d08d102b278cfde676b734e25876703cdf910a0b951a4460980a74"
+    },
+    "evidence/http-native-205-c81-loop-r1/process-status-01.json": {
+      "bytes": 955,
+      "sha256": "0b28c81cda68bbb180c1f7d85ab11eb96dfba6cf0b7da98a31b8b2aa700ed013"
+    },
+    "http-native-qualification-205/local-adapter-v3-test-receipt.json": {
+      "bytes": 629,
+      "sha256": "8d449b7c974fe751c915dcafa9ce86a4f1bc63a8197bdfc00bb0a9e85315e7ce"
+    },
+    "http-native-qualification-205/local-adapter-v3-tests.stderr": {
+      "bytes": 1803,
+      "sha256": "f5811c25d747668a41db4fc4b3d2effeca3266ba57c917a683f539726618ca73"
+    },
+    "http-native-qualification-205/mac-v3-preparation/PREPARATION.json": {
+      "bytes": 3625,
+      "sha256": "cfbd267cac45b76482018cafa0a2f414c386b3a7c3197948d6e458b743bdc45f"
+    },
+    "http-native-qualification-205/EXACT_SOURCE.json": {
+      "bytes": 805,
+      "sha256": "4f138f20fbe3260e01a942534d9c948cba9ee151fb2d71294c91920c08ff2741"
+    }
+  }
+}

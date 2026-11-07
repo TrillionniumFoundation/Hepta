@@ -1,0 +1,34 @@
+{
+  "limits": [
+    "This is a read-only patch and call-site review, not an independently executed full platform gate.",
+    "Platform fmt/clippy/test outcomes must be read from their own source-bound receipts."
+  ],
+  "material_findings": [],
+  "observations": [
+    {
+      "area": "Linux conditional compilation",
+      "finding": "Every newly added cfg condition preserves the Linux items. The changed unix-to-linux type guard remains enabled on Linux. No Linux descriptor/mount/ownership guard is removed."
+    },
+    {
+      "area": "FS result types",
+      "finding": "The tuple annotation and movement of Published to the parent module resolve non-Linux type inference; the Linux publish body and its returned fields are unchanged."
+    },
+    {
+      "area": "Device identity",
+      "finding": "same_device uses checked TryInto<u64>. On Linux dev_t already uses an unsigned identity representable as u64; equality is preserved. Unrepresentable or negative Darwin identities fail closed instead of narrowing or wrapping."
+    },
+    {
+      "area": "Unsupported non-Linux operations",
+      "finding": "The existing native JSON acquisition, atomic model publication and predecessor replay refusal paths remain explicit. Empty non-Linux CommitPhase cannot cause a publication callback because the non-Linux path refuses."
+    },
+    {
+      "area": "Tests",
+      "finding": "No test body is removed. The new portable device-comparison test covers equal, unequal, negative and too-wide values. Native JSON integration tests were already Linux-only in the base; json_eof and manifest/provider helpers remain present under cfg(test)."
+    }
+  ],
+  "patch_sha256": "c3a29505f87c270b0b57fd3ecab5175ad60343dbc10d2c9d6aeb8ab2d6d90157",
+  "reviewed_changed_files": 10,
+  "runtime_base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "schema": "hepta.runtime.compatibility-static-review.v1",
+  "working_diff_matches_reviewed_patch": true
+}

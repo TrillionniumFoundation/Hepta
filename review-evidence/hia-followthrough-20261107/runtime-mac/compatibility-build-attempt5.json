@@ -1,0 +1,69 @@
+{
+  "schema": "hepta-runtime-macos-compatibility-build-v1",
+  "base_commit": "9f60a30530f47925f4f6ae495660a1d68bb6947d",
+  "patch_sha256": "1ac184afdae228c3af0ba0cd0a76f01de2b6084c803c3d77484d48e89856e471",
+  "patch_files": {
+    "src/mcp/fs/parity_ops.rs": [
+      "6f409047d3e829033c8ca76fdb2c3ebeb1706467a0f5aa6ece36c23779be1605",
+      "0e608303d16c22b95dc99bae2e6bb00ba0571872f52d15a7fe8e2f021286ccc1"
+    ],
+    "src/mcp/fs/text_file_write.rs": [
+      "63a8abd1aa9edb3475ed9861918fafea6cddc3dccc71ba405400c7849423a898",
+      "f502197e7409c5d565b1c3328816dceb9cacac8031fb4fbadd20b473286facfc"
+    ]
+  },
+  "test_fixture_archive_sha256": "d62c714984b1fc7f185a673eac53f8f41dfa7a1a6f68ac9efb0f306f40a2725a",
+  "stages": [
+    {
+      "name": "fmt",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:10:58.642203+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-patched-fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.989873875,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "release",
+      "argv": [
+        "/opt/homebrew/opt/rustup/bin/cargo",
+        "+1.95.0",
+        "build",
+        "--offline",
+        "--locked",
+        "--release",
+        "--bin",
+        "hepta-runtime",
+        "--bin",
+        "hepta-runtime-jobctl",
+        "-j",
+        "4"
+      ],
+      "status": "completed",
+      "started_utc": "2026-11-07T06:10:59.632845+00:00",
+      "log": "/Users/qianqi/work/hia-runtime-9f60-20261107-372e7da9/mac-patched-release.log",
+      "exit_code": 0,
+      "elapsed_seconds": 147.92036804199998,
+      "log_sha256": "397aa567bad0be7c38e7576ebfce92c7a6a4d45bf4bcc6242643e340bef86d23"
+    }
+  ],
+  "source_unchanged": true,
+  "binary_sha256": {
+    "hepta-runtime": "e9b8347c17f92431737a3672d327aaf12b50632dfba900be208edaf3a1346c8f",
+    "hepta-runtime-jobctl": "3726569615e1c498f782a34698bde394582deca854e338d21d9f9485d14ee651"
+  },
+  "binary_bytes": {
+    "hepta-runtime": 16722288,
+    "hepta-runtime-jobctl": 736080
+  },
+  "completed_utc": "2026-11-07T06:13:27.587925+00:00",
+  "passed": true
+}
