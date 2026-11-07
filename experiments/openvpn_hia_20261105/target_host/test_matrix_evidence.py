@@ -340,6 +340,15 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 function(before, after)
 
+    def test_frame_scan_count_accepts_bounded_multi_frame_and_rejects_invalid(self):
+        # The real target run inspected 3–7 AF_PACKET frames before finding the exact hash.
+        self.assertEqual(verifier.verify_frame_inspection_count({"frames_inspected": 7}), 7)
+        self.assertEqual(verifier.verify_frame_inspection_count({"frames_inspected": 1_000_000}), 1_000_000)
+        for value in (0, True, False, 1_000_001, None, "7"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    verifier.verify_frame_inspection_count({"frames_inspected": value})
+
     def test_exact_ingress_verifier_accepts_byte_identical_replay(self):
         with tempfile.TemporaryDirectory() as directory:
             case_dir = Path(directory)
@@ -376,7 +385,7 @@ class DcoReplayEvidenceTests(unittest.TestCase):
                 "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
                 "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
                 "frame": "frame.bin", "frame_sha256": hashlib.sha256(submitted).hexdigest(),
-                "frames_inspected": 1, "monotonic_ns": 1100,
+                "frames_inspected": 7, "monotonic_ns": 1100,
                 "helper_sha256": helper_sha,
                 "capture_state": {
                     "interface": "ovpn-us", "network_namespace_inode": 200,

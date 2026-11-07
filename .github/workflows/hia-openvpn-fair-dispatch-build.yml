@@ -12,6 +12,7 @@ on:
       - experiments/openvpn_hia_20261105/target_host/plan.json
       - experiments/openvpn_hia_20261105/target_host/patches/**
       - experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
+      - experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py
       - experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
       - experiments/openvpn_hia_20261105/openvpn_hia_adapter.*
       - experiments/openvpn_hia_20261105/packet_program.py
@@ -45,7 +46,10 @@ jobs:
           sha256sum experiments/openvpn_hia_20261105/target_host/build.py
           sha256sum experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py
           sha256sum experiments/openvpn_hia_20261105/target_host/verify_p2p_fair_dispatch_build.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/verify_result.py
+          sha256sum experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py
           python3 -B experiments/openvpn_hia_20261105/target_host/test_p2p_fair_dispatch_patch.py -v
+          python3 -B experiments/openvpn_hia_20261105/target_host/test_matrix_evidence.py -v
       - name: Build official C, HIA and DCO-enabled OpenVPN from the patched source copy
         env:
           HEPTA_EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
