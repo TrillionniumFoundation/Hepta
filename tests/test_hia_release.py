@@ -132,6 +132,34 @@ class ReleaseLockBoundaries(unittest.TestCase):
 
 
 class CommittedSourceBoundary(unittest.TestCase):
+    def test_exact_remote_commit_is_fetched_without_following_later_tip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            parent = Path(directory)
+            source, target = parent / "source", parent / "target"
+            source.mkdir()
+            def git(*args):
+                return subprocess.check_output(["git", "-C", str(source), *args],
+                    stderr=subprocess.DEVNULL).decode().strip()
+            git("init", "-q")
+            git("config", "user.name", "HIA exact-commit fixture")
+            git("config", "user.email", "fixture@example.invalid")
+            git("config", "uploadpack.allowFilter", "true")
+            (source / "source.py").write_text("version = 1\n")
+            git("add", ".")
+            git("commit", "-qm", "pinned")
+            pinned = git("rev-parse", "HEAD")
+            (source / "source.py").write_text("version = 2\n")
+            git("commit", "-qam", "later tip")
+            release.checkout_remote_source(source.as_uri(), pinned, target)
+            subprocess.run(["git", "-C", str(target), "checkout", "--detach", pinned],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            self.assertEqual((target / "source.py").read_text(), "version = 1\n")
+            self.assertEqual(release.preflight.git(target, "rev-parse", "HEAD").strip(), pinned)
+            self.assertEqual(release.preflight.git(target, "rev-list", "--count", "HEAD").strip(), "1")
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.checkout_remote_source(source.as_uri(), "0" * 40, parent / "missing")
+            self.assertTrue((parent / "missing" / ".git").is_dir())
+
     def test_source_file_entry_ignores_timestamp_valid_preflight_cache(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

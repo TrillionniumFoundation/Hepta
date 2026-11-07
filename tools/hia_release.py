@@ -64,6 +64,8 @@ CANDIDATE_FILES = (
     "experiments/hia_product_closure_20261107/http-client/http_lifecycle.py",
     "experiments/hia_product_closure_20261107/http-client/test_http_lifecycle.py",
     "experiments/hia_product_closure_20261107/http-client/tools/hia_original_reconcile.py",
+    "tools/hia_agent_codex_transport.py", "tools/hia_agent_fresh_session.py",
+    "tests/test_hia_agent_first_use_recovery.py", "docs/HIA_AGENT_FIRST_USE.md",
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
@@ -289,6 +291,30 @@ def write_new(path, value):
         os.close(parent)
 
 
+def checkout_remote_source(source, revision, target):
+    """Fetch the pinned commit without downloading unrelated branch history.
+
+    Blob filtering is only a transport choice. Git resolves the declared source
+    closure on checkout; check_lock still measures every required source byte.
+    A failed exact fetch never falls back to a branch tip or a different URL.
+    """
+    commands = (
+        ["git", "init", "--", str(target)],
+        ["git", "-C", str(target), "remote", "add", "origin", str(source)],
+        ["git", "-C", str(target), "config", "remote.origin.promisor", "true"],
+        ["git", "-C", str(target), "config", "remote.origin.partialclonefilter", "blob:none"],
+        ["git", "-C", str(target), "fetch", "--no-tags", "--no-recurse-submodules",
+         "--filter=blob:none", "--depth=1", "origin", revision],
+    )
+    for command in commands:
+        subprocess.run(command, check=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE, timeout=300,
+                       env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+    fetched = preflight.git(target, "rev-parse", "FETCH_HEAD").strip()
+    if fetched != revision:
+        raise ValueError("remote fetch differs from the pinned release commit")
+
+
 def materialize(lock, destination, repositories, python):
     """Create fresh exact-source checkouts; no dependency or service install."""
     destination = preflight.absolute_path(destination)
@@ -298,12 +324,16 @@ def materialize(lock, destination, repositories, python):
         raise ValueError("materialization parent must be an existing nonsymlink directory")
     destination.mkdir(mode=0o700)
     for name in REPOSITORIES:
-        source = repositories.get(name) or lock["sources"][name]["repository"]
+        override = repositories.get(name)
+        source = override or lock["sources"][name]["repository"]
         target = destination / name
         # A local cache changes transport only. Checkout identities still have
         # to match the immutable release, including actual ignored source bytes.
-        subprocess.run(["git", "clone", "--no-checkout", "--no-hardlinks", "--", str(source), str(target)],
-                       check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+        if override is None:
+            checkout_remote_source(source, lock["sources"][name]["commit"], target)
+        else:
+            subprocess.run(["git", "clone", "--no-checkout", "--no-hardlinks", "--", str(source), str(target)],
+                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
         if name == "hepta":
             # The repository's historical evidence blobs can be absent from a
             # valid local partial cache. Declare the complete source closure

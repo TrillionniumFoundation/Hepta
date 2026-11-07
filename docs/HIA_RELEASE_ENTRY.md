@@ -51,7 +51,10 @@ python3 -B tools/hia_release.py check \
 ```
 
 `materialize` creates two new clean source checkouts and checks their actual
-installed capabilities. Its explicit Hepta sparse-directory list includes the
+installed capabilities. The default public GitHub transport fetches the exact
+locked commit with depth one and blob filtering, then obtains the declared
+source files at checkout. It never substitutes a branch tip or another remote
+when that fetch fails. Its explicit Hepta sparse-directory list includes the
 Hepta implementation, examples, tests, tooling and the selected qualification
 fixtures. Unrelated historical campaigns and artifact/report archives remain
 outside this release's qualified source closure. The full tree identity
