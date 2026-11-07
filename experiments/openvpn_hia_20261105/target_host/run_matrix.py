@@ -308,6 +308,29 @@ def peer_delta(before, after):
     return deltas
 
 
+
+def dco_rejection_delta(before, after):
+    """Require one real DCO peer to receive link traffic without forwarding VPN data."""
+    for key in ("ifindex", "netns_inode", "family_id"):
+        if before.get(key) != after.get(key):
+            raise ValueError("DCO peer scope changed: " + key)
+    first = {p["peer_id"]: p for p in before["peers"]}
+    last = {p["peer_id"]: p for p in after["peers"]}
+    if len(first) != 1 or set(first) != set(last):
+        raise ValueError("expected the same single DCO peer around encrypted injection")
+    deltas = {}
+    for peer_id, old in first.items():
+        row = {key: last[peer_id][key] - old[key] for key in PEER_COUNTERS}
+        if any(value < 0 for value in row.values()):
+            raise ValueError("DCO peer counters reset during encrypted injection")
+        if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
+            raise ValueError("DCO kernel peer did not record incoming link traffic")
+        if row["vpn_rx_packets"] != 0 or row["vpn_rx_bytes"] != 0:
+            raise ValueError("encrypted replay/tamper reached the VPN-facing peer counters")
+        deltas[str(peer_id)] = row
+    return deltas
+
+
 def path_delta(before, after, require_peer=True):
     out={}
     for role in ROLES:
@@ -642,7 +665,7 @@ def strict_probe(pair,label,port):
     save(pair.folder/(label+'-result.json'),result);return result
 
 
-def inject(pair,capture,old_receiver,label,mode):
+def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
     if old_receiver.proc.poll() is not None:raise RuntimeError('old-payload receiver is no longer alive before '+label)
     spec=importlib.util.spec_from_file_location('encrypted_packet_helper',HERE/'encrypted_capture.py')
     helper=importlib.util.module_from_spec(spec);spec.loader.exec_module(helper)
@@ -656,8 +679,28 @@ def inject(pair,capture,old_receiver,label,mode):
                       '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--ciphertext-sha256',expected,
                       '--deadline','3','--out',str(witness_dir)],label+'-witness')
     pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
+    dco_server=pair.arms['server'].endswith('dco')
+    traffic_pause=None
+    if dco_server and traffic_sender is not None:
+        if traffic_sender.proc.poll() is None:
+            stop_ns=time.monotonic_ns()
+            traffic_sender.signal(signal.SIGSTOP)
+            pair.l.pause(.05)
+            traffic_pause={'paused':True,'sender_label':traffic_sender.label,'stop_monotonic_ns':stop_ns}
+        else:
+            finished=traffic_sender.finish()
+            traffic_pause={'paused':False,'sender_finished_before':True,'sender_label':traffic_sender.label,
+                           'sender_exit_code':finished['exit_code'],'observed_finished_monotonic_ns':time.monotonic_ns()}
+            if finished['exit_code']!=0 or finished.get('timed_out'):
+                raise RuntimeError('continuous payload sender did not finish cleanly before isolated DCO injection')
     server_before=pair.observation('server')
     server_line_before=len(pair.processes['server'].text().splitlines())
+    dco_before=None;dco_before_path=None;dco_before_command=None
+    if dco_server:
+        dco_before_path=pair.folder/(label+'-dco-peer-before.json')
+        dco_before_command=pair.command('server',[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface','tunbench-s',
+                                      '--out',str(dco_before_path)],label+'-dco-peer-before')
+        dco_before=read_json(dco_before_path)
     out=pair.folder/label
     row=pair.command('client',[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
                               '--capture',str(capture),'--mode',mode,'--count','1','--out',str(out)],label+'-submit')
@@ -673,16 +716,37 @@ def inject(pair,capture,old_receiver,label,mode):
         raise RuntimeError('peer witness predates controlled injection')
     pair.l.pause(.2)
     reason=None
-    if label.startswith('same-epoch') and not pair.arms['server'].endswith('dco'):
+    if label.startswith('same-epoch') and not dco_server:
         reason='replay_rejections' if mode=='replay' else 'tag_rejections'
         pair.wait_until(lambda:pair.observation('server')[reason]>server_before[reason],2,label+' fresh userspace rejection log')
-    observation_end=time.monotonic_ns()
+    dco_peer_rejection=None
+    if dco_server:
+        dco_after_path=pair.folder/(label+'-dco-peer-after.json')
+        dco_after_command=pair.command('server',[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface','tunbench-s',
+                                     '--out',str(dco_after_path)],label+'-dco-peer-after')
+        dco_after=read_json(dco_after_path)
+        delta=dco_rejection_delta(dco_before,dco_after)
+        observation_end=time.monotonic_ns()
+        if traffic_pause and traffic_pause.get('paused'):
+            resume_ns=time.monotonic_ns()
+            traffic_sender.signal(signal.SIGCONT)
+            traffic_pause['resume_monotonic_ns']=resume_ns
+        dco_peer_rejection={
+            'verified':True,'interface':'tunbench-s',
+            'before_path':str(dco_before_path.relative_to(pair.l.out)),
+            'before_sha256':digest(dco_before_path),
+            'after_path':str(dco_after_path.relative_to(pair.l.out)),
+            'after_sha256':digest(dco_after_path),
+            'before_command':dco_before_command.row,'after_command':dco_after_command.row,
+            'delta':delta,'traffic_sender_pause':traffic_pause,
+            'scope':'per-injection kernel DCO Netlink counters: peer link RX advanced while VPN RX stayed unchanged; this proves no VPN-facing delivery, not the kernel internal drop reason'
+        }
+    else:
+        observation_end=time.monotonic_ns()
     if old_receiver.proc.poll() is not None:
         raise RuntimeError('old-payload receiver ended before exact arrival and rejection observation completed')
     server_after=pair.observation('server')
     rejection_lines=pair.processes['server'].text().splitlines()[server_line_before:]
-    # Exact submitted ciphertext, its actual incoming peer frame, and a live
-    # old receiver jointly support the final no-duplicate delivery decision.
     result={'submission':metadata,'peer_exact_witness':arrival,'expected_ciphertext_sha256':expected,
             'old_receiver_alive_before_and_after_observation':True,'observation_finished_monotonic_ns':observation_end,
             'injection_command':row.row,'witness_command':witness.row,
@@ -690,10 +754,10 @@ def inject(pair,capture,old_receiver,label,mode):
             'userspace_rejection_counter':reason,
             'userspace_rejection_counter_before':server_before.get(reason) if reason else None,
             'userspace_rejection_counter_after':server_after.get(reason) if reason else None,
-            'scope':'exact encrypted datagram witnessed on peer ingress with valid outer checksums; old receiver remained live; only separately observed userspace errors identify a cryptographic rejection reason'}
+            'dco_peer_rejection':dco_peer_rejection,
+            'scope':'exact encrypted datagram witnessed on peer ingress; complete old-payload receiver decides whether duplicate/corrupt plaintext was delivered; DCO Netlink deltas separately prove link RX without VPN RX'}
     pair.event(label,mode=mode,output=str(out.relative_to(pair.l.out)))
     save(pair.folder/(label+'-evidence.json'),result);return result
-
 
 def run_behavior(pair,plan,epoch):
     pair.connected();pair.protocol_gate(epoch)
@@ -729,8 +793,8 @@ def run_behavior(pair,plan,epoch):
     pair.event('completed-rekeys',observations=pair.initial_session_gate(markers))
     pair.result['post_rekey_payload']=strict_probe(pair,'after-rekey-valid',51002)
     pair.initial_session_gate(markers)
-    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-replay','replay'))
-    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-flip','flip'))
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-replay','replay',continuous['sender']))
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-rekey-flip','flip',continuous['sender']))
     pair.initial_session_gate(markers)
     pair.result['pre_reconnect_path_delta']=path_delta(before,pair.snapshot('before-reconnect'))
     init_count=pair.observation('client')['initializations'];line_count=len(pair.processes['client'].text().splitlines())
@@ -742,7 +806,7 @@ def run_behavior(pair,plan,epoch):
         raise RuntimeError('reconnect success is not ordered after requested hard signal')
     pair.protocol_gate(epoch)
     pair.result['post_reconnect_payload']=strict_probe(pair,'after-reconnect-valid',51003)
-    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-reconnect-replay','replay'))
+    injections.append(inject(pair,capture_dir/'result.json',old['receiver'],'after-reconnect-replay','replay',continuous['sender']))
     pair.result['injections']=injections
     pair.result['continuity']=probe_finish(continuous,required=False)
     cont=pair.result['continuity']

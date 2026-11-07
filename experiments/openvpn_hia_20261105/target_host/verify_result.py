@@ -13,6 +13,7 @@ import json
 import math
 from pathlib import Path
 import re
+import encrypted_capture
 
 
 HERE = Path(__file__).resolve().parent
@@ -128,6 +129,273 @@ def verify_udp_delivery(value, workload, policy):
                 for name in ("offered_rate_met", "receiver_rate_met", "loss_within_limit")),
             "UDP acceptance check is not closed")
     require(all(checks.values()), "UDP workload did not achieve its declared bidirectional load")
+
+
+
+def verify_dco_rejection_delta(before, after):
+    """Independently require the same DCO peer to receive link traffic but forward no VPN data."""
+    for key in ("ifindex", "netns_inode", "family_id"):
+        require(before.get(key) == after.get(key), "DCO peer scope changed: " + key)
+    first = {row["peer_id"]: row for row in before.get("peers", [])}
+    last = {row["peer_id"]: row for row in after.get("peers", [])}
+    require(len(first) == 1 and set(first) == set(last),
+            "DCO replay witness does not cover the same single peer")
+    counters = ("vpn_rx_bytes", "vpn_tx_bytes", "vpn_rx_packets", "vpn_tx_packets",
+                "link_rx_bytes", "link_tx_bytes", "link_rx_packets", "link_tx_packets")
+    result = {}
+    for peer_id, old in first.items():
+        require(all(key in old and key in last[peer_id] for key in counters),
+                "DCO replay witness omits a peer counter")
+        delta = {key: last[peer_id][key] - old[key] for key in counters}
+        require(all(isinstance(value, int) and not isinstance(value, bool) and value >= 0
+                    for value in delta.values()), "DCO replay peer counter reset or malformed")
+        require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
+                "DCO peer did not account incoming encrypted link traffic")
+        require(delta["vpn_rx_packets"] == 0 and delta["vpn_rx_bytes"] == 0,
+                "DCO peer forwarded the injected packet into the VPN-facing path")
+        result[str(peer_id)] = delta
+    return result
+
+
+def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, capture_path, original_payload, helper_sha):
+    """Verify raw submitted and peer-captured Ethernet frames, not just embedded hashes."""
+    submission_dir = beneath(case_dir, action)
+    witness_dir = beneath(case_dir, action + "-witness")
+    submission_path = beneath(submission_dir, "result.json")
+    witness_path = beneath(witness_dir, "result.json")
+    submission = read(submission_path)
+    witness = read(witness_path)
+    require(injection.get("submission") == submission and injection.get("peer_exact_witness") == witness,
+            "embedded encrypted injection receipt differs from raw helper output: " + action)
+    require(submission.get("status") == "injection_submitted"
+            and submission.get("helper_sha256") == helper_sha
+            and witness.get("helper_sha256") == helper_sha,
+            "encrypted capture/injection helper identity or status is invalid: " + action)
+    require(submission.get("capture_metadata_sha256") == digest(capture_path)
+            and submission.get("captured_ciphertext_sha256") == capture.get("ciphertext_sha256"),
+            "injection is not bound to the previously delivered ciphertext: " + action)
+    submitted_frame_path = beneath(submission_dir, "submitted-frame.bin")
+    require(digest(submitted_frame_path) == submission.get("submitted_frame_sha256"),
+            "submitted encrypted frame digest changed: " + action)
+    submitted = encrypted_capture.parse_frame(submitted_frame_path.read_bytes())
+    require(submitted is not None and submitted["opcode"] in (6, 9),
+            "submitted frame is not a complete OpenVPN data datagram: " + action)
+    submitted_payload = submitted["payload"]
+    submitted_sha = hashlib.sha256(submitted_payload).hexdigest()
+    require(submitted_sha == submission.get("submitted_ciphertext_sha256")
+            and injection.get("expected_ciphertext_sha256") == submitted_sha,
+            "submitted ciphertext digest differs from the raw datagram: " + action)
+    mode = submission.get("mode")
+    if mode == "replay":
+        require(submitted_payload == original_payload,
+                "replay injection is not byte-identical to the previously delivered ciphertext: " + action)
+    elif mode == "flip":
+        require(len(submitted_payload) == len(original_payload)
+                and submitted_payload[:-1] == original_payload[:-1]
+                and sum((a ^ b).bit_count() for a, b in zip(submitted_payload, original_payload)) == 1,
+                "tag-corruption injection is not the declared one-bit ciphertext mutation: " + action)
+    else:
+        raise ValueError("unknown encrypted injection mode: " + action)
+    witness_frame_name = witness.get("frame")
+    require(witness_frame_name == "frame.bin", "peer witness frame path is not canonical: " + action)
+    witness_frame_path = beneath(witness_dir, witness_frame_name)
+    require(digest(witness_frame_path) == witness.get("frame_sha256"),
+            "peer-ingress raw frame digest changed: " + action)
+    arrived = encrypted_capture.parse_frame(witness_frame_path.read_bytes())
+    require(arrived is not None and arrived["payload"] == submitted_payload
+            and witness.get("status") == "captured"
+            and witness.get("direction") == "incoming"
+            and witness.get("exact_ciphertext_match") is True
+            and witness.get("ciphertext_sha256") == submitted_sha
+            and witness.get("expected_ciphertext_sha256") == submitted_sha
+            and witness.get("frames_inspected") == 1,
+            "peer ingress did not capture the exact submitted ciphertext: " + action)
+    require(all(encrypted_capture.checksum_observation(witness_frame_path.read_bytes()).get(key) is True
+                for key in ("ipv4_valid", "udp_present", "udp_valid")),
+            "peer ingress outer checksums are invalid: " + action)
+    capture_state = witness.get("capture_state", {})
+    require(capture_state.get("interface") == "ovpn-us"
+            and capture_state.get("network_namespace_inode") != capture_state.get("pid1_network_namespace_inode"),
+            "exact ciphertext witness was not captured on the isolated peer underlay: " + action)
+    datagram = witness.get("datagram", {})
+    require(datagram.get("src") == "192.0.2.2" and datagram.get("dst") == "192.0.2.1"
+            and datagram.get("dport") == 1194,
+            "peer witness datagram does not match the isolated OpenVPN underlay: " + action)
+    submissions = submission.get("submissions", [])
+    require(len(submissions) == 1 and isinstance(submissions[0].get("monotonic_ns"), int),
+            "injection submission lacks one monotonic send receipt: " + action)
+    submit_ns = submissions[0]["monotonic_ns"]
+    arrival_ns = witness.get("monotonic_ns")
+    observation_ns = injection.get("observation_finished_monotonic_ns")
+    require(isinstance(arrival_ns, int) and arrival_ns >= submit_ns
+            and isinstance(observation_ns, int) and observation_ns >= arrival_ns,
+            "peer ingress and rejection observation are not ordered after submission: " + action)
+    require(injection.get("old_receiver_alive_before_and_after_observation") is True,
+            "old payload receiver was not live across the injection window: " + action)
+    command_rows = (injection.get("injection_command", {}), injection.get("witness_command", {}))
+    require(all(row.get("exit_code") == 0 and not row.get("timed_out") for row in command_rows),
+            "encrypted injection/witness command failed: " + action)
+    require(command_rows[0].get("label") == action + "-submit"
+            and command_rows[1].get("label") == action + "-witness",
+            "encrypted injection command identity changed: " + action)
+    return {"mode": mode, "submit_monotonic_ns": submit_ns, "arrival_monotonic_ns": arrival_ns,
+            "observation_finished_monotonic_ns": observation_ns}
+
+
+def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
+    """Recompute exact ciphertext ingress, old-plaintext non-delivery and DCO per-injection counters."""
+    case_dir = case_path.parent
+    actions = plan["behavior"]["encrypted_actions"]
+    injections = case.get("injections", [])
+    require(len(injections) == len(actions), "encrypted injection inventory is incomplete")
+    capture_dir = beneath(case_dir, "capture-old")
+    capture_path = beneath(capture_dir, "result.json")
+    capture = read(capture_path)
+    capture_frame_path = beneath(capture_dir, "frame.bin")
+    require(capture.get("status") == "captured"
+            and digest(capture_frame_path) == capture.get("frame_sha256"),
+            "original delivered ciphertext capture is missing or changed")
+    original = encrypted_capture.parse_frame(capture_frame_path.read_bytes())
+    require(original is not None and original["opcode"] in (6, 9) and original["payload_bytes"] >= 284,
+            "original capture is not a complete OpenVPN data datagram")
+    original_payload = original["payload"]
+    original_sha = hashlib.sha256(original_payload).hexdigest()
+    require(original_sha == capture.get("ciphertext_sha256"),
+            "original capture ciphertext digest differs from its raw frame")
+    helper_sha = digest(HERE / "encrypted_capture.py")
+    initial_sender = case.get("initial_payload_sender", {})
+    final = case.get("old_payload_final", {})
+    sender = final.get("sender", {})
+    receiver = final.get("receiver", {})
+    expected_count = plan["behavior"]["strict_probe_count"]
+    require(initial_sender.get("passed") is True and initial_sender.get("run_id") == sender.get("run_id"),
+            "the original ciphertext was not first delivered in the same payload run")
+    require(sender.get("passed") is True and receiver.get("passed") is True
+            and sender.get("run_id") == receiver.get("run_id"),
+            "old payload sender/receiver did not complete one shared run")
+    require(sender.get("send_attempts") == expected_count
+            and sender.get("sent_packets") == expected_count
+            and sender.get("received_packets") == expected_count
+            and sender.get("unique_echoes") == expected_count
+            and sender.get("duplicate_echoes") == 0
+            and sender.get("invalid_echoes") == 0
+            and sender.get("missing_echo_count") == 0
+            and sender.get("unexpected_peer_packets") == 0,
+            "old payload sender did not retain a complete duplicate-free echo receipt")
+    require(receiver.get("expected_count") == expected_count
+            and receiver.get("received_packets") == expected_count
+            and receiver.get("unique_packets") == expected_count
+            and receiver.get("valid_packets") == expected_count
+            and receiver.get("duplicate_packets") == 0
+            and receiver.get("invalid_packets") == 0
+            and receiver.get("foreign_run_packets") == 0
+            and receiver.get("missing_count") == 0
+            and receiver.get("unexpected_peer_packets") == 0
+            and receiver.get("reordered_packets") == 0,
+            "old payload receiver observed duplicate, corrupt, foreign, missing or reordered plaintext")
+    receiver_events_path = beneath(case_dir / "old-payload-receiver", receiver.get("events", ""))
+    sender_events_path = beneath(case_dir / "old-payload-sender", sender.get("events", ""))
+    require(digest(receiver_events_path) == receiver.get("events_sha256")
+            and digest(sender_events_path) == sender.get("events_sha256"),
+            "old payload event logs changed after execution")
+    receiver_events = [json.loads(line) for line in receiver_events_path.read_text().splitlines()]
+    require(len(receiver_events) == receiver.get("event_count")
+            and len(receiver_events) == expected_count + 1
+            and receiver_events[0].get("kind") == "ready"
+            and receiver_events[0].get("run_id") == receiver.get("run_id"),
+            "old payload receiver event inventory is incomplete")
+    payload_events = receiver_events[1:]
+    require(all(row.get("kind") == "payload" and row.get("duplicate") is False
+                and row.get("reordered") is False and row.get("bytes") == plan["behavior"]["strict_probe_size"]
+                for row in payload_events),
+            "old payload receiver recorded a duplicate or malformed payload event")
+    require([row.get("sequence") for row in payload_events] == list(range(expected_count)),
+            "old payload receiver sequence inventory is incomplete")
+    first_injection_ns = None
+    last_observation_ns = 0
+    dco_windows = 0
+    for action, injection in zip(actions, injections):
+        expected_mode = "replay" if action.endswith("replay") else "flip"
+        ingress = verify_exact_ciphertext_ingress(
+            case_dir, action, injection, capture, capture_path, original_payload, helper_sha)
+        require(ingress["mode"] == expected_mode,
+                "encrypted injection mode differs from the fixed action: " + action)
+        submit_ns = ingress["submit_monotonic_ns"]
+        observation_ns = ingress["observation_finished_monotonic_ns"]
+        first_injection_ns = submit_ns if first_injection_ns is None else min(first_injection_ns, submit_ns)
+        last_observation_ns = max(last_observation_ns, observation_ns)
+        if server_arm.endswith("dco"):
+            dco = injection.get("dco_peer_rejection")
+            require(isinstance(dco, dict) and dco.get("verified") is True
+                    and dco.get("interface") == "tunbench-s",
+                    "DCO behavior lacks per-injection kernel peer evidence: " + action)
+            before_path = beneath(target, dco.get("before_path", ""))
+            after_path = beneath(target, dco.get("after_path", ""))
+            require(digest(before_path) == dco.get("before_sha256")
+                    and digest(after_path) == dco.get("after_sha256"),
+                    "DCO peer snapshot digest changed: " + action)
+            before = read(before_path);after = read(after_path)
+            initial_paths = read(beneath(case_dir, "initial-paths.json"))
+            server_path = initial_paths.get("server", {})
+            require(server_path.get("kind") == "tun" and server_path.get("ifname") == "tunbench-s"
+                    and server_path.get("underlay", {}).get("ifname") == "ovpn-us"
+                    and before.get("ifindex") == after.get("ifindex") == server_path.get("ifindex")
+                    and before.get("netns_inode") == after.get("netns_inode") == server_path.get("netns_inode"),
+                    "DCO peer snapshots do not bind the actual server tunbench-s device and ovpn-us underlay: " + action)
+            for command in (dco.get("before_command", {}), dco.get("after_command", {})):
+                argv = command.get("argv", [])
+                require(command.get("exit_code") == 0 and not command.get("timed_out")
+                        and command.get("namespace") == case.get("namespaces", {}).get("server")
+                        and "--interface" in argv and "tunbench-s" in argv,
+                        "DCO peer Netlink command identity/namespace is invalid: " + action)
+            computed = verify_dco_rejection_delta(before, after)
+            require(dco.get("delta") == computed,
+                    "DCO peer counter delta differs from raw before/after snapshots: " + action)
+            pause = dco.get("traffic_sender_pause")
+            if action.startswith(("after-rekey", "after-reconnect")):
+                require(isinstance(pause, dict), "DCO transition replay lacks an isolated traffic window: " + action)
+                if pause.get("paused") is True:
+                    require(pause.get("sender_label") == "continuity-sender"
+                            and pause.get("stop_monotonic_ns", 0) < submit_ns
+                            and pause.get("resume_monotonic_ns", 0) > observation_ns,
+                            "DCO continuous sender was not paused around the exact injection: " + action)
+                else:
+                    require(pause.get("sender_finished_before") is True
+                            and pause.get("sender_label") == "continuity-sender"
+                            and pause.get("sender_exit_code") == 0
+                            and pause.get("observed_finished_monotonic_ns", 0) < submit_ns,
+                            "DCO transition replay has no isolated sender-free window: " + action)
+            dco_windows += 1
+        else:
+            require(injection.get("dco_peer_rejection") is None,
+                    "userspace server was assigned fabricated kernel DCO evidence: " + action)
+            if action == "same-epoch-replay":
+                counter = "replay_rejections"
+                token = "bad packet ID (may be a replay)"
+            elif action == "same-epoch-flip":
+                counter = "tag_rejections"
+                token = "packet tag authentication failed"
+            else:
+                counter = None;token = None
+            if counter:
+                require(injection.get("userspace_rejection_counter") == counter
+                        and isinstance(injection.get("userspace_rejection_counter_before"), int)
+                        and isinstance(injection.get("userspace_rejection_counter_after"), int)
+                        and injection["userspace_rejection_counter_after"] >
+                            injection["userspace_rejection_counter_before"]
+                        and any(token in line for line in injection.get("server_log_observed_lines", [])),
+                        "userspace exact replay/tag rejection log did not advance: " + action)
+    require(all(event.get("monotonic_ns", 0) < first_injection_ns for event in payload_events),
+            "old plaintext receiver observed a payload during or after an encrypted injection")
+    require(receiver.get("finished_monotonic_ns", 0) > last_observation_ns,
+            "old payload receiver did not cover every encrypted injection window")
+    require(case.get("checks", {}).get("captured_previously_delivered_ciphertext") is True
+            and case.get("checks", {}).get("old_receiver_alive_for_all_injections") is True
+            and case.get("checks", {}).get("no_replayed_or_corrupted_payload_delivery") is True,
+            "behavior case did not close the exact replay/non-delivery observations")
+    return {"injections_verified": len(injections), "dco_peer_windows_verified": dco_windows,
+            "old_payload_events_verified": len(payload_events)}
+
 
 
 def verify_p2p_fair_dispatch_build(build):
@@ -288,7 +556,9 @@ def verify(public, expected_commit):
                 "role-specific renegotiation schedule differs from the frozen plan")
         require(case.get("checks") and all(v is True for v in case["checks"].values()),
                 "case observation checks are incomplete")
-        if row["kind"] == "performance":
+        if row["kind"] == "behavior":
+            verify_behavior_replay_evidence(target, case_path, case, plan, row["arms"]["server"])
+        elif row["kind"] == "performance":
             identity = (row["round"], row["order"], row["position"])
             require(identity not in identities, "duplicate performance position")
             identities.add(identity)

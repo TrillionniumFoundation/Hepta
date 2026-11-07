@@ -5,6 +5,7 @@ These tests do not create a namespace, use TUN, load a module or qualify DCO.
 Constructed log/JSON/netlink vectors only test rejection by the evidence parser.
 """
 import copy
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -28,6 +29,7 @@ def load(name):
 matrix=load('run_matrix')
 netlink=load('dco_peer_stats')
 verifier=load('verify_result')
+encrypted=load('encrypted_capture')
 
 
 class SessionEvidenceTests(unittest.TestCase):
@@ -289,6 +291,177 @@ class UdpVerifierTests(unittest.TestCase):
         del value["client_local_receiver"]
         with self.assertRaises(ValueError):
             verifier.verify_udp_delivery(value,workload,policy)
+
+
+
+class DcoReplayEvidenceTests(unittest.TestCase):
+    def peer(self):
+        return {
+            "ifindex": 7, "netns_inode": 200, "family_id": 32,
+            "peers": [{
+                "peer_id": 0,
+                "vpn_rx_bytes": 100, "vpn_tx_bytes": 100,
+                "vpn_rx_packets": 10, "vpn_tx_packets": 10,
+                "link_rx_bytes": 100, "link_tx_bytes": 100,
+                "link_rx_packets": 10, "link_tx_packets": 10,
+            }],
+        }
+
+    def test_dco_replay_delta_requires_link_rx_without_vpn_rx(self):
+        before = self.peer()
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 354
+        after["peers"][0]["link_rx_packets"] += 1
+        expected = {"0": {
+            "vpn_rx_bytes": 0, "vpn_tx_bytes": 0,
+            "vpn_rx_packets": 0, "vpn_tx_packets": 0,
+            "link_rx_bytes": 354, "link_tx_bytes": 0,
+            "link_rx_packets": 1, "link_tx_packets": 0,
+        }}
+        self.assertEqual(matrix.dco_rejection_delta(before, after), expected)
+        self.assertEqual(verifier.verify_dco_rejection_delta(before, after), expected)
+
+    def test_dco_replay_delta_rejects_vpn_delivery(self):
+        before = self.peer()
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 354
+        after["peers"][0]["link_rx_packets"] += 1
+        after["peers"][0]["vpn_rx_bytes"] += 312
+        after["peers"][0]["vpn_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after)
+
+    def test_dco_replay_delta_rejects_missing_link_ingress(self):
+        before = self.peer()
+        after = copy.deepcopy(before)
+        after["peers"][0]["vpn_tx_bytes"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after)
+
+    def test_exact_ingress_verifier_accepts_byte_identical_replay(self):
+        with tempfile.TemporaryDirectory() as directory:
+            case_dir = Path(directory)
+            capture_dir = case_dir / "capture-old"
+            submit_dir = case_dir / "same-epoch-replay"
+            witness_dir = case_dir / "same-epoch-replay-witness"
+            for path in (capture_dir, submit_dir, witness_dir):
+                path.mkdir()
+            payload = bytes([0x30]) + bytes((i % 256 for i in range(1, 312)))
+            source = self.frame(payload)
+            submitted = encrypted.submitted_frame(source, "replay")
+            capture_result = {
+                "status": "captured",
+                "frame_sha256": hashlib.sha256(source).hexdigest(),
+                "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+            }
+            (capture_dir / "frame.bin").write_bytes(source)
+            capture_path = capture_dir / "result.json"
+            capture_path.write_text(json.dumps(capture_result, indent=2, sort_keys=True) + "\n")
+            helper_sha = hashlib.sha256((HERE / "encrypted_capture.py").read_bytes()).hexdigest()
+            submission = {
+                "status": "injection_submitted", "mode": "replay",
+                "capture_metadata_sha256": hashlib.sha256(capture_path.read_bytes()).hexdigest(),
+                "captured_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "helper_sha256": helper_sha,
+                "submissions": [{"monotonic_ns": 1000}],
+            }
+            (submit_dir / "submitted-frame.bin").write_bytes(submitted)
+            (submit_dir / "result.json").write_text(json.dumps(submission, indent=2, sort_keys=True) + "\n")
+            witness = {
+                "status": "captured", "direction": "incoming", "exact_ciphertext_match": True,
+                "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "frame": "frame.bin", "frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "frames_inspected": 1, "monotonic_ns": 1100,
+                "helper_sha256": helper_sha,
+                "capture_state": {
+                    "interface": "ovpn-us", "network_namespace_inode": 200,
+                    "pid1_network_namespace_inode": 100,
+                },
+                "outer_checksums": encrypted.checksum_observation(submitted),
+                "datagram": {"src": "192.0.2.2", "dst": "192.0.2.1", "dport": 1194},
+            }
+            (witness_dir / "frame.bin").write_bytes(submitted)
+            (witness_dir / "result.json").write_text(json.dumps(witness, indent=2, sort_keys=True) + "\n")
+            injection = {
+                "submission": submission, "peer_exact_witness": witness,
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "observation_finished_monotonic_ns": 1200,
+                "old_receiver_alive_before_and_after_observation": True,
+                "injection_command": {"label": "same-epoch-replay-submit", "exit_code": 0},
+                "witness_command": {"label": "same-epoch-replay-witness", "exit_code": 0},
+            }
+            observed = verifier.verify_exact_ciphertext_ingress(
+                case_dir, "same-epoch-replay", injection, capture_result, capture_path, payload,
+                helper_sha)
+            self.assertEqual(observed["mode"], "replay")
+            self.assertEqual(observed["submit_monotonic_ns"], 1000)
+            self.assertEqual(observed["observation_finished_monotonic_ns"], 1200)
+
+    def test_exact_ingress_verifier_rejects_peer_frame_payload_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            case_dir = Path(directory)
+            capture_dir = case_dir / "capture-old"
+            submit_dir = case_dir / "same-epoch-replay"
+            witness_dir = case_dir / "same-epoch-replay-witness"
+            for path in (capture_dir, submit_dir, witness_dir):
+                path.mkdir()
+            payload = bytes([0x30]) + bytes((i % 256 for i in range(1, 312)))
+            source = self.frame(payload)
+            submitted = encrypted.submitted_frame(source, "replay")
+            capture_result = {"status": "captured", "frame_sha256": hashlib.sha256(source).hexdigest(),
+                              "ciphertext_sha256": hashlib.sha256(payload).hexdigest()}
+            (capture_dir / "frame.bin").write_bytes(source)
+            capture_path = capture_dir / "result.json"
+            capture_path.write_text(json.dumps(capture_result, indent=2, sort_keys=True) + "\n")
+            helper_sha = hashlib.sha256((HERE / "encrypted_capture.py").read_bytes()).hexdigest()
+            submission = {"status": "injection_submitted", "mode": "replay",
+                "capture_metadata_sha256": hashlib.sha256(capture_path.read_bytes()).hexdigest(),
+                "captured_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "helper_sha256": helper_sha, "submissions": [{"monotonic_ns": 1000}]}
+            (submit_dir / "submitted-frame.bin").write_bytes(submitted)
+            (submit_dir / "result.json").write_text(json.dumps(submission, indent=2, sort_keys=True) + "\n")
+            witness = {"status": "captured", "direction": "incoming", "exact_ciphertext_match": True,
+                "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "frame": "frame.bin", "frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "frames_inspected": 1, "monotonic_ns": 1100, "helper_sha256": helper_sha,
+                "capture_state": {"interface": "ovpn-us", "network_namespace_inode": 200,
+                                  "pid1_network_namespace_inode": 100},
+                "outer_checksums": encrypted.checksum_observation(submitted),
+                "datagram": {"src": "192.0.2.2", "dst": "192.0.2.1", "dport": 1194}}
+            damaged = bytearray(submitted);damaged[-1] ^= 1
+            (witness_dir / "frame.bin").write_bytes(damaged)
+            (witness_dir / "result.json").write_text(json.dumps(witness, indent=2, sort_keys=True) + "\n")
+            injection = {"submission": submission, "peer_exact_witness": witness,
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "observation_finished_monotonic_ns": 1200,
+                "old_receiver_alive_before_and_after_observation": True,
+                "injection_command": {"label": "same-epoch-replay-submit", "exit_code": 0},
+                "witness_command": {"label": "same-epoch-replay-witness", "exit_code": 0}}
+            with self.assertRaises(ValueError):
+                verifier.verify_exact_ciphertext_ingress(
+                    case_dir, "same-epoch-replay", injection, capture_result, capture_path, payload,
+                    helper_sha)
+
+    def frame(self, payload):
+        src = socket.inet_aton("192.0.2.2")
+        dst = socket.inet_aton("192.0.2.1")
+        ethernet = bytes.fromhex("00112233445566778899aabb0800")
+        total = 20 + 8 + len(payload)
+        ip = bytearray(struct.pack("!BBHHHBBH4s4s", 0x45, 0, total, 1, 0, 64, 17, 0, src, dst))
+        struct.pack_into("!H", ip, 10, encrypted.checksum(bytes(ip)))
+        udp = bytearray(struct.pack("!HHHH", 1194, 1194, 8 + len(payload), 0) + payload)
+        pseudo = src + dst + struct.pack("!BBH", 0, 17, len(udp))
+        struct.pack_into("!H", udp, 6, encrypted.checksum(pseudo + bytes(udp)) or 0xffff)
+        return ethernet + bytes(ip) + bytes(udp)
+
 
 
 class ProfileInventoryTests(unittest.TestCase):
