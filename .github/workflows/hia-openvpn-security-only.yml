@@ -2,7 +2,7 @@ name: OpenVPN HIA real TUN/DCO security-only evidence
 
 on:
   push:
-    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6]
+    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6, fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6]
     paths:
       - .github/workflows/hia-openvpn-security-only.yml
       - experiments/openvpn_hia_20261105/target_host/*.py
@@ -23,7 +23,7 @@ permissions:
 
 jobs:
   security-only:
-    if: github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6'
+    if: github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6'
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
