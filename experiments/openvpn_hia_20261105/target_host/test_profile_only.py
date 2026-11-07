@@ -116,6 +116,39 @@ class ProfileOnlyInventoryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verifier.verify_profile_samples({**profile, "ovpn_symbol_lines": 0}, "", "c-dco")
 
+    def test_real_target_profile_counterexample_missing_read_hotspot_is_rejected(self):
+        # Exact failure shape from target run 42321606601: real PID/kernel
+        # samples existed, but the HIA-user perf report sampled only write.
+        profile = {
+            "actual_samples_present": True,
+            "actual_sample_headers": 12338,
+            "kernel_symbol_lines": 174126,
+            "openvpn_sample_headers_by_role": {"client": 5043, "server": 0},
+            "hia_profile_symbol_lines": 1,
+        }
+        report = (
+            "  0.02% openvpn-hia openvpn-hia "
+            "[.] ovpn_hia_packet_id_write - -\\n"
+        )
+        with self.assertRaisesRegex(
+            ValueError, "lacks both exported non-epoch packet-ID hotspots"
+        ):
+            verifier.verify_profile_samples(profile, report, "hia-user")
+
+    def test_profile_sampling_budget_is_large_enough_for_rare_hotspots(self):
+        profile = self.plan["profile"]
+        self.assertGreaterEqual(profile["seconds"], 90)
+        self.assertGreaterEqual(profile["frequency_hz"], 997)
+        command = matrix.profile_record_argv(
+            "/usr/bin/perf", [0, 2], "/tmp/profile.perf.data",
+            profile["seconds"], profile,
+        )
+        self.assertEqual(
+            command[command.index("--freq") + 1],
+            str(profile["frequency_hz"]),
+        )
+        self.assertEqual(command[-2:], ["sleep", str(profile["seconds"] + 1)])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
