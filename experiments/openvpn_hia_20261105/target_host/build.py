@@ -54,7 +54,7 @@ def save(path, data):
     path = Path(path)
     if path.name == "build.json":
         data = sanitize_public_build_receipt(data)
-    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\\n")
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
 def main():
