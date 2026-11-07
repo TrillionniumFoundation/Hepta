@@ -263,3 +263,39 @@ URL success is asserted by this documentation update. The release-lock flags
 for Agent first use, Native NDU value and production deployment stay unchanged.
 Historical failures and unknown operations remain separate from these new
 observations.
+
+
+## Latest measured follow-through snapshot — 2026-11-07
+
+The machine-readable [final snapshot](HIA_FOLLOWTHROUGH_20261107_FINAL.json)
+records the newer qualification results and their exact limits. It supplements
+the earlier dated snapshot above. The release lock remains unchanged, and
+default-branch adoption and production deployment remain open.
+
+| Work package | New measured result | Remaining qualification limit |
+| --- | --- | --- |
+| Public entry/version contract | Published entry metadata binds source 3ead, runtime c539, installation, target, ABI and Selfhost-Core v6; local-override reconstruction passed. | The one default-URL materialize actually failed with exit 2 after a successful describe; check was not run. Source publication and default-branch adoption remain HOLD. The generic checkout error does not prove its unique cause. Use the entry's own 34,740-byte lock; the source checkout's 34,400-byte lock is different. |
+| Formal HIA MCP | Root actually discovered and invoked all 11 HIA kinds; 46 normal plus 11 running-lifecycle observations. Adoption 0/0→1/1, stale refusal and rollback 0/2 verified. Original running worker was cancelled with durable terminal output. | The 20:32 global inventory observation again refused the cumulative source-byte bound; strict global no-duplicate acceptance remains HOLD. It precedes the later default-URL trial and publication. Original-operation reobservation does not establish a distinct transport-session handshake. Cancelled business evaluation remains unknown. |
+| Fixed Selfhost-Core | v6 fixed-scope replay passed 10 outer / 189 inner gates; B1=B2=B3 and M1≠M2=M3≠B3. All 224 source files match the corresponding 3ead closure. | Shared host kernel/toolchain; no fresh-VM claim. Public source release remains pending. |
+| General Core expansion | Borrowed-resource subset, direct acyclic calls, tail self recursion and bounded ELF64 ET_REL observations passed, with differential/refusal/trap controls. | Owned allocation/free/transfer, new or returned loans, general recursion/checker, external relocations and general ELF remain open. |
+| Fresh Agent first use | New synthetic maintenance task completed 256-case equivalence, 256+256 actual native results, adoption and rollback within 48 HIA calls. | Complete public interaction/model-cost evidence and original task-file byte copies remain incomplete. Learner stopped at 12 measurement pages; separate custodian reads later recovered the full original artifact without extending its budget. |
+| Explicit machine plans | New actual native RIP profile contains 1,885 samples; 3 sampling compiles match B3. Five plans completed 15 full-compilation measurements and 51 consumer native calls, with preservation/refusal checks. | Three fixed-order rounds do not establish general speedup. The r8/r9 v4 plans did not beat their paired v3 medians. Full model/preparation/transfer/monetary cost remains incomplete. |
+| NDU incremental value | Prior incomplete four-arm result retained; no benefit conclusion upgraded. | Strongest Ordinary control and a successful matched new four-arm study are still required. |
+
+The fresh task reduced Core operations 10→4 and linked text 410→246 bytes, while
+both shared libraries remained 13,712 bytes; its declared artifact-size objective
+therefore returned `unchanged`. The observed trial window was 37m48.045s,
+the context request-to-last-response window 27m0.265s, and native-child wall
+236.294956ms. These are different cost scopes.
+
+For the new plan batch, median complete native f0 self-compilation times were
+623.986153ms (canonical), 570.220186ms (v3-two), 510.274372ms (v3-five),
+580.462156ms (v4-two) and 513.295275ms (v4-seven). These timed calls exclude
+process startup, image loading, buffer preparation, output writing and plan/build
+costs. The entire measured batch took 19.779614404s; nested phase/native timings
+are not added again. No NDU advantage follows from this machine-plan campaign.
+
+The exact default remote URL observation, source/installation mismatch,
+remaining authorization step and evidence hashes are retained in the final
+snapshot. Earlier failures and unknown provider effects retain their original
+status. The documentation snapshot is not an adoption or deployment receipt.
