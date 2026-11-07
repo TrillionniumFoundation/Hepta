@@ -133,6 +133,20 @@ claims remained equal. Existing ledger unit checks and `check_mapping` passed.
 [`runtime-rea-source-projection.json`](runtime-rea-source-projection.json) records
 the precise old/new projection; it is not a new upstream-behavior qualification.
 
+
+
+[`runtime-ci-9f60.json`](runtime-ci-9f60.json) records complete GitHub CI at the
+published runtime head `9f60a30530f47925f4f6ae495660a1d68bb6947d`:
+push and PR exact-source jobs passed all 26 steps each; the prospective merge
+`0517aaac6b13494b3f1201590d1e1d8703032d63` passed all 23 steps. Both workflows
+completed successfully on their first attempt. Each of the three executing jobs
+ran all 2,351 all-feature tests and all 2,322 no-default tests, with the existing
+40/28 configured skips. Format, both Clippy modes, descriptor-relative file
+safety, REA mapping/evidence, control-plane, X230, release builds and shipped
+release MCP/parser/ZIP checks all passed. The push event's merge-only job was
+correctly skipped; the PR's actual merge job executed and passed. All three
+complete logs are retained with their compressed and raw hashes.
+
 ## Final-binary actual MCP transport
 
 [`mcp-qualification-summary-r4b.json`](mcp-qualification-summary-r4b.json) records
@@ -243,8 +257,18 @@ protocol retains its original limits. Existing focused tests check the exact
 maximum, historical projection, full aggregate boundary and one-byte overflows;
 all ten passed. The actual head-574a Lean run then completed all **eleven fresh
 modules, 66 positive targets and ten exact negations**, and independently replayed
-the same evidence successfully. Both summaries bound the same RESULT digest.
-The complete original ZIP, exact IDENTITY/PLAN/RESULT and archive index are retained.
+the same evidence successfully. Those checks were repeated successfully at the
+final source head **4c1757**. Both final console summaries bind RESULT SHA-256
+`70ad0b07293a7258c0eebc9c87d6906e120fdfe4c7e30d2fa948e5ee0686cf94`.
+
+The complete original final ZIP,
+[`ci-hepta-shared-kernel-4c1757.zip`](ci-hepta-shared-kernel-4c1757.zip), exact
+IDENTITY/PLAN/RESULT, member index, complete job log and both original console
+summaries are retained. The earlier successful 574a archive remains separately
+identified. Final source-control qualification also completed all fifty expected,
+collected, started and finished tests with zero failures/errors/skips and unchanged
+source identity; that source-control suite correctly records zero Lean invocations
+and is distinct from the actual kernel run.
 
 The actual canonical IDENTITY was **145,156 bytes**, exceeding the old allocation
 by **443 bytes**, directly corroborating the capacity diagnosis. Actual raw logs
@@ -258,8 +282,11 @@ artificial ten-second smoke limit; its failure logs and artifact are retained.
 The final test now uses the existing thirty-second capture default on every
 host. Real x230 Clang then passed all sixteen capture tests, with no skips,
 including the unchanged short-timeout and descendant-termination cases.
-Production capture code and limits were not changed. Final published-head CI
-outcomes are recorded separately.
+Production capture code and limits were not changed. All eight final published-head
+host ABI jobs then passed, including Linux x86-64 GCC/Clang, Windows Clang/MSVC,
+macOS and the existing ARM hosts. The final Linux GCC log retains the successful
+real Clang smoke and unchanged 0.15-second wall-timeout/descendant controls;
+its capture suite completed all sixteen tests successfully.
 
 ## Retained unsuccessful attempts
 
