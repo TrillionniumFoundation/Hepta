@@ -152,6 +152,7 @@ def verify_dco_device_drop_delta(before, after):
     require(old.get("ifname") == "tunbench-s" and new_row.get("ifname") == "tunbench-s",
             "DCO device snapshot names the wrong interface")
     require(isinstance(old.get("ifindex"), int) and not isinstance(old.get("ifindex"), bool)
+            and isinstance(new_row.get("ifindex"), int) and not isinstance(new_row.get("ifindex"), bool)
             and old.get("ifindex") == new_row.get("ifindex"),
             "DCO device ifindex changed or is malformed")
     require(old.get("linkinfo", {}).get("info_kind") == "ovpn"
