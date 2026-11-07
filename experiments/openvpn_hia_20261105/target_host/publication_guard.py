@@ -24,16 +24,16 @@ REDACTION_PATTERNS = (
         rb"-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----.*$", re.S
     )),
     ("openvpn-static-key", re.compile(rb"-----BEGIN OpenVPN Static key.*$", re.S)),
-    ("github-token", re.compile(rb"\\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}")),
+    ("github-token", re.compile(rb"\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}")),
     ("aws-secret-access-key", re.compile(
-        rb"(?i:aws_secret_access_key)\\s*[:=]\\s*[^\\s]{16,}"
+        rb"(?i:aws_secret_access_key)\s*[:=]\s*[^\s]{16,}"
     )),
 )
 SECRETS = re.compile(
     rb"-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----"
     rb"|-----BEGIN OpenVPN Static key"
-    rb"|\\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"
-    rb"|(?i:aws_secret_access_key)\\s*[:=]\\s*[^\\s]{16,}"
+    rb"|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"
+    rb"|(?i:aws_secret_access_key)\s*[:=]\s*[^\s]{16,}"
 )
 
 
