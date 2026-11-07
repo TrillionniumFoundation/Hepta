@@ -1,0 +1,32 @@
+name: Makefile interpreter routing
+
+on:
+  pull_request:
+    paths:
+      - 'Makefile'
+      - 'tools/test_makefile.py'
+      - 'docs/MAKEFILE.md'
+      - '.github/workflows/makefile-routing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check command routing without executing project targets
+        run: python -B tools/test_makefile.py
