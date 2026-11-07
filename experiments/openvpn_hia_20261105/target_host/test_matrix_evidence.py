@@ -32,6 +32,33 @@ verifier=load('verify_result')
 encrypted=load('encrypted_capture')
 
 
+class SecuritySubsetClaimTests(unittest.TestCase):
+    def test_incomplete_subset_reports_incomplete_instead_of_scope_broadening(self):
+        report={"complete":False,"production_performance_qualified":False,
+                "claim_limit":"security-only: no profile or performance qualification"}
+        with self.assertRaisesRegex(ValueError,"security subset did not complete all required cases"):
+            verifier.verify_security_completion_claim(report)
+
+    def test_complete_subset_rejects_a_production_performance_claim(self):
+        report={"complete":True,"production_performance_qualified":True,
+                "claim_limit":"security-only: no profile or performance qualification"}
+        with self.assertRaisesRegex(ValueError,"claim limit is missing or overstates"):
+            verifier.verify_security_completion_claim(report)
+
+    def test_complete_subset_requires_an_explicit_security_only_claim_limit(self):
+        for claim_limit in (None, 7, "full production performance qualified"):
+            with self.subTest(claim_limit=claim_limit):
+                report={"complete":True,"production_performance_qualified":False,
+                        "claim_limit":claim_limit}
+                with self.assertRaisesRegex(ValueError,"claim limit is missing or overstates"):
+                    verifier.verify_security_completion_claim(report)
+
+    def test_complete_scoped_security_subset_is_accepted(self):
+        verifier.verify_security_completion_claim({
+            "complete":True,"production_performance_qualified":False,
+            "claim_limit":"security-only: no profile or performance qualification"})
+
+
 class SessionEvidenceTests(unittest.TestCase):
     def test_old_epoch_profile_does_not_cover_reconnected_profile(self):
         first="Initialization Sequence Completed\nData Channel: cipher 'AES-256-GCM'\nProtocol options: protocol-flags aead-epoch\n"

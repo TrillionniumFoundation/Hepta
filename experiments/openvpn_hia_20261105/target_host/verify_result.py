@@ -40,6 +40,16 @@ def require(value, message):
         raise ValueError(message)
 
 
+def verify_security_completion_claim(report):
+    """Separate an incomplete target from an overbroad qualification claim."""
+    require(report.get("complete") is True,
+            "security subset did not complete all required cases")
+    claim_limit=report.get("claim_limit")
+    require(report.get("production_performance_qualified") is False
+            and isinstance(claim_limit,str) and "security-only" in claim_limit,
+            "security subset claim limit is missing or overstates production/performance qualification")
+
+
 def verify_profile_process_samples(profile, client_arm):
     """Require PID-attributed samples for every userspace profile arm."""
     if client_arm in ("c-user", "hia-user"):
@@ -1021,9 +1031,7 @@ def verify_security(public, expected_commit):
             and report.get("execution_mode")=="security-only"
             and report.get("selected_case_kinds")==["behavior","authentication"],
             "result is not the explicit behavior/certificate security subset")
-    require(report.get("complete") is True and report.get("production_performance_qualified") is False
-            and "security-only" in report.get("claim_limit",""),
-            "security subset completion was broadened into full target/performance qualification")
+    verify_security_completion_claim(report)
     require(report.get("inputs",{}).get("hepta_commit")==expected_commit,
             "security subset belongs to another source commit")
     require(report.get("plan")==plan and report.get("plan_sha256")==digest(HERE/"plan.json"),
