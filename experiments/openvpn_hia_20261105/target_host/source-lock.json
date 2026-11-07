@@ -23,7 +23,7 @@
     "upload_artifact_v4": "ea165f8d65b6e75b540449e92b4886f43607fa02"
   },
   "runtime_freeze": "Record exact runner image, kernel/configuration, selected ovpn module, libraries and binaries before samples. Prefer the runner kernel's available official ovpn module; build the pinned official backport only when absent. Never combine samples from different runtime identities.",
-  "scope": "A dedicated disposable Linux VM with two real network namespaces. No container privilege escape and no modification of an existing production host.",
+  "scope": "A disposable GitHub-hosted Ubuntu 24.04 x86_64 VM with two real network namespaces and two distinct physical cores. Hosted runners are shared; results are diagnostic and never represent dedicated-host performance qualification. No container privilege escape and no modification of an existing production host.",
   "p2p_fair_dispatch": {
     "path": "patches/0001-openvpn-p2p-dual-read-fairness.patch",
     "sha256": "b5821dfeea2e8e60427fbbe62f668f0f3cdd12f6964e155f3287efd269d7854c",
