@@ -338,6 +338,65 @@ def dco_device_drop_delta(before, after):
             "rx_bytes": delta["bytes"]}
 
 
+def dco_quiet_signature(peer, device, underlay):
+    """Return only native receive counters and immutable interface identity."""
+    if not isinstance(peer, dict) or not isinstance(device, list) or len(device) != 1:
+        raise ValueError("DCO quiet sample lacks one peer document and one device")
+    if not isinstance(underlay, list) or len(underlay) != 1:
+        raise ValueError("DCO quiet sample lacks one underlay interface")
+    peers = peer.get("peers")
+    if not isinstance(peers, list) or len(peers) != 1:
+        raise ValueError("DCO quiet sample requires exactly one kernel peer")
+    peer_row = peers[0]
+    if (device[0].get("ifname") != "tunbench-s"
+            or device[0].get("linkinfo", {}).get("info_kind") != "ovpn"):
+        raise ValueError("DCO quiet sample is not bound to the ovpn device")
+    if underlay[0].get("ifname") != "ovpn-us":
+        raise ValueError("DCO quiet sample is not bound to the server underlay")
+    device_rx = device[0].get("stats64", device[0].get("stats", {})).get("rx", {})
+    underlay_rx = underlay[0].get("stats64", underlay[0].get("stats", {})).get("rx", {})
+    peer_values = tuple(peer_row.get(key) for key in PEER_COUNTERS)
+    device_values = tuple(device_rx.get(key) for key in ("dropped", "packets", "bytes", "errors"))
+    underlay_values = tuple(underlay_rx.get(key) for key in ("packets", "bytes", "errors", "dropped"))
+    all_values = peer_values + device_values + underlay_values
+    if any(type(value) is not int or value < 0 for value in all_values):
+        raise ValueError("DCO quiet sample has missing or malformed native counters")
+    for key in ("ifindex", "netns_inode", "family_id"):
+        if type(peer.get(key)) is not int:
+            raise ValueError("DCO quiet sample peer scope is malformed")
+    if type(device[0].get("ifindex")) is not int or type(underlay[0].get("ifindex")) is not int:
+        raise ValueError("DCO quiet sample link identity is malformed")
+    return (
+        peer["ifindex"], peer["netns_inode"], peer["family_id"], peer_row["peer_id"], peer_values,
+        device[0]["ifindex"], device_values,
+        underlay[0]["ifindex"], underlay[0].get("link_type"), underlay_values,
+    )
+
+
+def dco_underlay_replay_delta(before, after, frame_bytes):
+    """Require exactly the captured Ethernet frame and no other server-underlay ingress."""
+    if type(frame_bytes) is not int or frame_bytes <= 0:
+        raise ValueError("captured replay frame length is malformed")
+    if not isinstance(before, list) or len(before) != 1 or not isinstance(after, list) or len(after) != 1:
+        raise ValueError("server underlay snapshots must contain exactly one interface")
+    old, new = before[0], after[0]
+    if (old.get("ifname") != "ovpn-us" or new.get("ifname") != "ovpn-us"
+            or old.get("ifindex") != new.get("ifindex")
+            or old.get("link_type") != new.get("link_type")):
+        raise ValueError("server underlay identity changed during stale replay")
+    old_rx = old.get("stats64", old.get("stats", {})).get("rx", {})
+    new_rx = new.get("stats64", new.get("stats", {})).get("rx", {})
+    keys = ("packets", "bytes", "errors", "dropped")
+    if any(type(old_rx.get(key)) is not int or type(new_rx.get(key)) is not int for key in keys):
+        raise ValueError("server underlay RX counters are missing or malformed")
+    delta = {key: new_rx[key] - old_rx[key] for key in keys}
+    expected = {"packets": 1, "bytes": frame_bytes, "errors": 0, "dropped": 0}
+    if delta != expected:
+        raise ValueError("server underlay receive window was not exactly one captured replay frame")
+    return {"rx_packets": delta["packets"], "rx_bytes": delta["bytes"],
+            "rx_errors": delta["errors"], "rx_dropped": delta["dropped"]}
+
+
 def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False,
                         device_drop_delta=None):
     """Require peer accounting plus the independent DCO device RX-drop witness."""
@@ -468,6 +527,9 @@ class Job:
         return row
     def stop(self):
         if self.proc.poll() is None:
+            signals = self.row.get('signals', [])
+            if signals and signals[-1].get('signal') == signal.SIGSTOP:
+                self.signal(signal.SIGCONT)
             self.signal(signal.SIGTERM)
             try:self.proc.wait(timeout=3)
             except subprocess.TimeoutExpired:
@@ -673,6 +735,56 @@ class Pair:
         self.l.save_owned();save(self.folder/'case.json',self.result)
 
 
+def wait_dco_receive_quiet(pair, label, timeout=3.0, interval=0.1):
+    """Wait for three stable peer/device/underlay samples after pausing the client."""
+    deadline = time.monotonic() + timeout
+    stable = []
+    previous = None
+    serial = 0
+    while time.monotonic() < deadline:
+        serial += 1
+        peer_path = pair.folder / f"{label}-quiet-{serial:02d}-peer.json"
+        peer_command = pair.command("server", [sys.executable, str(HERE / "dco_peer_stats.py"),
+                                               "--interface", "tunbench-s", "--out", str(peer_path)],
+                                    f"{label}-quiet-{serial:02d}-peer")
+        peer = read_json(peer_path)
+        device_command = pair.command("server", ["ip", "-d", "-s", "-j", "link", "show", "dev", "tunbench-s"],
+                                      f"{label}-quiet-{serial:02d}-device")
+        device = read_json_output(device_command)
+        underlay_command = pair.command("server", ["ip", "-s", "-j", "link", "show", "dev", "ovpn-us"],
+                                        f"{label}-quiet-{serial:02d}-underlay")
+        underlay = read_json_output(underlay_command)
+        sample_ns = time.monotonic_ns()
+        signature = dco_quiet_signature(peer, device, underlay)
+        sample = {
+            "monotonic_ns": sample_ns,
+            "peer_path": str(peer_path.relative_to(pair.l.out)),
+            "peer_sha256": digest(peer_path),
+            "peer_command": peer_command.row,
+            "device_path": str(device_command.stdout.relative_to(pair.l.out)),
+            "device_sha256": digest(device_command.stdout),
+            "device_command": device_command.row,
+            "underlay_path": str(underlay_command.stdout.relative_to(pair.l.out)),
+            "underlay_sha256": digest(underlay_command.stdout),
+            "underlay_command": underlay_command.row,
+        }
+        if signature == previous:
+            stable.append(sample)
+        else:
+            stable = [sample]
+        if len(stable) >= 3 and stable[-1]["monotonic_ns"] - stable[-3]["monotonic_ns"] >= 180_000_000:
+            chosen = stable[-3:]
+            return {
+                "stable_samples": 3,
+                "started_monotonic_ns": chosen[0]["monotonic_ns"],
+                "finished_monotonic_ns": chosen[-1]["monotonic_ns"],
+                "samples": chosen,
+            }
+        previous = signature
+        pair.l.pause(interval)
+    raise TimeoutError("DCO receive path did not reach a three-sample quiet window after client pause")
+
+
 def read_json_output(job):return json.loads(read_text(job.stdout))
 
 
@@ -838,15 +950,16 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
     if hashlib.sha256(frame).hexdigest()!=captured['frame_sha256']:
         raise RuntimeError('original ciphertext capture changed before injection')
     expected=hashlib.sha256(helper.parse_frame(helper.submitted_frame(frame,mode))['payload']).hexdigest()
-    witness_dir=pair.folder/(label+'-witness')
-    witness=pair.spawn('server',[sys.executable,str(HERE/'encrypted_capture.py'),'witness','--interface','ovpn-us',
-                      '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--ciphertext-sha256',expected,
-                      '--deadline','3','--out',str(witness_dir)],label+'-witness')
-    pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
     dco_server=pair.arms['server'].endswith('dco')
     allow_stale_peer_id=(dco_server and label=='after-reconnect-replay' and mode=='replay')
     traffic_pause=None
     client_pause=None
+    quiet_window=None
+    underlay_before_command=None
+    underlay_before=None
+    underlay_after_command=None
+    underlay_after=None
+    underlay_delta=None
     if dco_server and traffic_sender is not None:
         if traffic_sender.proc.poll() is None:
             stop_ns=time.monotonic_ns()
@@ -867,10 +980,11 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             raise RuntimeError('client OpenVPN exited before isolated stale-peer replay')
         client_job.signal(signal.SIGSTOP)
         stop_ns=client_job.row['signals'][-1]['monotonic_ns']
-        pair.l.pause(.1)
+        quiet_window=wait_dco_receive_quiet(pair,label)
         client_pause={'pid':client_job.proc.pid,'stop_signal':signal.SIGSTOP,
                       'stop_monotonic_ns':stop_ns,
-                      'settle_finished_monotonic_ns':time.monotonic_ns()}
+                      'settle_finished_monotonic_ns':quiet_window['finished_monotonic_ns'],
+                      'quiet_window':quiet_window}
     server_before=pair.observation('server')
     server_line_before=len(pair.processes['server'].text().splitlines())
     dco_before=None;dco_before_path=None;dco_before_command=None
@@ -882,6 +996,15 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         dco_device_before_command=pair.command('server',['ip','-d','-s','-j','link','show','dev','tunbench-s'],
                                              label+'-dco-device-before')
         dco_device_before=read_json_output(dco_device_before_command)
+        if allow_stale_peer_id:
+            underlay_before_command=pair.command('server',['ip','-s','-j','link','show','dev','ovpn-us'],
+                                                  label+'-underlay-before')
+            underlay_before=read_json_output(underlay_before_command)
+    witness_dir=pair.folder/(label+'-witness')
+    witness=pair.spawn('server',[sys.executable,str(HERE/'encrypted_capture.py'),'witness','--interface','ovpn-us',
+                      '--src','192.0.2.2','--dst','192.0.2.1','--dport','1194','--ciphertext-sha256',expected,
+                      '--deadline','3','--out',str(witness_dir)],label+'-witness')
+    pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
     out=pair.folder/label
     row=pair.command('client',[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
                               '--capture',str(capture),'--mode',mode,'--count','1','--out',str(out)],label+'-submit')
@@ -913,6 +1036,12 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
                                               label+'-dco-device-after')
         dco_device_after=read_json_output(dco_device_after_command)
         device_delta=dco_device_drop_delta(dco_device_before,dco_device_after)
+        if allow_stale_peer_id:
+            underlay_after_command=pair.command('server',['ip','-s','-j','link','show','dev','ovpn-us'],
+                                                 label+'-underlay-after')
+            underlay_after=read_json_output(underlay_after_command)
+            underlay_delta=dco_underlay_replay_delta(
+                underlay_before,underlay_after,arrival.get('datagram',{}).get('frame_bytes'))
         active_peer_id=dco_before['peers'][0]['peer_id']
         delta=dco_rejection_delta(dco_before,dco_after,packet_peer_id=packet_peer_id,
                                   allow_stale_peer_id=allow_stale_peer_id,
@@ -942,6 +1071,13 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             'device_before_command':dco_device_before_command.row,
             'device_after_command':dco_device_after_command.row,
             'device_delta':device_delta,
+            'underlay_before_path':str(underlay_before_command.stdout.relative_to(pair.l.out)) if underlay_before_command else None,
+            'underlay_before_sha256':digest(underlay_before_command.stdout) if underlay_before_command else None,
+            'underlay_after_path':str(underlay_after_command.stdout.relative_to(pair.l.out)) if underlay_after_command else None,
+            'underlay_after_sha256':digest(underlay_after_command.stdout) if underlay_after_command else None,
+            'underlay_before_command':underlay_before_command.row if underlay_before_command else None,
+            'underlay_after_command':underlay_after_command.row if underlay_after_command else None,
+            'underlay_delta':underlay_delta,
             'packet_peer_id':packet_peer_id,'active_peer_id':active_peer_id,
             'peer_accounting':'stale-peer-id-unaccounted' if stale_peer_unaccounted else 'active-peer-link-rx',
             'delta':delta,'traffic_sender_pause':traffic_pause,
