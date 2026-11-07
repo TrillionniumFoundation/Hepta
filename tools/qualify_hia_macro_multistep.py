@@ -195,11 +195,41 @@ def calibration_forecast(prior):
         'observations': observations, 'forecast_is_observation': False}
 
 
+def proposal_admission(costs, previous_receipt=None, previous_event_sha256=None):
+    """Use the preceding settled bill as a uniform next-round estimate.
+
+    It does not predict a tokenizer count, cap a running provider, refund sunk
+    costs or guarantee that a larger next prompt fits. Unknown cost/settlement
+    remains a freeze; a known unaffordable next proposal preserves the pool.
+    """
+    previous_charge = (None if previous_receipt is None else previous_receipt.get('charged_model_tokens'))
+    settled = ((previous_receipt is None and previous_event_sha256 is None) or
+        (type(previous_receipt) is dict and (previous_receipt.get('status') == 'completed'
+          or previous_receipt.get('recoverable_content_rejection') is True)
+         and type(previous_charge) is int and previous_charge >= 0))
+    if not costs['observed']['complete'] or not settled:
+        action, reason = 'freeze', 'prior_cost_or_provider_settlement_unknown'
+    elif costs['remaining_wall_ns'] <= 0 or costs['remaining_tokens'] <= 0:
+        action, reason = 'stop_proposals', 'original_remaining_allowance_exhausted'
+    elif previous_charge is not None and costs['remaining_tokens'] < previous_charge:
+        action, reason = 'stop_proposals', 'remaining_tokens_below_previous_settled_bill'
+    else:
+        action, reason = 'dispatch', 'original_allowance_and_registered_estimate_fit'
+    return {'schema':'hepta.hia.agent.proposal-admission.v2','action':action,'reason':reason,
+        'cost_state':deepcopy(costs),'previous_model_event_sha256':previous_event_sha256,
+        'previous_provider_settled':settled,'estimated_next_round_tokens':previous_charge,
+        'estimate_basis':'preceding settled actual input+output+reasoning bill; none before the first round',
+        'estimate_is_hard_mid_turn_cap':False,'unknown_cost_is_zero':False,
+        'qualified_pool_preserved_on_known_reservation_stop':True,
+        'original_budget_increased':False}
+
+
 def run_cell(evidence, public, hidden, item, arm, registration, *, provider, bridge, state_parent, calibration):
     budget = registration['budget']
     journal = Journal(evidence, arm, public['id'], budget)
     service, selected, final_use, decision = None, None, None, None
     rounds, pool, builds, native_receipts, native_observations = [], [], {}, [], []
+    proposal_admissions, previous_receipt, previous_model_event = [], None, None
     baseline_build, baseline_bytes, failure, adopted = None, None, None, None
     unsafe_stop = False
     workload = {'schema': 'hepta.hia.agent.workload.v1', 'cases': hidden['cases'],
@@ -264,8 +294,18 @@ def run_cell(evidence, public, hidden, item, arm, registration, *, provider, bri
         forecast = calibration_forecast(calibration)
         for round_index in range(3):
             costs = cost_state()
-            if not costs['observed']['complete'] or costs['remaining_wall_ns'] <= 0 or costs['remaining_tokens'] <= 0:
+            admission = journal.run('controller', 'scheduled proposal admission ' + str(round_index + 1),
+                lambda: proposal_admission(costs, previous_receipt, previous_model_event), cleanup=True)
+            proposal_admissions.append(journal.entries[-1]['receipt_sha256'])
+            if admission['action'] == 'freeze':
+                provider.blocked_reason = getattr(provider,'blocked_reason',None) or admission['reason']
+                unsafe_stop = True
                 break
+            if admission['action'] == 'stop_proposals':
+                break
+            # The admission/evidence work is charged before the actual request.
+            # This recomputation cannot renew its original wall/token allowance.
+            costs = cost_state()
             request = request_document(public, rounds, costs, calibration=calibration)
             receipt, assembled, generated = None, None, None
             current = {'round': round_index + 1, 'request_sha256': evidence.put(request),
@@ -277,7 +317,12 @@ def run_cell(evidence, public, hidden, item, arm, registration, *, provider, bri
                         evidence.root / ('provider-' + public['id'] + '-' + arm + '-' + str(round_index + 1)),
                         remaining_wall_ns=costs['remaining_wall_ns'], remaining_tokens=costs['remaining_tokens'])
                     return receipt
-                generated = journal.run('model', 'scheduled proposal round ' + str(round_index + 1), invoke, model=True)
+                try:
+                    generated = journal.run('model', 'scheduled proposal round ' + str(round_index + 1), invoke, model=True)
+                finally:
+                    previous_receipt = receipt
+                    previous_model_event = (journal.entries[-1]['receipt_sha256']
+                        if journal.entries[-1]['phase'] == 'model' else None)
                 current['assembly'] = generated['answer']['assembly']
                 assembled = journal.run('search', 'strict assembly and complete Core admission',
                     lambda: assemble_program(current['assembly']).as_dict())
@@ -323,6 +368,8 @@ def run_cell(evidence, public, hidden, item, arm, registration, *, provider, bri
                     'event_receipt_sha256':journal.entries[-1]['receipt_sha256']}
                 if unsafe_stop or receipt is None or (receipt.get('status') != 'completed'
                         and receipt.get('recoverable_content_rejection') is not True):
+                    provider.blocked_reason = getattr(provider,'blocked_reason',None) or \
+                        'original_provider_or_native_settlement_unknown'
                     unsafe_stop = True
                     rounds.append(current)
                     break
@@ -365,6 +412,7 @@ def run_cell(evidence, public, hidden, item, arm, registration, *, provider, bri
         'selected_id':selected,'decision':decision,'final_use':final_use,'quality_complete':quality,
         'baseline_build':baseline_build,'baseline_bytes':baseline_bytes,'adoption':adopted,
         'native_original_observations':native_observations,
+        'proposal_admission_receipts':proposal_admissions,
         'failure':failure,'within_original_budget':within_budget,'calibration':deepcopy(calibration),
         'measurement_endpoint_ns':journal.cursor-journal.origin,'original_budget':budget,
         'teacher_used_by_provider':False,'transport':'local_domain_service','formal_mcp_first_use':False,
@@ -559,6 +607,7 @@ def verify(root):
                 and result['calibration'] == expected_calibration and result['teacher_used_by_provider'] is False,
                 'cell task/budget/calibration binding differs')
             events, cursor, model_events, prefix_ledger = [], 0, [], []
+            admission_events, last_model_sha, reservation_stopped = [], None, False
             for ledger in row['ledger']:
                 event = obj(ledger['receipt_sha256'])
                 require(all(event[k] == ledger[k] for k in ('id','phase','status','wall_ns','model_tokens'))
@@ -570,9 +619,33 @@ def verify(root):
                 cursor = event['end_offset_ns']
                 events.append(event)
                 counters['events'] += 1
+                if event['label'].startswith('scheduled proposal admission '):
+                    require(not reservation_stopped and len(admission_events) == len(model_events)
+                        and event['phase'] == 'controller' and event['status'] == 'completed'
+                        and event['label'] == 'scheduled proposal admission ' + str(len(model_events)+1),
+                        'proposal scheduling changed after a stop or without the preceding attempt')
+                    admission = event['output']
+                    scheduled_costs = admission['cost_state']
+                    prior_costs = ledger_totals(prefix_ledger)
+                    require(scheduled_costs['original'] == registration['budget']
+                        and scheduled_costs['observed'] == prior_costs
+                        and scheduled_costs['remaining_tokens'] == registration['budget']['model_tokens'] - prior_costs['observed_model_tokens']
+                        and max(0,registration['budget']['wall_ns']-event['operation_start_offset_ns'])
+                            <= scheduled_costs['remaining_wall_ns']
+                            <= max(0,registration['budget']['wall_ns']-event['start_offset_ns']),
+                        'proposal reservation renewed or concealed original costs')
+                    previous = model_events[-1]['output'] if model_events else None
+                    require(admission == proposal_admission(scheduled_costs, previous, last_model_sha),
+                            'proposal estimate/decision differs from the preceding original bill')
+                    admission_events.append(ledger['receipt_sha256'])
+                    reservation_stopped = admission['action'] != 'dispatch'
                 if event['phase'] == 'model':
+                    require(not reservation_stopped and len(admission_events) == len(model_events)+1
+                        and len(model_events) < 3,
+                        'provider dispatched without an affordable registered proposal reservation')
                     counters['provider_receipts'] += 1
                     model_events.append(event)
+                    last_model_sha = ledger['receipt_sha256']
                     receipt = event['output']
                     if receipt is not None:
                         request = verify_receipt(receipt, originals, plan['provider'])
@@ -612,7 +685,9 @@ def verify(root):
                     and phase_receipt['phase'] == phase and phase_receipt['event_receipts'] == expected_receipts
                     and summary['performed'] == bool(expected_receipts), 'phase receipts differ from actual ledger')
             require(cursor == result['measurement_endpoint_ns'] and len(model_events) <= 3
-                and len(result['rounds']) == len(model_events), 'cell endpoint or scheduled round count differs')
+                and len(result['rounds']) == len(model_events)
+                and result['proposal_admission_receipts'] == admission_events
+                and len(admission_events) <= 3, 'cell endpoint or scheduled round count differs')
             costs = ledger_totals(row['ledger'])
             require(costs['observed_wall_ns'] == cursor, 'sunk costs not fully charged')
             within = costs['complete'] and cursor <= registration['budget']['wall_ns'] \

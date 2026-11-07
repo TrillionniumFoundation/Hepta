@@ -19,6 +19,14 @@
     "memory_bytes": 536870912
   },
   "turn_policy": "Three scheduled proposals maximum for every arm; each sees its own previous actual errors and measurements. No automatic repair, refund, task replacement or retry beyond those rounds. Stop on unknown provider/protocol/cleanup outcomes.",
+  "proposal_reservation": {
+    "uniform_for_all_arms": true,
+    "minimum_next_round_tokens": "preceding settled actual input+output+reasoning bill; no historical estimate before first round",
+    "known_insufficient_allowance": "record stop_proposals without a new provider dispatch; preserve existing qualified pool for selection, adoption, use and rollback",
+    "unknown_cost_or_settlement": "freeze provider and later cells; never substitute zero",
+    "estimate_not_hard_midturn_cap": true,
+    "no_budget_refund_or_increase": true
+  },
   "quality": "Actual selected native artifact must return all 256 independently specified u8 results and be strictly smaller than the frozen baseline; an unchanged baseline cannot deliver the maintenance task.",
   "controllers": {
     "fixed": "first candidate that satisfies the exact quality gate",

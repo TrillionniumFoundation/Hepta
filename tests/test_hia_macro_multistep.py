@@ -6,6 +6,7 @@ import json
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -15,7 +16,11 @@ from tools.hia_macro_multistep_provider import (RESPONSE_SCHEMA, command, parse_
     request_document, prompt_bytes, StructuredProvider)
 from tools import hia_macro_multistep_provider as provider_module
 from tools.prepare_hia_followup_tasks import task_documents, mathematical_value
-from tools.qualify_hia_macro_multistep import checked_pool_selection, calibration_forecast, protocol
+from tools.qualify_hia_macro_multistep import (checked_pool_selection, calibration_forecast,
+    protocol, proposal_admission, run_cell)
+from tools.qualify_hia_macro_campaign import Evidence
+from hepta.hia_agent_macro_policy import ledger_totals
+from tools import qualify_hia_macro_multistep as campaign_module
 
 USAGE = {'input_tokens':100,'cached_input_tokens':75,'cache_write_input_tokens':0,
          'output_tokens':10,'reasoning_output_tokens':2}
@@ -133,6 +138,136 @@ class StructuredOutputTests(unittest.TestCase):
                     self.assertIsNone(later['process'])
                     self.assertEqual(invoke.call_count,1)
                     self.assertFalse((Path(temporary)/'later').exists())
+
+
+class ProposalReservationTests(unittest.TestCase):
+    def costs(self, remaining=100, *, complete=True):
+        observed = ledger_totals([])
+        observed['complete'] = complete
+        return {'original':{'wall_ns':180_000_000_000,'model_tokens':32768},
+            'observed':observed,'remaining_wall_ns':1_000_000_000,'remaining_tokens':remaining}
+
+    def test_previous_actual_bill_is_an_estimate_with_an_exact_equality_boundary(self):
+        prior = {'status':'completed','charged_model_tokens':100}
+        snapshot = deepcopy(prior)
+        self.assertEqual(proposal_admission(self.costs(99),prior,'a'*64)['action'],'stop_proposals')
+        decision = proposal_admission(self.costs(100),prior,'a'*64)
+        self.assertEqual(decision['action'],'dispatch')
+        self.assertEqual(decision['estimated_next_round_tokens'],100)
+        self.assertFalse(decision['estimate_is_hard_mid_turn_cap'])
+        self.assertEqual(prior,snapshot)
+
+    def test_unknown_or_unsettled_previous_attempt_freezes_even_with_positive_allowance(self):
+        for prior in ({'status':'completed','charged_model_tokens':None},
+                      {'status':'failed','charged_model_tokens':100}, None):
+            decision = proposal_admission(self.costs(),prior,'a'*64)
+            self.assertEqual(decision['action'],'freeze')
+            self.assertFalse(decision['unknown_cost_is_zero'])
+        self.assertEqual(proposal_admission(self.costs(complete=False))['action'],'freeze')
+        known_rejection = {'status':'failed','recoverable_content_rejection':True,'charged_model_tokens':101}
+        self.assertEqual(proposal_admission(self.costs(),known_rejection,'a'*64)['action'],'stop_proposals')
+
+    def fake_cell(self, directory, arm, provider):
+        """Only controller flow: all domain/native operations are authored fakes."""
+        evidence = Evidence(directory)
+        used = []
+        images = {'baseline':b'BASELINE','candidate':b'NEW'}
+        def ref(name):
+            return {'id':name,'sha256':sha256(images.get(name,name.encode())).hexdigest(),
+                    'uri':'hia://artifacts/'+name}
+        class Client:
+            records = []
+            def result(self, tool, arguments):
+                used.append(tool)
+                if tool == 'hia_adopt':
+                    return {'current':{'generation':'1','epoch':'1'},'previous':{'generation':'0','epoch':'0'}}
+                return {'current':{'generation':'0','epoch':'2'}}
+        client = Client()
+        class Session:
+            def __init__(self,*args,**kwargs):
+                self.client,self.discovery,self.imported = client,{'fixture':True},0
+            def freeze(self,*args,**kwargs): return {'fixture':True}
+            def import_program(self,*args):
+                self.imported += 1
+                return ref('baseline' if self.imported == 1 else 'candidate')
+            def verify(self,*args,**kwargs):
+                return {'checks':[{'status':'proved'}],'verification_receipt':ref('proof')}
+            def emit(self,program,**kwargs):
+                return {'native_artifact':program,'build_receipt':ref('build')}
+            def encoding(self,*args): return {'verification_receipt':ref('encoding')}
+            def evaluate(self,*args,**kwargs):
+                return {'planned_workload_complete':True,'outcome':'improved','evaluation_receipt':ref('evaluation')}
+            def read(self,artifact): return images[artifact['id']]
+            def harvest(self,*args): pass
+            def arguments(self,**kwargs): return kwargs
+        public = {'id':'authored-control','instruction':'fixture','specification':{},'baseline':{},
+            'baseline_assembly':'fixture','objective':{},'provenance':{'authored_test_only':True}}
+        hidden = {'cases':[{'function':'transform','arguments':[x]} for x in range(256)]}
+        registration = {'budget':{'wall_ns':180_000_000_000,'model_tokens':32768},
+            'installation':{'fixture':True},'tool_objective':{},'objective_sha256':'a'*64}
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(campaign_module,'HIAAgentService',return_value=SimpleNamespace(
+                identities={'fixture':True},call=None,close=lambda:None)))
+            stack.enter_context(patch.object(campaign_module,'ToolClient',return_value=client))
+            stack.enter_context(patch.object(campaign_module,'CapturingSession',Session))
+            stack.enter_context(patch.object(campaign_module,'assemble_program',
+                return_value=SimpleNamespace(as_dict=lambda:{'authored_fixture':True})))
+            stack.enter_context(patch.object(campaign_module,'_native_result_correct',return_value=True))
+            stack.enter_context(patch.object(campaign_module,'run_native_batch',return_value={
+                'termination_confirmed':True,'wall_ns':1,'report':{'total_native_ns':'1'}}))
+            stack.enter_context(patch.object(campaign_module,'_native_rank',
+                return_value=({'advisory_recommendation':'abstain'},{'authored_fixture':True})))
+            row,summary = run_cell(evidence,public,hidden,{'input_sha256':'b'*64,
+                'qualification_receipt_sha256':'c'*64},arm,registration,provider=provider,
+                bridge={'authored_fixture':True},state_parent=Path(directory)/'unused-state',calibration=[])
+        result = json.loads((evidence.root/'objects'/row['result_receipt_sha256']).read_bytes())
+        admissions = [json.loads((evidence.root/'objects'/key).read_bytes())['output']
+                      for key in result['proposal_admission_receipts']]
+        return row,result,admissions,used
+
+    def test_qualified_pool_survives_known_insufficient_tokens_without_a_second_dispatch(self):
+        class Provider:
+            blocked_reason = None
+            def __init__(self): self.calls = 0
+            def invoke(self,*args,**kwargs):
+                self.calls += 1
+                return {'status':'completed','charged_model_tokens':20000,'answer':{'assembly':'fixture'}}
+        for arm in ('fixed','greedy','ordinary','ndu'):
+            with self.subTest(arm=arm), tempfile.TemporaryDirectory() as directory:
+                provider = Provider()
+                row,result,admissions,used = self.fake_cell(Path(directory)/'evidence',arm,provider)
+                self.assertEqual(provider.calls,1)
+                self.assertIsNone(provider.blocked_reason)
+                self.assertEqual([a['action'] for a in admissions],['dispatch','stop_proposals'])
+                self.assertEqual(admissions[-1]['cost_state']['remaining_tokens'],12768)
+                self.assertEqual(admissions[-1]['estimated_next_round_tokens'],20000)
+                self.assertTrue(row['correct'])  # Authored flow fixture; no native/model qualification.
+                self.assertEqual(result['selected_id'],'candidate.1')
+                self.assertEqual(used,['hia_adopt','hia_rollback'])
+                self.assertEqual(ledger_totals(row['ledger'])['observed_model_tokens'],20000)
+
+    def test_unknown_second_attempt_keeps_first_pool_unqualified_and_blocks_later_cells(self):
+        class Provider:
+            blocked_reason = None
+            def __init__(self): self.calls = 0
+            def invoke(self,*args,**kwargs):
+                self.calls += 1
+                if self.calls == 2:
+                    raise RuntimeError('authored unsettled provider attempt')
+                return {'status':'completed','charged_model_tokens':100,'answer':{'assembly':'fixture'}}
+        with tempfile.TemporaryDirectory() as directory:
+            provider = Provider()
+            row,result,admissions,used = self.fake_cell(Path(directory)/'first','ordinary',provider)
+            self.assertEqual(provider.calls,2)
+            self.assertEqual(len(result['pool']),1)
+            self.assertFalse(row['correct'])
+            self.assertEqual(used,[])
+            self.assertFalse(ledger_totals(row['ledger'])['complete'])
+            self.assertIsNotNone(provider.blocked_reason)
+            later,_,_,later_used = self.fake_cell(Path(directory)/'later','ordinary',provider)
+            self.assertEqual(provider.calls,2)
+            self.assertFalse(later['correct'])
+            self.assertEqual(later_used,[])
 
 
 class MatchedStrongControlTests(unittest.TestCase):

@@ -70,6 +70,18 @@ executable drift fail closed. Content rejection with known usage and a settled
 process can be shown in a later already scheduled round. An overrun remains in
 the ledger and cannot become an eligible cheap cell.
 
+Before another proposal, every arm reserves at least the **preceding settled
+actual input + output + reasoning bill** from its remaining token allowance.
+This is a disclosed estimate: repeated baseline/grammar and growing feedback
+can make the next bill larger, and it is not a hard mid-turn cap. If the known
+remaining allowance is smaller than that estimate, the controller records
+`stop_proposals` and makes no further provider call. It can still select an
+already qualified candidate and complete adoption, use and rollback inside the
+original cell allowance. Unknown usage or unsettled execution instead freezes
+the provider across subsequent cells. Each reservation and stopping reason is
+retained in the contiguous cost ledger and checked against the original prior
+receipt; no failure is converted to a zero bill or refunded.
+
 Success requires actual selected native bytes that return all 256 independent
 oracle results, preserve the scalar ABI, are strictly smaller than the exact
 baseline, and have the original verification, evaluation, adoption, downstream
