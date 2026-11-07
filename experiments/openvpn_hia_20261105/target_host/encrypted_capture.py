@@ -105,12 +105,17 @@ def checksum_observation(frame):
             "udp_valid": checksum(pseudo + frame[udp:udp + parsed["udp_bytes"]]) == 0}
 
 
-def submitted_frame(frame, mode):
+def submitted_frame(frame, mode, source_port=None):
     parsed = parse_frame(frame)
     if parsed is None or parsed["opcode"] not in (6, 9):
         raise ValueError("capture does not contain a supported complete OpenVPN data datagram")
+    if source_port is not None and (isinstance(source_port, bool) or not isinstance(source_port, int)
+                                    or not 1 <= source_port <= 65535):
+        raise ValueError("source UDP port must be an integer in [1,65535]")
     data = bytearray(frame[:parsed["frame_bytes"]])
     udp = parsed["udp_offset"]
+    if source_port is not None:
+        struct.pack_into("!H", data, udp, source_port)
     if mode == "flip":
         data[udp + parsed["udp_bytes"] - 1] ^= 1
     elif mode != "replay":
@@ -236,7 +241,7 @@ def inject(args, out):
     prior = captured["capture_state"]
     if any(state[key] != prior.get(key) for key in ("network_namespace_inode", "interface", "ifindex", "mac")):
         raise ValueError("injection namespace/interface identity differs from the actual capture")
-    data = submitted_frame(frame, args.mode)
+    data = submitted_frame(frame, args.mode, args.source_port)
     (out / "submitted-frame.bin").write_bytes(data)
     output_parsed = parse_frame(data)
     if args.mode == "replay" and output_parsed["payload"] != parsed["payload"]:
@@ -257,6 +262,7 @@ def inject(args, out):
     finally:
         sock.close()
     return {"schema": SCHEMA, "status": "injection_submitted", "mode": args.mode,
+            "source_port_override": args.source_port,
             "capture_metadata_sha256": sha(args.capture.read_bytes()),
             "captured_ciphertext_sha256": captured["ciphertext_sha256"],
             "submitted_ciphertext_sha256": sha(output_parsed["payload"]),
@@ -288,6 +294,8 @@ def main(argv=None):
     inj.add_argument("--interface", required=True)
     inj.add_argument("--capture", type=Path, required=True, help="capture directory's result.json")
     inj.add_argument("--mode", choices=("replay", "flip"), required=True)
+    inj.add_argument("--source-port", type=int,
+                     help="rewrite only the outer UDP source port; encrypted payload bytes remain identical")
     inj.add_argument("--count", type=int, default=1)
     inj.add_argument("--interval", type=float, default=0.01)
     inj.add_argument("--out", type=Path, required=True)
@@ -307,8 +315,8 @@ def main(argv=None):
             parser.error("min-data-bytes must be 80..65507")
         if not math.isfinite(args.deadline) or not 0 < args.deadline <= 120:
             parser.error("capture deadline must be finite and in (0,120]")
-    elif not 1 <= args.count <= 16 or not math.isfinite(args.interval) or not 0 <= args.interval <= 1:
-        parser.error("injection count must be 1..16 and interval finite in [0,1]")
+    elif (args.source_port is not None and not 1 <= args.source_port <= 65535) or not 1 <= args.count <= 16 or not math.isfinite(args.interval) or not 0 <= args.interval <= 1:
+        parser.error("source port must be 1..65535; injection count 1..16 and interval finite in [0,1]")
     if args.out.exists() and any(args.out.iterdir()):
         parser.error("output must be new or empty; prior evidence is preserved")
     args.out.mkdir(parents=True, exist_ok=True)
