@@ -65,6 +65,26 @@ The schema generator's 66 checks validate 22 wire schemas. Its deliberate
 of that schema-only checker. Actual registration and execution are established
 by the separate MCP traces below.
 
+## Broader native/NDU integration regression
+
+[`ci-hepta-ndu-4c1757.json`](ci-hepta-ndu-4c1757.json) and its complete compressed
+job log retain the final-head NDU workflow's **37/37 successful steps**. Its full
+native regression executed all **1,785 planned tests**, with zero failures,
+errors, skips or expected failures; planned, started and finished test-inventory
+hashes agree, and source/worktree were unchanged. Separate native-planning
+checks passed all twenty tests. Six archived validators executed 74 tests.
+These are separate inventories and are not summed as disjoint test coverage.
+
+Passing this workflow preserves nonwinning outcomes. The finite NDU loop's
+actual outputs were all correct, but its observed median net cost was
+298.021041 ms, compared with 234.6765345 ms for fixed-selected and 235.0272715 ms
+for light; both lower-cost flags remained false. The guarded opportunity result
+was `no-economic-opportunity`. This workflow's final agent-assembly qualifier
+made zero model requests and did not qualify Agent advantage. That scripted
+qualification is distinct from the separate fresh-context Agent experiment below.
+The native regression and emitted-code correctness observations do not establish
+universal performance or economic superiority.
+
 ## Actual MCP transport, revision r3
 
 The first complete transport run used the actual Rust stdio MCP server on ai395,
@@ -132,8 +152,6 @@ values. Upstream snapshots, capability mappings, all qualification records and
 claims remained equal. Existing ledger unit checks and `check_mapping` passed.
 [`runtime-rea-source-projection.json`](runtime-rea-source-projection.json) records
 the precise old/new projection; it is not a new upstream-behavior qualification.
-
-
 
 [`runtime-ci-9f60.json`](runtime-ci-9f60.json) records complete GitHub CI at the
 published runtime head `9f60a30530f47925f4f6ae495660a1d68bb6947d`:
@@ -301,6 +319,35 @@ refusal without changing runtime behavior. The initial r4 catalog-binding harnes
 assumed a catalog title field that is intentionally absent; the corrected check
 uses the runtime's published generated-title rule. Its original failed run, driver
 and complete traces are retained, distinct from the passing r4b run.
+
+## Final published-head CI
+
+All fifteen tracked Agent-native integration blockers are closed in
+[`blocker-closure.json`](blocker-closure.json). This closure is scoped to the
+implemented direct-machine-code and Agent/MCP contract described above.
+
+The final Hepta source `4c1757bcd4db1f6deeadd190213dc26264ec46f0`
+passed **all sixteen workflows**: fifteen pull-request events and the separate
+Agent push event. The last frontier workflow,
+[42321800225](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42321800225),
+completed successfully with **all 79 jobs executed and successful**, with no
+failures, cancellations or skips. The final receipt
+[`ci-hepta-head-4c1757-final.json`](ci-hepta-head-4c1757-final.json) retains the
+complete source-bound inventory and hashes of original API responses.
+
+The final runtime source `9f60a30530f47925f4f6ae495660a1d68bb6947d`
+passed both workflows and all three applicable executing jobs: push source,
+PR source and prospective merge. The merge identity and complete logs remain
+in [`runtime-ci-9f60.json`](runtime-ci-9f60.json).
+
+[`ci-published-heads-final-verification.json`](ci-published-heads-final-verification.json)
+records a separate root-agent reread of the complete GitHub inventories, terminal
+parent state and exact PR head/base identities after the last gate completed.
+Earlier pending observations and unsuccessful attempts remain historical records;
+they are not used as the final gate result. The implementation branches retain
+their tested source heads; this evidence is published on a separate evidence
+branch. No production deployment or broader self-hosting/proof claim follows
+from this CI completion.
 
 ## Claim boundaries
 
