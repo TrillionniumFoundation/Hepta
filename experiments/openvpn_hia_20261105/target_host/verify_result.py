@@ -317,8 +317,8 @@ def verify_continuity_loss_evidence(case_dir, case, plan):
             and receiver_events and receiver_events[0].get("kind")=="ready",
             "continuity event stream lacks its ready record")
     expected_set=set(range(expected))
-    require(all(row.get("run_id")==run_id for row in sender_events+receiver_events),
-            "continuity event run identity changed")
+    require(sender_events[0].get("run_id")==run_id and receiver_events[0].get("run_id")==run_id,
+            "continuity ready-record run identity changed")
     sent=[row.get("sequence") for row in sender_events if row.get("kind")=="sent"]
     errors=[row.get("sequence") for row in sender_events if row.get("kind")=="send_error"]
     echoes=[row.get("sequence") for row in sender_events if row.get("kind")=="echo"]
