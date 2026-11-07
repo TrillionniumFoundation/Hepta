@@ -11,8 +11,8 @@ import tempfile
 
 
 SCHEMA = "hepta.openvpn-hia.perf-sample-summary.v1"
-HEADER = re.compile(rb"\\bcpu-clock(?:\\:[ukhp]+)?:")
-OVPN_SYMBOL = re.compile(rb"\\bovpn_[a-zA-Z_]")
+HEADER = re.compile(rb"\bcpu-clock(?:\:[ukhp]+)?:")
+OVPN_SYMBOL = re.compile(rb"\bovpn_[a-zA-Z_]")
 
 
 class PerfScriptSummary:
@@ -38,9 +38,9 @@ class PerfScriptSummary:
         self.raw_bytes += len(line)
         if HEADER.search(line):
             self.sample_headers += 1
-            if re.search(rb"\\b" + str(self.client_pid).encode("ascii") + rb"(?:/|\\s)", line):
+            if re.search(rb"\b" + str(self.client_pid).encode("ascii") + rb"(?:/|\s)", line):
                 self.openvpn_sample_headers_by_role["client"] += 1
-            if re.search(rb"\\b" + str(self.server_pid).encode("ascii") + rb"(?:/|\\s)", line):
+            if re.search(rb"\b" + str(self.server_pid).encode("ascii") + rb"(?:/|\s)", line):
                 self.openvpn_sample_headers_by_role["server"] += 1
         if b"[kernel.kallsyms]" in line or b"[ovpn]" in line:
             self.kernel_symbol_lines += 1
