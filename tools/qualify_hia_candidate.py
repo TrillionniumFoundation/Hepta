@@ -44,6 +44,8 @@ NEW_SUITES = (
     "tests.test_hia_first_use",
     "tests.test_hia_agent_provider",
     "tests.test_hia_agent_first_use_recovery",
+    "tests.test_hia_macro_multistep",
+    "tests.test_hia_macro_exec_adapter",
 )
 
 

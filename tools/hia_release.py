@@ -68,6 +68,11 @@ CANDIDATE_FILES = (
     "tools/hia_agent_codex_transport.py", "tools/hia_agent_fresh_session.py",
     "tests/test_hia_agent_first_use_recovery.py", "docs/HIA_AGENT_FIRST_USE.md",
     "tools/qualify_hia_selfhost_leaf_plans.py", "tests/test_hia_machine_leaf_registers.py",
+    "tools/prepare_hia_followup_tasks.py", "tools/qualify_hia_followup_tasks.py",
+    "tools/qualify_hia_macro_multistep.py", "tools/hia_macro_multistep_provider.py",
+    "tools/hia_macro_exec_adapter.py", "tools/prepare_hia_macro_launcher.py",
+    "benchmarks/hia_macro_multistep/PROTOCOL.json", "docs/HIA_AGENT_MACRO_MULTISTEP.md",
+    "tests/test_hia_macro_multistep.py", "tests/test_hia_macro_exec_adapter.py",
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
