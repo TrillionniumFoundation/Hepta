@@ -467,23 +467,37 @@ class DcoReplayEvidenceTests(unittest.TestCase):
 
     def test_stale_peer_replay_requires_stopped_client_openvpn_process(self):
         stop_ns=100
-        settle_ns=100_000_100
-        submit_ns=110_000_000
-        observation_ns=120_000_000
-        resume_ns=130_000_000
+        quiet_times=[100_000_100,200_000_100,300_000_100]
+        settle_ns=quiet_times[-1]
+        submit_ns=310_000_000
+        observation_ns=320_000_000
+        resume_ns=330_000_000
+        peer={"ifindex":7,"netns_inode":200,"family_id":32,"peers":[{
+            "peer_id":1,"vpn_rx_bytes":100,"vpn_tx_bytes":100,"vpn_rx_packets":10,"vpn_tx_packets":10,
+            "link_rx_bytes":100,"link_tx_bytes":100,"link_rx_packets":10,"link_tx_packets":10,
+        }]}
+        device=[{"ifname":"tunbench-s","ifindex":7,"linkinfo":{"info_kind":"ovpn"},
+                 "stats64":{"rx":{"dropped":4,"packets":20,"bytes":2000,"errors":0}}}]
+        underlay=[{"ifname":"ovpn-us","ifindex":2,"link_type":"ether",
+                   "stats64":{"rx":{"packets":10,"bytes":1000,"errors":0,"dropped":0}}}]
+        quiet_samples=[{"monotonic_ns":stamp,"peer":copy.deepcopy(peer),
+                        "device":copy.deepcopy(device),"underlay":copy.deepcopy(underlay)}
+                       for stamp in quiet_times]
+        quiet_window={"stable_samples":3,"started_monotonic_ns":quiet_times[0],
+                      "finished_monotonic_ns":quiet_times[-1],"samples":quiet_samples}
         process={"pid":123,"signals":[
             {"signal":signal.SIGSTOP,"monotonic_ns":stop_ns},
             {"signal":signal.SIGCONT,"monotonic_ns":resume_ns},
         ]}
         receipt={"pid":123,"stop_signal":signal.SIGSTOP,"stop_monotonic_ns":stop_ns,
-                 "settle_finished_monotonic_ns":settle_ns,"resume_signal":signal.SIGCONT,
-                 "resume_monotonic_ns":resume_ns}
+                 "settle_finished_monotonic_ns":settle_ns,"quiet_window":quiet_window,
+                 "resume_signal":signal.SIGCONT,"resume_monotonic_ns":resume_ns}
         self.assertTrue(verifier.verify_client_process_pause(
             receipt,process,submit_ns,observation_ns))
         invalid=[]
         wrong_pid=copy.deepcopy(receipt);wrong_pid["pid"]=124;invalid.append((wrong_pid,process))
         short_settle=copy.deepcopy(receipt);short_settle["settle_finished_monotonic_ns"]=50_000_000;invalid.append((short_settle,process))
-        early_resume=copy.deepcopy(receipt);early_resume["resume_monotonic_ns"]=115_000_000;invalid.append((early_resume,process))
+        early_resume=copy.deepcopy(receipt);early_resume["resume_monotonic_ns"]=315_000_000;invalid.append((early_resume,process))
         missing_stop=copy.deepcopy(process);missing_stop["signals"]=missing_stop["signals"][1:];invalid.append((receipt,missing_stop))
         missing_resume=copy.deepcopy(process);missing_resume["signals"]=missing_resume["signals"][:1];invalid.append((receipt,missing_resume))
         for bad_receipt,bad_process in invalid:
