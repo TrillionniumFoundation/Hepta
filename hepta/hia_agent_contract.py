@@ -101,6 +101,21 @@ def validate(value, schema, label="arguments"):
         if key in schema:
             count = sum(matches(sub) for sub in schema[key])
             if (wanted is not None and count != wanted) or (wanted is None and count == 0):
+                # A tagged union can name the actual failing field without
+                # relaxing admission or echoing the caller's data.  Reporting
+                # only "does not match oneOf" hid the import source/format
+                # contract from a real first-use learner.  A uniquely matching
+                # discriminator is diagnostic evidence, never a valid branch.
+                if count == 0 and type(value) is dict:
+                    tagged = []
+                    for sub in schema[key]:
+                        tags = {name: child["const"] for name, child in
+                            sub.get("properties", {}).items() if "const" in child}
+                        if tags and all(name in value and wire(value[name]) == wire(tag)
+                                        for name, tag in tags.items()):
+                            tagged.append(sub)
+                    if len(tagged) == 1:
+                        validate(value, tagged[0], label)
                 fail("does not match " + key)
     for sub in schema.get("allOf", []):
         validate(value, sub, label)
@@ -150,6 +165,28 @@ def _valid(value, schema):
         return True
     except AgentRejected:
         return False
+
+
+def input_diagnostic(tool, arguments, *, catalog_document=None):
+    """Explain a confirmed local input-schema rejection without changing it.
+
+    A recording MCP bridge may append this to its own rejection response after
+    charging the attempt. It must not substitute this validator's success for
+    its existing validator, dispatch corrected arguments, refund a call, or
+    classify an accepted/unknown server operation as a local rejection.
+    """
+    document = catalog()[0] if catalog_document is None else catalog_document
+    records = [record for record in document["tools"] if record["name"] == tool]
+    if len(records) != 1:
+        return None
+    try:
+        validate(arguments, records[0]["inputSchema"])
+    except AgentRejected as exc:
+        return {"schema": "hepta.hia.agent.input-diagnostic.v1", "tool": tool,
+            "message": str(exc)[:4096], "basis": "published inputSchema only",
+            "automatic_repair": False, "attempt_refunded": False,
+            "recovery": "Use the exact schema and issued references. After a confirmed rejection, changed writer arguments require a new request key; accepted or unknown operations retain their original identity."}
+    return None
 
 
 def obj(properties, required=None):

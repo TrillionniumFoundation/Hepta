@@ -116,3 +116,49 @@ executes a real artifact, checks all 256 inputs and still requires `HOLD` and
 unknown model usage. Other controls reject changed inputs, foreign request keys,
 pending invocations, exhausted call budgets, modified sealed responses and
 post-judgement dispatch. These are harness checks, never model success counts.
+
+## Shared fresh-session runner and input recovery
+
+`tools/hia_agent_fresh_session.py` supplies a separate reusable runner for an
+already qualified MCP budget bridge. `run_session` accepts the frozen executable
+SHA, exact argv, public-only prompt, original wall and monotonic deadlines, and
+terminal token-review threshold. It starts one CLI session, retains the original
+three byte streams, and uses the shared owned-process transport. It does not
+create a context, generate a task, expose a hidden judge, invoke a second model,
+or certify the effective CLI configuration. Those inputs must be independently
+frozen before invocation. Merely importing or testing this module calls no model.
+
+The transport retains its direct child with `waitid(WNOWAIT)` and signals the
+group established by `Popen(start_new_session=True)` once, before reaping. It
+does not require a late `getpgid` lookup on a terminal macOS zombie. Group
+absence at that owned signal attempt is recorded separately from successful
+signal delivery. `EPERM` remains unknown unless the original terminal group was
+observed to contain only the owned zombie and a later read-only observation
+finds that group empty after reaping. No group is signalled after reap, and the
+receipt does not claim to find descendants that escaped the original session.
+Earlier `cleanup_uncertain` receipts remain unchanged.
+
+The new parser counts unique original CLI MCP item IDs. A bridge's received
+calls and actual HTTP dispatches require its separate original ledgers; they
+are not inferred from model attempts. The literal CLI error `user cancelled
+MCP tool call` is retained with unknown actor and cause. It never grants an
+automatic retry. CLI session count is not provider-internal HTTP request count.
+Cached and reasoning counters are retained; first-use token review sums input
+and output only. That threshold is a terminal review, not a real-time token cap.
+
+The catalog and assembly guide now state the exact artifact-then-import shapes
+and 64-character hash contract. A recording bridge can call
+`hepta.hia_agent_contract.input_diagnostic(tool, arguments,
+catalog_document=discovered_catalog)` **after** its original input validator
+rejects and the original attempt has been charged. The returned hint names the
+published failing field; it does not repair input, refund a call, or override
+the bridge validator. A confirmed rejection may be corrected with a new key;
+accepted and unknown outcomes retain their original identity. Descriptions
+change the catalog digest even when input/output shapes do not change, so the
+runtime's embedded catalog and worker/profile pins must be updated together.
+
+`tests/test_hia_agent_first_use_recovery.py` exercises malformed-hash and import
+recovery, fast process exit, timeout, group absence, permission uncertainty,
+an already expired context, the eleven-tool event allowlist and token accounting
+with authored local child processes. These controls establish no new Agent task
+success or formal endpoint acceptance.

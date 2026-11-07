@@ -15,6 +15,7 @@ import signal
 import subprocess
 import threading
 import time
+import resource
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,7 +58,9 @@ def strict_json(raw):
                 raise EventFailure("E_PILOT_DUPLICATE_JSON_KEY")
             result[key] = value
         return result
-    return json.loads(raw, object_pairs_hook=unique)
+    def nonfinite(_value):
+        raise EventFailure("E_PILOT_NONFINITE_JSON")
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=nonfinite)
 
 
 def checked_usage(value):
@@ -165,14 +168,27 @@ class CodexEvents:
         return {"text": self.messages[0], "usage": self.usage}
 
 
-def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None):
-    """Own a new process group. Kill that group before reaping its leader."""
+def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None,
+              absolute_deadline_unix_ns=None, stop_requested=None, transport_limits=None):
+    """Own a new process group; signal once, before reaping its direct child.
+
+    Popen(start_new_session=True) establishes PGID=PID before exec.  WNOWAIT
+    retains that owned PID until the one signal attempt, including fast exits.
+    A late getpgid on a macOS zombie can return ESRCH and is not an additional
+    ownership requirement.  Nothing here proves absence of escaped sessions.
+    """
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
-    cfg = protocol()
+    cfg = protocol() if transport_limits is None else {"transport": transport_limits}
+    limits = cfg["transport"]
+    if (set(limits) != {"stdout_limit_bytes", "stderr_limit_bytes", "max_jsonl_line_bytes"}
+            or any(type(n) is not int or not 1 <= n <= 32 * 1024 * 1024 for n in limits.values())):
+        raise ValueError("E_PILOT_TRANSPORT_LIMITS")
     caps = {"stdout": cfg["transport"]["stdout_limit_bytes"],
             "stderr": cfg["transport"]["stderr_limit_bytes"]}
     started = time.monotonic_ns()
+    cpu_before = {"parent": resource.getrusage(resource.RUSAGE_SELF),
+                  "children": resource.getrusage(resource.RUSAGE_CHILDREN)}
     deadline = time.monotonic() + max(0.0, wall_seconds)
     record = {"argv": [str(x) for x in argv], "cwd": str(cwd),
               "wall_limit_seconds": wall_seconds, "started_unix_ns": time.time_ns(),
@@ -181,6 +197,9 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
               "ownership_confirmed": False, "ownership_uncertain": False,
               "signal_attempted": False, "signal_delivered": False,
               "reap_attempted": False, "cleanup_confirmed": False,
+              "group_identity_basis": "owned unreaped Popen child; start_new_session=True",
+              "cleanup_scope": "the original owned process group and captured pipes, not escaped sessions",
+              "group_absent_before_reap": False,
               "bytes_observed": {"stdout": 0, "stderr": 0}}
     save(output / "PROCESS.json", record)
     process = None
@@ -191,6 +210,10 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
     streams = {name: (output / (name + ".raw")).open("xb") for name in caps}
     stdin_path = output / "stdin.raw"
     stdin_path.write_bytes(input_bytes)
+
+    def expired():
+        return (time.monotonic() >= deadline or absolute_deadline_unix_ns is not None
+                and time.time_ns() >= absolute_deadline_unix_ns)
 
     def consume_stdout(chunk):
         nonlocal pending, reason
@@ -228,13 +251,30 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
     def stop_once():
         if record["signal_attempted"] or record["reap_attempted"]:
             raise RuntimeError("E_PILOT_SIGNAL_RETRY_FORBIDDEN")
-        observe_owned()
+        observed = observe_owned()
+        terminal = observed is not None and observed.si_pid == process.pid
+        record["owned_terminal_before_signal"] = terminal
         record["signal_attempted"] = True
         record["signal_attempted_before_reap"] = True
         try:
             os.killpg(process.pid, signal.SIGKILL)
         except ProcessLookupError:
-            record["group_signal"] = "group_absent_at_signal_attempt; cleanup_unconfirmed"
+            record["group_signal"] = "group_absent_at_owned_signal_attempt"
+            record["group_absent_before_reap"] = True
+        except PermissionError as exc:
+            record["group_signal_error"] = {"type": type(exc).__name__, "errno": exc.errno}
+            # macOS may reject killpg for an already terminal zombie-only
+            # group.  EPERM itself never proves cleanup.  Observe only metadata
+            # and never signal a potentially reused group after the reap.
+            if terminal:
+                members = _group_snapshot(process.pid)
+                record["group_members_before_reap"] = members
+                record["only_owned_zombie_before_reap"] = bool(len(members) == 1
+                    and members[0][0] == process.pid and members[0][1] == os.getpid()
+                    and members[0][2] == process.pid and members[0][3] == os.getuid()
+                    and members[0][4].startswith("Z"))
+            else:
+                raise
         else:
             record["group_signal"] = "SIGKILL"
             record["signal_delivered"] = True
@@ -247,9 +287,15 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
         record["reap_attempted"] = True
         record["returncode"] = process.wait(timeout=5)
         record["leader_reaped"] = True
+        if record.get("only_owned_zombie_before_reap"):
+            record["group_members_after_reap"] = _group_snapshot(process.pid)
+            record["zombie_only_group_gone_after_reap"] = record["group_members_after_reap"] == []
 
     try:
-        if not math.isfinite(wall_seconds) or wall_seconds <= 0 or time.monotonic() >= deadline:
+        if (absolute_deadline_unix_ns is not None and
+                (type(absolute_deadline_unix_ns) is not int or absolute_deadline_unix_ns <= 0)):
+            raise ValueError("E_PILOT_ABSOLUTE_DEADLINE")
+        if not math.isfinite(wall_seconds) or wall_seconds <= 0 or expired():
             reason = "wall_timeout_before_launch"
             raise RuntimeError("E_PILOT_EXPIRED_BEFORE_LAUNCH")
         if (signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL
@@ -262,7 +308,7 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
             pass
         else:
             raise RuntimeError("E_PILOT_WAITID_CAPABILITY_PROBE")
-        if time.monotonic() >= deadline:
+        if expired():
             reason = "wall_timeout_before_launch"
             raise RuntimeError("E_PILOT_EXPIRED_BEFORE_LAUNCH")
         with stdin_path.open("rb") as stdin:
@@ -275,8 +321,11 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
             selector.register(pipe, selectors.EVENT_READ, name)
             active[name] = pipe
         while True:
-            if time.monotonic() >= deadline:
+            if expired():
                 reason = "wall_timeout"
+                break
+            if stop_requested is not None and stop_requested():
+                reason = "coordinator_stop"
                 break
             for key, _ in selector.select(min(0.05, max(0.0, deadline-time.monotonic()))):
                 name = key.data
@@ -331,8 +380,9 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
                 reason = "protocol_violation"
                 record["event_error"] = str(exc)
         reap_once()
-        record["cleanup_confirmed"] = bool(record["signal_delivered"] and record["leader_reaped"]
-                                           and record["streams_complete"])
+        record["cleanup_confirmed"] = bool((record["signal_delivered"]
+            or record["group_absent_before_reap"] or record.get("zombie_only_group_gone_after_reap"))
+            and record["leader_reaped"] and record["streams_complete"])
         record["status"] = (reason or "cleanup_uncertain" if not record["cleanup_confirmed"]
                             else reason or ("exited" if record["returncode"] == 0 else "process_failure"))
     except BaseException as exc:
@@ -357,6 +407,29 @@ def run_owned(argv, cwd, output, *, input_bytes=b"", wall_seconds, on_line=None)
                 if pipe is not None:
                     pipe.close()
         record["wall_ns"] = time.monotonic_ns()-started
+        record["cpu_ns"] = {}
+        for label, kind in (("parent", resource.RUSAGE_SELF), ("children", resource.RUSAGE_CHILDREN)):
+            after, before = resource.getrusage(kind), cpu_before[label]
+            record["cpu_ns"][label] = round(((after.ru_utime + after.ru_stime)
+                - (before.ru_utime + before.ru_stime)) * 1_000_000_000)
+        record["cpu_scope"] = "process resource deltas; child CPU nested, not added to outer wall"
         record["files"] = {name: identity(output / name) for name in ("stdin.raw", "stdout.raw", "stderr.raw")}
         save(output / "PROCESS.json", record)
     return record
+
+
+def _group_snapshot(pgid):
+    """Read PID/group/state metadata, retaining only the original owned group."""
+    result = subprocess.run(["/bin/ps", "-ax", "-o", "pid=,ppid=,pgid=,uid=,stat="],
+        stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=3)
+    if result.returncode or len(result.stdout) > 8 * 1024 * 1024:
+        raise RuntimeError("E_PILOT_GROUP_OBSERVATION_FAILED")
+    rows = []
+    for line in result.stdout.decode("ascii").splitlines():
+        values = line.split()
+        if len(values) != 5 or not all(v.isdigit() for v in values[:4]):
+            raise RuntimeError("E_PILOT_GROUP_OBSERVATION_SHAPE")
+        row = [int(v) for v in values[:4]] + values[4:]
+        if row[2] == pgid:
+            rows.append(row)
+    return rows

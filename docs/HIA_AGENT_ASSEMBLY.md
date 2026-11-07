@@ -5,6 +5,37 @@ HIA v6/v7/v8**. It addresses redundant JSON syntax without changing execution,
 inventing a second integer/ownership semantics, or trusting a model's claims.
 The complete translated program passes the existing `verify_program` checker.
 
+## Import through the eleven-tool contract
+
+Discover the current `catalog_sha256`, profiles and references with
+`hia_describe`. Copy each returned object unchanged. SHA-256 values have exactly
+64 lowercase hexadecimal characters; a context or worker hash is not the
+catalog hash. The frozen session binding, when supplied, contains the same
+authoritative values.
+
+`hia_artifact` retains authored text using `source: {"kind":"utf8","text":...}`
+and the discovered `artifact_profile`. Its `result.artifact` is the complete
+`{id,sha256,uri}` reference. Pass that reference to `hia_candidate` as
+`change: {"kind":"import","format":"hia-asm.v1","source":...}`. For a
+complete Core JSON document, retain its JSON text the same way and select
+`"format":"core-json"`. Neither inline text nor an inline Core object belongs
+in `change.source`. Artifact retention and Core admission are distinct steps.
+
+Use the field names and tagged alternatives in the tool's `inputSchema`.
+For Core JSON, every block has `id`, `params`, `ops`, and `term`; the entry
+block's parameters exactly repeat its function signature. The complete
+neutral examples returned by `hia_describe(section="examples")` show both
+spellings without supplying a maintenance transformation.
+
+An input rejection is evidence of a failed attempt. Read its field path and
+the exact schema, correct the input, and keep it within the original budget.
+A request key may already have been claimed even for a rejected request:
+changed arguments therefore require a new key after a confirmed rejection.
+An accepted or unknown operation is different: retain its original arguments,
+key and job identity and observe that operation. Do not use a new key to
+replace an unknown outcome. Client cancellation alone does not identify who
+caused it or prove whether a server mutation ran.
+
 ```text
 hia-asm.v1 hepta.hia.program.v6 sums
 exports(total)
