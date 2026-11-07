@@ -8,6 +8,7 @@ material includes private keys, credentials, raw perf stacks or unsafe entries.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -18,12 +19,55 @@ MAX_FILE_BYTES = 64 * 1024 * 1024
 MAX_TOTAL_BYTES = 512 * 1024 * 1024
 PRIVATE_NAMES = {"id_rsa", "id_ecdsa", "id_ed25519", ".env", ".netrc", ".npmrc", ".pypirc"}
 PRIVATE_SUFFIXES = {".key", ".p12", ".pfx"}
+REDACTION_PATTERNS = (
+    ("pem-private-key", re.compile(
+        rb"-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----.*$", re.S
+    )),
+    ("openvpn-static-key", re.compile(rb"-----BEGIN OpenVPN Static key.*$", re.S)),
+    ("github-token", re.compile(rb"\\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}")),
+    ("aws-secret-access-key", re.compile(
+        rb"(?i:aws_secret_access_key)\\s*[:=]\\s*[^\\s]{16,}"
+    )),
+)
 SECRETS = re.compile(
     rb"-----BEGIN (?:RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----"
     rb"|-----BEGIN OpenVPN Static key"
-    rb"|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"
-    rb"|(?i:aws_secret_access_key)\s*[:=]\s*[^\s]{16,}"
+    rb"|\\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"
+    rb"|(?i:aws_secret_access_key)\\s*[:=]\\s*[^\\s]{16,}"
 )
+
+
+def redact_public_value(value, field_path="$", redactions=None):
+    """Return a JSON-safe copy with secret-like strings replaced by hash receipts."""
+    if redactions is None:
+        redactions = []
+    if isinstance(value, str):
+        raw = value.encode("utf-8")
+        for kind, pattern in REDACTION_PATTERNS:
+            def replace(match, kind=kind):
+                secret = match.group(0)
+                digest = hashlib.sha256(secret).hexdigest()
+                redactions.append({
+                    "field": field_path,
+                    "kind": kind,
+                    "sha256": digest,
+                    "bytes": len(secret),
+                })
+                return f"[REDACTED:{kind}:sha256={digest}]".encode("ascii")
+            raw = pattern.sub(replace, raw)
+        return raw.decode("utf-8", errors="replace")
+    if isinstance(value, dict):
+        return {
+            key: redact_public_value(item, f"{field_path}.{key}", redactions)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            redact_public_value(item, f"{field_path}[{index}]", redactions)
+            for index, item in enumerate(value)
+        ]
+    return value
+
 
 
 def inspect(public: Path) -> dict:
@@ -55,7 +99,10 @@ def inspect(public: Path) -> dict:
         if len(raw) != item.st_size:
             raise ValueError(f"artifact changed during privacy check: {rel}")
         if SECRETS.search(raw):
-            raise ValueError(f"private key or credential pattern in artifact: {rel}")
+            kinds = [kind for kind, pattern in REDACTION_PATTERNS if pattern.search(raw)]
+            raise ValueError(
+                f"private key or credential pattern ({','.join(kinds)}) in artifact: {rel}"
+            )
         checked += 1
     if checked == 0:
         raise ValueError("no public evidence files to publish")
