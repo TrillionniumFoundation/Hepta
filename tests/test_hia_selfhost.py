@@ -4,13 +4,18 @@ from __future__ import annotations
 from pathlib import Path
 import platform
 import shutil
+import struct
 import tempfile
 import unittest
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import HIAProgramRejected
 from tools.qualify_hia_selfhost import (INVALID, NO_SPACE, SAMPLE, SOURCE,
-    compile_stage, invalid_sources, invoke, mutate_compiler, qualify, readonly_call_source)
+    compile_stage, invalid_sources, invoke, mutate_compiler, qualify, readonly_call_source,
+    inspect_selfhost_object)
+from tools.hia_selfhost_contract import validate_contract
+from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_source,
+                                     call_graph_invalid_sources, recursion_refusals)
 
 NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
 
@@ -24,7 +29,9 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertEqual(render_assembly(checked).encode(), source)
         self.assertEqual(render_assembly(doc).encode(), source)
         self.assertEqual(names["compile"], "f0")
-        self.assertEqual(names["wrapper"], "f3")
+        self.assertEqual(names["wrapper"], validate_contract()["compiler_symbols"]["mutation_wrapper"])
+        self.assertTrue(any(int(o["attrs"]["function"][1:]) < int(f["name"][1:])
+            for f in doc["functions"] for b in f["blocks"] for o in b["ops"] if o["op"] == "call"))
         self.assertGreater(len(source), 200000)
         self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), 3072)
         self.assertLessEqual(sum(len(f["blocks"]) for f in doc["functions"]), 1536)
@@ -48,6 +55,16 @@ class SelfhostSourceTests(unittest.TestCase):
         for name in ("readonly-jump-alias", "readonly-branch-alias"):
             with self.subTest(case=name), self.assertRaisesRegex(HIAProgramRejected, "E_HIA_RESOURCE"):
                 assemble_program(invalid[name])
+
+    def test_call_graph_admission_distinguishes_general_core_from_fixed_profile(self):
+        assemble_program(backward_bytesum_source(SAMPLE.read_bytes()))
+        assemble_program(backward_chain_source())
+        for name, source in recursion_refusals().items():
+            with self.subTest(case=name):
+                assemble_program(source)  # valid general Core; outside the acyclic native profile
+        for name, source in call_graph_invalid_sources(SAMPLE.read_bytes()).items():
+            with self.subTest(case=name), self.assertRaises(HIAProgramRejected):
+                assemble_program(source)
 
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
@@ -103,6 +120,51 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertTrue(result["output_unchanged"], result)
         self.assertTrue(self.report["checks"]["readonly_call_alias_remains_legal"])
         self.assertEqual(self.report["readonly_call_observations"][1]["core_u32"], 28)
+
+    def test_backward_calls_and_full_depth_execute_in_original_and_modified_compilers(self):
+        for compiler in ("original", "modified"):
+            self.assertTrue(self.report["checks"][compiler + "_128_function_backward_chain"])
+            for index in range(3):
+                self.assertTrue(self.report["checks"][compiler + "_backward_call_behavior_" + str(index)])
+        self.assertTrue(self.report["checks"]["own_compiler_uses_backward_direct_calls"])
+        references = self.report["independent_core_reference"]["general_core_observations"]
+        self.assertEqual(references[-1]["result"], 127)
+
+    def test_recursion_and_bad_backward_signatures_are_transactionally_refused(self):
+        results = [row for row in self.report["call_graph_observations"] if "-reject-" in row["case"]]
+        self.assertEqual(len(results), 14)
+        for result in results:
+            self.assertEqual(result.get("core_u32"), INVALID, result)
+            self.assertTrue(result.get("output_unchanged"), result)
+            self.assertTrue(result.get("source_unchanged"), result)
+        differences = self.report["independent_core_reference"]["admission_differences"]
+        self.assertEqual(sum(row["general_core"] == "accepted" for row in differences), 3)
+
+    def test_hia_writes_elf_objects_that_link_and_rebuild_the_compiler(self):
+        rows = [row for row in self.report["elf_object_observations"] if "inventory" in row]
+        self.assertEqual(len(rows), 4)
+        for row in rows:
+            self.assertEqual(row["inventory"]["exports"], ["f0"])
+            self.assertEqual(row["inventory"]["undefined_symbols"], [])
+            self.assertEqual(row["inventory"]["external_relocations"], [])
+            self.assertTrue(row["inventory"]["nonexecuting_stack_note"])
+        for name, accepted in self.report["checks"].items():
+            if "elf" in name:
+                self.assertTrue(accepted, name)
+        self.assertTrue(self.report["claims"]["HIA_successor_ELF_writer_used"])
+        self.assertFalse(self.report["claims"]["Python_successor_ELF_writer_used"])
+        self.assertFalse(self.report["claims"]["external_linker_in_flat_bootstrap_chain"])
+
+    def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
+        data = (self.directory / "original-elf-bytesum.o").read_bytes()
+        shoff = struct.unpack_from("<Q", data, 40)[0]
+        symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
+        for label, offset, replacement in (("class", 4, b"\x01"),
+                ("executable-stack", shoff + 5 * 64 + 8, struct.pack("<Q", 4)),
+                ("undefined-f0", symoff + 48 + 6, b"\0\0"),
+                ("bad-header-extent", 40, struct.pack("<Q", len(data)))):
+            with self.subTest(case=label), self.assertRaises(ValueError):
+                inspect_selfhost_object(data[:offset] + replacement + data[offset + len(replacement):])
 
     def test_generated_byte_bounds_and_checked_shift_really_trap(self):
         sample = self.directory / "original-bytesum.image.bin"

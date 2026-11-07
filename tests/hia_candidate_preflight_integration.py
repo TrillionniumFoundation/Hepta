@@ -11,8 +11,10 @@ import contextlib
 import copy
 import io
 import json
+import marshal
 from pathlib import Path
 import os
+import py_compile
 import shutil
 import stat
 import subprocess
@@ -148,6 +150,21 @@ class CandidateIntegration(unittest.TestCase):
         self.assertEqual(config["unrelated_existing_policy"], self.configuration["unrelated_existing_policy"])
         self.assertEqual(preflight.decode(self.config_file.read_bytes()), self.configuration)
         self.assertNotIn(self.secret, preflight.json_bytes(candidate).decode())
+
+    def test_valid_ignored_worker_cache_is_rejected_without_execution(self):
+        source = self.source / "hepta/hia_agent_worker.py"
+        original = source.read_bytes()
+        cached = Path(py_compile.compile(str(source), doraise=True))
+        marker = self.root / "cached-worker-executed"
+        forged = compile("from pathlib import Path\nPath(" + repr(str(marker)) + ").write_text('executed')\n", str(source), "exec")
+        cached.write_bytes(cached.read_bytes()[:16] + marshal.dumps(forged))
+        self.assertEqual(source.read_bytes(), original)
+        self.assertEqual(self.git("status", "--porcelain", "--untracked-files=all"), "")
+        with self.assertRaisesRegex(ValueError, "cache or binary shadow"):
+            self.prepare()
+        with self.assertRaisesRegex(ValueError, "cache or binary shadow"):
+            preflight.installed_pins(self.source, Path(sys.executable))
+        self.assertFalse(marker.exists())
 
     def test_published_configuration_and_manifest_are_private_and_reloadable(self):
         candidate, directory, digest = self.retained_candidate()

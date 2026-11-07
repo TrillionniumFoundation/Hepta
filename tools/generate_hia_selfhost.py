@@ -15,11 +15,14 @@ from hepta.hia_agent_assembly import render_assembly
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
-# argument vector; relative relocation records. All are ordinary borrowed bytes.
+# argument vector; relative relocation records; bounded call graph and marks.
+# All are ordinary borrowed bytes. The graph occupies previously unused scratch
+# after the complete relocation table, so this profile keeps the 1 MiB limit.
 FBASE, FSTRIDE, BBASE, BSTRIDE, VBASE, ARGS, FIXBASE = 4096, 320, 45056, 320, 536576, 569344, 570368
+CBASE, CSTATE = 858368, 874752
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
@@ -30,18 +33,29 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if length(o) > 1048576:
         return 4294967294
+    i = 0
+    while i < 17408:
+        put(w, CBASE + i, 0)
+        i = i + 8
     while phase < 3:
         i = 0
         while i < 256:
             put(w, i, 0)
             i = i + 8
         put(w, 48, phase)
-        wrapper(o, w)
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
         expect(s, w, @hepta.hia.program.v8@)
-        expect(s, w, @selfhost@)
+        if get(w, 8) == @selfhost_elf@:
+            put(w, 232, 1)
+            expect(s, w, @selfhost_elf@)
+        else:
+            expect(s, w, @selfhost@)
         expect(s, w, 10)
+        if get(w, 232) == 1:
+            elf_begin(o, w)
+        wrapper(o, w)
+        put(w, 240, get(w, 56))
         while get(w, 8) == @fn@ and get(w, 40) == 0:
             parse_function(s, o, w)
         expect(s, w, 0)
@@ -53,6 +67,8 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             check_graph(w)
             if get(w, 40) != 0:
                 return 4294967295
+        if get(w, 232) == 1:
+            elf_finish(o, w)
         if phase == 1:
             if get(w, 56) > length(o):
                 return 4294967294
@@ -357,8 +373,11 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 fail(w, 49)
             x = expect(s, w, 257)
             expect(s, w, 125)
-            if x <= get(w, 72) or x >= 128:
+            if x >= 128:
                 fail(w, 23)
+            else:
+                if get(w, 48) == 0:
+                    store(w, CBASE + get(w, 72) * 128 + x, 1)
             if get(w, 48) > 0:
                 if x >= get(w, 1024):
                     fail(w, 23)
@@ -607,6 +626,36 @@ def check_graph(w:mutbuf) -> u64:
             b = b + 1
         f = f + 1
     put(w, 1024, get(w, 64))
+    check_calls(w)
+    return 0
+
+def check_calls(w:mutbuf) -> u64:
+    n = get(w, 64)
+    step = 0
+    f = 0
+    target = 0
+    ready = 0
+    while step < n:
+        f = 0
+        while f < n:
+            ready = 1
+            target = 0
+            while target < 128:
+                if byte(w, CBASE + f * 128 + target) != 0:
+                    if target >= n:
+                        return fail(w, 55)
+                    if get(w, CSTATE + target * 8) == 0:
+                        ready = 0
+                target = target + 1
+            if ready == 1:
+                put(w, CSTATE + f * 8, 1)
+            f = f + 1
+        step = step + 1
+    f = 0
+    while f < n:
+        if get(w, CSTATE + f * 8) == 0:
+            return fail(w, 56)
+        f = f + 1
     return 0
 
 def wrapper(o:mutbuf, w:mutbuf) -> u64:
@@ -943,6 +992,70 @@ def get(w:mutbuf, at:u64) -> u64:
         value = value | (byte(w, at + i) << (i * 8))
         i = i + 1
     return value
+
+def elf_begin(o:mutbuf, w:mutbuf) -> u64:
+    emit8(o, w, 282584257676671)
+    emit8(o, w, 0)
+    emit8(o, w, 4299030529)
+    emit8(o, w, 0)
+    emit8(o, w, 0)
+    emit8(o, w, 0)
+    emit8(o, w, 274877906944)
+    emit8(o, w, 1125925680840704)
+    return 0
+
+def elf_finish(o:mutbuf, w:mutbuf) -> u64:
+    if get(w, 48) == 0:
+        return 0
+    text = get(w, 56) - 64
+    align8(o, w)
+    symbols = get(w, 56)
+    emit8(o, w, 0)
+    emit8(o, w, 0)
+    emit8(o, w, 0)
+    emit8(o, w, 281487861612544)
+    emit8(o, w, 0)
+    emit8(o, w, 0)
+    emit8(o, w, 281552286121985)
+    emit8(o, w, 0)
+    emit8(o, w, get(w, 240) - 64)
+    strings = get(w, 56)
+    emit4(o, w, 3171840)
+    names = get(w, 56)
+    emit8(o, w, 3314777386191695360)
+    emit8(o, w, 3314757496449366387)
+    emit8(o, w, 3314757496449692787)
+    emit8(o, w, 7089075323386685555)
+    emit8(o, w, 5129148576381677056)
+    emit8(o, w, 7738135737529095502)
+    emit(o, w, 0)
+    align8(o, w)
+    headers = get(w, 56)
+    if get(w, 48) == 2:
+        put(o, 40, headers)
+    elf_section(o, w, 0, 0, 0, 0, 0, 0, 0)
+    elf_section(o, w, 4294967297, 6, 64, text, 0, 16, 0)
+    elf_section(o, w, 8589934599, 0, symbols, 72, 8589934595, 8, 24)
+    elf_section(o, w, 12884901903, 0, strings, 4, 0, 1, 0)
+    elf_section(o, w, 12884901911, 0, names, 49, 0, 1, 0)
+    elf_section(o, w, 4294967329, 0, names + 49, 0, 0, 1, 0)
+    return 0
+
+def align8(o:mutbuf, w:mutbuf) -> u64:
+    while (get(w, 56) & 7) != 0:
+        emit(o, w, 0)
+    return 0
+
+def elf_section(o:mutbuf, w:mutbuf, kind:u64, flags:u64, offset:u64, size:u64, links:u64, alignment:u64, item_size:u64) -> u64:
+    emit8(o, w, kind)
+    emit8(o, w, flags)
+    emit8(o, w, 0)
+    emit8(o, w, offset)
+    emit8(o, w, size)
+    emit8(o, w, links)
+    emit8(o, w, alignment)
+    emit8(o, w, item_size)
+    return 0
 '''
 
 
@@ -955,7 +1068,7 @@ def source_program():
     table += ['    return 0']
     text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
-    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE']:
+    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE']:
         text = text.replace(key, str(globals()[key]))
     return text
 
@@ -1069,15 +1182,10 @@ class Builder:
 
 def document():
     nodes=ast.parse(source_program()).body
-    byname={n.name:n for n in nodes}
-    # Reverse topological order ensures every call targets a later function;
-    # the native verifier rejects recursion and backward calls explicitly.
-    deps={n.name:{x.func.id for x in ast.walk(n) if isinstance(x,ast.Call) and isinstance(x.func,ast.Name) and x.func.id in byname} for n in nodes}
-    ordered=[]; remaining=set(byname)
-    while remaining:
-        heads=[n.name for n in nodes if n.name in remaining and not any(n.name in deps[x] for x in remaining)]
-        if not heads: raise ValueError('recursive author source')
-        for h in heads: ordered.append(byname[h]); remaining.remove(h)
+    # Source order deliberately contains backward direct calls. The HIA
+    # compiler's call-graph checker, not author-time topological numbering,
+    # admits this DAG and rejects direct or indirect recursion.
+    ordered=nodes
     assert ordered[0].name=='compile'
     names={n.name:'f'+str(i) for i,n in enumerate(ordered)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in ordered}

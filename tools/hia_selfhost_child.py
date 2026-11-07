@@ -38,7 +38,7 @@ def main():
     assert type(capacity) is int and 0 <= capacity <= MAX_BYTES
     assert type(workspace_size) is int and 0 <= workspace_size <= MAX_BYTES
     signature = [ctypes.c_void_p, ctypes.c_uint64] * 3
-    if request["format"] == "seed-shared":
+    if request["format"] in {"seed-shared", "linked-selfhost"}:
         # Seal the exact checked seed bytes before handing them to the loader.
         fd = os.memfd_create("hia-bootstrap-seed", os.MFD_ALLOW_SEALING)
         try:

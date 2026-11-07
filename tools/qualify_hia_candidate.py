@@ -27,15 +27,20 @@ NEW_SUITES = (
     "tests.test_core_seven_shared_source_closure",
     "tests.test_hia_agent_native_tools",
     "tests.test_hia_agent_native_machine_choices",
+    "tests.test_hia_agent_native_campaign",
     "tests.test_hia_machine_plan",
     "tests.test_hia_machine_registers",
     "tests.test_hia_native_byte_abi",
     "tests.test_hia_bootstrap_components",
     "tests.test_hia_selfhost",
+    "tests.test_hia_selfhost_contract",
     "tests.test_hia_agent_macro_policy",
     "tests.test_hia_macro_campaign",
     "tests.test_hia_macro_codex_provider",
     "tests.test_hia_candidate_preflight",
+    "tests.test_hia_release",
+    "tests.test_hia_first_use",
+    "tests.test_hia_agent_provider",
 )
 
 
@@ -50,7 +55,8 @@ def sources():
                 entries[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
     for path in sorted((ROOT / "docs").glob("HIA_*.md")):
         entries[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
-    for relative in ("docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json", ".github/workflows/hia-unified-candidate.yml"):
+    for relative in ("docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json", "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+                     ".github/workflows/hia-unified-candidate.yml"):
         entries[relative] = sha256((ROOT / relative).read_bytes()).hexdigest()
     payload = json.dumps(entries, sort_keys=True, separators=(",", ":")).encode()
     return {"sha256": sha256(payload).hexdigest(), "files": entries}

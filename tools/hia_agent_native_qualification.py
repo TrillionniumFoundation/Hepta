@@ -15,6 +15,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import tempfile
 import time
@@ -35,6 +36,21 @@ if str(ROOT) not in sys.path:
 def json_bytes(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"),
                       ensure_ascii=False, allow_nan=False).encode("utf-8")
+
+
+def campaign_binding(campaign_id):
+    """Bind a declared campaign to both request ownership and its global slot.
+
+    Reusing an ID is an explicit request to observe the original call sequence.
+    A fresh ID isolates both keys and publication; contexts alone do not isolate
+    the worker's globally named adoption slots.
+    """
+    if not isinstance(campaign_id, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}", campaign_id):
+        raise ValueError("campaign id must be 1..96 ASCII letters/digits/._-, starting with a letter or digit")
+    namespace = "hia-qualification/" + campaign_id
+    return {"id": campaign_id, "request_prefix": namespace + "/requests",
+            "target_slot": namespace + "/slot"}
 
 
 def add_program(*, optimized=False, increment=7, typ="u8", module="agent_qualification",
@@ -97,23 +113,44 @@ def exhaustive_u8_workload(increment=7):
 class ToolClient:
     """Record and schema-check the exact application request and response."""
 
-    def __init__(self, call: Callable, *, catalog_path=CATALOG_PATH, validate=True):
+    def __init__(self, call: Callable, *, catalog_path=CATALOG_PATH, validate=True,
+                 journal: Callable | None = None):
         self._call = call
         self.catalog = json.loads(Path(catalog_path).read_bytes())
         self.tools = {tool["name"]: tool for tool in self.catalog["tools"]}
         self.records = []
         self.validate = validate
+        self.journal = journal
+
+    def _journal(self, phase, sequence, record):
+        if self.journal is not None:
+            self.journal({"phase": phase, "sequence": sequence, **deepcopy(record)})
 
     def call(self, tool, arguments, *, expected_status="completed"):
         request = deepcopy(arguments)
         if self.validate:
             from jsonschema import Draft202012Validator
             Draft202012Validator(self.tools[tool]["inputSchema"]).validate(request)
+        sequence = len(self.records) + 1
+        attempt = {"tool": tool, "arguments": request}
+        # A CLI journal fsyncs this exact intent before dispatch. If a response
+        # is lost, recovery retains this key and body rather than making a new
+        # candidate or spending a second execution budget.
+        self._journal("intent", sequence, attempt)
         started = time.monotonic_ns()
-        response = self._call(tool, request)
+        try:
+            response = self._call(tool, deepcopy(request))
+        except BaseException as exc:
+            record = {**attempt, "elapsed_ns": str(time.monotonic_ns() - started),
+                      "outcome": "unknown", "error_type": type(exc).__name__,
+                      "error": str(exc)}
+            self.records.append(record)
+            self._journal("error", sequence, record)
+            raise
         elapsed = time.monotonic_ns() - started
         self.records.append({"tool": tool, "arguments": request,
                              "response": deepcopy(response), "elapsed_ns": str(elapsed)})
+        self._journal("response", sequence, self.records[-1])
         if self.validate:
             Draft202012Validator(self.tools[tool]["outputSchema"]).validate(response)
         if expected_status is not None and response["status"] != expected_status:
@@ -241,8 +278,11 @@ class Session:
             build_receipt=candidate["build_receipt"], verification_receipts=list(receipts)))
 
 
-def scripted_loop(session):
+def scripted_loop(session, *, target_slot="qualification"):
     """Exercise the 11 tools on an explicit client-selected Core simplification."""
+    if not isinstance(target_slot, str) or not re.fullmatch(
+            r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,191}", target_slot):
+        raise ValueError("a bounded HIA target slot is required")
     objective = {"schema": "hepta.hia.agent.objective.v1", "metric": "artifact_bytes",
         "required_claims": ["core_admission", "behavior_equivalence", "encoding_check"],
         "allow_unchanged": True, "min_improvement_ratio": 0.0}
@@ -271,16 +311,16 @@ def scripted_loop(session):
         raise QualificationFailure("full u8 workload did not complete")
     if evaluation["outcome"] != "improved":
         raise QualificationFailure("explicit redundant arithmetic removal did not reduce artifact size")
-    adoption = session.client.result("hia_adopt", session.arguments(target_slot="qualification",
+    adoption = session.client.result("hia_adopt", session.arguments(target_slot=target_slot,
         expected_current={"generation": "0", "epoch": "0"},
         candidate_artifact=candidate_build["native_artifact"],
         evaluation_receipt=evaluation["evaluation_receipt"], verification_receipts=receipts))
-    stale = session.client.call("hia_adopt", session.arguments(target_slot="qualification",
+    stale = session.client.call("hia_adopt", session.arguments(target_slot=target_slot,
         expected_current={"generation": "0", "epoch": "0"},
         candidate_artifact=candidate_build["native_artifact"],
         evaluation_receipt=evaluation["evaluation_receipt"], verification_receipts=receipts),
         expected_status="rejected")
-    rollback = session.client.result("hia_rollback", session.arguments(target_slot="qualification",
+    rollback = session.client.result("hia_rollback", session.arguments(target_slot=target_slot,
         expected_current=adoption["current"], retained_generation=adoption["previous"]["generation"],
         reason="qualification restores retained baseline"))
     return {"baseline": baseline, "candidate": candidate, "baseline_build": baseline_build,
@@ -294,20 +334,60 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-root", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--campaign-id", required=True,
+        help="Explicit campaign identity, bound to request keys and the adoption slot; reuse only to observe original requests")
     parser.add_argument("--mcp-command-json", help="Administrator-provided JSON argv for actual runtime")
     parser.add_argument("--cwd", type=Path, default=ROOT)
     args = parser.parse_args(argv)
+    try:
+        binding = campaign_binding(args.campaign_id)
+    except ValueError as exc:
+        parser.error(str(exc))
     started = time.monotonic_ns()
     transport = None
     temporary = None
+    service = None
+    client = None
+    journal_stream = None
+    report_stream = None
+    report = {"schema": "hepta.hia.agent.qualification.v1", "status": "started",
+              "campaign": binding,
+              "client_source_sha256": sha256(Path(__file__).read_bytes()).hexdigest(),
+              "calls": [], "formal_endpoint_qualified": False,
+              "current_agent_tool_discovery_established": False}
+
+    def save_report():
+        if report_stream is not None:
+            report_stream.seek(0)
+            json.dump(report, report_stream, indent=2, ensure_ascii=False)
+            report_stream.write("\n")
+            report_stream.truncate()
+            report_stream.flush()
+            os.fsync(report_stream.fileno())
+
+    def journal(event):
+        journal_stream.write(json_bytes(event) + b"\n")
+        journal_stream.flush()
+        os.fsync(journal_stream.fileno())
+
     try:
+        # Refuse existing evidence before starting a transport or opening the
+        # service store. A replay uses the same campaign and a new output path.
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        report_stream = args.output.open("x", encoding="utf-8")
+        os.fchmod(report_stream.fileno(), 0o600)
+        journal_path = args.output.with_name(args.output.name + ".calls.jsonl")
+        journal_stream = journal_path.open("xb")
+        os.fchmod(journal_stream.fileno(), 0o600)
+        report["call_journal"] = str(journal_path)
+        save_report()
         if args.mcp_command_json:
             command = json.loads(args.mcp_command_json)
             if not isinstance(command, list) or not command or not all(isinstance(x, str) for x in command):
                 parser.error("--mcp-command-json must be a nonempty JSON array of argv strings")
             transport = MCPStdio(command, cwd=args.cwd)
             listing = transport.list_tools()
-            client = ToolClient(transport.call)
+            client = ToolClient(transport.call, journal=journal)
             mode = "actual_hepta_runtime_stdio_mcp"
             names = {tool["name"] for tool in listing}
             if not set(client.tools) <= names:
@@ -318,13 +398,14 @@ def main(argv=None):
                 temporary = tempfile.TemporaryDirectory(prefix="hia-agent-qualification-")
                 args.state_root = Path(temporary.name)
             service = HIAAgentService(args.state_root)
-            client = ToolClient(service.call)
+            client = ToolClient(service.call, journal=journal)
             listing = []
             mode = "in_process_domain_service"
-        session = Session(client)
-        result = scripted_loop(session)
-        report = {"schema": "hepta.hia.agent.qualification.v1", "status": "passed",
-            "mode": mode, "elapsed_ns": str(time.monotonic_ns() - started),
+        report["mode"] = mode
+        session = Session(client, prefix=binding["request_prefix"])
+        result = scripted_loop(session, target_slot=binding["target_slot"])
+        report.update({"status": "passed", "mode": mode,
+            "elapsed_ns": str(time.monotonic_ns() - started),
             "tool_names_observed": sorted({record["tool"] for record in client.records}),
             "tool_call_count": len(client.records), "catalog_sha256": session.catalog_sha256,
             "tools_list": listing, "scenario": result, "calls": client.records,
@@ -332,19 +413,35 @@ def main(argv=None):
                 "fresh_model_learning_test_performed": False,
                 "model_training_exposure_known": False,
                 "universal_backend_refinement_proved": False,
-                "net_optimization_benefit_proved": False}}
-        if transport:
+                "net_optimization_benefit_proved": False}})
+        save_report()
+        print(json.dumps({"status": "passed", "mode": mode,
+                          "campaign": binding, "calls": len(client.records),
+                          "output": str(args.output)}))
+    except BaseException as exc:
+        report.update(status="failed", error_type=type(exc).__name__, error=str(exc),
+                      elapsed_ns=str(time.monotonic_ns() - started))
+        raise
+    finally:
+        if client is not None:
+            report["calls"] = client.records
+            report["tool_call_count"] = len(client.records)
+        if transport is not None:
             report["mcp_initialize"] = transport.initialized
             report["mcp_protocol_records"] = transport.protocol_records
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n")
-        print(json.dumps({"status": "passed", "mode": mode,
-                          "calls": len(client.records), "output": str(args.output)}))
-    finally:
-        if transport:
-            transport.close()
-        if temporary:
-            temporary.cleanup()
+        try:
+            save_report()
+        finally:
+            if journal_stream is not None:
+                journal_stream.close()
+            if report_stream is not None:
+                report_stream.close()
+            if transport is not None:
+                transport.close()
+            if service is not None:
+                service.close()
+            if temporary is not None:
+                temporary.cleanup()
 
 
 if __name__ == "__main__":

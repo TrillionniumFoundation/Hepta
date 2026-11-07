@@ -5,10 +5,35 @@ human and coding-agent collaboration. Its checked ownership model, explicit
 effects, source-bound interfaces, and transaction protocol make resource and
 interface obligations visible to tools.
 
-The standalone **HIA program v1** accepts AI-authored typed SSA programs
+## HIA release entry
+
+The default HIA candidate entry is `python3 -B tools/hia_release.py`. Its
+checked-in [release lock](releases/hia-current.json) binds one exact Hepta/runtime
+source pair, worker/backend/catalog digests, Linux x86-64 target, ABI and
+Selfhost-Core support matrix. New installations use that lock, rather than
+combining the latest branch of each repository. Start with:
+
+```sh
+python3 -B tools/hia_release.py describe
+python3 -B tools/hia_release.py materialize --directory /absolute/new/hia-release
+python3 -B tools/hia_release.py check \
+  --hepta-root /absolute/new/hia-release/hepta \
+  --runtime-checkout /absolute/new/hia-release/runtime
+```
+
+[Release entry and reproduction](docs/HIA_RELEASE_ENTRY.md) covers preparation
+with an existing reviewed worker configuration, complete MCP catalog checking,
+actual endpoint probes and cold self-hosting replay. The direct backend owns
+x86-64 instruction and ELF object emission. The fixed self-hosting compiler
+emits its successor machine images and bounded ELF64 objects in HIA; its exact subset is separately
+declared. A source lock does not attest a deployed service, current Agent tool
+discovery, full-language self-hosting or NDU benefit. Those require their own
+retained observations.
+
+The standalone **HIA Core v1-v8 profiles** accept AI-authored typed SSA programs
 without original high-level source. `python -m hepta hia verify`, `run`,
-`build`, and `patch` share an independent ownership/effect verifier. Its direct
-LLVM path does not invoke Rust. Existing executable Core operations and HIA
+`build`, and `patch` share an independent ownership/effect verifier. The Agent
+profile uses `hia-direct` without a Rust or LLVM fallback. Existing executable Core operations and HIA
 scalar SSA can both be imported into this same executable authority. The
 [HIA program specification](docs/HIA_PROGRAM.md) defines the exact instruction,
 resource, ABI and target scope; the broader hosted language remains separate.

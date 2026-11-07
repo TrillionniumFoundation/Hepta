@@ -229,13 +229,27 @@ def _guard(raw):
         raise ValueError("unknown availability event")
 
 
-def probe_batch(codex, models, folder, seconds, *, execute=run_owned):
+def disabled_mcp_config(names):
+    """Explicitly remove only named, unused MCP startup dependencies in a probe.
+
+    No arbitrary config override is accepted: auth, providers, rules, sandbox and
+    approval settings remain inherited. The exact invocation retains this scope.
+    """
+    if (type(names) not in (list, tuple) or len(names) > 16
+            or any(type(name) is not str or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,79}", name) is None
+                   for name in names) or len(set(names)) != len(names)):
+        raise ValueError("distinct literal MCP server names required")
+    return [argument for name in names for argument in ("-c", f"mcp_servers.{name}.enabled=false")]
+
+
+def probe_batch(codex, models, folder, seconds, *, execute=run_owned, disabled_mcp_servers=()):
     if type(seconds) is not int or not 1 <= seconds <= 90:
         raise ValueError("probe deadline must be an integer in 1..90")
     if (type(models) is not list or not 1 <= len(models) <= 8
             or any(type(m) is not str or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}", m) is None for m in models)
             or len(set(models)) != len(models)):
         raise ValueError("one to eight distinct explicit model selectors required")
+    overrides = disabled_mcp_config(disabled_mcp_servers)
     rows, stop = [], None
     for index, model in enumerate(models):
         if stop is not None:
@@ -247,10 +261,11 @@ def probe_batch(codex, models, folder, seconds, *, execute=run_owned):
         cwd = work / "cwd"
         cwd.mkdir()
         process = execute([codex, "exec", "--json", "--ephemeral", "--sandbox", "read-only",
-                           "--skip-git-repo-check", "-c", 'model_reasoning_effort="low"', "-m", model, "-"],
+                           "--skip-git-repo-check", "-c", 'model_reasoning_effort="low"', *overrides, "-m", model, "-"],
                           cwd, work / "process", input_bytes=PROMPT, wall_seconds=seconds, on_line=_guard)
         result = classify(process, read_bounded(work / "process/stdout.raw", MAX_STREAM))
-        row = {"model": model, "attempted": True, "process": process, **result}
+        row = {"model": model, "attempted": True, "process": process,
+               "disabled_mcp_servers": list(disabled_mcp_servers), **result}
         rows.append(row)
         save(work / "RESULT.json", row)
         if not all(process.get(k) is True for k in ("cleanup_confirmed", "leader_reaped", "streams_complete")):
@@ -270,9 +285,17 @@ def main():
     parser.add_argument("--models", nargs="+", default=[])
     parser.add_argument("--input", type=Path, nargs="+", default=[])
     parser.add_argument("--wall-seconds", type=int, default=60)
+    parser.add_argument("--disable-mcp-server", action="append", default=[],
+                        help="probe only: explicitly omit one unused MCP startup dependency; never changes stored config")
     args = parser.parse_args()
     if not 1 <= args.wall_seconds <= 90 or not args.output.is_absolute() or args.output.resolve().is_relative_to(ROOT):
         parser.error("bounded deadline and fresh absolute output outside source required")
+    try:
+        disabled_mcp_config(args.disable_mcp_server)
+        if args.disable_mcp_server and args.mode != "probe":
+            raise ValueError("MCP startup overrides are supported only for the no-tools availability probe")
+    except ValueError as error:
+        parser.error(str(error))
     args.output.mkdir(parents=True, exist_ok=False)
     report = {"schema": "hepta.hia.agent-provider-preflight.v1", "mode": args.mode,
               "status": "blocked", "coding_task_requests": 0, "task_successes": 0,
@@ -315,7 +338,8 @@ def main():
                     raise ValueError("catalog transport or cleanup failed")
                 report.update(catalog_response(read_bounded(args.output / "process/stdout.raw", MAX_STREAM)), status="catalog_observed")
             else:
-                rows = probe_batch(str(args.codex), args.models, args.output, args.wall_seconds)
+                rows = probe_batch(str(args.codex), args.models, args.output, args.wall_seconds,
+                                   disabled_mcp_servers=args.disable_mcp_server)
                 report.update(rows=rows, all_requested_models_available_at_probe=all(r["available"] for r in rows))
                 report["status"] = "available" if report["all_requested_models_available_at_probe"] else "blocked"
             if identity(args.codex) != tool:
