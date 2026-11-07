@@ -189,6 +189,31 @@ def verify_dco_path_scope(server_path, before, after):
     return True
 
 
+def verify_dco_device_command_binding(command, command_ledger, expected_namespace,
+                                       expected_path, expected_sha256):
+    """Bind a DCO device-stat stdout file to its finished command-ledger row."""
+    require(isinstance(command, dict) and isinstance(command_ledger, list),
+            "DCO device-stat command receipt is malformed")
+    label = command.get("label")
+    require(isinstance(label, str) and label,
+            "DCO device-stat command label is missing")
+    matches = [row for row in command_ledger
+               if row.get("event") == "finished" and row.get("label") == label]
+    require(len(matches) == 1
+            and {key: value for key, value in matches[0].items() if key != "event"} == command,
+            "DCO device-stat command does not match its unique finished ledger row")
+    expected_argv = ["ip", "netns", "exec", expected_namespace, "ip", "-d", "-s", "-j",
+                     "link", "show", "dev", "tunbench-s"]
+    require(command.get("exit_code") == 0 and not command.get("timed_out")
+            and command.get("namespace") == expected_namespace
+            and command.get("argv") == expected_argv,
+            "DCO device-stat command identity/namespace is invalid")
+    require(command.get("stdout") == expected_path
+            and command.get("stdout_sha256") == expected_sha256,
+            "DCO device-stat stdout is not bound to its raw snapshot path/digest")
+    return True
+
+
 def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False,
                                device_drop_delta=None):
     """Independently verify peer counters and the DCO device RX-drop witness."""
@@ -447,6 +472,8 @@ def verify_continuity_loss_evidence(case_dir, case, plan):
 def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
     """Recompute exact ciphertext ingress, old-plaintext non-delivery and DCO per-injection counters."""
     case_dir = case_path.parent
+    command_ledger_path = beneath(target, "commands.jsonl")
+    command_ledger = [json.loads(line) for line in command_ledger_path.read_text().splitlines() if line.strip()]
     continuity=verify_continuity_loss_evidence(case_dir,case,plan)
     actions = plan["behavior"]["encrypted_actions"]
     injections = case.get("injections", [])
@@ -563,12 +590,13 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
             computed_device=verify_dco_device_drop_delta(device_before,device_after)
             require(dco.get("device_delta")==computed_device,
                     "DCO device RX-drop delta differs from raw before/after snapshots: "+action)
-            expected_device_argv=["ip","-d","-s","-j","link","show","dev","tunbench-s"]
-            for command in (dco.get("device_before_command",{}),dco.get("device_after_command",{})):
-                require(command.get("exit_code")==0 and not command.get("timed_out")
-                        and command.get("namespace")==case.get("namespaces",{}).get("server")
-                        and command.get("argv")==expected_device_argv,
-                        "DCO device-stat command identity/namespace is invalid: "+action)
+            namespace=case.get("namespaces",{}).get("server")
+            verify_dco_device_command_binding(
+                dco.get("device_before_command",{}),command_ledger,namespace,
+                dco.get("device_before_path"),dco.get("device_before_sha256"))
+            verify_dco_device_command_binding(
+                dco.get("device_after_command",{}),command_ledger,namespace,
+                dco.get("device_after_path"),dco.get("device_after_sha256"))
             computed = verify_dco_rejection_delta(before, after, packet_peer_id=packet_peer_id,
                                                   allow_stale_peer_id=stale_peer_expected,
                                                   device_drop_delta=computed_device)
