@@ -133,8 +133,13 @@ def verify_udp_delivery(value, workload, policy):
 
 
 
-def verify_dco_rejection_delta(before, after):
-    """Independently require the same DCO peer to receive link traffic but forward no VPN data."""
+def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False):
+    """Independently verify active-peer ingress or a prior-session peer ID after reconnect."""
+    require(type(allow_stale_peer_id) is bool, "stale peer-ID allowance is not boolean")
+    require(packet_peer_id is None or
+            (isinstance(packet_peer_id, int) and not isinstance(packet_peer_id, bool)
+             and 0 <= packet_peer_id <= 0xffffff),
+            "OpenVPN data-v2 peer ID is malformed")
     for key in ("ifindex", "netns_inode", "family_id"):
         require(before.get(key) == after.get(key), "DCO peer scope changed: " + key)
     first = {row["peer_id"]: row for row in before.get("peers", [])}
@@ -150,10 +155,19 @@ def verify_dco_rejection_delta(before, after):
         delta = {key: last[peer_id][key] - old[key] for key in counters}
         require(all(isinstance(value, int) and not isinstance(value, bool) and value >= 0
                     for value in delta.values()), "DCO replay peer counter reset or malformed")
-        require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
-                "DCO peer did not account incoming encrypted link traffic")
-        require(delta["vpn_rx_packets"] == 0 and delta["vpn_rx_bytes"] == 0,
-                "DCO peer forwarded the injected packet into the VPN-facing path")
+        stale_peer = allow_stale_peer_id and packet_peer_id is not None and packet_peer_id != peer_id
+        require(not allow_stale_peer_id or stale_peer,
+                "post-reconnect replay does not carry a different prior peer ID")
+        require(stale_peer or packet_peer_id is None or packet_peer_id == peer_id,
+                "encrypted datagram peer ID differs from the active DCO peer")
+        if stale_peer:
+            require(all(value == 0 for value in delta.values()),
+                    "stale prior-session peer ID changed current DCO peer counters")
+        else:
+            require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
+                    "DCO peer did not account incoming encrypted link traffic")
+            require(delta["vpn_rx_packets"] == 0 and delta["vpn_rx_bytes"] == 0,
+                    "DCO peer forwarded the injected packet into the VPN-facing path")
         result[str(peer_id)] = delta
     return result
 
@@ -249,7 +263,8 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
             and command_rows[1].get("label") == action + "-witness",
             "encrypted injection command identity changed: " + action)
     return {"mode": mode, "submit_monotonic_ns": submit_ns, "arrival_monotonic_ns": arrival_ns,
-            "observation_finished_monotonic_ns": observation_ns}
+            "observation_finished_monotonic_ns": observation_ns,
+            "packet_peer_id": arrived.get("peer_id")}
 
 
 def inclusive_ranges(values):
@@ -477,9 +492,38 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                         and command.get("namespace") == case.get("namespaces", {}).get("server")
                         and "--interface" in argv and "tunbench-s" in argv,
                         "DCO peer Netlink command identity/namespace is invalid: " + action)
-            computed = verify_dco_rejection_delta(before, after)
+            packet_peer_id=ingress.get("packet_peer_id")
+            stale_peer_expected=(action=="after-reconnect-replay" and expected_mode=="replay")
+            computed = verify_dco_rejection_delta(before, after, packet_peer_id=packet_peer_id,
+                                                  allow_stale_peer_id=stale_peer_expected)
+            active_peer_id=before["peers"][0]["peer_id"]
             require(dco.get("delta") == computed,
                     "DCO peer counter delta differs from raw before/after snapshots: " + action)
+            require(dco.get("packet_peer_id")==packet_peer_id
+                    and dco.get("active_peer_id")==active_peer_id,
+                    "DCO replay receipt does not bind packet and active peer IDs: " + action)
+            if stale_peer_expected:
+                require(dco.get("peer_accounting")=="stale-peer-id-unaccounted"
+                        and packet_peer_id!=active_peer_id,
+                        "post-reconnect replay was not identified as a prior-session peer ID: " + action)
+                fresh_before=read(beneath(case_dir,"after-reconnect-valid-before-server-peer.json"))
+                fresh_after=read(beneath(case_dir,"after-reconnect-valid-after-server-peer.json"))
+                require(all(fresh.get(key)==before.get(key)==fresh_after.get(key)
+                            for key in ("ifindex","netns_inode","family_id")
+                            for fresh in (fresh_before,)),
+                        "post-reconnect fresh control changed DCO peer scope: " + action)
+                require(len(fresh_before.get("peers",[]))==1 and len(fresh_after.get("peers",[]))==1
+                        and fresh_before["peers"][0]["peer_id"]==active_peer_id
+                        and fresh_after["peers"][0]["peer_id"]==active_peer_id,
+                        "post-reconnect fresh control did not use the active DCO peer: " + action)
+                fresh_delta={key:fresh_after["peers"][0][key]-fresh_before["peers"][0][key]
+                             for key in ("vpn_rx_bytes","vpn_rx_packets","link_rx_bytes","link_rx_packets")}
+                require(all(value>0 for value in fresh_delta.values()),
+                        "post-reconnect active DCO peer lacks fresh positive counter control: " + action)
+            else:
+                require(dco.get("peer_accounting")=="active-peer-link-rx"
+                        and packet_peer_id==active_peer_id,
+                        "active-peer replay was not accounted to the matching DCO peer: " + action)
             pause = dco.get("traffic_sender_pause")
             if action.startswith(("after-rekey", "after-reconnect")):
                 require(isinstance(pause, dict), "DCO transition replay lacks an isolated traffic window: " + action)

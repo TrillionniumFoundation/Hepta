@@ -309,8 +309,13 @@ def peer_delta(before, after):
 
 
 
-def dco_rejection_delta(before, after):
-    """Require one real DCO peer to receive link traffic without forwarding VPN data."""
+def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False):
+    """Require DCO accounting, except an exact prior-session peer ID after reconnect."""
+    if type(allow_stale_peer_id) is not bool:
+        raise ValueError("stale peer-ID allowance must be an explicit boolean")
+    if packet_peer_id is not None and (type(packet_peer_id) is not int
+                                       or not 0 <= packet_peer_id <= 0xffffff):
+        raise ValueError("OpenVPN data-v2 peer ID is malformed")
     for key in ("ifindex", "netns_inode", "family_id"):
         if before.get(key) != after.get(key):
             raise ValueError("DCO peer scope changed: " + key)
@@ -323,10 +328,19 @@ def dco_rejection_delta(before, after):
         row = {key: last[peer_id][key] - old[key] for key in PEER_COUNTERS}
         if any(value < 0 for value in row.values()):
             raise ValueError("DCO peer counters reset during encrypted injection")
-        if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
-            raise ValueError("DCO kernel peer did not record incoming link traffic")
-        if row["vpn_rx_packets"] != 0 or row["vpn_rx_bytes"] != 0:
-            raise ValueError("encrypted replay/tamper reached the VPN-facing peer counters")
+        stale_peer = allow_stale_peer_id and packet_peer_id is not None and packet_peer_id != peer_id
+        if allow_stale_peer_id and not stale_peer:
+            raise ValueError("post-reconnect stale replay does not carry a different prior peer ID")
+        if packet_peer_id is not None and not stale_peer and packet_peer_id != peer_id:
+            raise ValueError("encrypted datagram peer ID differs from the active DCO peer")
+        if stale_peer:
+            if any(value != 0 for value in row.values()):
+                raise ValueError("stale prior-session peer ID changed current DCO peer counters")
+        else:
+            if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
+                raise ValueError("DCO kernel peer did not record incoming link traffic")
+            if row["vpn_rx_packets"] != 0 or row["vpn_rx_bytes"] != 0:
+                raise ValueError("encrypted replay/tamper reached the VPN-facing peer counters")
         deltas[str(peer_id)] = row
     return deltas
 
@@ -831,6 +845,9 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         raise RuntimeError('peer did not witness the exact valid outer datagram')
     if arrival['monotonic_ns']<metadata['submissions'][0]['monotonic_ns']:
         raise RuntimeError('peer witness predates controlled injection')
+    packet_peer_id=arrival.get('datagram',{}).get('peer_id')
+    if dco_server and packet_peer_id is None:
+        raise RuntimeError('DCO encrypted witness lacks a parsed OpenVPN data-v2 peer ID')
     pair.l.pause(.2)
     reason=None
     if label.startswith('same-epoch') and not dco_server:
@@ -842,7 +859,11 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         dco_after_command=pair.command('server',[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface','tunbench-s',
                                      '--out',str(dco_after_path)],label+'-dco-peer-after')
         dco_after=read_json(dco_after_path)
-        delta=dco_rejection_delta(dco_before,dco_after)
+        active_peer_id=dco_before['peers'][0]['peer_id']
+        allow_stale_peer_id=(label=='after-reconnect-replay' and mode=='replay')
+        delta=dco_rejection_delta(dco_before,dco_after,packet_peer_id=packet_peer_id,
+                                  allow_stale_peer_id=allow_stale_peer_id)
+        stale_peer_unaccounted=(allow_stale_peer_id and packet_peer_id!=active_peer_id)
         observation_end=time.monotonic_ns()
         if traffic_pause and traffic_pause.get('paused'):
             resume_ns=time.monotonic_ns()
@@ -855,8 +876,12 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             'after_path':str(dco_after_path.relative_to(pair.l.out)),
             'after_sha256':digest(dco_after_path),
             'before_command':dco_before_command.row,'after_command':dco_after_command.row,
+            'packet_peer_id':packet_peer_id,'active_peer_id':active_peer_id,
+            'peer_accounting':'stale-peer-id-unaccounted' if stale_peer_unaccounted else 'active-peer-link-rx',
             'delta':delta,'traffic_sender_pause':traffic_pause,
-            'scope':'per-injection kernel DCO Netlink counters: peer link RX advanced while VPN RX stayed unchanged; this proves no VPN-facing delivery, not the kernel internal drop reason'
+            'scope':('exact prior-session data-v2 peer ID reached peer ingress; current peer counters remained unchanged; no kernel drop reason is inferred'
+                     if stale_peer_unaccounted else
+                     'per-injection kernel DCO Netlink counters: peer link RX advanced while VPN RX stayed unchanged; this proves no VPN-facing delivery, not the kernel internal drop reason')
         }
     else:
         observation_end=time.monotonic_ns()

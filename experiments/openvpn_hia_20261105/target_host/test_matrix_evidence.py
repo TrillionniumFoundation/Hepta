@@ -340,6 +340,52 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 function(before, after)
 
+    def test_dco_replay_accepts_zero_current_peer_delta_for_prior_peer_id_after_reconnect(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        expected = {"1": {key: 0 for key in matrix.PEER_COUNTERS}}
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            self.assertEqual(
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True),
+                expected,
+            )
+
+    def test_dco_replay_rejects_counter_change_for_prior_peer_id(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 350
+        after["peers"][0]["link_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
+
+    def test_dco_replay_rejects_stale_peer_id_without_explicit_reconnect_scope(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=False)
+
+    def test_dco_replay_rejects_stale_mode_when_packet_uses_active_peer_id(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=1, allow_stale_peer_id=True)
+
+    def test_data_v2_frame_exposes_24bit_peer_id(self):
+        payload = bytes([0x48]) + (0x123456).to_bytes(3, "big") + bytes(range(1, 285))
+        parsed = encrypted.parse_frame(self.frame(payload))
+        self.assertEqual(parsed["opcode"], 9)
+        self.assertEqual(parsed["peer_id"], 0x123456)
+        legacy = encrypted.parse_frame(self.frame(bytes([0x30]) + bytes(range(1, 285))))
+        self.assertEqual(legacy["opcode"], 6)
+        self.assertIsNone(legacy["peer_id"])
+
     def test_frame_scan_count_accepts_bounded_multi_frame_and_rejects_invalid(self):
         # The real target run inspected 3–7 AF_PACKET frames before finding the exact hash.
         self.assertEqual(verifier.verify_frame_inspection_count({"frames_inspected": 7}), 7)
