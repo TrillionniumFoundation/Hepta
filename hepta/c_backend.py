@@ -420,9 +420,10 @@ def compile_c(source: str, *, cc=None, crate_type="bin", output=None, check_only
         diagnostics = [] if ok else [{"code": "E_C_COMPILE", "message": p.stderr or "C compiler produced no nonempty artifact", "phase": "c_backend"}]
         if ok and crate_type == "staticlib" and not check_only:
             archive = directory / "library.a"
-            ar = shutil.which("ar")
+            selected_ar = os.environ.get("AR", "ar")
+            ar = shutil.which(selected_ar)
             if not ar:
-                fail("E_C_TOOLCHAIN", "ar is required for a C static library")
+                fail("E_C_TOOLCHAIN", "C static library archiver is unavailable: " + selected_ar)
             subprocess.run([ar, "rcs", str(archive), str(generated)], check=True, capture_output=True, timeout=30)
             generated = archive
         result = {"ok": ok, "status": "gcc_checked" if ok else "rejected", "diagnostics": diagnostics,
