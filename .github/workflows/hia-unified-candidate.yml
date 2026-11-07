@@ -1,0 +1,91 @@
+name: HIA unified candidate source qualification
+
+on:
+  push:
+    branches: [codex/hia-p0-p3-20261107]
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tests/test_hia_candidate_preflight.py'
+      - 'tests/hia_candidate_preflight_integration.py'
+      - 'tests/test_hia_agent_macro_policy.py'
+      - 'tests/test_hia_agent_native*'
+      - 'tests/test_hia_machine_plan.py'
+      - 'tests/test_hia_native_byte_abi.py'
+      - 'tests/test_hia_bootstrap_components.py'
+      - 'tools/hia_candidate_preflight.py'
+      - 'tools/qualify_hia_candidate.py'
+      - 'tools/qualify_hia_machine_choices.py'
+      - 'tools/qualify_hia_bootstrap_components.py'
+      - 'examples/hia_bootstrap/**'
+      - 'docs/HIA_AGENT_MACHINE_PLANS.md'
+      - 'docs/HIA_AGENT_MACRO_POLICY.md'
+      - 'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md'
+      - '.github/workflows/hia-unified-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source-native-and-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare exact source and evidence directory
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'jsonschema==4.25.1'
+          command -v cc
+          command -v ld
+          command -v objdump
+          mkdir "$RUNNER_TEMP/hia-unified"
+      - name: Run full retained direct inventory and new candidate tests without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_candidate.py --output "$RUNNER_TEMP/hia-unified/tests.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/tests.log"
+      - name: Observe separate native machine choices and full scoped costs
+        run: |
+          set -eu
+          python -B tools/qualify_hia_machine_choices.py --out "$RUNNER_TEMP/hia-unified/machine-choices"
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/hepta-runtime
+          ref: 9f60a30530f47925f4f6ae495660a1d68bb6947d
+          path: .hia-runtime-integration
+          sparse-checkout: |
+            deploy
+            src/mcp
+            config
+            .agents
+          persist-credentials: false
+      - name: Verify integration with exact existing runtime contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .hia-runtime-integration rev-parse HEAD)" = 9f60a30530f47925f4f6ae495660a1d68bb6947d
+          python -B tests/hia_candidate_preflight_integration.py \
+            --runtime-checkout "$GITHUB_WORKSPACE/.hia-runtime-integration" -v \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/runtime-preflight.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-unified-${{ env.HEPTA_SOURCE_SHA }}
+          path: ${{ runner.temp }}/hia-unified/
+          if-no-files-found: error
+          retention-days: 30

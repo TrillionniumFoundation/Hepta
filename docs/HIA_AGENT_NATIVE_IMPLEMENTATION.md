@@ -34,15 +34,15 @@ completion or confirmed native termination.
 | Language | Existing primitive Core v1–v8 and the admitted composite elaboration path |
 | Public native invocation | Integer and Boolean scalar inputs, at most one scalar or unit result; buffers and multiple results remain internal |
 | Shared images | The already-emitted object is linked separately with GNU `ld`; no LLVM, C/Rust compiler, or external assembler generates its instructions |
-| Optimization choices | Explicit Agent-authored Core imports/patches and explicit per-function block-layout permutations |
-| Finite plan checker | Every selected order is an exact permutation; original Core, value slots, operation order, entry and CFG edges remain bound |
+| Optimization choices | Explicit Agent-authored Core imports/patches; v1 block layout and v2 checked scratch-register, immediate-form and function-layout plans |
+| Finite plan checker | Exact permutations, a scratch-register bijection and exact alternate encodings; original Core, value slots, logical operation order, entry and CFG edges remain bound |
 | Core admission | Existing whole-program verifier |
 | Equivalence | Exact Core identity; exhaustive supported pure acyclic finite scalar domains; existing optional pinned-Z3 profile when available |
 | Native observation | Disposable Linux processes, bounded wall time/CPU/address space, complete workload accounting, retained observations |
 | Version publication | Conditional generation/epoch change, retained baseline, generation leases, compatible future-call rollback |
 | Authority | Configured operator namespace; no claim of per-ChatGPT-user isolation |
 
-The layout checker establishes preservation relative to the canonical lowering
+The machine-choice checker establishes preservation relative to the canonical lowering
 under its published assumptions. It is not a universal proof of Core-to-x86
 refinement. Unsupported proof requests remain unsupported; they cannot satisfy a
 required adoption claim. Native tests, Core admission, encoding identity and

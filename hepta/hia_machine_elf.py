@@ -28,7 +28,7 @@ def _exact_int(value, lower, upper):
     return type(value) is int and lower <= value < upper
 
 
-def write_elf_object(code, symbols, relocations):
+def write_elf_object(code, symbols, relocations, *, text_alignment=16):
     """Encode one machine-code image as Linux x86-64 ET_REL.
 
     ``symbols`` is a list of ``{name, offset, size, global}`` records. Private
@@ -36,6 +36,8 @@ def write_elf_object(code, symbols, relocations):
     list of ``{offset, symbol, type: 4, addend: -4}`` records naming E8 rel32 call
     operands. Input order does not affect symbol or relocation table ordering.
     """
+    if type(text_alignment) is not int or text_alignment not in {16, 32, 64}:
+        raise MachineObjectError("unreviewed text section alignment")
     if type(code) is not bytes or not code or len(code) > MAX_OBJECT_BYTES:
         raise MachineObjectError("nonempty bounded immutable machine bytes required")
     if (type(symbols) is not list or not 1 <= len(symbols) < MAX_SYMBOLS
@@ -112,7 +114,7 @@ def write_elf_object(code, symbols, relocations):
         shstrtab.extend(name.encode("ascii") + b"\0")
     # name, type, flags, alignment, entry size, link, info, bytes
     sections = [
-        (".text", 1, 6, 16, 0, 0, 0, code),
+        (".text", 1, 6, text_alignment, 0, 0, 0, code),
         (".rela.text", 4, 0, 8, 24, 3, 1, bytes(rela)),
         (".symtab", 2, 0, 8, 24, 4, first_global, bytes(symtab)),
         (".strtab", 3, 0, 1, 0, 0, 0, bytes(string_table)),
