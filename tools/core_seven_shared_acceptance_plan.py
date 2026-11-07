@@ -115,8 +115,16 @@ NATIVE_AGENT_ADDITIONS = (
     'hepta/hia_machine_x64.py',
     'hepta/hia_program_native.py',
 )
-METADATA_RESERVE = 224589
-RAW_GLOBAL = 819891
+# The legacy identity cap describes 239 source records. The reviewed shared
+# closure has 323 source records and the same 780 support records: canonical
+# JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
+# 156044 bytes. This covers all 84 reviewed additions; the latest nine account
+# for 1098 bytes. Transfer only the 11331-byte increase from raw logs; keep the
+# legacy protocol and the aggregate evidence, source, module and time caps.
+IDENTITY_CAP = 156044
+IDENTITY_RESERVE_DELTA = 11331
+METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
+RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
                raw_stage=507392, metadata=262144, evidence_display=1048576,
                container=143654912, display=4096, process_ns=60000000000,
@@ -273,7 +281,7 @@ def cap(name):
     if name in MODULE_FILES: return BUDGETS['module']
     if name in LOG_FILES: return BUDGETS['raw_stage']
     if name in ('PLAN.json', 'shared-manifest.json'): return 32768
-    if name == 'IDENTITY.json': return 144713
+    if name == 'IDENTITY.json': return IDENTITY_CAP
     if name == 'RUN.json': return 630
     return 16384
 

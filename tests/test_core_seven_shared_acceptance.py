@@ -128,13 +128,62 @@ class GitSourceProvenanceTests(unittest.TestCase):
 class SharedAcceptanceContractTests(unittest.TestCase):
     def test_every_existing_hard_budget_unchanged(self):
         self.assertEqual(p.BUDGETS, old.BUDGETS)
-        self.assertEqual(p.RAW_GLOBAL, old.RAW_GLOBAL)
-        self.assertEqual(p.METADATA_RESERVE, old.METADATA_RESERVE)
+        # Keep the historical envelope and path projection independently fixed.
+        self.assertEqual(old.RAW_GLOBAL, 819891)
+        self.assertEqual(old.METADATA_RESERVE, 224589)
+        self.assertEqual(old.cap('IDENTITY.json'), 144713)
         self.assertEqual(p.support_paths(), old.support_paths())
         self.assertEqual(len(p.FROZEN_FILES), 81)
         self.assertEqual(len(p.SOURCE_FILES), 22)
         self.assertEqual(len(p.MODULE_FILES), 11)
-        self.assertEqual(p.cap('IDENTITY.json'), old.cap('IDENTITY.json'))
+        h = 'f' * 64
+
+        def maximum_identity(protocol):
+            # A serialization bound only; these records are not execution or
+            # proof evidence and are never passed to an admission/replay gate.
+            return dict(**protocol.common(h), commit_sha='f' * 40,
+                tree_sha='f' * 40, lean_binary_sha256=h,
+                sources={n: dict(sha256=h, bytes=2097152)
+                         for n in protocol.source_paths()},
+                support={n: dict(sha256=h, bytes=9223372036854775807)
+                         for n in protocol.support_paths()})
+
+        historical = maximum_identity(old)
+        identity = maximum_identity(p)
+        self.assertEqual(len(old.encode(historical)), 144713)
+        self.assertEqual({n: identity['sources'][n] for n in old.source_paths()},
+                         historical['sources'])
+        raw_identity = p.encode(identity)
+        self.assertEqual(len(raw_identity), 156044)
+        self.assertEqual(p.cap('IDENTITY.json'), len(raw_identity))
+        self.assertEqual(p.IDENTITY_RESERVE_DELTA,
+                         len(raw_identity) - len(old.encode(historical)))
+        self.assertEqual(p.METADATA_RESERVE, 235920)
+        self.assertEqual(p.RAW_GLOBAL, 808560)
+        self.assertEqual(p.METADATA_RESERVE - old.METADATA_RESERVE,
+                         old.RAW_GLOBAL - p.RAW_GLOBAL)
+        self.assertEqual(p.METADATA_RESERVE + p.RAW_GLOBAL + p.BUDGETS['display'],
+                         p.BUDGETS['evidence_display'])
+        p.budgets({'IDENTITY.json': raw_identity})
+        with self.assertRaisesRegex(ValueError, 'fixed per-file caps'):
+            p.budgets({'IDENTITY.json': raw_identity + b' '})
+
+        # Exercise the unchanged one-MiB aggregate at its exact boundary, then
+        # reject either allocation growing by one byte. This tests accounting,
+        # not whether these deliberately opaque bytes are valid proof records.
+        files = {'IDENTITY.json': raw_identity,
+                 'PLAN.json': b'p' * p.cap('PLAN.json'),
+                 'shared-manifest.json': b'm' * p.cap('shared-manifest.json'),
+                 'RUN.json': b'r' * p.cap('RUN.json')}
+        files['RESULT.json'] = b'r' * (p.METADATA_RESERVE - sum(map(len, files.values())))
+        files[p.LOG_FILES[0]] = b'l' * p.BUDGETS['raw_stage']
+        files[p.LOG_FILES[2]] = b'l' * (p.RAW_GLOBAL - p.BUDGETS['raw_stage'])
+        display = b'd' * p.BUDGETS['display']
+        p.budgets(files, display)
+        with self.assertRaisesRegex(ValueError, 'aggregate payload caps'):
+            p.budgets({**files, p.LOG_FILES[2]: files[p.LOG_FILES[2]] + b'l'}, display)
+        with self.assertRaisesRegex(ValueError, 'aggregate evidence/container caps'):
+            p.budgets({**files, 'RESULT.json': files['RESULT.json'] + b'r'}, display)
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
