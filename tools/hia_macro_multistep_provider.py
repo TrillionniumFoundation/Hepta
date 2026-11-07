@@ -164,8 +164,14 @@ class StructuredProvider:
         (output / 'response-schema.json').write_bytes(schema_raw)
         receipt['response_schema_original_sha256'] = evidence.put(schema_raw, binary=True)
         events = MacroEvents(self.warnings)
-        process = run_owned(command(self.binary, self.model, self.effort, output), output / 'cwd',
-            output / 'transport', input_bytes=prompt_bytes(request),
+        invocation, prompt = command(self.binary, self.model, self.effort, output), prompt_bytes(request)
+        # Once dispatch is possible, later cells must remain frozen unless the
+        # original process and its retained observations qualify completely.
+        # Any transport/save/parse/launcher exception propagates unchanged and
+        # leaves this marker set; a fresh cell cannot conceal unknown usage.
+        self.blocked_reason = 'original_provider_attempt_receipts_unsettled'
+        process = run_owned(invocation, output / 'cwd',
+            output / 'transport', input_bytes=prompt,
             wall_seconds=remaining_wall_ns / 1e9, on_line=events.line)
         originals = {name: (output / 'transport' / name).read_bytes()
                      for name in ('stdin.raw', 'stdout.raw', 'stderr.raw')}
@@ -193,10 +199,10 @@ class StructuredProvider:
             and receipt['launcher_admitted'])
         receipt['status'] = 'completed' if complete and parsed['answer'] is not None else 'failed'
         receipt['recoverable_content_rejection'] = complete and parsed['content_rejected_with_known_usage']
-        if not complete:
-            self.blocked_reason = 'original_provider_process_protocol_or_budget_not_qualified'
         receipt['stderr_delivery_policy'] = ('empty original may be publicly included' if not originals['stderr.raw']
             else 'private original; delivery includes SHA/bytes only unless separately reviewed for credentials')
+        self.blocked_reason = (None if complete else
+            'original_provider_process_protocol_or_budget_not_qualified')
         return receipt
 
 

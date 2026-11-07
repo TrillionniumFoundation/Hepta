@@ -1,7 +1,9 @@
 """Synthetic no-provider controls for the v2 matched search and strict adapter."""
 from copy import deepcopy
+from contextlib import ExitStack
 from hashlib import sha256
 import json
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -10,7 +12,8 @@ from unittest.mock import patch
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_ndu_optimizer import ns_to_ms_q32
 from tools.hia_macro_multistep_provider import (RESPONSE_SCHEMA, command, parse_stream,
-    request_document, prompt_bytes)
+    request_document, prompt_bytes, StructuredProvider)
+from tools import hia_macro_multistep_provider as provider_module
 from tools.prepare_hia_followup_tasks import task_documents, mathematical_value
 from tools.qualify_hia_macro_multistep import checked_pool_selection, calibration_forecast, protocol
 
@@ -74,6 +77,62 @@ class StructuredOutputTests(unittest.TestCase):
         self.assertFalse(request['arm_identity_disclosed_to_proposer'])
         with self.assertRaisesRegex(ValueError,'history'):
             request_document(public,[{}, {}, {}],{})
+
+    def test_post_dispatch_observation_exception_freezes_later_cells(self):
+        public = {'id':'fixture','instruction':'maintain','specification':{},
+            'baseline_assembly':'public','objective':{},'provenance':{}}
+        request = request_document(public,[],{'original':{'wall_ns':180_000_000_000}})
+        original_read = Path.read_bytes
+        for phase in ('transport','read','save','parse','launcher'):
+            with self.subTest(phase=phase), tempfile.TemporaryDirectory() as temporary:
+                provider = StructuredProvider(str(Path(sys.executable).absolute()),'fixture')
+                # A validated launcher is already frozen before dispatch. This
+                # fixture reaches only its observer; no executable is launched.
+                if phase == 'launcher':
+                    provider.launcher_binding = {'authored_no_exec_fixture':True}
+                failure = RuntimeError('authored '+phase+' observation failure')
+                dispatched, save_failed = [], []
+                class Evidence:
+                    def put(self,value,*,binary=False):
+                        if dispatched and phase == 'save' and not save_failed:
+                            save_failed.append(True)
+                            raise failure
+                        raw = value if binary else json.dumps(value,sort_keys=True).encode()
+                        return sha256(raw).hexdigest()
+                def no_process(argv,cwd,output,**kwargs):
+                    dispatched.append(True)
+                    output = Path(output)
+                    output.mkdir()
+                    for name,raw in {'stdin.raw':kwargs['input_bytes'],
+                            'stdout.raw':stream('{"assembly":"fixture"}'),'stderr.raw':b''}.items():
+                        (output/name).write_bytes(raw)
+                    (output.parent/'LAUNCH-ADAPTER.json').write_text('{}')
+                    if phase == 'transport':
+                        raise failure
+                    return {'argv':argv,'cwd':str(cwd),'status':'exited','returncode':0,
+                        'cleanup_confirmed':True,'leader_reaped':True,'streams_complete':True,'wall_ns':1}
+                def read(path):
+                    if dispatched and phase == 'read' and path.name == 'stdout.raw':
+                        raise failure
+                    return original_read(path)
+                with ExitStack() as stack:
+                    invoke = stack.enter_context(patch.object(provider_module,'run_owned',side_effect=no_process))
+                    stack.enter_context(patch.object(Path,'read_bytes',read))
+                    if phase == 'parse':
+                        stack.enter_context(patch.object(provider_module,'parse_stream',side_effect=failure))
+                    if phase == 'launcher':
+                        stack.enter_context(patch.object(provider_module,'validate_launch',side_effect=failure))
+                    with self.assertRaises(RuntimeError) as caught:
+                        provider.invoke(request,Evidence(),Path(temporary)/'first',
+                            remaining_wall_ns=1_000_000_000,remaining_tokens=32768)
+                    self.assertIs(caught.exception,failure)
+                    self.assertIsNotNone(provider.blocked_reason)
+                    later = provider.invoke(request,Evidence(),Path(temporary)/'later',
+                        remaining_wall_ns=1_000_000_000,remaining_tokens=32768)
+                    self.assertEqual(later['status'],'not_attempted')
+                    self.assertIsNone(later['process'])
+                    self.assertEqual(invoke.call_count,1)
+                    self.assertFalse((Path(temporary)/'later').exists())
 
 
 class MatchedStrongControlTests(unittest.TestCase):
