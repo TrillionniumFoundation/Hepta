@@ -120,9 +120,119 @@ needs the following evidence:
 5. Independently authenticated original task/provider/native receipts. Local
    hashes prove byte consistency, not independent provenance.
 
-The retained READY-only provider probe and the private synthetic maintenance
-task do not qualify a real-user task cohort. The local work initiated no remote
-model request and made no production change. `economic_benefit_established`
-remains false and P1 remains HOLD. The useful deliverable is a stronger,
-budget-honest control and more explicit no-change accounting, with reproducible
-negative and positive mechanism observations preserved.
+The earlier READY-only provider probe and the private synthetic maintenance
+task do not qualify a real-user task cohort. The local baseline work above
+initiated no remote model request and made no production change. A later
+provider campaign did execute; its retained terminal result is reconciled
+below. `economic_benefit_established` remains false and P1 remains HOLD.
+
+
+## Later exact-v4 provider execution: original terminal result reconciled
+
+The original `ndu-provider-v4-campaign-r1` actually ran on 2026-11-07, using
+Core `894d2dfce54ff25271b8de2c18c902394484d5cc` and its pinned launch adapter.
+It is a separate, later event from the READY probe. The original supervisor
+record says campaign exit 2 and verification exit 0, with zero automatic
+retries. All 32 provider processes have retained terminal five-field usage and
+confirmed cleanup. Of those, 27 produced completed provider proposals and
+22 delivered correct native task results. Seven original native NDU evaluations
+are recorded. These historical results are not measurements of the newer
+integrated source or of the reporting change below.
+
+| Arm | Planned tasks | Completed provider proposals | Correct native tasks | All-attempt wall ns |
+| --- | ---: | ---: | ---: | ---: |
+| Fixed | 8 | 7 | 2 | 130,466,301,676 |
+| Greedy | 8 | 7 | 7 | 134,985,846,220 |
+| Ordinary | 8 | 6 | 6 | 151,383,646,332 |
+| NDU | 8 | 7 | 7 | 113,450,243,024 |
+
+Sources: [retained facts excerpt](../review-evidence/hia-ndu-completed-control-20261107/retained-provider-facts.json),
+[original cost and scope receipt](../review-evidence/hia-ndu-completed-control-20261107/original-cost-and-scope.json),
+and [original supervisor result](../review-evidence/hia-ndu-completed-control-20261107/original-execution-result.json).
+The facts excerpt carries the SHA-256 of its original full receipt. The cost,
+supervisor and comparison files are byte-for-byte copies. Original campaign
+identity, manifest, comparison and verdict digests are retained in
+[the reassessment receipt](../review-evidence/hia-ndu-completed-control-20261107/retained-provider-reassessment.json).
+
+The original verifier retained 420 events, 1,441 original objects and 42 failed
+or rejected attempts. Ten task arms failed: five at final model JSON parsing
+and five at candidate Core admission. Those failures and their costs remain in
+the original 32-task-arm denominator. Every arm delivered fewer than eight
+correct results, so there is no completed control and no complete NDU arm.
+
+The supervisor measured 531,558,629,396 ns for the campaign and 287,456,723 ns
+for original-byte verification. The model phase contains 493,868,197,094 ns;
+its provider subprocesses contain 493,583,641,701 ns. These are nested cost
+boundaries and are never added to the outer total again. The original five
+usage counters total 306,442 input tokens, 16,149 output tokens, 112,896 cached
+input tokens, zero cache-write input tokens and 4,715 reasoning output tokens.
+The historical budget convention charged input + output + reasoning = 327,306;
+input + output alone is 322,591. Cached input is not charged twice. Whether the
+reasoning counter overlaps output is not independently attested. Money, tariff
+and invoice remain unknown. Setup, diagnostic and the earlier native build
+boundaries are retained separately in the original cost receipt.
+
+The campaign used source-authored synthetic wrapping-u8 tasks and local
+in-process HIA. Its ordinary arm made one bounded same-model proposal/advice
+call per task; this does not establish a strongest general Agent baseline.
+Original provider streams contain only `agent_message` items, but a complete
+capability-isolation attestation is absent. Hash consistency is established;
+independent provider/native provenance is not. The original terminal verdict
+therefore remains HOLD, native mechanism incomplete, and economic benefit
+unestablished. No failed arm was replayed for this reconciliation.
+
+## Reporting fix: complete task delivery before a headline cost difference
+
+The old result's `best_control = fixed` and `ndu_saving_ns = 17,016,058,652`
+were raw wall arithmetic. Fixed delivered only 2/8 correct tasks. That number
+cannot support a gain over a completed ordinary control, and cannot be made
+qualified by selecting only the successful tasks or silently dropping another
+registered arm.
+
+`assess_macro_comparison` now returns `completed_comparison` with each arm's
+eligibility and the exact reasons for ineligibility. A headline
+`completed_comparison.ndu_saving_ns` is available only when **every** registered
+arm delivers every task correctly, keeps its result evidence and complete
+charged costs, observes Agent and downstream use, fits the original wall/token
+budget, and retains the NDU arm's required native evaluations. A failed strong
+ordinary arm cannot be silently replaced by a weaker completed control.
+`best_complete_control` is diagnostic only when the full comparison is not
+eligible; it grants no qualified saving.
+
+The historical v1 fields remain intact for compatibility. They are explicitly
+labelled by `legacy_cost_fields_scope`, and the same raw values are also
+available as `raw_lowest_cost_control` and `raw_ndu_wall_difference_ns`.
+The campaign CLI's headline `ndu_saving_ns` now uses the qualified complete
+comparison and prints raw diagnostics separately. This change preserves all
+attempts, existing budgets, raw totals and acceptance reasons. A complete
+supplied observation is still subject to task/provenance qualification and is
+not by itself an economic attestation.
+
+The retained original comparison reassesses to `complete_controls = []`,
+`best_complete_control = null` and `completed_comparison.ndu_saving_ns = null`.
+All four original wall totals and the raw 17,016,058,652 ns difference are
+unchanged. This was a read-only computation over retained original comparison
+bytes, with zero new provider calls and no new native execution.
+
+Reproduce the assessment from this checkout with Python; the output path must
+not already exist:
+
+```sh
+python -B tools/hia_agent_macro_policy.py assess \
+  --input review-evidence/hia-ndu-completed-control-20261107/original-comparison.json \
+  --output /tmp/hia-ndu-original-provider-assessment.json
+```
+
+Exit 2 is expected because this original evidence remains HOLD. This command
+only reads the retained comparison and writes a new assessment file. It does
+not launch the original campaign or a model request.
+
+The focused suite now passes **77 tests**. Four additional regression tests
+cover incomplete controls with all costs retained, refusal to skip an
+incomplete ordinary arm, unknown costs or missing evidence or downstream use
+or exceeded token budgets, and a complete synthetic comparison whose supplied
+arithmetic is available while economic acceptance remains HOLD. The
+[current test log](../review-evidence/hia-ndu-completed-control-20261107/unit-tests.log)
+retains the actual 77-test result. Integration must freeze the changed source
+identity; neither the historical exact-v4 receipts nor an earlier integrated
+release lock attests these new bytes.

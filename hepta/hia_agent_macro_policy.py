@@ -394,7 +394,7 @@ def assess_macro_comparison(raw):
         _fail("canonical task registration digest differs")
     if type(data["arms"]) is not list or len(data["arms"]) != len(ARMS):
         _fail("fixed, greedy, ordinary and NDU arms required")
-    totals, all_costs = {}, {}
+    totals, all_costs, arm_eligibility = {}, {}, {}
     for arm in data["arms"]:
         _shape(arm, {"strategy", "agent_sha256", "registration_sha256", "budget", "observations"}, "arm")
         name = arm["strategy"]
@@ -407,6 +407,7 @@ def assess_macro_comparison(raw):
         if type(observations) is not list or len(observations) != len(inventory):
             _fail("missing or extra planned task observations")
         seen, complete_costs = set(), []
+        arm_reason_start = len(reasons)
         for row in observations:
             _shape(row, {"task_id", "input_sha256", "qualification_receipt_sha256", "status", "result_receipt_sha256",
                          "correct", "ledger", "phase_inventory", "native_ndu_receipts"}, "task observation")
@@ -458,10 +459,30 @@ def assess_macro_comparison(raw):
             complete_costs.append({"task_id": tid, **costs})
         totals[name] = sum(cost["observed_wall_ns"] for cost in complete_costs)
         all_costs[name] = complete_costs
+        arm_reasons = reasons[arm_reason_start:]
+        arm_eligibility[name] = {"eligible": not arm_reasons, "reasons": arm_reasons}
     if set(totals) != ARMS:
         _fail("all four comparison arms are required")
     best = min((totals[name], name) for name in ARMS - {"ndu"})
     saving = best[0] - totals["ndu"]
+    # Historical v1 fields are raw arithmetic over every attempted arm. A cheap
+    # arm can be cheap because it failed early, and must never become a completed
+    # control or make the headline NDU saving positive. Keep its original cost;
+    # qualify a separate comparison only when every registered arm delivered
+    # every task, retained complete observed costs, and stayed within budget.
+    complete_controls = sorted(name for name in ARMS - {"ndu"}
+                               if arm_eligibility[name]["eligible"])
+    complete_best = (min((totals[name], name) for name in complete_controls)
+                     if complete_controls else None)
+    all_arms_eligible = all(row["eligible"] for row in arm_eligibility.values())
+    completed_comparison = {
+        "eligible": all_arms_eligible,
+        "arm_eligibility": arm_eligibility,
+        "complete_controls": complete_controls,
+        "best_complete_control": complete_best[1] if complete_best else None,
+        "ndu_saving_ns": complete_best[0] - totals["ndu"] if all_arms_eligible else None,
+        "scope": "complete supplied same-budget task observations; not task/provider provenance or economic attestation",
+    }
     if saving < data["minimum_gain_ns"]:
         reasons.append("no_full_cost_advantage_over_best_control")
     # These supplied hashes cannot authenticate a provider/model measurement,
@@ -472,6 +493,9 @@ def assess_macro_comparison(raw):
     return {"schema": "hepta.hia.agent.macro-comparison-verdict.v1", "input_sha256": digest(data),
             "registered_tasks": len(inventory), "arm_wall_ns": totals, "arm_costs": all_costs,
             "best_control": best[1], "ndu_saving_ns": saving, "reasons": reasons,
+            "legacy_cost_fields_scope": "raw arithmetic including failed/incomplete arms; not completed-control gains",
+            "raw_lowest_cost_control": best[1], "raw_ndu_wall_difference_ns": saving,
+            "completed_comparison": completed_comparison,
             "reported_arithmetic_positive": not arithmetic_reasons,
             "reported_arithmetic_reasons": arithmetic_reasons,
             "observed_scope_positive": False, "p1_acceptance": "HOLD",

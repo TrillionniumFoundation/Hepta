@@ -838,7 +838,11 @@ def main(argv=None):
             "correct_native_task_arms", "native_ndu_evaluations", "events_verified", "objects_verified",
             "failed_or_rejected_attempts_retained", "native_mechanism_complete", "p1_acceptance", "economic_benefit_established") }
         summary["arm_wall_ns"] = result["comparison"]["arm_wall_ns"]
-        summary["ndu_saving_ns"] = result["comparison"]["ndu_saving_ns"]
+        comparison = result["comparison"]
+        summary["completed_comparison"] = comparison["completed_comparison"]
+        summary["ndu_saving_ns"] = comparison["completed_comparison"]["ndu_saving_ns"]
+        summary["raw_lowest_cost_control"] = comparison["raw_lowest_cost_control"]
+        summary["raw_ndu_wall_difference_ns"] = comparison["raw_ndu_wall_difference_ns"]
         print(json.dumps(summary, sort_keys=True, indent=2))
         # Run success requires the actual native mechanism, never P1 acceptance.
         # Offline verify success means only internally consistent original bytes.

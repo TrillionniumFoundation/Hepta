@@ -224,6 +224,52 @@ class MacroComparisonTests(unittest.TestCase):
         self.assertEqual(result["registered_tasks"], 8)
         self.assertEqual(len(result["arm_costs"]["ndu"]), 8)
 
+    def test_incomplete_fast_control_is_not_a_completed_gain(self):
+        data = comparison()
+        for arm in data["arms"][:3]:
+            for row in arm["observations"]:
+                row.update(status="failed", correct=False)
+        result = assess_macro_comparison(wire(data))
+        self.assertGreater(result["raw_ndu_wall_difference_ns"], 0)
+        qualified = result["completed_comparison"]
+        self.assertFalse(qualified["eligible"])
+        self.assertEqual(qualified["complete_controls"], [])
+        self.assertIsNone(qualified["best_complete_control"])
+        self.assertIsNone(qualified["ndu_saving_ns"])
+        self.assertEqual(sum(len(rows) for rows in result["arm_costs"].values()), 32)
+
+    def test_partial_control_set_does_not_skip_strong_ordinary(self):
+        data = comparison()
+        data["arms"][2]["observations"][0].update(status="failed", correct=False)
+        qualified = assess_macro_comparison(wire(data))["completed_comparison"]
+        self.assertEqual(qualified["complete_controls"], ["fixed", "greedy"])
+        self.assertEqual(qualified["best_complete_control"], "greedy")
+        self.assertFalse(qualified["eligible"])
+        self.assertIsNone(qualified["ndu_saving_ns"])
+
+    def test_unknown_cost_or_missing_use_invalidates_completed_comparison(self):
+        for mutation in (
+            lambda row: row["ledger"][0].update(wall_ns=None),
+            lambda row: row.update(result_receipt_sha256=None),
+            lambda row: row["ledger"][1].update(wall_ns=0),
+            lambda row: row["ledger"][0].update(model_tokens=100001),
+        ):
+            data = comparison()
+            mutation(data["arms"][3]["observations"][0])
+            qualified = assess_macro_comparison(wire(data))["completed_comparison"]
+            self.assertFalse(qualified["eligible"])
+            self.assertFalse(qualified["arm_eligibility"]["ndu"]["eligible"])
+            self.assertIsNone(qualified["ndu_saving_ns"])
+
+    def test_complete_comparison_preserves_arithmetic_without_attestation(self):
+        result = assess_macro_comparison(wire(comparison()))
+        qualified = result["completed_comparison"]
+        self.assertTrue(qualified["eligible"])
+        self.assertEqual(qualified["best_complete_control"], "ordinary")
+        self.assertEqual(qualified["ndu_saving_ns"], 160)
+        self.assertFalse(result["economic_benefit_established"])
+        self.assertEqual(result["p1_acceptance"], "HOLD")
+
     def test_missing_phase_cannot_be_assumed_zero(self):
         data = comparison()
         data["arms"][3]["observations"][0]["phase_inventory"].pop("adoption")
