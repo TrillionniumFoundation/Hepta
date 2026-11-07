@@ -95,7 +95,7 @@ def main():
     else:
         Path(request["output"]).write_bytes(output_bytes)
     fields = {str(i): int.from_bytes(workspace_bytes[i:i + 8], "little")
-              for i in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 1024)
+              for i in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 248, 1024)
               if workspace_size >= i + 8}
     print(json.dumps({
         "status": "returned", "result_u64": returned,

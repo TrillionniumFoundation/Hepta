@@ -12,6 +12,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
+from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -42,6 +43,7 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         while i < 256:
             put(w, i, 0)
             i = i + 8
+        put(w, 248, 4)
         put(w, 48, phase)
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
@@ -98,6 +100,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         put(w, VBASE + i * 16, 0)
         i = i + 1
     count = parse_params(s, w, 1)
+    account_nodes(w, 11 + count * 3)
     expect(s, w, 45)
     adjacent(w)
     expect(s, w, 62)
@@ -197,6 +200,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(w, 48) > 0:
         put(w, bb, get(w, 56))
     count = parse_params(s, w, 0)
+    account_nodes(w, 4 + count * 3)
     if get(w, 48) == 0:
         put(w, bb + 8, count)
     if b == 0:
@@ -207,6 +211,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while (get(w, 8) == 256 or get(w, 8) == 95) and get(w, 40) == 0:
         instruction(s, o, w)
     if get(w, 8) == @ret@:
+        account_nodes(w, 4)
         next_token(s, w)
         adjacent(w)
         expect(s, w, 40)
@@ -226,6 +231,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             edge(s, o, w, 0)
         else:
             expect(s, w, @branch@)
+            account_nodes(w, 1)
             separated(w)
             v = expect(s, w, 256)
             if variable(w, v) != 5:
@@ -281,6 +287,7 @@ def edge(s:readbuf, o:mutbuf, w:mutbuf, arm:u64) -> u64:
         return fail(w, 18)
     bb = BBASE + bid * BSTRIDE
     n = args(s, w, 1)
+    account_nodes(w, 4 + n)
     if get(w, 48) == 0:
         put(w, BBASE + get(w, 88) * BSTRIDE + 288 + arm * 8, bid)
     else:
@@ -311,7 +318,7 @@ def edge(s:readbuf, o:mutbuf, w:mutbuf, arm:u64) -> u64:
     return 0
 
 def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
-    if get(w, 112) >= 3072:
+    if get(w, 112) >= MAX_INSTRUCTIONS:
         return fail(w, 54)
     put(w, 112, get(w, 112) + 1)
     v = 2048
@@ -329,6 +336,9 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     next_token(s, w)
     adjacent(w)
     n = args(s, w, 0)
+    account_nodes(w, 5 + n)
+    if t != 0:
+        account_nodes(w, 3)
     x = 0
     a = 0
     b = 0
@@ -341,6 +351,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         b = get(w, ARGS + 8)
         bt = variable(w, b)
     if op == @const@:
+        account_nodes(w, 1)
         separated(w)
         expect(s, w, 123)
         expect(s, w, @value@)
@@ -365,6 +376,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         emit8(o, w, x)
     else:
         if op == @call@:
+            account_nodes(w, 1)
             separated(w)
             expect(s, w, 123)
             expect(s, w, @function@)
@@ -401,6 +413,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 mem(o, w, 139, 0, 5, 0 - frame(w) + 512)
         else:
             if op == @int.cast@:
+                account_nodes(w, 1)
                 separated(w)
                 expect(s, w, 123)
                 expect(s, w, @mode@)
@@ -781,13 +794,13 @@ def mem(o:mutbuf, w:mutbuf, opcode:u64, reg:u64, base:u64, disp:u64) -> u64:
 
 def relocation(o:mutbuf, w:mutbuf, kind:u64, target:u64) -> u64:
     n = get(w, 224)
-    if n >= 12000:
+    if n >= MAX_RELOCATIONS:
         return fail(w, 44)
     if get(w, 48) == 2:
         put(w, FIXBASE + n * 24, get(w, 56))
         put(w, FIXBASE + n * 24 + 8, kind)
         put(w, FIXBASE + n * 24 + 16, target)
-        put(w, 224, n + 1)
+    put(w, 224, n + 1)
     emit4(o, w, 0)
     return 0
 
@@ -1071,6 +1084,13 @@ def elf_section(o:mutbuf, w:mutbuf, kind:u64, flags:u64, offset:u64, size:u64, l
     emit8(o, w, alignment)
     emit8(o, w, item_size)
     return 0
+
+def account_nodes(w:mutbuf, amount:u64) -> u64:
+    nodes = get(w, 248) + amount
+    put(w, 248, nodes)
+    if nodes > MAX_CORE_NODES:
+        return fail(w, 58)
+    return 0
 '''
 
 
@@ -1083,7 +1103,8 @@ def source_program():
     table += ['    return 0']
     text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
-    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE']:
+    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE',
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
         text = text.replace(key, str(globals()[key]))
     return text
 

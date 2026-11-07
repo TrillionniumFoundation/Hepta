@@ -8,18 +8,23 @@ from __future__ import annotations
 from hashlib import sha256
 import json
 from pathlib import Path
+from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
+    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v4"
+PROFILE = "selfhost-core-linux-x86_64-v5"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
     "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_cases.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_limits.py",
+    "tools/hia_selfhost_capacity.py",
     "tools/qualify_hia_selfhost.py",
     "tools/replay_hia_selfhost_cold.py",
+    "tools/replay_hia_selfhost_upgrade.py",
     "tools/hia_selfhost_child.py",
     "examples/hia_bootstrap/selfhost.hiaasm",
     "examples/hia_bootstrap/bytesum.hiaasm",
@@ -70,11 +75,21 @@ def support_contract(root=ROOT):
                              "call_graph_checker": "f12"},
         "limits": {
             "source_bytes": 1048576, "output_capacity_bytes": 1048576,
-            "workspace_required_bytes": 1048576, "functions": 128,
-            "blocks_per_function": 256, "blocks_total": 1536,
+            "workspace_required_bytes": 1048576, "functions": MAX_FUNCTIONS,
+            "blocks_per_function": 256, "blocks_total": MAX_BLOCKS,
             "parameters_or_arguments": 16, "ssa_index_max": 2047,
-            "instructions": 3072, "relative_relocations": 12000,
+            "instructions": MAX_INSTRUCTIONS, "core_structural_nodes": MAX_CORE_NODES,
+            "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
+        },
+        "capacity_derivation": {
+            "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,
+            "relative_relocations_formula": "one wrapper call + instructions + two edges per block",
+            "canonical_core_bytes_upper_bound": CORE_BYTES_UPPER_BOUND,
+            "canonical_core_byte_budget": 8388608,
+            "structural_node_counter_workspace_offset": 248,
+            "structural_node_gate": "exact Core JSON value/container nodes, checked in every native parse pass",
+            "capacity_growth_changes_source_output_workspace_bytes": False,
         },
         "support": [
             {"area": "scalar_types", "status": "supported",

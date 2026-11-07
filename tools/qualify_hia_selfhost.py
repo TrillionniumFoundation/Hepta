@@ -426,6 +426,9 @@ def qualify(output):
     (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
     independent = independent_call_reference(sample)
     (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_capacity import independent_capacity_reference, qualify_capacity
+    capacity_reference = independent_capacity_reference()
+    (directory / "independent-capacity-reference.json").write_text(json.dumps(capacity_reference, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -502,9 +505,10 @@ def qualify(output):
     elf_observations = qualify_elf_outputs(directory,
         (("original", original, source), ("modified", previous, changed)), sample, checks)
     resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
+    expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
-        "schema": "hepta.hia.selfhost-qualification.v4",
+        "schema": "hepta.hia.selfhost-qualification.v5",
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"], "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
@@ -517,6 +521,7 @@ def qualify(output):
         "call_graph_observations": call_observations, "independent_core_reference": independent,
         "elf_object_observations": elf_observations,
         "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
+        "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v4`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v5`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -156,7 +156,8 @@ The bounds are part of the compiler profile:
 | Blocks per function / all functions | 256 / 1,536 |
 | Function or block parameters / call or edge arguments | 16 |
 | SSA variable index per function | 2,047 |
-| Instructions across the module | 3,072 |
+| Instructions across the module | 8,192 |
+| Core JSON structural nodes | 262,144 |
 | Relative relocations | 12,000 |
 
 These bounds also bound stack frames and the accepted Core structure. The
@@ -165,10 +166,68 @@ The call graph and its marks occupy bytes 858,368 through 875,775 of the
 existing 1 MiB workspace, after the complete relative-relocation table; they
 do not overlap live parser, SSA or relocation state. Every compilation clears
 this state, including when the caller supplies nonzero scratch contents.
-The chosen op/argument/block limits
-keep the corresponding Core JSON below its structural-node and byte bounds.
+Each native parse pass counts the exact corresponding Core JSON nodes, including
+containers, declarations, parameters, instruction results, attributes and both
+branch arms. Header word 248 records the count; the count starts at four for
+the root object, schema, module and function-list nodes. More than 262,144 nodes
+is rejected before any output write. The maximum instruction count does not
+bypass the general Core's structural budget.
+
+The unchanged grammar also bounds canonical Core JSON bytes. Conservative
+budgets of 1,024 bytes for the root and each function's own fields, 2,048 bytes
+per block excluding its operations, and 512 bytes per operation give at most
+7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
+fixed identifier lengths, 16-argument/parameter limit, single scalar output,
+single optional attribute and unsigned 64-bit literal limit.
 The text frontend's separate general-purpose presentation limits are not
 reimplemented as a dependency of the native compiler.
+
+### v5 capacity qualification
+
+The previous v4 profile allowed 3,072 instructions; v5 raises this to 8,192
+without increasing source, output or workspace bytes, stack/CPU/address-space
+limits, or child deadlines. The current compiler contains 3,044 instructions,
+leaving 5,148 instruction slots in the v5 profile. Owned resources, returned
+loans, recursion, arbitrary identifiers and general external linking remain
+outside this profile.
+
+The relocation table remains 12,000 records in the same workspace layout.
+An instruction contributes at most one call relocation, a block at most two
+edge relocations, and the wrapper one call: `1 + 8192 + 2*1536 = 11265`.
+Relocations are counted during preflight as well as emission. Every displacement
+lies within the checked 1 MiB output, well inside signed x86-64 `rel32` range;
+the ELF writer still emits its existing ELF64 fields and resolved `.text`.
+
+Qualification executes 3,072-, 3,073- and 8,192-instruction programs using both
+the original and modified compilers. An independent Core VM checks the same
+operations and calls, with only the unused borrowed entry parameters removed
+to expose a scalar entry. The 8,192-operation result is 8,176. Its ELF `.text`
+must equal the flat image; one-byte-short output is transactionally refused.
+8,193 operations are valid general Core but refused by this fixed native profile.
+
+Separate 910,057-byte fixtures have exactly 262,144 and 262,145 structural nodes.
+The general Core accepts the first and rejects the second. Native parsing must
+make the same structural decision: the first reaches output-capacity preflight,
+while the second returns invalid-source with error 58 before output changes.
+All source bytes, raw invocation logs, output hashes, counters and independent
+reference outcomes are retained, including the refusal cases. These checks run
+inside the source-only cold replay and do not weaken its acceptance conditions.
+
+An additional upgrade replay consumes the retained v4 B3 image and source from
+the exact `894d2dfce54ff25271b8de2c18c902394484d5cc` source release. Their expected
+SHA-256 digests are pinned in the replay tool, and its original receipt must
+agree. It first demonstrates the old 3,073-operation refusal, then has that
+same native v4 compiler compile the 3,044-operation v5 source. U1 compiles U2,
+U2 compiles U3, all three must match, and U3 must compile and execute the
+8,192-operation case. This upgrade uses no Python parser/code generator or
+external assembler/linker. It does reuse, rather than freshly rebuild, the
+historical v4 B3; the independent v5 cold replay still starts from B0.
+
+```sh
+python tools/replay_hia_selfhost_upgrade.py \
+  --previous-evidence <retained-v4-qualification.evidence> \
+  --output <new-upgrade-report.json>
+```
 
 ## Parse, validate and generate
 

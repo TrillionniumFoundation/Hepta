@@ -32,6 +32,32 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(status["successor_object_output"], "bounded_subset")
         self.assertEqual(status["general_object_linking"], "not_implemented")
 
+    def test_capacity_growth_preserves_workspace_and_core_byte_limits(self):
+        from hepta.hia_program import MAX_BYTES, MAX_NODES
+        from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
+            MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
+        contract = validate_contract()
+        self.assertEqual(contract["limits"]["instructions"], MAX_INSTRUCTIONS)
+        self.assertEqual(contract["limits"]["core_structural_nodes"], MAX_NODES)
+        self.assertEqual(MAX_CORE_NODES, MAX_NODES)
+        self.assertEqual(RELOCATION_UPPER_BOUND, 11265)
+        self.assertLessEqual(RELOCATION_UPPER_BOUND, MAX_RELOCATIONS)
+        self.assertLess(CORE_BYTES_UPPER_BOUND, MAX_BYTES)
+        for key in ("source_bytes", "output_capacity_bytes", "workspace_required_bytes"):
+            self.assertEqual(contract["limits"][key], 1 << 20)
+        self.assertFalse(contract["capacity_derivation"]["capacity_growth_changes_source_output_workspace_bytes"])
+
+    def test_upgrade_refuses_an_unpinned_historical_image_before_execution(self):
+        from tools.replay_hia_selfhost_upgrade import upgrade_replay
+        with tempfile.TemporaryDirectory(prefix="hia-upgrade-refusal-") as temporary:
+            root = Path(temporary)
+            (root / "B3.input.bin").write_bytes(b"untrusted source")
+            (root / "B3.image.bin").write_bytes(b"untrusted image")
+            (root / "B3.receipt.json").write_text("{}")
+            with self.assertRaisesRegex(ValueError, "pinned upgrade input"):
+                upgrade_replay(root, root / "result.json")
+            self.assertFalse((root / "result.evidence").exists())
+
     def test_changed_loader_or_broadened_support_cannot_reuse_the_contract(self):
         declared = validate_contract()
         with tempfile.TemporaryDirectory(prefix="hia-selfhost-contract-") as temporary:

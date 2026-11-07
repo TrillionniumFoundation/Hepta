@@ -14,6 +14,7 @@ from tools.qualify_hia_selfhost import (INVALID, NO_SPACE, SAMPLE, SOURCE,
     compile_stage, invalid_sources, invoke, mutate_compiler, qualify, readonly_call_source,
     inspect_selfhost_object)
 from tools.hia_selfhost_contract import validate_contract
+from tools.hia_selfhost_limits import MAX_INSTRUCTIONS
 from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_source,
                                      call_graph_invalid_sources, recursion_refusals)
 
@@ -33,7 +34,7 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertTrue(any(int(o["attrs"]["function"][1:]) < int(f["name"][1:])
             for f in doc["functions"] for b in f["blocks"] for o in b["ops"] if o["op"] == "call"))
         self.assertGreater(len(source), 200000)
-        self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), 3072)
+        self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), MAX_INSTRUCTIONS)
         self.assertLessEqual(sum(len(f["blocks"]) for f in doc["functions"]), 1536)
         self.assertLessEqual(max(len(b["params"]) for f in doc["functions"] for b in f["blocks"]), 16)
 
@@ -75,6 +76,17 @@ class SelfhostSourceTests(unittest.TestCase):
             with self.subTest(case=name), self.assertRaises(HIAProgramRejected):
                 assemble_program(source)
 
+    def test_expanded_capacity_has_independent_execution_and_exact_structural_boundary(self):
+        from tools.hia_selfhost_capacity import independent_capacity_reference
+        from tools.hia_selfhost_limits import MAX_CORE_NODES
+        rows = {row["case"]: row for row in independent_capacity_reference()["observations"]}
+        maximum = rows["instructions-" + str(MAX_INSTRUCTIONS)]
+        self.assertEqual(maximum["expected_result"], 8176)
+        self.assertEqual(maximum["reference_result"]["result"], 8176)
+        self.assertEqual(rows["instructions-" + str(MAX_INSTRUCTIONS + 1)]["general_core"], "accepted")
+        self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES)]["general_core"], "accepted")
+        self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES + 1)]["code"], "E_HIA_LIMIT")
+
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
 class SelfhostNativeTests(unittest.TestCase):
@@ -102,6 +114,31 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(generation["forbidden_compiler_modules_loaded"], [])
         for earlier, later in zip(generations, generations[1:]):
             self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
+
+    def test_native_capacity_boundary_and_original_modified_node_accounting(self):
+        from tools.hia_selfhost_capacity import count_nodes
+        from tools.hia_selfhost_limits import MAX_CORE_NODES
+        nodes = count_nodes(assemble_program(SOURCE.read_bytes()).as_dict())
+        for generation in self.report["generations"]:
+            self.assertEqual(generation["workspace_header"]["248"], nodes)
+        for name, accepted in self.report["checks"].items():
+            if "-capacity-" in name:
+                self.assertTrue(accepted, name)
+        rows = {r["case"]: r for r in self.report["expanded_capacity_observations"]}
+        for compiler in ("original", "modified"):
+            limit = rows[compiler + "-capacity-" + str(MAX_INSTRUCTIONS)]
+            self.assertEqual(limit["workspace_header"]["112"], MAX_INSTRUCTIONS)
+            self.assertGreater(limit["produced_bytes"], 100000)
+            rejected = rows[compiler + "-capacity-over-limit"]
+            self.assertEqual(rejected["core_u32"], INVALID)
+            self.assertTrue(rejected["output_unchanged"])
+            allowed = rows[compiler + "-capacity-nodes-" + str(MAX_CORE_NODES)]
+            self.assertEqual(allowed["core_u32"], NO_SPACE)
+            self.assertEqual(allowed["workspace_header"]["248"], MAX_CORE_NODES)
+            refused = rows[compiler + "-capacity-nodes-" + str(MAX_CORE_NODES + 1)]
+            self.assertEqual(refused["core_u32"], INVALID)
+            self.assertEqual(refused["workspace_header"]["248"], MAX_CORE_NODES + 1)
+            self.assertTrue(refused["output_unchanged"])
 
     def test_modified_emitter_propagates_and_rebuilds_modified_self(self):
         m1, m2, m3 = self.report["modified_generations"]
