@@ -174,6 +174,20 @@ def verify_dco_device_drop_delta(before, after):
             "rx_bytes": delta["bytes"]}
 
 
+def verify_dco_path_scope(server_path, before, after):
+    """Bind Netlink peer snapshots to the actual ovpn-kind DCO device in its namespace."""
+    link = server_path.get("link", {})
+    require(server_path.get("kind") == "ovpn"
+            and link.get("ifname") == "tunbench-s"
+            and link.get("linkinfo", {}).get("info_kind") == "ovpn"
+            and server_path.get("underlay", {}).get("ifname") == "ovpn-us",
+            "DCO peer snapshots are not bound to the actual ovpn-kind tunbench-s device and ovpn-us underlay")
+    require(before.get("ifindex") == after.get("ifindex") == server_path.get("ifindex")
+            and before.get("netns_inode") == after.get("netns_inode") == server_path.get("netns_inode"),
+            "DCO peer snapshots do not bind the actual server namespace/ifindex")
+    return True
+
+
 def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False,
                                device_drop_delta=None):
     """Independently verify peer counters and the DCO device RX-drop witness."""
@@ -525,11 +539,7 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
             before = read(before_path);after = read(after_path)
             initial_paths = read(beneath(case_dir, "initial-paths.json"))
             server_path = initial_paths.get("server", {})
-            require(server_path.get("kind") == "tun" and server_path.get("ifname") == "tunbench-s"
-                    and server_path.get("underlay", {}).get("ifname") == "ovpn-us"
-                    and before.get("ifindex") == after.get("ifindex") == server_path.get("ifindex")
-                    and before.get("netns_inode") == after.get("netns_inode") == server_path.get("netns_inode"),
-                    "DCO peer snapshots do not bind the actual server tunbench-s device and ovpn-us underlay: " + action)
+            verify_dco_path_scope(server_path,before,after)
             for command in (dco.get("before_command", {}), dco.get("after_command", {})):
                 argv = command.get("argv", [])
                 require(command.get("exit_code") == 0 and not command.get("timed_out")
