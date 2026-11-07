@@ -323,8 +323,8 @@ def verify(public, expected_commit):
 
     secret_pattern = re.compile(
         rb"-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----|"
-        rb"-----BEGIN OpenVPN Static key|\\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}|"
-        rb"(?i:aws_secret_access_key)\\s*[:=]\\s*[^\\s]{16,}"
+        rb"-----BEGIN OpenVPN Static key|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}|"
+        rb"(?i:aws_secret_access_key)\s*[:=]\s*[^\s]{16,}"
     )
     for path in public.rglob("*"):
         if path.is_file():
