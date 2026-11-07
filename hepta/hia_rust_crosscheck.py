@@ -182,7 +182,7 @@ def _require_shadow_process_ownership():
 
 
 def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
-                        maximum_output=MAX_OUTPUT_BYTES, *, pass_fds=()):
+                        maximum_output=MAX_OUTPUT_BYTES, *, pass_fds=(), observer=None):
     """Bound stdin/stdout/stderr in memory; do not spool child output to disk.
 
     Exact executable byte pinning is a separate precondition. This pump is not
@@ -193,6 +193,10 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
     """
     _require_shadow_process_ownership()
     proc = None
+    collected = {"stdout": bytearray(), "stderr": bytearray()}
+    eof = {"stdout": False, "stderr": False}
+    cleanup_confirmed = False
+    observation_start = time.monotonic_ns() if observer is not None else None
     try:
         proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -200,7 +204,6 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
             env={"LANG": "C", "LC_ALL": "C", "PYTHONIOENCODING": "utf-8"},
         )
         pipes = {"stdin": proc.stdin, "stdout": proc.stdout, "stderr": proc.stderr}
-        collected = {"stdout": bytearray(), "stderr": bytearray()}
         offset = 0
         deadline = time.monotonic() + timeout
         with selectors.DefaultSelector() as selector:
@@ -237,11 +240,16 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
                         except BlockingIOError:
                             continue
                         if not chunk:
+                            eof[kind] = True
                             selector.unregister(stream)
                             stream.close()
                         else:
                             buf = collected[kind]
                             if len(buf) + len(chunk) >= maximum_output:
+                                if observer is not None:
+                                    # Preserve the read that triggered rejection too.
+                                    # The prefix is still bounded by limit + 4095.
+                                    buf.extend(chunk)
                                 _reject("shadow exceeded bounded output budget")
                             buf.extend(chunk)
             # EOF does not imply process exit. Observe without wait/poll:
@@ -259,28 +267,42 @@ def _run_bounded_shadow(cmd: list[str], payload: bytes, timeout: float,
             "E_HIA_RUST_CROSSCHECK: bounded shadow child unavailable or timed out"
         ) from exc
     finally:
-        if proc is not None:
-            try:
+        try:
+            if proc is not None:
                 # Confirm the child is still ours (running or unreaped).
                 # If another reaper consumed it, refuse without signalling
                 # a numeric PGID whose original identity is no longer held.
-                os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG)
                 try:
-                    os.killpg(proc.pid, signal.SIGKILL)
+                    os.waitid(os.P_PID, proc.pid, os.WEXITED | os.WNOWAIT | os.WNOHANG)
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    finally:
+                        # Signal exactly once, then reap. Even if wait reports
+                        # an error after consuming the child, never retry
+                        # killpg with a possibly reused PID. A signal or reap
+                        # error must not manufacture successful qualification.
+                        proc.wait(timeout=2)
+                    cleanup_confirmed = True
+                except (OSError, subprocess.TimeoutExpired) as exc:
+                    raise HIARustCrosscheckRejected(
+                        "E_HIA_RUST_CROSSCHECK: shadow process-group cleanup or leader reap unconfirmed"
+                    ) from exc
                 finally:
-                    # Signal exactly once, then reap. Even if wait reports
-                    # an error after consuming the child, never retry
-                    # killpg with a possibly reused PID. A signal or reap
-                    # error must not manufacture successful qualification.
-                    proc.wait(timeout=2)
-            except (OSError, subprocess.TimeoutExpired) as exc:
-                raise HIARustCrosscheckRejected(
-                    "E_HIA_RUST_CROSSCHECK: shadow process-group cleanup or leader reap unconfirmed"
-                ) from exc
-            finally:
-                for stream in (proc.stdin, proc.stdout, proc.stderr):
-                    if stream is not None and not stream.closed:
-                        stream.close()
+                    for stream in (proc.stdin, proc.stdout, proc.stderr):
+                        if stream is not None and not stream.closed:
+                            stream.close()
+        finally:
+            if observer is not None:
+                error = sys.exc_info()[1]
+                observer({"schema": "hepta.hia.bounded-shadow-observation.v1",
+                    "started": proc is not None, "pid": proc.pid if proc is not None else None,
+                    "stdout": bytes(collected["stdout"]), "stderr": bytes(collected["stderr"]),
+                    "eof": eof, "streams_complete": all(eof.values()),
+                    "cleanup_confirmed": cleanup_confirmed,
+                    "returncode": proc.returncode if proc is not None else None,
+                    "wall_ns": time.monotonic_ns() - observation_start,
+                    "error": None if error is None else {"type": type(error).__name__, "message": str(error)},
+                    "output_scope": "bytes actually read; incomplete streams are bounded prefixes, never asserted as complete output"})
     return bytes(collected["stdout"]), bytes(collected["stderr"]), proc.returncode
 
 

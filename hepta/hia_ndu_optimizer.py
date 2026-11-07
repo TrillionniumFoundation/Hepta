@@ -202,7 +202,31 @@ def _bridge_identity(bridge):
         "source_attestation": "trusted_local_build_receipt"}
 
 
-def _native_rank(bridge, request, *, timeout_s):
+def _native_rank(bridge, request, *, timeout_s, observer=None):
+    """Optionally retain original bounded output even when admission rejects.
+
+    The default call and its errors are unchanged. An observer is evidence
+    plumbing, not another evaluator or a grant of proof authority. Its work
+    belongs to the caller's outer budget. Incomplete pump output stays labelled
+    as a prefix; missing pre-launch observations are never invented as empty.
+    """
+    if observer is None:
+        return _native_rank_impl(bridge, request, timeout_s=timeout_s)
+    observation = {"schema": "hepta.hia.ndu-native-observation.v1", "stdin": _bytes(request),
+        "native_identity": None, "pump": None, "response_admitted": False}
+    try:
+        response, identity = _native_rank_impl(bridge, request, timeout_s=timeout_s,
+                                               observation=observation)
+        observation["response_admitted"] = True
+        return response, identity
+    finally:
+        error = sys.exc_info()[1]
+        observation["error"] = (None if error is None else
+            {"type": type(error).__name__, "message": str(error)})
+        observer(observation)
+
+
+def _native_rank_impl(bridge, request, *, timeout_s, observation=None):
     # Identity admission and sealing belong to this call's budget too. Starting
     # a fresh subprocess timeout after those operations would renew spent time.
     # The shared runner's execution timer starts after ownership checks/Popen;
@@ -217,6 +241,8 @@ def _native_rank(bridge, request, *, timeout_s):
         return remaining / 1_000_000_000
 
     image, identity = _bridge_identity(bridge)
+    if observation is not None:
+        observation["native_identity"] = identity
     data = _bytes(request)
     if len(data) > 1024 * 1024:
         _reject("native request exceeds byte limit")
@@ -224,9 +250,11 @@ def _native_rank(bridge, request, *, timeout_s):
     try:
         fd = _seal_bridge_image(image.data)
         try:
+            options = {} if observation is None else {"observer":
+                lambda value: observation.update(pump=value)}
             stdout, stderr, returncode = _run_bounded_shadow(
                 ["/proc/self/fd/" + str(fd)], data, remaining_seconds(),
-                maximum_output=1024 * 1024 + 1, pass_fds=(fd,))
+                maximum_output=1024 * 1024 + 1, pass_fds=(fd,), **options)
         finally:
             os.close(fd)
     except (OSError, HIARustCrosscheckRejected) as error:
