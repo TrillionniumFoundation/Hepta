@@ -28,9 +28,13 @@ NEW_SUITES = (
     "tests.test_hia_agent_native_tools",
     "tests.test_hia_agent_native_machine_choices",
     "tests.test_hia_machine_plan",
+    "tests.test_hia_machine_registers",
     "tests.test_hia_native_byte_abi",
     "tests.test_hia_bootstrap_components",
+    "tests.test_hia_selfhost",
     "tests.test_hia_agent_macro_policy",
+    "tests.test_hia_macro_campaign",
+    "tests.test_hia_macro_codex_provider",
     "tests.test_hia_candidate_preflight",
 )
 
@@ -85,10 +89,14 @@ def qualify():
         "acceptance": {"finite_same_source_tests_passed": bool(ok),
             "production_connector_deployed": False, "full_core_to_machine_refinement_proved": False,
             "real_task_ndu_strategy_benefit_proved": False, "complete_hia_selfhosting_achieved": False,
+            "fixed_core_selfhosting_test_gate_passed": bool(ok),
+            "checked_scalar_register_plan_test_gate_passed": bool(ok),
             "general_register_allocation_qualified": False},
         "notes": ["All original direct-backend suites remain in this inventory; no deleted tests or skips are accepted.",
                   "Native NDU execution and runtime preflight have separately retained receipts.",
-                  "Bootstrap components do not compile their complete own source; B0-B3 remains incomplete."]}
+                  "The separate fixed-Core compiler executes B0-B3 and modified-self rebuilding in its native tests; retain the standalone generation artifacts as well.",
+                  "The full HIA language and universal backend refinement remain outside this fixed-Core evidence.",
+                  "Checked scalar register and instruction plans preserve their own independent admission and native validation gates."]}
 
 
 def main():

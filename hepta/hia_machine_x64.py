@@ -231,6 +231,11 @@ class Code:
         self.mov_imm(dst, 0)
         self.emit(bytes([0x40 | (r >> 3), 0x0f, 0x90 + condition, 0xc0 | (r & 7)]))
 
+    def cmov(self, condition, dst, src):
+        # The reviewed form has register operands only. It preserves flags and
+        # cannot introduce a speculative memory access to an unselected input.
+        self._rr(bytes([0x0f, 0x40 + _condition(condition)]), dst, src)
+
     def push(self, reg):
         r = self._reg(reg)
         self.emit((b"\x41" if r >= 8 else b"") + bytes([0x50 + (r & 7)]))

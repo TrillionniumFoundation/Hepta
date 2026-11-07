@@ -13,18 +13,32 @@ on:
       - 'tests/test_hia_candidate_preflight.py'
       - 'tests/hia_candidate_preflight_integration.py'
       - 'tests/test_hia_agent_macro_policy.py'
+      - 'tests/test_hia_macro_campaign.py'
+      - 'tests/test_hia_macro_codex_provider.py'
       - 'tests/test_hia_agent_native*'
       - 'tests/test_hia_machine_plan.py'
+      - 'tests/test_hia_machine_registers.py'
       - 'tests/test_hia_native_byte_abi.py'
       - 'tests/test_hia_bootstrap_components.py'
+      - 'tests/test_hia_selfhost.py'
       - 'tools/hia_candidate_preflight.py'
       - 'tools/qualify_hia_candidate.py'
+      - 'tools/qualify_hia_macro_campaign.py'
+      - 'tools/hia_macro_codex_provider.py'
+      - 'tools/hia_macro_legacy_catalog_probe.py'
+      - 'tools/build_hia_ndu_bridge.py'
+      - 'rust/hia-ndu-bridge/**'
       - 'tools/qualify_hia_machine_choices.py'
+      - 'tools/qualify_hia_machine_registers.py'
       - 'tools/qualify_hia_bootstrap_components.py'
+      - 'tools/qualify_hia_selfhost.py'
+      - 'tools/hia_selfhost_child.py'
+      - 'tools/generate_hia_selfhost.py'
       - 'examples/hia_bootstrap/**'
       - 'docs/HIA_AGENT_MACHINE_PLANS.md'
       - 'docs/HIA_AGENT_MACRO_POLICY.md'
       - 'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md'
+      - 'docs/HIA_SELF_HOSTING_CORE.md'
       - '.github/workflows/hia-unified-candidate.yml'
   workflow_dispatch:
 
@@ -67,6 +81,46 @@ jobs:
         run: |
           set -eu
           python -B tools/qualify_hia_machine_choices.py --out "$RUNNER_TEMP/hia-unified/machine-choices"
+      - name: Retain checked scalar register and instruction-choice attempts
+        run: |
+          set -eu
+          python -B tools/qualify_hia_machine_registers.py --out "$RUNNER_TEMP/hia-unified/machine-registers"
+      - name: Retain native fixed-Core self-compilation and modified-self generations
+        run: |
+          set -eu
+          python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-unified/selfhost.json"
+      - name: Build exact original native NDU for the four-arm macro fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.95.0 --profile minimal
+          hia_ndu_checkout="$RUNNER_TEMP/hia-unified-ndu-source"
+          hia_ndu_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hia_ndu_checkout"
+          git -C "$hia_ndu_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hia_ndu_checkout" config remote.origin.promisor true
+          git -C "$hia_ndu_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hia_ndu_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hia_ndu_commit"
+          test "$(git -C "$hia_ndu_checkout" rev-parse FETCH_HEAD)" = "$hia_ndu_commit"
+          RUSTC="$(rustup which --toolchain 1.95.0 rustc)" \
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-unified-ndu-target" \
+          python -B tools/build_hia_ndu_bridge.py \
+            --upstream "$hia_ndu_checkout" --output "$RUNNER_TEMP/hia-unified/ndu-build" \
+            --cargo "$(rustup which --toolchain 1.95.0 cargo)" \
+            > "$RUNNER_TEMP/hia-unified/ndu-build.stdout.log" \
+            2> "$RUNNER_TEMP/hia-unified/ndu-build.stderr.log"
+      - name: Retain and independently verify every macro fixture arm and cost
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_macro_campaign.py run \
+            --output "$RUNNER_TEMP/hia-unified/macro-campaign" \
+            --native-binary "$RUNNER_TEMP/hia-unified-ndu-target/debug/hia-ndu-bridge" \
+            --native-build-receipt "$RUNNER_TEMP/hia-unified/ndu-build/build-receipt.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/macro-campaign.log"
+          python -B tools/qualify_hia_macro_campaign.py verify \
+            --bundle "$RUNNER_TEMP/hia-unified/macro-campaign" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/macro-verification.log"
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-runtime

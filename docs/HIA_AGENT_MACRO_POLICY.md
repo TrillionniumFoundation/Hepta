@@ -130,14 +130,178 @@ cannot turn its CLI exit into a P1 pass. Independent review of the actual
 referenced receipts and task outcomes remains necessary; this assessor cannot
 establish statistical generalization or authorize production adoption.
 
-## Current qualification
+## Executable four-arm campaign
 
-Unit tests exercise admissions, original native-adapter invocation plumbing,
-rejection accounting, same-Agent/budget/task binding and adversarial comparison
-inputs. Process-boundary mocks in those tests are explicitly fixtures. The unit
-test count does not establish a native value or task-value campaign. A separate
-source-bound native smoke receipt, when present, establishes only the actual
-adapter mechanism. This change includes no measured real-task NDU win. P1
-economic closure remains open until actual
-qualified Agent tasks, source-bound native executions and complete external
-costs are supplied and independently checked.
+`tools/qualify_hia_macro_campaign.py` now runs a frozen eight-task, four-arm
+campaign through the actual `HIAAgentService` tool domain. Its checked-in task
+author is a **deterministic fixture**, not an Agent or provider. The task corpus
+is eight wrapping-u8 programs with independently specified expected results on
+all 256 inputs. All arms use the same constructor, registered task input bytes,
+original wall/token allowances, installed worker and tool catalog. A fixed
+rotation counterbalances execution order. Every planned task remains in the
+result, including refusal, timeout, partial execution and exhausted budget.
+
+The decision occurs **before candidate search**. Each arm has observed the
+incumbent's complete native batch and the measured baseline import, proof and
+emission costs. It then chooses between retaining that incumbent and the finite
+`propose → verify → emit → evaluate → adopt → use → rollback → stop` continuation.
+An invalid search attempt is recorded before the decision, so losing-search
+costs remain visible even when the controller stops. Every selected continuation
+still passes the original tool admission, proof, evaluation and adoption checks.
+A separate subsequent native batch verifies actual future use against every
+registered expected result. Forecasts never replace that observation.
+
+| Arm | Implemented probe policy |
+| --- | --- |
+| `fixed` | Search and evaluate the registered candidate, then adopt if permitted |
+| `greedy` | Compare the next import cost with incumbent use, ignoring later stages |
+| `ordinary` | Deterministic argmin of the complete supplied conservative costs |
+| `ndu` | Use the original source-bound native NDU value ABI on those costs |
+
+The ordinary arm is a strong scalar-cost heuristic for this narrow probe, but
+it is **not the requested ordinary learned/model controller baseline**. Search
+forecasts extrapolate measured baseline stages. Candidate-use cost uses the
+previous incumbent batch as a proxy, while transition cost and uncertainty are
+explicit uncalibrated fixture estimates. This preserves a falsifiable native
+mechanism experiment; it does not establish learned dynamics, useful task
+selection, real Agent search behavior or a measured NDU economic advantage.
+
+```sh
+python tools/qualify_hia_macro_campaign.py run \
+  --output /absolute/new-campaign-directory \
+  --native-binary /absolute/source-bound-ndu \
+  --native-build-receipt /absolute/build-receipt.json
+
+python tools/qualify_hia_macro_campaign.py verify \
+  --bundle /absolute/campaign-directory
+```
+
+The destination must not already exist. No tool deploys a gateway, changes a
+production adoption slot, invokes a provider or pushes a repository. Each task
+uses a private disposable worker state. The source-bound NDU executable and its
+original build receipt are retained as bounded original bytes. The existing
+adapter still performs build/source/binary admission before executing a sealed
+image. A missing bridge yields retained blocked advice with zero native NDU
+evaluations; there is no Python substitute labelled as NDU.
+
+`run` exits zero only when every planned native task arm is correct and every
+NDU arm actually evaluated natively. That outcome is `native_mechanism_complete`,
+not P1 acceptance. `verify` exits zero for valid original evidence and explicitly
+reports failed/incomplete task arms. Both commands always report
+`p1_acceptance: HOLD` and `economic_benefit_established: false` for this fixture.
+
+### Original evidence and cost boundary
+
+The directory contains an immutable `registration.json`, `campaign.json`,
+`verdict.json` and a content-addressed `objects/` store. Objects retain exact
+artifact bytes, canonical application request/response receipts, task inputs,
+source snapshots, controller state, native advice and normalized native child
+reports. This in-process experiment does not claim to retain raw hosted MCP
+transport streams or child stderr streams that the existing runner API does not
+expose. Local object hashes establish byte integrity, not independent author
+or provider authentication.
+
+Each event records its task/arm/phase, original tool calls, output or exception,
+monotonic start/operation-start/end offsets, status and cost. Intervals are
+contiguous and nonoverlapping. Time spent serializing an event is charged to the
+following interval. The final close event ends at worker closure; result export,
+campaign setup and worker-directory cleanup are reconciled separately as
+campaign overhead. Final manifest/verdict export and module imports preceding
+the campaign clock are explicitly excluded. Historical NDU provisioning is
+retained as a build receipt, not silently charged as new current-budget spend.
+These bounds are disclosed rather than called complete real-Agent economics.
+
+The journal records no provider invocation for this fixture. Its measured
+script model-token consumption is zero; real Agent tokens and provider cost are
+separately **unknown**. Phase inventory declares model work not performed and
+the real-task comparison assessor therefore refuses qualification. Session or
+chat token estimates are not provider usage receipts.
+
+The verifier checks all original lengths and hashes, registration, the frozen
+execution order, task provenance, complete worker-source binding, event/ledger
+cost equality, timeline continuity, phase inventories, the exact ledger prefix
+consumed by each decision, candidate-search ordering, forecast support from
+preceding observations, NDU request/response/build/executable bindings and all
+actual native output values. Rehashing edited event costs cannot bypass the
+cross-receipt checks. Symlinked, hardlinked, missing or changed objects are
+rejected. Individual objects are capped at 8 MiB and the complete original-byte
+store at 256 MiB. This is an evidence-consistency check, not remote attestation.
+
+### Remaining real-Agent gate
+
+The existing provider diagnostics remain separate:
+`tools/qualify_hia_agent_provider.py catalog` / `probe` require a real configured
+`--codex` executable and explicit model selectors. An available catalog is not
+entitlement or a task success. A real campaign needs original provider event
+streams, provider-reported usage validated through
+`hia_agent_codex_transport.checked_usage`, exact model/prompt/tool/settings
+identity, independent real-task qualification and the same frozen budget in
+all four arms. Unknown usage must stay unknown. Old fresh-Agent runs with
+`null` costs cannot be substituted into this campaign.
+
+Native campaign success closes the executable mechanism/evidence gap only.
+P1 still requires real qualified Agent tasks, calibrated full-cost forecasts,
+a strong ordinary Agent controller, repeated measurements and observed
+advantage over **every** control under the registered budgets. Unit tests,
+source CI, native advice, a favorable one-run timing or a successful process
+exit do not close that gate.
+
+### Actual provider mode
+
+`qualify_hia_macro_campaign.py run` also accepts `--codex ABSOLUTE_EXECUTABLE
+--model OBSERVED_SELECTOR --model-tokens ORIGINAL_ALLOWANCE`. The same provider
+identity, selector, reasoning configuration and prompt constructor are frozen
+for all four arms. Each arm makes one fresh ephemeral call that returns both a
+complete candidate and an ordinary macro choice. The ordinary arm follows that
+original choice; the fixed, greedy and native NDU arms apply their respective
+policies to the same disclosed information. Candidate bytes are admitted and
+checked by the actual tools only if that policy searches. The reference fixture
+candidate and future results never enter the prompt. This is one-step model
+proposal/control integration, not an unconstrained multi-step autonomous Agent.
+
+The model phase owns exact `stdin.raw`, `stdout.raw`, `stderr.raw`, complete
+process metadata, the original request, configuration and all five reported
+usage fields. Raw streams are retained as bounded content-addressed chunks.
+The verifier reconstructs those original bytes, reparses their event order,
+rejects model-created tools, binds the actual invoked executable/selector to
+the frozen provider, compares the returned proposal/choice with the receipt,
+and reconciles usage and process time with the outer chargeable interval.
+Unknown usage stays null even on a failed response. A provider quota error or
+uncertain process cleanup stops subsequent provider launches; the planned task
+rows remain in the denominator. There is no model/account selection search,
+provider retry, prompt repair or guessed startup-warning exception.
+
+The token allowance uses the inherited conservative convention `input_tokens
++ output_tokens + reasoning_output_tokens`; original counters are retained,
+and overlap is not asserted. The CLI's usage is only available after generation,
+so this is an observed budget check rather than a claimed hard token-generation
+cap. An observed overrun fails the task and remains charged. Provider wall time
+is nested evidence inside the model phase and is never added twice. Prices,
+invoices, real task qualification and independent origin authentication remain
+unknown; actual provider integration cannot by itself turn P1 into PASS.
+
+A complete campaign invocation is:
+
+```sh
+python tools/qualify_hia_macro_campaign.py run \
+  --output /absolute/fresh/provider-campaign \
+  --native-binary /absolute/hia-ndu-bridge \
+  --native-build-receipt /absolute/build-receipt.json \
+  --codex /absolute/codex --model OBSERVED_SELECTOR \
+  --model-tokens 32768 --wall-ns 180000000000
+```
+
+Use the selected model only after a current independent availability probe.
+If that probe observed allowed startup warnings, provide their exact JSON
+array using `--registered-warnings`; do not invent a warning or change user
+configuration to silence it. This mode currently uses the existing owned-process
+transport on the same host as the coordinator. That transport requires
+`waitid(..., WNOWAIT)` and fails closed before launching when it cannot guarantee
+ownership. A remote shell wrapper or a copied old provider result does not
+satisfy the same-run time/cleanup contract.
+
+`tools/hia_macro_codex_provider.py` can execute a single provider transport
+smoke request from explicit task and prior-state JSON files. It writes a separate
+registration and actual raw response; it never appends that diagnostic to an old
+campaign or calls it a real task outcome. Its inputs are `--task`, `--state`,
+`--codex`, `--model`, `--output`, `--wall-seconds` and `--tokens`.

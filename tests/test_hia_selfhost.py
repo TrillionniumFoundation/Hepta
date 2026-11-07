@@ -1,0 +1,162 @@
+"""Real fixed-Core self-hosting, independently observable machine behavior."""
+from __future__ import annotations
+
+from pathlib import Path
+import platform
+import shutil
+import tempfile
+import unittest
+
+from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_program import HIAProgramRejected
+from tools.qualify_hia_selfhost import (INVALID, NO_SPACE, SAMPLE, SOURCE,
+    compile_stage, invalid_sources, invoke, mutate_compiler, qualify, readonly_call_source)
+
+NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
+
+
+class SelfhostSourceTests(unittest.TestCase):
+    def test_complete_compiler_is_valid_core_and_reproducible_source(self):
+        from tools.generate_hia_selfhost import document
+        source = SOURCE.read_bytes()
+        checked = assemble_program(source)
+        doc, names = document()
+        self.assertEqual(render_assembly(checked).encode(), source)
+        self.assertEqual(render_assembly(doc).encode(), source)
+        self.assertEqual(names["compile"], "f0")
+        self.assertEqual(names["wrapper"], "f3")
+        self.assertGreater(len(source), 200000)
+        self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), 3072)
+        self.assertLessEqual(sum(len(f["blocks"]) for f in doc["functions"]), 1536)
+        self.assertLessEqual(max(len(b["params"]) for f in doc["functions"] for b in f["blocks"]), 16)
+
+    def test_codegen_mutation_is_valid_core_and_changes_one_literal(self):
+        source = SOURCE.read_bytes()
+        changed = mutate_compiler(source)
+        assemble_program(changed)
+        self.assertEqual(len(source), len(changed))
+        self.assertEqual(sum(a != b for a, b in zip(source, changed)), 2)
+
+    def test_native_rejection_fixtures_also_fail_independent_core_frontend(self):
+        for label, source in invalid_sources(SAMPLE.read_bytes()).items():
+            with self.subTest(label=label), self.assertRaises(HIAProgramRejected):
+                assemble_program(source)
+
+    def test_readonly_alias_rules_distinguish_calls_from_linear_edges(self):
+        assemble_program(readonly_call_source())
+        invalid = invalid_sources(SAMPLE.read_bytes())
+        for name in ("readonly-jump-alias", "readonly-branch-alias"):
+            with self.subTest(case=name), self.assertRaisesRegex(HIAProgramRejected, "E_HIA_RESOURCE"):
+                assemble_program(invalid[name])
+
+
+@unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
+class SelfhostNativeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary = tempfile.TemporaryDirectory(prefix="hia-selfhost-test-")
+        cls.output = Path(cls.temporary.name) / "qualification.json"
+        cls.report = qualify(cls.output)
+        cls.directory = cls.output.with_suffix(".evidence")
+        cls.compiler = cls.directory / "B3.image.bin"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temporary.cleanup()
+
+    def test_B1_B2_B3_are_executed_self_compilations(self):
+        self.assertEqual(self.report["status"], "SELF_HOSTED_FIXED_CORE_PASS", self.report["checks"])
+        generations = self.report["generations"]
+        self.assertEqual(len(generations), 3)
+        self.assertEqual(len({x["produced_sha256"] for x in generations}), 1)
+        for generation in generations:
+            self.assertEqual(generation["input_sha256"], self.report["source_sha256"])
+            self.assertGreater(generation["produced_bytes"], 300000)
+            self.assertEqual(generation["workspace_header"]["48"], 2)
+            self.assertEqual(generation["forbidden_compiler_modules_loaded"], [])
+        for earlier, later in zip(generations, generations[1:]):
+            self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
+
+    def test_modified_emitter_propagates_and_rebuilds_modified_self(self):
+        m1, m2, m3 = self.report["modified_generations"]
+        self.assertNotEqual(m1["produced_sha256"], m2["produced_sha256"])
+        self.assertEqual(m2["produced_sha256"], m3["produced_sha256"])
+        self.assertNotEqual(m3["produced_sha256"], self.report["generations"][2]["produced_sha256"])
+        self.assertTrue(self.report["checks"]["modified_wrapper_machine_bytes"])
+        for name, good in self.report["checks"].items():
+            if "behavior" in name:
+                self.assertTrue(good, name)
+
+    def test_bad_sources_and_small_output_never_write_output(self):
+        for result in self.report["rejection_observations"]:
+            self.assertEqual(result["core_u32"], INVALID, result)
+            self.assertTrue(result["output_unchanged"], result)
+        for result in self.report["capacity_observations"]:
+            self.assertEqual(result["core_u32"], NO_SPACE, result)
+            self.assertTrue(result["output_unchanged"], result)
+
+    def test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases(self):
+        rejected = {row["case"]: row for row in self.report["rejection_observations"]}
+        for name in ("readonly-jump-alias", "readonly-branch-alias"):
+            result = rejected["reject-" + name]
+            self.assertEqual(result["core_u32"], INVALID, result)
+            self.assertTrue(result["output_unchanged"], result)
+        self.assertTrue(self.report["checks"]["readonly_call_alias_remains_legal"])
+        self.assertEqual(self.report["readonly_call_observations"][1]["core_u32"], 28)
+
+    def test_generated_byte_bounds_and_checked_shift_really_trap(self):
+        sample = self.directory / "original-bytesum.image.bin"
+        result, _ = invoke(self.directory, "bounds-trap", sample, b"x", capacity=0, workspace_size=1)
+        self.assertEqual(result["status"], "child_failed", result)
+        self.assertEqual(result["returncode"], -4, result)  # UD2 / SIGILL
+        source = SAMPLE.read_bytes().replace(b'{"value":33}', b'{"value":32}').replace(b"int.mul.wrap(v0,v2)", b"int.shl.checked(v0,v2)")
+        executable, _ = compile_stage(self.directory, "shift-trap-code", self.compiler, source)
+        result, _ = invoke(self.directory, "shift-trap", executable, b"x", capacity=1, workspace_size=1)
+        self.assertEqual(result["status"], "child_failed", result)
+        self.assertEqual(result["returncode"], -4, result)
+
+    def test_boolean_and_unsigned_comparison_encodings(self):
+        cases = [
+            '  v3:bool = const() {"value":true}\n'
+            '  v4:bool = const() {"value":false}\n'
+            '  v5:bool = bool.or(v3,v4)\n'
+            '  v6:bool = bool.not(v5)\n'
+            '  v7:bool = bool.and(v3,v6)\n',
+            '  v3:u64 = const() {"value":18446744073709551615}\n'
+            '  v4:u64 = const() {"value":1}\n'
+            '  v7:bool = compare.lt(v3,v4)\n',
+        ]
+        for index, operations in enumerate(cases):
+            source = ("hia-asm.v1 hepta.hia.program.v8 selfhost\n"
+                "fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\n"
+                "block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n" + operations +
+                "  branch v7 b1() b2()\nblock b1()\n"
+                '  v8:u32 = const() {"value":1}\n  ret(v8)\nblock b2()\n'
+                '  v9:u32 = const() {"value":2}\n  ret(v9)\nend\n').encode()
+            executable, _ = compile_stage(self.directory, "bool-code-" + str(index), self.compiler, source)
+            result, _ = invoke(self.directory, "bool-" + str(index), executable, b"", capacity=0, workspace_size=0)
+            self.assertEqual(result["status"], "returned", result)
+            self.assertEqual(result["core_u32"], 2, result)
+
+    def test_width_normalization_uses_real_generated_machine_code(self):
+        cases = [("u8", 250, 10, "int.add.wrap", 4),
+                 ("u32", 0x80000000, 1, "int.shl.checked", 0),
+                 ("u64", 0xffffffffffffffff, 2, "int.add.wrap", 1),
+                 ("u64", 0xffffffffffffffff, 63, "int.shr.checked", 1)]
+        for index, (typ, left, right, operation, expected) in enumerate(cases):
+            source = ("hia-asm.v1 hepta.hia.program.v8 selfhost\n"
+                "fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\n"
+                "block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n"
+                f'  v3:{typ} = const() {{"value":{left}}}\n'
+                f'  v4:{typ} = const() {{"value":{right}}}\n'
+                f"  v5:{typ} = {operation}(v3,v4)\n"
+                '  v6:u32 = int.cast(v5) {"mode":"wrap"}\n'
+                "  ret(v6)\nend\n").encode()
+            executable, _ = compile_stage(self.directory, "width-code-" + str(index), self.compiler, source)
+            result, _ = invoke(self.directory, "width-" + str(index), executable, b"", capacity=0, workspace_size=0)
+            self.assertEqual(result["status"], "returned", result)
+            self.assertEqual(result["core_u32"], expected, result)
+
+
+if __name__ == "__main__":
+    unittest.main()

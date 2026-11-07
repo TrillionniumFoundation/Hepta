@@ -157,9 +157,16 @@ for parsing. The test harness packages these HIA-produced instruction bytes with
 the existing Python ELF writer and GNU linker, then executes them independently.
 That packaging remains an explicit host dependency.
 
-## Bootstrap status and closure conditions
+## Finite-component scope and later self-hosting
 
-| Stage | Actual state |
+The table below describes `components.hiaasm` and its original finite compiler.
+The separate [fixed-Core self-hosting compiler](HIA_SELF_HOSTING_CORE.md) now
+implements native HIA parsing, semantic validation and x86 generation for all
+constructs in its own full source. Its separate qualification runs B0 through
+B3 and propagates a code-generation modification through a new fixed point.
+The finite-component qualifier intentionally retains its narrower claims.
+
+| Stage | Finite-component state |
 | --- | --- |
 | B0 seed | Python parses/checks the component HIA source and emits its native implementation |
 | HIA component execution | HIA performs real own-source lexing and finite source parsing/validation/instruction generation |
@@ -167,12 +174,13 @@ That packaging remains an explicit host dependency.
 | B2 / B3 | **Not achieved:** no HIA-built whole-toolchain generation exists to rebuild the next generation |
 | Changed-toolchain self-rebuild | **Not achieved:** source-literal changes are verified; toolchain self-rebuild is a different requirement |
 
-The required next work is a fixed sufficient Core subset with a complete HIA
-parser, semantic validator, lowering/encoding and object writer that can process
-those implementations themselves. Future generations must actually use these
-HIA implementations, and source modifications must cause a correct rebuilt
-toolchain. Calling the Python seed repeatedly, hashing equal outputs, copying a
-known image, or tokenizing one's own source does not satisfy this gate.
+The stronger gate requires a fixed sufficient Core subset with an HIA parser,
+semantic validator and machine encoder that process their own implementations.
+The separate self-hosting path emits position-independent flat machine images,
+so successors need no object writer or linker. Future generations must actually
+execute these HIA implementations, and source modifications must propagate into
+a rebuilt toolchain. Calling the Python seed repeatedly, copying a known image,
+or tokenizing one's own source does not satisfy that gate.
 
 ## Reproduction
 

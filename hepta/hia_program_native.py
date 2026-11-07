@@ -140,6 +140,9 @@ class _Function:
         self.c = parent.c
         self.cursor = 8  # saved output-array pointer at rbp-8
         self.slots, self.types = {}, {}
+        plan = parent.machine_plan or {}
+        self.value_registers = plan.get("value_registers", {}).get(fn["name"], {})
+        self.scalar_select = plan.get("instruction_selection", {}).get("scalar_select", "branch")
         self.blocks = {b["id"]: b for b in fn["blocks"]}
         for block in fn["blocks"]:
             definitions = block["params"] + [out for op in block["ops"] for out in op["out"]]
@@ -155,6 +158,12 @@ class _Function:
         self.call_slot = self.allocate(max(1, self.call_words))
         self.result_slot = self.allocate(max(1, self.result_words))
         self.temporary = self.allocate(4)
+        from .hia_machine_plan import VALUE_REGISTERS
+        # Keep canonical staging/temporary locations disjoint from saved ABI
+        # registers. A selected SSA value lives only in its checked register;
+        # its canonical slot is reserved but no stale spill is ever read.
+        self.saved_registers = {reg: self.allocate(1) for reg in VALUE_REGISTERS
+                                if reg in self.value_registers.values()}
         self.frame = (self.cursor + 15) & -16
         if self.frame > MAX_FRAME_BYTES:
             _reject("function stack frame exceeds 64 KiB: " + fn["name"], "E_HIA_PROGRAM_LIMIT")
@@ -171,10 +180,20 @@ class _Function:
         return "fn" + str(self.index) + "_block_" + name
 
     def load(self, name, reg="rax", word=0):
-        self.c.load(reg, "rbp", self.slots[name] + word * 8)
+        if name in self.value_registers:
+            if word:
+                _reject("multiword value cannot use the scalar register plan", "E_HIA_MACHINE_PLAN")
+            self.c.mov_rr(reg, self.value_registers[name])
+        else:
+            self.c.load(reg, "rbp", self.slots[name] + word * 8)
 
     def store(self, name, reg="rax", word=0):
-        self.c.store("rbp", self.slots[name] + word * 8, reg)
+        if name in self.value_registers:
+            if word:
+                _reject("multiword value cannot use the scalar register plan", "E_HIA_MACHINE_PLAN")
+            self.c.mov_rr(self.value_registers[name], reg)
+        else:
+            self.c.store("rbp", self.slots[name] + word * 8, reg)
 
     def immediate(self, name, value, word=0):
         self.c.mov_imm("rax", int(value) & ((1 << 64) - 1))
@@ -309,10 +328,18 @@ class _Function:
                 self.range_check("rax", dest, typ)
             _normalize(c, "rax", dest); self.store(out[0])
         elif op == "select":
-            yes, done = self.label("select_yes"), self.label("select_done")
-            self.load(args[0]); c.test("rax", "rax"); c.jcc("ne", yes)
-            self.copy(args[2], out[0]); c.jmp(done)
-            c.label(yes); self.copy(args[1], out[0]); c.label(done)
+            if self.scalar_select == "cmov_scalar":
+                # Core SELECT admits only already-defined nonresource values.
+                # Register-only CMOV adds no conditional memory read or effect;
+                # loading these scalar representations uses flag-preserving MOV.
+                self.load(args[0]); c.test("rax", "rax")
+                self.load(args[2]); self.load(args[1], "rcx")
+                c.cmov("ne", "rax", "rcx"); self.store(out[0])
+            else:
+                yes, done = self.label("select_yes"), self.label("select_done")
+                self.load(args[0]); c.test("rax", "rax"); c.jcc("ne", yes)
+                self.copy(args[2], out[0]); c.jmp(done)
+                c.label(yes); self.copy(args[1], out[0]); c.label(done)
         elif op == "call":
             n = 0
             for arg in args:
@@ -484,6 +511,8 @@ class _Function:
         c = self.c
         begin = len(c.data)
         _prologue(c, self.frame)
+        for register, slot in self.saved_registers.items():
+            c.store("rbp", slot, register)
         c.store("rbp", -8, "rsi")
         n = 0
         for param in self.fn["params"]:
@@ -510,6 +539,8 @@ class _Function:
                 for arg in term["values"]:
                     for word in range(_words(self.types[arg])):
                         self.load(arg, word=word); c.store("r10", n * 8, "rax"); n += 1
+                for register, slot in self.saved_registers.items():
+                    c.load(register, "rbp", slot)
                 c.leave(); c.ret()
             else:
                 _reject("unknown native terminator")

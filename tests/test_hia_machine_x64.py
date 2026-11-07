@@ -49,6 +49,8 @@ class EncoderStructuralTests(unittest.TestCase):
         with self.assertRaises(MachineEncodingError): code.finalize()
         with self.assertRaises(MachineEncodingError): Code().shift_imm("shl", "rax", 64)
         with self.assertRaises(MachineEncodingError): Code().jcc("unsupported", "x")
+        with self.assertRaises(MachineEncodingError): Code().cmov("unsupported", "rax", "rcx")
+        with self.assertRaises(MachineEncodingError): Code().cmov("e", "rax", "[rcx]")
         with self.assertRaises(MachineEncodingError): Code().call("puts;system")
 
     def test_elf_symbol_order_and_stack_flags(self):
@@ -148,6 +150,23 @@ class EncoderExecutionTests(unittest.TestCase):
                 c.setcc(cc, dst); c.mov_rr("rax", dst)
                 for saved in reversed(_SAVED): c.pop(saved)
                 c.ret(); cls.end(); cls.expected[name] = expected
+        for dst in _REGS:
+            for src in _REGS:
+                if dst == src:
+                    continue
+                for cc, choose in (("l", True), ("ge", False), ("a", True), ("b", False), ("e", False), ("ne", True)):
+                    name = cls.begin()
+                    for saved in _SAVED: c.push(saved)
+                    c.mov_imm("rax", -7); c.mov_imm("rcx", 3); c.cmp("rax", "rcx")
+                    before, selected = 0x87654321fedcba98, 0x1020304050607080
+                    c.mov_imm(dst, before); c.mov_imm(src, selected); c.cmov(cc, dst, src)
+                    c.mov_rr("rax", dst)
+                    for saved in reversed(_SAVED): c.pop(saved)
+                    c.ret(); cls.end(); cls.expected[name] = selected if choose else before
+        name = cls.begin("cmov_preserves_flags")
+        c.mov_imm("rax", 7); c.alu_imm("cmp", "rax", 7)
+        c.mov_imm("r10", 99); c.cmov("e", "rax", "r10"); c.setcc("e", "rax"); c.ret(); cls.end()
+        cls.expected[name] = 1
         for op, a, b, expected in (("div", (1 << 63)+7, 5, ((1 << 63)+7)//5),
                                     ("idiv", -37, 5, -7), ("mul", (1 << 63)+7, 5, (1 << 63)+35)):
             name = cls.begin()

@@ -20,6 +20,7 @@ CATALOG_PATH = ROOT / "docs" / "HIA_AGENT_NATIVE_TOOL_CATALOG.json"
 DISCOVERY_FILES = (
     "HIA_AGENT_NATIVE_TOOL_CATALOG.json", "HIA_AGENT_ASSEMBLY.md", "HIA_PROGRAM.md",
     "HIA_AGENT_MACHINE_PLANS.md", "HIA_AGENT_MACRO_POLICY.md", "HIA_DIRECT_BYTE_BOOTSTRAP.md",
+    "HIA_SELF_HOSTING_CORE.md",
 )
 
 
@@ -199,7 +200,7 @@ BLOCK_PLAN_SCHEMA = obj({
 })
 
 # Artifact-referenced plans preserve the eleven-tool wire catalog. Discovery
-# publishes both the original layout profile and the explicit v2 choices.
+# publishes the original layout profile and the explicit v2/v3 choices.
 MACHINE_PLAN_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.machine-plan.v2"},
     "core_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
@@ -214,4 +215,14 @@ MACHINE_PLAN_SCHEMA = obj({
         "alu_immediate": {"enum": ["imm32", "imm8_if_exact"]}}),
     "function_alignment": {"type": "integer", "enum": [1, 16, 32, 64]},
 })
-PLAN_SCHEMA = {"oneOf": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA]}
+VALUE_REGISTER_PLAN_SCHEMA = obj({
+    **MACHINE_PLAN_SCHEMA["properties"],
+    "schema": {"const": "hepta.hia.agent.machine-plan.v3"},
+    "instruction_selection": obj({
+        **MACHINE_PLAN_SCHEMA["properties"]["instruction_selection"]["properties"],
+        "scalar_select": {"enum": ["branch", "cmov_scalar"]}}),
+    "value_registers": {"type": "object", "maxProperties": 1024,
+        "additionalProperties": {"type": "object", "maxProperties": 65536,
+            "additionalProperties": {"enum": ["rbx", "r12", "r13", "r14", "r15"]}}},
+})
+PLAN_SCHEMA = {"oneOf": [BLOCK_PLAN_SCHEMA, MACHINE_PLAN_SCHEMA, VALUE_REGISTER_PLAN_SCHEMA]}
