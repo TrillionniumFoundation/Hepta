@@ -309,13 +309,44 @@ def peer_delta(before, after):
 
 
 
-def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False):
-    """Require DCO accounting, except an exact prior-session peer ID after reconnect."""
+def dco_device_drop_delta(before, after):
+    """Require one isolated kernel ovpn RX drop and no VPN-facing device delivery."""
+    if not isinstance(before, list) or len(before) != 1 or not isinstance(after, list) or len(after) != 1:
+        raise ValueError("DCO device snapshot must contain exactly one interface")
+    old, new = before[0], after[0]
+    if old.get("ifname") != "tunbench-s" or new.get("ifname") != "tunbench-s":
+        raise ValueError("DCO device snapshot names the wrong interface")
+    if type(old.get("ifindex")) is not int or old.get("ifindex") != new.get("ifindex"):
+        raise ValueError("DCO device ifindex changed or is malformed")
+    if old.get("linkinfo", {}).get("info_kind") != "ovpn" or new.get("linkinfo", {}).get("info_kind") != "ovpn":
+        raise ValueError("DCO device snapshot is not the kernel ovpn interface")
+    old_rx = old.get("stats64", {}).get("rx", {})
+    new_rx = new.get("stats64", {}).get("rx", {})
+    keys = ("dropped", "packets", "bytes")
+    if any(type(old_rx.get(key)) is not int or type(new_rx.get(key)) is not int
+           for key in keys):
+        raise ValueError("DCO device RX counters are missing or malformed")
+    delta = {key: new_rx[key] - old_rx[key] for key in keys}
+    if any(value < 0 for value in delta.values()):
+        raise ValueError("DCO device RX counters reset")
+    if delta["dropped"] != 1:
+        raise ValueError("DCO device did not record exactly one isolated RX drop")
+    if delta["packets"] != 0 or delta["bytes"] != 0:
+        raise ValueError("injected packet was delivered to the VPN-facing DCO device")
+    return {"rx_dropped": delta["dropped"], "rx_packets": delta["packets"],
+            "rx_bytes": delta["bytes"]}
+
+
+def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False,
+                        device_drop_delta=None):
+    """Require peer accounting plus the independent DCO device RX-drop witness."""
     if type(allow_stale_peer_id) is not bool:
         raise ValueError("stale peer-ID allowance must be an explicit boolean")
     if packet_peer_id is not None and (type(packet_peer_id) is not int
                                        or not 0 <= packet_peer_id <= 0xffffff):
         raise ValueError("OpenVPN data-v2 peer ID is malformed")
+    if device_drop_delta != {"rx_dropped": 1, "rx_packets": 0, "rx_bytes": 0}:
+        raise ValueError("DCO device did not record one isolated receive drop without VPN delivery")
     for key in ("ifindex", "netns_inode", "family_id"):
         if before.get(key) != after.get(key):
             raise ValueError("DCO peer scope changed: " + key)
@@ -334,11 +365,8 @@ def dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=
         if packet_peer_id is not None and not stale_peer and packet_peer_id != peer_id:
             raise ValueError("encrypted datagram peer ID differs from the active DCO peer")
         if stale_peer:
-            if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
-                raise ValueError("stale prior-session peer packet did not reach current DCO peer ingress")
-            if any(value != 0 for key, value in row.items()
-                   if key not in ("link_rx_packets", "link_rx_bytes")):
-                raise ValueError("stale prior-session packet changed non-ingress DCO peer counters")
+            if any(value != 0 for value in row.values()):
+                raise ValueError("stale prior-session peer unexpectedly changed active peer counters")
         else:
             if row["link_rx_packets"] <= 0 or row["link_rx_bytes"] <= 0:
                 raise ValueError("DCO kernel peer did not record incoming link traffic")
@@ -835,6 +863,9 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         dco_before_command=pair.command('server',[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface','tunbench-s',
                                       '--out',str(dco_before_path)],label+'-dco-peer-before')
         dco_before=read_json(dco_before_path)
+        dco_device_before_command=pair.command('server',['ip','-d','-s','-j','link','show','dev','tunbench-s'],
+                                             label+'-dco-device-before')
+        dco_device_before=read_json_output(dco_device_before_command)
     out=pair.folder/label
     row=pair.command('client',[sys.executable,str(HERE/'encrypted_capture.py'),'inject','--interface','ovpn-uc',
                               '--capture',str(capture),'--mode',mode,'--count','1','--out',str(out)],label+'-submit')
@@ -862,10 +893,15 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         dco_after_command=pair.command('server',[sys.executable,str(HERE/'dco_peer_stats.py'),'--interface','tunbench-s',
                                      '--out',str(dco_after_path)],label+'-dco-peer-after')
         dco_after=read_json(dco_after_path)
+        dco_device_after_command=pair.command('server',['ip','-d','-s','-j','link','show','dev','tunbench-s'],
+                                              label+'-dco-device-after')
+        dco_device_after=read_json_output(dco_device_after_command)
+        device_delta=dco_device_drop_delta(dco_device_before,dco_device_after)
         active_peer_id=dco_before['peers'][0]['peer_id']
         allow_stale_peer_id=(label=='after-reconnect-replay' and mode=='replay')
         delta=dco_rejection_delta(dco_before,dco_after,packet_peer_id=packet_peer_id,
-                                  allow_stale_peer_id=allow_stale_peer_id)
+                                  allow_stale_peer_id=allow_stale_peer_id,
+                                  device_drop_delta=device_delta)
         stale_peer_unaccounted=(allow_stale_peer_id and packet_peer_id!=active_peer_id)
         observation_end=time.monotonic_ns()
         if traffic_pause and traffic_pause.get('paused'):
@@ -879,12 +915,20 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             'after_path':str(dco_after_path.relative_to(pair.l.out)),
             'after_sha256':digest(dco_after_path),
             'before_command':dco_before_command.row,'after_command':dco_after_command.row,
+            'device_before_path':str(dco_device_before_command.stdout.relative_to(pair.l.out)),
+            'device_before_sha256':digest(dco_device_before_command.stdout),
+            'device_after_path':str(dco_device_after_command.stdout.relative_to(pair.l.out)),
+            'device_after_sha256':digest(dco_device_after_command.stdout),
+            'device_netns_inode':os.stat('/run/netns/'+pair.names['server']).st_ino,
+            'device_before_command':dco_device_before_command.row,
+            'device_after_command':dco_device_after_command.row,
+            'device_delta':device_delta,
             'packet_peer_id':packet_peer_id,'active_peer_id':active_peer_id,
             'peer_accounting':'stale-peer-id-unaccounted' if stale_peer_unaccounted else 'active-peer-link-rx',
             'delta':delta,'traffic_sender_pause':traffic_pause,
-            'scope':('exact prior-session data-v2 peer ID reached peer ingress; current peer counters remained unchanged; no kernel drop reason is inferred'
+            'scope':('exact prior-session data-v2 peer ID reached the server underlay; DCO device RX-dropped advanced once while active peer counters and VPN-facing RX stayed unchanged; no crypto drop reason is inferred'
                      if stale_peer_unaccounted else
-                     'per-injection kernel DCO Netlink counters: peer link RX advanced while VPN RX stayed unchanged; this proves no VPN-facing delivery, not the kernel internal drop reason')
+                     'per-injection DCO peer link RX advanced and device RX-dropped advanced once while VPN-facing peer/device RX stayed unchanged; no crypto drop reason is inferred')
         }
     else:
         observation_end=time.monotonic_ns()
