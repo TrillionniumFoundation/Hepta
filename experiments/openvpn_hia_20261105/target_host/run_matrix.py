@@ -316,7 +316,8 @@ def dco_device_drop_delta(before, after):
     old, new = before[0], after[0]
     if old.get("ifname") != "tunbench-s" or new.get("ifname") != "tunbench-s":
         raise ValueError("DCO device snapshot names the wrong interface")
-    if type(old.get("ifindex")) is not int or old.get("ifindex") != new.get("ifindex"):
+    if (type(old.get("ifindex")) is not int or type(new.get("ifindex")) is not int
+            or old.get("ifindex") != new.get("ifindex")):
         raise ValueError("DCO device ifindex changed or is malformed")
     if old.get("linkinfo", {}).get("info_kind") != "ovpn" or new.get("linkinfo", {}).get("info_kind") != "ovpn":
         raise ValueError("DCO device snapshot is not the kernel ovpn interface")
