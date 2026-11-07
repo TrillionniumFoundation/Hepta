@@ -340,6 +340,52 @@ class DcoReplayEvidenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 function(before, after)
 
+    def test_dco_replay_accepts_zero_current_peer_delta_for_prior_peer_id_after_reconnect(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        expected = {"1": {key: 0 for key in matrix.PEER_COUNTERS}}
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            self.assertEqual(
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True),
+                expected,
+            )
+
+    def test_dco_replay_rejects_counter_change_for_prior_peer_id(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        after["peers"][0]["link_rx_bytes"] += 350
+        after["peers"][0]["link_rx_packets"] += 1
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=True)
+
+    def test_dco_replay_rejects_stale_peer_id_without_explicit_reconnect_scope(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=0, allow_stale_peer_id=False)
+
+    def test_dco_replay_rejects_stale_mode_when_packet_uses_active_peer_id(self):
+        before = self.peer()
+        before["peers"][0]["peer_id"] = 1
+        after = copy.deepcopy(before)
+        for function in (matrix.dco_rejection_delta, verifier.verify_dco_rejection_delta):
+            with self.assertRaises(ValueError):
+                function(before, after, packet_peer_id=1, allow_stale_peer_id=True)
+
+    def test_data_v2_frame_exposes_24bit_peer_id(self):
+        payload = bytes([0x48]) + (0x123456).to_bytes(3, "big") + bytes((i % 256 for i in range(1, 285)))
+        parsed = encrypted.parse_frame(self.frame(payload))
+        self.assertEqual(parsed["opcode"], 9)
+        self.assertEqual(parsed["peer_id"], 0x123456)
+        legacy = encrypted.parse_frame(self.frame(bytes([0x30]) + bytes((i % 256 for i in range(1, 285)))))
+        self.assertEqual(legacy["opcode"], 6)
+        self.assertIsNone(legacy["peer_id"])
+
     def test_frame_scan_count_accepts_bounded_multi_frame_and_rejects_invalid(self):
         # The real target run inspected 3–7 AF_PACKET frames before finding the exact hash.
         self.assertEqual(verifier.verify_frame_inspection_count({"frames_inspected": 7}), 7)
@@ -503,6 +549,94 @@ class ProfileInventoryTests(unittest.TestCase):
             verifier.verify_hia_profile_hotspot(
                 {"hia_profile_symbol_lines": 2},
                 "  1.25% openvpn [.] ovpn_hia_packet_id_read_epoch", "hia-user")
+
+
+class ContinuityLossEvidenceTests(unittest.TestCase):
+    def fixture(self, root, missing=(5,6), receiver_stop=None):
+        root=Path(root);sender_dir=root/"continuity-sender";receiver_dir=root/"continuity-receiver"
+        sender_dir.mkdir();receiver_dir.mkdir()
+        expected=8;size=256;run_id="continuity-fixture"
+        missing=set(missing);sent=[i for i in range(expected) if i not in missing]
+        errors=sorted(missing);echoes=sent;payloads=sent
+        sender_events=[{"kind":"ready","run_id":run_id,"expected_count":expected}]
+        sender_events += [{"kind":"sent","run_id":run_id,"sequence":i,"bytes":size} for i in sent]
+        sender_events += [{"kind":"send_error","run_id":run_id,"sequence":i,"error":"[Errno 101] Network is unreachable"} for i in errors]
+        sender_events += [{"kind":"echo","run_id":run_id,"sequence":i,"duplicate":False,"reordered":False,"bytes":size} for i in echoes]
+        receiver_events=[{"kind":"ready","run_id":run_id,"expected_count":expected}]
+        receiver_events += [{"kind":"payload","run_id":run_id,"sequence":i,"duplicate":False,"reordered":False,"bytes":size} for i in payloads]
+        sender_path=sender_dir/"events.jsonl";receiver_path=receiver_dir/"events.jsonl"
+        sender_path.write_text("".join(json.dumps(row,sort_keys=True)+"\n" for row in sender_events))
+        receiver_path.write_text("".join(json.dumps(row,sort_keys=True)+"\n" for row in receiver_events))
+        sender_sha=hashlib.sha256(sender_path.read_bytes()).hexdigest()
+        receiver_sha=hashlib.sha256(receiver_path.read_bytes()).hexdigest()
+        sender={"role":"sender","run_id":run_id,"expected_count":expected,"payload_size":size,
+                "expected_payload_bytes":expected*size,"all_sends_attempted":True,"send_attempts":expected,
+                "sent_packets":len(sent),"send_errors":len(errors),"received_packets":len(echoes),
+                "unique_echoes":len(echoes),"missing_echo_count":len(errors),
+                "missing_echo_ranges_inclusive":matrix.inclusive_ranges(errors),
+                "duplicate_echoes":0,"invalid_echoes":0,"reordered_echoes":0,"unexpected_peer_packets":0,
+                "deadline_reached":False,"stop_signal":None,"passed":False,"event_count":len(sender_events),
+                "events":"events.jsonl","events_sha256":sender_sha}
+        receiver={"role":"receiver","run_id":run_id,"expected_count":expected,"payload_size":size,
+                  "expected_payload_bytes":expected*size,"received_packets":len(payloads),
+                  "unique_packets":len(payloads),"valid_packets":len(payloads),"echoed_packets":len(payloads),
+                  "missing_count":len(errors),"missing_ranges_inclusive":matrix.inclusive_ranges(errors),
+                  "duplicate_packets":0,"invalid_packets":0,"reordered_packets":0,"foreign_run_packets":0,
+                  "unexpected_peer_packets":0,"echo_errors":0,"deadline_reached":True,
+                  "stop_signal":receiver_stop,"passed":False,"event_count":len(receiver_events),
+                  "events":"events.jsonl","events_sha256":receiver_sha}
+        continuity={"run_id":run_id,"sender":sender,"receiver":receiver,"sender_exit":1,
+                    "receiver_exit":1,"passed":False}
+        case={"continuity":continuity,"checks":{"continuity_all_losses_retained":True}}
+        probe={"run_id":run_id,"count":expected,"size":size,
+               "sender_dir":sender_dir,"receiver_dir":receiver_dir}
+        plan={"behavior":{"continuous_count":expected,"strict_probe_size":size}}
+        return probe,continuity,case,plan
+
+    def test_completed_degraded_sender_is_accepted_only_when_every_loss_is_retained(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe,continuity,case,plan=self.fixture(tmp)
+            self.assertTrue(matrix.continuity_loss_receipt(probe,continuity))
+            receipt=verifier.verify_continuity_loss_evidence(Path(tmp),case,plan)
+            self.assertEqual(receipt["missing_echo_count"],2)
+            self.assertEqual(receipt["missing_payload_count"],2)
+            self.assertEqual(receipt["sender_exit"],1)
+
+    def test_early_stopped_receiver_is_not_a_complete_continuity_window(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe,continuity,case,plan=self.fixture(tmp,receiver_stop=15)
+            continuity["receiver"]["deadline_reached"]=False
+            with self.assertRaises(ValueError):matrix.continuity_loss_receipt(probe,continuity)
+            with self.assertRaises(ValueError):verifier.verify_continuity_loss_evidence(Path(tmp),case,plan)
+
+    def test_missing_range_tampering_is_rejected_by_both_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            probe,continuity,case,plan=self.fixture(tmp)
+            continuity["sender"]["missing_echo_ranges_inclusive"]=[[6,6]]
+            with self.assertRaises(ValueError):matrix.continuity_loss_receipt(probe,continuity)
+            with self.assertRaises(ValueError):verifier.verify_continuity_loss_evidence(Path(tmp),case,plan)
+
+    def test_sender_completion_allows_exit_one_but_rejects_timeout_or_unbalanced_signal(self):
+        self.assertEqual(matrix.continuity_sender_completion({"exit_code":1,"signals":[]})["sender_exit_code"],1)
+        paired={"exit_code":1,"signals":[{"signal":signal.SIGSTOP},{"signal":signal.SIGCONT}]}
+        self.assertEqual(matrix.continuity_sender_completion(paired)["sender_signals"],paired["signals"])
+        for row in ({"exit_code":1,"timed_out":True,"signals":[]},
+                    {"exit_code":2,"signals":[]},
+                    {"exit_code":1,"signals":[{"signal":signal.SIGSTOP}]}):
+            with self.assertRaises(ValueError):matrix.continuity_sender_completion(row)
+
+    def test_security_subset_is_exactly_seven_behavior_and_two_authentication_cases(self):
+        plan=json.loads((HERE/"plan.json").read_text())
+        tasks=matrix.select_tasks(matrix.build_tasks(plan),"security")
+        self.assertEqual(len(tasks),9)
+        self.assertEqual(sum(row["kind"]=="behavior" for row in tasks),7)
+        self.assertEqual(sum(row["kind"]=="authentication" for row in tasks),2)
+        self.assertEqual(sum(row["kind"] in ("profile","performance") for row in tasks),0)
+        expected=verifier.expected_cases_for_security(plan)
+        self.assertEqual(len(expected),9)
+        self.assertIn("not performance qualification",matrix.security_claim_limit(True))
+
+
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

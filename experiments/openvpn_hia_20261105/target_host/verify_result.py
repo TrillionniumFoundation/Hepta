@@ -13,6 +13,7 @@ import json
 import math
 from pathlib import Path
 import re
+import signal
 import encrypted_capture
 
 
@@ -132,8 +133,13 @@ def verify_udp_delivery(value, workload, policy):
 
 
 
-def verify_dco_rejection_delta(before, after):
-    """Independently require the same DCO peer to receive link traffic but forward no VPN data."""
+def verify_dco_rejection_delta(before, after, packet_peer_id=None, allow_stale_peer_id=False):
+    """Independently verify active-peer ingress or a prior-session peer ID after reconnect."""
+    require(type(allow_stale_peer_id) is bool, "stale peer-ID allowance is not boolean")
+    require(packet_peer_id is None or
+            (isinstance(packet_peer_id, int) and not isinstance(packet_peer_id, bool)
+             and 0 <= packet_peer_id <= 0xffffff),
+            "OpenVPN data-v2 peer ID is malformed")
     for key in ("ifindex", "netns_inode", "family_id"):
         require(before.get(key) == after.get(key), "DCO peer scope changed: " + key)
     first = {row["peer_id"]: row for row in before.get("peers", [])}
@@ -149,10 +155,19 @@ def verify_dco_rejection_delta(before, after):
         delta = {key: last[peer_id][key] - old[key] for key in counters}
         require(all(isinstance(value, int) and not isinstance(value, bool) and value >= 0
                     for value in delta.values()), "DCO replay peer counter reset or malformed")
-        require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
-                "DCO peer did not account incoming encrypted link traffic")
-        require(delta["vpn_rx_packets"] == 0 and delta["vpn_rx_bytes"] == 0,
-                "DCO peer forwarded the injected packet into the VPN-facing path")
+        stale_peer = allow_stale_peer_id and packet_peer_id is not None and packet_peer_id != peer_id
+        require(not allow_stale_peer_id or stale_peer,
+                "post-reconnect replay does not carry a different prior peer ID")
+        require(stale_peer or packet_peer_id is None or packet_peer_id == peer_id,
+                "encrypted datagram peer ID differs from the active DCO peer")
+        if stale_peer:
+            require(all(value == 0 for value in delta.values()),
+                    "stale prior-session peer ID changed current DCO peer counters")
+        else:
+            require(delta["link_rx_packets"] > 0 and delta["link_rx_bytes"] > 0,
+                    "DCO peer did not account incoming encrypted link traffic")
+            require(delta["vpn_rx_packets"] == 0 and delta["vpn_rx_bytes"] == 0,
+                    "DCO peer forwarded the injected packet into the VPN-facing path")
         result[str(peer_id)] = delta
     return result
 
@@ -248,12 +263,132 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
             and command_rows[1].get("label") == action + "-witness",
             "encrypted injection command identity changed: " + action)
     return {"mode": mode, "submit_monotonic_ns": submit_ns, "arrival_monotonic_ns": arrival_ns,
-            "observation_finished_monotonic_ns": observation_ns}
+            "observation_finished_monotonic_ns": observation_ns,
+            "packet_peer_id": arrived.get("peer_id")}
+
+
+def inclusive_ranges(values):
+    ordered=sorted(set(values));out=[]
+    for value in ordered:
+        if not out or value>out[-1][1]+1:out.append([value,value])
+        else:out[-1][1]=value
+    return out
+
+
+def verify_continuity_loss_evidence(case_dir, case, plan):
+    """Independently retain every sequence/error while requiring the full receiver window."""
+    result=case.get("continuity")
+    require(isinstance(result,dict),"continuous payload receipt is missing")
+    expected=plan["behavior"]["continuous_count"]
+    sender=result.get("sender",{});receiver=result.get("receiver",{})
+    run_id=result.get("run_id")
+    require(run_id and sender.get("run_id")==run_id and receiver.get("run_id")==run_id,
+            "continuity sender/receiver run identities differ")
+    require(sender.get("expected_count")==expected and sender.get("send_attempts")==expected
+            and sender.get("all_sends_attempted") is True,
+            "continuity sender did not attempt the complete frozen inventory")
+    require(sender.get("sent_packets",0)+sender.get("send_errors",0)==expected,
+            "continuity sender omitted sent or errored sequence numbers")
+    require(receiver.get("expected_count")==expected
+            and receiver.get("received_packets",0)+receiver.get("missing_count",0)==expected,
+            "continuity receiver omitted received or missing sequence numbers")
+    require(sender.get("payload_size")==plan["behavior"]["strict_probe_size"]
+            and receiver.get("payload_size")==plan["behavior"]["strict_probe_size"],
+            "continuity payload size differs from the frozen plan")
+    require(sender.get("deadline_reached") is False and receiver.get("deadline_reached") is True,
+            "continuity sender/receiver did not finish their declared observation windows")
+    require(sender.get("stop_signal") is None and receiver.get("stop_signal") is None,
+            "continuity sender/receiver was externally stopped")
+    require(result.get("sender_exit") in (0,1) and result.get("receiver_exit") in (0,1),
+            "continuity process exit status is outside the retained-loss contract")
+    require(result.get("sender_exit")== (0 if sender.get("passed") is True else 1)
+            and result.get("receiver_exit")== (0 if receiver.get("passed") is True else 1),
+            "continuity process exits disagree with their retained summaries")
+    require(sender.get("received_packets")==sender.get("unique_echoes"),
+            "continuity sender received/unique echo counters disagree")
+    require(receiver.get("unique_packets")==receiver.get("received_packets")
+            and receiver.get("valid_packets")==receiver.get("received_packets")
+            and receiver.get("echoed_packets")==receiver.get("received_packets"),
+            "continuity receiver valid/unique/echo counters disagree")
+    require(sender.get("duplicate_echoes")==0 and sender.get("invalid_echoes")==0
+            and sender.get("reordered_echoes")==0 and sender.get("unexpected_peer_packets")==0,
+            "continuity sender observed duplicate, invalid, reordered or foreign echoes")
+    require(receiver.get("duplicate_packets")==0 and receiver.get("invalid_packets")==0
+            and receiver.get("reordered_packets")==0 and receiver.get("foreign_run_packets")==0
+            and receiver.get("unexpected_peer_packets")==0 and receiver.get("echo_errors")==0,
+            "continuity receiver observed duplicate, invalid, reordered or foreign payloads")
+
+    sender_dir=case_dir/"continuity-sender";receiver_dir=case_dir/"continuity-receiver"
+    sender_path=beneath(sender_dir,sender.get("events",""));receiver_path=beneath(receiver_dir,receiver.get("events",""))
+    require(digest(sender_path)==sender.get("events_sha256")
+            and digest(receiver_path)==receiver.get("events_sha256"),
+            "continuity event stream digest changed")
+    sender_events=[json.loads(line) for line in sender_path.read_text().splitlines()]
+    receiver_events=[json.loads(line) for line in receiver_path.read_text().splitlines()]
+    require(len(sender_events)==sender.get("event_count")
+            and len(receiver_events)==receiver.get("event_count"),
+            "continuity event count differs from its summary")
+    require(sender_events and sender_events[0].get("kind")=="ready"
+            and receiver_events and receiver_events[0].get("kind")=="ready",
+            "continuity event stream lacks its ready record")
+    expected_set=set(range(expected))
+    require(sender_events[0].get("run_id")==run_id and receiver_events[0].get("run_id")==run_id,
+            "continuity ready-record run identity changed")
+    sent=[row.get("sequence") for row in sender_events if row.get("kind")=="sent"]
+    errors=[row.get("sequence") for row in sender_events if row.get("kind")=="send_error"]
+    echoes=[row.get("sequence") for row in sender_events if row.get("kind")=="echo"]
+    payloads=[row.get("sequence") for row in receiver_events if row.get("kind")=="payload"]
+    require(len(sent)==sender.get("sent_packets") and len(errors)==sender.get("send_errors")
+            and len(echoes)==sender.get("unique_echoes"),
+            "continuity sender event inventory differs from its summary")
+    require(len(payloads)==receiver.get("received_packets") and len(receiver_events)==len(payloads)+1,
+            "continuity receiver event inventory differs from its summary")
+    require(all(len(values)==len(set(values)) for values in (sent,errors,echoes,payloads)),
+            "continuity event stream contains duplicate sequence records")
+    require(set(sent)|set(errors)==expected_set and not (set(sent)&set(errors)),
+            "continuity sender events do not partition every attempted sequence")
+    require(set(echoes).issubset(set(sent)) and set(payloads).issubset(set(sent)),
+            "continuity echo/payload sequence lacks a successful send")
+    missing_echo=expected_set-set(echoes);missing_payload=expected_set-set(payloads)
+    require(sender.get("missing_echo_count")==len(missing_echo)
+            and sender.get("missing_echo_ranges_inclusive")==inclusive_ranges(missing_echo),
+            "continuity sender missing-echo ranges are not fully retained")
+    require(receiver.get("missing_count")==len(missing_payload)
+            and receiver.get("missing_ranges_inclusive")==inclusive_ranges(missing_payload),
+            "continuity receiver missing-payload ranges are not fully retained")
+    require(set(errors).issubset(missing_echo) and set(errors).issubset(missing_payload),
+            "continuity send errors are not represented in both missing inventories")
+    require(all(isinstance(row.get("error"),str) and row["error"]
+                for row in sender_events if row.get("kind")=="send_error"),
+            "continuity send error lacks its exact error text")
+    require(all(row.get("bytes")==plan["behavior"]["strict_probe_size"]
+                for row in sender_events if row.get("kind")=="sent"),
+            "continuity sent payload size changed")
+    require(all(row.get("duplicate") is False and row.get("reordered") is False
+                for row in sender_events if row.get("kind")=="echo"),
+            "continuity sender echo event is duplicate or reordered")
+    require(all(row.get("duplicate") is False and row.get("reordered") is False
+                and row.get("bytes")==plan["behavior"]["strict_probe_size"]
+                for row in receiver_events if row.get("kind")=="payload"),
+            "continuity receiver payload event is malformed")
+    sender_clean=not missing_echo and not errors
+    receiver_clean=not missing_payload
+    require(sender.get("passed") is sender_clean and receiver.get("passed") is receiver_clean,
+            "continuity pass flags disagree with the retained loss inventory")
+    require(result.get("passed") is bool(sender_clean and receiver_clean
+            and result.get("sender_exit")==0 and result.get("receiver_exit")==0),
+            "continuity aggregate pass flag disagrees with its component receipts")
+    require(case.get("checks",{}).get("continuity_all_losses_retained") is True,
+            "behavior case did not retain its continuity losses/errors")
+    return {"sender":sender,"receiver":receiver,"sender_exit":result["sender_exit"],
+            "receiver_exit":result["receiver_exit"],"missing_echo_count":len(missing_echo),
+            "missing_payload_count":len(missing_payload)}
 
 
 def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
     """Recompute exact ciphertext ingress, old-plaintext non-delivery and DCO per-injection counters."""
     case_dir = case_path.parent
+    continuity=verify_continuity_loss_evidence(case_dir,case,plan)
     actions = plan["behavior"]["encrypted_actions"]
     injections = case.get("injections", [])
     require(len(injections) == len(actions), "encrypted injection inventory is incomplete")
@@ -357,9 +492,38 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                         and command.get("namespace") == case.get("namespaces", {}).get("server")
                         and "--interface" in argv and "tunbench-s" in argv,
                         "DCO peer Netlink command identity/namespace is invalid: " + action)
-            computed = verify_dco_rejection_delta(before, after)
+            packet_peer_id=ingress.get("packet_peer_id")
+            stale_peer_expected=(action=="after-reconnect-replay" and expected_mode=="replay")
+            computed = verify_dco_rejection_delta(before, after, packet_peer_id=packet_peer_id,
+                                                  allow_stale_peer_id=stale_peer_expected)
+            active_peer_id=before["peers"][0]["peer_id"]
             require(dco.get("delta") == computed,
                     "DCO peer counter delta differs from raw before/after snapshots: " + action)
+            require(dco.get("packet_peer_id")==packet_peer_id
+                    and dco.get("active_peer_id")==active_peer_id,
+                    "DCO replay receipt does not bind packet and active peer IDs: " + action)
+            if stale_peer_expected:
+                require(dco.get("peer_accounting")=="stale-peer-id-unaccounted"
+                        and packet_peer_id!=active_peer_id,
+                        "post-reconnect replay was not identified as a prior-session peer ID: " + action)
+                fresh_before=read(beneath(case_dir,"after-reconnect-valid-before-server-peer.json"))
+                fresh_after=read(beneath(case_dir,"after-reconnect-valid-after-server-peer.json"))
+                require(all(fresh.get(key)==before.get(key)==fresh_after.get(key)
+                            for key in ("ifindex","netns_inode","family_id")
+                            for fresh in (fresh_before,)),
+                        "post-reconnect fresh control changed DCO peer scope: " + action)
+                require(len(fresh_before.get("peers",[]))==1 and len(fresh_after.get("peers",[]))==1
+                        and fresh_before["peers"][0]["peer_id"]==active_peer_id
+                        and fresh_after["peers"][0]["peer_id"]==active_peer_id,
+                        "post-reconnect fresh control did not use the active DCO peer: " + action)
+                fresh_delta={key:fresh_after["peers"][0][key]-fresh_before["peers"][0][key]
+                             for key in ("vpn_rx_bytes","vpn_rx_packets","link_rx_bytes","link_rx_packets")}
+                require(all(value>0 for value in fresh_delta.values()),
+                        "post-reconnect active DCO peer lacks fresh positive counter control: " + action)
+            else:
+                require(dco.get("peer_accounting")=="active-peer-link-rx"
+                        and packet_peer_id==active_peer_id,
+                        "active-peer replay was not accounted to the matching DCO peer: " + action)
             pause = dco.get("traffic_sender_pause")
             if action.startswith(("after-rekey", "after-reconnect")):
                 require(isinstance(pause, dict), "DCO transition replay lacks an isolated traffic window: " + action)
@@ -371,9 +535,31 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                 else:
                     require(pause.get("sender_finished_before") is True
                             and pause.get("sender_label") == "continuity-sender"
-                            and pause.get("sender_exit_code") == 0
+                            and pause.get("sender_timed_out") is False
+                            and isinstance(pause.get("sender_signals"),list)
+                            and pause.get("sender_exit_code") == continuity["sender_exit"]
+                            and pause.get("sender_exit_code") in (0,1)
                             and pause.get("observed_finished_monotonic_ns", 0) < submit_ns,
                             "DCO transition replay has no isolated sender-free window: " + action)
+                    stopped=False
+                    for item in pause["sender_signals"]:
+                        require(isinstance(item,dict),"DCO sender signal receipt is malformed: "+action)
+                        signum=item.get("signal")
+                        if signum==signal.SIGSTOP and not stopped:
+                            stopped=True
+                        elif signum==signal.SIGCONT and stopped:
+                            stopped=False
+                        else:
+                            raise ValueError("DCO sender signal receipt has an unmatched or unexpected signal: "+action)
+                    require(not stopped,"DCO sender remained stopped before injection: "+action)
+                    if pause["sender_exit_code"] == 0:
+                        require(continuity["sender"].get("passed") is True,
+                                "clean DCO sender exit disagrees with continuity summary: " + action)
+                    else:
+                        require(continuity["sender"].get("passed") is False
+                                and (continuity["sender"].get("send_errors",0)>0
+                                     or continuity["sender"].get("missing_echo_count",0)>0),
+                                "degraded DCO sender exit lacks retained loss/error evidence: " + action)
             dco_windows += 1
         else:
             require(injection.get("dco_peer_rejection") is None,
@@ -660,15 +846,318 @@ def verify(public, expected_commit):
             "command_logs_verified": checked_logs, "all_gates": report["gates"]}
 
 
+
+def verify_strict_payload_probe(case_dir, name, case, plan):
+    value=case.get(name)
+    require(isinstance(value,dict) and value.get("passed") is True,
+            "fresh payload probe failed: "+name)
+    expected=plan["behavior"]["strict_probe_count"]
+    sender=value.get("sender",{});receiver=value.get("receiver",{})
+    require(value.get("sender_exit")==0 and value.get("receiver_exit")==0
+            and sender.get("passed") is True and receiver.get("passed") is True,
+            "fresh payload sender/receiver did not exit cleanly: "+name)
+    require(sender.get("send_attempts")==expected and sender.get("sent_packets")==expected
+            and sender.get("received_packets")==expected and sender.get("unique_echoes")==expected
+            and sender.get("missing_echo_count")==0 and sender.get("duplicate_echoes")==0
+            and sender.get("invalid_echoes")==0 and sender.get("reordered_echoes")==0,
+            "fresh payload sender did not deliver every sequence exactly once: "+name)
+    require(receiver.get("expected_count")==expected and receiver.get("received_packets")==expected
+            and receiver.get("unique_packets")==expected and receiver.get("valid_packets")==expected
+            and receiver.get("missing_count")==0 and receiver.get("duplicate_packets")==0
+            and receiver.get("invalid_packets")==0 and receiver.get("reordered_packets")==0,
+            "fresh payload receiver did not deliver every sequence exactly once: "+name)
+    deltas=value.get("path_delta",{})
+    for role in ("client","server"):
+        delta=deltas.get(role,{}).get("link_delta",{})
+        require(all(delta.get(direction,{}).get(counter,0)>0
+                    for direction in ("rx","tx") for counter in ("bytes","packets")),
+                "fresh payload probe lacks bidirectional tunnel link counters: "+name+"/"+role)
+        if case["arms"][role].endswith("dco"):
+            peers=deltas.get(role,{}).get("kernel_peer_delta",{})
+            require(len(peers)==1 and all(all(peer.get(key,0)>0 for key in
+                    ("vpn_rx_bytes","vpn_tx_bytes","link_rx_bytes","link_tx_bytes"))
+                    for peer in peers.values()),
+                    "fresh payload probe lacks actual DCO peer counters: "+name+"/"+role)
+
+
+def verify_rekey_log_cycles(case_dir, role, observation):
+    stdout=case_dir/(role+"-openvpn.stdout");stderr=case_dir/(role+"-openvpn.stderr")
+    text=(stdout.read_text(errors="replace") if stdout.is_file() else "")
+    text+=(stderr.read_text(errors="replace") if stderr.is_file() else "")
+    lines=text.splitlines()
+    cycles=observation.get("rekey_cycles",[])
+    require(type(observation.get("completed_rekeys")) is int
+            and observation["completed_rekeys"]>=2 and len(cycles)==observation["completed_rekeys"],
+            "completed rekey count lacks matching key-install cycles: "+role)
+    for cycle in cycles:
+        reset=cycle.get("reset_line")
+        require(type(reset) is int and 1<=reset<=len(lines)
+                and ("TLS: soft reset" in lines[reset-1] or "P_CONTROL_SOFT_RESET_V1" in lines[reset-1]),
+                "rekey cycle does not point to a real reset event: "+role)
+        if cycle.get("outgoing_key_line") is not None:
+            tls=cycle.get("tls_line");out=cycle.get("outgoing_key_line");inc=cycle.get("incoming_key_line")
+            require(all(type(v) is int and 1<=v<=len(lines) for v in (tls,out,inc)),
+                    "userspace rekey cycle omits TLS or key-install line: "+role)
+            require("Control Channel: TLS" in lines[tls-1]
+                    and ("Outgoing Epoch Data key 1:" in lines[out-1] or "Outgoing Data Channel: Cipher" in lines[out-1])
+                    and ("Incoming Epoch Data key 1:" in lines[inc-1] or "Incoming Data Channel: Cipher" in lines[inc-1])
+                    and reset<tls<=out<=inc,
+                    "userspace rekey TLS/key-install ordering is invalid: "+role)
+        else:
+            install=cycle.get("dco_install_line");swap=cycle.get("dco_swap_line")
+            require(type(install) is int and type(swap) is int and 1<=install<swap<=len(lines),
+                    "DCO rekey cycle omits ordered key install/swap lines: "+role)
+            require("dco_install_key: peer_id=" in lines[install-1]
+                    and "dco_swap_keys: peer-id " in lines[swap-1],
+                    "DCO rekey cycle does not point to real kernel key events: "+role)
+            promotion=cycle.get("dco_promotion_reset_line")
+            if promotion is not None:
+                require(type(promotion) is int and 1<=promotion<=len(lines)
+                        and "P_CONTROL_SOFT_RESET_V1" in lines[promotion-1],
+                        "DCO passive promotion is not bound to the next peer reset: "+role)
+    return len(cycles)
+
+
+def verify_behavior_lifecycle(case_dir, case, row, plan):
+    require(case.get("negotiated_epoch") is row.get("epoch"),
+            "behavior negotiated epoch mode differs from its frozen case")
+    observations=case.get("observations",{})
+    for role in ("client","server"):
+        observation=observations.get(role,{})
+        minimum_initializations=2 if role=="client" else 1
+        require(observation.get("initializations",0)>=minimum_initializations
+                and observation.get("peer_connections",0)>=2,
+                "real OpenVPN session/reconnect lifecycle is incomplete: "+row["id"]+"/"+role)
+        if role=="client":
+            require(observation.get("hard_restarts",0)>=1,
+                    "client did not complete the requested hard reconnect: "+row["id"])
+        verify_rekey_log_cycles(case_dir,role,observation)
+        latest=observation.get("latest_initialized_session",{})
+        protocols=latest.get("protocol_lines",[]);data=latest.get("data_channel_lines",[])
+        require(latest.get("initialization_line") and protocols and data
+                and all("tls-ekm dyn-tls-crypt" in line for line in protocols)
+                and all("AES-256-GCM" in line for line in data),
+                "latest session did not retain the common authenticated wire profile: "+row["id"]+"/"+role)
+        if row["epoch"]:
+            require(all("aead-epoch" in line for line in protocols),
+                    "epoch case lost its epoch protocol negotiation: "+row["id"]+"/"+role)
+        else:
+            require(all("aead-epoch" not in line for line in protocols),
+                    "common profile unexpectedly negotiated aead-epoch: "+row["id"]+"/"+role)
+        arm=row["arms"][role]
+        if arm.startswith("hia"):
+            trace=observation.get("hia_trace")
+            require(isinstance(trace,dict) and trace.get("abi_failures")==0
+                    and trace.get("read",0)>0 and trace.get("write",0)>0,
+                    "HIA packet-ID entry trace is missing or has ABI failures: "+row["id"]+"/"+role)
+            if row["epoch"]:
+                require(trace.get("read_epoch",0)>0 and trace.get("write_epoch",0)>0,
+                        "epoch HIA entrypoints were not exercised: "+row["id"]+"/"+role)
+            else:
+                require(trace.get("read_epoch")==0 and trace.get("write_epoch")==0,
+                        "non-epoch common profile entered epoch HIA entrypoints: "+row["id"]+"/"+role)
+    event_names=[event.get("name") for event in case.get("events",[])]
+    require("completed-rekeys" in event_names and "SIGUSR1-requested" in event_names,
+            "behavior receipt omits rekey or requested reconnect event: "+row["id"])
+    verify_strict_payload_probe(case_dir,"post_rekey_payload",case,plan)
+    verify_strict_payload_probe(case_dir,"post_reconnect_payload",case,plan)
+
+
+def verify_untrusted_certificate_case(case_dir, case, plan, commands):
+    checks=case.get("checks",{})
+    require(checks and all(value is True for value in checks.values()),
+            "untrusted certificate case checks are incomplete")
+    observations=case.get("observations",{})
+    client=observations.get("client",{});server=observations.get("server",{})
+    errors=server.get("certificate_error_lines",[])
+    require(any("VERIFY ERROR" in line and any(token in line for token in
+                ("unable to get local issuer certificate","self-signed certificate","unable to verify the first certificate"))
+                for line in errors),
+            "server did not log an explicit untrusted-chain rejection")
+    require(client.get("initializations")==0 and client.get("peer_connections")==0
+            and server.get("initializations",0)>=1,
+            "untrusted client initialized a VPN session or server was not ready")
+    negative=case.get("negative_payload",{})
+    sender=negative.get("sender",{});receiver=negative.get("receiver",{})
+    expected=plan["behavior"]["negative_probe_count"]
+    require(negative.get("run_id") and sender.get("run_id")==negative["run_id"]
+            and receiver.get("run_id")==negative["run_id"],
+            "negative payload sender/receiver run identities differ")
+    require(sender.get("all_sends_attempted") is True and sender.get("send_attempts")==expected
+            and sender.get("send_errors")==expected and sender.get("sent_packets")==0
+            and sender.get("missing_echo_count")==expected and sender.get("duplicate_echoes")==0
+            and sender.get("invalid_echoes")==0,
+            "untrusted client did not retain all blocked payload attempts")
+    require(receiver.get("expected_count")==expected and receiver.get("received_packets")==0
+            and receiver.get("missing_count")==expected and receiver.get("duplicate_packets")==0
+            and receiver.get("invalid_packets")==0 and receiver.get("foreign_run_packets")==0
+            and receiver.get("deadline_reached") is True and receiver.get("stop_signal") is None,
+            "untrusted client delivered plaintext or receiver window was incomplete")
+    require(negative.get("sender_exit")==1 and negative.get("receiver_exit")==1
+            and negative.get("passed") is False,
+            "negative payload attempt was mislabeled as successful")
+    addresses=case.get("negative_client_addresses",[])
+    require(not any(item.get("local")=="10.77.0.2" for link in addresses
+                    for item in link.get("addr_info",[])),
+            "untrusted client acquired the VPN address")
+    namespace=case.get("namespaces",{}).get("client")
+    route=[row for row in commands if row.get("event")=="finished"
+           and str(row.get("label","")).endswith("client-negative-route")]
+    require(len(route)==1 and route[0].get("namespace")==namespace
+            and route[0].get("exit_code")!=0 and not route[0].get("timed_out")
+            and "route" in route[0].get("argv",[])
+            and "10.77.0.1" in route[0].get("argv",[]),
+            "untrusted client retained a plaintext route to the VPN destination")
+
+
+def verify_security(public, expected_commit):
+    build=read(public/"build.json");target=public/"tunnel";report=read(target/"target-result.json")
+    verify_p2p_fair_dispatch(build,report,public)
+    plan=read(HERE/"plan.json")
+    require(build.get("ok") is True and build.get("hepta_commit")==expected_commit
+            and build.get("expected_hepta_commit")==expected_commit,
+            "security subset build belongs to another Hepta commit")
+    require(report.get("schema")=="hepta.openvpn-hia.target-security.v1"
+            and report.get("execution_mode")=="security-only"
+            and report.get("selected_case_kinds")==["behavior","authentication"],
+            "result is not the explicit behavior/certificate security subset")
+    require(report.get("complete") is True and report.get("production_performance_qualified") is False
+            and "security-only" in report.get("claim_limit",""),
+            "security subset completion was broadened into full target/performance qualification")
+    require(report.get("inputs",{}).get("hepta_commit")==expected_commit,
+            "security subset belongs to another source commit")
+    require(report.get("plan")==plan and report.get("plan_sha256")==digest(HERE/"plan.json"),
+            "security subset did not use the frozen target plan")
+    required_gates={"real_tun","dco_runtime","authentication","encrypted_replay","rekey","reconnect",
+                    "profile","fixed_performance_matrix"}
+    gates=report.get("gates",{})
+    security_gates=("real_tun","dco_runtime","authentication","encrypted_replay","rekey","reconnect")
+    require(set(gates)==required_gates and all(gates.get(name) is True for name in security_gates)
+            and gates.get("profile") is False and gates.get("fixed_performance_matrix") is False,
+            "security subset changed a profile/performance gate or left a security gate open")
+    expected_counts={
+        "planned_behavior_cases":7,"passed_behavior_cases":7,
+        "planned_authentication_cases":2,"passed_authentication_cases":2,
+        "planned_profile_cases":0,"passed_profile_cases":0,
+        "planned_performance_cases":0,"passed_performance_cases":0,
+        "planned_performance_workloads":0,"attempted_performance_workloads":0,
+        "completed_performance_workloads":0,"failed_performance_workloads":0}
+    require(report.get("counts")==expected_counts,"security subset inventory differs from its nine declared cases")
+    require(report.get("cleanup",{}).get("passed") is True
+            and report["cleanup"].get("private_work_removed") is True,
+            "security subset namespace/private-work cleanup failed")
+    require(report.get("preflight",{}).get("passed") is True
+            and report["preflight"].get("blockers")==[],
+            "security subset did not pass real TUN/DCO target preflight")
+    host=report.get("host",{});allowed=host.get("allowed_cpus",[]);selected=host.get("selected_cpus",[])
+    topology=host.get("cpu_topology",{})
+    require(host.get("cpu_topology_error") is None and len(selected)==2
+            and len(set(selected))==2 and all(cpu in allowed for cpu in selected),
+            "security target did not bind two allowed physical CPU cores")
+    core_keys=[]
+    for cpu in selected:
+        item=topology.get(str(cpu))
+        require(isinstance(item,dict) and type(item.get("package_id")) is int
+                and type(item.get("core_id")) is int,
+                "security target CPU lacks physical core identity")
+        core_keys.append((item["package_id"],item["core_id"]))
+    require(len(set(core_keys))==2,"security target CPUs share a physical core")
+    require(build.get("kernel",{}).get("release")==host.get("uname",{}).get("release")
+            and build.get("tun_exists_after_provisioning") is True
+            and build.get("loaded_module_file_sha256") and build.get("kernel_config_sha256"),
+            "security build/kernel/TUN identity is incomplete")
+    inputs=report.get("inputs",{})
+    require(inputs.get("build_receipt_sha256")==digest(public/"build.json")
+            and inputs.get("build_config_sha256")==build.get("link",{}).get("config_h_sha256")
+            and inputs.get("official_source")==build.get("official_source_freeze"),
+            "security target is not bound to its exact build/config/source receipt")
+    require(build.get("source_lock_sha256")==digest(HERE/"source-lock.json"),
+            "security build source lock differs from the checked-out source")
+    for role,field in (("c","c_binary_sha256"),("hia","hia_binary_sha256"),("hia_trace","hia_trace_binary_sha256")):
+        item=inputs.get("binaries",{}).get(role,{})
+        require(item.get("sha256")==build.get("link",{}).get(field)
+                and digest(item.get("path",""))==item.get("sha256"),
+                "security target binary identity mismatch: "+role)
+    scripts=inputs.get("scripts",{})
+    require(set(scripts)=={item.name for item in HERE.glob("*.py")},
+            "security target helper source inventory is incomplete")
+    for filename,expected_sha in scripts.items():
+        require(digest(beneath(HERE,filename))==expected_sha,
+                "security target helper changed after execution: "+filename)
+
+    expected_cases=[row for row in expected_cases_for_security(plan)]
+    cases=report.get("cases",[])
+    require(len(cases)==9 and len(cases)==len(expected_cases),
+            "security subset did not execute exactly seven behavior and two authentication cases")
+    total_injections=0;dco_windows=0;continuity_sequences=0;commands=[]
+    command_path=target/"commands.jsonl"
+    for line in command_path.read_text().splitlines():
+        entry=json.loads(line)
+        if entry.get("event")=="finished":
+            for stream in ("stdout","stderr"):
+                require(digest(beneath(target,entry[stream]))==entry[stream+"_sha256"],
+                        "security command output changed after execution")
+        commands.append(entry)
+    for row,expected in zip(cases,expected_cases):
+        require(all(row.get(key)==value for key,value in expected.items()),
+                "security case identity/order differs from the frozen plan: "+expected["id"])
+        require(row.get("status")=="completed" and row.get("passed") is True,
+                "security case did not complete: "+expected["id"])
+        case_path=beneath(target,row["receipt"]);case=read(case_path);case_dir=case_path.parent
+        require(case.get("case")==row["id"] and case.get("status")=="completed"
+                and case.get("passed") is True and case.get("arms")==row["arms"]
+                and not case.get("cleanup_errors"),
+                "security case receipt identity/verdict mismatch: "+expected["id"])
+        require(case.get("checks") and all(value is True for value in case["checks"].values()),
+                "security case checks are incomplete: "+expected["id"])
+        expected_rekey=(plan["behavior"]["rekey_seconds_by_role"] if row["kind"]=="behavior"
+                        else {"server":3600,"client":3600})
+        require(case.get("reneg_seconds_by_role")==expected_rekey,
+                "security case rekey schedule differs from the frozen plan: "+expected["id"])
+        if row["kind"]=="behavior":
+            replay=verify_behavior_replay_evidence(target,case_path,case,plan,row["arms"]["server"])
+            lifecycle=verify_behavior_lifecycle(case_dir,case,row,plan)
+            total_injections+=replay["injections_verified"]
+            dco_windows+=replay["dco_peer_windows_verified"]
+            continuity_sequences+=plan["behavior"]["continuous_count"]
+        else:
+            verify_untrusted_certificate_case(case_dir,case,plan,commands)
+    require(total_injections==35 and dco_windows==15,
+            "security subset lacks all 35 exact ciphertext injections or 15 DCO peer counter windows")
+    secret_pattern=re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----|"
+                              rb"-----BEGIN OpenVPN Static key|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}")
+    for item in public.rglob("*"):
+        if item.is_file():
+            require(item.suffix not in (".key",".p12",".pfx") and ".perf.data" not in item.name,
+                    "private key or raw stack artifact entered public security output")
+            require(not secret_pattern.search(item.read_bytes()),
+                    "secret-like material entered public security output")
+    return {"cases_verified":9,"behavior_cases_verified":7,"authentication_cases_verified":2,
+            "encrypted_injections_verified":total_injections,"dco_peer_windows_verified":dco_windows,
+            "continuity_sequences_verified":continuity_sequences,"command_logs_verified":sum(
+                1 for row in commands if row.get("event")=="finished"),"all_gates":report["gates"]}
+
+
+def expected_cases_for_security(plan):
+    return [row for row in expected_cases(plan) if row["kind"] in ("behavior","authentication")]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--public", type=Path, required=True)
     parser.add_argument("--commit", required=True)
+    parser.add_argument("--only-kind", choices=("security",),
+                        help="verify only the predeclared seven behavior and two certificate cases")
     args = parser.parse_args()
-    result = {"schema": "hepta.openvpn-hia.target-result-verification.v1", "passed": False,
-              "expected_commit": args.commit, "scope": "fixed finite target experiment; no production qualification"}
+    security_only=args.only_kind=="security"
+    result = {"schema": "hepta.openvpn-hia.target-security-verification.v1" if security_only
+              else "hepta.openvpn-hia.target-result-verification.v1", "passed": False,
+              "expected_commit": args.commit,
+              "scope": "security-only subset; no profile/performance qualification" if security_only
+                       else "fixed finite target experiment; no production qualification"}
     try:
-        result.update(verify(args.public.resolve(), args.commit))
+        result.update(verify_security(args.public.resolve(), args.commit) if security_only
+                      else verify(args.public.resolve(), args.commit))
         result["passed"] = True
     except Exception as exc:
         result["failure"] = repr(exc)

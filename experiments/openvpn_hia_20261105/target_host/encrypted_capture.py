@@ -83,6 +83,8 @@ def parse_frame(frame: bytes):
     return {"src": socket.inet_ntoa(frame[off + 12:off + 16]),
             "dst": socket.inet_ntoa(frame[off + 16:off + 20]), "sport": sport, "dport": dport,
             "opcode": payload[0] >> 3, "key_id": payload[0] & 7,
+            "peer_id": int.from_bytes(payload[1:4], "big")
+            if payload[0] >> 3 == 9 and len(payload) >= 4 else None,
             "ip_header_bytes": ihl, "ip_total_bytes": total, "udp_offset": udp,
             "udp_bytes": length, "payload_bytes": len(payload), "payload": payload,
             "frame_bytes": off + total, "observed_udp_checksum": observed_checksum}
