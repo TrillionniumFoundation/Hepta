@@ -13,6 +13,7 @@ import json
 import math
 from pathlib import Path
 import re
+import signal
 import encrypted_capture
 
 
@@ -288,6 +289,12 @@ def verify_continuity_loss_evidence(case_dir, case, plan):
     require(result.get("sender_exit")== (0 if sender.get("passed") is True else 1)
             and result.get("receiver_exit")== (0 if receiver.get("passed") is True else 1),
             "continuity process exits disagree with their retained summaries")
+    require(sender.get("received_packets")==sender.get("unique_echoes"),
+            "continuity sender received/unique echo counters disagree")
+    require(receiver.get("unique_packets")==receiver.get("received_packets")
+            and receiver.get("valid_packets")==receiver.get("received_packets")
+            and receiver.get("echoed_packets")==receiver.get("received_packets"),
+            "continuity receiver valid/unique/echo counters disagree")
     require(sender.get("duplicate_echoes")==0 and sender.get("invalid_echoes")==0
             and sender.get("reordered_echoes")==0 and sender.get("unexpected_peer_packets")==0,
             "continuity sender observed duplicate, invalid, reordered or foreign echoes")
@@ -310,6 +317,8 @@ def verify_continuity_loss_evidence(case_dir, case, plan):
             and receiver_events and receiver_events[0].get("kind")=="ready",
             "continuity event stream lacks its ready record")
     expected_set=set(range(expected))
+    require(all(row.get("run_id")==run_id for row in sender_events+receiver_events),
+            "continuity event run identity changed")
     sent=[row.get("sequence") for row in sender_events if row.get("kind")=="sent"]
     errors=[row.get("sequence") for row in sender_events if row.get("kind")=="send_error"]
     echoes=[row.get("sequence") for row in sender_events if row.get("kind")=="echo"]
@@ -337,6 +346,12 @@ def verify_continuity_loss_evidence(case_dir, case, plan):
     require(all(isinstance(row.get("error"),str) and row["error"]
                 for row in sender_events if row.get("kind")=="send_error"),
             "continuity send error lacks its exact error text")
+    require(all(row.get("bytes")==plan["behavior"]["strict_probe_size"]
+                for row in sender_events if row.get("kind")=="sent"),
+            "continuity sent payload size changed")
+    require(all(row.get("duplicate") is False and row.get("reordered") is False
+                for row in sender_events if row.get("kind")=="echo"),
+            "continuity sender echo event is duplicate or reordered")
     require(all(row.get("duplicate") is False and row.get("reordered") is False
                 and row.get("bytes")==plan["behavior"]["strict_probe_size"]
                 for row in receiver_events if row.get("kind")=="payload"),
@@ -482,6 +497,17 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                             and pause.get("sender_exit_code") in (0,1)
                             and pause.get("observed_finished_monotonic_ns", 0) < submit_ns,
                             "DCO transition replay has no isolated sender-free window: " + action)
+                    stopped=False
+                    for item in pause["sender_signals"]:
+                        require(isinstance(item,dict),"DCO sender signal receipt is malformed: "+action)
+                        signum=item.get("signal")
+                        if signum==signal.SIGSTOP and not stopped:
+                            stopped=True
+                        elif signum==signal.SIGCONT and stopped:
+                            stopped=False
+                        else:
+                            raise ValueError("DCO sender signal receipt has an unmatched or unexpected signal: "+action)
+                    require(not stopped,"DCO sender remained stopped before injection: "+action)
                     if pause["sender_exit_code"] == 0:
                         require(continuity["sender"].get("passed") is True,
                                 "clean DCO sender exit disagrees with continuity summary: " + action)
