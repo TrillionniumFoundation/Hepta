@@ -1050,23 +1050,35 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
                 profile['record']=wait_for_profile_recorder(perf_job,seconds,record_grace_seconds)
                 profile['data_sha256']=digest(perf_file) if perf_file.exists() else None
                 report=pair.l.run([str(perf),'report','--stdio','--no-children','--sort','comm,dso,symbol','--input',str(perf_file)],label+'-perf-report',pair.folder,timeout=30,required=False)
-                samples=pair.l.run([str(perf),'script','--input',str(perf_file),'-F','comm,pid,tid,time,event,ip,sym,dso'],label+'-perf-samples',pair.folder,timeout=30,required=False)
+                samples=pair.l.run([sys.executable,'-B',HERE/'perf_sample_summary.py',
+                                    '--perf',str(perf),'--input',str(perf_file),
+                                    '--client-pid',str(pair.processes['client'].proc.pid),
+                                    '--server-pid',str(pair.processes['server'].proc.pid)],
+                                   label+'-perf-samples',pair.folder,timeout=30,required=False)
                 profile.update(report=report.row,samples=samples.row)
-                text=read_text(samples.stdout);lines=text.splitlines()
-                headers=[line for line in lines if re.search(r'\bcpu-clock(?:\:[ukhp]+)?:',line)]
-                counts={r:sum(bool(re.search(r'\b'+str(pair.processes[r].proc.pid)+r'(?:/|\s)',line)) for line in headers) for r in ROLES}
-                kernel=sum('[kernel.kallsyms]' in line or '[ovpn]' in line for line in lines)
-                profile.update(actual_samples_present=bool(headers and samples.proc.returncode==0),
-                     actual_sample_headers=len(headers),openvpn_sample_headers_by_role=counts,
-                     kernel_symbol_lines=kernel,ovpn_symbol_lines=sum(bool(re.search(r'\bovpn_[a-zA-Z_]',line)) for line in lines))
+                summary=json.loads(read_text(samples.stdout))
+                if summary.get('schema')!='hepta.openvpn-hia.perf-sample-summary.v1':
+                    raise RuntimeError('perf sample summary schema mismatch')
+                if summary.get('raw_sample_content_published') is not False:
+                    raise RuntimeError('raw perf sample stacks must remain private')
+                profile.update(actual_samples_present=bool(
+                        summary.get('sample_headers') and samples.proc.returncode==0
+                        and summary.get('perf_exit_code')==0 and summary.get('perf_timed_out') is False),
+                     actual_sample_headers=summary.get('sample_headers',0),
+                     openvpn_sample_headers_by_role=summary.get('openvpn_sample_headers_by_role',{}),
+                     kernel_symbol_lines=summary.get('kernel_symbol_lines',0),
+                     ovpn_symbol_lines=summary.get('ovpn_symbol_lines',0),
+                     raw_sample_content_published=False,
+                     raw_samples_sha256=summary.get('raw_stdout_sha256'),
+                     raw_samples_bytes=summary.get('raw_stdout_bytes'))
                 report_text=read_text(report.stdout)
                 hia_symbols=hia_profile_symbol_lines(report_text)
                 profile['hia_profile_symbol_lines']=hia_symbols
                 required_process_visible=(not profile_process_sample_required(pair.arms['client'])
-                                            or counts['client']>0)
+                                            or profile['openvpn_sample_headers_by_role']['client']>0)
                 required_hia_hotspot=(pair.arms['client']!='hia-user' or hia_symbols==2)
                 profile['passed']=bool(perf_job.proc.returncode==0 and report.proc.returncode==0 and samples.proc.returncode==0
-                                       and headers and kernel and required_process_visible and required_hia_hotspot)
+                                       and summary.get('sample_headers') and summary.get('kernel_symbol_lines') and required_process_visible and required_hia_hotspot)
             except Exception as exc:
                 if perf_job and not perf_job.finished:
                     try:perf_job.stop();profile['record']=perf_job.row
@@ -1155,6 +1167,15 @@ def select_tasks(tasks,only_kind=None):
         raise ValueError('profile-only inventory is empty')
     return selected
 
+def profile_claim_limit(profile_only):
+    """State the diagnostic-only boundary explicitly in every profile-only receipt."""
+    if type(profile_only) is not bool:
+        raise ValueError("profile_only must be a boolean")
+    if profile_only:
+        return ("profile-only: two actual tunnel/profile cases on one shared hosted VM; diagnostic only, "
+                "not full target, not production and not performance qualification")
+    return "finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained"
+
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
@@ -1220,9 +1241,8 @@ def main(argv=None):
                       'failed_performance_workloads':0,
                       'planned_profile_cases':planned['profile'],'passed_profile_cases':0},
             'cleanup':{'passed':False},'production_performance_qualified':False,
-            'claim_limit':('two actual tunnel/profile cases on one shared hosted VM; diagnostic only, '
-                           'not full target, production or performance qualification' if profile_only else
-                           'finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained')}
+            'claim_limit':profile_claim_limit(profile_only)}
+
     receipt=args.out/'target-result.json';save(receipt,report)
     binaries={'c':args.c,'hia':args.hia,'hia_trace':args.hia_trace}
     try:

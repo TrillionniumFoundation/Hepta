@@ -45,6 +45,50 @@ def verify_profile_sampling(profile, plan_profile):
             "actual perf sampling differs from the frozen profile plan")
 
 
+def verify_public_redactions(build):
+    receipt = build.get("public_redactions", {})
+    require(receipt.get("schema") == "hepta.openvpn-hia.public-redactions.v1",
+            "public build receipt lacks a hash-only redaction receipt")
+    entries = receipt.get("entries", [])
+    require(type(receipt.get("count")) is int and receipt["count"] == len(entries),
+            "public build redaction count does not match its entries")
+    allowed = {"pem-private-key", "openvpn-static-key", "github-token", "aws-secret-access-key"}
+    for entry in entries:
+        require(isinstance(entry, dict) and isinstance(entry.get("field"), str)
+                and entry["field"].startswith("$") and entry.get("kind") in allowed
+                and re.fullmatch(r"[0-9a-f]{64}", entry.get("sha256", ""))
+                and type(entry.get("bytes")) is int and entry["bytes"] > 0,
+                "public build redaction receipt is malformed")
+
+
+def verify_sample_summary(summary, profile):
+    require(summary.get("schema") == "hepta.openvpn-hia.perf-sample-summary.v1",
+            "perf sample summary schema is unknown")
+    require(summary.get("raw_sample_content_published") is False
+            and profile.get("raw_sample_content_published") is False,
+            "raw perf sample stacks must remain private")
+    for key in ("raw_stdout_sha256", "raw_stderr_sha256"):
+        require(re.fullmatch(r"[0-9a-f]{64}", summary.get(key, "")),
+                "perf sample stream digest is missing: " + key)
+    require(type(summary.get("raw_stdout_bytes")) is int and summary["raw_stdout_bytes"] > 0,
+            "raw perf sample stream is empty")
+    require(type(summary.get("raw_stderr_bytes")) is int and summary["raw_stderr_bytes"] >= 0,
+            "perf sample stderr byte count is invalid")
+    require(summary.get("perf_exit_code") == 0 and summary.get("perf_timed_out") is False,
+            "perf script failed or timed out")
+    for key in ("sample_headers", "openvpn_sample_headers_by_role",
+                "kernel_symbol_lines", "ovpn_symbol_lines"):
+        require(summary.get(key) == profile.get({
+            "sample_headers": "actual_sample_headers",
+            "openvpn_sample_headers_by_role": "openvpn_sample_headers_by_role",
+            "kernel_symbol_lines": "kernel_symbol_lines",
+            "ovpn_symbol_lines": "ovpn_symbol_lines",
+        }[key]), "perf sample summary disagrees with the profile receipt: " + key)
+    require(profile.get("raw_samples_sha256") == summary["raw_stdout_sha256"]
+            and profile.get("raw_samples_bytes") == summary["raw_stdout_bytes"],
+            "profile receipt is not bound to the raw perf sample digest")
+
+
 def verify_profile_samples(profile, report_text, client_arm):
     """Require actual process/kernel samples and the exact HIA packet-ID hotspots."""
     require(profile.get("actual_samples_present") is True, "profile contains no actual perf samples")
@@ -67,6 +111,7 @@ def verify_profile_samples(profile, report_text, client_arm):
 
 def verify(public, expected_commit):
     build = read(public / "build.json")
+    verify_public_redactions(build)
     target = public / "tunnel"
     report = read(target / "target-result.json")
     plan = read(HERE / "plan.json")
@@ -260,6 +305,8 @@ def verify(public, expected_commit):
                     "perf " + name + " output hash changed")
             if name == "report":
                 report_text = output.read_text()
+            else:
+                verify_sample_summary(read(output), profile)
         verify_profile_samples(profile, report_text or "", row["arms"]["client"])
 
     checked_logs = 0
@@ -276,7 +323,8 @@ def verify(public, expected_commit):
 
     secret_pattern = re.compile(
         rb"-----BEGIN (?:RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----|"
-        rb"-----BEGIN OpenVPN Static key|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}"
+        rb"-----BEGIN OpenVPN Static key|\b(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}|"
+        rb"(?i:aws_secret_access_key)\s*[:=]\s*[^\s]{16,}"
     )
     for path in public.rglob("*"):
         if path.is_file():

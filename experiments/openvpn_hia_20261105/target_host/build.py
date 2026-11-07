@@ -23,6 +23,8 @@ import sys
 import tarfile
 import time
 
+from publication_guard import redact_public_value
+
 
 HERE = Path(__file__).resolve().parent
 EXPERIMENT = HERE.parent
@@ -33,8 +35,26 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def sanitize_public_build_receipt(report):
+    """Redact secret-like strings from the public receipt, retaining hash-only provenance."""
+    redactions = []
+    safe = redact_public_value(report, "$", redactions)
+    if not isinstance(safe, dict):
+        raise ValueError("public build receipt must be a JSON object")
+    redactions.sort(key=lambda item: (item["field"], item["kind"], item["sha256"]))
+    safe["public_redactions"] = {
+        "schema": "hepta.openvpn-hia.public-redactions.v1",
+        "count": len(redactions),
+        "entries": redactions,
+    }
+    return safe
+
+
 def save(path, data):
-    Path(path).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+    path = Path(path)
+    if path.name == "build.json":
+        data = sanitize_public_build_receipt(data)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
 def main():
