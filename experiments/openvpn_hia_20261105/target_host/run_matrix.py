@@ -918,7 +918,26 @@ def udp_delivery_evidence(workload, client_document, client_receiver, server_rec
     }
 
 
-def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,record_grace_seconds=15):
+def profile_record_argv(perf, cpus, output, seconds, profile):
+    """Build perf record from the frozen profile budget; never silently use defaults."""
+    if not isinstance(profile, dict):
+        raise ValueError("profile sampling configuration is required")
+    frequency = profile.get("frequency_hz")
+    call_graph = profile.get("call_graph")
+    if type(seconds) is not int or seconds <= 0:
+        raise ValueError("profile duration must be a positive integer")
+    if type(frequency) is not int or not 1 <= frequency <= 1000:
+        raise ValueError("profile frequency must be an integer in [1, 1000]")
+    if not isinstance(call_graph, str) or not call_graph:
+        raise ValueError("profile call graph must be a non-empty string")
+    if not isinstance(cpus, (list, tuple)) or len(cpus) != 2 or len(set(cpus)) != 2:
+        raise ValueError("profile sampling requires two distinct selected CPUs")
+    return [str(perf), "record", "--all-cpus", "--cpu", ",".join(map(str, cpus)),
+            "--freq", str(frequency), "--event", "cpu-clock", "--call-graph", call_graph,
+            "--output", str(output), "--", "sleep", str(seconds + 1)]
+
+
+def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,record_grace_seconds=15,profile_config=None):
     output=pair.folder/(label+'-measurement.json')
     result={'workload':workload,'bidirectional':True,'duration_requested_seconds':seconds,'omit_seconds':0,
             'status':'started','passed':False,'checks':{},'failures':[],
@@ -941,9 +960,10 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
         if perf:
             perf_folder=pair.l.private/'perf'/pair.case;perf_folder.mkdir(parents=True,exist_ok=True)
             perf_file=perf_folder/(label+'.perf.data')
-            perf_job=Job(pair.l,label+'-perf-record',[str(perf),'record','--all-cpus','--cpu',','.join(map(str,cpus)),
-                     '--freq','99','--event','cpu-clock','--call-graph','dwarf,8192','--output',str(perf_file),
-                     '--','sleep',str(seconds+1)],pair.folder)
+            if not isinstance(profile_config, dict):
+                raise ValueError('perf recording requires the frozen profile sampling configuration')
+            perf_job=Job(pair.l,label+'-perf-record',
+                         profile_record_argv(perf,cpus,perf_file,seconds,profile_config),pair.folder)
             pair.jobs.append(perf_job)
         started=time.monotonic();result['traffic_started_monotonic_ns']=time.monotonic_ns()
         client=pair.spawn('client',command,label+'-iperf-client')
@@ -1021,6 +1041,8 @@ def throughput(pair,workload,seconds,cpus,label,perf=None,udp_acceptance=None,re
         result['checks']['both_openvpn_cpu_receipts']=len(result['process_cpu_seconds'])==2
         if perf:
             profile={'passed':False,'raw_stack_file_published':False,
+                     'sampling':{'frequency_hz':profile_config['frequency_hz'],
+                                 'duration_seconds':seconds,'call_graph':profile_config['call_graph']},
                      'scope':'system-wide sampling on the two test vCPUs; includes kernel/shared VM activity; only bounded symbol fields published; raw DWARF stack memory is private and deleted'}
             result['profile']=profile
             try:
@@ -1098,6 +1120,42 @@ def cleanup_state(path):
     save(Path(path).parent/'cleanup-report.json',result);return result
 
 
+def build_tasks(plan):
+    """Build the immutable 65-case inventory from the frozen plan."""
+    tasks=[]
+    for server,client in plan['behavior']['epoch_pairs']:
+        tasks.append({'id':'epoch-'+server+'-'+client,'kind':'behavior','epoch':True,
+                      'arms':{'server':server+'-user','client':client+'-user'}})
+    for client in plan['behavior']['common_profile_clients']:
+        tasks.append({'id':'common-'+client,'kind':'behavior','epoch':False,
+                      'arms':{'server':'c-dco','client':client}})
+    for client in plan['behavior']['negative_clients']:
+        tasks.append({'id':'auth-untrusted-'+client,'kind':'authentication',
+                      'arms':{'server':'c-user','client':client+'-user'}})
+    for arm in plan['profile']['arms']:
+        tasks.append({'id':'profile-'+arm,'kind':'profile',
+                      'arms':{'server':'c-dco','client':arm}})
+    for round_no in range(plan['performance']['rounds']):
+        for order_no,order in enumerate(plan['performance']['orders']):
+            for position,arm in enumerate(order):
+                tasks.append({'id':f'perf-r{round_no}-o{order_no}-p{position}-{arm}',
+                              'kind':'performance','round':round_no,'order':order_no,
+                              'position':position,'arms':{'server':'c-dco','client':arm}})
+    return tasks
+
+
+def select_tasks(tasks,only_kind=None):
+    """Permit only the explicit profile-only diagnostic subset; never weaken full mode."""
+    if only_kind is None:
+        return list(tasks)
+    if only_kind!='profile':
+        raise ValueError('only the predeclared profile-only subset is supported')
+    selected=[task for task in tasks if task['kind']=='profile']
+    if not selected:
+        raise ValueError('profile-only inventory is empty')
+    return selected
+
+
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     for flag in ('c','hia','hia-trace','source','build','out','private-work','perf'):
@@ -1105,6 +1163,8 @@ def main(argv=None):
     parser.add_argument('--budget-seconds',type=int,default=3600)
     parser.add_argument('--cleanup-state',type=Path)
     parser.add_argument('--preflight-only',action='store_true')
+    parser.add_argument('--only-kind',choices=('profile',),
+                        help='run only the two frozen target-host profile cases; not a full matrix')
     args=parser.parse_args(argv)
     if args.cleanup_state:
         result=cleanup_state(args.cleanup_state);print(json.dumps(result));return 0 if result['passed'] else 1
@@ -1131,25 +1191,16 @@ def main(argv=None):
         cpu_topology={}
         selected_cpus=[]
         cpu_topology_error=repr(exc)
-    tasks=[]
-    for server,client in plan['behavior']['epoch_pairs']:
-        tasks.append({'id':'epoch-'+server+'-'+client,'kind':'behavior','epoch':True,
-                      'arms':{'server':server+'-user','client':client+'-user'}})
-    for client in plan['behavior']['common_profile_clients']:
-        tasks.append({'id':'common-'+client,'kind':'behavior','epoch':False,'arms':{'server':'c-dco','client':client}})
-    for client in plan['behavior']['negative_clients']:
-        tasks.append({'id':'auth-untrusted-'+client,'kind':'authentication','arms':{'server':'c-user','client':client+'-user'}})
-    for arm in plan['profile']['arms']:
-        tasks.append({'id':'profile-'+arm,'kind':'profile','arms':{'server':'c-dco','client':arm}})
-    for round_no in range(plan['performance']['rounds']):
-        for order_no,order in enumerate(plan['performance']['orders']):
-            for position,arm in enumerate(order):
-                tasks.append({'id':f'perf-r{round_no}-o{order_no}-p{position}-{arm}','kind':'performance',
-                              'round':round_no,'order':order_no,'position':position,
-                              'arms':{'server':'c-dco','client':arm}})
-    report={'schema':'hepta.openvpn-hia.target-matrix.v1','complete':False,
-            'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'plan':plan,'plan_sha256':digest(HERE/'plan.json'),
-            'inputs':{},'host':{
+    tasks=select_tasks(build_tasks(plan),args.only_kind)
+    profile_only=args.only_kind=='profile'
+    planned={kind:sum(task['kind']==kind for task in tasks)
+             for kind in ('behavior','authentication','profile','performance')}
+    report={'schema':'hepta.openvpn-hia.target-profile.v1' if profile_only else 'hepta.openvpn-hia.target-matrix.v1',
+            'execution_mode':'profile-only' if profile_only else 'full-matrix',
+            'selected_case_kinds':['profile'] if profile_only else
+                ['behavior','authentication','profile','performance'],
+            'complete':False,'started_utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),
+            'plan':plan,'plan_sha256':digest(HERE/'plan.json'),'inputs':{},'host':{
                 'uname':platform.uname()._asdict(),
                 'allowed_cpus':allowed,
                 'selected_cpus':selected_cpus,
@@ -1161,12 +1212,17 @@ def main(argv=None):
                 'frequency_locked':False},
             'cases':[{**task,'status':'planned','passed':False} for task in tasks],
             'gates':{k:False for k in ('real_tun','dco_runtime','authentication','encrypted_replay','rekey','reconnect','profile','fixed_performance_matrix')},
-            'counts':{'planned_behavior_cases':7,'passed_behavior_cases':0,'planned_authentication_cases':2,'passed_authentication_cases':0,
-                      'planned_performance_cases':54,'passed_performance_cases':0,'planned_performance_workloads':216,
-                      'attempted_performance_workloads':0,'completed_performance_workloads':0,'failed_performance_workloads':0,
-                      'planned_profile_cases':2,'passed_profile_cases':0},
+            'counts':{'planned_behavior_cases':planned['behavior'],'passed_behavior_cases':0,
+                      'planned_authentication_cases':planned['authentication'],'passed_authentication_cases':0,
+                      'planned_performance_cases':planned['performance'],'passed_performance_cases':0,
+                      'planned_performance_workloads':planned['performance']*len(plan['performance']['workloads']),
+                      'attempted_performance_workloads':0,'completed_performance_workloads':0,
+                      'failed_performance_workloads':0,
+                      'planned_profile_cases':planned['profile'],'passed_profile_cases':0},
             'cleanup':{'passed':False},'production_performance_qualified':False,
-            'claim_limit':'finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained'}
+            'claim_limit':('two actual tunnel/profile cases on one shared hosted VM; diagnostic only, '
+                           'not full target, production or performance qualification' if profile_only else
+                           'finite single hosted VM namespace/veth observations only; every failed/lost/slow sample retained')}
     receipt=args.out/'target-result.json';save(receipt,report)
     binaries={'c':args.c,'hia':args.hia,'hia_trace':args.hia_trace}
     try:
@@ -1222,7 +1278,8 @@ def main(argv=None):
                     pair.connected();pair.protocol_gate(False)
                     if row['kind']=='profile':
                         measurement=throughput(pair,{'name':'tcp-profile','transport':'tcp'},plan['profile']['seconds'],selected_cpus,
-                                               'tcp-profile',perf=args.perf,record_grace_seconds=plan['profile']['post_workload_grace_seconds'])
+                                               'tcp-profile',perf=args.perf,record_grace_seconds=plan['profile']['post_workload_grace_seconds'],
+                                               profile_config=plan['profile'])
                         if not measurement['passed'] or not measurement.get('profile',{}).get('passed'):
                             raise RuntimeError('actual tunnel traffic or perf profile failed')
                         pair.result['checks']={'actual_tunnel_profile':True}
@@ -1290,15 +1347,23 @@ def main(argv=None):
               completed_performance_workloads=sum(r.get('completed_workloads',0) for r in bykind['performance']),
               failed_performance_workloads=sum(r.get('attempted_workloads',0)-r.get('completed_workloads',0) for r in bykind['performance']),
               passed_profile_cases=sum(r['passed'] for r in bykind['profile']))
-        behavior_ok=len(bykind['behavior'])==7 and all(r['passed'] for r in bykind['behavior'])
-        common=[r for r in bykind['behavior'] if not r['epoch']]
-        report['gates'].update(real_tun=behavior_ok,dco_runtime=len(common)==3 and all(r['passed'] for r in common),
-                 authentication=len(bykind['authentication'])==2 and all(r['passed'] for r in bykind['authentication']),
-                 encrypted_replay=behavior_ok,rekey=behavior_ok,reconnect=behavior_ok,
-                 profile=len(bykind['profile'])==2 and all(r['passed'] for r in bykind['profile']),
-                 fixed_performance_matrix=len(bykind['performance'])==54 and all(r['passed'] for r in bykind['performance'])
-                     and report['counts']['completed_performance_workloads']==216)
-        report['complete']=bool(all(report['gates'].values()) and report['cleanup']['passed'] and not report.get('failure'))
+        if profile_only:
+            report['gates']['profile']=(len(bykind['profile'])==report['counts']['planned_profile_cases']>0
+                                        and all(r['passed'] for r in bykind['profile']))
+            report['complete']=bool(report['gates']['profile'] and report['cleanup']['passed']
+                                    and report['cleanup'].get('private_work_removed') is True
+                                    and not report.get('failure'))
+        else:
+            behavior_ok=len(bykind['behavior'])==7 and all(r['passed'] for r in bykind['behavior'])
+            common=[r for r in bykind['behavior'] if not r['epoch']]
+            report['gates'].update(real_tun=behavior_ok,dco_runtime=len(common)==3 and all(r['passed'] for r in common),
+                     authentication=len(bykind['authentication'])==2 and all(r['passed'] for r in bykind['authentication']),
+                     encrypted_replay=behavior_ok,rekey=behavior_ok,reconnect=behavior_ok,
+                     profile=len(bykind['profile'])==2 and all(r['passed'] for r in bykind['profile']),
+                     fixed_performance_matrix=len(bykind['performance'])==54 and all(r['passed'] for r in bykind['performance'])
+                         and report['counts']['completed_performance_workloads']==216)
+            report['complete']=bool(all(report['gates'].values()) and report['cleanup']['passed']
+                                    and not report.get('failure'))
         report['elapsed_seconds']=time.monotonic()-ledger.started
         report['finished_utc']=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
         save(receipt,report)
