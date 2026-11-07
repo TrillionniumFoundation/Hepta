@@ -593,4 +593,146 @@ class ContinuityLossEvidenceTests(unittest.TestCase):
 
 
 
+class ReconnectReplayEndpointTests(unittest.TestCase):
+    def status(self, port=46689, peer_id=1, extra=""):
+        return (
+            "TITLE\tOpenVPN 2.7.8\n"
+            "HEADER\tCLIENT_LIST\tCommon Name\tReal Address\tVirtual Address\tPeer ID\n"
+            f"CLIENT_LIST\tOpenVPN-HIA-client\tudp4:192.0.2.2:{port}\t10.77.0.2\t{peer_id}\n"
+            + extra + "END\n"
+        )
+
+    def log(self, port=46689):
+        return (
+            "2026-11-07 06:12:09 us=283502 udp4:192.0.2.2:"
+            f"{port} [OpenVPN-HIA-client] Peer Connection Initiated with [AF_INET]192.0.2.2:{port}"
+        )
+
+    def test_current_peer_endpoint_requires_status_and_latest_authenticated_log_to_agree(self):
+        expected = {
+            "remote_address": "udp4:192.0.2.2:46689",
+            "source_ip": "192.0.2.2",
+            "source_port": 46689,
+            "peer_id": 1,
+            "peer_init_line": self.log(),
+        }
+        self.assertEqual(matrix.active_peer_endpoint(self.status(), self.log()), expected)
+        self.assertEqual(verifier.verify_active_peer_endpoint(self.status(), self.log()), expected)
+
+    def test_stale_status_or_duplicate_client_rows_are_rejected(self):
+        duplicate = self.status().replace(
+            "END\n",
+            "CLIENT_LIST\tOpenVPN-HIA-client\tudp4:192.0.2.2:46689\t10.77.0.2\t1\nEND\n",
+        )
+        for function in (matrix.active_peer_endpoint, verifier.verify_active_peer_endpoint):
+            with self.subTest(function=function.__name__):
+                with self.assertRaises(ValueError):
+                    function(self.status(57102), self.log(46689))
+                with self.assertRaises(ValueError):
+                    function(duplicate, self.log())
+
+    def test_reconnect_replay_rewrites_only_outer_udp_source_port(self):
+        payload = bytes([0x30]) + bytes((index % 256 for index in range(1, 312)))
+        original = DcoReplayEvidenceTests().frame(payload)
+        rewritten = encrypted.submitted_frame(original, "replay", source_port=46689)
+        before = encrypted.parse_frame(original)
+        after = encrypted.parse_frame(rewritten)
+        self.assertEqual(after["sport"], 46689)
+        self.assertEqual(after["dport"], before["dport"])
+        self.assertEqual(after["src"], before["src"])
+        self.assertEqual(after["dst"], before["dst"])
+        self.assertEqual(after["payload"], payload)
+        self.assertTrue(all(encrypted.checksum_observation(rewritten).values()))
+
+    def test_reconnect_replay_rejects_invalid_source_ports(self):
+        payload = bytes([0x30]) + bytes((index % 256 for index in range(1, 312)))
+        original = DcoReplayEvidenceTests().frame(payload)
+        for value in (0, 65536, True, "46689"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    encrypted.submitted_frame(original, "replay", source_port=value)
+
+    def test_independent_ingress_verifier_accepts_exact_ciphertext_on_current_port(self):
+        with tempfile.TemporaryDirectory() as directory:
+            case_dir = Path(directory)
+            capture_dir = case_dir / "capture-old"
+            submit_dir = case_dir / "after-reconnect-replay"
+            witness_dir = case_dir / "after-reconnect-replay-witness"
+            for path in (capture_dir, submit_dir, witness_dir):
+                path.mkdir()
+            payload = bytes([0x30]) + bytes((index % 256 for index in range(1, 312)))
+            source = DcoReplayEvidenceTests().frame(payload)
+            submitted = encrypted.submitted_frame(source, "replay", source_port=46689)
+            capture_result = {
+                "status": "captured",
+                "frame_sha256": hashlib.sha256(source).hexdigest(),
+                "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+            }
+            (capture_dir / "frame.bin").write_bytes(source)
+            capture_path = capture_dir / "result.json"
+            capture_path.write_text(json.dumps(capture_result, indent=2, sort_keys=True) + "\n")
+            helper_sha = hashlib.sha256((HERE / "encrypted_capture.py").read_bytes()).hexdigest()
+            submission = {
+                "status": "injection_submitted",
+                "mode": "replay",
+                "source_port_override": 46689,
+                "capture_metadata_sha256": hashlib.sha256(capture_path.read_bytes()).hexdigest(),
+                "captured_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "submitted_frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "helper_sha256": helper_sha,
+                "submissions": [{"monotonic_ns": 1000}],
+            }
+            (submit_dir / "submitted-frame.bin").write_bytes(submitted)
+            (submit_dir / "result.json").write_text(json.dumps(submission, indent=2, sort_keys=True) + "\n")
+            witness = {
+                "status": "captured",
+                "direction": "incoming",
+                "exact_ciphertext_match": True,
+                "ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "frame": "frame.bin",
+                "frame_sha256": hashlib.sha256(submitted).hexdigest(),
+                "frames_inspected": 7,
+                "monotonic_ns": 1100,
+                "helper_sha256": helper_sha,
+                "capture_state": {
+                    "interface": "ovpn-us",
+                    "network_namespace_inode": 200,
+                    "pid1_network_namespace_inode": 100,
+                },
+                "outer_checksums": encrypted.checksum_observation(submitted),
+                "datagram": {
+                    "src": "192.0.2.2",
+                    "dst": "192.0.2.1",
+                    "sport": 46689,
+                    "dport": 1194,
+                },
+            }
+            (witness_dir / "frame.bin").write_bytes(submitted)
+            (witness_dir / "result.json").write_text(json.dumps(witness, indent=2, sort_keys=True) + "\n")
+            injection = {
+                "submission": submission,
+                "peer_exact_witness": witness,
+                "expected_ciphertext_sha256": hashlib.sha256(payload).hexdigest(),
+                "observation_finished_monotonic_ns": 1200,
+                "old_receiver_alive_before_and_after_observation": True,
+                "injection_command": {
+                    "label": "after-reconnect-replay-submit",
+                    "exit_code": 0,
+                },
+                "witness_command": {
+                    "label": "after-reconnect-replay-witness",
+                    "exit_code": 0,
+                },
+            }
+            observed = verifier.verify_exact_ciphertext_ingress(
+                case_dir, "after-reconnect-replay", injection, capture_result, capture_path,
+                payload, helper_sha)
+            self.assertEqual(observed["source_port"], 46689)
+            self.assertEqual(observed["arrival_source_port"], 46689)
+
+
+
+
 if __name__=='__main__':unittest.main(verbosity=2)
