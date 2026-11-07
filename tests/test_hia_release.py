@@ -31,7 +31,7 @@ def lock_fixture():
         "selfhost": {**release.SELFHOST_STATIC, "profile": "test-profile", "abi": {"entry": "f0"},
             "limits": {"functions": 128}, "support_matrix_sha256": "4" * 64,
             "source_sha256": "4" * 64, "loader_sha256": "4" * 64},
-        "files": {"hepta": {name: "4" * 64 for name in (*release.ENTRY_FILES, *release.BOOTSTRAP_FILES)},
+        "files": {"hepta": {name: "4" * 64 for name in (*release.ENTRY_FILES, *release.BOOTSTRAP_FILES, *release.CANDIDATE_FILES)},
                   "runtime": {name: "5" * 64 for name in release.RUNTIME_FILES}},
         "mcp": copy.deepcopy(release.MCP_CONTRACT), "qualification": dict(release.QUALIFICATION)}
 
@@ -101,6 +101,13 @@ class ReleaseLockBoundaries(unittest.TestCase):
             value = lock_fixture()
             value["files"]["hepta"][filename] = "6" * 64
             with self.subTest(filename=filename), self.assertRaisesRegex(ValueError, "file identity"):
+                release.load_lock(self.save(value))
+
+    def test_original_reconciliation_and_final_image_entry_are_source_bound(self):
+        for name in ("tools/hia_original_reconcile.py", "tools/build_hia_safe_core.py"):
+            value = lock_fixture()
+            del value["files"]["hepta"][name]
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):
                 release.load_lock(self.save(value))
 
     def test_existing_materialization_destination_never_launches_git(self):

@@ -1,8 +1,10 @@
 # Safe Core: Core semantics to the final machine image
 
-Status: **opt-in candidate validation profile**. This entry does not change the
-current release lock, default HIA emission, worker/catalog identity or production
-deployment. A successful result is an all-input SMT result for the explicitly
+Status: **opt-in candidate validation profile**. This entry preserves default
+HIA emission and does not deploy a production service. Adding its implementation
+changes the worker's complete source inventory, so an integrated release must
+freeze new worker pins; an older installation receipt cannot qualify it.
+A successful result is an all-input SMT result for the explicitly
 stated independent models, not a Lean-kernel proof of the hardware ISA or of the
 whole language.
 

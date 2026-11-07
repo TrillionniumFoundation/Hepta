@@ -30,6 +30,15 @@ declared. A source lock does not attest a deployed service, current Agent tool
 discovery, full-language self-hosting or NDU benefit. Those require their own
 retained observations.
 
+The [2026-11-07 closure record](docs/HIA_PRODUCT_CLOSURE_20261107.md) separates
+the observed exact v4 deployment from this integrated source candidate. The
+candidate adds an opt-in [Safe Core final-image validation chain](docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md),
+Selfhost-Core v5 with 8,192 instructions, strict original-task reconciliation,
+and a [strong ordinary optimization control](docs/HIA_NDU_STRONG_CONTROL_20261107.md).
+The current source lock is the authority for new installations; previous v4
+receipts do not qualify this changed worker. Live cancellation, fresh-Agent
+registration and complete-cost NDU value remain separate acceptance gates.
+
 The standalone **HIA Core v1-v8 profiles** accept AI-authored typed SSA programs
 without original high-level source. `python -m hepta hia verify`, `run`,
 `build`, and `patch` share an independent ownership/effect verifier. The Agent

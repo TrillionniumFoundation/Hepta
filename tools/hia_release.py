@@ -44,11 +44,26 @@ BOOTSTRAP_FILES = (
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",
     "tools/hia_selfhost_cases.py", "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_limits.py", "tools/hia_selfhost_capacity.py",
+    "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
 )
 ENTRY_FILES = ("tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
+CANDIDATE_FILES = (
+    "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
+    "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py",
+    "tests/test_hia_safe_core.py", "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md",
+    "examples/hia_safe_core/scalar_add.hia.json",
+    "examples/hia_safe_core/guarded_update.hia.json",
+    "examples/hia_safe_core/read_byte.hia.json",
+    "tools/hia_agent_macro_policy.py", "tools/qualify_hia_macro_campaign.py",
+    "docs/HIA_PRODUCT_CLOSURE_20261107.md", "docs/HIA_NDU_STRONG_CONTROL_20261107.md",
+    "experiments/hia_product_closure_20261107/http-client/http_lifecycle.py",
+    "experiments/hia_product_closure_20261107/http-client/test_http_lifecycle.py",
+    "experiments/hia_product_closure_20261107/http-client/tools/hia_original_reconcile.py",
+)
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
     "deploy/mcp_tool_contract.py", "deploy/stage_dc_successor.py", "deploy/hia_mcp_catalog.py",
@@ -61,7 +76,8 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
                       "experiments/hia_initialization_frontiers_20261103",
                       "experiments/hia_round4_20261105",
                       "experiments/hia_agent_first_use_20261107",
-                      "experiments/hia_release_20261107")
+                      "experiments/hia_release_20261107",
+                      "experiments/hia_product_closure_20261107")
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),
     "runtime_sparse_directories": None,
     "omitted_scope": "Historical campaigns and artifact/report archives outside this release's qualified source closure"}
@@ -127,7 +143,7 @@ def build_lock(hepta_root, hepta_revision, runtime_root, runtime_revision, pytho
     if pins["worker_sha256"] != digest(preflight.canonical(worker)):
         raise ValueError("worker inventory and installation manifest disagree")
     language_files = committed_files(hepta_root, hepta_revision,
-                                    (*worker, *BOOTSTRAP_FILES, *ENTRY_FILES))
+                                    (*worker, *BOOTSTRAP_FILES, *ENTRY_FILES, *CANDIDATE_FILES))
     if (digest(read_bytes(Path(__file__))) != language_files["tools/hia_release.py"]
             or digest(read_bytes(Path(preflight.__file__))) != language_files["tools/hia_candidate_preflight.py"]):
         raise ValueError("executing entry/preflight differs from the selected release source")
@@ -222,7 +238,7 @@ def load_lock(path, expected=None):
     files = lock["files"]
     if type(files) is not dict or set(files) != set(REPOSITORIES):
         raise ValueError("both source file inventories are required")
-    for name, required in (("hepta", (*BOOTSTRAP_FILES, *ENTRY_FILES)), ("runtime", RUNTIME_FILES)):
+    for name, required in (("hepta", (*BOOTSTRAP_FILES, *ENTRY_FILES, *CANDIDATE_FILES)), ("runtime", RUNTIME_FILES)):
         inventory = files[name]
         if type(inventory) is not dict or not set(required) <= set(inventory):
             raise ValueError("release file inventory is incomplete")
