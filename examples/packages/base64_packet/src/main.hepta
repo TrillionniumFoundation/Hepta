@@ -1,0 +1,18 @@
+import base64;
+fn main() -> Unit effects { panic, write }
+resources { heap_allocations = 0; may_block = false; may_suspend = false; may_spawn = false; }
+{
+    let input: [u8; 6] = [102, 111, 111, 98, 97, 114];
+    let mut encoded: [u8; 8] = [0, 0, 0, 0, 0, 0, 0, 0];
+    let written = base64::encode(read input, 0, 6, mut encoded, 0);
+    assert(written.ok && written.bytes == 8);
+    assert(encoded[0] == 90 && encoded[7] == 121);
+    let mut decoded: [u8; 6] = [0, 0, 0, 0, 0, 0];
+    let restored = base64::decode(read encoded, 0, 8, mut decoded, 0);
+    assert(restored.ok && restored.bytes == 6);
+    let mut index: usize = 0;
+    while index < 6 {
+        assert(decoded[index] == input[index]);
+        index = index + 1;
+    }
+}
