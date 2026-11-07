@@ -711,6 +711,10 @@ def continuity_loss_receipt(probe,result):
         raise ValueError('continuity sender exit does not match its retained summary')
     if result.get('receiver_exit') != (0 if receiver.get('passed') is True else 1):
         raise ValueError('continuity receiver exit does not match its retained summary')
+    if sender.get('received_packets')!=sender.get('unique_echoes'):
+        raise ValueError('continuity sender received/unique echo counters disagree')
+    if receiver.get('unique_packets')!=receiver.get('received_packets') or receiver.get('valid_packets')!=receiver.get('received_packets') or receiver.get('echoed_packets')!=receiver.get('received_packets'):
+        raise ValueError('continuity receiver valid/unique/echo counters disagree')
     if sender.get('duplicate_echoes')!=0 or sender.get('invalid_echoes')!=0 or sender.get('reordered_echoes')!=0 or sender.get('unexpected_peer_packets')!=0:
         raise ValueError('continuity sender observed duplicate, invalid, reordered or foreign echoes')
     if receiver.get('duplicate_packets')!=0 or receiver.get('invalid_packets')!=0 or receiver.get('reordered_packets')!=0 or receiver.get('foreign_run_packets')!=0 or receiver.get('unexpected_peer_packets')!=0:
@@ -728,6 +732,8 @@ def continuity_loss_receipt(probe,result):
     if not sender_events or sender_events[0].get('kind')!='ready' or not receiver_events or receiver_events[0].get('kind')!='ready':
         raise ValueError('continuity event stream lacks its ready record')
     expected_set=set(range(expected))
+    if any(row.get('run_id')!=probe['run_id'] for row in sender_events+receiver_events):
+        raise ValueError('continuity event run identity changed')
     sent=[row.get('sequence') for row in sender_events if row.get('kind')=='sent']
     errors=[row.get('sequence') for row in sender_events if row.get('kind')=='send_error']
     echoes=[row.get('sequence') for row in sender_events if row.get('kind')=='echo']
@@ -751,6 +757,11 @@ def continuity_loss_receipt(probe,result):
         raise ValueError('continuity send errors are not represented in both missing inventories')
     if any(not isinstance(row.get('error'),str) or not row['error'] for row in sender_events if row.get('kind')=='send_error'):
         raise ValueError('continuity send error lacks its exact error text')
+    if any(row.get('bytes')!=probe['size'] for row in sender_events if row.get('kind')=='sent'):
+        raise ValueError('continuity sent payload size changed')
+    if any(row.get('duplicate') is not False or row.get('reordered') is not False
+           for row in sender_events if row.get('kind')=='echo'):
+        raise ValueError('continuity sender echo event is duplicate or reordered')
     if any(row.get('duplicate') is not False or row.get('reordered') is not False or row.get('bytes')!=probe['size']
            for row in receiver_events if row.get('kind')=='payload'):
         raise ValueError('continuity receiver payload event is malformed')
