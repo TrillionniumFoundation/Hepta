@@ -1,0 +1,1 @@
+pub fn span(a:u16,b:u16)->u32 { (a as u32)+2*(b as u32) }

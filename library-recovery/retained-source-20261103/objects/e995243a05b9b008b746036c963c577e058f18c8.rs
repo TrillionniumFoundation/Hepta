@@ -1,0 +1,1 @@
+use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let _=api::span(0,0); ((a as u64)+3*(b as u64))^(((c&7) as u64)<<48) }
