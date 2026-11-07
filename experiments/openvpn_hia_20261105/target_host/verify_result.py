@@ -157,6 +157,15 @@ def verify_dco_rejection_delta(before, after):
     return result
 
 
+def verify_frame_inspection_count(witness):
+    """Bound AF_PACKET scan work; the count includes nonmatching frames before the exact hash match."""
+    inspected = witness.get("frames_inspected")
+    require(isinstance(inspected, int) and not isinstance(inspected, bool)
+            and 1 <= inspected <= 1_000_000,
+            "peer ingress frame scan count is outside the bounded helper budget")
+    return inspected
+
+
 def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, capture_path, original_payload, helper_sha):
     """Verify raw submitted and peer-captured Ethernet frames, not just embedded hashes."""
     submission_dir = beneath(case_dir, action)
@@ -202,13 +211,13 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
     require(digest(witness_frame_path) == witness.get("frame_sha256"),
             "peer-ingress raw frame digest changed: " + action)
     arrived = encrypted_capture.parse_frame(witness_frame_path.read_bytes())
+    verify_frame_inspection_count(witness)
     require(arrived is not None and arrived["payload"] == submitted_payload
             and witness.get("status") == "captured"
             and witness.get("direction") == "incoming"
             and witness.get("exact_ciphertext_match") is True
             and witness.get("ciphertext_sha256") == submitted_sha
-            and witness.get("expected_ciphertext_sha256") == submitted_sha
-            and witness.get("frames_inspected") == 1,
+            and witness.get("expected_ciphertext_sha256") == submitted_sha,
             "peer ingress did not capture the exact submitted ciphertext: " + action)
     require(all(encrypted_capture.checksum_observation(witness_frame_path.read_bytes()).get(key) is True
                 for key in ("ipv4_valid", "udp_present", "udp_valid")),
