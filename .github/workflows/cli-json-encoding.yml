@@ -1,0 +1,51 @@
+name: CLI JSON encoding
+
+on:
+  pull_request:
+    paths:
+      - 'hepta/cli.py'
+      - 'tests/test_cli_json_encoding.py'
+      - 'docs/CLI_JSON_ENCODING.md'
+      - '.github/workflows/cli-json-encoding.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  encoding:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify exact source
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          test -z "$(git status --porcelain)"
+          git rev-parse HEAD HEAD^{tree}
+          python --version
+      - name: Run JSON transport controls without skips
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -B - <<'PY'
+          import unittest
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_cli_json_encoding.py')
+          assert suite.countTestCases() == 10, 'JSON encoding test inventory changed'
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          assert result.testsRun == 10 and not result.skipped and result.wasSuccessful()
+          PY
+      - name: Verify source remains unchanged
+        if: always()
+        run: test -z "$(git status --porcelain)"
