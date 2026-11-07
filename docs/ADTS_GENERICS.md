@@ -6,6 +6,10 @@ checked operations to Rust 1.90.0. Native validation and builds still require
 the real pinned compiler. A frontend-only result does not establish native
 borrow correctness or successful code generation.
 
+The independent C backend additionally supports the bounded non-generic,
+fieldless source-enum subset described in [C_FIELDLESS_ENUMS.md](C_FIELDLESS_ENUMS.md).
+Payloads, Result and generics still require the Rust path.
+
 ## Algebraic data types
 
 An enum contains named unit variants or positional payload variants:

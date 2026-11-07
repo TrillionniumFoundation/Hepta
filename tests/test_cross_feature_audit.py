@@ -344,7 +344,7 @@ class CIntegrationAudit(ProjectFixture):
 
     def test_new_language_features_fail_before_c_codegen_or_artifact_replacement(self):
         sources = [
-            "enum Flag{A,B} fn main()->Unit effects {} {}",
+            "enum Payload{Value(u32),Empty} fn main()->Unit effects {} {}",
             "fn unused<T>(value:T)->T effects {} {return value;} fn main()->Unit effects {} {}",
             "struct Box<T>{value:T} fn main()->Unit effects {} {let value:Box<u64>=Box{value:1};}",
             "fn value()->Result<u64,u8> effects {} {return Result::Ok(1);} fn main()->Unit effects {} {}",

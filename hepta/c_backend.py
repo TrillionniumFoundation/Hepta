@@ -35,12 +35,18 @@ class CEmitter:
     def __init__(self, program, checked, crate_type):
         if not checked.ok:
             fail("E_C_BACKEND_UNCHECKED", "C lowering requires a successful frontend check")
-        if getattr(program, "enums", None) or getattr(program, "unions", None):
-            fail("E_C_BACKEND_SUBSET", "ADT lowering is not yet supported by the C backend")
+        if getattr(program, "unions", None):
+            fail("E_C_BACKEND_SUBSET", "Union lowering is not yet supported by the C backend")
+        if any(enum.type_params or any(variant.fields for variant in enum.variants)
+               for enum in program.enums):
+            fail("E_C_BACKEND_SUBSET", "C enum lowering supports only non-generic fieldless enums")
         if any(getattr(item, "type_params", ()) for item in [*program.structs, *program.functions]):
             fail("E_C_BACKEND_SUBSET", "Generic declarations require an explicit monomorphization pass before C lowering")
         self.program, self.checked, self.crate_type = program, checked, crate_type
         self.structs = {s.name: s for s in program.structs}
+        self.enums = {e.name: e for e in program.enums}
+        self.variant_tags = {e.name: {v.name: i for i, v in enumerate(e.variants)}
+                             for e in program.enums}
         self.functions = {f.name: f for f in program.functions}
         self.declarations, self.types, self.active = [], {}, set()
         self.helpers = set()
@@ -64,16 +70,20 @@ class CEmitter:
             return name
         if t.name == "slice":
             fail("E_C_BACKEND_SUBSET", "Slices must occur as read/mut parameters")
-        if t.name not in self.structs and t.name != "array":
+        if t.name not in self.structs and t.name not in self.enums and t.name != "array":
             fail("E_C_BACKEND_SUBSET", f"C backend does not yet lower {t}")
         if t.name in self.structs and t.args:
             fail("E_C_BACKEND_SUBSET", "Generic structs must be concretely instantiated before C lowering")
         if t.name == "array" and (not t.length or t.args[0].name == "Unit"):
             fail("E_C_BACKEND_SUBSET", "Zero-length and Unit-element arrays are not supported by the C backend")
-        name = "__hepta_cb_type_" + (t.name if t.name != "array" else "array_" + str(len(self.types)))
+        name = ("__hepta_cb_enum_" + str(len(self.types)) if t.name in self.enums else
+                "__hepta_cb_type_" + (t.name if t.name != "array" else "array_" + str(len(self.types))))
         self.types[t] = name
         self.active.add(t)
-        if t.name == "array":
+        if t.name in self.enums:
+            # Compiler-private representation, deliberately not a foreign ABI.
+            fields = "size_t tag;"
+        elif t.name == "array":
             fields = self.typ(t.args[0]) + f" data[{t.length}];"
         else:
             st = self.structs[t.name]
@@ -203,6 +213,10 @@ class CEmitter:
             expression = f"({self.typ(t)})({e.value!r})"
         elif k == "bool":
             expression = "true" if e.value else "false"
+        elif k == "variant":
+            enum_type = self.typ(t)  # Reject unsupported builtin Result before lookup.
+            tag = self.variant_tags[t.name][e.value["variant"]]
+            expression = f"({enum_type}){{ .tag = {tag} }}"
         elif k == "array":
             values = [self.value(x, lines) for x in e.children]
             expression = f"({self.typ(t)}){{ .data = {{" + ", ".join(values) + "} }"
@@ -324,6 +338,18 @@ class CEmitter:
             elif s.kind == "if":
                 cond = self.value(d["condition"], lines)
                 lines.append(f"if ({cond}) {{ " + self.block(d["then"]) + " } else { " + self.block(d.get("else", [])) + " }")
+            elif s.kind == "match":
+                # Snapshot the scrutinee once, before any arm can mutate its source.
+                value = self.value(d["expr"], lines)
+                typ = self.expr_type(d["expr"])
+                arms = []
+                for arm in d["arms"]:
+                    tag = self.variant_tags[typ.name][arm.pattern.variant]
+                    arms.append(f"case {tag}: {{ " + self.block(arm.body) + " break; }")
+                # Frontend exhaustiveness covers every constructible source value.
+                # Invalid foreign/unsafe tags are not admitted as language values.
+                arms.append("default: abort();")
+                lines.append(f"switch (({value}).tag) {{ " + " ".join(arms) + " }")
             elif s.kind == "while":
                 condition = []
                 cond = self.value(d["condition"], condition)
@@ -362,6 +388,8 @@ class CEmitter:
         return "\n".join(lines)
 
     def emit(self):
+        for enum in self.program.enums:
+            self.typ(Type(enum.name))
         for st in self.program.structs:
             self.typ(Type(st.name))
         signatures = [self.signature(fn) for fn in self.program.functions]
