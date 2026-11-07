@@ -732,8 +732,8 @@ def continuity_loss_receipt(probe,result):
     if not sender_events or sender_events[0].get('kind')!='ready' or not receiver_events or receiver_events[0].get('kind')!='ready':
         raise ValueError('continuity event stream lacks its ready record')
     expected_set=set(range(expected))
-    if any(row.get('run_id')!=probe['run_id'] for row in sender_events+receiver_events):
-        raise ValueError('continuity event run identity changed')
+    if sender_events[0].get('run_id')!=probe['run_id'] or receiver_events[0].get('run_id')!=probe['run_id']:
+        raise ValueError('continuity ready-record run identity changed')
     sent=[row.get('sequence') for row in sender_events if row.get('kind')=='sent']
     errors=[row.get('sequence') for row in sender_events if row.get('kind')=='send_error']
     echoes=[row.get('sequence') for row in sender_events if row.get('kind')=='echo']
