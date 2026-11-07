@@ -465,6 +465,33 @@ class DcoReplayEvidenceTests(unittest.TestCase):
                 expected,
             )
 
+    def test_stale_peer_replay_requires_stopped_client_openvpn_process(self):
+        stop_ns=100
+        settle_ns=100_000_100
+        submit_ns=110_000_000
+        observation_ns=120_000_000
+        resume_ns=130_000_000
+        process={"pid":123,"signals":[
+            {"signal":signal.SIGSTOP,"monotonic_ns":stop_ns},
+            {"signal":signal.SIGCONT,"monotonic_ns":resume_ns},
+        ]}
+        receipt={"pid":123,"stop_signal":signal.SIGSTOP,"stop_monotonic_ns":stop_ns,
+                 "settle_finished_monotonic_ns":settle_ns,"resume_signal":signal.SIGCONT,
+                 "resume_monotonic_ns":resume_ns}
+        self.assertTrue(verifier.verify_client_process_pause(
+            receipt,process,submit_ns,observation_ns))
+        invalid=[]
+        wrong_pid=copy.deepcopy(receipt);wrong_pid["pid"]=124;invalid.append((wrong_pid,process))
+        short_settle=copy.deepcopy(receipt);short_settle["settle_finished_monotonic_ns"]=50_000_000;invalid.append((short_settle,process))
+        early_resume=copy.deepcopy(receipt);early_resume["resume_monotonic_ns"]=115_000_000;invalid.append((early_resume,process))
+        missing_stop=copy.deepcopy(process);missing_stop["signals"]=missing_stop["signals"][1:];invalid.append((receipt,missing_stop))
+        missing_resume=copy.deepcopy(process);missing_resume["signals"]=missing_resume["signals"][:1];invalid.append((receipt,missing_resume))
+        for bad_receipt,bad_process in invalid:
+            with self.subTest(receipt=bad_receipt,process=bad_process):
+                with self.assertRaises(ValueError):
+                    verifier.verify_client_process_pause(
+                        bad_receipt,bad_process,submit_ns,observation_ns)
+
     def test_dco_replay_rejects_stale_peer_id_when_active_peer_counters_change(self):
         before = self.peer()
         before["peers"][0]["peer_id"] = 1

@@ -175,6 +175,36 @@ def verify_dco_device_drop_delta(before, after):
             "rx_bytes": delta["bytes"]}
 
 
+def verify_client_process_pause(receipt, process, submit_ns, observation_ns):
+    """Bind stale-peer replay to a stopped client process and a settled DCO window."""
+    require(isinstance(receipt, dict) and isinstance(process, dict),
+            "stale-peer replay lacks a client-process pause receipt")
+    pid = receipt.get("pid")
+    require(type(pid) is int and process.get("pid") == pid,
+            "stale-peer replay pause does not bind the observed client OpenVPN PID")
+    stop_ns = receipt.get("stop_monotonic_ns")
+    settle_ns = receipt.get("settle_finished_monotonic_ns")
+    resume_ns = receipt.get("resume_monotonic_ns")
+    require(receipt.get("stop_signal") == signal.SIGSTOP
+            and receipt.get("resume_signal") == signal.SIGCONT
+            and all(type(value) is int for value in (stop_ns, settle_ns, resume_ns)),
+            "stale-peer replay client pause signals/timestamps are malformed")
+    require(stop_ns < settle_ns < submit_ns < observation_ns < resume_ns
+            and settle_ns - stop_ns >= 90_000_000,
+            "stale-peer replay was not measured after a settled client pause")
+    signals = process.get("signals")
+    require(isinstance(signals, list), "client OpenVPN signal ledger is missing")
+    stop_matches = [row for row in signals if isinstance(row, dict)
+                    and row.get("signal") == signal.SIGSTOP
+                    and row.get("monotonic_ns") == stop_ns]
+    resume_matches = [row for row in signals if isinstance(row, dict)
+                      and row.get("signal") == signal.SIGCONT
+                      and row.get("monotonic_ns") == resume_ns]
+    require(len(stop_matches) == 1 and len(resume_matches) == 1,
+            "stale-peer replay pause receipt differs from the client OpenVPN signal ledger")
+    return True
+
+
 def verify_dco_path_scope(server_path, before, after):
     """Bind Netlink peer snapshots to the actual ovpn-kind DCO device in its namespace."""
     link = server_path.get("link", {})
@@ -610,6 +640,9 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                 require(dco.get("peer_accounting")=="stale-peer-id-unaccounted"
                         and packet_peer_id!=active_peer_id,
                         "post-reconnect replay was not identified as a prior-session peer ID: " + action)
+                client_process=case.get("observations",{}).get("client",{}).get("process",{})
+                verify_client_process_pause(dco.get("client_process_pause"),client_process,
+                                            submit_ns,observation_ns)
                 fresh_before=read(beneath(case_dir,"after-reconnect-valid-before-server-peer.json"))
                 fresh_after=read(beneath(case_dir,"after-reconnect-valid-after-server-peer.json"))
                 require(all(fresh.get(key)==before.get(key)==fresh_after.get(key)
@@ -625,6 +658,8 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                 require(all(value>0 for value in fresh_delta.values()),
                         "post-reconnect active DCO peer lacks fresh positive counter control: " + action)
             else:
+                require(dco.get("client_process_pause") is None,
+                        "non-stale DCO injection unexpectedly paused the client OpenVPN process: " + action)
                 require(dco.get("peer_accounting")=="active-peer-link-rx"
                         and packet_peer_id==active_peer_id,
                         "active-peer replay was not accounted to the matching DCO peer: " + action)

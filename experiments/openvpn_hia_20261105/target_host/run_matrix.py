@@ -844,7 +844,9 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
                       '--deadline','3','--out',str(witness_dir)],label+'-witness')
     pair.wait_until(lambda:(witness_dir/'ready.json').is_file(),3,label+' exact incoming witness ready')
     dco_server=pair.arms['server'].endswith('dco')
+    allow_stale_peer_id=(dco_server and label=='after-reconnect-replay' and mode=='replay')
     traffic_pause=None
+    client_pause=None
     if dco_server and traffic_sender is not None:
         if traffic_sender.proc.poll() is None:
             stop_ns=time.monotonic_ns()
@@ -856,6 +858,19 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             completion=continuity_sender_completion(finished)
             traffic_pause={'paused':False,'sender_finished_before':True,'sender_label':traffic_sender.label,
                            **completion,'observed_finished_monotonic_ns':time.monotonic_ns()}
+    # The stale peer-ID case must isolate the DCO receive window from a final
+    # client keepalive/data datagram. Pause only the client OpenVPN process;
+    # the kernel DCO device remains active and the raw replay helper is separate.
+    if allow_stale_peer_id:
+        client_job=pair.processes['client']
+        if client_job.proc.poll() is not None:
+            raise RuntimeError('client OpenVPN exited before isolated stale-peer replay')
+        client_job.signal(signal.SIGSTOP)
+        stop_ns=client_job.row['signals'][-1]['monotonic_ns']
+        pair.l.pause(.1)
+        client_pause={'pid':client_job.proc.pid,'stop_signal':signal.SIGSTOP,
+                      'stop_monotonic_ns':stop_ns,
+                      'settle_finished_monotonic_ns':time.monotonic_ns()}
     server_before=pair.observation('server')
     server_line_before=len(pair.processes['server'].text().splitlines())
     dco_before=None;dco_before_path=None;dco_before_command=None
@@ -899,12 +914,15 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
         dco_device_after=read_json_output(dco_device_after_command)
         device_delta=dco_device_drop_delta(dco_device_before,dco_device_after)
         active_peer_id=dco_before['peers'][0]['peer_id']
-        allow_stale_peer_id=(label=='after-reconnect-replay' and mode=='replay')
         delta=dco_rejection_delta(dco_before,dco_after,packet_peer_id=packet_peer_id,
                                   allow_stale_peer_id=allow_stale_peer_id,
                                   device_drop_delta=device_delta)
         stale_peer_unaccounted=(allow_stale_peer_id and packet_peer_id!=active_peer_id)
         observation_end=time.monotonic_ns()
+        if client_pause:
+            client_job.signal(signal.SIGCONT)
+            client_pause['resume_signal']=signal.SIGCONT
+            client_pause['resume_monotonic_ns']=client_job.row['signals'][-1]['monotonic_ns']
         if traffic_pause and traffic_pause.get('paused'):
             resume_ns=time.monotonic_ns()
             traffic_sender.signal(signal.SIGCONT)
@@ -927,7 +945,8 @@ def inject(pair,capture,old_receiver,label,mode,traffic_sender=None):
             'packet_peer_id':packet_peer_id,'active_peer_id':active_peer_id,
             'peer_accounting':'stale-peer-id-unaccounted' if stale_peer_unaccounted else 'active-peer-link-rx',
             'delta':delta,'traffic_sender_pause':traffic_pause,
-            'scope':('exact prior-session data-v2 peer ID reached the server underlay; DCO device RX-dropped advanced once while active peer counters and VPN-facing RX stayed unchanged; no crypto drop reason is inferred'
+            'client_process_pause':client_pause,
+            'scope':('exact prior-session data-v2 peer ID reached the server underlay while the client OpenVPN process was SIGSTOP-isolated and settled; DCO device RX-dropped advanced once while active peer counters and VPN-facing RX stayed unchanged; no crypto drop reason is inferred'
                      if stale_peer_unaccounted else
                      'per-injection DCO peer link RX advanced and device RX-dropped advanced once while VPN-facing peer/device RX stayed unchanged; no crypto drop reason is inferred')
         }
