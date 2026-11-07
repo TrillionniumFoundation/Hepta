@@ -1,0 +1,186 @@
+{
+  "actual_failure": "tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess raised E_CAPTURE_TIMEOUT",
+  "configured_smoke_timeout_seconds": 10,
+  "failed_step": {
+    "name": "Check bounded compiler capture process ownership on this host",
+    "number": 9
+  },
+  "failure_locations": [
+    "tests/test_clang_capture.py:33",
+    "hepta/clang_capture.py:287"
+  ],
+  "full_log": {
+    "bytes": 36067,
+    "gzip_bytes": 8315,
+    "gzip_mtime": 0,
+    "gzip_sha256": "acccccaf64741d21e120aab7da9e1c63eb5cc270a6919ea8429fb7e4bab96fd1",
+    "path": "ci-hepta-abi-574a-linux-gcc-failure.log.gz",
+    "sha256": "bb7fca3c3a7107fd0ad60b17e0a713322f13d52074cee030996b398dd5256cad"
+  },
+  "head": "574a6f10ea1de984bb21564231cb3df17fa44236",
+  "inspected_log_source": "github_fetch_workflow_job_logs.structuredContent.content",
+  "interpretation": "The configured ten-second Linux wall-time budget was exceeded. The reason for slow execution is not established by the bounded test error.",
+  "job_id": 128242914926,
+  "job_name": "ubuntu-24.04 / x86_64 / gcc",
+  "log_excerpts": [
+    {
+      "line": 277,
+      "text": "2026-11-07T00:55:09.5537162Z ##[group]Run set +e"
+    },
+    {
+      "line": 278,
+      "text": "2026-11-07T00:55:09.5537401Z \u001b[36;1mset +e\u001b[0m"
+    },
+    {
+      "line": 279,
+      "text": "2026-11-07T00:55:09.5537733Z \u001b[36;1mpython -m unittest tests.test_clang_capture -v 2>&1 | tee artifacts/clang-capture-tests.log\u001b[0m"
+    },
+    {
+      "line": 280,
+      "text": "2026-11-07T00:55:09.5538119Z \u001b[36;1mcapture_status=${PIPESTATUS[0]}\u001b[0m"
+    },
+    {
+      "line": 281,
+      "text": "2026-11-07T00:55:09.5538350Z \u001b[36;1mexit \"$capture_status\"\u001b[0m"
+    },
+    {
+      "line": 282,
+      "text": "2026-11-07T00:55:09.5557859Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}"
+    },
+    {
+      "line": 283,
+      "text": "2026-11-07T00:55:09.5558137Z env:"
+    },
+    {
+      "line": 284,
+      "text": "2026-11-07T00:55:09.5558388Z   HEPTA_QUALIFICATION_HEAD_SHA: 574a6f10ea1de984bb21564231cb3df17fa44236"
+    },
+    {
+      "line": 285,
+      "text": "2026-11-07T00:55:09.5558695Z   HEPTA_HOST_CC: gcc"
+    },
+    {
+      "line": 311,
+      "text": "2026-11-07T00:55:35.2868624Z "
+    },
+    {
+      "line": 312,
+      "text": "2026-11-07T00:55:35.2869086Z ======================================================================"
+    },
+    {
+      "line": 313,
+      "text": "2026-11-07T00:55:35.2870376Z ERROR: test_real_clang_c_preprocess (tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess)"
+    },
+    {
+      "line": 314,
+      "text": "2026-11-07T00:55:35.2871058Z ----------------------------------------------------------------------"
+    },
+    {
+      "line": 315,
+      "text": "2026-11-07T00:55:35.2871469Z Traceback (most recent call last):"
+    },
+    {
+      "line": 316,
+      "text": "2026-11-07T00:55:35.2881750Z   File \"/home/runner/work/Hepta/Hepta/tests/test_clang_capture.py\", line 33, in test_real_clang_c_preprocess"
+    },
+    {
+      "line": 317,
+      "text": "2026-11-07T00:55:35.2882470Z     result = run_bounded([compiler, '-x', 'c', '-std=c11', '-E', '-'],"
+    },
+    {
+      "line": 318,
+      "text": "2026-11-07T00:55:35.2882906Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    },
+    {
+      "line": 319,
+      "text": "2026-11-07T00:55:35.2883449Z   File \"/home/runner/work/Hepta/Hepta/hepta/clang_capture.py\", line 287, in run_bounded"
+    },
+    {
+      "line": 320,
+      "text": "2026-11-07T00:55:35.2884131Z     raise CaptureRejected(\"E_CAPTURE_TIMEOUT\", \"Compiler exceeded wall-time budget\")"
+    },
+    {
+      "line": 321,
+      "text": "2026-11-07T00:55:35.2884703Z hepta.clang_capture.CaptureRejected: Compiler exceeded wall-time budget"
+    },
+    {
+      "line": 322,
+      "text": "2026-11-07T00:55:35.2885032Z "
+    },
+    {
+      "line": 323,
+      "text": "2026-11-07T00:55:35.2885196Z ----------------------------------------------------------------------"
+    },
+    {
+      "line": 324,
+      "text": "2026-11-07T00:55:35.2885554Z Ran 16 tests in 25.627s"
+    },
+    {
+      "line": 325,
+      "text": "2026-11-07T00:55:35.2885704Z "
+    },
+    {
+      "line": 326,
+      "text": "2026-11-07T00:55:35.2885803Z FAILED (errors=1)"
+    },
+    {
+      "line": 327,
+      "text": "2026-11-07T00:55:35.3011247Z ##[error]Process completed with exit code 1."
+    },
+    {
+      "line": 328,
+      "text": "2026-11-07T00:55:35.3068918Z ##[group]Run set -euo pipefail"
+    },
+    {
+      "line": 329,
+      "text": "2026-11-07T00:55:35.3069190Z \u001b[36;1mset -euo pipefail\u001b[0m"
+    },
+    {
+      "line": 330,
+      "text": "2026-11-07T00:55:35.3069486Z \u001b[36;1mgit rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-after.log\u001b[0m"
+    },
+    {
+      "line": 331,
+      "text": "2026-11-07T00:55:35.3070337Z \u001b[36;1mgit status --porcelain --untracked-files=no > artifacts/native-host-tracked-after.log\u001b[0m"
+    },
+    {
+      "line": 332,
+      "text": "2026-11-07T00:55:35.3070760Z \u001b[36;1mtest \"$(git rev-parse HEAD)\" = \"$HEPTA_QUALIFICATION_HEAD_SHA\"\u001b[0m"
+    },
+    {
+      "line": 333,
+      "text": "2026-11-07T00:55:35.3071084Z \u001b[36;1mtest ! -s artifacts/native-host-tracked-after.log\u001b[0m"
+    }
+  ],
+  "other_abi_jobs": {
+    "failed": 0,
+    "passed": 7
+  },
+  "proposed_scope": "Use the ordinary30-second bounded smoke allowance on each host; preserve explicit timeout/descendant termination tests. No code change made by this observation.",
+  "pull_request": 787,
+  "repository": "TrillionniumFoundation/Hepta",
+  "run_id": 42320283919,
+  "schema": "hepta.ci-failure-analysis.v1",
+  "separate_from_frozen_cold_context_experiment": true,
+  "setup_inspection": {
+    "artifact_id": 13552916875,
+    "artifact_index": "ci-hepta-abi-574a-linux-gcc-failure-index.json",
+    "artifact_zip": "ci-hepta-abi-574a-linux-gcc-failure.zip",
+    "concrete_fake_wrapper_or_launcher_cause_found": false,
+    "fake_clang_fixture_in_smoke_suite": false,
+    "limit": "Failed logs and setup artifact do not retain the resolved Clang binary identity or child output; underlying reason remains unknown.",
+    "linux_capture_launch": "direct subprocess.Popen(argv,shell=False,start_new_session=True); regular temporary stdin/stdout/stderr files",
+    "linux_path_rewrite_in_workflow": false,
+    "native_abi_gcc_validation": "passed before failed smoke",
+    "resolved_clang_path": null,
+    "resolved_clang_version": null,
+    "smoke_driver_selection": "shutil.which('clang') independently of GCC matrix selection"
+  },
+  "suite": {
+    "elapsed_seconds": 25.627,
+    "errors": 1,
+    "tests": 16
+  },
+  "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42320283919/job/128242914926",
+  "windows_smoke_timeout_seconds": 30
+}

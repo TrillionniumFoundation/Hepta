@@ -1,0 +1,32 @@
+test_bad_utf8_stdout_is_rejected (tests.test_clang_capture.CaptureBudgets.test_bad_utf8_stdout_is_rejected) ... ok
+test_child_exit_failure_does_not_turn_into_success (tests.test_clang_capture.CaptureBudgets.test_child_exit_failure_does_not_turn_into_success) ... ok
+test_descendant_cancelled_even_when_parent_succeeds (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_even_when_parent_succeeds) ... ok
+test_descendant_cancelled_on_output_limit (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_on_output_limit) ... ok
+test_descendant_cancelled_on_wall_timeout (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_on_wall_timeout) ... ok
+test_descendant_cancelled_when_parent_fails (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_when_parent_fails) ... ok
+test_invalid_byte_limits_reject_before_launch (tests.test_clang_capture.CaptureBudgets.test_invalid_byte_limits_reject_before_launch) ... ok
+test_invalid_timeout_budgets_reject_before_launch (tests.test_clang_capture.CaptureBudgets.test_invalid_timeout_budgets_reject_before_launch) ... ok
+test_launch_failure_cannot_start_the_requested_command (tests.test_clang_capture.CaptureBudgets.test_launch_failure_cannot_start_the_requested_command) ... ok
+test_oversize_stdin_without_process_launch (tests.test_clang_capture.CaptureBudgets.test_oversize_stdin_without_process_launch) ... ok
+test_real_clang_c_preprocess (tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess) ... ERROR
+test_real_exit_status_and_streams_are_preserved (tests.test_clang_capture.CaptureBudgets.test_real_exit_status_and_streams_are_preserved) ... ok
+test_stderr_limit (tests.test_clang_capture.CaptureBudgets.test_stderr_limit) ... ok
+test_stdout_limit (tests.test_clang_capture.CaptureBudgets.test_stdout_limit) ... ok
+test_success_preserves_text_and_input (tests.test_clang_capture.CaptureBudgets.test_success_preserves_text_and_input) ... ok
+test_wall_timeout (tests.test_clang_capture.CaptureBudgets.test_wall_timeout) ... ok
+
+======================================================================
+ERROR: test_real_clang_c_preprocess (tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/runner/work/Hepta/Hepta/tests/test_clang_capture.py", line 33, in test_real_clang_c_preprocess
+    result = run_bounded([compiler, '-x', 'c', '-std=c11', '-E', '-'],
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Hepta/Hepta/hepta/clang_capture.py", line 287, in run_bounded
+    raise CaptureRejected("E_CAPTURE_TIMEOUT", "Compiler exceeded wall-time budget")
+hepta.clang_capture.CaptureRejected: Compiler exceeded wall-time budget
+
+----------------------------------------------------------------------
+Ran 16 tests in 25.627s
+
+FAILED (errors=1)

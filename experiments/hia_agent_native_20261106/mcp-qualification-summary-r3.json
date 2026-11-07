@@ -1,0 +1,212 @@
+{
+  "schema": "hepta.hia.agent.qualification.v1",
+  "status": "passed",
+  "mode": "actual_hepta_runtime_stdio_mcp",
+  "elapsed_ns": "103108791968",
+  "tool_names_observed": [
+    "hia_adopt",
+    "hia_artifact",
+    "hia_candidate",
+    "hia_context",
+    "hia_describe",
+    "hia_emit",
+    "hia_evaluate",
+    "hia_inspect",
+    "hia_read",
+    "hia_rollback",
+    "hia_verify"
+  ],
+  "tool_call_count": 39,
+  "claims": {
+    "scripted_integration_observed": true,
+    "fresh_model_learning_test_performed": false,
+    "model_training_exposure_known": false,
+    "universal_backend_refinement_proved": false,
+    "net_optimization_benefit_proved": false
+  },
+  "installation": {
+    "backend_sha256": "2da6aaaaec1129a0129f0fdb7c3f91a4158103e0bcd0cb0f85baa77760a18c28",
+    "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+    "worker_sha256": "15b1bde41801117626509595d2d7908f44340fe1a2bf88227f3626e42d29a937"
+  },
+  "runtime_binary_sha256": "bd896a3d57ff52a02036791bdf8cbcae6afac88c42ac20ee5260397a6f0c30f3",
+  "controller_host": "ai395",
+  "worker_host": "x230",
+  "runtime_revision": "r3",
+  "metric": {
+    "metric": "artifact_bytes",
+    "baseline_value": "17816",
+    "candidate_value": "13720",
+    "improvement_ratio": 0.2299057027391109,
+    "outcome": "improved",
+    "planned_cases": 256,
+    "planned_workload_complete": true,
+    "measurement_scope": "same host and immutable workload, baseline then candidate; latency includes ctypes FFI overhead",
+    "native_correctness_scope": "frozen workload return/trap behavior; VM first-trap/resource observations recorded separately",
+    "saved_bytes": 4096,
+    "fixture_scope": "Synthetic wrapping-u8 x+7 baseline with 128 redundant zero additions; client chooses the equivalent two-operation candidate."
+  },
+  "observed_cases": 256,
+  "native_runs": {
+    "baseline": {
+      "artifact_sha256": "c1a53a5700f018193a3d6c59bdb6c179c310c8c38b7c54a10a51ca0ad51bc68d",
+      "complete": true,
+      "completed_cases": 256,
+      "measured_calls": 256
+    },
+    "candidate": {
+      "artifact_sha256": "30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727",
+      "complete": true,
+      "completed_cases": 256,
+      "measured_calls": 256
+    }
+  },
+  "checks": [
+    {
+      "tool": "hia_verify",
+      "subject": {
+        "kind": "core"
+      },
+      "checks": [
+        {
+          "claim": "core_admission",
+          "status": "proved",
+          "domain": "Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim"
+        }
+      ]
+    },
+    {
+      "tool": "hia_verify",
+      "subject": {
+        "kind": "core"
+      },
+      "checks": [
+        {
+          "claim": "core_admission",
+          "status": "proved",
+          "domain": "Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim"
+        },
+        {
+          "claim": "behavior_equivalence",
+          "status": "proved",
+          "domain": "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger"
+        }
+      ]
+    },
+    {
+      "tool": "hia_verify",
+      "subject": {
+        "backend_profile": {
+          "id": "hia-backend-v1",
+          "sha256": "7eae6b8fcb15059a5b6a934d9ce88560b2047fdd1efda97a6f5b337eea9f2f97"
+        },
+        "build_receipt": {
+          "id": "a-beb7dba437c54bea86f29a01b3991518",
+          "sha256": "d83565a8f954a460d536f24dff8c3eee8553baccddbf31209b38f60f2c453e7b",
+          "uri": "hia://artifacts/9035b4e2a16f44599355abb0709099be"
+        },
+        "kind": "native_artifact",
+        "native_artifact": {
+          "id": "a-d685bc13e8a141c3b078c5fd2d35847a",
+          "sha256": "30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727",
+          "uri": "hia://artifacts/bd16efc83bb34838a9607ac304eae26f"
+        }
+      },
+      "checks": [
+        {
+          "claim": "encoding_check",
+          "status": "proved",
+          "domain": "Exact actual artifact equals independently reverified Core/plan reemission and linkage, with checked closed symbol/ABI inventory; no semantic refinement claim"
+        }
+      ]
+    }
+  ],
+  "adoption": {
+    "adoption": {
+      "active_artifact": {
+        "id": "a-d685bc13e8a141c3b078c5fd2d35847a",
+        "sha256": "30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727",
+        "uri": "hia://artifacts/bd16efc83bb34838a9607ac304eae26f"
+      },
+      "adoption_receipt": {
+        "id": "a-bdb4b27c4a7c49f2a33583b203ab39c7",
+        "sha256": "6cf0c9bb649d8db241da5c9ddf471cf5496a62c33499361cbf2f436c8827eba5",
+        "uri": "hia://artifacts/7c25fbf2f6044eb9b080814a6bb40cbe"
+      },
+      "current": {
+        "epoch": "1",
+        "generation": "1"
+      },
+      "future_calls_only": true,
+      "previous": {
+        "epoch": "0",
+        "generation": "0"
+      },
+      "target_slot": "qualification"
+    },
+    "stale_adoption": {
+      "contract_version": "hepta.hia.agent-native.v1",
+      "error": {
+        "code": "E_HIA_GENERATION_STALE",
+        "details_artifact": {
+          "id": "a-46f1a75331a740019caa1bce6ec500f9",
+          "sha256": "d96bc36d236a1ac0551ba0d1f7073dbcb89b61db9e7e3b6e4b787c774cc7386c",
+          "uri": "hia://artifacts/5e635799c4694917a328b6c52428564b"
+        },
+        "message": "slot changed; read the retained current snapshot and choose a fresh conditional request",
+        "phase": "adoption",
+        "retry_action": "refresh_context"
+      },
+      "request_id": "r-7efb2a04727e8035030c1f60b7ded42a21fcff2dc54b7bf23005de1260baca42",
+      "status": "rejected"
+    },
+    "rollback": {
+      "active_artifact": {
+        "id": "a-5f47fa01fa2a4e63bc2e89a07510e4c4",
+        "sha256": "c1a53a5700f018193a3d6c59bdb6c179c310c8c38b7c54a10a51ca0ad51bc68d",
+        "uri": "hia://artifacts/ac49915252e24164be1b7b816380e8d7"
+      },
+      "current": {
+        "epoch": "2",
+        "generation": "0"
+      },
+      "future_calls_only": true,
+      "past_effects_reversed": false,
+      "previous": {
+        "epoch": "1",
+        "generation": "1"
+      },
+      "rollback_receipt": {
+        "id": "a-21b82c9450164de98cd3ffd0a305a749",
+        "sha256": "c4e7c3249a4e26d6411f64f4a0b9d0e9e8c24f6d070a5bab9744c3dfc4013197",
+        "uri": "hia://artifacts/2f4795bd512343fc8f65a878ab2fcac4"
+      },
+      "target_slot": "qualification"
+    }
+  },
+  "cost": {
+    "external_costs": {
+      "discovery_wall_ns": null,
+      "model_tokens": null,
+      "model_wall_ns": null
+    },
+    "external_costs_complete": false,
+    "full_search_cost_complete": false,
+    "net_optimization_benefit_proved": false,
+    "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"
+  },
+  "evidence": {
+    "mcp-qualification-r3.json.gz": {
+      "bytes": 447557,
+      "sha256": "90cce5860c37f6adba16f071cb4812c7d7c0b9fae8f212e12828fe3be425bdb9",
+      "uncompressed_bytes": 9604667,
+      "uncompressed_sha256": "38130882e67e1310bb75fe597e85b42b301e0d92a2a3fb782c1336f2f447c538"
+    },
+    "mcp-qualification-calls-r3.jsonl.gz": {
+      "bytes": 48804,
+      "sha256": "ede62d9459ebf0a43dd13b585dcae55e12a6c081910aa4db40e1ade082bafd37",
+      "uncompressed_bytes": 1154729,
+      "uncompressed_sha256": "9eb532d5f73057df154116836c19a0e60a666a9819980dcd339397d20177c18a"
+    }
+  }
+}

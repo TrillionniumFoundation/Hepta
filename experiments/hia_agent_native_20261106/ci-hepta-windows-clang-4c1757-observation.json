@@ -1,0 +1,97 @@
+{
+  "gzip_log": {
+    "bytes": 14954,
+    "mtime": 0,
+    "path": "ci-hepta-windows-clang-4c1757-job.log.gz",
+    "sha256": "2d973f7e4d51a4e2d9e931ae7054581bebaeddde038d3689ad8c8d17ddb6e1ab"
+  },
+  "head": "4c1757bcd4db1f6deeadd190213dc26264ec46f0",
+  "job_id": 128247838512,
+  "observed_test_lines": [
+    {
+      "line_number": 363,
+      "text": "2026-11-07T01:05:39.6504849Z Ran 17 tests in 6.252s"
+    },
+    {
+      "line_number": 437,
+      "text": "2026-11-07T01:06:09.1275140Z test_real_clang_c_preprocess (tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess) ... ok"
+    },
+    {
+      "line_number": 445,
+      "text": "2026-11-07T01:06:10.3048848Z Ran 16 tests in 17.187s"
+    },
+    {
+      "line_number": 483,
+      "text": "2026-11-07T01:06:12.2103829Z Ran 4 tests in 1.592s"
+    }
+  ],
+  "preflight": [
+    {
+      "line_number": 521,
+      "summary": {
+        "cases": [
+          {
+            "diagnostic_codes": [],
+            "expected_migration_ok": true,
+            "name": "fixed_array",
+            "observed_shape": {
+              "const": true,
+              "element": {
+                "const": false,
+                "kind": "UInt",
+                "restrict": false,
+                "spelling": "unsigned int",
+                "volatile": false
+              },
+              "extent": 8,
+              "kind": "ConstantArray",
+              "restrict": false,
+              "spelling": "const unsigned int[8]",
+              "volatile": false
+            },
+            "observed_state": "fixed",
+            "passed": true,
+            "report": "D:\\a\\Hepta\\Hepta\\artifacts\\original-type-preflight\\fixed_array\\migration.json",
+            "report_sha256": "a60ef4edc14730ce6461e86f1d7c3e065621ba9722053e09302e5a0e08f569d2"
+          },
+          {
+            "diagnostic_codes": [
+              "E_C_VLA_PARAMETER"
+            ],
+            "expected_migration_ok": false,
+            "name": "vla_entry",
+            "observed_shape": {
+              "const": true,
+              "element": {
+                "const": false,
+                "kind": "UInt",
+                "restrict": false,
+                "spelling": "unsigned int",
+                "volatile": false
+              },
+              "extent": null,
+              "kind": "VariableArray",
+              "restrict": false,
+              "spelling": "const unsigned int[++n]",
+              "volatile": false
+            },
+            "observed_state": "variable",
+            "passed": true,
+            "report": "D:\\a\\Hepta\\Hepta\\artifacts\\original-type-preflight\\vla_entry\\migration.json",
+            "report_sha256": "5a86419e9b253ed97e2cc9bd411363fde8f6aa70ee8bd5cb8ff715c3ea135fdb"
+          }
+        ],
+        "ok": true,
+        "schema": "hepta.c-original-type-host-preflight.v1",
+        "status": "original_type_host_preflight_passed",
+        "system": "Windows"
+      }
+    }
+  ],
+  "raw_log_bytes": 109349,
+  "raw_log_sha256": "50642076a961fb40370c7a57b0e01f771db7ad2370ca897c30f1d7d5bb3c3ee8",
+  "repository": "TrillionniumFoundation/Hepta",
+  "run_id": 42321800142,
+  "schema": "hepta.ci-job-console-observations.v1",
+  "source": "github_fetch_workflow_job_logs.structuredContent.content"
+}

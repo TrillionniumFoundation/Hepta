@@ -1,0 +1,73 @@
+{
+  "schema": "hepta.hia.agent.mcp-lifecycle.v1",
+  "status": "failed",
+  "mode": "actual_hepta_runtime_stdio_mcp",
+  "checks": {
+    "resource_uri_read": {
+      "artifact": {
+        "id": "a-efbde2f496454e988ad1b0f5f30f1cb5",
+        "sha256": "5e8d7512c11f72167982ed079ffe96b78692f2ba27752ac6355813f360488331",
+        "uri": "hia://artifacts/de1126b9148f4665bc949922f7c1337c"
+      },
+      "bytes": 5209,
+      "pending_operations": [
+        {
+          "host": "hia-worker",
+          "job_id": "1a1b34f014d-1c91a8-1",
+          "report_artifact": null,
+          "request_sha256": "10c269f19d1ebc497da78d5025a483aca5142092f7f1eeca91b0fedab84ab83a"
+        }
+      ],
+      "digest_verified": true
+    },
+    "exact_key_replay_across_server_restart": {
+      "request": {
+        "tool": "hia_artifact",
+        "arguments": {
+          "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+          "request_key": "qualification/1/call",
+          "artifact_profile": {
+            "id": "hia-artifact-v1",
+            "sha256": "dba50b27bbe595b696519fbc04edf6b3633dd748caf2814871ef1d0091b4b468"
+          },
+          "source": {
+            "kind": "utf8",
+            "text": "{\"expected_invocations\":\"0\",\"external_costs\":{\"discovery_wall_ns\":null,\"model_tokens\":null,\"model_wall_ns\":null},\"external_costs_complete\":false,\"schema\":\"hepta.hia.agent.cost-policy.v1\"}"
+          }
+        },
+        "response": {
+          "contract_version": "hepta.hia.agent-native.v1",
+          "request_id": "r-3c5eafdbb0467b791c9709b38bdeffa5f5d40610598b1a2b10a44562f229dc38",
+          "result": {
+            "artifact": {
+              "id": "a-659825f9a7354b1f8bb22163f0e7a5ae",
+              "sha256": "8432bf9f24bc4ff5281ae068a76234ddd6a41425c013a3d4151471398275d4ca",
+              "uri": "hia://artifacts/951e4ee5be8d49919f22d2ce425b7373"
+            },
+            "byte_length": "187",
+            "content_admitted_as_program": false,
+            "execution_authority_granted": false
+          },
+          "status": "completed"
+        },
+        "elapsed_ns": "2100429460"
+      },
+      "response_equal_before_and_after": true
+    }
+  },
+  "qualification_report_sha256": "38130882e67e1310bb75fe597e85b42b301e0d92a2a3fb782c1336f2f447c538",
+  "runtime_binary_sha256": "bd896a3d57ff52a02036791bdf8cbcae6afac88c42ac20ee5260397a6f0c30f3",
+  "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+  "worker_sha256": "15b1bde41801117626509595d2d7908f44340fe1a2bf88227f3626e42d29a937",
+  "backend_sha256": "2da6aaaaec1129a0129f0fdb7c3f91a4158103e0bcd0cb0f85baa77760a18c28",
+  "claims": {
+    "fresh_model_learning_test_performed": false,
+    "universal_backend_refinement_proved": false,
+    "net_optimization_benefit_proved": false
+  },
+  "error": {
+    "type": "QualificationFailure",
+    "message": "MCP tools/call error: {'code': -32603, 'message': 'HIA request unavailable: idempotency key `hia-agent-1e33eda4b8473a33c802bad66de610026c474996ff31778c5e32a99b6fc33003` is already bound to a different request. Preserve the tool, request key and all arguments; observe the original request after any uncertain effect.', 'data': {'code': 'HIA_OWNER_UNAVAILABLE', 'request_key': 'qualification/1/call', 'retry_action': 'observe_original', 'tool': 'hia_artifact'}}",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification/tools/mcp_lifecycle_driver.py\", line 158, in main\n    changed_raw = current.rpc(\"tools/call\", {\"name\": \"hia_artifact\", \"arguments\": changed})\n  File \"/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification/tools/mcp_lifecycle_driver.py\", line 74, in recorded\n    result = original(method, params)\n  File \"/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification/tools/hia_agent_native_transport.py\", line 88, in rpc\n    raise QualificationFailure(f\"MCP {method} error: {response['error']}\")\nhia_agent_native_transport.QualificationFailure: MCP tools/call error: {'code': -32603, 'message': 'HIA request unavailable: idempotency key `hia-agent-1e33eda4b8473a33c802bad66de610026c474996ff31778c5e32a99b6fc33003` is already bound to a different request. Preserve the tool, request key and all arguments; observe the original request after any uncertain effect.', 'data': {'code': 'HIA_OWNER_UNAVAILABLE', 'request_key': 'qualification/1/call', 'retry_action': 'observe_original', 'tool': 'hia_artifact'}}\n"
+  }
+}

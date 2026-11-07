@@ -1,0 +1,118 @@
+{
+  "exact_command": "timeout 600s python -B -m tools.check_core_seven_shared --lean \"$RUNNER_TEMP/core-syntax-tools/lean-4.19.0/bin/lean\" --output-directory \"$RUNNER_TEMP/core-syntax-proof\"",
+  "exact_size_derivation": {
+    "actual_failed_identity_size": null,
+    "all_added_record_delta": 11337,
+    "canonical_json": "sort_keys=True,separators=(',',':'),ensure_ascii=True,allow_nan=False,plus LF",
+    "commit_and_tree_width": 40,
+    "current_shared_max": 156044,
+    "historical_identity_max": 144713,
+    "nine_native_agent_records_max_delta": 1098,
+    "pre_native_agent_shared_max": 154946,
+    "required_cap_delta": 11331,
+    "reviewed_added_sources": 84,
+    "sha256_width": 64,
+    "shared_header_delta": -6,
+    "shared_header_historical_paths_max": 144707,
+    "source_byte_count_max": 2097152,
+    "source_count_current": 323,
+    "source_count_old": 239,
+    "support_byte_count_max": "9223372036854775807",
+    "support_count": 780
+  },
+  "failure_artifact": {
+    "artifact_id": 13551907448,
+    "result_bytes": 1341,
+    "result_path": "ci-hepta-shared-kernel-2687-failure.RESULT.json",
+    "result_sha256": "d4f84954d8fdd379d05d544c82fb9515598e166a0eb979bca7f5d88802c8d1c3",
+    "zip_bytes": 701,
+    "zip_path": "ci-hepta-shared-kernel-2687-failure.zip",
+    "zip_sha256": "97c7c1859c408a3654ebd4ba99c85f972cedea5b727155981cd98ea44e99825f"
+  },
+  "fix": {
+    "budgets_dict_changed": false,
+    "display": 4096,
+    "evidence_display_total": 1048576,
+    "head": "574a6f10ea1de984bb21564231cb3df17fa44236",
+    "identity_cap": 156044,
+    "legacy_module_changed": false,
+    "metadata_reserve": 235920,
+    "paths": [
+      "tools/core_seven_shared_acceptance_plan.py",
+      "tests/test_core_seven_shared_acceptance.py"
+    ],
+    "proof_semantics_changed": false,
+    "publication_provenance": "parent-published",
+    "raw_global": 808560,
+    "scope": "Transfer exact identity allowance from raw logs; no total resource or proof deadline increase",
+    "source_path_commitments_changed": false,
+    "test_inventory_ids_changed": false,
+    "tree": "4a2100c1fb4ff621ac4816ea6365f1377d55a621"
+  },
+  "inference": {
+    "cause": "Inherited identity serialization cap is too small for the reviewed current closure; likely failure at first write_json(IDENTITY.json) budget check.",
+    "confidence_basis": [
+      "Pure in-memory prepare() on exact head succeeded; eleven sources built and validated, no Lean executed",
+      "Actual failed artifact exists only after SafeRoot construction; no identity,plan,run artifact written",
+      "Runner checks p.budgets before first identity file creation",
+      "Current legal serialization maximum156044 exceeds inherited144713"
+    ],
+    "limits": [
+      "Actual failed IDENTITY bytes were not retained",
+      "Bounded failure record omits underlying exception",
+      "No local Lean checker was available",
+      "Actual new-head Lean fresh/replay CI remains required"
+    ]
+  },
+  "job_id": 128235007040,
+  "local_validation": {
+    "command": "python3 -B -m unittest -v tests.test_core_seven_shared_acceptance",
+    "errors": 0,
+    "failures": 0,
+    "lean_executed": false,
+    "log": "ci-shared-envelope-regressions.log",
+    "result": "ci-shared-envelope-regressions.json",
+    "skips": 0,
+    "tests": 10
+  },
+  "new_head_actual_lean_confirmation": {
+    "artifact_id": 13553081324,
+    "artifact_index": "ci-hepta-shared-kernel-574a-index.json",
+    "fresh_and_replay": "full_replay_verified",
+    "head": "574a6f10ea1de984bb21564231cb3df17fa44236",
+    "identity_bytes": 145156,
+    "identity_excess_over_inherited_cap": 443,
+    "inherited_identity_cap": 144713,
+    "invocations": 11,
+    "job_id": 128242913426,
+    "negative_certificate_count": 10,
+    "positive_inventory_count": 66,
+    "previous_head_source_size_digit_delta": 0,
+    "prior_head_identity_size_with_observed_pinned_support": 145156,
+    "prior_size_note": "Serialization-size derivation using actual new-head pinned support records and exact prior committed source lengths; not a retained old-head identity artifact.",
+    "raw_log_bytes": 543513,
+    "run_id": 42320283665,
+    "scope": "Narrow Core syntax connection only; DENY_ALL; twelve wider obligations unproved",
+    "status": "passed",
+    "tree": "4a2100c1fb4ff621ac4816ea6365f1377d55a621",
+    "wall_ns": 208926003124
+  },
+  "observed_failure": {
+    "artifact_members": [
+      "RESULT.json"
+    ],
+    "bootstrap": "success",
+    "error_code": "preparation_invalid",
+    "failed_stage": null,
+    "identity_sha256": null,
+    "invocations": 0,
+    "phase": "preparation"
+  },
+  "observed_head": "2687e9c1dbe62b70d5eabc2d3381abf4aefe524e",
+  "observed_tree": "072d3ec8c23812865ae16f2f5aefe868c4112257",
+  "pull_request": 787,
+  "repository": "TrillionniumFoundation/Hepta",
+  "run_id": 42317908277,
+  "schema": "hepta.ci-failure-analysis.v1",
+  "separate_from_frozen_cold_context_experiment": true
+}

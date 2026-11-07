@@ -1,0 +1,268 @@
+{
+  "schema": "hepta.hia.agent.final-mcp-summary.v1",
+  "status": "passed",
+  "scope": "Actual ai395 hepta-runtime stdio MCP to the configured x230 SSH HIA worker; scripted integration, finite native/VM evidence, serialization boundaries and lifecycle failure handling.",
+  "runtime_source_commit": "d95866c9e244e03a182740d420f94294ee43cdcd",
+  "worker_code_commit": "124ed9275d1f977b697aac22028341865d9ca940",
+  "runtime_binary_sha256_before": "6dcadf26053b35b9edb1270576bbbdc5f1ec8f37f958e9e5ca9b9350d2d5e13f",
+  "runtime_binary_sha256_after": "6dcadf26053b35b9edb1270576bbbdc5f1ec8f37f958e9e5ca9b9350d2d5e13f",
+  "runtime_source_manifest_sha256": "d9b1ae288681315585143534c12838ca839feb67731285dad2621ef06dfd94a8",
+  "command": [
+    "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/bin/hepta-runtime-r4",
+    "mcp",
+    "--runtime-config",
+    "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification-runtime-config-r4b.json",
+    "--path",
+    "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4"
+  ],
+  "command_file_sha256": "3093c49f09a6e1da060005085e64f262c772b1844dab0e28204bb7d6a82f32ed",
+  "configuration_sha256": "7edfac66a91521b16a4ebfd680a5d5f0c2dcdd9085baf7c62b66a0f734df338b",
+  "installation": {
+    "backend_sha256": "2da6aaaaec1129a0129f0fdb7c3f91a4158103e0bcd0cb0f85baa77760a18c28",
+    "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+    "worker_sha256": "15b1bde41801117626509595d2d7908f44340fe1a2bf88227f3626e42d29a937"
+  },
+  "qualification_driver_sha256": "027bfcc29d407cc571c52766bae312ea0c5e392400d47ff3f695c290fd3f7285",
+  "transport_sha256": "9a82aa1f0eced5782763dc6898da04d0f5d12f54766f56b651d8505d28148a4a",
+  "exact_catalog_verified": true,
+  "tool_names": [
+    "hia_adopt",
+    "hia_artifact",
+    "hia_candidate",
+    "hia_context",
+    "hia_describe",
+    "hia_emit",
+    "hia_evaluate",
+    "hia_inspect",
+    "hia_read",
+    "hia_rollback",
+    "hia_verify"
+  ],
+  "scripted_call_count": 39,
+  "scripted_domain_status_counts": {
+    "completed": 38,
+    "rejected": 1
+  },
+  "scripted_elapsed_ns": "399312643284",
+  "metric": {
+    "metric": "artifact_bytes",
+    "baseline_value": "17816",
+    "candidate_value": "13720",
+    "improvement_ratio": 0.2299057027391109,
+    "outcome": "improved",
+    "planned_cases": 256,
+    "planned_workload_complete": true,
+    "measurement_scope": "same host and immutable workload, baseline then candidate; latency includes ctypes FFI overhead",
+    "native_correctness_scope": "frozen workload return/trap behavior; VM first-trap/resource observations recorded separately",
+    "saved_bytes": 4096,
+    "fixture_scope": "Synthetic wrapping-u8 x+7 baseline with 128 redundant zero additions; client independently specifies the two-operation candidate. Metric uses complete shared-file bytes."
+  },
+  "boundary_cases": [
+    {
+      "name": "nul_maximum",
+      "unicode_characters": 65536,
+      "utf8_bytes": 65536,
+      "artifact": {
+        "id": "a-ccb90e816c4748bd819fa3098db2a8c0",
+        "sha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+        "uri": "hia://artifacts/4fcf0078ceb24eacbda8130953ec7c72"
+      },
+      "read_pages": 5,
+      "round_trip_exact": true,
+      "maximum_request_wire_bytes_including_newline": 393599,
+      "maximum_response_wire_bytes_including_newline": 214077
+    },
+    {
+      "name": "mixed_quote_backslash_control_maximum",
+      "unicode_characters": 65536,
+      "utf8_bytes": 65536,
+      "artifact": {
+        "id": "a-c8098af08305421ca77e245da2bd7630",
+        "sha256": "1fdd857d46b0299fc4c6d526ad0d833a113de777b579d285b39a0241383cf566",
+        "uri": "hia://artifacts/1a6505bc4c104714829b7a41e2239df8"
+      },
+      "read_pages": 2,
+      "round_trip_exact": true,
+      "maximum_request_wire_bytes_including_newline": 117456,
+      "maximum_response_wire_bytes_including_newline": 197694
+    }
+  ],
+  "boundary_tool_call_count": 11,
+  "lifecycle_checks": {
+    "resource_uri_read": {
+      "check_status": "passed"
+    },
+    "exact_key_replay_across_server_restart": {
+      "check_status": "passed"
+    },
+    "changed_body_same_key_rejected": {
+      "check_status": "passed"
+    },
+    "stale_catalog_rejected": {
+      "check_status": "passed"
+    },
+    "cancelled_operation_remains_unknown_across_restart": {
+      "check_status": "passed",
+      "domain_status": "unknown",
+      "domain_error": "HIA_WORKER_TERMINATED",
+      "operation": {
+        "host": "hia-worker",
+        "job_id": "1a1b37dc109-1e480b-9",
+        "report_artifact": null,
+        "request_sha256": "0242079b7cbae447e269c0285fd88ba38b845be22e07d25e468c337184b5ecd8"
+      },
+      "native_terminal_state": "cancelled",
+      "native_exit_code": -15
+    },
+    "wrong_worker_pin_fails_closed": {
+      "check_status": "passed",
+      "domain_status": "unknown",
+      "domain_error": "HIA_WORKER_TERMINATED",
+      "operation": {
+        "host": "hia-worker",
+        "job_id": "1a1b37dd284-1e50dc-1",
+        "report_artifact": null,
+        "request_sha256": "ba6b2b558496e406f105c6ff59db3b1fa52e20ca6730790743060cdec1248e2b"
+      },
+      "native_terminal_state": "failed",
+      "native_exit_code": 2
+    }
+  },
+  "outer_jobs": {
+    "schema": "hepta.hia.agent.outer-job-status.v1",
+    "main_and_serialization": {
+      "host": "ai395",
+      "job_id": "1a1b3725837-fc05-82ee",
+      "terminal": {
+        "at_unix_ms": 1794012492522,
+        "audit_recorded": true,
+        "automatic_retry": false,
+        "cancelled": false,
+        "exit_code": 0,
+        "job_id": "1a1b3725837-fc05-82ee",
+        "launch_nonce": "e1236a3e43bd38235587d9f516c6f2b2",
+        "log_bytes": {
+          "stderr": {
+            "seen": 0,
+            "stored": 0
+          },
+          "stdout": {
+            "seen": 3399,
+            "stored": 3399
+          }
+        },
+        "log_errors": {
+          "stderr": null,
+          "stdout": null
+        },
+        "log_synced": {
+          "stderr": true,
+          "stdout": true
+        },
+        "log_truncated": {
+          "stderr": false,
+          "stdout": false
+        },
+        "output_complete": true,
+        "output_durable": true,
+        "state": "succeeded",
+        "terminal_publication_confirmed": true,
+        "terminal_publication_protocol": 1,
+        "timed_out": false
+      }
+    },
+    "lifecycle": {
+      "host": "ai395",
+      "job_id": "1a1b37d491a-fc05-832c",
+      "terminal": {
+        "at_unix_ms": 1794012733497,
+        "audit_recorded": true,
+        "automatic_retry": false,
+        "cancelled": false,
+        "exit_code": 0,
+        "job_id": "1a1b37d491a-fc05-832c",
+        "launch_nonce": "17e81625ea5aa21f701461e09a33457f",
+        "log_bytes": {
+          "stderr": {
+            "seen": 0,
+            "stored": 0
+          },
+          "stdout": {
+            "seen": 956,
+            "stored": 956
+          }
+        },
+        "log_errors": {
+          "stderr": null,
+          "stdout": null
+        },
+        "log_synced": {
+          "stderr": true,
+          "stdout": true
+        },
+        "log_truncated": {
+          "stderr": false,
+          "stdout": false
+        },
+        "output_complete": true,
+        "output_durable": true,
+        "state": "succeeded",
+        "terminal_publication_confirmed": true,
+        "terminal_publication_protocol": 1,
+        "timed_out": false
+      }
+    }
+  },
+  "endpoint_shutdown": {
+    "schema": "hepta.hia.agent.endpoint-shutdown-observation.v1",
+    "observed_at_utc": "2026-11-07T00:55:33.188866+00:00",
+    "host": "ai395",
+    "checked_config_paths": [
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification-runtime-config-r3.json",
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification-runtime-config.json",
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification-runtime-config-r4.json",
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/qualification-runtime-config-r4b.json",
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/evidence/mcp-lifecycle-r3b.bad-pin-config.json",
+      "/home/qq/hepta-hia-agent-native-20261106-f4e250f91ef4/evidence/mcp-lifecycle-r4b.bad-pin-config.json"
+    ],
+    "matching_active_mcp_processes": [],
+    "status": "no_matching_active_endpoint_observed",
+    "scope": "Read-only /proc command-line observation restricted to the qualification private runtime-config arguments; no claim about arbitrary descendants or other endpoints."
+  },
+  "claims": {
+    "scripted_integration_observed": true,
+    "fresh_model_learning_test_performed": false,
+    "model_training_exposure_known": false,
+    "universal_backend_refinement_proved": false,
+    "net_optimization_benefit_proved": false
+  },
+  "cost": {
+    "external_costs": {
+      "discovery_wall_ns": null,
+      "model_tokens": null,
+      "model_wall_ns": null
+    },
+    "external_costs_complete": false,
+    "full_search_cost_complete": false,
+    "net_optimization_benefit_proved": false,
+    "scope": "observed request prefix; unscoped calls cannot be uniquely attributed and adoption/future/model cost may be unknown"
+  },
+  "initial_failed_binding_attempt": "mcp-initial-r4-attempt.json",
+  "historical_r3_evidence": "mcp-evidence-index-r3.json",
+  "inventory_qualification": "ci-inventory-qualification.json",
+  "inventory_qualification_scope": "The separate 37-test inventory review applies to commit 2687; it is not relabeled as a later inventory commit.",
+  "native_runs": {
+    "baseline": {
+      "artifact_sha256": "c1a53a5700f018193a3d6c59bdb6c179c310c8c38b7c54a10a51ca0ad51bc68d",
+      "complete": true,
+      "completed_cases": 256,
+      "measured_calls": 256
+    },
+    "candidate": {
+      "artifact_sha256": "30e86346cc263e58da246d5f46a1f036cb570a9d98a01bf1221ac34f02078727",
+      "complete": true,
+      "completed_cases": 256,
+      "measured_calls": 256
+    }
+  }
+}

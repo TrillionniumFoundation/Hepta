@@ -1,0 +1,327 @@
+{
+  "schema": "hepta.hia.agent.mcp-lifecycle.v1",
+  "status": "passed",
+  "mode": "actual_hepta_runtime_stdio_mcp",
+  "checks": {
+    "resource_uri_read": {
+      "artifact": {
+        "id": "a-d69d5b8ab7ca4f8ea72c7dd5e4c7f03f",
+        "sha256": "a8e22a13a8d9850a0ea76589324c16e22ef12053f1ca312cc245ffa791a93482",
+        "uri": "hia://artifacts/2fa88742f87f401f9e9f3903ec8f6af8"
+      },
+      "bytes": 5209,
+      "pending_operations": [
+        {
+          "host": "hia-worker",
+          "job_id": "1a1b37d584c-1e4560-1",
+          "report_artifact": null,
+          "request_sha256": "4a73855a5b876af5823947f2601a5ede027f3e1b908d6133f70a1f975a081fc0"
+        }
+      ],
+      "digest_verified": true
+    },
+    "exact_key_replay_across_server_restart": {
+      "request": {
+        "tool": "hia_artifact",
+        "arguments": {
+          "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+          "request_key": "qualification/1/call",
+          "artifact_profile": {
+            "id": "hia-artifact-v1",
+            "sha256": "dba50b27bbe595b696519fbc04edf6b3633dd748caf2814871ef1d0091b4b468"
+          },
+          "source": {
+            "kind": "utf8",
+            "text": "{\"expected_invocations\":\"0\",\"external_costs\":{\"discovery_wall_ns\":null,\"model_tokens\":null,\"model_wall_ns\":null},\"external_costs_complete\":false,\"schema\":\"hepta.hia.agent.cost-policy.v1\"}"
+          }
+        },
+        "response": {
+          "contract_version": "hepta.hia.agent-native.v1",
+          "request_id": "r-3c5eafdbb0467b791c9709b38bdeffa5f5d40610598b1a2b10a44562f229dc38",
+          "result": {
+            "artifact": {
+              "id": "a-5856fa8db8694dcb964fb2854acd1a94",
+              "sha256": "8432bf9f24bc4ff5281ae068a76234ddd6a41425c013a3d4151471398275d4ca",
+              "uri": "hia://artifacts/9766518346704232a60e7f8f1d5f5a3f"
+            },
+            "byte_length": "187",
+            "content_admitted_as_program": false,
+            "execution_authority_granted": false
+          },
+          "status": "completed"
+        },
+        "elapsed_ns": "8558403939"
+      },
+      "response_equal_before_and_after": true
+    },
+    "changed_body_same_key_rejected": {
+      "arguments": {
+        "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+        "request_key": "qualification/1/call",
+        "artifact_profile": {
+          "id": "hia-artifact-v1",
+          "sha256": "dba50b27bbe595b696519fbc04edf6b3633dd748caf2814871ef1d0091b4b468"
+        },
+        "source": {
+          "kind": "utf8",
+          "text": "same key, deliberately different artifact body"
+        }
+      },
+      "result": {
+        "jsonrpc_error": {
+          "code": -32603,
+          "message": "HIA request unavailable: idempotency key `hia-agent-1e33eda4b8473a33c802bad66de610026c474996ff31778c5e32a99b6fc33003` is already bound to a different request. Preserve the tool, request key and all arguments; observe the original request after any uncertain effect.",
+          "data": {
+            "code": "HIA_OWNER_UNAVAILABLE",
+            "request_key": "qualification/1/call",
+            "retry_action": "observe_original",
+            "tool": "hia_artifact"
+          }
+        }
+      },
+      "original_response_preserved": true
+    },
+    "stale_catalog_rejected": {
+      "arguments": {
+        "catalog_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "artifact": {
+          "id": "a-d69d5b8ab7ca4f8ea72c7dd5e4c7f03f",
+          "sha256": "a8e22a13a8d9850a0ea76589324c16e22ef12053f1ca312cc245ffa791a93482",
+          "uri": "hia://artifacts/2fa88742f87f401f9e9f3903ec8f6af8"
+        },
+        "max_bytes": 65536
+      },
+      "response": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "HIA_CATALOG_CHANGED",
+          "details_artifact": null,
+          "message": "HIA catalog changed; discover the current contract before creating a request",
+          "phase": "runtime_admission",
+          "retry_action": "refresh_context"
+        },
+        "request_id": "hia_74c35b220ad512bb27717e07be27668dc177f71a6b07f546a3abebc3796cc1da",
+        "status": "rejected"
+      }
+    },
+    "cancelled_operation_remains_unknown_across_restart": {
+      "arguments": {
+        "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+        "request_key": "transport-cancellation/9/call",
+        "context": {
+          "id": "ctx-c100b0d6a7204aef87e59c31c6f883c4",
+          "sha256": "e4f6984b36e264fe3c3fe41e11a1effde84e34018f42cb0c2ae9a2a027801134"
+        },
+        "candidate": {
+          "id": "a-6dc6a96bcf9d4fd8acf7b796cab34ef1",
+          "sha256": "21e1ba7b067b840db12df94ef2eca4f8c2eeca102931c7628587b3b70a3e211f",
+          "uri": "hia://artifacts/a299c75847f24bf38d9a6f8659bf2ed8"
+        },
+        "base_program": {
+          "id": "a-02c2c74f5e5b4374ade2d7142da0b33c",
+          "sha256": "275276fa0a7454893796df56204af2750216d1982e302e848d76fca748b4ec7f",
+          "uri": "hia://artifacts/cbb9e68522af41cfa38722049da0f92a"
+        },
+        "validation_profile": {
+          "id": "hia-validation-v1",
+          "sha256": "16d7f85abb31d0f08b0ffde76b6309773897eb60f10b545923238dd61e327da4"
+        },
+        "subject": {
+          "kind": "core"
+        },
+        "claims": [
+          "core_admission",
+          "behavior_equivalence"
+        ]
+      },
+      "accepted": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "operation": {
+          "host": "hia-worker",
+          "job_id": "1a1b37dc109-1e480b-9",
+          "report_artifact": null,
+          "request_sha256": "0242079b7cbae447e269c0285fd88ba38b845be22e07d25e468c337184b5ecd8"
+        },
+        "request_id": "hia_0242079b7cbae447e269c0285fd88ba38b845be22e07d25e468c337184b5ecd8",
+        "status": "accepted"
+      },
+      "cancellation": {
+        "atomic_identity": true,
+        "audit_recorded": true,
+        "automatic_retry": false,
+        "job_id": "1a1b37dc109-1e480b-9",
+        "reconcile_via": "process_status",
+        "result": "stop_requested",
+        "supervisor_pid": 484175,
+        "termination_confirmed": false
+      },
+      "terminal": {
+        "at_unix_ms": 1794012726725,
+        "audit_recorded": true,
+        "automatic_retry": false,
+        "cancelled": true,
+        "exit_code": -15,
+        "job_id": "1a1b37dc109-1e480b-9",
+        "launch_nonce": "a25d64c7f09142604a07570df12b8c5b",
+        "log_bytes": {
+          "stderr": {
+            "seen": 0,
+            "stored": 0
+          },
+          "stdout": {
+            "seen": 0,
+            "stored": 0
+          }
+        },
+        "log_errors": {
+          "stderr": null,
+          "stdout": null
+        },
+        "log_synced": {
+          "stderr": true,
+          "stdout": true
+        },
+        "log_truncated": {
+          "stderr": false,
+          "stdout": false
+        },
+        "output_complete": true,
+        "output_durable": true,
+        "state": "cancelled",
+        "terminal_publication_confirmed": true,
+        "terminal_publication_protocol": 1,
+        "timed_out": false
+      },
+      "response": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "HIA_WORKER_TERMINATED",
+          "details_artifact": null,
+          "message": "Original worker terminated without a successful bound domain report. Its operation remains available through process_status/read; do not relaunch it.",
+          "phase": "runtime_observation",
+          "retry_action": "observe_original"
+        },
+        "operation": {
+          "host": "hia-worker",
+          "job_id": "1a1b37dc109-1e480b-9",
+          "report_artifact": null,
+          "request_sha256": "0242079b7cbae447e269c0285fd88ba38b845be22e07d25e468c337184b5ecd8"
+        },
+        "request_id": "hia_0242079b7cbae447e269c0285fd88ba38b845be22e07d25e468c337184b5ecd8",
+        "status": "unknown"
+      },
+      "process_read": {
+        "audit_recorded": true,
+        "job_id": "1a1b37dc109-1e480b-9",
+        "stderr": {
+          "bytes_hex": "",
+          "eof": true,
+          "next_offset": 0,
+          "offset": 0,
+          "size": 0,
+          "text": ""
+        },
+        "stdout": {
+          "bytes_hex": "",
+          "eof": true,
+          "next_offset": 0,
+          "offset": 0,
+          "size": 0,
+          "text": ""
+        }
+      },
+      "same_original_operation_after_restart": true
+    },
+    "wrong_worker_pin_fails_closed": {
+      "configured_worker_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "actual_worker_sha256": "15b1bde41801117626509595d2d7908f44340fe1a2bf88227f3626e42d29a937",
+      "response": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "HIA_WORKER_TERMINATED",
+          "details_artifact": null,
+          "message": "Original worker terminated without a successful bound domain report. Its operation remains available through process_status/read; do not relaunch it.",
+          "phase": "runtime_observation",
+          "retry_action": "observe_original"
+        },
+        "operation": {
+          "host": "hia-worker",
+          "job_id": "1a1b37dd284-1e50dc-1",
+          "report_artifact": null,
+          "request_sha256": "ba6b2b558496e406f105c6ff59db3b1fa52e20ca6730790743060cdec1248e2b"
+        },
+        "request_id": "hia_ba6b2b558496e406f105c6ff59db3b1fa52e20ca6730790743060cdec1248e2b",
+        "status": "unknown"
+      },
+      "terminal": {
+        "at_unix_ms": 1794012730746,
+        "audit_recorded": true,
+        "automatic_retry": false,
+        "cancelled": false,
+        "exit_code": 2,
+        "job_id": "1a1b37dd284-1e50dc-1",
+        "launch_nonce": "677068213d293f4e61e565d36484a497",
+        "log_bytes": {
+          "stderr": {
+            "seen": 50,
+            "stored": 50
+          },
+          "stdout": {
+            "seen": 0,
+            "stored": 0
+          }
+        },
+        "log_errors": {
+          "stderr": null,
+          "stdout": null
+        },
+        "log_synced": {
+          "stderr": true,
+          "stdout": true
+        },
+        "log_truncated": {
+          "stderr": false,
+          "stdout": false
+        },
+        "output_complete": true,
+        "output_durable": true,
+        "state": "failed",
+        "terminal_publication_confirmed": true,
+        "terminal_publication_protocol": 1,
+        "timed_out": false
+      },
+      "process_read": {
+        "audit_recorded": true,
+        "job_id": "1a1b37dd284-1e50dc-1",
+        "stderr": {
+          "bytes_hex": "61646d696e6973747261746f7220736f757263652070696e2064696666657273206265666f726520657865637574696f6e0a",
+          "eof": true,
+          "next_offset": 50,
+          "offset": 0,
+          "size": 50,
+          "text": "administrator source pin differs before execution\n"
+        },
+        "stdout": {
+          "bytes_hex": "",
+          "eof": true,
+          "next_offset": 0,
+          "offset": 0,
+          "size": 0,
+          "text": ""
+        }
+      },
+      "exact_replay_preserves_original_operation": true
+    }
+  },
+  "driver_sha256": "3eea5e88724a26e2d8a2198daa4483f2882b509de8e35c97a331949c478cca69",
+  "qualification_report_sha256": "b969a284a311fdde5d28287a123da10b3c145d73ac3fea3865b7389c5bc57f22",
+  "runtime_binary_sha256": "6dcadf26053b35b9edb1270576bbbdc5f1ec8f37f958e9e5ca9b9350d2d5e13f",
+  "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
+  "worker_sha256": "15b1bde41801117626509595d2d7908f44340fe1a2bf88227f3626e42d29a937",
+  "backend_sha256": "2da6aaaaec1129a0129f0fdb7c3f91a4158103e0bcd0cb0f85baa77760a18c28",
+  "claims": {
+    "fresh_model_learning_test_performed": false,
+    "universal_backend_refinement_proved": false,
+    "net_optimization_benefit_proved": false
+  }
+}
