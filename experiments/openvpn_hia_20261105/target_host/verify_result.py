@@ -191,6 +191,14 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
     require(submitted is not None and submitted["opcode"] in (6, 9),
             "submitted frame is not a complete OpenVPN data datagram: " + action)
     submitted_payload = submitted["payload"]
+    source_port_override = submission.get("source_port_override")
+    if source_port_override is None:
+        require(submitted["sport"] == original["sport"],
+                "non-reconnect injection changed the captured UDP source port: " + action)
+    else:
+        require(type(source_port_override) is int and 1 <= source_port_override <= 65535
+                and submitted["sport"] == source_port_override,
+                "submitted UDP source port differs from its explicit endpoint binding: " + action)
     submitted_sha = hashlib.sha256(submitted_payload).hexdigest()
     require(submitted_sha == submission.get("submitted_ciphertext_sha256")
             and injection.get("expected_ciphertext_sha256") == submitted_sha,
@@ -218,8 +226,9 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
             and witness.get("direction") == "incoming"
             and witness.get("exact_ciphertext_match") is True
             and witness.get("ciphertext_sha256") == submitted_sha
-            and witness.get("expected_ciphertext_sha256") == submitted_sha,
-            "peer ingress did not capture the exact submitted ciphertext: " + action)
+            and witness.get("expected_ciphertext_sha256") == submitted_sha
+            and arrived["sport"] == submitted["sport"],
+            "peer ingress did not capture the exact submitted ciphertext and UDP endpoint: " + action)
     require(all(encrypted_capture.checksum_observation(witness_frame_path.read_bytes()).get(key) is True
                 for key in ("ipv4_valid", "udp_present", "udp_valid")),
             "peer ingress outer checksums are invalid: " + action)
@@ -249,7 +258,47 @@ def verify_exact_ciphertext_ingress(case_dir, action, injection, capture, captur
             and command_rows[1].get("label") == action + "-witness",
             "encrypted injection command identity changed: " + action)
     return {"mode": mode, "submit_monotonic_ns": submit_ns, "arrival_monotonic_ns": arrival_ns,
-            "observation_finished_monotonic_ns": observation_ns}
+            "observation_finished_monotonic_ns": observation_ns,
+            "source_port": submitted["sport"], "arrival_source_port": arrived["sport"]}
+
+
+def verify_active_peer_endpoint(status_text, server_log, expected_ip="192.0.2.2",
+                                 common_name="OpenVPN-HIA-client"):
+    """Independently bind the current status peer to the latest authenticated server endpoint."""
+    require(isinstance(status_text, str) and isinstance(server_log, str),
+            "active peer status/log is not text")
+    header = None
+    rows = []
+    for line in status_text.splitlines():
+        fields = line.split("\t")
+        if len(fields) >= 3 and fields[0] == "HEADER" and fields[1] == "CLIENT_LIST":
+            header = fields[2:]
+        elif fields and fields[0] == "CLIENT_LIST":
+            require(header is not None and len(fields) - 1 == len(header),
+                    "OpenVPN CLIENT_LIST row has no matching status header")
+            row = dict(zip(header, fields[1:]))
+            if row.get("Common Name") == common_name:
+                rows.append(row)
+    require(len(rows) == 1, "server status does not identify exactly one authenticated client")
+    remote = rows[0].get("Real Address", "")
+    match = re.fullmatch(r"udp4:([0-9.]+):([0-9]+)", remote)
+    require(match is not None and match.group(1) == expected_ip,
+            "server status authenticated peer endpoint is not the isolated UDP client")
+    port = int(match.group(2))
+    peer_id_text = rows[0].get("Peer ID", "")
+    require(1 <= port <= 65535 and peer_id_text.isdecimal(),
+            "server status authenticated peer port/ID is invalid")
+    pattern = re.compile(
+        r"udp4:" + re.escape(expected_ip) + r":([0-9]+) \[" + re.escape(common_name) +
+        r"\] Peer Connection Initiated with \[AF_INET\]" + re.escape(expected_ip) + r":([0-9]+)")
+    matches = [(line, pattern.search(line)) for line in server_log.splitlines()]
+    matches = [(line, found) for line, found in matches if found]
+    require(bool(matches), "server log lacks an authenticated peer initialization endpoint")
+    peer_init_line, found = matches[-1]
+    require(int(found.group(1)) == port and int(found.group(2)) == port,
+            "server status endpoint differs from the latest authenticated peer")
+    return {"remote_address": remote, "source_ip": expected_ip, "source_port": port,
+            "peer_id": int(peer_id_text), "peer_init_line": peer_init_line}
 
 
 def inclusive_ranges(values):
@@ -449,6 +498,28 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
             case_dir, action, injection, capture, capture_path, original_payload, helper_sha)
         require(ingress["mode"] == expected_mode,
                 "encrypted injection mode differs from the fixed action: " + action)
+        if action == "after-reconnect-replay":
+            status_path = beneath(case_dir, "server.status")
+            server_process = case.get("observations", {}).get("server", {}).get("process", {})
+            server_log_path = beneath(target, server_process.get("stdout", ""))
+            current_endpoint = verify_active_peer_endpoint(status_path.read_text(), server_log_path.read_text())
+            require(injection.get("active_peer_endpoint") == current_endpoint,
+                    "reconnect replay endpoint receipt differs from the authenticated server peer")
+            require(ingress["source_port"] == current_endpoint["source_port"]
+                    and ingress["arrival_source_port"] == current_endpoint["source_port"],
+                    "reconnect replay did not arrive through the current authenticated UDP source port")
+            submit_argv = injection.get("injection_command", {}).get("argv", [])
+            witness_argv = injection.get("witness_command", {}).get("argv", [])
+            require("--source-port" in submit_argv
+                    and submit_argv[submit_argv.index("--source-port") + 1] == str(current_endpoint["source_port"])
+                    and "--sport" in witness_argv
+                    and witness_argv[witness_argv.index("--sport") + 1] == str(current_endpoint["source_port"]),
+                    "reconnect replay command did not bind injection and witness to the active UDP port")
+        else:
+            require(injection.get("active_peer_endpoint") is None
+                    and ingress["source_port"] == original["sport"]
+                    and ingress["arrival_source_port"] == original["sport"],
+                    "pre-reconnect injection changed its original UDP endpoint")
         submit_ns = ingress["submit_monotonic_ns"]
         observation_ns = ingress["observation_finished_monotonic_ns"]
         first_injection_ns = submit_ns if first_injection_ns is None else min(first_injection_ns, submit_ns)
