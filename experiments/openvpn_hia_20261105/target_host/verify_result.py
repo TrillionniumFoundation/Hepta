@@ -175,8 +175,148 @@ def verify_dco_device_drop_delta(before, after):
             "rx_bytes": delta["bytes"]}
 
 
-def verify_client_process_pause(receipt, process, submit_ns, observation_ns):
-    """Bind stale-peer replay to a stopped client process and a settled DCO window."""
+def _dco_quiet_signature(sample):
+    peer = sample.get("peer")
+    device = sample.get("device")
+    underlay = sample.get("underlay")
+    require(isinstance(peer, dict) and isinstance(device, list) and len(device) == 1
+            and isinstance(underlay, list) and len(underlay) == 1,
+            "DCO quiet sample lacks one peer document and one device/underlay")
+    peers = peer.get("peers")
+    require(isinstance(peers, list) and len(peers) == 1,
+            "DCO quiet sample requires exactly one kernel peer")
+    peer_row = peers[0]
+    require(device[0].get("ifname") == "tunbench-s"
+            and device[0].get("linkinfo", {}).get("info_kind") == "ovpn",
+            "DCO quiet sample is not bound to the kernel ovpn device")
+    require(underlay[0].get("ifname") == "ovpn-us",
+            "DCO quiet sample is not bound to the server underlay")
+    device_rx = device[0].get("stats64", device[0].get("stats", {})).get("rx", {})
+    underlay_rx = underlay[0].get("stats64", underlay[0].get("stats", {})).get("rx", {})
+    peer_keys = ("vpn_rx_bytes", "link_rx_bytes", "vpn_rx_packets", "link_rx_packets")
+    peer_values = tuple(peer_row.get(key) for key in peer_keys)
+    device_values = tuple(device_rx.get(key) for key in ("dropped", "packets", "bytes", "errors"))
+    underlay_values = tuple(underlay_rx.get(key) for key in ("packets", "bytes", "errors", "dropped"))
+    values = peer_values + device_values + underlay_values
+    require(all(isinstance(value, int) and not isinstance(value, bool) and value >= 0 for value in values),
+            "DCO quiet sample has missing or malformed native receive counters")
+    require(all(isinstance(peer.get(key), int) and not isinstance(peer.get(key), bool)
+                for key in ("ifindex", "netns_inode", "family_id"))
+            and isinstance(device[0].get("ifindex"), int)
+            and isinstance(underlay[0].get("ifindex"), int),
+            "DCO quiet sample interface scope is malformed")
+    return (
+        peer["ifindex"], peer["netns_inode"], peer["family_id"], peer_row.get("peer_id"), peer_values,
+        device[0]["ifindex"], device_values,
+        underlay[0]["ifindex"], underlay[0].get("link_type"), underlay_values,
+    )
+
+
+def verify_finished_quiet_command(command, command_ledger, expected_namespace, expected_tail):
+    require(isinstance(command, dict) and isinstance(command_ledger, list),
+            "DCO quiet command receipt is malformed")
+    label = command.get("label")
+    require(isinstance(label, str) and label, "DCO quiet command label is missing")
+    matches = [row for row in command_ledger
+               if row.get("event") == "finished" and row.get("label") == label]
+    require(len(matches) == 1
+            and {key: value for key, value in matches[0].items() if key != "event"} == command,
+            "DCO quiet command does not match its unique finished ledger row")
+    argv = command.get("argv")
+    require(isinstance(argv, list) and argv[:4] == ["ip", "netns", "exec", expected_namespace]
+            and argv[-len(expected_tail):] == expected_tail
+            and command.get("namespace") == expected_namespace
+            and command.get("exit_code") == 0 and not command.get("timed_out"),
+            "DCO quiet command identity/namespace/exit status is invalid")
+    return True
+
+
+def verify_dco_quiet_window(receipt, target=None, command_ledger=None, expected_namespace=None):
+    """Independently re-read three stable kernel peer/device/underlay samples."""
+    if isinstance(receipt, dict):
+        rows = receipt.get("samples")
+        require(isinstance(rows, list) and len(rows) == 3 and receipt.get("stable_samples") == 3,
+                "DCO quiet receipt does not contain exactly three stable samples")
+        if rows and "peer_path" in rows[0]:
+            require(target is not None and isinstance(command_ledger, list)
+                    and isinstance(expected_namespace, str) and expected_namespace,
+                    "DCO quiet raw-file verification lacks target/ledger/namespace")
+            raw = []
+            for row in rows:
+                peer_path = beneath(target, row.get("peer_path", ""))
+                device_path = beneath(target, row.get("device_path", ""))
+                underlay_path = beneath(target, row.get("underlay_path", ""))
+                require(digest(peer_path) == row.get("peer_sha256")
+                        and digest(device_path) == row.get("device_sha256")
+                        and digest(underlay_path) == row.get("underlay_sha256"),
+                        "DCO quiet sample raw-file digest changed")
+                verify_finished_quiet_command(
+                    row.get("peer_command", {}), command_ledger, expected_namespace,
+                    ["--interface", "tunbench-s", "--out", str(peer_path)])
+                verify_finished_quiet_command(
+                    row.get("device_command", {}), command_ledger, expected_namespace,
+                    ["ip", "-d", "-s", "-j", "link", "show", "dev", "tunbench-s"])
+                verify_finished_quiet_command(
+                    row.get("underlay_command", {}), command_ledger, expected_namespace,
+                    ["ip", "-s", "-j", "link", "show", "dev", "ovpn-us"])
+                require(row["device_command"].get("stdout") == row["device_path"]
+                        and row["device_command"].get("stdout_sha256") == row["device_sha256"]
+                        and row["underlay_command"].get("stdout") == row["underlay_path"]
+                        and row["underlay_command"].get("stdout_sha256") == row["underlay_sha256"],
+                        "DCO quiet link snapshots are not bound to command stdout")
+                raw.append({"monotonic_ns": row.get("monotonic_ns"),
+                            "peer": read(peer_path), "device": read(device_path),
+                            "underlay": read(underlay_path)})
+        else:
+            raw = rows
+        require(receipt.get("started_monotonic_ns") == raw[0].get("monotonic_ns")
+                and receipt.get("finished_monotonic_ns") == raw[-1].get("monotonic_ns"),
+                "DCO quiet receipt start/end timestamps differ from its samples")
+    else:
+        raw = receipt
+    require(isinstance(raw, list) and len(raw) >= 3,
+            "DCO quiet window needs at least three native samples")
+    times = [row.get("monotonic_ns") for row in raw]
+    require(all(isinstance(value, int) and not isinstance(value, bool) for value in times)
+            and all(left < right for left, right in zip(times, times[1:]))
+            and times[-1] - times[0] >= 180_000_000,
+            "DCO quiet window is not three ordered samples over at least 180 ms")
+    signatures = [_dco_quiet_signature(row) for row in raw]
+    require(all(signature == signatures[0] for signature in signatures[1:]),
+            "DCO peer/device/underlay receive counters changed during the quiet window")
+    return True
+
+
+def verify_dco_underlay_replay_delta(before, after, frame_bytes):
+    """Independently require one exact captured Ethernet frame on the server underlay."""
+    require(isinstance(frame_bytes, int) and not isinstance(frame_bytes, bool) and frame_bytes > 0,
+            "captured replay frame length is malformed")
+    require(isinstance(before, list) and len(before) == 1
+            and isinstance(after, list) and len(after) == 1,
+            "server underlay snapshots must contain exactly one interface")
+    old, new_row = before[0], after[0]
+    require(old.get("ifname") == "ovpn-us" and new_row.get("ifname") == "ovpn-us"
+            and old.get("ifindex") == new_row.get("ifindex")
+            and old.get("link_type") == new_row.get("link_type"),
+            "server underlay identity changed during stale replay")
+    old_rx = old.get("stats64", old.get("stats", {})).get("rx", {})
+    new_rx = new_row.get("stats64", new_row.get("stats", {})).get("rx", {})
+    keys = ("packets", "bytes", "errors", "dropped")
+    require(all(isinstance(old_rx.get(key), int) and not isinstance(old_rx.get(key), bool)
+                and isinstance(new_rx.get(key), int) and not isinstance(new_rx.get(key), bool)
+                for key in keys),
+            "server underlay RX counters are missing or malformed")
+    delta = {key: new_rx[key] - old_rx[key] for key in keys}
+    expected = {"packets": 1, "bytes": frame_bytes, "errors": 0, "dropped": 0}
+    require(delta == expected,
+            "server underlay receive window was not exactly one captured replay frame")
+    return {"rx_packets": delta["packets"], "rx_bytes": delta["bytes"],
+            "rx_errors": delta["errors"], "rx_dropped": delta["dropped"]}
+
+
+def verify_client_process_pause(receipt, process, submit_ns, observation_ns,
+                                target=None, command_ledger=None, expected_namespace=None):
+    """Bind stale-peer replay to a stopped client process and a stable native receive window."""
     require(isinstance(receipt, dict) and isinstance(process, dict),
             "stale-peer replay lacks a client-process pause receipt")
     pid = receipt.get("pid")
@@ -189,9 +329,13 @@ def verify_client_process_pause(receipt, process, submit_ns, observation_ns):
             and receipt.get("resume_signal") == signal.SIGCONT
             and all(type(value) is int for value in (stop_ns, settle_ns, resume_ns)),
             "stale-peer replay client pause signals/timestamps are malformed")
-    require(stop_ns < settle_ns < submit_ns < observation_ns < resume_ns
-            and settle_ns - stop_ns >= 90_000_000,
-            "stale-peer replay was not measured after a settled client pause")
+    quiet = receipt.get("quiet_window")
+    verify_dco_quiet_window(quiet, target, command_ledger, expected_namespace)
+    quiet_start = quiet.get("started_monotonic_ns")
+    quiet_end = quiet.get("finished_monotonic_ns")
+    require(stop_ns < quiet_start < quiet_end == settle_ns < submit_ns < observation_ns < resume_ns
+            and quiet_end - quiet_start >= 180_000_000,
+            "stale-peer replay was not measured after a stable, settled client pause")
     signals = process.get("signals")
     require(isinstance(signals, list), "client OpenVPN signal ledger is missing")
     stop_matches = [row for row in signals if isinstance(row, dict)
@@ -642,7 +786,32 @@ def verify_behavior_replay_evidence(target, case_path, case, plan, server_arm):
                         "post-reconnect replay was not identified as a prior-session peer ID: " + action)
                 client_process=case.get("observations",{}).get("client",{}).get("process",{})
                 verify_client_process_pause(dco.get("client_process_pause"),client_process,
-                                            submit_ns,observation_ns)
+                                            submit_ns,observation_ns,target,command_ledger,
+                                            case.get("namespaces",{}).get("server"))
+                underlay_before_path=beneath(target,dco.get("underlay_before_path",""))
+                underlay_after_path=beneath(target,dco.get("underlay_after_path",""))
+                require(digest(underlay_before_path)==dco.get("underlay_before_sha256")
+                        and digest(underlay_after_path)==dco.get("underlay_after_sha256"),
+                        "server underlay snapshot digest changed: "+action)
+                underlay_before=read(underlay_before_path);underlay_after=read(underlay_after_path)
+                frame_bytes=injection.get("peer_exact_witness",{}).get("datagram",{}).get("frame_bytes")
+                computed_underlay=verify_dco_underlay_replay_delta(
+                    underlay_before,underlay_after,frame_bytes)
+                require(dco.get("underlay_delta")==computed_underlay,
+                        "server underlay receive delta differs from the exact replay frame: "+action)
+                verify_finished_quiet_command(
+                    dco.get("underlay_before_command",{}),command_ledger,
+                    case.get("namespaces",{}).get("server"),
+                    ["ip","-s","-j","link","show","dev","ovpn-us"])
+                verify_finished_quiet_command(
+                    dco.get("underlay_after_command",{}),command_ledger,
+                    case.get("namespaces",{}).get("server"),
+                    ["ip","-s","-j","link","show","dev","ovpn-us"])
+                require(dco.get("underlay_before_command",{}).get("stdout")==dco.get("underlay_before_path")
+                        and dco.get("underlay_before_command",{}).get("stdout_sha256")==dco.get("underlay_before_sha256")
+                        and dco.get("underlay_after_command",{}).get("stdout")==dco.get("underlay_after_path")
+                        and dco.get("underlay_after_command",{}).get("stdout_sha256")==dco.get("underlay_after_sha256"),
+                        "server underlay snapshots are not bound to their command stdout")
                 fresh_before=read(beneath(case_dir,"after-reconnect-valid-before-server-peer.json"))
                 fresh_after=read(beneath(case_dir,"after-reconnect-valid-after-server-peer.json"))
                 require(all(fresh.get(key)==before.get(key)==fresh_after.get(key)

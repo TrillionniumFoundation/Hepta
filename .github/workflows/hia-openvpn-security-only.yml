@@ -2,7 +2,7 @@ name: OpenVPN HIA real TUN/DCO security-only evidence
 
 on:
   push:
-    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6, fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6, fix/openvpn-hia-stale-replay-quiescence-20261107-gpt6]
+    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6, fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6, fix/openvpn-hia-stale-replay-quiescence-20261107-gpt6, fix/openvpn-hia-stale-replay-quiet-drain-20261107-gpt6]
     paths:
       - .github/workflows/hia-openvpn-security-only.yml
       - experiments/openvpn_hia_20261105/target_host/*.py
@@ -31,7 +31,7 @@ jobs:
   security-only:
     env:
       TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-    if: (github.event_name == 'push' && (github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-stale-replay-quiescence-20261107-gpt6')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6' && github.event.pull_request.base.ref == 'fix/openvpn-hia-security-verifier-diagnostic-20261107-gpt6')
+    if: (github.event_name == 'push' && (github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-stale-replay-quiescence-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-stale-replay-quiet-drain-20261107-gpt6')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6' && github.event.pull_request.base.ref == 'fix/openvpn-hia-security-verifier-diagnostic-20261107-gpt6')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:

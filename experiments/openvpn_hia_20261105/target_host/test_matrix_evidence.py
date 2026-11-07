@@ -338,7 +338,7 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         return [{
             "ifname": "tunbench-s", "ifindex": ifindex,
             "linkinfo": {"info_kind": kind},
-            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count}},
+            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count, "errors": 0}},
         }]
 
     def device_drop_receipt(self):
@@ -467,23 +467,37 @@ class DcoReplayEvidenceTests(unittest.TestCase):
 
     def test_stale_peer_replay_requires_stopped_client_openvpn_process(self):
         stop_ns=100
-        settle_ns=100_000_100
-        submit_ns=110_000_000
-        observation_ns=120_000_000
-        resume_ns=130_000_000
+        quiet_times=[100_000_100,200_000_100,300_000_100]
+        settle_ns=quiet_times[-1]
+        submit_ns=310_000_000
+        observation_ns=320_000_000
+        resume_ns=330_000_000
+        peer={"ifindex":7,"netns_inode":200,"family_id":32,"peers":[{
+            "peer_id":1,"vpn_rx_bytes":100,"vpn_tx_bytes":100,"vpn_rx_packets":10,"vpn_tx_packets":10,
+            "link_rx_bytes":100,"link_tx_bytes":100,"link_rx_packets":10,"link_tx_packets":10,
+        }]}
+        device=[{"ifname":"tunbench-s","ifindex":7,"linkinfo":{"info_kind":"ovpn"},
+                 "stats64":{"rx":{"dropped":4,"packets":20,"bytes":2000,"errors":0}}}]
+        underlay=[{"ifname":"ovpn-us","ifindex":2,"link_type":"ether",
+                   "stats64":{"rx":{"packets":10,"bytes":1000,"errors":0,"dropped":0}}}]
+        quiet_samples=[{"monotonic_ns":stamp,"peer":copy.deepcopy(peer),
+                        "device":copy.deepcopy(device),"underlay":copy.deepcopy(underlay)}
+                       for stamp in quiet_times]
+        quiet_window={"stable_samples":3,"started_monotonic_ns":quiet_times[0],
+                      "finished_monotonic_ns":quiet_times[-1],"samples":quiet_samples}
         process={"pid":123,"signals":[
             {"signal":signal.SIGSTOP,"monotonic_ns":stop_ns},
             {"signal":signal.SIGCONT,"monotonic_ns":resume_ns},
         ]}
         receipt={"pid":123,"stop_signal":signal.SIGSTOP,"stop_monotonic_ns":stop_ns,
-                 "settle_finished_monotonic_ns":settle_ns,"resume_signal":signal.SIGCONT,
-                 "resume_monotonic_ns":resume_ns}
+                 "settle_finished_monotonic_ns":settle_ns,"quiet_window":quiet_window,
+                 "resume_signal":signal.SIGCONT,"resume_monotonic_ns":resume_ns}
         self.assertTrue(verifier.verify_client_process_pause(
             receipt,process,submit_ns,observation_ns))
         invalid=[]
         wrong_pid=copy.deepcopy(receipt);wrong_pid["pid"]=124;invalid.append((wrong_pid,process))
         short_settle=copy.deepcopy(receipt);short_settle["settle_finished_monotonic_ns"]=50_000_000;invalid.append((short_settle,process))
-        early_resume=copy.deepcopy(receipt);early_resume["resume_monotonic_ns"]=115_000_000;invalid.append((early_resume,process))
+        early_resume=copy.deepcopy(receipt);early_resume["resume_monotonic_ns"]=315_000_000;invalid.append((early_resume,process))
         missing_stop=copy.deepcopy(process);missing_stop["signals"]=missing_stop["signals"][1:];invalid.append((receipt,missing_stop))
         missing_resume=copy.deepcopy(process);missing_resume["signals"]=missing_resume["signals"][:1];invalid.append((receipt,missing_resume))
         for bad_receipt,bad_process in invalid:
@@ -810,3 +824,112 @@ class ContinuityLossEvidenceTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main(verbosity=2)
+
+
+class DcoReceiveIsolationTests(unittest.TestCase):
+    def peer(self):
+        return {
+            "ifindex": 7, "netns_inode": 200, "family_id": 32,
+            "peers": [{
+                "peer_id": 1,
+                "vpn_rx_bytes": 100, "vpn_tx_bytes": 100,
+                "vpn_rx_packets": 10, "vpn_tx_packets": 10,
+                "link_rx_bytes": 100, "link_tx_bytes": 100,
+                "link_rx_packets": 10, "link_tx_packets": 10,
+            }],
+        }
+
+    def device(self, dropped=4, packets=20, byte_count=2000):
+        return [{
+            "ifname": "tunbench-s", "ifindex": 7,
+            "linkinfo": {"info_kind": "ovpn"},
+            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count, "errors": 0}},
+        }]
+
+    def underlay(self, packets=10, byte_count=1000, ifindex=2):
+        return [{
+            "ifname": "ovpn-us", "ifindex": ifindex, "link_type": "ether",
+            "stats64": {"rx": {"packets": packets, "bytes": byte_count, "errors": 0, "dropped": 0}},
+        }]
+
+    def sample(self, monotonic_ns, peer=None, device=None, underlay=None):
+        return {
+            "monotonic_ns": monotonic_ns,
+            "peer": copy.deepcopy(peer if peer is not None else self.peer()),
+            "device": copy.deepcopy(device if device is not None else self.device()),
+            "underlay": copy.deepcopy(underlay if underlay is not None else self.underlay()),
+        }
+
+    def test_stale_replay_quiet_window_requires_three_stable_native_snapshots(self):
+        samples = [
+            self.sample(1_000_000_000),
+            self.sample(1_100_000_000),
+            self.sample(1_200_000_000),
+        ]
+        self.assertTrue(matrix.verify_dco_quiet_window(samples))
+        self.assertTrue(verifier.verify_dco_quiet_window(samples))
+
+    def test_stale_replay_quiet_window_rejects_peer_device_or_underlay_drift(self):
+        base = [
+            self.sample(1_000_000_000),
+            self.sample(1_100_000_000),
+            self.sample(1_200_000_000),
+        ]
+        mutations = []
+        peer_drift = copy.deepcopy(base)
+        peer_drift[1]["peer"]["peers"][0]["link_rx_packets"] += 1
+        mutations.append(peer_drift)
+        device_drift = copy.deepcopy(base)
+        device_drift[1]["device"][0]["stats64"]["rx"]["dropped"] += 1
+        mutations.append(device_drift)
+        underlay_drift = copy.deepcopy(base)
+        underlay_drift[1]["underlay"][0]["stats64"]["rx"]["packets"] += 1
+        mutations.append(underlay_drift)
+        short_window = copy.deepcopy(base)
+        short_window[-1]["monotonic_ns"] = short_window[0]["monotonic_ns"] + 100_000_000
+        mutations.append(short_window)
+        for samples in mutations:
+            for function in (matrix.verify_dco_quiet_window, verifier.verify_dco_quiet_window):
+                with self.subTest(function=function.__module__, samples=samples):
+                    with self.assertRaises(ValueError):
+                        function(samples)
+
+    def test_stale_replay_underlay_delta_requires_exactly_one_captured_frame(self):
+        before = self.underlay()
+        after = self.underlay(packets=11, byte_count=1350)
+        expected = {"rx_packets": 1, "rx_bytes": 350, "rx_errors": 0, "rx_dropped": 0}
+        self.assertEqual(matrix.dco_underlay_replay_delta(before, after, 350), expected)
+        self.assertEqual(verifier.verify_dco_underlay_replay_delta(before, after, 350), expected)
+        invalid = [
+            self.underlay(packets=12, byte_count=1422),
+            self.underlay(packets=11, byte_count=1422),
+            self.underlay(packets=11, byte_count=1350, ifindex=3),
+            [{"ifname": "eth0", "ifindex": 2, "link_type": "ether",
+              "stats64": {"rx": {"packets": 11, "bytes": 1350, "errors": 0, "dropped": 0}}}],
+        ]
+        for candidate in invalid:
+            for function in (matrix.dco_underlay_replay_delta, verifier.verify_dco_underlay_replay_delta):
+                with self.subTest(function=function.__module__, candidate=candidate):
+                    with self.assertRaises(ValueError):
+                        function(before, candidate, 350)
+
+    def test_job_stop_resumes_a_sigstop_paused_child_before_termination(self):
+        with tempfile.TemporaryDirectory() as directory:
+            out = Path(directory)
+            private = out / "private"
+            private.mkdir()
+            ledger = matrix.Ledger(out, private, 10)
+            try:
+                child = matrix.Job(
+                    ledger, "paused-child",
+                    [sys.executable, "-u", "-c", "import time; time.sleep(30)"],
+                    out / "commands",
+                )
+                child.signal(signal.SIGSTOP)
+                row = child.stop()
+                signals = [item["signal"] for item in row["signals"]]
+                self.assertIn(signal.SIGCONT, signals)
+                self.assertIn(signal.SIGTERM, signals)
+                self.assertLess(signals.index(signal.SIGCONT), signals.index(signal.SIGTERM))
+            finally:
+                ledger.close()
