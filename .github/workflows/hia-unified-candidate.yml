@@ -11,6 +11,9 @@ on:
       - 'tools/core_seven_shared_acceptance_plan.py'
       - 'docs/seven-shared-composition.md'
       - 'tests/test_hia_candidate_preflight.py'
+      - 'tests/test_hia_release.py'
+      - 'tests/test_hia_first_use.py'
+      - 'tests/test_hia_agent_provider.py'
       - 'tests/hia_candidate_preflight_integration.py'
       - 'tests/test_hia_agent_macro_policy.py'
       - 'tests/test_hia_macro_campaign.py'
@@ -21,7 +24,14 @@ on:
       - 'tests/test_hia_native_byte_abi.py'
       - 'tests/test_hia_bootstrap_components.py'
       - 'tests/test_hia_selfhost.py'
+      - 'tests/test_hia_selfhost_contract.py'
+      - 'tests/test_hia_selfhost_machine_plans.py'
       - 'tools/hia_candidate_preflight.py'
+      - 'tools/hia_release.py'
+      - 'tools/qualify_hia_first_use.py'
+      - 'tools/qualify_hia_agent_provider.py'
+      - 'experiments/hia_agent_first_use_20261107/**'
+      - 'tools/hia_agent_native_qualification.py'
       - 'tools/qualify_hia_candidate.py'
       - 'tools/qualify_hia_macro_campaign.py'
       - 'tools/hia_macro_codex_provider.py'
@@ -32,13 +42,24 @@ on:
       - 'tools/qualify_hia_machine_registers.py'
       - 'tools/qualify_hia_bootstrap_components.py'
       - 'tools/qualify_hia_selfhost.py'
+      - 'tools/qualify_hia_selfhost_machine_plans.py'
+      - 'tools/prepare_hia_first_use_example.py'
       - 'tools/hia_selfhost_child.py'
       - 'tools/generate_hia_selfhost.py'
+      - 'tools/hia_selfhost_cases.py'
+      - 'tools/hia_selfhost_resources.py'
+      - 'tools/hia_selfhost_contract.py'
+      - 'tools/generate_hia_selfhost_contract.py'
+      - 'tools/replay_hia_selfhost_cold.py'
       - 'examples/hia_bootstrap/**'
       - 'docs/HIA_AGENT_MACHINE_PLANS.md'
       - 'docs/HIA_AGENT_MACRO_POLICY.md'
       - 'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md'
       - 'docs/HIA_SELF_HOSTING_CORE.md'
+      - 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+      - 'docs/HIA_RELEASE_ENTRY.md'
+      - 'docs/HIA_AGENT_NATIVE_QUALIFICATION.md'
+      - 'releases/hia-current.json'
       - '.github/workflows/hia-unified-candidate.yml'
   workflow_dispatch:
 
@@ -56,6 +77,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.HEPTA_SOURCE_SHA }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
@@ -70,6 +92,17 @@ jobs:
           command -v ld
           command -v objdump
           mkdir "$RUNNER_TEMP/hia-unified"
+      - name: Resolve the reviewed runtime source from the release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/hia_release.py describe > "$RUNNER_TEMP/hia-unified/release-contract.json"
+          python - "$RUNNER_TEMP/hia-unified/release-contract.json" >> "$GITHUB_ENV" <<'PY'
+          import json, sys
+          with open(sys.argv[1]) as stream:
+              contract = json.load(stream)["contract"]
+          print("HIA_RUNTIME_SOURCE_SHA=" + contract["sources"]["runtime"]["commit"])
+          PY
       - name: Run full retained direct inventory and new candidate tests without skips
         shell: bash
         run: |
@@ -89,6 +122,19 @@ jobs:
         run: |
           set -eu
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-unified/selfhost.json"
+      - name: Check explicit machine plans on the selected real compiler workload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/qualify_hia_selfhost_machine_plans.py run \
+            --output "$RUNNER_TEMP/hia-unified/selfhost-machine-plans" --repetitions 7
+          python -B tools/qualify_hia_selfhost_machine_plans.py verify \
+            --output "$RUNNER_TEMP/hia-unified/selfhost-machine-plans"
+      - name: Rebuild the pinned Selfhost-Core with fresh source and Python state
+        run: |
+          set -eu
+          python -B tools/generate_hia_selfhost_contract.py --check
+          python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-unified/selfhost-cold.json"
       - name: Build exact original native NDU for the four-arm macro fixture
         shell: bash
         run: |
@@ -124,22 +170,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/hepta-runtime
-          ref: 9f60a30530f47925f4f6ae495660a1d68bb6947d
+          ref: ${{ env.HIA_RUNTIME_SOURCE_SHA }}
           path: .hia-runtime-integration
-          sparse-checkout: |
-            deploy
-            src/mcp
-            config
-            .agents
           persist-credentials: false
       - name: Verify integration with exact existing runtime contracts
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C .hia-runtime-integration rev-parse HEAD)" = 9f60a30530f47925f4f6ae495660a1d68bb6947d
+          test "$(git -C .hia-runtime-integration rev-parse HEAD)" = "$HIA_RUNTIME_SOURCE_SHA"
           python -B tests/hia_candidate_preflight_integration.py \
-            --runtime-checkout "$GITHUB_WORKSPACE/.hia-runtime-integration" -v \
+            --runtime-checkout "$GITHUB_WORKSPACE/.hia-runtime-integration" \
+            --runtime-revision "$HIA_RUNTIME_SOURCE_SHA" -v \
             2>&1 | tee "$RUNNER_TEMP/hia-unified/runtime-preflight.log"
+      - name: Reproduce the release contract in fresh source checkouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/hia_release.py materialize \
+            --hepta-repository "$GITHUB_WORKSPACE" \
+            --runtime-repository "$GITHUB_WORKSPACE/.hia-runtime-integration" \
+            --directory "$RUNNER_TEMP/hia-unified-cold" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/release-materialize.log"
+          python -B tools/hia_release.py check \
+            --hepta-root "$RUNNER_TEMP/hia-unified-cold/hepta" \
+            --runtime-checkout "$RUNNER_TEMP/hia-unified-cold/runtime" \
+            2>&1 | tee "$RUNNER_TEMP/hia-unified/release-check.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

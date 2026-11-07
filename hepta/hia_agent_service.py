@@ -129,7 +129,8 @@ class HIAAgentService:
                                ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
                                ("macro_policy_guide", "HIA_AGENT_MACRO_POLICY.md"),
                                ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
-                               ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md")):
+                               ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
+                               ("self_hosting_core_support", "HIA_SELFHOST_CORE_SUPPORT.json")):
             self.resources[name] = self.store.put((ROOT / "docs" / filename).read_bytes(), "discovery")
         from .hia_agent_macro_discovery import macro_policy_guidance
         self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
@@ -320,7 +321,8 @@ class HIAAgentService:
             "manifest": [self.manifest],
             "language": [self.resources["schema_registry"], self.resources["assembly_grammar"], self.resources["core_language"], language_ref],
             "backend": [self.profile_artifacts["backend"], self.profile_artifacts["lowering"], self.profile_artifacts["target"],
-                        self.resources["byte_bootstrap_guide"]],
+                        self.resources["byte_bootstrap_guide"], self.resources["self_hosting_core_guide"],
+                        self.resources["self_hosting_core_support"]],
             "examples": [self.resources["examples"]], "diagnostics": [self.resources["diagnostics"]],
             "plans": [self.profile_artifacts["plan"], self.resources["plan_schema"],
                       self.resources["machine_plan_guide"], self.resources["macro_policy"],

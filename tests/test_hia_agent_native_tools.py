@@ -82,6 +82,11 @@ class ArtifactContractTests(AgentToolCase):
             self.assertEqual(result["catalog_sha256"], session.catalog_sha256)
             for artifact in result["resources"]:
                 self.assertTrue(session.read(artifact))
+        support = json.loads(session.read(self.service.resources["self_hosting_core_support"]))
+        self.assertEqual(support["schema"], "hepta.hia.selfhost-core-support.v1")
+        self.assertEqual(support["profile"], "selfhost-core-linux-x86_64-v4")
+        backend = self.client.result("hia_describe", {"section": "backend"})
+        self.assertIn(self.service.resources["self_hosting_core_support"], backend["resources"])
 
     def test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor(self):
         content = "x" * 511 + "雪🧪" * 1200 + "end"

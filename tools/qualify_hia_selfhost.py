@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import platform
 import shutil
+import struct
 import subprocess
 import sys
 import time
@@ -19,6 +20,9 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
+from tools.hia_selfhost_contract import CONTRACT_PATH, file_digests, validate_contract
+from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_source,
+                                     call_graph_invalid_sources, recursion_refusals)
 SOURCE = ROOT / "examples/hia_bootstrap/selfhost.hiaasm"
 SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
@@ -31,14 +35,28 @@ def digest(data):
 
 
 def source_manifest():
-    paths = ["tools/generate_hia_selfhost.py", "tools/qualify_hia_selfhost.py",
-             "tools/hia_selfhost_child.py", "examples/hia_bootstrap/selfhost.hiaasm",
-             "examples/hia_bootstrap/bytesum.hiaasm", "docs/HIA_SELF_HOSTING_CORE.md",
-             "tests/test_hia_selfhost.py", "hepta/hia_program_native.py",
-             "hepta/hia_native_byte_abi.py", "hepta/hia_program.py",
-             "hepta/hia_agent_assembly.py", "hepta/hia_machine_x64.py",
-             "hepta/hia_machine_elf.py", "hepta/hia_machine_plan.py"]
-    return {name: digest((ROOT / name).read_bytes()) for name in paths}
+    return {**file_digests(), CONTRACT_PATH: digest((ROOT / CONTRACT_PATH).read_bytes())}
+
+
+def checkout_identity():
+    """Do not attribute a source-only cold export to an ancestor git checkout."""
+    try:
+        root = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--show-toplevel"],
+                              capture_output=True, text=True, timeout=5)
+        if root.returncode or Path(root.stdout.strip()).resolve() != ROOT:
+            return {"kind": "source_export", "identity_authority": "source_manifest"}
+        values = {}
+        for label, args in (("commit", ["rev-parse", "HEAD"]),
+                            ("tree", ["rev-parse", "HEAD^{tree}"]),
+                            ("status", ["status", "--porcelain", "--untracked-files=all"])):
+            result = subprocess.run(["git", "-C", str(ROOT), *args],
+                                    capture_output=True, text=True, timeout=5, check=True)
+            values[label] = result.stdout.strip()
+        return {"kind": "git_checkout", "commit": values["commit"],
+                "tree": values["tree"], "worktree_clean": not values["status"],
+                "identity_authority": "source_manifest; git metadata is supplemental"}
+    except (OSError, subprocess.SubprocessError):
+        return {"kind": "source_export", "identity_authority": "source_manifest"}
 
 
 def build_seed(directory, source=None):
@@ -52,12 +70,35 @@ def build_seed(directory, source=None):
     receipt = compile_program_machine(machine, program=checked, output=output, linker="ld")
     receipt["source_sha256"] = digest(source)
     receipt["seed_only"] = True
+    document = checked.as_dict()
+    receipt["source_structure"] = {
+        "functions": len(document["functions"]),
+        "instructions": sum(len(block["ops"]) for fn in document["functions"] for block in fn["blocks"]),
+        "blocks": sum(len(fn["blocks"]) for fn in document["functions"]),
+        "backward_direct_calls": [
+            {"caller": fn["name"], "callee": op["attrs"]["function"]}
+            for fn in document["functions"] for block in fn["blocks"] for op in block["ops"]
+            if op["op"] == "call" and int(op["attrs"]["function"][1:]) < int(fn["name"][1:])],
+    }
+    receipt["support_contract_sha256"] = digest((ROOT / CONTRACT_PATH).read_bytes())
+    receipt["python"] = {"path": str(Path(sys.executable).resolve()),
+                         "sha256": digest(Path(sys.executable).read_bytes()),
+                         "version": sys.version, "isolated": bool(sys.flags.isolated),
+                         "no_site": bool(sys.flags.no_site)}
+    module_files = {}
+    for name, module in tuple(sys.modules.items()):
+        if name == "hepta" or name.startswith("hepta."):
+            path = Path(module.__file__).resolve()
+            relative = path.relative_to(ROOT).as_posix()
+            module_files[relative] = digest(path.read_bytes())
+    receipt["loaded_seed_modules"] = module_files
     (Path(directory) / "B0.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
     return output, receipt
 
 
 def invoke(directory, label, image, source, *, image_format="flat-x86-64",
-           capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0):
+           capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
+           output_initial=None, observe_trap_writes=False):
     """Copy private inputs and run one pinned artifact under fixed limits."""
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
@@ -69,14 +110,24 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
                "source_sha256": digest(source), "capacity": capacity,
                "workspace_size": workspace_size, "workspace_fill": workspace_fill,
                "output": str(output_path.resolve())}
+    if output_initial is not None:
+        if not isinstance(output_initial, bytes) or len(output_initial) != capacity:
+            raise ValueError("output preimage must match the capacity")
+        request["output_initial_hex"] = output_initial.hex()
+    if observe_trap_writes:
+        request["observe_trap_writes"] = True
     request_path.write_text(json.dumps(request, sort_keys=True) + "\n")
     started = time.monotonic_ns()
     try:
         process = subprocess.run([sys.executable, "-I", "-B", str(CHILD), str(request_path.resolve())],
                                  cwd=directory, capture_output=True, text=True, timeout=20)
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        (directory / (label + ".stdout.log")).write_bytes(exc.stdout or b"")
+        (directory / (label + ".stderr.log")).write_bytes(exc.stderr or b"")
         result = {"status": "timeout", "wall_limit_seconds": 20}
     else:
+        (directory / (label + ".stdout.log")).write_text(process.stdout)
+        (directory / (label + ".stderr.log")).write_text(process.stderr)
         if process.returncode:
             result = {"status": "child_failed", "returncode": process.returncode,
                       "stderr": process.stderr[-4096:]}
@@ -87,12 +138,21 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
                    "runner_sha256": child_hash, "wall_elapsed_ns": time.monotonic_ns() - started})
     if digest(CHILD.read_bytes()) != child_hash or digest(image.read_bytes()) != request["image_sha256"]:
         raise AssertionError("runner or artifact changed during invocation")
-    output = output_path.read_bytes() if output_path.exists() else b""
+    output_exists = output_path.exists()
+    output = output_path.read_bytes()[:capacity] if output_exists else b""
+    if observe_trap_writes:
+        initial = output_initial if output_initial is not None else bytes([0xa5]) * capacity
+        result["shared_output_observation"] = {
+            "available": output_exists and len(output) == capacity,
+            "initial_sha256": digest(initial), "observed_sha256": digest(output),
+            "observed_bytes": len(output), "unchanged": output == initial,
+        }
     (directory / (label + ".receipt.json")).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     return result, output
 
 
-def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0):
+def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0,
+                  output_extension=".image.bin"):
     result, output = invoke(directory, label, image, source, image_format=image_format,
                             workspace_fill=workspace_fill)
     if result.get("status") != "returned" or result.get("abi_status") != 0 or result["core_u32"] > len(output):
@@ -101,7 +161,7 @@ def compile_stage(directory, label, image, source, *, image_format="flat-x86-64"
     size = result["core_u32"]
     assert 0 < size <= CAPACITY
     produced = output[:size]
-    path = Path(directory) / (label + ".image.bin")
+    path = Path(directory) / (label + output_extension)
     path.write_bytes(produced)
     result.update({"produced_image": str(path), "produced_bytes": size,
                    "produced_sha256": digest(produced)})
@@ -116,7 +176,9 @@ def mutate_compiler(source):
     alignment. M1 still has its predecessor's 64-byte outer wrapper; M2 acquires
     the changed wrapper and M3 must reproduce M2 exactly.
     """
-    start = source.index(b"\nfn f3(")
+    contract = json.loads((ROOT / CONTRACT_PATH).read_text())
+    wrapper = contract["compiler_symbols"]["mutation_wrapper"].encode("ascii")
+    start = source.index(b"\nfn " + wrapper + b"(")
     end = source.index(b"\nend\n", start)
     section = source[start:end]
     old, new = b'{"value":64}', b'{"value":80}'
@@ -159,7 +221,7 @@ def invalid_sources(sample):
         "absent-block": sample.replace(b"jump b1(", b"jump b99(", 1),
         "edge-type": sample.replace(b"b1(v0,v1,v2,v3,v4,v5)", b"b1(v0,v1,v2,v3,v3,v5)", 1),
         "call-type": sample.replace(b"call(v17,v19)", b"call(v19,v17)", 1),
-        "backward-call": sample.replace(b'{"function":"f1"}', b'{"function":"f0"}', 1),
+        "recursive-call-signature": sample.replace(b'{"function":"f1"}', b'{"function":"f0"}', 1),
         "mutable-alias": sample.replace(b"b1(v0,v1,v2,v3,v4,v5)", b"b1(v0,v1,v1,v3,v4,v5)", 1),
         "readonly-jump-alias": header + b"  jump b1(v0,v0)\nblock b1(v3:readbuf,v4:readbuf)\n"
             b'  v5:u32 = const() {"value":0}\n  ret(v5)\nend\n',
@@ -202,15 +264,168 @@ def invalid_sources(sample):
     return invalid
 
 
+def independent_call_reference(sample):
+    """Record the general Core's distinct acceptance and scalar-execution view.
+
+    Called before B0. Typed recursion is legal in general Core but deliberately
+    refused by this finite native profile; never label that as Core invalidity.
+    """
+    from hepta.hia_agent_assembly import assemble_program
+    from hepta.hia_program import HIAProgramRejected, execute_program
+    backward = assemble_program(backward_bytesum_source(sample))
+    chain = assemble_program(backward_chain_source())
+    observations = []
+    for left, right in ((0, 0), (5381, 255), (0xffffffff, 1), (0x80000000, 128)):
+        observation = execute_program(backward, "f2", [left, right])
+        assert observation["result"] == ((left * 33) ^ right) & 0xffffffff
+        observations.append(observation)
+    observation = execute_program(chain, "f127", [1], max_call_depth=128)
+    assert observation["result"] == 127
+    observations.append(observation)
+    refusals = []
+    for label, source in call_graph_invalid_sources(sample).items():
+        try:
+            assemble_program(source)
+        except HIAProgramRejected as exc:
+            refusals.append({"case": label, "source_sha256": digest(source),
+                             "general_core": "rejected", "code": exc.code})
+        else:
+            raise AssertionError("invalid call source passed general Core: " + label)
+    for label, source in recursion_refusals().items():
+        checked = assemble_program(source)
+        refusals.append({"case": label, "source_sha256": digest(source),
+                         "general_core": "accepted", "core_sha256": checked.sha256,
+                         "selfhost_profile_expected": "rejected: acyclic call graph required"})
+    return {"general_core_observations": observations, "admission_differences": refusals}
+
+
+def inspect_selfhost_object(data):
+    """Read-only independent inspection; never constructs or repairs an object."""
+    if len(data) < 64:
+        raise ValueError("truncated HIA ELF object")
+    header = struct.unpack_from("<16sHHIQQQIHHHHHH", data)
+    ident, kind, machine, version, entry, phoff, shoff, flags, ehsize, phsize, phnum, shsize, shnum, names_index = header
+    if (ident != b"\x7fELF\x02\x01\x01\x00" + b"\0" * 8
+            or (kind, machine, version, entry, phoff, flags, ehsize, phsize, phnum, shsize, shnum, names_index)
+            != (1, 62, 1, 0, 0, 0, 64, 0, 0, 64, 6, 4)
+            or shoff % 8 or shoff + 6 * 64 != len(data)):
+        raise ValueError("ELF header is outside the closed HIA ET_REL profile")
+    sections = [struct.unpack_from("<IIQQQQIIQQ", data, shoff + i * 64) for i in range(6)]
+    if any(sections[0]):
+        raise ValueError("non-null ELF null section")
+    for row in sections[1:]:
+        if row[3] != 0 or row[4] < 64 or row[4] + row[5] > shoff:
+            raise ValueError("ELF section outside the object payload")
+    names = data[sections[4][4]:sections[4][4] + sections[4][5]]
+    expected_names = b"\0.text\0.symtab\0.strtab\0.shstrtab\0.note.GNU-stack\0"
+    if names != expected_names or [row[0] for row in sections] != [0, 1, 7, 15, 23, 33]:
+        raise ValueError("ELF section-name inventory differs")
+    text, sym, strings, shstrings, stack = sections[1:]
+    if ((text[1], text[2], text[4], text[6], text[7], text[8], text[9]) != (1, 6, 64, 0, 0, 16, 0)
+            or (sym[1], sym[2], sym[5], sym[6], sym[7], sym[8], sym[9]) != (2, 0, 72, 3, 2, 8, 24)
+            or (strings[1], strings[2], strings[5], strings[6], strings[7], strings[8], strings[9]) != (3, 0, 4, 0, 0, 1, 0)
+            or (shstrings[1], shstrings[2], shstrings[5], shstrings[6], shstrings[7], shstrings[8], shstrings[9]) != (3, 0, 49, 0, 0, 1, 0)
+            or (stack[1], stack[2], stack[5], stack[6], stack[7], stack[8], stack[9]) != (1, 0, 0, 0, 0, 1, 0)):
+        raise ValueError("ELF section flags or links differ")
+    if (sym[4] != ((64 + text[5] + 7) & ~7) or strings[4] != sym[4] + 72
+            or shstrings[4] != strings[4] + 4 or stack[4] != shstrings[4] + 49):
+        raise ValueError("ELF payload layout differs")
+    symbols = [struct.unpack_from("<IBBHQQ", data, sym[4] + i * 24) for i in range(3)]
+    if (any(symbols[0]) or symbols[1] != (0, 3, 0, 1, 0, 0)
+            or symbols[2][:5] != (1, 18, 0, 1, 0) or not 0 < symbols[2][5] <= text[5]
+            or data[strings[4]:strings[4] + 4] != b"\0f0\0"):
+        raise ValueError("ELF symbol inventory differs")
+    return {"format": "ELF64-ET_REL", "machine": "EM_X86_64", "exports": ["f0"],
+            "undefined_symbols": [], "external_relocations": [], "nonexecuting_stack_note": True,
+            "text_offset": 64, "text_bytes": text[5], "text_sha256": digest(data[64:64 + text[5]]),
+            "entry_wrapper_bytes": symbols[2][5], "object_sha256": digest(data)}
+
+
+def observe_native_tool(directory, label, tool_name, arguments):
+    path = shutil.which(tool_name)
+    if path is None:
+        raise RuntimeError("ELF qualification requires " + tool_name)
+    path = Path(path).resolve()
+    before = digest(path.read_bytes())
+    command = [str(path), *map(str, arguments)]
+    started = time.monotonic_ns()
+    completed = subprocess.run(command, capture_output=True, timeout=20)
+    (directory / (label + ".stdout.log")).write_bytes(completed.stdout)
+    (directory / (label + ".stderr.log")).write_bytes(completed.stderr)
+    receipt = {"command": command, "tool_sha256": before, "returncode": completed.returncode,
+               "stdout_sha256": digest(completed.stdout), "stderr_sha256": digest(completed.stderr),
+               "wall_elapsed_ns": time.monotonic_ns() - started}
+    (directory / (label + ".command.json")).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    if digest(path.read_bytes()) != before or completed.returncode:
+        raise AssertionError({"native_tool_failed": label, "receipt": receipt})
+    return receipt
+
+
+def qualify_elf_outputs(directory, compilers, sample, checks):
+    observations = []
+    def object_source(source):
+        return source.replace(b"hepta.hia.program.v8 selfhost\n",
+                              b"hepta.hia.program.v8 selfhost_elf\n", 1)
+    for label, compiler, own_source in compilers:
+        for subject, source, flat in (("compiler", own_source, compiler),
+                                     ("bytesum", sample, directory / (label + "-bytesum.image.bin"))):
+            case = label + "-elf-" + subject
+            obj, compilation = compile_stage(directory, case, compiler, object_source(source), output_extension=".o")
+            inventory = inspect_selfhost_object(obj.read_bytes())
+            checks[case + "_text_matches_flat"] = inventory["text_sha256"] == digest(flat.read_bytes())
+            tools = [observe_native_tool(directory, case + "-readelf", "readelf", ["-W", "-h", "-S", "-s", "-r", obj]),
+                     observe_native_tool(directory, case + "-objdump", "objdump", ["-d", "--disassemble=f0", obj])]
+            linked = directory / (case + ".so")
+            tools.append(observe_native_tool(directory, case + "-link", "ld",
+                ["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack",
+                 "-z", "relro", "-z", "now", "--build-id=none", obj, "-o", linked]))
+            checks[case + "_independent_tools_accept"] = all(row["returncode"] == 0 for row in tools)
+            observations.append({"case": case, "compilation": compilation, "inventory": inventory,
+                                 "tool_observations": tools, "linked_sha256": digest(linked.read_bytes())})
+            if subject == "compiler":
+                rebuilt, result = compile_stage(directory, case + "-rebuild", linked, own_source,
+                                                 image_format="linked-selfhost")
+                checks[case + "_linked_self_rebuild"] = rebuilt.read_bytes() == flat.read_bytes()
+                observations.append(result)
+            else:
+                for index, data in enumerate((b"", bytes(range(256)) * 4)):
+                    result, output = invoke(directory, case + "-run-" + str(index), linked, data,
+                                            image_format="linked-selfhost", capacity=1, workspace_size=1)
+                    checks[case + "_behavior_" + str(index)] = (result.get("status") == "returned"
+                        and result.get("core_u32") == hash_reference(data) and result.get("source_unchanged")
+                        and output == bytes([hash_reference(data) & 255]))
+                    observations.append(result)
+            result, _ = invoke(directory, case + "-short-output", compiler, object_source(source),
+                               capacity=compilation["produced_bytes"] - 1)
+            checks[case + "_short_output_transactional"] = (result.get("status") == "returned"
+                and result.get("core_u32") == NO_SPACE and result.get("output_unchanged"))
+            observations.append(result)
+        rejected = {"bad-call": call_graph_invalid_sources(sample)["backward-signature"],
+                    "recursive": recursion_refusals()["mutual-recursion"]}
+        for name, bad in rejected.items():
+            result, _ = invoke(directory, label + "-elf-reject-" + name, compiler, object_source(bad))
+            checks[label + "_elf_reject_" + name] = (result.get("status") == "returned"
+                and result.get("core_u32") == INVALID and result.get("output_unchanged")
+                and result.get("source_unchanged"))
+            observations.append(result)
+    return observations
+
+
 def qualify(output):
     output = Path(output).resolve()
     if platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"} or not shutil.which("ld"):
         raise RuntimeError("the explicit B0 profile requires Linux x86-64 and GNU ld")
+    contract = validate_contract()
     before = source_manifest()
     started = time.monotonic_ns()
     directory = output.with_suffix(".evidence")
     directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     source, sample = SOURCE.read_bytes(), SAMPLE.read_bytes()
+    from tools.hia_selfhost_resources import independent_resource_reference, qualify_resources
+    resource_reference = independent_resource_reference()
+    (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
+    independent = independent_call_reference(sample)
+    (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -220,7 +435,8 @@ def qualify(output):
             workspace_fill=0x5a if label == "B3" else 0)
         stages.append(receipt)
     original = previous
-    checks = {"three_native_self_compilations": True,
+    checks = {"support_contract_matches_source": True, "three_native_self_compilations": True,
+              "own_compiler_uses_backward_direct_calls": bool(seed_receipt["source_structure"]["backward_direct_calls"]),
               "B1_B2_B3_byte_identical": len({x["produced_sha256"] for x in stages}) == 1,
               "no_host_compiler_modules_in_successors": all(not x["forbidden_compiler_modules_loaded"] for x in stages)}
     changed = mutate_compiler(source)
@@ -253,26 +469,64 @@ def qualify(output):
     readonly, _ = invoke(directory, "readonly-call", readonly_image, b"readonly alias", capacity=0, workspace_size=0)
     checks["readonly_call_alias_remains_legal"] = (readonly.get("status") == "returned"
         and readonly.get("core_u32") == 2 * len(b"readonly alias") and readonly.get("source_unchanged"))
+    call_observations = []
+    for label, compiler in (("original", original), ("modified", previous)):
+        executable, compilation = compile_stage(directory, label + "-backward-bytesum",
+                                                compiler, backward_bytesum_source(sample))
+        call_observations.append(compilation)
+        for index, data in enumerate((b"", b"HIA backward calls", bytes(range(256)) * 4)):
+            result, raw = invoke(directory, label + "-backward-sample-" + str(index),
+                                 executable, data, capacity=1, workspace_size=1)
+            checks[label + "_backward_call_behavior_" + str(index)] = (
+                result.get("status") == "returned" and result.get("core_u32") == hash_reference(data)
+                and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged"))
+            call_observations.append(result)
+        executable, compilation = compile_stage(directory, label + "-full-call-depth",
+                                                compiler, backward_chain_source())
+        call_observations.append(compilation)
+        result, _ = invoke(directory, label + "-full-call-depth-run", executable, b"",
+                           capacity=0, workspace_size=0)
+        checks[label + "_128_function_backward_chain"] = (
+            result.get("status") == "returned" and result.get("core_u32") == 127)
+        call_observations.append(result)
+        for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
+            result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
+            checks[label + "_reject_" + case] = (result.get("status") == "returned"
+                and result.get("core_u32") == INVALID and result.get("output_unchanged")
+                and result.get("source_unchanged"))
+            call_observations.append(result)
     small, _ = invoke(directory, "short-output", original, source, capacity=stages[2]["produced_bytes"] - 1)
     checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
     workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
     checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
+    elf_observations = qualify_elf_outputs(directory,
+        (("original", original, source), ("modified", previous, changed)), sample, checks)
+    resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
-        "schema": "hepta.hia.selfhost-qualification.v1",
+        "schema": "hepta.hia.selfhost-qualification.v4",
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
+        "profile": contract["profile"], "target": contract["target"], "abi": contract["abi"],
+        "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
+        "checkout": checkout_identity(),
         "source_manifest": before, "source_bytes": len(source), "source_sha256": digest(source),
         "checks": checks, "seed": seed_receipt, "generations": stages,
         "modified_source_sha256": digest(changed), "modified_generations": modified_stages,
         "behavior_observations": observations, "rejection_observations": rejected,
         "readonly_call_observations": [readonly_build, readonly],
+        "call_graph_observations": call_observations, "independent_core_reference": independent,
+        "elf_object_observations": elf_observations,
+        "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,
                    "modified_own_source_rebuilt": all(checks[k] for k in ("modified_compiler_rebuilds_itself", "modified_codegen_changes_successor", "modified_wrapper_machine_bytes")),
                    "precompiled_successor_blob_used": False, "source_hash_dispatch_used": False,
                    "python_parser_or_codegen_after_B0": False, "external_assembler_after_B0": False,
-                   "external_linker_after_B0": False, "whole_HIA_language_self_hosted": False,
+                   "external_linker_after_B0": True, "external_linker_in_flat_bootstrap_chain": False,
+                   "external_linker_scope": "explicit successor ELF qualification only",
+                   "HIA_successor_ELF_writer_used": True, "Python_successor_ELF_writer_used": False,
+                   "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "successor stdlib ctypes/mmap loader and operating system",

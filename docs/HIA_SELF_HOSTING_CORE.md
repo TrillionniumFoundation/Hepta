@@ -12,12 +12,45 @@ Run the source-bound qualification on Linux x86-64:
 
 ```sh
 python tools/qualify_hia_selfhost.py --output /tmp/hia-selfhost.json
-python -m unittest tests.test_hia_selfhost
+python tools/replay_hia_selfhost_cold.py --output /tmp/hia-selfhost-cold.json
+python -m unittest tests.test_hia_selfhost tests.test_hia_selfhost_contract
 ```
 
 The qualification creates an evidence directory next to the JSON report. It
 retains source inputs, the B0 build receipt, each generated image, every native
-invocation receipt, and checksums. A passing exit requires every check to pass.
+invocation receipt, raw child stdout/stderr, and checksums. A passing exit
+requires every check to pass.
+
+## Fixed version and support identity
+
+The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
+`selfhost-core-linux-x86_64-v4`, the sole target, the seed and successor ABIs,
+resource limits, supported and excluded features, and SHA-256 identities for
+the compiler assembly, authoring aid, loader, qualification, test fixtures and
+complete Python seed package. It is checked before B0. A stale source file,
+changed loader, or broadened support declaration fails that check. To review
+and regenerate the contract after an intentional source change, run:
+
+```sh
+python tools/generate_hia_selfhost_contract.py
+python tools/generate_hia_selfhost_contract.py --check
+```
+
+The static contract is a support and identity declaration, not a successful
+execution receipt. The runtime qualification additionally records the exact
+B0 shared-library digest, actual loaded seed modules, CPython executable and
+version, GNU linker identity, source closure, and original and modified native
+generations. Git commit/tree metadata is supplementary; actual file hashes
+remain authoritative, including when a worktree is dirty. No commit identifier
+is embedded in its own source lock.
+
+The cold runner copies only these pinned source files into a newly created
+directory. It starts isolated CPython with site packages disabled, a fresh
+home and temporary directory, no inherited Python path, and no seed, successor
+or bytecode caches. It rebuilds B0 and executes the entire qualification there,
+then verifies the exported and original bytes again. The original source tree
+is not on the child's import path. This establishes source/process/cache cold
+replay on the measured host; it is not a new VM or an independent toolchain.
 
 ## Fixed seed and actual generation chain
 
@@ -55,8 +88,9 @@ fixed point do not constitute such a proof.
 
 ## The chosen Core subset
 
-The input is ordinary HIA assembly with the fixed header
-`hia-asm.v1 hepta.hia.program.v8 selfhost`. Names are numeric: contiguous `f0`,
+The flat-image input is ordinary HIA assembly with the fixed header
+`hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
+bounded ELF object profile described below. Names are numeric: contiguous `f0`,
 `f1`, ... functions; contiguous `b0`, `b1`, ... blocks within each function;
 and `vN` SSA values. Function signature variables are `v0`, `v1`, ... and the
 entry block must exactly reproduce their names and types. SSA numbers elsewhere
@@ -77,8 +111,8 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
-| Bytes | `buffer.len`, `buffer.load`, `buffer.store` |
-| Calls | Scalar-return `call` to a later numbered function, with exact parameter/return types |
+| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
+| Calls | Scalar-return direct `call` to any numbered function in an acyclic call graph, with exact parameter/return types |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
 
@@ -100,8 +134,12 @@ scalar and borrowed-buffer parameters.
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
 edge signatures, existing targets and graph reachability. Inbound edges to
-`b0` are forbidden. Calls must target a later function, making recursion and
-backward calls invalid. Repeated mutable buffer arguments in one call or edge
+`b0` are forbidden. The native HIA checker records the complete directed call
+graph, rejects missing targets, and marks functions whose callees are already
+acyclic. After at most one pass per function, every function must be marked.
+Backward calls are therefore admitted when they do not create a cycle. Direct
+and indirect recursion are rejected, including cycles in unused helper
+functions. Repeated mutable buffer arguments in one call or edge
 are rejected. Every edge also rejects repeated `readbuf` SSA arguments, matching
 Core's linear capability transfer rule, even on a statically untaken branch.
 Calls may pass the same read-only loan more than once. Buffers can only originate in parameters and flow through checked
@@ -121,8 +159,13 @@ The bounds are part of the compiler profile:
 | Instructions across the module | 3,072 |
 | Relative relocations | 12,000 |
 
-These bounds also bound stack frames and the accepted Core structure. Numeric
-function order bounds native call depth. The chosen op/argument/block limits
+These bounds also bound stack frames and the accepted Core structure. The
+checked acyclic graph bounds native call depth by the 128-function limit.
+The call graph and its marks occupy bytes 858,368 through 875,775 of the
+existing 1 MiB workspace, after the complete relative-relocation table; they
+do not overlap live parser, SSA or relocation state. Every compilation clears
+this state, including when the caller supplies nonzero scratch contents.
+The chosen op/argument/block limits
 keep the corresponding Core JSON below its structural-node and byte bounds.
 The text frontend's separate general-purpose presentation limits are not
 reimplemented as a dependency of the native compiler.
@@ -132,8 +175,9 @@ reimplemented as a dependency of the native compiler.
 Compilation runs three passes over private source bytes:
 
 1. Parse all functions/blocks, check local types and SSA scope, and collect
-   signatures and block-edge metadata. Check target validity and reachability.
-2. Parse again, validate forward calls and edge signatures against the complete
+   signatures, block-edge metadata and the direct-call graph. Check target
+   validity, block reachability and absence of call cycles.
+2. Parse again, validate all calls and edge signatures against the complete
    metadata, and count the exact encoded output size without writing output.
 3. After the full validation and capacity checks succeed, parse again and emit
    actual machine bytes, then apply HIA-written relative relocations.
@@ -159,10 +203,46 @@ emitter touches each stack page while reserving a frame. The flat image's first
 instruction is its SysV entry wrapper; all calls and branches are relative and
 there are no external symbol relocations.
 
+## Borrowed-resource batch: byte swap
+
+Version 4 adds `buffer.swap(mutbuf, usize, usize)`, with no result binding.
+It preserves the existing borrowed-buffer lifetime model and original size
+limits. Both indices are compared with the carried buffer length before either
+pointer is formed or either byte is read or written. Equal valid indices are a
+no-op; equal invalid indices still trap. The instruction exchanges exactly two
+bytes without allocating storage or creating a new loan. Read-only buffers,
+incorrect index types, result bindings and incorrect arities are rejected.
+
+The qualification records a separate resource batch for the original and the
+modified fixed-point compiler. Its independent general Core reference runs
+before B0 and uses owned allocation, borrowing, initialization, swapping,
+loads, loan ending and owner cleanup to expose the resulting bytes. The native
+program uses the supported borrowed parameters. Nine cases cover both swap
+directions, interior bytes, equal indices, either invalid operand, the maximum
+`usize` value and an empty extent. Five malformed programs are independently
+rejected by both checkers. A native ELF swap object must contain the same text
+bytes as the flat image from the same compiler.
+
+For each runtime trap, the loader's optional qualification-only shared output
+mapping retains the actual bytes after the child terminates with `SIGILL`.
+Each failing swap must leave its input bytes unchanged. A positive control
+performs a store before a failing swap: the retained output must contain that
+store, confirming that the observer sees actual writes and that an arbitrary
+program has no rollback guarantee. The loader does not catch signals or change
+native control flow. The report preserves preimage/output hashes, independent
+results, child exit status, raw logs and wall time, including failed executions.
+
+This batch does not add allocation, owner movement, new loans, returned loans
+or recursion to Selfhost-Core. Those constructs remain outside the fixed
+profile; the general Core reference's broader ownership support is not evidence
+that the native self-hosting checker implements it. These finite cases are
+regression evidence rather than a general checker or refinement proof.
+
 ## Modification experiment
 
 The qualification makes one explicit, guarded source edit in the HIA wrapper
-emitter: replace its stack-reservation constant `64` with `80`. Both values keep
+emitter (`f13`, bound by the support contract): replace its stack-reservation
+constant `64` with `80`. Both values keep
 16-byte stack alignment, but generated machine code must change.
 
 B3 compiles the modified source into M1. M1's outer wrapper was emitted by B3,
@@ -180,9 +260,64 @@ wrapping `u32` multiplication and XOR. Its results are checked against an
 independent host integer oracle, including empty input and repeated byte ranges.
 The acceptance report additionally requires rejection of malformed tokens,
 integer overflows, duplicate/out-of-scope SSA, missing/unreachable blocks, wrong
-edge/call types, recursion/backward calls, mutable aliases and read-only writes.
+edge/call types, invalid recursive-call signatures, mutable aliases and read-only writes.
 It separately checks read-only edge duplication versus legal read-only call
 aliases, and rejects syntax that violates the shared assembly adjacency rules.
+
+## General Core expansion batch: arbitrary acyclic call order
+
+Version 2 removes the earlier requirement that every callee have a larger
+function number. The compiler assembly itself is now emitted in source order
+and contains real backward calls, so B1 through B3 must use the new native
+graph checker to rebuild the full compiler. The authoring aid does not sort
+the functions into a topological order to avoid that requirement.
+
+The additional independent checks retain both original and modified compiler
+outputs for a bytesum program containing a backward call, a complete 128-function
+chain with backward edges, wrong backward-call signatures, missing and
+out-of-range callees, direct recursion, mutual recursion and an unused cyclic
+helper component. Failed compilation must leave source and output unchanged.
+Scalar helper results are compared with the independent general Core interpreter
+before B0, and complete borrowed-byte programs run against an independent host
+integer oracle after self-compilation. Their source bytes, admission differences
+and native outputs are retained in the same evidence directory.
+
+Typed recursion is valid in the general Core but intentionally outside this
+finite self-hosting profile. Its refusal records say so rather than labeling
+it malformed Core. Owned allocations/transfers, returned loans and a general
+resource/effect checker remain unimplemented in this compiler and are explicitly
+marked in the support matrix.
+
+## Object expansion batch: HIA-written ELF64 ET_REL
+
+The opt-in module spelling `selfhost_elf` selects
+`hepta.hia.selfhost.elf64-relocatable.v1`. It changes only the output container;
+the accepted operations, resources, signatures and call-graph restrictions are
+the same as the flat profile. In HIA functions `f38`, `f39` and `f41`, the
+compiler emits the ELF64 little-endian x86-64 relocatable header, `.text`, a
+three-entry symbol table with only `f0` exported, both string tables and a
+nonexecuting `.note.GNU-stack`. Internal relative calls/branches remain resolved
+by HIA. There are no undefined symbols, external relocations or host imports.
+
+All object bytes come directly from native HIA compilation. Python transports
+and independently inspects the resulting bytes without constructing or repairing
+the ELF object. `readelf` checks headers, sections, symbols and relocations;
+`objdump` disassembles the actual `f0` wrapper. GNU ld then links the emitted
+object into a shared library under `-z defs -z noexecstack -z relro -z now`.
+The linked compiler rebuilds its complete original/modified source, and linked
+bytesum objects execute against the host integer oracle. The extracted `.text`
+must be byte-identical to the corresponding flat image in both compiler versions.
+
+The flat B0→B3 and M1→M3 chains still use no linker after B0. The additional
+object qualification deliberately invokes GNU ld after those chains; its
+separate command identities, logs, object/shared hashes and execution receipts
+are retained. Insufficient object capacity and rejected source leave output
+unchanged, including the ELF header. Object overhead consumes the same 1 MiB
+output limit; no compiler or runtime resource limit is increased.
+
+The object route does not implement external symbol relocations, arbitrary
+public exports, a linker written in HIA, executable ELF images or other ELF
+targets. The seed's existing Python ELF writer remains a distinct dependency.
 
 ## Trust and operational boundaries
 

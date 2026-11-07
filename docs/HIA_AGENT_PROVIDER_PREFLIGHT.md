@@ -76,3 +76,24 @@ actual non-model executable that checks ACK ordering, pipes and owned cleanup.
 Those fixture executions are never counted as model successes. New coding
 experiments still require their own exact source/tool freeze, availability,
 budget, native controls and terminal hidden scoring.
+
+## Explicit unused MCP startup dependency check
+
+A no-tools availability probe can now take an explicit
+`--disable-mcp-server NAME`. This affects only that invocation's
+`mcp_servers.NAME.enabled=false` setting. Literal names are validated; arbitrary
+TOML overrides, account changes, ignored rules, sandbox changes and persistent
+configuration edits are not accepted through this option. The exact override is
+retained in the process argv and result. This is useful only when an independently
+observed configured MCP startup dependency could delay a probe that cannot use
+that dependency. It is not an entitlement repair or an automatic retry policy.
+
+On 2026-11-07, the current local CLI advertised `gpt-6-astra`. A 45-second probe
+returned no stdout/stderr and no generation-turn event. An explicitly separate
+same-selector diagnostic excluding the unused `cua_repl` dependency also timed
+out with empty streams. Both owned process groups were killed before leader
+reaping and both cleanup receipts were complete. These two observations do not
+identify an account quota, an unsupported selector, or the failing internal
+phase; the dependency hypothesis was not established. No coding request or
+successful task is attributed to either probe. Original bytes are in
+`experiments/hia_agent_first_use_20261107/provider/`.

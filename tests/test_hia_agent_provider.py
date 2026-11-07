@@ -28,6 +28,28 @@ def success(text="AVAILABLE"):
 
 
 class ProviderTests(unittest.TestCase):
+    def test_explicit_unused_mcp_dependency_override_is_narrow_and_recorded(self):
+        self.assertEqual(provider.disabled_mcp_config([]), [])
+        self.assertEqual(provider.disabled_mcp_config(["cua_repl"]),
+                         ["-c", "mcp_servers.cua_repl.enabled=false"])
+        for names in ("cua_repl", ["a", "a"], ["a.b"], ["a=true"], ["../../x"], [""], [True], ["a b"]):
+            with self.subTest(names=names), self.assertRaises(ValueError):
+                provider.disabled_mcp_config(names)
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            def execute(argv, cwd, output, **kwargs):
+                calls.append(argv)
+                output.mkdir()
+                (output / "stdout.raw").write_bytes(wire(success()))
+                return dict(PROCESS)
+            rows = provider.probe_batch("/fixture/codex", ["fixture"], Path(folder), 10,
+                                        execute=execute, disabled_mcp_servers=["cua_repl"])
+            self.assertTrue(rows[0]["available"])
+            self.assertEqual(rows[0]["disabled_mcp_servers"], ["cua_repl"])
+            self.assertIn("mcp_servers.cua_repl.enabled=false", calls[0])
+            self.assertIn("read-only", calls[0])
+            self.assertFalse(any("ignore" in argument for argument in calls[0]))
+
     def test_quota_and_unsupported_remain_unknown_usage(self):
         unsupported = json.dumps({"type": "error", "status": 400, "error": {"code": "model_not_found"}})
         for message, expected in ((QUOTA, "account_quota"), (unsupported, "unsupported_selector")):

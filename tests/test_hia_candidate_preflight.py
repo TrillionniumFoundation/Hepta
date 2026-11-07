@@ -21,6 +21,23 @@ from tools import hia_candidate_preflight as preflight
 PINS = {"worker_sha256": "1" * 64, "backend_sha256": "2" * 64, "catalog_sha256": "3" * 64}
 
 
+class UncachedWorkerBoundary(unittest.TestCase):
+    def test_manifest_admission_refuses_cache_and_native_shadow_before_execution(self):
+        for name in ("__pycache__", "worker.pyc", "worker.pyo", "worker.cpython-312-x86_64-linux-gnu.so", "worker.pyd"):
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                (root / "hepta").mkdir()
+                shadow = root / "hepta" / name
+                if name == "__pycache__":
+                    shadow.mkdir()
+                else:
+                    shadow.write_bytes(b"untracked executable bytes")
+                with mock.patch.object(preflight.subprocess, "run") as run:
+                    with self.assertRaisesRegex(ValueError, "cache or binary shadow"):
+                        preflight.installed_pins(root, Path("/usr/bin/python3"))
+                run.assert_not_called()
+
+
 def config():
     return {
         "hosts": {"worker": {

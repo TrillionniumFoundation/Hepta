@@ -38,7 +38,7 @@ def main():
     assert type(capacity) is int and 0 <= capacity <= MAX_BYTES
     assert type(workspace_size) is int and 0 <= workspace_size <= MAX_BYTES
     signature = [ctypes.c_void_p, ctypes.c_uint64] * 3
-    if request["format"] == "seed-shared":
+    if request["format"] in {"seed-shared", "linked-selfhost"}:
         # Seal the exact checked seed bytes before handing them to the loader.
         fd = os.memfd_create("hia-bootstrap-seed", os.MFD_ALLOW_SEALING)
         try:
@@ -66,9 +66,23 @@ def main():
             raise OSError(ctypes.get_errno(), "mprotect")
         entry = ctypes.CFUNCTYPE(ctypes.c_uint64, *signature)(address)
     source_array = ctypes.create_string_buffer(source, max(1, len(source)))
-    output_initial = bytes([0xa5]) * capacity
+    output_initial = bytes.fromhex(request["output_initial_hex"]) if "output_initial_hex" in request else bytes([0xa5]) * capacity
+    assert len(output_initial) == capacity
     workspace_initial = bytes([request.get("workspace_fill", 0)]) * workspace_size
-    output = ctypes.create_string_buffer(output_initial, max(1, capacity))
+    if request.get("observe_trap_writes", False):
+        # Qualification-only observation: a shared file keeps actual output bytes
+        # observable after UD2 terminates this child. No signal is intercepted.
+        fd = os.open(request["output"], os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600)
+        try:
+            os.ftruncate(fd, max(1, capacity))
+            shared_output = mmap.mmap(fd, max(1, capacity), flags=mmap.MAP_SHARED,
+                                      prot=mmap.PROT_READ | mmap.PROT_WRITE)
+            shared_output[:capacity] = output_initial
+            output = (ctypes.c_char * max(1, capacity)).from_buffer(shared_output)
+        finally:
+            os.close(fd)
+    else:
+        output = ctypes.create_string_buffer(output_initial, max(1, capacity))
     workspace = ctypes.create_string_buffer(workspace_initial, max(1, workspace_size))
     forbidden = [name for name in sys.modules if name.startswith("hepta.") or name.startswith("generate_hia_")]
     assert not forbidden, forbidden
@@ -76,7 +90,10 @@ def main():
     returned = entry(source_array, len(source), output, capacity, workspace, workspace_size)
     elapsed = time.monotonic_ns() - started
     output_bytes, workspace_bytes = output.raw[:capacity], workspace.raw[:workspace_size]
-    Path(request["output"]).write_bytes(output_bytes)
+    if request.get("observe_trap_writes", False):
+        shared_output.flush()
+    else:
+        Path(request["output"]).write_bytes(output_bytes)
     fields = {str(i): int.from_bytes(workspace_bytes[i:i + 8], "little")
               for i in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 1024)
               if workspace_size >= i + 8}

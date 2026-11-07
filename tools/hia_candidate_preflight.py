@@ -171,6 +171,7 @@ def configure_runtime(root, revision):
 
 def worker_inventory(root):
     root = absolute_path(root)
+    require_uncached_worker_source(root)
     # rglob does not traverse directory symlinks. Refuse them explicitly instead
     # of silently omitting an importable subtree from the independently measured pin.
     entries = {}
@@ -232,8 +233,21 @@ def worker_matches_commit(root, revision, entries):
                for path, value in blobs.items())
 
 
+def require_uncached_worker_source(root):
+    """A Git-clean source tree can still contain executable ignored caches.
+
+    This is an admission check of a trusted local checkout, not protection
+    against a concurrent privileged writer or a source-only runtime loader.
+    """
+    root = absolute_path(root)
+    for path in (root / "hepta").rglob("*"):
+        if path.name == "__pycache__" or path.suffix.lower() in {".pyc", ".pyo", ".so", ".pyd"}:
+            raise ValueError("worker source contains a bytecode cache or binary shadow module; use a fresh source checkout")
+
+
 def installed_pins(root, python):
     """Run only the installed worker's non-mutating manifest entry point."""
+    require_uncached_worker_source(root)
     result = subprocess.run(
         [str(absolute_path(python)), "-B", "-E", "-s", "-m", "hepta.hia_agent_worker",
          "--installation-manifest"], cwd=root, capture_output=True, timeout=60,
