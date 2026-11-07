@@ -1,5 +1,11 @@
 # HIA product closure, 2026-11-07
 
+**Historical integrated-candidate record.** The [later follow-through](HIA_PRODUCT_FOLLOWTHROUGH_20261107.md)
+records a real missing stack effect in this candidate's Safe Core model and
+its correction. It also incorporates the later provider campaign and a fix
+for incomplete-arm savings. The counts and provider availability below describe
+this record's original observation, and are not the latest qualification.
+
 This candidate implements the next bounded steps in the requested order. It
 does not declare every product, language or economic gate passed. The default
 entry is `python3 -B tools/hia_release.py`; the generated

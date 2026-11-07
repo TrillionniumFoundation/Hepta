@@ -49,7 +49,7 @@ BOOTSTRAP_FILES = (
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
 )
-ENTRY_FILES = ("tools/hia_release.py", "tools/hia_candidate_preflight.py",
+ENTRY_FILES = ("README.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
@@ -60,6 +60,7 @@ CANDIDATE_FILES = (
     "examples/hia_safe_core/read_byte.hia.json",
     "tools/hia_agent_macro_policy.py", "tools/qualify_hia_macro_campaign.py",
     "docs/HIA_PRODUCT_CLOSURE_20261107.md", "docs/HIA_NDU_STRONG_CONTROL_20261107.md",
+    "docs/HIA_PRODUCT_FOLLOWTHROUGH_20261107.md",
     "experiments/hia_product_closure_20261107/http-client/http_lifecycle.py",
     "experiments/hia_product_closure_20261107/http-client/test_http_lifecycle.py",
     "experiments/hia_product_closure_20261107/http-client/tools/hia_original_reconcile.py",

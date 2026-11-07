@@ -104,7 +104,8 @@ class ReleaseLockBoundaries(unittest.TestCase):
                 release.load_lock(self.save(value))
 
     def test_original_reconciliation_and_final_image_entry_are_source_bound(self):
-        for name in ("tools/hia_original_reconcile.py", "tools/build_hia_safe_core.py"):
+        for name in ("README.md", "tools/hia_original_reconcile.py", "tools/build_hia_safe_core.py",
+                     "docs/HIA_PRODUCT_FOLLOWTHROUGH_20261107.md"):
             value = lock_fixture()
             del value["files"]["hepta"][name]
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):

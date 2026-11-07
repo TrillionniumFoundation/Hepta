@@ -39,6 +39,13 @@ The current source lock is the authority for new installations; previous v4
 receipts do not qualify this changed worker. Live cancellation, fresh-Agent
 registration and complete-cost NDU value remain separate acceptance gates.
 
+The [latest follow-through](docs/HIA_PRODUCT_FOLLOWTHROUGH_20261107.md) fixes
+the independent final-image checker's missing return-address store before a
+nonreturning `abort` call, and prevents incomplete comparison arms from
+producing a headline NDU saving. Its release lock also hashes this default
+README. These changes require new source and worker identities; the observed
+live v4 service continues to have its separately retained older identity.
+
 The standalone **HIA Core v1-v8 profiles** accept AI-authored typed SSA programs
 without original high-level source. `python -m hepta hia verify`, `run`,
 `build`, and `patch` share an independent ownership/effect verifier. The Agent
@@ -265,9 +272,13 @@ The [OpenAI reference adapter](tools/provider_adapter/README.md) implements
 real usage receipts, explicit failed attempts, and standalone export. Its
 transport tests are offline. Real model comparisons require explicitly
 configured model revisions, API access and budgets, plus a qualified isolated
-execution environment. No real model comparison has been run. Trusted fixture
-runs and strict namespace script runs test the evaluator and native tasks;
-they are not AI productivity evidence.
+execution environment. A separate [bounded macro-policy provider/native
+campaign](docs/HIA_NDU_STRONG_CONTROL_20261107.md) has retained 32 provider
+process terminals and 22 correct native task arms out of 32. None of its four
+arms completed all eight tasks, so it establishes no completed-control NDU
+saving or real-user productivity advantage. Trusted fixture runs and strict
+namespace script runs test the evaluator and native tasks; they are not AI
+productivity evidence.
 
 The original integration qualification is preserved in
 [evidence/next_stage](evidence/next_stage/manifest.json). Qualification after
