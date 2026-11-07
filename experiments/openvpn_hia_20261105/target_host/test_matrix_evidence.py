@@ -338,7 +338,7 @@ class DcoReplayEvidenceTests(unittest.TestCase):
         return [{
             "ifname": "tunbench-s", "ifindex": ifindex,
             "linkinfo": {"info_kind": kind},
-            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count}},
+            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count, "errors": 0}},
         }]
 
     def device_drop_receipt(self):
@@ -843,7 +843,7 @@ class DcoReceiveIsolationTests(unittest.TestCase):
         return [{
             "ifname": "tunbench-s", "ifindex": 7,
             "linkinfo": {"info_kind": "ovpn"},
-            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count}},
+            "stats64": {"rx": {"dropped": dropped, "packets": packets, "bytes": byte_count, "errors": 0}},
         }]
 
     def underlay(self, packets=10, byte_count=1000, ifindex=2):
