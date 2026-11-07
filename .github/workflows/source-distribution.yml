@@ -1,0 +1,50 @@
+name: Source distribution artifacts
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/source-distribution.yml'
+      - 'MANIFEST.in'
+      - 'pyproject.toml'
+      - 'README.md'
+      - 'Makefile'
+      - 'toolchain-lock.json'
+      - 'hepta/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'examples/**'
+      - 'benchmarks/**'
+      - 'formal/**'
+      - 'experiments/agent_eval/**'
+      - 'docs/PACKAGING.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  artifacts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - python: '3.11'
+            setuptools: '68.2.2'
+            wheel: '0.41.3'
+          - python: '3.13'
+            setuptools: '84.2.1'
+            wheel: '0.48.0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install the declared build backend
+        run: python -m pip install 'setuptools==${{ matrix.setuptools }}' 'wheel==${{ matrix.wheel }}'
+      - name: Check source and wheel artifacts without running project tests
+        run: python -B tools/check_distribution.py
