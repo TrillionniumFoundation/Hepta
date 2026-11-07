@@ -47,6 +47,9 @@ class ContractRecoveryTests(unittest.TestCase):
             validate({'kind': 'x'}, schema)
         with self.assertRaisesRegex(AgentRejected, 'does not match oneOf'):
             validate({'kind': 'unregistered'}, schema)
+        with self.assertRaisesRegex(AgentRejected, 'does not match oneOf'):
+            validate({'kind': 'x'}, {'oneOf':[False, {'type':'object',
+                'properties':{'kind':False}}]})
 
     def test_catalog_has_neutral_discoverable_recovery(self):
         self.assertEqual(len(self.tools), 11)

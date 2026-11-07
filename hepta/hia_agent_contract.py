@@ -109,8 +109,10 @@ def validate(value, schema, label="arguments"):
                 if count == 0 and type(value) is dict:
                     tagged = []
                     for sub in schema[key]:
+                        if type(sub) is not dict:
+                            continue
                         tags = {name: child["const"] for name, child in
-                            sub.get("properties", {}).items() if "const" in child}
+                            sub.get("properties", {}).items() if type(child) is dict and "const" in child}
                         if tags and all(name in value and wire(value[name]) == wire(tag)
                                         for name, tag in tags.items()):
                             tagged.append(sub)
