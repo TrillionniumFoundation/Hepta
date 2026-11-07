@@ -2,7 +2,7 @@ name: OpenVPN HIA real TUN/DCO security-only evidence
 
 on:
   push:
-    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6, fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6]
+    branches: [fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6]
     paths:
       - .github/workflows/hia-openvpn-security-only.yml
       - experiments/openvpn_hia_20261105/target_host/*.py
@@ -16,6 +16,12 @@ on:
       - experiments/openvpn_hia_20261105/openvpn_hia_trace.c
       - tools/qualify_openvpn_hia.py
       - tools/openvpn_hia_baseline.py
+  pull_request:
+    branches: [fix/openvpn-hia-security-verifier-diagnostic-20261107-gpt6]
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/hia-openvpn-security-only.yml
+      - experiments/openvpn_hia_20261105/target_host/**
   workflow_dispatch:
 
 permissions:
@@ -23,13 +29,16 @@ permissions:
 
 jobs:
   security-only:
-    if: github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6' || github.ref == 'refs/heads/fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6'
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/fix/openvpn-hia-continuity-loss-security-subset-20261107-gpt6') || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'fix/openvpn-hia-dco-stale-peer-ingress-20261107-gpt6' && github.event.pull_request.base.ref == 'fix/openvpn-hia-security-verifier-diagnostic-20261107-gpt6')
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Run exact-source Netlink, replay, continuity and rekey regressions
         run: |
           set -euo pipefail
@@ -95,7 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 experiments/openvpn_hia_20261105/target_host/verify_result.py \
-            --public "$RUNNER_TEMP/ovpn-hia-target/public" --commit "$GITHUB_SHA" --only-kind security
+            --public "$RUNNER_TEMP/ovpn-hia-target/public" --commit "$TARGET_SHA" --only-kind security
       - name: Reject unsafe public evidence before upload (independent of experiment pass)
         id: publication_privacy
         if: always()
@@ -109,7 +118,7 @@ jobs:
         if: always() && steps.publication_privacy.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: openvpn-hia-security-${{ github.sha }}-${{ github.run_attempt }}
+          name: openvpn-hia-security-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ovpn-hia-target/public/
           if-no-files-found: error
           retention-days: 14
