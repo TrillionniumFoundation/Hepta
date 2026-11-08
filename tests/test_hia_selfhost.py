@@ -36,7 +36,25 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertGreater(len(source), 200000)
         self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), MAX_INSTRUCTIONS)
         self.assertLessEqual(sum(len(f["blocks"]) for f in doc["functions"]), 1536)
+        self.assertLessEqual(max(len(f["blocks"]) for f in doc["functions"]), 256)
+        import re
+        self.assertLessEqual(max(map(int, re.findall(rb"\bv(\d+)", source))), 2047)
         self.assertLessEqual(max(len(b["params"]) for f in doc["functions"] for b in f["blocks"]), 16)
+
+    def test_compiler_itself_fits_declared_per_function_block_and_ssa_limits(self):
+        # General Core accepts larger functions than this native input profile.
+        # Total instruction/block counts alone do not make its own source admissible.
+        doc = assemble_program(SOURCE.read_bytes()).as_dict()
+        limits = validate_contract()["limits"]
+        self.assertLessEqual(len(doc["functions"]), limits["functions"])
+        for function in doc["functions"]:
+            with self.subTest(function=function["name"]):
+                self.assertLessEqual(len(function["blocks"]), limits["blocks_per_function"])
+                values = list(function["params"])
+                for block in function["blocks"]:
+                    values.extend(block["params"])
+                    values.extend(value for op in block["ops"] for value in op["out"])
+                self.assertLessEqual(max(int(value["name"][1:]) for value in values), limits["ssa_index_max"])
 
     def test_codegen_mutation_is_valid_core_and_changes_one_literal(self):
         source = SOURCE.read_bytes()

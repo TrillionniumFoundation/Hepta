@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -450,7 +450,10 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 load_var(o, w, 0, a, 0)
                 normalize(o, w, t)
             else:
-                operation(o, w, op, n, a, b, at, bt, t)
+                if op == @bit.not@ or op == @int.add.checked@ or op == @int.sub.checked@:
+                    checked_integer(o, w, op, n, a, b, at, bt, t)
+                else:
+                    operation(o, w, op, n, a, b, at, bt, t)
     if t != 0:
         define(w, v, t)
         if get(w, 256) == 0:
@@ -464,6 +467,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op == @select@:
+        return select_scalar(o, w, n, a, b, at, bt, t)
     if op == @buffer.len@:
         if n != 1 or at < 6 or t != 2:
             fail(w, 28)
@@ -1115,6 +1120,71 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
         return 0
     emit(o, w, x & 255)
     return emit_bytes(o, w, x >> 8, remaining - 1)
+# Kept in a separate HIA function so the per-function SSA ceiling stays 2047.
+# Appending this helper preserves all existing compiler function identities.
+def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    load_var(o, w, 0, a, 0)
+    if op == @bit.not@:
+        if n != 1 or at < 1 or at > 4 or t != at:
+            fail(w, 31)
+        # NOT is a full machine word operation; restore the declared width.
+        emit(o, w, 72)
+        emit(o, w, 247)
+        emit(o, w, 208)
+        normalize(o, w, t)
+        return 0
+    if n != 2 or at != bt or t != at or t == 0 or t > 4:
+        fail(w, 34)
+    load_var(o, w, 1, b, 0)
+    if op == @int.add.checked@ or op == @int.sub.checked@:
+        # Operands are zero extended. Preserve CF until the first branch:
+        # add/sub rax, rcx; jnc +2; ud2. This checks 64-bit carry/borrow.
+        emit(o, w, 72)
+        if op == @int.add.checked@:
+            emit(o, w, 1)
+        else:
+            emit(o, w, 41)
+        emit(o, w, 200)
+        emit(o, w, 115)
+        emit(o, w, 2)
+        emit(o, w, 15)
+        emit(o, w, 11)
+        if op == @int.add.checked@ and (t == 3 or t == 4):
+            # A narrow sum can overflow without a 64-bit carry. Save the full
+            # sum, normalize rax, then require that no high bits were lost.
+            emit(o, w, 72)
+            emit(o, w, 137)
+            emit(o, w, 193)
+            normalize(o, w, t)
+            emit(o, w, 72)
+            emit(o, w, 57)
+            emit(o, w, 200)
+            emit(o, w, 116)
+            emit(o, w, 2)
+            emit(o, w, 15)
+            emit(o, w, 11)
+        normalize(o, w, t)
+        return 0
+    return fail(w, 36)
+
+
+def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if n != 3 or at != 5 or bt == 0 or bt > 5 or t != bt or variable(w, get(w, ARGS + 16)) != bt:
+        fail(w, 60)
+    # Core select(cond, true_value, false_value). Full-width moves preserve
+    # the already-normalized scalar slots, including u64/usize high bits.
+    load_var(o, w, 2, a, 0)
+    load_var(o, w, 1, b, 0)
+    load_var(o, w, 0, get(w, ARGS + 16), 0)
+    # test rdx, rdx; cmovne rax, rcx
+    emit(o, w, 72)
+    emit(o, w, 133)
+    emit(o, w, 210)
+    emit(o, w, 72)
+    emit(o, w, 15)
+    emit(o, w, 69)
+    emit(o, w, 193)
+    return 0
 '''
 
 

@@ -22,6 +22,488 @@
     },
     "successors": "stdlib-only disposable child; all input translation is executed HIA"
   },
+  "checked_arithmetic_traps": [
+    {
+      "arguments": [
+        255,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-add-0-no-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": false,
+      "source_sha256": "cb60c03829cc00ed71b7b0bda51e31a0c900655836b7ca2423848edfd813a21a",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        255,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-add-0-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "c02c62c2dd2464fe0bad91f92b7856718ade790c65bc344e65036ca91146d800",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        1,
+        255
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-add-1-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "bba663ea1b93fdd065bb02797b4f84793afd54d979287a53e423071df01ef938",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        128,
+        128
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-add-2-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "1667547609a24865af2a11696d1a34dcb1a2dbb68c5fdcfd3caf658334e57c35",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        255,
+        255
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-add-3-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "54754c9d68c94fe1e7431dff46d9d80cc80034463a3cf8e8e5a50a428a348dc9",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-sub-0-no-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": false,
+      "source_sha256": "4f51bb331c5a847d39ab641feb7e6bdc3844d04602433e2ca7fa7f3db915cd6e",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-sub-0-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "ed6efa76c25bde2e667b82d51acaae19781feb86cc5c9a0106aa78ca9ea249e9",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        0,
+        255
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-sub-1-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "4e2ddddd8108b45aeaa6d6e33f408f02f70ff10f71805d6735b169e8eb2b8b95",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        254,
+        255
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-sub-2-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "ce02d3c11224f47915468831a2d75e6a8ffa65f0861741455fa6765a4ce043cd",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        127,
+        128
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u8-sub-3-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "25b04e8131f93299aacf8af6de33997c75463530d33df095a6c624b0f09801e6",
+      "type": "u8"
+    },
+    {
+      "arguments": [
+        4294967295,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-add-0-no-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": false,
+      "source_sha256": "8fa9e9d93c73c9f12838bae48a0e5d7c51a2c6f19ca8d175d9a83341443a501a",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        4294967295,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-add-0-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "7cca57e71cafd555ea0e1eb34c7b3b156b5d90b1c22e6394a06b9caf0d6ca657",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        1,
+        4294967295
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-add-1-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "f58c4f423de9436e4ec1535c0c8eb8529258c4ca9f8a410d9e16c1ed0372203c",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        2147483648,
+        2147483648
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-add-2-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "b3a0e67f509735930284ca8b135b9afca732fb9c843cda60dde14b3ee9abaa59",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        4294967295,
+        4294967295
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-add-3-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "1813a66203b93f8690a17006923876c4f77b5df9796227be4d48d029a4ad8e79",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-sub-0-no-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": false,
+      "source_sha256": "d930bb3965306bdeba2e91479e764dfa7c9278be86e0252eac3b542be43c8288",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-sub-0-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "e198393d68a3cfe7393c8386363a6158a6cab6480af02f5f951258f79ae773d0",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        0,
+        4294967295
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-sub-1-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "df1865b4aec31cedd041f5c81c81a7124854aef511f14d70987e3f8b5db1733e",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        4294967294,
+        4294967295
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-sub-2-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "4db3a9ee1fc5209cca92f1e07a2c383535607b6d83caaaca8448cf714571afe3",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        2147483647,
+        2147483648
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u32-sub-3-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "3353139780021f67137f9732b536a5ea4d1160c91e5becead56a50f870f248d4",
+      "type": "u32"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-add-0-no-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": false,
+      "source_sha256": "04c36bf7b9ad290c0c8a465afbc6cc91acc223d42180955612f15f84e554d813",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-add-0-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "ca0c18306e507f5f15a650e2f83ce74bae3138c29b103a43f44ec994bbb17d04",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        1,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-add-1-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "5900e9704d5e87be2cf752fa4b26b04baeb29642e786262ffbd6928f7cf0413e",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        9223372036854775808,
+        9223372036854775808
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-add-2-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "abe6a1b7856ad8130a2aa246acb4761c892de059fb33b78900618e80cdc2b820",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-add-3-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "6ec5b80c7e562b4de4b76f870d37f3dcd81640bceaf3afa1a9e587d60f10b67e",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-sub-0-no-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": false,
+      "source_sha256": "cf897fbd23ee2c7a74637fcbab8eebed0a1277024b2dddb1b436eb72f0dfc580",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-sub-0-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "4411c4c753dea19d46e228edd416b2bfa43c4c2f0aa7f4a1893361e12878d7a9",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        0,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-sub-1-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "a53e4b6aa10997865e1bfd14ff40948218195d7833e10bdd42a964a3367647aa",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        18446744073709551614,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-sub-2-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "b5498ceb055de387b9675a045aec39edff815f8c4026c04cda200f3527a99d03",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        9223372036854775807,
+        9223372036854775808
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-u64-sub-3-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "34f8bf1539f25279972c232f6c431c4aa71e91ea28a0868e0ff3158089489527",
+      "type": "u64"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-add-0-no-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": false,
+      "source_sha256": "2c66fbef5cccb80e23e6342b4ceb7c2c19d99af69636d15ab50544a829760f09",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-add-0-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "d504db879c3f6c8c4b69f514bb5d7f50053cbcaae53d5d9c5dc0bb9d0144b6e9",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        1,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-add-1-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "b1f4c85d049c1ee2c5c9191e8d968cecc50cbd715b1a5477d45a491f8e0da45c",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        9223372036854775808,
+        9223372036854775808
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-add-2-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "12891e01103f16c4ef3f0d29ebb1f3532678266f3fda03d66f8ad66486e1d1ec",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        18446744073709551615,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-add-3-prior-store",
+      "opcode": "int.add.checked",
+      "prior_store": true,
+      "source_sha256": "96b11552b323737a2fc02343fbac6d31ead89884c204a4417c4295d54ed6db6b",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "a5a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-sub-0-no-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": false,
+      "source_sha256": "b7369e861eca364ccba03f3005e416864ce9f5dc3c91b82b953d7c998c47a690",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        0,
+        1
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-sub-0-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "bcb09bb40083fae356e8f106a9d7c74ad84dad6bdc127538992f5492709aba6e",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        0,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-sub-1-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "dd276475284a961127542573a451bbefdb31ab50e83a43da62130e26dcdbcc2a",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        18446744073709551614,
+        18446744073709551615
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-sub-2-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "2fb66ed3667c67d08ab44f6b7d8bd97a9d80732bfd32d248d5f429d89b29f34c",
+      "type": "usize"
+    },
+    {
+      "arguments": [
+        9223372036854775807,
+        9223372036854775808
+      ],
+      "expected_native_output_hex": "63a5a5a5a5a5a5a5",
+      "id": "checked-trap-usize-sub-3-prior-store",
+      "opcode": "int.sub.checked",
+      "prior_store": true,
+      "source_sha256": "20ef19b233f33aca8a2f27a447afc5ad3a164359aa2a28f0527372e7b403c2cf",
+      "type": "usize"
+    }
+  ],
   "checked_shift_traps": [
     {
       "amount": 8,
@@ -123,7 +605,7 @@
   "claims": {
     "compiler_correctness_formally_proved": false,
     "finite_witnesses_are_all_input_correctness_proof": false,
-    "inventory_covers_declared_v6_features": true,
+    "inventory_covers_declared_v8_features": true,
     "this_inventory_is_execution_evidence": false,
     "whole_HIA_language_self_hosted": false
   },
@@ -182,15 +664,20 @@
       "area": "integer_operations",
       "existing_evidence": [],
       "hia_functions": {
+        "checked_integer": "f44",
         "instruction": "f6",
         "normalize": "f19",
-        "operation": "f7"
+        "operation": "f7",
+        "select_scalar": "f45"
       },
       "items": [
         "const",
         "int.add.wrap",
         "int.sub.wrap",
         "int.mul.wrap",
+        "int.add.checked",
+        "int.sub.checked",
+        "bit.not",
         "bit.and",
         "bit.or",
         "bit.xor",
@@ -200,13 +687,20 @@
         "unsigned comparisons",
         "bool.and",
         "bool.or",
-        "bool.not"
+        "bool.not",
+        "select (bool condition, matching scalars)"
       ],
       "new_witnesses": [
         "scalar-*",
+        "dynamic-integer-*",
         "boolean",
         "cast",
-        "shift-trap-*"
+        "shift-trap-*",
+        "checked-trap-*",
+        "bit.not-*",
+        "int.add.checked-*",
+        "int.sub.checked-*",
+        "select-*"
       ],
       "status": "bounded_subset"
     },
@@ -393,8 +887,7 @@
     }
   ],
   "general_core_opcode_count": 50,
-  "general_core_opcodes_outside_v6": [
-    "bit.not",
+  "general_core_opcodes_outside_v8": [
     "borrow.mut",
     "borrow.read",
     "buffer.copy",
@@ -410,19 +903,17 @@
     "chain.is_empty",
     "chain.pop",
     "chain.try_push",
-    "int.add.checked",
     "int.div.checked",
     "int.mul.checked",
     "int.neg.checked",
     "int.rem.checked",
-    "int.sub.checked",
     "loan.end",
     "owner.drop",
-    "owner.move",
-    "select"
+    "owner.move"
   ],
   "input_opcodes": [
     "bit.and",
+    "bit.not",
     "bit.or",
     "bit.xor",
     "bool.and",
@@ -440,12 +931,15 @@
     "compare.lt",
     "compare.ne",
     "const",
+    "int.add.checked",
     "int.add.wrap",
     "int.cast",
     "int.mul.wrap",
     "int.shl.checked",
     "int.shr.checked",
-    "int.sub.wrap"
+    "int.sub.checked",
+    "int.sub.wrap",
+    "select"
   ],
   "input_types": [
     "u8",
@@ -496,7 +990,7 @@
       "derived_maximum_with_other_limits": 11265
     }
   },
-  "profile": "selfhost-core-linux-x86_64-v6",
+  "profile": "selfhost-core-linux-x86_64-v8",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -829,6 +1323,84 @@
       "source_sha256": "35d1ca0df7fd2e061aa1f3bbbcc9bd65216c3a630607406a4e8d9faca352c5e8"
     },
     {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-arity-0",
+      "source_sha256": "2396c09fdb46b4134d90f00baab493b9417995c645355bd094dc645b12a66b61"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-arity-1",
+      "source_sha256": "198a0af33373690e7cfad4d09029963055f4151e50bdfe006ce1ead65a41dbd2"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-arity-2",
+      "source_sha256": "2264663431e00aebea3de8cf5b2d848ed65eed77e1f21283c925e6467e383147"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-arity-4",
+      "source_sha256": "0bcaa60626edbbe6877f9d7911d172b42ba1b54c351fbf4ac0cead0fa1d80323"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-condition",
+      "source_sha256": "73a173b2263a34b97bff919df0ec518bb1745ce6c9b72be343436c95bdf312ba"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-unlike-values",
+      "source_sha256": "3fdd68015ed857b2fec2c9e13fa92a886a7d67989cf3e8745f9f882ef82bde05"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-unlike-values-reversed",
+      "source_sha256": "c16f477012678ddec97e0b59f7e6b98a9d13b687b3b57312a82e9db1a0fb11c2"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-result-type",
+      "source_sha256": "3cf173402447fe38755a0db55598747c65bea1e000fa8c3ca282f75b89fc848a"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-bool-integer-mix",
+      "source_sha256": "df40242a6d8bcb7503f9c7ffde2b8e10d28666badbe627c0ed4ae1372a7e1923"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-readonly-resource",
+      "source_sha256": "2a740524ee4f69a4192261a321c1dec28a00c3bf8724c8638cff86c82e6d2b18"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-mutable-resource",
+      "source_sha256": "58a4f2e7dc590e6f0ccc45ef667c0008d0ec09e62f58a10723c43c68087dd01f"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-void-result",
+      "source_sha256": "1b1e26720018cf3e577f7c74bdd349dd549005545aa22bbe0cd2465fa133e933"
+    },
+    {
+      "boundary": "bool condition, three operands, matching scalar values/result",
+      "general_core_expected": "rejected",
+      "id": "select-undefined-third",
+      "source_sha256": "6ce215b4265b2922bbe0751476e38bad526f688b04afdbf97f300dacc4b7676e"
+    },
+    {
       "boundary": "16 parameters/arguments",
       "general_core_expected": null,
       "id": "parameters-17",
@@ -953,6 +1525,216 @@
       "general_core_expected": null,
       "id": "integer-literal-not-boolean",
       "source_sha256": "41b08b59d67dc6443ee83f60a36456ed01df1acf3ef2d4ea440de0daa8c68271"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-short-arity",
+      "source_sha256": "2fc18406bc29472d321e88bdb8bbb69c6db04598ea8195168924707f84d3188a"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-long-arity",
+      "source_sha256": "3d0ffcc94244c8283dafa59fd8168f781994bcc49e8e64cb2ad7664dbde66bc3"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-result-type",
+      "source_sha256": "437a43a67771e65dd6bd1461fec81c9875a8bb14ba59e79314c4989b19c4e9d0"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-missing-result",
+      "source_sha256": "49a8a8a671492d8ea8583869be63ae5bb838c1ebb31654fae133cb3dcc2683d2"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-buffer-operand",
+      "source_sha256": "e9a6eb905de3ecbce5d47eacfb1f8064ad57d7e7c771d1a7bf49f291b8406e86"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-boolean-operand",
+      "source_sha256": "5b011ac6bae34d1754806a9fcd57a94d3bf04fd45c81beda47c4ac7475f56aab"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "bit.not-unexpected-attribute",
+      "source_sha256": "46e7f06fe564a3d795e49619b39335ead8468ad7595184f06bb33072b3dc86e1"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "bit.not-u8-literal-overflow",
+      "source_sha256": "fdde77634b312e2cded726e9d75f6045b2fd0149e6a7894cd1d123942f6fd806"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "bit.not-u32-literal-overflow",
+      "source_sha256": "4ce74453b665bbfac40a642abbb4c2dc4f7a0a6a54b67d891372d5cc25f71129"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "bit.not-u64-literal-overflow",
+      "source_sha256": "22109ae452b0facdfe05a076925d1290a143fa2b1cc182f76a722c4f2f797189"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "bit.not-usize-literal-overflow",
+      "source_sha256": "4b2cb4ffacaa3da11e8aa6fa4505a518d022a172d453db7c3c7b9eecb91e97f6"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-short-arity",
+      "source_sha256": "bfda5452b5b0ab11ec1950b0567cbb5c95d271d7e9bf706addb4903e65c54dc4"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-long-arity",
+      "source_sha256": "d2c5f76ed8e84bc5008f23cd42eebafd135ec40bb97c23df9378e388329f5985"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-result-type",
+      "source_sha256": "6768bb32f2646e8c4a47190a0276bf82d451b112e648de6e2af45e3a654a3e04"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-missing-result",
+      "source_sha256": "5009eee5c8971d6540f9c1a29dd72b9944479f3715c62bd75cb10ad9b8a5d40b"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-buffer-operand",
+      "source_sha256": "b8b9b0bf4f26951d8ecdf252cce5710946a366a40896cb5bbd776bcce60b185b"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-boolean-operand",
+      "source_sha256": "bd894e300b698fda3d2eef35b34e857e07a4f214dacc3a4e8592698bd1a823cb"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-unexpected-attribute",
+      "source_sha256": "c981fd8bb8b9f224d96b7550c53470da466e85cb004a3e755fadd5ab4dbb7fb9"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-operand-type-mismatch",
+      "source_sha256": "d261616782334f708e04b826a755a1e8308d07b28c30fa861941ad56fa7e7b13"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-u8-literal-overflow",
+      "source_sha256": "bb8438a220424990dc4ac728e214d5e12a6cd79efe53b0295c4b926eacb0b916"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-u32-literal-overflow",
+      "source_sha256": "a946fc9e25848a9da47f5ec070075087d0bc793ed74de22a6fe5d3dc28924842"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-u64-literal-overflow",
+      "source_sha256": "ab61291972911c6ca1360ef9e1776848342bae430dbcee7b3a032eae62279fbc"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.add.checked-usize-literal-overflow",
+      "source_sha256": "2758c19548e8233d55b2a61d4b22514711934a9541cb2f3666cc8b0c33e80a98"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-short-arity",
+      "source_sha256": "f5f6d6e61adf585bfb1faa60fd22f856baebc760e051ea0233270caa7a035a0f"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-long-arity",
+      "source_sha256": "3925618f4499da27a23f953ccb619c62066af777a8ca11803ae1ab7f9d901f8c"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-result-type",
+      "source_sha256": "55bd8d96a6a8a2f143056a7a8d58add70a271d53cb23a5b6ab156e087cac259c"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-missing-result",
+      "source_sha256": "6d897a208cef23836c78493b03716f7bda704e260ec075c321b75c95d350512d"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-buffer-operand",
+      "source_sha256": "c1e23b2d8ca16021a0184d64a96bca2fc07037119b2a107a618be90d7812ccc8"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-boolean-operand",
+      "source_sha256": "0680c44bf5754e4e8dfd2c7605993ec4012592a0223b7f55d86af58d6a76d029"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-unexpected-attribute",
+      "source_sha256": "4b6df738ab1ed8de212d8ba736866e6cabc5561974cb371702971fc3036308e3"
+    },
+    {
+      "boundary": "exact unsigned operation signature and empty attributes",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-operand-type-mismatch",
+      "source_sha256": "00ab83768c39e8338e564326bf388798c8717be3932abe8b9ca55a42cc3dc8db"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-u8-literal-overflow",
+      "source_sha256": "733c56c07c70c5525d26fac37fbf3f32c8685af3f8fde7200378fca9d4f14946"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-u32-literal-overflow",
+      "source_sha256": "6b3ef1672f9617d1a92294bbba9cd72bcf3a1d6e51f4ecba02727f8215ace8bc"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-u64-literal-overflow",
+      "source_sha256": "94141e7323bc4583b07ce2ec689f7e9968c9f80cbb8764102f22b413ed3a00fc"
+    },
+    {
+      "boundary": "typed literal must fit the operand width",
+      "general_core_expected": "rejected",
+      "id": "int.sub.checked-usize-literal-overflow",
+      "source_sha256": "f393083f9a9ea7eda71f12c260ea40d6423fb78c7100d0347055b89af869ebf9"
     }
   ],
   "run": {
@@ -989,18 +1771,19 @@
         true
       ]
     ],
-    "count": 568,
+    "count": 700,
+    "dynamic_integer_witnesses": "each new integer operation reads all operand bytes from the runtime source buffer",
     "groups": {
-      "boolean": 12,
+      "boolean": 20,
       "cast": 80,
-      "scalar-u32": 119,
-      "scalar-u64": 119,
-      "scalar-u8": 119,
-      "scalar-usize": 119
+      "scalar-u32": 150,
+      "scalar-u64": 150,
+      "scalar-u8": 150,
+      "scalar-usize": 150
     },
     "observation": "eight little-endian output bytes per scalar result, including all 64 bits",
     "reference": "independent general Core VM plus Python integer/boolean oracle, executed before B0",
-    "specification_sha256": "026763e17bbb4505cc2d3074081a5942be24a741ce4545811e916006955adb1f",
+    "specification_sha256": "8123e18e2e5c991892a61bfa86463471393bb6d530422bf1d00035d7e6b3a232",
     "unsigned_widths": {
       "u32": 32,
       "u64": 64,
@@ -1078,13 +1861,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "048a259000e4daf16e23a16e073bc8a64d84b5159097829309fa0fbb7d795958"
+      "sha256": "5033a2ebed529b4deb73ba5620f1a5cee8b7b91adbf07162c4ddc27ba1aa9bc2"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "85288cfc4b649b2be13175675880f5372f16bf3d9c5d4b78ba21ffa2c90b6b44"
+      "sha256": "a797ceaaa1084713dbf28e65e9910aa0c2ded28cf7e64d4c4682fd26e5d5bbac"
     },
-    "semantic_support_sha256": "5bc125d00707ffb19b2367076a9f70781203c572cb6d94b1c76cd6d3a51f8d1a",
+    "semantic_support_sha256": "b7e265dfb61af45010f97b5ce8e5d908f6e38647bb70bb1e00fd99815dc7c239",
     "support_projection_omits": [
       "source_identity"
     ]

@@ -15,6 +15,18 @@ on:
       - 'tests/test_hia_agent_macro_policy.py'
       - 'tests/test_hia_macro_strong_control.py'
       - 'tests/test_hia_macro_multistep.py'
+      # Requalify this source head when HIA proof/Core or release inputs change.
+      - 'hepta/hia_*.py'
+      - 'tools/hia_release.py'
+      - 'tests/test_hia_release*.py'
+      - 'tools/generate_hia_selfhost*.py'
+      - 'tools/hia_selfhost_*.py'
+      - 'tools/qualify_hia_selfhost*.py'
+      - 'tools/replay_hia_selfhost*.py'
+      - 'tests/test_hia_selfhost*.py'
+      - 'examples/hia_bootstrap/**'
+      - 'docs/HIA_SELFHOST*.json'
+      - '.github/workflows/hia-sixgap-source.yml'
   workflow_dispatch:
 
 permissions:
@@ -109,6 +121,24 @@ jobs:
                        'hard_violation': False, 'support_sha256': '2' * 64}
                       for cid,cost in (('abstain',100),('beta',50),('alpha',50))]}
               response, identity = _native_rank(bridge,request,timeout_s=2)
+              original_build_receipt = Path(bridge['build_receipt']).read_bytes()
+              if sha256(original_build_receipt).hexdigest() != identity['build_receipt_sha256']:
+                  raise AssertionError('original native build receipt changed after the actual probe')
+              native_bytes = Path(bridge['binary']).read_bytes()
+              native_sha256 = sha256(native_bytes).hexdigest()
+              if not (native_sha256 == identity['binary_sha256'] ==
+                      json.loads(original_build_receipt)['binary_sha256']):
+                  raise AssertionError('retained native bytes differ from the actual probe or build receipt')
+              native_directory = evidence / 'native'
+              native_directory.mkdir()
+              retained_native = native_directory / 'hia-ndu-bridge'
+              with retained_native.open('xb') as stream:
+                  stream.write(native_bytes)
+              if retained_native.read_bytes() != native_bytes:
+                  raise AssertionError('retained native binary readback differs')
+              report['retained_native_binary'] = {
+                  'path': 'native/hia-ndu-bridge', 'bytes': len(native_bytes), 'sha256': native_sha256,
+                  'source_build_receipt_sha256': identity['build_receipt_sha256']}
               selection = resolve_scalar_selection(request,response)
               probe = {'request': request, 'native_response': response, 'native_identity': identity,
                   'selection_resolution': selection, 'scope': 'actual native ABI regression input; not a task cohort'}
@@ -139,6 +169,10 @@ jobs:
                       self.completed_ids.append(test.id())
                       super().addSuccess(test)
               result = unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)
+              report['native_binary_sha256_after_suite'] = sha256(Path(bridge['binary']).read_bytes()).hexdigest()
+              report['native_binary_unchanged_after_suite'] = report['native_binary_sha256_after_suite'] == native_sha256
+              if not report['native_binary_unchanged_after_suite']:
+                  raise AssertionError('original native binary changed during the integration suite')
               required = 'tests.test_hia_ndu_scalar_selection.NativeScalarSelectionTests.test_actual_native_tie_and_injected_wrong_frontier'
               qualified = (result.wasSuccessful() and not result.skipped and not result.expectedFailures
                   and required in result.completed_ids and result.testsRun > 0)
@@ -152,6 +186,7 @@ jobs:
               if not qualified:
                   raise AssertionError('all named integration tests and the native test must pass with zero skips')
           except BaseException as error:
+              report['status'] = 'FAILED'
               report['error'] = {'type':type(error).__name__,'message':str(error)}
               raise
           finally:

@@ -96,6 +96,19 @@ class ReleaseLockBoundaries(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "incomplete"):
             release.load_lock(self.save(value))
 
+    def test_repository_trial_inputs_and_proof_scope_cannot_disappear_from_inventory(self):
+        for name in (
+            "tools/hia_repository_agent_trial.py", "tests/test_hia_repository_agent_trial.py",
+            "docs/HIA_REPOSITORY_AGENT_TRIAL.md",
+            "experiments/hia_repository_select_trial_20261108/public/PROMPT.txt",
+            "experiments/hia_repository_select_trial_20261108/public/task.json",
+            "tests/test_hia_scalar_proof_contract.py", "docs/HIA_AGENT_PROOF_RESULTS.md",
+        ):
+            value = lock_fixture()
+            del value["files"]["hepta"][name]
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):
+                release.load_lock(self.save(value))
+
     def test_inventory_path_traversal_is_rejected(self):
         for filename in ("../outside", "/etc/passwd", "tools//bad", "tools/./bad"):
             value = lock_fixture()
@@ -145,15 +158,24 @@ class CommittedSourceBoundary(unittest.TestCase):
             git("config", "user.email", "fixture@example.invalid")
             git("config", "uploadpack.allowFilter", "true")
             (source / "source.py").write_text("version = 1\n")
+            prompt_name = "experiments/hia_repository_select_trial_20261108/public/PROMPT.txt"
+            prompt = source / prompt_name
+            prompt.parent.mkdir(parents=True)
+            prompt.write_text("pinned public maintenance task\n")
             git("add", ".")
             git("commit", "-qm", "pinned")
             pinned = git("rev-parse", "HEAD")
             (source / "source.py").write_text("version = 2\n")
+            prompt.write_text("later public maintenance task\n")
             git("commit", "-qam", "later tip")
             release.checkout_remote_source(source.as_uri(), pinned, target)
+            subprocess.run(["git", "-C", str(target), "sparse-checkout", "set", "--cone",
+                            *release.SOURCE_DIRECTORIES], check=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             subprocess.run(["git", "-C", str(target), "checkout", "--detach", pinned],
                 check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             self.assertEqual((target / "source.py").read_text(), "version = 1\n")
+            self.assertEqual((target / prompt_name).read_text(), "pinned public maintenance task\n")
             self.assertEqual(release.preflight.git(target, "rev-parse", "HEAD").strip(), pinned)
             self.assertEqual(release.preflight.git(target, "rev-list", "--count", "HEAD").strip(), "1")
             with self.assertRaises(subprocess.CalledProcessError):

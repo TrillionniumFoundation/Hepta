@@ -16,7 +16,7 @@
     "entry": "f0",
     "insufficient_capacity": 4294967294,
     "invalid_source": 4294967295,
-    "native_runtime_trap": "UD2 for failed bounds or checked shift",
+    "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked add or sub",
     "parameters": [
       "source_ptr",
       "source_len_u64",
@@ -64,7 +64,7 @@
     "tail_self_call_additional_frames": 0,
     "workspace_required_bytes": 1048576
   },
-  "profile": "selfhost-core-linux-x86_64-v6",
+  "profile": "selfhost-core-linux-x86_64-v8",
   "required_replay": {
     "cold_command": "python -B tools/replay_hia_selfhost_cold.py --output <new-report.json>",
     "fixed_point": "B1 == B2 == B3 bytes",
@@ -85,10 +85,10 @@
   "schema": "hepta.hia.selfhost-core-support.v1",
   "source_identity": {
     "files": {
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "91d906371df4a574eadb2eba7279122032110df28438658935fc4f3ab6b8c78e",
-      "docs/HIA_SELF_HOSTING_CORE.md": "2287c460a6232ba54c8acca65e5452c97cabb8641816adda5647fbfc262d6008",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "b96d88b8c18a8e07c1d6cbc9eb2f9ea1cc4055b3b713e40df01b965191e9e7cc",
+      "docs/HIA_SELF_HOSTING_CORE.md": "c81a9aa6378cdb8e8ae421054732c91244f206a3a2a0d47d759b1bdfdd3cff77",
       "examples/hia_bootstrap/bytesum.hiaasm": "74bbcc3a6e0ac0962ec32017f4d8c971c91bca0f53c3de7846d65de6194ce4ae",
-      "examples/hia_bootstrap/selfhost.hiaasm": "85288cfc4b649b2be13175675880f5372f16bf3d9c5d4b78ba21ffa2c90b6b44",
+      "examples/hia_bootstrap/selfhost.hiaasm": "a797ceaaa1084713dbf28e65e9910aa0c2ded28cf7e64d4c4682fd26e5d5bbac",
       "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
       "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
       "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
@@ -298,15 +298,15 @@
       "hepta/static_resource_contracts.py": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01",
       "hepta/windows_capture.py": "0daadfd048cdf08d31344cd2485e78ef3efaac4055850f0ea13501e813414baa",
       "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
-      "tests/test_hia_selfhost.py": "1343c6f6fd1e27aca860e5f9b24d3c783f308d2e4ae2de75c6c2d4035334549e",
+      "tests/test_hia_selfhost.py": "3ada4ecb966a9c42fa4c516a3b4edf946efedfc0153e9b40677d29370d98fd79",
       "tests/test_hia_selfhost_contract.py": "e13383a0899b5ab17d3db6f09a44a58cbefcc76ba5cd4052bc1491edf93017b7",
-      "tests/test_hia_selfhost_language_coverage.py": "99bb7d0dd13ad574441aafe28f4539076600d53c428bbdc10cbf34e81a102157",
-      "tools/generate_hia_selfhost.py": "048a259000e4daf16e23a16e073bc8a64d84b5159097829309fa0fbb7d795958",
+      "tests/test_hia_selfhost_language_coverage.py": "ffaf11b33c16ba6322e6c473a311b3d4a1c402b9adfe91208a4393d9b4ec93da",
+      "tools/generate_hia_selfhost.py": "5033a2ebed529b4deb73ba5620f1a5cee8b7b91adbf07162c4ddc27ba1aa9bc2",
       "tools/generate_hia_selfhost_contract.py": "fa752ad75b91575419f6a389049f17a171abbb3647e2a4a0ad0bd334dd7ba980",
       "tools/hia_selfhost_capacity.py": "b838c1ff809acfd24c3f8cb98dfeecd3d56c87cd850eb5b16b0b0275ff351917",
       "tools/hia_selfhost_cases.py": "abaef65d2d979ff8f8f67b0a233c6e63db995026ca6130178ded66e7f6d141be",
       "tools/hia_selfhost_child.py": "39fa58fbada4167989fbf9704d9f6bded7fe60fb0b979542f21dbd59277292bb",
-      "tools/hia_selfhost_contract.py": "54e5519431c07f0341699e28efd0495ba0ad1cdbad181ba7bad22a7d40011231",
+      "tools/hia_selfhost_contract.py": "43a199a1d553d7f9ce83a9ae8f94e2a2c32229d25fc4201eec1507c6e5e11a08",
       "tools/hia_selfhost_limits.py": "3a187861cde6bf1819f2739cae9cd648c899567efba1ff22a63989210d18067d",
       "tools/hia_selfhost_resources.py": "069eaaf7e077360ac290183c93eca9e7b4263dbeb8ee7a2819805634a8c46388",
       "tools/hia_selfhost_tailcalls.py": "f9a03fa91650784fe7c3b693eae23e46f50d4eafc76cd46c7a27d9ed0f2c6ca9",
@@ -368,6 +368,9 @@
         "int.add.wrap",
         "int.sub.wrap",
         "int.mul.wrap",
+        "int.add.checked",
+        "int.sub.checked",
+        "bit.not",
         "bit.and",
         "bit.or",
         "bit.xor",
@@ -377,7 +380,8 @@
         "unsigned comparisons",
         "bool.and",
         "bool.or",
-        "bool.not"
+        "bool.not",
+        "select (bool condition, matching scalars)"
       ],
       "status": "bounded_subset"
     },

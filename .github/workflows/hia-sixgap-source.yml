@@ -64,6 +64,11 @@ jobs:
         run: |
           set -euo pipefail
           python -B -m unittest tests.test_hia_agent_macro_policy tests.test_hia_macro_strong_control tests.test_hia_macro_campaign tests.test_hia_macro_codex_provider tests.test_hia_repository_agent_trial -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/macro-cost-controls.log"
+      - name: Check selfhost compiler input limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-source.log"
       - name: Rebuild the frozen selfhost chain from a cold directory
         shell: bash
         run: |

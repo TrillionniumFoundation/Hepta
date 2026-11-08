@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v6`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v8`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -108,13 +108,22 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 |---|---|
 | Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf` parameters |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
-| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
+| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
+| Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
+
+All integer operations use `u8`, `u32`, `u64` or `usize`; booleans remain
+separate. `bit.not` complements exactly the declared width. Checked addition
+traps when the mathematical sum exceeds that width's unsigned maximum, and
+checked subtraction traps when the left operand is smaller than the right.
+An arithmetic trap uses `UD2`, as do bounds and shift traps. A trap occurs
+before later effects; stores completed before it remain observable. Arbitrary
+program execution has no rollback guarantee.
 
 The compiler returns the generated image size on success, `0xffffffff` for
 invalid/unsupported input, and `0xfffffffe` for insufficient output or workspace
@@ -189,8 +198,9 @@ reimplemented as a dependency of the native compiler.
 The previous v4 profile allowed 3,072 instructions; v5 raised this to 8,192
 without increasing source, output or workspace bytes, stack/CPU/address-space
 limits, or child deadlines. The v5 compiler contained 3,044 instructions.
-v6 retains these limits and all exact capacity fixtures while adding the tail
-self-call checker and lowering. The current instruction count is recorded by
+v6 retained these limits and all exact capacity fixtures while adding the tail
+self-call checker and lowering. v8 retains the same limits while adding three
+unsigned integer operations and scalar selection. The current instruction count is recorded by
 the authoring aid and each B0/generation receipt. Owned resources, returned
 loans, non-tail/mutual recursion, arbitrary identifiers and general external
 linking remain outside this profile.
@@ -228,7 +238,7 @@ external assembler/linker. It does reuse, rather than freshly rebuild, the
 historical v4 B3; the independent v5 cold replay still starts from B0.
 
 Run that historical replay from the pinned v5 source release. Its script refuses
-to apply the v4-to-v5 label to a v6 checkout: v4/v5 did not admit self calls, and
+to apply the v4-to-v5 label to a v6 or later checkout: v4/v5 did not admit self calls, and
 this round does not claim a native-only historical upgrade into the new source.
 
 ```sh
@@ -351,6 +361,62 @@ or recursion to Selfhost-Core. Those constructs remain outside the fixed
 profile; the general Core reference's broader ownership support is not evidence
 that the native self-hosting checker implements it. These finite cases are
 regression evidence rather than a general checker or refinement proof.
+
+### v8 unsigned integer and scalar selection extension
+
+The HIA scanner, type/arity checker and machine emitter now implement
+`bit.not`, `int.add.checked`, `int.sub.checked` and scalar `select`. This brings
+the declared input operation set to 28 of the 50 general Core operations. It does not
+expand the ABI, owned resources, external linking, resource limits or the
+separate Safe Core machine-validation profile.
+
+The emitter checks the machine carry/borrow flag immediately after 64-bit
+addition/subtraction. Narrow addition also compares its full sum with its
+normalized `u8` or `u32` result, so overflow cannot be hidden by truncation.
+The verifier requires one matching integer operand for `bit.not` and two
+matching integer operands for checked addition/subtraction, with one matching
+result and no attributes.
+
+The integer emitter is HIA helper `f44`; scalar selection is helper `f45`.
+Both are appended after the original `f0` through `f43`, preserving their
+identities and keeping every compiler function
+within the unchanged SSA-index and per-function block limits. Qualification
+checks those limits on the compiler's own complete input source as well as on
+boundary fixtures.
+
+The versioned language inventory includes 700 independent scalar value
+oracles. Every new operation also runs with operands decoded from runtime
+input bytes in each of the four widths. The general Core VM executes those
+input-dependent bodies through an owned-buffer reference wrapper before B0.
+B3 and mutated M3 compile and execute all native fixtures. Separate refusal
+cases cover arity, result/operand types, boolean and buffer misuse, unexpected
+attributes and out-of-range literals. Forty arithmetic-trap cases per compiler
+cover unsigned overflow and underflow, including 64-bit carry and narrow
+overflow without a 64-bit carry. Shared output retains a prior store and
+excludes a later store after a trap; no-prior-store controls retain the whole
+preimage. The arithmetic VM reference verifies each trapping operand pair;
+the shared native output supplies the memory-order observations.
+
+Selection requires a boolean condition and two matching scalar values of
+`u8`, `u32`, `u64`, `usize` or `bool`, with the same result type. True selects
+the second operand; false selects the third. The machine emitter uses full-word
+moves and a conditional move on the condition. Forty scalar selection witnesses
+cover both conditions for each type and the complete boolean truth table.
+Twenty-eight additional observations vary input bytes while keeping each type's
+program unchanged; every integer result is observed as all eight output bytes.
+Thirteen selection refusal cases cover arity, condition, value/result type,
+resource misuse, omitted results and an undefined third operand.
+
+```sh
+python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
+python -B tools/generate_hia_selfhost_contract.py
+python -B tests/test_hia_selfhost_language_coverage.py --output <new-report.json>
+```
+
+Regeneration produces declarations and input identities. Only the subsequent
+qualification report records execution, including failed runs and all raw
+child logs. The finite cases and fixed points are not an all-input compiler
+correctness proof.
 
 ## Modification experiment
 
