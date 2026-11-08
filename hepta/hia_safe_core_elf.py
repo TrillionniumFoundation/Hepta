@@ -68,6 +68,13 @@ class _ELF:
                 self.slice(off, filesz)
                 self.segments.append(dict(type=typ, flags=flags, offset=off, addr=addr,
                                           filesz=filesz, memsz=memsz, align=align))
+            # The loader consumes program headers in file order. Sorting only
+            # for the overlap check can silently admit a non-ELF load order:
+            # first/last PT_LOAD entries determine a loader's mapping bounds.
+            # Preserve the gABI p_vaddr ordering contract before normalization.
+            loads = [seg for seg in self.segments if seg["type"] == 1]
+            require(all(left["addr"] <= right["addr"] for left, right in zip(loads, loads[1:])),
+                    "PT_LOAD entries are not in ascending virtual-address order")
             # ELF loaders map pages, not section intervals.  A second partial
             # PT_LOAD could otherwise replace one page of a checked section.
             loaded_pages = sorted((s["addr"] // 4096, (s["addr"] + s["memsz"] + 4095) // 4096)

@@ -441,6 +441,9 @@ def qualify(output):
     from tools.hia_selfhost_select import independent_select_reference, qualify_select
     select_reference = independent_select_reference()
     (directory / "independent-select-reference.json").write_text(json.dumps(select_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_control import independent_control_reference, qualify_control
+    control_reference = independent_control_reference()
+    (directory / "independent-control-reference.json").write_text(json.dumps(control_reference, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -521,6 +524,7 @@ def qualify(output):
     expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
     tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
     select_observations = qualify_select(directory, (("original", original), ("modified", previous)), checks, select_reference)
+    control_observations = qualify_control(directory, (("original", original), ("modified", previous)), checks, control_reference)
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
         "schema": "hepta.hia.selfhost-qualification.v6",
@@ -539,6 +543,7 @@ def qualify(output):
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
         "select_observations": select_observations, "independent_select_reference": select_reference,
+        "control_observations": control_observations, "independent_control_reference": control_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,

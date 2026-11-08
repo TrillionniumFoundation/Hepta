@@ -12,11 +12,13 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
-from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
+from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS,
+                                     MAX_SOURCE_LINES, MAX_LINE_BYTES)
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked",
+ "user", "overflow", "division_by_zero", "bounds", "allocation"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -45,6 +47,9 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             i = i + 8
         put(w, 248, 4)
         put(w, 48, phase)
+        if phase == 0:
+            if source_limits(s, w) == 0:
+                return 4294967295
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
         expect(s, w, @hepta.hia.program.v8@)
@@ -233,28 +238,31 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             emit(o, w, 201)
             emit(o, w, 195)
     else:
-        if get(w, 8) == @jump@:
-            next_token(s, w)
-            edge(s, o, w, 0)
+        if get(w, 8) == @trap@:
+            explicit_trap(s, o, w)
         else:
-            expect(s, w, @branch@)
-            account_nodes(w, 1)
-            separated(w)
-            v = expect(s, w, 256)
-            if variable(w, v) != 5:
-                fail(w, 14)
-            load_var(o, w, 0, v, 0)
-            emit(o, w, 72)
-            emit(o, w, 133)
-            emit(o, w, 192)
-            emit(o, w, 15)
-            emit(o, w, 132)
-            at = get(w, 56)
-            emit4(o, w, 0)
-            edge(s, o, w, 0)
-            if get(w, 48) == 2:
-                write4(o, at, get(w, 56) - at - 4)
-            edge(s, o, w, 1)
+            if get(w, 8) == @jump@:
+                next_token(s, w)
+                edge(s, o, w, 0)
+            else:
+                expect(s, w, @branch@)
+                account_nodes(w, 1)
+                separated(w)
+                v = expect(s, w, 256)
+                if variable(w, v) != 5:
+                    fail(w, 14)
+                load_var(o, w, 0, v, 0)
+                emit(o, w, 72)
+                emit(o, w, 133)
+                emit(o, w, 192)
+                emit(o, w, 15)
+                emit(o, w, 132)
+                at = get(w, 56)
+                emit4(o, w, 0)
+                edge(s, o, w, 0)
+                if get(w, 48) == 2:
+                    write4(o, at, get(w, 56) - at - 4)
+                edge(s, o, w, 1)
     expect(s, w, 10)
     return 0
 
@@ -1205,6 +1213,43 @@ def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64
     emit(o, w, 69)
     emit(o, w, 193)
     return 0
+
+# Appended helpers keep earlier HIA function names stable. Successor preflight
+# and trap lowering execute here, without a host parser or lowering callback.
+def explicit_trap(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    account_nodes(w, 3)
+    expect(s, w, @trap@)
+    separated(w)
+    code = get(w, 8)
+    if code != @user@ and code != @overflow@ and code != @division_by_zero@ and code != @bounds@ and code != @allocation@:
+        return fail(w, 61)
+    next_token(s, w)
+    # The flat ABI exposes an aborting UD2, not a structured trap-code result.
+    # Prior stores stay visible and no caller continuation is executed.
+    emit(o, w, 15)
+    emit(o, w, 11)
+    return 0
+
+def source_limits(s:readbuf, w:mutbuf) -> u64:
+    pos = 0
+    line_bytes = 0
+    lines = 1
+    while pos < length(s):
+        if byte(s, pos) == 10:
+            lines = lines + 1
+            line_bytes = 0
+            if lines > MAX_SOURCE_LINES:
+                put(w, 24, pos)
+                fail(w, 63)
+                return 0
+        else:
+            line_bytes = line_bytes + 1
+            if line_bytes > MAX_LINE_BYTES:
+                put(w, 24, pos)
+                fail(w, 62)
+                return 0
+        pos = pos + 1
+    return 1
 '''
 
 
@@ -1218,7 +1263,8 @@ def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS',
+                'MAX_SOURCE_LINES', 'MAX_LINE_BYTES']:
         text = text.replace(key, str(globals()[key]))
     return text
 

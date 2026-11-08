@@ -66,8 +66,16 @@ execution fallback that can turn an unknown proof result into approval.
    allocated sections, including dynamic symbols/strings/relocations/hash and
    version tables, must refer to the bytes the `PT_LOAD` mapping really loads.
    Partial overlapping page mappings, extra executable segments and unreviewed
-   loader hooks reject. SysV/GNU hash tables must actually resolve the checked
+   loader hooks reject. `PT_LOAD` entries must retain the gABI's ascending
+   virtual-address order in the actual program-header table, before any sorted
+   overlap calculation. Reordering a complete load-header record can leave all
+   section bindings unchanged while breaking the loader's mapping bounds.
+   SysV/GNU hash tables must actually resolve the checked
    entrypoint; a matching symbol-table label alone is insufficient.
+   Direct shared-image linkage explicitly requests `--hash-style=both` (through
+   `-Wl,` for a C driver), because distribution-specific GNU-ld defaults otherwise
+   omit a lookup table required by this closed profile. The build receipt
+   records this flag. See [ELF gABI, Program Header / PT_LOAD](https://gabi.xinuos.com/elf/07-pheader.html).
 
 5. **Final immutable image.** `build_safe_core` links into a private temporary
    directory, validates those final bytes, and publishes the exact bytes only

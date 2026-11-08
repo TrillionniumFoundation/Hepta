@@ -1549,6 +1549,13 @@
     "this_inventory_is_execution_evidence": false,
     "whole_HIA_language_self_hosted": false
   },
+  "explicit_trap_codes": [
+    "user",
+    "overflow",
+    "division_by_zero",
+    "bounds",
+    "allocation"
+  ],
   "features": [
     {
       "area": "scalar_types",
@@ -1653,11 +1660,13 @@
     {
       "area": "control_flow",
       "existing_evidence": [
-        "tools.qualify_hia_selfhost.qualify"
+        "tools.qualify_hia_selfhost.qualify",
+        "tools.hia_selfhost_control.qualify_control"
       ],
       "hia_functions": {
         "check_graph": "f11",
         "edge": "f5",
+        "explicit_trap": "f46",
         "parse_block": "f3"
       },
       "items": [
@@ -1665,6 +1674,7 @@
         "typed jump",
         "typed branch",
         "loops",
+        "explicit trap: user, overflow, division_by_zero, bounds, allocation",
         "block reachability",
         "no inbound entry edges"
       ],
@@ -1672,7 +1682,8 @@
         "boolean",
         "blocks-*",
         "inbound-entry-edge",
-        "existing-unreachable-block"
+        "existing-unreachable-block",
+        "trap-*"
       ],
       "status": "supported"
     },
@@ -1887,6 +1898,12 @@
     "int.sub.wrap",
     "select"
   ],
+  "input_terminators": [
+    "ret",
+    "jump",
+    "branch",
+    "trap"
+  ],
   "input_types": [
     "u8",
     "u32",
@@ -1908,6 +1925,8 @@
       "parameters_or_arguments": 16,
       "relative_relocations": 12000,
       "source_bytes": 1048576,
+      "source_line_bytes": 16384,
+      "source_lines": 16384,
       "ssa_index_max": 2047,
       "tail_self_call_additional_frames": 0,
       "workspace_required_bytes": 1048576
@@ -1916,6 +1935,7 @@
       "tools.hia_selfhost_cases.backward_chain_source",
       "tools.hia_selfhost_capacity.qualify_capacity",
       "tools.hia_selfhost_tailcalls.qualify_tailcalls",
+      "tools.hia_selfhost_control.qualify_control",
       "tools.qualify_hia_selfhost.qualify"
     ],
     "new_boundaries": [
@@ -1928,7 +1948,10 @@
       "functions-129",
       "ssa-index-2047",
       "ssa-index-2048",
-      "source-bytes-1048576"
+      "source-bytes-1048576",
+      "wire-*-16384",
+      "wire-*-16385",
+      "wire-lines-16385"
     ],
     "transport_limit": "ordinary child rejects source/output sizes above 1 MiB before native entry; no larger native-call claim",
     "unreachable_relocation_ceiling": {
@@ -1936,7 +1959,8 @@
       "derived_maximum_with_other_limits": 11265
     }
   },
-  "profile": "selfhost-core-linux-x86_64-v9",
+  "native_trap_code_observation": "UD2 process outcome; individual source trap codes are not returned by the flat ABI",
+  "profile": "selfhost-core-linux-x86_64-v10",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -3089,13 +3113,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "f2ad760b59eaa84338534b2333dd5036fc3d46b3b27e4d49a5f4b212f6ccbee7"
+      "sha256": "d91ef7d98fd7bde4eaf7ed7ad815371bcfba48cdde417954b1c5e3abb4b5ed10"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "ff478d7194b2b7465f76267ba5c6f3fb7ef5a0edacc9505c4553616dcada358f"
+      "sha256": "61cf2ffc9e02e24a013383bf43fb3b1effa5117cfcf95857ff451290f48ca290"
     },
-    "semantic_support_sha256": "ec67d01c1cdc444f9e5af114cbb90933f7cf0aa3d3611979a0cb668cfa5fffa9",
+    "semantic_support_sha256": "5b0681e593f5eca3286a3f5b8a2f6be0816f3a037a7abc6bd4586aa7de08a870",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -3122,6 +3146,7 @@
       "parse_function": "f1",
       "parse_params": "f2",
       "separated": "f29",
+      "source_limits": "f47",
       "variable": "f9"
     },
     "new_negative": [

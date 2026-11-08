@@ -9,11 +9,12 @@ from hashlib import sha256
 import json
 from pathlib import Path
 from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
-    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
+    MAX_FUNCTIONS, MAX_BLOCKS, MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND,
+    MAX_SOURCE_LINES, MAX_LINE_BYTES)
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v9"
+PROFILE = "selfhost-core-linux-x86_64-v10"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -22,6 +23,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_resources.py",
     "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
+    "tools/hia_selfhost_control.py",
     "tools/hia_selfhost_limits.py",
     "tools/hia_selfhost_capacity.py",
     "tools/qualify_hia_selfhost.py",
@@ -73,12 +75,13 @@ def support_contract(root=ROOT):
             "caller_obligations": ["live private source allocation",
                 "live disjoint output and workspace allocations",
                 "no concurrent input modification", "entry buffers do not escape"],
-            "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic or zero divisor",
+            "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic, zero divisor or explicit trap; no structured native trap-code result",
         },
         "compiler_symbols": {"entry": "f0", "mutation_wrapper": "f13",
                              "call_graph_checker": "f12"},
         "limits": {
             "source_bytes": 1048576, "output_capacity_bytes": 1048576,
+            "source_lines": MAX_SOURCE_LINES, "source_line_bytes": MAX_LINE_BYTES,
             "workspace_required_bytes": 1048576, "functions": MAX_FUNCTIONS,
             "blocks_per_function": 256, "blocks_total": MAX_BLOCKS,
             "parameters_or_arguments": 16, "ssa_index_max": 2047,
@@ -113,6 +116,7 @@ def support_contract(root=ROOT):
                        "bool.and", "bool.or", "bool.not", "select (bool condition, matching scalars)"]},
             {"area": "control_flow", "status": "supported",
              "items": ["typed ret", "typed jump", "typed branch", "loops",
+                       "explicit trap: user, overflow, division_by_zero, bounds, allocation",
                        "block reachability", "no inbound entry edges"]},
             {"area": "calls", "status": "bounded_subset",
              "items": ["scalar return", "exact signatures", "forward direct calls",

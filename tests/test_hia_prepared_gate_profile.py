@@ -104,8 +104,12 @@ class PreparedGateProfileTests(unittest.TestCase):
                   "controller_calibration": {"observed_attributed_cost_ns": {"exact_dp": 7, "greedy": 8, "native_ndu": 9},
                                              "shared_calibration_harness_ns": 11},
                   "reused_native_identity": {"build_cost": {"wall_ns": 10000}},
-                  "policy_runs": [{"episode": episode, "arm": arm, "status": "passed", "actual_total_ns": 100 + episode}
-                                  for episode in range(len(spec["episodes"])) for arm in spec["policy_arms"]]}
+                  "policy_runs": []}
+        from tests.test_hia_native_cohort_gate import cohort_fixture
+        report["policy_runs"] = cohort_fixture(native_calls=0, controller_profile="prepared-bank-v1")[0]["policy_runs"]
+        for row in report["policy_runs"]:
+            row["actual_total_ns"] = 100 + row["episode"]
+            row["service_total_ns"] = row["actual_total_ns"] - row["independent_audit_ns"]
         result = native.prepared_observed_costs(report, spec)
         self.assertEqual(len(result["actual_total_comparisons_including_audit"]), 9)
         fixed = result["standalone_arm_known_components"]["fixed"]

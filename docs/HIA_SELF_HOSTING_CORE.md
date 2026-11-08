@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v9`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v10`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -114,7 +114,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
-| Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
+| Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments; explicit `trap` with a catalog code |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
 
 All integer operations use `u8`, `u32`, `u64` or `usize`; booleans remain
@@ -161,6 +161,7 @@ The bounds are part of the compiler profile:
 | Resource | Maximum |
 |---|---:|
 | Source bytes / output capacity | 1,048,576 each |
+| Source lines / bytes per line excluding LF | 16,384 / 16,384 |
 | Workspace required | 1,048,576 bytes |
 | Functions | 128 |
 | Blocks per function / all functions | 256 / 1,536 |
@@ -190,8 +191,13 @@ per block excluding its operations, and 512 bytes per operation give at most
 7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
 fixed identifier lengths, 16-argument/parameter limit, single scalar output,
 single optional attribute and unsigned 64-bit literal limit.
-The text frontend's separate general-purpose presentation limits are not
-reimplemented as a dependency of the native compiler.
+The native HIA source preflight enforces the independent assembly frontend's
+16,384-line and 16,384-byte-per-line limits before parsing or writing output.
+The final empty line after a trailing LF counts as a line, and trailing spaces
+count as bytes. The HIA implementation reads the actual source bytes; it does
+not call the Python text frontend. Previous profiles deliberately omitted these
+presentation limits, so overlong whitespace-padded lines had different admission
+results across the two frontends. v10 closes that admission difference.
 
 ### v5 capacity qualification
 
@@ -542,3 +548,35 @@ shared 128-result byte-observation limit. The input operation inventory is 32/50
 Signed types, owned resources and the remaining general Core obligations remain
 outside this profile. Native finite witnesses and fixed points remain separate
 from an all-input compiler correctness proof.
+
+## v10 explicit trap terminator and shared source-line budgets
+
+The native parser and emitter accept all four Core terminator kinds: `ret`,
+`jump`, `branch`, and `trap`. The explicit trap spelling accepts exactly `user`,
+`overflow`, `division_by_zero`, `bounds`, or `allocation`. A trap accounts for
+three Core structural nodes and emits UD2 at the original program position.
+The flat ABI does not return a structured trap code; code identity is validated
+at admission and recorded by the independent Core VM. Native qualification
+observes process termination and retained output bytes, without claiming a
+machine-level distinction among the five trap reasons.
+
+`tools/hia_selfhost_control.py` constructs 30 independent Core VM cases covering
+all five reasons, direct and called traps, stores before the trap, and both
+branches of one input-dependent helper. For each B3 and M3 compiler, 20 cases
+must execute UD2 and 10 must return 7, execute the caller's later store, and
+produce the exact expected bytes. The shared-output observer must retain stores
+before a trap and show no later caller store. Ten malformed/out-of-profile
+forms are checked separately, including a self call followed by a trap: the
+existing immediate-self-tail-return rule is preserved.
+
+Four exact 16,384-byte line cases place padding on the header, an instruction,
+the end marker, and the trailing line at EOF. They must compile and run. Each
+16,385-byte counterpart and a 16,385-line source must be refused before any
+output write, with nonzero caller-provided workspace. The complete source-byte,
+instruction, structural-node, output, workspace, and child resource limits
+remain unchanged. These witnesses run as part of the full qualification and
+its source-only cold replay.
+
+Terminator coverage increases from three to four kinds. The ordinary operation
+inventory remains 32 of 50; owned resources, general Core inputs, broader ABI
+and compiler correctness obligations remain open.

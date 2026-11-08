@@ -6,6 +6,8 @@ Native successor compilers do not import this module or consult Python state.
 
 MAX_INSTRUCTIONS = 8192
 MAX_CORE_NODES = 262144
+MAX_SOURCE_LINES = 16384
+MAX_LINE_BYTES = 16384
 
 # An instruction creates at most one relative call; each block creates at most
 # two relative edge records. The public wrapper adds one call. This bound is

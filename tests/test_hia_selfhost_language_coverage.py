@@ -1,4 +1,4 @@
-"""Finite, feature-complete witnesses for the declared Selfhost-Core v9 profile.
+"""Finite, feature-complete witnesses for the declared Selfhost-Core v10 profile.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v9"
+PROFILE = "selfhost-core-linux-x86_64-v10"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -693,7 +693,7 @@ def coverage_manifest():
         "integer_operations": (["instruction", "operation", "checked_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
-        "control_flow": (["parse_block", "edge", "check_graph"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
+        "control_flow": (["parse_block", "edge", "check_graph", "explicit_trap"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block", "trap-*"]),
         "calls": (["instruction", "args", "check_calls", "copy_argument"], ["parameters-16", "parameters-17", "call-*"]),
         "recursion": (["instruction", "parse_block", "check_calls"], ["recursion-*", "tail-*"]),
         "owned_resources": (["read_type", "instruction", "operation"], []),
@@ -706,7 +706,7 @@ def coverage_manifest():
         "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
         "resources": ["tools.hia_selfhost_resources.qualify_resources",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
-        "control_flow": ["tools.qualify_hia_selfhost.qualify"],
+        "control_flow": ["tools.qualify_hia_selfhost.qualify", "tools.hia_selfhost_control.qualify_control"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
         "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],
         "successor_output": ["tools.qualify_hia_selfhost.qualify"],
@@ -735,13 +735,16 @@ def coverage_manifest():
             "support_projection_omits": ["source_identity"],
         },
         "input_opcodes": supported, "general_core_opcode_count": len(OPCODES),
+        "input_terminators": ["ret", "jump", "branch", "trap"],
+        "explicit_trap_codes": ["user", "overflow", "division_by_zero", "bounds", "allocation"],
+        "native_trap_code_observation": "UD2 process outcome; individual source trap codes are not returned by the flat ABI",
         "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
         "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf"],
         "features": features,
         "syntax": {"contract": contract["syntax"],
                    "hia_functions": {name: names[name] for name in (
                        "compile", "parse_function", "parse_params", "parse_block", "define",
-                       "variable", "next_token", "decimal", "adjacent", "separated", "expect")},
+                       "variable", "next_token", "decimal", "adjacent", "separated", "expect", "source_limits")},
                    "new_positive": ["optional-ascii-spaces", "ssa-index-2047"],
                    "new_negative": [row["id"] for row in negative if row["id"].startswith(
                        ("existing-", "noncontiguous-", "entry-", "unsupported-", "tab-", "crlf-", "ssa-"))]},
@@ -749,10 +752,11 @@ def coverage_manifest():
                    "new_boundaries": ["parameters-16", "parameters-17", "blocks-per-function-256",
                                       "blocks-per-function-257", "blocks-total-1536", "blocks-total-1537",
                                       "functions-129", "ssa-index-2047", "ssa-index-2048",
-                                      "source-bytes-1048576"],
+                                      "source-bytes-1048576", "wire-*-16384", "wire-*-16385", "wire-lines-16385"],
                    "existing_evidence": ["tools.hia_selfhost_cases.backward_chain_source",
                        "tools.hia_selfhost_capacity.qualify_capacity",
                        "tools.hia_selfhost_tailcalls.qualify_tailcalls",
+                       "tools.hia_selfhost_control.qualify_control",
                        "tools.qualify_hia_selfhost.qualify"],
                    "unreachable_relocation_ceiling": {
                        "configured": contract["limits"]["relative_relocations"],
@@ -932,6 +936,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertEqual(len(manifest["input_opcodes"]), 32)
         self.assertIn("select", manifest["input_opcodes"])
         self.assertEqual(manifest["general_core_opcode_count"], 50)
+        self.assertEqual(set(manifest["input_terminators"]), {"ret", "jump", "branch", "trap"})
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])
         self.assertFalse(manifest["claims"]["compiler_correctness_formally_proved"])
 

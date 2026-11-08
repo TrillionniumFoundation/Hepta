@@ -124,6 +124,17 @@ class SelfhostSourceTests(unittest.TestCase):
         for typ in ("u8", "u32", "u64", "usize", "bool"):
             self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
 
+    def test_explicit_trap_and_wire_reference_use_independent_core_contracts(self):
+        from tools.hia_selfhost_control import independent_control_reference, TRAP_CODES
+        result = independent_control_reference()
+        self.assertEqual(len(result["traps"]), 30)
+        self.assertEqual({row["code"] for row in result["traps"]}, set(TRAP_CODES))
+        self.assertEqual(sum(row["taken"] for row in result["traps"]), 20)
+        self.assertEqual(len(result["refusals"]), 10)
+        self.assertEqual(sum(row["reference_result"]["status"] == "accepted" for row in result["refusals"]), 1)
+        self.assertEqual(len(result["wire"]), 9)
+        self.assertEqual(sum(row["accepted"] for row in result["wire"]), 4)
+
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
 class SelfhostNativeTests(unittest.TestCase):
@@ -151,6 +162,33 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(generation["forbidden_compiler_modules_loaded"], [])
         for earlier, later in zip(generations, generations[1:]):
             self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
+
+    def test_explicit_traps_preserve_prior_stores_and_stop_the_caller(self):
+        rows = [row for row in self.report["control_observations"] if row["kind"] == "explicit_trap"]
+        self.assertEqual(len(rows), 60)
+        self.assertEqual(sum(row["taken"] for row in rows), 40)
+        for row in rows:
+            with self.subTest(case=row["case"]):
+                self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
+                if row["taken"]:
+                    self.assertEqual(row["execution"]["returncode"], -4)
+                    self.assertEqual(row["execution"]["shared_output_observation"]["unchanged"], not row["prior_store"])
+                else:
+                    self.assertEqual(row["execution"]["status"], "returned")
+                    self.assertEqual(row["execution"]["core_u32"], 7)
+                    self.assertEqual(bytes.fromhex(row["observed_output_hex"])[1], 77)
+
+    def test_explicit_trap_syntax_and_wire_limits_reject_before_output(self):
+        rejected = [row for row in self.report["control_observations"]
+                    if row["kind"] in {"rejected_trap", "wire_rejected"}]
+        self.assertEqual(len(rejected), 30)
+        for row in rejected:
+            with self.subTest(case=row["case"]):
+                self.assertEqual(row["execution"]["core_u32"], INVALID)
+                self.assertTrue(row["execution"]["output_unchanged"])
+        accepted = [row for row in self.report["control_observations"] if row["kind"] == "wire_accepted"]
+        self.assertEqual(len(accepted), 8)
+        self.assertTrue(all(row["execution"]["core_u32"] == 7 for row in accepted))
 
     def test_native_capacity_boundary_and_original_modified_node_accounting(self):
         from tools.hia_selfhost_capacity import count_nodes

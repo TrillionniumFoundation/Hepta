@@ -34,6 +34,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertIn("buffer.swap with both bounds before access", resources["items"])
         self.assertIn("tools/hia_selfhost_resources.py", files)
         self.assertIn("tools/hia_selfhost_select.py", files)
+        self.assertIn("tools/hia_selfhost_control.py", files)
         operations = next(row for row in contract["support"] if row["area"] == "integer_operations")
         self.assertIn("select (bool condition, matching scalars)", operations["items"])
         self.assertEqual(status["successor_object_output"], "bounded_subset")
@@ -41,12 +42,15 @@ class SelfhostContractTests(unittest.TestCase):
 
     def test_capacity_growth_preserves_workspace_and_core_byte_limits(self):
         from hepta.hia_program import MAX_BYTES, MAX_NODES
+        from hepta.hia_agent_assembly import MAX_LINES, MAX_LINE_BYTES
         from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
             MAX_RELOCATIONS, RELOCATION_UPPER_BOUND, CORE_BYTES_UPPER_BOUND)
         contract = validate_contract()
         self.assertEqual(contract["limits"]["instructions"], MAX_INSTRUCTIONS)
         self.assertEqual(contract["limits"]["core_structural_nodes"], MAX_NODES)
         self.assertEqual(MAX_CORE_NODES, MAX_NODES)
+        self.assertEqual(contract["limits"]["source_lines"], MAX_LINES)
+        self.assertEqual(contract["limits"]["source_line_bytes"], MAX_LINE_BYTES)
         self.assertEqual(RELOCATION_UPPER_BOUND, 11265)
         self.assertLessEqual(RELOCATION_UPPER_BOUND, MAX_RELOCATIONS)
         self.assertLess(CORE_BYTES_UPPER_BOUND, MAX_BYTES)
