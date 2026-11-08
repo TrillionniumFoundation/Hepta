@@ -215,6 +215,12 @@ def _lookup_tables(final, tags, dynsymbols, export):
             "abort is not bound to the reviewed libc symbol version")
 
 
+def bind_final_artifact(object_bytes, final_bytes, export):
+    """Bind untrusted supplied ELF bytes without a producer's text or symbol map."""
+    obj = _ELF(object_bytes, 1)
+    text = obj.section(".text", 1)["data"]
+    return bind_final_image(object_bytes, text, final_bytes, export)
+
 def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     """Check every relocated byte and return exact machine-entry coordinates.
 

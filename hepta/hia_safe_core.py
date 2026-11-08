@@ -3,8 +3,8 @@
 The checker independently interprets admitted Core and *final linked machine
 bytes*.  It asks Z3 whether any scalar inputs, caller bytes or ABI state can
 change the return/abort outcome, caller memory, memory bounds or saved state.
-Only UNSAT for every obligation passes.  The Python encoders, decoder, ELF
-parser, Z3, libc/loader contract and x86 semantics are a stated trust base;
+Only UNSAT for every violation obligation passes. The independent decoder,
+ELF parser, Core model, Z3 and libc/loader contract are a stated trust base;
 this is not a Lean-kernel proof of a complete ISA or the whole HIA language.
 """
 from __future__ import annotations
@@ -18,13 +18,13 @@ import tempfile
 import time
 
 from .hia_program import verify_program
-from .hia_program_native import HIAProgramMachine, emit_program_machine, compile_program_machine
-from .hia_safe_core_elf import bind_final_image
+from .hia_safe_core_elf import bind_final_artifact
 from .hia_safe_core_x64 import Executor
 
 
 SCHEMA = "hepta.hia.safe-core-machine-validation.v1"
 PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v1"
+ARTIFACT_PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1"
 PINNED_Z3_VERSION = "4.15.4"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
 LOANS = {"readbuf", "mutbuf"}
@@ -60,6 +60,30 @@ ASSUMPTIONS = [
     "Native traps are observed as nonreturning abort, with preceding caller-memory effects retained; distinct HIA trap codes are not promised by the existing native ABI.",
     "No concurrency, signals, hardware faults, stack exhaustion, timing, side-channel or arbitrary native-caller safety claim is made.",
 ]
+
+UNPROVED_OBLIGATIONS = [
+    {"property": "complete_x86_hardware_refinement", "status": "unproved",
+     "reason": "The independent instruction semantics and ELF/loader model are trusted Python implementations."},
+    {"property": "whole_HIA_language_refinement", "status": "unproved",
+     "reason": "Only the declared finite Safe Core profile is admitted."},
+    {"property": "foreign_pointer_provenance_and_liveness", "status": "assumed",
+     "reason": "The synchronous caller supplies the live private allocation and stack."},
+    {"property": "concurrency_signals_faults_and_side_channels", "status": "unproved",
+     "reason": "These observations lie outside the sequential return/abort/byte model."},
+    {"property": "execution_authorization", "status": "not_granted",
+     "reason": "A mathematical validation receipt does not authorize loading, execution or adoption."},
+]
+CHECKER_SOURCE_FILES = (
+    "hia_safe_core.py", "hia_safe_core_x64.py", "hia_safe_core_elf.py",
+    "hia_program.py", "hia_opcodes.py", "hia_capability_flow.py", "hia_schema.py",
+    "hia_json_preflight.py", "elf_shared_abi.py",
+)
+
+
+def _checker_source_identity():
+    """Identify the consumer models separately from producer provenance."""
+    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
+            for name in CHECKER_SOURCE_FILES}
 
 
 class SafeCoreRejected(ValueError):
@@ -281,15 +305,42 @@ class _Theory:
 
 
 def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, query_directory=None):
-    """Recompute all obligations on exact bytes; a saved receipt is not accepted."""
-    require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
+    """Canonical build convenience wrapper; semantics are checked on supplied bytes."""
+    from .hia_program_native import HIAProgramMachine, emit_program_machine
     checked = verify_program(document)
     require(isinstance(image, HIAProgramMachine), "a direct-native machine image is required")
-    fn, blocks = _profile(checked, image)
+    _profile(checked, image)
+    producer_identity = _source_identity()
     require(image == emit_program_machine(checked, foreign_buffer_exports=image.foreign_buffer_exports),
             "candidate image is not rederived from the exact Core")
-    identity = _source_identity()
-    binding = bind_final_image(image.object_bytes, image.text_bytes, final_bytes, fn["name"])
+    report = validate_safe_core_artifact(
+        checked, image.object_bytes, final_bytes,
+        foreign_buffer_exports=image.foreign_buffer_exports,
+        timeout_ms=timeout_ms, query_directory=query_directory)
+    require(producer_identity == _source_identity(), "producer source changed during validation")
+    report["source_identity"] = producer_identity
+    report["profile"] = PROFILE
+    report["backend_implementation_sha256"] = image.implementation_sha256
+    report["producer_provenance"] = {"method": "canonical_reemission_identity",
+                                     "semantic_proof": False}
+    return report
+
+
+def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
+                                foreign_buffer_exports=(), timeout_ms=15000, query_directory=None):
+    """Independently check exact object/final ELF bytes, without importing an emitter.
+
+    Object text, symbols, relocations and loader state are decoded from the supplied
+    bytes.  The compiler is neither invoked nor assumed correct.  This accepts a
+    noncanonical encoding only when the independent model proves all obligations;
+    producer receipts and matching hashes never substitute for that computation.
+    """
+    require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
+    checked = verify_program(document)
+    fn, blocks = _profile(checked, foreign_buffer_exports=foreign_buffer_exports)
+    identity = _checker_source_identity()
+    checker_identity = identity
+    binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
     try:
         z = importlib.import_module("z3")
     except ImportError as exc:
@@ -301,7 +352,7 @@ def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, 
         retained.mkdir(parents=False, exist_ok=False)
     t = _Theory(z, timeout_ms)
     t.arguments(fn)
-    extent = None if not image.foreign_buffer_exports else image.foreign_buffer_exports[0][1]
+    extent = None if not foreign_buffer_exports else foreign_buffer_exports[0][1]
     reference = t.reference(fn, blocks, extent)
     machine = Executor(t, binding, t.words, t.loan)
     observed = machine.run()
@@ -355,13 +406,25 @@ def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, 
                                   "obligation": name}
             raise SafeCoreRejected(name + ": " + result + (" (" + solver.reason_unknown() + ")" if result == "unknown" else ""),
                                    counterexample=counterexample)
-    require(identity == _source_identity() and solver_identity == _solver_identity(z),
+    require(identity == _checker_source_identity() and solver_identity == _solver_identity(z),
             "checker or solver source changed during validation")
-    return {"schema": SCHEMA, "profile": PROFILE, "ok": True, "status": "smt_validated",
+    subject = {"core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+               "object_sha256": sha256(object_bytes).hexdigest(),
+               "final_image_sha256": sha256(final_bytes).hexdigest(),
+               "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports]}
+    checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
+               "source_identity": checker_identity, "solver": solver_identity,
+               "producer_reemission_used": False}
+    return {"schema": SCHEMA, "profile": ARTIFACT_PROFILE, "ok": True, "status": "smt_validated",
+            "artifact_input_profile": ARTIFACT_PROFILE,
+            "validation_mode": "independent_supplied_bytes",
+            "subject": subject,
+            "property": "all-input Core-to-final-image return/abort/caller-bytes refinement, memory bounds and SysV preservation",
+            "checker": checker, "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
             "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
-            "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": image.implementation_sha256,
+            "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": None,
             "source_identity": identity, "solver": solver_identity, "image_binding": binding["binding"],
-            "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in image.foreign_buffer_exports],
+            "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
             "model_counts": {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
                              "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
                              "maximum_observed_stack_bytes": -machine.minimum_stack_offset},
@@ -372,6 +435,7 @@ def validate_safe_core_image(document, image, final_bytes, *, timeout_ms=15000, 
 def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeout_ms=15000, query_directory=None):
     """Build privately, validate final bytes, then atomically publish those bytes."""
     from .artifact_publication import publish_verified, verify_published, withdraw_own_link
+    from .hia_program_native import emit_program_machine, compile_program_machine
     checked = verify_program(document)
     functions = checked.as_dict()["functions"]
     require(len(functions) == 1, "Safe Core requires one function")

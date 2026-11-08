@@ -21,7 +21,7 @@ The profile identifier is
 | Control flow | At most 16 blocks / 64 operations; acyclic branch/jump/return/trap; no internal calls or recursion |
 | Borrowed storage | At most one `readbuf` or `mutbuf` function parameter; no owner creation, allocation, transfer, returned loan or concurrency |
 | Public ABI | SysV AMD64, at most six expanded argument words; a loan expands to pointer/length; borrowed entries return the existing packed ABI status / `u32` result |
-| Machine choices | Canonical direct emitter; Agent machine-plan variants are outside v1 |
+| Machine choices | Canonical build entry preserves its producer-identity check; the separate supplied-ELF entry admits independently validated bytes in the same closed instruction/ABI model |
 | Object / image | Direct ELF64 object, GNU-ld Linux x86-64 shared library, exactly one immediately bound `abort@GLIBC_2.2.5` import |
 | Resource boundary | 64 KiB text, 16 KiB assumed available caller stack, bounded symbolic paths/steps, and a 100-60,000 ms symbolic-validation deadline |
 
@@ -36,8 +36,10 @@ execution fallback that can turn an unknown proof result into approval.
    `hia_safe_core.py` encodes their unsigned bitvector and byte-array semantics.
    It does not call the production VM or copy a desired answer into the model.
 
-2. **Lowering and instruction templates.** The normal direct emitter produces
-   actual object/text bytes. `hia_safe_core_x64.py` independently decodes the
+2. **Lowering and instruction templates.** The canonical build entry retains its
+   producer-identity check. The supplied-ELF checker directly consumes an object
+   and final image and never imports or invokes the encoder or linker.
+   `hia_safe_core_x64.py` independently decodes the
    *linked* bytes and symbolically executes its closed instruction set. It does
    not import `Code` or the lowering implementation. Arithmetic, carry/zero
    flags, conditional branches, byte stores, stack operations and calls are
@@ -94,6 +96,55 @@ abort; this entry does **not** promise preservation of distinct HIA trap codes.
 The proof quantifies over arbitrary scalar words and caller bytes. Native
 execution tests separately exercise the published image and boundary/canary
 cases. Those finite tests are not the source of the all-input claim.
+
+## Independent consumer entry
+
+`validate_safe_core_artifact(core, object_bytes, final_bytes, ...)` accepts exact
+immutable byte strings. Its profile is
+`hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`.
+It uses the same Core operations, ABI, loader and resource limits above, but
+requires no producer object, emitter invocation or compiler correctness premise.
+The ELF reader derives `.text`, function extents, symbols and relocations from
+supplied bytes rather than accepting a producer's symbol map. Both the object
+and image are untrusted inputs. Mutating both consistently still has to pass the
+independent semantic obligations.
+
+The existing `validate_safe_core_image` and `build_safe_core` entries preserve
+the canonical profile and its reemission identity check as producer provenance.
+Their semantic result is computed by the independent consumer entry. Reemission
+is labeled `semantic_proof: false`; it is never substituted for the SMT checks.
+
+A standalone consumer can recheck an already built artifact:
+
+```sh
+python tools/check_hia_safe_core.py \
+  --source /tmp/hia-safe-core-scalar/source.hia.json \
+  --object /tmp/hia-safe-core-scalar/candidate.o \
+  --image /tmp/hia-safe-core-scalar/program.so \
+  --output /tmp/hia-safe-core-scalar-independent
+```
+
+The optional `--source-sha256`, `--object-sha256` and `--image-sha256` arguments
+bind caller-selected identities before solver work. The new output directory
+retains captured source/object/image bytes, canonical Core, every produced SMT
+query and result, and a terminal `attempt.json`, including rejected attempts and
+counterexamples. The checker does not load or execute the image. A later consumer
+must still bind the exact inspected bytes to its own authorized loading action.
+
+Each successful result carries `subject`, `property`, `profile`, `assumptions`,
+`checker` and `unproved_obligations`. Checker identity separates the consumer
+model sources and pinned solver from optional producer provenance. The raw entry
+can be imported and used with imports of the native emitter, encoder, ELF writer
+and byte-ABI producer actively forbidden. Tests also replace `MOV RAX,0` with
+`XOR RAX,RAX` plus NOPs: these noncanonical bytes may pass the semantic checker,
+while jointly changing object and final-image addition into subtraction produces
+a real counterexample. Matching producer hashes are insufficient in either case.
+
+The qualification now runs these consumer tests and independently rechecks all
+three retained positive artifacts with pinned input hashes. This addition leaves
+the selfhost v6 support matrix intact. The complete selfhost compiler, loops,
+multiple functions, owned resources and general ELF remain outside this finite
+semantic profile; a whole-selfhost refinement proof remains an open obligation.
 
 ## Trust and caller assumptions
 

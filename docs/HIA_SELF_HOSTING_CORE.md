@@ -396,11 +396,12 @@ before B0, and complete borrowed-byte programs run against an independent host
 integer oracle after self-compilation. Their source bytes, admission differences
 and native outputs are retained in the same evidence directory.
 
-Typed recursion is valid in the general Core but intentionally outside this
-finite self-hosting profile. Its refusal records say so rather than labeling
-it malformed Core. Owned allocations/transfers, returned loans and a general
-resource/effect checker remain unimplemented in this compiler and are explicitly
-marked in the support matrix.
+Non-tail and mutual recursion are valid in the general Core but remain outside
+this finite self-hosting profile. Direct self-tail calls are admitted by the v6
+rules above, including bounded same-frame argument staging and cycle checks;
+those cases must not be reported as unsupported by the current compiler. Owned
+allocations/transfers, returned loans and a general resource/effect checker
+remain unimplemented and are explicitly marked in the support matrix.
 
 ## Object expansion batch: HIA-written ELF64 ET_REL
 

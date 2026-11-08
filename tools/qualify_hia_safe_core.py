@@ -28,12 +28,14 @@ from hepta.hia_program_native import emit_program_machine, compile_program_machi
 from hepta.hia_machine_x64 import Code
 from hepta.hia_safe_core import validate_safe_core_image, SafeCoreRejected, _source_identity
 from tools.build_hia_safe_core import build
+from tools.check_hia_safe_core import check as check_artifact
 
 
 def _identity():
     return {**{"hepta/" + key: value for key, value in _source_identity().items()},
             **{name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (
                 "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py", "tests/test_hia_safe_core.py",
+                "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
                 "examples/hia_safe_core/scalar_add.hia.json", "examples/hia_safe_core/guarded_update.hia.json",
                 "examples/hia_safe_core/read_byte.hia.json")}}
 
@@ -102,12 +104,13 @@ def qualify(output):
     git = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, timeout=10)
     report = {"schema": "hepta.hia.safe-core-qualification.v1", "ok": False, "status": "running",
               "started_utc": datetime.now(timezone.utc).isoformat(), "git_head": git.stdout.strip() if git.returncode == 0 else None,
-              "source_identity": source, "positive": [], "negative": [], "replay": [],
+              "source_identity": source, "positive": [], "negative": [], "replay": [], "artifact_rechecks": [],
               "claims": {"complete_selected_model_validation": False, "finite_native_tests_passed": False,
                          "machine_checked_isa_refinement_proved": False, "whole_language_soundness_proved": False,
                          "default_release_or_production_admission_changed": False}}
     try:
-        suite = unittest.defaultTestLoader.loadTestsFromName("tests.test_hia_safe_core")
+        suite = unittest.defaultTestLoader.loadTestsFromNames(
+            ["tests.test_hia_safe_core", "tests.test_hia_safe_core_artifact"])
         inventory = _ids(suite)
         log = io.StringIO()
         result = unittest.TextTestRunner(stream=log, verbosity=2, resultclass=_Result).run(suite)
@@ -125,6 +128,17 @@ def qualify(output):
                                        "elapsed_seconds": attempt["elapsed_seconds"]})
             if not attempt["ok"]:
                 raise ValueError("selected positive failed: " + name)
+            directory = output / name
+            independent = check_artifact(directory / "source.hia.json", directory / "candidate.o",
+                                         directory / "program.so", directory / "independent-check",
+                                         foreign_extent=extent,
+                                         expected_sha256={"source": attempt["source_sha256"],
+                                             "object": attempt["result"]["validation"]["image_binding"]["object_sha256"],
+                                             "image": attempt["result"]["artifact_sha256"]})
+            report["artifact_rechecks"].append({"case": name, "ok": independent["ok"],
+                "report": name + "/independent-check/attempt.json", "compiler_invoked": False})
+            if not independent["ok"]:
+                raise ValueError("independent supplied-artifact check failed: " + name)
         for name, case, extent in (("addition_becomes_subtraction", "scalar_add", None),
                                    ("equal_extent_is_admitted", "read_byte", 64),
                                    ("byte_store_becomes_word_store", "guarded_update", 4096),
