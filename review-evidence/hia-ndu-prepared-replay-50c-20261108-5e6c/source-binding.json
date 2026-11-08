@@ -1,0 +1,41 @@
+{
+  "schema": "hepta.hia.ndu-prepared-replay-fix-source-binding.v1",
+  "source_commit": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+  "later_root_checkpoint_with_identical_baseline_files": "d6431f233619e1339cec5532741d9303ecfcf150",
+  "baseline_files": [
+    {
+      "path": "tools/replay_hia_ndu_prepared_ranker.py",
+      "git_blob": "6c1a09d193a1dd83d63e5923c68aedce747a27cb",
+      "sha256": "75cb580a8b4faf61d0fbea6b24c98ab83f741e636f8b67df8f92d91b301343a4"
+    },
+    {
+      "path": "tests/test_hia_ndu_prepared_ranker.py",
+      "git_blob": "21898f4fe108010ac4a680c32e6ad70bf5d76558",
+      "sha256": "a9378f4b93ff5a169d25900f80356e9b63fe53a7588cb0ed0d39a59c28a255f9"
+    }
+  ],
+  "patched_files": [
+    {
+      "path": "tools/replay_hia_ndu_prepared_ranker.py",
+      "bytes": 16414,
+      "sha256": "9f4fb093932821f81c454015187d66dc8b77898bd713899184bc15df95bdcbfb",
+      "git_blob": "73d0f959934051ed032a4aa71f0c39eef6d3dce7"
+    },
+    {
+      "path": "tests/test_hia_ndu_prepared_ranker.py",
+      "bytes": 23220,
+      "sha256": "b8c4e047434583b803b5c6c3a90c359d93b6121354a14febf30a993a842f7af9",
+      "git_blob": "819e0aa6faa500aa7a05c2674985bab85761e9f7"
+    }
+  ],
+  "review": {
+    "id": 4507258712,
+    "path": "tools/replay_hia_ndu_prepared_ranker.py",
+    "commit_id": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+    "original_commit_id": "aee4ed1f6bd478764b1f6684a3d51f346ffb05c6",
+    "url": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507258712",
+    "created_at": "2026-11-08T18:16:46Z",
+    "finding": "The prepared replay accepted changed pair differences and horizon summaries without recomputing report.analysis from retained cell costs."
+  },
+  "scope": "Only the independent prepared replay and its existing test module changed. No evaluator, measurement runner, ledger, request, timing, registration, ranking algorithm or persistent replay changed."
+}

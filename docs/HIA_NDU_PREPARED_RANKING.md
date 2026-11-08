@@ -239,6 +239,34 @@ unknown. The experiment made zero provider/model calls.
 
 ## Verification and reproduction
 
+### Review repair: bind the reported paired analysis
+
+The earlier independent replayer checked retained cell ledgers but did not
+compare the report's `analysis` with those ledgers. An actual review
+counterexample changed a paired difference and its horizon summary sum to
+`-999999999999999999`; the earlier replayer still accepted it. The original
+report, altered copy, both original verifier results and the repaired verifier
+results remain in
+[`review-evidence/hia-ndu-prepared-replay-50c-20261108-5e6c/`](../review-evidence/hia-ndu-prepared-replay-50c-20261108-5e6c/).
+
+The repaired replayer requires all 72 registered cells, reconstructs the 24
+paired comparisons from their recorded costs, and recomputes every reported
+horizon statistic. It compares the complete canonical JSON analysis, including
+order, labels, field sets and exact JSON number types. Missing, extra,
+reordered, relabeled or altered results are refused, including Boolean or
+floating-point values that Python would otherwise compare equal to integers.
+The unchanged original CI report passes; the same corrupted copy now exits
+unsuccessfully and receives no successful replay receipt.
+
+The complete prepared-ranker suite passes 23 tests, including eight new
+analysis tests with 204 negative subcases. These are checker regressions and
+replay of retained measurements; no new timing experiment or economic result
+is claimed. Recorded elapsed times remain unauthenticated observations and P2
+remains HOLD. The earlier source-bound measurements and 40-test result below
+remain historical evidence for their stated source snapshot.
+
+### Original mechanism qualification
+
 The final local focused suite passed 40 tests with zero skips:
 
 ```sh

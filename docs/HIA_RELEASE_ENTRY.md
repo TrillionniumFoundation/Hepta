@@ -160,15 +160,28 @@ and emits bounded ELF64 ET_REL objects and closed allocator relocations in HIA.
 It has separate system-linker, native-execution, ownership-flow and explicit
 allocator-failure checks. The shared chain destructor uses constant native stack.
 
-The subsequent [allocation-effect node fix](HIA_SELFHOST_ALLOC_NODE_FIX_20261108.md)
-counts the optional `alloc` effect in every native parse pass. The new frozen
-compiler has its own 1,131-check native qualification, 910 language checks and
-fresh 10-check cold replay containing the complete 1,131-check qualification.
-The earlier v13 results and both original boundary failures remain historical
-evidence. Exact-limit and one-node-over-limit controls cover the effect both
-present and absent without raising any resource bound. The separate machine-plan
-oracle retains equality for all 17 observed workspace header words, including
-word 248; this finite observation does not cover the unobserved workspace tail.
+The [allocation-effect node fix](HIA_SELFHOST_ALLOC_NODE_FIX_20261108.md)
+counts the optional `alloc` effect in every native parse pass. Its earlier
+compiler snapshot has a retained 1,131-check native qualification, 910 language
+checks and fresh 10-check cold replay containing that complete qualification.
+Both original boundary failures remain historical evidence. Exact-limit and
+one-node-over-limit controls cover the effect both present and absent without
+raising any resource bound.
+
+The later [CFG worklist repair](HIA_SELFHOST_CFG_WORKLIST_FIX_20261108.md)
+retains that accounting and schedules pending blocks by their source offsets.
+It avoids reparsing the whole program for each backward CFG discovery while
+preserving the strict SSA, graph-join and resource-lifetime checks. Its frozen
+250-file closure includes the external-root report repair. This compiler has
+its own 1,183-check native qualification, 910 language checks and fresh 10-check
+cold replay that again completes all 1,183 checks with matching ordinary and
+modified compiler identities. The original slow and CPU-limit failures, an intermediate valid-Core
+rejection and all final repairs remain separately retained; no child CPU,
+workspace or cold-replay limit was increased.
+
+The separate [machine-plan header oracle repair](HIA_SELFHOST_MACHINE_PLAN_HEADER_REPAIR_20261108.md)
+retains equality for all 17 observed workspace header words, including word
+248. This finite observation does not cover the unobserved workspace tail.
 
 Operation-name coverage is not complete general-Core acceptance. The fixed
 canonical grammar, finite resource limits, restricted function results and
@@ -184,11 +197,20 @@ ELF tests. These dependencies are recorded separately from the successor chain;
 the report does not label the whole qualification process host-codegen-free.
 
 The borrowed-buffer Agent ABI can invoke the original frozen compiler and run
-the separately scoped same-Core lifecycle. The real original select extension
+the separately scoped same-Core lifecycle. Its
+[external-root report repair](HIA_AGENT_EXTERNAL_ROOT_REPORT_REPAIR_20261108.md)
+preserves the actual caller bytes and active local loan when a reborrowed entry
+traps or reaches its execution budget. These caller-owned buffers remain outside
+Core-owned heap accounting; the raw/native default and normal-return rules are
+unchanged. A successful same-Core stopped-state evaluation does not establish
+the original compiler delta's required proofs. The real original select extension
 has its own strict replay in `docs/HIA_AGENT_ORIGINAL_SELECT_DELTA_20261108.md`:
 its required semantic claims remain unproved, evaluation is refused and no
 adoption occurs. A successful refusal regression is not positive task acceptance.
-Prepared and persistent NDU transport qualification likewise does not establish
+The [prepared NDU replayer](HIA_NDU_PREPARED_RANKING.md) now reconstructs all
+reported paired costs and summary statistics from the retained cell ledgers;
+the original corrupted-analysis acceptance and the repaired refusal are both
+retained. Prepared and persistent NDU transport qualification does not establish
 economic benefit; stronger ordinary controls and incomplete costs remain part
 of the recorded result. These finite qualifications do not close the universal
 compiler, ABI, resource, FFI, ISA or loader proof obligations.

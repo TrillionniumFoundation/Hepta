@@ -626,11 +626,27 @@ CFG edges must carry every local loan and each selected capability's root and
 parent exactly once. The sixteen existing trailing bytes of each block record
 encode a four-bit root index and four-bit parent index per parameter. A separate
 known bit distinguishes an unseen incoming graph from valid all-zero metadata.
-Predecessors must agree on the renamed graph. A bounded phase-zero reparse
-handles a predecessor located later in the source; parsing advances to output
-sizing only after all reachable blocks have been checked with known incoming
-graphs. At most 1,536 discovery rounds are allowed. Source, output, workspace,
-function, block, SSA, instruction and Core node ceilings are unchanged.
+Predecessors must agree on the renamed graph. Phase zero first checks the full
+source and records each block's source offset. The first discovery of an incoming
+graph adds its block to a per-function queue with 256 slots. A queued block that
+was previously parsed without an incoming graph is checked once more from its
+recorded offset. Later predecessors must still match the already known graph;
+processing does not merge inconsistent roots or parents. Unchecked blocks at
+the end are unreachable and rejected. Output sizing begins only after this
+validation completes. Each block has at most one queued replay, including
+reverse source order and cycles, without reparsing the whole module.
+
+Before that replay, only definitions tagged with the selected block are cleared.
+This prevents future instruction capabilities from an earlier unchecked visit
+from appearing live, while retaining the ordinary duplicate-definition check.
+Full-source instruction, node, relocation and import counters are preserved
+across these local validation visits. The queue uses workspace bytes 926480
+through 928527 inside the existing allocation. Source, output, workspace,
+function, block, SSA, instruction and Core node ceilings are unchanged. The
+separate CFG suite retains 12 successful Core VM witnesses and 14 invalid Core
+inputs, then checks both original and mutated native compilers under the
+unchanged ten-second child CPU limit. These finite observations are not a
+general correctness or performance proof.
 
 Authoring removes an identity join when only one branch continues. Boolean
 expressions made solely of names, constants, comparisons and total wrapping

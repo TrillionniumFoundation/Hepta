@@ -435,6 +435,9 @@ def qualify(output):
     from tools.hia_selfhost_loans import independent_loan_reference, qualify_loans
     loan_reference = independent_loan_reference()
     (directory / "independent-loan-reference.json").write_text(json.dumps(loan_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_cfg_worklist import independent_reference as cfg_reference_run, qualify as qualify_cfg
+    cfg_reference = cfg_reference_run()
+    (directory / "independent-cfg-worklist-reference.json").write_text(json.dumps(cfg_reference, indent=2, sort_keys=True) + "\n")
     (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
     independent = independent_call_reference(sample)
     (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
@@ -526,6 +529,7 @@ def qualify(output):
     resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     bulk_observations = qualify_bulk(directory, (("original", original), ("modified", previous)), checks, bulk_reference)
     loan_observations = qualify_loans(directory, (("original", original), ("modified", previous)), checks, loan_reference)
+    cfg_observations = qualify_cfg(directory, (("original", original), ("modified", previous)), checks, cfg_reference)
     from tools.qualify_hia_selfhost_owned_elf import qualify as qualify_owned_elf
     owned_observations = []
     for label, compiler in (("original", original), ("modified", previous)):
@@ -573,6 +577,7 @@ def qualify(output):
         "elf_object_observations": elf_observations,
         "bulk_observations": bulk_observations, "independent_bulk_reference": bulk_reference,
         "loan_observations": loan_observations, "independent_loan_reference": loan_reference,
+        "cfg_worklist_observations": cfg_observations, "independent_cfg_worklist_reference": cfg_reference,
         "owned_elf_observations": owned_observations,
         "chain_elf_observations": chain_observations,
         "chain_allocator_observations": allocator_observations,

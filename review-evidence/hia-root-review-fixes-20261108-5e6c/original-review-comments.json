@@ -1,0 +1,215 @@
+[
+  {
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507151702",
+    "pull_request_review_id": 5818915572,
+    "id": 4507151702,
+    "node_id": "PRRC_kwDOVVyclM8AAAABDKWtVg",
+    "diff_hunk": "@@ -0,0 +1,155 @@\n+\"\"\"Owned byte snapshots for the Agent's explicit borrowed-buffer call profile.\n+\n+The wire carries bytes, never native addresses, aliases, ownership capabilities\n+or paths.  The disposable native child supplies distinct live allocations.  The\n+reference adapter supplies distinct external roots to the existing Core VM;\n+external storage is reported separately from Core's allocation/loan ledger.\n+This adapter is finite execution evidence, not a new equivalence theorem.\n+\"\"\"\n+from __future__ import annotations\n+\n+from hashlib import sha256\n+import re\n+\n+from .hia_agent_store import reject\n+from .hia_native_byte_abi import LOANS, MAX_EXTENT, normalize_exports\n+\n+\n+PROFILE = \"hepta.hia.agent.borrowed-byte-snapshots.v1\"\n+MAX_WORKLOAD_BUFFER_BYTES = 32 * 1024 * 1024\n+\n+\n+def export_manifest(workload):\n+    if workload[\"schema\"] == \"hepta.hia.agent.workload.v1\":\n+        return ()\n+    if workload[\"schema\"] != \"hepta.hia.agent.workload.v2\":\n+        reject(\"E_HIA_WORKLOAD\", \"unknown invocation workload profile\")\n+    exports = tuple((row[\"function\"], row[\"max_buffer_bytes\"])\n+                    for row in workload[\"foreign_buffer_exports\"])\n+    if len({name for name, _ in exports}) != len(exports):\n+        reject(\"E_HIA_BYTE_ABI\", \"duplicate borrowed-buffer export name\")\n+    for name, extent in exports:\n+        if (type(name) is not str or type(extent) is not int\n+                or not 1 <= extent <= MAX_EXTENT):\n+            reject(\"E_HIA_BYTE_ABI\", \"invalid frozen borrowed-buffer export\")\n+    return tuple(sorted(exports))\n+\n+\n+def buffer_size(value):\n+    \"\"\"Validate one immutable-value descriptor before allocating any bytes.\"\"\"\n+    if type(value) is not dict:\n+        reject(\"E_HIA_ARGUMENTS\", \"borrowed arguments require a byte snapshot\")\n+    if set(value) == {\"bytes_hex\"}:\n+        data = value[\"bytes_hex\"]\n+        if (type(data) is not str or len(data) > 2 * MAX_EXTENT\n+                or len(data) % 2 or re.fullmatch(\"[0-9a-f]*\", data) is None):\n+            reject(\"E_HIA_ARGUMENTS\", \"buffer bytes must be bounded canonical lowercase hex\")\n+        return len(data) // 2\n+    if set(value) == {\"byte_length\", \"fill_byte\"}:\n+        size, fill = value[\"byte_length\"], value[\"fill_byte\"]\n+        if (type(size) is not int or not 0 <= size <= MAX_EXTENT\n+                or type(fill) is not int or not 0 <= fill <= 255):\n+            reject(\"E_HIA_ARGUMENTS\", \"buffer fill requires exact bounded integer length and byte\")\n+        return size\n+    reject(\"E_HIA_ARGUMENTS\", \"buffer snapshot has missing or unknown fields\")\n+\n+\n+def buffer_bytes(value):\n+    size = buffer_size(value)\n+    return (bytes.fromhex(value[\"bytes_hex\"]) if \"bytes_hex\" in value\n+            else bytes([value[\"fill_byte\"]]) * size)\n+\n+\n+def validate_arguments(signature, arguments):\n+    from .hia_program import scalar_value_valid\n+    if type(arguments) not in (list, tuple) or len(arguments) != len(signature[\"params\"]):\n+        reject(\"E_HIA_ARGUMENTS\", \"call does not match the frozen public ABI\")\n+    total = 0\n+    for typ, value in zip(signature[\"params\"], arguments):\n+        if typ in LOANS:\n+            if signature.get(\"abi\") != PROFILE:\n+                reject(\"E_HIA_ABI\", \"borrowed entry is absent from the frozen invocation profile\")\n+            size = buffer_size(value)\n+            if size > signature[\"max_buffer_bytes\"]:\n+                reject(\"E_HIA_BUFFER_EXTENT\", \"snapshot exceeds the frozen wrapper extent\")\n+            total += size\n+        elif not scalar_value_valid(value, typ):\n+            reject(\"E_HIA_ARGUMENTS\", \"call arguments do not have the exact declared scalar types\")\n+    return total\n+\n+\n+def validate_cases(signatures, cases):\n+    total = 0\n+    for case in cases:\n+        signature = signatures.get(case[\"function\"])\n+        if signature is None:\n+            reject(\"E_HIA_ABI\", \"workload names an unavailable public entry\")\n+        total += validate_arguments(signature, case[\"arguments\"])\n+        if total > MAX_WORKLOAD_BUFFER_BYTES:\n+            reject(\"E_HIA_BUFFER_BUDGET\", \"frozen workload exceeds 32 MiB of external byte snapshots\")\n+    return total\n+\n+\n+def buffer_observation(index, typ, data):\n+    return {\"argument\": index, \"kind\": typ, \"byte_length\": len(data),\n+            \"sha256\": sha256(data).hexdigest()}\n+\n+\n+def reference_observation(program, case, exports, *, steps, heap):\n+    \"\"\"Call the existing VM on separately owned, nonaliased external roots.\n+\n+    These roots are not VM allocations and cannot be dropped by admitted Core.\n+    Caller loans remain live for the whole synchronous call; nested Core loans\n+    must end on a normal return.  Traps retain the actual bytes and resource\n+    state without pretending cleanup happened.\n+    \"\"\"\n+    from .hia_program import HIAProgramRejected, verify_program\n+    from .hia_program_runtime import (_Machine, _Owner, _View,\n+                                     HIAProgramBudgetExceeded, HIAProgramTrap)\n+    checked = verify_program(program)\n+    admitted = dict(normalize_exports(exports, checked))\n+    function = case[\"function\"]\n+    if function not in admitted:\n+        reject(\"E_HIA_BYTE_ABI\", \"reference call lacks an exact frozen buffer export\")\n+    fn = next(fn for fn in checked.as_dict()[\"functions\"] if fn[\"name\"] == function)\n+    signature = {\"params\": [p[\"type\"] for p in fn[\"params\"]], \"returns\": fn[\"returns\"],\n+                 \"abi\": PROFILE, \"max_buffer_bytes\": admitted[function]}\n+    validate_arguments(signature, case[\"arguments\"])\n+    machine = _Machine(checked, steps, heap, None, 256)\n+    external, arguments = [], []\n+    for index, (typ, value) in enumerate(zip(signature[\"params\"], case[\"arguments\"])):\n+        if typ in LOANS:\n+            # Negative identities cannot collide with VM-owned allocations.\n+            root = _Owner(-index - 1, bytearray(buffer_bytes(value)))\n+            view = _View(root, typ == \"mutbuf\")\n+            external.append((index, typ, root, view))\n+            arguments.append(view)\n+        else:\n+            arguments.append(value)\n+\n+    def report(status, *, values=None, error=None):\n+        ledger = machine.report(function, status, values=values, error=error)",
+    "path": "hepta/hia_agent_buffers.py",
+    "commit_id": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+    "original_commit_id": "71dd4f45687e8d8ed46940f5c8895a8d0af74872",
+    "user": {
+      "login": "chatgpt-codex-connector[bot]",
+      "id": 199175422,
+      "node_id": "BOT_kgDOC98s_g",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1144995?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D",
+      "html_url": "https://github.com/apps/chatgpt-codex-connector",
+      "followers_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Account for external roots when validating stopped loan ledgers**\n\nWhen a borrowed entry reborrows a caller buffer and traps before ending the child loan, `machine.report()` rejects the valid stopped state: `validate_execution_observation()` requires every live local loan to have a live VM-owned buffer, but these external roots are deliberately excluded from `machine.owners`. A verified entry containing `borrow.read(p)` followed by an explicit bounds trap therefore raises `E_HIA_RUNTIME_INVARIANT: a live loan has no live byte owner` instead of retaining its trap and byte observations; evaluating that artifact against itself produces `incorrect` with an incomplete workload. Budget exhaustion with an active reborrow has the same problem. Make the reporting invariant aware of external roots without falsely counting them as Core heap allocations.\n\nUseful? React with \ud83d\udc4d\u00a0/ \ud83d\udc4e.\n\n<!-- codex-code-review-finding:v1 -->",
+    "created_at": "2026-11-08T17:43:38Z",
+    "updated_at": "2026-11-08T17:43:38Z",
+    "html_url": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507151702",
+    "pull_request_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507151702"
+      },
+      "html": {
+        "href": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507151702"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507151702/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": 130,
+    "original_start_line": 130,
+    "start_side": "RIGHT",
+    "line": 131,
+    "original_line": 131,
+    "side": "RIGHT",
+    "author_association": "NONE",
+    "original_position": 131,
+    "position": 131,
+    "subject_type": "line",
+    "is_copilot_code_review": false,
+    "copilot_code_review_sources": []
+  },
+  {
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258706",
+    "pull_request_review_id": 5819046543,
+    "id": 4507258706,
+    "node_id": "PRRC_kwDOVVyclM8AAAABDKdPUg",
+    "diff_hunk": "@@ -65,16 +78,22 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:\n             fail(w, 1)\n         if get(w, 40) != 0:\n             return 4294967295\n+        advance = 1\n         if phase == 0:\n             check_graph(w)\n             if get(w, 40) != 0:\n                 return 4294967295\n+            if get(w, 272) != get(w, 80):\n+                rounds = rounds + 1\n+                if rounds >= 1536:\n+                    return 4294967295\n+                advance = 0",
+    "path": "tools/generate_hia_selfhost.py",
+    "commit_id": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+    "original_commit_id": "aee4ed1f6bd478764b1f6684a3d51f346ffb05c6",
+    "user": {
+      "login": "chatgpt-codex-connector[bot]",
+      "id": 199175422,
+      "node_id": "BOT_kgDOC98s_g",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1144995?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D",
+      "html_url": "https://github.com/apps/chatgpt-codex-connector",
+      "followers_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Avoid full reparses for each backward CFG discovery**\n\nFor a valid 256-block function ordered `b0` through `b255`, where `b0` jumps to `b255`, each subsequent block jumps to its predecessor, and `b1` returns, this loop discovers only one additional incoming graph per pass and repeatedly reparses the entire program\u2014even when it contains no local loans. Using `build_seed` and `invoke` on Linux, the parent compiler compiled this 6.9 KB input in approximately 0.24 seconds, whereas the new compiler was killed after reaching the 10-second CPU limit in `tools/hia_selfhost_child.py`. This makes an input within the unchanged block and source ceilings unusable through the existing runner. Propagate capability states with a worklist or otherwise avoid whole-source reparsing for each newly discovered block.\n\nUseful? React with \ud83d\udc4d\u00a0/ \ud83d\udc4e.\n\n<!-- codex-code-review-finding:v1 -->",
+    "created_at": "2026-11-08T18:16:46Z",
+    "updated_at": "2026-11-08T18:16:46Z",
+    "html_url": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507258706",
+    "pull_request_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258706"
+      },
+      "html": {
+        "href": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507258706"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258706/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": 93,
+    "original_start_line": 86,
+    "start_side": "RIGHT",
+    "line": 97,
+    "original_line": 90,
+    "side": "RIGHT",
+    "author_association": "NONE",
+    "original_position": 58,
+    "position": 69,
+    "subject_type": "line",
+    "is_copilot_code_review": false,
+    "copilot_code_review_sources": []
+  },
+  {
+    "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258712",
+    "pull_request_review_id": 5819046543,
+    "id": 4507258712,
+    "node_id": "PRRC_kwDOVVyclM8AAAABDKdPWA",
+    "diff_hunk": "@@ -0,0 +1,242 @@\n+#!/usr/bin/env python3\n+\"\"\"Read-only, standard-library replay of retained native ranking observations.\n+\n+This checks original bytes, registrations, finite decisions, paired native\n+responses and disjoint cost arithmetic. It does not attest the host or timing,\n+execute native code, establish full lifecycle economics or grant authority.\n+\"\"\"\n+from __future__ import annotations\n+\n+import argparse\n+import base64\n+from hashlib import sha256\n+import itertools\n+import json\n+from pathlib import Path\n+\n+ARMS = (\"one_shot_ndu\", \"prepared_ndu\", \"ordinary_scalar\")\n+HORIZONS = (1, 4, 16, 64)\n+EXPECTED_SOURCE = {\n+    \"hepta/hia_ndu_prepared_ranker.py\", \"hepta/hia_ndu_optimizer.py\",\n+    \"hepta/hia_ndu_scalar_selection.py\", \"hepta/hia_rust_crosscheck.py\",\n+    \"tools/build_hia_ndu_bridge.py\", \"tools/qualify_hia_ndu_prepared_ranker.py\",\n+    \"rust/hia-ndu-bridge/Cargo.lock\", \"rust/hia-ndu-bridge/Cargo.toml\",\n+    \"rust/hia-ndu-bridge/src/main.rs\", \"rust/hia-ndu-bridge/upstream.json\",\n+}\n+\n+\n+def require(condition, message):\n+    if not condition:\n+        raise ValueError(\"E_HIA_NDU_PREPARED_REPLAY: \" + message)\n+\n+\n+def wire(value):\n+    return json.dumps(value, sort_keys=True, separators=(\",\", \":\"),\n+                      ensure_ascii=False, allow_nan=False).encode()\n+\n+\n+def exact_integer(value, *, positive=False):\n+    require(type(value) is int and value >= (1 if positive else 0), \"invalid measured integer\")\n+    return value\n+\n+\n+def raw_bytes(value):\n+    require(type(value) is dict and set(value) == {\"encoding\", \"bytes\", \"sha256\", \"data\"},\n+            \"original byte record shape\")\n+    require(value[\"encoding\"] == \"base64\" and len(value[\"data\"]) <= 2 * 1024 * 1024,\n+            \"bounded original byte record\")\n+    raw = base64.b64decode(value[\"data\"], validate=True)\n+    require(len(raw) == value[\"bytes\"] and sha256(raw).hexdigest() == value[\"sha256\"],\n+            \"original byte record length or digest\")\n+    return raw\n+\n+\n+def choose(request):\n+    rows = request[\"candidates\"]\n+    feasible = [row for row in rows if row[\"hard_violation\"] is False\n+                and row[\"resource_q32\"] <= request[\"resource_cap_q32\"]]\n+    best = min(row[\"cost_q32\"] for row in feasible)\n+    frontier = sorted(row[\"id\"] for row in feasible if row[\"cost_q32\"] == best)\n+    return (\"abstain\" if \"abstain\" in frontier else frontier[0]), frontier, len(feasible)\n+\n+\n+def replay(directory, registration_sha256):\n+    root = Path(directory)\n+    registration_raw = (root / \"registration.json\").read_bytes()\n+    require(sha256(registration_raw).hexdigest() == registration_sha256,\n+            \"explicit registration digest\")\n+    registration = json.loads(registration_raw)\n+    report = json.loads((root / \"result.json\").read_bytes())\n+    require(set(registration[\"source_files\"]) == EXPECTED_SOURCE, \"closed source inventory\")\n+    for name, digest in registration[\"source_files\"].items():\n+        require(sha256((root / \"frozen-source\" / name).read_bytes()).hexdigest() == digest,\n+                \"frozen source bytes: \" + name)\n+    require(sha256((root / \"original-build-receipt.json\").read_bytes()).hexdigest()\n+            == registration[\"original_build_receipt_sha256\"], \"original build receipt\")\n+    build = json.loads((root / \"original-build-receipt.json\").read_bytes())\n+    identity = registration[\"native_identity\"]\n+    require(build[\"binary_sha256\"] == identity[\"binary_sha256\"]\n+            and build[\"upstream\"][\"commit\"] == identity[\"upstream_commit\"], \"native build identity\")\n+    require(report[\"registration_sha256\"] == registration_sha256\n+            and report[\"source_files\"] == registration[\"source_files\"]\n+            and report[\"source_git\"] == registration[\"source_git\"]\n+            and report[\"source_unchanged\"] is True, \"source/report binding\")\n+    require(report[\"p2_acceptance\"] == \"HOLD\"\n+            and report[\"economic_benefit_established\"] is False\n+            and report[\"ndu_incremental_value_established\"] is False\n+            and report[\"whole_lifecycle_cost_complete\"] is False\n+            and report[\"production_activation_allowed\"] is False, \"scope promotion\")\n+    expected_schedule = [{\"horizon\": horizon, \"pair\": index + 1, \"arms\": list(order)}\n+                         for horizon in HORIZONS\n+                         for index, order in enumerate(itertools.permutations(ARMS))]\n+    require(registration[\"schedule\"] == expected_schedule and len(registration[\"requests\"]) == 64,\n+            \"registered task denominator or order\")\n+    expected_cells = [(row[\"horizon\"], row[\"pair\"], arm)\n+                      for row in expected_schedule for arm in row[\"arms\"]]\n+    cells = [json.loads(line) for line in (root / \"cell-ledger.jsonl\").read_bytes().splitlines()]\n+    require([(row[\"horizon\"], row[\"pair\"], row[\"arm\"]) for row in cells] == expected_cells,\n+            \"cell order or denominator\")\n+    require(report[\"planned_cells\"] == report[\"completed_cells\"] == len(expected_cells) == 72\n+            and report[\"failed_cells\"] == report[\"unstarted_cells\"] == 0\n+            and report[\"automatic_retries\"] == registration[\"automatic_retries\"] == 0,\n+            \"reported completion\")\n+    native_count = ordinary_count = 0\n+    native_replies = {}\n+    selected_rows = {}\n+    pid_values = []\n+    for cell in cells:\n+        horizon, pair, arm = cell[\"horizon\"], cell[\"pair\"], cell[\"arm\"]\n+        require(cell[\"status\"] == \"completed\" and cell[\"completed_calls\"] == horizon\n+                and len(cell[\"calls\"]) == horizon and cell[\"unexecuted_calls\"] == 0,\n+                \"incomplete cell cannot qualify\")\n+        exact_integer(cell[\"wall_ns\"], positive=True)\n+        require(json.loads((root / (\"h%02d-p%02d-%s.json\" % (horizon, pair, arm))).read_bytes()) == cell,\n+                \"journal/cell mismatch\")\n+        original_path = root / cell[\"originals\"][\"path\"]\n+        require(original_path.name == \"h%02d-p%02d-%s-originals.jsonl\" % (horizon, pair, arm)\n+                and original_path.parent == root, \"unexpected original path\")\n+        original_bytes = original_path.read_bytes()\n+        require(len(original_bytes) == cell[\"originals\"][\"bytes\"]\n+                and sha256(original_bytes).hexdigest() == cell[\"originals\"][\"sha256\"],\n+                \"original cell bytes\")\n+        originals = [json.loads(line) for line in original_bytes.splitlines()]\n+        stride = 1 if arm == \"ordinary_scalar\" else 2\n+        require(len(originals) == horizon * stride, \"missing or extra original event\")\n+        for index in range(horizon):\n+            row = cell[\"calls\"][index]\n+            request = registration[\"requests\"][index]\n+            requested = wire(request)\n+            expected, frontier, feasible_count = choose(request)\n+            require(row[\"index\"] == index and row[\"status\"] == \"completed\"\n+                    and row[\"selected_id\"] == expected\n+                    and row[\"request_sha256\"] == sha256(requested).hexdigest(),\n+                    \"observed decision/request identity\")\n+            exact_integer(row[\"wall_ns\"], positive=True)\n+            result = originals[index * stride + stride - 1]\n+            require(result[\"kind\"] == \"result\" and result[\"index\"] == index\n+                    and result[\"request\"] == request\n+                    and sha256(wire(result[\"result\"])).hexdigest() == row[\"result_sha256\"],\n+                    \"original result/summary mismatch\")\n+            if arm == \"ordinary_scalar\":\n+                ordinary_count += 1\n+                require(result[\"result\"][\"native_ndu_evaluated\"] is False\n+                        and result[\"result\"][\"selected_id\"] == expected\n+                        and result[\"result\"][\"frontier\"] == frontier,\n+                        \"ordinary control altered\")\n+            else:\n+                native_count += 1\n+                event = originals[index * stride]\n+                require(event[\"kind\"] == \"original_native_transport\" and event[\"index\"] == index,\n+                        \"native original event order\")\n+                observed = event[\"observation\"]\n+                require(raw_bytes(observed[\"stdin\"]) == requested\n+                        and observed[\"response_admitted\"] is True and observed[\"error\"] is None,\n+                        \"actual native stdin/admission\")\n+                require(all(observed[\"native_identity\"][key] == value for key, value in identity.items()),\n+                        \"native source/image identity\")\n+                pump = observed[\"pump\"]\n+                require(pump[\"started\"] is True and pump[\"cleanup_confirmed\"] is True\n+                        and pump[\"streams_complete\"] is True and pump[\"returncode\"] == 0\n+                        and pump[\"error\"] is None, \"native process incomplete\")\n+                require(raw_bytes(pump[\"stderr\"]) == b\"\", \"native diagnostics present\")\n+                stdout = raw_bytes(pump[\"stdout\"])\n+                response = json.loads(stdout)\n+                require(response == result[\"result\"][\"native_response\"]\n+                        and response[\"request_sha256\"] == sha256(requested).hexdigest()\n+                        and response[\"objective_sha256\"] == request[\"objective_sha256\"]\n+                        and response[\"generation\"] == request[\"generation\"]\n+                        and response[\"upstream_commit\"] == identity[\"upstream_commit\"]\n+                        and response[\"pareto_frontier\"] == frontier\n+                        and response[\"authority\"] == \"ADVISORY_ONLY\"\n+                        and response[\"proves_program_safety\"] is False,\n+                        \"native response drift or promotion\")\n+                expected_advice = \"abstain\" if feasible_count == 1 else frontier[0] if len(frontier) == 1 else None\n+                require(response[\"advisory_recommendation\"] == expected_advice\n+                        and result[\"result\"][\"selection\"][\"selected_id\"] == expected,\n+                        \"native recommendation or caller tie rule\")\n+                require(row[\"native_observations\"] == 1, \"native observation count\")\n+                native_replies[(horizon, pair, arm, index)] = stdout\n+                pid_values.append(exact_integer(pump[\"pid\"], positive=True))\n+            selected_rows[(horizon, pair, arm, index)] = expected\n+        if arm == \"prepared_ndu\":\n+            cost = cell[\"prepared_cost\"]\n+            require(cost[\"closed\"] is True and cost[\"complete\"] is True\n+                    and cost[\"close_confirmed\"] is True and cost[\"all_native_cleanup_confirmed\"] is True\n+                    and cost[\"original_native_calls\"] == horizon and cost[\"result_cache_hits\"] == 0\n+                    and cost[\"native_process_reuse\"] is False and len(cost[\"attempts\"]) == horizon,\n+                    \"prepared ownership/call count\")\n+            require(sha256(wire(cost[\"preparation\"])).hexdigest() == cost[\"preparation_receipt_sha256\"],\n+                    \"preparation receipt\")\n+            subtotal = exact_integer(cost[\"preparation\"][\"preparation_wall_ns\"], positive=True)\n+            subtotal += exact_integer(cost[\"close_wall_ns\"], positive=True)\n+            for index, attempt in enumerate(cost[\"attempts\"]):\n+                require(attempt[\"status\"] == \"completed\" and attempt[\"native_started\"] is True\n+                        and attempt[\"cleanup_confirmed\"] is True and attempt[\"response_admitted\"] is True,\n+                        \"prepared failed attempt hidden\")\n+                require(attempt[\"request_sha256\"] == sha256(wire(registration[\"requests\"][index])).hexdigest(),\n+                        \"prepared request cost rebound\")\n+                subtotal += exact_integer(attempt[\"wall_ns\"], positive=True)\n+                require(attempt[\"caller_wall_ns\"] == attempt[\"wall_ns\"] + attempt[\"queue_wait_ns\"],\n+                        \"queue waiting counted twice\")\n+            require(subtotal == cost[\"observed_disjoint_wall_ns\"] and subtotal <= cell[\"wall_ns\"],\n+                    \"disjoint costs omitted, duplicated or outside cell\")\n+        require(cell[\"native_calls_started\"] == (0 if arm == \"ordinary_scalar\" else horizon),\n+                \"cell native count\")\n+    pairs = 0\n+    for horizon in HORIZONS:\n+        for pair in range(1, 7):\n+            for index in range(horizon):\n+                require(native_replies[(horizon, pair, \"one_shot_ndu\", index)]\n+                        == native_replies[(horizon, pair, \"prepared_ndu\", index)],\n+                        \"paired actual native response bytes differ\")\n+                require(len({selected_rows[(horizon, pair, arm, index)] for arm in ARMS}) == 1,\n+                        \"three-arm decision mismatch\")\n+                pairs += 1\n+    require(native_count == report[\"original_native_calls\"] == 1020 and ordinary_count == 510,\n+            \"full native/ordinary denominator\")\n+    return {\"schema\": \"hepta.hia.ndu-prepared-ranking-replay.v1\",",
+    "path": "tools/replay_hia_ndu_prepared_ranker.py",
+    "commit_id": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+    "original_commit_id": "aee4ed1f6bd478764b1f6684a3d51f346ffb05c6",
+    "user": {
+      "login": "chatgpt-codex-connector[bot]",
+      "id": 199175422,
+      "node_id": "BOT_kgDOC98s_g",
+      "avatar_url": "https://avatars.githubusercontent.com/in/1144995?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D",
+      "html_url": "https://github.com/apps/chatgpt-codex-connector",
+      "followers_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/followers",
+      "following_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/following{/other_user}",
+      "gists_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/subscriptions",
+      "organizations_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/orgs",
+      "repos_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/repos",
+      "events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/chatgpt-codex-connector%5Bbot%5D/received_events",
+      "type": "Bot",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Verify the reported paired timing analysis during replay**\n\nIf `result.json` contains incorrect paired timing differences or summary statistics, this replay still succeeds because it never checks `report[\"analysis\"]` against the retained cell timings. I extracted the committed `final-originals.tar.xz`, changed both a `one_shot_minus_prepared_ns` difference and its horizon's summary sum to `-999999999999999999`, and replay still returned `raw_identity_and_cost_arithmetic_consistent: true`. Consequently, the CI replay can accept corrupted transport-comparison results despite having the original measurements available. Recompute the paired differences and summary statistics from the cells and compare them with the reported analysis before declaring consistency.\n\nUseful? React with \ud83d\udc4d\u00a0/ \ud83d\udc4e.\n\n<!-- codex-code-review-finding:v1 -->",
+    "created_at": "2026-11-08T18:16:46Z",
+    "updated_at": "2026-11-08T18:16:46Z",
+    "html_url": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507258712",
+    "pull_request_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808",
+    "_links": {
+      "self": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258712"
+      },
+      "html": {
+        "href": "https://github.com/TrillionniumFoundation/Hepta/pull/808#discussion_r4507258712"
+      },
+      "pull_request": {
+        "href": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/808"
+      }
+    },
+    "reactions": {
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/pulls/comments/4507258712/reactions",
+      "total_count": 0,
+      "+1": 0,
+      "-1": 0,
+      "laugh": 0,
+      "hooray": 0,
+      "confused": 0,
+      "heart": 0,
+      "rocket": 0,
+      "eyes": 0
+    },
+    "start_line": 215,
+    "original_start_line": 215,
+    "start_side": "RIGHT",
+    "line": 217,
+    "original_line": 217,
+    "side": "RIGHT",
+    "author_association": "NONE",
+    "original_position": 217,
+    "position": 217,
+    "subject_type": "line",
+    "is_copilot_code_review": false,
+    "copilot_code_review_sources": []
+  }
+]

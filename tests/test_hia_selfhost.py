@@ -141,6 +141,38 @@ class SelfhostSourceTests(unittest.TestCase):
             self.assertEqual(codes[name], "E_HIA_LOAN")
         self.assertFalse(result["claims"]["all_input_proof"])
 
+    def test_cfg_worklist_preserves_the_review_subjects_and_block_boundaries(self):
+        from hashlib import sha256
+        from tools.hia_selfhost_cfg_worklist import reverse_source, future_capability_source, cases
+        subjects = (
+            (reverse_source(), "5d26b74b3609f213e5205e22a68ad9b284ff4643fcf2fc8b60c439d85dd3b555"),
+            (reverse_source(loan=True), "2e42fb643c05d95ff9860d1f9d967f3214c0fa58b7266746b615b6a20f804ede"),
+            (future_capability_source(), "13346fbc7217cdce1c449a0b1d38de6f1ccfcf6eeb6db2a6cddc88365889b2fb"),
+        )
+        for source, expected in subjects:
+            self.assertEqual(sha256(source).hexdigest(), expected)
+        for source, _ in subjects[:2]:
+            function = assemble_program(source).as_dict()["functions"][0]
+            self.assertEqual(len(function["blocks"]), 256)
+            self.assertEqual(function["blocks"][0]["term"]["target"], "b255")
+            for index in range(2, 256):
+                self.assertEqual(function["blocks"][index]["term"]["target"], "b" + str(index - 1))
+        boundary = next(row for row in cases() if row["id"] == "reverse-1536-six-functions")
+        functions = assemble_program(boundary["source"].encode()).as_dict()["functions"]
+        self.assertEqual([len(fn["blocks"]) for fn in functions], [256] * 6)
+
+    def test_cfg_worklist_reference_covers_replays_and_late_join_refusals(self):
+        from tools.hia_selfhost_cfg_worklist import independent_reference
+        result = independent_reference()
+        self.assertEqual(len(result["cases"]), 12)
+        self.assertEqual(len(result["refusals"]), 14)
+        self.assertTrue(all(row["reference_result"]["status"] == "returned" for row in result["cases"]))
+        codes = {row["id"]: row["code"] for row in result["refusals"]}
+        for name in ("late-inconsistent-root-join", "late-inconsistent-parent-join",
+                     "queued-owner-consumed-with-live-child"):
+            self.assertEqual(codes[name], "E_HIA_LOAN")
+        self.assertFalse(result["all_input_correctness_or_performance_proved"])
+
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
 class SelfhostNativeTests(unittest.TestCase):
@@ -174,6 +206,19 @@ class SelfhostNativeTests(unittest.TestCase):
                     if name.startswith(("original-loan-", "modified-loan-"))}
         self.assertEqual(len(selected), 142)
         self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
+
+    def test_cfg_worklist_checks_reverse_order_replays_and_refusals_with_both_compilers(self):
+        selected = {name: value for name, value in self.report["checks"].items()
+                    if name.startswith(("original-cfg-worklist-", "modified-cfg-worklist-"))}
+        self.assertEqual(len(selected), 52)
+        self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
+        reference = self.report["independent_cfg_worklist_reference"]
+        self.assertEqual(len(reference["cases"]), 12)
+        self.assertEqual(len(reference["refusals"]), 14)
+        for row in self.report["cfg_worklist_observations"]:
+            observed = row.get("build", row)
+            self.assertEqual(observed["limits"]["cpu_seconds"], 10)
+            self.assertEqual(observed["limits"]["workspace_bytes"], 1048576)
 
     def test_native_capacity_boundary_and_original_modified_node_accounting(self):
         from tools.hia_selfhost_capacity import count_nodes

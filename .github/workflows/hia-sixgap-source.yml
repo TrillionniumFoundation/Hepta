@@ -55,7 +55,8 @@ jobs:
           import os
           from pathlib import Path
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_agent_buffer_lifecycle')
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_agent_buffer_lifecycle', 'tests.test_hia_agent_external_roots'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           qualified = (result.wasSuccessful() and result.testsRun > 0 and not result.skipped
                        and not result.expectedFailures)

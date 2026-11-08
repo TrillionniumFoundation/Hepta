@@ -13,6 +13,7 @@ from hashlib import sha256
 import itertools
 import json
 from pathlib import Path
+import statistics
 
 ARMS = ("one_shot_ndu", "prepared_ndu", "ordinary_scalar")
 HORIZONS = (1, 4, 16, 64)
@@ -58,6 +59,47 @@ def choose(request):
     best = min(row["cost_q32"] for row in feasible)
     frontier = sorted(row["id"] for row in feasible if row["cost_q32"] == best)
     return ("abstain" if "abstain" in frontier else frontier[0]), frontier, len(feasible)
+
+
+def check_analysis(cells, analysis):
+    """Rebuild every reported pair and statistic from the checked cell ledger."""
+    expected_keys = {(horizon, pair, arm) for horizon in HORIZONS
+                     for pair in range(1, 7) for arm in ARMS}
+    indexed = {}
+    for cell in cells:
+        horizon = exact_integer(cell["horizon"], positive=True)
+        pair = exact_integer(cell["pair"], positive=True)
+        key = (horizon, pair, cell["arm"])
+        require(key in expected_keys and key not in indexed,
+                "analysis cell identity or duplicate")
+        require(cell["status"] == "completed"
+                and exact_integer(cell["completed_calls"], positive=True) == horizon,
+                "analysis requires every registered cell complete")
+        indexed[key] = exact_integer(cell["wall_ns"], positive=True)
+    require(set(indexed) == expected_keys, "analysis cell denominator")
+    rebuilt = []
+    for horizon in HORIZONS:
+        pairs = []
+        differences = []
+        for pair in range(1, 7):
+            costs = {arm: indexed[horizon, pair, arm] for arm in ARMS}
+            difference = costs["one_shot_ndu"] - costs["prepared_ndu"]
+            differences.append(difference)
+            pairs.append({"pair": pair, "complete": True,
+                          "all_attempt_arm_wall_ns": costs,
+                          "one_shot_minus_prepared_ns": difference,
+                          "ordinary_minus_prepared_ns": costs["ordinary_scalar"] - costs["prepared_ndu"]})
+        rebuilt.append({"horizon": horizon, "all_registered_cells_completed": True,
+                        "pairs": pairs, "prepared_saving_summary_ns": {
+                            "observations": len(differences), "sum": sum(differences),
+                            "mean": statistics.mean(differences), "median": statistics.median(differences),
+                            "min": min(differences), "max": max(differences),
+                            "sample_stdev": statistics.stdev(differences),
+                            "positive_pairs": sum(value > 0 for value in differences)}})
+    # Canonical JSON retains the complete shape, list order and number types;
+    # Python equality alone would silently equate true/1 and 1.0/1.
+    require(wire(analysis) == wire(rebuilt),
+            "reported paired analysis or summary differs from cell ledger")
 
 
 def replay(directory, registration_sha256):
@@ -214,6 +256,7 @@ def replay(directory, registration_sha256):
                 pairs += 1
     require(native_count == report["original_native_calls"] == 1020 and ordinary_count == 510,
             "full native/ordinary denominator")
+    check_analysis(cells, report["analysis"])
     return {"schema": "hepta.hia.ndu-prepared-ranking-replay.v1",
             "registration_sha256": registration_sha256,
             "verifier_sha256": sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -221,6 +264,7 @@ def replay(directory, registration_sha256):
             "paired_native_responses_byte_identical": pairs, "distinct_observed_pids": len(set(pid_values)),
             "source_files_rehashed": len(EXPECTED_SOURCE), "cells_replayed": len(cells),
             "raw_identity_and_cost_arithmetic_consistent": True,
+            "reported_analysis_recomputed": True,
             "timings_independently_authenticated": False, "machine_refinement_proved": False,
             "economic_benefit_established": False, "authority": "DENY_ALL"}
 

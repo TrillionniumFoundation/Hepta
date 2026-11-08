@@ -1,0 +1,230 @@
+--- a/tools/replay_hia_ndu_prepared_ranker.py
++++ b/tools/replay_hia_ndu_prepared_ranker.py
+@@ -13,6 +13,7 @@
+ import itertools
+ import json
+ from pathlib import Path
++import statistics
+ 
+ ARMS = ("one_shot_ndu", "prepared_ndu", "ordinary_scalar")
+ HORIZONS = (1, 4, 16, 64)
+@@ -58,6 +59,47 @@
+     best = min(row["cost_q32"] for row in feasible)
+     frontier = sorted(row["id"] for row in feasible if row["cost_q32"] == best)
+     return ("abstain" if "abstain" in frontier else frontier[0]), frontier, len(feasible)
++
++
++def check_analysis(cells, analysis):
++    """Rebuild every reported pair and statistic from the checked cell ledger."""
++    expected_keys = {(horizon, pair, arm) for horizon in HORIZONS
++                     for pair in range(1, 7) for arm in ARMS}
++    indexed = {}
++    for cell in cells:
++        horizon = exact_integer(cell["horizon"], positive=True)
++        pair = exact_integer(cell["pair"], positive=True)
++        key = (horizon, pair, cell["arm"])
++        require(key in expected_keys and key not in indexed,
++                "analysis cell identity or duplicate")
++        require(cell["status"] == "completed"
++                and exact_integer(cell["completed_calls"], positive=True) == horizon,
++                "analysis requires every registered cell complete")
++        indexed[key] = exact_integer(cell["wall_ns"], positive=True)
++    require(set(indexed) == expected_keys, "analysis cell denominator")
++    rebuilt = []
++    for horizon in HORIZONS:
++        pairs = []
++        differences = []
++        for pair in range(1, 7):
++            costs = {arm: indexed[horizon, pair, arm] for arm in ARMS}
++            difference = costs["one_shot_ndu"] - costs["prepared_ndu"]
++            differences.append(difference)
++            pairs.append({"pair": pair, "complete": True,
++                          "all_attempt_arm_wall_ns": costs,
++                          "one_shot_minus_prepared_ns": difference,
++                          "ordinary_minus_prepared_ns": costs["ordinary_scalar"] - costs["prepared_ndu"]})
++        rebuilt.append({"horizon": horizon, "all_registered_cells_completed": True,
++                        "pairs": pairs, "prepared_saving_summary_ns": {
++                            "observations": len(differences), "sum": sum(differences),
++                            "mean": statistics.mean(differences), "median": statistics.median(differences),
++                            "min": min(differences), "max": max(differences),
++                            "sample_stdev": statistics.stdev(differences),
++                            "positive_pairs": sum(value > 0 for value in differences)}})
++    # Canonical JSON retains the complete shape, list order and number types;
++    # Python equality alone would silently equate true/1 and 1.0/1.
++    require(wire(analysis) == wire(rebuilt),
++            "reported paired analysis or summary differs from cell ledger")
+ 
+ 
+ def replay(directory, registration_sha256):
+@@ -214,6 +256,7 @@
+                 pairs += 1
+     require(native_count == report["original_native_calls"] == 1020 and ordinary_count == 510,
+             "full native/ordinary denominator")
++    check_analysis(cells, report["analysis"])
+     return {"schema": "hepta.hia.ndu-prepared-ranking-replay.v1",
+             "registration_sha256": registration_sha256,
+             "verifier_sha256": sha256(Path(__file__).read_bytes()).hexdigest(),
+@@ -221,6 +264,7 @@
+             "paired_native_responses_byte_identical": pairs, "distinct_observed_pids": len(set(pid_values)),
+             "source_files_rehashed": len(EXPECTED_SOURCE), "cells_replayed": len(cells),
+             "raw_identity_and_cost_arithmetic_consistent": True,
++            "reported_analysis_recomputed": True,
+             "timings_independently_authenticated": False, "machine_refinement_proved": False,
+             "economic_benefit_established": False, "authority": "DENY_ALL"}
+ 
+--- a/tests/test_hia_ndu_prepared_ranker.py
++++ b/tests/test_hia_ndu_prepared_ranker.py
+@@ -20,6 +20,7 @@
+ from hepta import hia_ndu_prepared_ranker as prepared
+ from hepta.hia_ndu_optimizer import OptimizationRejected, _native_rank
+ from tests import test_hia_ndu_optimizer_transport as transport_fixture
++from tools import replay_hia_ndu_prepared_ranker as prepared_replay
+ 
+ 
+ @unittest.skipUnless(sys.platform == "linux", "requires actual Linux sealing and owned child cleanup")
+@@ -330,5 +331,145 @@
+         spawn.assert_not_called()
+ 
+ 
++class PreparedRankingReplayAnalysisTests(unittest.TestCase):
++    def fixture(self):
++        cells, analysis = [], []
++        # Hand-specified differences include losses, a tie and gains. Their
++        # six-value mean/median is -0.5, sample variance 3.5, with two wins.
++        for horizon in (1, 4, 16, 64):
++            pairs = []
++            for pair, difference in enumerate((-3, -2, -1, 0, 1, 2), 1):
++                base = 100 * horizon + pair
++                costs = {"one_shot_ndu": base + difference * horizon,
++                         "prepared_ndu": base,
++                         "ordinary_scalar": base - (10 + pair) * horizon}
++                for arm, cost in costs.items():
++                    cells.append({"horizon": horizon, "pair": pair, "arm": arm,
++                                  "status": "completed", "completed_calls": horizon,
++                                  "wall_ns": cost})
++                pairs.append({"pair": pair, "complete": True, "all_attempt_arm_wall_ns": costs,
++                              "one_shot_minus_prepared_ns": difference * horizon,
++                              "ordinary_minus_prepared_ns": -(10 + pair) * horizon})
++            analysis.append({"horizon": horizon, "all_registered_cells_completed": True,
++                             "pairs": pairs, "prepared_saving_summary_ns": {
++                                 "observations": 6, "sum": -3 * horizon,
++                                 "mean": -0.5 if horizon == 1 else -(horizon // 2),
++                                 "median": -0.5 * horizon, "min": -3 * horizon, "max": 2 * horizon,
++                                 "sample_stdev": 1.8708286933869707 * horizon, "positive_pairs": 2}})
++        return cells, analysis
++
++    def test_negative_zero_and_positive_pairs_keep_the_exact_denominator(self):
++        prepared_replay.check_analysis(*self.fixture())
++
++    def test_original_review_counterexample_is_refused(self):
++        cells, analysis = self.fixture()
++        analysis[0]["pairs"][0]["one_shot_minus_prepared_ns"] = -999999999999999999
++        analysis[0]["prepared_saving_summary_ns"]["sum"] = -999999999999999999
++        with self.assertRaisesRegex(ValueError, "reported paired analysis"):
++            prepared_replay.check_analysis(cells, analysis)
++
++    def test_every_reported_pair_cost_difference_and_completion_is_checked(self):
++        cells, original = self.fixture()
++        for horizon in range(4):
++            for pair in range(6):
++                for field in ("one_shot_minus_prepared_ns", "ordinary_minus_prepared_ns", "complete",
++                              "one_shot_ndu", "prepared_ndu", "ordinary_scalar"):
++                    changed = deepcopy(original)
++                    row = changed[horizon]["pairs"][pair]
++                    if field in row["all_attempt_arm_wall_ns"]:
++                        row["all_attempt_arm_wall_ns"][field] += 1
++                    elif field == "complete":
++                        row[field] = False
++                    else:
++                        row[field] += 1
++                    with self.subTest(horizon=horizon, pair=pair, field=field), \
++                            self.assertRaisesRegex(ValueError, "reported paired analysis"):
++                        prepared_replay.check_analysis(cells, changed)
++
++    def test_every_summary_statistic_is_recomputed(self):
++        cells, original = self.fixture()
++        for horizon in range(4):
++            for field in original[horizon]["prepared_saving_summary_ns"]:
++                changed = deepcopy(original)
++                changed[horizon]["prepared_saving_summary_ns"][field] += 1
++                with self.subTest(horizon=horizon, field=field), \
++                        self.assertRaisesRegex(ValueError, "reported paired analysis"):
++                    prepared_replay.check_analysis(cells, changed)
++
++    def test_missing_extra_reordered_or_relabelled_report_structure_is_refused(self):
++        cells, original = self.fixture()
++        for mutation in range(10):
++            changed = deepcopy(original)
++            if mutation == 0:
++                changed.pop()
++            elif mutation == 1:
++                changed.append(deepcopy(changed[-1]))
++            elif mutation == 2:
++                changed.reverse()
++            elif mutation == 3:
++                changed[0]["pairs"].pop()
++            elif mutation == 4:
++                changed[0]["pairs"].append(deepcopy(changed[0]["pairs"][-1]))
++            elif mutation == 5:
++                changed[0]["pairs"].reverse()
++            elif mutation == 6:
++                del changed[0]["prepared_saving_summary_ns"]["min"]
++            elif mutation == 7:
++                changed[0]["prepared_saving_summary_ns"]["unregistered"] = 0
++            elif mutation == 8:
++                changed[0]["pairs"][0]["pair"] = 2
++            else:
++                changed[0]["all_registered_cells_completed"] = False
++            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, "reported paired analysis"):
++                prepared_replay.check_analysis(cells, changed)
++
++    def test_equal_python_boolean_and_float_coercions_do_not_pass_json_identity(self):
++        cells, original = self.fixture()
++        for mutation in range(6):
++            changed = deepcopy(original)
++            if mutation == 0:
++                changed[0]["horizon"] = True
++            elif mutation == 1:
++                changed[0]["pairs"][0]["pair"] = True
++            elif mutation == 2:
++                changed[0]["pairs"][0]["complete"] = 1
++            elif mutation == 3:
++                changed[0]["prepared_saving_summary_ns"]["observations"] = 6.0
++            elif mutation == 4:
++                changed[0]["prepared_saving_summary_ns"]["sum"] = -3.0
++            else:
++                changed[0]["prepared_saving_summary_ns"]["positive_pairs"] = 2.0
++            self.assertEqual(changed, original)
++            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, "reported paired analysis"):
++                prepared_replay.check_analysis(cells, changed)
++
++    def test_missing_duplicate_incomplete_or_non_integer_cells_are_refused(self):
++        original, analysis = self.fixture()
++        for mutation in range(10):
++            cells = deepcopy(original)
++            if mutation == 0:
++                cells.pop()
++            elif mutation == 1:
++                cells.append(deepcopy(cells[0]))
++            elif mutation == 2:
++                cells[0]["status"] = "failed"
++            elif mutation == 3:
++                cells[0]["completed_calls"] = True
++            elif mutation == 4:
++                cells[0]["horizon"] = True
++            elif mutation == 5:
++                cells[0]["pair"] = 1.0
++            else:
++                cells[0]["wall_ns"] = (0, -1, True, 1.0)[mutation - 6]
++            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
++                prepared_replay.check_analysis(cells, analysis)
++
++    def test_changed_ledger_cost_cannot_reuse_the_original_report(self):
++        cells, analysis = self.fixture()
++        cells[-1]["wall_ns"] += 1
++        with self.assertRaisesRegex(ValueError, "reported paired analysis"):
++            prepared_replay.check_analysis(cells, analysis)
++
++
+ if __name__ == "__main__":
+     unittest.main()

@@ -1,0 +1,53 @@
+{
+  "baseline_generator_sha256": "1d8eed5cc4bc774fcc1210e3a57af9fa62711b87034873d2ed94a6da8b86cb9d",
+  "findings": [
+    {
+      "area": "queue bounds and lifetime",
+      "conclusion": "QBASE=926480, 256 u64 slots end at928528 within1MiB. The per-function head/tail reset before parsing; unknown-to-known KBASE transition enqueues once and rejects tail>=256 before a queue write. Entry backedges are refused, so admitted nonentry blocks are at most255."
+    },
+    {
+      "area": "reachability, cycles and function boundaries",
+      "conclusion": "Dequeued ids must lie strictly after this function entry and before start+count. First-discovery incoming graphs become immutable; late edges retain the original exact packed-graph equality check. Already checked blocks skip replay; every function block must end checked. Unreachable blocks, invalid cross-function targets and changed loop graphs still reject."
+    },
+    {
+      "area": "SSA and future capabilities",
+      "conclusion": "The first source traversal retains global unique-definition validation. Before queued replay, only VBASE entries tagged with this block id lose their type; variable and loan_live both require a nonzero current-block type. Original strict define rejection is restored and reinitializes each capability in source order. The author-found621ffeb future-cap issue is closed structurally in49a52cca, with its original development counterexample retained by the author."
+    },
+    {
+      "area": "source cursor and block records",
+      "conclusion": "Phase0 BBASE+0 stores each block token offset and only phase1/2 replace it with code offsets. Replay reconstructs the same block index and reparses its original bytes. The next function/EOF token is reconstructed from the saved token offset after queue drain. Scratch token fields are refreshed by next_token before later parsing."
+    },
+    {
+      "area": "resource and relocation accounting",
+      "conclusion": "Module block count, function block count, instruction count, Core node count, relocation count and ELF import count are saved and restored around validation replay. The initial traversal already enforces their cumulative ceilings. emit is inert in phase0; FIXBASE writes occur only in phase2. Repeated callgraph stores only reassert the same existing edge, and chain helper demand is monotone. No extra native output is generated during the validation replay."
+    },
+    {
+      "area": "scope and work bound",
+      "conclusion": "The frozen change removes repeated whole-module source passes. Each block has its initial phase0 traversal and at most one additional queued traversal, with a bounded2048-slot type clear per reparse. This is a static work bound under the existing profile, not a wall-clock guarantee or full compiler correctness proof."
+    }
+  ],
+  "generator_sha256": "49a52ccaa04f1bb12fd34c59077041f29e2d777dc907e18d5ac9142d11372713",
+  "native_or_compiler_execution_performed": false,
+  "observed_utc": "2026-11-08T20:46:51.452247+00:00",
+  "production_changes_performed": false,
+  "remaining_dynamic_gates": [
+    "Author reruns exact retained256-block reverse-order CFG and loan counterexamples on finalB3/M3.",
+    "Retain and replay the455-byte future-cap development counterexample against the final source.",
+    "Complete the root-required fixed-point, mutation, cold, language and source-controls qualifications on the final integrated source."
+  ],
+  "review_does_not_claim": [
+    "general Core self-bootstrap completion",
+    "full source-to-machine refinement",
+    "independently authenticated timing",
+    "NDU economic benefit",
+    "production deployment or installed identity closure"
+  ],
+  "reviewer": "/root/ndu_value",
+  "schema": "hepta.hia.selfhost-cfg-worklist-independent-static-review.v1",
+  "source_unchanged_at_final_read": true,
+  "status": "PASS_SCOPED_STATIC_REVIEW",
+  "unchanged_helper_sha256": {
+    "tools/hia_selfhost_chain_elf.py": "8b4675c2942fccdaf9cb914c8bb455bad37caa1a10ff79e518ee220b45ead90c",
+    "tools/hia_selfhost_owned_elf.py": "5e68891662af089c5204b2ab38160b62b4348b04c7292d02d2199c52ec9db687"
+  }
+}

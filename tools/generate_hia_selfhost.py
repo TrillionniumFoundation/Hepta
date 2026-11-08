@@ -32,12 +32,10 @@ CBASE, CSTATE = 858368, 874752
 # resource graph fits root-index | parent-index << 4; self/self is external.
 # Current-block capability records use previously unused workspace. No public
 # source, output, workspace, block or SSA ceiling changes.
-CAPBASE, KBASE, CAPTMP = 875776, 924928, 926464
+CAPBASE, KBASE, CAPTMP, QBASE = 875776, 924928, 926464, 926480
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
-    rounds = 0
-    advance = 1
     n = length(w)
     if n < 1048576:
         return 4294967294
@@ -85,23 +83,18 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             fail(w, 1)
         if get(w, 40) != 0:
             return 4294967295
-        advance = 1
         if phase == 0:
-            check_graph(w)
+            put(w, 1024, get(w, 64))
+            check_calls(w)
             if get(w, 40) != 0:
                 return 4294967295
-            if get(w, 272) != get(w, 80):
-                rounds = rounds + 1
-                if rounds >= 1536:
-                    return 4294967295
-                advance = 0
         if get(w, 232) == 1:
             chain_drop_helper(o, w)
             elf_finish(o, w)
         if phase == 1:
             if get(w, 56) > length(o):
                 return 4294967294
-        phase = phase + advance
+        phase = phase + 1
     fix_all(o, w)
     if get(w, 40) != 0:
         return 4294967295
@@ -118,6 +111,8 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return fail(w, 2)
     put(w, 72, f)
     put(w, 64, f + 1)
+    put(w, 384, 0)
+    put(w, 392, 0)
     fb = FBASE + f * FSTRIDE
     if get(w, 48) == 0:
         put(w, fb + 8, get(w, 80))
@@ -184,6 +179,8 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         fail(w, 6)
     if get(w, 48) == 0:
         put(w, fb + 16, get(w, 96))
+        if get(w, 40) == 0:
+            check_graph(s, o, w)
     return 0
 
 def parse_params(s:readbuf, w:mutbuf, signature:u64) -> u64:
@@ -225,6 +222,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     # This block-local pending result is separate from the v5 node counter at
     # 248. A self call is admitted only when the next token is its exact ret.
     put(w, 256, 0)
+    source_at = get(w, 24)
     expect(s, w, @block@)
     separated(w)
     b = expect(s, w, 258)
@@ -235,6 +233,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(w, 80, get(w, 80) + 1)
     bb = BBASE + get(w, 88) * BSTRIDE
     if get(w, 48) == 0:
+        put(w, bb, source_at)
         put(w, bb + 16, get(w, 72))
         put(w, bb + 24, 0)
         put(w, bb + 288, 18446744073709551615)
@@ -723,44 +722,57 @@ def read_type(s:readbuf, w:mutbuf) -> u64:
         return fail(w, 64)
     return t - @u64@ + 1
 
-def check_graph(w:mutbuf) -> u64:
-    f = 0
-    b = 0
+def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    # Incoming graphs are immutable once discovered: later edges must match
+    # exactly. Queue each first discovery, then replay only an unchecked block.
+    # This keeps reverse source-order CFGs from reparsing the whole module.
+    start = get(w, FBASE + get(w, 72) * FSTRIDE + 8)
+    count = get(w, 96)
+    cursor = get(w, 24)
+    blocks = get(w, 80)
+    instructions = get(w, 112)
+    nodes = get(w, 248)
+    relocations = get(w, 224)
+    externals = get(w, 344)
+    bid = 0
     i = 0
-    base = 0
-    n = 0
-    start = 0
-    target = 0
-    arm = 0
-    while f < get(w, 64) and get(w, 40) == 0:
-        base = FBASE + f * FSTRIDE
-        start = get(w, base + 8)
-        n = get(w, base + 16)
-        put(w, BBASE + start * BSTRIDE + 24, 1)
-        i = 0
-        while i < n:
-            b = 0
-            while b < n:
-                arm = 0
-                while arm < 2:
-                    target = get(w, BBASE + (start + b) * BSTRIDE + 288 + arm * 8)
-                    if target != 18446744073709551615:
-                        if target <= start or target >= start + n:
-                            fail(w, 42)
-                        else:
-                            if get(w, BBASE + (start + b) * BSTRIDE + 24) == 1:
-                                put(w, BBASE + target * BSTRIDE + 24, 1)
-                    arm = arm + 1
-                b = b + 1
-            i = i + 1
-        b = 0
-        while b < n:
-            if get(w, BBASE + (start + b) * BSTRIDE + 24) != 1:
-                fail(w, 43)
-            b = b + 1
-        f = f + 1
-    put(w, 1024, get(w, 64))
-    check_calls(w)
+    while get(w, 392) < get(w, 384) and get(w, 40) == 0:
+        bid = get(w, QBASE + get(w, 392) * 8)
+        put(w, 392, get(w, 392) + 1)
+        if bid <= start or bid >= start + count:
+            return fail(w, 42)
+        if get(w, BBASE + bid * BSTRIDE + 24) == 0:
+            # Initial parsing has already checked global SSA uniqueness.
+            # Clear only this block's definitions before replay so neither
+            # variable() nor loan_live() can observe a future instruction's
+            # stale capability. define() keeps its ordinary strict check.
+            i = 0
+            while i < 2048:
+                if get(w, VBASE + i * 16 + 8) == bid + 1:
+                    put(w, VBASE + i * 16, 0)
+                i = i + 1
+            put(w, 0, get(w, BBASE + bid * BSTRIDE))
+            put(w, 80, bid)
+            put(w, 96, bid - start)
+            put(w, 112, 0)
+            put(w, 248, 4)
+            put(w, 224, 0)
+            put(w, 344, 0)
+            next_token(s, w)
+            parse_block(s, o, w)
+    put(w, 80, blocks)
+    put(w, 96, count)
+    put(w, 112, instructions)
+    put(w, 248, nodes)
+    put(w, 224, relocations)
+    put(w, 344, externals)
+    put(w, 0, cursor)
+    next_token(s, w)
+    i = 0
+    while i < count:
+        if get(w, BBASE + (start + i) * BSTRIDE + 24) != 1:
+            return fail(w, 43)
+        i = i + 1
     return 0
 
 def check_calls(w:mutbuf) -> u64:
@@ -1504,6 +1516,7 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
             return fail(w, 62)
         return 0
     put(w, 272, get(w, 272) + 1)
+    put(w, bb + 24, 1)
     i = 0
     while i < count:
         v = get(w, bb + 32 + i * 16)
@@ -1575,6 +1588,11 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
         else:
             store(w, BBASE + bid * BSTRIDE + 304 + i, packed)
         i = i + 1
+    if byte(w, KBASE + bid) == 0:
+        if get(w, 384) >= 256:
+            return fail(w, 62)
+        put(w, QBASE + get(w, 384) * 8, bid)
+        put(w, 384, get(w, 384) + 1)
     store(w, KBASE + bid, 1)
     return 0
 
@@ -1634,7 +1652,7 @@ def source_program():
     table += ['    return 0']
     text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
-    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP',
+    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE',
                 'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
         text = text.replace(key, str(globals()[key]))
     return text
