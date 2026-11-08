@@ -1,0 +1,54 @@
+{
+  "schema": "hepta.hia.selfhost-owned-experiment-delivery.v1",
+  "baseline": {
+    "commit": "71dd4f45687e8d8ed46940f5c8895a8d0af74872",
+    "tree": "9d63ad4e14f62c89759bb094b64cfb2d070974c9"
+  },
+  "files": {
+    "tools/hia_selfhost_owned_runtime.py": "1c880d0c14420d8320985a96a54d94eaa23504ed",
+    "tools/hia_selfhost_owned_cases.py": "428d7c68488a8bbd5279986919a1ccfb13d9269a",
+    "tools/qualify_hia_selfhost_owned_runtime.py": "d0f6e23b3e835e6406562d8cb177fcffc621021e",
+    "tests/test_hia_selfhost_owned_runtime.py": "f1350d3b3ec1904459f48407cdc89ad16b4765e4",
+    "docs/HIA_SELFHOST_OWNED_RUNTIME_EXPERIMENT.md": "7db0083369ad36e07f334b42601650ed723753cb",
+    "review-evidence/hia-selfhost-owned-runtime-20261108-5e6c/qualification.json": "ce66f2ba2ebabf7144901e2c659d87edc746d803",
+    "review-evidence/hia-selfhost-owned-runtime-20261108-5e6c/unittest.log": "7e727ab3385473df8735986c45426033280087c7",
+    "review-evidence/hia-selfhost-owned-runtime-20261108-5e6c/raw-evidence.zip": "c3c49e71b2adcdb7544ec3f9a1012be694aa2f2e"
+  },
+  "profile": "selfhost-owned-linux-x86_64-mmap-v1",
+  "status": "PASS_CONDITIONAL_RUNTIME_HELPERS_ONLY",
+  "validation": {
+    "unittest": {
+      "run": 6,
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 3.729
+    },
+    "native_fixtures": 11,
+    "canonical_vm_cases": 12,
+    "canonical_rejections": 16,
+    "native_target_workspace_bytes": 0,
+    "largest_observed_owner_bytes": 2097169,
+    "dynamic_chain_nodes": 5000
+  },
+  "archive": {
+    "path": "review-evidence/hia-selfhost-owned-runtime-20261108-5e6c/raw-evidence.zip",
+    "bytes": 267635,
+    "sha256": "b2789603060abf5ada929e02beee2fd750fe2d11c3179617c817cd16a27ca13a",
+    "members": 156
+  },
+  "claims": {
+    "selfhost_owned_opcodes_admitted": false,
+    "full_core_closed": false,
+    "default_allocator_profile_changed": false,
+    "universal_refinement_proved": false,
+    "native_failure_sequence_equivalent_to_vm_injection": false
+  },
+  "dependencies": [
+    "Explicit allocator runtime profile or existing-libc import binding",
+    "Owned output types, multi-output parser, precise alloc effects",
+    "Owner capabilities and consumption through calls/CFG",
+    "Same-source native cold and negative qualification after admission"
+  ],
+  "reproduce": "HIA_SELFHOST_OWNED_EVIDENCE=<fresh-directory> python -B -m unittest tests.test_hia_selfhost_owned_runtime -v"
+}
