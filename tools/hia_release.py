@@ -84,6 +84,8 @@ CANDIDATE_FILES = (
     "review-evidence/hia-agent-original-select-delta-20261108-5e6c/raw-evidence.zip",
     "docs/HIA_SELFHOST_CHAIN_FLOW_QUALIFICATION.md",
     "docs/HIA_SELFHOST_CHAIN_V13_QUALIFICATION.md",
+    "docs/HIA_SELFHOST_ALLOC_NODE_FIX_20261108.md",
+    "tools/qualify_hia_selfhost_machine_plans.py", "tests/test_hia_selfhost_machine_plans.py",
     "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",
     "tests/test_hia_ndu_prepared_ranker.py", "docs/HIA_NDU_PREPARED_RANKING.md",
     "tools/qualify_hia_ndu_persistent_ranker.py", "tools/replay_hia_ndu_persistent_ranker.py",

@@ -160,6 +160,16 @@ and emits bounded ELF64 ET_REL objects and closed allocator relocations in HIA.
 It has separate system-linker, native-execution, ownership-flow and explicit
 allocator-failure checks. The shared chain destructor uses constant native stack.
 
+The subsequent [allocation-effect node fix](HIA_SELFHOST_ALLOC_NODE_FIX_20261108.md)
+counts the optional `alloc` effect in every native parse pass. The new frozen
+compiler has its own 1,131-check native qualification, 910 language checks and
+fresh 10-check cold replay containing the complete 1,131-check qualification.
+The earlier v13 results and both original boundary failures remain historical
+evidence. Exact-limit and one-node-over-limit controls cover the effect both
+present and absent without raising any resource bound. The separate machine-plan
+oracle retains equality for all 17 observed workspace header words, including
+word 248; this finite observation does not cover the unobserved workspace tail.
+
 Operation-name coverage is not complete general-Core acceptance. The fixed
 canonical grammar, finite resource limits, restricted function results and
 internal call ABI still exclude valid general Core inputs. Non-tail recursion,

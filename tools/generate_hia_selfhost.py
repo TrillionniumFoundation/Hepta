@@ -150,6 +150,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         next_token(s, w)
         expect(s, w, 44)
         allocating = 1
+        account_nodes(w, 1)
     expect(s, w, @read@)
     expect(s, w, 44)
     expect(s, w, @write@)

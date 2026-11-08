@@ -1,0 +1,66 @@
+{
+  "schema": "hepta.hia.v13-reproduced-budget-defect.v1",
+  "source_commit": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+  "source_tree": "87b106d1e76337e02bda5e7a9132c4854c601b00",
+  "compiler_source_sha256": "d57f0350174ade6347077b72e2679ac083f103a7b38698efe7c4d227304beb91",
+  "source_ci": {
+    "run_id": 42516119843,
+    "conclusion": "success",
+    "head_sha": "50c1578b4d4597e3070a9abc3700c9aacbf99851",
+    "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42516119843",
+    "artifact": [
+      {
+        "id": 13632460817,
+        "name": "hia-exact-source-50c1578b4d4597e3070a9abc3700c9aacbf99851",
+        "bytes": 28104505,
+        "digest": "sha256:3240d93c2aea9f4554111198fcdd9788b34372b617f0bd6efb66e3f3a21b5659"
+      }
+    ]
+  },
+  "known_uncovered_defect": {
+    "effect": "alloc",
+    "declared_node_limit": 262144,
+    "actual_subject_nodes": 262145,
+    "observed_compiler_nodes": 262144,
+    "observed_result": 4294967294,
+    "required_result": 4294967295,
+    "compilers": [
+      "B3",
+      "M3"
+    ],
+    "source_and_output_unchanged": true,
+    "over_limit_machine_artifact_emitted": false,
+    "original_archive_sha256": "fc34adcbd15ed15ce9781b31034bda5cb2e73ed604c3330656b46291da303f6f",
+    "original_archive_git_blob": "782c364e871e2677ecce2a23cedb3f1ee4c55a59"
+  },
+  "release_status": "HOLD_REPRODUCED_BOUNDARY_DEFECT",
+  "green_ci_overrides_reproduced_failure": false,
+  "repair_under_separate_qualification": true,
+  "repair_source_sha256": "6e9b171db3b078919e3a37c40e3b097136ac3221f0e19b872da42eb765193de1",
+  "initial_native_observation": {
+    "subject": "earlier v13 images before the parameter bound repair",
+    "B3": "233bf7bcdde5102beba1791c2922f1b8a994c0ccb3a2e83f2bcbc9bb0c802a1e",
+    "M3": "90ca756f9697b5e37514377ce5e7436f18e6be24846002a6f24acc79583a39cb",
+    "attributed_to_50c_frozen_images": false
+  },
+  "latest_frozen_image_recheck": {
+    "status": "REPRODUCED",
+    "B3": "d20dbc1426ffaf0369a24b884ff30e0ae675b8ea24ea130a361abafeee9fbdaa",
+    "M3": "a692195b44655cc4850065e527330a3594762143af38eb94bb0fa8c64fb05a34",
+    "subject_sha256": "edb85695e21bedd6a1a74cd338ecd9a3f670d9f9401099f888bf01b25d76e7f2",
+    "actual_nodes": 262145,
+    "observed_nodes": 262144,
+    "result": 4294967294,
+    "error": 0,
+    "source_and_output_unchanged": true,
+    "review_directory": "v13-alloc-node-boundary-review-02",
+    "independent_parent_readback": true
+  },
+  "identity_correction": {
+    "initial_record": "initial-status-record.json",
+    "reason": "The first native receipts name the earlier images. The initial parent description associated that observation with the later frozen source incorrectly. The raw receipts and archive were not altered.",
+    "current_source_omission_independently_reviewed": true,
+    "latest_image_execution_not_yet_claimed": false,
+    "latest_image_confirmation": "Separate exact-image recheck completed after the initial identity correction; both original observations remain retained."
+  }
+}

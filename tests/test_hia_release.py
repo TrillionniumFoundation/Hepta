@@ -122,6 +122,8 @@ class ReleaseLockBoundaries(unittest.TestCase):
             "review-evidence/hia-agent-original-select-delta-20261108-5e6c/raw-evidence.zip",
             "docs/HIA_SELFHOST_CHAIN_FLOW_QUALIFICATION.md",
             "docs/HIA_SELFHOST_CHAIN_V13_QUALIFICATION.md",
+            "docs/HIA_SELFHOST_ALLOC_NODE_FIX_20261108.md",
+            "tools/qualify_hia_selfhost_machine_plans.py", "tests/test_hia_selfhost_machine_plans.py",
             "tools/qualify_hia_safe_core_cmovne.py", "tools/hia_safe_core_cmovne_child.py",
             "tests/test_hia_safe_core_cmovne.py", "docs/HIA_SAFE_CORE_CMOVNE_20261108.md",
             "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",

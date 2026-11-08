@@ -63,7 +63,7 @@ def _fixture_assembly(document):
         return ",".join(p["name"] + ":" + p["type"] for p in values)
     lines = ["hia-asm.v1 hepta.hia.program.v8 selfhost"]
     for fn in document["functions"]:
-        lines.append(f'fn {fn["name"]}({params(fn["params"])}) -> ({fn["returns"][0]}) effects(read,write,trap) entry(b0)')
+        lines.append(f'fn {fn["name"]}({params(fn["params"])}) -> ({fn["returns"][0]}) effects({",".join(fn["effects"])}) entry(b0)')
         for block in fn["blocks"]:
             lines.append(f'block {block["id"]}({params(block["params"])})')
             for op in block["ops"]:
@@ -81,7 +81,7 @@ def _fixture_assembly(document):
     return ("\n".join(lines) + "\n").encode()
 
 
-def structural_capacity_fixture(over=False):
+def structural_capacity_fixture(over=False, *, allocating=False):
     """Exactly 262144 or 262145 Core nodes, below all other source limits."""
     def op(name, args, output, attrs=None):
         return {"op": name, "args": args, "out": [output], "attrs": attrs or {}}
@@ -109,9 +109,10 @@ def structural_capacity_fixture(over=False):
                     for _ in range(3):
                         operations.append(op("int.add.wrap", names[:2], {"name": f"v{serial}", "type": "u8"}))
                         serial += 1
-                    operations.append(op("int.add.wrap" if over else "const",
-                        names[:2] if over else [], {"name": f"v{serial}", "type": "u8"},
-                        {} if over else {"value": 0}))
+                    extra_operand = over and not allocating
+                    operations.append(op("int.add.wrap" if extra_operand else "const",
+                        names[:2] if extra_operand else [], {"name": f"v{serial}", "type": "u8"},
+                        {} if extra_operand else {"value": 0}))
                     serial += 1
             if block + 1 == block_count:
                 term = {"op": "ret", "values": [names[0]]}
@@ -122,6 +123,15 @@ def structural_capacity_fixture(over=False):
         functions.append({"name": f"f{fn}", "params": deepcopy(blocks[0]["params"]),
                           "returns": ["u8"], "effects": ["read", "write", "trap"],
                           "entry": "b0", "blocks": blocks})
+    if allocating:
+        # Declaring an unused alloc effect is valid Core and adds exactly one
+        # structural node. Keep the allowed control at the exact same limit by
+        # replacing one unused two-operand arithmetic result with a constant.
+        functions[0]["effects"].insert(0, "alloc")
+        if not over:
+            arithmetic = next(ins for ins in functions[1]["blocks"][0]["ops"]
+                              if ins["op"] == "int.add.wrap")
+            arithmetic.update(op="const", args=[], attrs={"value": 0})
     document = {"schema": "hepta.hia.program.v8", "module": "selfhost", "functions": functions}
     if count_nodes(document) != MAX_CORE_NODES + int(over):
         raise AssertionError("structural fixture is not at its declared boundary")
@@ -152,9 +162,9 @@ def independent_capacity_reference():
             "expected_result": expected, "general_core": "accepted", "reference_result": result,
             "scalar_reference_change": "remove three unused borrowed entry parameters; all operations and control flow unchanged",
             "selfhost_profile_expected": "accepted" if size <= MAX_INSTRUCTIONS else "instruction_limit_rejected"})
-    for over in (False, True):
-        source, document = structural_capacity_fixture(over)
-        entry = {"case": "structural-nodes-" + str(MAX_CORE_NODES + int(over)),
+    for allocating, over in ((False, False), (False, True), (True, False), (True, True)):
+        source, document = structural_capacity_fixture(over, allocating=allocating)
+        entry = {"case": ("structural-alloc-nodes-" if allocating else "structural-nodes-") + str(MAX_CORE_NODES + int(over)),
             "source_sha256": sha256(source).hexdigest(), "source_bytes": len(source),
             "core_nodes": count_nodes(document),
             "canonical_bytes": len(json.dumps(document, sort_keys=True, separators=(",", ":")).encode())}
@@ -209,9 +219,9 @@ def qualify_capacity(directory, compilers, checks, reference):
             and rejected.get("output_unchanged") and rejected.get("source_unchanged")
             and rejected.get("workspace_header", {}).get("40") == 54)
         observations.append(rejected)
-        for over in (False, True):
-            source, _ = structural_capacity_fixture(over)
-            case = label + "-capacity-nodes-" + str(MAX_CORE_NODES + int(over))
+        for allocating, over in ((False, False), (False, True), (True, False), (True, True)):
+            source, _ = structural_capacity_fixture(over, allocating=allocating)
+            case = label + ("-capacity-alloc-nodes-" if allocating else "-capacity-nodes-") + str(MAX_CORE_NODES + int(over))
             result, _ = invoke(directory, case, compiler, source, capacity=32, workspace_fill=0xa7)
             # The exact-limit source passes semantic/node checks and reaches
             # output preflight. +1 must be rejected in pass zero, before output.

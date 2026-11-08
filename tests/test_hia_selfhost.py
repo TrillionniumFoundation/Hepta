@@ -114,6 +114,8 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertEqual(rows["instructions-" + str(MAX_INSTRUCTIONS + 1)]["general_core"], "accepted")
         self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES)]["general_core"], "accepted")
         self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES + 1)]["code"], "E_HIA_LIMIT")
+        self.assertEqual(rows["structural-alloc-nodes-" + str(MAX_CORE_NODES)]["general_core"], "accepted")
+        self.assertEqual(rows["structural-alloc-nodes-" + str(MAX_CORE_NODES + 1)]["code"], "E_HIA_LIMIT")
 
     def test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures(self):
         from tools.hia_selfhost_select import independent_select_reference
@@ -190,13 +192,18 @@ class SelfhostNativeTests(unittest.TestCase):
             rejected = rows[compiler + "-capacity-over-limit"]
             self.assertEqual(rejected["core_u32"], INVALID)
             self.assertTrue(rejected["output_unchanged"])
-            allowed = rows[compiler + "-capacity-nodes-" + str(MAX_CORE_NODES)]
-            self.assertEqual(allowed["core_u32"], NO_SPACE)
-            self.assertEqual(allowed["workspace_header"]["248"], MAX_CORE_NODES)
-            refused = rows[compiler + "-capacity-nodes-" + str(MAX_CORE_NODES + 1)]
-            self.assertEqual(refused["core_u32"], INVALID)
-            self.assertEqual(refused["workspace_header"]["248"], MAX_CORE_NODES + 1)
-            self.assertTrue(refused["output_unchanged"])
+            for prefix in ("-capacity-nodes-", "-capacity-alloc-nodes-"):
+                allowed = rows[compiler + prefix + str(MAX_CORE_NODES)]
+                self.assertEqual(allowed["core_u32"], NO_SPACE)
+                self.assertEqual(allowed["workspace_header"]["248"], MAX_CORE_NODES)
+                self.assertEqual(allowed["workspace_header"]["40"], 0)
+                refused = rows[compiler + prefix + str(MAX_CORE_NODES + 1)]
+                self.assertEqual(refused["core_u32"], INVALID)
+                self.assertEqual(refused["workspace_header"]["248"], MAX_CORE_NODES + 1)
+                self.assertEqual(refused["workspace_header"]["40"], 58)
+                for observed in (allowed, refused):
+                    self.assertTrue(observed["output_unchanged"])
+                    self.assertTrue(observed["source_unchanged"])
 
     def test_modified_emitter_propagates_and_rebuilds_modified_self(self):
         m1, m2, m3 = self.report["modified_generations"]

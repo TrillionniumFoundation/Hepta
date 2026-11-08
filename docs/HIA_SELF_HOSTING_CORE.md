@@ -201,7 +201,8 @@ do not overlap live parser, SSA or relocation state. Every compilation clears
 this state, including when the caller supplies nonzero scratch contents.
 Each native parse pass counts the exact corresponding Core JSON nodes, including
 containers, declarations, parameters, instruction results, attributes and both
-branch arms. Header word 248 records the count; the count starts at four for
+branch arms. The optional `alloc` effect contributes its own node even when no
+allocating instruction appears in that function. Header word 248 records the count; the count starts at four for
 the root object, schema, module and function-list nodes. More than 262,144 nodes
 is rejected before any output write. The maximum instruction count does not
 bypass the general Core's structural budget.

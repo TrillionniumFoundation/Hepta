@@ -199,7 +199,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests tests.test_hia_selfhost_owned_flow tests.test_hia_selfhost_chain -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-source.log"
+          python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests tests.test_hia_selfhost_owned_flow tests.test_hia_selfhost_chain tests.test_hia_selfhost_machine_plans -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-source.log"
       - name: Rebuild the frozen selfhost chain from a cold directory
         shell: bash
         run: |
