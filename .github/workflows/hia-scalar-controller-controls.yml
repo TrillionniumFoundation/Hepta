@@ -1,0 +1,141 @@
+name: HIA frozen scalar controller controls
+
+on:
+  push:
+    branches: ['codex/hia-sixgap-source-*', 'codex/hia-scalar-controls-*', 'codex/hia-ndu-scalar-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  same-pool-native-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+      HEPTA_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+          sparse-checkout: |
+            .github
+            hepta
+            tools
+            tests
+            docs
+            benchmarks
+            rust/hia-ndu-bridge
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare the exact source and evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          mkdir "$RUNNER_TEMP/hia-scalar-controls"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-scalar-controls/source-before.txt"
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          python -m pip freeze > "$RUNNER_TEMP/hia-scalar-controls/dependencies.txt"
+      - name: Check evidence rejection and no-dispatch guards without native timing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-scalar-controls/unit-tests.log"
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_controller_controls')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not (result.wasSuccessful() and result.testsRun > 0 and not result.skipped
+                  and not result.expectedFailures):
+              raise SystemExit('scalar evidence controls must pass without skips')
+          PY
+      - name: Build and retain the original locked native evaluator
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.95.0 --profile minimal
+          hia_scalar_upstream="$RUNNER_TEMP/hia-scalar-control-upstream"
+          hia_scalar_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hia_scalar_upstream"
+          git -C "$hia_scalar_upstream" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hia_scalar_upstream" config remote.origin.promisor true
+          git -C "$hia_scalar_upstream" config remote.origin.partialclonefilter blob:none
+          git -C "$hia_scalar_upstream" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hia_scalar_commit"
+          test "$(git -C "$hia_scalar_upstream" rev-parse FETCH_HEAD)" = "$hia_scalar_commit"
+          RUSTC="$(rustup which --toolchain 1.95.0 rustc)" \
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-scalar-control-target" \
+          python -B tools/build_hia_ndu_bridge.py \
+            --upstream "$hia_scalar_upstream" --output "$RUNNER_TEMP/hia-scalar-controls/build" \
+            --cargo "$(rustup which --toolchain 1.95.0 cargo)" \
+            > "$RUNNER_TEMP/hia-scalar-controls/build.stdout.log" \
+            2> "$RUNNER_TEMP/hia-scalar-controls/build.stderr.log"
+          python -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-scalar-controls'
+          value = {'kind': 'same_workflow_original_native_build',
+              'source_sha': os.environ['HEPTA_SOURCE_SHA'],
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'artifact_digest': None,
+              'scope': 'current workflow context; final uploaded archive digest is not self-referential',
+              'remote_attestation': False}
+          (root / 'native-provenance.json').write_text(json.dumps(value, sort_keys=True) + '\n')
+          PY
+      - name: Freeze the 64-pair plan before any experimental native call
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/measure_hia_scalar_controller_controls.py prepare \
+            --source "$GITHUB_WORKSPACE" --expected-source "$HEPTA_SOURCE_SHA" \
+            --native-binary "$RUNNER_TEMP/hia-scalar-control-target/debug/hia-ndu-bridge" \
+            --native-build-receipt "$RUNNER_TEMP/hia-scalar-controls/build/build-receipt.json" \
+            --native-provenance "$RUNNER_TEMP/hia-scalar-controls/native-provenance.json" \
+            --output "$RUNNER_TEMP/hia-scalar-controls/campaign" \
+            | tee "$RUNNER_TEMP/hia-scalar-controls/preparation.json"
+          hia_scalar_plan=$(python -c 'import hashlib,os,pathlib; print(hashlib.sha256((pathlib.Path(os.environ["RUNNER_TEMP"])/"hia-scalar-controls/campaign/PLAN.json").read_bytes()).hexdigest())')
+          printf 'HIA_SCALAR_PLAN_SHA256=%s\n' "$hia_scalar_plan" >> "$GITHUB_ENV"
+      - name: Execute the registered calls once with their original failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/measure_hia_scalar_controller_controls.py run \
+            --directory "$RUNNER_TEMP/hia-scalar-controls/campaign" \
+            --expected-plan-sha256 "$HIA_SCALAR_PLAN_SHA256" \
+            | tee "$RUNNER_TEMP/hia-scalar-controls/execution.log"
+      - name: Independently verify retained bytes and cost accounting
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test -f "$RUNNER_TEMP/hia-scalar-controls/campaign/SUMMARY.json"; then
+            python -B tools/measure_hia_scalar_controller_controls.py verify \
+              --directory "$RUNNER_TEMP/hia-scalar-controls/campaign" \
+              --expected-plan-sha256 "$HIA_SCALAR_PLAN_SHA256" \
+              --output "$RUNNER_TEMP/hia-scalar-controls/campaign/VERIFICATION.json"
+          else
+            printf '%s\n' 'No completed summary exists; retained partial evidence is not a qualification.'
+            exit 1
+          fi
+      - name: Check the exact source after success or failure
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-scalar-controls/source-after.txt"
+          cmp "$RUNNER_TEMP/hia-scalar-controls/source-before.txt" "$RUNNER_TEMP/hia-scalar-controls/source-after.txt"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Retain original plan, source, native binary, streams and failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-scalar-controller-controls-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-scalar-controls/
+          if-no-files-found: error
+          retention-days: 30
