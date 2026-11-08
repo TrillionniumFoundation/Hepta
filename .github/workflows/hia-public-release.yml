@@ -40,8 +40,61 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          python -B tools/hia_release.py describe > "$RUNNER_TEMP/hia-public-release/describe.json"
           python -B tools/hia_release.py materialize --directory "$RUNNER_TEMP/hia-public-release/release" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/materialize.log"
           python -B tools/hia_release.py check --hepta-root "$RUNNER_TEMP/hia-public-release/release/hepta" --runtime-checkout "$RUNNER_TEMP/hia-public-release/release/runtime" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/check.log"
+      - name: Verify discoverable entry and materialized public task inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          entry = Path(os.environ["GITHUB_WORKSPACE"])
+          root = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"
+          readme = (entry / "README.md").read_bytes()
+          readme_text = readme.decode("utf-8")
+          if not readme_text.strip():
+              raise SystemExit("public README is empty")
+          if ("python3 -B tools/hia_release.py" not in readme_text
+                  or "](releases/hia-current.json)" not in readme_text):
+              raise SystemExit("public README lacks the entry command or release-lock link")
+          lock_raw = (entry / "releases/hia-current.json").read_bytes()
+          lock = json.loads(lock_raw)
+          source = root / "release/hepta"
+          required = (
+              "tools/hia_repository_agent_trial.py",
+              "tests/test_hia_repository_agent_trial.py",
+              "docs/HIA_REPOSITORY_AGENT_TRIAL.md",
+              "experiments/hia_repository_select_trial_20261108/public/PROMPT.txt",
+              "experiments/hia_repository_select_trial_20261108/public/task.json",
+              "tests/test_hia_scalar_proof_contract.py",
+              "tools/hia_selfhost_select.py",
+              "docs/HIA_AGENT_PROOF_RESULTS.md",
+          )
+          files = {}
+          for name in required:
+              expected = lock["files"]["hepta"].get(name)
+              path = source / name
+              if not expected or not path.is_file():
+                  raise SystemExit("public task input is not locked/materialized: " + name)
+              raw = path.read_bytes()
+              measured = hashlib.sha256(raw).hexdigest()
+              if measured != expected:
+                  raise SystemExit("public task input differs from lock: " + name)
+              files[name] = {"sha256": measured, "bytes": len(raw)}
+          record = {
+              "schema": "hepta.hia.public-source-inputs.v1",
+              "entry_commit": os.environ["GITHUB_SHA"],
+              "release_lock_sha256": hashlib.sha256(lock_raw).hexdigest(),
+              "hepta_source": lock["sources"]["hepta"],
+              "entry_readme": {"sha256": hashlib.sha256(readme).hexdigest(), "bytes": len(readme)},
+              "files": files,
+              "ok": True,
+          }
+          (root / "public-inputs.json").write_text(json.dumps(record, indent=2) + "\n")
+          print("Public discovery entry and exact task/proof inputs are present")
+          PY
       - name: Run native examples and prove installation identity matches the lock
         shell: bash
         run: |
