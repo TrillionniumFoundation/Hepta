@@ -84,7 +84,7 @@ class ArtifactContractTests(AgentToolCase):
                 self.assertTrue(session.read(artifact))
         support = json.loads(session.read(self.service.resources["self_hosting_core_support"]))
         self.assertEqual(support["schema"], "hepta.hia.selfhost-core-support.v1")
-        self.assertEqual(support["profile"], "selfhost-core-linux-x86_64-v9")
+        self.assertEqual(support["profile"], "selfhost-core-linux-x86_64-v10")
         self.assertEqual(support["limits"]["tail_self_call_additional_frames"], 0)
         backend = self.client.result("hia_describe", {"section": "backend"})
         self.assertIn(self.service.resources["self_hosting_core_support"], backend["resources"])
@@ -638,3 +638,4 @@ class AgentStoreDirectoryPermissionTests(unittest.TestCase):
             # state-root check. Store initialization must fail closed.
             with self.assertRaisesRegex(ValueError, "artifact directory"):
                 HIAAgentService(root)
+

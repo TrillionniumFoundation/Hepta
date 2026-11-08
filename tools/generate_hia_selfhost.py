@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -453,13 +453,13 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 if op >= @bit.not@ and op <= @int.neg.checked@ and op != @select@:
                     checked_integer(o, w, op, n, a, b, at, bt, t)
                 else:
-                    operation(o, w, op, n, a, b, at, bt, t)
+                    operation_dispatch(o, w, op, n, a, b, at, bt, t)
     if t != 0:
         define(w, v, t)
         if get(w, 256) == 0:
             store_var(o, w, v, 0)
     else:
-        if op != @buffer.store@ and op != @buffer.swap@:
+        if op != @buffer.store@ and op != @buffer.swap@ and (op < @buffer.fill@ or op > @buffer.move_within@):
             fail(w, 27)
     expect(s, w, 10)
     if get(w, 256) != 0 and get(w, 8) != @ret@:
@@ -1205,6 +1205,104 @@ def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64
     emit(o, w, 69)
     emit(o, w, 193)
     return 0
+
+# These HIA helpers emit complete machine instructions, never host/library calls.
+def bulk_range_guard(o:mutbuf, w:mutbuf, buffer:u64, offset:u64, size:u64) -> u64:
+    load_var(o, w, 0, buffer, 1)
+    load_var(o, w, 1, offset, 0)
+    # cmp rcx,rax; jbe +2; ud2; sub rax,rcx. Offset is checked first.
+    emit_bytes(o, w, 3112728000543048, 7)
+    emit_bytes(o, w, 13117768, 3)
+    load_var(o, w, 1, size, 0)
+    # Compare against extent-offset instead of overflowing offset+count.
+    emit_bytes(o, w, 3112728000543048, 7)
+    return 0
+
+def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if at != 7 or t != 0:
+        return fail(w, 61)
+    c = get(w, ARGS + 16)
+    d = get(w, ARGS + 24)
+    e = get(w, ARGS + 32)
+    if op == @buffer.fill@:
+        if n != 2 or bt != 4:
+            return fail(w, 61)
+        load_var(o, w, 1, a, 1)
+        load_var(o, w, 0, b, 0)
+        load_var(o, w, 7, a, 0)
+        # cld; rep stosb. Zero count performs no access.
+        emit_bytes(o, w, 11203580, 3)
+        return 0
+    if op == @buffer.fill_range@:
+        if n != 4 or bt != 2 or variable(w, c) != 2 or variable(w, d) != 4:
+            return fail(w, 61)
+        bulk_range_guard(o, w, a, b, c)
+    else:
+        if op == @buffer.move_within@:
+            if n != 4 or bt != 2 or variable(w, c) != 2 or variable(w, d) != 2:
+                return fail(w, 61)
+            bulk_range_guard(o, w, a, b, d)
+            bulk_range_guard(o, w, a, c, d)
+        else:
+            # The borrowed entry ABI supplies distinct live allocations;
+            # this subset cannot produce new aliases or change loan types.
+            if bt != 6:
+                return fail(w, 61)
+            if op == @buffer.copy@:
+                if n != 3 or variable(w, c) != 2:
+                    return fail(w, 61)
+                load_var(o, w, 1, c, 0)
+                load_var(o, w, 0, a, 1)
+                emit_bytes(o, w, 3112728000543048, 7)
+                load_var(o, w, 0, b, 1)
+                emit_bytes(o, w, 3112728000543048, 7)
+            else:
+                if op != @buffer.copy_range@ or n != 5 or variable(w, c) != 2 or variable(w, d) != 2 or variable(w, e) != 2:
+                    return fail(w, 61)
+                bulk_range_guard(o, w, a, c, e)
+                bulk_range_guard(o, w, b, d, e)
+    # Validate even empty ranges, then skip derived pointers when count is zero.
+    emit_bytes(o, w, 567200548168, 5)
+    done = get(w, 56)
+    emit4(o, w, 0)
+    load_var(o, w, 7, a, 0)
+    if op == @buffer.fill_range@:
+        load_var(o, w, 0, b, 0)
+        emit_bytes(o, w, 13041992, 3)
+        load_var(o, w, 0, d, 0)
+        emit_bytes(o, w, 11203580, 3)
+    else:
+        if op == @buffer.move_within@:
+            load_var(o, w, 6, a, 0)
+            load_var(o, w, 0, b, 0)
+            emit_bytes(o, w, 13041992, 3)
+            load_var(o, w, 0, c, 0)
+            emit_bytes(o, w, 12976456, 3)
+            # Backward copy handles overlap and clears DF on return. The
+            # forward path also explicitly clears DF. All registers volatile.
+            emit_bytes(o, w, 70715390280, 5)
+            emit_bytes(o, w, 1095476481352, 5)
+            emit_bytes(o, w, 1095459179848, 5)
+            emit_bytes(o, w, 17580931357438440445, 8)
+            emit(o, w, 164)
+        else:
+            load_var(o, w, 6, b, 0)
+            if op == @buffer.copy_range@:
+                load_var(o, w, 0, c, 0)
+                emit_bytes(o, w, 13041992, 3)
+                load_var(o, w, 0, d, 0)
+                emit_bytes(o, w, 12976456, 3)
+            emit_bytes(o, w, 10810364, 3)
+    if get(w, 48) == 2:
+        write4(o, done, get(w, 56) - done - 4)
+    return 0
+
+# Keep dispatch outside the pre-existing operation function's SSA budget.
+def operation_dispatch(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op >= @buffer.fill@ and op <= @buffer.move_within@:
+        return bulk_buffer(o, w, op, n, a, b, at, bt, t)
+    return operation(o, w, op, n, a, b, at, bt, t)
+
 '''
 
 

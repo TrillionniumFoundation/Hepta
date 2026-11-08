@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v9`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v10`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -108,11 +108,11 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 |---|---|
 | Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf` parameters |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
-| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
+| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
-| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
+| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
@@ -542,3 +542,30 @@ shared 128-result byte-observation limit. The input operation inventory is 32/50
 Signed types, owned resources and the remaining general Core obligations remain
 outside this profile. Native finite witnesses and fixed points remain separate
 from an all-input compiler correctness proof.
+
+
+### v10 bulk borrowed buffers
+
+Five bulk operations now compile in HIA and execute as self-contained x86-64
+instructions in flat images and HIA-written ELF objects. No imported libc
+routines or host compilation are used. Source, output, workspace, block, SSA,
+and instruction limits remain unchanged. Coverage is 37 of the general Core's
+50 opcodes; ownership, borrow creation and chain operations remain unsupported.
+This count is not full-language selfhosting or an all-input correctness proof.
+
+Copies require a mutable destination and a shared source with distinct live
+roots, preserved by the entry ABI and checked call/edge transfers. Range checks
+first establish offset <= extent, then count <= extent - offset. Both ranges
+are checked before the first write. Valid empty ranges at the end are admitted;
+beyond-end offsets trap even at zero count. Empty ranges skip pointer arithmetic.
+Overlapping moves run backward when the destination follows the source and
+forward otherwise. Every returning path restores the clear x86 direction flag.
+Earlier stores remain observable after later traps; no program rollback is promised.
+
+The independent general Core VM and a Python byte oracle run 58 cases before
+B0. B3 and mutated M3 each compile/execute them, reject 34 malformed signatures,
+and compare flat/ELF text for all five operations. Cases include both overlap
+directions, empty and exact boundaries, maximum usize values, too-short buffers,
+and observable stores before a trap. Cold replay includes these witnesses.
+Finite observations retain the host/ABI assumptions and do not prove the general
+compiler, ISA, loader, resource or FFI semantics.

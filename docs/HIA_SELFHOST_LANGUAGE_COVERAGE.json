@@ -1576,10 +1576,13 @@
       "area": "resources",
       "existing_evidence": [
         "tools.hia_selfhost_resources.qualify_resources",
+        "tools.hia_selfhost_bulk.qualify_bulk",
         "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"
       ],
       "hia_functions": {
         "args": "f4",
+        "bulk_buffer": "f47",
+        "bulk_range_guard": "f46",
         "edge": "f5",
         "operation": "f7"
       },
@@ -1589,6 +1592,11 @@
         "buffer.load",
         "buffer.store",
         "buffer.swap with both bounds before access",
+        "buffer.fill",
+        "buffer.fill_range",
+        "buffer.copy",
+        "buffer.copy_range",
+        "buffer.move_within with overlap handling",
         "linear edge transfers",
         "readonly call aliases",
         "mutable alias rejection"
@@ -1596,7 +1604,8 @@
       "new_witnesses": [
         "borrowed-buffer-operations",
         "existing-readonly-*",
-        "swap-*"
+        "swap-*",
+        "bulk-*"
       ],
       "status": "bounded_subset"
     },
@@ -1836,11 +1845,6 @@
   "general_core_opcodes_outside_profile": [
     "borrow.mut",
     "borrow.read",
-    "buffer.copy",
-    "buffer.copy_range",
-    "buffer.fill",
-    "buffer.fill_range",
-    "buffer.move_within",
     "buffer.new",
     "buffer.try_new",
     "chain.empty",
@@ -1861,8 +1865,13 @@
     "bool.and",
     "bool.not",
     "bool.or",
+    "buffer.copy",
+    "buffer.copy_range",
+    "buffer.fill",
+    "buffer.fill_range",
     "buffer.len",
     "buffer.load",
+    "buffer.move_within",
     "buffer.store",
     "buffer.swap",
     "call",
@@ -1936,7 +1945,7 @@
       "derived_maximum_with_other_limits": 11265
     }
   },
-  "profile": "selfhost-core-linux-x86_64-v9",
+  "profile": "selfhost-core-linux-x86_64-v10",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -2231,6 +2240,210 @@
       "general_core_expected": "rejected",
       "id": "swap-long-arity",
       "source_sha256": "e7266c4983582247a021dd8adb50f787e9d427726bc9f62086520352069f40a7"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-readonly-destination",
+      "source_sha256": "813c86518f0d9a0737b50e6513d37c49cc1a48298708f633e8af7d1e4b2c29bc"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-short-arity",
+      "source_sha256": "0dcf7f285975124c87e830d0465bf726aef165cf22dcc51596aec116b9635ebf"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-long-arity",
+      "source_sha256": "25ecfb652879cee6a2993f0b57a9e4d656635120159b4a1e1213e3bc3febaea9"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-unexpected-result",
+      "source_sha256": "de423aa1fb5279cd3645a674435bad25ebf4e6bd2e57a874f9fea275fd46cdc3"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-unexpected-attribute",
+      "source_sha256": "3a0d482942877abed505159fca25345eff992ddd367e2aa295e96be130b98622"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill-wrong-scalar",
+      "source_sha256": "7ab442bb557ff368815dfc1d07a83a0720edaa010947392386fad15814a847af"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-readonly-destination",
+      "source_sha256": "9a330e3b5cadcf6ef79818d43b7147cd77cf27722d9584567151007871b583ac"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-short-arity",
+      "source_sha256": "a4cadddca51b4b35d24a849ca1e891fff9f562b796bc9ec55e55fb323cac97cb"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-long-arity",
+      "source_sha256": "5afa17e2f9dcfbcaf5e2936562484457161087290c6454ecd926ab03adc2c797"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-unexpected-result",
+      "source_sha256": "4e4bb3b551f9b2f1a91dda0a8ca3352df872b51d15baa60ef61c07bbb2f54846"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-unexpected-attribute",
+      "source_sha256": "1505f89ff7089ef93bd36da75ae4e841cde66ede61c9a0aab831be4137cd5f9c"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.fill_range-wrong-scalar",
+      "source_sha256": "a2585e1f7db5c013b29654adf1367febd37a9afd3cca9132b2ba6704b6dada07"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-readonly-destination",
+      "source_sha256": "a55e69e0383c926153203170bbb0eea6895ec03c708ae01146d22cdaca117729"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-short-arity",
+      "source_sha256": "5c0522a3132b4222bd385e0d1f9e90368aae1113fe373ed77abd621ad4f48358"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-long-arity",
+      "source_sha256": "6af0e4722ab45b5c5fcae74be0b034d1453439e9d6e916426c9debf886f1ae7d"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-unexpected-result",
+      "source_sha256": "68fb4db8b4ad8d39a08256b1f847dcdbfb5afa9d7effe201764ea106913ef8c1"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-unexpected-attribute",
+      "source_sha256": "0853ca3429007367b43bd4d678b73041881289a4525dce89a78fffc4d7469a2f"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-wrong-scalar",
+      "source_sha256": "a058d619e81652bf61bbdd98f72b6496407d43e741d5b151b174fdd99f4ff0b6"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-mutable-source",
+      "source_sha256": "cda3f7ce9c07a7ce44193b6920a0be33806abf90ab844eb15ebc5461edc24b6f"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy-aliased-source",
+      "source_sha256": "dbd6cd9525c80376eeeb95386e07991597b4e5789d4518bddf4e48cfa18edda6"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-readonly-destination",
+      "source_sha256": "4091ece69edb8725e263812808f8803a18f45f1d621df10a80407a13f3f862f7"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-short-arity",
+      "source_sha256": "0823b09d9f47c98a411b801a36dcd4128aaad180f851c452ca35f0e062f1bbe0"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-long-arity",
+      "source_sha256": "55b83c745312f198c4238365136e414bb92a711bd1c18f8b8869b871b9060cc0"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-unexpected-result",
+      "source_sha256": "dd1f8596ef20a37306f4a3a23550d451f52b7eb42fbc40ad3716dc1a46e9d497"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-unexpected-attribute",
+      "source_sha256": "4a4c4047c069ddbdbe8a4a91667f383e5af221a8c88b56601eda313a6b5b313b"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-wrong-scalar",
+      "source_sha256": "210126c0a800edcb84c4d8654b173013ca24eff4a0b3f6aaa33e3c17222715f6"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-mutable-source",
+      "source_sha256": "4c9a102b42fcfd087eab2027102a60ca34ffb669a23e90ca997ab6e0ed1394d5"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.copy_range-aliased-source",
+      "source_sha256": "423f3e9a469330c3340305c2315e55eb5888de78e82efa41ae1ab3f7600d7512"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-readonly-destination",
+      "source_sha256": "ad44ece2d4c5c20685cc5991e555b7c565de9a1f63ea37f46f7eba138d0524d8"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-short-arity",
+      "source_sha256": "7ba3c47e5a08c8d480e07c0b52847a572d46baa8f4b2affd430e5c604b7066d1"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-long-arity",
+      "source_sha256": "8d157cfc50ed9b1a493bb6d906877a1d8335fa9c9e1b92697edab54b5c042216"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-unexpected-result",
+      "source_sha256": "509f7f3fc8cde782585797790b80afb5eec58778d3e1016c588313219b366086"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-unexpected-attribute",
+      "source_sha256": "75a63d6ca47de0ef6fbef338e7999f64c5ab7f5202425109b4ed971ac7b2fab8"
+    },
+    {
+      "boundary": "exact borrowed bulk signature and zero results",
+      "general_core_expected": "rejected",
+      "id": "bulk-buffer.move_within-wrong-scalar",
+      "source_sha256": "db2a57c81d8bcb3ba350f9f45a57ae8e631f7d068e806cf5554640ee46b67874"
     },
     {
       "boundary": "immediate exact tail return and mutable arguments",
@@ -3089,13 +3302,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "f2ad760b59eaa84338534b2333dd5036fc3d46b3b27e4d49a5f4b212f6ccbee7"
+      "sha256": "7a90a06720b0f7c589159b0bde616fed6a97e558f8af9376fca19c4c21e64511"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "ff478d7194b2b7465f76267ba5c6f3fb7ef5a0edacc9505c4553616dcada358f"
+      "sha256": "1f8bcdf1c541d5f8ee7595dfc3905746874fd89455ca32c46ec329233030f68b"
     },
-    "semantic_support_sha256": "ec67d01c1cdc444f9e5af114cbb90933f7cf0aa3d3611979a0cb668cfa5fffa9",
+    "semantic_support_sha256": "eff861b4c42b7a9132acc0e661b79659831cd64b56b9ebadff81c4a9799d13c5",
     "support_projection_omits": [
       "source_identity"
     ]
