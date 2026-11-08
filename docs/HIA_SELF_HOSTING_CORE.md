@@ -364,9 +364,9 @@ regression evidence rather than a general checker or refinement proof.
 
 ### v8 unsigned integer and scalar selection extension
 
-The HIA scanner, type/arity checker and machine emitter now implement
+The v8 HIA scanner, type/arity checker and machine emitter added
 `bit.not`, `int.add.checked`, `int.sub.checked` and scalar `select`. This brings
-the declared input operation set to 28 of the 50 general Core operations. It does not
+the then-declared input operation set to 28 of the 50 general Core operations. It did not
 expand the ABI, owned resources, external linking, resource limits or the
 separate Safe Core machine-validation profile.
 
@@ -384,7 +384,7 @@ within the unchanged SSA-index and per-function block limits. Qualification
 checks those limits on the compiler's own complete input source as well as on
 boundary fixtures.
 
-The versioned language inventory includes 700 independent scalar value
+The v8 language inventory included 700 independent scalar value
 oracles. Every new operation also runs with operands decoded from runtime
 input bytes in each of the four widths. The general Core VM executes those
 input-dependent bodies through an owned-buffer reference wrapper before B0.
@@ -535,7 +535,10 @@ The native compiler now accepts unsigned `int.mul.checked`, `int.div.checked`,
 its high half and then the declared narrow width. Division and remainder check
 zero before DIV and clear the high dividend word. Unsigned negation returns zero
 only for zero input. Invalid arithmetic executes UD2 before subsequent writes;
-earlier writes remain observable. The input operation inventory is 32/50.
+earlier writes remain observable. The current inventory has 824 scalar witnesses, 120 arithmetic trap cases per
+compiler and 171 refusal cases per compiler. Input-dependent reference
+observations are split into batches of at most 16 scalar results, preserving the
+shared 128-result byte-observation limit. The input operation inventory is 32/50.
 Signed types, owned resources and the remaining general Core obligations remain
 outside this profile. Native finite witnesses and fixed points remain separate
 from an all-input compiler correctness proof.
