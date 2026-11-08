@@ -32,6 +32,8 @@ SOURCE_FILES = (
     "docs/HIA_SELF_HOSTING_CORE.md",
     "tests/test_hia_selfhost.py",
     "tests/test_hia_selfhost_contract.py",
+    "tests/test_hia_selfhost_language_coverage.py",
+    "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
 )
 
 
