@@ -12,7 +12,7 @@ This `main` branch currently provides the discovery and installation entry for t
 - **Evidence snapshot:** [`636c3189722e9bb48c39913e779d688c4e8cbcb3`](https://github.com/TrillionniumFoundation/Hepta/tree/636c3189722e9bb48c39913e779d688c4e8cbcb3)
 - **Recorded CI run:** [candidate checks](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42263076114)
 
-The full local qualification passed 123 regression tests and 20 application tests, with zero skips, identical rebuild bytes and installed native execution. At the 2026-11-06 17:40 UTC CI observation, the remote job was still queued with no assigned runner or executed steps; this is not a remote pass.
+The full local qualification passed 123 regression tests and 20 application tests, with zero skips, identical rebuild bytes and installed native execution. The [recorded remote candidate job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42263076114/job/128047788052) subsequently completed successfully on 2026-11-06 at 18:23 UTC for the exact source `d21359485776c0a9687e88d0f69c8ec06a3b3b98`, including the clean-source, application and installed-candidate verification step and artifact upload. This is the status of that candidate run, not production qualification or evidence for later source changes.
 
 The full source commit and manifest digest identify this candidate. Branch names and earlier CI results do not substitute for those identities.
 
