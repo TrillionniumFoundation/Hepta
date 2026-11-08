@@ -577,7 +577,7 @@ bounds traps, including empty buffers, exact boundaries, both overlap directions
 changed runtime bytes and full-width offset/count failures. The independent
 general Core VM runs each unchanged borrowed body through an owned reference
 wrapper before B0. Both B3 and mutated M3 compile and execute every native case.
-Forty-five invalid sources per compiler exercise arity, result, attributes,
+Forty-five distinct invalid sources per compiler exercise arity, result, attributes,
 operand types and mutable/same-buffer copy sources. Each new operation also has
 an ELF-text/flat-image equality check. These checks run inside the full cold
 qualification and are bound by its source manifest.

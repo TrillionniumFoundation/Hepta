@@ -85,11 +85,12 @@ class SelfhostSourceTests(unittest.TestCase):
             self.assertEqual(row["reference_result"]["status"], "trapped" if row["trap"] else "returned")
 
     def test_bulk_reference_covers_complete_ranges_overlap_empty_and_u64_limits(self):
-        from tools.hia_selfhost_bulk import BULK_OPS, MAX, independent_bulk_reference
+        from tools.hia_selfhost_bulk import BULK_OPS, MAX, bulk_refusals, independent_bulk_reference
         result = independent_bulk_reference()
         self.assertEqual(len(result["cases"]), 69)
         self.assertEqual(sum(row["trap"] for row in result["cases"]), 33)
         self.assertEqual(len(result["rejections"]), 45)
+        self.assertEqual(len(set(bulk_refusals().values())), 45)
         self.assertEqual({row["opcode"] for row in result["cases"]}, set(BULK_OPS))
         cases = {row["id"]: row for row in result["cases"]}
         for name in ("overlap-right", "overlap-left", "adjacent-right", "adjacent-left", "equal", "empty", "zero"):

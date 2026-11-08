@@ -91,11 +91,16 @@ class ReleaseLockBoundaries(unittest.TestCase):
             release.load_lock(self.save(value))
 
     def test_bootstrap_loader_cannot_disappear_from_inventory(self):
-        for name in ("tools/hia_selfhost_child.py", "tools/hia_selfhost_select.py"):
+        for name in ("tools/hia_selfhost_child.py", "tools/hia_selfhost_select.py",
+                     "tools/hia_selfhost_bulk.py"):
             value = lock_fixture()
             del value["files"]["hepta"][name]
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):
                 release.load_lock(self.save(value))
+
+    def test_release_inventory_contains_the_complete_selfhost_source_closure(self):
+        from tools.hia_selfhost_contract import SOURCE_FILES
+        self.assertLessEqual(set(SOURCE_FILES), set(release.BOOTSTRAP_FILES))
 
     def test_repository_trial_inputs_and_proof_scope_cannot_disappear_from_inventory(self):
         for name in (

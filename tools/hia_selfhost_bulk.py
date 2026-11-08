@@ -146,7 +146,7 @@ def bulk_refusals():
         rows[op + "-long-arity"] = source.replace(line, line[:-1] + b"," + args[-1] + b")")
         rows[op + "-result"] = source.replace(b"_ = " + op.encode(), b"v30:u32 = " + op.encode())
         rows[op + "-attributes"] = source.replace(line, line + b' {"mode":"wrap"}')
-        rows[op + "-wrong-scalar-type"] = source.replace(b"v3:u8", b"v3:u32") if op == "buffer.fill" else source.replace(b"v3:usize", b"v3:u32")
+        rows[op + "-wrong-scalar-type"] = source.replace(b"v3:u8", b"v3:u64") if op == "buffer.fill" else source.replace(b"v3:usize", b"v3:u64")
         if op in {"buffer.copy", "buffer.copy_range"}:
             rows[op + "-mutable-source"] = source.replace(op.encode() + b"(v1,v0,", op.encode() + b"(v1,v2,")
             rows[op + "-same-buffer"] = source.replace(op.encode() + b"(v1,v0,", op.encode() + b"(v1,v1,")
