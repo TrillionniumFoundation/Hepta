@@ -56,7 +56,7 @@ def check_hash_observation(result, output, expected):
     require(output == bytes([expected_byte]) + b"\xa5" * (CAPACITY - 1),
             "independent byte hash output effects mismatch")
     header = {str(offset): expected_byte if offset == 0 else 0
-              for offset in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 1024)}
+              for offset in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 248, 1024)}
     require(result["workspace_header"] == header,
             "independent byte hash workspace header mismatch")
 
@@ -254,7 +254,7 @@ def run(directory, repetitions=7):
                 observations.append({"arm": name, "input_sha256": digest(value), "input_bytes": len(value),
                     "expected": expected, "actual": result["core_u32"], "complete_output_effects_match": True,
                     "workspace_header_match": True,
-                    "workspace_scope": "the sixteen retained 8-byte header observations; full workspace tail is not observed"})
+                    "workspace_scope": "all seventeen retained 8-byte header observations; full workspace tail is not observed"})
         report["independent_hash_observations"] = observations
         for row in report["arms"].values():
             row["median_native_ns"] = {name: statistics.median(values) for name, values in row["timings_ns"].items()}
