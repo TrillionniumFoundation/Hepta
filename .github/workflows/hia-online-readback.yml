@@ -1,18 +1,20 @@
 name: HIA pinned online readback
 on:
   push:
-    branches: [main, 'codex/hia-online-readback-*']
+    branches: [main, 'codex/hia-online-readback-*', 'codex/hia-sixgap-entry-*']
     paths:
       - '.github/workflows/hia-online-readback.yml'
       - 'tools/check_hia_online_readback.py'
       - 'tests/test_hia_online_readback.py'
       - 'review-evidence/hia-online-readback-20261108-5e6c/**'
+      - 'review-evidence/hia-online-readback-20261108-adf1/**'
   pull_request:
     paths:
       - '.github/workflows/hia-online-readback.yml'
       - 'tools/check_hia_online_readback.py'
       - 'tests/test_hia_online_readback.py'
       - 'review-evidence/hia-online-readback-20261108-5e6c/**'
+      - 'review-evidence/hia-online-readback-20261108-adf1/**'
 permissions:
   contents: read
 jobs:
@@ -35,3 +37,9 @@ jobs:
             --lock-sha256 1c4b747721bfc215549512287d62febbadfaf7bce3cd2b6baafeed3d67a10c18 \
             --describe review-evidence/hia-online-readback-20261108-5e6c/evidence/formal-hia-describe-result.json \
             --read review-evidence/hia-online-readback-20261108-5e6c/evidence/formal-hia-read-result.json
+      - name: Replay the independent adf1 capture with the same checker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B review-evidence/hia-online-readback-20261108-adf1/replay.py > "$RUNNER_TEMP/hia-adf1-readback.json"
+          diff -u review-evidence/hia-online-readback-20261108-adf1/readback-verification.json "$RUNNER_TEMP/hia-adf1-readback.json"
