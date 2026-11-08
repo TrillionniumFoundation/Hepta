@@ -1,0 +1,62 @@
+{
+  "schema": "hepta.hia.agent.macro-multistep-protocol.v2",
+  "status": "implementation_and_preregistration_requires_source_freeze_before_provider_run",
+  "provenance": "private synthetic maintenance; no real user repository ticket",
+  "arms": [
+    "fixed",
+    "greedy",
+    "ordinary",
+    "ndu"
+  ],
+  "calibration_tasks": 2,
+  "heldout_tasks": 4,
+  "per_cell": {
+    "wall_ns": 180000000000,
+    "model_tokens": 32768,
+    "max_provider_turns": 3,
+    "max_candidates": 3,
+    "native_wall_ms": 10000,
+    "memory_bytes": 536870912
+  },
+  "turn_policy": "Three scheduled proposals maximum for every arm; each sees its own previous actual errors and measurements. No automatic repair, refund, task replacement or retry beyond those rounds. Stop on unknown provider/protocol/cleanup outcomes.",
+  "proposal_reservation": {
+    "uniform_for_all_arms": true,
+    "minimum_next_round_tokens": "preceding settled actual input+output+reasoning bill; no historical estimate before first round",
+    "known_insufficient_allowance": "record stop_proposals without a new provider dispatch; preserve existing qualified pool for selection, adoption, use and rollback",
+    "unknown_cost_or_settlement": "freeze provider and later cells; never substitute zero",
+    "estimate_not_hard_midturn_cap": true,
+    "no_budget_refund_or_increase": true
+  },
+  "quality": "Actual selected native artifact must return all 256 independently specified u8 results and be strictly smaller than the frozen baseline; an unchanged baseline cannot deliver the maintenance task.",
+  "controllers": {
+    "fixed": "first candidate that satisfies the exact quality gate",
+    "greedy": "minimum immediate measured native-call time among quality-qualified candidates",
+    "ordinary": "enumerate every quality-qualified candidate using complete conservative remaining lifecycle cost and the original remaining budget",
+    "ndu": "source-pinned native NDU ranks the identical feasible set, cost, uncertainty and remaining budget"
+  },
+  "matched_opportunities": {
+    "proposal_rounds": true,
+    "prompt_and_grammar": true,
+    "prior_feedback": true,
+    "calibration_tasks": true,
+    "fit_rule": "per-arm median of prior successful calibration adoption+rollback costs; uncertainty is observed range plus one millisecond. With no successful calibration, all arms use the same registered two-ms transition prior and ten-ms uncertainty; these are estimates, not measured costs.",
+    "training_or_external_tuning": "none; no arm receives additional examples, hidden solutions, provider calls or optimization passes"
+  },
+  "execution_order": "calibration then heldout; registered deterministic rotation of arm order by task index",
+  "measurement": {
+    "all_failed_rounds_charged": true,
+    "sunk_model_and_compile_costs_retained": true,
+    "outer_and_parent_child_cpu_measured": true,
+    "nested_wall_not_added_again": true,
+    "token_policy": "input+output+reasoning conservative sum; terminal audit only, no claimed hard mid-turn cap",
+    "money": null,
+    "provider_http_count": null
+  },
+  "claims": {
+    "p1_acceptance": "HOLD",
+    "economic_benefit_established": false,
+    "generalized_speedup_established": false,
+    "forecast_is_observed_benefit": false,
+    "original_v1_receipts_rewritten": false
+  }
+}

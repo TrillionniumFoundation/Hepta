@@ -1,0 +1,379 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hepta.hia.paired-native-control.v1",
+  "title": "Finite authored native control summary; no economic or Agent-acceptance claim",
+  "description": "Envelope validation only; original source, native identity and object authenticity require independent verification.",
+  "type": "object",
+  "required": [
+    "schema",
+    "status",
+    "source_sha",
+    "plan_sha256",
+    "planned_cells",
+    "executed_cells",
+    "completed_cells",
+    "results",
+    "paired_costs",
+    "measurement",
+    "actual_native_evaluations",
+    "caller_tie_resolutions",
+    "tie_exercised_in_this_comparison",
+    "real_model_invocations",
+    "real_user_tasks",
+    "private_teacher_used",
+    "learner_success",
+    "money",
+    "chatgpt_authoring_model_usage",
+    "chatgpt_authoring_fees",
+    "global_full_cost_complete",
+    "qualified_total_ndu_saving_ns",
+    "p1_acceptance",
+    "stable_total_benefit_established",
+    "economic_benefit_established"
+  ],
+  "properties": {
+    "schema": {
+      "const": "hepta.hia.paired-native-control.v1"
+    },
+    "status": {
+      "enum": [
+        "MECHANISM_COMPLETE",
+        "INCOMPLETE"
+      ]
+    },
+    "source_sha": {
+      "const": "d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6"
+    },
+    "plan_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "planned_cells": {
+      "const": 8
+    },
+    "executed_cells": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "completed_cells": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "results": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "pair",
+          "position",
+          "arm",
+          "cell_id",
+          "executed",
+          "completed",
+          "wrapper_cell_wall_ns"
+        ],
+        "properties": {
+          "pair": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "position": {
+            "enum": [
+              1,
+              2
+            ]
+          },
+          "arm": {
+            "enum": [
+              "ordinary",
+              "ndu"
+            ]
+          },
+          "cell_id": {
+            "type": "string",
+            "pattern": "^pair\\.[1-4]\\.(ordinary|ndu)$"
+          },
+          "executed": {
+            "type": "boolean"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "wrapper_cell_wall_ns": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "observed_ledger_wall_ns": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "native_raw_recommendation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "native_disposition": {
+            "type": "string"
+          },
+          "native_pareto_frontier": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "caller_tie_policy_applied": {
+            "type": "boolean"
+          },
+          "successful_original_callback_observations": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "native_observation_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "audit_passed": {
+            "type": "boolean"
+          },
+          "audit_error": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "actual_native_ndu_completed": {
+            "type": "boolean"
+          },
+          "actual_consumer_all_256_correct": {
+            "type": "boolean"
+          },
+          "adoption_use_rollback_complete": {
+            "type": "boolean"
+          },
+          "original_failure": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "not_started_reason": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "executed": {
+                  "const": false
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "completed": {
+                  "const": false
+                },
+                "wrapper_cell_wall_ns": {
+                  "const": null
+                }
+              },
+              "required": [
+                "not_started_reason"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "paired_costs": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "pair",
+          "order",
+          "both_completed",
+          "observed_wrapper_ordinary_minus_ndu_ns",
+          "completed_ledger_ordinary_minus_ndu_ns",
+          "scope"
+        ],
+        "properties": {
+          "pair": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "order": {
+            "enum": [
+              [
+                "ordinary",
+                "ndu"
+              ],
+              [
+                "ndu",
+                "ordinary"
+              ]
+            ]
+          },
+          "both_completed": {
+            "type": "boolean"
+          },
+          "observed_wrapper_ordinary_minus_ndu_ns": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "completed_ledger_ordinary_minus_ndu_ns": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "scope": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "required": [
+        "outer_wall_ns_to_summary_preparation",
+        "wrapper_cell_wall_ns",
+        "external_audit_wall_ns",
+        "setup_export_audit_cleanup_wall_ns",
+        "original_ledger_wall_ns",
+        "original_ledger_total_complete",
+        "known_subset_original_ledger_wall_ns",
+        "nested_wall_added_again",
+        "final_summary_write_included",
+        "prior_source_acquisition_dependencies_and_native_build_included"
+      ],
+      "properties": {
+        "outer_wall_ns_to_summary_preparation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wrapper_cell_wall_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "original_ledger_wall_ns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "known_subset_original_ledger_wall_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "original_ledger_total_complete": {
+          "type": "boolean"
+        },
+        "nested_wall_added_again": {
+          "const": false
+        },
+        "final_summary_write_included": {
+          "const": false
+        },
+        "prior_source_acquisition_dependencies_and_native_build_included": {
+          "const": false
+        }
+      }
+    },
+    "actual_native_evaluations": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "caller_tie_resolutions": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "tie_exercised_in_this_comparison": {
+      "type": "boolean"
+    },
+    "real_model_invocations": {
+      "const": 0
+    },
+    "real_user_tasks": {
+      "const": 0
+    },
+    "private_teacher_used": {
+      "const": true
+    },
+    "learner_success": {
+      "const": false
+    },
+    "money": {
+      "const": null
+    },
+    "chatgpt_authoring_model_usage": {
+      "const": null
+    },
+    "chatgpt_authoring_fees": {
+      "const": null
+    },
+    "global_full_cost_complete": {
+      "const": false
+    },
+    "qualified_total_ndu_saving_ns": {
+      "const": null
+    },
+    "p1_acceptance": {
+      "const": "HOLD"
+    },
+    "stable_total_benefit_established": {
+      "const": false
+    },
+    "economic_benefit_established": {
+      "const": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "MECHANISM_COMPLETE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "executed_cells": {
+            "const": 8
+          },
+          "completed_cells": {
+            "const": 8
+          },
+          "actual_native_evaluations": {
+            "const": 4
+          }
+        }
+      }
+    }
+  ]
+}

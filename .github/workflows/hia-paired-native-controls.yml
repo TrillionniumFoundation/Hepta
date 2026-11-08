@@ -1,0 +1,224 @@
+name: HIA pinned paired native controls
+
+# Entry-side research workflow. Add/dispatch only after the exact native gate passes.
+# The immutable HIA checkout and public release lock are not modified.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/hia-sixgap-entry-main-20261108-a897df9a
+    paths:
+      - .github/workflows/hia-paired-native-controls.yml
+      - tools/measure_hia_native_controls.py
+      - docs/HIA_PAIRED_NATIVE_CONTROLS.md
+      - schemas/hia-paired-native-control.schema.json
+
+permissions:
+  contents: read
+
+jobs:
+  paired-native-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+      PINNED_HIA_SOURCE: d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6
+      PINNED_HIA_TREE: 5e16f76e52f2b44d84b926161333bdfa94671e5f
+      REQUIRED_NATIVE_RUN: '42478840600'
+    steps:
+      - name: Begin total observed workflow interval
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,time
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-paired-native'
+          root.mkdir()
+          (root/'interval-start.json').write_text(json.dumps({
+              'monotonic_ns':time.monotonic_ns(),'unix_ns':time.time_ns(),
+              'source_sha':os.environ['PINNED_HIA_SOURCE'],
+              'entry_sha':os.environ['GITHUB_SHA'],
+              'run_id':os.environ['GITHUB_RUN_ID'],
+              'scope':'first measurement step through final accounting; includes checkout/dependencies/build; excludes queue and final artifact upload'}))
+          PY
+      - name: Require successful actual native qualification on this exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,urllib.request
+          from pathlib import Path
+          target='https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/'+os.environ['REQUIRED_NATIVE_RUN']
+          request=urllib.request.Request(target,headers={'Accept':'application/vnd.github+json','User-Agent':'hia-paired-native-control'})
+          with urllib.request.urlopen(request,timeout=30) as stream:
+              raw=stream.read(1024*1024+1)
+          if len(raw)>1024*1024:
+              raise RuntimeError('native qualification response exceeds bound')
+          value=json.loads(raw)
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-paired-native'
+          (root/'required-native-run.json').write_bytes(raw)
+          if (str(value['id'])!=os.environ['REQUIRED_NATIVE_RUN']
+              or value['head_sha']!=os.environ['PINNED_HIA_SOURCE']
+              or value['path']!='.github/workflows/hia-ndu-scalar-selection.yml'
+              or value['status']!='completed' or value['conclusion']!='success'):
+              raise RuntimeError('exact actual-native qualification has not succeeded')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: entry
+          persist-credentials: false
+      - name: Bind the measurement to this entry release lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from hashlib import sha256
+          import json,os
+          from pathlib import Path
+          entry=Path(os.environ['GITHUB_WORKSPACE'])/'entry'
+          raw=(entry/'releases/hia-current.json').read_bytes()
+          lock=json.loads(raw)
+          source=lock['sources']['hepta']
+          if (lock['schema']!='hepta.hia.release-lock.v1'
+              or source['repository']!='https://github.com/TrillionniumFoundation/Hepta.git'
+              or source['commit']!=os.environ['PINNED_HIA_SOURCE']
+              or source['tree']!=os.environ['PINNED_HIA_TREE']):
+              raise RuntimeError('entry release lock does not select this frozen HIA source and tree')
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-paired-native'
+          (root/'entry-release-lock.json').write_bytes(raw)
+          (root/'entry-lock-binding.json').write_text(json.dumps({
+              'schema':'hepta.hia.paired-native-entry-lock-binding.v1',
+              'entry_sha':os.environ['GITHUB_SHA'],
+              'release_lock_sha256':sha256(raw).hexdigest(),'release_lock_bytes':len(raw),
+              'source_sha':source['commit'],'source_tree':source['tree'],
+              'matched':True},indent=2)+'\n')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: ${{ env.PINNED_HIA_SOURCE }}
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind clean source and verification dependencies
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PINNED_HIA_SOURCE"
+          test "$(git rev-parse 'HEAD^{tree}')" = "$PINNED_HIA_TREE"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-paired-native/source-before.txt"
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0' 2>&1 | tee "$RUNNER_TEMP/hia-paired-native/dependencies-install.log"
+          python -m pip freeze > "$RUNNER_TEMP/hia-paired-native/dependencies.txt"
+      - name: Build the original exact native evaluator with its locked inputs
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.95.0 --profile minimal
+          hia_control_checkout="$RUNNER_TEMP/hia-paired-native-upstream"
+          hia_control_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')
+          git init "$hia_control_checkout"
+          git -C "$hia_control_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git
+          git -C "$hia_control_checkout" config remote.origin.promisor true
+          git -C "$hia_control_checkout" config remote.origin.partialclonefilter blob:none
+          git -C "$hia_control_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hia_control_commit"
+          test "$(git -C "$hia_control_checkout" rev-parse FETCH_HEAD)" = "$hia_control_commit"
+          RUSTC="$(rustup which --toolchain 1.95.0 rustc)" \
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-paired-native-target" \
+          python -B tools/build_hia_ndu_bridge.py \
+            --upstream "$hia_control_checkout" --output "$RUNNER_TEMP/hia-paired-native/build" \
+            --cargo "$(rustup which --toolchain 1.95.0 cargo)" \
+            > "$RUNNER_TEMP/hia-paired-native/build.stdout.log" \
+            2> "$RUNNER_TEMP/hia-paired-native/build.stderr.log"
+          printf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\n' \
+            "$RUNNER_TEMP/hia-paired-native-target/debug/hia-ndu-bridge" \
+            "$RUNNER_TEMP/hia-paired-native/build" >> "$GITHUB_ENV"
+      - name: Register one cohort without retries or model calls
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          python -B tools/prepare_hia_followup_tasks.py \
+            --output "$RUNNER_TEMP/hia-paired-native/control-only-tasks" \
+            2>&1 | tee "$RUNNER_TEMP/hia-paired-native/task-registration.log"
+      - name: Run four preregistered paired controls with balanced order
+        shell: bash
+        working-directory: source
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B ../entry/tools/measure_hia_native_controls.py \
+            --source "$PWD" \
+            --registration "$RUNNER_TEMP/hia-paired-native/control-only-tasks/REGISTRATION.json" \
+            --native-binary "$HEPTA_NDU_BRIDGE" \
+            --native-build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --output "$RUNNER_TEMP/hia-paired-native/controls" \
+            2>&1 | tee "$RUNNER_TEMP/hia-paired-native/controls.log"
+      - name: Retain the actual native image for independent local hash checks
+        if: always() && env.HEPTA_NDU_BRIDGE != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from hashlib import sha256
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-paired-native'
+          receipt=json.loads((Path(os.environ['HEPTA_NDU_BUILD'])/'build-receipt.json').read_bytes())
+          raw=Path(os.environ['HEPTA_NDU_BRIDGE']).read_bytes()
+          if sha256(raw).hexdigest()!=receipt['binary_sha256']:
+              raise RuntimeError('native image changed after its source-bound build')
+          target=root/'native'
+          target.mkdir()
+          with (target/'hia-ndu-bridge').open('xb') as stream:
+              stream.write(raw)
+          PY
+      - name: Check source unchanged and finish inclusive workflow accounting
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,subprocess,time
+          from pathlib import Path
+          root=Path(os.environ['RUNNER_TEMP'])/'hia-paired-native'
+          start=json.loads((root/'interval-start.json').read_bytes())
+          source=Path(os.environ['GITHUB_WORKSPACE'])/'source'
+          state={'checkout_present':source.is_dir(),'source_unchanged':None}
+          if source.is_dir():
+              head=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()
+              status=subprocess.check_output(['git','-C',str(source),'status','--porcelain','--untracked-files=all'],text=True)
+              tree=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD','HEAD^{tree}'],text=True)
+              (root/'source-after.txt').write_text(tree)
+              before=root/'source-before.txt'
+              state.update(head=head,source_unchanged=(head==start['source_sha'] and not status
+                  and before.exists() and before.read_text()==tree))
+          accounting={'schema':'hepta.hia.paired-native-workflow-cost.v1',
+              'source_sha':start['source_sha'],'entry_sha':start['entry_sha'],
+              'actual_observed_workflow_wall_ns':time.monotonic_ns()-start['monotonic_ns'],
+              'scope':start['scope'],'includes_previous_step_gaps':True,
+              'nested_build_and_cell_times_added_again':False,
+              'queue_time_ns':None,'artifact_upload_time_ns':None,'ci_money':None,
+              'real_model_invocations':0,'chatgpt_authoring_model_usage':None,
+              'chatgpt_authoring_fees':None,'global_full_cost_complete':False,
+              'source_state':state,'measurement_summary_present':(root/'controls/SUMMARY.json').is_file(),
+              'economic_benefit_established':False,'stable_total_benefit_established':False}
+          (root/'workflow-accounting.json').write_text(json.dumps(accounting,indent=2)+'\n')
+          if state['checkout_present'] and state['source_unchanged'] is not True:
+              raise RuntimeError('source checkout changed or lacks its initial binding')
+          PY
+      - name: Retain every original receipt and failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-paired-native-${{ env.PINNED_HIA_SOURCE }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/hia-paired-native/
+          if-no-files-found: error
+          retention-days: 30
