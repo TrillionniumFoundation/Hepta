@@ -1,0 +1,37 @@
+name: HIA pinned online readback
+on:
+  push:
+    branches: [main, 'codex/hia-online-readback-*']
+    paths:
+      - '.github/workflows/hia-online-readback.yml'
+      - 'tools/check_hia_online_readback.py'
+      - 'tests/test_hia_online_readback.py'
+      - 'review-evidence/hia-online-readback-20261108-5e6c/**'
+  pull_request:
+    paths:
+      - '.github/workflows/hia-online-readback.yml'
+      - 'tools/check_hia_online_readback.py'
+      - 'tests/test_hia_online_readback.py'
+      - 'review-evidence/hia-online-readback-20261108-5e6c/**'
+permissions:
+  contents: read
+jobs:
+  captured-readback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Reject invalid captures and isolated identity drift
+        run: python -B -m unittest tests.test_hia_online_readback -v
+      - name: Replay exact retained formal connector observations
+        run: |
+          python -B tools/check_hia_online_readback.py \
+            --lock review-evidence/hia-online-readback-20261108-5e6c/evidence/public-release-lock-b408085.json \
+            --lock-sha256 1c4b747721bfc215549512287d62febbadfaf7bce3cd2b6baafeed3d67a10c18 \
+            --describe review-evidence/hia-online-readback-20261108-5e6c/evidence/formal-hia-describe-result.json \
+            --read review-evidence/hia-online-readback-20261108-5e6c/evidence/formal-hia-read-result.json
