@@ -243,12 +243,23 @@ not establish that they implement the Core program.
 
 `hia_verify.subject` explicitly names Core alone, canonical lowering, a concrete
 Agent machine plan, or an emitted native artifact. Lowering/refinement requests
-must bind the canonical profile or exact plan/profile, backend and context target.
+must bind the canonical profile, exact plan/profile, or exact native artifact
+and build receipt, together with the backend and context target.
 The returned receipt records that subject. `hia_emit` accepts a plan receipt only
 for the same Core, target, backend and plan; a canonical-lowering receipt cannot
 authorize another plan. Encoding checks refer to the actual emitted artifact and
 build receipt in a subsequent verification call. Unsupported checker profiles
 remain unsupported rather than manufacturing a receipt.
+
+Every build retains the actual emitted object as an immutable `build-object`
+artifact. The native artifact metadata and build receipt bind its reference and
+hash, as well as the final bytes and admitted Core. The independent
+`native_artifact` refinement path consumes these retained bytes directly; it
+cannot regenerate a missing object. Its discovered Agent profile is limited to
+final shared ELF for one unsigned scalar acyclic function, with no borrowed or
+foreign entries. It checks the raw Safe Core validator's all-input model
+obligations and exact final-image binding, and retains the actual SMT queries.
+Object-only outputs and shapes outside that profile remain `unsupported`.
 
 An unimplemented machine-plan profile returns `unsupported`. It must not accept
 raw unchecked machine bytes as an optimization plan. Direct backend integration
@@ -279,6 +290,13 @@ See [HIA_AGENT_PROOF_RESULTS.md](HIA_AGENT_PROOF_RESULTS.md) for method-by-metho
 interpretation, checker identities and open native/ABI/FFI/resource/loading
 obligations. Encoding checks reemit with the same installed implementation and
 are not independent machine semantic validation.
+`independent_safe_core_machine_validation` is a separate explicit method for
+native-artifact `lowering_refinement`. Its exact five solver obligations,
+consumer source closure, actual solver binding/library identity and original
+Core/object/final bytes are checked on receipt consumption. Model-level SysV
+and memory checks do not discharge real caller/loader/liveness assumptions or
+prove refinement to the complete hardware ISA. This method does not change the
+unsupported whole-Core canonical claim or the conditional machine-plan claim.
 
 Each result must state its exact claim and domain. An allocation,
 trap-order or interface change cannot be accepted as an equivalent optimization

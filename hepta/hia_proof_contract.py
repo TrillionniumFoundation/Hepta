@@ -9,7 +9,7 @@ from __future__ import annotations
 from copy import deepcopy
 import platform
 
-from .hia_agent_store import reject
+from .hia_agent_store import digest, reject
 
 
 PROOF_SCHEMA = "hepta.hia.agent.proof-result.v1"
@@ -22,6 +22,13 @@ PROOF_FIELDS = (
     "subject", "property", "profile", "assumptions", "checker",
     "unproved_obligations",
 )
+SAFE_CORE_METHOD = "independent_safe_core_machine_validation"
+SAFE_CORE_SERVICE_PROFILE = "hia.agent.safe-core.scalar-supplied-elf.x86_64.v1"
+SAFE_CORE_DOMAIN = (
+    SAFE_CORE_SERVICE_PROFILE + ": exact retained Core/object/final ELF; one unsigned scalar "
+    "acyclic function, no borrowed or foreign entries. All-input return/abort refinement, "
+    "modeled memory bounds, SysV saved state and termination under explicit caller/loader assumptions."
+)
 
 _CHECKERS = {
     "core_admission": "hepta.hia_program.verify_program",
@@ -32,6 +39,7 @@ _CHECKERS = {
     "checked_explicit_machine_choices": "hepta.hia_machine_plan.preservation_checks",
     "canonical_lowering_unsupported": "hepta.hia_agent_service.HIAAgentService._hia_verify",
     "complete_native_rederivation": "hepta.hia_agent_service.HIAAgentService._compile",
+    SAFE_CORE_METHOD: "hepta.hia_safe_core.validate_safe_core_artifact",
 }
 _PROPERTIES = {
     "core_admission": "The installed whole-program verifier accepts these exact canonical Core bytes; this is an admission predicate, not a language soundness theorem.",
@@ -42,6 +50,7 @@ _PROPERTIES = {
     "checked_explicit_machine_choices": "The exact Agent plan preserves the checked canonical CFG, scalar value lifetimes and path effects, conditional on correctness of the canonical lowering and encoder.",
     "canonical_lowering_unsupported": "The exact candidate's canonical lowering refines its Core semantics to the target machine; this profile has no checker establishing this property.",
     "complete_native_rederivation": "The retained native bytes and object identity equal complete reemission and linkage by the same installed implementation with the checked symbol and ABI inventory.",
+    SAFE_CORE_METHOD: "For every input to the exact retained final ELF in the single-function unsigned scalar acyclic Safe Core profile, the independent Core/x86/ELF models establish return/abort refinement, modeled memory bounds, SysV saved-register/stack preservation and model termination, under the stated caller, loader and solver assumptions; no borrowed/foreign entry is admitted.",
 }
 
 
@@ -52,6 +61,103 @@ def _item(identity, statement):
 def _require(condition, message):
     if not condition:
         reject("E_HIA_PROOF_SCOPE", message, "verification")
+
+
+def _safe_core_method(status, subject, evidence):
+    """Consume the independent checker's exact identity and ordered obligations."""
+    from .hia_safe_core import (ARTIFACT_PROFILE, ARTIFACT_PROPERTY, ARTIFACT_OBLIGATIONS,
+        SCHEMA, CLAIMS, ASSUMPTIONS, LIMITS, UNPROVED_OBLIGATIONS, _checker_source_identity,
+        _solver_identity)
+    _require(evidence.get("method") == SAFE_CORE_METHOD and evidence.get("outcome") == status
+             and evidence.get("profile") == ARTIFACT_PROFILE
+             and evidence.get("service_profile") == SAFE_CORE_SERVICE_PROFILE,
+             "independent machine checker conclusion or profile differs")
+    binding = evidence.get("artifact_binding")
+    _require(type(binding) is dict and binding.get("candidate_core_sha256") == subject["candidate_core_sha256"]
+             and binding.get("native_artifact") == subject["native_artifact"]
+             and binding.get("build_receipt") == subject["build_receipt"]
+             and binding.get("final_image_sha256") == subject["native_artifact"]["sha256"]
+             and type(binding.get("object_artifact")) is dict
+             and binding["object_artifact"].get("sha256") == binding.get("object_sha256"),
+             "independent machine evidence belongs to different retained build inputs")
+    identity = _checker_source_identity()
+    _require(evidence.get("source_identity") == identity and evidence.get("checker_sha256") == digest(identity),
+             "independent consumer source closure differs")
+    validation = evidence.get("validation")
+    if validation is None:
+        _require(status in {"unknown", "unsupported"} and type(evidence.get("reason")) is str
+                 and evidence.get("solver") is None,
+                 "no independent checker result can establish a machine proof or refutation")
+        return SAFE_CORE_METHOD
+    _require(type(validation) is dict and binding.get("output_kind") == "shared"
+             and binding.get("foreign_buffer_exports") == []
+             and type(binding.get("entry_symbols")) is list and len(binding["entry_symbols"]) == 1,
+             "machine validation exceeds the Agent shared scalar profile")
+    entry = binding["entry_symbols"][0]
+    raw_subject = {"core_sha256": subject["candidate_core_sha256"], "input_sha256": binding.get("input_sha256"),
+        "object_sha256": binding["object_sha256"], "final_image_sha256": binding["final_image_sha256"],
+        "entry_symbol": entry, "foreign_buffer_exports": []}
+    solver = evidence.get("solver")
+    try:
+        import importlib
+        actual_solver = _solver_identity(importlib.import_module("z3"))
+    except Exception:
+        _require(False, "the retained machine solver identity cannot be re-established")
+    _require(solver == actual_solver and validation.get("solver") == solver,
+             "independent machine solver binding or native library differs")
+    checker = {"name": _CHECKERS[SAFE_CORE_METHOD], "source_identity": identity,
+               "solver": solver, "producer_reemission_used": False}
+    _require(validation.get("schema") == SCHEMA and validation.get("profile") == ARTIFACT_PROFILE
+             and validation.get("artifact_input_profile") == ARTIFACT_PROFILE
+             and validation.get("validation_mode") == "independent_supplied_bytes"
+             and validation.get("subject") == raw_subject
+             and validation.get("property") == ARTIFACT_PROPERTY
+             and validation.get("core_sha256") == raw_subject["core_sha256"]
+             and validation.get("input_sha256") == raw_subject["input_sha256"]
+             and validation.get("function") == entry and validation.get("foreign_buffer_exports") == []
+             and validation.get("backend_implementation_sha256") is None
+             and validation.get("source_identity") == identity and validation.get("checker") == checker
+             and validation.get("assumptions") == ASSUMPTIONS and validation.get("limits") == LIMITS
+             and validation.get("unproved_obligations") == UNPROVED_OBLIGATIONS,
+             "raw machine checker scope or exact input identity differs")
+    image = validation.get("image_binding")
+    _require(type(image) is dict and image.get("object_sha256") == raw_subject["object_sha256"]
+             and image.get("final_image_sha256") == raw_subject["final_image_sha256"]
+             and image.get("entry_symbol") == entry,
+             "raw object/final ELF binding differs")
+    rows = validation.get("obligations")
+    _require(type(rows) is list and 0 <= len(rows) <= len(ARTIFACT_OBLIGATIONS)
+             and all(type(row) is dict for row in rows)
+             and tuple((row.get("name"), row.get("expected")) for row in rows) == ARTIFACT_OBLIGATIONS[:len(rows)],
+             "machine proof obligation order, names or expected outcomes differ")
+    _require(all(type(row.get("query_sha256")) is str and len(row["query_sha256"]) == 64
+                 and row.get("query_file") == f"{index:02d}-{row['name']}.smt2"
+                 for index, row in enumerate(rows)), "machine proof lacks exact retained query identities")
+    if status == "proved":
+        _require(evidence.get("deadline_met") is True and "counterexample" not in evidence
+                 and validation.get("ok") is True and validation.get("complete") is True
+                 and validation.get("status") == "smt_validated" and validation.get("claims") == CLAIMS
+                 and len(rows) == len(ARTIFACT_OBLIGATIONS)
+                 and all(row.get("result") == row["expected"] for row in rows),
+                 "incomplete, late or failing machine obligations cannot establish refinement")
+    elif status == "refuted":
+        counterexample = evidence.get("counterexample")
+        _require(evidence.get("deadline_met") is True and validation.get("ok") is False
+                 and validation.get("complete") is False and validation.get("status") == "refuted"
+                 and validation.get("claims") == {} and len(rows) >= 2
+                 and all(row.get("result") == row["expected"] for row in rows[:-1])
+                 and rows[-1].get("result") == "sat" and rows[-1]["expected"] == "unsat"
+                 and type(counterexample) is dict and counterexample.get("obligation") == rows[-1]["name"]
+                 and type(counterexample.get("abi_words")) is list
+                 and type(counterexample.get("initial_rsp")) is int,
+                 "machine refutation lacks an actual violation counterexample")
+    else:
+        _require(status == "unknown" and type(evidence.get("reason")) is str
+                 and (evidence.get("deadline_met") is False
+                      or validation.get("complete") is False and validation.get("ok") is False
+                         and validation.get("status") == "unknown"),
+                 "machine checker failure cannot be upgraded to a completed result")
+    return SAFE_CORE_METHOD
 
 
 def proof_subject(record, target_profile):
@@ -128,6 +234,8 @@ def _method(claim, status, subject, evidence):
             return "compositional_scalar_effect"
         _require(False, "unrecognized behavioral equivalence evidence")
     if claim == "lowering_refinement":
+        if subject["kind"] == "native_artifact":
+            return _safe_core_method(status, subject, evidence)
         if subject["kind"] == "canonical_lowering":
             _require(status == "unsupported" and type(evidence.get("reason")) is str,
                      "canonical lowering cannot gain an unsupported refinement proof")
@@ -187,10 +295,24 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
     if method == "complete_native_rederivation":
         assumptions.append(_item("same_implementation_rederivation", "The retained Core/plan is rechecked and emitted with the same identified lowering, encoder and linkage implementation; matching bytes can preserve a common implementation defect."))
         obligations.append(_item("independent_encoding_semantics", "Reemission equality is not an independent decoder/ISA semantics check or a verified backend."))
+    if method == SAFE_CORE_METHOD:
+        from .hia_safe_core import ASSUMPTIONS
+        _require(domain == SAFE_CORE_DOMAIN, "independent machine proof domain differs")
+        assumptions.extend(_item("safe_core_assumption_" + str(index), statement)
+                           for index, statement in enumerate(ASSUMPTIONS))
+        assumptions.append(_item("agent_scalar_projection", "The Agent path admits only the final shared ELF of one unsigned scalar acyclic function and an empty foreign export manifest; the broader raw checker's borrowed-range support is not exposed here."))
+        obligations = [item for item in obligations
+                       if item["id"] not in {"core_to_machine_refinement", "abi_ffi_loading", "native_resources"}]
+        obligations.extend([
+            _item("complete_hardware_isa_refinement", "The independent Core/x86/ELF models are trusted; their refinement to the complete hardware ISA and actual CPU behavior is not kernel-proved."),
+            _item("caller_ffi_loader_validity", "Modeled SysV saved state, stack alignment and memory bounds are checked; real caller validity, stack liveness, loader mapping, abort resolution and absence of hostile interposition remain assumptions."),
+            _item("resources_outside_machine_model", "The model admits a live 16 KiB stack and acyclic execution; real stack exhaustion, heap/process resources, wall time and native execution costs are not proved."),
+            _item("distinct_native_trap_codes", "Native traps are observed as nonreturning abort; preservation of individual HIA trap codes is not established."),
+        ])
     if status != "proved":
         obligations.append(_item("requested_property", "The requested property is not established; this result is " + status + " and cannot satisfy a required proof."))
 
-    solver = evidence.get("solver") if method == "compositional_scalar_effect" else None
+    solver = evidence.get("solver") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None
     solver_fields = ("name", "version", "binding_sha256", "library_sha256")
     _require(solver is None or type(solver) is dict and all(type(solver.get(key)) is str for key in solver_fields),
              "solver identity is incomplete")
@@ -205,7 +327,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
             "name": _CHECKERS[method], "method": method,
             "installation": deepcopy(installation),
             "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
-            "auxiliary_checker_sha256": evidence.get("checker_sha256") if method == "compositional_scalar_effect" else None,
+            "auxiliary_checker_sha256": evidence.get("checker_sha256") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None,
             "solver": solver_identity,
         },
         "unproved_obligations": obligations,
@@ -232,5 +354,8 @@ def proof_contract_description():
         "sample_tests_are_proofs": False,
         "global_safety_proved": False, "execution_authority_granted": False,
         "encoding_check": "Same-implementation byte/object rederivation, not independent semantic validation.",
+        "independent_native_refinement": {"method": SAFE_CORE_METHOD, "profile": SAFE_CORE_SERVICE_PROFILE,
+            "domain": SAFE_CORE_DOMAIN, "retained_object_required": True,
+            "producer_reemission_used": False, "whole_language_refinement": False},
         "receipt_consumption": "Recheck exact subject/profile/checker, retained evidence conclusion and assumptions before satisfying any required claim.",
     }

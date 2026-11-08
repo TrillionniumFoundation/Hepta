@@ -221,7 +221,7 @@ PROOF_CHECKER = obj({
     'method': enum('core_admission', 'canonical_core_identity', 'finite_domain',
                    'compositional_scalar_effect', 'context_budget_exhausted',
                    'checked_explicit_machine_choices', 'canonical_lowering_unsupported',
-                   'complete_native_rederivation'),
+                   'complete_native_rederivation', 'independent_safe_core_machine_validation'),
     'installation': INSTALLATION,
     'python': obj({'implementation': text(64), 'version': text(64)}),
     'auxiliary_checker_sha256': nullable(SHA),
@@ -251,7 +251,10 @@ tool('hia_verify',
      'An unsupported proof is not a failed program, and a passing finite test is not a universal '
      'proof. The subject explicitly binds canonical lowering, an Agent plan, or emitted native '
      'bytes to the exact Core and context target. Plan receipts cannot be reused for another '
-     'plan. Obtain required receipts before emission/adoption; do not substitute model assertions.',
+     'plan. Native lowering_refinement independently checks retained object/final ELF bytes only '
+     'within the discovered shared-only unsigned scalar acyclic Safe Core profile; outside it '
+     'the result is unsupported. It never regenerates the proof inputs. Obtain required '
+     'receipts before emission/adoption; do not substitute model assertions.',
      obj(common(request_key=IDENT, candidate=ARTIFACT, base_program=nullable(ARTIFACT),
                 validation_profile=PROFILE, subject=VERIFY_SUBJECT,
                 claims={**array(enum('core_admission', 'behavior_equivalence', 'lowering_refinement',
@@ -260,7 +263,7 @@ tool('hia_verify',
              {'if': {'properties': {'claims': {'contains': {'const': 'behavior_equivalence'}}}},
               'then': {'properties': {'base_program': ARTIFACT}}},
              {'if': {'properties': {'claims': {'contains': {'const': 'lowering_refinement'}}}},
-              'then': {'properties': {'subject': {'oneOf': [CANONICAL_SUBJECT, PLAN_SUBJECT]}}}},
+              'then': {'properties': {'subject': {'oneOf': [CANONICAL_SUBJECT, PLAN_SUBJECT, NATIVE_SUBJECT]}}}},
              {'if': {'properties': {'claims': {'contains': {'const': 'encoding_check'}}}},
               'then': {'properties': {'subject': NATIVE_SUBJECT}}},
          ]}),
@@ -276,7 +279,9 @@ tool('hia_emit',
      'lowering or an explicit, supported and checked Agent machine plan. No implicit optimizer, '
      'LLVM codegen or external assembler fallback is permitted. Shared output may use a separately '
      'identified linker. Reverify actual Core/plan bytes; build success does not claim execution '
-     'or whole-language refinement. Unsupported targets/plans return a diagnostic.',
+     'or whole-language refinement. The build receipt retains the actual emitted object artifact '
+     'and binds it to the final native bytes for independent consumers. Unsupported targets/plans '
+     'return a diagnostic.',
      obj(common(request_key=IDENT, candidate=ARTIFACT, backend_profile=PROFILE,
                 output_kind=enum('object', 'shared'), codegen={'oneOf': [CANONICAL, PLAN]},
                 verification_receipts=array(ARTIFACT, 16))),
@@ -449,6 +454,13 @@ validate_case('hia_verify', 'inputSchema', bad, False, 'verify.plan_identity_req
 bad = copy.deepcopy(plan_check)
 bad['subject'] = {'kind': 'core'}
 validate_case('hia_verify', 'inputSchema', bad, False, 'verify.no_core_only_refinement_receipt')
+native_check = copy.deepcopy(plan_check)
+native_check['subject'] = {'kind': 'native_artifact', 'backend_profile': profile,
+                           'native_artifact': ref, 'build_receipt': ref}
+validate_case('hia_verify', 'inputSchema', native_check, True, 'verify.independent_native_refinement_subject')
+bad = copy.deepcopy(native_check)
+del bad['subject']['build_receipt']
+validate_case('hia_verify', 'inputSchema', bad, False, 'verify.native_refinement_requires_exact_build')
 bad = copy.deepcopy(samples['hia_verify'])
 bad['base_program'] = None
 validate_case('hia_verify', 'inputSchema', bad, False, 'verify.equivalence_requires_base')

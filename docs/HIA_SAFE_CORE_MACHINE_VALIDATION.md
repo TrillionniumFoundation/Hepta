@@ -146,6 +146,47 @@ the selfhost v6 support matrix intact. The complete selfhost compiler, loops,
 multiple functions, owned resources and general ELF remain outside this finite
 semantic profile; a whole-selfhost refinement proof remains an open obligation.
 
+## Agent artifact consumption
+
+The MCP `hia_verify` path exposes an explicit scalar projection of the supplied
+artifact validator. After `hia_emit`, request `lowering_refinement` using a
+`native_artifact` subject naming the returned native artifact and build receipt.
+The method is `independent_safe_core_machine_validation`, with the discovered
+Agent profile `hia.agent.safe-core.scalar-supplied-elf.x86_64.v1`.
+
+The build retains the original `image.object_bytes` in a dedicated immutable
+`build-object` artifact. Both native metadata and the build receipt bind that
+reference and hash to the exact Core and final image. Verification and receipt
+consumption check those bindings. They never reemit an object as a replacement
+for missing retained evidence. Core, object and final bytes used for checking
+and hashing are the same immutable observations; the raw API rejects
+`bytearray`, memory views and subclasses instead of accepting mutable inputs.
+
+This Agent profile admits only final shared ELF and one unsigned scalar acyclic
+function with an empty foreign export manifest. The broader raw borrowed-range
+profile remains available through its separate API/CLI; the Agent's existing
+scalar target ABI does not acquire that calling authority. Object-only builds,
+loops, multiple functions and other unsupported Core/ELF/instruction forms do
+not get a refinement proof. A valid scoped native proof can satisfy an exact
+artifact's required lowering claim while the existing workload, equivalence,
+resource and conditional adoption gates still apply.
+
+The proof envelope carries the raw report, all five ordered obligations, the
+actual independent checker and solver identities, and immutable SMT query
+references. Nonvacuity must be SAT and the four violation queries UNSAT. A
+real SAT violation is a refutation; budget expiry, an unknown solver result or
+incomplete evidence cannot be promoted to `proved`. Checks after the final
+solver/identity read and before Agent publication enforce the frozen deadline.
+The canonical whole-Core lowering request remains unsupported and machine-plan
+proofs remain conditional on their original producer assumptions.
+
+The integration regressions run with:
+
+```sh
+python -B -m unittest tests.test_hia_agent_native_machine_validation -v
+python -B -m unittest tests.test_hia_agent_native_proof_contract -v
+```
+
 ## Trust and caller assumptions
 
 The caller must supply live initialized borrowed allocations for every admitted

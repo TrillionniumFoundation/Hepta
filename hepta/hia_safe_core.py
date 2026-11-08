@@ -25,6 +25,14 @@ from .hia_safe_core_x64 import Executor
 SCHEMA = "hepta.hia.safe-core-machine-validation.v1"
 PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v1"
 ARTIFACT_PROFILE = "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1"
+ARTIFACT_PROPERTY = "all-input Core-to-final-image return/abort/caller-bytes refinement, memory bounds and SysV preservation"
+ARTIFACT_OBLIGATIONS = (
+    ("caller_contract_nonvacuous", "sat"),
+    ("machine_memory_access_bounds", "unsat"),
+    ("sysv_stack_alignment_and_preservation", "unsat"),
+    ("all_inputs_reach_a_terminal_model_outcome", "unsat"),
+    ("core_to_final_image_return_abort_and_caller_bytes", "unsat"),
+)
 PINNED_Z3_VERSION = "4.15.4"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
 LOANS = {"readbuf", "mutbuf"}
@@ -87,9 +95,10 @@ def _checker_source_identity():
 
 
 class SafeCoreRejected(ValueError):
-    def __init__(self, message, *, counterexample=None):
+    def __init__(self, message, *, counterexample=None, validation=None):
         super().__init__("E_HIA_SAFE_CORE: " + message)
         self.counterexample = counterexample
+        self.validation = validation
 
 
 def require(condition, message):
@@ -335,6 +344,8 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     noncanonical encoding only when the independent model proves all obligations;
     producer receipts and matching hashes never substitute for that computation.
     """
+    require(type(object_bytes) is bytes and type(final_bytes) is bytes,
+            "object and final image must be immutable bytes, not mutable buffers or subclasses")
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
     checked = verify_program(document)
     fn, blocks = _profile(checked, foreign_buffer_exports=foreign_buffer_exports)
@@ -377,9 +388,44 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
         ("core_to_final_image_return_abort_and_caller_bytes",
          z.Or(ra != ma, z.And(z.Not(ra), rv != mv), rm != mm), "unsat"),
     ]
+    require(tuple((name, expected) for name, _, expected in obligations) == ARTIFACT_OBLIGATIONS,
+            "the declared and executed obligation inventories differ")
     reports = []
+
+    def report(status, *, complete):
+        subject = {"core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+                   "object_sha256": sha256(object_bytes).hexdigest(),
+                   "final_image_sha256": sha256(final_bytes).hexdigest(),
+                   "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports]}
+        checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
+                   "source_identity": checker_identity, "solver": solver_identity,
+                   "producer_reemission_used": False}
+        return {"schema": SCHEMA, "profile": ARTIFACT_PROFILE, "ok": status == "smt_validated",
+                "status": status, "complete": complete,
+                "artifact_input_profile": ARTIFACT_PROFILE,
+                "validation_mode": "independent_supplied_bytes", "subject": subject,
+                "property": ARTIFACT_PROPERTY,
+                "checker": checker, "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
+                "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
+                "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": None,
+                "source_identity": identity, "solver": solver_identity, "image_binding": binding["binding"],
+                "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
+                "model_counts": {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
+                                 "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
+                                 "maximum_observed_stack_bytes": -machine.minimum_stack_offset},
+                "obligations": list(reports), "claims": dict(CLAIMS) if complete else {},
+                "assumptions": list(ASSUMPTIONS), "limits": dict(LIMITS),
+                "elapsed_seconds": time.monotonic() - t.started}
+
+    def check_deadline():
+        try:
+            t.check_time()
+        except SafeCoreRejected as exc:
+            raise SafeCoreRejected("validation deadline expired; no completed proof",
+                                   validation=report("unknown", complete=False)) from exc
+
     for index, (name, violation, expected) in enumerate(obligations):
-        t.check_time()
+        check_deadline()
         solver = z.Solver(ctx=t.ctx)
         solver.set(timeout=max(1, int((t.deadline - time.monotonic()) * 1000)))
         solver.add(*assumptions, violation)
@@ -397,6 +443,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
         if retained is not None:
             reports[-1]["query_file"] = filename
             (retained / (filename + ".result.json")).write_text(json.dumps(reports[-1], indent=2) + "\n")
+        check_deadline()
         if result != expected:
             counterexample = None
             if result == "sat":
@@ -405,31 +452,12 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                                   "initial_rsp": model.eval(machine.sp, model_completion=True).as_long(),
                                   "obligation": name}
             raise SafeCoreRejected(name + ": " + result + (" (" + solver.reason_unknown() + ")" if result == "unknown" else ""),
-                                   counterexample=counterexample)
+                                   counterexample=counterexample,
+                                   validation=report("refuted" if counterexample is not None else "unknown", complete=False))
     require(identity == _checker_source_identity() and solver_identity == _solver_identity(z),
             "checker or solver source changed during validation")
-    subject = {"core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
-               "object_sha256": sha256(object_bytes).hexdigest(),
-               "final_image_sha256": sha256(final_bytes).hexdigest(),
-               "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports]}
-    checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
-               "source_identity": checker_identity, "solver": solver_identity,
-               "producer_reemission_used": False}
-    return {"schema": SCHEMA, "profile": ARTIFACT_PROFILE, "ok": True, "status": "smt_validated",
-            "artifact_input_profile": ARTIFACT_PROFILE,
-            "validation_mode": "independent_supplied_bytes",
-            "subject": subject,
-            "property": "all-input Core-to-final-image return/abort/caller-bytes refinement, memory bounds and SysV preservation",
-            "checker": checker, "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
-            "core_sha256": checked.sha256, "input_sha256": checked.input_sha256,
-            "core_schema": checked.as_dict()["schema"], "backend_implementation_sha256": None,
-            "source_identity": identity, "solver": solver_identity, "image_binding": binding["binding"],
-            "function": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports],
-            "model_counts": {"decoded_instructions": len(machine.code), "symbolic_machine_steps": machine.steps,
-                             "machine_terminal_paths": len(observed), "core_terminal_paths": len(reference),
-                             "maximum_observed_stack_bytes": -machine.minimum_stack_offset},
-            "obligations": reports, "claims": dict(CLAIMS), "assumptions": list(ASSUMPTIONS), "limits": dict(LIMITS),
-            "elapsed_seconds": time.monotonic() - t.started}
+    check_deadline()
+    return report("smt_validated", complete=True)
 
 
 def build_safe_core(document, output, *, foreign_extent=None, linker="ld", timeout_ms=15000, query_directory=None):

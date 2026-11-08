@@ -26,6 +26,19 @@ AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x8
              and shutil.which("ld") is not None and importlib.util.find_spec("z3") is not None)
 
 
+class SafeCoreImmutableInputTests(unittest.TestCase):
+    def test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing(self):
+        class DerivedBytes(bytes):
+            pass
+
+        for mutable in (bytearray(b"ELF"), memoryview(b"ELF"), DerivedBytes(b"ELF")):
+            for object_bytes, final_bytes in ((mutable, b"ELF"), (b"ELF", mutable)):
+                with self.subTest(type=type(mutable).__name__, object=type(object_bytes).__name__):
+                    with patch("hepta.hia_safe_core.verify_program", side_effect=AssertionError("must reject before Core admission")):
+                        with self.assertRaisesRegex(SafeCoreRejected, "immutable bytes"):
+                            validate_safe_core_artifact({}, object_bytes, final_bytes)
+
+
 @unittest.skipUnless(AVAILABLE, "Linux x86-64, GNU ld and pinned z3-solver are required")
 class SafeCoreArtifactTests(unittest.TestCase):
     @classmethod
@@ -43,6 +56,33 @@ class SafeCoreArtifactTests(unittest.TestCase):
         path = self.root / self._testMethodName
         path.mkdir()
         return path
+
+    def test_last_identity_check_cannot_publish_a_proof_after_the_deadline(self):
+        import hepta.hia_safe_core as checker
+        original_identity, original_deadline = checker._solver_identity, checker._Theory.check_time
+        identities = []
+
+        def identify(z):
+            identity = original_identity(z)
+            identities.append(identity)
+            return identity
+
+        def deadline(theory):
+            if len(identities) >= 2:
+                raise SafeCoreRejected("test clock crossed the frozen deadline")
+            original_deadline(theory)
+
+        with patch.object(checker, "_solver_identity", side_effect=identify), patch.object(checker._Theory, "check_time", deadline):
+            with self.assertRaises(SafeCoreRejected) as caught:
+                validate_safe_core_artifact(self.core, self.image.object_bytes, self.data,
+                                           query_directory=self.newdir() / "queries")
+        partial = caught.exception.validation
+        self.assertFalse(partial["ok"])
+        self.assertFalse(partial["complete"])
+        self.assertEqual(partial["status"], "unknown")
+        self.assertEqual(partial["claims"], {})
+        self.assertEqual(len(partial["obligations"]), 5)
+        self.assertTrue(all(row["result"] == row["expected"] for row in partial["obligations"]))
 
     def mutate_pair(self, object_bytes, final_bytes, offset, replacement):
         obj, final = _ELF(object_bytes, 1), _ELF(final_bytes, 3)

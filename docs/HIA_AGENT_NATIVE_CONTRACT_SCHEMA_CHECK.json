@@ -1,16 +1,16 @@
 {
   "schema": "hepta.hia.agent-native-contract-schema-check.v1",
   "scope": "Design-time JSON Schema and fixture validation only; no HIA/runtime implementation executed",
-  "catalog_sha256": "1908df9e2f6085f6431bce86786090bf38aa744ddfb76239d824b999cd152b98",
-  "document_sha256": "6437de21ff5e1cf2494763778aa636b945a7ca05d0ad4c4f975277310113fe7e",
-  "generator_sha256": "30faec64fdad220a9450cac268fa45dfe21c5fa53e15ed2ce1a810b70539cb32",
+  "catalog_sha256": "61325aadc2fa6740c84037227c9410f5e299267d908cfbbd0be6b05eedfbfbf8",
+  "document_sha256": "55a1ee6521072fefdb5af685dd0503b2eab24411873399ee8d30cc346e51763f",
+  "generator_sha256": "5979a3ce60bd704b950f7ca9bdff23f1d22aced206a421a58d2c47da15b36786",
   "jsonschema_version": "4.26.0",
   "runtime_catalog_check": {
     "status": "not_run"
   },
   "tool_count": 11,
   "schema_count": 22,
-  "check_count": 77,
+  "check_count": 79,
   "checks": [
     {
       "case": "hia_describe.inputSchema.well_formed",
@@ -242,6 +242,16 @@
     },
     {
       "case": "verify.no_core_only_refinement_receipt",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.independent_native_refinement_subject",
+      "passed": true,
+      "expected": "accept"
+    },
+    {
+      "case": "verify.native_refinement_requires_exact_build",
       "passed": true,
       "expected": "reject"
     },
