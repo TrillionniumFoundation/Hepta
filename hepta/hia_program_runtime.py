@@ -488,13 +488,29 @@ class _Machine:
             env = {p["name"]: a for p, a in zip(target["params"], values)}
             current = target["id"]
 
-    def report(self, function, status, values=None, error=None):
+    def report(self, function, status, values=None, error=None, *, external_roots=()):
+        # Borrowed entry storage belongs to its caller, not this VM's heap.
+        # Accept actual live roots from the reference adapter, not a producer's
+        # reported count. This preserves the aggregate loan-backing invariant;
+        # it is not a new proof of the complete dynamic view graph.
+        if (type(external_roots) is not tuple
+                or any(type(root) is not _Owner or type(root.ident) is not int
+                       or root.ident >= 0 or root.active is not True
+                       or type(root.data) is not bytearray for root in external_roots)
+                or len({id(root) for root in external_roots}) != len(external_roots)
+                or len({root.ident for root in external_roots}) != len(external_roots)
+                or len({id(root.data) for root in external_roots}) != len(external_roots)
+                or any(root.ident in self.owners
+                       or any(root is owner for owner in self.owners.values())
+                       for root in external_roots)):
+            raise HIAProgramRejected("invalid external runtime roots", "E_HIA_RUNTIME_INVARIANT")
         resources = self.resources()
         try:
             validate_execution_observation(status, resources, steps=self.steps,
                 max_steps=self.max_steps, max_heap_bytes=self.max_heap_bytes,
                 error_code=error.code if error is not None else None,
-                with_chains=self.recursive_chain, allow_host_memory=True)
+                with_chains=self.recursive_chain, allow_host_memory=True,
+                live_external_roots=len(external_roots))
         except ExecutionObservationRejected as exc:
             raise HIAProgramRejected(str(exc), "E_HIA_RUNTIME_INVARIANT") from exc
         result = {"schema": "hepta.hia.program-execution.v1", "status": status,

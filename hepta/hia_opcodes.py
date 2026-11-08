@@ -46,7 +46,8 @@ class ExecutionObservationRejected(ValueError):
 
 
 def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap_bytes,
-                                   error_code=None, with_chains=False, allow_host_memory=False):
+                                   error_code=None, with_chains=False, allow_host_memory=False,
+                                   live_external_roots=0):
     """Check finite wire/accounting invariants, without running or admitting Core.
 
     Return, program trap and evaluator stop remain distinct. In particular a
@@ -55,6 +56,9 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     validates a summary, not the truth of a producer or any program semantics.
     Normal errors and cooperative cancellation represented as values obey the
     ordinary-return rule. Host termination and arbitrary unwinding are absent.
+    A reference adapter may supply separately checked live external roots as
+    context, never as Core heap allocations or wire-ledger fields. The default
+    remains the closed, VM-owned-root contract used by raw/native observers.
     """
     def need(condition, message):
         if not condition:
@@ -63,6 +67,8 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     need(type(status) is str and status in {"returned", "trapped", "budget_exceeded"},
          "unknown execution outcome")
     need(type(with_chains) is bool and type(allow_host_memory) is bool, "exact profile flags required")
+    need(type(live_external_roots) is int and 0 <= live_external_roots < 1 << 64,
+         "external root count must be an exact unsigned u64 integer")
     fields = EXECUTION_RESOURCE_FIELDS | (EXECUTION_CHAIN_FIELDS if with_chains else frozenset())
     need(type(ledger) is dict and set(ledger) == fields, "resource field inventory differs")
     need(all(type(value) is int and 0 <= value < 1 << 64 for value in ledger.values()),
@@ -82,7 +88,8 @@ def validate_execution_observation(status, ledger, *, steps, max_steps, max_heap
     need(ledger["loans_ended"] <= ledger["loans_started"]
          and ledger["live_local_loans"] == ledger["loans_started"] - ledger["loans_ended"],
          "local loan conservation differs")
-    need(live > 0 or ledger["live_local_loans"] == 0, "a live loan has no live byte owner")
+    need(live > 0 or live_external_roots > 0 or ledger["live_local_loans"] == 0,
+         "a live loan has no live byte owner")
     need(ledger["live_bytes"] <= ledger["peak_bytes"] <= max_heap_bytes,
          "live/peak payload exceeds the explicit heap policy")
     if with_chains:

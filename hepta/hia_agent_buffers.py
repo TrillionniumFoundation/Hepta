@@ -128,7 +128,15 @@ def reference_observation(program, case, exports, *, steps, heap):
             arguments.append(value)
 
     def report(status, *, values=None, error=None):
-        ledger = machine.report(function, status, values=values, error=error)
+        # Caller capabilities survive both normal and stopped invocations.
+        # Check their actual objects before admitting external backing into
+        # the VM's aggregate report invariant; never charge them to its heap.
+        if any(type(view) is not _View or view.active is not True
+               or view.parent is not root or view.mutable is not (typ == "mutbuf")
+               for _, typ, root, view in external):
+            raise HIAProgramRejected("invalid external runtime views", "E_HIA_RUNTIME_INVARIANT")
+        ledger = machine.report(function, status, values=values, error=error,
+                                external_roots=tuple(root for _, _, root, _ in external))
         buffers = [buffer_observation(index, typ, root.data)
                    for index, typ, root, _ in external]
         ledger["external_buffers"] = {"profile": PROFILE,
