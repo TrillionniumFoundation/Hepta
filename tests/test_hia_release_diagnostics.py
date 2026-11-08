@@ -101,7 +101,8 @@ class SourceCheckoutDiagnostics(unittest.TestCase):
                                      self.lock["sources"][repository]["commit"])
                     self.assertEqual(diagnostic["failure_kind"], kind)
                     timeout = 30 if stage == "verify_fetch" else (
-                        120 if stage in ("sparse_checkout", "checkout") else 300)
+                        (600 if repository == "runtime" else 120) if stage == "checkout" else
+                        (120 if stage == "sparse_checkout" else 300))
                     self.assertEqual(diagnostic["timeout_seconds"], timeout)
                     self.assertIn("--directory", diagnostic["next_step"])
                     expected_fields = {"repository", "stage", "pinned_commit", "failure_kind",
@@ -147,6 +148,7 @@ class SourceCheckoutDiagnostics(unittest.TestCase):
                         self.assertEqual(options["env"]["GIT_TERMINAL_PROMPT"], "0")
                     if stage == "checkout":
                         self.assertIn("--detach", command)
+                        self.assertEqual(options["timeout"], 600 if repository == "runtime" else 120)
                 check.assert_called_once_with(self.lock, destination / "hepta",
                                               destination / "runtime", Path(sys.executable))
 
@@ -225,6 +227,13 @@ class SourceCheckoutDiagnostics(unittest.TestCase):
             (source / "tools").mkdir()
             file = source / "tools" / "source.txt"
             file.write_text("pinned\n")
+            if repository == "runtime":
+                for name in ("src/main.rs", "vendor/runtime/input.rs",
+                             "docs/qualification/release-gate.json",
+                             "tests/evidence/archive.tar.gz", "tools/x230/evidence/probe.txt"):
+                    artifact = source / name
+                    artifact.parent.mkdir(parents=True, exist_ok=True)
+                    artifact.write_text("pinned complete runtime closure\n")
             git("add", ".")
             git("commit", "-qm", "pinned")
             revision = git("rev-parse", "HEAD")
@@ -242,6 +251,11 @@ class SourceCheckoutDiagnostics(unittest.TestCase):
             self.assertEqual((target / "tools/source.txt").read_text(), "pinned\n")
             self.assertEqual(release.preflight.git(target, "rev-parse", "HEAD").strip(),
                              lock["sources"][repository]["commit"])
+            if repository == "runtime":
+                for name in ("src/main.rs", "vendor/runtime/input.rs",
+                             "docs/qualification/release-gate.json",
+                             "tests/evidence/archive.tar.gz", "tools/x230/evidence/probe.txt"):
+                    self.assertEqual((target / name).read_text(), "pinned complete runtime closure\n")
         check.assert_called_once_with(lock, destination / "hepta", destination / "runtime",
                                       Path(sys.executable))
 

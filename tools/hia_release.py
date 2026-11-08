@@ -53,6 +53,9 @@ BOOTSTRAP_FILES = (
 ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
+    "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
+    "tests/test_hia_agent_native_proof_contract.py", "tests/test_hia_release_diagnostics.py",
+    ".github/workflows/hia-sixgap-source.yml",
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
     "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py",
     "tests/test_hia_safe_core.py", "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md",
@@ -94,6 +97,10 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),
     "runtime_sparse_directories": None,
     "omitted_scope": "Historical campaigns and artifact/report archives outside this release's qualified source closure"}
+# The runtime is a complete checkout, including historical evidence still read
+# by its release gates. A cold filtered fetch resolves those blobs at checkout;
+# its bounded download budget must not assume the much smaller Hepta closure.
+CHECKOUT_TIMEOUT_SECONDS = {"hepta": 120, "runtime": 600}
 QUALIFICATION = {"source_lock_only": True, "production_deployed": False,
                  "default_branch_updated": False, "agent_first_use_passed": False,
                  "native_ndu_value_passed": False,
@@ -386,7 +393,8 @@ def materialize(lock, destination, repositories, python):
                 repository=name, revision=lock["sources"][name]["commit"], stage="sparse_checkout", timeout=120)
         _source_checkout_run(
             ["git", "-C", str(target), "checkout", "--detach", lock["sources"][name]["commit"]],
-            repository=name, revision=lock["sources"][name]["commit"], stage="checkout", timeout=120)
+            repository=name, revision=lock["sources"][name]["commit"], stage="checkout",
+            timeout=CHECKOUT_TIMEOUT_SECONDS[name])
     check_lock(lock, destination / "hepta", destination / "runtime", python)
     return {"hepta_root": str(destination / "hepta"), "runtime_checkout": str(destination / "runtime"),
             "status": "exact_sources_materialized", "dependencies_installed": False,

@@ -32,6 +32,23 @@ _CTYPES = {"i8": ctypes.c_int8, "u8": ctypes.c_uint8, "i16": ctypes.c_int16,
 _MASK = (1 << 64) - 1
 
 
+def _disable_child_crash_collection():
+    """Keep expected native traps out of the host's crash-report pipeline.
+
+    Linux ignores RLIMIT_CORE for piped core_pattern handlers such as Apport.
+    PR_SET_DUMPABLE affects this forked test child only; SIGABRT remains the
+    observed result and every boundary case is still executed and counted.
+    """
+    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong,
+                          ctypes.c_ulong, ctypes.c_ulong]
+    libc.prctl.restype = ctypes.c_int
+    if libc.prctl(4, 0, 0, 0, 0) != 0:  # Linux PR_SET_DUMPABLE
+        code = ctypes.get_errno()
+        raise OSError(code, os.strerror(code))
+
+
 def _width(typ):
     return 64 if typ in {"usize", "isize"} else int(typ[1:])
 
@@ -252,7 +269,7 @@ class MachineLoweringEdgeTests(unittest.TestCase):
         pid = os.fork()
         if pid == 0:
             os.close(read_fd)
-            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            _disable_child_crash_collection()
             try:
                 for name, args, expected in cases:
                     description = json.dumps([key, name, args, expected])
@@ -290,7 +307,7 @@ class MachineLoweringEdgeTests(unittest.TestCase):
             with self.subTest(module=key, function=name, args=args):
                 pid = os.fork()
                 if pid == 0:
-                    resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+                    _disable_child_crash_collection()
                     null_fd = os.open(os.devnull, os.O_WRONLY)
                     os.dup2(null_fd, 2); os.close(null_fd)
                     try: self.functions[key, name](*args)

@@ -1,0 +1,68 @@
+name: HIA exact source closure
+
+on:
+  push:
+    branches: ['codex/hia-sixgap-source-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Bind source and verification dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          mkdir "$RUNNER_TEMP/hia-sixgap"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-sixgap/source.txt"
+          python -m pip freeze > "$RUNNER_TEMP/hia-sixgap/dependencies.txt"
+      - name: Qualify direct machine code and Core without skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_direct_native.py --output "$RUNNER_TEMP/hia-sixgap/direct-native.json" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/direct-native.log"
+      - name: Verify proof contracts and actual native consumers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-native.log"
+      - name: Validate supplied Safe Core bytes and public release diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_safe_core.py --output "$RUNNER_TEMP/hia-sixgap/safe-core" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/safe-core.log"
+          python -B -m unittest tests.test_hia_safe_core_artifact tests.test_hia_release_diagnostics -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/supplied-bytes-release.log"
+      - name: Rebuild the frozen selfhost chain from a cold directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-sixgap/cold-selfhost" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/cold-selfhost.log"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-exact-source-${{ github.sha }}
+          path: ${{ runner.temp }}/hia-sixgap/
+          if-no-files-found: error
+          retention-days: 30
