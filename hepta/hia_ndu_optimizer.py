@@ -21,6 +21,7 @@ import stat
 import sys
 import time
 
+from .hia_ndu_scalar_selection import ScalarSelectionRejected, resolve_scalar_selection
 from .hia_program import verify_program
 from .hia_rust_crosscheck import HIARustCrosscheckRejected, _run_bounded_shadow
 from .hia_translation_validation import PROFILE as PROOF_PROFILE, SCHEMA as PROOF_SCHEMA, validate_translation
@@ -433,6 +434,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
     native_admission = {"invoked": False, "remaining_budget_ns": remaining_native_ns,
                         "timeout_s": None, "reason": "search_budget_exhausted_before_native"}
     response, bridge_info, selected = None, None, "abstain"
+    selection_resolution = None
     final_proof, reason = None, native_admission["reason"]
     if remaining_native_ns > 0:
         native_admission["timeout_s"] = min(bridge_timeout_s, remaining_native_ns / 1_000_000_000)
@@ -442,8 +444,14 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
             native_admission["reason"] = reason = "native_identity_admission_exhausted_budget"
         else:
             native_admission.update(invoked=True, reason="actual_native_response_received")
-            selected = response["advisory_recommendation"] or "abstain"
-            reason = "native_evaluator_abstained"
+            try:
+                selection_resolution = resolve_scalar_selection(request, response)
+            except ScalarSelectionRejected as error:
+                _reject(str(error))
+            selected = selection_resolution["selected_id"]
+            reason = ("caller_pareto_tie_retained_incumbent"
+                      if selection_resolution["caller_tie_policy_applied"] and selected == "abstain"
+                      else "native_evaluator_abstained")
     final_proof_admission = None
     if selected != "abstain":
         if selected not in checked:
@@ -500,6 +508,7 @@ def rank_candidates(baseline, candidates, observations, *, function, bridge, obj
             "native_rank_admission": native_admission,
             "native_request": request, "request_sha256": sha256(_bytes(request)).hexdigest(),
             "native_response": response, "bridge": bridge_info,
+            "selection_resolution": selection_resolution,
             "claims": {"ndu_is_advisory": True, "unproved_candidate_admitted": False,
                        "all_other_functions_unchanged": True, "resource_bounds_proved": False,
                        "measurements_independently_attested": False, "native_backend_refinement_proved": False,

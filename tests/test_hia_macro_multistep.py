@@ -1,5 +1,6 @@
 """Synthetic no-provider controls for the v2 matched search and strict adapter."""
 from copy import deepcopy
+from tests.hia_ndu_scalar_fixture import fixture_response, fixture_rank
 from contextlib import ExitStack
 from hashlib import sha256
 import json
@@ -284,7 +285,7 @@ class ProposalReservationTests(unittest.TestCase):
             stack.enter_context(patch.object(campaign_module,'run_native_batch',return_value={
                 'termination_confirmed':True,'wall_ns':1,'report':{'total_native_ns':'1'}}))
             stack.enter_context(patch.object(campaign_module,'_native_rank',
-                return_value=({'advisory_recommendation':'abstain'},{'authored_fixture':True})))
+                side_effect=fixture_rank))
             row,summary = run_cell(evidence,public,hidden,{'input_sha256':'b'*64,
                 'qualification_receipt_sha256':'c'*64},arm,registration,provider=provider,
                 bridge={'authored_fixture':True},state_parent=Path(directory)/'unused-state',calibration=[])
@@ -371,7 +372,7 @@ class MatchedStrongControlTests(unittest.TestCase):
         seen = []
         def native(bridge,request,*,timeout_s):
             seen.append(deepcopy(request))
-            return {'advisory_recommendation':'candidate.2'},{'fixture':True}
+            return fixture_response(request),{'fixture':True}
         with patch('tools.qualify_hia_macro_multistep._native_rank',side_effect=native):
             result = checked_pool_selection('ndu',rows,remaining_wall_ns=1000,
                 bridge={'authored':'fixture'},objective_sha256='c'*64,generation=1)
@@ -385,7 +386,7 @@ class MatchedStrongControlTests(unittest.TestCase):
     def test_native_abstain_maps_only_to_actual_qualified_candidate(self):
         rows = [self.row('candidate.1',0,0,quality=False),self.row('candidate.2',5,100)]
         with patch('tools.qualify_hia_macro_multistep._native_rank',
-                return_value=({'advisory_recommendation':'abstain'},{'fixture':True})):
+                side_effect=fixture_rank):
             result = checked_pool_selection('ndu',rows,remaining_wall_ns=1000,
                 bridge={'authored':'fixture'},objective_sha256='c'*64,generation=1)
         self.assertEqual(result['selected_id'],'candidate.2')
@@ -393,6 +394,34 @@ class MatchedStrongControlTests(unittest.TestCase):
             result = self.select('ndu',rows[:1])
         self.assertIsNone(result['selected_id'])
         self.assertFalse(result['native_ndu_evaluated'])
+
+    def test_native_null_is_an_explicit_caller_tie_and_never_dominated_fallback(self):
+        rows = [self.row('candidate.1',1,300),self.row('candidate.2',5,100),
+                self.row('candidate.3',2,100)]
+        with patch('tools.qualify_hia_macro_multistep._native_rank',side_effect=fixture_rank):
+            result = checked_pool_selection('ndu',rows,remaining_wall_ns=1000,
+                bridge={'authored':'fixture'},objective_sha256='c'*64,generation=1)
+        self.assertEqual(result['schema'],'hepta.hia.agent.quality-pool-advice.v3')
+        self.assertEqual(result['selected_id'],'candidate.2')
+        self.assertEqual(result['selected_id'],self.select('ordinary',rows,remaining=1000)['selected_id'])
+        self.assertIsNone(result['native_response']['advisory_recommendation'])
+        self.assertEqual(result['selection_resolution']['selection_source'],'caller_pareto_tie_policy')
+        self.assertFalse(result['net_benefit_established'])
+
+    def test_nonpositive_budget_never_schedules_zero_cost_candidates(self):
+        rows = [self.row('candidate.1',0,0),self.row('candidate.2',0,0)]
+        with patch('tools.qualify_hia_macro_multistep._native_rank',side_effect=AssertionError('must not run')):
+            for remaining in (0,-1):
+                for arm in ('fixed','greedy','ordinary','ndu'):
+                    with self.subTest(remaining=remaining,arm=arm):
+                        result = self.select(arm,rows,remaining=remaining)
+                        self.assertTrue(result['budget_exhausted'])
+                        self.assertIsNone(result['selected_id'])
+                        self.assertIsNone(result['feasible_incumbent_id'])
+                        self.assertIsNone(result['native_request'])
+                        self.assertIsNone(result['native_response'])
+                        self.assertIsNone(result['selection_resolution'])
+                        self.assertFalse(result['native_ndu_evaluated'])
 
     def test_no_python_substitute_for_missing_native_ndu(self):
         with self.assertRaisesRegex(ValueError,'stand-in'):

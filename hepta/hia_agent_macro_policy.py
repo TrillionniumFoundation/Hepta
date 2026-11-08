@@ -16,6 +16,7 @@ import time
 from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
 from .hia_json_preflight import preflight_hia_json
 from .hia_ndu_optimizer import OptimizationRejected, _native_rank, ns_to_ms_q32
+from .hia_ndu_scalar_selection import resolve_scalar_selection
 
 STATE_SCHEMA = "hepta.hia.agent.macro-state.v1"
 COMPARISON_SCHEMA = "hepta.hia.agent.macro-comparison.v1"
@@ -294,6 +295,7 @@ def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
               "selected_id": "abstain", "next_action": "stop", "status": "BLOCKED",
               "reason": "native_bridge_unavailable", "native_request": None,
               "native_response": None, "native_identity": None, "native_ndu_evaluated": False,
+              "selection_resolution": None,
               "native_profile": "hia-ndu-bridge scalar supplied-cost ranking",
               "recursive_utility_evaluated": False, "learned_macro_dynamics": False,
               "authority": "DENY_ALL", "execution_authorized": False, "safety_certificate": False,
@@ -330,18 +332,24 @@ def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
                 response, identity = _native_rank(bridge, request,
                     timeout_s=min(timeout_ns, remaining) / 1_000_000_000)
                 result.update(native_response=response, native_identity=identity,
-                              native_ndu_evaluated=True, status="ADVISORY", reason="native_evaluator_abstained")
-                selected = response.get("advisory_recommendation") or "abstain"
+                              native_ndu_evaluated=True)
+                selection = resolve_scalar_selection(request, response)
+                selected = selection["selected_id"]
+                result.update(selection_resolution=selection, status="ADVISORY",
+                    reason=("caller_pareto_tie_retained_incumbent" if selection["caller_tie_policy_applied"]
+                            else "native_evaluator_abstained"))
                 if selected != "abstain":
                     plan = plans[selected]
                     final_remaining = data["budget"]["wall_ns"] - totals["observed_wall_ns"] - (time.perf_counter_ns() - started)
                     if plan["remaining_cost_ns"] + plan["uncertainty_ns"] <= final_remaining:
-                        result.update(selected_id=selected, next_action=plan["actions"][0], reason="native_macro_advice")
+                        result.update(selected_id=selected, next_action=plan["actions"][0],
+                            reason=("caller_pareto_tie_macro_advice" if selection["caller_tie_policy_applied"]
+                                    else "native_macro_advice"))
                     else:
                         result["reason"] = "budget_exhausted_after_native"
             except (OptimizationRejected, ValueError, TypeError, KeyError, OSError, OverflowError) as error:
                 # Preserve failed calls in the next state; never refund work.
-                result.update(reason="native_evaluator_rejected", native_error=str(error))
+                result.update(status="BLOCKED", reason="native_evaluator_rejected", native_error=str(error))
     elapsed = time.perf_counter_ns() - started
     evidence = {key: value for key, value in result.items() if key not in {"next_state", "ledger_entry"}}
     entry = {"id": next_entry_id, "phase": "controller",

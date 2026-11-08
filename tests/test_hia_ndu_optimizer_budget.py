@@ -12,6 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_ndu_optimizer import rank_candidates
+from tests.hia_ndu_scalar_fixture import fixture_response
 from tests.test_hia_ndu_optimizer import baseline_program, observation, proposal
 from tests.test_hia_program import arithmetic, b, f, jump, m
 from tests.test_hia_translation_validation import identity
@@ -49,11 +50,9 @@ class RankingBudgetTests(unittest.TestCase):
         self.native_requests.append(request)
         self.native_timeouts.append(timeout_s)
         self.now += self.rank_cost
-        candidate = next(row for row in request["candidates"] if row["id"] == "cancel")
-        # Deliberately stale advice lets the host guard be tested independently
-        # of the evaluator's own resource filtering.
-        selected = "abstain" if candidate["hard_violation"] else "cancel"
-        return {"advisory_recommendation": selected}, {"fixture_only": True}
+        # Bind the table observed before simulated native time was spent.
+        # The host must still recheck its current budget and net saving.
+        return fixture_response(request), {"fixture_only": True}
 
     def rank(self, candidates=None):
         with patch("hepta.hia_ndu_optimizer.time.perf_counter_ns", side_effect=lambda: self.now), \
@@ -202,9 +201,7 @@ class RealProofBudgetTests(unittest.TestCase):
 
         def advice(bridge, request, *, timeout_s):
             seen.append(request)
-            admitted = [row for row in request["candidates"]
-                        if row["id"] != "abstain" and not row["hard_violation"]]
-            return {"advisory_recommendation": admitted[0]["id"] if admitted else "abstain"}, {"fixture_only": True}
+            return fixture_response(request), {"fixture_only": True}
 
         observations = {"abstain": observation(base, 100_000)}
         observations.update({row["id"]: observation(row["program"], 1_000) for row in proposals})

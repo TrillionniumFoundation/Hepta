@@ -12,6 +12,7 @@ from hepta.hia_agent_macro_policy import (ACTIONS, COMPARISON_SCHEMA, PHASES,
     STATE_SCHEMA, MacroPolicyRejected, advise_macro, assess_macro_comparison,
     digest, ledger_totals, wire)
 from hepta.hia_ndu_optimizer import OptimizationRejected
+from tests.hia_ndu_scalar_fixture import fixture_rank
 
 
 def entry(identity="m1", phase="model", wall=1000, tokens=100, status="completed"):
@@ -95,8 +96,7 @@ class MacroAdviceTests(unittest.TestCase):
     def test_real_adapter_boundary_is_explicit_and_snapshot_bound(self):
         # Mock only the process boundary; this proves orchestration, not NDU use.
         data = state()
-        response = {"advisory_recommendation": "measure"}
-        with patch("hepta.hia_agent_macro_policy._native_rank", return_value=(response, {"binary_sha256": "8"*64})) as rank:
+        with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=fixture_rank) as rank:
             result = advise_macro(wire(data), bridge={"binary": "bound", "build_receipt": "bound"})
         self.assertEqual(rank.call_count, 1)
         self.assertEqual(result["next_action"], "evaluate")
@@ -106,6 +106,33 @@ class MacroAdviceTests(unittest.TestCase):
         self.assertEqual(result["state_sha256"], digest(data))
         self.assertFalse(result["execution_authorized"])
         self.assertEqual(result["authority"], "DENY_ALL")
+
+    def test_native_ambiguity_records_caller_choice_inside_frontier(self):
+        data = state()
+        data["plans"].append({**deepcopy(data["plans"][0]), "id": "alpha"})
+        with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=fixture_rank):
+            result = advise_macro(wire(data), bridge={})
+        self.assertEqual(result["selected_id"], "alpha")
+        self.assertEqual(result["reason"], "caller_pareto_tie_macro_advice")
+        self.assertIsNone(result["native_response"]["advisory_recommendation"])
+        self.assertEqual(result["selection_resolution"]["selection_source"], "caller_pareto_tie_policy")
+        self.assertGreater(result["ledger_entry"]["wall_ns"], 0)
+        self.assertFalse(result["net_benefit_established"])
+
+    def test_inconsistent_frontier_is_blocked_and_retained_as_rejected(self):
+        def malformed(bridge, request, **kwargs):
+            response, identity = fixture_rank(bridge, request, **kwargs)
+            response["pareto_frontier"] = ["abstain"]
+            return response, identity
+        with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=malformed):
+            result = advise_macro(wire(state()), bridge={})
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertEqual(result["selected_id"], "abstain")
+        self.assertEqual(result["next_action"], "stop")
+        self.assertEqual(result["ledger_entry"]["status"], "rejected")
+        self.assertEqual(result["reason"], "native_evaluator_rejected")
+        self.assertIsNotNone(result["native_response"])
+        self.assertIsNone(result["selection_resolution"])
 
     def test_native_failure_remains_in_costed_next_state(self):
         with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=OptimizationRejected("source identity differs")):
@@ -133,7 +160,7 @@ class MacroAdviceTests(unittest.TestCase):
         data = state()
         data["budget"]["wall_ns"] = 1_000_000
         with patch("hepta.hia_agent_macro_policy.time.perf_counter_ns", side_effect=[0, 10, 2_000_000, 2_000_010]), patch(
-            "hepta.hia_agent_macro_policy._native_rank", return_value=({"advisory_recommendation": "measure"}, {})):
+            "hepta.hia_agent_macro_policy._native_rank", side_effect=fixture_rank):
             result = advise_macro(wire(data), bridge={})
         self.assertEqual(result["reason"], "budget_exhausted_after_native")
         self.assertEqual(result["selected_id"], "abstain")
@@ -142,7 +169,7 @@ class MacroAdviceTests(unittest.TestCase):
     def test_plan_model_token_overrun_is_hard_violation(self):
         data = state()
         data["plans"][0]["model_tokens"] = data["budget"]["model_tokens"]
-        with patch("hepta.hia_agent_macro_policy._native_rank", return_value=({"advisory_recommendation": None}, {})) as rank:
+        with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=fixture_rank) as rank:
             advise_macro(wire(data), bridge={})
         self.assertTrue(rank.call_args.args[1]["candidates"][1]["hard_violation"])
 

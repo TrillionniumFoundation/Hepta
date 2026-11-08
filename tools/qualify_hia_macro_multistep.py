@@ -28,6 +28,7 @@ from hepta.hia_agent_macro_policy import COMPARISON_SCHEMA, digest, ledger_total
 from hepta.hia_agent_runner import run_native_batch
 from hepta.hia_agent_service import HIAAgentService
 from hepta.hia_ndu_optimizer import _bridge_identity, _native_rank, ns_to_ms_q32
+from hepta.hia_ndu_scalar_selection import resolve_scalar_selection
 from tools.hia_agent_native_qualification import ToolClient
 from tools.hia_macro_multistep_provider import StructuredProvider, request_document, verify_receipt
 from tools.hia_macro_multistep_assessment import assess_multistep_comparison
@@ -122,6 +123,12 @@ def prepare(registration_path, output, *, binary, model, bridge, feasibility_pat
     return plan
 
 
+def _pool_item_feasible(item, remaining_wall_ns):
+    # Even a zero-cost forecast cannot authorize work after the wall budget.
+    return (remaining_wall_ns > 0 and item['quality_complete']
+        and item['remaining_cost_ns'] + item['uncertainty_ns'] <= remaining_wall_ns)
+
+
 def checked_pool_selection(arm, pool, *, remaining_wall_ns, bridge, objective_sha256, generation,
                            observer=None):
     """Same task-quality predicate and complete-cost rows for all four arms.
@@ -129,8 +136,9 @@ def checked_pool_selection(arm, pool, *, remaining_wall_ns, bridge, objective_sh
     The task baseline is not an admissible completed task. The first actual
     quality-qualified proposal is the feasible selection incumbent. Native
     abstain means retain that proposal, as required by its unchanged ABI;
-    it never means silently deliver the unimproved task baseline. No eligible
-    proposal means no task delivery and no native call with a fake incumbent.
+    it never means silently deliver the unimproved task baseline. An ambiguous
+    native frontier uses a separately recorded deterministic caller tie policy.
+    No eligible proposal means no task delivery and no native call with a fake incumbent.
     """
     require(arm in ARM_ORDER and type(remaining_wall_ns) is int, 'controller input')
     require(len(pool) <= 3 and len({row['id'] for row in pool}) == len(pool), 'candidate pool bound')
@@ -142,7 +150,7 @@ def checked_pool_selection(arm, pool, *, remaining_wall_ns, bridge, objective_sh
         require(type(item['quality_complete']) is bool and all(type(item[k]) is int and item[k] >= 0
             for k in ('immediate_ns','remaining_cost_ns','uncertainty_ns','artifact_bytes')), 'known nonnegative cost row')
         robust = item['remaining_cost_ns'] + item['uncertainty_ns']
-        feasible = item['quality_complete'] and robust <= remaining_wall_ns
+        feasible = _pool_item_feasible(item, remaining_wall_ns)
         if feasible:
             eligible.append(item)
         candidate_rows.append({'id': item['id'], 'cost_q32': ns_to_ms_q32(robust), 'uncertainty_q32': 0,
@@ -156,7 +164,7 @@ def checked_pool_selection(arm, pool, *, remaining_wall_ns, bridge, objective_sh
     request = {'schema': 'hepta.hia.ndu-request.v1', 'objective_sha256': objective_sha256,
         'generation': generation, 'resource_cap_q32': ns_to_ms_q32(max(remaining_wall_ns, 0)),
         'candidates': rows}
-    selected, response, native_identity = None, None, None
+    selected, response, native_identity, selection_resolution = None, None, None, None
     if arm == 'fixed':
         selected = eligible[0]['id'] if eligible else None
     elif arm == 'greedy':
@@ -171,13 +179,16 @@ def checked_pool_selection(arm, pool, *, remaining_wall_ns, bridge, objective_sh
         options = {} if observer is None else {'observer':observer}
         response, native_identity = _native_rank(bridge, request,
             timeout_s=min(1_000_000_000, remaining_wall_ns) / 1e9, **options)
-        recommendation = response['advisory_recommendation']
-        selected = incumbent if recommendation in (None,'abstain') else recommendation
+        selection_resolution = resolve_scalar_selection(request, response)
+        recommendation = selection_resolution['selected_id']
+        selected = incumbent if recommendation == 'abstain' else recommendation
         require(selected is None or selected in {row['id'] for row in eligible}, 'native selected ineligible task')
-    return {'schema': 'hepta.hia.agent.quality-pool-advice.v2', 'arm': arm,
+    return {'schema': 'hepta.hia.agent.quality-pool-advice.v3', 'arm': arm,
         'pool': deepcopy(pool), 'remaining_wall_ns': remaining_wall_ns,
+        'budget_exhausted': remaining_wall_ns <= 0,
         'native_request': request if arm == 'ndu' and eligible else None,
         'native_response': response, 'native_identity': native_identity,
+        'selection_resolution': selection_resolution,
         'native_ndu_evaluated': response is not None, 'selected_id': selected,
         'feasible_incumbent_id': incumbent,
         'native_abstain_semantics': 'retain first quality-qualified actual proposal from this cell; not the original task baseline',
@@ -782,11 +793,16 @@ def verify(root):
                     require(expected == decision, 'ordinary/fixed/greedy selection not its frozen rule')
                     require(row['native_ndu_receipts'] == [], 'control claimed native NDU')
                 else:
+                    require(decision['schema'] == 'hepta.hia.agent.quality-pool-advice.v3',
+                        'selection semantics require a newly frozen v3 campaign; historical advice is unchanged')
+                    require(type(decision['budget_exhausted']) is bool
+                        and decision['budget_exhausted'] == (decision['remaining_wall_ns'] <= 0),
+                        'selection budget exhaustion differs from its recorded allowance')
                     request,response = decision['native_request'],decision['native_response']
                     expected_candidates,eligible = [],[]
                     for item in result['pool']:
                         robust = item['remaining_cost_ns'] + item['uncertainty_ns']
-                        feasible = item['quality_complete'] and robust <= decision['remaining_wall_ns']
+                        feasible = _pool_item_feasible(item, decision['remaining_wall_ns'])
                         if feasible:
                             eligible.append(item['id'])
                         expected_candidates.append({'id':item['id'],'cost_q32':ns_to_ms_q32(robust),'uncertainty_q32':0,
@@ -797,6 +813,7 @@ def verify(root):
                     if incumbent is None:
                         require(request is None and response is None and decision['native_identity'] is None
                             and decision['native_ndu_evaluated'] is False and decision['selected_id'] is None
+                            and decision['selection_resolution'] is None
                             and row['native_ndu_receipts'] == [], 'no feasible incumbent must remain an uncompleted task')
                     else:
                         expected_rows = [{**next(r for r in expected_candidates if r['id']==incumbent),'id':'abstain'}] \
@@ -805,8 +822,11 @@ def verify(root):
                             and decision['native_identity'] == plan['native_identity']
                             and len(observations) == 1 and observations[0]['response_admitted'] is True,
                             'native NDU original identity/output missing')
-                        recommendation = response['advisory_recommendation']
-                        selected = incumbent if recommendation in (None,'abstain') else recommendation
+                        selection_resolution = resolve_scalar_selection(request,response)
+                        require(decision['selection_resolution'] == selection_resolution,
+                            'caller tie resolution differs from its original bound native response')
+                        recommendation = selection_resolution['selected_id']
+                        selected = incumbent if recommendation == 'abstain' else recommendation
                         require(response['request_sha256'] == digest(request)
                             and response['objective_sha256'] == request['objective_sha256'] == registration['objective_sha256']
                             and response['generation'] == request['generation'] == 1

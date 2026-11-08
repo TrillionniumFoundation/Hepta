@@ -70,6 +70,52 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-sixgap/selfhost-language.json" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-language.log"
+      - name: Freeze and verify the public exact source/runtime release lock
+        timeout-minutes: 20
+        env:
+          HIA_RUNTIME_SHA: '4cd85c99c5f5a480832c48fbde8561bb365f67a9'
+          GIT_TERMINAL_PROMPT: '0'
+          GIT_ASKPASS: /bin/false
+          GIT_CONFIG_NOSYSTEM: '1'
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_CONFIG_COUNT: '2'
+          GIT_CONFIG_KEY_0: credential.helper
+          GIT_CONFIG_VALUE_0: ''
+          GIT_CONFIG_KEY_1: http.extraheader
+          GIT_CONFIG_VALUE_1: ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          HIA_RUNTIME_ROOT="$RUNNER_TEMP/hia-sixgap-runtime-$HIA_RUNTIME_SHA"
+          test ! -e "$HIA_RUNTIME_ROOT"
+          test ! -L "$HIA_RUNTIME_ROOT"
+          {
+            timeout --kill-after=10s 30s git init -- "$HIA_RUNTIME_ROOT"
+            timeout --kill-after=10s 30s git -C "$HIA_RUNTIME_ROOT" remote add origin https://github.com/TrillionniumFoundation/hepta-runtime.git
+            timeout --kill-after=10s 30s git -C "$HIA_RUNTIME_ROOT" config remote.origin.promisor true
+            timeout --kill-after=10s 30s git -C "$HIA_RUNTIME_ROOT" config remote.origin.partialclonefilter blob:none
+            timeout --kill-after=10s 300s git -C "$HIA_RUNTIME_ROOT" fetch --no-tags --no-recurse-submodules --filter=blob:none --depth=1 origin "$HIA_RUNTIME_SHA"
+            test "$(git --no-replace-objects -C "$HIA_RUNTIME_ROOT" rev-parse FETCH_HEAD)" = "$HIA_RUNTIME_SHA"
+            timeout --kill-after=10s 600s git -C "$HIA_RUNTIME_ROOT" checkout --detach "$HIA_RUNTIME_SHA"
+            test "$(git --no-replace-objects -C "$HIA_RUNTIME_ROOT" rev-parse HEAD)" = "$HIA_RUNTIME_SHA"
+            test -z "$(git -C "$HIA_RUNTIME_ROOT" status --porcelain --untracked-files=all)"
+            git --no-replace-objects -C "$HIA_RUNTIME_ROOT" rev-parse HEAD 'HEAD^{tree}'
+          } 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/release-runtime-fetch.log"
+          timeout --kill-after=10s 120s python -B tools/hia_release.py freeze \
+            --hepta-root "$GITHUB_WORKSPACE" --hepta-revision "$HEPTA_SOURCE_SHA" \
+            --runtime-checkout "$HIA_RUNTIME_ROOT" --runtime-revision "$HIA_RUNTIME_SHA" \
+            --release-id "hia-sixgap-ci-$HEPTA_SOURCE_SHA" \
+            --output "$RUNNER_TEMP/hia-sixgap/release-lock.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/release-freeze.log"
+          sha256sum "$RUNNER_TEMP/hia-sixgap/release-lock.json" > "$RUNNER_TEMP/hia-sixgap/release-lock.sha256"
+          timeout --kill-after=10s 120s python -B tools/hia_release.py \
+            --lock "$RUNNER_TEMP/hia-sixgap/release-lock.json" check \
+            --hepta-root "$GITHUB_WORKSPACE" --runtime-checkout "$HIA_RUNTIME_ROOT" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/release-check.log"
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
