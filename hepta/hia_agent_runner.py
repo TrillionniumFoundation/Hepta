@@ -1,4 +1,4 @@
-"""A disposable scalar native runner; never imported code into the controller.
+"""A disposable scalar/copied-byte runner; never loads native code in the controller.
 
 HIA tools pass only reverified retained images and server-derived signatures.
 Every child has an address-space/CPU limit, a wall deadline, its own process
@@ -20,6 +20,8 @@ import tempfile
 import time
 
 from .hia_agent_store import AgentRejected, reject, stable_read, wire
+from .hia_agent_byte_abi import (ABI, LOANS, byte_observations, byte_value,
+                                 decode_arguments, reference_observation, validate_cases)
 
 _CTYPES = {"i8": ctypes.c_int8, "u8": ctypes.c_uint8, "i16": ctypes.c_int16,
     "u16": ctypes.c_uint16, "i32": ctypes.c_int32, "u32": ctypes.c_uint32,
@@ -41,12 +43,19 @@ def _child_setup(parent_pid, memory_bytes, cpu_seconds):
 
 
 def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions=1,
-                     timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native"):
+                     timeout_ms=30000, memory_bytes=256 * 1024 * 1024, _mode="native",
+                     include_buffers=False, reference_max_steps=1_000_000):
     if sys.platform != "linux" or not 64 * 1024 * 1024 <= memory_bytes <= 4 * 1024 * 1024 * 1024:
         reject("E_HIA_EXECUTION_PROFILE", "native execution requires Linux and 64 MiB..4 GiB address-space budget")
     if timeout_ms <= 0:
         return {"status": "budget_exceeded", "termination_confirmed": True,
                 "started": False, "wall_ns": "0", "returncode": None, "report": None}
+    if _mode == "native":
+        validate_cases(signatures, cases)
+    if type(include_buffers) is not bool or include_buffers and (len(cases) != 1 or repetitions != 1 or warmup != 0):
+        reject("E_HIA_ARGUMENTS", "byte copies may be returned only for one consumer invocation")
+    if type(reference_max_steps) is not int or not 1 <= reference_max_steps <= 10_000_000:
+        reject("E_HIA_BUDGET", "reference step budget requires an exact integer in 1..10000000")
     artifact_hash = sha256(artifact_bytes).hexdigest()
     started = time.monotonic_ns()
     with tempfile.TemporaryDirectory(prefix="hia-agent-run-") as directory:
@@ -56,8 +65,11 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
         artifact.chmod(0o400)
         request = {"artifact": str(artifact), "artifact_sha256": artifact_hash,
                    "signatures": signatures, "cases": cases,
-                   "warmup": warmup, "repetitions": repetitions, "mode": _mode}
+                   "warmup": warmup, "repetitions": repetitions, "mode": _mode,
+                   "include_buffers": include_buffers, "reference_max_steps": reference_max_steps}
         payload = wire(request)
+        if len(payload) > 8 * 1024 * 1024:
+            reject("E_HIA_BUDGET", "native invocation exceeds the bounded input wire size")
         parent_pid = os.getpid()
         proc = subprocess.Popen([sys.executable, "-B", "-E", "-s", "-m", "hepta.hia_agent_runner",
             str(parent_pid), str(memory_bytes), str(max(1, math.ceil(timeout_ms / 1000)))],
@@ -96,7 +108,7 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             reject("E_HIA_TERMINATION_UNKNOWN", "native process-group termination is not confirmed",
                    "execution", retry_action="observe_original")
     report = None
-    if len(stdout) > 2 * 1024 * 1024 or len(stderr) > 65536:
+    if len(stdout) > 8 * 1024 * 1024 or len(stderr) > 65536:
         status = "invalid_report"
     elif timed_out or proc.returncode == -signal.SIGXCPU:
         status = "budget_exceeded"
@@ -125,10 +137,34 @@ def run_native_batch(artifact_bytes, signatures, cases, *, warmup=0, repetitions
             "report": report}
 
 
-def run_reference_batch(program, cases, *, timeout_ms, memory_bytes):
+def run_reference_batch(program, cases, *, timeout_ms, memory_bytes, signatures=None, max_steps=1_000_000):
     """Run the existing VM under the same disposable process/deadline owner."""
-    return run_native_batch(program.canonical_bytes, {}, cases, timeout_ms=timeout_ms,
-                            memory_bytes=memory_bytes, _mode="reference")
+    return run_native_batch(program.canonical_bytes, signatures or {}, cases, timeout_ms=timeout_ms,
+                            memory_bytes=memory_bytes, _mode="reference", reference_max_steps=max_steps)
+
+
+def _byte_call(fn, signature, values, *, include_buffers):
+    """Allocate fresh independent copies for every warmup/measured invocation."""
+    buffers, arguments = {}, []
+    for index, (typ, value) in enumerate(zip(signature["params"], values)):
+        if typ in LOANS:
+            buf = ctypes.create_string_buffer(value, max(1, len(value)))
+            buffers[index] = (buf, len(value))
+            arguments.extend([ctypes.addressof(buf), len(value)])
+        else:
+            arguments.append(value)
+    started = time.perf_counter_ns()
+    packed = fn(*arguments)
+    elapsed = time.perf_counter_ns() - started
+    after = [buffers[index][0].raw[:buffers[index][1]] if index in buffers else value
+             for index, value in enumerate(values)]
+    observation = {"status": "returned" if packed >> 32 == 0 else "abi_rejected",
+        "values": [packed & 0xffffffff], "buffers": byte_observations(signature["params"], after)}
+    unchanged = all(typ != "readbuf" or before == output
+                    for typ, before, output in zip(signature["params"], values, after))
+    copies = [byte_value(value) if typ in LOANS else value
+              for typ, value in zip(signature["params"], after)] if include_buffers else None
+    return observation, elapsed, not unchanged or packed >> 32 != 0, copies
 
 
 def main():
@@ -150,7 +186,10 @@ def main():
         program = verify_program(decode_json(data))
         observations = []
         for case in request["cases"]:
-            observation = _vm_observation(program, case)
+            signature = request["signatures"].get(case["function"], {})
+            observation = (reference_observation(program, signature, case, steps=request["reference_max_steps"])
+                           if signature.get("abi") == ABI else
+                           _vm_observation(program, case, steps=request["reference_max_steps"]))
             observations.append(observation)
             if observation["status"] == "budget_exceeded":
                 break
@@ -175,38 +214,51 @@ def main():
         functions = {}
         for name, sig in request["signatures"].items():
             fn = getattr(library, name)
-            fn.argtypes = [_CTYPES[typ] for typ in sig["params"]]
-            fn.restype = _CTYPES[sig["returns"][0]] if sig["returns"] and sig["returns"] != ["unit"] else None
+            fn.argtypes = [ctype for typ in sig["params"]
+                           for ctype in ([ctypes.c_void_p, ctypes.c_uint64] if typ in LOANS else [_CTYPES[typ]])]
+            fn.restype = (ctypes.c_uint64 if sig.get("abi") == ABI else
+                          _CTYPES[sig["returns"][0]] if sig["returns"] and sig["returns"] != ["unit"] else None)
             functions[name] = fn
         observations, total_ns, calls = [], 0, 0
         for case in request["cases"]:
             fn = functions[case["function"]]
-            returns = request["signatures"][case["function"]]["returns"]
+            signature = request["signatures"][case["function"]]
+            returns = signature["returns"]
+            arguments = decode_arguments(signature, case["arguments"])
+            copies = None
             observation = None
             mismatch = False
             elapsed = 0
             for iteration in range(request["warmup"] + request["repetitions"]):
-                start = time.perf_counter_ns()
-                value = fn(*case["arguments"])
-                end = time.perf_counter_ns()
-                if returns == ["bool"]:
-                    value = bool(value)
-                values = [value] if returns else []
-                observation = {"status": "returned", "values": values}
+                if signature.get("abi") == ABI:
+                    observation, call_ns, invalid, copies = _byte_call(fn, signature, arguments,
+                        include_buffers=request["include_buffers"])
+                    mismatch = mismatch or invalid
+                else:
+                    start = time.perf_counter_ns()
+                    value = fn(*arguments)
+                    call_ns = time.perf_counter_ns() - start
+                    if returns == ["bool"]:
+                        value = bool(value)
+                    values = [value] if returns else []
+                    observation = {"status": "returned", "values": values}
                 if "expected" in case and observation != case["expected"]:
                     mismatch = True
                 if iteration >= request["warmup"]:
-                    elapsed += end - start
+                    elapsed += call_ns
                     calls += 1
             total_ns += elapsed
-            observations.append({**observation, "mismatch": mismatch,
-                                 "elapsed_ns": str(elapsed)})
+            row = {**observation, "mismatch": mismatch, "elapsed_ns": str(elapsed)}
+            if copies is not None:
+                row["arguments"] = copies
+            observations.append(row)
         result = {"schema": "hepta.hia.agent.native-observation.v1",
             "artifact_sha256": request["artifact_sha256"], "complete": True,
             "planned_cases": len(request["cases"]), "completed_cases": len(observations),
             "warmup": request["warmup"], "repetitions": request["repetitions"],
             "measured_calls": calls, "total_native_ns": str(total_ns),
-            "observations": observations, "timing_scope": "ctypes scalar call including FFI overhead"}
+            "observations": observations,
+            "timing_scope": "ctypes call including FFI overhead; byte copies/hashes counted only in child wall time"}
         sys.stdout.buffer.write(wire(result) + b"\n")
     return 0
 

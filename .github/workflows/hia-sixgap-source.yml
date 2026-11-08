@@ -45,6 +45,12 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-native.log"
+      - name: Qualify the real compiler copied-byte lifecycle and generated consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_agent_byte_lifecycle.py --output "$RUNNER_TEMP/hia-sixgap/compiler-byte-lifecycle" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/compiler-byte-lifecycle.log"
       - name: Verify public scalar proof scope and receipt rejection
         shell: bash
         run: |

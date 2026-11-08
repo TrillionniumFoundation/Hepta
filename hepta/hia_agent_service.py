@@ -26,6 +26,8 @@ from .hia_agent_store import (AgentRejected, AgentStore, capture_path, digest, k
     reject, uint64, wire, decode_data)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
+from .hia_agent_byte_abi import (ABI as BYTE_ABI, byte_observations, byte_signatures,
+    decode_arguments, validate_cases, workload_exports)
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
     assumptions_document, proof_contract_description, SAFE_CORE_METHOD, SAFE_CORE_DOMAIN,
     SAFE_CORE_SERVICE_PROFILE)
@@ -35,15 +37,16 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def _signatures(program):
+def _signatures(program, foreign_buffer_exports=()):
     from .hia_program_native import WIDTHS
     document = program.as_dict()
-    return {fn["name"]: {"params": [p["type"] for p in fn["params"]],
+    scalars = {fn["name"]: {"params": [p["type"] for p in fn["params"]],
                          "returns": fn["returns"]}
             for fn in document["functions"] if fn["name"] in program.scalar_entrypoints
             and all(p["type"] in set(WIDTHS) | {"bool"} for p in fn["params"])
             and len(fn["returns"]) <= 1
             and all(typ in set(WIDTHS) | {"bool", "unit"} for typ in fn["returns"])}
+    return {**scalars, **byte_signatures(program, foreign_buffer_exports)}
 
 
 def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024):
@@ -59,8 +62,10 @@ def _vm_observation(program, case, *, steps=1_000_000, heap=16 * 1024 * 1024):
 
 
 def _value_observation(observation):
-    return ({"status": "returned", "values": observation["values"]}
-            if observation["status"] == "returned" else {"status": observation["status"]})
+    if observation["status"] != "returned":
+        return {"status": observation["status"]}
+    return {"status": "returned", "values": observation["values"],
+            **({"buffers": observation["buffers"]} if "buffers" in observation else {})}
 
 
 class HIAAgentService:
@@ -87,12 +92,17 @@ class HIAAgentService:
                 "backend": "hia-direct", "implicit_profitability_optimizer": False,
                 "llvm_codegen": False, "external_assembler": False},
             "target": {"schema": "hepta.hia.agent.target-profile.v1", "triple": TARGET,
-                "isa": "x86-64", "abi": "SysV AMD64 LP64 scalar entries",
+                "isa": "x86-64", "abi": "SysV AMD64 LP64 scalar entries; opt-in copied borrowed-byte entries",
                 "operating_system": "Linux", "max_memory_bytes": str(4 * 1024**3),
                 "min_memory_bytes": str(64 * 1024**2), "features": ["baseline-x86-64"]},
             "backend": {**common, "schema": "hepta.hia.agent.backend-profile.v1", "profile": PROFILE,
                 "target": TARGET, "core_schemas": sorted(CORE_SCHEMAS), "opcodes": sorted(SUPPORTED_OPCODES),
                 "runtime_imports": sorted(IMPORTS), "external_abi": "integer/bool scalar inputs, at most one scalar/unit result",
+                "copied_byte_abi": {"profile": BYTE_ABI, "workload_schema": "hepta.hia.agent.workload.v2",
+                    "exports": "explicit frozen function/maximum_bytes manifest; one u32 return",
+                    "maximum_range_bytes": 1048576, "maximum_input_bytes_per_workload": 4194304,
+                    "memory": "fresh disjoint private copies on every call; complete output byte commitments",
+                    "consumer_output": "copies returned explicitly; no external pointers or persistent mutable state"},
                 "max_stack_frame_bytes": 65536, "max_exports": 128,
                 "object_emission_external_tool": False, "shared_linker": "GNU ld only",
                 "native_resource_limits": "disposable child wall/CPU/address-space limits; no VM tick guarantee",
@@ -419,6 +429,7 @@ class HIAAgentService:
         objective, _ = self.store.get_json(args["objective"])
         cost_policy, _ = self.store.get_json(args["budget"]["cost_policy"])
         validate(workload, WORKLOAD_SCHEMA, "workload")
+        workload_exports(workload)
         validate(objective, OBJECTIVE_SCHEMA, "objective")
         validate(cost_policy, COST_POLICY_SCHEMA, "cost_policy")
         for name in ("max_candidates", "max_model_tokens", "max_total_wall_ms", "max_native_wall_ms"):
@@ -518,6 +529,10 @@ class HIAAgentService:
         return {"candidate": candidate, "base_program": base,
             "diagnostics": self.store.json(diagnostics, "candidate-diagnostics"), "core_admitted": True,
             "behavior_equivalence_proved": False, "adopted": False}
+
+    def _byte_exports(self, context, program):
+        workload, _ = self.store.get_json(context["workload"])
+        return workload_exports(workload, program)
 
     def _behavior_equivalence(self, original, revised, timeout_ms):
         """A conservative proof decision, separate from workload testing."""
@@ -675,7 +690,8 @@ class HIAAgentService:
                 subject = args["subject"]
                 built = self._build_receipt(subject["build_receipt"], args["context"], subject["native_artifact"])
                 actual, _ = self.store.get(subject["native_artifact"], kind="native")
-                reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"], self._remaining_ms(context))
+                reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"],
+                    self._remaining_ms(context), self._byte_exports(context, program))
                 bytes_equal = actual == reemitted
                 object_equal = rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
                 matches = bytes_equal and object_equal
@@ -759,12 +775,13 @@ class HIAAgentService:
                 or [check["claim"] for check in retained["checks"]] != arguments["claims"]):
             reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
-    def _compile(self, program, kind, machine_plan, timeout_ms):
+    def _compile(self, program, kind, machine_plan, timeout_ms, foreign_buffer_exports=()):
         from .hia_program_native import emit_program_machine, compile_program_machine
         if timeout_ms <= 0:
             reject("E_HIA_BUDGET", "frozen context deadline expired before emission", "codegen")
         deadline = time.monotonic() + timeout_ms / 1000
-        image = emit_program_machine(program, machine_plan=machine_plan)
+        image = emit_program_machine(program, machine_plan=machine_plan,
+                                     foreign_buffer_exports=foreign_buffer_exports)
         object_bytes = image.object_bytes
         if type(object_bytes) is not bytes:
             reject("E_HIA_RECEIPT_BINDING", "emission did not produce immutable object bytes", "codegen")
@@ -805,10 +822,12 @@ class HIAAgentService:
                                 "plan_profile": codegen["plan_profile"], "plan": codegen["plan"]}
             if receipt["subject"] != expected_subject or not any(c["claim"] == "lowering_refinement" and c["status"] == "proved" for c in receipt["checks"]):
                 reject("E_HIA_PLAN_RECEIPT", "plan lacks an exact subject-bound qualified layout receipt", "codegen")
-        data, native_build = self._compile(program, args["output_kind"], plan, self._remaining_ms(context))
+        exports = self._byte_exports(context, program)
+        data, native_build = self._compile(program, args["output_kind"], plan, self._remaining_ms(context), exports)
         metadata = {"context": args["context"], "candidate": args["candidate"],
             "core_sha256": program.sha256, "output_kind": args["output_kind"], "codegen": codegen,
-            "machine_plan": plan, "installation": self.identities, "signatures": _signatures(program),
+            "machine_plan": plan, "installation": self.identities, "signatures": _signatures(program, exports),
+            "foreign_buffer_exports": [list(pair) for pair in exports],
             "object_artifact": native_build["object_artifact"], "object_sha256": native_build["object_sha256"]}
         artifact = self.store.put(data, "native", metadata)
         receipt = self.store.json({"schema": "hepta.hia.agent.build.v1", **metadata,
@@ -825,7 +844,9 @@ class HIAAgentService:
         if metadata["installation"] != self.identities or context is not None and metadata["context"] != context:
             reject("E_HIA_RECEIPT_BINDING", "native artifact belongs to a different context or implementation")
         program = self._program(metadata["candidate"])
-        if metadata["core_sha256"] != program.sha256 or _signatures(program) != metadata["signatures"]:
+        exports = self._byte_exports(self._context(metadata["context"]), program)
+        if (metadata["core_sha256"] != program.sha256 or _signatures(program, exports) != metadata["signatures"]
+                or metadata.get("foreign_buffer_exports") != [list(pair) for pair in exports]):
             reject("E_HIA_RECEIPT_BINDING", "native artifact's admitted Core identity differs")
         return data, metadata, program
 
@@ -850,6 +871,7 @@ class HIAAgentService:
                 or built.get("input_sha256") != program.input_sha256
                 or built.get("implementation_sha256") != self.identities["backend_sha256"]
                 or built.get("kind") != record["output_kind"]
+                or built.get("foreign_buffer_exports") != metadata["foreign_buffer_exports"]
                 or built.get("artifact_sha256") != sha256(data).hexdigest()):
             reject("E_HIA_RECEIPT_BINDING", "build record differs from actual artifact bytes")
         object_bytes, object_metadata = self.store.get(record["object_artifact"], kind="build-object")
@@ -1027,13 +1049,14 @@ class HIAAgentService:
         if baseline_meta["output_kind"] != "shared" or candidate_meta["output_kind"] != "shared":
             reject("E_HIA_EXECUTION_PROFILE", "evaluation requires retained direct shared images", "execution")
         if baseline_meta["signatures"] != candidate_meta["signatures"]:
-            reject("E_HIA_ABI", "baseline and candidate public scalar ABI differ", "execution")
+            reject("E_HIA_ABI", "baseline and candidate public entry ABI differ", "execution")
         if context["baseline_core_sha256"] is not None and context["baseline_core_sha256"] != baseline_program.sha256:
             reject("E_HIA_BASELINE", "evaluation baseline differs from the frozen Core snapshot", "execution")
         objective = self._required_claims(context, args["candidate_artifact"],
                                          args["verification_receipts"], baseline_program.sha256)
         workload, _ = self.store.get_json(context["workload"])
         validate(workload, WORKLOAD_SCHEMA, "workload")
+        validate_cases(baseline_meta["signatures"], workload["cases"])
         observations, normal, trapping = [], [], []
         correct, complete, budget_exceeded = True, True, False
         reference_started = time.monotonic_ns()
@@ -1044,9 +1067,11 @@ class HIAAgentService:
             return max(0, (context_deadline - time.time_ns()) // 1_000_000)
 
         references = {}
-        for label, program in (("baseline", baseline_program), ("candidate", candidate_program)):
+        for label, program, metadata in (("baseline", baseline_program, baseline_meta),
+                                         ("candidate", candidate_program, candidate_meta)):
             reference = run_reference_batch(program, workload["cases"], timeout_ms=remaining_total_ms(),
-                memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
+                memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"),
+                signatures=metadata["signatures"], max_steps=workload.get("reference_max_steps", 1_000_000))
             references[label] = reference
             if reference["status"] != "returned" or not reference["report"]["complete"]:
                 complete = False
@@ -1122,7 +1147,7 @@ class HIAAgentService:
                     reject("E_HIA_NATIVE_REPORT", "native report did not account for every planned case", "execution")
                 runs[label]["total_native_ns"] = report["total_native_ns"]
                 for (index, case), observed in zip(normal, report["observations"]):
-                    value = {"status": observed["status"], "values": observed["values"]}
+                    value = _value_observation(observed)
                     observations[index][label + "_native"] = observed
                     if observed["mismatch"] or value != case["expected"]:
                         correct = False
@@ -1169,9 +1194,9 @@ class HIAAgentService:
             "improvement_ratio": ratio, "reference_wall_ns": str(reference_ns),
             "planned_cases": len(workload["cases"]), "observations": observations, "native_runs": runs,
             "reference_runs": references,
-            "native_correctness_scope": "frozen workload return/trap behavior; VM first-trap/resource observations recorded separately",
+            "native_correctness_scope": "frozen workload return/trap behavior and complete borrowed-byte commitments; VM first-trap/resource observations recorded separately",
             "universal_equivalence_or_native_refinement_proved": False,
-            "measurement_scope": "same host and immutable workload, baseline then candidate; latency includes ctypes FFI overhead",
+            "measurement_scope": "same host and immutable workload, baseline then candidate; latency includes ctypes FFI overhead; byte copy/hash cost remains in child and evaluation wall time",
             "outcome": outcome, "planned_workload_complete": complete}, "measurements")
         costs = self._cost_ledger(context, time.monotonic_ns() - started, native_ns)
         ledger = self.store.json(costs, "cost-ledger")
@@ -1319,23 +1344,32 @@ class HIAAgentService:
 
     def invoke_lease(self, lease, function, arguments):
         from .hia_agent_runner import run_native_batch
-        from .hia_program import scalar_value_valid
         self._lease(lease)
         data, metadata, _program = self._native(lease["artifact"])
         if metadata["output_kind"] != "shared":
             reject("E_HIA_ABI", "slot generation is not an executable shared image")
         signature = metadata["signatures"].get(function) if type(function) is str else None
         if signature is None or type(arguments) not in (list, tuple) or len(arguments) != len(signature["params"]):
-            reject("E_HIA_ARGUMENTS", "call does not match the retained scalar ABI")
-        arguments = list(arguments)
-        if not all(scalar_value_valid(value, typ) for value, typ in zip(arguments, signature["params"])):
-            reject("E_HIA_ARGUMENTS", "call arguments do not have the exact declared scalar types")
+            reject("E_HIA_ARGUMENTS", "call does not match the retained entry ABI")
+        # Retain an immutable wire snapshot; pointer/owner values never enter.
+        arguments = decode_data(wire(list(arguments)))
+        inputs = decode_arguments(signature, arguments)
         context = self._context(metadata["context"])
         result = run_native_batch(data, metadata["signatures"], [{"function": function, "arguments": arguments}],
             timeout_ms=context["budget"]["max_native_wall_ms"],
-            memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
+            memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"),
+            include_buffers=signature.get("abi") == BYTE_ABI)
         if result["status"] == "returned":
             observation = result["report"]["observations"][0]
+            if signature.get("abi") == BYTE_ABI:
+                outputs = decode_arguments(signature, observation.get("arguments"))
+                preserved = all((len(before) == len(after) if typ == "mutbuf" else before == after)
+                    for typ, before, after in zip(signature["params"], inputs, outputs))
+                if (not preserved or observation.get("mismatch") is not False or observation["status"] != "returned"
+                        or byte_observations(signature["params"], outputs) != observation.get("buffers")):
+                    reject("E_HIA_NATIVE_REPORT", "consumer byte output is incomplete or differs from its input bounds/byte commitments", "execution")
+                return {**_value_observation(observation), "arguments": observation["arguments"],
+                    "generation": lease["generation"], "artifact": lease["artifact"], "termination_confirmed": True}
             return {"status": "returned", "values": observation["values"], "generation": lease["generation"],
                     "artifact": lease["artifact"], "termination_confirmed": True}
         return {"status": result["status"], "generation": lease["generation"], "artifact": lease["artifact"],

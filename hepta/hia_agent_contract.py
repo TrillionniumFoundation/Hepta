@@ -202,7 +202,7 @@ SCALAR = {"anyOf": [{"type": "integer"}, {"type": "boolean"}, {"type": "null"}]}
 EXPECTED = {"oneOf": [obj({"status": {"const": "returned"},
     "values": {"type": "array", "items": SCALAR, "maxItems": 1}}),
     obj({"status": {"const": "trapped"}})]}
-WORKLOAD_SCHEMA = obj({
+SCALAR_WORKLOAD_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.workload.v1"},
     "cases": {"type": "array", "minItems": 1, "maxItems": 512, "items": obj({
         "function": {"type": "string", "minLength": 1, "maxLength": 128},
@@ -211,6 +211,29 @@ WORKLOAD_SCHEMA = obj({
     "warmup_iterations": {"type": "integer", "minimum": 0, "maximum": 100},
     "repetitions": {"type": "integer", "minimum": 1, "maximum": 10000},
 })
+BYTE_ARGUMENT = obj({"kind": {"const": "bytes"}, "base64": {
+    "type": "string", "maxLength": 1398104}})
+BYTE_OBSERVATION = obj({"argument": {"type": "integer", "minimum": 0, "maximum": 127},
+    "bytes": {"type": "integer", "minimum": 0, "maximum": 1048576},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}})
+BYTE_EXPECTED = obj({"status": {"const": "returned"},
+    "values": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+               "minItems": 1, "maxItems": 1},
+    "buffers": {"type": "array", "items": BYTE_OBSERVATION, "minItems": 1, "maxItems": 8}})
+BYTE_WORKLOAD_SCHEMA = obj({
+    "schema": {"const": "hepta.hia.agent.workload.v2"},
+    "foreign_buffer_exports": {"type": "array", "minItems": 1, "maxItems": 128, "items": obj({
+        "function": {"type": "string", "minLength": 1, "maxLength": 128},
+        "maximum_bytes": {"type": "integer", "minimum": 1, "maximum": 1048576}})},
+    "cases": {"type": "array", "minItems": 1, "maxItems": 512, "items": obj({
+        "function": {"type": "string", "minLength": 1, "maxLength": 128},
+        "arguments": {"type": "array", "items": {"anyOf": [SCALAR, BYTE_ARGUMENT]}, "maxItems": 128},
+        "expected": {"oneOf": [EXPECTED, BYTE_EXPECTED]}}, ["function", "arguments"])},
+    "warmup_iterations": {"type": "integer", "minimum": 0, "maximum": 100},
+    "repetitions": {"type": "integer", "minimum": 1, "maximum": 10000},
+    "reference_max_steps": {"type": "integer", "minimum": 1, "maximum": 10000000},
+}, ["schema", "foreign_buffer_exports", "cases", "warmup_iterations", "repetitions"])
+WORKLOAD_SCHEMA = {"oneOf": [SCALAR_WORKLOAD_SCHEMA, BYTE_WORKLOAD_SCHEMA]}
 OBJECTIVE_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.objective.v1"},
     "metric": {"enum": ["latency_ns", "artifact_bytes"]},
