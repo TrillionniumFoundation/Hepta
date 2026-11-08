@@ -52,6 +52,11 @@ jobs:
           ulimit -c 0
           python -B tools/qualify_hia_safe_core.py --output "$RUNNER_TEMP/hia-sixgap/safe-core" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/safe-core.log"
           python -B -m unittest tests.test_hia_safe_core_artifact tests.test_hia_release_diagnostics -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/supplied-bytes-release.log"
+      - name: Preserve complete cost accounting and strong ordinary controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_agent_macro_policy tests.test_hia_macro_strong_control tests.test_hia_macro_campaign tests.test_hia_macro_codex_provider -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/macro-cost-controls.log"
       - name: Rebuild the frozen selfhost chain from a cold directory
         shell: bash
         run: |

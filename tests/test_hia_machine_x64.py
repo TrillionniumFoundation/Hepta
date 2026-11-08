@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ctypes
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -249,17 +250,19 @@ class EncoderExecutionTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("readelf") and shutil.which("objdump"), "binutils inspection required")
     def test_independent_elf_and_isa_tools_accept_output(self):
+        # ELF text assertions must not inherit the operator desktop locale.
+        environment = {**os.environ, "LC_ALL": "C", "LANG": "C"}
         elf = subprocess.run(["readelf", "-W", "-h", "-S", "-s", "-r", str(self.object)],
-                             check=True, capture_output=True, text=True).stdout
+                             check=True, capture_output=True, text=True, env=environment).stdout
         self.assertIn("REL (Relocatable file)", elf)
         self.assertIn("R_X86_64_PLT32", elf)
         self.assertIn("LOCAL  HIDDEN", elf)
         disassembly = subprocess.run(["objdump", "-d", str(self.object)],
-                                     check=True, capture_output=True, text=True).stdout
+                                     check=True, capture_output=True, text=True, env=environment).stdout
         self.assertNotIn("(bad)", disassembly)
         self.assertIn("movz", disassembly)
         segments = subprocess.run(["readelf", "-W", "-l", str(self.library_path)],
-                                  check=True, capture_output=True, text=True).stdout
+                                  check=True, capture_output=True, text=True, env=environment).stdout
         stack = next(line for line in segments.splitlines() if "GNU_STACK" in line)
         self.assertNotIn("RWE", stack)
         self.assertNotIn("internal_leaf", [name for name in dir(self.library) if not name.startswith("_")])
