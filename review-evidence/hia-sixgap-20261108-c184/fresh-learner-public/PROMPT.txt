@@ -1,0 +1,27 @@
+You are beginning a fresh repository-maintenance task. You have no authorized prior candidate or implementation answer for this task. Use only the public input below and the dedicated checkout's public repository material.
+
+Start with the public HIA release/discovery documentation in the repository. Read applicable AGENTS.md instructions. Identify the pinned source and the relevant published language, ABI, assumptions and unsupported obligations before editing.
+
+Repository: https://github.com/TrillionniumFoundation/Hepta
+Task baseline commit: d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6
+Task baseline tree: 5e16f76e52f2b44d84b926161333bdfa94671e5f
+Public release entry documentation: https://github.com/TrillionniumFoundation/Hepta/blob/93ef29d57090f62ffe71d7d05c5f40d0721f046f/docs/HIA_RELEASE_ENTRY.md
+Public source documentation: docs/HIA_SELF_HOSTING_CORE.md and docs/HIA_SELFHOST_CORE_SUPPORT.json in the pinned source.
+
+Maintenance request:
+The self-hosted compiler's published scalar subset omits the ordinary HIA select operation. Extend the actual HIA implementation so select accepts a bool condition and two values of the same already-supported scalar type (u8, u32, u64, usize or bool), returning the chosen value according to the published Core semantics. Preserve the existing source-language grammar, other operations, resource rules, limits and error behavior. Reject bad arity, non-bool conditions, unlike value types and unsupported resource selections. Update the generated compiler artifact, support declaration and relevant regression tests through the repository's normal workflow.
+
+Acceptance:
+1. Supply a real repository patch, the exact source revision and a concise explanation of the behavior change. Do not change test expectations merely to accept a failure.
+2. Build and execute the resulting native compiler on Linux x86-64. Demonstrate both select branches and scalar-width boundary cases with actual input-dependent results. Keep all attempted tests and their failures.
+3. Run the published cold self-host replay, retaining B0/B1/B2/B3 identities and the required equal successor fixed point, the compiler mutation replay, negative-input checks and dependency closure. Explain any gate that the environment cannot execute.
+4. Produce a separate native consumer that uses the modified compiler to compile a new select-using source and executes that resulting artifact on varying inputs. A constant-return demonstration is insufficient.
+5. Where the observed public HIA lifecycle permits this artifact and ABI, verify, measure and adopt the exact candidate in a dedicated nonproduction slot, then demonstrate consumer use and return the original receipts. Do not equate a Git commit or loading a local file with HIA adoption. If the discovered lifecycle does not admit this compiler/ABI, report the exact unsupported contract and leave that acceptance item incomplete.
+6. Record every command/test and retain original stdout, stderr, exit status and elapsed wall time. Unknown bill, provider internal HTTP counts or unavailable costs must remain unknown. Report proof subject, property, profile, assumptions, checker identity and unproved obligations; passing empirical tests is not a universal compiler theorem.
+
+Execution constraints for this separately registered functional task:
+Work only in /workspace/scratch/c18451de6609/fresh-learner-repository, /workspace/scratch/c18451de6609/fresh-learner-output, /workspace/scratch/c18451de6609/fresh-learner-scratch, /workspace/scratch/c18451de6609/fresh-learner-public, and the supplied ordinary Python dependency directory /workspace/scratch/c18451de6609/fresh-learner-dependencies. Do not inspect sibling task directories, prior conversations, other agents, candidate patches or coordinator data. Do not push, deploy, change account/permission settings, invoke another model/agent or run external provider sessions. You are a fresh ChatGPT coding subagent with no inherited parent transcript. Use the current local execution tools only.
+
+This environment is Linux x86-64 with GNU ld/gcc and Python available. The public repository's exact Git commit/tree and 228 public source files have been materialized via verified Git objects; it is a sparse source closure, not a full public cold clone. A byte-for-byte published release entry copy is fresh-learner-public/HIA_RELEASE_ENTRY.md. For optional Z3 checks use PYTHONPATH=/workspace/scratch/c18451de6609/fresh-learner-dependencies; the dependency version is pinned by the existing public source. No HIA service endpoint or production slot is exposed to this functional task. Leave lifecycle adoption incomplete unless it can be established through the actually provided public resources.
+
+This task is separate from the external CLI cost experiment. Framework token usage, provider HTTP call counts and billing are unavailable and must remain null/unknown. A self-maintained command journal is not an independently complete provider transcript. Write a JSON command journal and keep every command/test stdout/stderr/return code under the assigned output directory. Record your own visible final report, source diff and before/after identities. Use bounded subprocess timeouts, aim to finish within 20 minutes, and report any unmet acceptance item precisely. No hard generation-token cap or full-cost completeness is claimed. Do not broaden the declared language, ABI, capacities or proof claims to hide a failure.
