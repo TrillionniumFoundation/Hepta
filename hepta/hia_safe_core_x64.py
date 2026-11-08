@@ -87,6 +87,13 @@ def decode(data):
                 require(not wide and mode == 3 and group == 0 and high_r == 0 and rex is not None,
                         "unreviewed SETcc byte register")
                 op, args = "setcc", (extension & 15, rm)
+            elif extension == 0x45:
+                mode, reg, rm, disp, group = modrm()
+                require(wide and mode == 3,
+                        "only 64-bit register-register CMOVNE is admitted")
+                # Register-only selection has no conditional memory access.
+                # REX.R extends the destination; REX.B extends the source.
+                op, args = "cmovne", (reg, rm)
             elif extension == 0xb6:
                 mode, reg, rm, disp, group = modrm()
                 require(wide and mode == 2, "unreviewed zero-extending byte load")
@@ -294,6 +301,12 @@ class Executor:
                     regs[args[0]] = self.value(args[1])
                 elif op == "mov":
                     regs[args[0]] = regs[args[1]]
+                elif op == "cmovne":
+                    destination, source = args
+                    # Both operands and ZF belong to the pre-instruction state;
+                    # this also preserves self-aliases. CMOV never changes flags.
+                    regs[destination] = z.simplify(z.If(z.Not(state.flags["zf"]),
+                        regs[source], regs[destination]))
                 elif op in ("load", "load8", "lea"):
                     dst, base, disp = args
                     address = z.simplify(regs[base] + self.value(disp))
