@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 import time
 
+from .hia_scalar_proof_contract import begin_scalar_proof, finish_scalar_proof
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_program_runtime import HIAProgramTrap, execute_program
 from .hia_translation_validation import (
@@ -107,6 +108,7 @@ def _observe(program, function, arguments):
 def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
     """Freshly compare a bounded direct-call closure, including first-trap code."""
     started = time.monotonic_ns()
+    scope = begin_scalar_proof("validate_scalar_calls")
     names = ("hia_scalar_call_validation.py", "hia_translation_validation.py", "hia_program.py", "hia_capability_flow.py",
              "hia_program_runtime.py", "hia_optimization.py")
     implementation = {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest() for name in names}
@@ -124,7 +126,9 @@ def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
         if any(p.as_dict()["schema"] not in QUALIFIED_CORE_SCHEMAS or p.structured_bytes is not None
                or function not in p.scalar_entrypoints for p in checked):
             raise _OutsideProfile("public_primitive_scalar_function_required")
-        report.update(before_sha256=checked[0].sha256, after_sha256=checked[1].sha256)
+        report.update(before_sha256=checked[0].sha256, after_sha256=checked[1].sha256,
+                      before_input_sha256=checked[0].input_sha256,
+                      after_input_sha256=checked[1].input_sha256)
         closures = [_closure(p.as_dict(), function) for p in checked]
         selected = [f[function] for f, _ in closures]
         if _signature(selected[0]) != _signature(selected[1]):
@@ -171,7 +175,7 @@ def validate_scalar_calls(before, after, *, function, timeout_ms=10000):
         report["reason"] = str(error)
         report["error_type"] = type(error).__name__
     finally:
-        report["wall_ns"] = time.monotonic_ns() - started
+        finish_scalar_proof(report, scope, started_ns=started)
     return report
 
 

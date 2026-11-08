@@ -109,3 +109,53 @@ permission to weaken the acceptance objective.
 obligations. None can satisfy a required proof. Even a complete `proved` record
 is one input to the existing context, workload, resource and conditional
 generation/epoch gates.
+
+## Public scalar validator results
+
+The direct Python APIs `validate_translation`, `validate_scalar_calls`,
+`validate_bounded_translation`, `validate_scalar_totality` and
+`validate_scalar_call_totality` use the same six mandatory concepts:
+`subject`, `property`, `profile`, `assumptions`, `checker` and
+`unproved_obligations`. Their additive envelope is identified by
+`proof_scope_schema: hepta.hia.scalar-proof-scope.v1`; their existing result
+schemas and compatibility fields remain available. Every `proved`, `disproved`
+and `unknown` result carries this envelope, including invalid input, unsupported
+shape, missing solver and exhausted proof budget. Unavailable identities are
+explicitly null; an unknown result is not evidence that its requested property
+holds.
+
+| Direct API | Exact property and selected subject |
+| --- | --- |
+| `validate_translation` | All typed arguments preserve return values or the first specified Core trap for the selected before/after functions. |
+| `validate_scalar_calls` | The same property for the independently traversed bounded direct-call closures, including the identities of both complete Core programs. |
+| `validate_bounded_translation` | Every typed input respects the stated feedback-edge bound, and the candidate preserves the original return values or first trap. The bound is proved separately; it is not an assumption supplied by the producer. Its nested equivalence result also carries its own scope. |
+| `validate_scalar_totality` | Every typed input reaches a normal return in the selected acyclic scalar function. |
+| `validate_scalar_call_totality` | Every typed input reaches a normal return through the selected bounded direct-call closure. |
+
+Subject hashes come from fresh canonical verification. The existing
+`input_sha256` identity uses canonical primitive JSON; incidental JSON whitespace
+is not a different primitive program. If canonical verification has not completed,
+that canonical subject identity is unavailable. No validator broadens the
+qualified Core v1-v7 scalar semantics merely because another Core version parses.
+Equivalence of a program that traps remains possible and leaves normal-return
+totality open.
+
+`checker` names the actual Python entry point, the enumerated source-file hashes,
+the Python implementation/version, and the actual Z3 binding and loaded native
+library identities. The source inventory is observed before checking and
+rechecked before publishing a proof or counterexample. Missing or changed
+identity leaves `unknown` and clears proof claims. This remains a trusted
+executable SMT checker; the source inventory does not attest imported memory or
+prove the Python/SMT implementation sound. Execution of those bytes and the
+absence of concurrent tampering remain explicit assumptions.
+
+These Core queries leave compiler-to-machine refinement, ABI/FFI/loading,
+physical resources, other public exports and concurrency outside their
+conclusion. They never grant execution authority. Finite workloads and host
+checks do not acquire this SMT proof label.
+
+`verify_translation_receipt` and `verify_bounded_translation_receipt` reconstruct
+the required query from the current verified programs and require the recomputed
+scope. Receipts with missing, broadened or changed scope are rejected, including
+changes to the bounded result's nested equivalence scope. Rerun the validator to
+replace older unscoped evidence; do not add fields to an old serialized receipt.

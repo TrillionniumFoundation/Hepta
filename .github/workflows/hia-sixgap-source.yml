@@ -45,6 +45,13 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-native.log"
+      - name: Verify public scalar proof scope and receipt rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tests.test_hia_scalar_proof_contract tests.test_hia_translation_validation tests.test_hia_bounded_unroll tests.test_hia_scalar_call_validation tests.test_hia_scalar_totality -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-proof-scope.log"
+          python -B tools/generate_hia_selfhost_contract.py --check 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-contract.log"
+          python -B -m unittest tests.test_hia_selfhost_contract.SelfhostContractTests -v 2>&1 | tee -a "$RUNNER_TEMP/hia-sixgap/selfhost-contract.log"
       - name: Validate supplied Safe Core bytes and public release diagnostics
         shell: bash
         run: |
@@ -56,7 +63,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -B -m unittest tests.test_hia_agent_macro_policy tests.test_hia_macro_strong_control tests.test_hia_macro_campaign tests.test_hia_macro_codex_provider -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/macro-cost-controls.log"
+          python -B -m unittest tests.test_hia_agent_macro_policy tests.test_hia_macro_strong_control tests.test_hia_macro_campaign tests.test_hia_macro_codex_provider tests.test_hia_repository_agent_trial -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/macro-cost-controls.log"
       - name: Rebuild the frozen selfhost chain from a cold directory
         shell: bash
         run: |

@@ -14,6 +14,8 @@ import copy
 from hashlib import sha256
 from pathlib import Path
 
+from .hia_scalar_proof_contract import (begin_scalar_proof, finish_scalar_proof,
+                                        same_scalar_proof_scope)
 from .hia_program import HIAProgramRejected, verify_program
 from .hia_translation_validation import (
     MAX_BLOCKS, MAX_OPERATIONS, MAX_TIMEOUT_MS, QUALIFIED_CORE_SCHEMAS,
@@ -184,6 +186,7 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
     The timeout applies separately to the bound and equivalence SMT queries.
     No wall-clock deadline or unbounded-loop/general resource proof is claimed.
     """
+    scope = begin_scalar_proof("validate_bounded_translation")
     result = {"schema": SCHEMA, "profile": PROFILE, "status": "unknown",
         "function": function, "max_backedges": max_backedges, "timeout_ms": timeout_ms,
         "before_sha256": None, "after_sha256": None, "reference_sha256": None,
@@ -196,11 +199,13 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
                    "serialized_receipt_authorizes_execution": False}}
     if type(timeout_ms) is not int or not 1 <= timeout_ms <= MAX_TIMEOUT_MS:
         result["reason"] = "invalid_solver_timeout"
-        return result
+        return finish_scalar_proof(result, scope)
     try:
         original, reference, feedback = _unfold(before, function, max_backedges)
         candidate = verify_program(after)
         result.update(before_sha256=original.sha256, after_sha256=candidate.sha256,
+                      before_input_sha256=original.input_sha256,
+                      after_input_sha256=candidate.input_sha256,
                       reference_sha256=reference.sha256, feedback_edge=list(feedback))
         left, right = original.as_dict(), candidate.as_dict()
         if {k: v for k, v in left.items() if k != "functions"} != {k: v for k, v in right.items() if k != "functions"}:
@@ -219,12 +224,18 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
         graph = _profile(fn)
     except (HIAProgramRejected, _OutsideProfile) as error:
         result["reason"] = "outside_profile: " + str(error)
-        return result
+        return finish_scalar_proof(result, scope)
     try:
         z = _z3_module()
     except (ImportError, OSError):
         result["reason"] = "solver_unavailable"
-        return result
+        return finish_scalar_proof(result, scope)
+    try:
+        from .hia_optimization import _solver_identity
+        result["bound_solver"]["identity"] = _solver_identity(z)
+    except Exception as exc:
+        result.update(reason="solver_identity_unavailable", error_type=type(exc).__name__)
+        return finish_scalar_proof(result, scope)
     try:
         encoder = _Encoder(z)
         inputs = [encoder.input(i, p["type"]) for i, p in enumerate(fn["params"])]
@@ -244,15 +255,15 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
                                               max_steps=MAX_OPERATIONS + MAX_BLOCKS + 2)
                 if observation["values"] != [True]:
                     result["reason"] = "bound_counterexample_replay_disagrees"
-                    return result
+                    return finish_scalar_proof(result, scope)
                 result["status"] = "disproved"
                 result["counterexample"] = {"arguments": arguments, "marker_values": observation["values"]}
             else:
                 result["bound_solver"]["reason_unknown"] = solver.reason_unknown()
-            return result
+            return finish_scalar_proof(result, scope)
     except z.Z3Exception as error:
         result["reason"] = "solver_error: " + str(error)
-        return result
+        return finish_scalar_proof(result, scope)
     result["claims"]["all_input_bound_proved"] = True
     proof = validate_translation(reference, candidate, function=function, timeout_ms=timeout_ms)
     result["equivalence"] = proof
@@ -261,7 +272,7 @@ def validate_bounded_translation(before, after, *, function, max_backedges, time
         result["claims"].update(all_input_behavior_equivalence_proved=True, first_trap_code_preserved=True)
     elif proof["status"] == "disproved":
         result["counterexample"] = proof["counterexample"]
-    return result
+    return finish_scalar_proof(result, scope)
 
 
 def verify_bounded_translation_receipt(before, after, receipt, *, function, max_backedges, timeout_ms=2000):
@@ -272,6 +283,7 @@ def verify_bounded_translation_receipt(before, after, receipt, *, function, max_
                                         max_backedges=max_backedges, timeout_ms=timeout_ms)
     keys = ("schema", "profile", "function", "max_backedges", "before_sha256", "after_sha256",
             "reference_sha256", "checker_sha256")
-    if fresh["status"] != "proved" or any(receipt.get(k) != fresh[k] for k in keys):
+    if (fresh["status"] != "proved" or any(receipt.get(k) != fresh[k] for k in keys)
+            or not same_scalar_proof_scope(receipt, fresh)):
         _reject("bounded proof is stale, forged or cannot be recomputed")
     return fresh

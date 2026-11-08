@@ -12,6 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 import time
 
+from .hia_scalar_proof_contract import begin_scalar_proof, finish_scalar_proof
 from .hia_program import HIAProgramRejected, verify_program
 from . import hia_translation_validation as semantics
 
@@ -60,6 +61,7 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
     are not a machine proof of the encoder or of native/resource behavior.
     """
     started = time.monotonic_ns()
+    scope = begin_scalar_proof("validate_scalar_totality")
     from .hia_optimization import PINNED_Z3_VERSION, _solver_identity
     result = {
         "schema": SCHEMA, "profile": PROFILE, "status": "unknown",
@@ -91,7 +93,7 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
     }
     if type(timeout_ms) is not int or not 1 <= timeout_ms <= semantics.MAX_TIMEOUT_MS:
         result["reason"] = "invalid_solver_timeout"
-        return result
+        return finish_scalar_proof(result, scope, started_ns=started, deadline_ms=timeout_ms)
     solver_identity = z = None
     try:
         result["validator_sha256"] = _implementation_digest()
@@ -183,9 +185,7 @@ def validate_scalar_totality(document, *, function=None, timeout_ms=2000):
             except Exception as exc:
                 result.update(status="unknown", reason="implementation_identity_unavailable",
                               error_type=type(exc).__name__, counterexample=None)
-        result["wall_ns"] = time.monotonic_ns() - started
-        if result["wall_ns"] > timeout_ms * 1000000 and result["status"] in {"proved", "disproved"}:
-            result.update(status="unknown", reason="proof_deadline_exhausted", counterexample=None)
+        finish_scalar_proof(result, scope, started_ns=started, deadline_ms=timeout_ms)
         result["claims"]["all_inputs_return_normally_proved"] = result["status"] == "proved"
     return result
 
@@ -203,6 +203,7 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
     prove an arbitrary program or authorize execution from a saved receipt.
     """
     started = time.monotonic_ns()
+    scope = begin_scalar_proof("validate_scalar_call_totality")
     from . import hia_scalar_call_validation as calls
     from .hia_optimization import PINNED_Z3_VERSION, _solver_identity
     result = {
@@ -229,7 +230,7 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
     }
     if type(timeout_ms) is not int or not 1 <= timeout_ms <= 10000:
         result["reason"] = "invalid_solver_timeout"
-        return result
+        return finish_scalar_proof(result, scope, started_ns=started, deadline_ms=timeout_ms)
     solver_identity = z = None
     try:
         result["implementation"] = _call_implementation_identity()
@@ -311,8 +312,6 @@ def validate_scalar_call_totality(document, *, function, timeout_ms=10000):
             except Exception as exc:
                 result.update(status="unknown", reason="implementation_identity_unavailable",
                               error_type=type(exc).__name__, counterexample=None)
-        result["wall_ns"] = time.monotonic_ns() - started
-        if result["wall_ns"] > timeout_ms * 1000000 and result["status"] in {"proved", "disproved"}:
-            result.update(status="unknown", reason="proof_deadline_exhausted", counterexample=None)
+        finish_scalar_proof(result, scope, started_ns=started, deadline_ms=timeout_ms)
         result["claims"]["all_inputs_return_normally_proved"] = result["status"] == "proved"
     return result

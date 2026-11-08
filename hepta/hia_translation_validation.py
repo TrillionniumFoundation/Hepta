@@ -23,6 +23,9 @@ from .hia_program import (
     HIAProgramRejected, SCALARS, TRAP_CODES, WIDTHS, integer_range, verify_program,
 )
 
+from .hia_scalar_proof_contract import (begin_scalar_proof, finish_scalar_proof,
+                                        same_scalar_proof_scope)
+
 SCHEMA = "hepta.hia.translation-validation.v1"
 QUALIFIED_CORE_SCHEMAS = frozenset("hepta.hia.program.v" + str(version) for version in range(1, 8))
 PROFILE = "hia.scalar-acyclic-bitvector-traps.v1"
@@ -370,10 +373,11 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
     ``unknown``.  Missing/changed signatures do not constitute an equivalence
     proof.  If omitted, ``function`` is inferred only for single-function cores.
     """
+    scope = begin_scalar_proof("validate_translation")
     result = _receipt(function, timeout_ms)
     if type(timeout_ms) is not int or not 1 <= timeout_ms <= MAX_TIMEOUT_MS:
         result["reason"] = "invalid_solver_timeout"
-        return result
+        return finish_scalar_proof(result, scope)
     checked = {}
     for label, document in (("before", before), ("after", after)):
         try:
@@ -381,14 +385,14 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
         except HIAProgramRejected as exc:
             result["reason"] = f"invalid_{label}_program"
             result["validation_error"] = {"code": exc.code, "message": str(exc)}
-            return result
+            return finish_scalar_proof(result, scope)
         result["structural_verification"][label] = True
         result[f"{label}_sha256"] = checked[label].sha256
         result[f"{label}_input_sha256"] = checked[label].input_sha256
     result["claims"]["canonical_core_reverified"] = True
     if any(doc.as_dict()["schema"] not in QUALIFIED_CORE_SCHEMAS for doc in checked.values()):
         result["reason"] = "core_schema_outside_qualified_v1_v7_profile"
-        return result
+        return finish_scalar_proof(result, scope)
     functions = {label: {fn["name"]: fn for fn in doc.as_dict()["functions"]}
                  for label, doc in checked.items()}
     if function is None and all(len(fns) == 1 for fns in functions.values()):
@@ -396,25 +400,31 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
     result["function"] = function
     if type(function) is not str or any(function not in fns for fns in functions.values()):
         result["reason"] = "missing_or_ambiguous_function"
-        return result
+        return finish_scalar_proof(result, scope)
     if any(function not in doc.scalar_entrypoints for doc in checked.values()):
         result["reason"] = "not_a_public_scalar_entrypoint"
-        return result
+        return finish_scalar_proof(result, scope)
     first, second = functions["before"][function], functions["after"][function]
     if _signature(first) != _signature(second):
         result["reason"] = "signature_mismatch"
-        return result
+        return finish_scalar_proof(result, scope)
     try:
         graphs = [_profile(fn) for fn in (first, second)]
     except _OutsideProfile as exc:
         result["reason"] = str(exc)
-        return result
+        return finish_scalar_proof(result, scope)
     try:
         z = _z3_module()
     except (ImportError, OSError):
         result["reason"] = "solver_unavailable"
-        return result
+        return finish_scalar_proof(result, scope)
     result["solver"]["version"] = z.get_version_string()
+    try:
+        from .hia_optimization import _solver_identity
+        result["solver"]["identity"] = _solver_identity(z)
+    except Exception as exc:
+        result.update(reason="solver_identity_unavailable", error_type=type(exc).__name__)
+        return finish_scalar_proof(result, scope)
     try:
         encoder = _Encoder(z)
         inputs = [encoder.input(i, p["type"]) for i, p in enumerate(first["params"])]
@@ -448,7 +458,7 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
             if (model.eval(ltag, model_completion=True).as_long() < 0
                     or model.eval(rtag, model_completion=True).as_long() < 0):
                 result["reason"] = "incomplete_symbolic_execution"
-                return result
+                return finish_scalar_proof(result, scope)
             arguments = [encoder.concrete(model, val, p["type"])
                          for val, p in zip(inputs, first["params"])]
             observations = {label: _execute_observation(doc, function, arguments)
@@ -467,7 +477,7 @@ def validate_translation(before, after, *, function=None, timeout_ms=2000):
     except z.Z3Exception as exc:
         result["reason"] = "solver_error"
         result["solver"]["error"] = str(exc)
-    return result
+    return finish_scalar_proof(result, scope)
 
 
 def verify_translation_receipt(before, after, receipt, *, function=None, timeout_ms=2000):
@@ -490,4 +500,7 @@ def verify_translation_receipt(before, after, receipt, *, function=None, timeout
     if fresh["status"] != "proved":
         raise HIAProgramRejected(f"translation proof could not be recomputed: {fresh['reason']}",
                                  "E_HIA_TRANSLATION_UNPROVED")
+    if not same_scalar_proof_scope(receipt, fresh):
+        raise HIAProgramRejected("translation proof scope is missing, stale or altered",
+                                 "E_HIA_TRANSLATION_RECEIPT")
     return fresh
