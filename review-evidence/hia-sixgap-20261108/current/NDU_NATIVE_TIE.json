@@ -1,0 +1,89 @@
+{
+  "request": {
+    "schema": "hepta.hia.ndu-request.v1",
+    "objective_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "generation": 1,
+    "resource_cap_q32": 1000,
+    "candidates": [
+      {
+        "id": "abstain",
+        "cost_q32": 100,
+        "uncertainty_q32": 0,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "id": "beta",
+        "cost_q32": 50,
+        "uncertainty_q32": 0,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      },
+      {
+        "id": "alpha",
+        "cost_q32": 50,
+        "uncertainty_q32": 0,
+        "resource_q32": 0,
+        "hard_violation": false,
+        "support_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    ]
+  },
+  "native_response": {
+    "advisory_recommendation": null,
+    "authority": "ADVISORY_ONLY",
+    "disposition": "ParetoSetRequiresSlowPath",
+    "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+    "evaluation_digest_v2": "b1d2e85c3eae058322526dc785d599c8d55ee4497f7948ad2af84c347732a530",
+    "evaluation_policy_digest": "3e51ec92527585e8a653a6c5dd8c9e07a5699849cd3dbe2bc42b875b93a72ebd",
+    "generation": 1,
+    "global_optimality_established": false,
+    "objective_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "pareto_frontier": [
+      "alpha",
+      "beta"
+    ],
+    "proves_program_safety": false,
+    "rejected": [],
+    "request_sha256": "845db166053a7d724e5c94be70100c332633fbfdfb67ea6e6c5c33926681878b",
+    "schema": "hepta.hia.ndu-response.v1",
+    "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+    "utility_profile_digest": "76c08f36811d9a841ff8703cac60ca62c306077430dec708d264ed18341a33bd"
+  },
+  "native_identity": {
+    "upstream_commit": "d3c2d760eca5065fc966820379c35c6e8d56e855",
+    "binary_sha256": "b32b71c543a6bae9c56445598d71751dcdbebdc7cca05e0c0850254c4e7cd336",
+    "build_receipt_sha256": "2f2d9673d15eb790424afd0cea4d99a8da04de421bbc7bed326a5a18254b0cd4",
+    "build_inputs_sha256": "d2dd6cd3295ac629f5e1291de675e40ef6f8468eac6d3ee9066fae2856b917cc",
+    "source_attestation": "trusted_local_build_receipt"
+  },
+  "selection_resolution": {
+    "schema": "hepta.hia.ndu-scalar-selection.v1",
+    "profile": "hia-total-cost-ms-v1",
+    "request_sha256": "845db166053a7d724e5c94be70100c332633fbfdfb67ea6e6c5c33926681878b",
+    "native_response_sha256": "bf9b89b4abfa2c4a57bc34f5453bfd70afdfebb7a55addd83918f9b2e3b586bd",
+    "native_disposition": "ParetoSetRequiresSlowPath",
+    "native_recommendation": null,
+    "validated_pareto_frontier": [
+      "alpha",
+      "beta"
+    ],
+    "selected_id": "alpha",
+    "selection_source": "caller_pareto_tie_policy",
+    "caller_tie_policy": "incumbent-if-on-frontier-else-lexicographic-id.v1",
+    "caller_tie_policy_applied": true,
+    "scope": "fixed scalar supplied-cost profile and caller tie policy only",
+    "assumptions": [
+      "caller already admitted the unchanged native bridge source and executable",
+      "request uses hia-total-cost-ms-v1 with zero Pareto tolerance and no scalarization"
+    ],
+    "native_identity_validated_here": false,
+    "authority": "ADVISORY_ONLY",
+    "proves_program_safety": false,
+    "forecast_is_observed_benefit": false,
+    "incremental_ndu_advantage_established": false
+  },
+  "scope": "actual native ABI regression input; not a task cohort"
+}
