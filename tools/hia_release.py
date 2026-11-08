@@ -49,12 +49,14 @@ BOOTSTRAP_FILES = (
     "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
+    "tests/test_hia_selfhost_language_coverage.py", "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
 )
 ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
     "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
     "tests/test_hia_agent_native_proof_contract.py", "tests/test_hia_release_diagnostics.py",
+    "tests/test_hia_agent_native_machine_validation.py",
     ".github/workflows/hia-sixgap-source.yml",
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
     "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py",
@@ -82,6 +84,8 @@ CANDIDATE_FILES = (
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
+    "src/mcp/server.rs", "src/mcp/hia_contract_tests.rs", "src/mcp/hia_provider_tests.rs",
+    "src/mcp/hia_scoped_proof_fixture.json",
     "deploy/mcp_tool_contract.py", "deploy/stage_dc_successor.py", "deploy/hia_mcp_catalog.py",
     "deploy/contracts/hepta-hia-agent-native-v1.json")
 REPOSITORIES = {"hepta": "https://github.com/TrillionniumFoundation/Hepta.git",

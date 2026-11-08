@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B tools/qualify_hia_safe_core.py --output "$RUNNER_TEMP/hia-sixgap/safe-core" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/safe-core.log"
-          python -B -m unittest tests.test_hia_safe_core_artifact tests.test_hia_release_diagnostics -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/supplied-bytes-release.log"
+          python -B -m unittest discover -s tests -p 'test_hia_release*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/supplied-bytes-release.log"
       - name: Preserve complete cost accounting and strong ordinary controls
         shell: bash
         run: |
@@ -64,6 +64,12 @@ jobs:
           ulimit -c 0
           python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-sixgap/cold-selfhost" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/cold-selfhost.log"
           test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Cover every declared selfhost input operation and boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-sixgap/selfhost-language.json" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-language.log"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
