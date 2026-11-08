@@ -526,6 +526,16 @@ def qualify(output):
     resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     bulk_observations = qualify_bulk(directory, (("original", original), ("modified", previous)), checks, bulk_reference)
     loan_observations = qualify_loans(directory, (("original", original), ("modified", previous)), checks, loan_reference)
+    from tools.qualify_hia_selfhost_owned_elf import qualify as qualify_owned_elf
+    owned_observations = []
+    for label, compiler in (("original", original), ("modified", previous)):
+        owned = qualify_owned_elf(directory / (label + "-owned-elf"), compiler)
+        checks[label + "_owned_elf_report_pass"] = owned["status"] == "PASS_SCOPED_OWNED_BUFFER_ELF"
+        for row in owned["cases"]:
+            checks[label + "_owned_elf_" + row["case"]["id"]] = row["pass"]
+        for row in owned["refusals"]:
+            checks[label + "_owned_elf_reject_" + row["name"]] = row["pass"]
+        owned_observations.append({"compiler": label, "report": owned})
     expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
     tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
     select_observations = qualify_select(directory, (("original", original), ("modified", previous)), checks, select_reference)
@@ -545,6 +555,7 @@ def qualify(output):
         "elf_object_observations": elf_observations,
         "bulk_observations": bulk_observations, "independent_bulk_reference": bulk_reference,
         "loan_observations": loan_observations, "independent_loan_reference": loan_reference,
+        "owned_elf_observations": owned_observations,
         "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
@@ -562,6 +573,7 @@ def qualify(output):
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "successor stdlib ctypes/mmap loader and operating system",
+            "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],
         "scope": "fixed canonical HIA v8 subset documented in docs/HIA_SELF_HOSTING_CORE.md",
     }

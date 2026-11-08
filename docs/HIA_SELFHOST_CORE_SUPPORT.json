@@ -16,7 +16,7 @@
     "entry": "f0",
     "insufficient_capacity": 4294967294,
     "invalid_source": 4294967295,
-    "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic or zero divisor",
+    "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic, zero divisor or mandatory allocation",
     "parameters": [
       "source_ptr",
       "source_len_u64",
@@ -54,7 +54,9 @@
     "blocks_per_function": 256,
     "blocks_total": 1536,
     "core_structural_nodes": 262144,
+    "function_results": 1,
     "functions": 128,
+    "instruction_results": 2,
     "instructions": 8192,
     "output_capacity_bytes": 1048576,
     "parameters_or_arguments": 16,
@@ -65,7 +67,7 @@
     "tail_self_call_additional_frames": 0,
     "workspace_required_bytes": 1048576
   },
-  "profile": "selfhost-core-linux-x86_64-v11",
+  "profile": "selfhost-core-linux-x86_64-v12",
   "required_replay": {
     "cold_command": "python -B tools/replay_hia_selfhost_cold.py --output <new-report.json>",
     "fixed_point": "B1 == B2 == B3 bytes",
@@ -86,10 +88,10 @@
   "schema": "hepta.hia.selfhost-core-support.v1",
   "source_identity": {
     "files": {
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "88f692db41a38b80f1145255285deb891fd43c7cac06ef1108e5e521836b1c97",
-      "docs/HIA_SELF_HOSTING_CORE.md": "f5397a9db7927d3433948f54391fc705287bd937e4589dcc267645a6a46231fb",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "d84ff59fc9a5de9e6a67771eca577d1ee6623f103e37bb33b88a500bf6e35bb9",
+      "docs/HIA_SELF_HOSTING_CORE.md": "f48a798f9adb150cafe0b5605b56761ec68e2a303d9d86c7f4b9ee1d74f72541",
       "examples/hia_bootstrap/bytesum.hiaasm": "74bbcc3a6e0ac0962ec32017f4d8c971c91bca0f53c3de7846d65de6194ce4ae",
-      "examples/hia_bootstrap/selfhost.hiaasm": "767db02473d2c4e0a388f8e23501553a553f4cba0c134f590ca693d5c4916b8f",
+      "examples/hia_bootstrap/selfhost.hiaasm": "6b9f2245c2a30a03b16195d45bfd9626678633acf228f4292a0e962f6eae626c",
       "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
       "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
       "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
@@ -302,24 +304,33 @@
       "hepta/windows_capture.py": "0daadfd048cdf08d31344cd2485e78ef3efaac4055850f0ea13501e813414baa",
       "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
       "tests/test_hia_selfhost.py": "c5707ec893915a096dec8fbf3c0489ea9ca23ec243b5321643f9de467d2f01fc",
-      "tests/test_hia_selfhost_contract.py": "fc5f5820230f93a38e54f45dd7caacf916f9b6980ac671574e53f812845d51d7",
-      "tests/test_hia_selfhost_language_coverage.py": "f59d75de9dfd8861e63aa77ab61c7114f2af9622482e2e7c9b580d9ad208baa0",
-      "tools/generate_hia_selfhost.py": "fc55d5a74eb9ce18906857fde3e54f271af9b93bc24887f15cc54320df244710",
+      "tests/test_hia_selfhost_contract.py": "06a6f980a6f004fead91124cc0b251d1bc9abed36de9a936ec5587b26dace6dc",
+      "tests/test_hia_selfhost_language_coverage.py": "416347452ac07401818606324a711c7b991f974c9614c96bcb6ba5e57ff2f316",
+      "tests/test_hia_selfhost_owned_flow.py": "2039ce6d74b071ccbd8553053623174f79d30da68a64da5151e853af3a8d41c4",
+      "tools/generate_hia_selfhost.py": "768657b1c5246552f5e66e5dc46ccee6c4475a3775f67cfb951f696d3578752f",
       "tools/generate_hia_selfhost_contract.py": "fa752ad75b91575419f6a389049f17a171abbb3647e2a4a0ad0bd334dd7ba980",
       "tools/hia_selfhost_bulk.py": "076a2cd18fe0594957523343ff862a2a355a32cc417958eedca4f964ea23b661",
       "tools/hia_selfhost_capacity.py": "b838c1ff809acfd24c3f8cb98dfeecd3d56c87cd850eb5b16b0b0275ff351917",
       "tools/hia_selfhost_cases.py": "abaef65d2d979ff8f8f67b0a233c6e63db995026ca6130178ded66e7f6d141be",
       "tools/hia_selfhost_child.py": "39fa58fbada4167989fbf9704d9f6bded7fe60fb0b979542f21dbd59277292bb",
-      "tools/hia_selfhost_contract.py": "c17b8fec3e04704d9561b842c52d1b1b56c0dec7a905635b0a06150e67c40338",
-      "tools/hia_selfhost_limits.py": "3a187861cde6bf1819f2739cae9cd648c899567efba1ff22a63989210d18067d",
+      "tools/hia_selfhost_contract.py": "a97f7870413927acf9bcf92475e7ed1082cc7574f6704650f7b19bbf46871fca",
+      "tools/hia_selfhost_limits.py": "227e22bc7307680d27f2bb30dac8e8dc15743b5f47570fedf089fb5309c37f56",
       "tools/hia_selfhost_loans.py": "bb050d064d754e2b55d4be661f6055f2742f6ebaf603d30886d79538c5b7a793",
+      "tools/hia_selfhost_owned_elf.py": "9a84e389fe00f0255b0d42f3c5d6248eeee6f7ef401007a26b88cf81b2e67ce7",
+      "tools/hia_selfhost_owned_elf_cases.py": "f254256618628bd6f3293bbfc8bc6947eefe17aa4758d9315cd5bf6fbb1c16b9",
+      "tools/hia_selfhost_owned_flow_cases.py": "ba7449c936d5214117c7a860cf587582c69f5d0cdb7ca7c36459b92244b98580",
       "tools/hia_selfhost_resources.py": "069eaaf7e077360ac290183c93eca9e7b4263dbeb8ee7a2819805634a8c46388",
       "tools/hia_selfhost_select.py": "63077993ca12bf499a27126a9f706e48171a9cc9b2abb2c51e8d83bd87d746ad",
       "tools/hia_selfhost_tailcalls.py": "f9a03fa91650784fe7c3b693eae23e46f50d4eafc76cd46c7a27d9ed0f2c6ca9",
-      "tools/qualify_hia_selfhost.py": "dc2b6b3c47ef202caeadb69cd501c416e293a4b49318e9b25085062fa8348cb3",
+      "tools/qualify_hia_selfhost.py": "e4151bebc7a431253a0357388494355f7afde80994716c7a493d725501c31c7a",
+      "tools/qualify_hia_selfhost_owned_elf.py": "6ecd2fc634c585985ca55b603cea4e2d08bd4ee846e67cd5fcb9b93bee183587",
       "tools/replay_hia_selfhost_cold.py": "08d9d8f6a11e484a6cfa2e5ddb3f553d47d5191fa0589606511868615e6e2326",
       "tools/replay_hia_selfhost_upgrade.py": "cf6a01fc76b6c55cf3210e29f6fcc25e5f2d1de4e44bdce52e7dc264bab95f97"
     },
+    "owned_object_trusted_dependencies": [
+      "ordinary GNU ld and system dynamic loader",
+      "libc calloc/free and their allocation/lifetime contract"
+    ],
     "roles": {
       "authoring_aid": "tools/generate_hia_selfhost.py",
       "cold_replay": "tools/replay_hia_selfhost_cold.py",
@@ -445,15 +456,40 @@
       "status": "bounded_subset"
     },
     {
+      "allocation": {
+        "assumptions": [
+          "ordinary libc allocator contract",
+          "Linux SysV AMD64 linkage and loader"
+        ],
+        "drop": "free valid nonnull pointer; empty owner consumed without call",
+        "imports": [
+          "calloc",
+          "free"
+        ],
+        "mandatory_failure": "Core allocation trap represented by UD2",
+        "maximum_size": 9223372036854775807,
+        "try_failure": "live empty owner and false for oversize or null calloc result",
+        "workspace_is_heap": false,
+        "zero_length": "live logical owner with null pointer and zero length; try_new succeeds"
+      },
       "area": "owned_resources",
-      "items": [
-        "allocation",
-        "deallocation",
-        "owner transfer",
-        "returned loans",
-        "recursive owner chains"
+      "excluded": [
+        "chain owners",
+        "returned owners or loans",
+        "general multiple-result calls or returns"
       ],
-      "status": "not_implemented"
+      "items": [
+        "buffer.new",
+        "buffer.try_new",
+        "owner.move",
+        "owner.drop",
+        "owned buffer parameters on internal scalar-return calls",
+        "owner root and live-descendant checks before move, drop or call",
+        "borrow.read/borrow.mut from owned buffers",
+        "linear owner transfers through exact capability graph edges"
+      ],
+      "output_format": "selfhost_elf only",
+      "status": "bounded_subset"
     },
     {
       "area": "general_core_checker",
@@ -480,15 +516,17 @@
         "one f0 SysV entry symbol",
         "position-independent .text with resolved internal relocations",
         "nonexecuting stack note",
-        "no external symbols or relocations"
+        "legacy object has no external symbols or relocations",
+        "owned object has closed calloc/free imports and R_X86_64_PLT32 call relocations"
       ],
+      "owned_profile": "hepta.hia.selfhost.elf64-allocator-relocatable.v1",
       "profile": "hepta.hia.selfhost.elf64-relocatable.v1",
       "status": "bounded_subset"
     },
     {
       "area": "general_object_linking",
       "items": [
-        "external symbols and relocations",
+        "arbitrary external symbols and relocations",
         "multiple public functions",
         "general linker",
         "additional ELF targets"
@@ -499,8 +537,13 @@
   "syntax": {
     "block_names": "contiguous b0..b255 per function",
     "core": "hepta.hia.program.v8",
+    "effect_clauses": [
+      "effects(read,write,trap)",
+      "effects(alloc,read,write,trap)"
+    ],
     "function_names": "contiguous f0..f127",
     "header": "hia-asm.v1",
+    "instruction_results": "zero or one; buffer.try_new has exactly (buffer, bool)",
     "module": "selfhost",
     "object_module": "selfhost_elf",
     "value_names": "unique per function v0..v2047",

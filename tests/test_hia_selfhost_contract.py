@@ -48,6 +48,16 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertIn("select (bool condition, matching scalars)", operations["items"])
         self.assertEqual(status["successor_object_output"], "bounded_subset")
         self.assertEqual(status["general_object_linking"], "not_implemented")
+        self.assertEqual(status["owned_resources"], "bounded_subset")
+        owned = next(row for row in contract["support"] if row["area"] == "owned_resources")
+        self.assertEqual(owned["output_format"], "selfhost_elf only")
+        self.assertEqual(owned["items"][:4], ["buffer.new", "buffer.try_new", "owner.move", "owner.drop"])
+        self.assertFalse(owned["allocation"]["workspace_is_heap"])
+        self.assertEqual(owned["allocation"]["imports"], ["calloc", "free"])
+        self.assertIn("general multiple-result calls or returns", owned["excluded"])
+        for path in ("tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
+                     "tools/qualify_hia_selfhost_owned_elf.py"):
+            self.assertIn(path, files)
 
     def test_capacity_growth_preserves_workspace_and_core_byte_limits(self):
         from hepta.hia_program import MAX_BYTES, MAX_NODES
