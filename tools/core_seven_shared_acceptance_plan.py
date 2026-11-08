@@ -132,16 +132,26 @@ SAFE_CORE_ADDITIONS = (
     'hepta/hia_safe_core_elf.py',
     'hepta/hia_safe_core_x64.py',
 )
+# Review the two new buffer/prepared modules and the three already installed
+# scalar-selection/proof modules. Preserve the exact historical 331-path
+# Safe Core projection instead of accepting a filesystem-discovered expansion.
+SCOPED_AGENT_NDU_ADDITIONS = (
+    'hepta/hia_agent_buffers.py',
+    'hepta/hia_ndu_prepared_ranker.py',
+    'hepta/hia_ndu_scalar_selection.py',
+    'hepta/hia_proof_contract.py',
+    'hepta/hia_scalar_proof_contract.py',
+)
 # The legacy identity cap describes 239 source records. The reviewed shared
-# closure has 331 source records and the same 780 support records: canonical
+# closure has 336 source records and the same 780 support records: canonical
 # JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
-# 157043 bytes. The historical 328-/323-path projections still occupy
-# 156678/156044 bytes; these three additions cost exactly 365 bytes. Transfer
-# only the full 12330-byte
+# 157680 bytes. The historical 331-/328-/323-path projections still occupy
+# 157043/156678/156044 bytes; these five inputs add exactly 637 bytes. Transfer
+# only the full 12967-byte
 # increase over the legacy identity from raw logs; keep the
 # legacy protocol and the aggregate evidence, source, module and time caps.
-IDENTITY_CAP = 157043
-IDENTITY_RESERVE_DELTA = 12330
+IDENTITY_CAP = 157680
+IDENTITY_RESERVE_DELTA = 12967
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -229,16 +239,19 @@ def flags(success=False):
 SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
                                     *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS,
-                                    *SAFE_CORE_ADDITIONS)))
+                                    *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 331 and commitment(paths) == '223c03fa82d871fee3d85d57bb1e254d658a9d85007ec11bea5bfbb1fad5d1b5',
+    require(len(paths) == len(set(paths)) == 336 and commitment(paths) == '9a888e4dbfe883eb74fd8961a5fbc2b90b0cac7b9a6343ef5720145e23be72c7',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in SAFE_CORE_ADDITIONS)
+    previous = tuple(name for name in paths if name not in SCOPED_AGENT_NDU_ADDITIONS)
+    require(len(previous) == 331 and commitment(previous) == '223c03fa82d871fee3d85d57bb1e254d658a9d85007ec11bea5bfbb1fad5d1b5',
+            'historical Safe Core source identity projection')
+    previous = tuple(name for name in previous if name not in SAFE_CORE_ADDITIONS)
     require(len(previous) == 328 and commitment(previous) == '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289a016',
             'historical P0/P3 source identity projection')
     previous = tuple(name for name in previous if name not in P0_P3_ADDITIONS)

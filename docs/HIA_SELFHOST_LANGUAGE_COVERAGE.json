@@ -1577,6 +1577,7 @@
       "existing_evidence": [
         "tools.hia_selfhost_resources.qualify_resources",
         "tools.hia_selfhost_bulk.qualify_bulk",
+        "tools.hia_selfhost_loans.qualify_loans",
         "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"
       ],
       "hia_functions": {
@@ -1584,6 +1585,10 @@
         "bulk_buffer": "f47",
         "bulk_range_guard": "f46",
         "edge": "f5",
+        "loan_access": "f50",
+        "loan_incoming": "f55",
+        "loan_operation": "f52",
+        "loan_transfer": "f57",
         "operation": "f7"
       },
       "items": [
@@ -1597,6 +1602,11 @@
         "buffer.copy",
         "buffer.copy_range",
         "buffer.move_within with overlap handling",
+        "borrow.read from readbuf/mutbuf",
+        "borrow.mut from mutbuf",
+        "loan.end for live local childless loans",
+        "nested loan parent suspension and shared/exclusive root checks",
+        "exact capability graph joins and closed loop/edge transfers",
         "linear edge transfers",
         "readonly call aliases",
         "mutable alias rejection"
@@ -1605,7 +1615,8 @@
         "borrowed-buffer-operations",
         "existing-readonly-*",
         "swap-*",
-        "bulk-*"
+        "bulk-*",
+        "loan-*"
       ],
       "status": "bounded_subset"
     },
@@ -1843,8 +1854,6 @@
   ],
   "general_core_opcode_count": 50,
   "general_core_opcodes_outside_profile": [
-    "borrow.mut",
-    "borrow.read",
     "buffer.new",
     "buffer.try_new",
     "chain.empty",
@@ -1853,7 +1862,6 @@
     "chain.is_empty",
     "chain.pop",
     "chain.try_push",
-    "loan.end",
     "owner.drop",
     "owner.move"
   ],
@@ -1865,6 +1873,8 @@
     "bool.and",
     "bool.not",
     "bool.or",
+    "borrow.mut",
+    "borrow.read",
     "buffer.copy",
     "buffer.copy_range",
     "buffer.fill",
@@ -1894,6 +1904,7 @@
     "int.shr.checked",
     "int.sub.checked",
     "int.sub.wrap",
+    "loan.end",
     "select"
   ],
   "input_types": [
@@ -1916,6 +1927,7 @@
       "output_capacity_bytes": 1048576,
       "parameters_or_arguments": 16,
       "relative_relocations": 12000,
+      "resource_graph_parse_rounds_max": 1536,
       "source_bytes": 1048576,
       "ssa_index_max": 2047,
       "tail_self_call_additional_frames": 0,
@@ -1945,7 +1957,7 @@
       "derived_maximum_with_other_limits": 11265
     }
   },
-  "profile": "selfhost-core-linux-x86_64-v10",
+  "profile": "selfhost-core-linux-x86_64-v11",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -2444,6 +2456,276 @@
       "general_core_expected": "rejected",
       "id": "bulk-buffer.move_within-wrong-scalar",
       "source_sha256": "db2a57c81d8bcb3ba350f9f45a57ae8e631f7d068e806cf5554640ee46b67874"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-external-read",
+      "source_sha256": "1ad1f6d7d1732198c461132ccbbb343d619e04115aab90e9cd2de61ad7665826"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-external-mutable",
+      "source_sha256": "6a47d1a4092f8eb0d79700c287df7e17951cd66ae522fa6cc2cc142064a0bd8b"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-exclusive-from-readonly",
+      "source_sha256": "4d7e78a41750b3226502316b7785c8bb6b4838930e8f774c55c8d04ea8c7786b"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-shared-result-permission",
+      "source_sha256": "e0c379c5c4811e3be3a2d5243616b62ff7dd359a7dff7b4e01ffadcea437de1a"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-exclusive-result-permission",
+      "source_sha256": "6fba7c3082c670e1ec0ee0c464d699794e690bbbb22682f411baa05ba9642281"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-borrow-scalar",
+      "source_sha256": "7b40b47339702c51441d7c758c7bcd7fee0a971552406c052cb2f5757bc6df2e"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-borrow-no-result",
+      "source_sha256": "cfbfdf4158b731db68292d376b518f2a35925284419ee1310837ca06a3d7388b"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-borrow-short-arity",
+      "source_sha256": "896bc60c2ccd9aa9f980dda10ad8f501114b0a7f4ed3e090571cbeffc22284de"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-borrow-long-arity",
+      "source_sha256": "62a1fa1fe38078319c330afda35897900fad481a4446da2971c6717981b025fe"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-borrow-unexpected-attribute",
+      "source_sha256": "50b7b21815fd81d53b0f230763f6c29fda2718e4deb8f9a6d5172d48ea5732df"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-unexpected-result",
+      "source_sha256": "5c786676dbae755665b9041fb3bf01c4195ce9dfd5007e51dc38ffe4e1ed375e"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-short-arity",
+      "source_sha256": "15b8a3fc5f5a2a9fb56b773510d209928dff1ff3878453271309a3295f4e981f"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-long-arity",
+      "source_sha256": "11c1d65a9df022c630b0b86753e6658d9c4ddff80671fab1c02bc9aeadbb6d63"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-scalar",
+      "source_sha256": "8256a0660db3e44fa130bd4a5e2df4a7ce47acee0fef58eef184c6f44da4873f"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-live-local-at-return",
+      "source_sha256": "5f3956a1be85c268fa81dd46a399dc5674fb734efbd21d94521b3a6719f60bed"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-double-end",
+      "source_sha256": "4d8ec19eaafd8b8e17288926643ff995ed83c8aff0e69cc7b6a25fb50d3c2eec"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-end-parent-before-child",
+      "source_sha256": "30ef61abd0abb8e092e83c2ada0cdb1cc59ce71bfe80f308d699c3b85fce44c1"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-consumed-buffer.load",
+      "source_sha256": "520959bcddd3e74812c4c007e1d3a77a3d615af5498a55132249acd503756f01"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-consumed-buffer.len",
+      "source_sha256": "9e4ef010541e4aa595d12f88a91d229a0d64f79813ba8a998a5e14966af7c157"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-consumed-borrow.read",
+      "source_sha256": "71b9d41ef83c8741eb36de9d053de95d8a5243137438844d55937ace2ba71135"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-conflicting-mut-mut",
+      "source_sha256": "1cebb0aa074faa8a669da63fa8ba92fe4bcf6371922d99977189dd123cc0b483"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-conflicting-read-mut",
+      "source_sha256": "62ff83c44613b4f92387cbb510c0457327ee8cc4ab759cb8b420d9f433140185"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-conflicting-mut-read",
+      "source_sha256": "caea4bfd702f309de643678375d4a2e46dcd1f4eae2e3ccecb1d2c2b741bd1e7"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-load",
+      "source_sha256": "5eafe81d2774db0940bdaf777f0543139a61827286abf4e15c302493dcb5cd3e"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-store",
+      "source_sha256": "facd6df1e17696182676292583f24d146af953d9a9f06e13fcd5ed66cd21c1a4"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-swap",
+      "source_sha256": "3de7f8d474dde1e817779f7e1e2f0cc9fae458ded395fcbdbd1fb3f18f24b9b5"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-fill",
+      "source_sha256": "d982324cdba2f05d985b3cfa2d20cdd806f8b23a0330018eb0af83133056afda"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-fill-range",
+      "source_sha256": "9b60f42e5cf27450f558a756a06fff43753e53db169baa85aa6a09f23b745f68"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-move",
+      "source_sha256": "5af6542c1ccad7fc7fc85d3e1070a42c90cb0f053bdcf467d095e01243068c40"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-copy",
+      "source_sha256": "b91e81b690edefb0e105af84c12b790b49e5979bf4325976a1d0a868a9a8dd5c"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-call",
+      "source_sha256": "39bb993b872f56b076c7281437c0a96a0a8cbe64869b4325e7ad89a583a238c0"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-consumed-call",
+      "source_sha256": "f0c5288256cd18d603a744e69042a666c7b99472abd93dc7068fe8621da72fb3"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-edge-drops-local",
+      "source_sha256": "4fabd1c0eb3dab9fae40a4cb46c110aae1f4e66ec165630bc5b4dbc19592215c"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-edge-drops-parent",
+      "source_sha256": "ae50581c792314086af130d451ecf5c5a9facd7d102b30a244548b94999c58a2"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-edge-duplicates-child",
+      "source_sha256": "691a79f452a76506f1a5260b12e3c438d86fd6c9bf01005b9046d85882817081"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-merge-disagrees-root",
+      "source_sha256": "637907c53d1ef27f6adf87fa72fc2884de5056c96562baf3243f6804193802f9"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-merge-disagrees-parent",
+      "source_sha256": "dfdf9c02de6d16e4d1eab3306253128b4281ff61d9f34ac2504bb85aa780be46"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-backedge-duplicates-resource",
+      "source_sha256": "b424c96313548d891b5521bb94fa3be0fa9155b95e28877c633a2a3f5937d17f"
+    },
+    {
+      "boundary": "exact active capability roots, parents and closed transfers",
+      "general_core_expected": "rejected",
+      "id": "loan-loan-result-redefines-source",
+      "source_sha256": "d5efc0431dc73e5fa3abdc1b4fdbda2292054dcd9825f62c97c2bbb38e5f38f3"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-read-ssa-2048",
+      "source_sha256": "7b54c2099592806df167e0f4cbde8388a0f097861568910f86201fa7087daa49"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-read-ssa-8192",
+      "source_sha256": "18901a7cb999c996afd9f1dc0ed488516f173e0db5ae0bf1a67613216736c570"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-read-ssa-18446744073709551615",
+      "source_sha256": "194a6066fbbf121e672a8677e22029ff24bb6c47c83510a3b20ac8f548ab23b2"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-mut-ssa-2048",
+      "source_sha256": "e9e4110cc6eaa07bc0c76abf6533796a1f598408841ac033070a2ac3367cec1a"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-mut-ssa-8192",
+      "source_sha256": "a2ef5277af1560033d65b2026ba5b23c7e0ffbf3ad1c0116e8972c4808214a97"
+    },
+    {
+      "boundary": "resource result SSA index at most 2047",
+      "general_core_expected": "accepted",
+      "id": "loan-profile-mut-ssa-18446744073709551615",
+      "source_sha256": "70eddb25919b92e10fd502ac62bc8176874be037e0fc87cbc74d637516d02d74"
     },
     {
       "boundary": "immediate exact tail return and mutable arguments",
@@ -3302,13 +3584,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "7a90a06720b0f7c589159b0bde616fed6a97e558f8af9376fca19c4c21e64511"
+      "sha256": "fc55d5a74eb9ce18906857fde3e54f271af9b93bc24887f15cc54320df244710"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "1f8bcdf1c541d5f8ee7595dfc3905746874fd89455ca32c46ec329233030f68b"
+      "sha256": "767db02473d2c4e0a388f8e23501553a553f4cba0c134f590ca693d5c4916b8f"
     },
-    "semantic_support_sha256": "eff861b4c42b7a9132acc0e661b79659831cd64b56b9ebadff81c4a9799d13c5",
+    "semantic_support_sha256": "255249bde5a3e54877efc16470f4aa081593747657cb1951614d87dd00668c76",
     "support_projection_omits": [
       "source_identity"
     ]

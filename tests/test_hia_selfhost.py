@@ -124,6 +124,21 @@ class SelfhostSourceTests(unittest.TestCase):
         for typ in ("u8", "u32", "u64", "usize", "bool"):
             self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
 
+    def test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals(self):
+        from tools.hia_selfhost_loans import independent_loan_reference
+        result = independent_loan_reference()
+        self.assertEqual(len(result["cases"]), 23)
+        self.assertEqual(len(result["rejected"]), 39)
+        self.assertEqual(len(result["outside_profile"]), 6)
+        names = {row["id"] for row in result["cases"]}
+        self.assertTrue({"loan-through-loop-backedge", "incoming-from-later-source-block",
+                         "root-parent-index-fifteen", "nested-graph-through-permuted-edge"} <= names)
+        self.assertTrue(all(row["reference_result"]["status"] == "returned" for row in result["cases"]))
+        codes = {row["id"]: row["code"] for row in result["rejected"]}
+        for name in ("merge-disagrees-root", "merge-disagrees-parent", "end-parent-before-child"):
+            self.assertEqual(codes[name], "E_HIA_LOAN")
+        self.assertFalse(result["claims"]["all_input_proof"])
+
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
 class SelfhostNativeTests(unittest.TestCase):
@@ -151,6 +166,11 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(generation["forbidden_compiler_modules_loaded"], [])
         for earlier, later in zip(generations, generations[1:]):
             self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
+
+    def test_loans_keep_live_graphs_through_native_original_and_mutated_compilers(self):
+        selected = {name: value for name, value in self.report["checks"].items() if "-loan-" in name}
+        self.assertEqual(len(selected), 142)
+        self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
 
     def test_native_capacity_boundary_and_original_modified_node_accounting(self):
         from tools.hia_selfhost_capacity import count_nodes

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v10`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v11`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -113,6 +113,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
+| Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
@@ -546,11 +547,11 @@ from an all-input compiler correctness proof.
 
 ### v10 bulk borrowed buffers
 
-Five bulk operations now compile in HIA and execute as self-contained x86-64
+Five bulk operations added in v10 compile in HIA and execute as self-contained x86-64
 instructions in flat images and HIA-written ELF objects. No imported libc
 routines or host compilation are used. Source, output, workspace, block, SSA,
-and instruction limits remain unchanged. Coverage is 37 of the general Core's
-50 opcodes; ownership, borrow creation and chain operations remain unsupported.
+and instruction limits remain unchanged. V10 coverage was 37 of the general Core's
+50 opcodes; ownership, borrow creation and chain operations were unsupported.
 This count is not full-language selfhosting or an all-input correctness proof.
 
 Copies require a mutable destination and a shared source with distinct live
@@ -569,3 +570,47 @@ directions, empty and exact boundaries, maximum usize values, too-short buffers,
 and observable stores before a trap. Cold replay includes these witnesses.
 Finite observations retain the host/ABI assumptions and do not prove the general
 compiler, ISA, loader, resource or FFI semantics.
+
+### v11 explicit borrowed-view lifetimes
+
+The HIA-written checker and emitter now admit `borrow.read`, `borrow.mut` and
+`loan.end` for the existing readbuf/mutbuf resource profile. The inventory is
+40/50 opcodes. Owned allocation/transfer/drop, owner chains, returned loans and
+general Core signatures, types and effects remain outside this profile.
+
+Every live loan carries a root and a parent. A parent with live children is
+suspended for byte access and calls; extent inspection remains valid as in Core.
+Shared siblings may coexist, exclusive siblings may not, and reborrows preserve
+the root. Only a local childless loan can end. An ended value remains an SSA
+definition and cannot be used or redefined. Ordinary returns require all local
+loans to have ended. These checks operate on input operations and capability
+state, including non-entry-reachable call-graph checks already required by v10.
+
+CFG edges must carry every local loan and each selected capability's root and
+parent exactly once. The sixteen existing trailing bytes of each block record
+encode a four-bit root index and four-bit parent index per parameter. A separate
+known bit distinguishes an unseen incoming graph from valid all-zero metadata.
+Predecessors must agree on the renamed graph. A bounded phase-zero reparse
+handles a predecessor located later in the source; parsing advances to output
+sizing only after all reachable blocks have been checked with known incoming
+graphs. At most 1,536 discovery rounds are allowed. Source, output, workspace,
+function, block, SSA, instruction and Core node ceilings are unchanged.
+
+Authoring removes an identity join when only one branch continues. Boolean
+expressions made solely of names, constants, comparisons and total wrapping
+scalar operations use boolean instructions; expressions containing calls,
+reads or checked shifts retain short-circuit control flow. These authoring
+changes reduce the compiler's own block/SSA usage without raising input limits.
+The emitted HIA remains independently admitted and compiled through B0/B1/B2/B3.
+
+The loan helper has 23 independent Core VM result/byte cases and 39 invalid Core
+cases. They cover nested and sibling borrowing, mutable/shared permissions,
+callee use, source-order reversal, branch joins, loop backedges and root/parent
+index fifteen and maximum valid SSA index 2047. Six valid general-Core cases
+with resource result indices 2048, 8192 and UINT64_MAX are refused by the fixed
+native profile before capability state is written. Rejections include suspended parents, duplicate/end/use-after-end
+operations, missing ancestors, dropped loans and disagreeing join roots/parents.
+Original and mutated successor compilers compile and execute the cases and
+compare flat/ELF text for three loan programs. Existing bulk, integer, trap,
+capacity, cold replay and language witnesses remain required. Finite tests and
+a fixed point do not establish an all-input compiler or machine proof.

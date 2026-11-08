@@ -42,6 +42,8 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertIn("buffer.swap with both bounds before access", resources["items"])
         self.assertIn("tools/hia_selfhost_resources.py", files)
         self.assertIn("tools/hia_selfhost_select.py", files)
+        self.assertIn("tools/hia_selfhost_loans.py", files)
+        self.assertIn("exact capability graph joins and closed loop/edge transfers", resources["items"])
         operations = next(row for row in contract["support"] if row["area"] == "integer_operations")
         self.assertIn("select (bool condition, matching scalars)", operations["items"])
         self.assertEqual(status["successor_object_output"], "bounded_subset")

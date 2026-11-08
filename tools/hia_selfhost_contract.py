@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v10"
+PROFILE = "selfhost-core-linux-x86_64-v11"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -21,6 +21,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_cases.py",
     "tools/hia_selfhost_resources.py",
     "tools/hia_selfhost_bulk.py",
+    "tools/hia_selfhost_loans.py",
     "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py",
@@ -87,6 +88,7 @@ def support_contract(root=ROOT):
             "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
             "tail_self_call_additional_frames": 0,
+            "resource_graph_parse_rounds_max": MAX_BLOCKS,
         },
         "capacity_derivation": {
             "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,
@@ -105,6 +107,10 @@ def support_contract(root=ROOT):
                        "buffer.load", "buffer.store", "buffer.swap with both bounds before access",
                        "buffer.fill", "buffer.fill_range", "buffer.copy",
                        "buffer.copy_range", "buffer.move_within with overlap handling",
+                       "borrow.read from readbuf/mutbuf", "borrow.mut from mutbuf",
+                       "loan.end for live local childless loans",
+                       "nested loan parent suspension and shared/exclusive root checks",
+                       "exact capability graph joins and closed loop/edge transfers",
                        "linear edge transfers",
                        "readonly call aliases", "mutable alias rejection"]},
             {"area": "integer_operations", "status": "bounded_subset",

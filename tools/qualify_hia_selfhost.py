@@ -432,6 +432,9 @@ def qualify(output):
     from tools.hia_selfhost_bulk import independent_bulk_reference, qualify_bulk
     bulk_reference = independent_bulk_reference()
     (directory / "independent-bulk-reference.json").write_text(json.dumps(bulk_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_loans import independent_loan_reference, qualify_loans
+    loan_reference = independent_loan_reference()
+    (directory / "independent-loan-reference.json").write_text(json.dumps(loan_reference, indent=2, sort_keys=True) + "\n")
     (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
     independent = independent_call_reference(sample)
     (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
@@ -522,6 +525,7 @@ def qualify(output):
         (("original", original, source), ("modified", previous, changed)), sample, checks)
     resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
     bulk_observations = qualify_bulk(directory, (("original", original), ("modified", previous)), checks, bulk_reference)
+    loan_observations = qualify_loans(directory, (("original", original), ("modified", previous)), checks, loan_reference)
     expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
     tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
     select_observations = qualify_select(directory, (("original", original), ("modified", previous)), checks, select_reference)
@@ -540,6 +544,7 @@ def qualify(output):
         "call_graph_observations": call_observations, "independent_core_reference": independent,
         "elf_object_observations": elf_observations,
         "bulk_observations": bulk_observations, "independent_bulk_reference": bulk_reference,
+        "loan_observations": loan_observations, "independent_loan_reference": loan_reference,
         "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
