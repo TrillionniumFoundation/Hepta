@@ -1,4 +1,4 @@
-"""Finite, feature-complete witnesses for the declared Selfhost-Core v9 profile.
+"""Finite, feature-complete witnesses for the declared Selfhost-Core v10 profile.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v9"
+PROFILE = "selfhost-core-linux-x86_64-v10"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -43,7 +43,8 @@ SHIFTS = ("int.shl.checked", "int.shr.checked")
 COMPARISONS = ("compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge")
 INPUT_OPCODES = tuple(sorted(("const", *BINARY_INTEGER, *NEW_INTEGER, *SHIFTS, *COMPARISONS,
     "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load",
-    "buffer.store", "buffer.swap", "call", "select")))
+    "buffer.store", "buffer.swap", "buffer.fill", "buffer.fill_range",
+    "buffer.copy", "buffer.copy_range", "buffer.move_within", "call", "select")))
 NATIVE = (platform.system() == "Linux"
           and platform.machine().lower() in {"x86_64", "amd64"}
           and bool(shutil.which("ld")))
@@ -323,7 +324,7 @@ def buffer_reference_source(fixture):
     """Only a general-Core owner wrapper is added; native body bytes are kept."""
     a = Assembly(0)
     owners, loans = [], []
-    for initial in (fixture["input"], bytes([0xa5]) * fixture["capacity"],
+    for initial in (fixture["input"], fixture.get("output_initial", bytes([0xa5]) * fixture["capacity"]),
                     bytes(fixture["workspace_size"])):
         length = a.const("usize", len(initial))
         owner = a.emit("buffer", "buffer.new", [length])
@@ -421,6 +422,8 @@ def positive_fixtures():
         fixtures += [scalar_fixture("dynamic-integer-" + typ + "-" + str(index // 16),
             dynamic[index:index + 16], input_arguments=True) for index in range(0, len(dynamic), 16)]
     fixtures += select_input_fixtures()
+    from tools.hia_selfhost_bulk import language_fixtures
+    fixtures += language_fixtures()
     fixtures += [buffer_fixture(), boundary_fixture("parameters-16", parameter_source(16), 120),
                  boundary_fixture("blocks-per-function-256", block_source([256])),
                  boundary_fixture("blocks-total-1536", block_source([256] * 6)),
@@ -679,6 +682,7 @@ def coverage_manifest():
     from tools.hia_selfhost_contract import support_contract
     from hepta.hia_agent_assembly import render_assembly
     from hepta.hia_opcodes import OPCODES
+    from tools.hia_selfhost_bulk import BULK_OPS, bulk_cases, bulk_refusals, bulk_source
     contract = support_contract()
     doc, names = document()
     compiler = (ROOT / "examples/hia_bootstrap/selfhost.hiaasm").read_bytes()
@@ -689,7 +693,8 @@ def coverage_manifest():
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
         "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast"]),
-        "resources": (["args", "edge", "operation"], ["borrowed-buffer-operations", "existing-readonly-*", "swap-*"]),
+        "resources": (["args", "edge", "operation", "bulk_operation", "bulk_range", "bulk_fill", "bulk_copy"],
+            ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*"]),
         "integer_operations": (["instruction", "operation", "checked_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
@@ -705,6 +710,7 @@ def coverage_manifest():
     existing = {
         "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
         "resources": ["tools.hia_selfhost_resources.qualify_resources",
+                      "tools.hia_selfhost_bulk.qualify_bulk",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
@@ -776,6 +782,14 @@ def coverage_manifest():
             "arguments": row["arguments"], "prior_store": row["prior_store"],
             "expected_native_output_hex": row["expected_output"].hex(),
             "source_sha256": digest(row["source"])} for row in checked_arithmetic_trap_cases()],
+        "bulk_witnesses": {
+            "opcodes": list(BULK_OPS), "cases": [
+                {**row, "source_sha256": digest(bulk_source(row["opcode"], row["arguments"], prior_store=row["prior_store"]))}
+                for row in bulk_cases()],
+            "refusals": [{"id": name, "source_sha256": digest(source)} for name, source in bulk_refusals().items()],
+            "reference": "general Core VM owner wrapper and independent mathematical byte oracle, executed before B0",
+            "native": "both original and modified compiler; complete output after return or SIGILL; ELF text equality",
+            "qualification": "tools.hia_selfhost_bulk.qualify_bulk, included in cold replay"},
         "bootstrap": {"required": contract["required_replay"],
                       "dependency_closure": "support source_identity includes this test and this inventory; B0 receipt records actual loaded seed modules",
                       "successors": "stdlib-only disposable child; all input translation is executed HIA",
@@ -873,7 +887,8 @@ def qualify_language(output):
                 name = label + "-" + fixture["id"]
                 image, build = compile_stage(directory, name + "-build", compiler, fixture["source"])
                 result, observed = invoke(directory, name, image, fixture["input"],
-                    capacity=fixture["capacity"], workspace_size=fixture["workspace_size"])
+                    capacity=fixture["capacity"], workspace_size=fixture["workspace_size"],
+                    output_initial=fixture.get("output_initial"))
                 good = (result.get("status") == "returned" and result.get("abi_status") == 0
                     and result.get("core_u32") == fixture["expected_result"]
                     and result.get("source_unchanged") and not result.get("forbidden_compiler_modules_loaded")
@@ -929,7 +944,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 32)
+        self.assertEqual(len(manifest["input_opcodes"]), 37)
         self.assertIn("select", manifest["input_opcodes"])
         self.assertEqual(manifest["general_core_opcode_count"], 50)
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])

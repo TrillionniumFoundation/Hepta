@@ -84,6 +84,23 @@ class SelfhostSourceTests(unittest.TestCase):
         for row in result["cases"]:
             self.assertEqual(row["reference_result"]["status"], "trapped" if row["trap"] else "returned")
 
+    def test_bulk_reference_covers_complete_ranges_overlap_empty_and_u64_limits(self):
+        from tools.hia_selfhost_bulk import BULK_OPS, MAX, independent_bulk_reference
+        result = independent_bulk_reference()
+        self.assertEqual(len(result["cases"]), 69)
+        self.assertEqual(sum(row["trap"] for row in result["cases"]), 33)
+        self.assertEqual(len(result["rejections"]), 45)
+        self.assertEqual({row["opcode"] for row in result["cases"]}, set(BULK_OPS))
+        cases = {row["id"]: row for row in result["cases"]}
+        for name in ("overlap-right", "overlap-left", "adjacent-right", "adjacent-left", "equal", "empty", "zero"):
+            row = cases["buffer.move_within-" + name]
+            self.assertFalse(row["trap"])
+            self.assertEqual(row["reference_result"]["status"], "returned")
+        for op in BULK_OPS[1:]:
+            relevant = [row for row in result["cases"] if row["opcode"] == op]
+            self.assertTrue(any(MAX in row["arguments"] and row["trap"] for row in relevant))
+            self.assertTrue(any(row["prior_store"] and row["trap"] for row in relevant))
+
     def test_call_graph_admission_distinguishes_general_core_from_fixed_profile(self):
         assemble_program(backward_bytesum_source(SAMPLE.read_bytes()))
         assemble_program(backward_chain_source())
@@ -275,6 +292,29 @@ class SelfhostNativeTests(unittest.TestCase):
         for name, accepted in self.report["checks"].items():
             if "swap" in name:
                 self.assertTrue(accepted, name)
+
+    def test_bulk_operations_preserve_exact_bytes_and_all_bounds_precede_writes(self):
+        cases = {row["id"]: row for row in self.report["independent_bulk_reference"]["cases"]}
+        rows = [row for row in self.report["bulk_observations"] if "execution" in row]
+        self.assertEqual(len(rows), 2 * len(cases))
+        for compiler in ("original", "modified"):
+            self.assertEqual({row["case"] for row in rows if row["compiler"] == compiler}, set(cases))
+        for row in rows:
+            case = cases[row["case"]]
+            result = row["execution"]
+            self.assertEqual(row["observed_hex"], case["expected_hex"], row["case"])
+            self.assertTrue(result["shared_output_observation"]["available"], row["case"])
+            if case["trap"]:
+                self.assertEqual(result["returncode"], -4)
+                self.assertEqual(result["shared_output_observation"]["unchanged"], not case["prior_store"])
+        rejections = [row for row in self.report["bulk_observations"] if "_bulk_reject_" in row.get("case", "") or "-bulk-reject-" in row.get("case", "")]
+        self.assertEqual(len(rejections), 90)
+        for result in rejections:
+            self.assertEqual(result["core_u32"], INVALID)
+            self.assertTrue(result["output_unchanged"])
+        for name, passed in self.report["checks"].items():
+            if "bulk" in name:
+                self.assertTrue(passed, name)
 
     def test_generated_byte_bounds_and_checked_shift_really_trap(self):
         sample = self.directory / "original-bytesum.image.bin"

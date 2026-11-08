@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.copy", "buffer.fill_range", "buffer.copy_range", "buffer.move_within"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -459,14 +459,15 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if get(w, 256) == 0:
             store_var(o, w, v, 0)
     else:
-        if op != @buffer.store@ and op != @buffer.swap@:
-            fail(w, 27)
+        check_effect_opcode(w, op)
     expect(s, w, 10)
     if get(w, 256) != 0 and get(w, 8) != @ret@:
         fail(w, 59)
     return 0
 
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op >= @buffer.fill@:
+        return bulk_operation(o, w, op, n, a, b, at, bt, t)
     if op == @select@:
         return select_scalar(o, w, n, a, b, at, bt, t)
     if op == @buffer.len@:
@@ -1204,6 +1205,121 @@ def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64
     emit(o, w, 15)
     emit(o, w, 69)
     emit(o, w, 193)
+    return 0
+
+# Appended helpers keep the existing compiler function identities. They emit
+# bounded inline loops, with no allocation, libc calls or new relocations.
+def check_effect_opcode(w:mutbuf, op:u64) -> u64:
+    if op >= @buffer.fill@ and op <= @buffer.move_within@:
+        return 0
+    if op != @buffer.store@ and op != @buffer.swap@:
+        return fail(w, 27)
+    return 0
+
+def bulk_operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if at != 7 or t != 0:
+        return fail(w, 61)
+    if op == @buffer.fill@:
+        if n != 2 or bt != 4:
+            return fail(w, 61)
+        return bulk_fill(o, w, a, b, 2048, 2048)
+    if op == @buffer.copy@:
+        if n != 3 or bt != 6 or variable(w, get(w, ARGS + 16)) != 2:
+            return fail(w, 61)
+        return bulk_copy(o, w, a, b, 2048, 2048, get(w, ARGS + 16), 0)
+    if op == @buffer.fill_range@:
+        if n != 4 or bt != 2 or variable(w, get(w, ARGS + 16)) != 2 or variable(w, get(w, ARGS + 24)) != 4:
+            return fail(w, 61)
+        return bulk_fill(o, w, a, get(w, ARGS + 24), b, get(w, ARGS + 16))
+    if op == @buffer.move_within@:
+        if n != 4 or bt != 2 or variable(w, get(w, ARGS + 16)) != 2 or variable(w, get(w, ARGS + 24)) != 2:
+            return fail(w, 61)
+        return bulk_copy(o, w, a, a, b, get(w, ARGS + 16), get(w, ARGS + 24), 1)
+    if op != @buffer.copy_range@ or n != 5 or bt != 6:
+        return fail(w, 61)
+    if variable(w, get(w, ARGS + 16)) != 2 or variable(w, get(w, ARGS + 24)) != 2 or variable(w, get(w, ARGS + 32)) != 2:
+        return fail(w, 61)
+    return bulk_copy(o, w, a, b, get(w, ARGS + 16), get(w, ARGS + 24), get(w, ARGS + 32), 0)
+
+def bulk_range(o:mutbuf, w:mutbuf, owner:u64, offset:u64, count:u64) -> u64:
+    # The impossible SSA index 2048 denotes offset zero. Validate offset <=
+    # extent before subtracting, then count <= extent-offset. No addition can
+    # wrap to admit an invalid range, even for UINT64_MAX offsets/counts.
+    load_var(o, w, 0, owner, 1)
+    if offset != 2048:
+        load_var(o, w, 1, offset, 0)
+        # cmp rcx,rax; jbe +2; ud2; sub rax,rcx
+        emit_bytes(o, w, 0x0b0f0276c13948, 7)
+        emit_bytes(o, w, 0xc82948, 3)
+    load_var(o, w, 1, count, 0)
+    emit_bytes(o, w, 0x0b0f0276c13948, 7)
+    return 0
+
+def bulk_fill(o:mutbuf, w:mutbuf, owner:u64, value:u64, offset:u64, count:u64) -> u64:
+    if offset != 2048:
+        bulk_range(o, w, owner, offset, count)
+    if count == 2048:
+        load_var(o, w, 1, owner, 1)
+    else:
+        load_var(o, w, 1, count, 0)
+    # test rcx,rcx; jz done. Empty operations skip pointer formation and access.
+    emit_bytes(o, w, 0x840fc98548, 5)
+    empty = get(w, 56)
+    emit4(o, w, 0)
+    load_var(o, w, 7, owner, 0)
+    if offset != 2048:
+        load_var(o, w, 2, offset, 0)
+        emit_bytes(o, w, 0xd70148, 3)
+    load_var(o, w, 0, value, 0)
+    # mov [rdi],al; inc rdi; dec rcx; jnz -10. DF is never modified.
+    emit8(o, w, 0xc9ff48c7ff480788)
+    emit_bytes(o, w, 0xf675, 2)
+    if get(w, 48) == 2:
+        write4(o, empty, get(w, 56) - empty - 4)
+    return 0
+
+def bulk_copy(o:mutbuf, w:mutbuf, destination:u64, source:u64, dst_offset:u64, src_offset:u64, count:u64, overlap:u64) -> u64:
+    # Both complete ranges are guarded before either pointer is formed or any
+    # byte is read/written. Failed source bounds cannot publish a partial copy.
+    bulk_range(o, w, destination, dst_offset, count)
+    bulk_range(o, w, source, src_offset, count)
+    load_var(o, w, 1, count, 0)
+    emit_bytes(o, w, 0x840fc98548, 5)
+    empty = get(w, 56)
+    emit4(o, w, 0)
+    load_var(o, w, 7, destination, 0)
+    load_var(o, w, 6, source, 0)
+    if dst_offset != 2048:
+        load_var(o, w, 2, dst_offset, 0)
+        emit_bytes(o, w, 0xd70148, 3)
+    if src_offset != 2048:
+        load_var(o, w, 2, src_offset, 0)
+        emit_bytes(o, w, 0xd60148, 3)
+    forward = 0
+    done = 0
+    if overlap == 1:
+        # cmp rdi,rsi; jbe forward. Higher destinations copy back to front;
+        # equal/lower destinations copy front to back, including equal ranges.
+        emit_bytes(o, w, 0x860ff73948, 5)
+        forward = get(w, 56)
+        emit4(o, w, 0)
+        # add rdi,rcx; add rsi,rcx
+        emit_bytes(o, w, 0xce0148cf0148, 6)
+        # dec rdi; dec rsi; mov dl,[rsi]; mov [rdi],dl; dec rcx; jnz -15
+        emit8(o, w, 0x168aceff48cfff48)
+        emit_bytes(o, w, 0xf175c9ff481788, 7)
+        emit(o, w, 233)
+        done = get(w, 56)
+        emit4(o, w, 0)
+        if get(w, 48) == 2:
+            write4(o, forward, get(w, 56) - forward - 4)
+    # mov dl,[rsi]; mov [rdi],dl; inc rdi; inc rsi; dec rcx; jnz -15
+    emit8(o, w, 0x48c7ff481788168a)
+    emit_bytes(o, w, 0xf175c9ff48c6ff, 7)
+    if get(w, 48) == 2:
+        write4(o, empty, get(w, 56) - empty - 4)
+        if overlap == 1:
+            write4(o, done, get(w, 56) - done - 4)
     return 0
 '''
 

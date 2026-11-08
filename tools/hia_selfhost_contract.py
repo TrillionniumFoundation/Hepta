@@ -13,13 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v9"
+PROFILE = "selfhost-core-linux-x86_64-v10"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
     "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_cases.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_bulk.py",
     "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py",
@@ -102,6 +103,10 @@ def support_contract(root=ROOT):
             {"area": "resources", "status": "bounded_subset",
              "items": ["borrowed readbuf/mutbuf parameters", "buffer.len",
                        "buffer.load", "buffer.store", "buffer.swap with both bounds before access",
+                       "buffer.fill", "buffer.fill_range with complete bounds before writes",
+                       "buffer.copy and buffer.copy_range with both complete ranges checked before access",
+                       "buffer.move_within with overlap-safe byte copying",
+                       "empty bulk operations perform no derived-pointer access",
                        "linear edge transfers",
                        "readonly call aliases", "mutable alias rejection"]},
             {"area": "integer_operations", "status": "bounded_subset",

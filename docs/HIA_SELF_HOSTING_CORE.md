@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v9`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v10`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -108,11 +108,11 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 |---|---|
 | Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf` parameters |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
-| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
+| Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
-| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
+| Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
@@ -539,3 +539,52 @@ earlier writes remain observable. The input operation inventory is 32/50.
 Signed types, owned resources and the remaining general Core obligations remain
 outside this profile. Native finite witnesses and fixed points remain separate
 from an all-input compiler correctness proof.
+
+## v10 borrowed bulk byte operations
+
+The native self-hosted scanner, checker and emitter additionally implement
+`buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range` and
+`buffer.move_within`. The input inventory is **37 of 50** general Core operations.
+The remaining 13 operations concern allocation, ownership, loans and owner
+chains; they remain outside the profile. No buffer ABI, capacity limit, external
+symbol or machine-proof claim is broadened by this extension.
+
+Every bulk destination must be a `mutbuf`. Copy sources must be `readbuf`,
+offsets and counts must be `usize`, and fill values must be `u8`. Each operation
+has its exact arity, no result and no attributes. The existing checker forbids
+creating new borrowed aliases; the external caller must still supply distinct
+live source, output and workspace allocations. In-place movement takes one
+mutable buffer and has overlap-safe semantics.
+
+For each range, the generated machine code checks `offset <= extent` before
+subtracting, then `count <= extent - offset`. Copy and movement check both
+complete ranges before forming either derived pointer, reading source bytes or
+writing destination bytes. The checks therefore reject overflowing offset/count
+combinations, including `UINT64_MAX`, without relying on wrapped addition.
+Offsets at the end of an extent are legal for an empty operation; an offset
+beyond the end still traps when count is zero. A valid zero count bypasses all
+derived-pointer formation and memory access.
+
+All five operations use inline byte loops without host-library calls. In-place
+movement copies backward when the destination is above the source and forward
+otherwise, so overlapping left/right shifts and equal ranges preserve the
+original source bytes. The loops keep the direction flag unchanged and use
+caller-saved registers. Local branch displacements are written by HIA after
+their targets are known; no external relocation or linker is involved.
+
+`tools/hia_selfhost_bulk.py` records 69 cases: 36 successful operations and 33
+bounds traps, including empty buffers, exact boundaries, both overlap directions,
+changed runtime bytes and full-width offset/count failures. The independent
+general Core VM runs each unchanged borrowed body through an owned reference
+wrapper before B0. Both B3 and mutated M3 compile and execute every native case.
+Forty-five invalid sources per compiler exercise arity, result, attributes,
+operand types and mutable/same-buffer copy sources. Each new operation also has
+an ELF-text/flat-image equality check. These checks run inside the full cold
+qualification and are bound by its source manifest.
+
+Shared output mappings preserve actual bytes after a native `UD2`/`SIGILL`.
+Invalid ranges leave the entire output preimage unchanged; positive observer
+controls write first and then trigger a bulk bounds trap, so the earlier write
+must remain visible. This is bounds-before-write behavior for each bulk
+operation, not transactional rollback for an arbitrary program. Finite cases
+and fixed points do not establish correctness for all accepted programs.
