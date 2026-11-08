@@ -69,6 +69,8 @@ ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
     "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
+    "tools/qualify_hia_safe_core_cmovne.py", "tools/hia_safe_core_cmovne_child.py",
+    "tests/test_hia_safe_core_cmovne.py", "docs/HIA_SAFE_CORE_CMOVNE_20261108.md",
     "tests/test_hia_agent_native_proof_contract.py", "tests/test_hia_release_diagnostics.py",
     "tests/test_hia_agent_native_machine_validation.py",
     ".github/workflows/hia-sixgap-source.yml",

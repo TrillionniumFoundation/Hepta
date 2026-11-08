@@ -183,6 +183,13 @@ economic benefit; stronger ordinary controls and incomplete costs remain part
 of the recorded result. These finite qualifications do not close the universal
 compiler, ABI, resource, FFI, ISA or loader proof obligations.
 
+The independent supplied-artifact checker also admits the existing producer's
+64-bit register-register `CMOVNE` leaf within the unchanged Safe Core profile.
+Its [qualification](HIA_SAFE_CORE_CMOVNE_20261108.md) retains exact scalar
+subjects, solver queries, real refutations, unsupported forms and native
+witnesses. This instruction-model extension does not qualify the complete
+three-buffer compiler or replace the original select task's missing proofs.
+
 ## Release engineering
 
 Commit and review all source changes first. With both exact source checkouts

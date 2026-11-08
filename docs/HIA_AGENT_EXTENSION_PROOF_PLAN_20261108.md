@@ -2,6 +2,8 @@
 
 状态：设计审查，不改变既有四项 gate，不产生新的整体证明或采用授权。
 
+本计划中“当前 decoder”的缺口描述记录的是 `e05dbfffcfc1ccc0bb380e4b0d97ec43f251e03e` 基线。随后实现的 [CMOVNE 叶子验证](HIA_SAFE_CORE_CMOVNE_20261108.md)只扩展既有 Safe Core 的一条寄存器指令；它没有履行下面列出的完整扩展义务，也没有改变原始任务的 HOLD。
+
 ## 真实 subject 与不可改变的结论
 
 本计划针对原 d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6 的编译器 C0、冻结 patch e74f3c27d6ea7e7ccfc1c9e2a4e7674fecabef08ee0e05236e5a6e2b5bd75cb4 产生的编译器 C1。两个 canonical Core 分别为 40817012035aa8d156a0a9cf24752c0da24138ea207280b4f9fdd4cc25353850 与 10284cea893a06091e3bb1de5c9e593148915469f820993d49952386503c428b。

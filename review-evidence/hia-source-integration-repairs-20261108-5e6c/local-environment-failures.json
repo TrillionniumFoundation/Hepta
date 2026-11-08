@@ -1,0 +1,39 @@
+{
+  "schema": "hepta.hia.local-integration-environment-failures.v1",
+  "source_compiler_sha256": "d57f0350174ade6347077b72e2679ac083f103a7b38698efe7c4d227304beb91",
+  "checker_sha256": "94560da1baf4526d93d5c7449f74afc2db6967ea70b42e962af33fbca3dcd092",
+  "failures": [
+    {
+      "kind": "cmovne_initial_interpreter_missing_z3",
+      "tool_result": {
+        "chunk_id": "9f03e5",
+        "wall_time_seconds": 0.229064592,
+        "exit_code": 1,
+        "original_token_count": 476,
+        "output": "Traceback (most recent call last):\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/hepta/hia_safe_core.py\", line 356, in validate_safe_core_artifact\n    z = importlib.import_module(\"z3\")\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/importlib/__init__.py\", line 90, in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<frozen importlib._bootstrap>\", line 1387, in _gcd_import\n  File \"<frozen importlib._bootstrap>\", line 1360, in _find_and_load\n  File \"<frozen importlib._bootstrap>\", line 1324, in _find_and_load_unlocked\nModuleNotFoundError: No module named 'z3'\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_safe_core_cmovne.py\", line 405, in <module>\n    main()\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_safe_core_cmovne.py\", line 386, in main\n    worker(output, linker)\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_safe_core_cmovne.py\", line 343, in worker\n    rows.append(qualified_case(case, output, linker))\n                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_safe_core_cmovne.py\", line 270, in qualified_case\n    proof = validate_safe_core_artifact(core, object_bytes, final_bytes,\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/hepta/hia_safe_core.py\", line 358, in validate_safe_core_artifact\n    raise SafeCoreRejected(\"pinned z3-solver is unavailable; no proof result\") from exc\nhepta.hia_safe_core.SafeCoreRejected: E_HIA_SAFE_CORE: pinned z3-solver is unavailable; no proof result\n"
+      }
+    },
+    {
+      "kind": "original_delta_local_sparse_helper_missing",
+      "tool_result": {
+        "chunk_id": "615d2b",
+        "wall_time_seconds": 8.7073e-05,
+        "exit_code": 1,
+        "original_token_count": 77,
+        "output": "Traceback (most recent call last):\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_agent_original_select_delta.py\", line 29, in <module>\n    from tools.hia_agent_native_qualification import Session, ToolClient\nModuleNotFoundError: No module named 'tools.hia_agent_native_qualification'\n"
+      }
+    },
+    {
+      "kind": "original_delta_local_sparse_transport_missing",
+      "tool_result": {
+        "chunk_id": "8fb658",
+        "wall_time_seconds": 2.4432e-05,
+        "exit_code": 1,
+        "original_token_count": 123,
+        "output": "Traceback (most recent call last):\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/qualify_hia_agent_original_select_delta.py\", line 29, in <module>\n    from tools.hia_agent_native_qualification import Session, ToolClient\n  File \"/workspace/scratch/5e6c25ac6d7b/hepta-core/tools/hia_agent_native_qualification.py\", line 25, in <module>\n    from .hia_agent_native_transport import MCPStdio, QualificationFailure\nModuleNotFoundError: No module named 'tools.hia_agent_native_transport'\n"
+      }
+    }
+  ],
+  "failed_attempts_remain_failed": true,
+  "original_agent_calls_in_failed_attempt": 0
+}

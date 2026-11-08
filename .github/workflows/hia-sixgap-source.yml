@@ -151,6 +151,45 @@ jobs:
           ulimit -c 0
           python -B tools/qualify_hia_safe_core.py --output "$RUNNER_TEMP/hia-sixgap/safe-core" 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/safe-core.log"
           python -B -m unittest discover -s tests -p 'test_hia_release*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/supplied-bytes-release.log"
+      - name: Validate exact CMOVNE leaf subjects and retain all counterexamples
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B -m unittest \
+            tests.test_hia_safe_core_cmovne.CmovneLeafTests.test_all_register_fields_include_rex_extensions_and_aliases \
+            tests.test_hia_safe_core_cmovne.CmovneLeafTests.test_unreviewed_forms_fail_even_when_unreachable \
+            tests.test_hia_safe_core_cmovne.CmovneLeafTests.test_branch_cannot_enter_a_cmov_operand \
+            -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/cmovne-decoder.log"
+          python -B tools/qualify_hia_safe_core_cmovne.py \
+            --output "$RUNNER_TEMP/hia-sixgap/cmovne-leaf" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/cmovne-leaf.log"
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/cmovne-leaf'
+          report = json.loads((root / 'qualification.json').read_text())
+          assert report['status'] == 'PASS'
+          assert report['counts'] == {'smt_validated': 13, 'refuted': 6, 'unsupported': 3,
+              'native_calls': 492, 'decoded_register_combinations': 256, 'decoder_refusals': 17}
+          assert report['original_agent_four_claim_gate'] == 'HOLD'
+          assert report['whole_compiler_or_original_agent_delta_proved'] is False
+          assert report['hardware_isa_refinement_proved'] is False
+          for case in report['cases']:
+              proof = json.loads((root / case['id'] / 'validation.json').read_text())
+              if case['expected'] == 'smt_validated':
+                  assert [ob['result'] for ob in proof['obligations']] == ['sat', 'unsat', 'unsat', 'unsat', 'unsat']
+                  assert all(key in proof for key in ('subject', 'property', 'profile', 'assumptions', 'checker', 'unproved_obligations'))
+              else:
+                  assert case['native_calls'] == 0
+                  if case['expected'] == 'refuted':
+                      assert proof['validation']['ok'] is False
+                      assert proof['validation']['obligations'][-1]['result'] == 'sat'
+                  else:
+                      assert proof['proof_issued'] is False
+          print('Exact CMOVNE leaf model qualified; whole-compiler and original-task proof gates remain HOLD.')
+          PY
       - name: Preserve complete cost accounting and strong ordinary controls
         shell: bash
         run: |
