@@ -1,6 +1,8 @@
 # One HIA release entry and version contract
 
-`python3 -B tools/hia_release.py` is the candidate's default release entry.
+For the first-use public installation path, start with [HIA start here](HIA_START_HERE.md).
+
+`python3 -B tools/hia_release.py` is the selected default release entry.
 `releases/hia-current.json` selects immutable commits from **both** repositories;
 branch names, PR numbers and a compatible-looking tool list are not substitutes.
 The lock is repository release metadata, not a signed attestation or a grant to
@@ -10,6 +12,27 @@ The source commit deliberately precedes the metadata commit that contains its
 lock. This avoids a self-referential Git commit hash. Entry and preflight bytes
 must be identical to those in the pinned source; changing either requires a new
 source release. The metadata checkout is not the worker installation.
+
+## Selected release acceptance — 2026-11-08
+
+Selected source: `eb3f25f57dc5f7b49d1ca56b1570e232f5a932dc`. Selected runtime: `4cd85c99c5f5a480832c48fbde8561bb365f67a9`.
+Release-lock SHA256: `b8f33d5e15c0e9812cf4264a061dde3996d938362e8ceb73c027b3696e5131e3`. The actual online worker manifest
+matches this lock, and the installed HTTP production trial completed all
+15 steps, adopted its own new slot and returned 42 from the native consumer.
+The earlier 10-minute-context trial ended in an `E_HIA_BUDGET` adoption
+rejection; the separate successful trial used a 40-minute context budget.
+Neither trial establishes a performance gain or complete model billing.
+
+The original controller byte comparison remains non-exact: 129 paths were
+missing and four archive records changed. A separate bounded review checked
+all 133 differences against 128 retained canonical request identities. All
+42,934 old native-job metadata records and the old HIA request, slot, budget
+and owner rows were preserved; sqlite_sequence advanced monotonically.
+Cache/staging lifecycle and dispatch-terminal observations do not establish
+global quiet or completion of still-unknown business operations. Full
+counts, original failures and evidence hashes are in the current
+[six-gap acceptance record](HIA_SIXGAP_20261108.json). The dated snapshots
+below retain their historical source identities and outcomes.
 
 ## Bound identities
 
@@ -218,7 +241,7 @@ existing reviewed runtime deployment and conditional rollback procedures after
 their exact-byte gates pass. The release entry adds no second worker scheduler,
 gateway, compiler checker or process owner.
 
-## Qualification supplement: 2026-11-07
+## Historical qualification supplement: 2026-11-07
 
 The later observations below update the qualification summary for entry commit
 `e40daf900556fcc57941e0601d073ec46b340047`. The original release lock, source
