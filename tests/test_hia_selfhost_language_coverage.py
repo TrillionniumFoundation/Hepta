@@ -1,4 +1,4 @@
-"""Finite, feature-complete witnesses for the declared Selfhost-Core v10 profile.
+"""Finite, feature-complete witnesses for the declared Selfhost-Core v11 profile.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v10"
+PROFILE = "selfhost-core-linux-x86_64-v11"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -44,7 +44,7 @@ COMPARISONS = ("compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.
 INPUT_OPCODES = tuple(sorted(("const", *BINARY_INTEGER, *NEW_INTEGER, *SHIFTS, *COMPARISONS,
     "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load",
     "buffer.store", "buffer.swap", "buffer.fill", "buffer.fill_range", "buffer.copy",
-    "buffer.copy_range", "buffer.move_within", "call", "select")))
+    "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end", "call", "select")))
 NATIVE = (platform.system() == "Linux"
           and platform.machine().lower() in {"x86_64", "amd64"}
           and bool(shutil.which("ld")))
@@ -432,6 +432,17 @@ def positive_fixtures():
             'source': fixture_source(case), 'input': bytes.fromhex(case['source_hex']),
             'capacity': 8, 'workspace_size': 0, 'expected_result': 0,
             'expected_output': expected, 'case_ids': [op]})
+    from tools.hia_selfhost_loans import loan_cases, independent_loan_reference
+    loan_reference = {r["id"]: r for r in independent_loan_reference()["cases"]}
+    for row in loan_cases():
+        expected = bytes.fromhex(loan_reference[row["id"]]["expected_hex"])
+        # Language wrappers initialize to 0xa5, preserving the loan program.
+        original = bytes.fromhex(row["initial_hex"])
+        expected = bytes(0xa5 if b == original[i] else b for i, b in enumerate(expected))
+        fixtures.append({"id": "loan-" + row["id"], "kind": "buffer",
+            "source": row["source"], "input": bytes.fromhex(row["source_hex"]),
+            "capacity": 8, "workspace_size": 0, "expected_result": 0,
+            "expected_output": expected, "case_ids": ["borrow.read", "borrow.mut", "loan.end"]})
     fixtures += [buffer_fixture(), boundary_fixture("parameters-16", parameter_source(16), 120),
                  boundary_fixture("blocks-per-function-256", block_source([256])),
                  boundary_fixture("blocks-total-1536", block_source([256] * 6)),
@@ -471,6 +482,10 @@ def rejected_fixtures():
     from tools.hia_selfhost_bulk import bulk_refusals
     for name, source in bulk_refusals().items():
         add('bulk-' + name, source, 'exact borrowed bulk signature and zero results', 'rejected')
+    from tools.hia_selfhost_loans import loan_refusals
+    for name, source in loan_refusals().items():
+        add("loan-" + name, source, "native block-local loan capability rules",
+            "accepted" if name == "local-loan-across-edge" else "rejected")
     # Existing tail witnesses are independently classified by their own helper.
     for name, (source, general_core) in tail_refusals().items():
         add("tail-" + name, source, "immediate exact tail return and mutable arguments",
@@ -703,7 +718,7 @@ def coverage_manifest():
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
         "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast"]),
-        "resources": (["args", "edge", "operation", "bulk_buffer", "bulk_range_guard"], ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*"]),
+        "resources": (["args", "edge", "operation", "bulk_buffer", "bulk_range_guard", "loan_operation", "loan_access", "loan_call_checks", "finish_instruction"], ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*", "loan-*"]),
         "integer_operations": (["instruction", "operation", "checked_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
@@ -718,7 +733,7 @@ def coverage_manifest():
     }
     existing = {
         "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
-        "resources": ["tools.hia_selfhost_resources.qualify_resources", "tools.hia_selfhost_bulk.qualify_bulk",
+        "resources": ["tools.hia_selfhost_resources.qualify_resources", "tools.hia_selfhost_bulk.qualify_bulk", "tools.hia_selfhost_loans.qualify_loans",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
@@ -943,7 +958,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 37)
+        self.assertEqual(len(manifest["input_opcodes"]), 40)
         self.assertIn("select", manifest["input_opcodes"])
         self.assertEqual(manifest["general_core_opcode_count"], 50)
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])

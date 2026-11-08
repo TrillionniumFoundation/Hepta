@@ -1577,6 +1577,7 @@
       "existing_evidence": [
         "tools.hia_selfhost_resources.qualify_resources",
         "tools.hia_selfhost_bulk.qualify_bulk",
+        "tools.hia_selfhost_loans.qualify_loans",
         "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"
       ],
       "hia_functions": {
@@ -1584,6 +1585,10 @@
         "bulk_buffer": "f47",
         "bulk_range_guard": "f46",
         "edge": "f5",
+        "finish_instruction": "f54",
+        "loan_access": "f49",
+        "loan_call_checks": "f53",
+        "loan_operation": "f51",
         "operation": "f7"
       },
       "items": [
@@ -1597,6 +1602,9 @@
         "buffer.copy",
         "buffer.copy_range",
         "buffer.move_within with overlap handling",
+        "block-local borrow.read/borrow.mut and loan.end",
+        "native parent suspension, root conflict and consumed-loan checks",
+        "local loans end before every block terminator",
         "linear edge transfers",
         "readonly call aliases",
         "mutable alias rejection"
@@ -1605,7 +1613,8 @@
         "borrowed-buffer-operations",
         "existing-readonly-*",
         "swap-*",
-        "bulk-*"
+        "bulk-*",
+        "loan-*"
       ],
       "status": "bounded_subset"
     },
@@ -1843,8 +1852,6 @@
   ],
   "general_core_opcode_count": 50,
   "general_core_opcodes_outside_profile": [
-    "borrow.mut",
-    "borrow.read",
     "buffer.new",
     "buffer.try_new",
     "chain.empty",
@@ -1853,7 +1860,6 @@
     "chain.is_empty",
     "chain.pop",
     "chain.try_push",
-    "loan.end",
     "owner.drop",
     "owner.move"
   ],
@@ -1865,6 +1871,8 @@
     "bool.and",
     "bool.not",
     "bool.or",
+    "borrow.mut",
+    "borrow.read",
     "buffer.copy",
     "buffer.copy_range",
     "buffer.fill",
@@ -1894,6 +1902,7 @@
     "int.shr.checked",
     "int.sub.checked",
     "int.sub.wrap",
+    "loan.end",
     "select"
   ],
   "input_types": [
@@ -1945,7 +1954,7 @@
       "derived_maximum_with_other_limits": 11265
     }
   },
-  "profile": "selfhost-core-linux-x86_64-v10",
+  "profile": "selfhost-core-linux-x86_64-v11",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -2444,6 +2453,150 @@
       "general_core_expected": "rejected",
       "id": "bulk-buffer.move_within-wrong-scalar",
       "source_sha256": "db2a57c81d8bcb3ba350f9f45a57ae8e631f7d068e806cf5554640ee46b67874"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-readonly-to-mutable",
+      "source_sha256": "53609b9496fa91a1590ab1f2773ed0f3f3768143045ff357292a371438fed740"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-wrong-read-result",
+      "source_sha256": "367ef2ba2f036edf0b7a35100c9e53af2857e447cc2a6f9e82d69306f9c83455"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-wrong-mutable-result",
+      "source_sha256": "61ee0a843846bcbe800b671614fc9a3524fb9f5b408c84e70ced96f93adedb76"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-scalar-result",
+      "source_sha256": "4d9ffb34d537e3a773e6e70a4d1fe529af1522cb732336451a82878a4159fffb"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-missing-result",
+      "source_sha256": "068da3722b1b3006267e4446a03f1f085fbf2dad829f744a6866df0a244770af"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-short-arity",
+      "source_sha256": "be51b18fa0b0560c2e240cc109bf9d2e699d735c9c4f19c422b0fe8807cfa182"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-long-arity",
+      "source_sha256": "c5958b7a8e40d251479f5d781adcf1d86f77d0c6e9d871394793ec6e0dfc9e99"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-external-end",
+      "source_sha256": "51d7d8eee20d4962984741eacd62ed2d7d7473d4e2a3888b11352cc8e6e56118"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-write",
+      "source_sha256": "89842fb5a238c2e525425ff12501c615bff342dc829802680a14c053298757d6"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-read",
+      "source_sha256": "19432262ae88389b8e0aa825eafc1cccedf8e3a5313bc39827e97ba510416b32"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-double-end",
+      "source_sha256": "cf8471c4de93306cebccf36e05b2db9467c19155da8bae00a1cc3d37933cd40d"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-use-after-end",
+      "source_sha256": "4260f42a8cb762ab7dd12a2252adf73bd1e48dae44d84d7636cfd0165aeeeadc"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-live-local-return",
+      "source_sha256": "9dbe11acf836eb5109946e2f95646e60f856a1a6681d12afbec203668eba38e7"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-end-parent-first",
+      "source_sha256": "0a99a286f3ce3f2e0551f62162c57d39cb422d812f87b642417b523b6eb7fd6e"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-mutable-sibling",
+      "source_sha256": "2bef5f39ed5fb06b86cc6403bece5ec8a572a574514a3e126043b311b5c0ebc2"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-readonly-with-mutable-sibling",
+      "source_sha256": "481314924321c35d5ecb75cad42c0c71a822d8b2141bc9e79ab2ce433a1469f2"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-mutable-with-readonly-sibling",
+      "source_sha256": "b39876950027fe86fce12305c085be63a0f7653df058a6838ad93d4c83d1fda2"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-end-result",
+      "source_sha256": "5253c44cd87f97837dba5c294e78b4a96d0b863ddfcebbde6e7976ee947cbc9e"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-end-short-arity",
+      "source_sha256": "ecbe18b2f3f82ed089e51779a5c0b01b720c46084708a7bfac65c97437fcd1b3"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-end-long-arity",
+      "source_sha256": "bd57f9525134c4bd0d46385b1d045631d518026ad95a620c303047e57f037d2a"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-bulk-source",
+      "source_sha256": "11953f1975d71282a5907fefa22ce89ebc1e8d5a172f51f21fd64d23c9fa3b54"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "accepted",
+      "id": "loan-local-loan-across-edge",
+      "source_sha256": "2b43e270c08619d5e72440ce2b0b63d669d9383476e3982c5adb0146d063ffee"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-suspended-parent-call",
+      "source_sha256": "f683ed88749f160e64d36777c073ed85c6779900c05d5578028e711cacbb7084"
+    },
+    {
+      "boundary": "native block-local loan capability rules",
+      "general_core_expected": "rejected",
+      "id": "loan-ended-loan-call",
+      "source_sha256": "831607f3636ab9e6e3c85e03848ebc1af1e93e299ec4d974b81b1c6a2a5f1d82"
     },
     {
       "boundary": "immediate exact tail return and mutable arguments",
@@ -3302,13 +3455,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "7a90a06720b0f7c589159b0bde616fed6a97e558f8af9376fca19c4c21e64511"
+      "sha256": "a9f325a949f59260297942e249d7290c82659ab30de3ad3bb33a55e9d81e6aa9"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "1f8bcdf1c541d5f8ee7595dfc3905746874fd89455ca32c46ec329233030f68b"
+      "sha256": "2d7064f066a81a5dc28ca193553ec346a75844e6911369c61a7703304a161376"
     },
-    "semantic_support_sha256": "eff861b4c42b7a9132acc0e661b79659831cd64b56b9ebadff81c4a9799d13c5",
+    "semantic_support_sha256": "4e509b3411b650936fcde3f51c24ef77f72dd7cca4b9e104a8c8460f49df33f5",
     "support_projection_omits": [
       "source_identity"
     ]

@@ -84,6 +84,13 @@ class SelfhostSourceTests(unittest.TestCase):
         for row in result["cases"]:
             self.assertEqual(row["reference_result"]["status"], "trapped" if row["trap"] else "returned")
 
+    def test_reborrow_reference_distinguishes_local_lifetime_and_general_flow(self):
+        from tools.hia_selfhost_loans import independent_loan_reference
+        result = independent_loan_reference()
+        self.assertEqual(len(result["cases"]), 10)
+        self.assertEqual(len(result["rejections"]), 24)
+        self.assertEqual(sum(row["general_core"] == "accepted" for row in result["rejections"]), 1)
+
     def test_call_graph_admission_distinguishes_general_core_from_fixed_profile(self):
         assemble_program(backward_bytesum_source(SAMPLE.read_bytes()))
         assemble_program(backward_chain_source())

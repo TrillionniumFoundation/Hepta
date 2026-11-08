@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -24,6 +24,7 @@ W = {s: i + 300 for i,s in enumerate(WORDS)}
 # after the complete relocation table, so this profile keeps the 1 MiB limit.
 FBASE, FSTRIDE, BBASE, BSTRIDE, VBASE, ARGS, FIXBASE = 4096, 320, 45056, 320, 536576, 569344, 570368
 CBASE, CSTATE = 858368, 874752
+LPARENT, LROOT, LALIVE, LCHILD = 875776, 892160, 908544, 924928
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
@@ -186,6 +187,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     # This block-local pending result is separate from the v5 node counter at
     # 248. A self call is admitted only when the next token is its exact ret.
     put(w, 256, 0)
+    put(w, 264, 0)
     expect(s, w, @block@)
     separated(w)
     b = expect(s, w, 258)
@@ -213,6 +215,9 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 10)
     while (get(w, 8) == 256 or get(w, 8) == 95) and get(w, 40) == 0:
         instruction(s, o, w)
+    # Local loans are deliberately confined to one block in this profile.
+    if get(w, 264) != 0:
+        fail(w, 62)
     if get(w, 8) == @ret@:
         account_nodes(w, 4)
         next_token(s, w)
@@ -336,10 +341,10 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         v = expect(s, w, 256)
         expect(s, w, 58)
         t = read_type(s, w)
-        if t >= 6:
-            fail(w, 21)
     expect(s, w, 61)
     op = get(w, 8)
+    if t >= 6 and op != @borrow.read@ and op != @borrow.mut@:
+        fail(w, 21)
     next_token(s, w)
     adjacent(w)
     n = args(s, w, 0)
@@ -406,6 +411,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 fb = FBASE + x * FSTRIDE
                 if n != get(w, fb + 24) or t != get(w, fb + 32):
                     fail(w, 24)
+                loan_call_checks(w, n)
                 i = 0
                 av = 0
                 typ = 0
@@ -454,17 +460,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                     checked_integer(o, w, op, n, a, b, at, bt, t)
                 else:
                     operation_dispatch(o, w, op, n, a, b, at, bt, t)
-    if t != 0:
-        define(w, v, t)
-        if get(w, 256) == 0:
-            store_var(o, w, v, 0)
-    else:
-        if op != @buffer.store@ and op != @buffer.swap@ and (op < @buffer.fill@ or op > @buffer.move_within@):
-            fail(w, 27)
-    expect(s, w, 10)
-    if get(w, 256) != 0 and get(w, 8) != @ret@:
-        fail(w, 59)
-    return 0
+    return finish_instruction(s, o, w, op, v, t, a)
 
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
     if op == @select@:
@@ -475,6 +471,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         load_var(o, w, 0, a, 1)
         return 0
     if op == @buffer.swap@:
+        loan_access(w, a)
         if n != 3 or t != 0 or at != 7 or bt != 2 or variable(w, get(w, ARGS + 16)) != 2:
             fail(w, 57)
         load_var(o, w, 1, b, 0)
@@ -490,6 +487,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         emit8(o, w, 10382635531107731985)
         return 0
     if op == @buffer.load@ or op == @buffer.store@:
+        loan_access(w, a)
         if at < 6 or bt != 2:
             fail(w, 29)
         if op == @buffer.load@:
@@ -627,6 +625,11 @@ def define(w:mutbuf, v:u64, t:u64) -> u64:
         return fail(w, 38)
     put(w, VBASE + v * 16, t)
     put(w, VBASE + v * 16 + 8, get(w, 88) + 1)
+    if t >= 6:
+        put(w, LPARENT + v * 8, 0)
+        put(w, LROOT + v * 8, v + 1)
+        put(w, LALIVE + v * 8, 1)
+        put(w, LCHILD + v * 8, 0)
     fb = FBASE + get(w, 72) * FSTRIDE
     if get(w, 48) == 0:
         if v > get(w, fb + 40):
@@ -641,6 +644,8 @@ def variable(w:mutbuf, v:u64) -> u64:
     t = get(w, VBASE + v * 16)
     if t == 0:
         return fail(w, 40)
+    if t >= 6 and get(w, LALIVE + v * 8) == 0:
+        return fail(w, 62)
     return t
 
 def read_type(s:readbuf, w:mutbuf) -> u64:
@@ -1219,6 +1224,7 @@ def bulk_range_guard(o:mutbuf, w:mutbuf, buffer:u64, offset:u64, size:u64) -> u6
     return 0
 
 def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    loan_access(w, a)
     if at != 7 or t != 0:
         return fail(w, 61)
     c = get(w, ARGS + 16)
@@ -1244,10 +1250,13 @@ def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64,
             bulk_range_guard(o, w, a, b, d)
             bulk_range_guard(o, w, a, c, d)
         else:
-            # The borrowed entry ABI supplies distinct live allocations;
-            # this subset cannot produce new aliases or change loan types.
+            # The entry ABI supplies distinct external roots. Local aliases
+            # are constrained by native access and root checks below.
             if bt != 6:
                 return fail(w, 61)
+            loan_access(w, b)
+            if get(w, LROOT + a * 8) == get(w, LROOT + b * 8):
+                return fail(w, 62)
             if op == @buffer.copy@:
                 if n != 3 or variable(w, c) != 2:
                     return fail(w, 61)
@@ -1299,9 +1308,94 @@ def bulk_buffer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64,
 
 # Keep dispatch outside the pre-existing operation function's SSA budget.
 def operation_dispatch(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op >= @borrow.read@ and op <= @loan.end@:
+        return loan_operation(w, op, n, a, at, t)
     if op >= @buffer.fill@ and op <= @buffer.move_within@:
         return bulk_buffer(o, w, op, n, a, b, at, bt, t)
     return operation(o, w, op, n, a, b, at, bt, t)
+
+# Native compiler capability metadata; never a host-side permission decision.
+def loan_access(w:mutbuf, v:u64) -> u64:
+    if v >= 2048:
+        return fail(w, 62)
+    if get(w, LCHILD + v * 8) != 0:
+        return fail(w, 62)
+    return 0
+
+def loan_ancestor(w:mutbuf, candidate:u64, source:u64) -> u64:
+    current = source + 1
+    while current != 0:
+        if current == candidate + 1:
+            return 1
+        current = get(w, LPARENT + (current - 1) * 8)
+    return 0
+
+def loan_operation(w:mutbuf, op:u64, n:u64, a:u64, at:u64, t:u64) -> u64:
+    if n != 1 or at < 6 or at > 7:
+        return fail(w, 62)
+    if op == @loan.end@:
+        if t != 0 or get(w, LPARENT + a * 8) == 0:
+            return fail(w, 62)
+        loan_access(w, a)
+        parent = get(w, LPARENT + a * 8) - 1
+        put(w, LCHILD + parent * 8, get(w, LCHILD + parent * 8) - 1)
+        put(w, LALIVE + a * 8, 0)
+        put(w, 264, get(w, 264) - 1)
+        return 0
+    if (op == @borrow.read@ and t != 6) or (op == @borrow.mut@ and (t != 7 or at != 7)):
+        return fail(w, 62)
+    i = 0
+    while i < 2048:
+        if get(w, VBASE + i * 16 + 8) == get(w, 88) + 1:
+            typ = get(w, VBASE + i * 16)
+            if typ >= 6 and get(w, LALIVE + i * 8) != 0 and get(w, LROOT + i * 8) == get(w, LROOT + a * 8):
+                if loan_ancestor(w, i, a) == 0:
+                    if op == @borrow.mut@ or typ == 7:
+                        return fail(w, 62)
+        i = i + 1
+    return 0
+
+def loan_define(w:mutbuf, v:u64, a:u64) -> u64:
+    put(w, LPARENT + v * 8, a + 1)
+    put(w, LROOT + v * 8, get(w, LROOT + a * 8))
+    put(w, LCHILD + a * 8, get(w, LCHILD + a * 8) + 1)
+    put(w, 264, get(w, 264) + 1)
+    return 0
+
+def loan_call_checks(w:mutbuf, n:u64) -> u64:
+    i = 0
+    while i < n:
+        a = get(w, ARGS + i * 8)
+        at = variable(w, a)
+        if at >= 6:
+            loan_access(w, a)
+            j = 0
+            while j < i:
+                b = get(w, ARGS + j * 8)
+                bt = variable(w, b)
+                if bt >= 6 and (at == 7 or bt == 7) and get(w, LROOT + a * 8) == get(w, LROOT + b * 8):
+                    return fail(w, 62)
+                j = j + 1
+        i = i + 1
+    return 0
+
+def finish_instruction(s:readbuf, o:mutbuf, w:mutbuf, op:u64, v:u64, t:u64, a:u64) -> u64:
+    if t != 0:
+        define(w, v, t)
+        if get(w, 256) == 0:
+            if t >= 6:
+                loan_define(w, v, a)
+                load_var(o, w, 0, a, 1)
+                store_var(o, w, v, 1)
+                load_var(o, w, 0, a, 0)
+            store_var(o, w, v, 0)
+    else:
+        if op != @buffer.store@ and op != @buffer.swap@ and op != @loan.end@ and (op < @buffer.fill@ or op > @buffer.move_within@):
+            fail(w, 27)
+    expect(s, w, 10)
+    if get(w, 256) != 0 and get(w, 8) != @ret@:
+        fail(w, 59)
+    return 0
 
 '''
 
@@ -1316,7 +1410,7 @@ def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE',
-                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
+                'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS', 'LPARENT', 'LROOT', 'LALIVE', 'LCHILD']:
         text = text.replace(key, str(globals()[key]))
     return text
 

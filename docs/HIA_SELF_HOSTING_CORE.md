@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v10`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v11`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -113,6 +113,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
+| Local reborrowing | `borrow.read`, `borrow.mut`, `loan.end` from borrowed parameters or local loans; all local loans end before a block terminator |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Every function explicitly declares `effects(read,write,trap)` |
@@ -152,8 +153,9 @@ tail shape. Non-tail self calls and all mutual cycles are rejected, including
 cycles in unused helper functions. Repeated mutable buffer arguments in one call or edge
 are rejected. Every edge also rejects repeated `readbuf` SSA arguments, matching
 Core's linear capability transfer rule, even on a statically untaken branch.
-Calls may pass the same read-only loan more than once. Buffers can only originate in parameters and flow through checked
-edges/calls; the subset cannot create aliases by producing new buffer values.
+Calls may pass the same read-only loan more than once. Borrowed roots originate in parameters and flow through checked edges/calls. Local
+reborrowing creates explicitly tracked descendants within one block; parent
+memory access is suspended until children end.
 The host supplies disjoint live allocations at the external entrypoint.
 
 The bounds are part of the compiler profile:
@@ -569,3 +571,30 @@ directions, empty and exact boundaries, maximum usize values, too-short buffers,
 and observable stores before a trap. Cold replay includes these witnesses.
 Finite observations retain the host/ABI assumptions and do not prove the general
 compiler, ISA, loader, resource or FFI semantics.
+
+
+### v11 block-local loan capabilities
+
+The actual HIA parser/checker/encoder now accepts `borrow.read`, `borrow.mut`
+and `loan.end`, raising opcode coverage from 37/50 to 40/50. The four 2048-entry
+capability arrays occupy offsets 875776 through 941311 inside the existing 1 MiB
+workspace. Native checks retain each loan's parent, root, live status and child
+count. Shared siblings may coexist; mutable conflicts, suspended parent access,
+ending a caller's loan, parent-first termination and consumed-loan use refuse
+before generated machine publication. Calls enforce access and root conflicts;
+bulk copies enforce distinct roots. Pointer and extent travel together.
+
+Local loans must end in the block that creates them. This is an explicit profile
+restriction: general Core can transfer a parent and its child across an edge,
+while this compiler rejects that otherwise valid input. Returned loans, owned
+allocation/move/drop and all chain operations remain outside this profile. There
+are still ten unsupported general Core opcodes, and no general compiler, ISA,
+loader or all-input correctness proof is established. The compiler retains the
+existing SSA, total-block, instruction and source/output/workspace ceilings.
+
+The qualification executes independent general Core wrappers before B0, then
+compares native generated programs against their observed bytes. It exercises
+nested shared/mutable loans, shared siblings, restored parent access, independent
+roots and loan extents; malformed lifetimes and signatures are separately
+classified. Every accepted loan fixture also compares generated flat bytes with
+the HIA-written ELF `.text` section. These are finite witnesses.

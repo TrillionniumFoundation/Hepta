@@ -44,6 +44,7 @@ BOOTSTRAP_FILES = (
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",
     "tools/hia_selfhost_cases.py", "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_bulk.py", "tools/hia_selfhost_loans.py",
     "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py", "tools/hia_selfhost_capacity.py",
