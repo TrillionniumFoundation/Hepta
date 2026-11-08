@@ -1,4 +1,4 @@
-"""Finite, feature-complete witnesses for the declared Selfhost-Core v8 language.
+"""Finite, feature-complete witnesses for the declared Selfhost-Core v9 profile.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,10 +32,12 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v8"
+PROFILE = "selfhost-core-linux-x86_64-v9"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
-CHECKED_ARITHMETIC = ("int.add.checked", "int.sub.checked")
+CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
+CHECKED_ARITHMETIC = (*CHECKED_BINARY, "int.neg.checked")
+UNARY_INTEGER = ("bit.not", "int.neg.checked")
 NEW_INTEGER = ("bit.not", *CHECKED_ARITHMETIC)
 SHIFTS = ("int.shl.checked", "int.shr.checked")
 COMPARISONS = ("compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge")
@@ -94,9 +96,20 @@ def scalar_cases():
             "int.sub.checked": ((0, 0), (mask, 0), (mask, mask), (1, 1),
                 (mask, 1), (high, 1), (high, high - 1), (mask, high), (alternating, 0)),
         }
+        checked_pairs.update({
+            "int.mul.checked": ((0, 0), (0, mask), (mask, 0), (mask, 1), (1, mask),
+                (high, 1), (1, high), (high - 1, 2), (2, high - 1), (mask // 3, 3)),
+            "int.div.checked": ((0, 1), (0, mask), (mask, 1), (mask, mask), (mask, 2),
+                (high, 1), (high, 2), (mask, high), (high - 1, high), (mask, 3)),
+            "int.rem.checked": ((0, 1), (0, mask), (mask, 1), (mask, mask), (mask, 2),
+                (high, 1), (high, 2), (mask, high), (high - 1, high), (mask, 3)),
+        })
+        add("scalar-" + typ, typ, "int.neg.checked", [0], 0)
         for op, operands in checked_pairs.items():
             for a, b in operands:
-                value = a + b if op == "int.add.checked" else a - b
+                value = {"int.add.checked": lambda: a + b, "int.sub.checked": lambda: a - b,
+                         "int.mul.checked": lambda: a * b, "int.div.checked": lambda: a // b,
+                         "int.rem.checked": lambda: a % b}[op]()
                 if not 0 <= value <= mask:
                     raise AssertionError("positive checked arithmetic oracle is out of range")
                 add("scalar-" + typ, typ, op, [a, b], value)
@@ -401,9 +414,12 @@ def positive_fixtures():
     groups = list(dict.fromkeys(row["group"] for row in rows))
     fixtures = [scalar_fixture(group, [row for row in rows if row["group"] == group])
                 for group in groups]
-    fixtures += [scalar_fixture("dynamic-integer-" + typ,
-        [row for row in rows if row["operand_type"] == typ and row["opcode"] in NEW_INTEGER],
-        input_arguments=True) for typ in WIDTHS]
+    # The independent wrapper returns every observed byte. Keep each batch
+    # within the shared 128-result budget rather than weakening that budget.
+    for typ in WIDTHS:
+        dynamic = [row for row in rows if row["operand_type"] == typ and row["opcode"] in NEW_INTEGER]
+        fixtures += [scalar_fixture("dynamic-integer-" + typ + "-" + str(index // 16),
+            dynamic[index:index + 16], input_arguments=True) for index in range(0, len(dynamic), 16)]
     fixtures += select_input_fixtures()
     fixtures += [buffer_fixture(), boundary_fixture("parameters-16", parameter_source(16), 120),
                  boundary_fixture("blocks-per-function-256", block_source([256])),
@@ -498,13 +514,13 @@ def rejected_fixtures():
     for name, source, boundary in additions:
         add(name, source, boundary)
     for op in NEW_INTEGER:
-        arguments = "v3" if op == "bit.not" else "v3,v4"
+        arguments = "v3" if op in UNARY_INTEGER else "v3,v4"
         valid = (HEADER + '  v3:u32 = const() {"value":1}\n'
             '  v4:u32 = const() {"value":1}\n  v5:u32 = ' + op + '(' + arguments + ')\n'
             '  v6:u32 = const() {"value":0}\n  ret(v6)\nend\n').encode()
         token = op.encode() + b"(" + arguments.encode() + b")"
         bad_shapes = {
-            "short-arity": valid.replace(token, op.encode() + b"(" + (b"" if op == "bit.not" else b"v3") + b")"),
+            "short-arity": valid.replace(token, op.encode() + b"(" + (b"" if op in UNARY_INTEGER else b"v3") + b")"),
             "long-arity": valid.replace(token, op.encode() + b"(" + arguments.encode() + b",v4)"),
             "result-type": valid.replace(b"v5:u32", b"v5:u8"),
             "missing-result": valid.replace(b"v5:u32 =", b"_ ="),
@@ -513,7 +529,7 @@ def rejected_fixtures():
                 .replace(b"v5:u32", b"v5:bool").replace(b'{"value":1}', b'{"value":true}'),
             "unexpected-attribute": valid.replace(token, token + b' {"mode":"wrap"}'),
         }
-        if op in CHECKED_ARITHMETIC:
+        if op in CHECKED_BINARY:
             bad_shapes["operand-type-mismatch"] = valid.replace(b"v4:u32", b"v4:u8")
         for name, source in bad_shapes.items():
             add(op + "-" + name, source, "exact unsigned operation signature and empty attributes", "rejected")
@@ -548,6 +564,10 @@ def checked_arithmetic_trap_cases():
         inputs = {
             "int.add.checked": ((mask, 1), (1, mask), (high, high), (mask, mask)),
             "int.sub.checked": ((0, 1), (0, mask), (mask - 1, mask), (high - 1, high)),
+            "int.mul.checked": ((mask, 2), (2, mask), (high, 2), (mask, mask)),
+            "int.div.checked": ((0, 0), (1, 0), (high, 0), (mask, 0)),
+            "int.rem.checked": ((0, 0), (1, 0), (high, 0), (mask, 0)),
+            "int.neg.checked": ((1, 0), (high - 1, 0), (high, 0), (mask, 0)),
         }
         for op, operands in inputs.items():
             for index, (left, right) in enumerate(operands):
@@ -557,12 +577,13 @@ def checked_arithmetic_trap_cases():
                     before, after = a.const("u8", 99), a.const("u8", 77)
                     if prior_store:
                         a.effect("buffer.store", ["v1", first, before])
-                    lhs, rhs = a.const(typ, left), a.const(typ, right)
-                    result = a.emit(typ, op, [lhs, rhs])
+                    values = [left] if op == "int.neg.checked" else [left, right]
+                    operands = [a.const(typ, value) for value in values]
+                    result = a.emit(typ, op, operands)
                     a.effect("buffer.store", ["v1", second, after])
                     result = a.emit("u32", "int.cast", [result], {"mode": "wrap"})
                     source = (HEADER + a.text() + "  ret(" + result + ")\nend\n").encode()
-                    case = {"operand_type": typ, "opcode": op, "arguments": [left, right],
+                    case = {"operand_type": typ, "opcode": op, "arguments": values,
                             "result_type": typ}
                     rows.append({**case, "id": "checked-trap-" + typ + "-" + op.split(".")[1]
                         + "-" + str(index) + ("-prior-store" if prior_store else "-no-prior-store"),
@@ -637,7 +658,8 @@ def independent_references():
             result = execute_program(scalar_doc, "f0", [])
         except HIAProgramTrap as exc:
             result = {"status": "trapped", "trap": exc.code, "message": str(exc)}
-        if result.get("status") != "trapped" or result.get("trap") != "overflow":
+        expected_trap = "division_by_zero" if fixture["opcode"] in {"int.div.checked", "int.rem.checked"} else "overflow"
+        if result.get("status") != "trapped" or result.get("trap") != expected_trap:
             raise AssertionError({"case": fixture["id"], "reference": result})
         traps.append({key: value for key, value in fixture.items() if not isinstance(value, bytes)} |
                      {"core_sha256": checked.sha256, "source_sha256": digest(fixture["source"]),
@@ -700,7 +722,7 @@ def coverage_manifest():
     negative = rejected_fixtures()
     return {
         "schema": "hepta.hia.selfhost-language-coverage.v1", "profile": PROFILE,
-        "claims": {"inventory_covers_declared_v8_features": True,
+        "claims": {"inventory_covers_declared_profile_features": True,
                    "finite_witnesses_are_all_input_correctness_proof": False,
                    "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False,
@@ -713,7 +735,7 @@ def coverage_manifest():
             "support_projection_omits": ["source_identity"],
         },
         "input_opcodes": supported, "general_core_opcode_count": len(OPCODES),
-        "general_core_opcodes_outside_v8": sorted(set(OPCODES) - set(supported)),
+        "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
         "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf"],
         "features": features,
         "syntax": {"contract": contract["syntax"],
@@ -907,7 +929,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 28)
+        self.assertEqual(len(manifest["input_opcodes"]), 32)
         self.assertIn("select", manifest["input_opcodes"])
         self.assertEqual(manifest["general_core_opcode_count"], 50)
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])
@@ -943,8 +965,8 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles(self):
         reference = independent_references()
-        # The original 568 plus 92 integer and 40 select witnesses.
-        self.assertEqual(len(reference["scalar"]), 700)
+        # Includes all unsigned scalar operations, full-width and zero divisors.
+        self.assertEqual(len(reference["scalar"]), 824)
         self.assertTrue(all(row["reference_result"]["status"] == "trapped" for row in reference["traps"]))
         self.assertTrue(any(row["reference_result"]["status"] == "accepted" for row in reference["negative"]))
         self.assertTrue(any(row["reference_result"]["status"] == "rejected" for row in reference["negative"]))
@@ -975,16 +997,22 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_checked_arithmetic_covers_width_boundaries_and_both_write_orders(self):
         rows = checked_arithmetic_trap_cases()
-        self.assertEqual(len(rows), 40)
+        self.assertEqual(len(rows), 120)
         for typ, width in WIDTHS.items():
             for op in CHECKED_ARITHMETIC:
                 cases = [row for row in rows if row["operand_type"] == typ and row["opcode"] == op]
                 self.assertEqual(len(cases), 5)
                 self.assertEqual({row["prior_store"] for row in cases}, {False, True})
                 for row in cases:
-                    a, b = row["arguments"]
-                    result = a + b if op == "int.add.checked" else a - b
-                    self.assertFalse(0 <= result < (1 << width))
+                    args = row["arguments"]
+                    if op in {"int.div.checked", "int.rem.checked"}:
+                        self.assertEqual(args[1], 0)
+                    else:
+                        result = {"int.add.checked": lambda: args[0] + args[1],
+                            "int.sub.checked": lambda: args[0] - args[1],
+                            "int.mul.checked": lambda: args[0] * args[1],
+                            "int.neg.checked": lambda: -args[0]}[op]()
+                        self.assertFalse(0 <= result < (1 << width))
                     self.assertEqual(row["expected_output"][1:], bytes([0xa5]) * 7)
 
     def test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof(self):
@@ -1021,7 +1049,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        self.assertEqual(self.report["reference"]["scalar_cases"], 700)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 824)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])
@@ -1036,7 +1064,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
 
     def test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes(self):
         rows = [row for row in self.report["traps"] if row["kind"] == "checked_arithmetic"]
-        self.assertEqual(len(rows), 80)
+        self.assertEqual(len(rows), 240)
         for row in rows:
             self.assertEqual(row["execution"]["returncode"], -4)
             self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
@@ -1044,7 +1072,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
 
     def test_new_integer_operations_use_runtime_input_under_both_compilers(self):
         for typ in WIDTHS:
-            rows = [row for row in self.report["positive"] if row["id"] == "dynamic-integer-" + typ]
+            rows = [row for row in self.report["positive"] if row["id"].startswith("dynamic-integer-" + typ + "-")]
             self.assertEqual({row["compiler"] for row in rows}, {"B3", "M3"})
             for row in rows:
                 self.assertGreater(row["execution"]["input_bytes"], 0)

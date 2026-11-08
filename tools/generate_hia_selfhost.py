@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -450,7 +450,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 load_var(o, w, 0, a, 0)
                 normalize(o, w, t)
             else:
-                if op == @bit.not@ or op == @int.add.checked@ or op == @int.sub.checked@:
+                if op >= @bit.not@ and op <= @int.neg.checked@ and op != @select@:
                     checked_integer(o, w, op, n, a, b, at, bt, t)
                 else:
                     operation(o, w, op, n, a, b, at, bt, t)
@@ -1133,10 +1133,31 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
         emit(o, w, 208)
         normalize(o, w, t)
         return 0
+    if op == @int.neg.checked@:
+        if n != 1 or at < 1 or at > 4 or t != at:
+            fail(w, 31)
+        # The only representable unsigned negation is zero. Test before any
+        # later operation, preserving all earlier observable stores.
+        emit_bytes(o, w, 3112727966942536, 7)
+        return 0
     if n != 2 or at != bt or t != at or t == 0 or t > 4:
         fail(w, 34)
     load_var(o, w, 1, b, 0)
-    if op == @int.add.checked@ or op == @int.sub.checked@:
+    if op == @int.div.checked@ or op == @int.rem.checked@:
+        # test rcx,rcx; jne +2; ud2; xor edx,edx; div rcx. Clearing the
+        # dividend's upper half avoids machine overflow for every u64 input.
+        emit_bytes(o, w, 3112727984309576, 7)
+        emit_bytes(o, w, 1039235863089, 5)
+        if op == @int.rem.checked@:
+            emit_bytes(o, w, 13666632, 3)
+        return 0
+    if op == @int.mul.checked@:
+        # Unsigned MUL sets CF iff the high half is nonzero. IMUL's signed
+        # overflow flag would reject legal high-bit operands such as MAX*1.
+        emit_bytes(o, w, 3112727952357192, 7)
+    else:
+        if op != @int.add.checked@ and op != @int.sub.checked@:
+            return fail(w, 36)
         # Operands are zero extended. Preserve CF until the first branch:
         # add/sub rax, rcx; jnc +2; ud2. This checks 64-bit carry/borrow.
         emit(o, w, 72)
@@ -1149,23 +1170,22 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
         emit(o, w, 2)
         emit(o, w, 15)
         emit(o, w, 11)
-        if op == @int.add.checked@ and (t == 3 or t == 4):
-            # A narrow sum can overflow without a 64-bit carry. Save the full
-            # sum, normalize rax, then require that no high bits were lost.
-            emit(o, w, 72)
-            emit(o, w, 137)
-            emit(o, w, 193)
-            normalize(o, w, t)
-            emit(o, w, 72)
-            emit(o, w, 57)
-            emit(o, w, 200)
-            emit(o, w, 116)
-            emit(o, w, 2)
-            emit(o, w, 15)
-            emit(o, w, 11)
+    if (op == @int.add.checked@ or op == @int.mul.checked@) and (t == 3 or t == 4):
+        # A narrow result can overflow without a 64-bit carry. Save the full
+        # result, normalize rax, then require that no high bits were lost.
+        emit(o, w, 72)
+        emit(o, w, 137)
+        emit(o, w, 193)
         normalize(o, w, t)
-        return 0
-    return fail(w, 36)
+        emit(o, w, 72)
+        emit(o, w, 57)
+        emit(o, w, 200)
+        emit(o, w, 116)
+        emit(o, w, 2)
+        emit(o, w, 15)
+        emit(o, w, 11)
+    normalize(o, w, t)
+    return 0
 
 
 def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:

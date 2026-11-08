@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v8`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v9`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -527,3 +527,15 @@ qualification of source-bound trusted compiler artifacts; it is not an exposed
 connector that executes arbitrary uploaded native files. Integration with
 worker/catalog identity and deployment gates remains the candidate's separate
 responsibility.
+
+## v9 unsigned checked arithmetic
+
+The native compiler now accepts unsigned `int.mul.checked`, `int.div.checked`,
+`int.rem.checked` and `int.neg.checked` for u8/u32/u64/usize. Unsigned MUL checks
+its high half and then the declared narrow width. Division and remainder check
+zero before DIV and clear the high dividend word. Unsigned negation returns zero
+only for zero input. Invalid arithmetic executes UD2 before subsequent writes;
+earlier writes remain observable. The input operation inventory is 32/50.
+Signed types, owned resources and the remaining general Core obligations remain
+outside this profile. Native finite witnesses and fixed points remain separate
+from an all-input compiler correctness proof.
