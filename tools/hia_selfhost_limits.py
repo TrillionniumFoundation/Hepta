@@ -18,6 +18,8 @@ RELOCATION_UPPER_BOUND = 1 + MAX_INSTRUCTIONS + 2 * MAX_BLOCKS
 # Conservative canonical JSON byte bounds for the fixed grammar. Identifiers
 # are f0..f127, b0..b255 and v0..v2047; literals are at most unsigned 64-bit.
 # Each operation has at most 16 arguments, one scalar output and one attribute;
+# the sole two-result form, buffer.try_new, has one argument and no attribute,
+# and also fits the same conservative 512-byte per-operation allowance.
 # each block has at most 16 parameters and two 16-argument terminal edges.
 CORE_BYTES_UPPER_BOUND = 1024 + MAX_FUNCTIONS * 1024 + MAX_BLOCKS * 2048 + MAX_INSTRUCTIONS * 512
 

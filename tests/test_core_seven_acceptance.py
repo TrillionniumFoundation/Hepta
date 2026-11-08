@@ -185,7 +185,12 @@ class RunnerAdversaryTests(unittest.TestCase):
             with self.subTest(stage=name),self.fast_fixture({name:'exit'}) as (home,exe,_,__):
                 result=runner.qualify(exe,home/'out')['result']
                 self.assertEqual(result['status'],'failed',result)
-                self.assertEqual(result['failed_stage'],i,result)
+                diagnostic={'result':result}
+                if result['failed_stage'] != i and type(result['failed_stage']) is int and 0 <= result['failed_stage'] < len(p.seven.NAMES):
+                    receipt=home/'out'/(p.seven.NAMES[result['failed_stage']]+'.finished.json')
+                    try: diagnostic['failed_process']=json.loads(receipt.read_text())['process']
+                    except (OSError,ValueError,KeyError) as exc: diagnostic['receipt_error']=type(exc).__name__
+                self.assertEqual(result['failed_stage'],i,diagnostic)
                 self.assertEqual(result['invocations'],i+1,result)
                 self.assertEqual(len(result['committed_receipt_sha256']),i,result)
                 self.assertFalse(result['kernel_core_syntax_connection_checked'])
@@ -1004,3 +1009,4 @@ class SupportShadowTests(unittest.TestCase):
                 self.assertEqual(output['result']['error_code'],'identity_changed')
                 self.assertEqual(output['result']['phase'],'verifying')
                 self.assertFalse((home/'out/SyntaxData.started.json').exists())
+

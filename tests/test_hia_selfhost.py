@@ -268,6 +268,9 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertTrue(self.report["claims"]["HIA_successor_ELF_writer_used"])
         self.assertFalse(self.report["claims"]["Python_successor_ELF_writer_used"])
         self.assertFalse(self.report["claims"]["external_linker_in_flat_bootstrap_chain"])
+        self.assertFalse(self.report["claims"]["python_parser_or_codegen_in_successor_compilation"])
+        self.assertTrue(self.report["claims"]["host_reference_codegen_after_B0"])
+        self.assertTrue(self.report["claims"]["python_parser_or_codegen_after_B0"])
 
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         data = (self.directory / "original-elf-bytesum.o").read_bytes()

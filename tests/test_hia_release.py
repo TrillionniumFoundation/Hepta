@@ -92,7 +92,10 @@ class ReleaseLockBoundaries(unittest.TestCase):
 
     def test_bootstrap_loader_cannot_disappear_from_inventory(self):
         for name in ("tools/hia_selfhost_child.py", "tools/hia_selfhost_select.py",
-                     "tools/hia_selfhost_bulk.py", "tools/hia_selfhost_loans.py"):
+                     "tools/hia_selfhost_bulk.py", "tools/hia_selfhost_loans.py",
+                     "tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
+                     "tools/hia_selfhost_owned_flow_cases.py", "tools/qualify_hia_selfhost_owned_elf.py",
+                     "tests/test_hia_selfhost_owned_flow.py"):
             value = lock_fixture()
             del value["files"]["hepta"][name]
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):

@@ -53,9 +53,55 @@ class ContractRecoveryTests(unittest.TestCase):
 
     def test_catalog_has_neutral_discoverable_recovery(self):
         self.assertEqual(len(self.tools), 11)
-        self.assertIn('result.artifact', self.tools['hia_artifact']['description'])
-        self.assertIn('fresh request key', self.tools['hia_candidate']['description'])
-        self.assertIn('64', self.tools['hia_read']['inputSchema']['properties']['catalog_sha256']['description'])
+        artifact = self.tools['hia_artifact']
+        read = self.tools['hia_read']['inputSchema']
+        candidate = self.tools['hia_candidate']['inputSchema']
+        result = artifact['outputSchema']['properties']['result']
+        reference = result['properties']['artifact']
+        imports = [branch for branch in candidate['properties']['change']['oneOf']
+                   if branch['properties']['kind'].get('const') == 'import']
+        self.assertEqual(len(imports), 1)
+        self.assertEqual(reference, read['properties']['artifact'])
+        self.assertEqual(reference, imports[0]['properties']['source'])
+        self.assertEqual(set(reference['required']), {'id', 'sha256', 'uri'})
+        self.assertFalse(reference['additionalProperties'])
+        self.assertIn('artifact', result['required'])
+        self.assertEqual(read['properties']['catalog_sha256']['pattern'], '^[0-9a-f]{64}$')
+        self.assertIn('request_key', candidate['required'])
+        self.assertIn('original key', artifact['description'])
+        self.assertIn('identical arguments', self.tools['hia_candidate']['description'])
+
+        # Discovery is the linked published schema, not an optional prose alias.
+        # The URI is issued independently of the ID and must survive unchanged.
+        issued = {'id': 'artifact', 'sha256': 'b' * 64,
+                  'uri': 'hia://artifacts/server_issued_47'}
+        retained = {'artifact': issued, 'byte_length': '3',
+                    'content_admitted_as_program': False,
+                    'execution_authority_granted': False}
+        validate(retained, result)
+        validate({'catalog_sha256': self.sha, 'artifact': issued}, read)
+        validate({'kind': 'import', 'format': 'hia-asm.v1', 'source': issued}, imports[0])
+        for invalid in ({'id': issued['id'], 'sha256': issued['sha256']},
+                        dict(issued, sha256='b' * 72),
+                        dict(issued, uri='file:///unissued'),
+                        dict(issued, extra='not-issued')):
+            with self.subTest(reference=invalid), self.assertRaises(AgentRejected):
+                validate(invalid, reference)
+        for flag in ('content_admitted_as_program', 'execution_authority_granted'):
+            self.assertIn(flag, result['required'])
+            self.assertEqual(result['properties'][flag], {'const': False})
+            with self.subTest(authority=flag), self.assertRaises(AgentRejected):
+                validate(dict(retained, **{flag: True}), result)
+
+        rejected = {'catalog_sha256': self.sha, 'request_key': 'trial/import/1'}
+        original = copy.deepcopy(rejected)
+        diagnostic = input_diagnostic('hia_candidate', rejected)
+        self.assertIn('confirmed rejection', diagnostic['recovery'])
+        self.assertIn('changed writer arguments require a new request key', diagnostic['recovery'])
+        self.assertIn('accepted or unknown operations retain their original identity', diagnostic['recovery'])
+        self.assertFalse(diagnostic['automatic_repair'])
+        self.assertFalse(diagnostic['attempt_refunded'])
+        self.assertEqual(rejected, original)
 
     def test_bridge_hint_neither_repairs_nor_refunds_and_reveals_no_answer(self):
         request = {'catalog_sha256':'a' * 72, 'artifact':{'id':'artifact','sha256':'b' * 64,

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v11`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v12`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -86,6 +86,14 @@ all HIA opcodes, modules or target architectures are self-hosted, nor that the
 compiler has a formal refinement proof. Finite test evidence and a bootstrap
 fixed point do not constitute such a proof.
 
+The qualification host separately assembles reference programs and uses the
+Core VM and direct native backend as independent comparison oracles after B0.
+Consequently the report records `python_parser_or_codegen_after_B0: true` and
+`host_reference_codegen_after_B0: true`. Its narrower
+`python_parser_or_codegen_in_successor_compilation: false` describes the actual
+B0/B1/B2/B3 and modified compiler generation chain. These distinct scopes must
+not be collapsed into a claim that all later qualification avoids Python.
+
 ## The chosen Core subset
 
 The flat-image input is ordinary HIA assembly with the fixed header
@@ -106,7 +114,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf` parameters |
+| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` only in `selfhost_elf` |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
@@ -114,9 +122,10 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
+| Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
-| Effects | Every function explicitly declares `effects(read,write,trap)` |
+| Effects | `effects(read,write,trap)` or `effects(alloc,read,write,trap)`; allocation, drop and calls to allocating functions require `alloc` |
 
 All integer operations use `u8`, `u32`, `u64` or `usize`; booleans remain
 separate. `bit.not` complements exactly the declared width. Checked addition
@@ -135,11 +144,13 @@ public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
 Each function returns exactly one scalar; returned loans and owners are excluded.
-There are no allocations, deallocations, foreign calls, callbacks, arbitrary
-pointers, non-tail or mutual recursion, exceptions, indirect branches or host library imports in
-the subset. The fixed exported function `f0` accepts exactly three buffers
+The flat profile has no owned types or allocator imports. The explicit ELF
+profile adds the four owned-buffer operations described below, using the closed
+`calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
+recursion, exceptions, indirect branches and arbitrary host imports remain
+excluded. The fixed exported function `f0` accepts exactly three buffers
 `(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
-scalar and borrowed-buffer parameters.
+scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers.
 
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
@@ -153,8 +164,9 @@ tail shape. Non-tail self calls and all mutual cycles are rejected, including
 cycles in unused helper functions. Repeated mutable buffer arguments in one call or edge
 are rejected. Every edge also rejects repeated `readbuf` SSA arguments, matching
 Core's linear capability transfer rule, even on a statically untaken branch.
-Calls may pass the same read-only loan more than once. Buffers can only originate in parameters and flow through checked
-edges/calls; the subset cannot create aliases by producing new buffer values.
+Calls may pass the same read-only loan more than once. Views originate from
+parameters or checked borrow operations. ELF-owned allocations introduce fresh
+roots; move, drop and owner-taking calls require no live descendant loans.
 The host supplies disjoint live allocations at the external entrypoint.
 
 The bounds are part of the compiler profile:
@@ -167,6 +179,7 @@ The bounds are part of the compiler profile:
 | Blocks per function / all functions | 256 / 1,536 |
 | Function or block parameters / call or edge arguments | 16 |
 | SSA variable index per function | 2,047 |
+| Instruction results / function results | 2 / 1; two results only for `buffer.try_new` |
 | Instructions across the module | 8,192 |
 | Core JSON structural nodes | 262,144 |
 | Relative relocations | 12,000 |
@@ -189,8 +202,10 @@ The unchanged grammar also bounds canonical Core JSON bytes. Conservative
 budgets of 1,024 bytes for the root and each function's own fields, 2,048 bytes
 per block excluding its operations, and 512 bytes per operation give at most
 7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
-fixed identifier lengths, 16-argument/parameter limit, single scalar output,
-single optional attribute and unsigned 64-bit literal limit.
+fixed identifier lengths, 16-argument/parameter limit, single optional attribute
+and unsigned 64-bit literal limit. The sole two-result instruction,
+`buffer.try_new`, has one argument and no attributes and remains within the same
+512-byte per-operation bound; other instructions have at most one result.
 The text frontend's separate general-purpose presentation limits are not
 reimplemented as a dependency of the native compiler.
 
@@ -202,9 +217,10 @@ limits, or child deadlines. The v5 compiler contained 3,044 instructions.
 v6 retained these limits and all exact capacity fixtures while adding the tail
 self-call checker and lowering. v8 retains the same limits while adding three
 unsigned integer operations and scalar selection. The current instruction count is recorded by
-the authoring aid and each B0/generation receipt. Owned resources, returned
-loans, non-tail/mutual recursion, arbitrary identifiers and general external
-linking remain outside this profile.
+the authoring aid and each B0/generation receipt. Recursive owner chains,
+returned resources, non-tail/mutual recursion, arbitrary identifiers and general
+external linking remain outside the current profile. The four v12 ELF-only
+owned-buffer operations retain these capacity limits.
 
 The relocation table remains 12,000 records in the same workspace layout.
 An instruction contributes at most one call relocation, a block at most two
@@ -478,16 +494,17 @@ and native outputs are retained in the same evidence directory.
 Non-tail and mutual recursion are valid in the general Core but remain outside
 this finite self-hosting profile. Direct self-tail calls are admitted by the v6
 rules above, including bounded same-frame argument staging and cycle checks;
-those cases must not be reported as unsupported by the current compiler. Owned
-allocations/transfers, returned loans and a general resource/effect checker
-remain unimplemented and are explicitly marked in the support matrix.
+those cases must not be reported as unsupported by the current compiler. V12
+adds bounded ELF-owned allocation and transfer; returned resources, chains and
+a general resource/effect checker remain excluded in the support matrix.
 
 ## Object expansion batch: HIA-written ELF64 ET_REL
 
 The opt-in module spelling `selfhost_elf` selects
-`hepta.hia.selfhost.elf64-relocatable.v1`. It changes only the output container;
-the accepted operations, resources, signatures and call-graph restrictions are
-the same as the flat profile. In HIA functions `f38`, `f39` and `f41`, the
+`hepta.hia.selfhost.elf64-relocatable.v1` for programs without allocator calls.
+For the common flat/ELF subset it changes only the output container. V12 also
+admits four ELF-only owned-buffer operations with the allocator profile below.
+In HIA functions `f38`, `f39` and `f41`, the legacy object writer
 compiler emits the ELF64 little-endian x86-64 relocatable header, `.text`, a
 three-entry symbol table with only `f0` exported, both string tables and a
 nonexecuting `.note.GNU-stack`. Internal relative calls/branches remain resolved
@@ -509,17 +526,21 @@ are retained. Insufficient object capacity and rejected source leave output
 unchanged, including the ELF header. Object overhead consumes the same 1 MiB
 output limit; no compiler or runtime resource limit is increased.
 
-The object route does not implement external symbol relocations, arbitrary
+The object route does not implement arbitrary imports or relocations, arbitrary
 public exports, a linker written in HIA, executable ELF images or other ELF
-targets. The seed's existing Python ELF writer remains a distinct dependency.
+targets. V12 adds only the closed allocator imports below. The seed's existing
+Python ELF writer remains a distinct dependency.
 
 ## Trust and operational boundaries
 
 B0 retains the existing Python Core verifier/direct backend/ELF writer and GNU
 linker as seed dependencies. Its exact implementation and source hashes are in
 the evidence. After B0, the loader, operating system and hardware remain trusted;
-Python no longer performs parsing, verification or code generation. Successor
-images need no assembler, linker or libc calls themselves.
+Python no longer performs parsing, verification or code generation in the
+successor compilation path. Flat successor images need no assembler, linker or
+libc calls. Owned ELF programs additionally trust ordinary linkage, loading and
+the `calloc/free` contract; the separate direct backend used as a qualification
+oracle does not construct the successor's objects.
 
 Each native invocation runs in a fresh process with 10 CPU seconds, 20 seconds
 of parent wall time, 256 MiB address space, 8 MiB stack and bounded file output.
@@ -573,10 +594,11 @@ compiler, ISA, loader, resource or FFI semantics.
 
 ### v11 explicit borrowed-view lifetimes
 
-The HIA-written checker and emitter now admit `borrow.read`, `borrow.mut` and
-`loan.end` for the existing readbuf/mutbuf resource profile. The inventory is
-40/50 opcodes. Owned allocation/transfer/drop, owner chains, returned loans and
-general Core signatures, types and effects remain outside this profile.
+The v11 HIA-written checker and emitter added `borrow.read`, `borrow.mut` and
+`loan.end` for the existing readbuf/mutbuf resource profile, bringing its
+inventory to 40/50 opcodes. Its owned allocation/transfer/drop gap is partially
+addressed by the v12 ELF-only extension below; owner chains, returned resources
+and general Core signatures, types and effects remain outside the profile.
 
 Every live loan carries a root and a parent. A parent with live children is
 suspended for byte access and calls; extent inspection remains valid as in Core.
@@ -614,3 +636,64 @@ Original and mutated successor compilers compile and execute the cases and
 compare flat/ELF text for three loan programs. Existing bulk, integer, trap,
 capacity, cold replay and language witnesses remain required. Finite tests and
 a fixed point do not establish an all-input compiler or machine proof.
+
+### v12 owned buffers with closed ELF allocator imports
+
+The actual native parser, capability checker, x86 encoder and ELF writer admit
+`buffer.new`, `buffer.try_new`, `owner.move` and `owner.drop` for `buffer` owners
+in modules named `selfhost_elf`. The flat module retains its 40-operation set;
+the ELF module has 44 of the general Core's 50 opcodes. Both the owned type and
+all four operations are refused in flat modules before any output write.
+Recursive chain operations, general Core input shapes and an all-input
+compiler-correctness proof are still outside this result.
+
+The fixed public entry remains `(readbuf, mutbuf, mutbuf) -> u32`. Internal
+functions may accept owned buffers and must consume or transfer them. Calls
+still return one scalar. Only `buffer.try_new` has two instruction results,
+in the exact order `(buffer, bool)`; this does not add a multiple-result
+function ABI. Definitions are validated before capability metadata is written,
+including duplicate and out-of-range SSA results. Each produced owner has a
+new root; moves and owner-taking calls consume the old SSA capability. A live
+descendant loan prevents moving, dropping or passing an owner. Edge transfers
+carry all live owners and their descendants, and predecessor graphs must agree.
+Normal return cannot leak an owner. A program trap still stops later effects
+without rolling back earlier writes or promising cleanup after termination.
+
+An allocation size is `usize`. Zero creates a live empty logical owner with
+pointer and length zero; `try_new(0)` reports success. Positive sizes no larger
+than `INT64_MAX` call `calloc(1, size)`. Null or a larger size makes `try_new`
+produce an empty owner and false, or makes `buffer.new` execute the existing
+Core allocation-trap convention (`UD2` in this successor). Dropping a nonempty
+owner calls `free`; dropping an empty owner only consumes its capability. No
+new Core trap is assigned to release. These are the ordinary libc allocation
+and lifetime assumptions used by the existing direct backend. The earlier
+conditional mmap/munmap experiment is not used by this profile.
+
+The allocator object profile is
+`hepta.hia.selfhost.elf64-allocator-relocatable.v1`: one exported `f0`, two
+undefined function symbols `calloc` and `free`, and `.rela.text` containing
+only `R_X86_64_PLT32` call records with addend -4. Native HIA writes every byte,
+including symbols and relocation entries. A read-only independent inspector
+checks the exact closed object shape, `readelf` reads the object, and GNU ld
+links it with libc under the existing RELRO/NOW/nonexecuting-stack options.
+The existing child loads the result without an owned-runtime loader rewrite.
+Programs that emit no allocator calls retain the legacy object shape.
+
+Compiler source, output and workspace remain bounded at 1 MiB each. Heap
+allocations belong to the compiled program and come from libc, not from the
+compiler workspace. The current child address-space/CPU/stack limits remain
+unchanged. The same 12,000-record relocation table holds internal and allocator
+call records: every source instruction contributes at most one call relocation,
+so the existing upper bound remains valid. The exact structural-node counter
+counts both `try_new` results.
+
+`tools/qualify_hia_selfhost_owned_elf.py` freezes source fixtures and compares
+actual successor output against the independent general Core VM and direct
+native backend. It observes full output bytes, return values, earlier stores
+before allocation traps, resource ledgers in the VM, short-output refusal and
+ownership/type/effect rejection. A VM heap-budget stop is recorded separately
+from semantic optional-allocation failure. Both B3 and mutated M3 run this
+suite as part of the main qualifier; source-only cold replay runs it again.
+Raw source, generated objects, inspection, linker logs and child receipts are
+retained. Finite witnesses do not establish general allocator, ABI, resource,
+ISA, linking, loading or compiler refinement proofs.
