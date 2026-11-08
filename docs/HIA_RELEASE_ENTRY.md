@@ -37,15 +37,41 @@ does not claim a source-only runtime loader, immunity to concurrent privileged
 source changes, or a pinned Python/system dependency environment. Retain an
 independent cache inventory of the actual remote worker when qualifying it.
 
+## Current proof contract and machine validation
+
+Every check carries the exact subject, property, validation profile, assumptions,
+checker/source/solver identity and unproved obligations. Receipt consumption and
+idempotent verification replay recheck those bindings. Legacy unscoped receipts
+cannot satisfy a required proof. A check does not grant execution authority.
+
+For the declared Safe Core profile, native lowering validation reads the actual
+retained object and shared-image bytes, independently decodes them and retains
+its SMT obligations. It does not call the producer to reconstruct the subject.
+Unsupported language, resource, linking or output profiles remain explicit.
+The complete Core compiler has no universal machine-refinement theorem. Read
+`docs/HIA_AGENT_PROOF_RESULTS.md` and `docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md`
+in the materialized source for the exact ABI, FFI, loader and resource premises.
+
+The current measured [six-gap record](HIA_SIXGAP_20261108.json) supersedes the
+historical operational snapshots below for the new selected release. The
+snapshots and their failed/unknown outcomes remain historical evidence.
+
 ## New environment
 
 Obtain this release entry and its default lock from the same reviewed metadata
 commit. `describe` is a read-only inspection of the contract:
 
+On Linux x86-64, use Python 3.11+, Git and the system linker/binutils. Prepare a
+new Python environment for the source checker and the independent validator:
+
 ```sh
-python3 -B tools/hia_release.py describe
-python3 -B tools/hia_release.py materialize --directory /absolute/new/hia-release
-python3 -B tools/hia_release.py check \
+cd /absolute/new/hia-entry
+python3 -m venv /absolute/new/hia-python
+/absolute/new/hia-python/bin/python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+HIA_PYTHON=/absolute/new/hia-python/bin/python
+"$HIA_PYTHON" -B tools/hia_release.py describe
+"$HIA_PYTHON" -B tools/hia_release.py materialize --directory /absolute/new/hia-release
+"$HIA_PYTHON" -B tools/hia_release.py check \
   --hepta-root /absolute/new/hia-release/hepta \
   --runtime-checkout /absolute/new/hia-release/runtime
 ```
@@ -58,7 +84,12 @@ when that fetch fails. Its explicit Hepta sparse-directory list includes the
 Hepta implementation, examples, tests, tooling and the selected qualification
 fixtures. Unrelated historical campaigns and artifact/report archives remain
 outside this release's qualified source closure. The full tree identity
-remains pinned. This also supports local partial Git caches without disguising
+remains pinned. Runtime materialization retains its complete tree, including
+historical evidence still read by release gates; its checkout has a 600-second
+bound, while the smaller Hepta source closure retains 120 seconds. A failed
+Git operation reports the repository role, exact pinned commit, stage, failure
+kind and timeout without exposing transport URLs or credentials. This also
+supports local partial Git caches without disguising
 missing executable files. It never replaces an existing directory. For an offline cold
 replay, `--hepta-repository /path/to/existing/Hepta` and
 `--runtime-repository /path/to/existing/runtime` select local Git transports;
@@ -68,6 +99,23 @@ Dependencies, runtime binaries, credentials and service configuration must be
 provisioned by the environment's existing setup. The script does not install
 them or infer permission from a contract.
 
+### Run the actual native examples
+
+After materialization, run the finite native/SMT qualification from the selected
+source. Both output locations must be new:
+
+```sh
+cd /absolute/new/hia-release/hepta
+"$HIA_PYTHON" -B tools/qualify_hia_direct_native.py --output /absolute/new/direct-native.json
+"$HIA_PYTHON" -B tools/qualify_hia_safe_core.py --output /absolute/new/safe-core-evidence
+```
+
+The latter retains actual object/shared-image bytes, independent validation,
+negative mutations, solver queries and native scalar/borrowed-buffer calls.
+Use the original metadata checkout and its selected lock for release commands;
+the historical lock embedded in an immutable source snapshot is not the current
+metadata pointer.
+
 ## Prepare the reviewed worker configuration
 
 The supplied configuration already has to select an authorized Linux worker,
@@ -75,13 +123,17 @@ interpreter, read/capture roots and a writable private state root. Preparation
 reuses `hia_candidate_preflight` and writes a new private configuration with the
 measured source pins. It preserves all other policy. The configured worker may
 be remote; the eventual endpoint probe checks that worker's actual installation.
+The `--worker-python` option below selects the local interpreter used to measure
+the materialized source; it preserves the remote worker interpreter already
+selected by the supplied configuration.
 
 ```sh
-python3 -B tools/hia_release.py prepare \
+cd /absolute/new/hia-entry
+"$HIA_PYTHON" -B tools/hia_release.py prepare \
   --hepta-root /absolute/new/hia-release/hepta \
   --runtime-checkout /absolute/new/hia-release/runtime \
   --config /absolute/reviewed/runtime.json \
-  --worker-python /absolute/python3 \
+  --worker-python "$HIA_PYTHON" \
   --output-directory /absolute/new/prepared
 ```
 
@@ -96,7 +148,8 @@ After building/qualifying the selected runtime, supply the executable identity
 and the reviewed **whole-server** MCP contract:
 
 ```sh
-python3 -B tools/hia_release.py probe \
+cd /absolute/new/hia-entry
+"$HIA_PYTHON" -B tools/hia_release.py probe \
   --hepta-root /absolute/new/hia-release/hepta \
   --runtime-checkout /absolute/new/hia-release/runtime \
   --config /absolute/new/prepared/runtime-config.json \
@@ -127,8 +180,8 @@ Use the materialized source's versioned support matrix and qualification entry:
 
 ```sh
 cd /absolute/new/hia-release/hepta
-python3 -B tools/qualify_hia_selfhost.py --output /absolute/new/selfhost.json
-python3 -B tools/replay_hia_selfhost_cold.py --output /absolute/new/selfhost-cold.json
+"$HIA_PYTHON" -B tools/qualify_hia_selfhost.py --output /absolute/new/selfhost.json
+"$HIA_PYTHON" -B tools/replay_hia_selfhost_cold.py --output /absolute/new/selfhost-cold.json
 ```
 
 The cold replay exports only the pinned source into a fresh directory, uses a
@@ -152,7 +205,8 @@ clean, freeze the next lock into a new file, review it, and only then update the
 metadata pointer:
 
 ```sh
-python3 -B tools/hia_release.py freeze \
+cd /absolute/new/hia-entry
+"$HIA_PYTHON" -B tools/hia_release.py freeze \
   --hepta-root /absolute/clean/Hepta --hepta-revision "$HIA_COMMIT" \
   --runtime-checkout /absolute/clean/runtime --runtime-revision "$HIA_RUNTIME_COMMIT" \
   --release-id hia-candidate-YYYYMMDD-rN \
@@ -265,7 +319,7 @@ Historical failures and unknown operations remain separate from these new
 observations.
 
 
-## Latest measured follow-through snapshot — 2026-11-07
+## Historical measured follow-through snapshot — 2026-11-07
 
 The machine-readable [final snapshot](HIA_FOLLOWTHROUGH_20261107_FINAL.json)
 records the newer qualification results and their exact limits. It supplements

@@ -49,10 +49,15 @@ BOOTSTRAP_FILES = (
     "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
     "tests/test_hia_selfhost.py", "tests/test_hia_selfhost_contract.py",
+    "tests/test_hia_selfhost_language_coverage.py", "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
 )
 ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
+    "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
+    "tests/test_hia_agent_native_proof_contract.py", "tests/test_hia_release_diagnostics.py",
+    "tests/test_hia_agent_native_machine_validation.py",
+    ".github/workflows/hia-sixgap-source.yml",
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
     "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py",
     "tests/test_hia_safe_core.py", "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md",
@@ -79,6 +84,8 @@ CANDIDATE_FILES = (
 )
 RUNTIME_FILES = ("Cargo.toml", "Cargo.lock",
     "src/mcp/hia_tool_catalog.json", "src/mcp/hia_contract.rs", "src/mcp/hia_provider.rs",
+    "src/mcp/server.rs", "src/mcp/hia_contract_tests.rs", "src/mcp/hia_provider_tests.rs",
+    "src/mcp/hia_scoped_proof_fixture.json",
     "deploy/mcp_tool_contract.py", "deploy/stage_dc_successor.py", "deploy/hia_mcp_catalog.py",
     "deploy/contracts/hepta-hia-agent-native-v1.json")
 REPOSITORIES = {"hepta": "https://github.com/TrillionniumFoundation/Hepta.git",
@@ -94,6 +101,10 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),
     "runtime_sparse_directories": None,
     "omitted_scope": "Historical campaigns and artifact/report archives outside this release's qualified source closure"}
+# The runtime is a complete checkout, including historical evidence still read
+# by its release gates. A cold filtered fetch resolves those blobs at checkout;
+# its bounded download budget must not assume the much smaller Hepta closure.
+CHECKOUT_TIMEOUT_SECONDS = {"hepta": 120, "runtime": 600}
 QUALIFICATION = {"source_lock_only": True, "production_deployed": False,
                  "default_branch_updated": False, "agent_first_use_passed": False,
                  "native_ndu_value_passed": False,
@@ -301,7 +312,36 @@ def write_new(path, value):
         os.close(parent)
 
 
-def checkout_remote_source(source, revision, target):
+def _source_checkout_run(command, *, repository, revision, stage, timeout, **options):
+    """Keep exception types for callers, but attach only safe CLI diagnostics."""
+    try:
+        return subprocess.run(command, check=True, stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, timeout=timeout, **options)
+    except (OSError, subprocess.SubprocessError) as exc:
+        if isinstance(exc, subprocess.TimeoutExpired):
+            failure_kind = "timed_out"
+        elif isinstance(exc, subprocess.CalledProcessError):
+            failure_kind = "command_failed"
+        elif isinstance(exc, OSError):
+            failure_kind = "could_not_start"
+        else:
+            failure_kind = "subprocess_error"
+        # These fields come from fixed stage/role names and the validated lock.
+        # Never include command, source URL, exception text, stdout or stderr.
+        diagnostic = {
+            "repository": repository, "stage": stage, "pinned_commit": revision,
+            "failure_kind": failure_kind, "timeout_seconds": timeout,
+            "next_step": "Check Git availability, selected repository access and availability "
+                         "of the pinned commit. Keep the failed destination for diagnosis; "
+                         "retry with a new --directory after resolving the failure.",
+        }
+        if isinstance(exc, subprocess.CalledProcessError):
+            diagnostic["exit_code"] = exc.returncode
+        exc.source_checkout_diagnostic = diagnostic
+        raise
+
+
+def checkout_remote_source(source, revision, target, *, repository="source"):
     """Fetch the pinned commit without downloading unrelated branch history.
 
     Blob filtering is only a transport choice. Git resolves the declared source
@@ -309,20 +349,22 @@ def checkout_remote_source(source, revision, target):
     A failed exact fetch never falls back to a branch tip or a different URL.
     """
     commands = (
-        ["git", "init", "--", str(target)],
-        ["git", "-C", str(target), "remote", "add", "origin", str(source)],
-        ["git", "-C", str(target), "config", "remote.origin.promisor", "true"],
-        ["git", "-C", str(target), "config", "remote.origin.partialclonefilter", "blob:none"],
-        ["git", "-C", str(target), "fetch", "--no-tags", "--no-recurse-submodules",
-         "--filter=blob:none", "--depth=1", "origin", revision],
+        ("init", ["git", "init", "--", str(target)]),
+        ("remote_add", ["git", "-C", str(target), "remote", "add", "origin", str(source)]),
+        ("configure_promisor", ["git", "-C", str(target), "config", "remote.origin.promisor", "true"]),
+        ("configure_blob_filter", ["git", "-C", str(target), "config", "remote.origin.partialclonefilter", "blob:none"]),
+        ("fetch", ["git", "-C", str(target), "fetch", "--no-tags", "--no-recurse-submodules",
+                   "--filter=blob:none", "--depth=1", "origin", revision]),
     )
-    for command in commands:
-        subprocess.run(command, check=True, stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE, timeout=300,
-                       env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
-    fetched = preflight.git(target, "rev-parse", "FETCH_HEAD").strip()
-    if fetched != revision:
-        raise ValueError("remote fetch differs from the pinned release commit")
+    for stage, command in commands:
+        _source_checkout_run(command, repository=repository, revision=revision,
+                             stage=stage, timeout=300,
+                             env={**os.environ, "GIT_TERMINAL_PROMPT": "0"})
+    fetched = _source_checkout_run(
+        ["git", "--no-replace-objects", "-C", str(target), "rev-parse", "FETCH_HEAD"],
+        repository=repository, revision=revision, stage="verify_fetch", timeout=30).stdout.strip()
+    if fetched != revision.encode("ascii"):
+        raise ValueError(f"{repository} source verify_fetch differs from the pinned release commit")
 
 
 def materialize(lock, destination, repositories, python):
@@ -340,19 +382,23 @@ def materialize(lock, destination, repositories, python):
         # A local cache changes transport only. Checkout identities still have
         # to match the immutable release, including actual ignored source bytes.
         if override is None:
-            checkout_remote_source(source, lock["sources"][name]["commit"], target)
+            checkout_remote_source(source, lock["sources"][name]["commit"], target, repository=name)
         else:
-            subprocess.run(["git", "clone", "--no-checkout", "--no-hardlinks", "--", str(source), str(target)],
-                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300)
+            _source_checkout_run(
+                ["git", "clone", "--no-checkout", "--no-hardlinks", "--", str(source), str(target)],
+                repository=name, revision=lock["sources"][name]["commit"], stage="clone", timeout=300)
         if name == "hepta":
             # The repository's historical evidence blobs can be absent from a
             # valid local partial cache. Declare the complete source closure
             # explicitly rather than inheriting an unrelated checkout's sparse
             # index or treating omitted archives as deleted source.
-            subprocess.run(["git", "-C", str(target), "sparse-checkout", "set", "--cone", *SOURCE_DIRECTORIES],
-                           check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
-        subprocess.run(["git", "-C", str(target), "checkout", "--detach", lock["sources"][name]["commit"]],
-                       check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120)
+            _source_checkout_run(
+                ["git", "-C", str(target), "sparse-checkout", "set", "--cone", *SOURCE_DIRECTORIES],
+                repository=name, revision=lock["sources"][name]["commit"], stage="sparse_checkout", timeout=120)
+        _source_checkout_run(
+            ["git", "-C", str(target), "checkout", "--detach", lock["sources"][name]["commit"]],
+            repository=name, revision=lock["sources"][name]["commit"], stage="checkout",
+            timeout=CHECKOUT_TIMEOUT_SECONDS[name])
     check_lock(lock, destination / "hepta", destination / "runtime", python)
     return {"hepta_root": str(destination / "hepta"), "runtime_checkout": str(destination / "runtime"),
             "status": "exact_sources_materialized", "dependencies_installed": False,
@@ -450,8 +496,15 @@ def main(argv=None):
             RuntimeError, SyntaxError, subprocess.SubprocessError) as exc:
         # Do not echo subprocess argv, which may carry an administrator's private
         # repository transport. Preserve the failed stage without leaking it.
-        message = "source checkout command failed" if isinstance(exc, subprocess.SubprocessError) else str(exc)
+        diagnostic = getattr(exc, "source_checkout_diagnostic", None)
+        if diagnostic is not None:
+            message = (f"source checkout failed: {diagnostic['repository']}/"
+                       f"{diagnostic['stage']} ({diagnostic['failure_kind']})")
+        else:
+            message = "source checkout command failed" if isinstance(exc, subprocess.SubprocessError) else str(exc)
         error = {"status": "rejected", "error": message[:4096], "production_deployed": False}
+        if diagnostic is not None:
+            error["source_checkout"] = diagnostic
         if isinstance(exc, preflight.IncompleteProbe):
             error["recovery"] = exc.recovery
         print(json.dumps(error, sort_keys=True), file=sys.stderr)

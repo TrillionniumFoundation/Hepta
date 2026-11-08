@@ -1,0 +1,72 @@
+name: HIA public release consistency
+
+on:
+  push:
+    branches: [main, 'codex/hia-sixgap-entry-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: credential.helper
+      GIT_CONFIG_VALUE_0: ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare an empty public-source destination
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          mkdir "$RUNNER_TEMP/hia-public-release"
+          git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-public-release/entry.txt"
+          python -m pip freeze > "$RUNNER_TEMP/hia-public-release/dependencies.txt"
+      - name: Fetch exact public source without repository overrides
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B tools/hia_release.py materialize --directory "$RUNNER_TEMP/hia-public-release/release" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/materialize.log"
+          python -B tools/hia_release.py check --hepta-root "$RUNNER_TEMP/hia-public-release/release/hepta" --runtime-checkout "$RUNNER_TEMP/hia-public-release/release/runtime" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/check.log"
+      - name: Run native examples and prove installation identity matches the lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B "$RUNNER_TEMP/hia-public-release/release/hepta/tools/qualify_hia_direct_native.py" --output "$RUNNER_TEMP/hia-public-release/direct-native.json" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/direct-native.log"
+          cd "$RUNNER_TEMP/hia-public-release/release/hepta"
+          python -B -E -s -m hepta.hia_agent_worker --installation-manifest > "$RUNNER_TEMP/hia-public-release/installation.json"
+          python -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"
+          lock = json.loads((Path(os.environ["GITHUB_WORKSPACE"]) / "releases/hia-current.json").read_text())
+          installation = json.loads((root / "installation.json").read_text())
+          if installation != lock["installation"]:
+              raise SystemExit("materialized installation does not match the public release lock")
+          print("Exact public source, runtime contract and installation identity match")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-public-release-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/hia-public-release/*.log
+            ${{ runner.temp }}/hia-public-release/*.json
+            ${{ runner.temp }}/hia-public-release/*.txt
+          if-no-files-found: error
+          retention-days: 30

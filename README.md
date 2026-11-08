@@ -15,12 +15,18 @@ is obtained from the exact source commits in the contract; the checkout of this
 branch is not the worker installation. The source commit precedes the metadata
 commit that carries its lock.
 
-With Python 3.11+ and Git, inspect the contract and create a new source directory:
+With Python 3.11+, Git and a Linux x86-64 host for native execution, prepare the measured Python dependencies, inspect the contract and create a new source directory:
 
 ```sh
-python3 -B tools/hia_release.py describe
-python3 -B tools/hia_release.py materialize --directory /absolute/new/hia-release
-python3 -B tools/hia_release.py check \
+git clone --depth=1 --filter=blob:none --sparse https://github.com/TrillionniumFoundation/Hepta.git /absolute/new/hia-entry
+git -C /absolute/new/hia-entry sparse-checkout set tools docs releases
+cd /absolute/new/hia-entry
+python3 -m venv /absolute/new/hia-python
+/absolute/new/hia-python/bin/python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+HIA_PYTHON=/absolute/new/hia-python/bin/python
+"$HIA_PYTHON" -B tools/hia_release.py describe
+"$HIA_PYTHON" -B tools/hia_release.py materialize --directory /absolute/new/hia-release
+"$HIA_PYTHON" -B tools/hia_release.py check \
   --hepta-root /absolute/new/hia-release/hepta \
   --runtime-checkout /absolute/new/hia-release/runtime
 ```
@@ -35,10 +41,10 @@ the runtime executable must be provided by the environment.
 
 | Component | Selection |
 | --- | --- |
-| Release | `hia-v6-20261107-faa85-r5` |
-| Contract SHA-256 | `82853c9b804ecabc3760d0235b3c3aac54b0e54d838f7255887e070de8b6bab8` |
-| Hepta source | [`3ead0f535c271b07766c5d7c5d15ca69f0f3e8df`](https://github.com/TrillionniumFoundation/Hepta/tree/3ead0f535c271b07766c5d7c5d15ca69f0f3e8df) |
-| Runtime source | [`c53917f4d147fbdb3ce0e094bc9c32a305411866`](https://github.com/TrillionniumFoundation/hepta-runtime/tree/c53917f4d147fbdb3ce0e094bc9c32a305411866) |
+| Release | `hia-sixgap-20261108-ef6f7e9f` |
+| Contract SHA-256 | `b8f33d5e15c0e9812cf4264a061dde3996d938362e8ceb73c027b3696e5131e3` |
+| Hepta source | [`eb3f25f57dc5f7b49d1ca56b1570e232f5a932dc`](https://github.com/TrillionniumFoundation/Hepta/tree/eb3f25f57dc5f7b49d1ca56b1570e232f5a932dc) |
+| Runtime source | [`4cd85c99c5f5a480832c48fbde8561bb365f67a9`](https://github.com/TrillionniumFoundation/hepta-runtime/tree/4cd85c99c5f5a480832c48fbde8561bb365f67a9) |
 | Target | `x86_64-unknown-linux-gnu`; ELF64 / AMD64 / little-endian / LP64 |
 | ABI | System V AMD64; scalar and explicit borrowed-byte profiles |
 | Core subset | `selfhost-core-linux-x86_64-v6` |
@@ -72,6 +78,24 @@ current-Agent discovery of all eleven tools, production before/after task
 inventories, successful first-use maintenance, CI and complete-cost NDU
 comparisons retain their own acceptance receipts. Selecting this source does
 not turn a held or failed operational gate into a pass.
+
+## Proof results and supplied machine bytes
+
+Every verification check binds its exact subject, property, profile, assumptions,
+checker identity and unproved obligations. A `proved` status is limited to those
+fields and grants no execution authority. Cached or retained unscoped results
+cannot satisfy a new required claim.
+
+For the declared Safe Core profile, the independent validator reads the actual
+retained ELF object and final shared-image bytes and compares their modeled
+behavior with Core using retained SMT obligations. Same-emitter rederivation
+remains a separate encoding check. Canonical lowering of the complete Core
+language is still unsupported as a universal refinement claim. ABI, caller,
+resource, FFI and loader assumptions remain explicit in every scoped result.
+
+See the [measured six-gap record](docs/HIA_SIXGAP_20261108.json) for exact-source
+CI, public materialization, online identity, selfhost language coverage, the
+real repository maintenance trial, costs and remaining acceptance limits.
 
 ## Previous candidate
 
