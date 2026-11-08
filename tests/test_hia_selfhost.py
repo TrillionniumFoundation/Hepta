@@ -1,6 +1,8 @@
 """Real fixed-Core self-hosting, independently observable machine behavior."""
 from __future__ import annotations
 
+from copy import deepcopy
+import json
 from pathlib import Path
 import platform
 import shutil
@@ -22,6 +24,122 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_qualification_phase_merge_requires_complete_disjoint_boolean_results(self):
+        from tools.qualify_hia_selfhost import QUALIFICATION_FAMILIES, _merge_qualification_phases
+        rows = [({"family": family, "compiler_label": label, "status": "PASS",
+                  "checks": {family + "-" + label: True}}, {})
+                for family in QUALIFICATION_FAMILIES for label in ("original", "modified")]
+        checks = {"generation_chain": True}
+        self.assertEqual(len(_merge_qualification_phases(rows, checks)), 20)
+        self.assertEqual(len(checks), 21)
+        variants = [rows[:-1], [*rows[:-1], rows[0]]]
+        for mutation in ("nonboolean", "overwritten", "empty", "inconsistent-status"):
+            broken = deepcopy(rows)
+            if mutation == "nonboolean":
+                broken[-1][0]["checks"] = {"bad": 1}
+            elif mutation == "overwritten":
+                broken[-1][0]["checks"] = {"generation_chain": True}
+            elif mutation == "empty":
+                broken[-1][0]["checks"] = {}
+            else:
+                broken[-1][0]["status"] = "FAIL"
+            variants.append(broken)
+        for broken in variants:
+            original = {"generation_chain": True}
+            with self.assertRaises(AssertionError):
+                _merge_qualification_phases(broken, original)
+            self.assertEqual(original, {"generation_chain": True})
+        failed = deepcopy(rows)
+        failed[-1][0]["status"] = "FAIL"
+        failed[-1][0]["checks"] = {"actual_failure": False}
+        accepted = {}
+        _merge_qualification_phases(failed, accepted)
+        self.assertFalse(all(accepted.values()))
+
+    def test_qualification_phase_inputs_require_pinned_bytes_and_closed_inventory(self):
+        from tools.qualify_hia_selfhost import _read_phase_inputs, qualification_phase
+        with tempfile.TemporaryDirectory(prefix="hia-phase-input-") as temporary:
+            from hashlib import sha256
+            path = Path(temporary) / "input"
+            path.write_bytes(b"original bytes")
+            identity = {"compiler": {"path": str(path), "sha256": sha256(path.read_bytes()).hexdigest()}}
+            self.assertEqual(_read_phase_inputs(identity), {"compiler": b"original bytes"})
+            path.write_bytes(b"changed bytes")
+            with self.assertRaisesRegex(ValueError, "input changed"):
+                _read_phase_inputs(identity)
+            request = Path(temporary) / "request.json"
+            for value in ({}, {"schema": "hepta.hia.selfhost-phase-request.v1", "family": "unknown",
+                              "compiler_label": "original", "directory": temporary,
+                              "inputs": {}, "source_manifest_sha256": "0" * 64}):
+                request.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, "unknown qualification phase"):
+                    qualification_phase(request)
+
+    def test_qualification_phase_process_failures_preserve_logs_and_refuse_merge(self):
+        from concurrent.futures import Future
+        from hashlib import sha256
+        from unittest.mock import patch
+        from tools import qualify_hia_selfhost as module
+        with tempfile.TemporaryDirectory(prefix="hia-phase-failure-") as temporary:
+            root = Path(temporary)
+            image = root / "inert-image"
+            image.write_bytes(b"not executed")
+            inputs = {"compiler": {"path": str(image), "sha256": sha256(image.read_bytes()).hexdigest()}}
+            for failure in ("nonzero", "missing-report", "wrong-identity"):
+                directory = root / failure
+                directory.mkdir()
+
+                class FakeProcess:
+                    pid = 12345
+
+                    def __init__(self, command, **kwargs):
+                        kwargs["stdout"].write(b"retained phase stdout\n")
+                        kwargs["stderr"].write(b"retained phase failure\n")
+                        if failure == "wrong-identity":
+                            Path(command[-1]).write_text(json.dumps({
+                                "schema": "hepta.hia.selfhost-phase.v1", "family": "bulk",
+                                "compiler_label": "original", "worker_pid": self.pid,
+                                "source_manifest_sha256": "different source"}))
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, *args):
+                        pass
+
+                    def wait(self):
+                        return 1 if failure == "nonzero" else 0
+
+                with patch.object(module, "_phase_inputs", return_value=inputs), \
+                        patch.object(module.subprocess, "Popen", FakeProcess), \
+                        self.assertRaises(AssertionError):
+                    module._run_qualification_phase(directory, "bulk", "original", image, "0" * 64)
+                stem = directory / "phase-bulk-original"
+                self.assertEqual(stem.with_suffix(".stdout.log").read_bytes(), b"retained phase stdout\n")
+                self.assertEqual(stem.with_suffix(".stderr.log").read_bytes(), b"retained phase failure\n")
+                receipt = json.loads(stem.with_suffix(".process.json").read_text())
+                self.assertEqual(receipt["returncode"], 1 if failure == "nonzero" else 0)
+                self.assertTrue(stem.with_suffix(".request.json").is_file())
+                self.assertTrue((directory / "phase-runs/bulk-original").is_dir())
+            scheduled = []
+            for family, outcome in (("capacity", RuntimeError("first phase failed")),
+                                    ("cfg", FileNotFoundError("second phase failed before launch")),
+                                    ("elf", ({"status": "PASS"}, {}))):
+                future = Future()
+                if isinstance(outcome, Exception):
+                    future.set_exception(outcome)
+                else:
+                    future.set_result(outcome)
+                scheduled.append((family, "original", future))
+            with self.assertRaisesRegex(AssertionError, "qualification_phase_exceptions"):
+                module._collect_qualification_phases(root, scheduled)
+            index = json.loads((root / "phase-index.json").read_text())
+            self.assertEqual(index["completed"], 3)
+            self.assertEqual(index["exceptions"], 2)
+            self.assertEqual([row["state"] for row in index["phases"]], ["exception", "exception", "completed"])
+            self.assertEqual([row["exception_message"] for row in index["phases"][:2]],
+                             ["first phase failed", "second phase failed before launch"])
+
     def test_complete_compiler_is_valid_core_and_reproducible_source(self):
         from tools.generate_hia_selfhost import document
         source = SOURCE.read_bytes()
@@ -200,6 +318,22 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(generation["forbidden_compiler_modules_loaded"], [])
         for earlier, later in zip(generations, generations[1:]):
             self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
+        scheduling = self.report["qualification_scheduling"]
+        self.assertEqual(scheduling["maximum_host_oracle_workers"], 2)
+        self.assertTrue(scheduling["fresh_seed_and_generation_chain_sequential"])
+        self.assertFalse(scheduling["native_child_processes_reused"])
+        self.assertEqual(len(scheduling["phase_inventory"]), 20)
+        self.assertEqual(len(scheduling["phases"]), 20)
+        intervals = []
+        for phase in scheduling["phases"]:
+            self.assertEqual(phase["returncode"], 0)
+            self.assertEqual(phase["command"][1:4], ["-I", "-S", "-B"])
+            intervals += [(phase["started_monotonic_ns"], 1), (phase["completed_monotonic_ns"], -1)]
+        active = 0
+        for _, delta in sorted(intervals):
+            active += delta
+            self.assertLessEqual(active, 2)
+        self.assertEqual(active, 0)
 
     def test_loans_keep_live_graphs_through_native_original_and_mutated_compilers(self):
         selected = {name: value for name, value in self.report["checks"].items()
@@ -329,7 +463,9 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertTrue(self.report["claims"]["host_native_fixture_compilation_after_B0"])
 
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
-        data = (self.directory / "original-elf-bytesum.o").read_bytes()
+        row = next(row for row in self.report["elf_object_observations"]
+                   if row["case"] == "original-elf-bytesum")
+        data = Path(row["compilation"]["produced_image"]).read_bytes()
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),

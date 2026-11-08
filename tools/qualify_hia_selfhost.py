@@ -1,14 +1,17 @@
 """Reproduce the fixed-Core HIA bootstrap and retain every native generation.
 
-Only build_seed invokes the Python assembler/verifier/direct backend. From B1
+build_seed creates B0 with the Python assembler/verifier/direct backend. From B1
 onward a disposable stdlib-only child executes the previous HIA-generated flat
-image. The parent transports and hashes bytes; it never translates a successor.
+image. Independent host-oracle qualification also uses Python after B0; it never
+translates a successor or substitutes for a native generation.
 """
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -28,6 +31,18 @@ SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
+QUALIFICATION_WORKERS = 2
+QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
+                          "loan", "resource", "tail", "select")
+PHASE_REFERENCE_FILES = {
+    "resource": "independent-resource-reference.json",
+    "bulk": "independent-bulk-reference.json",
+    "loan": "independent-loan-reference.json",
+    "cfg": "independent-cfg-worklist-reference.json",
+    "capacity": "independent-capacity-reference.json",
+    "tail": "independent-tail-reference.json",
+    "select": "independent-select-reference.json",
+}
 
 
 def digest(data):
@@ -125,7 +140,7 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
     request_path.write_text(json.dumps(request, sort_keys=True) + "\n")
     started = time.monotonic_ns()
     try:
-        process = subprocess.run([sys.executable, "-I", "-B", str(CHILD), str(request_path.resolve())],
+        process = subprocess.run([sys.executable, "-I", "-S", "-B", str(CHILD), str(request_path.resolve())],
                                  cwd=directory, capture_output=True, text=True, timeout=20)
     except subprocess.TimeoutExpired as exc:
         (directory / (label + ".stdout.log")).write_bytes(exc.stdout or b"")
@@ -417,6 +432,233 @@ def qualify_elf_outputs(directory, compilers, sample, checks):
     return observations
 
 
+def _phase_manifest_digest(manifest):
+    return digest(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode())
+
+
+def _phase_inputs(directory, family, compiler, label):
+    paths = {"compiler": compiler, "source": SOURCE, "sample": SAMPLE,
+             "modified_source": directory / "modified-selfhost.hiaasm"}
+    if family in PHASE_REFERENCE_FILES:
+        paths["reference"] = directory / PHASE_REFERENCE_FILES[family]
+    if family == "elf":
+        paths["sample_image"] = directory / (label + "-bytesum.image.bin")
+    return {name: {"path": str(Path(path).resolve()), "sha256": digest(Path(path).read_bytes())}
+            for name, path in paths.items()}
+
+
+def _read_phase_inputs(inputs):
+    result = {}
+    for name, identity in inputs.items():
+        data = Path(identity["path"]).read_bytes()
+        if digest(data) != identity["sha256"]:
+            raise ValueError("qualification phase input changed: " + name)
+        result[name] = data
+    return result
+
+
+def qualification_phase(request_path):
+    """Run one closed family in a fresh host-oracle process, never a successor."""
+    request = json.loads(Path(request_path).read_text())
+    if (set(request) != {"schema", "family", "compiler_label", "directory", "inputs", "source_manifest_sha256"}
+            or request["schema"] != "hepta.hia.selfhost-phase-request.v1"
+            or request["family"] not in QUALIFICATION_FAMILIES
+            or request["compiler_label"] not in {"original", "modified"}):
+        raise ValueError("unknown qualification phase request")
+    family, label = request["family"], request["compiler_label"]
+    expected_inputs = {"compiler", "source", "sample", "modified_source"}
+    if family in PHASE_REFERENCE_FILES:
+        expected_inputs.add("reference")
+    if family == "elf":
+        expected_inputs.add("sample_image")
+    if set(request["inputs"]) != expected_inputs:
+        raise ValueError("qualification phase input inventory differs")
+    validate_contract()
+    before = source_manifest()
+    if _phase_manifest_digest(before) != request["source_manifest_sha256"]:
+        raise ValueError("qualification phase source identity differs")
+    data = _read_phase_inputs(request["inputs"])
+    directory = Path(request["directory"])
+    compiler = Path(request["inputs"]["compiler"]["path"])
+    compilers = ((label, compiler),)
+    reference = json.loads(data["reference"]) if "reference" in data else None
+    checks = {}
+    started = time.monotonic_ns()
+    if family == "elf":
+        source = data["source"] if label == "original" else data["modified_source"]
+        # This is the pinned bytesum artifact produced earlier by this same
+        # fresh generation chain, transported into this worker's own directory.
+        (directory / (label + "-bytesum.image.bin")).write_bytes(data["sample_image"])
+        observations = qualify_elf_outputs(directory, ((label, compiler, source),), data["sample"], checks)
+    elif family == "resource":
+        from tools.hia_selfhost_resources import qualify_resources
+        observations = qualify_resources(directory, compilers, checks, reference)
+    elif family == "bulk":
+        from tools.hia_selfhost_bulk import qualify_bulk
+        observations = qualify_bulk(directory, compilers, checks, reference)
+    elif family == "loan":
+        from tools.hia_selfhost_loans import qualify_loans
+        observations = qualify_loans(directory, compilers, checks, reference)
+    elif family == "cfg":
+        from tools.hia_selfhost_cfg_worklist import qualify as qualify_cfg
+        observations = qualify_cfg(directory, compilers, checks, reference)
+    elif family == "owned":
+        from tools.qualify_hia_selfhost_owned_elf import qualify as qualify_owned_elf
+        owned = qualify_owned_elf(directory / (label + "-owned-elf"), compiler)
+        checks[label + "_owned_elf_report_pass"] = owned["status"] == "PASS_SCOPED_OWNED_BUFFER_ELF"
+        for row in owned["cases"]:
+            checks[label + "_owned_elf_" + row["case"]["id"]] = row["pass"]
+        for row in owned["refusals"]:
+            checks[label + "_owned_elf_reject_" + row["name"]] = row["pass"]
+        observations = [{"compiler": label, "report": owned}]
+    elif family == "chain":
+        from tools.qualify_hia_selfhost_chain_elf import qualify as qualify_chain_elf
+        from tools.qualify_hia_selfhost_chain_flow import qualify as qualify_chain_allocator
+        chain = qualify_chain_elf(directory / (label + "-chain-elf"), compiler)
+        checks[label + "_chain_elf_report_pass"] = chain["status"] == "PASS_SCOPED_CHAIN_ELF"
+        for row in chain["cases"]:
+            checks[label + "_chain_elf_" + row["case"]["id"]] = row["pass"]
+        for row in chain["refusals"]:
+            checks[label + "_chain_elf_reject_" + row["name"]] = row["pass"]
+        allocator = qualify_chain_allocator(directory / (label + "-chain-allocator"), compiler)
+        checks[label + "_chain_allocator_report_pass"] = (allocator["status"] == "PASS_SCOPED_CHAIN_ALLOCATOR_CONTRACT"
+            and allocator["source_files_unchanged"])
+        for row in allocator["cases"]:
+            checks[label + "_chain_allocator_" + row["case"]["id"]] = row["pass"]
+        observations = {"chain": [{"compiler": label, "report": chain}],
+                        "allocator": [{"compiler": label, "report": allocator}]}
+    elif family == "capacity":
+        from tools.hia_selfhost_capacity import qualify_capacity
+        observations = qualify_capacity(directory, compilers, checks, reference)
+    elif family == "tail":
+        from tools.hia_selfhost_tailcalls import qualify_tailcalls
+        observations = qualify_tailcalls(directory, compilers, checks, reference)
+    else:
+        from tools.hia_selfhost_select import qualify_select
+        observations = qualify_select(directory, compilers, checks, reference)
+    _read_phase_inputs(request["inputs"])
+    if source_manifest() != before:
+        raise ValueError("qualification phase source changed")
+    return {"schema": "hepta.hia.selfhost-phase.v1", "family": family, "compiler_label": label,
+            "source_manifest_sha256": request["source_manifest_sha256"],
+            "input_sha256": {key: value["sha256"] for key, value in request["inputs"].items()},
+            "checks": checks, "observations": observations,
+            "status": "PASS" if all(checks.values()) else "FAIL",
+            "elapsed_ns": time.monotonic_ns() - started,
+            "worker_pid": os.getpid(),
+            "python": {"isolated": bool(sys.flags.isolated), "no_site": bool(sys.flags.no_site),
+                       "dont_write_bytecode": bool(sys.flags.dont_write_bytecode)},
+            "fresh_host_oracle_process": True, "successor_process_reuse": False}
+
+
+def _run_qualification_phase(directory, family, label, compiler, manifest_digest):
+    stem = "phase-" + family + "-" + label
+    phase_directory = directory / "phase-runs" / (family + "-" + label)
+    phase_directory.mkdir(parents=True, exist_ok=False, mode=0o700)
+    request = {"schema": "hepta.hia.selfhost-phase-request.v1", "family": family,
+               "compiler_label": label, "directory": str(phase_directory),
+               "inputs": _phase_inputs(directory, family, compiler, label),
+               "source_manifest_sha256": manifest_digest}
+    request_path, report_path = directory / (stem + ".request.json"), directory / (stem + ".json")
+    request_path.write_text(json.dumps(request, indent=2, sort_keys=True) + "\n")
+    command = [sys.executable, "-I", "-S", "-B", str(Path(__file__).resolve()),
+               "--phase-request", str(request_path), "--output", str(report_path)]
+    started = time.monotonic_ns()
+    with (directory / (stem + ".stdout.log")).open("wb") as stdout, (directory / (stem + ".stderr.log")).open("wb") as stderr:
+        # At most two host-oracle workers run concurrently. Their native calls
+        # remain individual, unchanged, resource-limited child processes.
+        with subprocess.Popen(command, cwd=phase_directory, stdin=subprocess.DEVNULL,
+                              stdout=stdout, stderr=stderr) as process:
+            returncode = process.wait()
+            worker_pid = process.pid
+    receipt = {"schema": "hepta.hia.selfhost-phase-process.v1", "family": family,
+               "compiler_label": label, "command": command, "returncode": returncode,
+               "worker_pid": worker_pid, "started_monotonic_ns": started,
+               "completed_monotonic_ns": time.monotonic_ns(),
+               "wall_elapsed_ns": time.monotonic_ns() - started,
+               "report_sha256": digest(report_path.read_bytes()) if report_path.exists() else None}
+    (directory / (stem + ".process.json")).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    if returncode or not report_path.exists():
+        raise AssertionError({"qualification_phase_failed": stem, "receipt": receipt})
+    report = json.loads(report_path.read_text())
+    _read_phase_inputs(request["inputs"])
+    if (report.get("schema") != "hepta.hia.selfhost-phase.v1"
+            or report.get("family") != family or report.get("compiler_label") != label
+            or report.get("worker_pid") != worker_pid
+            or report.get("source_manifest_sha256") != manifest_digest
+            or report.get("input_sha256") != {key: value["sha256"] for key, value in request["inputs"].items()}
+            or report.get("python") != {"isolated": True, "no_site": True, "dont_write_bytecode": True}
+            or report.get("fresh_host_oracle_process") is not True
+            or report.get("successor_process_reuse") is not False):
+        raise AssertionError("qualification phase receipt identity differs: " + stem)
+    return report, receipt
+
+
+def _merge_qualification_phases(results, checks):
+    expected = {(family, label) for family in QUALIFICATION_FAMILIES for label in ("original", "modified")}
+    if len(results) != len(expected):
+        raise AssertionError("incomplete qualification phase inventory")
+    phases, pending_checks = {}, {}
+    for report, receipt in results:
+        key = report["family"], report["compiler_label"]
+        if key not in expected or key in phases or type(report.get("checks")) is not dict or not report["checks"]:
+            raise AssertionError("duplicate, unknown or empty qualification phase")
+        if any(type(value) is not bool for value in report["checks"].values()):
+            raise AssertionError("qualification phase checks must be booleans")
+        if report.get("status") != ("PASS" if all(report["checks"].values()) else "FAIL"):
+            raise AssertionError("qualification phase status differs from checks")
+        if set(report["checks"]) & (set(checks) | set(pending_checks)):
+            raise AssertionError("qualification phase would overwrite an existing check")
+        pending_checks.update(report["checks"])
+        phases[key] = (report, receipt)
+    checks.update(pending_checks)
+    return phases
+
+
+def _collect_qualification_phases(directory, scheduled):
+    """Observe every future, retaining all failures before refusing the batch."""
+    index_path = directory / "phase-index.json"
+    entries = [{"family": family, "compiler_label": label, "state": "pending",
+                "request": str(directory / ("phase-" + family + "-" + label + ".request.json")),
+                "report": str(directory / ("phase-" + family + "-" + label + ".json")),
+                "process_receipt": str(directory / ("phase-" + family + "-" + label + ".process.json"))}
+               for family, label, _ in scheduled]
+    order = {future: position for position, (_, _, future) in enumerate(scheduled)}
+    results, failures, control_exceptions = {}, [], []
+
+    def retain():
+        value = {"schema": "hepta.hia.selfhost-phase-index.v1", "phases": entries,
+                 "completed": sum(row["state"] != "pending" for row in entries),
+                 "exceptions": len(failures)}
+        temporary = index_path.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+        temporary.replace(index_path)
+
+    retain()
+    for future in as_completed(order):
+        position = order[future]
+        entry = entries[position]
+        try:
+            result = future.result()
+        except BaseException as error:
+            # Worker exceptions are data until all futures have been observed.
+            # Control exceptions remain exceptions and are re-raised below.
+            entry.update(state="exception", exception_type=type(error).__module__ + "." + type(error).__qualname__,
+                         exception_message=str(error))
+            failures.append(entry.copy())
+            if not isinstance(error, Exception):
+                control_exceptions.append(error)
+        else:
+            results[position] = result
+            entry.update(state="completed", report_status=result[0].get("status"))
+        retain()
+    if control_exceptions:
+        raise control_exceptions[0]
+    if failures:
+        raise AssertionError({"qualification_phase_exceptions": failures, "phase_index": str(index_path)})
+    return [results[position] for position in range(len(scheduled))]
+
+
 def qualify(output):
     output = Path(output).resolve()
     if platform.system() != "Linux" or platform.machine().lower() not in {"x86_64", "amd64"} or not shutil.which("ld"):
@@ -524,43 +766,35 @@ def qualify(output):
     checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
     workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
     checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
-    elf_observations = qualify_elf_outputs(directory,
-        (("original", original, source), ("modified", previous, changed)), sample, checks)
-    resource_observations = qualify_resources(directory, (("original", original), ("modified", previous)), checks, resource_reference)
-    bulk_observations = qualify_bulk(directory, (("original", original), ("modified", previous)), checks, bulk_reference)
-    loan_observations = qualify_loans(directory, (("original", original), ("modified", previous)), checks, loan_reference)
-    cfg_observations = qualify_cfg(directory, (("original", original), ("modified", previous)), checks, cfg_reference)
-    from tools.qualify_hia_selfhost_owned_elf import qualify as qualify_owned_elf
-    owned_observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        owned = qualify_owned_elf(directory / (label + "-owned-elf"), compiler)
-        checks[label + "_owned_elf_report_pass"] = owned["status"] == "PASS_SCOPED_OWNED_BUFFER_ELF"
-        for row in owned["cases"]:
-            checks[label + "_owned_elf_" + row["case"]["id"]] = row["pass"]
-        for row in owned["refusals"]:
-            checks[label + "_owned_elf_reject_" + row["name"]] = row["pass"]
-        owned_observations.append({"compiler": label, "report": owned})
-    from tools.qualify_hia_selfhost_chain_elf import qualify as qualify_chain_elf
-    from tools.qualify_hia_selfhost_chain_flow import qualify as qualify_chain_allocator
-    chain_observations = []
-    allocator_observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        chain = qualify_chain_elf(directory / (label + "-chain-elf"), compiler)
-        checks[label + "_chain_elf_report_pass"] = chain["status"] == "PASS_SCOPED_CHAIN_ELF"
-        for row in chain["cases"]:
-            checks[label + "_chain_elf_" + row["case"]["id"]] = row["pass"]
-        for row in chain["refusals"]:
-            checks[label + "_chain_elf_reject_" + row["name"]] = row["pass"]
-        chain_observations.append({"compiler": label, "report": chain})
-        allocator = qualify_chain_allocator(directory / (label + "-chain-allocator"), compiler)
-        checks[label + "_chain_allocator_report_pass"] = (allocator["status"] == "PASS_SCOPED_CHAIN_ALLOCATOR_CONTRACT"
-            and allocator["source_files_unchanged"])
-        for row in allocator["cases"]:
-            checks[label + "_chain_allocator_" + row["case"]["id"]] = row["pass"]
-        allocator_observations.append({"compiler": label, "report": allocator})
-    expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
-    tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
-    select_observations = qualify_select(directory, (("original", original), ("modified", previous)), checks, select_reference)
+    # B0 and both three-generation chains above remain strictly sequential.
+    # Only independent qualification families are scheduled concurrently, and
+    # each family gets a new Python process so VM/reference instrumentation and
+    # globals cannot leak between families. Every native invocation stays fresh.
+    manifest_digest = _phase_manifest_digest(before)
+    with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
+        scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest))
+                     for family in QUALIFICATION_FAMILIES
+                     for label, compiler in (("original", original), ("modified", previous))]
+        phase_results = _collect_qualification_phases(directory, scheduled)
+    phases = _merge_qualification_phases(phase_results, checks)
+
+    def phase_observations(family):
+        return [row for label in ("original", "modified")
+                for row in phases[family, label][0]["observations"]]
+
+    elf_observations = phase_observations("elf")
+    resource_observations = phase_observations("resource")
+    bulk_observations = phase_observations("bulk")
+    loan_observations = phase_observations("loan")
+    cfg_observations = phase_observations("cfg")
+    owned_observations = phase_observations("owned")
+    chain_observations = [row for label in ("original", "modified")
+                          for row in phases["chain", label][0]["observations"]["chain"]]
+    allocator_observations = [row for label in ("original", "modified")
+                              for row in phases["chain", label][0]["observations"]["allocator"]]
+    expanded_capacity = phase_observations("capacity")
+    tail_observations = phase_observations("tail")
+    select_observations = phase_observations("select")
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
         "schema": "hepta.hia.selfhost-qualification.v6",
@@ -586,6 +820,14 @@ def qualify(output):
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
         "select_observations": select_observations, "independent_select_reference": select_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
+        "qualification_scheduling": {
+            "maximum_host_oracle_workers": QUALIFICATION_WORKERS,
+            "fresh_seed_and_generation_chain_sequential": True,
+            "native_child_processes_reused": False,
+            "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
+                                for label in ("original", "modified")],
+            "phases": [receipt for report, receipt in phase_results],
+        },
         "claims": {"HIA_parser_used_after_seed": True, "HIA_validator_used_after_seed": True,
                    "HIA_x86_generator_used_after_seed": True, "own_source_compiled": True,
                    "modified_own_source_rebuilt": all(checks[k] for k in ("modified_compiler_rebuilds_itself", "modified_codegen_changes_successor", "modified_wrapper_machine_bytes")),
@@ -615,7 +857,15 @@ def qualify(output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--phase-request", type=Path)
     arguments = parser.parse_args()
+    if arguments.phase_request is not None:
+        report = qualification_phase(arguments.phase_request)
+        arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+        print(json.dumps({"status": report["status"], "family": report["family"],
+                          "compiler_label": report["compiler_label"],
+                          "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"])}))
+        return
     report = qualify(arguments.output)
     print(json.dumps({"status": report["status"], "output": str(arguments.output),
                       "checks_passed": sum(report["checks"].values()), "checks_total": len(report["checks"]),

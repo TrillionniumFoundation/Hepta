@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,6 +19,7 @@ from tools.check_core_syntax_staged import SafeRoot
 
 PLATFORM = {'sys_platform': 'linux', 'machine': 'x86_64',
             'os_release': {'ID': 'ubuntu', 'VERSION_ID': '24.04'}, 'libc': 'glibc 2.39'}
+FIXTURE_PROCESS_SECONDS = 1
 
 
 class DiagnosticCaptureTests(unittest.TestCase):
@@ -52,7 +54,7 @@ class DiagnosticCaptureTests(unittest.TestCase):
 
             stack.enter_context(patch.object(capture, 'platform_observation', return_value=platform_value))
             stack.enter_context(patch.object(capture.subprocess, 'Popen', side_effect=launch))
-            stack.enter_context(patch.object(capture, 'PROCESS_SECONDS', 1))
+            stack.enter_context(patch.object(capture, 'PROCESS_SECONDS', FIXTURE_PROCESS_SECONDS))
             stack.enter_context(patch.object(capture, 'CLEANUP_SECONDS', 1))
             for name, value in overrides:
                 stack.enter_context(patch.object(capture, name, value))
@@ -315,13 +317,61 @@ a.start();b.start();a.join();b.join()
         markers = [{'id': 'HIA_DIAG_v1_LIN_000', 'original_offset': 50, 'instrumented_offset': 50}]
         line = b'"HIA_DIAG_v1_LIN_000" : String\n'
         script = 'import os,time;os.write(1,%r);time.sleep(10)' % line
-        result, files, _ = self.run_child(script, markers=markers, overrides=(('PROCESS_SECONDS', 0.15),))
+        checkpoint = {}
+
+        def setup(safe, stack):
+            real_monotonic, real_fsync = time.monotonic, os.fsync
+            real_append = capture._Sink.append
+            readiness_deadline = real_monotonic() + FIXTURE_PROCESS_SECONDS
+            synced = []
+
+            def clock():
+                now = real_monotonic()
+                if 'expired_at' not in checkpoint and now >= readiness_deadline:
+                    checkpoint.update(expired_at=readiness_deadline, trigger='fixture_readiness_timeout')
+                if 'expired_at' not in checkpoint:
+                    return 0.0
+                return capture.PROCESS_SECONDS + now - checkpoint['expired_at']
+
+            def fsync(fd):
+                real_fsync(fd)
+                synced.append(fd)
+
+            def append(sink, name, data, terminal=False):
+                before = len(synced)
+                real_append(sink, name, data, terminal=terminal)
+                if name == capture.DIAGNOSTIC_FILES[2] and any(
+                        json.loads(row)['kind'] == 'marker' for row in data.splitlines()):
+                    self.assertIn(sink.files[capture.DIAGNOSTIC_FILES[0]]['fd'], synced[:before])
+                    self.assertIn(sink.files[name]['fd'], synced[before:])
+                    self.assertEqual((safe.path / capture.DIAGNOSTIC_FILES[0]).read_bytes(), line)
+                    persisted = [json.loads(row) for row in (safe.path / name).read_bytes().splitlines()]
+                    self.assertEqual(sum(row['kind'] == 'marker' for row in persisted), 1)
+                    if 'expired_at' not in checkpoint:
+                        checkpoint.update(expired_at=real_monotonic(), trigger='durable_marker')
+
+            # This test checks a durable checkpoint followed by timeout, not
+            # Python startup/fsync speed within 150 ms. Keep real PTY input and
+            # the default marker parser; advance only after both actual fsyncs.
+            # A missing checkpoint still fails within the existing fixture
+            # readiness budget. Cleanup then follows real monotonic time.
+            stack.enter_context(patch.object(capture, 'time', SimpleNamespace(monotonic=clock)))
+            stack.enter_context(patch.object(capture.os, 'fsync', fsync))
+            stack.enter_context(patch.object(capture._Sink, 'append', append))
+
+        result, files, _ = self.run_child(script, markers=markers, setup=setup,
+                                         overrides=(('PROCESS_SECONDS', 0.15),))
         records = [json.loads(line) for line in files[capture.DIAGNOSTIC_FILES[2]].splitlines()]
         events = [row for row in records if row['kind'] == 'marker']
         self.assertEqual(len(events), 1)
+        self.assertEqual(checkpoint['trigger'], 'durable_marker')
         self.assertEqual(events[0]['event']['original_offset'], 50)
         self.assertEqual(result['last_observed_marker']['id'], markers[0]['id'])
         self.assertEqual(result['status'], 'diagnostic_timeout')
+        self.assertEqual(result['timeout_seconds'], 0.15)
+        self.assertTrue(result['leader_reaped'])
+        self.assertTrue(result['group_kill_sent'])
+        self.assertFalse(result['cleanup_deadline_exceeded'])
         self.assertNotIn('stdout', records[-1]['process'])
         self.assertNotIn('stderr', records[-1]['process'])
 

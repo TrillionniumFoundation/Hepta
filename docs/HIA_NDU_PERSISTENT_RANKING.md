@@ -291,3 +291,22 @@ This profile is opt-in and is not silently activated in the macro Agent
 lifecycle. Its remaining engineering burden and the observed ordinary-control
 advantage are part of the outcome, not grounds to lower the P2 acceptance
 criteria.
+
+## Later source-bound CI observation: 14b2c03c
+
+The [complete retained 14b2c03c campaign](../review-evidence/hia-ndu-14b-ci-20261108-5e6c/README.md)
+contains 72 completed cells, no failed or unstarted cells, no automatic retries,
+1,020 native responses from 534 processes, and 510 byte-identical native-response
+pairs. At horizon one, persistent transport won 2/6 pairs and its aggregate
+saving against prepared was +1.077%; this differs from the earlier retained
+50c1578b negative aggregate and 1/6 wins. Both observations remain available.
+Horizons 4, 16 and 64 each had 6/6 persistent wins against prepared, with
+aggregate savings of 15.668%, 33.425% and 43.626% respectively.
+
+The ordinary scalar control was faster in all 24 pairs again. The independent
+replay checks original frames, identities and cost arithmetic without claiming
+authenticated timings. The original reports retain `model_cost: null`,
+incomplete full cost and P2 HOLD. The 172-test Python integration and three Rust
+framing controls are finite software gates; neither this successful workflow
+nor the mechanism measurements replace the separately failed cold source gate
+or establish economic benefit.

@@ -323,3 +323,15 @@ NDU or trusting this document's rounded timing table. The replay code itself
 is pinned by the verifier SHA-256 in each report. The native logs, local
 measurements and independent arithmetic check remain scoped evidence; they do
 not authorize production activation or assert a global safety property.
+
+### Later source-bound CI observation: 14b2c03c
+
+The [retained 14b2c03c CI campaign](../review-evidence/hia-ndu-14b-ci-20261108-5e6c/README.md)
+completed all 72 registered cells and replayed 1,020 original native calls,
+510 ordinary calls and 510 byte-identical native-response pairs. The repaired
+analysis checker reports `reported_analysis_recomputed: true` on that run's
+exact registration and verifier identity. Prepared transport had lower observed
+cost than one-shot in 24/24 pairs; the ordinary scalar control had lower cost
+than prepared in all 24. All 475 original artifact members are retained with
+their hashes. This NDU result does not supersede the independent exact-source
+cold failure on that commit, close P2, or supply missing model/full costs.

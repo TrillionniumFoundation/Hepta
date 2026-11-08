@@ -10,7 +10,6 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-import subprocess
 import sys
 import time
 
@@ -18,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ""}:
     sys.path.insert(0, str(ROOT))
 from tools.hia_selfhost_contract import CONTRACT_PATH, validate_contract
+from tools.hia_selfhost_process_owner import run_owned
 
 
 def cold_replay(output):
@@ -64,20 +64,24 @@ def cold_replay(output):
                "preexisting_generated_artifacts": []}
     (directory / "request.json").write_text(json.dumps(request, indent=2, sort_keys=True) + "\n")
     started = time.monotonic_ns()
-    try:
-        completed = subprocess.run(command, cwd=home, env=environment,
-                                   capture_output=True, timeout=180)
-        stdout, stderr, returncode = completed.stdout, completed.stderr, completed.returncode
-    except subprocess.TimeoutExpired as exc:
-        stdout, stderr, returncode = exc.stdout or b"", exc.stderr or b"", None
-    (directory / "stdout.log").write_bytes(stdout)
-    (directory / "stderr.log").write_bytes(stderr)
-    nested = json.loads(nested_output.read_text()) if nested_output.exists() else None
+    owner = run_owned(command, cwd=home, env=environment,
+                      stdout_path=directory / "stdout.log", stderr_path=directory / "stderr.log",
+                      receipt_path=directory / "process-owner.json",
+                      qualification_seconds=180, cleanup_seconds=3)
+    returncode = owner.get("returncode")
+    owner_complete = (owner.get("status") == "OWNED_PROCESS_COMPLETED"
+                      and owner.get("exit_observed_before_deadline") is True
+                      and owner.get("timed_out") is False
+                      and owner.get("cleanup", {}).get("complete") is True)
+    # Do not inspect a report while a remaining descendant could still write it,
+    # or admit a late successful report after the unchanged 180-second budget.
+    nested = json.loads(nested_output.read_text()) if owner_complete and nested_output.exists() else None
     preserved = all(sha256((source_root / path).read_bytes()).hexdigest() == digest
                     for path, digest in files.items())
     untouched_origin = all(sha256((ROOT / path).read_bytes()).hexdigest() == digest
                            for path, digest in files.items())
-    checks = {"nested_process_exit_zero": returncode == 0,
+    checks = {"nested_process_exit_zero": owner_complete and returncode == 0,
+              "owned_process_tree_cleanup_confirmed": owner.get("cleanup", {}).get("complete") is True,
               "nested_full_qualification_pass": bool(nested and nested.get("status") == "SELF_HOSTED_FIXED_CORE_PASS"),
               "source_export_hashes_preserved": preserved,
               "origin_hashes_preserved": untouched_origin,
@@ -91,6 +95,8 @@ def cold_replay(output):
     result = {"schema": "hepta.hia.selfhost-cold-replay.v1",
               "status": "COLD_SELFHOST_REPLAY_PASS" if all(checks.values()) else "FAIL",
               "profile": contract["profile"], "checks": checks, "returncode": returncode,
+              "process_owner": owner, "qualification_wall_limit_seconds": 180,
+              "cleanup_wall_limit_seconds": 3,
               "wall_elapsed_ns": time.monotonic_ns() - started,
               "source_manifest": files, "nested_report": str(nested_output),
               "nested_report_sha256": sha256(nested_output.read_bytes()).hexdigest() if nested else None,

@@ -52,6 +52,34 @@ then verifies the exported and original bytes again. The original source tree
 is not on the child's import path. This establishes source/process/cache cold
 replay on the measured host; it is not a new VM or an independent toolchain.
 
+B0 and the dependent B1/B2/B3/M1/M2/M3 generation chain run sequentially. The
+independent qualification families then run in at most two isolated host-oracle
+Python processes at a time, with separate output directories for each family
+and compiler. Each worker verifies the same pinned source manifest and inputs;
+the parent requires every original/modified family result, rejects duplicate
+checks, and retains each request, process receipt, output and error log. No
+native successor process is reused: every individual compile or execution still
+starts its disposable stdlib-only child with its existing limits. This is a
+qualification-harness scheduling change, not a compiler speedup or a cached
+qualification. All cases and the cold runner's 180-second computation deadline
+remain required. The real worker intervals are recorded in the final report.
+The coordinator observes every scheduled future and updates a retained phase
+index as results arrive. It records every exception, including failures before
+a worker starts, and refuses the batch if any phase raises or has a false check.
+
+Cold replay uses a dedicated Linux child subreaper to own the qualification
+process and ordinary descendants, including the normal linker capture's new
+sessions. The 180-second computation limit includes supervisor startup. A
+separate three-second cleanup budget cannot admit late qualification results.
+The owner retains process identities and wait observations, and reports cleanup
+as confirmed only after all directly owned and adopted children have been
+reaped and the kernel reports `ECHILD`. Cold replay preserves its original ten
+checks and adds an eleventh cleanup check. A timeout, nonzero qualification exit,
+unconfirmed cleanup or mismatched owner identity cannot produce a cold PASS.
+The observed child list is not a complete historical inventory of descendants
+that exited and were reaped normally. This remains process lifecycle control
+on the current host, not a security sandbox.
+
 ## Fixed seed and actual generation chain
 
 | Generation | Executed compiler | Input | Output construction |

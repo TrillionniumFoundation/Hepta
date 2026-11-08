@@ -179,6 +179,29 @@ modified compiler identities. The original slow and CPU-limit failures, an inter
 rejection and all final repairs remain separately retained; no child CPU,
 workspace or cold-replay limit was increased.
 
+The later [cold scheduling repair](HIA_SELFHOST_COLD_PARALLEL_OWNER_FIX_20261108.md)
+retains those exact compiler bytes and all 1,183 native checks. After the fresh
+B0 and ordinary/modified generation chains complete in dependency order, it
+schedules 20 independent groups of reference checks in separate directories, with
+at most two fresh Python workers. Each worker binds its inputs and source
+manifest; the parent refuses missing, duplicate, unexpected or malformed phase
+results and preserves failures from every scheduled worker. The retained
+1,699-call logical inventory, non-path request inputs, selected behavior fields
+and every B/M generation hash match the earlier successful CI. Host-linked
+shared objects retain their actual, separately recorded toolchain identities;
+their bytes are not represented as equal across different linker versions.
+
+Its frozen 252-file closure has a complete local native qualification and a
+fresh cold replay: the latter completed all 11 outer checks and all 1,183 nested
+checks in 88.084 seconds. These are observations for that run, not a runtime
+performance promise. The [dedicated Linux process owner](HIA_SELFHOST_COLD_PROCESS_OWNER_20261108.md)
+requires the qualification leader to finish within the unchanged 180-second
+budget. It then confirms ordinary descendant cleanup with a separate budget of
+at most three seconds, including descendants that created a new session. A
+timeout or unconfirmed cleanup cannot admit a nested result. The additional
+cleanup check is reported separately from the unchanged native check count.
+The earlier 180-second CI timeout and its incomplete report remain retained.
+
 The separate [machine-plan header oracle repair](HIA_SELFHOST_MACHINE_PLAN_HEADER_REPAIR_20261108.md)
 retains equality for all 17 observed workspace header words, including word
 248. This finite observation does not cover the unobserved workspace tail.

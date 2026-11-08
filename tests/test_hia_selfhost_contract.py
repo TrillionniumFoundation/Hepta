@@ -138,6 +138,13 @@ class SelfhostColdReplayTests(unittest.TestCase):
             output = Path(temporary) / "cold.json"
             result = cold_replay(output)
             self.assertEqual(result["status"], "COLD_SELFHOST_REPLAY_PASS", result["checks"])
+            self.assertEqual(len(result["checks"]), 11)
+            self.assertTrue(result["checks"]["owned_process_tree_cleanup_confirmed"])
+            self.assertEqual(result["qualification_wall_limit_seconds"], 180)
+            self.assertEqual(result["cleanup_wall_limit_seconds"], 3)
+            self.assertEqual(result["process_owner"]["status"], "OWNED_PROCESS_COMPLETED")
+            self.assertTrue(result["process_owner"]["cleanup"]["observed_echild"])
+            self.assertTrue(result["process_owner"]["cleanup"]["leader_reaped"])
             self.assertEqual(len(set(result["generation_sha256"])), 1)
             first, second, third = result["modified_generation_sha256"]
             self.assertNotEqual(first, second)
