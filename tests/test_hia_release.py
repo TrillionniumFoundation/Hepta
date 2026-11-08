@@ -92,7 +92,7 @@ class ReleaseLockBoundaries(unittest.TestCase):
 
     def test_bootstrap_loader_cannot_disappear_from_inventory(self):
         for name in ("tools/hia_selfhost_child.py", "tools/hia_selfhost_select.py",
-                     "tools/hia_selfhost_bulk.py"):
+                     "tools/hia_selfhost_bulk.py", "tools/hia_selfhost_loans.py"):
             value = lock_fixture()
             del value["files"]["hepta"][name]
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):
@@ -109,6 +109,9 @@ class ReleaseLockBoundaries(unittest.TestCase):
             "review-evidence/hia-agent-buffer-20261108-5e6c/raw-continuation.zip",
             "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",
             "tests/test_hia_ndu_prepared_ranker.py", "docs/HIA_NDU_PREPARED_RANKING.md",
+            "tools/qualify_hia_ndu_persistent_ranker.py", "tools/replay_hia_ndu_persistent_ranker.py",
+            "tests/test_hia_ndu_persistent_ranker.py", "docs/HIA_NDU_PERSISTENT_RANKING.md",
+            "rust/hia-ndu-bridge/src/main.rs",
             ".github/workflows/hia-ndu-scalar-selection.yml",
         ):
             value = lock_fixture()

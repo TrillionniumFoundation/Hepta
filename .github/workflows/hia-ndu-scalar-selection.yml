@@ -84,7 +84,7 @@ jobs:
               'source_sha': os.environ['HEPTA_SOURCE_SHA'], 'status': 'INCOMPLETE',
               'new_provider_calls': 0, 'economic_benefit_established': False,
               'model_cost': None, 'full_cost_complete': False,
-              'scope': 'software integration and actual scalar native ABI; no Agent or performance claim',
+              'scope': 'software integration and actual scalar native ABI including bounded persistent transport; no Agent or performance claim',
               'python': sys.version, 'platform': platform.platform(),
               'dependencies': {name: importlib.metadata.version(name) for name in ('jsonschema','z3-solver')}}
           try:
@@ -137,7 +137,8 @@ jobs:
                   'tests.test_hia_ndu_optimizer',
                   'tests.test_hia_ndu_optimizer_budget',
                   'tests.test_hia_ndu_optimizer_transport',
-                  'tests.test_hia_ndu_prepared_ranker']
+                  'tests.test_hia_ndu_prepared_ranker',
+                  'tests.test_hia_ndu_persistent_ranker']
               suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
               class Result(unittest.TextTestResult):
                   def __init__(self,*args,**kwargs):
@@ -152,8 +153,20 @@ jobs:
               if not report['native_binary_unchanged_after_suite']:
                   raise AssertionError('original native binary changed during the integration suite')
               required = 'tests.test_hia_ndu_scalar_selection.NativeScalarSelectionTests.test_actual_native_tie_and_injected_wrong_frontier'
+              required_persistent_native = [
+                  'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_responses_equal_prepared_for_four_fresh_evaluations',
+                  'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_rejects_bad_session_sequence_length_and_partial_header',
+                  'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_stops_at_the_startup_round_allowance']
+              persistent_completed = [name for name in result.completed_ids
+                  if name.startswith('tests.test_hia_ndu_persistent_ranker.')]
               qualified = (result.wasSuccessful() and not result.skipped and not result.expectedFailures
-                  and required in result.completed_ids and result.testsRun > 0)
+                  and required in result.completed_ids and result.testsRun > 0
+                  and len(persistent_completed) == 22
+                  and all(name in result.completed_ids for name in required_persistent_native))
+              report['persistent_tests_completed'] = len(persistent_completed)
+              report['required_persistent_native_tests'] = required_persistent_native
+              report['required_persistent_native_tests_completed'] = all(
+                  name in result.completed_ids for name in required_persistent_native)
               report.update(status='QUALIFIED' if qualified else 'FAILED',
                   modules=modules, tests_run=result.testsRun, successes=result.completed_ids,
                   failures=[{'test': t.id(),'traceback':detail} for t,detail in result.failures],
@@ -170,6 +183,66 @@ jobs:
           finally:
               report['validation_wall_ns'] = time.perf_counter_ns() - started
               (evidence / 'integration-result.json').write_text(json.dumps(report,indent=2) + '\n')
+          PY
+      - name: Require the three original Rust stream framing controls with zero ignored tests
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          RUSTC="$(rustup which --toolchain 1.95.0 rustc)" \
+          CARGO_TARGET_DIR="$RUNNER_TEMP/hia-ndu-scalar-target" \
+          HIA_NDU_CARGO="$(rustup which --toolchain 1.95.0 cargo)" \
+          python -B - <<'PY'
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import time
+          evidence = Path(os.environ['RUNNER_TEMP']) / 'hia-ndu-scalar'
+          required = [
+              'stream_tests::frame_bounds_and_partial_headers_refuse_before_unbounded_allocation',
+              'stream_tests::clean_boundary_eof_is_distinct_from_a_partial_frame',
+              'stream_tests::session_and_round_replay_refuse_before_json_evaluation']
+          command = [os.environ['HIA_NDU_CARGO'], 'test', '--manifest-path',
+              str(Path(os.environ['HEPTA_NDU_BUILD']) / 'Cargo.toml'),
+              '-p', 'hia-ndu-bridge', '--locked', '--', '--nocapture']
+          started = time.perf_counter_ns()
+          report = {'schema': 'hepta.hia.ndu-stream-rust-controls.v1',
+              'source_sha': os.environ['HEPTA_SOURCE_SHA'], 'status': 'INCOMPLETE',
+              'command': command, 'required_tests': required, 'automatic_retries': 0,
+              'target_cache_at_start': 'existing_from_native_build',
+              'scope': 'Rust framing unit controls; not NDU performance or machine proof',
+              'economic_benefit_established': False, 'whole_lifecycle_cost_complete': False}
+          try:
+              with (evidence / 'stream-rust-tests.stdout').open('xb') as stdout, \
+                   (evidence / 'stream-rust-tests.stderr').open('xb') as stderr:
+                  result = subprocess.run(command, stdout=stdout, stderr=stderr, check=False)
+              report['returncode'] = result.returncode
+              output = (evidence / 'stream-rust-tests.stdout').read_text()
+              passed = [name for name in required if re.search(
+                  r'^test ' + re.escape(name) + r' \.\.\. ok$', output, re.MULTILINE)]
+              summary = 'test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;'
+              report['required_tests_passed'] = passed
+              report['zero_ignored_summary_present'] = summary in output
+              if result.returncode != 0 or passed != required or summary not in output:
+                  raise AssertionError('three named native Rust framing controls must pass with zero ignored tests')
+              report['status'] = 'QUALIFIED'
+          except BaseException as error:
+              report['status'] = 'FAILED'
+              report['error'] = {'type': type(error).__name__, 'message': str(error)}
+              raise
+          finally:
+              report['validation_wall_ns'] = time.perf_counter_ns() - started
+              for stream in ('stdout', 'stderr'):
+                  path = evidence / ('stream-rust-tests.' + stream)
+                  if path.exists():
+                      raw = path.read_bytes()
+                      report[stream] = {'path': path.name, 'bytes': len(raw),
+                          'sha256': sha256(raw).hexdigest()}
+              (evidence / 'stream-rust-tests.json').write_text(json.dumps(report, indent=2) + '\n')
           PY
       - name: Preregister and replay actual prepared transport cost against both controls
         timeout-minutes: 4
@@ -193,6 +266,28 @@ jobs:
             --registration-sha256 "$hia_prepared_registration" \
             --output "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.json" \
             2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.log"
+      - name: Preregister and replay original persistent process cost against both controls
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_ndu_persistent_ranker.py register \
+            --binary "$HEPTA_NDU_BRIDGE" \
+            --build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --output "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-registration.log"
+          hia_persistent_registration=$(python -B -c 'from hashlib import sha256; import os; from pathlib import Path; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-ndu-scalar/persistent-mechanism/registration.json").read_bytes()).hexdigest())')
+          printf '%s\n' "$hia_persistent_registration" > "$RUNNER_TEMP/hia-ndu-scalar/persistent-registration.sha256"
+          python -B tools/qualify_hia_ndu_persistent_ranker.py run \
+            --directory "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \
+            --registration-sha256 "$hia_persistent_registration" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism.log"
+          python -B tools/replay_hia_ndu_persistent_ranker.py \
+            --directory "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \
+            --registration-sha256 "$hia_persistent_registration" \
+            --output "$RUNNER_TEMP/hia-ndu-scalar/persistent-replay.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-replay.log"
       - name: Require the identical clean source after success or failure
         if: always()
         shell: bash

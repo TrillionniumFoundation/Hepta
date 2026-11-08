@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 
 use std::collections::BTreeSet;
-use std::io::{self, Read};
+use std::io::{self, Read, Write};
 use std::str::FromStr;
 
 use codex_hepta_ndu::{
@@ -150,35 +150,185 @@ fn evaluate(request: Request) -> Result<Value, String> {
     }))
 }
 
-fn main() {
-    let result = (|| -> Result<Value, String> {
-        let mut input = Vec::new();
-        io::stdin()
-            .take(MAX_BYTES + 1)
-            .read_to_end(&mut input)
-            .map_err(|e| e.to_string())?;
-        if input.len() as u64 > MAX_BYTES {
-            return Err("request exceeds byte limit".into());
+const STREAM_PROFILE: &str = "hepta.hia.ndu-ranking-persistent-framed.v1";
+const MAX_REQUESTS: usize = 256;
+const MAX_SESSION_BYTES: usize = 8 * 1024 * 1024;
+const FRAME_TAG_BYTES: usize = 4 + 64;
+
+fn response(input: &[u8]) -> Result<Value, String> {
+    if input.len() as u64 > MAX_BYTES {
+        return Err("request exceeds byte limit".into());
+    }
+    let request = serde_json::from_slice(input).map_err(|e| e.to_string())?;
+    let mut result = evaluate(request)?;
+    result
+        .as_object_mut()
+        .ok_or("response must be an object")?
+        .insert(
+            "request_sha256".into(),
+            json!(Digest32::of_bytes(input).to_string()),
+        );
+    Ok(result)
+}
+
+fn charge(total: &mut usize, amount: usize) -> Result<(), String> {
+    let next = total.checked_add(amount).ok_or("session byte count overflow")?;
+    if next > MAX_SESSION_BYTES {
+        return Err("session byte allowance exhausted".into());
+    }
+    *total = next;
+    Ok(())
+}
+
+fn read_frame<R: Read>(reader: &mut R, total: &mut usize) -> Result<Option<Vec<u8>>, String> {
+    let mut header = [0u8; 4];
+    match reader.read(&mut header[..1]).map_err(|e| e.to_string())? {
+        0 => return Ok(None), // EOF at a frame boundary is a requested clean close.
+        1 => (),
+        _ => unreachable!(),
+    }
+    reader.read_exact(&mut header[1..]).map_err(|e| e.to_string())?;
+    let length = u32::from_be_bytes(header) as usize;
+    if !(FRAME_TAG_BYTES + 1..=FRAME_TAG_BYTES + MAX_BYTES as usize).contains(&length) {
+        return Err("stream frame exceeds byte bounds".into());
+    }
+    charge(total, 4 + length)?;
+    let mut frame = vec![0u8; length];
+    reader.read_exact(&mut frame).map_err(|e| e.to_string())?;
+    Ok(Some(frame))
+}
+
+fn write_frame<W: Write>(
+    writer: &mut W, sequence: u32, session: &str, body: &[u8], total: &mut usize,
+) -> Result<(), String> {
+    if body.is_empty() || body.len() as u64 > MAX_BYTES {
+        return Err("stream response exceeds byte bounds".into());
+    }
+    let length = FRAME_TAG_BYTES + body.len();
+    charge(total, 4 + length)?;
+    writer.write_all(&(length as u32).to_be_bytes()).map_err(|e| e.to_string())?;
+    writer.write_all(&sequence.to_be_bytes()).map_err(|e| e.to_string())?;
+    writer.write_all(session.as_bytes()).map_err(|e| e.to_string())?;
+    writer.write_all(body).map_err(|e| e.to_string())?;
+    writer.flush().map_err(|e| e.to_string())
+}
+
+fn stream<R: Read, W: Write>(
+    reader: &mut R, writer: &mut W, session: &str, maximum: usize,
+) -> Result<(), String> {
+    if session.len() != 64
+        || !session.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        || !(1..=MAX_REQUESTS).contains(&maximum)
+    {
+        return Err("invalid stream session or request allowance".into());
+    }
+    let mut total = 0;
+    let hello = json!({
+        "schema": "hepta.hia.ndu-stream-hello.v1",
+        "transport_profile": STREAM_PROFILE,
+        "upstream_commit": UPSTREAM,
+        "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
+        "max_requests": maximum,
+        "max_frame_json_bytes": MAX_BYTES,
+        "max_session_bytes": MAX_SESSION_BYTES,
+        "authority": "ADVISORY_ONLY",
+        "result_cache": false,
+        "evaluates_each_request": true
+    }).to_string();
+    write_frame(writer, 0, session, hello.as_bytes(), &mut total)?;
+    for sequence in 1..=maximum {
+        let Some(frame) = read_frame(reader, &mut total)? else {
+            return Ok(());
+        };
+        let supplied = u32::from_be_bytes(frame[..4].try_into().map_err(|_| "sequence bytes")?);
+        if supplied != sequence as u32 || &frame[4..FRAME_TAG_BYTES] != session.as_bytes() {
+            return Err("stream sequence or session mismatch".into());
         }
-        let request = serde_json::from_slice(&input).map_err(|e| e.to_string())?;
-        let mut response = evaluate(request)?;
-        response
-            .as_object_mut()
-            .ok_or("response must be an object")?
-            .insert(
-                "request_sha256".into(),
-                json!(Digest32::of_bytes(&input).to_string()),
-            );
-        Ok(response)
+        // Every accepted frame constructs a fresh request and invokes the
+        // original pinned evaluator. Only the transport process is retained.
+        let value = response(&frame[FRAME_TAG_BYTES..])?;
+        let mut output = value.to_string().into_bytes();
+        output.push(b'\n'); // Exactly the same native JSON bytes as one-shot mode.
+        write_frame(writer, sequence as u32, session, &output, &mut total)?;
+    }
+    Ok(()) // The process cannot evaluate more than its startup allowance.
+}
+
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() == 1 {
+        let result = (|| -> Result<Value, String> {
+            let mut input = Vec::new();
+            io::stdin()
+                .take(MAX_BYTES + 1)
+                .read_to_end(&mut input)
+                .map_err(|e| e.to_string())?;
+            response(&input)
+        })();
+        match result {
+            Ok(value) => println!("{value}"),
+            Err(error) => {
+                eprintln!(
+                    "{}",
+                    json!({"schema":"hepta.hia.ndu-error.v1","error":error,"authority":"NONE"})
+                );
+                std::process::exit(2);
+            }
+        }
+        return;
+    }
+    let result = (|| -> Result<(), String> {
+        if args.len() != 4 || args[1] != "--stream-v1" {
+            return Err("expected --stream-v1 SESSION_HEX MAX_REQUESTS".into());
+        }
+        let maximum = args[3].parse::<usize>().map_err(|e| e.to_string())?;
+        stream(&mut io::stdin().lock(), &mut io::stdout().lock(), &args[2], maximum)
     })();
-    match result {
-        Ok(value) => println!("{value}"),
-        Err(error) => {
-            eprintln!(
-                "{}",
-                json!({"schema":"hepta.hia.ndu-error.v1","error":error,"authority":"NONE"})
-            );
-            std::process::exit(2);
+    if let Err(error) = result {
+        let bounded: String = error.chars().take(2048).collect();
+        eprintln!(
+            "{}",
+            json!({"schema":"hepta.hia.ndu-stream-error.v1","error":bounded,"authority":"NONE"})
+        );
+        std::process::exit(2);
+    }
+}
+
+#[cfg(test)]
+mod stream_tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn frame_bounds_and_partial_headers_refuse_before_unbounded_allocation() {
+        for raw in [vec![0u8], vec![0, 0, 0, 1], vec![255, 255, 255, 255]] {
+            assert!(read_frame(&mut Cursor::new(raw), &mut 0).is_err());
+        }
+        let mut total = MAX_SESSION_BYTES;
+        let header = (FRAME_TAG_BYTES as u32 + 1).to_be_bytes();
+        assert!(read_frame(&mut Cursor::new(header), &mut total).is_err());
+    }
+
+    #[test]
+    fn clean_boundary_eof_is_distinct_from_a_partial_frame() {
+        assert!(read_frame(&mut Cursor::new(Vec::<u8>::new()), &mut 0).unwrap().is_none());
+        let mut raw = Vec::new();
+        raw.extend_from_slice(&(FRAME_TAG_BYTES as u32 + 2).to_be_bytes());
+        raw.extend_from_slice(&[1u8; 10]);
+        assert!(read_frame(&mut Cursor::new(raw), &mut 0).is_err());
+    }
+
+    #[test]
+    fn session_and_round_replay_refuse_before_json_evaluation() {
+        let session = "1".repeat(64);
+        for (sequence, token) in [(0u32, session.clone()), (2u32, session.clone()), (1u32, "2".repeat(64))] {
+            let mut input = Vec::new();
+            input.extend_from_slice(&((FRAME_TAG_BYTES + 2) as u32).to_be_bytes());
+            input.extend_from_slice(&sequence.to_be_bytes());
+            input.extend_from_slice(token.as_bytes());
+            input.extend_from_slice(b"{}");
+            let result = stream(&mut Cursor::new(input), &mut Vec::new(), &session, 1);
+            assert_eq!(result.unwrap_err(), "stream sequence or session mismatch");
         }
     }
 }
