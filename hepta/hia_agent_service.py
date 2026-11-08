@@ -26,6 +26,8 @@ from .hia_agent_store import (AgentRejected, AgentStore, capture_path, digest, k
     reject, uint64, wire, decode_data)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
+from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
+    assumptions_document, proof_contract_description)
 
 
 def _now():
@@ -104,7 +106,8 @@ class HIAAgentService:
                 "canonical_core_to_machine_refinement": "unsupported",
                 "machine_plan_refinement": "separately checked layout, scratch-register, scalar register-lifetime and exact encoding choices relative to assumed-correct canonical lowering",
                 "encoding_check": "rederive entire object and linked image; validate retained identities and ABI",
-                "sample_tests_are_proofs": False},
+                "sample_tests_are_proofs": False, "proof_result_schema": PROOF_SCHEMA,
+                "proved_meaning": PROVED_MEANING, "unscoped_legacy_receipts_accepted": False},
             "lowering": {**common, "schema": "hepta.hia.agent.lowering-profile.v1",
                 "rules": "fixed stack slots; fixed scratch registers; source block order; explicit control transfers",
                 "selection_authority": "semantic implementation only", "profitability_passes": []},
@@ -123,10 +126,12 @@ class HIAAgentService:
             "objective_schema": self.store.json(OBJECTIVE_SCHEMA, "discovery"),
             "cost_policy_schema": self.store.json(COST_POLICY_SCHEMA, "discovery"),
             "plan_schema": self.store.json(PLAN_SCHEMA, "discovery"),
+            "proof_contract": self.store.json(proof_contract_description(), "discovery"),
         }
         for name, filename in (("assembly_grammar", "HIA_AGENT_ASSEMBLY.md"),
                                ("core_language", "HIA_PROGRAM.md"),
                                ("machine_plan_guide", "HIA_AGENT_MACHINE_PLANS.md"),
+                               ("proof_contract_guide", "HIA_AGENT_PROOF_RESULTS.md"),
                                ("macro_policy_guide", "HIA_AGENT_MACRO_POLICY.md"),
                                ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
                                ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
@@ -141,6 +146,7 @@ class HIAAgentService:
                 "E_HIA_REQUEST_CONFLICT": "same key belongs to different arguments", "E_HIA_REQUEST_UNKNOWN": "observe the original runtime job; never relaunch",
                 "E_HIA_ARTIFACT_IDENTITY": "use the complete issued reference", "E_HIA_MACHINE_PLAN": "read plan_schema and supply only checked Core-bound machine choices",
                 "E_HIA_CLAIM_REQUIRED": "requested acceptance proof has no exact qualifying retained receipt",
+                "E_HIA_PROOF_SCOPE": "rerun verification with a fresh request key; proof scope or retained checker conclusion is missing or differs",
                 "E_HIA_GENERATION_STALE": "inspect current slot through the authorized consumer; use a fresh conditional request"}}, "discovery")
         self.manifest = self.store.json({"schema": "hepta.hia.agent.manifest.v1",
             "status": "implemented_bounded_profiles", "catalog_sha256": self.catalog_sha256,
@@ -224,7 +230,10 @@ class HIAAgentService:
                         if previous["digest"] != request_digest:
                             reject("E_HIA_REQUEST_CONFLICT", "request key is already bound to different arguments")
                         if previous["state"] == "completed":
-                            return decode_data(previous["response"])
+                            cached = decode_data(previous["response"])
+                            if tool == "hia_verify" and cached.get("status") == "completed":
+                                self._replay_verification(cached, arguments)
+                            return cached
                         reject("E_HIA_REQUEST_UNKNOWN", "original request has durable intent but no confirmed terminal result",
                                retry_action="observe_original")
                     self.store.db.execute("INSERT INTO requests VALUES (?,?,?,?,?,?)",
@@ -505,7 +514,8 @@ class HIAAgentService:
         from .hia_optimization import PURE, DEFAULT_POLICY, verify_optimization
         from .hia_program import WIDTHS, integer_range
         if timeout_ms <= 0:
-            return "unknown", "Verification cannot exceed the frozen context deadline", {"reason": "context wall budget exhausted"}
+            return "unknown", "Verification cannot exceed the frozen context deadline", {
+                "method": "context_budget_exhausted", "reason": "context wall budget exhausted"}
         if original.canonical_bytes == revised.canonical_bytes:
             return "proved", "Reflexivity for the exact admitted canonical Core bytes, including resources and traps", {
                 "method": "canonical_core_identity", "base_sha256": original.sha256,
@@ -579,7 +589,9 @@ class HIAAgentService:
                             "method": "finite_domain", "counterexample": case, "before": first, "after": second,
                             "checked": checked, "required": total, "complete": False}
             if time.monotonic_ns() > deadline:
-                return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {"checked": checked, "required": total, "deadline_met": False}
+                return "unknown", "Exhaustive scalar enumeration finished after its frozen verification deadline", {
+                    "method": "finite_domain", "checked": checked, "required": total,
+                    "complete": False, "deadline_met": False}
             return "proved", "Exhaustive complete pure acyclic scalar domain (at most 12 total input bits), including first trap and resource ledger", {
                 "method": "finite_domain", "checked": checked, "required": total, "complete": True,
                 "all_inputs_in_declared_widths": True, "transcript_sha256": transcript.hexdigest(),
@@ -613,9 +625,13 @@ class HIAAgentService:
         program = self._program(args["candidate"])
         original = None if args["base_program"] is None else self._program(args["base_program"])
         plan = self._subject(args, program)
+        binding = {"context": args["context"], "candidate": args["candidate"],
+            "candidate_core_sha256": program.sha256, "base_program": args["base_program"],
+            "base_core_sha256": None if original is None else original.sha256,
+            "subject": args["subject"]}
+        scoped_subject = proof_subject(binding, context["target_profile"])
         checks = []
         for claim in args["claims"]:
-            assumptions = None
             if claim == "core_admission":
                 status, domain, evidence = "proved", "Exact canonical Core accepted by the installed whole-program checker; no behavioral or native claim", {
                     "checker": "hepta.hia_program.verify_program", "core_sha256": program.sha256,
@@ -635,10 +651,6 @@ class HIAAgentService:
                     from .hia_machine_plan import preservation_checks
                     choice_checks = preservation_checks(plan, program)
                     status, domain = "proved", "Checked explicit machine choices preserve canonical CFG, scalar value lifetimes and path effects, conditional on canonical lowering/encoder correctness"
-                    assumptions = self.store.json({"schema": "hepta.hia.agent.plan-assumptions.v1",
-                        "assumptions": ["canonical Core lowering implements Core semantics", "x86 encoder and relocation machinery implement their declared instructions"],
-                        "assumptions_proved_here": False, "claim_scope": "reviewed explicit machine choices relative to canonical lowering",
-                        "universal_core_to_machine_refinement_proved": False}, "verification-assumptions")
                     evidence = {"method": "checked_explicit_machine_choices", "choice_checks": choice_checks, "core_sha256": program.sha256,
                         "plan": plan, "canonical_object_sha256": canonical.sha256,
                         "planned_object_sha256": image.sha256,
@@ -652,17 +664,22 @@ class HIAAgentService:
                 built = self._build_receipt(subject["build_receipt"], args["context"], subject["native_artifact"])
                 actual, _ = self.store.get(subject["native_artifact"], kind="native")
                 reemitted, rebuilt = self._compile(program, built["output_kind"], built["machine_plan"], self._remaining_ms(context))
-                matches = actual == reemitted and rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
+                bytes_equal = actual == reemitted
+                object_equal = rebuilt["object_sha256"] == built["native_build"]["object_sha256"]
+                matches = bytes_equal and object_equal
                 status = "proved" if matches else "refuted"
-                domain = "Exact actual artifact equals independently reverified Core/plan reemission and linkage, with checked closed symbol/ABI inventory; no semantic refinement claim"
+                domain = "Exact actual artifact equals reverified Core/plan reemission and linkage by the same installed implementation, with checked closed symbol/ABI inventory; no independent semantic refinement claim"
                 evidence = {"method": "complete_native_rederivation", "actual_sha256": sha256(actual).hexdigest(),
-                    "rederived_sha256": sha256(reemitted).hexdigest(), "bytes_equal": matches,
+                    "rederived_sha256": sha256(reemitted).hexdigest(), "bytes_equal": bytes_equal,
+                    "object_identity_equal": object_equal,
                     "native_build": rebuilt, "no_llvm_or_external_assembler": True}
             else:
                 reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
-            checks.append({"claim": claim, "status": status, "domain": domain,
-                "validator": self.profiles["validation"], "assumptions_artifact": assumptions,
-                "evidence_artifact": self.store.json(evidence, "verification-evidence")})
+            scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
+                profile=args["validation_profile"], installation=self.identities, evidence=evidence)
+            checks.append({**scoped,
+                "assumptions_artifact": self.store.json(assumptions_document(scoped), "verification-assumptions"),
+                "evidence_artifact": self.store.json({**evidence, "proof_binding": scoped}, "verification-evidence")})
         receipt = self.store.json({"schema": "hepta.hia.agent.verification.v1", "context": args["context"],
             "candidate": args["candidate"], "candidate_core_sha256": program.sha256,
             "base_program": args["base_program"], "base_core_sha256": None if original is None else original.sha256,
@@ -680,12 +697,47 @@ class HIAAgentService:
         program = self._program(record["candidate"])
         if program.sha256 != record["candidate_core_sha256"]:
             reject("E_HIA_RECEIPT_BINDING", "verification Core identity changed", "verification")
+        original = None if record["base_program"] is None else self._program(record["base_program"])
+        if record["base_core_sha256"] != (None if original is None else original.sha256):
+            reject("E_HIA_RECEIPT_BINDING", "verification base Core identity changed", "verification")
+        self._subject(record, program)
+        context_record = self._context(context)
+        subject = proof_subject(record, context_record["target_profile"])
+        checks_schema = self.tools["hia_verify"]["outputSchema"]["properties"]["result"]["properties"]["checks"]
+        try:
+            validate(record["checks"], checks_schema, "verification.checks")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "missing or invalid proof scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if len({check["claim"] for check in record["checks"]}) != len(record["checks"]):
+            reject("E_HIA_PROOF_SCOPE", "verification repeats a proof property", "verification")
         for check in record["checks"]:
-            if check["evidence_artifact"] is not None:
-                self.store.get(check["evidence_artifact"], kind="verification-evidence")
-            if check["assumptions_artifact"] is not None:
-                self.store.get(check["assumptions_artifact"], kind="verification-assumptions")
+            evidence, _ = self.store.get_json(check["evidence_artifact"], kind="verification-evidence")
+            assumptions, _ = self.store.get_json(check["assumptions_artifact"], kind="verification-assumptions")
+            expected = proof_result(claim=check["claim"], status=check["status"], domain=check["domain"],
+                subject=subject, profile=record["validation_profile"], installation=self.identities, evidence=evidence)
+            actual = {key: value for key, value in check.items()
+                      if key not in {"assumptions_artifact", "evidence_artifact"}}
+            if (actual != expected or evidence.get("proof_binding") != expected
+                    or assumptions != assumptions_document(expected)):
+                reject("E_HIA_PROOF_SCOPE", "proof scope or retained checker conclusion differs; rerun verification with a fresh request key", "verification")
         return record
+
+    def _replay_verification(self, response, arguments):
+        """Observe an original result only if its complete scope remains valid."""
+        try:
+            validate(response, self.tools["hia_verify"]["outputSchema"], "replayed verification")
+        except AgentRejected as exc:
+            reject("E_HIA_PROOF_SCOPE", "cached proof lacks current scope; rerun verification with a fresh request key: " + str(exc), "verification")
+        if installation_manifest() != self.identities:
+            reject("E_HIA_IMPLEMENTATION_STALE", "installed implementation changed during verification replay")
+        result = response["result"]
+        retained = self._verification(result["verification_receipt"], arguments["context"], arguments["candidate"])
+        if (result["candidate"] != retained["candidate"] or result["subject"] != retained["subject"]
+                or result["checks"] != retained["checks"] or retained["subject"] != arguments["subject"]
+                or retained["base_program"] != arguments["base_program"]
+                or retained["validation_profile"] != arguments["validation_profile"]
+                or [check["claim"] for check in retained["checks"]] != arguments["claims"]):
+            reject("E_HIA_PROOF_SCOPE", "cached proof differs from the original subject or retained conclusion; rerun verification with a fresh request key", "verification")
 
     def _compile(self, program, kind, machine_plan, timeout_ms):
         from .hia_program_native import emit_program_machine, compile_program_machine

@@ -60,11 +60,6 @@ ERROR = obj({'code': text(128), 'phase': text(64), 'message': text(4096),
              'retry_action': enum('correct_input', 'refresh_context', 'observe_original',
                                   'choose_supported_profile', 'stop'),
              'details_artifact': nullable(ARTIFACT)})
-VERIFICATION = obj({'claim': text(256), 'status': enum('proved', 'refuted', 'unknown',
-                                                   'unsupported', 'not_run'),
-                    'domain': text(2048), 'validator': PROFILE,
-                    'assumptions_artifact': nullable(ARTIFACT),
-                    'evidence_artifact': nullable(ARTIFACT)})
 
 
 def common(**fields):
@@ -210,9 +205,49 @@ NATIVE_SUBJECT = obj({'kind': {'const': 'native_artifact'}, 'backend_profile': P
                       'native_artifact': ARTIFACT, 'build_receipt': ARTIFACT})
 VERIFY_SUBJECT = {'oneOf': [CORE_SUBJECT, CANONICAL_SUBJECT, PLAN_SUBJECT, NATIVE_SUBJECT]}
 
+INSTALLATION = obj({'worker_sha256': SHA, 'backend_sha256': SHA, 'catalog_sha256': SHA})
+SCOPED_SUBJECT_FIELDS = {
+    'context': CONTEXT, 'target_profile': PROFILE, 'candidate': ARTIFACT,
+    'candidate_core_sha256': SHA, 'base_program': nullable(ARTIFACT),
+    'base_core_sha256': nullable(SHA),
+}
+SCOPED_SUBJECT = {'oneOf': [
+    obj({**branch['properties'], **SCOPED_SUBJECT_FIELDS})
+    for branch in VERIFY_SUBJECT['oneOf']
+]}
+PROOF_ITEM = obj({'id': text(128), 'statement': text(2048)})
+PROOF_CHECKER = obj({
+    'name': text(256),
+    'method': enum('core_admission', 'canonical_core_identity', 'finite_domain',
+                   'compositional_scalar_effect', 'context_budget_exhausted',
+                   'checked_explicit_machine_choices', 'canonical_lowering_unsupported',
+                   'complete_native_rederivation'),
+    'installation': INSTALLATION,
+    'python': obj({'implementation': text(64), 'version': text(64)}),
+    'auxiliary_checker_sha256': nullable(SHA),
+    'solver': nullable(obj({'name': text(64), 'version': text(64),
+                            'binding_sha256': SHA, 'library_sha256': SHA})),
+})
+VERIFICATION = obj({
+    'schema': {'const': 'hepta.hia.agent.proof-result.v1'},
+    'claim': enum('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check'),
+    'status': enum('proved', 'refuted', 'unknown', 'unsupported', 'not_run'),
+    'domain': text(2048), 'subject': SCOPED_SUBJECT,
+    'property': obj({'id': enum('core_admission', 'behavior_equivalence', 'lowering_refinement', 'encoding_check'),
+                     'statement': text(2048)}),
+    'profile': PROFILE, 'validator': PROFILE,
+    'assumptions': array(PROOF_ITEM, 16, 1), 'checker': PROOF_CHECKER,
+    'unproved_obligations': array(PROOF_ITEM, 16, 1),
+    'global_safety_proved': {'const': False},
+    'execution_authority_granted': {'const': False},
+    'assumptions_artifact': ARTIFACT, 'evidence_artifact': ARTIFACT,
+})
+
 tool('hia_verify',
      'Check explicit claims using a discovered validation profile. Results distinguish Core '
-     'admission, behavioral equivalence and Core-to-machine refinement and state their domains. '
+     'admission, behavioral equivalence and Core-to-machine refinement. Every check carries its '
+     'exact subject, property, profile, assumptions, checker identity and unproved obligations. '
+     'Proved is conditional on that scope, never global safety or execution authority. '
      'An unsupported proof is not a failed program, and a passing finite test is not a universal '
      'proof. The subject explicitly binds canonical lowering, an Agent plan, or emitted native '
      'bytes to the exact Core and context target. Plan receipts cannot be reused for another '
@@ -453,6 +488,46 @@ validate_case('hia_evaluate', 'outputSchema', bad, False, 'evaluate.no_completio
 bad = copy.deepcopy(accepted)
 bad['status'] = 'unknown'
 validate_case('hia_evaluate', 'outputSchema', bad, False, 'evaluate.unknown_requires_recovery_diagnostic')
+
+
+scoped_check = {
+    'schema': 'hepta.hia.agent.proof-result.v1',
+    'claim': 'core_admission', 'status': 'proved', 'domain': 'Schema fixture only',
+    'subject': {'kind': 'core', 'context': context, 'target_profile': profile,
+                'candidate': ref, 'candidate_core_sha256': ref['sha256'],
+                'base_program': None, 'base_core_sha256': None},
+    'property': {'id': 'core_admission', 'statement': 'Schema fixture only'},
+    'profile': profile, 'validator': profile,
+    'assumptions': [{'id': 'fixture_assumption', 'statement': 'Schema fixture only'}],
+    'checker': {'name': 'hepta.hia_program.verify_program', 'method': 'core_admission',
+                'installation': {'worker_sha256': 'a' * 64, 'backend_sha256': 'b' * 64,
+                                 'catalog_sha256': 'c' * 64},
+                'python': {'implementation': 'CPython', 'version': '3.11'},
+                'auxiliary_checker_sha256': None, 'solver': None},
+    'unproved_obligations': [{'id': 'fixture_obligation', 'statement': 'Schema fixture only'}],
+    'global_safety_proved': False, 'execution_authority_granted': False,
+    'assumptions_artifact': ref, 'evidence_artifact': ref,
+}
+scoped_response = {'contract_version': 'hepta.hia.agent-native.v1', 'request_id': 'fixture:result',
+                   'status': 'completed', 'result': {'candidate': ref, 'subject': {'kind': 'core'},
+                   'verification_receipt': ref, 'checks': [scoped_check], 'adopted': False}}
+validate_case('hia_verify', 'outputSchema', scoped_response, True, 'verify.complete_proof_scope')
+for key in ('schema', 'subject', 'property', 'profile', 'assumptions', 'checker', 'unproved_obligations'):
+    bad = copy.deepcopy(scoped_response)
+    del bad['result']['checks'][0][key]
+    validate_case('hia_verify', 'outputSchema', bad, False, 'verify.scope_requires_' + key)
+for key in ('global_safety_proved', 'execution_authority_granted'):
+    bad = copy.deepcopy(scoped_response)
+    bad['result']['checks'][0][key] = True
+    validate_case('hia_verify', 'outputSchema', bad, False, 'verify.reject_' + key)
+for key in ('assumptions', 'unproved_obligations'):
+    bad = copy.deepcopy(scoped_response)
+    bad['result']['checks'][0][key] = []
+    validate_case('hia_verify', 'outputSchema', bad, False, 'verify.reject_empty_' + key)
+for key in ('assumptions_artifact', 'evidence_artifact'):
+    bad = copy.deepcopy(scoped_response)
+    bad['result']['checks'][0][key] = None
+    validate_case('hia_verify', 'outputSchema', bad, False, 'verify.retained_' + key + '_required')
 
 runtime_check = {'status': 'not_run'}
 if options.runtime_checkout is not None:

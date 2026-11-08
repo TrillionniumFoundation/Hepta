@@ -42,6 +42,13 @@ completion or confirmed native termination.
 | Version publication | Conditional generation/epoch change, retained baseline, generation leases, compatible future-call rollback |
 | Authority | Configured operator namespace; no claim of per-ChatGPT-user isolation |
 
+Each verification check implements the self-contained
+[proof result contract](HIA_AGENT_PROOF_RESULTS.md). A `proved` status only
+establishes the listed property for the exact subject under its assumptions.
+Receipt consumers reject unscoped legacy results, changed scope and conclusions
+that disagree with retained checker evidence. This applies to emission,
+evaluation and adoption.
+
 The machine-choice checker establishes preservation relative to the canonical lowering
 under its published assumptions. It is not a universal proof of Core-to-x86
 refinement. Unsupported proof requests remain unsupported; they cannot satisfy a
@@ -57,7 +64,8 @@ only the relevant resources with `hia_read` or MCP `resources/read`.
 
 The normal workflow is to retain inputs with `hia_artifact`, freeze the workload,
 objective and budget with `hia_context`, import or patch a program, request
-specific verification claims, emit an object or shared image, verify the emitted
+specific verification claims, retain each complete subject/property/profile/
+assumptions/checker/unproved-obligations record, emit an object or shared image, verify the emitted
 artifact, and evaluate the frozen baseline/candidate pair. Adoption consumes
 the server's retained evidence and a current generation/epoch. A context or a
 digest never grants execution authority.
@@ -110,7 +118,7 @@ through the domain service or an actual MCP stdio endpoint. The separate
 HIA grammar, compiler, optimizer, or task answers. It is suitable for a fresh
 Agent context that must learn from discovery.
 
-The schema generator's 66 checks validate wire definitions only. Actual domain,
+The schema generator's recorded checks validate wire definitions only. Actual domain,
 native, transport, lifecycle, and Agent results are recorded in separate
 qualification artifacts. This document does not turn schema checks into those
 execution claims.

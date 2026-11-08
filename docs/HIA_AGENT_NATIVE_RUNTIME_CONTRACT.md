@@ -268,7 +268,19 @@ and `not_run`. A migration adapter must map existing results conservatively;
 `verify_program` acceptance or passing test inputs must not be relabeled as a
 whole-language soundness or universal refinement proof.
 
-Each successful result must state its exact claim and domain. An allocation,
+Every check, including a negative or incomplete result, carries a self-contained
+`hepta.hia.agent.proof-result.v1` scope: exact subject, property, profile,
+assumptions, checker identity and unproved obligations. `proved` is conditional
+on that complete scope; `global_safety_proved` and
+`execution_authority_granted` are always false. Retained evidence and assumptions
+bind the same scope and conclusion. Consumers reject missing, stale or changed
+scope and require verification to be run again; they do not upgrade old receipts.
+See [HIA_AGENT_PROOF_RESULTS.md](HIA_AGENT_PROOF_RESULTS.md) for method-by-method
+interpretation, checker identities and open native/ABI/FFI/resource/loading
+obligations. Encoding checks reemit with the same installed implementation and
+are not independent machine semantic validation.
+
+Each result must state its exact claim and domain. An allocation,
 trap-order or interface change cannot be accepted as an equivalent optimization
 merely because its output values match a few examples. Behavior-changing feature
 work requires a different task specification; it must not silently weaken an

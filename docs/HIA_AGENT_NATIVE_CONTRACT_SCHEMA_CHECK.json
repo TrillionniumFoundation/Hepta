@@ -1,20 +1,16 @@
 {
   "schema": "hepta.hia.agent-native-contract-schema-check.v1",
   "scope": "Design-time JSON Schema and fixture validation only; no HIA/runtime implementation executed",
-  "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
-  "document_sha256": "f4d61eaf227301b023bd80e20872d1b7ebd1f297e81ce64fb19d83fe1c8bfb17",
-  "generator_sha256": "06df85785e2780667f636a03889ff39a0db9bf79d122f4528b36ad33884c919b",
+  "catalog_sha256": "1908df9e2f6085f6431bce86786090bf38aa744ddfb76239d824b999cd152b98",
+  "document_sha256": "6437de21ff5e1cf2494763778aa636b945a7ca05d0ad4c4f975277310113fe7e",
+  "generator_sha256": "30faec64fdad220a9450cac268fa45dfe21c5fa53e15ed2ce1a810b70539cb32",
   "jsonschema_version": "4.26.0",
   "runtime_catalog_check": {
-    "status": "passed",
-    "source_commit": "02c390876d4681ddfb90bb9dd6269bbf4e6f6419",
-    "source_path": "deploy/mcp_tool_contract.py",
-    "source_sha256": "e2b29f987d3aaa863d7bf6879d0d6a835a807c133c5c355b6a4e69bce9c3e216",
-    "scope": "Catalog shape/integrity only; no runtime tools registered"
+    "status": "not_run"
   },
   "tool_count": 11,
   "schema_count": 22,
-  "check_count": 66,
+  "check_count": 77,
   "checks": [
     {
       "case": "hia_describe.inputSchema.well_formed",
@@ -309,16 +305,74 @@
       "expected": "reject"
     },
     {
-      "case": "runtime_catalog.reviewed_checker_accepts_catalog",
-      "passed": true
+      "case": "verify.complete_proof_scope",
+      "passed": true,
+      "expected": "accept"
     },
     {
-      "case": "runtime_catalog.missing_annotation_rejected",
-      "passed": true
+      "case": "verify.scope_requires_schema",
+      "passed": true,
+      "expected": "reject"
     },
     {
-      "case": "runtime_catalog.schema_drift_rejected",
-      "passed": true
+      "case": "verify.scope_requires_subject",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.scope_requires_property",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.scope_requires_profile",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.scope_requires_assumptions",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.scope_requires_checker",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.scope_requires_unproved_obligations",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.reject_global_safety_proved",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.reject_execution_authority_granted",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.reject_empty_assumptions",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.reject_empty_unproved_obligations",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.retained_assumptions_artifact_required",
+      "passed": true,
+      "expected": "reject"
+    },
+    {
+      "case": "verify.retained_evidence_artifact_required",
+      "passed": true,
+      "expected": "reject"
     }
   ],
   "claims": {
