@@ -245,6 +245,16 @@ class SafeCoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "PLT"):
             self.bind(changed)
 
+    def test_loader_metadata_cannot_disable_its_load_binding(self):
+        for name in (".dynsym", ".dynstr", ".rela.plt", ".hash", ".gnu.hash", ".gnu.version", ".gnu.version_r"):
+            changed = bytearray(self.data)
+            section = self.elf.section(name)
+            shoff = struct.unpack_from("<Q", changed, 40)[0]
+            struct.pack_into("<Q", changed, shoff + section["index"] * 64 + 8,
+                             section["flags"] & ~2)
+            with self.subTest(section=name), self.assertRaisesRegex(ValueError, "required allocation flag"):
+                self.bind(changed)
+
     def test_loader_metadata_cannot_be_read_from_an_unloaded_benign_copy(self):
         for name in (".dynsym", ".dynstr", ".rela.plt", ".hash", ".gnu.hash", ".gnu.version", ".gnu.version_r"):
             changed = bytearray(self.data)

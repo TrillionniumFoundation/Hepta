@@ -233,6 +233,12 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
     allocated = {".hash", ".gnu.hash", ".dynsym", ".dynstr", ".gnu.version", ".gnu.version_r",
                  ".rela.plt", ".plt", ".text", ".eh_frame", ".dynamic", ".got"}
     for section in final.sections:
+        # The dynamic table names loader authorities independently of section
+        # flags.  Their allocation bit cannot opt out of the PT_LOAD binding
+        # below; otherwise the checker may inspect bytes the loader never uses.
+        if section["name"] in allocated:
+            require(section["flags"] & 2,
+                    "loader section lacks required allocation flag: " + section["name"])
         if section["flags"] & 2:
             require(section["name"] in allocated and section["flags"] in {2, 3, 6, 0x42},
                     "unreviewed allocated loader section")
