@@ -90,7 +90,7 @@ def qualify(directory, compiler):
         "scope": "four owned-buffer operations in explicit linked ELF output; flat allocator calls remain refused",
         "allocator_contract": "ordinary calloc/free: fresh zeroed nonaliasing allocations or null; free releases valid live storage",
         "global_core_or_machine_refinement_proved": False,
-        "general_multi_result_call_return_abi_supported": False, "chain_operations_supported": False,
+        "general_multi_result_call_return_abi_supported": False, "chain_operations_qualified_by_this_suite": False,
         "cases": [], "refusals": []}
     try:
         all_cases = [*cases(), *flow_cases()]

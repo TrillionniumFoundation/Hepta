@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v12`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v13`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -94,6 +94,13 @@ Consequently the report records `python_parser_or_codegen_after_B0: true` and
 B0/B1/B2/B3 and modified compiler generation chain. These distinct scopes must
 not be collapsed into a claim that all later qualification avoids Python.
 
+The v13 allocator-contract tests also compile a separate host C witness after
+B0. Reports therefore record `external_assembler_after_B0: true` and
+`host_native_fixture_compilation_after_B0: true`, with
+`external_assembler_in_successor_compilation: false`. The C object is linked
+only into explicitly named qualification artifacts; it is not part of the
+successor compiler or the production runtime.
+
 ## The chosen Core subset
 
 The flat-image input is ordinary HIA assembly with the fixed header
@@ -114,7 +121,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` only in `selfhost_elf` |
+| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
@@ -123,6 +130,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
+| Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | `effects(read,write,trap)` or `effects(alloc,read,write,trap)`; allocation, drop and calls to allocating functions require `alloc` |
@@ -145,12 +153,12 @@ its source/output extents and required workspace before parsing.
 
 Each function returns exactly one scalar; returned loans and owners are excluded.
 The flat profile has no owned types or allocator imports. The explicit ELF
-profile adds the four owned-buffer operations described below, using the closed
+profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
 recursion, exceptions, indirect branches and arbitrary host imports remain
 excluded. The fixed exported function `f0` accepts exactly three buffers
 `(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
-scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers.
+scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers and chains.
 
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
@@ -179,7 +187,7 @@ The bounds are part of the compiler profile:
 | Blocks per function / all functions | 256 / 1,536 |
 | Function or block parameters / call or edge arguments | 16 |
 | SSA variable index per function | 2,047 |
-| Instruction results / function results | 2 / 1; two results only for `buffer.try_new` |
+| Instruction results / function results | 3 / 1; two for `buffer.try_new`, three for `chain.try_push` and `chain.pop` |
 | Instructions across the module | 8,192 |
 | Core JSON structural nodes | 262,144 |
 | Relative relocations | 12,000 |
@@ -203,8 +211,9 @@ budgets of 1,024 bytes for the root and each function's own fields, 2,048 bytes
 per block excluding its operations, and 512 bytes per operation give at most
 7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
 fixed identifier lengths, 16-argument/parameter limit, single optional attribute
-and unsigned 64-bit literal limit. The sole two-result instruction,
-`buffer.try_new`, has one argument and no attributes and remains within the same
+and unsigned 64-bit literal limit. `buffer.try_new` has two results and one
+argument; `chain.try_push` and `chain.pop` have three results and at most two
+arguments. None has attributes, and all remain within the same conservative
 512-byte per-operation bound; other instructions have at most one result.
 The text frontend's separate general-purpose presentation limits are not
 reimplemented as a dependency of the native compiler.
@@ -217,14 +226,17 @@ limits, or child deadlines. The v5 compiler contained 3,044 instructions.
 v6 retained these limits and all exact capacity fixtures while adding the tail
 self-call checker and lowering. v8 retains the same limits while adding three
 unsigned integer operations and scalar selection. The current instruction count is recorded by
-the authoring aid and each B0/generation receipt. Recursive owner chains,
-returned resources, non-tail/mutual recursion, arbitrary identifiers and general
-external linking remain outside the current profile. The four v12 ELF-only
-owned-buffer operations retain these capacity limits.
+the authoring aid and each B0/generation receipt. Returned resources,
+non-tail/mutual recursion, arbitrary identifiers and general external linking
+remain outside the current profile. The v12 owned-buffer and v13 chain
+extensions retain these capacity limits.
 
 The relocation table remains 12,000 records in the same workspace layout.
 An instruction contributes at most one call relocation, a block at most two
-edge relocations, and the wrapper one call: `1 + 8192 + 2*1536 = 11265`.
+edge relocations, and the wrapper one call. The optional shared chain destructor
+adds exactly two allocator calls: `1 + 8192 + 2*1536 + 2 = 11267`.
+Each source chain drop calls that single helper; its two free sites are not
+duplicated per source instruction.
 Relocations are counted during preflight as well as emission. Every displacement
 lies within the checked 1 MiB output, well inside signed x86-64 `rel32` range;
 the ELF writer still emits its existing ELF64 fields and resolved `.text`.
@@ -495,7 +507,7 @@ Non-tail and mutual recursion are valid in the general Core but remain outside
 this finite self-hosting profile. Direct self-tail calls are admitted by the v6
 rules above, including bounded same-frame argument staging and cycle checks;
 those cases must not be reported as unsupported by the current compiler. V12
-adds bounded ELF-owned allocation and transfer; returned resources, chains and
+adds bounded ELF-owned allocation and transfer, and v13 adds dynamic chains; returned resources and
 a general resource/effect checker remain excluded in the support matrix.
 
 ## Object expansion batch: HIA-written ELF64 ET_REL
@@ -503,7 +515,8 @@ a general resource/effect checker remain excluded in the support matrix.
 The opt-in module spelling `selfhost_elf` selects
 `hepta.hia.selfhost.elf64-relocatable.v1` for programs without allocator calls.
 For the common flat/ELF subset it changes only the output container. V12 also
-admits four ELF-only owned-buffer operations with the allocator profile below.
+admits four ELF-only owned-buffer operations, and v13 adds the six dynamic-chain
+operations with the same allocator import profile below.
 In HIA functions `f38`, `f39` and `f41`, the legacy object writer
 compiler emits the ELF64 little-endian x86-64 relocatable header, `.text`, a
 three-entry symbol table with only `f0` exported, both string tables and a
@@ -597,8 +610,8 @@ compiler, ISA, loader, resource or FFI semantics.
 The v11 HIA-written checker and emitter added `borrow.read`, `borrow.mut` and
 `loan.end` for the existing readbuf/mutbuf resource profile, bringing its
 inventory to 40/50 opcodes. Its owned allocation/transfer/drop gap is partially
-addressed by the v12 ELF-only extension below; owner chains, returned resources
-and general Core signatures, types and effects remain outside the profile.
+addressed by the v12 ELF-only extension below and its chain gap by v13;
+returned resources and general Core signatures, types and effects remain outside the profile.
 
 Every live loan carries a root and a parent. A parent with live children is
 suspended for byte access and calls; extent inspection remains valid as in Core.
@@ -641,11 +654,12 @@ a fixed point do not establish an all-input compiler or machine proof.
 
 The actual native parser, capability checker, x86 encoder and ELF writer admit
 `buffer.new`, `buffer.try_new`, `owner.move` and `owner.drop` for `buffer` owners
-in modules named `selfhost_elf`. The flat module retains its 40-operation set;
-the ELF module has 44 of the general Core's 50 opcodes. Both the owned type and
+in modules named `selfhost_elf`. At the v12 checkpoint the flat module retained
+its 40-operation set and the ELF module had 44 of the general Core's 50 opcodes. Both the owned type and
 all four operations are refused in flat modules before any output write.
-Recursive chain operations, general Core input shapes and an all-input
-compiler-correctness proof are still outside this result.
+Recursive chain operations were outside the v12 result and are handled by the
+v13 extension below. General Core input shapes and an all-input
+compiler-correctness proof remain outside both results.
 
 The fixed public entry remains `(readbuf, mutbuf, mutbuf) -> u32`. Internal
 functions may accept owned buffers and must consume or transfer them. Calls
@@ -684,7 +698,8 @@ allocations belong to the compiled program and come from libc, not from the
 compiler workspace. The current child address-space/CPU/stack limits remain
 unchanged. The same 12,000-record relocation table holds internal and allocator
 call records: every source instruction contributes at most one call relocation,
-so the existing upper bound remains valid. The exact structural-node counter
+so the v12 upper bound was 11265; v13 adds two shared helper sites as described
+above. The exact structural-node counter
 counts both `try_new` results.
 
 `tools/qualify_hia_selfhost_owned_elf.py` freezes source fixtures and compares
@@ -697,3 +712,88 @@ suite as part of the main qualifier; source-only cold replay runs it again.
 Raw source, generated objects, inspection, linker logs and child receipts are
 retained. Finite witnesses do not establish general allocator, ABI, resource,
 ISA, linking, loading or compiler refinement proofs.
+
+### v13 dynamic owned chains under the same ELF allocator contract
+
+The explicit ELF profile now includes all 50 Core opcode names. The flat profile
+still has 40. This inventory says which operation names have implemented
+bounded input shapes; it does not mean full Core self-hosting. Signed and other
+scalar types, general multiple-result calls and returns, returned owners and
+parameter loans, arbitrary identifiers and the full effect grammar remain
+outside the admitted profile. The public entry remains the same borrowed
+three-buffer function returning one `u32`.
+
+`chain.empty` creates a live logical empty chain. `chain.try_push` consumes one
+free chain and one free buffer and returns exactly `(chain, buffer, bool)`.
+Success links a fresh 24-byte node containing the payload pointer, payload
+length and previous head, returning an empty fallback buffer and true. A null
+allocation returns both original resources in fresh owner names and false.
+`chain.pop` consumes a free chain and returns the same three result types. A
+nonempty pop frees the node and transfers its payload and tail; an empty pop
+returns an empty chain, empty buffer and false. The third result uses the
+already reserved output-vector slot; the source, output, workspace, SSA, block
+and instruction budgets remain unchanged.
+
+Head loans carry the chain's root and parent capability, including through
+nested borrowed views, calls and exact block-argument renaming. Shared head
+loans can coexist; exclusive loans conflict with siblings. Children must end
+before their parent, and a chain with a live head descendant cannot be moved,
+dropped, pushed, popped or consumed by a call. `chain.is_empty` is legal while
+a head loan is live. Ordinary byte operations and `buffer.len` do not accept a
+chain; ordinary `borrow.read` and `borrow.mut` also require their declared
+buffer/view types. Borrowing an empty chain head traps for bounds, preserving
+earlier observable writes.
+
+Chains use the existing 16-byte SSA slot with a head pointer and zero spare
+word. Runtime nodes come from libc, never the compiler's workspace. Push and
+pop preserve their inputs across libc calls in fixed 32-byte temporary stack
+space. Destruction uses one shared internal machine helper that iterates with
+a 16-byte local frame and frees each payload and node. Node count therefore
+does not create recursive destructor frames. The HIA writer emits this helper
+once only when needed and resolves its ordinary internal relative calls.
+
+The helper's local machine branches are authored before B0 and become literal
+bytes in ordinary HIA emission functions. Successor HIA parses and checks new
+chain programs, chooses those lowering functions, writes all object bytes and
+records the `calloc`/`free` relocations itself. Python is not involved in that
+successor translation. Independent host VM and direct-backend references are
+identified separately in qualification reports, including when they execute
+after B0.
+
+The chain qualifier includes empty and nonempty transfers, both empty-head
+traps with and without a prior write, shared and nested exclusive head loans,
+and 5,000-node construction/pop and iterative-destruction loops. An independent
+Core VM resource ledger checks normal-return ownership and loan closure; actual
+linked successor output is compared with a separately emitted direct backend
+and explicit byte/result oracles. Original B3, mutated M3, cold replay and the
+existing flat/owned language corpus remain required. These finite observations
+do not establish general resource, allocator, ABI, ISA or compiler refinement.
+
+The independent flow corpus adds thirteen successful call/CFG/loan programs
+and seventy-five refusals. Nineteen refusals are valid general Core outside
+the declared profile; the other fifty-six violate Core typing or ownership.
+This distinction includes general multiple-result function calls and returns,
+which remain unsupported despite the complete opcode-name inventory.
+
+A separate ordinary allocator witness binds `calloc`, `malloc` and `free`
+only in its own linked test objects. Six cases select a real allocator call
+to return NULL, covering preserved failed-push inputs, retry, a failed optional
+payload allocation and mandatory allocation traps with and without an earlier
+write. Shared counters and logical allocation events remain observable after
+defined traps; no signal is caught and no post-trap cleanup is claimed. A
+seventh, no-failure control observes 5,000-node native destruction. Event
+replay checks every successful allocation against one free, including payloads
+and nodes; a passing normal return requires zero live storage and no foreign
+or repeated free. The host VM uses an explicit allocator-failure index, never
+a heap-budget stop, as its corresponding contract input. These are finite
+controlled allocator observations, not an allocator or loader theorem.
+
+Independent review found an earlier compiler-trap regression at an out-of-profile
+block parameter such as `v8192:chain`: declaration validation failed but parsing
+continued into capability metadata. The parser now stops immediately after a
+failed parameter definition and before any incoming capability graph is loaded;
+function-signature failures also stop their caller. Four positive block-parameter
+cases use the exact `v2047` boundary. Twenty-four valid-Core/profile refusals cover
+function and block parameters of all four resource types at `v2048`, `v8192` and
+`UINT64_MAX`. The original minimal failure and pre-fix qualification evidence are
+retained separately from the repaired source's final qualification.

@@ -1,0 +1,10 @@
+hia-asm.v1 hepta.hia.program.v8 selfhost_elf
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf)->(u32) effects(alloc,read,write,trap) entry(b0)
+block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  v3:chain = chain.empty()
+  jump b1(v3)
+block b1(v8192:chain)
+  _ = owner.drop(v8192)
+  v4:u32 = const() {"value":0}
+  ret(v4)
+end

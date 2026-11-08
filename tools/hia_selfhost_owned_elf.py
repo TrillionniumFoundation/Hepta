@@ -21,7 +21,7 @@ def owned_read_outputs(s:readbuf, w:mutbuf) -> u64:
     v = 0
     t = 0
     while get(w, 8) != 61 and get(w, 40) == 0:
-        if count >= 2:
+        if count >= 3:
             return fail(w, 66)
         v = expect(s, w, 256)
         expect(s, w, 58)
@@ -50,7 +50,7 @@ def owned_define_outputs(w:mutbuf) -> u64:
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
-        if t == 8:
+        if t >= 8:
             owner_produce(w, v)
         i = i + 1
     return 0
@@ -136,19 +136,21 @@ def owned_move_buffer(o:mutbuf, w:mutbuf, source:u64, out:u64) -> u64:
 def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
     if get(w, 232) != 1:
         return fail(w, 64)
+    if op >= @chain.empty@:
+        return chain_instruction(o, w, op, n, a, at)
     count = get(w, 288)
     out = get(w, 296)
     t = get(w, 304)
     if n != 1:
         return fail(w, 63)
     if op == @owner.move@ or op == @owner.drop@:
-        if at != 8:
+        if at < 8:
             return fail(w, 63)
         owner_free(w, a)
         if get(w, 40) != 0:
             return 0
         if op == @owner.move@:
-            if count != 1 or t != 8:
+            if count != 1 or t != at:
                 return fail(w, 63)
             owned_move_buffer(o, w, a, out)
         else:
@@ -156,7 +158,10 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
                 return fail(w, 63)
             if get(w, FBASE + get(w, 72) * FSTRIDE + 176) != 1:
                 return fail(w, 65)
-            owned_drop_libc(o, w, a)
+            if at == 9:
+                chain_drop_call(o, w, a)
+            else:
+                owned_drop_libc(o, w, a)
         owner_consume(w, a)
         return 0
     if at != 2 or t != 8:

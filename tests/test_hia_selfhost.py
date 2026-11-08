@@ -168,7 +168,8 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(earlier["produced_sha256"], later["artifact_sha256"])
 
     def test_loans_keep_live_graphs_through_native_original_and_mutated_compilers(self):
-        selected = {name: value for name, value in self.report["checks"].items() if "-loan-" in name}
+        selected = {name: value for name, value in self.report["checks"].items()
+                    if name.startswith(("original-loan-", "modified-loan-"))}
         self.assertEqual(len(selected), 142)
         self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
 
@@ -271,6 +272,9 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertFalse(self.report["claims"]["python_parser_or_codegen_in_successor_compilation"])
         self.assertTrue(self.report["claims"]["host_reference_codegen_after_B0"])
         self.assertTrue(self.report["claims"]["python_parser_or_codegen_after_B0"])
+        self.assertTrue(self.report["claims"]["external_assembler_after_B0"])
+        self.assertFalse(self.report["claims"]["external_assembler_in_successor_compilation"])
+        self.assertTrue(self.report["claims"]["host_native_fixture_compilation_after_B0"])
 
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         data = (self.directory / "original-elf-bytesum.o").read_bytes()

@@ -95,7 +95,12 @@ class ReleaseLockBoundaries(unittest.TestCase):
                      "tools/hia_selfhost_bulk.py", "tools/hia_selfhost_loans.py",
                      "tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
                      "tools/hia_selfhost_owned_flow_cases.py", "tools/qualify_hia_selfhost_owned_elf.py",
-                     "tests/test_hia_selfhost_owned_flow.py"):
+                     "tests/test_hia_selfhost_owned_flow.py",
+                     "tools/hia_selfhost_chain_elf.py", "tools/hia_selfhost_chain_cases.py",
+                     "tools/hia_selfhost_chain_flow_cases.py", "tools/hia_selfhost_parameter_cases.py",
+                     "tools/hia_selfhost_chain_allocator_child.py", "tools/hia_selfhost_chain_allocator_witness.c",
+                     "tools/qualify_hia_selfhost_chain_flow.py", "tools/qualify_hia_selfhost_chain_elf.py",
+                     "tests/test_hia_selfhost_chain.py"):
             value = lock_fixture()
             del value["files"]["hepta"][name]
             with self.subTest(name=name), self.assertRaisesRegex(ValueError, "incomplete"):
@@ -109,12 +114,21 @@ class ReleaseLockBoundaries(unittest.TestCase):
             "experiments/hia_repository_select_trial_20261108/public/task.json",
             "tests/test_hia_scalar_proof_contract.py", "docs/HIA_AGENT_PROOF_RESULTS.md",
             "tools/qualify_hia_agent_buffer_lifecycle.py", "tests/test_hia_agent_buffer_lifecycle.py",
+            "tools/hia_agent_native_qualification.py",
             "review-evidence/hia-agent-buffer-20261108-5e6c/raw-continuation.zip",
+            "tools/qualify_hia_agent_original_select_delta.py",
+            "docs/HIA_AGENT_ORIGINAL_SELECT_DELTA_20261108.md",
+            "docs/HIA_AGENT_EXTENSION_PROOF_PLAN_20261108.md",
+            "review-evidence/hia-agent-original-select-delta-20261108-5e6c/raw-evidence.zip",
+            "docs/HIA_SELFHOST_CHAIN_FLOW_QUALIFICATION.md",
+            "docs/HIA_SELFHOST_CHAIN_V13_QUALIFICATION.md",
             "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",
             "tests/test_hia_ndu_prepared_ranker.py", "docs/HIA_NDU_PREPARED_RANKING.md",
             "tools/qualify_hia_ndu_persistent_ranker.py", "tools/replay_hia_ndu_persistent_ranker.py",
             "tests/test_hia_ndu_persistent_ranker.py", "docs/HIA_NDU_PERSISTENT_RANKING.md",
             "rust/hia-ndu-bridge/src/main.rs",
+            "tools/build_hia_ndu_bridge.py", "rust/hia-ndu-bridge/Cargo.toml",
+            "rust/hia-ndu-bridge/Cargo.lock", "rust/hia-ndu-bridge/upstream.json",
             ".github/workflows/hia-ndu-scalar-selection.yml",
         ):
             value = lock_fixture()

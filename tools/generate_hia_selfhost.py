@@ -14,11 +14,13 @@ sys.path.insert(0, str(ROOT))
 from hepta.hia_agent_assembly import render_assembly
 from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
+from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 
-TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8}
+TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
  "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end"]
 WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
+WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -60,6 +62,8 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 264, 0)
         put(w, 272, 0)
         put(w, 344, 0)
+        put(w, 360, 0)
+        put(w, 368, 0)
         put(w, 48, phase)
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
@@ -92,6 +96,7 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                     return 4294967295
                 advance = 0
         if get(w, 232) == 1:
+            chain_drop_helper(o, w)
             elf_finish(o, w)
         if phase == 1:
             if get(w, 56) > length(o):
@@ -122,6 +127,8 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         put(w, VBASE + i * 16, 0)
         i = i + 1
     count = parse_params(s, w, 1)
+    if get(w, 40) != 0:
+        return 0
     account_nodes(w, 11 + count * 3)
     expect(s, w, 45)
     adjacent(w)
@@ -197,6 +204,8 @@ def parse_params(s:readbuf, w:mutbuf, signature:u64) -> u64:
                 put(w, base + 48 + count * 8, t)
         else:
             define(w, v, t)
+            if get(w, 40) != 0:
+                return 0
             if get(w, 48) == 0:
                 put(w, BBASE + get(w, 88) * BSTRIDE + 32 + count * 16, v)
                 put(w, BBASE + get(w, 88) * BSTRIDE + 40 + count * 16, t)
@@ -238,6 +247,8 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if b == 0:
         if count != get(w, FBASE + get(w, 72) * FSTRIDE + 24):
             fail(w, 12)
+    if get(w, 40) != 0:
+        return 0
     loan_incoming(w, bb, count, b)
     put(w, 96, b + 1)
     expect(s, w, 10)
@@ -302,7 +313,7 @@ def args(s:readbuf, w:mutbuf, is_edge:u64) -> u64:
             return fail(w, 15)
         j = 0
         while j < n:
-            if v == get(w, ARGS + j * 8) and (t == 7 or t == 8 or (is_edge == 1 and t == 6)):
+            if v == get(w, ARGS + j * 8) and (t >= 7 or (is_edge == 1 and t == 6)):
                 fail(w, 16)
             j = j + 1
         put(w, ARGS + n * 8, v)
@@ -365,9 +376,9 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     t = get(w, 304)
     expect(s, w, 61)
     op = get(w, 8)
-    if get(w, 288) > 1 and op != @buffer.try_new@:
+    if get(w, 288) > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
         return fail(w, 66)
-    if t >= 6 and op != @borrow.read@ and op != @borrow.mut@ and op != @buffer.new@ and op != @buffer.try_new@ and op != @owner.move@:
+    if t >= 6 and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
         fail(w, 21)
     next_token(s, w)
     adjacent(w)
@@ -385,9 +396,13 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if n > 1:
         b = get(w, ARGS + 8)
         bt = variable(w, b)
-    if op >= @buffer.new@ and op <= @owner.drop@:
+    if op >= @buffer.new@ and op <= @chain.head_mut@:
         owned_instruction(o, w, op, n, a, at)
         owned_define_outputs(w)
+        if get(w, 40) != 0:
+            return 0
+        if op == @chain.head_read@ or op == @chain.head_mut@:
+            loan_produce(w, v, a)
         expect(s, w, 10)
         return 0
     if op == @const@:
@@ -499,9 +514,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         if get(w, 40) != 0:
             return 0
         if op == @borrow.read@ or op == @borrow.mut@:
-            put(w, CAPBASE + v * 24, get(w, CAPBASE + a * 24))
-            put(w, CAPBASE + v * 24 + 8, a + 1)
-            put(w, 280, get(w, 280) + 1)
+            loan_produce(w, v, a)
             load_var(o, w, 0, a, 1)
             store_var(o, w, v, 1)
             load_var(o, w, 0, a, 0)
@@ -519,7 +532,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
     if op == @select@:
         return select_scalar(o, w, n, a, b, at, bt, t)
     if op == @buffer.len@:
-        if n != 1 or at < 6 or t != 2:
+        if n != 1 or at < 6 or at > 8 or t != 2:
             fail(w, 28)
         load_var(o, w, 0, a, 1)
         return 0
@@ -672,7 +685,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
     return 0
 
 def define(w:mutbuf, v:u64, t:u64) -> u64:
-    if v >= 2048 or t == 0 or t > 8:
+    if v >= 2048 or t == 0 or t > 9:
         return fail(w, 37)
     if get(w, VBASE + v * 16) != 0:
         return fail(w, 38)
@@ -703,9 +716,9 @@ def variable(w:mutbuf, v:u64) -> u64:
 def read_type(s:readbuf, w:mutbuf) -> u64:
     t = get(w, 8)
     next_token(s, w)
-    if t < @u64@ or t > @buffer@:
+    if t < @u64@ or t > @chain@:
         return fail(w, 41)
-    if t == @buffer@ and get(w, 232) != 1:
+    if t >= @buffer@ and get(w, 232) != 1:
         return fail(w, 64)
     return t - @u64@ + 1
 
@@ -907,10 +920,13 @@ def fix_all(o:mutbuf, w:mutbuf) -> u64:
         kind = get(w, FIXBASE + i * 24 + 8)
         target = get(w, FIXBASE + i * 24 + 16)
         if kind != 3:
-            if kind == 1:
-                pos = get(w, FBASE + target * FSTRIDE)
+            if kind == 4:
+                pos = get(w, 368)
             else:
-                pos = get(w, BBASE + target * BSTRIDE)
+                if kind == 1:
+                    pos = get(w, FBASE + target * FSTRIDE)
+                else:
+                    pos = get(w, BBASE + target * BSTRIDE)
             write4(o, at, pos - at - 4)
         i = i + 1
     return 0
@@ -1397,7 +1413,7 @@ def loan_ancestor(w:mutbuf, candidate:u64, source:u64) -> u64:
     return 0
 
 def loan_operation(w:mutbuf, op:u64, n:u64, a:u64, at:u64, t:u64) -> u64:
-    if n != 1 or at < 6:
+    if n != 1 or at < 6 or at > 8:
         return fail(w, 62)
     if op == @loan.end@:
         if t != 0 or at > 7:
@@ -1415,6 +1431,15 @@ def loan_operation(w:mutbuf, op:u64, n:u64, a:u64, at:u64, t:u64) -> u64:
     else:
         if op != @borrow.mut@ or (at != 7 and at != 8) or t != 7:
             return fail(w, 62)
+    return loan_borrow(w, a, t)
+
+def loan_produce(w:mutbuf, v:u64, a:u64) -> u64:
+    put(w, CAPBASE + v * 24, get(w, CAPBASE + a * 24))
+    put(w, CAPBASE + v * 24 + 8, a + 1)
+    put(w, 280, get(w, 280) + 1)
+    return 0
+
+def loan_borrow(w:mutbuf, a:u64, t:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
     i = 0
@@ -1442,7 +1467,7 @@ def loan_call(w:mutbuf, n:u64) -> u64:
     while i < n:
         v = get(w, ARGS + i * 8)
         if variable(w, v) >= 6:
-            if variable(w, v) == 8:
+            if variable(w, v) >= 8:
                 owner_free(w, v)
             else:
                 loan_access(w, v)
@@ -1489,7 +1514,7 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
                 return fail(w, 62)
             if get(w, bb + 40 + root * 16) < 6 or get(w, bb + 40 + parent * 16) < 6:
                 return fail(w, 62)
-            if get(w, bb + 40 + i * 16) == 8:
+            if get(w, bb + 40 + i * 16) >= 8:
                 if root != i or parent != i:
                     return fail(w, 62)
                 put(w, 352, get(w, 352) + 1)
@@ -1522,7 +1547,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     parent = 0
     packed = 0
     while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
-        if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or get(w, VBASE + i * 16) == 8):
+        if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or get(w, VBASE + i * 16) >= 8):
             loan_argument(w, n, i)
         i = i + 1
     i = 0
@@ -1553,7 +1578,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     return 0
 
 def owner_free(w:mutbuf, v:u64) -> u64:
-    if variable(w, v) != 8:
+    if variable(w, v) < 8:
         return fail(w, 62)
     if get(w, 264) == 0:
         return 0
@@ -1565,7 +1590,7 @@ def owner_free(w:mutbuf, v:u64) -> u64:
     return 0
 
 def owner_produce(w:mutbuf, v:u64) -> u64:
-    if variable(w, v) != 8:
+    if variable(w, v) < 8:
         return fail(w, 62)
     put(w, CAPBASE + v * 24, v)
     put(w, CAPBASE + v * 24 + 8, 0)
@@ -1576,7 +1601,7 @@ def owner_produce(w:mutbuf, v:u64) -> u64:
 def owner_consume(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0:
         return 0
-    if variable(w, v) != 8 or get(w, 352) == 0:
+    if variable(w, v) < 8 or get(w, 352) == 0:
         return fail(w, 62)
     put(w, CAPBASE + v * 24 + 16, 0)
     put(w, 352, get(w, 352) - 1)
@@ -1589,13 +1614,14 @@ def owner_call_consume(w:mutbuf, n:u64) -> u64:
     v = 0
     while i < n:
         v = get(w, ARGS + i * 8)
-        if variable(w, v) == 8:
+        if variable(w, v) >= 8:
             owner_consume(w, v)
         i = i + 1
     return 0
 
 '''
 SOURCE += OWNED_ELF_SOURCE
+SOURCE += CHAIN_ELF_SOURCE
 
 
 def source_program():

@@ -93,6 +93,50 @@ jobs:
             --expected-source-sha256 2dd847d9df46392e4ef4b99c781b45f56c9841ae61127a260be6e8523f042845 \
             --output "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation" \
             2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation.log"
+      - name: Recheck the real original select delta and preserve strict rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B - <<'PY'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import zipfile
+          archive = Path('review-evidence/hia-agent-original-select-delta-20261108-5e6c/raw-evidence.zip')
+          assert sha256(archive.read_bytes()).hexdigest() == '0b18f5665657601141ada5fe67990ee192d91665eb5463f806b495d6240a2d3a'
+          output = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/original-select-inputs'
+          output.mkdir()
+          fixtures = {
+              'original-selfhost.hiaasm': '85288cfc4b649b2be13175675880f5372f16bf3d9c5d4b78ba21ffa2c90b6b44',
+              'candidate-selfhost.hiaasm': '2dd847d9df46392e4ef4b99c781b45f56c9841ae61127a260be6e8523f042845',
+              'fresh-select.patch': 'e74f3c27d6ea7e7ccfc1c9e2a4e7674fecabef08ee0e05236e5a6e2b5bd75cb4'}
+          with zipfile.ZipFile(archive) as source:
+              for name, expected in fixtures.items():
+                  data = source.read('installed-source/frozen-inputs/' + name)
+                  assert sha256(data).hexdigest() == expected
+                  (output / name).write_bytes(data)
+          PY
+          python -B tools/qualify_hia_agent_original_select_delta.py \
+            --original "$RUNNER_TEMP/hia-sixgap/original-select-inputs/original-selfhost.hiaasm" \
+            --candidate "$RUNNER_TEMP/hia-sixgap/original-select-inputs/candidate-selfhost.hiaasm" \
+            --patch "$RUNNER_TEMP/hia-sixgap/original-select-inputs/fresh-select.patch" \
+            --output "$RUNNER_TEMP/hia-sixgap/original-select-strict" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/original-select-strict.log"
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          report = json.loads((Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/original-select-strict/qualification.json').read_text())
+          assert report['status'] == 'HOLD_REAL_DELTA_STRICT_GATE'
+          assert report['worker_calls'] == 20
+          assert report['evaluation_response']['error']['code'] == 'E_HIA_CLAIM_REQUIRED'
+          assert not report['adoption_attempted'] and not report['adoption_authorized']
+          assert report['empty_slot_count'] == report['empty_lease_count'] == 0
+          assert report['same_core_substitution'] is False and report['strict_claims_weakened'] is False
+          assert report['canonical_subjects']['original']['sha256'] != report['canonical_subjects']['candidate']['sha256']
+          print('Strict refusal reproduced; original-delta proof/evaluation/adoption acceptance remains HOLD.')
+          PY
       - name: Verify public scalar proof scope and receipt rejection
         shell: bash
         run: |
@@ -116,7 +160,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests tests.test_hia_selfhost_owned_flow -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-source.log"
+          python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests tests.test_hia_selfhost_owned_flow tests.test_hia_selfhost_chain -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/selfhost-source.log"
       - name: Rebuild the frozen selfhost chain from a cold directory
         shell: bash
         run: |
@@ -183,5 +227,6 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-sixgap/
             !${{ runner.temp }}/hia-sixgap/agent-buffer-continuation/state/state.sqlite3*
+            !${{ runner.temp }}/hia-sixgap/original-select-strict/state/state.sqlite3*
           if-no-files-found: error
           retention-days: 30

@@ -67,7 +67,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(contract["limits"]["instructions"], MAX_INSTRUCTIONS)
         self.assertEqual(contract["limits"]["core_structural_nodes"], MAX_NODES)
         self.assertEqual(MAX_CORE_NODES, MAX_NODES)
-        self.assertEqual(RELOCATION_UPPER_BOUND, 11265)
+        self.assertEqual(RELOCATION_UPPER_BOUND, 11267)
         self.assertLessEqual(RELOCATION_UPPER_BOUND, MAX_RELOCATIONS)
         self.assertLess(CORE_BYTES_UPPER_BOUND, MAX_BYTES)
         for key in ("source_bytes", "output_capacity_bytes", "workspace_required_bytes"):

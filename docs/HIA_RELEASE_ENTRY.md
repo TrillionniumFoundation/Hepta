@@ -42,6 +42,12 @@ independent cache inventory of the actual remote worker when qualifying it.
 Obtain this release entry and its default lock from the same reviewed metadata
 commit. `describe` is a read-only inspection of the contract:
 
+On Linux x86-64, use Python 3.11 or newer, Git and GNU binutils. The verification
+environment uses `jsonschema==4.25.1` and `z3-solver==4.15.4.0`; install them in
+a new Python environment before materialization. The historical lock embedded
+in a pinned source revision is not the metadata checkout's current release
+pointer. Use the selected metadata entry and lock together.
+
 ```sh
 python3 -B tools/hia_release.py describe
 python3 -B tools/hia_release.py materialize --directory /absolute/new/hia-release
@@ -58,7 +64,12 @@ when that fetch fails. Its explicit Hepta sparse-directory list includes the
 Hepta implementation, examples, tests, tooling and the selected qualification
 fixtures. Unrelated historical campaigns and artifact/report archives remain
 outside this release's qualified source closure. The full tree identity
-remains pinned. This also supports local partial Git caches without disguising
+remains pinned. Runtime materialization retains its complete tree, including
+historical evidence read by its release gates; the runtime checkout has a
+600-second bound, while the smaller Hepta source closure retains 120 seconds.
+A failed Git operation records the repository role, pinned commit, stage,
+failure kind and timeout without printing private transport URLs or credentials.
+This also supports local partial Git caches without disguising
 missing executable files. It never replaces an existing directory. For an offline cold
 replay, `--hepta-repository /path/to/existing/Hepta` and
 `--runtime-repository /path/to/existing/runtime` select local Git transports;
@@ -75,6 +86,9 @@ interpreter, read/capture roots and a writable private state root. Preparation
 reuses `hia_candidate_preflight` and writes a new private configuration with the
 measured source pins. It preserves all other policy. The configured worker may
 be remote; the eventual endpoint probe checks that worker's actual installation.
+`--worker-python` selects the local interpreter used to measure the materialized
+source. The remote worker interpreter remains the one explicitly selected in
+the supplied configuration.
 
 ```sh
 python3 -B tools/hia_release.py prepare \
@@ -139,11 +153,35 @@ input source, output images and loader receipts
 must demonstrate B1=B2=B3 and a changed source reaching M2=M3 with M2 different
 from B2. B0's binary and linker identities are measured by that actual cold build;
 the release lock only pins the seed implementation before a binary exists.
-The v6 matrix admits direct tail self calls with no additional native stack
-frames. Non-tail recursion, mutual recursion, owned resources, external
-relocations and general object linking remain unsupported. The explicit `selfhost_elf`
-profile emits bounded ELF64 ET_REL objects in HIA and has independent system
-linker and execution checks. Success for that subset cannot close broader gates.
+The v13 matrix admits direct tail self calls with no additional native stack
+frames. Its flat profile covers 40 of the 50 Core operation names. The explicit
+`selfhost_elf` profile covers all 50, including owned buffers and dynamic chains,
+and emits bounded ELF64 ET_REL objects and closed allocator relocations in HIA.
+It has separate system-linker, native-execution, ownership-flow and explicit
+allocator-failure checks. The shared chain destructor uses constant native stack.
+
+Operation-name coverage is not complete general-Core acceptance. The fixed
+canonical grammar, finite resource limits, restricted function results and
+internal call ABI still exclude valid general Core inputs. Non-tail recursion,
+mutual recursion, generic multi-result or returned-resource call/return shapes,
+arbitrary FFI, imports and general linking remain outside this profile. Read the
+versioned support matrix and its valid-Core refusal cases for the exact boundary.
+
+Successor compilation after B0 runs in native HIA. The qualification harness also
+uses Python for independent reference code generation, a host C compiler and
+assembler for the separate allocator witness, and the system linker for explicit
+ELF tests. These dependencies are recorded separately from the successor chain;
+the report does not label the whole qualification process host-codegen-free.
+
+The borrowed-buffer Agent ABI can invoke the original frozen compiler and run
+the separately scoped same-Core lifecycle. The real original select extension
+has its own strict replay in `docs/HIA_AGENT_ORIGINAL_SELECT_DELTA_20261108.md`:
+its required semantic claims remain unproved, evaluation is refused and no
+adoption occurs. A successful refusal regression is not positive task acceptance.
+Prepared and persistent NDU transport qualification likewise does not establish
+economic benefit; stronger ordinary controls and incomplete costs remain part
+of the recorded result. These finite qualifications do not close the universal
+compiler, ABI, resource, FFI, ISA or loader proof obligations.
 
 ## Release engineering
 

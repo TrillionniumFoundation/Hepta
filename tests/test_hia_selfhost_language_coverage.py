@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v12 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v13 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v12"
+PROFILE = "selfhost-core-linux-x86_64-v13"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -47,6 +47,7 @@ INPUT_OPCODES = tuple(sorted(("const", *BINARY_INTEGER, *NEW_INTEGER, *SHIFTS, *
     "buffer.copy_range", "buffer.move_within", "call", "select",
     "borrow.read", "borrow.mut", "loan.end")))
 ELF_OWNED_OPCODES = ("buffer.new", "buffer.try_new", "owner.drop", "owner.move")
+ELF_CHAIN_OPCODES = ("chain.empty", "chain.head_mut", "chain.head_read", "chain.is_empty", "chain.pop", "chain.try_push")
 NATIVE = (platform.system() == "Linux"
           and platform.machine().lower() in {"x86_64", "amd64"}
           and bool(shutil.which("ld")))
@@ -717,7 +718,7 @@ def coverage_manifest():
     if render_assembly(doc).encode() != compiler:
         raise AssertionError("authoring map is not the checked-in HIA compiler")
     supported = sorted(word for word in WORDS if word in OPCODES)
-    if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES)):
+    if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES)):
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
         "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast"]),
@@ -732,8 +733,9 @@ def coverage_manifest():
         "recursion": (["instruction", "parse_block", "check_calls"], ["recursion-*", "tail-*"]),
         "owned_resources": (["read_type", "owned_read_outputs", "owned_instruction",
             "owned_define_outputs", "owner_free", "owner_produce", "owner_consume",
-            "owner_call_consume", "loan_incoming", "loan_transfer", "owned_allocate_libc"],
-            ["new-*", "try-*", "move-*", "owned-*", "flow-*"]),
+            "owner_call_consume", "loan_incoming", "loan_transfer", "owned_allocate_libc",
+            "chain_instruction", "chain_store_transfer", "chain_drop_helper", "loan_borrow", "loan_produce"],
+            ["new-*", "try-*", "move-*", "owned-*", "flow-*", "lifo-*", "iterative-drop-*", "empty-head-*", "parameter-*"]),
         "general_core_checker": (["compile", "read_type", "next_token", "instruction"], ["unsupported-*"]),
         "successor_output": (["wrapper", "operation", "relocation", "fix_all"], ["B1", "B2", "B3", "M1", "M2", "M3"]),
         "successor_object_output": (["elf_begin", "elf_finish", "elf_section", "align8",
@@ -749,6 +751,8 @@ def coverage_manifest():
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
         "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],
         "owned_resources": ["tools.qualify_hia_selfhost_owned_elf.qualify",
+                            "tools.qualify_hia_selfhost_chain_elf.qualify",
+                            "tools.qualify_hia_selfhost_chain_flow.qualify",
                             "tests.test_hia_selfhost_owned_flow.OwnedFlowSourceTests"],
         "successor_output": ["tools.qualify_hia_selfhost.qualify"],
         "successor_object_output": ["tools.qualify_hia_selfhost.qualify_elf_outputs",
@@ -778,22 +782,34 @@ def coverage_manifest():
         },
         "input_opcodes": supported,
         "input_opcodes_by_output": {"selfhost": list(INPUT_OPCODES), "selfhost_elf": supported},
-        "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer operations require selfhost_elf",
+        "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
         "general_core_opcode_count": len(OPCODES),
         "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
-        "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer"],
+        "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"],
         "input_types_by_output": {"selfhost": [*WIDTHS, "bool", "readbuf", "mutbuf"],
-                                  "selfhost_elf": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer"]},
+                                  "selfhost_elf": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"]},
         "owned_buffer_scope": {
             "opcodes": list(ELF_OWNED_OPCODES), "output_module": "selfhost_elf",
             "allocation_effect": "alloc required for allocation, drop and calls to allocating functions",
             "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract",
             "multi_result_operations": ["buffer.try_new returns buffer,bool"],
             "general_multi_result_call_return_abi_supported": False,
-            "chain_operations_supported": False,
+            "chain_operations_qualified_separately": True,
             "flat_owned_parameters_and_operations_supported": False,
             "qualification": "tools.qualify_hia_selfhost_owned_elf.qualify on original B3 and mutated M3",
             "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
+            "finite_witnesses_are_all_input_correctness_proof": False},
+        "chain_scope": {"opcodes": list(ELF_CHAIN_OPCODES), "output_module": "selfhost_elf",
+            "runtime": "dynamic 24-byte nodes under the same closed calloc/free contract",
+            "multi_result_operations": ["chain.try_push returns chain,buffer,bool", "chain.pop returns chain,buffer,bool"],
+            "ownership": "closed chain roots and nested head-loan graphs; consuming operations require no live descendant loans",
+            "resource_parameter_boundaries": "v2047 block parameters accepted; function/block v2048, v8192 and UINT64_MAX refused before capability-table access",
+            "destruction": "one shared iterative helper, constant frame independent of node count",
+            "qualification": "tools.qualify_hia_selfhost_chain_elf.qualify on original B3 and mutated M3",
+            "allocator_qualification": "tools.qualify_hia_selfhost_chain_flow.qualify; explicit ordinary allocator NULL inputs and native event conservation",
+            "host_native_fixture_compilation_after_B0": True,
+            "external_assembler_in_successor_compilation": False,
+            "general_multi_result_call_return_abi_supported": False,
             "finite_witnesses_are_all_input_correctness_proof": False},
         "features": features,
         "syntax": {"contract": contract["syntax"],
@@ -987,11 +1003,11 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 44)
+        self.assertEqual(len(manifest["input_opcodes"]), 50)
         self.assertEqual(manifest["input_opcodes_by_output"]["selfhost"], list(INPUT_OPCODES))
         self.assertEqual(len(manifest["input_opcodes_by_output"]["selfhost"]), 40)
         self.assertEqual(set(manifest["input_opcodes_by_output"]["selfhost_elf"]),
-                         set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES))
+                         set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES))
         self.assertNotIn("buffer", manifest["input_types_by_output"]["selfhost"])
         self.assertIn("buffer", manifest["input_types_by_output"]["selfhost_elf"])
         self.assertIn("select", manifest["input_opcodes"])
@@ -1060,6 +1076,17 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertEqual(observed - set(INPUT_OPCODES), set(ELF_OWNED_OPCODES))
         self.assertFalse(any(op.startswith("chain.") for op in observed))
 
+    def test_chain_fixtures_cover_six_chain_opcodes_without_general_signature_claims(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from tools.hia_selfhost_chain_cases import cases
+        observed = set()
+        for case in cases():
+            checked = assemble_program(case["source"]).as_dict()
+            self.assertEqual(checked["module"], "selfhost_elf")
+            observed.update(op["op"] for fn in checked["functions"] for block in fn["blocks"] for op in block["ops"])
+        self.assertEqual({op for op in observed if op.startswith("chain.")}, set(ELF_CHAIN_OPCODES))
+        self.assertTrue(observed <= set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES))
+
     def test_rejections_retain_invalid_core_and_valid_outside_profile_distinction(self):
         reference = independent_references()
         rows = {row["id"]: row for row in reference["negative"]}
@@ -1104,7 +1131,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertFalse(manifest["owned_buffer_scope"]["general_multi_result_call_return_abi_supported"])
         self.assertFalse(manifest["owned_buffer_scope"]["finite_witnesses_are_all_input_correctness_proof"])
         self.assertEqual(manifest["limits"]["unreachable_relocation_ceiling"],
-                         {"configured": 12000, "derived_maximum_with_other_limits": 11265})
+                         {"configured": 12000, "derived_maximum_with_other_limits": 11267})
 
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")

@@ -536,6 +536,24 @@ def qualify(output):
         for row in owned["refusals"]:
             checks[label + "_owned_elf_reject_" + row["name"]] = row["pass"]
         owned_observations.append({"compiler": label, "report": owned})
+    from tools.qualify_hia_selfhost_chain_elf import qualify as qualify_chain_elf
+    from tools.qualify_hia_selfhost_chain_flow import qualify as qualify_chain_allocator
+    chain_observations = []
+    allocator_observations = []
+    for label, compiler in (("original", original), ("modified", previous)):
+        chain = qualify_chain_elf(directory / (label + "-chain-elf"), compiler)
+        checks[label + "_chain_elf_report_pass"] = chain["status"] == "PASS_SCOPED_CHAIN_ELF"
+        for row in chain["cases"]:
+            checks[label + "_chain_elf_" + row["case"]["id"]] = row["pass"]
+        for row in chain["refusals"]:
+            checks[label + "_chain_elf_reject_" + row["name"]] = row["pass"]
+        chain_observations.append({"compiler": label, "report": chain})
+        allocator = qualify_chain_allocator(directory / (label + "-chain-allocator"), compiler)
+        checks[label + "_chain_allocator_report_pass"] = (allocator["status"] == "PASS_SCOPED_CHAIN_ALLOCATOR_CONTRACT"
+            and allocator["source_files_unchanged"])
+        for row in allocator["cases"]:
+            checks[label + "_chain_allocator_" + row["case"]["id"]] = row["pass"]
+        allocator_observations.append({"compiler": label, "report": allocator})
     expanded_capacity = qualify_capacity(directory, (("original", original), ("modified", previous)), checks, capacity_reference)
     tail_observations = qualify_tailcalls(directory, (("original", original), ("modified", previous)), checks, tail_reference)
     select_observations = qualify_select(directory, (("original", original), ("modified", previous)), checks, select_reference)
@@ -556,6 +574,8 @@ def qualify(output):
         "bulk_observations": bulk_observations, "independent_bulk_reference": bulk_reference,
         "loan_observations": loan_observations, "independent_loan_reference": loan_reference,
         "owned_elf_observations": owned_observations,
+        "chain_elf_observations": chain_observations,
+        "chain_allocator_observations": allocator_observations,
         "resource_observations": resource_observations, "independent_resource_reference": resource_reference,
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
@@ -567,16 +587,19 @@ def qualify(output):
                    "precompiled_successor_blob_used": False, "source_hash_dispatch_used": False,
                    "python_parser_or_codegen_after_B0": True,
                    "python_parser_or_codegen_in_successor_compilation": False,
-                   "host_reference_codegen_after_B0": True,
-                   "external_assembler_after_B0": False,
+                   "host_reference_codegen_after_B0": True, "external_assembler_after_B0": True,
+                   "external_assembler_in_successor_compilation": False,
+                   "host_native_fixture_compilation_after_B0": True,
+                   "external_assembler_scope": "host allocator qualification witness C object only; no successor compilation",
                    "external_linker_after_B0": True, "external_linker_in_flat_bootstrap_chain": False,
-                   "external_linker_scope": "explicit successor ELF qualification only",
+                   "external_linker_scope": "explicit successor ELF qualification, host allocator witness and independent host direct-backend references",
                    "HIA_successor_ELF_writer_used": True, "Python_successor_ELF_writer_used": False,
                    "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "successor stdlib ctypes/mmap loader and operating system",
             "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
+            "host C compiler and assembler compile the separate allocator qualification witness only",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],
         "scope": "fixed canonical HIA v8 subset documented in docs/HIA_SELF_HOSTING_CORE.md",
     }

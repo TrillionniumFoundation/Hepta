@@ -22,6 +22,31 @@
     },
     "successors": "stdlib-only disposable child; all input translation is executed HIA"
   },
+  "chain_scope": {
+    "allocator_qualification": "tools.qualify_hia_selfhost_chain_flow.qualify; explicit ordinary allocator NULL inputs and native event conservation",
+    "destruction": "one shared iterative helper, constant frame independent of node count",
+    "external_assembler_in_successor_compilation": false,
+    "finite_witnesses_are_all_input_correctness_proof": false,
+    "general_multi_result_call_return_abi_supported": false,
+    "host_native_fixture_compilation_after_B0": true,
+    "multi_result_operations": [
+      "chain.try_push returns chain,buffer,bool",
+      "chain.pop returns chain,buffer,bool"
+    ],
+    "opcodes": [
+      "chain.empty",
+      "chain.head_mut",
+      "chain.head_read",
+      "chain.is_empty",
+      "chain.pop",
+      "chain.try_push"
+    ],
+    "output_module": "selfhost_elf",
+    "ownership": "closed chain roots and nested head-loan graphs; consuming operations require no live descendant loans",
+    "qualification": "tools.qualify_hia_selfhost_chain_elf.qualify on original B3 and mutated M3",
+    "resource_parameter_boundaries": "v2047 block parameters accepted; function/block v2048, v8192 and UINT64_MAX refused before capability-table access",
+    "runtime": "dynamic 24-byte nodes under the same closed calloc/free contract"
+  },
   "checked_arithmetic_traps": [
     {
       "arguments": [
@@ -1586,9 +1611,9 @@
         "bulk_range_guard": "f46",
         "edge": "f5",
         "loan_access": "f50",
-        "loan_incoming": "f55",
+        "loan_incoming": "f57",
         "loan_operation": "f52",
-        "loan_transfer": "f57",
+        "loan_transfer": "f59",
         "operation": "f7"
       },
       "items": [
@@ -1768,26 +1793,41 @@
         "zero_length": "live logical owner with null pointer and zero length; try_new succeeds"
       },
       "area": "owned_resources",
+      "chains": {
+        "descriptor": "head pointer with zero spare word",
+        "drop": "single internal iterative helper frees payloads and nodes with constant 16-byte local frame",
+        "head": "shared or exclusive local loan; empty chain traps for bounds",
+        "node_bytes": 24,
+        "pop": "consume chain; nonempty returns tail and owned payload after freeing node; empty returns empty chain, empty buffer, false",
+        "push": "consume chain and buffer; success returns extended chain, empty buffer, true; null allocation returns both inputs in fresh owner names and false",
+        "scratch_is_heap": false
+      },
       "excluded": [
-        "chain owners",
         "returned owners or loans",
         "general multiple-result calls or returns"
       ],
       "existing_evidence": [
         "tools.qualify_hia_selfhost_owned_elf.qualify",
+        "tools.qualify_hia_selfhost_chain_elf.qualify",
+        "tools.qualify_hia_selfhost_chain_flow.qualify",
         "tests.test_hia_selfhost_owned_flow.OwnedFlowSourceTests"
       ],
       "hia_functions": {
-        "loan_incoming": "f55",
-        "loan_transfer": "f57",
-        "owned_allocate_libc": "f68",
-        "owned_define_outputs": "f63",
-        "owned_instruction": "f71",
-        "owned_read_outputs": "f62",
-        "owner_call_consume": "f61",
-        "owner_consume": "f60",
-        "owner_free": "f58",
-        "owner_produce": "f59",
+        "chain_drop_helper": "f77",
+        "chain_instruction": "f79",
+        "chain_store_transfer": "f78",
+        "loan_borrow": "f54",
+        "loan_incoming": "f57",
+        "loan_produce": "f53",
+        "loan_transfer": "f59",
+        "owned_allocate_libc": "f70",
+        "owned_define_outputs": "f65",
+        "owned_instruction": "f73",
+        "owned_read_outputs": "f64",
+        "owner_call_consume": "f63",
+        "owner_consume": "f62",
+        "owner_free": "f60",
+        "owner_produce": "f61",
         "read_type": "f10"
       },
       "items": [
@@ -1795,9 +1835,16 @@
         "buffer.try_new",
         "owner.move",
         "owner.drop",
-        "owned buffer parameters on internal scalar-return calls",
+        "chain.empty",
+        "chain.try_push",
+        "chain.pop",
+        "chain.is_empty",
+        "chain.head_read",
+        "chain.head_mut",
+        "owned buffer and chain parameters on internal scalar-return calls",
         "owner root and live-descendant checks before move, drop or call",
         "borrow.read/borrow.mut from owned buffers",
+        "head loans retain chain root and parent across nested loans and exact CFG joins",
         "linear owner transfers through exact capability graph edges"
       ],
       "new_witnesses": [
@@ -1805,7 +1852,11 @@
         "try-*",
         "move-*",
         "owned-*",
-        "flow-*"
+        "flow-*",
+        "lifo-*",
+        "iterative-drop-*",
+        "empty-head-*",
+        "parameter-*"
       ],
       "output_format": "selfhost_elf only",
       "status": "bounded_subset"
@@ -1820,10 +1871,11 @@
         "read_type": "f10"
       },
       "items": [
-        "full HIA v8 operation set",
+        "all Core scalar types and function result shapes",
         "module graph",
         "arbitrary identifiers",
-        "all resource and effect combinations"
+        "all resource and effect combinations",
+        "returned parameter loans"
       ],
       "new_witnesses": [
         "unsupported-*"
@@ -1866,9 +1918,9 @@
         "elf_begin": "f38",
         "elf_finish": "f39",
         "elf_section": "f41",
-        "owned_elf_finish": "f73",
-        "owned_elf_relocations": "f72",
-        "owned_import": "f67"
+        "owned_elf_finish": "f75",
+        "owned_elf_relocations": "f74",
+        "owned_import": "f69"
       },
       "items": [
         "HIA-written ELF64 ET_REL",
@@ -1905,15 +1957,8 @@
     }
   ],
   "general_core_opcode_count": 50,
-  "general_core_opcodes_outside_profile": [
-    "chain.empty",
-    "chain.head_mut",
-    "chain.head_read",
-    "chain.is_empty",
-    "chain.pop",
-    "chain.try_push"
-  ],
-  "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer operations require selfhost_elf",
+  "general_core_opcodes_outside_profile": [],
+  "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
   "input_opcodes": [
     "bit.and",
     "bit.not",
@@ -1936,6 +1981,12 @@
     "buffer.swap",
     "buffer.try_new",
     "call",
+    "chain.empty",
+    "chain.head_mut",
+    "chain.head_read",
+    "chain.is_empty",
+    "chain.pop",
+    "chain.try_push",
     "compare.eq",
     "compare.ge",
     "compare.gt",
@@ -2025,6 +2076,12 @@
       "buffer.swap",
       "buffer.try_new",
       "call",
+      "chain.empty",
+      "chain.head_mut",
+      "chain.head_read",
+      "chain.is_empty",
+      "chain.pop",
+      "chain.try_push",
       "compare.eq",
       "compare.ge",
       "compare.gt",
@@ -2058,7 +2115,8 @@
     "bool",
     "readbuf",
     "mutbuf",
-    "buffer"
+    "buffer",
+    "chain"
   ],
   "input_types_by_output": {
     "selfhost": [
@@ -2078,7 +2136,8 @@
       "bool",
       "readbuf",
       "mutbuf",
-      "buffer"
+      "buffer",
+      "chain"
     ]
   },
   "limits": {
@@ -2089,7 +2148,7 @@
       "core_structural_nodes": 262144,
       "function_results": 1,
       "functions": 128,
-      "instruction_results": 2,
+      "instruction_results": 3,
       "instructions": 8192,
       "output_capacity_bytes": 1048576,
       "parameters_or_arguments": 16,
@@ -2121,12 +2180,12 @@
     "transport_limit": "ordinary child rejects source/output sizes above 1 MiB before native entry; no larger native-call claim",
     "unreachable_relocation_ceiling": {
       "configured": 12000,
-      "derived_maximum_with_other_limits": 11265
+      "derived_maximum_with_other_limits": 11267
     }
   },
   "owned_buffer_scope": {
     "allocation_effect": "alloc required for allocation, drop and calls to allocating functions",
-    "chain_operations_supported": false,
+    "chain_operations_qualified_separately": true,
     "finite_witnesses_are_all_input_correctness_proof": false,
     "flat_owned_parameters_and_operations_supported": false,
     "general_multi_result_call_return_abi_supported": false,
@@ -2144,7 +2203,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v12",
+  "profile": "selfhost-core-linux-x86_64-v13",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -3771,13 +3830,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "768657b1c5246552f5e66e5dc46ccee6c4475a3775f67cfb951f696d3578752f"
+      "sha256": "5c6d321fd1efe13b8cb67ba2a65169544194e2d60d5b6ce10ca1a16210b7bf3f"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "6b9f2245c2a30a03b16195d45bfd9626678633acf228f4292a0e962f6eae626c"
+      "sha256": "d57f0350174ade6347077b72e2679ac083f103a7b38698efe7c4d227304beb91"
     },
-    "semantic_support_sha256": "f454ed99cae8a2f436dd1d8b608bd791e08e857758ef0e53182a692834293023",
+    "semantic_support_sha256": "d12b57b8456cd467540fa63fa617f4440d9997fdcd51ab81ac37b0b815542ff9",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -3792,7 +3851,7 @@
       ],
       "function_names": "contiguous f0..f127",
       "header": "hia-asm.v1",
-      "instruction_results": "zero or one; buffer.try_new has exactly (buffer, bool)",
+      "instruction_results": "zero or one; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
       "module": "selfhost",
       "object_module": "selfhost_elf",
       "value_names": "unique per function v0..v2047",
