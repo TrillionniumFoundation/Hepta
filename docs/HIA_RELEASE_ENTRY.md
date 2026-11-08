@@ -1,5 +1,7 @@
 # One HIA release entry and version contract
 
+> Assembly purpose: `release-candidate`. Reviewable metadata candidate for the exact verified source. Public entry CI, adoption of this candidate and live identity readback remain separate observations; earlier adopted releases retain their original status.
+
 `python3 -B tools/hia_release.py` is the candidate's default release entry.
 `releases/hia-current.json` selects immutable commits from **both** repositories;
 branch names, PR numbers and a compatible-looking tool list are not substitutes.
@@ -13,12 +15,12 @@ source release. The metadata checkout is not the worker installation.
 
 ## Selected unified source — 2026-11-08
 
-This metadata candidate selects Hepta `d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6`, runtime
+This metadata candidate selects Hepta `c821ec40e3112396c1586ac8949bfa5ded121464`, runtime
 `4cd85c99c5f5a480832c48fbde8561bb365f67a9`, and the exact CI-produced release lock
-SHA256 `6677a6014ed31cbadca2dee1d5f166b5d6e59da9f00e7fc97f5a8c75d0e05c13`. The release identifier is `hia-sixgap-ci-d1c97d22d503b395ba9b0dfaa87e5a1c1b208fe6`.
+SHA256 `2dadd1d327e4c43d86e61a2f9c40f4fac544ad91b2586a06c4c71482f5615860`. The release identifier is `hia-sixgap-ci-c821ec40e3112396c1586ac8949bfa5ded121464`.
 
-The [source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42478840604)
-and [native scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42478840600)
+The [source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42492173843)
+and [native scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42492173613)
 qualify the same selected source SHA. The source job retains the original
 `release-lock.json`, successful `freeze` and `check`, native/SMT qualification,
 cold selfhost replay and declared input-language coverage. The scalar job retains
@@ -32,14 +34,17 @@ universal Core-to-machine theorem, complete general-Core bootstrap, new Agent
 maintenance task, or stable NDU economic advantage follows from them. Model
 billing and complete costs remain unknown, and no new provider campaign ran.
 
-Public materialization from this metadata commit, normal main adoption, and an
-independent live endpoint version readback are separate remaining observations.
-The default branch's deliberately empty README is preserved. The metadata
-checkout and materialized implementation checkout may have different README
-bytes; the source lock measures the latter. The frozen source-only qualification
-fields stay unchanged. Read the current [six-gap record](HIA_SIXGAP_20261108.json)
-for exact evidence and remaining obligations. Earlier snapshots below retain
-their original versions and scope.
+The root README links to this guide and `releases/hia-current.json`. The metadata
+baseline is observed main `df70e807be715819570ddef4e9caa9cf4d5ba0f1`, tree `6313534639fecb3041347bb38d04127b35c0835a`.
+Public materialization, branch adoption and live endpoint identity for this
+new metadata candidate each need their own observations. This assembly has no
+live endpoint/worker identity observation for the selected source. Its pending state does
+not reverse acceptance of an earlier release already adopted on main. Metadata
+and materialized-source README bytes can differ; the frozen source lock measures
+the materialized source. The original source-only qualification fields remain
+unchanged. Read the [six-gap record](HIA_SIXGAP_20261108.json) for exact evidence
+and remaining obligations. Earlier dated snapshots below retain their original
+versions and scope.
 
 ## Bound identities
 
@@ -248,7 +253,10 @@ existing reviewed runtime deployment and conditional rollback procedures after
 their exact-byte gates pass. The release entry adds no second worker scheduler,
 gateway, compiler checker or process owner.
 
-## Qualification supplement: 2026-11-07
+## Historical qualification supplement — 2026-11-07
+
+This section records the 2026-11-07 observation. Its service, binary and invocation
+statements refer to that date; current-candidate observations are recorded above.
 
 The later observations below update the qualification summary for entry commit
 `e40daf900556fcc57941e0601d073ec46b340047`. The original release lock, source
@@ -262,7 +270,7 @@ statement to retained evidence by SHA256 and states the scope of each result.
 | --- | --- | --- |
 | Hepta `3ead0f535c271b07766c5d7c5d15ca69f0f3e8df` | One frozen run: 37 selectors, 513 unique test IDs passed, including all 7 signed-UID controls; no failures, errors or skips | Exact selected source and test scope. This is a new run with complete raw evidence; the earlier lost 506-test logs remain lost. |
 | Selfhost-Core v6 | The retained 224-file cold closure passes 10 outer and 189 inner gates. All 224 file sizes, SHA256 values and Git blob IDs match the same paths in `3ead` | The actual new cold replay names source `7316`; its declared Core closure is inherited by byte identity. This does not claim a full `3ead` cold checkout, a fresh VM or whole-language selfhosting. |
-| Runtime `c53917f4d147fbdb3ce0e094bc9c32a305411866` | [CI run 42395715600](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42395715600): exact-head job completed with 26/26 steps successful | The prospective-merge job was skipped. Exact-head CI does not qualify a production switch or restore the currently missing native candidate binary. |
+| Runtime `c53917f4d147fbdb3ce0e094bc9c32a305411866` | [CI run 42395715600](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42395715600): exact-head job completed with 26/26 steps successful | The prospective-merge job was skipped. At the 2026-11-07 observation the native candidate binary was missing; exact-head CI did not qualify a production switch. |
 
 The cold evidence contains and compares the complete B0–B3 and M1–M3 images.
 B1=B2=B3; M2=M3; M1 differs from M2, and M3 differs from B3. The declared
@@ -284,7 +292,7 @@ corrects that specific counting error. These observations do not establish a
 catalog refresh at 18:17, a registration or deployment action, or tool absence
 in other earlier observations that have not been reviewed.
 
-Actual invocation is separate evidence: the root conversation has now invoked
+At the 2026-11-07 observation, the root conversation had invoked
 all eleven tools through the formal connector. The retained ordinary workflow
 covers describe/read, artifact and context creation, candidate import,
 inspection, verification, emission, evaluation, adoption, stale-generation
@@ -298,7 +306,7 @@ adoption selected generation 1 at epoch 1, a stale request was rejected with
 `E_HIA_GENERATION_STALE`, and rollback restored baseline generation 0 at epoch 2
 for future calls. Rollback does not reverse past effects.
 
-The current service returns a different installation from the release lock:
+The service observed on 2026-11-07 returned a different installation from that historical release lock:
 
 | Identity | Observed live service | Unchanged release lock |
 | --- | --- | --- |
