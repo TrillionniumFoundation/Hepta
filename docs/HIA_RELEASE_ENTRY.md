@@ -1,7 +1,5 @@
 # One HIA release entry and version contract
 
-> Assembly purpose: `release-candidate`. Reviewable metadata candidate for the exact verified source. Public entry CI, adoption of this candidate and live identity readback remain separate observations; earlier adopted releases retain their original status.
-
 `python3 -B tools/hia_release.py` is the candidate's default release entry.
 `releases/hia-current.json` selects immutable commits from **both** repositories;
 branch names, PR numbers and a compatible-looking tool list are not substitutes.
@@ -15,36 +13,45 @@ source release. The metadata checkout is not the worker installation.
 
 ## Selected unified source — 2026-11-08
 
-This metadata candidate selects Hepta `c821ec40e3112396c1586ac8949bfa5ded121464`, runtime
+This metadata candidate selects Hepta `321daf28ef230a532f0f382469a9f6fc4f4fa249`, runtime
 `4cd85c99c5f5a480832c48fbde8561bb365f67a9`, and the exact CI-produced release lock
-SHA256 `2dadd1d327e4c43d86e61a2f9c40f4fac544ad91b2586a06c4c71482f5615860`. The release identifier is `hia-sixgap-ci-c821ec40e3112396c1586ac8949bfa5ded121464`.
+SHA256 `1c4b747721bfc215549512287d62febbadfaf7bce3cd2b6baafeed3d67a10c18`. The release identifier is `hia-sixgap-ci-321daf28ef230a532f0f382469a9f6fc4f4fa249`.
 
-The [source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42492173843)
-and [native scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42492173613)
+The [source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42497221761)
+and [native scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42497221815)
 qualify the same selected source SHA. The source job retains the original
 `release-lock.json`, successful `freeze` and `check`, native/SMT qualification,
 cold selfhost replay and declared input-language coverage. The scalar job retains
 the exact native build receipt and actual wire response, and requires all named
 integration tests plus the named native regression to finish with zero skips.
 
-This source includes the Safe Core loader allocation-flag binding repair and
-an explicit caller policy for ambiguous scalar Pareto ties. The native response
-and caller selection remain separate. These are scoped software repairs; no
-universal Core-to-machine theorem, complete general-Core bootstrap, new Agent
-maintenance task, or stable NDU economic advantage follows from them. Model
-billing and complete costs remain unknown, and no new provider campaign ran.
+This source preserves the Safe Core loader allocation-flag binding repair and
+the explicit caller policy for ambiguous scalar Pareto ties. It adds scoped
+results to all five public scalar SMT validation APIs, expands the versioned
+HIA selfhost compiler, and binds the repository-task instructions, recorder and
+proof regression sources in the public release lock. The new compiler profile
+is `selfhost-core-linux-x86_64-v8`; the exact source run passed
+`456` language checks, including the retained fixed-point,
+mutation, rejection and dependency-closure evidence.
 
-The root README links to this guide and `releases/hia-current.json`. The metadata
-baseline is observed main `df70e807be715819570ddef4e9caa9cf4d5ba0f1`, tree `6313534639fecb3041347bb38d04127b35c0835a`.
-Public materialization, branch adoption and live endpoint identity for this
-new metadata candidate each need their own observations. This assembly has no
-live endpoint/worker identity observation for the selected source. Its pending state does
-not reverse acceptance of an earlier release already adopted on main. Metadata
-and materialized-source README bytes can differ; the frozen source lock measures
-the materialized source. The original source-only qualification fields remain
-unchanged. Read the [six-gap record](HIA_SIXGAP_20261108.json) for exact evidence
-and remaining obligations. Earlier dated snapshots below retain their original
-versions and scope.
+These qualification results preserve their declared proof and language scope.
+Whole general-Core selfhosting and a universal Core-to-machine theorem remain
+open. Two actual fresh CLI attempts at the public repository task failed with
+`HTTP400 model_not_found` before running repository commands; their original
+records remain retained. Model billing and complete interaction costs are
+unknown. A separately registered [fresh Agent repository study](HIA_FRESH_AGENT_SELECT_RESULTS_20261108.md) completed the actual select patch, 298 native language checks, 189 nested cold checks and six separate C-consumer inputs; a later frozen-patch rerun passed 35 tests. Compatible service adoption, complete historical interaction capture and full provider costs remain incomplete. Those independent-study results retain their original source and v6 profile. The preceding c821 release also records a distinct learner patch and finite evaluation; its [original record](../review-evidence/hia-sixgap-20261108-c184/prior-main1205-sixgap.json) is retained separately with its own source and incomplete lifecycle/cost scope. The separate [four-pair native control experiment](HIA_NATIVE_NDU_RESULTS_20261108.md)
+completed on historical source `d1c97d22`; one of four pairs favored NDU, and
+the experiment established no stable time or economic benefit. Those measurements
+are not transferred to this selected successor.
+
+Public materialization from this metadata commit, normal main adoption, and an
+independent live endpoint version readback are separate remaining observations.
+The current main README discovery entry and public installation checks are preserved exactly. The metadata
+checkout and materialized implementation checkout may have different README
+bytes; the source lock measures the latter. The frozen source-only qualification
+fields stay unchanged. Read the current [six-gap record](HIA_SIXGAP_20261108.json)
+for exact evidence and remaining obligations. Earlier snapshots below retain
+their original versions and scope.
 
 ## Bound identities
 
@@ -78,6 +85,15 @@ Every check carries the exact subject, property, validation profile, assumptions
 checker/source/solver identity and unproved obligations. Receipt consumption and
 idempotent verification replay recheck those bindings. Legacy unscoped receipts
 cannot satisfy a required proof. A check does not grant execution authority.
+
+The public `validate_translation`, `validate_bounded_translation`,
+`validate_scalar_calls`, `validate_scalar_totality`, and
+`validate_scalar_call_totality` functions attach these fields on proved,
+disproved and unknown outcomes under `hepta.hia.scalar-proof-scope.v1`.
+The actual checker source closure and Z3 binding/library identities are measured;
+missing or changed identities prevent promotion of the result to a proved claim.
+The exact source CI retains `91` passing scalar proof
+tests and `22` repository-recorder tests.
 
 For the declared Safe Core profile, native lowering validation reads the actual
 retained object and shared-image bytes, independently decodes them and retains
@@ -227,7 +243,7 @@ input source, output images and loader receipts
 must demonstrate B1=B2=B3 and a changed source reaching M2=M3 with M2 different
 from B2. B0's binary and linker identities are measured by that actual cold build;
 the release lock only pins the seed implementation before a binary exists.
-The v6 matrix admits direct tail self calls with no additional native stack
+The selected versioned matrix admits direct tail self calls with no additional native stack
 frames. Non-tail recursion, mutual recursion, owned resources, external
 relocations and general object linking remain unsupported. The explicit `selfhost_elf`
 profile emits bounded ELF64 ET_REL objects in HIA and has independent system
@@ -255,8 +271,7 @@ gateway, compiler checker or process owner.
 
 ## Historical qualification supplement — 2026-11-07
 
-This section records the 2026-11-07 observation. Its service, binary and invocation
-statements refer to that date; current-candidate observations are recorded above.
+This section records the 2026-11-07 observation. Its service, binary and invocation statements refer to that date; current-candidate observations are recorded above.
 
 The later observations below update the qualification summary for entry commit
 `e40daf900556fcc57941e0601d073ec46b340047`. The original release lock, source
@@ -270,7 +285,7 @@ statement to retained evidence by SHA256 and states the scope of each result.
 | --- | --- | --- |
 | Hepta `3ead0f535c271b07766c5d7c5d15ca69f0f3e8df` | One frozen run: 37 selectors, 513 unique test IDs passed, including all 7 signed-UID controls; no failures, errors or skips | Exact selected source and test scope. This is a new run with complete raw evidence; the earlier lost 506-test logs remain lost. |
 | Selfhost-Core v6 | The retained 224-file cold closure passes 10 outer and 189 inner gates. All 224 file sizes, SHA256 values and Git blob IDs match the same paths in `3ead` | The actual new cold replay names source `7316`; its declared Core closure is inherited by byte identity. This does not claim a full `3ead` cold checkout, a fresh VM or whole-language selfhosting. |
-| Runtime `c53917f4d147fbdb3ce0e094bc9c32a305411866` | [CI run 42395715600](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42395715600): exact-head job completed with 26/26 steps successful | The prospective-merge job was skipped. At the 2026-11-07 observation the native candidate binary was missing; exact-head CI did not qualify a production switch. |
+| Runtime `c53917f4d147fbdb3ce0e094bc9c32a305411866` | [CI run 42395715600](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42395715600): exact-head job completed with 26/26 steps successful | The prospective-merge job was skipped. Exact-head CI does not qualify a production switch or restore the currently missing native candidate binary. |
 
 The cold evidence contains and compares the complete B0–B3 and M1–M3 images.
 B1=B2=B3; M2=M3; M1 differs from M2, and M3 differs from B3. The declared
@@ -292,7 +307,7 @@ corrects that specific counting error. These observations do not establish a
 catalog refresh at 18:17, a registration or deployment action, or tool absence
 in other earlier observations that have not been reviewed.
 
-At the 2026-11-07 observation, the root conversation had invoked
+Actual invocation is separate evidence: the root conversation has now invoked
 all eleven tools through the formal connector. The retained ordinary workflow
 covers describe/read, artifact and context creation, candidate import,
 inspection, verification, emission, evaluation, adoption, stale-generation
@@ -306,7 +321,7 @@ adoption selected generation 1 at epoch 1, a stale request was rejected with
 `E_HIA_GENERATION_STALE`, and rollback restored baseline generation 0 at epoch 2
 for future calls. Rollback does not reverse past effects.
 
-The service observed on 2026-11-07 returned a different installation from that historical release lock:
+The current service returns a different installation from the release lock:
 
 | Identity | Observed live service | Unchanged release lock |
 | --- | --- | --- |
