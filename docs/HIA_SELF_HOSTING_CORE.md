@@ -407,6 +407,18 @@ program unchanged; every integer result is observed as all eight output bytes.
 Thirteen selection refusal cases cover arity, condition, value/result type,
 resource misuse, omitted results and an undefined third operand.
 
+The cold qualification also executes a separate 64-case selection batch from
+`tools.hia_selfhost_select`: independent Core references run before B0, and
+both B3 and mutated M3 compile five native fixtures that read the condition
+and both values from input bytes. Each returns the selected low 32 bits and
+writes all eight result bytes, including for boolean results. Both conditions,
+the complete boolean truth table, zero, maximum values and the high-bit
+boundaries of all four unsigned types are observed. Each compiler also
+rejects 13 invalid programs, preserves output on insufficient compilation
+capacity, and produces matching flat and ELF text. These supplementary
+observations are reported separately from the 700 scalar witnesses and the
+28 input-dependent selection observations in the language inventory.
+
 ```sh
 python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
 python -B tools/generate_hia_selfhost_contract.py

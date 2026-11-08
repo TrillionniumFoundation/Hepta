@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import errno
 import json
 from pathlib import Path
 import subprocess
@@ -12,7 +13,9 @@ from unittest.mock import patch
 
 from tools.hia_agent_codex_transport import EventFailure, identity
 from tools.hia_agent_fresh_session import FreshEvents
-from tools.hia_repository_agent_trial import RepositoryEvents, run_trial, settle_stream
+from tools.hia_repository_agent_trial import (
+    RepositoryEvents, _read_cancel_request, request_trial_cancel, run_trial, settle_stream, snapshot_repository,
+)
 
 
 def event(kind, **fields):
@@ -239,6 +242,108 @@ class OwnedProcessTests(unittest.TestCase):
         record = json.loads((self.root / "rejected/TRIAL.json").read_text())
         self.assertEqual(record["cli_sessions_started"], 0)
         self.assertFalse((self.root / "rejected/provider").exists())
+
+    def test_bound_cancel_stops_original_process_without_usage_invention(self):
+        target = self.root / "cancelled"
+        requester = self.root / "requester.py"
+        module_root = str(Path(__file__).resolve().parents[1])
+        requester.write_text(
+            "import json,sys,time\nfrom pathlib import Path\n"
+            "sys.path.insert(0," + repr(module_root) + ")\n"
+            "from tools.hia_repository_agent_trial import request_trial_cancel\n"
+            "root=Path(" + repr(str(target)) + ")\n"
+            "deadline=time.monotonic()+5\n"
+            "while time.monotonic()<deadline:\n"
+            " p=root/'provider/PROCESS.json'\n"
+            " if p.exists() and json.loads(p.read_text()).get('status')=='running':\n"
+            "  result=request_trial_cancel(root,'authored local cancellation control')\n"
+            "  assert result['status']=='requested'\n"
+            "  break\n"
+            " time.sleep(0.01)\n"
+            "else: raise RuntimeError('original process did not become observable')\n")
+        helper = subprocess.Popen([sys.executable, '-B', str(requester)])
+        try:
+            result = run_trial(self.registration("import time\ntime.sleep(10)\n", wall=5), target)
+            self.assertEqual(helper.wait(timeout=6), 0)
+        finally:
+            if helper.poll() is None:
+                helper.terminate()
+                helper.wait(timeout=3)
+        self.assertEqual(result['process']['status'], 'coordinator_stop')
+        self.assertTrue(result['process']['cleanup_confirmed'])
+        self.assertTrue(result['cancellation_observation']['valid'])
+        self.assertEqual(result['cancellation_observation']['request']['registration_sha256'],
+                         result['registration']['sha256'])
+        self.assertIsNone(result['metering']['reported_usage'])
+        self.assertFalse(result['full_cost_complete'])
+        before = (target / 'CANCEL_REQUEST.json').read_bytes()
+        self.assertEqual(request_trial_cancel(target, 'another reason')['status'], 'already_requested')
+        self.assertEqual((target / 'CANCEL_REQUEST.json').read_bytes(), before)
+
+    def test_foreign_cancel_record_does_not_stop_original_process(self):
+        target = self.root / 'foreign-cancel'
+        foreign = {'schema': 'hepta.hia.repository-agent-cancel.v1',
+                   'registration_sha256': '0' * 64, 'reason': 'another task', 'requested_unix_ns': 1}
+        events = sequence(usage={'input_tokens': 7, 'output_tokens': 3})
+        body = ("from pathlib import Path\nimport time\n"
+                "Path(" + repr(str(target / 'CANCEL_REQUEST.json')) + ").write_text(" + repr(json.dumps(foreign)) + ")\n"
+                "time.sleep(0.2)\n" +
+                "\n".join("print(" + repr(json.dumps(e)) + ",flush=True)" for e in events))
+        result = run_trial(self.registration(body), target)
+        self.assertEqual(result['process']['returncode'], 0)
+        self.assertEqual(result['process']['status'], 'exited')
+        self.assertFalse(result['cancellation_observation']['valid'])
+        self.assertEqual(result['metering']['input_plus_output_tokens'], 10)
+        with self.assertRaisesRegex(ValueError, 'CANCEL_EXISTING_REQUEST'):
+            request_trial_cancel(target, 'must not replace foreign record')
+
+    def test_cancel_observed_before_launch_starts_no_process(self):
+        target = self.root / 'prelaunch-cancel'
+        registration = self.registration("raise RuntimeError('must not start')\n")
+        def capture_then_cancel(*args, **kwargs):
+            before = snapshot_repository(*args, **kwargs)
+            self.assertEqual(request_trial_cancel(target, 'stop during preflight')['status'], 'requested')
+            return before
+        with patch('tools.hia_repository_agent_trial.snapshot_repository', side_effect=capture_then_cancel), \
+             patch('tools.hia_repository_agent_trial.run_owned') as launch:
+            result = run_trial(registration, target)
+        self.assertEqual(result['status'], 'cancelled_before_launch')
+        self.assertEqual(result['cli_sessions_started'], 0)
+        launch.assert_not_called()
+        self.assertFalse((target / 'provider').exists())
+
+    def test_terminal_trial_cancel_is_read_only(self):
+        events = sequence(usage={'input_tokens': 1, 'output_tokens': 1})
+        body = "\n".join("print(" + repr(json.dumps(e)) + ",flush=True)" for e in events)
+        target = self.root / 'terminal-cancel'
+        run_trial(self.registration(body), target)
+        result = request_trial_cancel(target, 'late request')
+        self.assertEqual(result['status'], 'already_terminal')
+        self.assertFalse((target / 'CANCEL_REQUEST.json').exists())
+
+    def test_unreadable_request_is_not_a_cancellation(self):
+        with patch('tools.hia_repository_agent_trial.os.open',
+                   side_effect=PermissionError(errno.EACCES, 'authored read failure')):
+            result = _read_cancel_request(self.root, '0' * 64)
+        self.assertFalse(result['valid'])
+        self.assertEqual(result['reason'], 'request_read_error')
+        self.assertEqual(result['errno'], errno.EACCES)
+
+    def test_request_publication_failure_leaves_no_partial_final_record(self):
+        target = self.root / 'publication-failure'
+        events = sequence(usage={'input_tokens': 1, 'output_tokens': 1})
+        body = "\n".join("print(" + repr(json.dumps(e)) + ",flush=True)" for e in events)
+        run_trial(self.registration(body), target)
+        record_path = target / 'TRIAL.json'
+        record = json.loads(record_path.read_text())
+        record['status'] = 'preflight'  # Authored publication control; no process is running.
+        record_path.write_text(json.dumps(record))
+        with patch('tools.hia_repository_agent_trial.os.link',
+                   side_effect=OSError(errno.EIO, 'authored publication interruption')):
+            with self.assertRaises(OSError):
+                request_trial_cancel(target, 'publication control')
+        self.assertFalse((target / 'CANCEL_REQUEST.json').exists())
+        self.assertEqual(list(target.glob('.hia-cancel-*')), [])
 
 
 if __name__ == "__main__":

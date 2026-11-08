@@ -20,6 +20,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_cases.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py",
     "tools/hia_selfhost_capacity.py",

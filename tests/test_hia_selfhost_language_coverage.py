@@ -681,6 +681,7 @@ def coverage_manifest():
         "general_object_linking": (["compile", "elf_finish"], []),
     }
     existing = {
+        "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
         "resources": ["tools.hia_selfhost_resources.qualify_resources",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],

@@ -115,6 +115,15 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES)]["general_core"], "accepted")
         self.assertEqual(rows["structural-nodes-" + str(MAX_CORE_NODES + 1)]["code"], "E_HIA_LIMIT")
 
+    def test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures(self):
+        from tools.hia_selfhost_select import independent_select_reference
+        result = independent_select_reference()
+        self.assertEqual(len(result["cases"]), 64)
+        self.assertEqual(len(result["rejections"]), 13)
+        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u32", "u64", "usize", "bool"})
+        for typ in ("u8", "u32", "u64", "usize", "bool"):
+            self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
+
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")
 class SelfhostNativeTests(unittest.TestCase):
@@ -319,6 +328,23 @@ class SelfhostNativeTests(unittest.TestCase):
             result, _ = invoke(self.directory, "width-" + str(index), executable, b"", capacity=0, workspace_size=0)
             self.assertEqual(result["status"], "returned", result)
             self.assertEqual(result["core_u32"], expected, result)
+
+    def test_native_select_uses_input_dependent_values_and_full_width_outputs(self):
+        rows = self.report["select_observations"]
+        for compiler in ("original", "modified"):
+            cases = [row for row in rows if row["case"].startswith(compiler + "-select-") and "-case-" in row["case"]]
+            self.assertEqual(len(cases), 64)
+            for row in cases:
+                self.assertTrue(self.report["checks"][row["case"]], row)
+                self.assertEqual(row["core_u32"], int(row["expected"]) & 0xffffffff)
+            for typ in ("u8", "u32", "u64", "usize", "bool"):
+                chosen = [row for row in cases if row["type"] == typ]
+                self.assertEqual({row["condition"] for row in chosen}, {False, True})
+                self.assertGreater(len({row["input_sha256"] for row in chosen}), 1)
+                self.assertGreater(len({row["core_u32"] for row in chosen}), 1)
+            for key, accepted in self.report["checks"].items():
+                if key.startswith(compiler + "-select-"):
+                    self.assertTrue(accepted, key)
 
 
 if __name__ == "__main__":
