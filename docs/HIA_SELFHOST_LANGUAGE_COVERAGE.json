@@ -180,11 +180,14 @@
     },
     {
       "area": "integer_operations",
-      "existing_evidence": [],
+      "existing_evidence": [
+        "tools.hia_selfhost_select.qualify_select"
+      ],
       "hia_functions": {
         "instruction": "f6",
         "normalize": "f19",
-        "operation": "f7"
+        "operation": "f7",
+        "select_operation": "f44"
       },
       "items": [
         "const",
@@ -200,12 +203,14 @@
         "unsigned comparisons",
         "bool.and",
         "bool.or",
-        "bool.not"
+        "bool.not",
+        "select (bool; matching scalar values)"
       ],
       "new_witnesses": [
         "scalar-*",
         "boolean",
         "cast",
+        "select-*",
         "shift-trap-*"
       ],
       "status": "bounded_subset"
@@ -418,8 +423,7 @@
     "int.sub.checked",
     "loan.end",
     "owner.drop",
-    "owner.move",
-    "select"
+    "owner.move"
   ],
   "input_opcodes": [
     "bit.and",
@@ -445,7 +449,8 @@
     "int.mul.wrap",
     "int.shl.checked",
     "int.shr.checked",
-    "int.sub.wrap"
+    "int.sub.wrap",
+    "select"
   ],
   "input_types": [
     "u8",
@@ -989,18 +994,23 @@
         true
       ]
     ],
-    "count": 568,
+    "count": 632,
     "groups": {
       "boolean": 12,
       "cast": 80,
       "scalar-u32": 119,
       "scalar-u64": 119,
       "scalar-u8": 119,
-      "scalar-usize": 119
+      "scalar-usize": 119,
+      "select-bool": 8,
+      "select-u32": 14,
+      "select-u64": 14,
+      "select-u8": 14,
+      "select-usize": 14
     },
     "observation": "eight little-endian output bytes per scalar result, including all 64 bits",
     "reference": "independent general Core VM plus Python integer/boolean oracle, executed before B0",
-    "specification_sha256": "026763e17bbb4505cc2d3074081a5942be24a741ce4545811e916006955adb1f",
+    "specification_sha256": "ea0a4018a423e741a68092459689735462062b96154dadd2fbdbd59ece6dfbc5",
     "unsigned_widths": {
       "u32": 32,
       "u64": 64,
@@ -1078,13 +1088,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "048a259000e4daf16e23a16e073bc8a64d84b5159097829309fa0fbb7d795958"
+      "sha256": "5e5dc307b4a932e2ef911e387ad806e6bc9d253b1a9c9d5c12149480ed55c060"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "85288cfc4b649b2be13175675880f5372f16bf3d9c5d4b78ba21ffa2c90b6b44"
+      "sha256": "f705cf585dfc11b9fd1adaeff0d5cf07738cf0a9e542aef9057045b378d38bb6"
     },
-    "semantic_support_sha256": "5bc125d00707ffb19b2367076a9f70781203c572cb6d94b1c76cd6d3a51f8d1a",
+    "semantic_support_sha256": "1f525d8c92e524ab08b63790d7b045e78d7bc9f71c42e47a4196dab0eb5e9114",
     "support_projection_omits": [
       "source_identity"
     ]

@@ -111,6 +111,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
+| Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize` or `bool`; true chooses the second argument and false the third |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap` |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
@@ -351,6 +352,23 @@ or recursion to Selfhost-Core. Those constructs remain outside the fixed
 profile; the general Core reference's broader ownership support is not evidence
 that the native self-hosting checker implements it. These finite cases are
 regression evidence rather than a general checker or refinement proof.
+
+## Scalar selection
+
+`select` has exactly three arguments: a `bool` condition and two values of the
+same supported scalar type. Its result has that same type. The checker rejects
+non-boolean conditions, unlike operand or result types, a discarded result and
+resource selections. The existing grammar, resource rules, capacity limits and
+transactional rejection behavior are unchanged. Selection emits a register test
+and conditional move, preserving all bits of the chosen scalar value.
+
+The qualification executes 64 independent Core-reference cases in both B3 and
+M3. Five native fixtures read the condition and both values from input bytes,
+return the selected low 32 bits and write all 64 result bits. These cover both
+conditions, every boolean combination, zero, maximum values and the high-bit
+boundaries of all four unsigned types. Thirteen invalid programs, short output
+capacity and flat/ELF text equality are checked for both compilers. This finite
+batch is also part of the cold replay; it is not a universal correctness proof.
 
 ## Modification experiment
 

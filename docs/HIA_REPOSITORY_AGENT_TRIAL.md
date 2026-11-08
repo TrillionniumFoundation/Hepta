@@ -54,6 +54,33 @@ A wall deadline can terminate the owned CLI; the token threshold is terminal
 review, **not a hard mid-turn token cap**. With this interface a strict monetary
 cap cannot be guaranteed from a token threshold.
 
+### Stop an original running trial
+
+The coordinator can request cancellation without looking up or signalling an
+OS process ID:
+
+```sh
+python -B -m tools.hia_repository_agent_trial cancel --output /absolute/original-trial --reason 'startup has not produced events'
+```
+
+The command binds a create-only `CANCEL_REQUEST.json` to the SHA256 of the
+retained original registration. It never starts a session or signals a process.
+The original runner polls that exact request and asks its existing owned-process
+transport to stop its original group before reaping the leader. A request seen
+during preflight prevents launch. A malformed request or one bound to a different
+registration is retained but does not stop the trial. Repeated requests return
+the first request unchanged; a terminal trial without an earlier request is a
+read-only observation.
+
+`requested` is not confirmation of termination. Read the final original
+`TRIAL.json` and its `process.cleanup_confirmed`, stream capture and return status.
+If the original runner is gone or predates this cancellation protocol, the
+request cannot make it poll again or prove cleanup; the old deadline and outcome
+remain separate evidence. No arbitrary process, escaped descendant or past
+external effect is controlled by this interface. Missing terminal usage after
+cancellation remains unknown. The output directory is a coordinator-owned
+same-account scope, not a credential-authenticated cancellation service.
+
 ## Why fees were absent in previous evidence
 
 The existing structured Codex providers already retain exact invocation bytes

@@ -16,7 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
- "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap"]
+ "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "select"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -464,6 +464,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if op == @select@:
+        return select_operation(o, w, n, a, b, at, bt, t)
     if op == @buffer.len@:
         if n != 1 or at < 6 or t != 2:
             fail(w, 28)
@@ -1115,6 +1117,25 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
         return 0
     emit(o, w, x & 255)
     return emit_bytes(o, w, x >> 8, remaining - 1)
+
+def select_operation(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if n != 3:
+        return fail(w, 60)
+    if at != 5 or t == 0 or t >= 6 or bt != t or variable(w, get(w, ARGS + 16)) != t:
+        return fail(w, 60)
+    load_var(o, w, 2, a, 0)
+    load_var(o, w, 0, b, 0)
+    load_var(o, w, 1, get(w, ARGS + 16), 0)
+    # test rdx, rdx; cmovz rax, rcx. True keeps the second operand;
+    # false chooses the third. Both scalar slots retain their full width.
+    emit(o, w, 72)
+    emit(o, w, 133)
+    emit(o, w, 210)
+    emit(o, w, 72)
+    emit(o, w, 15)
+    emit(o, w, 68)
+    emit(o, w, 193)
+    return 0
 '''
 
 

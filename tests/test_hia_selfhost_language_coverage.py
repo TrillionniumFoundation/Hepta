@@ -39,7 +39,7 @@ SHIFTS = ("int.shl.checked", "int.shr.checked")
 COMPARISONS = ("compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge")
 INPUT_OPCODES = tuple(sorted(("const", *BINARY_INTEGER, *SHIFTS, *COMPARISONS,
     "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load",
-    "buffer.store", "buffer.swap", "call")))
+    "buffer.store", "buffer.swap", "call", "select")))
 NATIVE = (platform.system() == "Linux"
           and platform.machine().lower() in {"x86_64", "amd64"}
           and bool(shutil.which("ld")))
@@ -106,6 +106,10 @@ def scalar_cases():
         for target, tw in WIDTHS.items():
             for value in (0, 1, (1 << (sw - 1)) - 1, 1 << (sw - 1), (1 << sw) - 1):
                 add("cast", source, "int.cast", [value], value & ((1 << tw) - 1), target, "wrap")
+    from tools.hia_selfhost_select import select_cases
+    for case in select_cases():
+        add("select-" + case["type"], case["type"], "select",
+            [case["condition"], case["left"], case["right"]], case["expected"])
     return rows
 
 
@@ -129,7 +133,8 @@ class Assembly:
         self.lines.append("  _ = " + op + "(" + ",".join(args) + ")")
 
     def result(self, case):
-        args = [self.const(case["operand_type"], value) for value in case["arguments"]]
+        args = [self.const("bool" if case["opcode"] == "select" and index == 0 else case["operand_type"], value)
+                for index, value in enumerate(case["arguments"])]
         if case["opcode"] == "const":
             return self.const(case["result_type"], case["expected"])
         attrs = {"mode": case["mode"]} if "mode" in case else None
@@ -472,7 +477,7 @@ def coverage_manifest():
     rules = {
         "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast"]),
         "resources": (["args", "edge", "operation"], ["borrowed-buffer-operations", "existing-readonly-*", "swap-*"]),
-        "integer_operations": (["instruction", "operation", "normalize"], ["scalar-*", "boolean", "cast", "shift-trap-*"]),
+        "integer_operations": (["instruction", "operation", "select_operation", "normalize"], ["scalar-*", "boolean", "cast", "select-*", "shift-trap-*"]),
         "control_flow": (["parse_block", "edge", "check_graph"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
         "calls": (["instruction", "args", "check_calls", "copy_argument"], ["parameters-16", "parameters-17", "call-*"]),
         "recursion": (["instruction", "parse_block", "check_calls"], ["recursion-*", "tail-*"]),
@@ -483,6 +488,7 @@ def coverage_manifest():
         "general_object_linking": (["compile", "elf_finish"], []),
     }
     existing = {
+        "integer_operations": ["tools.hia_selfhost_select.qualify_select"],
         "resources": ["tools.hia_selfhost_resources.qualify_resources",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],
@@ -698,7 +704,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_inventory_matches_supported_features_actual_hia_and_source_closure(self):
         manifest = validate_inventory()
         self.assertEqual(manifest["profile"], PROFILE)
-        self.assertEqual(len(manifest["input_opcodes"]), 24)
+        self.assertEqual(len(manifest["input_opcodes"]), 25)
         self.assertEqual(manifest["general_core_opcode_count"], 50)
         self.assertFalse(manifest["claims"]["whole_HIA_language_self_hosted"])
         self.assertFalse(manifest["claims"]["compiler_correctness_formally_proved"])
@@ -716,7 +722,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles(self):
         reference = independent_references()
-        self.assertEqual(len(reference["scalar"]), 568)
+        self.assertEqual(len(reference["scalar"]), 632)
         self.assertTrue(all(row["reference_result"]["status"] == "trapped" for row in reference["traps"]))
         self.assertTrue(any(row["reference_result"]["status"] == "accepted" for row in reference["negative"]))
         self.assertTrue(any(row["reference_result"]["status"] == "rejected" for row in reference["negative"]))
@@ -776,7 +782,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        self.assertEqual(self.report["reference"]["scalar_cases"], 568)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 632)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])

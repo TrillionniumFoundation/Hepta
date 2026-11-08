@@ -10,9 +10,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 from pathlib import Path
 import subprocess
+import tempfile
 import time
 
 from tools.hia_agent_codex_transport import EventFailure, identity, run_owned, save, strict_json
@@ -23,6 +26,88 @@ ITEM_TYPES = frozenset(("agent_message", "reasoning", "error", "command_executio
 LIMITS = {"stdout_limit_bytes": 32 * 1024 * 1024,
           "stderr_limit_bytes": 8 * 1024 * 1024,
           "max_jsonl_line_bytes": 4 * 1024 * 1024}
+CANCEL_SCHEMA = "hepta.hia.repository-agent-cancel.v1"
+
+
+def _read_cancel_request(output, registration_sha256):
+    """Read an owner request; a foreign or malformed record is never a stop."""
+    path = Path(output) / "CANCEL_REQUEST.json"
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        return {"valid": False, "reason": "request_read_error", "errno": exc.errno}
+    try:
+        with os.fdopen(fd, "rb") as stream:
+            observed = os.fstat(stream.fileno())
+            if not stat.S_ISREG(observed.st_mode) or observed.st_size > 4096:
+                return {"valid": False, "reason": "invalid_request_file"}
+            raw = stream.read(4097)
+            if len(raw) > 4096:
+                return {"valid": False, "reason": "request_size_changed"}
+    except OSError as exc:
+        return {"valid": False, "reason": "request_read_error", "errno": exc.errno}
+    try:
+        value = strict_json(raw)
+    except (ValueError, UnicodeError, RecursionError):
+        return {"valid": False, "reason": "invalid_request_json",
+                "sha256": hashlib.sha256(raw).hexdigest()}
+    valid = (type(value) is dict
+             and set(value) == {"schema", "registration_sha256", "reason", "requested_unix_ns"}
+             and value["schema"] == CANCEL_SCHEMA
+             and value["registration_sha256"] == registration_sha256
+             and type(value["reason"]) is str and 0 < len(value["reason"]) <= 512
+             and type(value["requested_unix_ns"]) is int and value["requested_unix_ns"] > 0)
+    return {"valid": valid, "request": value, "sha256": hashlib.sha256(raw).hexdigest(),
+            "reason": "bound_original_registration" if valid else "invalid_request_binding"}
+
+
+def request_trial_cancel(output, reason):
+    """Request a stop by exact trial identity; only its original owner signals it."""
+    directory = Path(output).resolve(strict=True)
+    if type(reason) is not str or not 0 < len(reason) <= 512:
+        raise ValueError("E_HIA_REPOSITORY_CANCEL_REASON")
+    registration = (directory / "REGISTRATION.original.json").read_bytes()
+    registration_sha = hashlib.sha256(registration).hexdigest()
+    trial = strict_json((directory / "TRIAL.json").read_bytes())
+    if (type(trial) is not dict
+            or trial.get("schema") != "hepta.hia.repository-agent-trial.v1"
+            or trial.get("registration", {}).get("sha256") != registration_sha):
+        raise ValueError("E_HIA_REPOSITORY_CANCEL_TRIAL_BINDING")
+    existing = _read_cancel_request(directory, registration_sha)
+    if existing is not None:
+        if not existing["valid"]:
+            raise ValueError("E_HIA_REPOSITORY_CANCEL_EXISTING_REQUEST")
+        return {"status": "already_requested", "request": existing,
+                "effect": "observe original TRIAL.json; a request is not confirmed termination"}
+    if trial.get("status") != "preflight":
+        return {"status": "already_terminal", "trial_status": trial.get("status"),
+                "effect": "no request written; no process signalled"}
+    request = {"schema": CANCEL_SCHEMA, "registration_sha256": registration_sha,
+               "reason": reason, "requested_unix_ns": time.time_ns()}
+    raw = json.dumps(request, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode() + b"\n"
+    # Publish complete bytes atomically and without replacement. The temporary
+    # name belongs only to this invocation; readers never see a partial request.
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".hia-cancel-", dir=directory)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, directory / "CANCEL_REQUEST.json")
+        except FileExistsError:
+            existing = _read_cancel_request(directory, registration_sha)
+            if existing is None or not existing["valid"]:
+                raise ValueError("E_HIA_REPOSITORY_CANCEL_EXISTING_REQUEST")
+            return {"status": "already_requested", "request": existing,
+                    "effect": "observe original TRIAL.json; a request is not confirmed termination"}
+    finally:
+        temporary.unlink(missing_ok=True)
+    return {"status": "requested", "request": request, "sha256": hashlib.sha256(raw).hexdigest(),
+            "effect": "cooperative request only; no process signalled by this command"}
 
 
 class RepositoryEvents:
@@ -249,17 +334,26 @@ def run_trial(registration_path, output):
               "full_cost_complete": False, "economic_advantage_established": False,
               "isolation_scope": "event profile only; effective CLI config and filesystem isolation need independent evidence"}
     save(output / "TRIAL.json", record)
+    def cancellation_requested():
+        observation = _read_cancel_request(output, record["registration"]["sha256"])
+        if observation is not None:
+            record["cancellation_observation"] = observation
+        return bool(observation is not None and observation["valid"])
     try:
         before = snapshot_repository(cwd, output / "before", baseline=reg["source_commit"])
         record["before"] = before
         if not before["clean"] or before["head"] != reg["source_commit"] or before["tree"] != reg["source_tree"]:
             raise ValueError("E_HIA_REPOSITORY_BASELINE_CHANGED")
+        if cancellation_requested():
+            record["status"] = "cancelled_before_launch"
+            return record
         deadline = started_unix + reg["wall_limit_seconds"] * 1_000_000_000
         remaining = reg["wall_limit_seconds"] - (time.monotonic_ns() - started) / 1e9
         events = RepositoryEvents(reg["allowed_mcp_servers"])
         process = run_owned(argv, cwd, output / "provider", input_bytes=prompt,
                             wall_seconds=remaining, absolute_deadline_unix_ns=deadline,
-                            on_line=events.line, transport_limits=LIMITS)
+                            on_line=events.line, transport_limits=LIMITS,
+                            stop_requested=cancellation_requested)
         record["process"] = process
         record["cli_sessions_started"] = int("pid" in process)
         record["metering"] = settle_stream(output / "provider/stdout.raw",
@@ -288,6 +382,9 @@ def main(argv=None):
     run = commands.add_parser("run")
     run.add_argument("--registration", required=True)
     run.add_argument("--output", required=True)
+    cancel = commands.add_parser("cancel")
+    cancel.add_argument("--output", required=True)
+    cancel.add_argument("--reason", required=True)
     settle = commands.add_parser("settle")
     settle.add_argument("--stdout", required=True)
     settle.add_argument("--streams-complete", action="store_true")
@@ -297,6 +394,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == "run":
         result = run_trial(args.registration, args.output)
+    elif args.command == "cancel":
+        result = request_trial_cancel(args.output, args.reason)
     else:
         target = Path(args.output)
         if target.exists():

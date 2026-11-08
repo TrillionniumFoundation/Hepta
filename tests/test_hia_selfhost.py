@@ -37,6 +37,9 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertLess(sum(len(b["ops"]) for f in doc["functions"] for b in f["blocks"]), MAX_INSTRUCTIONS)
         self.assertLessEqual(sum(len(f["blocks"]) for f in doc["functions"]), 1536)
         self.assertLessEqual(max(len(b["params"]) for f in doc["functions"] for b in f["blocks"]), 16)
+        definitions = [value for f in doc["functions"] for b in f["blocks"]
+                       for value in [*b["params"], *(out for op in b["ops"] for out in op["out"])]]
+        self.assertLessEqual(max(int(value["name"][1:]) for value in definitions), 2047)
 
     def test_codegen_mutation_is_valid_core_and_changes_one_literal(self):
         source = SOURCE.read_bytes()
@@ -65,6 +68,15 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertEqual(len(result["rejections"]), 5)
         for row in result["cases"]:
             self.assertEqual(row["reference_result"]["status"], "trapped" if row["trap"] else "returned")
+
+    def test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures(self):
+        from tools.hia_selfhost_select import independent_select_reference
+        result = independent_select_reference()
+        self.assertEqual(len(result["cases"]), 64)
+        self.assertEqual(len(result["rejections"]), 13)
+        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u32", "u64", "usize", "bool"})
+        for typ in ("u8", "u32", "u64", "usize", "bool"):
+            self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
 
     def test_call_graph_admission_distinguishes_general_core_from_fixed_profile(self):
         assemble_program(backward_bytesum_source(SAMPLE.read_bytes()))
@@ -149,6 +161,23 @@ class SelfhostNativeTests(unittest.TestCase):
             self.assertEqual(refused["core_u32"], INVALID)
             self.assertEqual(refused["workspace_header"]["248"], MAX_CORE_NODES + 1)
             self.assertTrue(refused["output_unchanged"])
+
+    def test_native_select_uses_input_dependent_values_and_full_width_outputs(self):
+        rows = self.report["select_observations"]
+        for compiler in ("original", "modified"):
+            cases = [row for row in rows if row["case"].startswith(compiler + "-select-") and "-case-" in row["case"]]
+            self.assertEqual(len(cases), 64)
+            for row in cases:
+                self.assertTrue(self.report["checks"][row["case"]], row)
+                self.assertEqual(row["core_u32"], int(row["expected"]) & 0xffffffff)
+            for typ in ("u8", "u32", "u64", "usize", "bool"):
+                chosen = [row for row in cases if row["type"] == typ]
+                self.assertEqual({row["condition"] for row in chosen}, {False, True})
+                self.assertGreater(len({row["input_sha256"] for row in chosen}), 1)
+                self.assertGreater(len({row["core_u32"] for row in chosen}), 1)
+            for key, accepted in self.report["checks"].items():
+                if key.startswith(compiler + "-select-"):
+                    self.assertTrue(accepted, key)
 
     def test_modified_emitter_propagates_and_rebuilds_modified_self(self):
         m1, m2, m3 = self.report["modified_generations"]

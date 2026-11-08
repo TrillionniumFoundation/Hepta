@@ -132,7 +132,11 @@ counterexamples. The checker does not load or execute the image. A later consume
 must still bind the exact inspected bytes to its own authorized loading action.
 
 Each successful result carries `subject`, `property`, `profile`, `assumptions`,
-`checker` and `unproved_obligations`. Checker identity separates the consumer
+`checker` and `unproved_obligations` in its raw validation record. For the CLI
+above, read `<output>/attempt.json` at `.validation`; stdout only summarizes
+the status and output location. The `build_safe_core(...)` API likewise places
+the complete proof record at `.validation` in its returned object. Checker
+identity separates the consumer
 model sources and pinned solver from optional producer provenance. The raw entry
 can be imported and used with imports of the native emitter, encoder, ELF writer
 and byte-ABI producer actively forbidden. Tests also replace `MOV RAX,0` with
