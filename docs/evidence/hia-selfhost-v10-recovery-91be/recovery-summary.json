@@ -1,26 +1,52 @@
 {
   "archive": {
     "bytes": 2937056,
+    "distinct_refusal_input_sources": 40,
     "file": "core-recovery-evidence-91be.tar.xz",
     "format": "tar+xz",
     "git_blob_sha": "4ae48d07ceee5428b16822f1867b91165519a29a",
     "manifest": "core-recovery-evidence/files-manifest.json",
+    "refusal_records_per_compiler": 45,
+    "scope_note": "The retained local archive binds original recovery da101. It has 45 named refusal records but 40 distinct refusal inputs. The final source follow-up makes all 45 input byte strings distinct; final CI is separate evidence.",
     "sha256": "5cd9e0652d82949ee64080494783ac72a7677ea2d5489d680166015c3ae66c44",
     "verified_files": 12538
   },
   "bulk_cases": 69,
   "bulk_refusals_per_compiler": 45,
   "bulk_traps": 33,
-  "ci": {
-    "followup_change": "Compare the whole discovered support document to validate_contract(); focused local test passed.",
-    "followup_ci_status": "requested",
-    "followup_source_commit": "b43acb6dd25e1c7b363faf865d01570189c47787",
-    "ndu_run": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42504524372",
-    "ndu_run_status": "success",
-    "original_failure": "Agent discovery test retained a v8 literal while served contract is v10; 82 of 83 Agent tests passed. Later steps were skipped.",
-    "original_source_run": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42504524354",
-    "original_source_run_status": "failure"
-  },
+  "ci_history": [
+    {
+      "commit": "da101b30c35856b035c08c4fcd78168f11c5ea23",
+      "failure": "One Agent discovery test expected v8; 82/83 tests passed, subsequent steps skipped.",
+      "run_id": 42504524354,
+      "status": "failure"
+    },
+    {
+      "artifact_id": 13627446173,
+      "artifact_sha256": "5265613fa6c0e94c4da02e8f3c85ed023213169d744a7781ba646e5980bc0819",
+      "commit": "b43acb6dd25e1c7b363faf865d01570189c47787",
+      "failure": "All source and native gates, cold replay and language coverage passed. Release freeze rejected a missing bulk.py dependency in BOOTSTRAP_FILES.",
+      "run_id": 42504904322,
+      "status": "failure"
+    },
+    {
+      "artifact_bytes": 17032494,
+      "artifact_id": 13626923542,
+      "artifact_sha256": "949dbe37f6fdf278acc9852b60b5f2064f1024a8c65a87ed4271c281a1ed0a2b",
+      "commit": "ec2c5c4171711b538f651960c5975b29c52705a5",
+      "original_artifact_expires_at": "2026-12-08T17:41:37Z",
+      "run_id": 42505586193,
+      "status": "success",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42505586193"
+    },
+    {
+      "commit": "ec2c5c4171711b538f651960c5975b29c52705a5",
+      "kind": "NDU integration",
+      "run_id": 42505586144,
+      "status": "success",
+      "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/42505586144"
+    }
+  ],
   "claims": {
     "all_input_correctness_proof": false,
     "finite_witnesses_only": true,
@@ -34,6 +60,74 @@
     "total": 10
   },
   "compiler_source_sha256": "41cb7759c408c7df1cbfd0d46ff6de572335a7015656bac83391f813c46fabd7",
+  "current_source_commit": "ec2c5c4171711b538f651960c5975b29c52705a5",
+  "final_ci_archive": {
+    "bytes": 2847268,
+    "compression_seconds": 22.819542402000025,
+    "file": "core-v10-final-ci-ec2c5c4.tar.xz",
+    "files": 12708,
+    "format": "tar+xz; lossless ZIP entry contents, original ZIP digest verified separately",
+    "git_blob_sha": "feeff4d8d7fb9b44391a79a46dcd57185f7b192e",
+    "manifest": "final-source-ci/FILES-MANIFEST.json",
+    "sha256": "a266f082646cfbf0609bf4a54089345a587b856b909d58cc9bbb4dc41de313e0"
+  },
+  "final_ci_inspection": {
+    "bulk_distinct_refusal_sources": 45,
+    "bulk_module_in_release_lock": true,
+    "cold_checks": [
+      10,
+      10
+    ],
+    "compiler_source_sha256": "41cb7759c408c7df1cbfd0d46ff6de572335a7015656bac83391f813c46fabd7",
+    "generation_sha256": [
+      "84ca2495c40e1962d9304f9146f3b4fda4bb696416b8217b8444d64c536b2cc2",
+      "84ca2495c40e1962d9304f9146f3b4fda4bb696416b8217b8444d64c536b2cc2",
+      "84ca2495c40e1962d9304f9146f3b4fda4bb696416b8217b8444d64c536b2cc2"
+    ],
+    "inner_checks": [
+      601,
+      601
+    ],
+    "language_counts": {
+      "checked_arithmetic_traps_per_compiler": 120,
+      "checks_passed": 744,
+      "checks_total": 744,
+      "compilers": 2,
+      "positive_programs_per_compiler": 62,
+      "rejections_per_compiler": 171,
+      "scalar_witnesses": 824,
+      "shift_traps_per_compiler": 16,
+      "traps_per_compiler": 136
+    },
+    "modified_generation_sha256": [
+      "660e2282dd87920f21ef9c86e81abc1d8acf77c9b9713dfb8a8b4050d2e78af8",
+      "9cc65241215cdf39bd3a85227ba4a92c91e5ffdda8c2a93851770ac66dcb12eb",
+      "9cc65241215cdf39bd3a85227ba4a92c91e5ffdda8c2a93851770ac66dcb12eb"
+    ],
+    "profile": "selfhost-core-linux-x86_64-v10",
+    "raw_zip_files": 12708,
+    "raw_zip_sha256": "949dbe37f6fdf278acc9852b60b5f2064f1024a8c65a87ed4271c281a1ed0a2b",
+    "release_lock_sha256": "21e091f57dbd913e257cebc8218ce587d831add97d6cc294d786f8557886d643",
+    "release_runtime_commit": "4cd85c99c5f5a480832c48fbde8561bb365f67a9",
+    "source_commit": "ec2c5c4171711b538f651960c5975b29c52705a5",
+    "source_manifest_matches_current_checkout": true,
+    "source_tree": "3d7eeb3a0735fabb9b72164053b72a7088936ada"
+  },
+  "final_ci_source_checks": {
+    "agent_native_tests": 83,
+    "cold_replay_checks": 10,
+    "cost_and_repository_trial_tests": 101,
+    "direct_native_core_tests": 173,
+    "language_checks": 744,
+    "native_ndu_integration": "PASS",
+    "nested_selfhost_checks": 601,
+    "release_freeze_and_check": "PASS",
+    "release_tests": 54,
+    "safe_core_checks": 39,
+    "scalar_proof_scope_tests": 91,
+    "selfhost_contract_tests": 5,
+    "selfhost_source_tests": 19
+  },
   "general_core_opcodes": 50,
   "generation_sha256": [
     "84ca2495c40e1962d9304f9146f3b4fda4bb696416b8217b8444d64c536b2cc2",
@@ -43,6 +137,26 @@
   "historical_local_commit": "fc5e671bd9da6933e72c6aa407516d2637516312",
   "historical_raw_evidence_lost": true,
   "historical_source_tree_reproduced_exactly": true,
+  "independent_review": {
+    "checked": [
+      "unsigned offset <= extent then count <= extent-offset",
+      "all copy range checks before either pointer derivation or data access",
+      "zero count bypasses derived-pointer formation",
+      "overlap-safe forward/backward move",
+      "invalid signature refusal occurs before phase-2 emission",
+      "SSA index sentinel is distinct from runtime scalar value"
+    ],
+    "commit": "b43acb6dd25e1c7b363faf865d01570189c47787",
+    "evidence_issue": "Five duplicate negative fixture inputs, corrected in ec2c5c4.",
+    "implementation_errors_found": [],
+    "limits": [
+      "successful bulk extents are at most 16 bytes in these witnesses",
+      "bulk scalar arguments in these fixtures are constants",
+      "caller must provide valid live buffers with required non-aliasing",
+      "finite observations do not prove all-input compiler or machine correctness"
+    ],
+    "mode": "read-only source review"
+  },
   "inner_checks": {
     "passed": 601,
     "total": 601
@@ -74,6 +188,23 @@
   },
   "schema": "hepta.hia.selfhost-recovery-evidence.v1",
   "source_branch": "codex/hia-core-v10-recovered-91be-20261108",
+  "source_history": [
+    {
+      "change": "Exact recovery of five bulk operations, v10 source, finite witnesses and manifests.",
+      "commit": "da101b30c35856b035c08c4fcd78168f11c5ea23",
+      "tree": "ddf48192c6f9da9a9748407f11a2f7186990695b"
+    },
+    {
+      "change": "Compare Agent-discovered support with the full current validated source contract instead of a v8 literal.",
+      "commit": "b43acb6dd25e1c7b363faf865d01570189c47787",
+      "tree": "5aa1068cfc612d7a8b1a6091c08611a3fc6ab740"
+    },
+    {
+      "change": "Include bulk.py in the release closure; assert complete Selfhost source inventory; make all 45 refusal source inputs distinct; regenerate witness/source manifests.",
+      "commit": "ec2c5c4171711b538f651960c5975b29c52705a5",
+      "tree": "3d7eeb3a0735fabb9b72164053b72a7088936ada"
+    }
+  ],
   "source_tests": {
     "command": "python -B -m unittest tests.test_hia_selfhost.SelfhostSourceTests tests.test_hia_selfhost_contract.SelfhostContractTests tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests -v",
     "elapsed_seconds": 21.296,
