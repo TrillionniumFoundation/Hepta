@@ -22,6 +22,7 @@ from unittest.mock import patch
 from jsonschema import Draft202012Validator
 
 from hepta.hia_agent_service import HIAAgentService
+from tools.hia_selfhost_contract import validate_contract
 from tools.hia_agent_native_qualification import (
     CATALOG_PATH, Session, ToolClient, add_program, branch_program,
     exhaustive_u8_workload, json_bytes, scripted_loop,
@@ -84,7 +85,7 @@ class ArtifactContractTests(AgentToolCase):
                 self.assertTrue(session.read(artifact))
         support = json.loads(session.read(self.service.resources["self_hosting_core_support"]))
         self.assertEqual(support["schema"], "hepta.hia.selfhost-core-support.v1")
-        self.assertEqual(support["profile"], "selfhost-core-linux-x86_64-v8")
+        self.assertEqual(support, validate_contract())
         self.assertEqual(support["limits"]["tail_self_call_additional_frames"], 0)
         backend = self.client.result("hia_describe", {"section": "backend"})
         self.assertIn(self.service.resources["self_hosting_core_support"], backend["resources"])
