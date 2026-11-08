@@ -1,0 +1,15 @@
+{
+  "schema": "hepta.scoped-static-review.v1",
+  "reviewer": "/root/core_ownership",
+  "method": "Read-only original-generator and unchanged checker review; no additional native calls or metadata adversarial tests.",
+  "generator_sha256": "beed189aa57374d9b2c66c492f9ab6323a697ccb0592d2fc128a60a46688f9e4",
+  "findings": [
+    "Original C1 parse_function requires f0 parameter types (readbuf,mutbuf,mutbuf), three parameters and u32 return.",
+    "Safe Core loan_count<=1 checks the declared signature even for unused parameters.",
+    "Moving a scalar helper to the only f0 still triggers the C1 entry guard.",
+    "Original C1 stack probe 488b0424, u32 normalization 89c0 and u8 accumulator AND 4825ff000000 are outside the current closed decoder.",
+    "TEST/CMOVNE itself is now modeled, but relies on already-normalized upstream slots.",
+    "A scalar adapter would be a different subject and needs exact function-range/relocation, private-ABI, stack, alias, normalization and return proofs."
+  ],
+  "conclusion": "Keep the original profile and actual refusals; no whole-artifact or compiler proof follows from an extracted seven-byte fragment."
+}
