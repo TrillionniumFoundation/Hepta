@@ -45,6 +45,54 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-native.log"
+      - name: Qualify borrowed-buffer lifecycle and the unchanged frozen compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-buffer-tests.log"
+          import json
+          import os
+          from pathlib import Path
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_agent_buffer_lifecycle')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          qualified = (result.wasSuccessful() and result.testsRun > 0 and not result.skipped
+                       and not result.expectedFailures)
+          report = {'schema': 'hepta.hia.agent-buffer-source-tests.v1',
+              'source_sha': os.environ['HEPTA_SOURCE_SHA'],
+              'status': 'QUALIFIED' if qualified else 'FAILED', 'tests_run': result.testsRun,
+              'failures': [{'test': t.id(), 'detail': d} for t,d in result.failures],
+              'errors': [{'test': t.id(), 'detail': d} for t,d in result.errors],
+              'skipped': [{'test': t.id(), 'reason': d} for t,d in result.skipped],
+              'general_compiler_refinement_proved': False, 'production_adoption': False}
+          (Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/agent-buffer-tests.json').write_text(json.dumps(report,indent=2) + '\n')
+          if not qualified:
+              raise SystemExit(1)
+          PY
+          python -B - <<'PY'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import zipfile
+          archive = Path('review-evidence/hia-agent-buffer-20261108-5e6c/raw-continuation.zip')
+          assert sha256(archive.read_bytes()).hexdigest() == 'e0253f117a5f80b2a93efcaa30575b28d131fef9782a60bab3d32797b57d8b25'
+          output = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/frozen-agent-inputs'
+          output.mkdir()
+          fixtures = {
+              'selfhost.hiaasm': '2dd847d9df46392e4ef4b99c781b45f56c9841ae61127a260be6e8523f042845',
+              'fresh-select.patch': 'e74f3c27d6ea7e7ccfc1c9e2a4e7674fecabef08ee0e05236e5a6e2b5bd75cb4'}
+          with zipfile.ZipFile(archive) as source:
+              for name, expected in fixtures.items():
+                  data = source.read('frozen-inputs/' + name)
+                  assert sha256(data).hexdigest() == expected
+                  (output / name).write_bytes(data)
+          PY
+          python -B tools/qualify_hia_agent_buffer_lifecycle.py \
+            --compiler-source "$RUNNER_TEMP/hia-sixgap/frozen-agent-inputs/selfhost.hiaasm" \
+            --expected-source-sha256 2dd847d9df46392e4ef4b99c781b45f56c9841ae61127a260be6e8523f042845 \
+            --output "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation.log"
       - name: Verify public scalar proof scope and receipt rejection
         shell: bash
         run: |
@@ -132,6 +180,8 @@ jobs:
         if: always()
         with:
           name: hia-exact-source-${{ github.sha }}
-          path: ${{ runner.temp }}/hia-sixgap/
+          path: |
+            ${{ runner.temp }}/hia-sixgap/
+            !${{ runner.temp }}/hia-sixgap/agent-buffer-continuation/state/state.sqlite3*
           if-no-files-found: error
           retention-days: 30

@@ -266,6 +266,16 @@ def _native_rank_impl(bridge, request, *, timeout_s, observation=None):
         _reject("native evaluator failed or exceeded output bounds")
     if sha256(_read_file(image.path, 128 * 1024 * 1024)).hexdigest() != identity["binary_sha256"]:
         _reject("native evaluator changed during invocation")
+    response = _validate_native_rank_response(request, data, stdout, identity)
+    return response, identity
+
+
+def _validate_native_rank_response(request, data, stdout, identity):
+    """Shared wire checks after an independently owned native invocation.
+
+    This helper does not admit executable bytes or launch a process. One-shot
+    and explicitly prepared transports must establish those facts themselves.
+    """
     response = _json(stdout)
     expected = {"schema": "hepta.hia.ndu-response.v1", "upstream_commit": identity["upstream_commit"],
                 "entry_point": "codex_hepta_ndu::evaluate_candidates_with_policy",
@@ -281,7 +291,7 @@ def _native_rank_impl(bridge, request, *, timeout_s, observation=None):
     rows = {row["id"]: row for row in request["candidates"]}
     if recommendation is not None and (recommendation not in rows or rows[recommendation]["hard_violation"]):
         _reject("native evaluator recommended an unavailable or unproved candidate")
-    return response, identity
+    return response
 
 
 def _same_other_functions(before, after, function):

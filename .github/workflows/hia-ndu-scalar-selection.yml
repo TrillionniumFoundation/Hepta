@@ -136,7 +136,8 @@ jobs:
                   'tests.test_hia_macro_multistep',
                   'tests.test_hia_ndu_optimizer',
                   'tests.test_hia_ndu_optimizer_budget',
-                  'tests.test_hia_ndu_optimizer_transport']
+                  'tests.test_hia_ndu_optimizer_transport',
+                  'tests.test_hia_ndu_prepared_ranker']
               suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
               class Result(unittest.TextTestResult):
                   def __init__(self,*args,**kwargs):
@@ -170,6 +171,28 @@ jobs:
               report['validation_wall_ns'] = time.perf_counter_ns() - started
               (evidence / 'integration-result.json').write_text(json.dumps(report,indent=2) + '\n')
           PY
+      - name: Preregister and replay actual prepared transport cost against both controls
+        timeout-minutes: 4
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B tools/qualify_hia_ndu_prepared_ranker.py register \
+            --binary "$HEPTA_NDU_BRIDGE" \
+            --build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \
+            --output "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-registration.log"
+          hia_prepared_registration=$(python -B -c 'from hashlib import sha256; import os; from pathlib import Path; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-ndu-scalar/prepared-mechanism/registration.json").read_bytes()).hexdigest())')
+          printf '%s\n' "$hia_prepared_registration" > "$RUNNER_TEMP/hia-ndu-scalar/prepared-registration.sha256"
+          python -B tools/qualify_hia_ndu_prepared_ranker.py run \
+            --directory "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \
+            --registration-sha256 "$hia_prepared_registration" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism.log"
+          python -B tools/replay_hia_ndu_prepared_ranker.py \
+            --directory "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \
+            --registration-sha256 "$hia_prepared_registration" \
+            --output "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.log"
       - name: Require the identical clean source after success or failure
         if: always()
         shell: bash

@@ -44,6 +44,7 @@ BOOTSTRAP_FILES = (
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",
     "tools/hia_selfhost_cases.py", "tools/hia_selfhost_contract.py",
     "tools/hia_selfhost_resources.py",
+    "tools/hia_selfhost_bulk.py",
     "tools/hia_selfhost_select.py",
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py", "tools/hia_selfhost_capacity.py",
@@ -59,6 +60,11 @@ CANDIDATE_FILES = (
     "tests/test_hia_agent_native_proof_contract.py", "tests/test_hia_release_diagnostics.py",
     "tests/test_hia_agent_native_machine_validation.py",
     ".github/workflows/hia-sixgap-source.yml",
+    ".github/workflows/hia-ndu-scalar-selection.yml",
+    "tools/qualify_hia_agent_buffer_lifecycle.py", "tests/test_hia_agent_buffer_lifecycle.py",
+    "review-evidence/hia-agent-buffer-20261108-5e6c/raw-continuation.zip",
+    "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",
+    "tests/test_hia_ndu_prepared_ranker.py", "docs/HIA_NDU_PREPARED_RANKING.md",
     "tools/hia_original_reconcile.py", "tests/test_hia_original_reconcile.py",
     "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py",
     "tests/test_hia_safe_core.py", "docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md",
@@ -104,7 +110,8 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
                       "experiments/hia_agent_first_use_20261107",
                       "experiments/hia_repository_select_trial_20261108",
                       "experiments/hia_release_20261107",
-                      "experiments/hia_product_closure_20261107")
+                      "experiments/hia_product_closure_20261107",
+                      "review-evidence/hia-agent-buffer-20261108-5e6c")
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),
     "runtime_sparse_directories": None,
     "omitted_scope": "Historical campaigns and artifact/report archives outside this release's qualified source closure"}

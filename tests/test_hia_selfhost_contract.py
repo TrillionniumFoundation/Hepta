@@ -15,6 +15,14 @@ from tools.replay_hia_selfhost_cold import cold_replay
 
 
 class SelfhostContractTests(unittest.TestCase):
+    def test_release_freeze_inventory_covers_the_complete_selfhost_closure(self):
+        from tools.hia_release import BOOTSTRAP_FILES
+        declared = validate_contract()["source_identity"]["files"]
+        # The public freeze reads its own explicit inventory. A newly declared
+        # selfhost helper must be present there before a release can be locked.
+        self.assertEqual(set(BOOTSTRAP_FILES) - {CONTRACT_PATH},
+                         {name for name in declared if not name.startswith("hepta/")})
+
     def test_contract_binds_support_and_complete_seed_source_closure(self):
         contract = validate_contract()
         self.assertEqual(contract["profile"], PROFILE)

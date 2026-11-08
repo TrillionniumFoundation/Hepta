@@ -22,6 +22,7 @@ DISCOVERY_FILES = (
     "HIA_AGENT_MACHINE_PLANS.md", "HIA_AGENT_MACRO_POLICY.md", "HIA_DIRECT_BYTE_BOOTSTRAP.md",
     "HIA_SELF_HOSTING_CORE.md", "HIA_SELFHOST_CORE_SUPPORT.json", "HIA_AGENT_PROOF_RESULTS.md",
     "HIA_SAFE_CORE_MACHINE_VALIDATION.md",
+    "HIA_AGENT_BUFFER_LIFECYCLE.md",
 )
 
 
@@ -202,7 +203,7 @@ SCALAR = {"anyOf": [{"type": "integer"}, {"type": "boolean"}, {"type": "null"}]}
 EXPECTED = {"oneOf": [obj({"status": {"const": "returned"},
     "values": {"type": "array", "items": SCALAR, "maxItems": 1}}),
     obj({"status": {"const": "trapped"}})]}
-WORKLOAD_SCHEMA = obj({
+SCALAR_WORKLOAD_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.workload.v1"},
     "cases": {"type": "array", "minItems": 1, "maxItems": 512, "items": obj({
         "function": {"type": "string", "minLength": 1, "maxLength": 128},
@@ -211,6 +212,37 @@ WORKLOAD_SCHEMA = obj({
     "warmup_iterations": {"type": "integer", "minimum": 0, "maximum": 100},
     "repetitions": {"type": "integer", "minimum": 1, "maximum": 10000},
 })
+BUFFER_SNAPSHOT = {"oneOf": [
+    obj({"bytes_hex": {"type": "string", "pattern": "^(?:[0-9a-f]{2})*$", "maxLength": 2 * 1024**2}}),
+    obj({"byte_length": {"type": "integer", "minimum": 0, "maximum": 1024**2},
+         "fill_byte": {"type": "integer", "minimum": 0, "maximum": 255}}),
+]}
+BUFFER_OBSERVATION = obj({
+    "argument": {"type": "integer", "minimum": 0, "maximum": 127},
+    "kind": {"enum": ["readbuf", "mutbuf"]},
+    "byte_length": {"type": "integer", "minimum": 0, "maximum": 1024**2},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+})
+BUFFER_EXPECTED = {"oneOf": [
+    obj({"status": {"const": "returned"},
+         "values": {"type": "array", "items": SCALAR, "maxItems": 1},
+         "buffers": {"type": "array", "items": BUFFER_OBSERVATION, "maxItems": 8}}, ["status", "values"]),
+    obj({"status": {"const": "trapped"},
+         "buffers": {"type": "array", "items": BUFFER_OBSERVATION, "maxItems": 8}}, ["status"]),
+]}
+BUFFER_WORKLOAD_SCHEMA = obj({
+    "schema": {"const": "hepta.hia.agent.workload.v2"},
+    "foreign_buffer_exports": {"type": "array", "minItems": 1, "maxItems": 128, "items": obj({
+        "function": {"type": "string", "minLength": 1, "maxLength": 128},
+        "max_buffer_bytes": {"type": "integer", "minimum": 1, "maximum": 1024**2}})},
+    "cases": {"type": "array", "minItems": 1, "maxItems": 512, "items": obj({
+        "function": {"type": "string", "minLength": 1, "maxLength": 128},
+        "arguments": {"type": "array", "items": {"anyOf": [SCALAR, BUFFER_SNAPSHOT]}, "maxItems": 128},
+        "expected": BUFFER_EXPECTED}, ["function", "arguments"])},
+    "warmup_iterations": {"type": "integer", "minimum": 0, "maximum": 100},
+    "repetitions": {"type": "integer", "minimum": 1, "maximum": 10000},
+})
+WORKLOAD_SCHEMA = {"oneOf": [SCALAR_WORKLOAD_SCHEMA, BUFFER_WORKLOAD_SCHEMA]}
 OBJECTIVE_SCHEMA = obj({
     "schema": {"const": "hepta.hia.agent.objective.v1"},
     "metric": {"enum": ["latency_ns", "artifact_bytes"]},
