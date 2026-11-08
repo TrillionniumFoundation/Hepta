@@ -8,6 +8,7 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_agent_byte_abi import byte_value, byte_observations, decode_arguments, decode_bytes
+from hepta.hia_agent_service import HIAAgentService
 from tests.test_hia_agent_native_tools import AgentToolCase
 from tests.test_hia_native_byte_abi import byte_program
 from tests.test_hia_program import b, c, f, i, ret
@@ -89,6 +90,49 @@ class AgentNativeBytesTests(AgentToolCase):
             evaluation_receipt=evaluated["evaluation_receipt"], verification_receipts=receipts))
         self.assertEqual(denied["error"]["code"], "E_HIA_EVALUATION_REQUIRED")
         self.assertIsNone(self.service.inspect_slot("wrong-bytes")["active_artifact"])
+
+    def test_adopted_byte_image_and_generation_leases_survive_service_restart(self):
+        _base, _revised, baseline, build, receipts = self.pair()
+        evaluation = self.session.evaluate(baseline, build, receipts=receipts)
+        adopted = self.adopt(build, evaluation, receipts)
+        original_request = deepcopy(self.client.records[-1]["arguments"])
+        lease = self.service.acquire_slot("copied-bytes")
+        arguments = [byte_value(b"restart\x00\xff"), byte_value(b"." * 12)]
+        before = self.service.invoke_lease(lease, "copy_bytes", arguments)
+        identity = deepcopy(self.service.identities)
+
+        self.service.close()
+        self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))
+        self.client._call = self.service.call
+        self.assertEqual(self.service.identities, identity)
+        self.assertEqual(self.service.inspect_slot("copied-bytes")["current"], adopted["current"])
+        self.assertEqual(self.service.invoke_lease(lease, "copy_bytes", arguments), before)
+        replayed = self.client.result("hia_adopt", original_request)
+        self.assertEqual(replayed, adopted)
+        self.assertEqual(self.service.inspect_slot("copied-bytes")["current"], adopted["current"])
+        stale = {**original_request, "request_key": self.session.key("stale-after-restart")}
+        denied = self.reject("hia_adopt", stale)
+        self.assertEqual(denied["error"]["code"], "E_HIA_GENERATION_STALE")
+
+        rolled_back = self.client.result("hia_rollback", self.session.arguments(
+            target_slot="copied-bytes", expected_current=adopted["current"],
+            retained_generation="0", reason="restore baseline after service restart"))
+        self.assertEqual(rolled_back["current"], {"generation": "0", "epoch": "2"})
+        self.assertEqual(self.service.invoke_lease(lease, "copy_bytes", arguments), before)
+        current_lease = self.service.acquire_slot("copied-bytes")
+        current = self.service.invoke_lease(current_lease, "copy_bytes", arguments)
+        self.assertEqual(current["generation"], "0")
+        self.assertEqual(current["artifact"], baseline["native_artifact"])
+        self.assertEqual(current["arguments"], before["arguments"])
+        self.service.release_slot(lease)
+        self.service.release_slot(current_lease)
+        self.service.close()
+        self.service = HIAAgentService(self.state_root, artifact_roots=(self.files_root,))
+        self.client._call = self.service.call
+        for released in (lease, current_lease):
+            with self.subTest(generation=released["generation"]), self.assertRaises(ValueError) as error:
+                self.service.invoke_lease(released, "copy_bytes", arguments)
+            self.assertEqual(error.exception.code, "E_HIA_LEASE")
 
     def test_every_warmup_and_repetition_starts_from_original_mutable_bytes(self):
         params = [("bytes", "mutbuf")]
