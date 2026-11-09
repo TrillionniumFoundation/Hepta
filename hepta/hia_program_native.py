@@ -842,9 +842,12 @@ def compile_program_machine(image, *, program, output, kind="shared", linker="cc
         artifact = obj
         if kind == "shared":
             artifact = Path(directory) / "program.so"
-            flags = (["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none"]
+            # The reviewed Safe Core consumer checks both loader lookup tables.
+            # GNU ld's default hash style varies across distributions; freeze
+            # this part of the produced ELF contract and retain it in receipts.
+            flags = (["-m", "elf_x86_64", "-shared", "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", "--hash-style=both"]
                      if linker_mode == "gnu-ld" else
-                     ["-shared", "-Wl,-z,defs", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--build-id=none"])
+                     ["-shared", "-Wl,-z,defs", "-Wl,-z,noexecstack", "-Wl,-z,relro", "-Wl,-z,now", "-Wl,--build-id=none", "-Wl,--hash-style=both"])
             libraries = ["-lc"] if linker_mode == "gnu-ld" else []
             result = _run_logged([str(tool), *flags, str(obj), *libraries, "-o", str(artifact)],
                                  command_log=command_log, parent_death_guard=parent_death_guard,

@@ -36,6 +36,7 @@ def _identity():
             **{name: sha256((ROOT / name).read_bytes()).hexdigest() for name in (
                 "tools/build_hia_safe_core.py", "tools/qualify_hia_safe_core.py", "tests/test_hia_safe_core.py",
                 "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
+                "tests/test_hia_safe_core_loader_contract.py",
                 "examples/hia_safe_core/scalar_add.hia.json", "examples/hia_safe_core/guarded_update.hia.json",
                 "examples/hia_safe_core/read_byte.hia.json")}}
 
@@ -110,7 +111,8 @@ def qualify(output):
                          "default_release_or_production_admission_changed": False}}
     try:
         suite = unittest.defaultTestLoader.loadTestsFromNames(
-            ["tests.test_hia_safe_core", "tests.test_hia_safe_core_artifact"])
+            ["tests.test_hia_safe_core", "tests.test_hia_safe_core_artifact",
+             "tests.test_hia_safe_core_loader_contract"])
         inventory = _ids(suite)
         log = io.StringIO()
         result = unittest.TextTestRunner(stream=log, verbosity=2, resultclass=_Result).run(suite)

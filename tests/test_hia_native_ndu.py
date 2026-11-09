@@ -8,25 +8,17 @@ from tools.qualify_hia_native_ndu import (
     batch_checksum, checksum, digest, evaluate, execute_policies, finalize_acceptance, first_ready, fixed_ready,
     native_first_action, observed_model, percentile, protocol,
 )
+from tests.test_hia_native_cohort_gate import cohort_fixture
 
 
 class NativeEconomicsContractTests(unittest.TestCase):
     def test_zero_native_calls_cannot_be_reported_as_incremental_ndu_benefit(self):
-        spec = protocol()
-        report = {"training_summary": {name: {str(n): {"median": 1, "p95": 1, "p99": 1}
-                   for n in spec["sizes"]} for name in spec["backends"]},
-                  "policy_runs": [{"episode": index, "arm": arm,
-                                   "service_total_ns": 1 if arm == "native_ndu" else 2,
-                                   "native_invocations": 0}
-                                  for index in range(len(spec["episodes"])) for arm in spec["policy_arms"]]}
+        report, spec = cohort_fixture(native_calls=0)
         zero = evaluate(report, spec)
         self.assertTrue(zero["service_scope_gated_policy_benefit_established"])
         self.assertFalse(zero["service_scope_net_ndu_benefit_established"])
         self.assertFalse(zero["whole_lifecycle_net_ndu_benefit_established"])
-        for row in report["policy_runs"]:
-            if row["arm"] == "native_ndu":
-                row["native_invocations"] = 1
-                row["service_total_ns"] = 3
+        report, spec = cohort_fixture(native_calls=1, ndu_cost=300)
         invoked_loss = evaluate(report, spec)
         self.assertEqual(invoked_loss["native_policy_invocations"], len(spec["episodes"]))
         self.assertFalse(invoked_loss["service_scope_net_ndu_benefit_established"])
@@ -196,8 +188,10 @@ class NativeEconomicsContractTests(unittest.TestCase):
             finalize_acceptance(report)
             self.assertFalse(report["acceptance_observation_valid"])
             self.assertNotIn("acceptance", report)
-        valid = {"status": "completed", "source_unchanged": True, "runtime_inputs_unchanged": True,
-                 "acceptance": {"performance_gate_passed": False}}
+        valid, spec = cohort_fixture(native_calls=0)
+        valid["training_summary"]["hia"][str(spec["sizes"][0])]["p99"] = 200
+        valid.update(status="completed", source_unchanged=True, runtime_inputs_unchanged=True,
+                     protocol=spec, acceptance=evaluate(valid, spec))
         finalize_acceptance(valid)
         self.assertTrue(valid["acceptance_observation_valid"])
         self.assertFalse(valid["acceptance"]["performance_gate_passed"])

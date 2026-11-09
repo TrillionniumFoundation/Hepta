@@ -5,23 +5,16 @@ evidence. Their only purpose is to prevent a false performance qualification.
 """
 from __future__ import annotations
 
-from copy import deepcopy
 import unittest
 
-from tools.qualify_hia_native_ndu import evaluate, protocol
+from tools.qualify_hia_native_ndu import evaluate
+from tests.test_hia_native_cohort_gate import cohort_fixture
 
 
 class NativePerformanceAcceptanceTests(unittest.TestCase):
     @staticmethod
     def fixture():
-        spec = protocol()
-        stats = {name: {str(n): {"median": 100, "p95": 100, "p99": 100}
-                        for n in spec["sizes"]} for name in spec["backends"]}
-        episodes = [{"episode": index, "arm": arm,
-                     "service_total_ns": 150 if arm == "native_ndu" else 100}
-                    for index in range(len(spec["episodes"]))
-                    for arm in spec["policy_arms"]]
-        return {"training_summary": stats, "policy_runs": episodes}, deepcopy(spec)
+        return cohort_fixture(native_calls=0, ndu_cost=150, control_cost=100)
 
     def test_single_p99_spike_rejects_the_native_performance_gate(self):
         report, spec = self.fixture()
