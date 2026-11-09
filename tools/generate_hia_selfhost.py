@@ -16,6 +16,7 @@ from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELO
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 from tools.hia_selfhost_effects import source as effect_source
+from tools.hia_selfhost_multi_results import SOURCE as MULTI_RESULT_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -131,13 +132,10 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     adjacent(w)
     expect(s, w, 62)
     expect(s, w, 40)
-    rt = read_type(s, w)
-    if rt > 5 and rt != 10:
-        fail(w, 3)
+    rt = read_result_types(s, w)
     if get(w, 48) == 0:
         put(w, fb + 24, count)
         put(w, fb + 32, rt)
-    expect(s, w, 41)
     separated(w)
     expect(s, w, @effects@)
     adjacent(w)
@@ -156,7 +154,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 41)
     expect(s, w, 10)
     if f == 0:
-        if count != 3 or rt != 3:
+        if count != 3 or rt != 3 or get(w, fb + 184) != 1:
             fail(w, 5)
         if get(w, fb + 48) != 6 or get(w, fb + 56) != 7 or get(w, fb + 64) != 7:
             fail(w, 5)
@@ -247,24 +245,9 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         instruction(s, o, w)
     if get(w, 8) == @ret@:
         loan_finish(w)
-        account_nodes(w, 4)
         next_token(s, w)
         adjacent(w)
-        expect(s, w, 40)
-        v = expect(s, w, 256)
-        t = variable(w, v)
-        if t != get(w, FBASE + get(w, 72) * FSTRIDE + 32):
-            fail(w, 13)
-        expect(s, w, 41)
-        if get(w, 256) != 0:
-            if v + 1 != get(w, 256):
-                fail(w, 59)
-        else:
-            load_var(o, w, 0, v, 0)
-            mem(o, w, 139, 2, 5, 18446744073709551608)
-            mem(o, w, 137, 0, 2, 0)
-            emit(o, w, 201)
-            emit(o, w, 195)
+        return_results(s, o, w)
     else:
         if get(w, 8) == @jump@:
             next_token(s, w)
@@ -369,7 +352,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     op = get(w, 8)
     require_effects(w, instruction_effects(op))
     x = get(w, 288)
-    if x > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
+    if x > 1 and op != @call@ and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
         return fail(w, 66)
     if (t >= 6 and t <= 9) and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
         fail(w, 21)
@@ -480,8 +463,12 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                     mem(o, w, 141, 6, 5, 0 - frame(w) + 512)
                     emit(o, w, 232)
                     relocation(o, w, 1, x)
-                    mem(o, w, 139, 0, 5, 0 - frame(w) + 512)
             owner_call_consume(w, n)
+            call_results(o, w, x)
+            expect(s, w, 10)
+            if get(w, 256) != 0 and get(w, 8) != @ret@:
+                fail(w, 59)
+            return 0
         else:
             if op == @int.cast@:
                 account_nodes(w, 1)
@@ -1674,6 +1661,7 @@ def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
     return 0
 '''
 SOURCE += effect_source(W)
+SOURCE += MULTI_RESULT_SOURCE
 
 
 def source_program():
@@ -1762,12 +1750,16 @@ class Builder:
                 original=dict(self.env); key='shortcircuit'+str(self.serial)
                 original[key]=val
                 keys=list(original)
-                yes,yenv=self.fresh(original); no,nenv=self.fresh(original); done,denv=self.fresh(original)
-                self.block['term']={'op':'branch','cond':val[0],'then':{'target':yes['id'],'args':[x[0] for x in original.values()]},'else':{'target':no['id'],'args':[x[0] for x in original.values()]}}
-                calc,cen=(yes,yenv) if isinstance(e.op,ast.And) else (no,nenv)
-                other,oen=(no,nenv) if isinstance(e.op,ast.And) else (yes,yenv)
+                calc,cen=self.fresh(original); done,denv=self.fresh(original)
+                # The short-circuit arm already has the exact result and
+                # environment expected by done. Route that edge directly to
+                # the join; an empty forwarding block adds no semantics.
+                evaluate={'target':calc['id'],'args':[x[0] for x in original.values()]}
+                retain={'target':done['id'],'args':[x[0] for x in original.values()]}
+                self.block['term']={'op':'branch','cond':val[0],
+                    'then':evaluate if isinstance(e.op,ast.And) else retain,
+                    'else':retain if isinstance(e.op,ast.And) else evaluate}
                 self.block,self.env=calc,cen; self.env[key]=self.expr(tail); self.jump(done,self.env,keys)
-                self.block,self.env=other,oen; self.jump(done,self.env,keys)
                 self.block,self.env=done,denv; val=self.env.pop(key)
             return val
         if isinstance(e,ast.Call):

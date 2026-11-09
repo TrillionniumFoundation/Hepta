@@ -24,6 +24,33 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_authoring_short_circuit_cfg_preserves_trap_order_and_join_values(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder
+        from hepta.hia_program import verify_program, execute_program
+
+        expressions = (
+            ("x < 64 and (1 << x) == 2", lambda x: x < 64 and (1 << x) == 2, 3),
+            ("x >= 64 or (1 << x) == 2", lambda x: x >= 64 or (1 << x) == 2, 3),
+            ("x < 64 and (1 << x) != 0 and (255 >> x) == 0",
+             lambda x: x < 64 and (1 << x) != 0 and (255 >> x) == 0, 5),
+            ("x >= 64 or (1 << x) == 2 or (255 >> x) == 0",
+             lambda x: x >= 64 or (1 << x) == 2 or (255 >> x) == 0, 5),
+        )
+        for expression, oracle, expected_blocks in expressions:
+            node = ast.parse("def example(x:u64) -> bool:\n    return " + expression).body[0]
+            builder = Builder(node, {"example": "f0"}, {})
+            builder.statements(node.body)
+            program = verify_program({"schema": "hepta.hia.program.v8", "module": "shortcircuit",
+                "functions": [{"name": "f0", "params": [builder.param(x) for x in builder.params],
+                    "returns": ["bool"], "effects": ["trap"], "entry": "b0", "blocks": builder.blocks}]})
+            self.assertEqual(len(builder.blocks), expected_blocks)
+            for value in [*range(71), (1 << 64) - 1]:
+                with self.subTest(expression=expression, value=value):
+                    observed = execute_program(program, "f0", [value])
+                    self.assertEqual(observed["status"], "returned")
+                    self.assertEqual(observed["result"], oracle(value))
+
     def test_qualification_phase_merge_requires_complete_disjoint_boolean_results(self):
         from tools.qualify_hia_selfhost import QUALIFICATION_FAMILIES, _merge_qualification_phases
         rows = [({"family": family, "compiler_label": label, "status": "PASS",

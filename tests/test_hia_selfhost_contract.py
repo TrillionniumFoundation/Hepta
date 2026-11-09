@@ -54,7 +54,9 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(owned["items"][:4], ["buffer.new", "buffer.try_new", "owner.move", "owner.drop"])
         self.assertFalse(owned["allocation"]["workspace_is_heap"])
         self.assertEqual(owned["allocation"]["imports"], ["calloc", "free"])
-        self.assertIn("general multiple-result calls or returns", owned["excluded"])
+        self.assertIn("resource-bearing multiple-result calls or returns", owned["excluded"])
+        self.assertEqual(contract["limits"]["function_results"], 3)
+        self.assertEqual(contract["abi"]["core_return"], "u32")
         for path in ("tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
                      "tools/qualify_hia_selfhost_owned_elf.py"):
             self.assertIn(path, files)

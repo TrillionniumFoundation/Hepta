@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v16`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v17`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -198,7 +198,7 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Each function returns exactly one scalar; returned loans and owners are excluded.
+Internal functions return one to three scalars; returned loans and owners are excluded.
 The flat profile has no owned types or allocator imports. The explicit ELF
 profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
@@ -925,3 +925,53 @@ the v15 checked-cast source. The prior candidate's results remain observations
 of its own older source. Current-source qualification and source-only cold replay
 must pass separately. Signed scalars, general result shapes, returned resources,
 full identifiers/modules and general machine/compiler correctness remain open.
+
+## v17 bounded scalar result tuples and CFG compaction
+
+The authoring aid's short-circuit lowering removes one empty forwarding block
+per effectful Boolean tail. The short-circuit edge carries its existing value
+directly to the join; the evaluated arm still executes in a distinct block.
+This is a semantics-preserving CFG change, including guarded reads and checked
+shifts. On the v16 compiler it reduces blocks from 1,530 to 1,454 while retaining
+6,060 instructions, leaving space for the separately versioned extension below.
+
+The v17 native parser, verifier and encoder admit internal function/call/return
+tuples containing one, two or three of `u8`, `u16`, `u32`, `u64`, `usize`, `bool`.
+Every call result and returned value is checked in order against the complete
+signature. Direct self-tail calls must immediately return every exact result in
+the same order. Swapping/replacing those names or inserting an operation remains
+outside the tail-call profile. Ordinary forward/backward calls and CFG edges
+retain their existing effect, ownership and graph checks.
+
+The public `f0(readbuf,mutbuf,mutbuf)->u32` entry is unchanged. Internal result
+words occupy the first 24 bytes of the existing 32-byte private result area,
+at 8-byte strides. The function record stores the count at byte 184 and up to
+three types at bytes 192/200/208, inside the existing 320-byte record. No source,
+output, workspace, function, block, SSA, instruction, native-child or cold-replay
+limit is raised. The authored compiler has 94 functions, 1,526 blocks and 6,275
+instructions; its largest SSA index is 1,937.
+
+The new `multi` qualification family retains 43 input cases from 13 programs:
+all six scalar types, mixed triples, forward/backward calls, branch returns,
+loop-carried values, self-tail calls, borrowed arguments and consumed owned
+arguments. Full-width little-endian result bytes are compared with an independent
+Core VM and explicit tuple oracles. Original B3 and modified M3 compile flat and
+ELF outputs; linked images are actually invoked. The owned-argument witness uses
+the existing explicit allocator ELF profile. Seventeen refusals distinguish
+invalid Core from valid Core outside the bounded profile. Four-result functions,
+resource-bearing returns and changes to the public entry remain refused.
+
+The 255-iteration tail case calls the scalar helper directly in the reference VM
+to stay within its unchanged 256-frame budget; the other references add an
+owned allocation wrapper around the unchanged native body. The native self-tail
+path uses the same frame at every iteration. Neither observation proves general
+termination or a native stack bound for arbitrary programs.
+
+This is a language extension: v16 rejects the new tuple programs. It does not
+claim unconditional all-input equivalence between the v16 and v17 compilers.
+Finite regression on the previously admitted subset and explicit new-program
+acceptance are reported separately. Signed types, unit/empty results, returned
+owners/loans, arbitrary identifiers, module graphs and general linking remain
+open; the scalar supplied-ELF proof service is not widened by this change.
+Exact-source execution reports, rather than this support declaration, determine
+which native, cold-replay and language gates actually passed.
