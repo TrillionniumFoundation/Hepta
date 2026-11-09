@@ -20,6 +20,23 @@ from tools import core_seven_part04_capture as collector
 from tools import check_core_syntax_staged as base
 
 
+class _ElapsedTimeoutClock:
+    """Anchor the accelerated interval to the collector's first clock read."""
+    def __init__(self,*,monotonic=time.monotonic):
+        self.real_monotonic=monotonic
+        self.origin=None
+
+    def monotonic(self):
+        now=self.real_monotonic()
+        if self.origin is None:self.origin=now
+        elapsed=now-self.origin
+        # Delay before the collector samples its start is outside the process
+        # interval. Cleanup retains its separate, unaccelerated real-time rate.
+        process=min(elapsed*100,collector.PROCESS_SECONDS)
+        cleanup=max(0,elapsed-collector.PROCESS_SECONDS/100)
+        return self.origin+process+cleanup
+
+
 class _MarkerTimeoutClock:
     """Fixture-only deadline after persisted markers, with a finite ready guard."""
     def __init__(self,markers,*,monotonic=time.monotonic,ready_seconds=5):
@@ -139,16 +156,8 @@ class Part04RunnerTests(unittest.TestCase):
                         capture_stack.enter_context(patch.object(collector._Sink,'append',append))
                         capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock.monotonic)))
                     elif behavior=='target_timeout':
-                        origin=time.monotonic()
-                        def clock():
-                            elapsed=time.monotonic()-origin
-                            # This mode can expire before the child emits any
-                            # marker. Only the process interval is accelerated;
-                            # the separate cleanup window remains in real time.
-                            process=min(elapsed*100,collector.PROCESS_SECONDS)
-                            cleanup=max(0,elapsed-collector.PROCESS_SECONDS/100)
-                            return origin+process+cleanup
-                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock)))
+                        clock=_ElapsedTimeoutClock()
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock.monotonic)))
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
                 if behavior=='malformed_terminal':
                     event_path=root/runner.CAPTURE_FILES[2]

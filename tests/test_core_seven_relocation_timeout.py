@@ -17,10 +17,17 @@ class RelocationTimeoutTests(unittest.TestCase):
         harness.Part04RunnerTests.setUpClass()
 
     def exercise(self, *, cleanup_pause=0, start_pause=0, clean=True,
-                 timeout_mode='checkpoint', timeout_ready_seconds=5):
+                 timeout_mode='checkpoint', timeout_ready_seconds=5,
+                 collector_entry_pause=0):
         case = harness.Part04RunnerTests('test_complete_failure_replay_and_spawn_semantics')
         popen, read, killpg = subprocess.Popen, os.read, os.killpg
+        capture_result = harness.collector.capture_result
         state = dict(killed=False, paused=False)
+        def capture(*args, **kwargs):
+            # Delay after the fixture clock exists but before the collector's
+            # first clock read, as an ordinary scheduling pause can do.
+            time.sleep(collector_entry_pause)
+            return capture_result(*args, **kwargs)
         def launch(argv, **kwargs):
             self.assertEqual(argv[:2],[sys.executable,'-c'])
             if start_pause:
@@ -59,6 +66,8 @@ class RelocationTimeoutTests(unittest.TestCase):
             stack.enter_context(patch.object(harness.collector.subprocess,'Popen',side_effect=launch))
             stack.enter_context(patch.object(harness.collector.os,'killpg',side_effect=kill))
             stack.enter_context(patch.object(harness.collector.os,'read',side_effect=receive))
+            if collector_entry_pause:
+                stack.enter_context(patch.object(harness.collector,'capture_result',side_effect=capture))
             case.exercise('target_timeout',inspect,timeout_mode=timeout_mode,
                           timeout_ready_seconds=timeout_ready_seconds)
 
@@ -69,10 +78,29 @@ class RelocationTimeoutTests(unittest.TestCase):
         self.exercise(cleanup_pause=2.1,clean=False)
 
     def test_preoutput_timeout_replays_empty_prefix_without_inventing_markers(self):
-        for mode, ready_seconds in (('elapsed', 5), ('checkpoint', .1)):
-            with self.subTest(timeout_mode=mode, timeout_ready_seconds=ready_seconds):
+        # Deterministic clock traces cover pre-observation scheduling delays
+        # without relying on host load or sleeping near a deadline boundary.
+        for entry_delay in (0, .005, .05):
+            with self.subTest(clock_entry_delay=entry_delay):
+                now = [100.0]
+                clock = harness._ElapsedTimeoutClock(monotonic=lambda: now[0])
+                now[0] += entry_delay
+                started = clock.monotonic()
+                self.assertEqual(started, now[0])
+                now[0] += .599
+                self.assertLess(clock.monotonic() - started, 60)
+                now[0] += .002
+                self.assertAlmostEqual(clock.monotonic() - started, 60.001)
+                now[0] += 2
+                self.assertAlmostEqual(clock.monotonic() - started, 62.001)
+        for mode, ready_seconds, entry_pause in (('elapsed', 5, 0),
+                                                 ('elapsed', 5, .005),
+                                                 ('checkpoint', .1, 0)):
+            with self.subTest(timeout_mode=mode, timeout_ready_seconds=ready_seconds,
+                              collector_entry_pause=entry_pause):
                 self.exercise(start_pause=.7,timeout_mode=mode,
-                              timeout_ready_seconds=ready_seconds)
+                              timeout_ready_seconds=ready_seconds,
+                              collector_entry_pause=entry_pause)
 
 
 if __name__ == '__main__':
