@@ -71,7 +71,7 @@ differ; their subjects, properties, assumptions and checker identities agree.
 
 ## Independent v14 artifact review
 
-The [read-only audit](../review-evidence/hia-635c-independent-20261109-e5ee/README.md)
+The [parent read-only audit](../review-evidence/hia-635c-independent-20261109-e5ee/README.md)
 qualifies identity and scope consistency only for original `635c57bd` artifact
 `13646795635`, from [source run 42552813567](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552813567).
 The 32,398,297-byte ZIP matches its official SHA256
@@ -90,6 +90,25 @@ image or dynamic project test. These scoped reports assume initialized, disjoint
 normalized input slots and the stated compiler refinement premise. The fragment
 lemma does not prove its preconditions or reachability in arbitrary surroundings.
 
+The combined `6a8c297b` source now has a separate
+[independent exact-source audit](../review-evidence/hia-6a-source-independent-20261109-e5ee/README.md),
+using its own successful [source run 42558245653](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42558245653)
+and original artifact `13649338156`. The 32,401,939-byte ZIP matches official
+SHA256 `0de6b5217abcb1568b06f4e9f5c95eb30d9c487678d51007c57f9ddc6e3c7169`.
+Its original 46,609-byte release lock has SHA256
+`57c6d240add46c3ee27884d24193bb607ec7983674e58b135072ac281d60345d`.
+
+This review independently binds 365 Hepta release-file hashes, 13 runtime hashes,
+252 cold exports and the separate qualifier source inventories. The overlapping
+groups cover 679 distinct Hepta paths and are not added as unique files. It
+checks 29 successful proof/recheck reports and 145 retained query/result records,
+and connects actual frozen C1 output slices to copied projection object and final
+ELF text. These counts describe original reports and internal byte/hash/result
+consistency, not 145 different theorems or a new local solver run. Cold, language,
+fragment and original strict Agent boundaries remain as above. The included
+standard-library audit script ran with exit code 0 without importing project code
+or executing a compiler, solver or native image.
+
 ## Six-track disposition
 
 | Track | Established evidence | Remaining blocker |
@@ -98,7 +117,7 @@ lemma does not prove its preconditions or reachability in arbitrary surroundings
 | P0 proof semantics | Reviewed proofs/rechecks retain subject, property, profile, assumptions, checker identity and unproved obligations. | Scoped records do not establish global safety or discharge the broader P1 correctness obligations. |
 | P1 complete Core selfhosting | Qualified v14 has six bounded scalar types; ELF declares 50 operation names and flat output 40. | Signed scalars i8/i16/i32/i64/isize and unit remain unsupported; Core declares twelve scalar types in total. General returned owners/loans, multiple-result calls, module graphs, arbitrary identifiers, full effect/resource combinations and general object linking also remain outside the implementation. Operation names are not complete language coverage. |
 | P1 machine correctness | Safe Core artifact validation and actual copied-output-fragment checks bind their exact subjects and assumptions. | Whole compiler refinement, general ABI/resources/FFI/ISA/loader behavior and arbitrary-context composition remain unproved. |
-| P1 unfamiliar Agent task | Real frozen patch, independent consumers and original strict refusals are retained. | Behavior equivalence remains unknown and lowering unsupported; evaluation rejects the missing required claim, with no adoption. C0 rejection/C1 acceptance also makes unconditional all-input equality unsuitable for the extension. Full original provider interactions/tokens/billing remain unavailable. |
+| P1 unfamiliar Agent task | Real frozen patch, independent consumers and original strict refusals are retained. A separate finite buffer continuation passes a nonproduction lifecycle with outcome unchanged. | For the original task, behavior equivalence remains unknown and lowering unsupported; evaluation rejects the missing required claim, with no adoption. The separate lifecycle does not qualify that task. C0 rejection/C1 acceptance also makes unconditional all-input equality unsuitable for the extension. Full original provider interactions/tokens/billing remain unavailable. |
 | P2 stable NDU/economic value | The combined 6a source's own original CI reports 172 integration tests and three Rust controls; both registered 72-cell campaigns independently replay byte for byte. | Ordinary is faster in all 24 pairs in each new 6a campaign. Persistent beats prepared at horizons 4/16/64 but only one of six pairs at horizon 1. These transport improvements do not establish incremental value against Ordinary. Complete provider/model and economic cost remain unknown. |
 
 The original Agent report stays `HOLD_REAL_DELTA_STRICT_GATE`. The fragment
