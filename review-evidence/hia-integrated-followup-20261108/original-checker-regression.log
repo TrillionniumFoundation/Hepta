@@ -1,0 +1,56 @@
+test_relro_cannot_remove_execution_from_the_checked_text (tests.test_hia_safe_core.SafeCoreTests.test_relro_cannot_remove_execution_from_the_checked_text) ... FAIL
+test_unrelated_second_relro_authority_cannot_hide_from_got_filter (tests.test_hia_safe_core.SafeCoreTests.test_unrelated_second_relro_authority_cannot_hide_from_got_filter) ... FAIL
+test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) ... 
+  test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=4) ... FAIL
+  test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=8) ... FAIL
+  test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=48) ... FAIL
+
+======================================================================
+FAIL: test_relro_cannot_remove_execution_from_the_checked_text (tests.test_hia_safe_core.SafeCoreTests.test_relro_cannot_remove_execution_from_the_checked_text)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5e86aa42d2b9/proof-relro/tests/test_hia_safe_core.py", line 305, in test_relro_cannot_remove_execution_from_the_checked_text
+    with self.assertRaisesRegex(ValueError, "RELRO"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_unrelated_second_relro_authority_cannot_hide_from_got_filter (tests.test_hia_safe_core.SafeCoreTests.test_unrelated_second_relro_authority_cannot_hide_from_got_filter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5e86aa42d2b9/proof-relro/tests/test_hia_safe_core.py", line 316, in test_unrelated_second_relro_authority_cannot_hide_from_got_filter
+    with self.assertRaisesRegex(ValueError, "exactly one RELRO"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=4)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5e86aa42d2b9/proof-relro/tests/test_hia_safe_core.py", line 327, in test_relro_must_keep_its_reviewed_writable_mapping
+    with self.subTest(field=field), self.assertRaisesRegex(ValueError, "RELRO"):
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=8)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5e86aa42d2b9/proof-relro/tests/test_hia_safe_core.py", line 327, in test_relro_must_keep_its_reviewed_writable_mapping
+    with self.subTest(field=field), self.assertRaisesRegex(ValueError, "RELRO"):
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_relro_must_keep_its_reviewed_writable_mapping (tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping) (field=48)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/5e86aa42d2b9/proof-relro/tests/test_hia_safe_core.py", line 327, in test_relro_must_keep_its_reviewed_writable_mapping
+    with self.subTest(field=field), self.assertRaisesRegex(ValueError, "RELRO"):
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.141s
+
+FAILED (failures=5)

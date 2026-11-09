@@ -19,11 +19,45 @@ from tools import core_seven_relocation_diagnostic_sources as diag
 from tools import core_seven_part04_capture as collector
 from tools import check_core_syntax_staged as base
 
+
+class _MarkerTimeoutClock:
+    """Fixture-only deadline after persisted markers, with a finite ready guard."""
+    def __init__(self,markers,*,monotonic=time.monotonic,ready_seconds=5):
+        self.real_monotonic=monotonic
+        self.origin=monotonic()
+        self.ready_deadline=self.origin+ready_seconds
+        self.expected={marker['id'] for marker in markers}
+        self.persisted=set()
+        self.expired_at=None
+        self.trigger=None
+
+    def monotonic(self):
+        now=self.real_monotonic()
+        if self.expired_at is None and now>=self.ready_deadline:
+            self.expired_at=self.ready_deadline
+            self.trigger='fixture_readiness_timeout'
+        if self.expired_at is None:return 0.0
+        # Cleanup follows real elapsed time, never the old 100x test clock.
+        return collector.PROCESS_SECONDS+now-self.expired_at
+
+    def after_append(self,name,data):
+        if name!=collector.DIAGNOSTIC_FILES[2]:return
+        self.persisted.update(row['event']['id'] for line in data.splitlines()
+                              if (row:=json.loads(line))['kind']=='marker')
+        now=self.real_monotonic()
+        if self.persisted==self.expected and self.expired_at is None and now<self.ready_deadline:
+            self.expired_at=now
+            self.trigger='durable_markers'
+
+
 class Part04RunnerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.prepared,cls.previous,cls.proposal,cls.diagnostic=fixture()
 
-    def exercise(self,behavior='success',inspect=None,full=False):
+    def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0,
+                 timeout_mode='checkpoint'):
+        if timeout_mode not in ('checkpoint','elapsed'):
+            raise ValueError('unknown timeout fixture mode')
         with tempfile.TemporaryDirectory() as folder,ExitStack() as stack:
             stack.enter_context(patch.object(runner,'_git_baseline',return_value=dict(head='a'*40,tree='b'*40)))
             home=Path(folder);exe=home/'pinned/bin/lean';exe.parent.mkdir(parents=True)
@@ -81,7 +115,7 @@ class Part04RunnerTests(unittest.TestCase):
                 out=''.join(lines)+''.join("'"+n+"' does not depend on any axioms\n" for n in names)
                 if behavior=='target_extra':out+="'extra' does not depend on any axioms\n"
                 if behavior=='target_sorry':out=out.replace('does not depend on any axioms','depends on axioms: [sorryAx]',1)
-                script='import os,pathlib,time\npathlib.Path(%r).write_bytes(b"untrusted fake target")\nos.write(1,%r)\ntime.sleep(.03)\n'%(str(output),out.encode())
+                script='import os,pathlib,time\ntime.sleep(%r)\npathlib.Path(%r).write_bytes(b"untrusted fake target")\nos.write(1,%r)\ntime.sleep(.03)\n'%(target_startup_delay,str(output),out.encode())
                 if behavior=='fifth':script+='pathlib.Path(%r).write_bytes(b"forbidden fifth module")\n'%str(root/'HiaSyntaxResearch/CertPart05.olean')
                 if behavior=='target_timeout':script+='time.sleep(10)\n'
                 if behavior=='target_limit':script='import os,time\nfor i in range(200):\n os.write(1,b"inert theorem line\\n");time.sleep(.002)\n'
@@ -93,13 +127,24 @@ class Part04RunnerTests(unittest.TestCase):
                 with ExitStack() as capture_stack:
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
-                    if behavior=='target_timeout':
+                    if behavior=='target_timeout' and timeout_mode=='checkpoint':
+                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'])
+                        self.timeout_clock=clock
+                        real_append=collector._Sink.append
+                        def append(sink,name,data,terminal=False):
+                            real_append(sink,name,data,terminal=terminal)
+                            # The real append has fsynced both raw bytes and
+                            # this event batch before the clock may expire.
+                            clock.after_append(name,data)
+                        capture_stack.enter_context(patch.object(collector._Sink,'append',append))
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock.monotonic)))
+                    elif behavior=='target_timeout':
                         origin=time.monotonic()
                         def clock():
                             elapsed=time.monotonic()-origin
-                            # Accelerate only the 60-second process interval.
-                            # Keep the collector's separate two-second cleanup
-                            # in real time, including scheduling and fsync cost.
+                            # This mode can expire before the child emits any
+                            # marker. Only the process interval is accelerated;
+                            # the separate cleanup window remains in real time.
                             process=min(elapsed*100,collector.PROCESS_SECONDS)
                             cleanup=max(0,elapsed-collector.PROCESS_SECONDS/100)
                             return origin+process+cleanup
@@ -225,6 +270,16 @@ class Part04RunnerTests(unittest.TestCase):
                 self.assertEqual(verified['validated_markers'],behavior=='target_timeout')
                 self.assertLessEqual(verified['validated_parent_count'],5)
             with self.subTest(behavior=behavior):self.exercise(behavior,inspect)
+
+    def test_timeout_replay_waits_for_delayed_child_markers(self):
+        def inspect(path,report,identity,support):
+            verified=self.replay(path,identity,support)
+            self.assertTrue(verified['validated_markers'])
+            self.assertEqual(report['status'],'diagnostic_timeout')
+            self.assertEqual(report['stages'][-1]['process']['marker_count'],11)
+            self.assertTrue(report['stages'][-1]['process']['leader_reaped'])
+        self.exercise('target_timeout',inspect,target_startup_delay=2)
+        self.assertEqual(self.timeout_clock.trigger,'durable_markers')
 
     def test_rehashed_result_receipt_and_start_tampering(self):
         def inspect(path,report,identity,support):
@@ -453,6 +508,37 @@ class Part04ReplayGrammarTests(unittest.TestCase):
 
     def raw(self):
         return b''.join(('"'+m['id']+'" : String\n').encode() for m in self.plan())
+
+    def test_fixture_timeout_clock_requires_all_persisted_markers(self):
+        now=[10.0]
+        clock=_MarkerTimeoutClock(self.plan(),monotonic=lambda:now[0])
+        records=[json.dumps(dict(kind='marker',event=dict(id=m['id']))).encode()+b'\n' for m in self.plan()]
+        clock.after_append(collector.DIAGNOSTIC_FILES[0],b''.join(records))
+        self.assertFalse(clock.persisted)
+        clock.after_append(collector.DIAGNOSTIC_FILES[2],b''.join(records[:-1]))
+        now[0]=14.0
+        self.assertEqual(clock.monotonic(),0)
+        clock.after_append(collector.DIAGNOSTIC_FILES[2],records[-1])
+        self.assertEqual(clock.trigger,'durable_markers')
+        self.assertEqual(clock.monotonic(),60)
+        now[0]=14.25
+        self.assertEqual(clock.monotonic(),60.25)
+
+    def test_fixture_missing_marker_has_finite_readiness_deadline(self):
+        now=[10.0]
+        clock=_MarkerTimeoutClock(self.plan(),monotonic=lambda:now[0])
+        clock.after_append(collector.DIAGNOSTIC_FILES[2],b''.join(
+            json.dumps(dict(kind='marker',event=dict(id=m['id']))).encode()+b'\n' for m in self.plan()[:-1]))
+        now[0]=14.999
+        self.assertEqual(clock.monotonic(),0)
+        now[0]=15.0
+        self.assertEqual(clock.monotonic(),60)
+        self.assertEqual(clock.trigger,'fixture_readiness_timeout')
+        now[0]=15.25
+        clock.after_append(collector.DIAGNOSTIC_FILES[2],json.dumps(dict(
+            kind='marker',event=dict(id=self.plan()[-1]['id']))).encode()+b'\n')
+        self.assertEqual(clock.trigger,'fixture_readiness_timeout')
+        self.assertEqual(clock.monotonic(),60.25)
 
     def test_independent_lf_parser_all_offsets_and_fragmentation(self):
         raw=self.raw()

@@ -166,10 +166,36 @@ else:
         self.assertLess(time.monotonic() - started, 1.5)
         self.assertTrue(result['group_kill_sent'])
         self.assertTrue(result['leader_reaped'])
+        self.assertTrue(result['drain_complete'], result)
+        self.assertFalse(result['cleanup_incomplete'], result)
+        self.assertFalse(result['cleanup_deadline_exceeded'], result)
         child = int(files[capture.DIAGNOSTIC_FILES[0]].strip())
         state = Path('/proc') / str(child) / 'stat'
-        if state.exists():
-            self.assertEqual(state.read_text().split()[2], 'Z', 'descendant must not still execute')
+        # Closing inherited descriptors and publishing EXIT_ZOMBIE are separate
+        # kernel exit observations. Keep the original total 1.5-second bound;
+        # a signal receipt alone, a persistent live state, or a late Z is not
+        # enough to pass this real-child termination control.
+        deadline = started + 1.5
+        observations = []
+        while True:
+            try:
+                fields = state.read_text().split()
+                current = fields[2]
+                self.assertEqual(int(fields[4]), result['pid'], 'descendant process group changed')
+            except FileNotFoundError:
+                current = None
+            observed_at = time.monotonic()
+            if not observations or observations[-1][1] != current:
+                observations.append([observed_at-started, current])
+            if observed_at >= deadline or current in (None, 'Z'):
+                break
+            time.sleep(min(.001, deadline-observed_at))
+        print(json.dumps(dict(descendant_pid=child, process_group=result['pid'],
+                              states=observations, observed_elapsed=observed_at-started,
+                              total_deadline_seconds=1.5)), flush=True)
+        self.assertLess(observed_at, deadline, 'descendant exit observation exceeded the original total deadline')
+        if current is not None:
+            self.assertEqual(current, 'Z', 'descendant must not still execute')
 
     def test_simultaneous_stream_bursts_share_one_read_budget(self):
         script = """import os,threading

@@ -817,6 +817,91 @@ def execute_policies(directory, products, training, report, spec, bridge, identi
                     row["scope"] = "driver startup/load, current-only planning, actual native execution/probes, response validation and cleanup; shared offline build/training separately charged once"
 
 
+def _positive_finite_number(value):
+    if type(value) not in (int, float):
+        return False
+    try:
+        return value > 0 and math.isfinite(value)
+    except OverflowError:
+        return False
+
+
+def _policy_cohort(report, spec):
+    """Admit one complete registered matrix without dropping failed attempts.
+
+    This reconciles the producer's retained observations, not their external
+    provenance. A count or status cannot replace the original request steps or
+    erase costs; the driver/session checks and trusted-host scope still apply.
+    """
+    arms = spec.get("policy_arms")
+    require(type(arms) is list and len(arms) == 4
+            and all(type(arm) is str for arm in arms)
+            and set(arms) == {"fixed", "exact_dp", "greedy", "native_ndu"},
+            "all four unique policy arms must remain registered")
+    episodes = spec.get("episodes")
+    require(type(episodes) is list and len(episodes) > 0, "nonempty registered episodes required")
+    for episode in episodes:
+        require(type(episode) is dict and type(episode.get("sizes")) is list
+                and type(episode.get("seeds")) is list and len(episode["sizes"]) > 0
+                and len(episode["sizes"]) == len(episode["seeds"])
+                and all(type(n) is int and n in spec["sizes"] for n in episode["sizes"])
+                and all(type(seed) is int and 0 <= seed <= MASK32 for seed in episode["seeds"]),
+                "each registered episode needs its complete size/seed sequence")
+    expected = {(index, arm) for index in range(len(episodes)) for arm in arms}
+    supplied = report.get("policy_runs")
+    require(type(supplied) is list and len(supplied) == len(expected),
+            "policy cohort is incomplete or repeated")
+    rows = {}
+    for row in supplied:
+        require(type(row) is dict and type(row.get("episode")) is int
+                and type(row.get("arm")) is str, "invalid policy observation identity")
+        key = (row["episode"], row["arm"])
+        require(key in expected and key not in rows, "policy cohort is incomplete or repeated")
+        require(row.get("status") == "passed", "every registered policy attempt must complete")
+        for name in ("actual_total_ns", "service_total_ns", "independent_audit_ns"):
+            require(type(row.get(name)) is int and row[name] >= (0 if name == "independent_audit_ns" else 1),
+                    "policy costs require known exact nonnegative nanoseconds and positive elapsed totals")
+        require(row["actual_total_ns"] == row["service_total_ns"] + row["independent_audit_ns"],
+                "service cost must equal actual total minus the retained audit interval")
+        episode = episodes[key[0]]
+        steps = row.get("steps")
+        require(type(steps) is list and len(steps) == len(episode["sizes"]),
+                "policy observation lacks the complete registered request sequence")
+        responses = 0
+        for index, step in enumerate(steps):
+            require(type(step) is dict and type(step.get("index")) is int and step["index"] == index
+                    and type(step.get("observed_size")) is int and step["observed_size"] == episode["sizes"][index]
+                    and type(step.get("seed")) is int and step["seed"] == episode["seeds"][index],
+                    "policy step differs from its registered request")
+            require(all(type(step.get(name)) is int and step[name] >= 0
+                        for name in ("controller_ns", "independent_audit_ns")),
+                    "controller and audit costs must remain known exact nanoseconds")
+            if "response" in step:
+                require(type(step["response"]) is dict and step["response"],
+                        "counted native invocation lacks its retained response")
+                responses += 1
+        require(row["independent_audit_ns"] == sum(step["independent_audit_ns"] for step in steps)
+                and row["service_total_ns"] >= sum(step["controller_ns"] for step in steps),
+                "policy cost totals do not contain their retained controller/audit work")
+        calls = row.get("native_invocations")
+        require(type(calls) is int and calls == responses and 0 <= calls <= len(steps)
+                and (key[1] == "native_ndu" or calls == 0),
+                "native invocation count differs from the retained policy responses")
+        if calls:
+            session = row.get("ndu_session")
+            require(type(session) is dict and type(session.get("requests")) is int
+                    and session["requests"] == calls and session.get("closed") is True
+                    and session.get("cleanup_errors") == []
+                    and type(session.get("request_costs_ns")) is list
+                    and len(session["request_costs_ns"]) == calls
+                    and all(type(cost) is int and cost >= 0 for cost in session["request_costs_ns"])
+                    and sum(session["request_costs_ns"]) <= row["service_total_ns"],
+                    "native invocation accounting requires the matching closed costed session")
+        rows[key] = row
+    require(set(rows) == expected, "policy cohort is incomplete or repeated")
+    return rows
+
+
 def evaluate(report,spec):
     # Bind every strong-control comparison to the registered protocol.
     # Tail-only regression and incomplete cohorts must never qualify.
@@ -828,6 +913,26 @@ def evaluate(report,spec):
             and type(spec["sizes"]) is list and len(spec["sizes"]) > 0
             and len(set(spec["sizes"])) == len(spec["sizes"]),
             "native performance protocol must register all four unique backends and nonempty unique sizes")
+    require(all(_positive_finite_number(gate.get(name)) for name in
+                ("hia_median_ratio_maximum", "hia_tail_ratio_maximum")),
+            "registered performance limits must be positive finite numbers")
+    economic_gate = spec.get("economic_gate")
+    require(type(economic_gate) is dict
+            and economic_gate.get("native_ndu_service_total_must_be_less_than_every_control_in_every_episode") is True
+            and economic_gate.get("all_semantic_and_resource_checks_required") is True,
+            "economic qualification must retain every registered control and semantic/resource check")
+    policy_rows = _policy_cohort(report, spec)
+    training = report.get("training_summary")
+    require(type(training) is dict and set(training) == set(spec["backends"]),
+            "training summaries must retain all registered backends")
+    for name in spec["backends"]:
+        require(type(training[name]) is dict and set(training[name]) == {str(n) for n in spec["sizes"]},
+                "training summaries must retain all registered sizes")
+        for stats in training[name].values():
+            require(type(stats) is dict and all(_positive_finite_number(stats.get(key))
+                        for key in ("median", "p95", "p99"))
+                    and stats["median"] <= stats["p95"] <= stats["p99"],
+                    "training statistics require ordered positive finite timings")
     performance = []
     for n in spec["sizes"]:
         hia=report["training_summary"]["hia"][str(n)]
@@ -840,15 +945,17 @@ def evaluate(report,spec):
                           and ratios["p99_ratio"] <= gate["hia_tail_ratio_maximum"]})
     economies=[]
     for episode in range(len(spec["episodes"])):
-        rows={r["arm"]:r for r in report["policy_runs"] if r["episode"]==episode}
+        rows={arm: policy_rows[episode, arm] for arm in spec["policy_arms"]}
         for name in ("fixed","exact_dp","greedy"):
             economies.append({"episode":episode,"baseline":name,"ndu_ns":rows["native_ndu"]["service_total_ns"],
                 "baseline_ns":rows[name]["service_total_ns"],"ratio":rows["native_ndu"]["service_total_ns"]/rows[name]["service_total_ns"],
                 "passed":rows["native_ndu"]["service_total_ns"]<rows[name]["service_total_ns"]})
-    native_calls = sum(r.get("native_invocations", 0) for r in report["policy_runs"]
+    native_calls = sum(r["native_invocations"] for r in policy_rows.values()
                        if r["arm"] == "native_ndu")
     gated_policy_wins = all(r["passed"] for r in economies)
     return {"performance_comparisons":performance,"economic_comparisons":economies,
+            "complete_registered_policy_cohort":True,
+            "policy_cost_and_native_invocation_accounting_reconciled":True,
             "four_language_finite_correctness_and_allocator_probes":True,
             "performance_gate_passed":all(r["passed"] for r in performance),
             "service_scope_gated_policy_benefit_established":gated_policy_wins,
@@ -862,9 +969,17 @@ def evaluate(report,spec):
 
 
 def finalize_acceptance(report):
-    """Identity drift or incomplete execution withdraws every acceptance gate."""
+    """Recheck original observations as well as source/runtime identity at close."""
     valid = (report.get("status") == "completed" and report.get("source_unchanged") is True
              and report.get("runtime_inputs_unchanged") is True)
+    if valid:
+        try:
+            require(type(report.get("acceptance")) is dict, "missing original acceptance")
+            require(report["acceptance"] == evaluate(report, report["protocol"]),
+                    "acceptance differs from the final retained observations")
+        except (KeyError, TypeError, ValueError, ArithmeticError) as error:
+            valid = False
+            report["acceptance_observation_error"] = {"type": type(error).__name__, "message": str(error)}
     report["acceptance_observation_valid"] = valid
     if not valid:
         report.pop("acceptance", None)
@@ -877,11 +992,7 @@ def prepared_observed_costs(report, spec):
     does not pay NDU or adaptive-owner calibration. The actual combined campaign
     cost remains separate; unknown/unassigned costs never become zero.
     """
-    expected = {(episode, arm) for episode in range(len(spec["episodes"])) for arm in spec["policy_arms"]}
-    rows = {(row["episode"], row["arm"]): row for row in report["policy_runs"]}
-    require(len(rows) == len(report["policy_runs"]) and set(rows) == expected
-            and all(row["status"] == "passed" for row in rows.values()),
-            "prepared-gate observed cost cohort is incomplete or repeated")
+    rows = _policy_cohort(report, spec)
     comparisons = []
     for episode in range(len(spec["episodes"])):
         ndu = rows[episode, "native_ndu"]["actual_total_ns"]

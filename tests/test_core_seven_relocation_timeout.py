@@ -1,4 +1,4 @@
-"""Real relocation timeout cleanup controls outside the fixed 22-test inventory."""
+"""Real relocation cleanup controls beside the 23-test runner inventory."""
 from contextlib import ExitStack
 import errno
 import os
@@ -16,7 +16,8 @@ class RelocationTimeoutTests(unittest.TestCase):
     def setUpClass(cls):
         harness.Part04RunnerTests.setUpClass()
 
-    def exercise(self, *, cleanup_pause=0, start_pause=0, clean=True):
+    def exercise(self, *, cleanup_pause=0, start_pause=0, clean=True,
+                 timeout_mode='checkpoint'):
         case = harness.Part04RunnerTests('test_complete_failure_replay_and_spawn_semantics')
         popen, read, killpg = subprocess.Popen, os.read, os.killpg
         state = dict(killed=False, paused=False)
@@ -58,7 +59,7 @@ class RelocationTimeoutTests(unittest.TestCase):
             stack.enter_context(patch.object(harness.collector.subprocess,'Popen',side_effect=launch))
             stack.enter_context(patch.object(harness.collector.os,'killpg',side_effect=kill))
             stack.enter_context(patch.object(harness.collector.os,'read',side_effect=receive))
-            case.exercise('target_timeout',inspect)
+            case.exercise('target_timeout',inspect,timeout_mode=timeout_mode)
 
     def test_short_transient_cleanup_delay_keeps_real_two_second_budget(self):
         self.exercise(cleanup_pause=.04)
@@ -67,7 +68,7 @@ class RelocationTimeoutTests(unittest.TestCase):
         self.exercise(cleanup_pause=2.1,clean=False)
 
     def test_preoutput_timeout_replays_empty_prefix_without_inventing_markers(self):
-        self.exercise(start_pause=.7)
+        self.exercise(start_pause=.7,timeout_mode='elapsed')
 
 
 if __name__ == '__main__':

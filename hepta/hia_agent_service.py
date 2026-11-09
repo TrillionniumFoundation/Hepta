@@ -1371,12 +1371,16 @@ class HIAAgentService:
         if (row is None or row["active"] != 1 or row["slot"] != lease["slot"]
                 or row["generation"] != lease["generation"] or decode_data(row["artifact"]) != lease["artifact"]):
             reject("E_HIA_LEASE", "lease is released, unknown or modified")
-        return row
+        # Use the retained row after admission. The caller can keep and mutate
+        # its lease dictionary while a native child runs; neither returned
+        # identities nor captured-buffer metadata may read that alias later.
+        return {"id": row["id"], "slot": row["slot"], "generation": row["generation"],
+                "artifact": decode_data(row["artifact"])}
 
     def invoke_lease(self, lease, function, arguments):
         from .hia_agent_runner import run_native_batch
         from .hia_agent_buffers import validate_arguments
-        self._lease(lease)
+        lease = self._lease(lease)
         data, metadata, _program = self._native(lease["artifact"])
         if metadata["output_kind"] != "shared":
             reject("E_HIA_ABI", "slot generation is not an executable shared image")
@@ -1410,6 +1414,6 @@ class HIAAgentService:
 
     def release_slot(self, lease):
         with self.store.transaction():
-            self._lease(lease)
+            lease = self._lease(lease)
             self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))
         return {"released": True, "generation": lease["generation"], "artifact_retained": True}

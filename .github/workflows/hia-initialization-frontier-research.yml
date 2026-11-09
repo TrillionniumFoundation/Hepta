@@ -200,9 +200,9 @@ jobs:
                              'tests.test_core_syntax_diagnostic_capture'], 42),
               'relocation-proposal': (['tests.test_core_seven_parallel_relocation_sources'], 23),
               'relocation-sources': (['tests.test_core_seven_relocation_sources'], 12),
-              'relocation-grammar': (['tests.test_core_seven_relocation_runner.Part04ReplayGrammarTests', 'tests.test_core_seven_relocation_runner.RelocationNumericBoundsTests'], 8),
+              'relocation-grammar': (['tests.test_core_seven_relocation_runner.Part04ReplayGrammarTests', 'tests.test_core_seven_relocation_runner.RelocationNumericBoundsTests'], 10),
               'relocation-runner-a': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 11),
-              'relocation-runner-b': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 10),
+              'relocation-runner-b': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 11),
               'relocation-runner-inverse': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 1),
               'part04-sources': (['tests.test_core_seven_part04_sources'], 9),
               'part04-capture': (['tests.test_core_seven_part04_capture'], 41),
@@ -299,11 +299,11 @@ jobs:
                   assert len(inverse) == 1 and len(ordinary) == 16, 'Part04 runner split inventory changed'
                   cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2]
               if group.startswith('relocation-runner-'):
-                  assert len(cases) == len({case.id() for case in cases}) == 22, 'complete relocation runner inventory changed'
+                  assert len(cases) == len({case.id() for case in cases}) == 23, 'complete relocation runner inventory changed'
                   inverse_id = 'tests.test_core_seven_relocation_runner.Part04RunnerTests.test_full_inverse_replay_integration'
                   inverse = [case for case in cases if case.id() == inverse_id]
                   ordinary = [case for case in cases if case.id() != inverse_id]
-                  assert len(inverse) == 1 and len(ordinary) == 21, 'relocation runner split inventory changed'
+                  assert len(inverse) == 1 and len(ordinary) == 22, 'relocation runner split inventory changed'
                   cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2]
               ids = [case.id() for case in cases]
               assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed: ' + group
@@ -312,7 +312,7 @@ jobs:
           all_ids = [test_id for ids in inventories.values() for test_id in ids]
           all_names = sorted({name for names, _ in groups.values() for name in names})
           complete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))]
-          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 709, 'combined inventory changed'
+          assert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 712, 'combined inventory changed'
           assert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'
           acceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))]
           assigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids]
@@ -328,14 +328,22 @@ jobs:
           relocation_names = ['tests.test_core_seven_parallel_relocation_sources', 'tests.test_core_seven_relocation_sources', 'tests.test_core_seven_relocation_runner']
           relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(relocation_names))]
           assigned_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('relocation-') for test_id in ids]
-          assert len(relocation_ids) == len(set(relocation_ids)) == len(assigned_relocation_ids) == len(set(assigned_relocation_ids)) == 65, 'complete relocation inventory changed'
+          assert len(relocation_ids) == len(set(relocation_ids)) == len(assigned_relocation_ids) == len(set(assigned_relocation_ids)) == 68, 'complete relocation inventory changed'
           assert set(relocation_ids) == set(assigned_relocation_ids), 'relocation shards omitted or duplicated controls'
           full_relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_relocation_acceptance'))]
           assigned_full_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('full-relocation-acceptance-') for test_id in ids]
           assert len(full_relocation_ids) == len(set(full_relocation_ids)) == len(assigned_full_relocation_ids) == len(set(assigned_full_relocation_ids)) == 140, 'complete full relocation acceptance inventory changed'
           assert set(full_relocation_ids) == set(assigned_full_relocation_ids), 'full relocation acceptance shards omitted or duplicated controls'
           old_ids = [test_id for group, ids in inventories.items() if not group.startswith('full-relocation-acceptance-') for test_id in ids]
-          assert len(old_ids) == len(set(old_ids)) == 569, 'all prior isolated controls retained once'
+          assert len(old_ids) == len(set(old_ids)) == 572, 'all prior isolated controls retained once'
+          # The deadline controls run in their own job, but must remain disjoint
+          # from all 712 source and fake-child controls above.
+          deadline_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames([
+              'tests.test_core_seven_part04_deadlines', 'tests.test_core_seven_relocation_timeout']))]
+          assert not unittest.defaultTestLoader.errors, 'deadline test loading failed'
+          assert len(deadline_ids) == len(set(deadline_ids)) == 11, 'deadline control inventory changed'
+          assert not set(all_ids).intersection(deadline_ids), 'deadline controls assigned twice'
+          assert len(set(all_ids).union(deadline_ids)) == 723, 'integrated control inventory changed'
           group = os.environ['CONTROL_GROUP']
           ids, suite = inventories[group], suites[group]
           expected = groups[group][1]
@@ -619,7 +627,7 @@ jobs:
           for name,count in [
                   ('tests.test_core_seven_part04_capture',41),
                   ('tests.test_core_seven_part04_runner.Part04RunnerTests',17),
-                  ('tests.test_core_seven_relocation_runner.Part04RunnerTests',22)]:
+                  ('tests.test_core_seven_relocation_runner.Part04RunnerTests',23)]:
               actual = list(flatten(loader.loadTestsFromName(name)))
               if len(actual) != len(set(actual)) or len(actual) != count:
                   raise SystemExit('historical Part04 inventory changed: '+name)

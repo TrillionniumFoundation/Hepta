@@ -291,6 +291,42 @@ class SafeCoreTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 self.bind(changed)
 
+    def test_relro_cannot_remove_execution_from_the_checked_text(self):
+        changed = bytearray(self.data)
+        phoff = struct.unpack_from("<Q", changed, 32)[0]
+        phsize, phnum = struct.unpack_from("<HH", changed, 54)
+        at = next(phoff + n * phsize for n in range(phnum)
+                  if struct.unpack_from("<I", changed, phoff + n * phsize)[0] == 0x6474E552)
+        old = self.elf.segments[(at - phoff) // phsize]
+        textload = self.elf.load_binding(self.elf.section(".text"), 5)
+        extent = old["addr"] + old["memsz"] - textload["addr"]
+        struct.pack_into("<IIQQQQQQ", changed, at, 0x6474E552, 4,
+                         textload["offset"], textload["addr"], textload["addr"], extent, extent, 1)
+        with self.assertRaisesRegex(ValueError, "RELRO"):
+            self.bind(changed)
+
+    def test_unrelated_second_relro_authority_cannot_hide_from_got_filter(self):
+        changed = bytearray(self.data)
+        phoff = struct.unpack_from("<Q", changed, 32)[0]
+        phsize, phnum = struct.unpack_from("<HH", changed, 54)
+        at = next(phoff + n * phsize for n in range(phnum)
+                  if struct.unpack_from("<I", changed, phoff + n * phsize)[0] == 1 and
+                  struct.unpack_from("<Q", changed, phoff + n * phsize + 40)[0] == 0)
+        struct.pack_into("<IIQQQQQQ", changed, at, 0x6474E552, 4, 0, 0, 0, 0, 0, 1)
+        with self.assertRaisesRegex(ValueError, "exactly one RELRO"):
+            self.bind(changed)
+
+    def test_relro_must_keep_its_reviewed_writable_mapping(self):
+        phoff = struct.unpack_from("<Q", self.data, 32)[0]
+        phsize, phnum = struct.unpack_from("<HH", self.data, 54)
+        at = next(phoff + n * phsize for n in range(phnum)
+                  if struct.unpack_from("<I", self.data, phoff + n * phsize)[0] == 0x6474E552)
+        for field, fmt, value in ((4, "<I", 5), (8, "<Q", 0), (48, "<Q", 4096)):
+            changed = bytearray(self.data)
+            struct.pack_into(fmt, changed, at + field, value)
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "RELRO"):
+                self.bind(changed)
+
     def test_gnu_hash_bloom_bucket_and_chain_must_resolve_the_export(self):
         section = self.elf.section(".gnu.hash")
         _, _, bloom, _ = struct.unpack_from("<IIII", section["data"])
