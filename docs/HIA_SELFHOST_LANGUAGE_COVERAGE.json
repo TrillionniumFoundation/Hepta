@@ -2544,6 +2544,34 @@
       "status": "supported"
     },
     {
+      "area": "effects",
+      "existing_evidence": [
+        "tools.hia_selfhost_effects.qualify"
+      ],
+      "hia_functions": {
+        "instruction": "f6",
+        "instruction_effects": "f90",
+        "parse_effects": "f88",
+        "require_effects": "f89"
+      },
+      "items": [
+        "empty, partial and complete declared effect sets in any order",
+        "duplicate and unknown effect rejection",
+        "every input instruction's required effect mask",
+        "conditional trap effect for checked int.cast",
+        "full callee-declaration subset check at every call",
+        "exact structural-node accounting for declared effects"
+      ],
+      "new_witnesses": [
+        "declaration-*",
+        "call-*-missing-*",
+        "*-missing-*",
+        "malformed-*",
+        "int.cast-*"
+      ],
+      "status": "supported"
+    },
+    {
       "area": "calls",
       "existing_evidence": [
         "tools.hia_selfhost_cases.backward_chain_source",
@@ -2696,7 +2724,7 @@
         "all Core scalar types and function result shapes",
         "module graph",
         "arbitrary identifiers",
-        "all resource and effect combinations",
+        "all resource combinations",
         "returned parameter loans"
       ],
       "new_witnesses": [
@@ -3032,7 +3060,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v15",
+  "profile": "selfhost-core-linux-x86_64-v16",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -3963,12 +3991,6 @@
       "general_core_expected": null,
       "id": "unsupported-scalar-i16",
       "source_sha256": "59d13e184cb3d26cf1542b255bd617695a0281b3d6bf822a7aac8280cc1ca456"
-    },
-    {
-      "boundary": "fixed declared effects",
-      "general_core_expected": null,
-      "id": "unsupported-effect-combination",
-      "source_sha256": "5a517f5dff552a47b9929473679d13c85fea718abbaf7e941f067bc5309e410c"
     },
     {
       "boundary": "fixed input module",
@@ -4966,13 +4988,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "3a2a172ddb92614e4619277b84c47c45eae3b43cbb8e8d572f84d84695cf5319"
+      "sha256": "0f9799e0816538a75ad87f8586fd2671d55eb4d057e83a1375d77c2969c144e3"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "db9887401876766ca699691772a7f2248bb319481b80c95dc90d202bc9280af4"
+      "sha256": "bfeeaf4568e754d8d6ed21e7e1c45dabd9d4981e7889f3e3201a03bfacd87a31"
     },
-    "semantic_support_sha256": "8444e0568034f49f76a64269dba21c325e9be969c8dd385f1e72c3e64d6fbdea",
+    "semantic_support_sha256": "e306ea82094bec6096ae16ea090098d566037955e063192ba7b6231f0dec597a",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -4981,10 +5003,7 @@
     "contract": {
       "block_names": "contiguous b0..b255 per function",
       "core": "hepta.hia.program.v8",
-      "effect_clauses": [
-        "effects(read,write,trap)",
-        "effects(alloc,read,write,trap)"
-      ],
+      "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "function_names": "contiguous f0..f127",
       "header": "hia-asm.v1",
       "instruction_results": "zero or one; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
@@ -5048,7 +5067,6 @@
       "noncontiguous-function",
       "entry-signature-name",
       "unsupported-scalar-i16",
-      "unsupported-effect-combination",
       "unsupported-module-name",
       "unsupported-arbitrary-function-name",
       "tab-whitespace",

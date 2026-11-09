@@ -156,8 +156,7 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
         else:
             if count != 0:
                 return fail(w, 63)
-            if get(w, FBASE + get(w, 72) * FSTRIDE + 176) != 1:
-                return fail(w, 65)
+            require_effects(w, 1)
             if at == 9:
                 chain_drop_call(o, w, a)
             else:
@@ -166,8 +165,7 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
         return 0
     if at != 2 or t != 8:
         return fail(w, 63)
-    if get(w, FBASE + get(w, 72) * FSTRIDE + 176) != 1:
-        return fail(w, 65)
+    require_effects(w, 1)
     trapping = 0
     ok = get(w, 312)
     if op == @buffer.new@:
