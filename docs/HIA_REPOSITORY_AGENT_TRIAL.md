@@ -27,6 +27,12 @@ hashes of new ordinary files. Both snapshots retain Git status and HEAD/tree.
 Snapshots are observations, not an atomic snapshot against an independent writer.
 Only a dedicated checkout may be used.
 
+New-file capture opens each directory and leaf without following symlinks,
+checks the opened file is regular and has one link, and bounds actual reads by
+the remaining 32 MiB new-file allowance. It charges the bytes actually retained
+and refuses a file whose size or identity metadata changes during its read.
+These checks do not make the repository-wide before/after observation atomic.
+
 The reported usage settlement reads the original terminal event. It supports
 input/output counters with optional cache/reasoning counters and keeps the raw
 original usage object. Input plus output is the review quantity. Cache and

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import errno
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -14,7 +15,8 @@ from unittest.mock import patch
 from tools.hia_agent_codex_transport import EventFailure, identity
 from tools.hia_agent_fresh_session import FreshEvents
 from tools.hia_repository_agent_trial import (
-    RepositoryEvents, _read_cancel_request, request_trial_cancel, run_trial, settle_stream, snapshot_repository,
+    RepositoryEvents, _read_cancel_request, _snapshot_new_file, request_trial_cancel,
+    run_trial, settle_stream, snapshot_repository,
 )
 
 
@@ -233,6 +235,69 @@ class OwnedProcessTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "FROZEN_LAUNCH"):
             run_trial(registration, self.root / "invalid-pin")
         self.assertFalse((self.root / "invalid-pin").exists())
+
+    def test_snapshot_counts_retained_bytes_instead_of_an_earlier_path_stat(self):
+        source = self.repo / "new.txt"
+        source.write_bytes(b"x")
+        earlier = source.stat()
+        source.write_bytes(b"new bytes")
+        original_stat = Path.stat
+
+        def stale_path_stat(path, *args, **kwargs):
+            if path == source:
+                return earlier
+            return original_stat(path, *args, **kwargs)
+
+        with patch.object(Path, "stat", stale_path_stat):
+            result = snapshot_repository(self.repo, self.root / "snapshot", baseline=self.commit)
+        self.assertEqual(result["new_files_total_bytes"], len(b"new bytes"))
+        self.assertEqual(result["new_files"][0]["bytes"], result["new_files_total_bytes"])
+        self.assertEqual((self.root / "snapshot/new-files/new.txt").read_bytes(), b"new bytes")
+
+    def test_snapshot_growth_cannot_exceed_the_remaining_actual_byte_budget(self):
+        source = self.repo / "growing.txt"
+        source.write_bytes(b"old")
+        original_read = os.read
+        changed = False
+
+        def grow_after_read(descriptor, count):
+            nonlocal changed
+            result = original_read(descriptor, count)
+            if not changed:
+                changed = True
+                with source.open("ab") as stream:
+                    stream.write(b"more than the remaining budget")
+            return result
+
+        with patch("tools.hia_repository_agent_trial.os.read", side_effect=grow_after_read):
+            with self.assertRaisesRegex(ValueError, "UNTRACKED_LIMIT"):
+                _snapshot_new_file(self.repo, Path("growing.txt"), 8)
+
+    def test_snapshot_rejects_same_length_change_during_capture(self):
+        source = self.repo / "changing.txt"
+        source.write_bytes(b"old")
+        original_read = os.read
+        changed = False
+
+        def change_after_read(descriptor, count):
+            nonlocal changed
+            result = original_read(descriptor, count)
+            if not changed:
+                changed = True
+                source.write_bytes(b"new")
+            return result
+
+        with patch("tools.hia_repository_agent_trial.os.read", side_effect=change_after_read):
+            with self.assertRaisesRegex(ValueError, "UNTRACKED_CHANGED"):
+                _snapshot_new_file(self.repo, Path("changing.txt"), 8)
+
+    def test_snapshot_descriptor_walk_refuses_a_symlink_parent(self):
+        outside = self.root / "outside"
+        outside.mkdir()
+        (outside / "file.txt").write_bytes(b"outside scope")
+        (self.repo / "linked").symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(OSError):
+            _snapshot_new_file(self.repo, Path("linked/file.txt"), 64)
 
     def test_baseline_change_refuses_launch(self):
         registration = self.registration("raise RuntimeError('must not launch')\n")

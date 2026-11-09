@@ -103,6 +103,109 @@ def select_refusals():
     return rows
 
 
+def boolean_equality_source(opcode):
+    """Read both booleans from caller bytes; return their equality comparison."""
+    if opcode not in {"compare.eq", "compare.ne"}:
+        raise ValueError("boolean comparison admits equality and inequality only")
+    return (HEADER +
+        '  v3:usize = const() {"value":0}\n'
+        '  v4:usize = const() {"value":1}\n'
+        '  v5:u8 = buffer.load(v0,v3)\n'
+        '  v6:u8 = buffer.load(v0,v4)\n'
+        '  v7:u8 = const() {"value":0}\n'
+        '  v8:bool = compare.ne(v5,v7)\n'
+        '  v9:bool = compare.ne(v6,v7)\n'
+        '  v10:bool = ' + opcode + '(v8,v9)\n'
+        '  branch v10 b1() b2()\n'
+        'block b1()\n  v11:u32 = const() {"value":1}\n  ret(v11)\n'
+        'block b2()\n  v12:u32 = const() {"value":0}\n  ret(v12)\nend\n').encode()
+
+
+def boolean_equality_refusals():
+    source = boolean_equality_source("compare.eq")
+    target = b"v10:bool = compare.eq(v8,v9)"
+    substitutions = {"ordered-" + opcode: b"v10:bool = " + opcode.encode() + b"(v8,v9)"
+                     for opcode in ("compare.lt", "compare.le", "compare.gt", "compare.ge")}
+    substitutions.update({
+        "mixed-left": b"v10:bool = compare.eq(v5,v9)",
+        "mixed-right": b"v10:bool = compare.eq(v8,v6)",
+        "resource-left": b"v10:bool = compare.eq(v0,v9)",
+        "resource-right": b"v10:bool = compare.eq(v8,v0)",
+        "wrong-result": b"v10:u8 = compare.eq(v8,v9)",
+        "missing-result": b"_ = compare.eq(v8,v9)",
+        "empty-arity": b"v10:bool = compare.eq()",
+        "short-arity": b"v10:bool = compare.eq(v8)",
+        "long-arity": b"v10:bool = compare.eq(v8,v9,v8)",
+    })
+    rows = {name: source.replace(target, replacement) for name, replacement in substitutions.items()}
+    rows["missing-result"] = rows["missing-result"].replace(b"branch v10", b"branch v8")
+    return rows
+
+
+def independent_boolean_equality_reference():
+    from hepta.hia_agent_assembly import assemble_program
+    from hepta.hia_program import HIAProgramRejected, execute_program
+    observations, rejected = [], []
+    for opcode in ("compare.eq", "compare.ne"):
+        source = ("hia-asm.v1 hepta.hia.program.v8 boolean_equality_reference\n"
+            "fn f0(v0:bool,v1:bool) -> (bool) effects() entry(b0)\n"
+            "block b0(v0:bool,v1:bool)\n  v2:bool = " + opcode + "(v0,v1)\n  ret(v2)\nend\n").encode()
+        checked = assemble_program(source)
+        assemble_program(boolean_equality_source(opcode))
+        for left in (0, 1, 2, 255):
+            for right in (0, 1, 2, 255):
+                expected = bool(left) == bool(right) if opcode == "compare.eq" else bool(left) != bool(right)
+                result = execute_program(checked, "f0", [bool(left), bool(right)])
+                assert result["status"] == "returned" and result["values"] == [expected], result
+                observations.append({"opcode": opcode, "input_hex": bytes((left, right)).hex(),
+                    "expected": expected, "core_sha256": checked.sha256, "reference_result": result})
+    for name, source in boolean_equality_refusals().items():
+        try:
+            assemble_program(source)
+        except HIAProgramRejected as exc:
+            rejected.append({"case": name, "code": exc.code, "message": str(exc)})
+        else:
+            raise AssertionError("independent checker admitted " + name)
+    return {"cases": observations, "rejections": rejected}
+
+
+def qualify_boolean_equality(directory, compilers, checks, reference):
+    from tools.qualify_hia_selfhost import (INVALID, NO_SPACE, compile_stage,
+        digest, inspect_selfhost_object, invoke)
+    observations = []
+    for label, compiler in compilers:
+        for opcode in ("compare.eq", "compare.ne"):
+            name = label + "-boolean-" + opcode
+            source = boolean_equality_source(opcode)
+            executable, build = compile_stage(directory, name + "-build", compiler, source)
+            observations.append(build)
+            for index, case in enumerate(row for row in reference["cases"] if row["opcode"] == opcode):
+                result, output = invoke(directory, name + "-case-" + str(index), executable,
+                    bytes.fromhex(case["input_hex"]), capacity=8, workspace_size=0)
+                checks[result["case"]] = bool(result.get("status") == "returned"
+                    and result.get("core_u32") == int(case["expected"])
+                    and result.get("source_unchanged") and result.get("output_unchanged")
+                    and output == bytes([0xa5]) * 8)
+                observations.append({**result, "expected": case["expected"]})
+            short, _ = invoke(directory, name + "-short-output", compiler, source,
+                capacity=build["produced_bytes"] - 1)
+            checks[short["case"]] = bool(short.get("status") == "returned"
+                and short.get("core_u32") == NO_SPACE and short.get("output_unchanged"))
+            observations.append(short)
+            obj, obj_build = compile_stage(directory, name + "-object", compiler,
+                source.replace(b"v8 selfhost\n", b"v8 selfhost_elf\n", 1), output_extension=".o")
+            inventory = inspect_selfhost_object(obj.read_bytes())
+            checks[name + "-elf-text"] = inventory["text_sha256"] == digest(executable.read_bytes())
+            observations.append({**obj_build, "object_inspection": inventory})
+        for name, source in boolean_equality_refusals().items():
+            result, _ = invoke(directory, label + "-boolean-equality-reject-" + name, compiler, source)
+            checks[result["case"]] = bool(result.get("status") == "returned"
+                and result.get("core_u32") == INVALID and result.get("output_unchanged")
+                and result.get("source_unchanged"))
+            observations.append(result)
+    return observations
+
+
 def independent_select_reference():
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected, execute_program
@@ -126,7 +229,8 @@ def independent_select_reference():
             rejected.append({"case": name, "code": exc.code, "message": str(exc)})
         else:
             raise AssertionError("independent checker admitted " + name)
-    return {"cases": observations, "rejections": rejected}
+    return {"cases": observations, "rejections": rejected,
+            "boolean_equality": independent_boolean_equality_reference()}
 
 
 def qualify_select(directory, compilers, checks, reference):
@@ -166,4 +270,5 @@ def qualify_select(directory, compilers, checks, reference):
                 and result.get("core_u32") == INVALID and result.get("output_unchanged")
                 and result.get("source_unchanged"))
             observations.append(result)
+    observations.extend(qualify_boolean_equality(directory, compilers, checks, reference["boolean_equality"]))
     return observations

@@ -316,6 +316,7 @@ def audit_completed(row, case, plan, store):
             and len(observations) == 1, "one actual native observation required")
     native, identity = observations[0], plan["native"]["identity"]
     pump = native["pump"]
+    audit_pump_wall(pump, row)
     require(native["response_admitted"] is True and native["error"] is None
             and native["native_identity"] == result["native_identity"] == identity,
             "native identity or admission differs")
@@ -355,6 +356,14 @@ def audit_completed(row, case, plan, store):
             and selection["request_sha256"] == digest(request) and resolved == case["expected_id"]
             and selection["incremental_ndu_advantage_established"] is False, "caller selection differs")
     return result["selected_id"]
+
+
+def audit_pump_wall(pump, row):
+    """A retained inner pump cannot outlast the complete enclosing call."""
+    if pump is not None:
+        require(type(pump) is dict and type(pump.get("wall_ns")) is int
+                and 0 <= pump["wall_ns"] <= row["wall_ns"],
+                "invalid native pump wall or pump exceeds enclosing call")
 
 
 def descriptive(values):
@@ -404,6 +413,7 @@ def audit_retained_attempt(row, case, plan, store):
         require(pump is None or (type(pump) is dict
                 and type(pump.get("stdout")) is bytes and type(pump.get("stderr")) is bytes),
                 "original native stream bytes missing")
+        audit_pump_wall(pump, row)
     if status == "failed":
         require(type(row.get("call_error")) is dict and retained_result is None,
                 "failed call must retain its error and absent result")
@@ -591,13 +601,24 @@ def verify(args):
             require(row["pair"] == pair["pair"] and row["arm"] == arm
                     and row["case_id"] == pair["case_id"] and row["position"] == position, "cell schedule differs")
             rows.append(row)
-    require(summary["cells"] == rows, "summary differs from original cells")
+    require(wire(summary["cells"]) == wire(rows), "summary differs from original cells")
     recomputed = results_summary(rows, plan, store)
     for key, value in recomputed.items():
         if key == "status" and (summary["halted_reason"] is not None or not summary["execution_inputs_unchanged"]):
             value = "INCOMPLETE"
-        require(summary[key] == value, "summary recomputation differs: " + key)
-    audit_measurement(rows, summary["measurement"])
+        require(wire(summary[key]) == wire(value), "summary recomputation differs: " + key)
+    attempted = [row for row in rows if row["status"] != "not_started"]
+    require(all(a["end_offset_ns"] <= b["start_offset_ns"] for a, b in zip(attempted, attempted[1:])), "call intervals overlap")
+    costs = summary["measurement"]
+    require(all(type(costs[name]) is int and costs[name] >= 0 for name in (
+        "outer_wall_ns_to_summary_preparation", "all_attempted_call_wall_ns",
+        "admission_capture_export_audit_wall_ns")), "invalid outer cost integers")
+    require(all(row["end_offset_ns"] <= costs["outer_wall_ns_to_summary_preparation"]
+                for row in attempted), "attempted call ends outside the measured outer interval")
+    require(sum(row["wall_ns"] for row in attempted) == costs["all_attempted_call_wall_ns"]
+            and costs["outer_wall_ns_to_summary_preparation"] == costs["all_attempted_call_wall_ns"] + costs["admission_capture_export_audit_wall_ns"]
+            and costs["admission_capture_export_audit_wall_ns"] >= 0, "outer cost accounting differs")
+    audit_measurement(rows, costs)
     objects = 0
     for path in (root / "objects").iterdir():
         require(HEX.fullmatch(path.name) and sha256(read_bytes(path)).hexdigest() == path.name, "stored object integrity failure")

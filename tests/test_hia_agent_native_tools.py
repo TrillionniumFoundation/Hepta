@@ -569,20 +569,88 @@ class NativeLifecycleTests(AgentToolCase):
         frozen = next(row["response"]["result"] for row in reversed(self.client.records)
                       if row["tool"] == "hia_context")
         deadline = datetime.fromisoformat(frozen["sampled_at"]).timestamp() + 3.0
-        # Leave only a small part of the original context budget. Granting a new
-        # full budget for evaluation or running the VM unbounded fails this.
-        remaining = deadline - time.time() - 0.100
-        self.assertGreater(remaining, 0, "fixture preparation exhausted its context before evaluation")
-        time.sleep(remaining)
-        started = time.monotonic()
-        evaluation = self.session.evaluate(baseline, build, receipts=receipts)
-        self.assertLess(time.monotonic() - started, 0.75)
+        context_row = self.service.store.db.execute("SELECT created_ns FROM contexts WHERE id=?",
+            (self.session.context["id"],)).fetchone()
+        context_deadline_ns = int(context_row["created_ns"]) + 3_000_000_000
+        from hepta.hia_agent_runner import run_reference_batch
+        references, wall_reads, entered_evaluation = [], [], []
+        real_time_ns = time.time_ns
+        required_claims = self.service._required_claims
+
+        def observe_wall_time():
+            observed = real_time_ns()
+            wall_reads.append(observed)
+            return observed
+
+        def wait_inside_evaluation(*arguments):
+            result = required_claims(*arguments)
+            entered_evaluation.append(True)
+            # Admission and the real retained-artifact/claim checks have now
+            # completed. Wait inside that admitted evaluation, not in front of
+            # request validation. This also makes the wall limit win over the
+            # VM's independent instruction-count limit.
+            remaining = deadline - time.time() - 0.100
+            self.assertGreater(remaining, 0, "fixture preparation exhausted the original context budget")
+            time.sleep(remaining)
+            return result
+
+        def observe_reference(program, cases, **options):
+            # Record actual clock reads without changing them. The last read
+            # supplied the remaining_total_ms argument at this exact boundary.
+            # Compare the same integer-millisecond rounding with no tolerance.
+            self.assertTrue(wall_reads)
+            remaining_ms = max(0, (context_deadline_ns - wall_reads[-1]) // 1_000_000)
+            self.assertEqual(options["timeout_ms"], remaining_ms)
+            self.assertGreater(options["timeout_ms"], 0)
+            observed = run_reference_batch(program, cases, **options)
+            references.append(observed)
+            return observed
+
+        # Start while admission still has the original context budget. Waiting
+        # before dispatch left only 100ms for schema, source-identity and
+        # context I/O, so a valid rejection could bypass the reference test.
+        with patch("hepta.hia_agent_service.time.time_ns", side_effect=observe_wall_time), \
+             patch.object(self.service, "_required_claims", side_effect=wait_inside_evaluation), \
+             patch("hepta.hia_agent_runner.run_reference_batch", side_effect=observe_reference):
+            evaluation = self.session.evaluate(baseline, build, receipts=receipts)
+        # The old bound was 0.75s after a start at deadline-0.100s. Keep that
+        # same absolute deadline+0.650s bound without the admission race.
+        self.assertLess(time.time(), deadline + 0.650)
+        self.assertEqual(entered_evaluation, [True])
+        self.assertEqual(len(references), 1)
+        self.assertTrue(references[0]["started"])
+        self.assertEqual(references[0]["status"], "budget_exceeded")
+        self.assertTrue(references[0]["termination_confirmed"])
         self.assertEqual(evaluation["outcome"], "budget_exceeded")
         self.assertFalse(evaluation["planned_workload_complete"])
         self.assertTrue(evaluation["termination_confirmed"])
         measurements = self.session.read_json(evaluation["measurements"])
         self.assertEqual(measurements["reference_runs"]["baseline"]["status"], "budget_exceeded")
         self.assertTrue(all(run["normal"] is None for run in measurements["native_runs"].values()))
+
+    def test_expired_evaluation_is_rejected_before_any_reference_or_native_runner(self):
+        _base, _candidate, baseline, build, receipts = self.build_pair(
+            budget={"max_total_wall_ms": 3000, "max_native_wall_ms": 1000})
+        context = dict(self.session.context)
+        context_row = self.service.store.db.execute("SELECT created_ns FROM contexts WHERE id=?",
+            (context["id"],)).fetchone()
+        created_ns = context_row["created_ns"]
+        deadline_ns = int(created_ns) + 3_000_000_000
+        time.sleep(max(0, (deadline_ns - time.time_ns()) / 1_000_000_000 + 0.010))
+        with patch("hepta.hia_agent_runner.run_reference_batch", side_effect=AssertionError("expired reference started")), \
+             patch("hepta.hia_agent_runner.run_native_batch", side_effect=AssertionError("expired native started")):
+            response = self.reject("hia_evaluate", self.session.arguments(
+                baseline_artifact=baseline["native_artifact"], candidate_artifact=build["native_artifact"],
+                build_receipt=build["build_receipt"], verification_receipts=receipts))
+        self.assertEqual(response["error"]["code"], "E_HIA_BUDGET")
+        self.assertEqual(response["error"]["phase"], "context")
+        self.assertEqual(self.session.context, context)
+        self.assertEqual(self.service.store.db.execute("SELECT created_ns FROM contexts WHERE id=?",
+            (context["id"],)).fetchone()["created_ns"], created_ns)
+        execution = self.service.store.db.execute("SELECT used_native_ns,owner FROM execution_budgets WHERE context_id=?",
+            (context["id"],)).fetchone()
+        self.assertEqual(execution["used_native_ns"], "0")
+        self.assertIsNone(execution["owner"])
 
     def test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable(self):
         _base, previous_core, baseline, build, receipts = self.build_pair()
