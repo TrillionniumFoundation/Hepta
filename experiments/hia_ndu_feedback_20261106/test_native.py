@@ -165,5 +165,24 @@ class NativeIntegrationTests(unittest.TestCase):
             result = self.evaluate(backend, [_row('abstain', -3), _row('a', 8), _row('b', 8)])
         self.assertEqual(result['winners'], ['a', 'b'])
 
+    def test_paid_information_native_backups_match_full_policy_control(self):
+        from .paid_probe import State, plan, observe, independent_policy_oracle, witness_problems
+        with self.backend() as backend:
+            for problem in witness_problems():
+                initial = State((), problem.budget)
+                native = plan(problem, initial, backend=backend, require_native=True)
+                ordinary = plan(problem, initial)
+                oracle = independent_policy_oracle(problem, initial)
+                self.assertTrue(native['native_backend_used'])
+                self.assertEqual(native['candidate_values_q32'], ordinary['candidate_values_q32'])
+                self.assertEqual(native['value_q32'], oracle['value_q32'])
+                self.assertEqual(native['selected_action'], oracle['selected_action'])
+            problem = witness_problems()[0]
+            for signal in (0, 1):
+                after = observe(problem, State((), problem.budget), 'read', signal)
+                result = plan(problem, after, backend=backend, require_native=True)
+                self.assertEqual(result['selected_action'], f'select-{signal}')
+        self.assertEqual(backend.returncode, 0)
+
 if __name__ == '__main__':
     unittest.main()

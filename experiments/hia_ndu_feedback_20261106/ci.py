@@ -195,7 +195,7 @@ def reference(evidence):
                       "tests.test_hia_ndu_policy_audit", "tests.test_hia_ndu_policy_campaign",
                       "tests.test_hia_ndu_feedback_ci_paths",
                       "tests.test_core_seven_shared_source_closure", "tests.test_hia_ndu_dynamic",
-                      "tests.test_hia_ndu_preparation_bound",
+                      "tests.test_hia_ndu_preparation_bound", "tests.test_hia_ndu_paid_probe",
                       "experiments.hia_ndu_feedback_20261106.test_native.ExactArithmeticTests"],
                      Path(evidence) / "reference-tests")
 

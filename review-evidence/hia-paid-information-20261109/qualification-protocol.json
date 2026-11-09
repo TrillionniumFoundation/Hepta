@@ -1,0 +1,202 @@
+{
+  "expected_actions": [
+    "read",
+    "abstain",
+    "abstain",
+    "read-a"
+  ],
+  "failure_policy": "retain failure and stop; no retry or reference substitution",
+  "mode": "reference",
+  "monetary_cost": null,
+  "problems": [
+    {
+      "assumptions": "conditionally independent signals given one episode-constant latent regime",
+      "budget": 30,
+      "name": "paid-information",
+      "objective": "expected terminal utility minus each probe cost; Q32 ties-even per backup",
+      "prior0": [
+        1,
+        2
+      ],
+      "probes": [
+        {
+          "cost": 1,
+          "name": "read",
+          "zero_given_0": [
+            1,
+            1
+          ],
+          "zero_given_1": [
+            0,
+            1
+          ]
+        }
+      ],
+      "terminals": [
+        [
+          "abstain",
+          0,
+          0
+        ],
+        [
+          "select-0",
+          20,
+          -20
+        ],
+        [
+          "select-1",
+          -20,
+          20
+        ]
+      ]
+    },
+    {
+      "assumptions": "conditionally independent signals given one episode-constant latent regime",
+      "budget": 30,
+      "name": "expensive-information",
+      "objective": "expected terminal utility minus each probe cost; Q32 ties-even per backup",
+      "prior0": [
+        1,
+        2
+      ],
+      "probes": [
+        {
+          "cost": 21,
+          "name": "read",
+          "zero_given_0": [
+            1,
+            1
+          ],
+          "zero_given_1": [
+            0,
+            1
+          ]
+        }
+      ],
+      "terminals": [
+        [
+          "abstain",
+          0,
+          0
+        ],
+        [
+          "select-0",
+          20,
+          -20
+        ],
+        [
+          "select-1",
+          -20,
+          20
+        ]
+      ]
+    },
+    {
+      "assumptions": "conditionally independent signals given one episode-constant latent regime",
+      "budget": 30,
+      "name": "uninformative-read",
+      "objective": "expected terminal utility minus each probe cost; Q32 ties-even per backup",
+      "prior0": [
+        1,
+        2
+      ],
+      "probes": [
+        {
+          "cost": 1,
+          "name": "read",
+          "zero_given_0": [
+            1,
+            2
+          ],
+          "zero_given_1": [
+            1,
+            2
+          ]
+        }
+      ],
+      "terminals": [
+        [
+          "abstain",
+          0,
+          0
+        ],
+        [
+          "select-0",
+          20,
+          -20
+        ],
+        [
+          "select-1",
+          -20,
+          20
+        ]
+      ]
+    },
+    {
+      "assumptions": "conditionally independent signals given one episode-constant latent regime",
+      "budget": 2,
+      "name": "prepare-then-benefit",
+      "objective": "expected terminal utility minus each probe cost; Q32 ties-even per backup",
+      "prior0": [
+        1,
+        2
+      ],
+      "probes": [
+        {
+          "cost": 1,
+          "name": "read-a",
+          "zero_given_0": [
+            7,
+            10
+          ],
+          "zero_given_1": [
+            3,
+            10
+          ]
+        },
+        {
+          "cost": 1,
+          "name": "read-b",
+          "zero_given_0": [
+            7,
+            10
+          ],
+          "zero_given_1": [
+            3,
+            10
+          ]
+        }
+      ],
+      "terminals": [
+        [
+          "abstain",
+          60,
+          60
+        ],
+        [
+          "select-0",
+          100,
+          -100
+        ],
+        [
+          "select-1",
+          -100,
+          100
+        ]
+      ]
+    }
+  ],
+  "provider_calls": 0,
+  "scope": "authored finite model; supplied likelihoods and fees; no independent user tasks",
+  "source": {
+    "files": {
+      "experiments/hia_ndu_feedback_20261106/model.py": "56b335e5a7fc205e4ad955faf3eece2a63d43c097f71d5fb4af6d84ee1081b79",
+      "experiments/hia_ndu_feedback_20261106/native.py": "da3bf5b43742bfa9f270598ea1a454630f5c21db1e9ac37a359076674e4ef4a8",
+      "experiments/hia_ndu_feedback_20261106/paid_probe.py": "3dbb9424d5604510667adab2a6de10b07d6dbd15d278e0a337a0d2ffdf2d5fea",
+      "tools/qualify_hia_paid_information.py": "a910ed4857889c9b92152441ac61a77fe01571e578c944b39c9ba640ce411189"
+    },
+    "head": "34a9429f62e628b365eeb4bcf91f37386a155e7b",
+    "status": ""
+  },
+  "training_runs": 0
+}
