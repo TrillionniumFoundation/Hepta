@@ -155,7 +155,44 @@ jobs:
           (root / "public-inputs.json").write_text(json.dumps(record, indent=2) + "\n")
           print("Public discovery entry and exact task/proof inputs are present")
           PY
-      - name: Run native examples and prove installation identity matches the lock
+      - name: Check the entry catalog and run the selected minimal CLI program
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tools.test_hia_entry_catalog -v
+          python -B tools/hia_entry_catalog.py > "$RUNNER_TEMP/hia-public-release/entry-catalog.json"
+          cd "$RUNNER_TEMP/hia-public-release/release/hepta"
+          example=examples/hia_safe_core/scalar_add.hia.json
+          python -B -m hepta hia verify "$example" > "$RUNNER_TEMP/hia-public-release/minimal-verify.json"
+          python -B -m hepta hia run "$example" --function calculate --arguments '[2,3]' > "$RUNNER_TEMP/hia-public-release/minimal-vm.json"
+          python -B -m hepta hia build "$example" --backend native --kind shared --linker ld --target x86_64-unknown-linux-gnu --output "$RUNNER_TEMP/hia-public-release/minimal.so" > "$RUNNER_TEMP/hia-public-release/minimal-build.json"
+          python -B - <<'PY'
+          import ctypes, hashlib, json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"
+          source = root / "release/hepta"
+          lock = json.loads((Path(os.environ["GITHUB_WORKSPACE"]) / os.environ["HIA_RELEASE_LOCK"]).read_bytes())
+          example = "examples/hia_safe_core/scalar_add.hia.json"
+          assert hashlib.sha256((source / example).read_bytes()).hexdigest() == lock["files"]["hepta"][example]
+          vm = json.loads((root / "minimal-vm.json").read_bytes())
+          assert vm["status"] == "returned" and vm["values"] == [5], vm
+          image = root / "minimal.so"
+          library = ctypes.CDLL(str(image))
+          call = library.calculate
+          call.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+          call.restype = ctypes.c_uint32
+          cases = [(2, 3, 5), (0, 0, 0), (4294967295, 1, 0)]
+          observed = []
+          for a, b, expected in cases:
+              actual = call(a, b)
+              assert actual == expected, (a, b, actual, expected)
+              observed.append({"arguments": [a, b], "expected": expected, "actual": actual})
+          record = {"schema": "hepta.hia.entry-minimal-native.v1",
+                    "source": lock["sources"]["hepta"], "backend": "hia-direct",
+                    "final_image_sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+                    "cases": observed, "ok": True, "general_machine_proof": False}
+          (root / "minimal-native.json").write_text(json.dumps(record, indent=2) + "\n")
+          PY
         shell: bash
         run: |
           set -euo pipefail

@@ -172,3 +172,26 @@ This draft changes this document and an INSTALL link only. Empty README,
 release locks/helpers, workflows, proof gates and online selection remain
 unchanged. Hosted exact-head public-installation and CodeQL checks remain
 required; older results do not qualify this head. Overall acceptance stays HOLD.
+
+## Executable entry adapter follow-up
+
+The next checkpoint adds `tools/hia_entry_catalog.py` and five focused
+identity-boundary test methods. The standard-library adapter verifies both
+original lock/helper sets, reports exact selections, syntax, target and the
+scalar proof service profile, and compares a caller-supplied retained online
+manifest without asserting freshness. Development inspection is explicit and
+reports dirty state without inferring release qualification. It changes no
+source lock, selected release helper or online runtime configuration.
+
+The existing two-row public-installation workflow gains an additional step:
+run the adapter tests, retain its catalog, execute the selected source's CLI
+verification/VM, explicitly build with `--backend native --linker ld`, and
+call the retained shared image for addition, zero and wraparound cases. Every
+pre-existing installation, discovery, exact-source, native qualification and
+installation-manifest equality gate remains. These are finite checks, not a
+general machine proof or a fresh-Agent study.
+
+The local executor remained unavailable while this follow-up was prepared.
+Local checks are NOT_RUN. Only this new head's hosted CI can establish its
+executed result; the initial documentation-only head's success does not
+qualify these changes. The online exit-127 failure above remains unresolved.
