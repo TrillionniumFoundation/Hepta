@@ -24,6 +24,31 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_total_scalar_if_conversion_preserves_values_without_speculating_traps(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder
+        from hepta.hia_program import verify_program, execute_program
+        cases = (
+            ("    y = 7\n    if x > 4:\n        y = x + 1\n    return y\n",
+             [(0, 7), (4, 7), (5, 6), ((1 << 64) - 1, 0)], True),
+            ("    if x > 7:\n        return x + 1\n    return 1\n",
+             [(0, 1), (8, 9), ((1 << 64) - 1, 0)], True),
+            ("    if x > 7:\n        return x + 1\n    else:\n        return 1\n",
+             [(0, 1), (8, 9), ((1 << 64) - 1, 0)], True),
+            ("    y = 7\n    if x < 64:\n        y = 1 << x\n    return y\n",
+             [(0, 1), (63, 1 << 63), (64, 7), ((1 << 64) - 1, 7)], False),
+        )
+        for body, observations, fused in cases:
+            node = ast.parse("def example(x:u64) -> u64:\n" + body).body[0]
+            builder = Builder(node, {"example": "f0"}, {})
+            builder.statements(node.body)
+            checked = verify_program({"schema": "hepta.hia.program.v8", "module": "if_conversion",
+                "functions": [{"name": "f0", "params": [builder.param(p) for p in builder.params],
+                    "returns": ["u64"], "effects": ["trap"], "entry": "b0", "blocks": builder.blocks}]})
+            self.assertEqual(len(builder.blocks) == 1, fused)
+            for value, expected in observations:
+                self.assertEqual(execute_program(checked, "f0", [value])["values"], [expected])
+
     def test_reference_process_envelopes_refuse_changed_identity_payload_and_provenance(self):
         from copy import deepcopy
         from tools.hia_selfhost_references import validate_envelope, digest, SCHEMA

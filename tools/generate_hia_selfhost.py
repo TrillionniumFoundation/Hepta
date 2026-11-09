@@ -1787,7 +1787,7 @@ class Builder:
         raise ValueError(ast.dump(e))
 
     def statements(self, statements):
-        for s in statements:
+        for index, s in enumerate(statements):
             if 'term' in self.block: break
             if isinstance(s,ast.Assign):
                 assert len(s.targets)==1 and isinstance(s.targets[0],ast.Name)
@@ -1797,6 +1797,38 @@ class Builder:
                 val=self.cast(self.expr(s.value),self.returns)
                 self.block['term']={'op':'ret','values':[val[0]]}
             elif isinstance(s,ast.If):
+                # Only total scalar arm expressions may be evaluated eagerly.
+                # Conditions retain ordinary short-circuit lowering. Never
+                # speculate a call, memory access or checked shift.
+                arm = s.body[0] if len(s.body) == 1 else None
+                other = s.orelse[0] if len(s.orelse) == 1 else None
+                if (isinstance(arm, ast.Assign) and len(arm.targets) == 1
+                        and isinstance(arm.targets[0], ast.Name)
+                        and arm.targets[0].id in self.env
+                        and self.total_scalar_expression(arm.value)
+                        and (not s.orelse or isinstance(other, ast.Assign)
+                             and len(other.targets) == 1 and isinstance(other.targets[0], ast.Name)
+                             and other.targets[0].id == arm.targets[0].id
+                             and self.total_scalar_expression(other.value))):
+                    target = arm.targets[0].id
+                    condition = self.expr(s.test)
+                    before = self.env[target]
+                    yes = self.expr(arm.value)
+                    no = self.expr(other.value) if other is not None else before
+                    assert yes[1] == no[1] == before[1]
+                    self.env[target] = self.op('select', [condition, yes, no], before[1])
+                    continue
+                fallback = other
+                if not s.orelse and index + 1 < len(statements):
+                    fallback = statements[index + 1]
+                if (isinstance(arm, ast.Return) and isinstance(fallback, ast.Return)
+                        and self.total_scalar_expression(arm.value)
+                        and self.total_scalar_expression(fallback.value)):
+                    condition = self.expr(s.test)
+                    yes = self.cast(self.expr(arm.value), self.returns)
+                    no = self.cast(self.expr(fallback.value), self.returns)
+                    self.block['term'] = {'op': 'ret', 'values': [self.op('select', [condition, yes, no], self.returns)[0]]}
+                    continue
                 cond=self.expr(s.test); base=dict(self.env); keys=list(base)
                 yes,ye=self.fresh(base); no,ne=self.fresh(base)
                 self.block['term']={'op':'branch','cond':cond[0],'then':{'target':yes['id'],'args':[v[0] for v in base.values()]},'else':{'target':no['id'],'args':[v[0] for v in base.values()]}}
