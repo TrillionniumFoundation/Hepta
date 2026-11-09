@@ -268,3 +268,16 @@ module/package, C-migration, runtime and frontend tests. It retains their exact
 IDs, source snapshot, load/setup failures and gaps independently of the narrower
 HIA-only run. All three inventory/path controls pass; execution requires an
 exact clean checkout and actual tool/native-profile inputs.
+
+### Further authoring headroom, independently requalified
+
+Typed constants are now shared only within their exact SSA block. A closed
+acyclic AST check permits eager calls only for genuinely finite scalar helpers:
+no loops, resource parameters, memory, checked shifts or recursive cycles. Calls
+remain real calls; no target input operation or test observation is deleted.
+Two VM/structural adversarial controls preserve arithmetic and block dominance.
+The compiler drops from 7,788 to 6,956 operations and from 1,505 to 1,487 blocks,
+without changing any capacity. The fresh pinned source passes 43 source/reference
+tests, 3,797 native cold checks and 1,196 language checks plus ten report asserts.
+The complete repository run remains independently active on the unchanged
+f535528 checkout; this later source is not falsely attributed to that run.

@@ -24,6 +24,70 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_inferred_total_helpers_refuse_loops_checked_shifts_memory_and_recursion(self):
+        import ast
+        from tools.generate_hia_selfhost import total_scalar_functions
+        source = '''
+def leaf(x:u64) -> u64:
+    return x + 1
+def parent(x:u64) -> u64:
+    if leaf(x) == 0:
+        return 7
+    return leaf(x)
+def checked(x:u64) -> u64:
+    return 1 << x
+def recursive(x:u64) -> u64:
+    return recursive(x)
+def cycle_a(x:u64) -> u64:
+    return cycle_b(x)
+def cycle_b(x:u64) -> u64:
+    return cycle_a(x)
+def memory(s:readbuf) -> u64:
+    return byte(s,0)
+def loop(x:u64) -> u64:
+    while x > 0:
+        x = x - 1
+    return x
+def disguised(x:u64) -> u64:
+    return checked(x)
+'''
+        nodes = ast.parse(source).body
+        self.assertEqual(total_scalar_functions(nodes), {"leaf", "parent"})
+        changed = ast.parse(source.replace("return x + 1", "return 1 << x")).body
+        self.assertEqual(total_scalar_functions(changed), set())
+
+    def test_constant_sharing_stays_block_local_and_preserves_all_arithmetic(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder
+        from hepta.hia_program import verify_program, execute_program
+        source = '''def example(x:u64) -> u64:
+    a = x + 1
+    b = x * 1
+    if x > 0:
+        c = a + 1
+        d = b + 1
+    else:
+        c = a - 1
+        d = b - 1
+    return c + d
+'''
+        node = ast.parse(source).body[0]
+        builder = Builder(node, {"example": "f0"}, {})
+        builder.statements(node.body)
+        checked = verify_program({"schema": "hepta.hia.program.v8", "module": "constant_sharing",
+            "functions": [{"name": "f0", "params": [builder.param(p) for p in builder.params],
+                "returns": ["u64"], "effects": ["trap"], "entry": "b0", "blocks": builder.blocks}]})
+        for block in builder.blocks:
+            keys = [(op["out"][0]["type"], type(op["attrs"]["value"]), op["attrs"]["value"])
+                    for op in block["ops"] if op["op"] == "const"]
+            self.assertEqual(len(keys), len(set(keys)))
+        arithmetic = [op for block in builder.blocks for op in block["ops"]
+                      if op["op"] in {"int.add.wrap", "int.sub.wrap", "int.mul.wrap"}]
+        self.assertEqual(len(arithmetic), 7)
+        for value in (0, 1, 63, 64, (1 << 64) - 1):
+            expected = ((value + 1) + value + (2 if value > 0 else -2)) & ((1 << 64) - 1)
+            self.assertEqual(execute_program(checked, "f0", [value])["values"], [expected])
+
     def test_total_scalar_if_conversion_preserves_values_without_speculating_traps(self):
         import ast
         from tools.generate_hia_selfhost import Builder

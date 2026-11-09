@@ -1722,8 +1722,10 @@ def source_program():
 
 
 class Builder:
-    def __init__(self, node, names, signatures):
+    def __init__(self, node, names, signatures, total_calls=frozenset()):
         self.node,self.names,self.signatures = node,names,signatures
+        self.total_calls = frozenset(total_calls)
+        self.block_constants = {}
         self.serial=0; self.blocks=[]; self.env={}; self.block=None
         self.returns=node.returns.id
         params=[]
@@ -1740,7 +1742,14 @@ class Builder:
         out=[] if t is None else [self.value(t)]
         self.block['ops'].append({'op':op,'args':[a[0] for a in args],'out':[self.param(x) for x in out],'attrs':attrs})
         return out[0] if out else None
-    def c(self,v,t='u64'): return self.op('const',[],t,value=v)
+    def c(self,v,t='u64'):
+        # Constants are total and immutable. Share only inside this exact SSA
+        # block: no cross-block dominance assumption or operation elimination.
+        cache = self.block_constants.setdefault(self.block['id'], {})
+        key = (t, type(v), v)
+        if key not in cache:
+            cache[key] = self.op('const', [], t, value=v)
+        return cache[key]
     def cast(self,x,t): return x if x[1]==t else self.op('int.cast',[x],t,mode='wrap')
     def fresh(self,env):
         new={k:self.value(v[1]) for k,v in env.items()}
@@ -1751,21 +1760,23 @@ class Builder:
     def env_template(self,b):
         return self.block_env_keys[b['id']]
     def jump(self,b,env,keys): self.block['term']={'op':'jump','target':b['id'],'args':[env[k][0] for k in keys]}
-    @staticmethod
-    def total_scalar_expression(e):
+    def total_scalar_expression(self, e):
         # Only expressions with no calls, reads, checked shifts or other
         # possible effects can replace short-circuit branches with bool ops.
         if isinstance(e, (ast.Name, ast.Constant)):
             return True
         if isinstance(e, ast.Compare):
-            return (len(e.ops) == 1 and Builder.total_scalar_expression(e.left)
-                    and Builder.total_scalar_expression(e.comparators[0]))
+            return (len(e.ops) == 1 and self.total_scalar_expression(e.left)
+                    and self.total_scalar_expression(e.comparators[0]))
         if isinstance(e, ast.BinOp):
             return (isinstance(e.op, (ast.Add, ast.Sub, ast.Mult, ast.BitAnd, ast.BitOr, ast.BitXor))
-                    and Builder.total_scalar_expression(e.left)
-                    and Builder.total_scalar_expression(e.right))
+                    and self.total_scalar_expression(e.left)
+                    and self.total_scalar_expression(e.right))
         if isinstance(e, ast.BoolOp):
-            return all(Builder.total_scalar_expression(v) for v in e.values)
+            return all(self.total_scalar_expression(v) for v in e.values)
+        if isinstance(e, ast.Call):
+            return (isinstance(e.func, ast.Name) and e.func.id in self.total_calls
+                    and not e.keywords and all(self.total_scalar_expression(v) for v in e.args))
         return False
     def expr(self,e):
         if isinstance(e,ast.Name): return self.env[e.id]
@@ -1894,6 +1905,49 @@ class Builder:
             else: raise ValueError(ast.dump(s))
 
 
+def total_scalar_functions(nodes):
+    """Infer a closed, acyclic set of finite scalar-only authoring functions.
+
+    No memory, loops, checked arithmetic/shifts, imports or recursive calls can
+    enter this set. Membership is derived from the actual AST, not a trusted
+    function name. It authorizes eager evaluation only, never removes a call.
+    """
+    total = set()
+    scalar = set(TYPES) - {"readbuf", "mutbuf", "buffer", "chain"}
+    def statements(builder, body):
+        for statement in body:
+            if isinstance(statement, ast.Return):
+                if not builder.total_scalar_expression(statement.value):
+                    return False
+            elif isinstance(statement, ast.Assign):
+                if (len(statement.targets) != 1 or not isinstance(statement.targets[0], ast.Name)
+                        or not builder.total_scalar_expression(statement.value)):
+                    return False
+            elif isinstance(statement, ast.If):
+                if (not builder.total_scalar_expression(statement.test)
+                        or not statements(builder, statement.body)
+                        or not statements(builder, statement.orelse)):
+                    return False
+            else:
+                return False
+        return True
+    while True:
+        previous = set(total)
+        for node in nodes:
+            if (not isinstance(node, ast.FunctionDef) or not isinstance(node.returns, ast.Name)
+                    or node.returns.id not in scalar or node.decorator_list
+                    or node.args.defaults or node.args.kw_defaults or node.args.vararg or node.args.kwarg
+                    or node.args.kwonlyargs or node.args.posonlyargs
+                    or any(not isinstance(arg.annotation, ast.Name) or arg.annotation.id not in scalar
+                           for arg in node.args.args)):
+                continue
+            builder = Builder(node, {}, {}, previous)
+            if statements(builder, node.body):
+                total.add(node.name)
+        if total == previous:
+            return frozenset(total)
+
+
 def document():
     nodes=ast.parse(source_program()).body
     # Source order deliberately contains backward direct calls. The HIA
@@ -1904,9 +1958,10 @@ def document():
     assert ordered[0].name=='compile'
     names={n.name:'f'+str(i) for i,n in enumerate(ordered)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in ordered}
+    total_calls = total_scalar_functions(ordered)
     functions=[]
     for n in ordered:
-        b=Builder(n,names,sigs)
+        b=Builder(n,names,sigs,total_calls)
         b.statements(n.body)
         functions.append({'name':names[n.name],'params':[b.param(x) for x in b.params],'returns':[b.returns], 'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
     return {'schema':'hepta.hia.program.v8','module':'selfhost','functions':functions},names
