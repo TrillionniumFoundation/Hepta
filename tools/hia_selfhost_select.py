@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 
-WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
+WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 HEADER = ("hia-asm.v1 hepta.hia.program.v8 selfhost\n"
     "fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects(read,write,trap) entry(b0)\n"
     "block b0(v0:readbuf,v1:mutbuf,v2:mutbuf)\n")

@@ -257,6 +257,61 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             with self.subTest(fault=fault), self.assertRaises(ValueError):
                 study.results_summary(rows, plan, self.store)
 
+    def test_only_one_scheduled_prefix_can_be_attempted_before_stop(self):
+        for boundary in ("skipped-first", "unexplained-stop", "resumed-after-failure",
+                         "resumed-after-audit", "reordered"):
+            plan, rows = self.incomplete_fixture()
+            if boundary == "skipped-first":
+                rows[0]["status"] = "not_started"
+            elif boundary == "unexplained-stop":
+                rows[1]["status"] = "not_started"
+            elif boundary == "resumed-after-failure":
+                rows[2]["status"] = "failed"
+            elif boundary == "resumed-after-audit":
+                rows[0]["audit_error"] = {"type": "AuthoredAuditFailure"}
+            else:
+                rows[0], rows[1] = rows[1], rows[0]
+            with self.subTest(boundary=boundary), self.assertRaises(ValueError):
+                study.results_summary(rows, plan, self.store)
+
+    def test_all_unstarted_initial_admission_and_original_failed_prefix_remain_valid(self):
+        plan, rows = self.incomplete_fixture()
+        failed = study.results_summary(rows, plan, self.store)
+        self.assertEqual(failed["attempted_calls"], 2)
+        for row in rows:
+            row["status"] = "not_started"
+            for key in ("result", "observations", "wall_ns", "cpu_ns", "start_offset_ns",
+                        "end_offset_ns", "call_error", "audit_error"):
+                row[key] = None
+        initial = study.results_summary(rows, plan, self.store)
+        self.assertEqual(initial["status"], "INCOMPLETE")
+        self.assertEqual(initial["attempted_calls"], 0)
+        self.assertIsNone(initial["paired_ordinary_minus_ndu_wall_ns"]["sum_ns"])
+
+    def test_call_intervals_and_full_costs_fit_inside_outer_measurement(self):
+        _, rows = self.incomplete_fixture()
+        costs = {"all_attempted_call_wall_ns": 26,
+            "outer_wall_ns_to_summary_preparation": 26,
+            "admission_capture_export_audit_wall_ns": 0}
+        study.audit_measurement(rows, costs)  # Exact final boundary is inclusive.
+        for boundary in ("late-end", "overlap", "boolean-cost", "negative-cost", "omitted-cost"):
+            observed, accounting = deepcopy(rows), deepcopy(costs)
+            if boundary == "late-end":
+                for row in observed[:2]:
+                    row["start_offset_ns"] += 1
+                    row["end_offset_ns"] += 1
+            elif boundary == "overlap":
+                observed[1]["start_offset_ns"] -= 1
+                observed[1]["end_offset_ns"] -= 1
+            elif boundary == "boolean-cost":
+                accounting["admission_capture_export_audit_wall_ns"] = False
+            elif boundary == "negative-cost":
+                accounting["admission_capture_export_audit_wall_ns"] = -1
+            else:
+                del accounting["all_attempted_call_wall_ns"]
+            with self.subTest(boundary=boundary), self.assertRaises(ValueError):
+                study.audit_measurement(observed, accounting)
+
     def independent_incomplete_fixture(self):
         plan, rows = self.incomplete_fixture()
         objective = {"authored_fixture": True}
@@ -318,6 +373,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
                     args, rows, summary = self.independent_incomplete_fixture()
                     if last_status == "completed":
                         rows[0].update(start_offset_ns=5, end_offset_ns=14)
+                        rows[0]["audit_error"] = {"type": "AuthoredStopBoundary"}
                         rows[1].update(status="not_started", **{key: None for key in (
                             "result", "observations", "wall_ns", "cpu_ns", "start_offset_ns",
                             "end_offset_ns", "call_error", "audit_error")})

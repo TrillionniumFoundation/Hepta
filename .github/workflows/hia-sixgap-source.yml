@@ -94,6 +94,19 @@ jobs:
             --expected-source-sha256 2dd847d9df46392e4ef4b99c781b45f56c9841ae61127a260be6e8523f042845 \
             --output "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation" \
             2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-buffer-continuation.log"
+      - name: Qualify the current checked-in compiler through the borrowed-buffer lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          hia_current_compiler_sha=$(python -B -c 'from hashlib import sha256; from pathlib import Path; print(sha256(Path("examples/hia_bootstrap/selfhost.hiaasm").read_bytes()).hexdigest())')
+          python -B tools/qualify_hia_agent_buffer_lifecycle.py \
+            --compiler-source examples/hia_bootstrap/selfhost.hiaasm \
+            --expected-source-sha256 "$hia_current_compiler_sha" \
+            --output "$RUNNER_TEMP/hia-sixgap/agent-buffer-current-compiler" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-buffer-current-compiler.log"
       - name: Recheck the real original select delta and preserve strict rejection
         shell: bash
         run: |
@@ -137,6 +150,31 @@ jobs:
           assert report['same_core_substitution'] is False and report['strict_claims_weakened'] is False
           assert report['canonical_subjects']['original']['sha256'] != report['canonical_subjects']['candidate']['sha256']
           print('Strict refusal reproduced; original-delta proof/evaluation/adoption acceptance remains HOLD.')
+          PY
+      - name: Independently validate actual frozen select output fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B -m unittest tests.test_hia_original_select_fragments -v
+          python -B tools/qualify_hia_original_select_fragments.py \
+            --original "$RUNNER_TEMP/hia-sixgap/original-select-inputs/original-selfhost.hiaasm" \
+            --candidate "$RUNNER_TEMP/hia-sixgap/original-select-inputs/candidate-selfhost.hiaasm" \
+            --patch "$RUNNER_TEMP/hia-sixgap/original-select-inputs/fresh-select.patch" \
+            --output "$RUNNER_TEMP/hia-sixgap/original-select-fragments" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/original-select-fragments.log"
+          python -B - <<'PY'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap'
+          source = root / 'original-select-fragments'
+          manifest = sha256((source / 'artifact-manifest.json').read_bytes()).hexdigest()
+          subprocess.run([sys.executable, '-B', 'tools/replay_hia_original_select_fragments.py',
+              '--input', str(source), '--expected-manifest-sha256', manifest,
+              '--output', str(root / 'original-select-fragments-replay')], check=True)
           PY
       - name: Verify public scalar proof scope and receipt rejection
         shell: bash
@@ -205,7 +243,7 @@ jobs:
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_controller_controls')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not (result.wasSuccessful() and result.testsRun == 23 and not result.skipped
+          if not (result.wasSuccessful() and result.testsRun == 26 and not result.skipped
                   and not result.expectedFailures):
               raise SystemExit('all named scalar evidence tests must pass without skips')
           PY
@@ -320,6 +358,7 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-sixgap/
             !${{ runner.temp }}/hia-sixgap/agent-buffer-continuation/state/state.sqlite3*
+            !${{ runner.temp }}/hia-sixgap/agent-buffer-current-compiler/state/state.sqlite3*
             !${{ runner.temp }}/hia-sixgap/original-select-strict/state/state.sqlite3*
           if-no-files-found: error
           retention-days: 30

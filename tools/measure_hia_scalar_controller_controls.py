@@ -429,6 +429,24 @@ def results_summary(rows, plan, store):
     cases_by_id = {case["id"]: case for case in plan["cases"]}
     pairs = []
     require(len(rows) == 128, "all 128 scheduled calls must be accounted for")
+    # The executed calls must be one uninterrupted prefix of the frozen order.
+    # The runner stops after its first call/audit failure and never resumes a
+    # later pair. Checking each pair in isolation cannot establish that rule.
+    halted, unstarted, attempted = False, False, False
+    scheduled = [(entry, position, arm) for entry in plan["schedule"]
+                 for position, arm in enumerate(entry["order"], 1)]
+    require(len(rows) == len(scheduled), "scheduled call inventory differs")
+    for row, (entry, position, arm) in zip(rows, scheduled):
+        require(row["pair"] == entry["pair"] and row["arm"] == arm
+                and row["case_id"] == entry["case_id"] and row["position"] == position,
+                "cell schedule differs")
+        if row["status"] == "not_started":
+            require(not attempted or halted, "unstarted call lacks a preceding stop")
+            unstarted = True
+        else:
+            require(not halted and not unstarted, "call follows the frozen stop boundary")
+            attempted = True
+            halted = row["status"] == "failed" or row.get("audit_error") is not None
     for entry in plan["schedule"]:
         found = [row for row in rows if row["pair"] == entry["pair"]]
         require([row["arm"] for row in found] == entry["order"], "missing or reordered cell")
@@ -458,6 +476,25 @@ def results_summary(rows, plan, store):
         "incremental_decision_value_established": False, "stable_total_benefit_established": False,
         "economic_benefit_established": False, "global_full_cost_complete": False, "money": None,
         "model_calls": 0, "real_user_tasks": 0, "formal_mcp_calls": 0}
+
+
+def audit_measurement(rows, costs):
+    """Reconcile original call intervals inside the measured campaign window."""
+    fields = ("outer_wall_ns_to_summary_preparation", "all_attempted_call_wall_ns",
+              "admission_capture_export_audit_wall_ns")
+    require(all(type(costs.get(key)) is int and costs[key] >= 0 for key in fields),
+            "invalid outer cost accounting")
+    attempted = [row for row in rows if row["status"] != "not_started"]
+    outer = costs["outer_wall_ns_to_summary_preparation"]
+    require(all(type(row.get("start_offset_ns")) is int
+                and type(row.get("end_offset_ns")) is int
+                and 0 <= row["start_offset_ns"] <= row["end_offset_ns"] <= outer
+                for row in attempted), "call lies outside the measured campaign window")
+    require(all(a["end_offset_ns"] <= b["start_offset_ns"]
+                for a, b in zip(attempted, attempted[1:])), "call intervals overlap")
+    require(sum(row["wall_ns"] for row in attempted) == costs["all_attempted_call_wall_ns"]
+            and outer == costs["all_attempted_call_wall_ns"]
+                + costs["admission_capture_export_audit_wall_ns"], "outer cost accounting differs")
 
 
 def error_record(error):
@@ -581,6 +618,7 @@ def verify(args):
     require(sum(row["wall_ns"] for row in attempted) == costs["all_attempted_call_wall_ns"]
             and costs["outer_wall_ns_to_summary_preparation"] == costs["all_attempted_call_wall_ns"] + costs["admission_capture_export_audit_wall_ns"]
             and costs["admission_capture_export_audit_wall_ns"] >= 0, "outer cost accounting differs")
+    audit_measurement(rows, costs)
     objects = 0
     for path in (root / "objects").iterdir():
         require(HEX.fullmatch(path.name) and sha256(read_bytes(path)).hexdigest() == path.name, "stored object integrity failure")

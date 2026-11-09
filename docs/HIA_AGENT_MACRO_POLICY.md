@@ -21,6 +21,33 @@ produce a retained `BLOCKED` outcome; there is no ordinary-planner fallback
 labelled as NDU. The existing bridge is a scalar cost evaluator. This integration
 does not establish a new multiobjective, risk-sensitive or stochastic NDU model.
 
+An explicit `skip_dominated_native=True` option, also exposed as
+`--skip-dominated-native`, enables a caller stopping guard. Its default is false;
+existing native experiments and the macro campaign do not silently enable it.
+After the original state, ledger, cost, token, resource and Q32 checks, this guard
+asks whether any feasible supplied plan has a strictly smaller scalar cost than
+the incumbent. If none does, it recommends retaining the incumbent without
+opening or executing the native image. It never selects an alternative.
+The rule is confined to the existing single-cost-axis, zero-tolerance profile
+and its incumbent-first tie rule. A feasible improvement, including a zero-cost
+one, still uses the original native evaluator and final budget check.
+
+A skipped call retains its original request, a request-bound
+`native_dispatch_guard` receipt and its actual charged controller interval.
+`native_ndu_evaluated` remains false; native response, native identity and
+selection-resolution fields remain null. The configured image is **not
+validated or admitted** on that path, so an unusable image may remain
+undetected until a later native call. No bridge configuration, unknown costs,
+invalid input or exhausted original allowance still blocks. The guard also
+retains its own measured overruns and repeated-call costs. It does not prove
+that retaining the incumbent will deliver the task or fit the forecast budget.
+
+Skipping work that cannot change this scalar decision can reduce caller cost.
+It establishes neither native NDU execution nor an incremental NDU benefit over
+the ordinary exact scalar control. The existing comparison still requires its
+registered native evaluations and complete real-task/provider costs; it is not
+relaxed to count a skipped call as an NDU evaluation.
+
 ## Strong ordinary control and valid no-change outcomes
 
 `advise_ordinary` consumes the same frozen input, original lifecycle budget,

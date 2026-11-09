@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v14 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v16 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,8 +32,8 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v14"
-WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
+PROFILE = "selfhost-core-linux-x86_64-v16"
+WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
 CHECKED_ARITHMETIC = (*CHECKED_BINARY, "int.neg.checked")
@@ -141,18 +141,19 @@ def scalar_cases():
     for value in (False, True):
         add("boolean", "bool", "const", [], value)
         add("boolean", "bool", "bool.not", [value], not value)
-    for op in ("bool.and", "bool.or"):
+    for op in ("bool.and", "bool.or", "compare.eq", "compare.ne"):
         for a in (False, True):
             for b in (False, True):
-                add("boolean", "bool", op, [a, b], (a and b) if op == "bool.and" else (a or b))
-    for op in ("compare.eq", "compare.ne"):
-        for a in (False, True):
-            for b in (False, True):
-                add("boolean", "bool", op, [a, b], a == b if op == "compare.eq" else a != b)
+                value = {"bool.and": a and b, "bool.or": a or b,
+                         "compare.eq": a == b, "compare.ne": a != b}[op]
+                add("boolean", "bool", op, [a, b], value)
     for source, sw in WIDTHS.items():
         for target, tw in WIDTHS.items():
             for value in (0, 1, (1 << (sw - 1)) - 1, 1 << (sw - 1), (1 << sw) - 1):
                 add("cast", source, "int.cast", [value], value & ((1 << tw) - 1), target, "wrap")
+            width = min(sw, tw)
+            for value in (0, 1, (1 << (width - 1)) - 1, 1 << (width - 1), (1 << width) - 1):
+                add("checked-cast", source, "int.cast", [value], value, target, "checked")
     return rows
 
 
@@ -200,14 +201,15 @@ def scalar_fixture(group, rows, *, input_arguments=False):
     input_bytes = bytearray()
     for index, case in enumerate(rows):
         if input_arguments:
-            if case["opcode"] not in NEW_INTEGER or case["operand_type"] != rows[0]["operand_type"]:
-                raise ValueError("dynamic fixture needs one integer type and a new scalar operation")
+            if case["opcode"] not in (*NEW_INTEGER, "int.cast") or case["operand_type"] != rows[0]["operand_type"]:
+                raise ValueError("dynamic fixture needs one integer type and an integer operation or cast")
             args = []
             for value in case["arguments"]:
                 offset = a.const("usize", len(input_bytes))
                 args.append(a.emit(case["operand_type"], "call", ["v0", offset], {"function": "f3"}))
                 input_bytes.extend(value.to_bytes(WIDTHS[case["operand_type"]] // 8, "little"))
-            result = a.emit(case["result_type"], case["opcode"], args)
+            attrs = {"mode": case["mode"]} if "mode" in case else None
+            result = a.emit(case["result_type"], case["opcode"], args, attrs)
         else:
             result = a.result(case)
         if case["result_type"] == "bool":
@@ -417,6 +419,35 @@ def select_input_fixtures():
     return fixtures
 
 
+def boolean_equality_input_fixtures():
+    """Both equality operands change through input bytes in one program per op."""
+    fixtures = []
+    for opcode in ("compare.eq", "compare.ne"):
+        a = Assembly()
+        values = []
+        for offset in (0, 1):
+            index, zero = a.const("usize", offset), a.const("u8", 0)
+            byte = a.emit("u8", "buffer.load", ["v0", index])
+            values.append(a.emit("bool", "compare.ne", [byte, zero]))
+        condition = a.emit("bool", opcode, values)
+        one, zero = a.const("u32", 1), a.const("u32", 0)
+        result = a.emit("u32", "select", [condition, one, zero])
+        byte = a.emit("u8", "int.cast", [result], {"mode": "wrap"})
+        index = a.const("usize", 0)
+        a.effect("buffer.store", ["v1", index, byte])
+        source = (HEADER + a.text() + "  ret(" + result + ")\nend\n").encode()
+        for left in (False, True):
+            for right in (False, True):
+                expected = int((left == right) if opcode == "compare.eq" else (left != right))
+                fixtures.append({"id": "bool-equality-input-" + opcode + "-"
+                    + str(int(left)) + str(int(right)), "kind": "buffer", "source": source,
+                    "input": bytes([int(left), int(right)]), "capacity": 8, "workspace_size": 0,
+                    "expected_result": expected,
+                    "expected_output": bytes([expected]) + bytes([0xa5]) * 7,
+                    "case_ids": ["bool-" + opcode]})
+    return fixtures
+
+
 def positive_fixtures():
     rows = scalar_cases()
     groups = list(dict.fromkeys(row["group"] for row in rows))
@@ -428,7 +459,14 @@ def positive_fixtures():
         dynamic = [row for row in rows if row["operand_type"] == typ and row["opcode"] in NEW_INTEGER]
         fixtures += [scalar_fixture("dynamic-integer-" + typ + "-" + str(index // 16),
             dynamic[index:index + 16], input_arguments=True) for index in range(0, len(dynamic), 16)]
+        for target in WIDTHS:
+            casts = [row for row in rows if row["operand_type"] == typ
+                     and row["result_type"] == target and row.get("mode") == "checked"]
+            fixtures.append(scalar_fixture("dynamic-cast-" + typ + "-" + target,
+                                           casts, input_arguments=True))
+    fixtures += boolean_equality_input_fixtures()
     fixtures += select_input_fixtures()
+    fixtures += u16_flow_fixtures()
     from tools.hia_selfhost_bulk import OPS, bulk_cases, fixture_source, oracle
     for op in OPS:
         case = dict(next(row for row in bulk_cases() if row['opcode'] == op))
@@ -457,6 +495,9 @@ def positive_fixtures():
     spaced = simple_source().replace(b",", b" , ").replace(b" = ", b"   =   ")
     spaced = spaced.replace(b'{"value":7}', b'{ "value" : 7 }')
     fixtures.append(boundary_fixture("optional-ascii-spaces", spaced))
+    # Preserve the former valid-Core/profile refusal as an admitted witness.
+    fixtures.append(boundary_fixture("effect-trap-unused",
+        simple_source().replace(b"effects(read,write,trap)", b"effects(trap)")))
     # Distribute spaces across real lines: the independent assembly frontend
     # also has a 16 KiB per-line transport limit, separate from the 1 MiB source bound.
     lines = block_source([256] * 6).splitlines(keepends=True)
@@ -467,8 +508,42 @@ def positive_fixtures():
     return fixtures
 
 
+def u16_flow_fixtures():
+    """u16 is scalar even though its native type code follows owned types."""
+    repeated = (HEADER +
+        '  v3:u16 = const() {"value":65535}\n'
+        '  v4:u16 = call(v3,v3) {"function":"f1"}\n'
+        '  v5:u32 = int.cast(v4) {"mode":"wrap"}\n  ret(v5)\nend\n'
+        'fn f1(v0:u16,v1:u16) -> (u16) effects(read,write,trap) entry(b0)\n'
+        'block b0(v0:u16,v1:u16)\n  v2:bool = compare.eq(v0,v1)\n'
+        '  branch v2 b1(v0,v0) b1(v0,v1)\n'
+        'block b1(v3:u16,v4:u16)\n'
+        '  v5:u16 = int.add.wrap(v3,v4)\n  ret(v5)\nend\n').encode()
+    tail = (HEADER +
+        '  v3:u16 = const() {"value":65535}\n'
+        '  v4:u16 = const() {"value":32768}\n'
+        '  v5:u16 = const() {"value":4}\n'
+        '  v6:u16 = call(v3,v4,v5) {"function":"f1"}\n'
+        '  v7:u32 = int.cast(v6) {"mode":"wrap"}\n  ret(v7)\nend\n'
+        'fn f1(v0:u16,v1:u16,v2:u16) -> (u16) effects(read,write,trap) entry(b0)\n'
+        'block b0(v0:u16,v1:u16,v2:u16)\n'
+        '  v3:u16 = const() {"value":0}\n'
+        '  v4:bool = compare.eq(v2,v3)\n'
+        '  branch v4 b1(v0,v1) b2(v0,v1,v2)\n'
+        'block b1(v5:u16,v6:u16)\n'
+        '  v7:u16 = int.add.wrap(v5,v6)\n  ret(v7)\n'
+        'block b2(v8:u16,v9:u16,v10:u16)\n'
+        '  v11:u16 = const() {"value":1}\n'
+        '  v12:u16 = int.sub.checked(v10,v11)\n'
+        '  v13:u16 = int.add.wrap(v8,v9)\n'
+        '  v14:u16 = call(v9,v13,v12) {"function":"f1"}\n'
+        '  ret(v14)\nend\n').encode()
+    return [boundary_fixture("u16-repeated-call-and-edge", repeated, 65534),
+            boundary_fixture("u16-tail-call-swap-and-wrap", tail, 65531)]
+
+
 def rejected_fixtures():
-    """A rejected Core program is distinct from valid Core outside v8."""
+    """Invalid Core is distinct from valid Core outside the bounded profile."""
     from tools.qualify_hia_selfhost import SAMPLE, invalid_sources
     from tools.hia_selfhost_cases import (backward_chain_source, scalar_function,
                                          call_graph_invalid_sources, recursion_refusals)
@@ -524,13 +599,12 @@ def rejected_fixtures():
         ("ssa-index-2048", simple_source(variable=2048), "maximum SSA index 2047"),
         ("noncontiguous-function", seed.replace(b"fn f0(", b"fn f1(", 1), "contiguous function numbers"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
-        ("unsupported-scalar-u16", seed.replace(b"v3:u32", b"v3:u16").replace(b"-> (u32)", b"-> (u16)"), "supported scalar types and entry return"),
-        ("unsupported-effect-combination", seed.replace(b"effects(read,write,trap)", b"effects(trap)"), "fixed declared effects"),
+        ("unsupported-scalar-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "supported scalar types and entry return"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
         ("unsupported-arbitrary-function-name", seed.replace(b"f0(", b"named("), "numeric function identifiers"),
         ("tab-whitespace", seed.replace(b"  v3", b"\tv3"), "ASCII space and LF only"),
         ("crlf-whitespace", seed.replace(b"\n", b"\r\n"), "ASCII space and LF only"),
-        ("checked-cast-mode", parameter_source(1).replace(b'"mode":"wrap"', b'"mode":"checked"'), "wrap integer casts only"),
+        ("unknown-cast-mode", parameter_source(1).replace(b'"mode":"wrap"', b'"mode":"truncate"'), "closed checked/wrap cast modes"),
         ("inbound-entry-edge", (HEADER + "  jump b0(v0,v1,v2)\nend\n").encode(), "no inbound entry edges"),
         ("bool-as-integer", (HEADER + '  v3:bool = const() {"value":true}\n'
             '  v4:bool = int.add.wrap(v3,v3)\n  v5:u32 = const() {"value":0}\n  ret(v5)\nend\n').encode(),
@@ -550,6 +624,46 @@ def rejected_fixtures():
     )
     for name, source, boundary in additions:
         add(name, source, boundary)
+    equality = (HEADER + '  v3:bool = const() {"value":true}\n'
+        '  v4:bool = const() {"value":false}\n  v5:bool = compare.eq(v3,v4)\n'
+        '  v6:u32 = const() {"value":0}\n  ret(v6)\nend\n').encode()
+    for opcode in ("compare.lt", "compare.le", "compare.gt", "compare.ge"):
+        add("boolean-ordering-" + opcode, equality.replace(b"compare.eq", opcode.encode()),
+            "booleans support equality but not integer ordering", "rejected")
+    for label, source in {
+        "left-integer": equality.replace(b'v3:bool = const() {"value":true}',
+                                         b'v3:u8 = const() {"value":1}'),
+        "right-integer": equality.replace(b'v4:bool = const() {"value":false}',
+                                          b'v4:u8 = const() {"value":0}'),
+        "resource-operands": equality.replace(b"compare.eq(v3,v4)", b"compare.eq(v0,v0)"),
+        "integer-result": equality.replace(b"v5:bool =", b"v5:u8 ="),
+    }.items():
+        add("boolean-equality-" + label, source, "matching equality scalar types and bool result", "rejected")
+    cast = (HEADER + '  v3:u32 = const() {"value":1}\n'
+        '  v4:u8 = int.cast(v3) {"mode":"checked"}\n'
+        '  v5:u32 = const() {"value":0}\n  ret(v5)\nend\n').encode()
+    for label, source in {
+        "boolean-input": cast.replace(b'v3:u32 = const() {"value":1}',
+                                       b'v3:bool = const() {"value":true}'),
+        "boolean-result": cast.replace(b"v4:u8 =", b"v4:bool ="),
+        "resource-input": cast.replace(b"int.cast(v3)", b"int.cast(v0)"),
+        "short-arity": cast.replace(b"int.cast(v3)", b"int.cast()"),
+        "long-arity": cast.replace(b"int.cast(v3)", b"int.cast(v3,v3)"),
+        "discarded-result": cast.replace(b"v4:u8 =", b"_ ="),
+        "unquoted-mode": cast.replace(b'"checked"', b"checked"),
+    }.items():
+        add("checked-cast-" + label, source, "one integer operand/result and quoted checked mode", "rejected")
+    scalar_resource_prefix = HEADER.replace("v8 selfhost\n", "v8 selfhost_elf\n").replace(
+        "effects(read,write,trap)", "effects(alloc,read,write,trap)")
+    for name, instruction in (
+            ("owner-drop", "_ = owner.drop(v3)"),
+            ("owner-move", "v4:u16 = owner.move(v3)"),
+            ("loan-end", "_ = loan.end(v3)"),
+            ("borrow-read", "v4:readbuf = borrow.read(v3)"),
+            ("buffer-length", "v4:usize = buffer.len(v3)")):
+        source = (scalar_resource_prefix + '  v3:u16 = const() {"value":65535}\n'
+            + "  " + instruction + '\n  v5:u32 = const() {"value":0}\n  ret(v5)\nend\n').encode()
+        add("u16-not-resource-" + name, source, "u16 is neither owner nor loan", "rejected")
     for op in NEW_INTEGER:
         arguments = "v3" if op in UNARY_INTEGER else "v3,v4"
         valid = (HEADER + '  v3:u32 = const() {"value":1}\n'
@@ -630,6 +744,43 @@ def checked_arithmetic_trap_cases():
     return rows
 
 
+def checked_cast_trap_cases():
+    """Narrowing overflow depends on input bytes, with both visible write orders."""
+    rows = []
+    for source_type, source_width in WIDTHS.items():
+        for target_type, target_width in WIDTHS.items():
+            if source_width <= target_width:
+                continue
+            for index, value in enumerate((1 << target_width, (1 << source_width) - 1)):
+                for prior_store in (False, True):
+                    a = Assembly()
+                    before, after = a.const("u8", 99), a.const("u8", 77)
+                    first, second = a.const("usize", 0), a.const("usize", 1)
+                    if prior_store:
+                        a.effect("buffer.store", ["v1", first, before])
+                    operand = a.const(source_type, 0)
+                    for byte in range(source_width // 8):
+                        offset = a.const("usize", byte)
+                        part = a.emit("u8", "buffer.load", ["v0", offset])
+                        part = a.emit(source_type, "int.cast", [part], {"mode": "wrap"})
+                        amount = a.const(source_type, byte * 8)
+                        part = a.emit(source_type, "int.shl.checked", [part, amount])
+                        operand = a.emit(source_type, "bit.or", [operand, part])
+                    result = a.emit(target_type, "int.cast", [operand], {"mode": "checked"})
+                    a.effect("buffer.store", ["v1", second, after])
+                    result = a.emit("u32", "int.cast", [result], {"mode": "wrap"})
+                    source = (HEADER + a.text() + "  ret(" + result + ")\nend\n").encode()
+                    case = {"operand_type": source_type, "result_type": target_type,
+                            "opcode": "int.cast", "mode": "checked", "arguments": [value]}
+                    rows.append({**case, "id": "checked-cast-trap-" + source_type + "-" + target_type
+                        + "-" + str(index) + ("-prior-store" if prior_store else "-no-prior-store"),
+                        "kind": "checked_cast", "prior_store": prior_store, "source": source,
+                        "input": value.to_bytes(source_width // 8, "little"),
+                        "reference_source": scalar_reference_source(case),
+                        "expected_output": bytes([99 if prior_store else 0xa5]) + bytes([0xa5]) * 7})
+    return rows
+
+
 def independent_references():
     """Run Core VM before B0 and preserve its disagreement with any oracle."""
     from hepta.hia_agent_assembly import assemble_program
@@ -683,9 +834,9 @@ def independent_references():
                          {"source_sha256": digest(fixture["source"]), "source_bytes": len(fixture["source"]),
                           "reference_result": result})
     traps = []
-    for fixture in shift_trap_cases() + checked_arithmetic_trap_cases():
+    for fixture in shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases():
         checked = assemble_program(fixture["source"])
-        if fixture["kind"] == "checked_arithmetic":
+        if fixture["kind"] in {"checked_arithmetic", "checked_cast"}:
             scalar_doc = assemble_program(fixture["reference_source"]).as_dict()
         else:
             scalar_doc = checked.as_dict()
@@ -701,6 +852,7 @@ def independent_references():
         traps.append({key: value for key, value in fixture.items() if not isinstance(value, bytes)} |
                      {"core_sha256": checked.sha256, "source_sha256": digest(fixture["source"]),
                       "arithmetic_reference_source": fixture.get("reference_source", b"").decode(),
+                      "runtime_input_hex": fixture.get("input", b"").hex(),
                       "expected_native_output_hex": fixture["expected_output"].hex(),
                       "memory_ordering_reference": "native shared output directly observes prior store and absence of later store",
                       "reference_result": result})
@@ -725,14 +877,17 @@ def coverage_manifest():
     if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES)):
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
-        "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast"]),
+        "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast", "checked-cast"]),
         "resources": (["args", "edge", "operation", "bulk_buffer", "bulk_range_guard",
                        "loan_operation", "loan_access", "loan_incoming", "loan_transfer"],
                       ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*", "loan-*"]),
-        "integer_operations": (["instruction", "operation", "checked_integer", "select_scalar", "normalize"],
+        "integer_operations": (["instruction", "operation", "checked_integer", "cast_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
+             "checked-cast*", "dynamic-cast-*", "bool-equality-input-*", "boolean-equality-*", "boolean-ordering-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
         "control_flow": (["parse_block", "edge", "check_graph"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
+        "effects": (["parse_effects", "require_effects", "instruction_effects", "instruction"],
+                    ["declaration-*", "call-*-missing-*", "*-missing-*", "malformed-*", "int.cast-*"]),
         "calls": (["instruction", "args", "check_calls", "copy_argument"], ["parameters-16", "parameters-17", "call-*"]),
         "recursion": (["instruction", "parse_block", "check_calls"], ["recursion-*", "tail-*"]),
         "owned_resources": (["read_type", "owned_read_outputs", "owned_instruction",
@@ -752,6 +907,7 @@ def coverage_manifest():
                       "tools.hia_selfhost_loans.qualify_loans",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],
+        "effects": ["tools.hia_selfhost_effects.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
         "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],
         "owned_resources": ["tools.qualify_hia_selfhost_owned_elf.qualify",
@@ -840,6 +996,8 @@ def coverage_manifest():
             "count": len(row_cases), "groups": {group: sum(row["group"] == group for row in row_cases)
                 for group in dict.fromkeys(row["group"] for row in row_cases)},
             "unsigned_widths": WIDTHS, "wrap_cast_pairs": [[a, b] for a in WIDTHS for b in WIDTHS],
+            "checked_cast_pairs": [[a, b] for a in WIDTHS for b in WIDTHS],
+            "boolean_equality": ["compare.eq", "compare.ne"],
             "boolean_inputs": [[a, b] for a in (False, True) for b in (False, True)],
             "specification_sha256": digest(canonical(row_cases)),
             "observation": "eight little-endian output bytes per scalar result, including all 64 bits",
@@ -854,6 +1012,11 @@ def coverage_manifest():
             "arguments": row["arguments"], "prior_store": row["prior_store"],
             "expected_native_output_hex": row["expected_output"].hex(),
             "source_sha256": digest(row["source"])} for row in checked_arithmetic_trap_cases()],
+        "checked_cast_traps": [{"id": row["id"], "source_type": row["operand_type"],
+            "target_type": row["result_type"], "arguments": row["arguments"],
+            "prior_store": row["prior_store"], "runtime_input_hex": row["input"].hex(),
+            "expected_native_output_hex": row["expected_output"].hex(),
+            "source_sha256": digest(row["source"])} for row in checked_cast_trap_cases()],
         "bootstrap": {"required": contract["required_replay"],
                       "dependency_closure": "support source_identity includes this test and this inventory; B0 receipt records actual loaded seed modules",
                       "successors": "stdlib-only disposable child; all input translation is executed HIA",
@@ -945,7 +1108,7 @@ def qualify_language(output):
         checks["source_bound_before_execution"] = contract["profile"] == PROFILE
         positive = positive_fixtures()
         negative = rejected_fixtures()
-        traps = shift_trap_cases() + checked_arithmetic_trap_cases()
+        traps = shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases()
         for label, compiler in (("B3", b3), ("M3", m3)):
             for fixture in positive:
                 name = label + "-" + fixture["id"]
@@ -975,7 +1138,7 @@ def qualify_language(output):
             for fixture in traps:
                 name = label + "-" + fixture["id"]
                 image, build = compile_stage(directory, name + "-build", compiler, fixture["source"])
-                result, observed = invoke(directory, name, image, b"", capacity=8, workspace_size=0,
+                result, observed = invoke(directory, name, image, fixture.get("input", b""), capacity=8, workspace_size=0,
                                            observe_trap_writes=True)
                 good = (result.get("status") == "child_failed" and result.get("returncode") == -4
                     and result.get("shared_output_observation", {}).get("available")
@@ -983,6 +1146,9 @@ def qualify_language(output):
                 checks[name] = bool(good)
                 report["traps"].append({"compiler": label, "id": fixture["id"], "kind": fixture["kind"],
                                         "prior_store": fixture.get("prior_store", False),
+                                        "operand_type": fixture["operand_type"],
+                                        "result_type": fixture.get("result_type"),
+                                        "runtime_input_hex": fixture.get("input", b"").hex(),
                                         "expected_output_hex": fixture["expected_output"].hex(),
                                         "observed_output_hex": observed.hex(),
                                         "build": build, "execution": result})
@@ -991,6 +1157,7 @@ def qualify_language(output):
             "positive_programs_per_compiler": len(positive),
             "rejections_per_compiler": len(negative), "shift_traps_per_compiler": len(shift_trap_cases()),
             "checked_arithmetic_traps_per_compiler": len(checked_arithmetic_trap_cases()),
+            "checked_cast_traps_per_compiler": len(checked_cast_trap_cases()),
             "traps_per_compiler": len(traps),
             "compilers": 2, "checks_total": len(checks), "checks_passed": sum(checks.values())}
         report["status"] = "SELFHOST_LANGUAGE_COVERAGE_PASS" if all(checks.values()) else "FAIL"
@@ -1032,7 +1199,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_select_covers_each_scalar_type_and_changing_inputs(self):
         rows = [row for row in scalar_cases() if row["opcode"] == "select"]
-        self.assertEqual(len(rows), 40)
+        self.assertEqual(len(rows), 48)
         for typ in (*WIDTHS, "bool"):
             selected = [row for row in rows if row["operand_type"] == typ]
             self.assertEqual(len(selected), 8)
@@ -1040,7 +1207,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertEqual({tuple(row["arguments"]) for row in rows if row["operand_type"] == "bool"},
                          {(c, a, b) for c in (False, True) for a in (False, True) for b in (False, True)})
         fixtures = select_input_fixtures()
-        self.assertEqual(len(fixtures), 28)
+        self.assertEqual(len(fixtures), 33)
         for typ in (*WIDTHS, "bool"):
             selected = [row for row in fixtures if row["id"].startswith("select-input-" + typ + "-")]
             self.assertEqual(len({row["source"] for row in selected}), 1)
@@ -1050,7 +1217,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles(self):
         reference = independent_references()
         # Includes all unsigned scalar operations, full-width and zero divisors.
-        self.assertEqual(len(reference["scalar"]), 832)
+        self.assertEqual(len(reference["scalar"]), 1183)
         self.assertTrue(all(row["reference_result"]["status"] == "trapped" for row in reference["traps"]))
         self.assertTrue(any(row["reference_result"]["status"] == "accepted" for row in reference["negative"]))
         self.assertTrue(any(row["reference_result"]["status"] == "rejected" for row in reference["negative"]))
@@ -1105,7 +1272,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_checked_arithmetic_covers_width_boundaries_and_both_write_orders(self):
         rows = checked_arithmetic_trap_cases()
-        self.assertEqual(len(rows), 120)
+        self.assertEqual(len(rows), 150)
         for typ, width in WIDTHS.items():
             for op in CHECKED_ARITHMETIC:
                 cases = [row for row in rows if row["operand_type"] == typ and row["opcode"] == op]
@@ -1122,6 +1289,46 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
                             "int.neg.checked": lambda: -args[0]}[op]()
                         self.assertFalse(0 <= result < (1 << width))
                     self.assertEqual(row["expected_output"][1:], bytes([0xa5]) * 7)
+
+    def test_checked_casts_cover_all_pairs_and_narrowing_overflow_with_runtime_inputs(self):
+        cases = [row for row in scalar_cases() if row.get("mode") == "checked"]
+        self.assertEqual(len(cases), 125)
+        self.assertEqual({(row["operand_type"], row["result_type"]) for row in cases},
+                         {(source, target) for source in WIDTHS for target in WIDTHS})
+        for source in WIDTHS:
+            for target in WIDTHS:
+                pair = [row for row in cases if (row["operand_type"], row["result_type"]) == (source, target)]
+                self.assertEqual(max(row["expected"] for row in pair),
+                                 (1 << min(WIDTHS[source], WIDTHS[target])) - 1)
+        fixtures = [row for row in positive_fixtures() if row["id"].startswith("dynamic-cast-")]
+        self.assertEqual(len(fixtures), 25)
+        self.assertTrue(all(row["input_arguments"] and row["input"] for row in fixtures))
+        traps = checked_cast_trap_cases()
+        self.assertEqual(len(traps), 36)
+        for row in traps:
+            self.assertGreaterEqual(row["arguments"][0], 1 << WIDTHS[row["result_type"]])
+            self.assertEqual(int.from_bytes(row["input"], "little"), row["arguments"][0])
+        for source in WIDTHS:
+            for target in WIDTHS:
+                if WIDTHS[source] > WIDTHS[target]:
+                    pair = [row for row in traps if (row["operand_type"], row["result_type"]) == (source, target)]
+                    self.assertEqual(len(pair), 4)
+                    self.assertEqual({row["prior_store"] for row in pair}, {False, True})
+                    for prior in (False, True):
+                        same_program = [row for row in pair if row["prior_store"] == prior]
+                        self.assertEqual(len({row["source"] for row in same_program}), 1)
+                        self.assertEqual(len({row["input"] for row in same_program}), 2)
+
+    def test_boolean_equality_has_the_full_truth_table_and_input_dependent_programs(self):
+        for opcode in ("compare.eq", "compare.ne"):
+            rows = [row for row in scalar_cases() if row["operand_type"] == "bool" and row["opcode"] == opcode]
+            self.assertEqual({tuple(row["arguments"]) for row in rows},
+                             {(left, right) for left in (False, True) for right in (False, True)})
+            fixtures = [row for row in boolean_equality_input_fixtures() if opcode in row["id"]]
+            self.assertEqual(len(fixtures), 4)
+            self.assertEqual(len({row["source"] for row in fixtures}), 1)
+            self.assertEqual(len({row["input"] for row in fixtures}), 4)
+            self.assertEqual({row["expected_result"] for row in fixtures}, {0, 1})
 
     def test_language_inventory_does_not_claim_unavailable_whole_v8_or_formal_proof(self):
         manifest = coverage_manifest()
@@ -1162,7 +1369,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        self.assertEqual(self.report["reference"]["scalar_cases"], 832)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 1183)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])
@@ -1170,14 +1377,14 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
 
     def test_invalid_checked_shifts_trap_with_native_output_preserved(self):
         rows = [row for row in self.report["traps"] if row["kind"] == "shift"]
-        self.assertEqual(len(rows), 32)
+        self.assertEqual(len(rows), 40)
         for row in rows:
             self.assertEqual(row["execution"]["returncode"], -4)
             self.assertTrue(row["execution"]["shared_output_observation"]["unchanged"])
 
     def test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes(self):
         rows = [row for row in self.report["traps"] if row["kind"] == "checked_arithmetic"]
-        self.assertEqual(len(rows), 240)
+        self.assertEqual(len(rows), 300)
         for row in rows:
             self.assertEqual(row["execution"]["returncode"], -4)
             self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
@@ -1202,6 +1409,34 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
                     self.assertGreater(row["execution"]["input_bytes"], 0)
                     self.assertEqual(row["observed_output_sha256"], row["expected_output_sha256"])
 
+    def test_checked_casts_read_runtime_values_and_preserve_trap_write_order(self):
+        for compiler in ("B3", "M3"):
+            rows = [row for row in self.report["positive"] if row["compiler"] == compiler
+                    and row["id"].startswith("dynamic-cast-")]
+            self.assertEqual(len(rows), 25)
+            self.assertEqual({row["id"] for row in rows},
+                             {"dynamic-cast-" + source + "-" + target for source in WIDTHS for target in WIDTHS})
+            for row in rows:
+                self.assertGreater(row["execution"]["input_bytes"], 0)
+                self.assertEqual(row["observed_output_sha256"], row["expected_output_sha256"])
+            traps = [row for row in self.report["traps"] if row["compiler"] == compiler and row["kind"] == "checked_cast"]
+            self.assertEqual(len(traps), 36)
+            self.assertEqual({row["prior_store"] for row in traps}, {False, True})
+            for row in traps:
+                self.assertTrue(row["runtime_input_hex"])
+                self.assertEqual(row["execution"]["returncode"], -4)
+                self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
+
+    def test_boolean_equality_reads_all_truth_table_inputs(self):
+        for compiler in ("B3", "M3"):
+            for opcode in ("compare.eq", "compare.ne"):
+                rows = [row for row in self.report["positive"] if row["compiler"] == compiler
+                        and row["id"].startswith("bool-equality-input-" + opcode + "-")]
+                self.assertEqual(len(rows), 4)
+                for row in rows:
+                    self.assertEqual(row["execution"]["input_bytes"], 2)
+                    self.assertEqual(row["observed_output_sha256"], row["expected_output_sha256"])
+
     def test_all_generations_and_raw_evidence_are_retained(self):
         directory = self.output.with_suffix(".evidence")
         for generation in ("B1", "B2", "B3", "M1", "M2", "M3"):
@@ -1210,6 +1445,37 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
             self.assertTrue((directory / (generation + ".stderr.log")).is_file())
         self.assertTrue((directory / "B0.receipt.json").is_file())
         self.assertTrue((directory / "independent-reference.json").is_file())
+
+
+def check_native_report_assertions(report, output):
+    """Run native unittest assertions on this invocation's actual report.
+
+    Reuse the complete native qualification just performed by the CLI, without
+    omitting the existing assertions or building a second compiler chain.
+    This does not admit external reports or add native observations.
+    """
+    class CurrentInvocationAssertions(SelfhostLanguageNativeTests):
+        @classmethod
+        def setUpClass(cls):
+            cls.temporary = None
+            cls.output = output
+            cls.report = report
+
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(CurrentInvocationAssertions)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    complete = (result.testsRun == 10 and result.wasSuccessful() and not result.skipped
+                and not result.expectedFailures and not result.unexpectedSuccesses)
+    write_json(output.with_suffix(".assertions.json"), {
+        "schema": "hepta.hia.selfhost-language-native-assertions.v1",
+        "report_sha256": digest(output.read_bytes()),
+        "tests_run": result.testsRun,
+        "passed": complete,
+        "failures": [{"test": test.id(), "detail": detail} for test, detail in result.failures],
+        "errors": [{"test": test.id(), "detail": detail} for test, detail in result.errors],
+        "skipped": [{"test": test.id(), "reason": reason} for test, reason in result.skipped],
+        "additional_native_execution": False,
+    })
+    return complete
 
 
 def main():
@@ -1225,9 +1491,11 @@ def main():
     if args.output is None:
         parser.error("--output is required for retained native qualification")
     result = qualify_language(args.output)
+    assertions_passed = (result["status"] == "SELFHOST_LANGUAGE_COVERAGE_PASS"
+                         and check_native_report_assertions(result, args.output))
     print(json.dumps({"status": result["status"], "output": str(args.output),
                       "counts": result.get("counts"), "error": result.get("error")}, sort_keys=True))
-    raise SystemExit(0 if result["status"] == "SELFHOST_LANGUAGE_COVERAGE_PASS" else 1)
+    raise SystemExit(0 if assertions_passed else 1)
 
 
 if __name__ == "__main__":

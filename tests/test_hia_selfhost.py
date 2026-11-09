@@ -30,8 +30,8 @@ class SelfhostSourceTests(unittest.TestCase):
                   "checks": {family + "-" + label: True}}, {})
                 for family in QUALIFICATION_FAMILIES for label in ("original", "modified")]
         checks = {"generation_chain": True}
-        self.assertEqual(len(_merge_qualification_phases(rows, checks)), 20)
-        self.assertEqual(len(checks), 21)
+        self.assertEqual(len(_merge_qualification_phases(rows, checks)), 2 * len(QUALIFICATION_FAMILIES))
+        self.assertEqual(len(checks), 2 * len(QUALIFICATION_FAMILIES) + 1)
         variants = [rows[:-1], [*rows[:-1], rows[0]]]
         for mutation in ("nonboolean", "overwritten", "empty", "inconsistent-status"):
             broken = deepcopy(rows)
@@ -159,6 +159,33 @@ class SelfhostSourceTests(unittest.TestCase):
         self.assertLessEqual(max(map(int, re.findall(rb"\bv(\d+)", source))), 2047)
         self.assertLessEqual(max(len(b["params"]) for f in doc["functions"] for b in f["blocks"]), 16)
 
+    def test_native_effect_table_matches_independent_core_instruction_contract(self):
+        from hepta.hia_opcodes import OPCODES
+        from tools.generate_hia_selfhost import WORDS
+        from tools.hia_selfhost_effects import EFFECT_BITS, OPERATION_EFFECTS
+        for word in set(WORDS) & OPCODES.keys():
+            # int.cast adds its trap condition when checked mode is parsed;
+            # calls use complete retained callee declarations.
+            expected = sum(EFFECT_BITS[effect] for effect in OPCODES[word].effects)
+            self.assertEqual(OPERATION_EFFECTS.get(word, 0), expected, word)
+
+    def test_effect_witnesses_compare_all_declarations_and_refusals_with_general_core(self):
+        from tools.hia_selfhost_effects import independent_reference
+        reference = independent_reference()
+        declarations = [row for row in reference["cases"] if row["id"].startswith("declaration-")]
+        self.assertEqual(len(declarations), 65)
+        self.assertEqual(len({frozenset(row["effects"]) for row in declarations}), 16)
+        self.assertEqual(len(reference["cases"]), 101)
+        self.assertEqual(len(reference["native_case_ids"]), 52)
+        batch = next(row for row in reference["cases"] if row["id"] == "all-declaration-permutations-called")
+        self.assertEqual(batch["expected_result"], 455)
+        self.assertEqual(set(batch["declaration_case_ids"]), {row["id"] for row in declarations})
+        self.assertEqual(len(reference["refusals"]), 64)
+        for row in reference["refusals"]:
+            if not row["id"].startswith("malformed-"):
+                self.assertEqual(row["code"], "E_HIA_EFFECT", row)
+        self.assertFalse(reference["all_input_correctness_proved"])
+
     def test_compiler_itself_fits_declared_per_function_block_and_ssa_limits(self):
         # General Core accepts larger functions than this native input profile.
         # Total instruction/block counts alone do not make its own source admissible.
@@ -249,10 +276,10 @@ class SelfhostSourceTests(unittest.TestCase):
     def test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures(self):
         from tools.hia_selfhost_select import independent_select_reference
         result = independent_select_reference()
-        self.assertEqual(len(result["cases"]), 64)
+        self.assertEqual(len(result["cases"]), 78)
         self.assertEqual(len(result["rejections"]), 13)
-        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u32", "u64", "usize", "bool"})
-        for typ in ("u8", "u32", "u64", "usize", "bool"):
+        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u16", "u32", "u64", "usize", "bool"})
+        for typ in ("u8", "u16", "u32", "u64", "usize", "bool"):
             self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
 
     def test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals(self):
@@ -333,8 +360,9 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertEqual(scheduling["maximum_host_oracle_workers"], 2)
         self.assertTrue(scheduling["fresh_seed_and_generation_chain_sequential"])
         self.assertFalse(scheduling["native_child_processes_reused"])
-        self.assertEqual(len(scheduling["phase_inventory"]), 20)
-        self.assertEqual(len(scheduling["phases"]), 20)
+        from tools.qualify_hia_selfhost import QUALIFICATION_FAMILIES
+        self.assertEqual(len(scheduling["phase_inventory"]), 2 * len(QUALIFICATION_FAMILIES))
+        self.assertEqual(len(scheduling["phases"]), 2 * len(QUALIFICATION_FAMILIES))
         intervals = []
         for phase in scheduling["phases"]:
             self.assertEqual(phase["returncode"], 0)
@@ -364,6 +392,16 @@ class SelfhostNativeTests(unittest.TestCase):
             observed = row.get("build", row)
             self.assertEqual(observed["limits"]["cpu_seconds"], 10)
             self.assertEqual(observed["limits"]["workspace_bytes"], 1048576)
+
+    def test_native_effect_contracts_match_core_for_original_and_mutated_compilers(self):
+        selected = {name: value for name, value in self.report["checks"].items()
+                    if name.startswith(("original-effect-contract-", "modified-effect-contract-"))}
+        self.assertEqual(len(selected), 232)
+        self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
+        reference = self.report["independent_effect_reference"]
+        self.assertEqual(len(reference["cases"]), 101)
+        self.assertEqual(len(reference["native_case_ids"]), 52)
+        self.assertEqual(len(reference["refusals"]), 64)
 
     def test_native_capacity_boundary_and_original_modified_node_accounting(self):
         from tools.hia_selfhost_capacity import count_nodes
@@ -559,11 +597,11 @@ class SelfhostNativeTests(unittest.TestCase):
         rows = self.report["select_observations"]
         for compiler in ("original", "modified"):
             cases = [row for row in rows if row["case"].startswith(compiler + "-select-") and "-case-" in row["case"]]
-            self.assertEqual(len(cases), 64)
+            self.assertEqual(len(cases), 78)
             for row in cases:
                 self.assertTrue(self.report["checks"][row["case"]], row)
                 self.assertEqual(row["core_u32"], int(row["expected"]) & 0xffffffff)
-            for typ in ("u8", "u32", "u64", "usize", "bool"):
+            for typ in ("u8", "u16", "u32", "u64", "usize", "bool"):
                 chosen = [row for row in cases if row["type"] == typ]
                 self.assertEqual({row["condition"] for row in chosen}, {False, True})
                 self.assertGreater(len({row["input_sha256"] for row in chosen}), 1)

@@ -20,6 +20,23 @@ from tools import core_seven_part04_capture as collector
 from tools import check_core_syntax_staged as base
 
 
+class _ElapsedTimeoutClock:
+    """Anchor the accelerated interval to the collector's first clock read."""
+    def __init__(self,*,monotonic=time.monotonic):
+        self.real_monotonic=monotonic
+        self.origin=None
+
+    def monotonic(self):
+        now=self.real_monotonic()
+        if self.origin is None:self.origin=now
+        elapsed=now-self.origin
+        # Delay before the collector samples its start is outside the process
+        # interval. Cleanup retains its separate, unaccelerated real-time rate.
+        process=min(elapsed*100,collector.PROCESS_SECONDS)
+        cleanup=max(0,elapsed-collector.PROCESS_SECONDS/100)
+        return self.origin+process+cleanup
+
+
 class _MarkerTimeoutClock:
     """Fixture-only deadline after persisted markers, with a finite ready guard."""
     def __init__(self,markers,*,monotonic=time.monotonic,ready_seconds=5):
@@ -54,7 +71,10 @@ class Part04RunnerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.prepared,cls.previous,cls.proposal,cls.diagnostic=fixture()
 
-    def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0):
+    def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0,
+                 timeout_mode='checkpoint',timeout_ready_seconds=5):
+        if timeout_mode not in ('checkpoint','elapsed'):
+            raise ValueError('unknown timeout fixture mode')
         with tempfile.TemporaryDirectory() as folder,ExitStack() as stack:
             stack.enter_context(patch.object(runner,'_git_baseline',return_value=dict(head='a'*40,tree='b'*40)))
             home=Path(folder);exe=home/'pinned/bin/lean';exe.parent.mkdir(parents=True)
@@ -124,8 +144,8 @@ class Part04RunnerTests(unittest.TestCase):
                 with ExitStack() as capture_stack:
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
-                    if behavior=='target_timeout':
-                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'])
+                    if behavior=='target_timeout' and timeout_mode=='checkpoint':
+                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'],ready_seconds=timeout_ready_seconds)
                         self.timeout_clock=clock
                         real_append=collector._Sink.append
                         def append(sink,name,data,terminal=False):
@@ -134,6 +154,9 @@ class Part04RunnerTests(unittest.TestCase):
                             # this event batch before the clock may expire.
                             clock.after_append(name,data)
                         capture_stack.enter_context(patch.object(collector._Sink,'append',append))
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock.monotonic)))
+                    elif behavior=='target_timeout':
+                        clock=_ElapsedTimeoutClock()
                         capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock.monotonic)))
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
                 if behavior=='malformed_terminal':

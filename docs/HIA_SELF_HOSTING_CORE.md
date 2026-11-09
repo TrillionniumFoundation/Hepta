@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v14`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v16`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -149,27 +149,46 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Values | `u64`, `usize` (64 bits), `u32`, `u16`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
-| Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
-| Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
-| Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
+| Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
+| Selection | `select(bool, T, T) -> T` for `u8`, `u16`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
+| Casts | `int.cast` with `{"mode":"wrap"}` or `{"mode":"checked"}` between the supported unsigned integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
 | Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
-| Effects | `effects(read,write,trap)` or `effects(alloc,read,write,trap)`; allocation, drop and calls to allocating functions require `alloc` |
+| Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
 
-All integer operations use `u8`, `u32`, `u64` or `usize`; booleans remain
+All integer operations use `u8`, `u16`, `u32`, `u64` or `usize`; booleans remain
 separate. `bit.not` complements exactly the declared width. Checked addition
 traps when the mathematical sum exceeds that width's unsigned maximum, and
 checked subtraction traps when the left operand is smaller than the right.
 An arithmetic trap uses `UD2`, as do bounds and shift traps. A trap occurs
 before later effects; stores completed before it remain observable. Arbitrary
 program execution has no rollback guarantee.
+
+The v15 profile adds checked unsigned casts and boolean equality. Checked casts
+preserve the mathematical value when it fits the target width, including
+same-width `u64` / `usize` and all widening casts. A narrowing cast traps on any
+lost high bit before subsequent effects; earlier stores remain observable.
+Boolean equality accepts matching `bool` operands and returns `bool`.
+Ordering comparisons still require integers, and casts still exclude booleans
+and resources. Both cast modes require the existing quoted JSON attribute.
+The extension keeps every source, output, workspace, instruction, block and SSA
+limit unchanged. It does not add signed integers, `unit`, general result shapes,
+arbitrary identifiers, modules or new foreign interfaces.
+
+Language qualification compares the independent Core VM and mathematical
+results for all 25 unsigned checked-cast pairs. Each pair also has a native
+input-dependent fixture, and every narrowing pair includes overflow just above
+the target limit and at the source maximum, with and without a prior store.
+The same boolean equality programs read all four truth-table inputs. Original
+B3 and mutated M3 compile and execute these witnesses. These are finite source
+and behavior observations, not a proof of complete Core correctness.
 
 The compiler returns the generated image size on success, `0xffffffff` for
 invalid/unsupported input, and `0xfffffffe` for insufficient output or workspace
@@ -351,6 +370,32 @@ under the same 8 MiB stack cap. Its recursive VM call-budget refusal is
 explicitly retained and is not reported as a VM deep-recursion success.
 Tail-related type/arity/alias refusals, valid-general-Core non-tail refusals,
 one-byte-short output and matching flat/ELF `.text` are part of the cold replay.
+
+## v14 unsigned 16-bit scalar semantics
+
+The v14 compiler admits `u16` constants, all of the existing unsigned integer
+operations, wrap casts, comparison and selection, and `u16` helper parameters,
+block arguments and single scalar returns. Constants must lie in `0..65535`.
+Wrapping operations normalize to 16 bits; checked shifts require an amount below
+16. Checked addition and multiplication compare the full result with its
+normalized value, while subtraction, division, remainder and negation retain the
+existing unsigned trap conditions. Boolean and byte-buffer element types remain
+distinct.
+
+The new internal type code follows the existing resource codes. Resource and
+owner classification therefore uses explicit closed sets throughout parameters,
+argument duplication, calls, edges, capability graphs and ownership operations.
+A scalar cannot become a resource merely because its code is numerically larger.
+The language qualification includes repeated scalar call/edge arguments and a
+same-frame tail-call recurrence with `u16` swaps and wrapping results, alongside
+all five unsigned widths, all 25 width pairs of wrap casts and arithmetic traps.
+The original and modified compiler images both execute these finite witnesses.
+
+The 1 MiB source/output/workspace, 1,536-block, 8,192-instruction, native child
+and cold replay time limits are unchanged. Signed scalar types, returned
+resources, general multiple-result calls and general compiler correctness remain
+outside the claim. This extension does not turn the fifty opcode names into
+coverage of all Core inputs.
 
 ## Parse, validate and generate
 
@@ -843,19 +888,40 @@ function and block parameters of all four resource types at `v2048`, `v8192` and
 `UINT64_MAX`. The original minimal failure and pre-fix qualification evidence are
 retained separately from the repaired source's final qualification.
 
-### v14 boolean equality admission
 
-The v14 profile extends `compare.eq` and `compare.ne` to matching `bool`
-operands. Their Core result is `bool`, as for the independent general Core
-checker. The previous v13 compiler rejected those valid input programs.
-Ordered comparisons still require matching unsigned integer operands; resource,
-mixed-type, wrong-result and malformed-arity comparisons remain rejected.
+## v16 exact effect declarations and propagation
 
-The ordinary scalar corpus includes all eight boolean equality truth-table
-cases. The native select qualification additionally compiles each comparison
-once per original B3 and modified M3, then runs it with both operands read from
-caller bytes. The byte values 0, 1, 2 and 255 exercise zero/nonzero normalization
-before comparison. It checks flat output, the corresponding ELF text, short
-compiler output capacity and thirteen invalid comparison forms. This adds
-finite admission/execution evidence; general Core input shapes and all-input
-compiler correctness remain open.
+The HIA-written parser now accepts every subset of Core's four declared effects
+in every order, including a pure `effects()` function. Unknown, duplicated and
+malformed effect entries are refused. The retained function record carries the
+complete four-bit effect mask; it uses the same workspace bytes as the former
+allocation flag. Every declared entry contributes exactly one Core structural
+node, preserving the original 262,144-node ceiling.
+
+The native checker requires each operation's static effects from the independent
+Core opcode contract. `int.cast` in checked mode additionally requires `trap`,
+even when its particular value fits or the conversion widens; wrapping casts do
+not gain that effect. Calls require the callee's complete declared set to be a
+subset of the caller's set. This applies to forward, backward and unused
+functions and does not infer authority from a caller further up the graph.
+Mandatory allocation requires `alloc,trap`, optional allocation and release
+require `alloc`, chain-head borrowing requires `read,trap`, and a whole-buffer
+fill requires `write` without adding a bounds trap. Existing resource and type
+checks remain separate requirements.
+
+The qualifier derives 101 valid Core/VM observations and 64 refusals before B0.
+The 65 possible ordered declarations cover all 16 effect sets. Native B3 and
+mutated M3 each compile and execute the 16 canonical declarations plus all 65
+orders in one called-function batch and the operation/call witnesses, then check
+all 64 refusals with unchanged output bytes. This produces 232 finite checks;
+it does not establish an all-input compiler refinement proof. The current
+compiler itself has 1,530 blocks and 6,060 instructions inside the unchanged
+1,536-block and 8,192-instruction ceilings. Its source, output and workspace
+ceilings remain 1 MiB apiece; child CPU, wall-time and cold-replay budgets remain
+unchanged.
+
+The implementation reconciles a prior unpublished effect-parser candidate with
+the v15 checked-cast source. The prior candidate's results remain observations
+of its own older source. Current-source qualification and source-only cold replay
+must pass separately. Signed scalars, general result shapes, returned resources,
+full identifiers/modules and general machine/compiler correctness remain open.
