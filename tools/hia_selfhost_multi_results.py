@@ -18,7 +18,7 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
         if count >= 3:
             return fail(w, 3)
         t = read_type(s, w)
-        if t == 0 or (t > 5 and t != 10):
+        if scalar_type(t) != 1:
             return fail(w, 3)
         if count == 0:
             first = t
@@ -83,7 +83,7 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
     while i < count:
         v = get(w, 296 + i * 16)
         t = get(w, 304 + i * 16)
-        if t == 0 or (t > 5 and t != 10):
+        if scalar_type(t) != 1:
             return fail(w, 24)
         if get(w, 48) > 0:
             if t != get(w, base + 192 + i * 8):

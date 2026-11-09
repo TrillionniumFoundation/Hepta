@@ -33,7 +33,7 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
-                          "loan", "resource", "tail", "select", "effects", "multi", "keyword")
+                          "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts")
 PHASE_REFERENCE_FILES = {
     "resource": "independent-resource-reference.json",
     "bulk": "independent-bulk-reference.json",
@@ -45,6 +45,8 @@ PHASE_REFERENCE_FILES = {
     "effects": "independent-effect-reference.json",
     "multi": "independent-multi-result-reference.json",
     "keyword": "independent-keyword-reference.json",
+    "signed": "independent-signed-reference.json",
+    "scalar-casts": "independent-scalar-cast-reference.json",
 }
 
 
@@ -511,6 +513,12 @@ def qualification_phase(request_path):
     elif family == "multi":
         from tools.hia_selfhost_multi_results import qualify as qualify_multi
         observations = qualify_multi(directory, compilers, checks, reference)
+    elif family == "signed":
+        from tools.hia_selfhost_signed_cases import qualify as qualify_signed
+        observations = qualify_signed(directory, compilers, checks, reference)
+    elif family == "scalar-casts":
+        from tools.hia_selfhost_scalar_casts import qualify as qualify_casts
+        observations = qualify_casts(directory, compilers, checks, reference)
     elif family == "keyword":
         from tools.hia_selfhost_keywords import qualify as qualify_keyword
         observations = qualify_keyword(directory, compilers, checks, reference)
@@ -713,6 +721,12 @@ def qualify(output):
     from tools.hia_selfhost_keywords import independent_reference as keyword_reference_run
     keyword_reference = keyword_reference_run()
     (directory / "independent-keyword-reference.json").write_text(json.dumps(keyword_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_signed_cases import independent_reference as signed_reference_run
+    signed_reference = signed_reference_run()
+    (directory / "independent-signed-reference.json").write_text(json.dumps(signed_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_scalar_casts import independent_reference as cast_reference_run
+    cast_reference = cast_reference_run()
+    (directory / "independent-scalar-cast-reference.json").write_text(json.dumps(cast_reference, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -846,6 +860,8 @@ def qualify(output):
         "effect_observations": effect_observations, "independent_effect_reference": effect_reference,
         "multi_result_observations": multi_observations, "independent_multi_result_reference": multi_reference,
         "keyword_observations": keyword_observations, "independent_keyword_reference": keyword_reference,
+        "signed_observations": phase_observations("signed"), "independent_signed_reference": signed_reference,
+        "scalar_cast_observations": phase_observations("scalar-casts"), "independent_scalar_cast_reference": cast_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,

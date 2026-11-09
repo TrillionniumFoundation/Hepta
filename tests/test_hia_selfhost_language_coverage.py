@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v19 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v20 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v19"
+PROFILE = "selfhost-core-linux-x86_64-v20"
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -599,7 +599,7 @@ def rejected_fixtures():
         ("ssa-index-2048", simple_source(variable=2048), "maximum SSA index 2047"),
         ("noncontiguous-function", seed.replace(b"fn f0(", b"fn f1(", 1), "contiguous function numbers"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
-        ("unsupported-scalar-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "supported scalar types and entry return"),
+        ("non-u32-public-entry-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "public entry remains u32 despite internal signed scalar support"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
         ("unsupported-arbitrary-function-name", seed.replace(b"f0(", b"named("), "numeric function identifiers"),
         ("tab-whitespace", seed.replace(b"  v3", b"\tv3"), "ASCII space and LF only"),
@@ -877,11 +877,11 @@ def coverage_manifest():
     if supported != sorted(set(INPUT_OPCODES) | set(ELF_OWNED_OPCODES) | set(ELF_CHAIN_OPCODES)):
         raise AssertionError("coverage inventory differs from actual HIA keyword/opcode set")
     rules = {
-        "scalar_types": (["read_type", "instruction", "normalize"], ["scalar-*", "boolean", "cast", "checked-cast"]),
+        "scalar_types": (["read_type", "instruction", "normalize", "scalar_literal", "integer_width"], ["scalar-*", "boolean", "cast", "checked-cast"]),
         "resources": (["args", "edge", "operation", "bulk_buffer", "bulk_range_guard",
                        "loan_operation", "loan_access", "loan_incoming", "loan_transfer"],
                       ["borrowed-buffer-operations", "existing-readonly-*", "swap-*", "bulk-*", "loan-*"]),
-        "integer_operations": (["instruction", "operation", "checked_integer", "cast_integer", "select_scalar", "normalize"],
+        "integer_operations": (["instruction", "operation", "checked_integer", "signed_integer", "cast_integer", "select_scalar", "normalize"],
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "checked-cast*", "dynamic-cast-*", "bool-equality-input-*", "boolean-equality-*", "boolean-ordering-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
@@ -925,6 +925,7 @@ def coverage_manifest():
         functions, witnesses = rules[row["area"]]
         features.append({**row, "hia_functions": {name: names[name] for name in functions},
                          "new_witnesses": witnesses, "existing_evidence": existing.get(row["area"], [])})
+    scalar_types = next(row["items"] for row in contract["support"] if row["area"] == "scalar_types")
     row_cases = scalar_cases()
     negative = rejected_fixtures()
     return {
@@ -946,16 +947,19 @@ def coverage_manifest():
         "input_opcode_inventory_scope": "union of explicit output-format profiles; owned-buffer and chain operations require selfhost_elf; opcode-name coverage does not imply all Core types or result shapes",
         "general_core_opcode_count": len(OPCODES),
         "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
-        "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"],
-        "input_types_by_output": {"selfhost": [*WIDTHS, "bool", "readbuf", "mutbuf"],
-                                  "selfhost_elf": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"]},
+        "input_types": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],
+        "input_types_by_output": {"selfhost": [*scalar_types, "readbuf", "mutbuf"],
+                                  "selfhost_elf": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"]},
+        "signed_and_unit_scope": {"types": ["i8", "i16", "i32", "i64", "isize", "unit"],
+            "qualification": ["tools.hia_selfhost_signed_cases.qualify", "tools.hia_selfhost_scalar_casts.qualify"],
+            "before_B0_independent_VM": True, "all_input_correctness_proved": False},
         "keyword_lookup_scope": {"representation": "four packed u64 words and exact byte/length equality",
             "hash_dispatch": False, "maximum_keyword_bytes": 32,
             "qualification": "tools.hia_selfhost_keywords.qualify on original B3 and mutated M3",
             "all_input_correctness_proved": False},
         "internal_scalar_result_scope": {
             "cardinality": [0, 1, 2, 3], "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
-            "types": [*WIDTHS, "bool"], "returned_resources_supported": False,
+            "types": scalar_types, "returned_resources_supported": False,
             "combinations": ["forward/backward direct calls", "branches", "loop-carried values",
                              "exact ordered self-tail returns", "borrowed parameters", "consumed owner parameters"],
             "qualification": "tools.hia_selfhost_multi_results.qualify on original B3 and mutated M3",

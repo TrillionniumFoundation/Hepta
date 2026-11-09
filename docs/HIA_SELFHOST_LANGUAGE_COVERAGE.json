@@ -2393,8 +2393,10 @@
       "existing_evidence": [],
       "hia_functions": {
         "instruction": "f6",
+        "integer_width": "f97",
         "normalize": "f19",
-        "read_type": "f10"
+        "read_type": "f10",
+        "scalar_literal": "f98"
       },
       "items": [
         "u64",
@@ -2402,7 +2404,13 @@
         "u32",
         "u8",
         "u16",
-        "bool"
+        "bool",
+        "i8",
+        "i16",
+        "i32",
+        "i64",
+        "isize",
+        "unit"
       ],
       "new_witnesses": [
         "scalar-*",
@@ -2471,7 +2479,8 @@
         "instruction": "f6",
         "normalize": "f19",
         "operation": "f7",
-        "select_scalar": "f45"
+        "select_scalar": "f45",
+        "signed_integer": "f99"
       },
       "items": [
         "const",
@@ -2491,12 +2500,14 @@
         "int.shl.checked",
         "int.shr.checked",
         "int.cast wrap and checked",
-        "unsigned comparisons",
+        "signed and unsigned comparisons",
         "boolean compare.eq and compare.ne",
         "bool.and",
         "bool.or",
         "bool.not",
-        "select (bool condition, matching scalars)"
+        "select (bool condition, matching scalars including unit)",
+        "signed decimal literals with exact width bounds",
+        "unit null literal"
       ],
       "new_witnesses": [
         "scalar-*",
@@ -2730,7 +2741,7 @@
         "read_type": "f10"
       },
       "items": [
-        "all Core scalar types and function result shapes",
+        "general function result shapes including resource-bearing results",
         "module graph",
         "arbitrary identifiers",
         "all resource combinations",
@@ -2967,12 +2978,18 @@
     ]
   },
   "input_types": [
-    "u8",
-    "u16",
-    "u32",
     "u64",
     "usize",
+    "u32",
+    "u8",
+    "u16",
     "bool",
+    "i8",
+    "i16",
+    "i32",
+    "i64",
+    "isize",
+    "unit",
     "readbuf",
     "mutbuf",
     "buffer",
@@ -2980,22 +2997,34 @@
   ],
   "input_types_by_output": {
     "selfhost": [
-      "u8",
-      "u16",
-      "u32",
       "u64",
       "usize",
+      "u32",
+      "u8",
+      "u16",
       "bool",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "isize",
+      "unit",
       "readbuf",
       "mutbuf"
     ],
     "selfhost_elf": [
-      "u8",
-      "u16",
-      "u32",
       "u64",
       "usize",
+      "u32",
+      "u8",
+      "u16",
       "bool",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "isize",
+      "unit",
       "readbuf",
       "mutbuf",
       "buffer",
@@ -3022,12 +3051,18 @@
     "qualification": "tools.hia_selfhost_multi_results.qualify on original B3 and mutated M3",
     "returned_resources_supported": false,
     "types": [
-      "u8",
-      "u16",
-      "u32",
       "u64",
       "usize",
-      "bool"
+      "u32",
+      "u8",
+      "u16",
+      "bool",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "isize",
+      "unit"
     ]
   },
   "keyword_lookup_scope": {
@@ -3114,7 +3149,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v19",
+  "profile": "selfhost-core-linux-x86_64-v20",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -4041,9 +4076,9 @@
       "source_sha256": "c39c82a1f7261e288cac678e5e796ec1560d32cbe2152da622ed7b869784e503"
     },
     {
-      "boundary": "supported scalar types and entry return",
+      "boundary": "public entry remains u32 despite internal signed scalar support",
       "general_core_expected": null,
-      "id": "unsupported-scalar-i16",
+      "id": "non-u32-public-entry-i16",
       "source_sha256": "59d13e184cb3d26cf1542b255bd617695a0281b3d6bf822a7aac8280cc1ca456"
     },
     {
@@ -5039,16 +5074,32 @@
     ]
   },
   "schema": "hepta.hia.selfhost-language-coverage.v1",
+  "signed_and_unit_scope": {
+    "all_input_correctness_proved": false,
+    "before_B0_independent_VM": true,
+    "qualification": [
+      "tools.hia_selfhost_signed_cases.qualify",
+      "tools.hia_selfhost_scalar_casts.qualify"
+    ],
+    "types": [
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "isize",
+      "unit"
+    ]
+  },
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "83d3af2f399c7893ca2ea43a09c259395582631711ab07e09242ea6d7149d625"
+      "sha256": "63cfe10b115bfceafaa9daf9ba80df4ba11c01158893d9e82cc29d7fd471acdd"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "4b8af4667e4fcc65f2b8f0e2f4dbb48e9402944ddbd83a74f7c61858e91231b3"
+      "sha256": "5a3dbecb24944739256d7294617c1fc5c8be2449ea119dd70a0dd7dcfb92ed9b"
     },
-    "semantic_support_sha256": "af04390727964ed4a3199d44fdaec945942a29aba12f9c706ef363ca07758d59",
+    "semantic_support_sha256": "b3c299a365b716452093c7ef7e64397d030c28e5eedd23003fd44698d03538fd",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5121,7 +5172,6 @@
       "ssa-index-2048",
       "noncontiguous-function",
       "entry-signature-name",
-      "unsupported-scalar-i16",
       "unsupported-module-name",
       "unsupported-arbitrary-function-name",
       "tab-whitespace",

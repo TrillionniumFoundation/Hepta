@@ -45,7 +45,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertIn("tools/hia_selfhost_loans.py", files)
         self.assertIn("exact capability graph joins and closed loop/edge transfers", resources["items"])
         operations = next(row for row in contract["support"] if row["area"] == "integer_operations")
-        self.assertIn("select (bool condition, matching scalars)", operations["items"])
+        self.assertIn("select (bool condition, matching scalars including unit)", operations["items"])
         self.assertEqual(status["successor_object_output"], "bounded_subset")
         self.assertEqual(status["general_object_linking"], "not_implemented")
         self.assertEqual(status["owned_resources"], "bounded_subset")

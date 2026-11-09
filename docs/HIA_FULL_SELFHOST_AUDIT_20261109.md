@@ -5,7 +5,7 @@
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
 HIA. The current implementation contains a live `hepta/` package with 212 Python
-files, 76,121 lines and 4,125,246 bytes. These are source inventory figures, not a
+files, 76,126 lines and 4,125,579 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
@@ -51,7 +51,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
 | Scanner / assembly parser | Fixed canonical `hia-asm.v1` bytes | General identifiers, full grammar and diagnostics |
-| Core validation / ownership | Fixed scalar and resource profile, CFG/call checks | Signed/unit types, composites, returned owners/loans, full signatures |
+| Core validation / ownership | Fixed scalar and resource profile, CFG/call checks | Composites, returned owners/loans, full signatures |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
 | Modules / packages / build | No full HIA replacement | Module graph, package/build/install orchestration |
@@ -99,6 +99,34 @@ keyword family checks 510 VM observations, including every keyword, offsets,
 unknown mutations, long input and embedded NUL, against both native generations
 in both flat and ELF forms. Source identity is recorded in the retained summary;
 no previous-version fixed point is substituted for this new compiler.
+
+## Implemented follow-through: v20 all Core scalar types
+
+All ten integer types plus `bool` and `unit` now have native HIA admission inside
+the fixed numeric-name profile. Signed comparison, arithmetic, shifts, width/sign
+normalization, checked/wrapping conversions, literals, selection and internal
+result tuples execute as HIA-generated machine code. The source-only cold replay
+passed 11/11 and nested native qualification passed **3,385/3,385**, approximately
+139 seconds within the unchanged 180-second deadline. The 49 source/reference
+checks pass. Every one of 557 signed, 686 signed-involving conversion and 552
+keyword input observations remains represented; batching reduces repeated process
+and verification overhead, not the witness set. Both original and modified
+compiler generations reach their own byte fixed points.
+
+The first whole-project local run on v19 failed: umask 002 caused temporary lock
+files to violate the existing no-group-write check, `/tmp` was itself inside a
+Git project, and a piped Linux crash collector delayed SIGILL classification.
+The failures are not passes. A private non-project temp directory, umask 077 and
+post-exec nondumpable disposable native children yielded a passing 20-test
+focused replay without increasing timeouts or weakening file checks. Full v20
+unified and language qualification must run on their own source snapshot.
+
+The first v20 cold attempt correctly rejected a fixture exceeding 2,048 SSA
+values; another correctly rejected a VM fixture with 257 results against a
+256-item list cap. Adaptive batching and a 31-input keyword bank retain every
+original case within those existing bounds. The passing attempt has new source
+identity; neither failed attempt is relabeled successful. The earlier v19 GitHub
+cold timeout is also retained as a failure rather than replaced by the local run.
 
 ## Ordered remaining work and acceptance
 

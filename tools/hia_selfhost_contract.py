@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v19"
+PROFILE = "selfhost-core-linux-x86_64-v20"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -27,6 +27,11 @@ SOURCE_FILES = (
     "tools/hia_selfhost_multi_results.py",
     "tools/hia_selfhost_void_results.py",
     "tools/hia_selfhost_keywords.py",
+    "tools/hia_selfhost_signed.py",
+    "tools/hia_selfhost_signed_cases.py",
+    "tools/hia_selfhost_scalar_casts.py",
+    "tools/hia_selfhost_batch.py",
+    "tests/test_hia_selfhost_signed.py",
     "tests/test_hia_selfhost_keywords.py",
     "tools/hia_selfhost_owned_elf.py",
     "tools/hia_selfhost_owned_elf_cases.py",
@@ -101,7 +106,7 @@ def support_contract(root=ROOT):
             "caller_obligations": ["live private source allocation",
                 "live disjoint output and workspace allocations",
                 "no concurrent input modification", "entry buffers do not escape"],
-            "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic/cast, zero divisor or mandatory allocation",
+            "native_runtime_trap": "UD2 for failed bounds, checked shift, signed/unsigned checked arithmetic/cast, zero divisor or mandatory allocation",
         },
         "compiler_symbols": {"entry": "f0", "mutation_wrapper": "f13",
                              "call_graph_checker": "f12"},
@@ -134,7 +139,7 @@ def support_contract(root=ROOT):
         },
         "support": [
             {"area": "scalar_types", "status": "supported",
-             "items": ["u64", "usize", "u32", "u8", "u16", "bool"]},
+             "items": ["u64", "usize", "u32", "u8", "u16", "bool", "i8", "i16", "i32", "i64", "isize", "unit"]},
             {"area": "resources", "status": "bounded_subset",
              "items": ["borrowed readbuf/mutbuf parameters", "buffer.len",
                        "buffer.load", "buffer.store", "buffer.swap with both bounds before access",
@@ -151,9 +156,10 @@ def support_contract(root=ROOT):
                        "int.add.checked", "int.sub.checked", "int.mul.checked",
                        "int.div.checked", "int.rem.checked", "int.neg.checked", "bit.not",
                        "bit.and", "bit.or", "bit.xor", "int.shl.checked",
-                       "int.shr.checked", "int.cast wrap and checked", "unsigned comparisons",
+                       "int.shr.checked", "int.cast wrap and checked", "signed and unsigned comparisons",
                        "boolean compare.eq and compare.ne",
-                       "bool.and", "bool.or", "bool.not", "select (bool condition, matching scalars)"]},
+                       "bool.and", "bool.or", "bool.not", "select (bool condition, matching scalars including unit)",
+                       "signed decimal literals with exact width bounds", "unit null literal"]},
             {"area": "control_flow", "status": "supported",
              "items": ["typed ret", "typed jump", "typed branch", "loops",
                        "block reachability", "no inbound entry edges"]},
@@ -201,7 +207,7 @@ def support_contract(root=ROOT):
                  "workspace_is_heap": False,
                  "assumptions": ["ordinary libc allocator contract", "Linux SysV AMD64 linkage and loader"]}},
             {"area": "general_core_checker", "status": "not_implemented",
-             "items": ["all Core scalar types and function result shapes", "module graph",
+             "items": ["general function result shapes including resource-bearing results", "module graph",
                        "arbitrary identifiers", "all resource combinations", "returned parameter loans"]},
             {"area": "successor_output", "status": "bounded_subset",
              "items": ["flat position-independent x86-64 image",

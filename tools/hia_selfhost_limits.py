@@ -17,7 +17,7 @@ MAX_RELOCATIONS = 12000
 RELOCATION_UPPER_BOUND = 1 + MAX_INSTRUCTIONS + 2 * MAX_BLOCKS + 2
 
 # Conservative canonical JSON byte bounds for the fixed grammar. Identifiers
-# are f0..f127, b0..b255 and v0..v2047; literals are at most unsigned 64-bit.
+# are f0..f127, b0..b255 and v0..v2047; integer magnitudes are at most unsigned 64-bit, with an optional sign.
 # Each operation has at most 16 arguments, up to three scalar outputs and one attribute;
 # buffer.try_new has two results and one argument; chain.try_push/chain.pop
 # have three results, at most two arguments and no attributes. These also fit

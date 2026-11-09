@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v19`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v20`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -138,8 +138,9 @@ bounded ELF object profile described below. Names are numeric: contiguous `f0`,
 and `vN` SSA values. Function signature variables are `v0`, `v1`, ... and the
 entry block must exactly reproduce their names and types. SSA numbers elsewhere
 need not be contiguous, but each definition must be unique in its function.
-Only ASCII spaces and LF separate tokens. Decimal unsigned literals forbid
-leading zeroes and are checked for `u64` overflow. The grammar recognizes the
+Only ASCII spaces and LF separate tokens. Decimal integer magnitudes forbid
+leading zeroes and are checked for `u64` overflow; signed types additionally
+admit an adjacent minus sign and enforce their mathematical width bounds. The grammar recognizes the
 explicit JSON attribute forms that these operations require.
 The existing assembly grammar's adjacency rules are retained: a declaration or
 edge name, opcode, `ret`, `effects`, or `entry` directly precedes its opening
@@ -149,12 +150,12 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | `u64`, `usize` (64 bits), `u32`, `u16`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
-| Constants | Typed integer literals and `true` / `false` boolean literals |
+| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Constants | Typed signed/unsigned integer literals, `true` / `false` booleans and `null` for `unit` |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
-| Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
-| Selection | `select(bool, T, T) -> T` for `u8`, `u16`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
-| Casts | `int.cast` with `{"mode":"wrap"}` or `{"mode":"checked"}` between the supported unsigned integer types |
+| Conditions | Signed/unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
+| Selection | `select(bool, T, T) -> T` for all Core integer types, `bool`, and `unit`; true chooses the second operand, false the third; resources are excluded |
+| Casts | `int.cast` with `{"mode":"wrap"}` or `{"mode":"checked"}` between all ten Core integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
@@ -163,9 +164,9 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
 
-All integer operations use `u8`, `u16`, `u32`, `u64` or `usize`; booleans remain
+Integer operations use all ten Core integer types; booleans and `unit` remain
 separate. `bit.not` complements exactly the declared width. Checked addition
-traps when the mathematical sum exceeds that width's unsigned maximum, and
+traps when the mathematical sum leaves the declared type's range, and
 checked subtraction traps when the left operand is smaller than the right.
 An arithmetic trap uses `UD2`, as do bounds and shift traps. A trap occurs
 before later effects; stores completed before it remain observable. Arbitrary
@@ -1020,3 +1021,62 @@ executed by the B3 and modified M3 compiled lookup functions in both flat and
 ELF forms. Compiling the compiler's own source exercises nonzero scanner offsets
 and the ordinary scanner-to-keyword interface. This is finite execution evidence,
 not a whole-language or all-input equivalence proof.
+
+## v20 complete scalar type admission inside the fixed Core profile
+
+The native HIA compiler admits all ten Core integer types plus `bool` and `unit`.
+Signed decimal constants enforce exact width bounds, including i64/isize MIN;
+`unit` requires the exact `null` literal. Narrow signed slots are sign extended.
+Signed ordered comparisons use signed conditions; checked shifts reject negative
+counts and right shift is arithmetic. Checked add/subtract/multiply/negate consume
+OF immediately, then check narrow normalization. Signed quotient and remainder
+both reject MIN/-1 at every width, and zero divisors trap before IDIV. The latter
+uses a sign-extended dividend and truncates toward zero, matching the Core VM.
+
+Checked sign-changing casts reject a source with its top machine bit set before
+normalization, preventing `u64::MAX -> i64` and `i64(-1) -> u64` from being admitted
+merely because their machine bits coincide. Same-sign narrowing compares the
+exact source against the normalized result. Wrapping casts use the target width.
+Internal scalar calls/results, selection and block transfers also admit these
+new types; the public entry remains exactly `(readbuf,mutbuf,mutbuf)->u32`.
+
+The signed and scalar-cast qualification families independently evaluate every
+input-dependent scalar observation and trap with the general Core VM before B0.
+Ordinary observations are batched into straight-line programs with fresh SSA
+names and relocated input/output byte indices: no test operand is compiled into
+code and no result byte is dropped. Each original case ID remains in `input_cases`.
+Native B3/M3 run every batch in flat and ELF form; real UD2 witnesses separately
+observe output before/after failed operations. The existing unsigned witness
+matrix is retained rather than rewritten to infer signed behavior.
+
+Keyword reference observations now use ordinary Core wrapper calls in groups of
+16, preserving each exact input length, fresh owned buffers, call and observed
+result. Every group is independently reverified by the VM; no forged/cached
+verification receipt is trusted. Full batch reports and each result projection
+are retained. This reduces repeated verification of identical helper bodies
+without dropping witnesses, reusing native children or changing the cold budget.
+
+Disposable native children additionally clear Linux dumpability after exec.
+`RLIMIT_CORE=0` alone does not prevent a piped crash collector from running; such
+a collector could copy input mappings and delay a real SIGILL beyond its existing
+wall deadline. Clearing dumpability changes neither the UD2 signal nor output
+observation and does not turn these loaders into security sandboxes. The parent
+worker, system crash-handler settings and other processes are not changed.
+
+This closes scalar type admission within the fixed numeric-name profile, not
+whole HIA selfhosting. Arbitrary identifiers/modules/linking, composites,
+resource-bearing returned values, general runtime/build/CLI and service rewrites
+remain explicitly open. No full compiler refinement theorem is claimed.
+
+The native keyword fixture additionally executes length-prefixed banks of at
+most 31 inputs through a normal HIA loop and the exact compiler keyword helper.
+Each bank writes one full eight-byte token per original input. The independent
+VM checks both the individual lookup observations and the whole bank wrapper;
+every original case ID is retained in `input_cases`. Native children remain
+fresh per bank, format and compiler. The reference JSON stores shared source
+identities instead of serializing the identical lookup program for every input.
+Scalar batches adapt to the actual SSA-definition and instruction counts; a
+three-operand select cannot be packed into an over-capacity twelve-case batch.
+The initial over-capacity refusal and CI cold timeout remain failed observations,
+not passing receipts. No witness, output byte or original compiler limit is
+removed to obtain the later run.

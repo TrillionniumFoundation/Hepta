@@ -18,13 +18,14 @@ from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 from tools.hia_selfhost_effects import source as effect_source
 from tools.hia_selfhost_multi_results import SOURCE as MULTI_RESULT_SOURCE
 from tools.hia_selfhost_keywords import keyword_source
+from tools.hia_selfhost_signed import SOURCE as SIGNED_SOURCE
 
-TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10}
+TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
  "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end"]
 WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
-WORDS += ["checked"]
+WORDS += ["checked", "null"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -388,22 +389,9 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         expect(s, w, 123)
         expect(s, w, @value@)
         expect(s, w, 58)
-        if t == 5:
-            if get(w, 8) == @true@:
-                x = 1
-                next_token(s, w)
-            else:
-                expect(s, w, @false@)
-        else:
-            x = expect(s, w, 259)
+        x = scalar_literal(s, w, t)
         expect(s, w, 125)
-        if n != 0 or t == 0:
-            fail(w, 22)
-        if t == 3 and x > 4294967295:
-            fail(w, 22)
-        if t == 4 and x > 255:
-            fail(w, 22)
-        if t == 10 and x > 65535:
+        if n != 0:
             fail(w, 22)
         emit(o, w, 72)
         emit(o, w, 184)
@@ -484,10 +472,10 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 else:
                     expect(s, w, @wrap@)
                 expect(s, w, 125)
-                if n != 1 or (at > 4 and at != 10) or (t > 4 and t != 10) or t == 0:
+                if n != 1 or integer_type(at) != 1 or integer_type(t) != 1:
                     fail(w, 26)
                 load_var(o, w, 0, a, 0)
-                cast_integer(o, w, t, x)
+                cast_integer(o, w, t, x, at)
             else:
                 if op >= @borrow.read@ and op <= @loan.end@:
                     loan_operation(w, op, n, a, at, t)
@@ -584,7 +572,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         fail(w, 32)
     load_var(o, w, 1, b, 0)
     if op >= @compare.eq@ and op <= @compare.ge@:
-        if (at > 4 and at != 10 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
+        if (integer_type(at) != 1 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
             fail(w, 33)
         emit(o, w, 72)
         emit(o, w, 57)
@@ -600,6 +588,15 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
             cond = 151
         if op == @compare.ge@:
             cond = 147
+        if signed_type(at) == 1:
+            if op == @compare.lt@:
+                cond = 156
+            if op == @compare.le@:
+                cond = 158
+            if op == @compare.gt@:
+                cond = 159
+            if op == @compare.ge@:
+                cond = 157
         emit(o, w, 15)
         emit(o, w, cond)
         emit(o, w, 192)
@@ -613,7 +610,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         if t != 5:
             fail(w, 35)
     else:
-        if t > 4 and t != 10:
+        if integer_type(t) != 1:
             fail(w, 35)
     if op == @int.add.wrap@:
         emit(o, w, 72)
@@ -647,13 +644,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
                             emit(o, w, 200)
                         else:
                             if op == @int.shl.checked@ or op == @int.shr.checked@:
-                                width = 64
-                                if t == 3:
-                                    width = 32
-                                if t == 4:
-                                    width = 8
-                                if t == 10:
-                                    width = 16
+                                width = integer_width(t)
                                 emit(o, w, 72)
                                 emit(o, w, 131)
                                 emit(o, w, 249)
@@ -667,14 +658,17 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
                                 if op == @int.shl.checked@:
                                     emit(o, w, 224)
                                 else:
-                                    emit(o, w, 232)
+                                    if signed_type(t) == 1:
+                                        emit(o, w, 248)
+                                    else:
+                                        emit(o, w, 232)
                             else:
                                 fail(w, 36)
     normalize(o, w, t)
     return 0
 
 def define(w:mutbuf, v:u64, t:u64) -> u64:
-    if v >= 2048 or t == 0 or t > 10:
+    if v >= 2048 or t == 0 or t > 16:
         return fail(w, 37)
     if get(w, VBASE + v * 16) != 0:
         return fail(w, 38)
@@ -705,7 +699,7 @@ def variable(w:mutbuf, v:u64) -> u64:
 def read_type(s:readbuf, w:mutbuf) -> u64:
     t = get(w, 8)
     next_token(s, w)
-    if t < @u64@ or t > @u16@:
+    if t < @u64@ or t > @unit@:
         return fail(w, 41)
     if (t >= @buffer@ and t <= @chain@) and get(w, 232) != 1:
         return fail(w, 64)
@@ -878,6 +872,14 @@ def store_var(o:mutbuf, w:mutbuf, v:u64, word:u64) -> u64:
     return mem(o, w, 137, 0, 5, 0 - 32 - v * 16 + word * 8)
 
 def normalize(o:mutbuf, w:mutbuf, t:u64) -> u64:
+    if t == 14:
+        emit_bytes(o, w, 3233681224, 4)
+    if t == 15:
+        emit_bytes(o, w, 3233746760, 4)
+    if t == 13:
+        emit_bytes(o, w, 12608328, 3)
+    if t == 16:
+        emit_bytes(o, w, 49201, 2)
     if t == 4:
         emit(o, w, 72)
         emit(o, w, 37)
@@ -1207,6 +1209,8 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
 # Kept in a separate HIA function so the per-function SSA ceiling stays 2047.
 # Appending this helper preserves all existing compiler function identities.
 def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
+    if signed_type(at) == 1:
+        return signed_integer(o, w, op, n, a, b, at, bt, t)
     load_var(o, w, 0, a, 0)
     if op == @bit.not@:
         if n != 1 or at < 1 or (at > 4 and at != 10) or t != at:
@@ -1273,7 +1277,7 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
 
 
 def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
-    if n != 3 or at != 5 or bt == 0 or (bt > 5 and bt != 10) or t != bt or variable(w, get(w, ARGS + 16)) != bt:
+    if n != 3 or at != 5 or scalar_type(bt) != 1 or t != bt or variable(w, get(w, ARGS + 16)) != bt:
         fail(w, 60)
     # Core select(cond, true_value, false_value). Full-width moves preserve
     # the already-normalized scalar slots, including u64/usize high bits.
@@ -1648,11 +1652,15 @@ SOURCE += OWNED_ELF_SOURCE
 SOURCE += CHAIN_ELF_SOURCE
 SOURCE += r'''
 
-def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
+def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64, at:u64) -> u64:
     if checked == 1:
-        # Values in scalar slots are zero extended. Keep the full source in
+        if signed_type(at) != signed_type(t):
+            # Reject a negative mathematical source or an unsigned source
+            # beyond signed64 before a sign-changing cast can preserve bits.
+            emit_bytes(o, w, 3112728050828616, 7)
+        # Scalar slots are canonically sign/zero extended. Keep the full source in
         # rcx, normalize the result, then require equality before later effects.
-        # This also admits same-width u64/usize and every widening cast.
+        # The preceding sign guard prevents same-bit sign-changing false matches.
         emit_bytes(o, w, 12683592, 3)
         normalize(o, w, t)
         # cmp rax,rcx; je +2; ud2
@@ -1663,6 +1671,7 @@ def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
 '''
 SOURCE += effect_source(W)
 SOURCE += MULTI_RESULT_SOURCE
+SOURCE += SIGNED_SOURCE
 
 
 def source_program():

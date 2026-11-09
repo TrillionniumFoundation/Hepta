@@ -41,6 +41,11 @@ def _child_setup(parent_pid, memory_bytes, cpu_seconds):
     resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+    # RLIMIT_CORE=0 alone does not suppress a piped Linux core_pattern handler.
+    # Real UD2 traps must be observed within the existing deadline, without a
+    # crash collector retaining native input/output mappings after termination.
+    if libc.prctl(4, 0, 0, 0, 0) != 0 or libc.prctl(3, 0, 0, 0, 0) != 0:
+        os._exit(125)
     resource.setrlimit(resource.RLIMIT_FSIZE, (8 * 1024 * 1024, 8 * 1024 * 1024))
 
 
