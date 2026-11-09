@@ -130,7 +130,7 @@ validator is not proof of the complete compiler buffer workload.
 
 | Priority | Snapshot | Next evidence |
 | --- | --- | --- |
-| P0 | #827 discovery repair merged; this draft documents four selections and CLI/MCP. Partial. | Exact-head current/v16 public installation plus a fresh Agent completing discovery and minimum program. |
+| P0 | #827 discovery repair merged; checked entry catalog and four-selection/CLI/MCP handoff added. Online exit-127 remains. Partial. | Exact-head current/v16 public installation plus a fresh Agent completing discovery and minimum program. |
 | P1 | Scalar retained-byte proof and compiler-buffer lifecycle have distinct scopes. Local adoption identity projection was unfinished and is excluded here. | Tested same-artifact Core/plan/object/final/ABI/proof/adoption binding. |
 | P2 | Nine valid-Core reference-only witness observations below. No bootstrap/native result. | Actual bootstrap combination matrix for signed, multiple results, returned resources, naming, module and calls. |
 | P3 | Scoped scalar model proofs and local adoption tests do not establish general compiler soundness. Proposed richer qualifier did not complete. | Nontrivial closed family with exact proof inputs and adopted consumer, then model-to-production/ownership/loading obligations. |
@@ -165,17 +165,20 @@ successful native/bootstrap report.
 The proposed scalar proof/adoption fixture was rejected for duplicate SSA names
 at admission before native proof work. Its correction and second attempt did
 not execute before the outage. Neither unfinished Python implementation is
-included in this PR. New code checks, native/proof/adoption qualification and
-local documentation-command execution are **NOT_RUN** after interruption.
+included in this PR. Their native/proof/adoption qualification and local
+documentation-command execution are **NOT_RUN** after interruption. The entry
+adapter below has separate hosted-CI checks.
 
-This draft changes this document and an INSTALL link only. Empty README,
-release locks/helpers, workflows, proof gates and online selection remain
-unchanged. Hosted exact-head public-installation and CodeQL checks remain
-required; older results do not qualify this head. Overall acceptance stays HOLD.
+This PR changes five paths: this document, INSTALL.md, the new entry adapter,
+its focused test module and the public-release workflow. The workflow retains
+all seven original steps and adds one entry-catalog/minimal-CLI step. Empty
+README, release locks/helpers, proof gates and online selection remain unchanged.
+Hosted exact-head public-installation and CodeQL checks remain required; older
+results do not qualify this head. Overall acceptance stays HOLD.
 
 ## Executable entry adapter follow-up
 
-The next checkpoint adds `tools/hia_entry_catalog.py` and five focused
+This PR adds `tools/hia_entry_catalog.py` and five focused
 identity-boundary test methods. The standard-library adapter verifies both
 original lock/helper sets, reports exact selections, syntax, target and the
 scalar proof service profile, and compares a caller-supplied retained online
