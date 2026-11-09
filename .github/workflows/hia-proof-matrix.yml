@@ -1,0 +1,67 @@
+name: HIA scoped proof and feature matrix
+on:
+  pull_request:
+    paths:
+      - 'hepta/hia_agent_service.py'
+      - 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+      - 'tests/test_hia_*'
+      - 'tools/*hia*'
+      - 'benchmarks/hia_paid_observation/**'
+      - '.github/workflows/hia-proof-matrix.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  scoped-qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check exact source and native prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=all)"
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          python -c "import platform,z3; assert platform.machine() == 'x86_64'; assert z3.get_version_string() == '4.15.4'"
+          command -v cc
+          command -v ld
+          command -v readelf
+          python -B tools/generate_hia_selfhost_contract.py --check
+          mkdir "$RUNNER_TEMP/hia-proof-matrix"
+      - name: Run regression tests and three scoped qualifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          HIA_RESULTS="$RUNNER_TEMP/hia-proof-matrix"
+          python -B -m unittest -v tests.test_hia_agent_native_machine_validation tests.test_hia_agent_native_tools tests.test_hia_selfhost_feature_matrix tests.test_hia_paid_observation 2>&1 | tee "$HIA_RESULTS/tests.log"
+          python -B tools/hia_selfhost_feature_matrix.py --output "$HIA_RESULTS/bootstrap" 2>&1 | tee "$HIA_RESULTS/bootstrap.log"
+          python -B tools/qualify_hia_scalar_proof_adoption.py --output "$HIA_RESULTS/scalar" 2>&1 | tee "$HIA_RESULTS/scalar.log"
+          python -B tools/qualify_hia_paid_observation.py --output "$HIA_RESULTS/paid-observation" 2>&1 | tee "$HIA_RESULTS/paid-observation.log"
+      - name: Exclude private local authority state from export
+        if: always()
+        run: |
+          python - <<'PY'
+          import os, pathlib, shutil
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'hia-proof-matrix' / 'scalar'
+          for path in root.glob('u*/state'):
+              shutil.rmtree(path)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-proof-matrix-${{ env.HEPTA_SOURCE_SHA }}
+          path: ${{ runner.temp }}/hia-proof-matrix/
+          if-no-files-found: error
+          retention-days: 30

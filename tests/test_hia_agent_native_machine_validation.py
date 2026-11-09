@@ -94,6 +94,36 @@ class AgentNativeMachineValidationTests(AgentToolCase):
         path.chmod(0o600)
         path.write_bytes(original[:-1] + bytes([original[-1] ^ 1]))
 
+    def assert_adoption_identity(self, adopted, candidate, built, receipts):
+        adoption = self.session.read_json(adopted["adoption_receipt"])
+        identity = adoption["artifact_identity"]
+        build = self.session.read_json(built["build_receipt"])
+        self.assertEqual(identity["schema"], "hepta.hia.agent.adopted-artifact-identity.v1")
+        self.assertEqual(identity["candidate"], candidate)
+        self.assertEqual(identity["core_sha256"], candidate["sha256"])
+        self.assertEqual(identity["input_sha256"], build["native_build"]["input_sha256"])
+        self.assertEqual(identity["context"], self.session.context)
+        for field in ("codegen", "object_artifact", "object_sha256", "output_kind",
+                      "target_profile", "backend_profile", "installation"):
+            self.assertEqual(identity[field], build[field])
+        self.assertEqual(identity["machine_plan_sha256"], build["native_build"]["machine_plan_sha256"])
+        self.assertEqual(identity["object_sha256"], sha256(self.session.read(identity["object_artifact"])).hexdigest())
+        self.assertEqual(identity["native_artifact"], built["native_artifact"])
+        self.assertEqual(identity["final_image_sha256"], sha256(self.session.read(built["native_artifact"])).hexdigest())
+        self.assertEqual(identity["build_receipt"], built["build_receipt"])
+        self.assertEqual(identity["abi_signatures"], build["signatures"])
+        self.assertEqual(identity["abi_sha256"], digest(build["signatures"]))
+        self.assertEqual(identity["target_slot"], adopted["target_slot"])
+        self.assertEqual(identity["current"], adopted["current"])
+        self.assertFalse(identity["projection_is_execution_authority"])
+        self.assertEqual([row["verification_receipt"] for row in identity["proofs"]], receipts)
+        for row, ref in zip(identity["proofs"], receipts):
+            checks = self.session.read_json(ref)["checks"]
+            self.assertEqual(row["checks"], [{name: check[name] for name in (
+                "claim", "status", "subject", "profile", "evidence_artifact", "assumptions_artifact")}
+                for check in checks])
+        return identity
+
     def test_shared_scalar_proof_binds_the_actual_core_object_final_and_solver(self):
         candidate, _admitted, built = self.prepare()
         build = self.session.read_json(built["build_receipt"])
@@ -170,6 +200,9 @@ class AgentNativeMachineValidationTests(AgentToolCase):
             target_slot="machine-proof-consumer", expected_current={"generation": "0", "epoch": "0"},
             candidate_artifact=built["native_artifact"],
             evaluation_receipt=evaluated["evaluation_receipt"], verification_receipts=receipts))
+        identity = self.assert_adoption_identity(adopted, candidate, built, receipts)
+        self.assertEqual(identity["codegen"], {"kind": "canonical", "lowering_profile": self.session.profiles["lowering"]})
+        self.assertIsNone(identity["machine_plan_sha256"])
         lease = self.service.acquire_slot("machine-proof-consumer")
         try:
             observation = self.service.invoke_lease(lease, "transform", [35])
@@ -179,6 +212,33 @@ class AgentNativeMachineValidationTests(AgentToolCase):
             self.assertEqual(observation["generation"], adopted["current"]["generation"])
         finally:
             self.service.release_slot(lease)
+
+    def test_planned_native_adoption_projects_the_exact_plan_and_proof_subject(self):
+        candidate, admitted, canonical = self.prepare()
+        plan = {"schema": "hepta.hia.agent.block-layout.v1", "core_sha256": candidate["sha256"],
+                "block_order": {"transform": ["entry"]}}
+        plan_ref = self.session.artifact(plan)
+        checked = self.session.verify(candidate, claims=["lowering_refinement"], subject={
+            "kind": "agent_machine_plan", "backend_profile": self.session.backend,
+            "plan_profile": self.session.profiles["plan"], "plan": plan_ref})
+        self.assertEqual(checked["checks"][0]["status"], "proved")
+        built = self.session.emit(candidate, codegen={"kind": "agent_plan",
+            "plan_profile": self.session.profiles["plan"], "plan": plan_ref,
+            "verification_receipt": checked["verification_receipt"]})
+        native = self.native_verify(candidate, built)
+        self.assertEqual(native["checks"][0]["status"], "proved")
+        receipts = [admitted["verification_receipt"], checked["verification_receipt"], native["verification_receipt"]]
+        evaluated = self.session.evaluate(canonical, built, receipts=receipts)
+        with patch("hepta.hia_program_native.emit_program_machine", side_effect=AssertionError("adoption reemitted code")), \
+             patch("hepta.hia_program_native.compile_program_machine", side_effect=AssertionError("adoption relinked code")):
+            adopted = self.client.result("hia_adopt", self.session.arguments(
+                target_slot="planned-machine-proof-consumer", expected_current={"generation": "0", "epoch": "0"},
+                candidate_artifact=built["native_artifact"],
+                evaluation_receipt=evaluated["evaluation_receipt"], verification_receipts=receipts))
+        identity = self.assert_adoption_identity(adopted, candidate, built, receipts)
+        self.assertEqual(identity["codegen"]["plan"], plan_ref)
+        self.assertEqual(identity["machine_plan_sha256"], digest(plan))
+        self.assertEqual(identity["proofs"][1]["checks"][0]["subject"]["plan"], plan_ref)
 
     def test_a_self_consistent_wrong_backend_passes_encoding_but_fails_native_semantics(self):
         with patch.object(Code, "add", Code.sub):

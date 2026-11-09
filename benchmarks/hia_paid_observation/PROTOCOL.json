@@ -1,0 +1,41 @@
+{
+  "schema": "hepta.hia.paid-observation.protocol.v1",
+  "purpose": "Qualify paid observation, action change, real local effects and complete bounded accounting before any NDU comparison.",
+  "provenance": "Synthetic disposable SQLite schema-repair tasks; no real user task, learned policy or HIA native policy.",
+  "arms": ["fixed", "voi", "mpc"],
+  "actions": ["STOP", "READ", "REPAIR_A", "REPAIR_B"],
+  "task": "Increment each existing counter by delta exactly once. There is one counter_a or counter_b column. READ observes PRAGMA table_info; the policy never receives fixture mode or evaluator labels before termination.",
+  "observation_model": "Perfect schema observation on normal fixtures. One separately registered invalid-schema control makes READ fail; retain that task in every arm's denominator.",
+  "shared_calibration_count": 8,
+  "calibration_seed": 614,
+  "heldout_seed": 917,
+  "fixed_read_fee_thresholds": [0, 1, 2, 4, 8],
+  "wall_budget_ns": 2000000000,
+  "reward_units": 10,
+  "failure_penalty_units": 2,
+  "repair_fee_units": 2,
+  "delta": 7,
+  "heldout_cases": [
+    {"id": "ambiguous-low-0", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 12},
+    {"id": "ambiguous-low-1", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 12},
+    {"id": "ambiguous-low-2", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 12},
+    {"id": "ambiguous-low-3", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 12},
+    {"id": "ambiguous-high", "p_a": [1, 2], "read_fee_units": 8, "budget_units": 12},
+    {"id": "likely-a", "p_a": [99, 100], "read_fee_units": 1, "budget_units": 12},
+    {"id": "likely-b", "p_a": [1, 100], "read_fee_units": 1, "budget_units": 12},
+    {"id": "budget-cannot-read-and-repair", "p_a": [1, 2], "read_fee_units": 2, "budget_units": 3},
+    {"id": "repair-unaffordable", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 1},
+    {"id": "read-failure-control", "p_a": [1, 2], "read_fee_units": 1, "budget_units": 12, "invalid_schema": true}
+  ],
+  "controls": {
+    "fixed": "Choose a fixed read-fee threshold and default repair from shared calibration; after a paid READ use its observed schema. Freeze before heldout execution.",
+    "voi": "Exact one-step value of perfect information versus the best feasible no-read action, using rational arithmetic and the original remaining tariff budget.",
+    "mpc": "Independently enumerate the complete finite action/observation tree, including STOP, action fees and remaining tariff budget; no free oracle about realized fixture mode.",
+    "ties": "STOP, REPAIR_A, REPAIR_B, READ in that order. All controls receive the same public model, calibration observations, action rights and original budgets."
+  },
+  "calibration": "One actual READ subprocess per shared calibration fixture. The fixed fit replays known schema outcomes and synthetic tariff scores; these are not extra executed policy trials. Record shared setup/observation/fit costs once, expose the identical frozen dataset to every arm.",
+  "execution": "Task-major paired cells with deterministic rotated arm order; isolated fresh database per cell; at most one READ and one repair. No retries, refunds, replacement tasks or effects after an unknown READ result.",
+  "accounting": "Charge an action's synthetic tariff before dispatch, including failure/timeout. Count actual outer cell wall from setup through independent evaluation, plus nested controller/subprocess timings without adding nested intervals twice. Wall budget is an observed admission/timeout bound, not a hard real-time guarantee.",
+  "limits": ["Trusted same-host process separation, not adversarial capability isolation", "Known finite synthetic model; exact VOI and MPC can match", "No learned state, model calls, native NDU evaluation, production workload or monetary savings", "Tariff/reward units are synthetic and are never converted to measured nanoseconds or dollars", "SQLite worker has no descendants; timed-out effects remain UNKNOWN even if later readback looks complete"],
+  "claims": {"ndu_status": "NOT_RUN", "incremental_ndu_benefit_established": false, "production_benefit_established": false, "economic_benefit_established": false}
+}

@@ -1278,7 +1278,7 @@ class HIAAgentService:
         if (evaluation["context"] != args["context"] or evaluation["candidate_artifact"] != args["candidate_artifact"]
                 or evaluation["installation"] != self.identities):
             reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
-        self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
+        build = self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
         objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"])
         if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
                 or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
@@ -1312,6 +1312,27 @@ class HIAAgentService:
         if max(generation, epoch) >= 1 << 64:
             reject("E_HIA_GENERATION_EXHAUSTED", "u64 generation or epoch space is exhausted", "adoption")
         current = {"generation": str(generation), "epoch": str(epoch)}
+        # A reviewable projection of identities already checked above. This is
+        # not a new proof or an alternative acceptance/consumer authority.
+        proofs = []
+        for ref in args["verification_receipts"]:
+            verified, _ = self.store.get_json(ref, kind="verification-receipt")
+            proofs.append({"verification_receipt": ref, "checks": [
+                {name: check[name] for name in ("claim", "status", "subject", "profile",
+                    "evidence_artifact", "assumptions_artifact")}
+                for check in verified["checks"]]})
+        artifact_identity = {"schema": "hepta.hia.agent.adopted-artifact-identity.v1",
+            "candidate": metadata["candidate"], "core_sha256": _program.sha256,
+            "input_sha256": _program.input_sha256, "context": args["context"],
+            "codegen": metadata["codegen"],
+            "machine_plan_sha256": build["native_build"]["machine_plan_sha256"],
+            "object_artifact": build["object_artifact"], "object_sha256": build["object_sha256"],
+            "native_artifact": args["candidate_artifact"], "final_image_sha256": sha256(_data).hexdigest(),
+            "build_receipt": evaluation["build_receipt"], "output_kind": build["output_kind"],
+            "target_profile": build["target_profile"], "backend_profile": build["backend_profile"],
+            "installation": self.identities, "abi_signatures": metadata["signatures"], "abi_sha256": abi,
+            "proofs": proofs, "target_slot": args["target_slot"], "current": current,
+            "projection_is_execution_authority": False}
         self.store.db.execute("INSERT INTO versions VALUES (?,?,?)",
             (args["target_slot"], current["generation"], wire(args["candidate_artifact"]).decode()))
         self.store.db.execute("UPDATE slots SET generation=?,epoch=?,context_id=? WHERE name=?",
@@ -1320,6 +1341,7 @@ class HIAAgentService:
             "target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
             "active_artifact": args["candidate_artifact"], "retained_baseline": evaluation["baseline_artifact"],
             "evaluation_receipt": args["evaluation_receipt"], "verification_receipts": args["verification_receipts"],
+            "artifact_identity": artifact_identity,
             "future_calls_only": True, "in_flight_versions_retained": True,
             "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt")
         return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
