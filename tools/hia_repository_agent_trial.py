@@ -8,6 +8,7 @@ account/model nor changes permissions. Importing or settling calls no provider.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
 import os
@@ -250,6 +251,41 @@ def _git(cwd, *args):
     return result.stdout
 
 
+def _snapshot_new_file(cwd, relative, remaining):
+    """Read a bounded ordinary file through retained non-symlink directories."""
+    with ExitStack() as opened:
+        directory = os.open(cwd, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        opened.callback(os.close, directory)
+        for part in relative.parts[:-1]:
+            directory = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=directory)
+            opened.callback(os.close, directory)
+        descriptor = os.open(relative.name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW,
+                             dir_fd=directory)
+        opened.callback(os.close, descriptor)
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_NONREGULAR")
+        if before.st_size > remaining:
+            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_LIMIT")
+        # Bound actual bytes, rather than trusting a size observed before the
+        # read. A growing file cannot make the original snapshot exceed its cap.
+        body = bytearray()
+        while len(body) <= remaining:
+            block = os.read(descriptor, min(65536, remaining + 1 - len(body)))
+            if not block:
+                break
+            body.extend(block)
+        if len(body) > remaining:
+            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_LIMIT")
+        after = os.fstat(descriptor)
+        fingerprint = lambda value: (value.st_dev, value.st_ino, value.st_mode,
+            value.st_nlink, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+        if len(body) != before.st_size or fingerprint(before) != fingerprint(after):
+            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_CHANGED")
+        return bytes(body)
+
+
 def snapshot_repository(cwd, directory, *, baseline):
     """Keep the exact tracked diff and bytes of new ordinary files."""
     cwd, directory = Path(cwd).resolve(strict=True), Path(directory)
@@ -269,17 +305,11 @@ def snapshot_repository(cwd, directory, *, baseline):
         relative = Path(name)
         if relative.is_absolute() or ".." in relative.parts:
             raise ValueError("E_HIA_REPOSITORY_UNTRACKED_PATH")
-        source = cwd / relative
         # Any source or parent symlink would make the capture follow another scope.
         if any((cwd / Path(*relative.parts[:i])).is_symlink() for i in range(1, len(relative.parts) + 1)):
             raise ValueError("E_HIA_REPOSITORY_UNTRACKED_SYMLINK")
-        if not source.is_file() or source.stat().st_nlink != 1:
-            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_NONREGULAR")
-        size = source.stat().st_size
-        total += size
-        if total > 32 * 1024 * 1024:
-            raise ValueError("E_HIA_REPOSITORY_UNTRACKED_LIMIT")
-        body = source.read_bytes()
+        body = _snapshot_new_file(cwd, relative, 32 * 1024 * 1024 - total)
+        total += len(body)
         destination = directory / "new-files" / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(body)
