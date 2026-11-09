@@ -3,6 +3,26 @@
 HIA provides a typed Core language, explicit resource checks, direct native code
 generation and scoped verification for Agent-authored programs.
 
+## Inspect the entry catalog
+
+Run `python3 -B tools/hia_entry_catalog.py` before writing a program. This
+standard-library adapter verifies the original public lock and helper bytes,
+then reports both exact source/runtime selections, syntax, target, proof
+profile and the minimal example. It never installs or activates a worker.
+
+Use `--development-root /absolute/source` to report a checkout's actual commit,
+tree, dirty status and support digest without inferring release qualification.
+Use `--online-manifest /absolute/manifest.json` to compare a retained manifest's
+three installation digests; this offline comparison establishes no freshness.
+Discover online profiles with `hia_describe` and `hia_read` before using them.
+The [entry and scope handoff](docs/HIA_AGENT_ENTRY_SCOPE_20261109.md) records the
+fresh online launch failure separately from historical installation success.
+
+CLI `hia build` defaults to LLVM and CLI `hia emit` emits LLVM text. Select
+`--backend native` for a direct CLI build; MCP `hia_emit` uses `hia-direct`.
+The public-installation workflow checks this adapter and actually builds and
+calls the selected minimal scalar image for each locked source.
+
 ## Start from the selected release
 
 Use the default release entry, **`python3 -B tools/hia_release.py`**, and its
@@ -102,3 +122,9 @@ selfhost support matrix, and `docs/HIA_AGENT_PROOF_RESULTS.md`, the proof-result
 contract. Follow `docs/HIA_REPOSITORY_AGENT_TRIAL.md` there for the repository-task
 recorder and its public task package. A passing source qualification alone does
 not establish a completed fresh-Agent task or stable NDU economic benefit.
+
+## Agent entry and scope handoff
+
+Use the [Agent entry and proof-scope handoff](docs/HIA_AGENT_ENTRY_SCOPE_20261109.md)
+to distinguish current, named, development and online installations, CLI/MCP
+backends, the minimum program and the remaining P0-P5 acceptance gates.
