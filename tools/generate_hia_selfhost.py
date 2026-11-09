@@ -17,6 +17,7 @@ from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
 from tools.hia_selfhost_effects import source as effect_source
 from tools.hia_selfhost_multi_results import SOURCE as MULTI_RESULT_SOURCE
+from tools.hia_selfhost_keywords import keyword_source
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -1665,13 +1666,7 @@ SOURCE += MULTI_RESULT_SOURCE
 
 
 def source_program():
-    table = ['def keyword(s:readbuf, begin:u64, size:u64) -> u64:']
-    for word, token in W.items():
-        raw = word.encode().ljust(32, b'\0')
-        chunks = [int.from_bytes(raw[i:i+8], 'little') for i in range(0, 32, 8)]
-        table += [f'    if match(s, begin, size, {len(word)}, '+', '.join(map(str,chunks))+') == 1:', f'        return {token}']
-    table += ['    return 0']
-    text = SOURCE.replace('KEYWORD_FUNCTION', '\n'.join(table))
+    text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE',
                 'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
@@ -1767,6 +1762,9 @@ class Builder:
             if name=='length': return self.cast(self.op('buffer.len',args,'usize'),'u64')
             if name=='byte': return self.cast(self.op('buffer.load',[args[0],self.cast(args[1],'usize')],'u8'),'u64')
             if name=='store': return self.op('buffer.store',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'u8')])
+            if name=='choose':
+                assert len(args)==3 and args[0][1]=='bool' and args[1][1]==args[2][1]
+                return self.op('select',args,args[1][1])
             sig=self.signatures[name]
             assert len(args)==len(sig[0]),name
             converted=[self.cast(a,t) if a[1]!=t else a for a,t in zip(args,sig[0])]

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v18`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v19`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -995,3 +995,28 @@ returns, leaked owners, live child loans and missing write effects. All accepted
 observations are checked by the independent Core VM before B0, then by both B3
 and modified M3 in flat/ELF formats where applicable. This is finite evidence,
 not a claim that the complete HIA language or Python toolchain has been replaced.
+
+## v19 exact packed-byte keyword selection
+
+The keyword recognizer packs at most 32 input bytes into four ordinary `u64`
+values and selects a token by equality of the complete bytes **and length**.
+This is not hash dispatch or dispatch on the compiler source identity. Inputs
+longer than 32 bytes return unknown before any byte load; unknown, NUL-bearing,
+prefix and suffix inputs do not acquire a keyword token. All reads and variable
+shifts retain ordinary HIA bounds/shift checks. The authoring aid's `choose`
+notation lowers to the existing eager typed `select` Core instruction.
+
+The full compiler uses 1,370 of the unchanged 1,536 CFG blocks and 6,890 of 8,192
+instruction slots; the keyword function itself uses 15 blocks. Version 18 used
+1,522 blocks, so this recovers 152 blocks without moving workspace regions or
+raising source/output/workspace/SSA/relocation limits. Function identities and
+the public ABI remain unchanged. `tests.test_hia_selfhost_keywords` checks the
+actual generated compiler's capacity rather than accepting a declared number.
+
+A separate `keyword` native qualification family includes every keyword,
+unknown suffix/mutation inputs, empty/NUL/long strings, and offsets 0 and 3.
+All 510 reference observations are independently evaluated before B0, then
+executed by the B3 and modified M3 compiled lookup functions in both flat and
+ELF forms. Compiling the compiler's own source exercises nonzero scanner offsets
+and the ordinary scanner-to-keyword interface. This is finite execution evidence,
+not a whole-language or all-input equivalence proof.

@@ -78,13 +78,27 @@ nested native qualification passed **1,917 / 1,917** checks. Both original and
 modified-source compiler chains reached their respective machine-byte fixed
 points. The `multi` family preserves 43 original scalar cases and 17 original
 refusals, adding 20 observations across seven void programs and seven refusals.
-The source/reference/discovery regression passed 43 tests. Machine-readable
+The source/reference/discovery regression passed 43 tests; the complete language
+regression additionally passed 1,196 / 1,196 checks. Machine-readable
 receipts remain bound to their actual source file manifests, not to this prose.
 
 Historical recovery bundles/manifests remain immutable. CI now validates those
 bytes against the original/recovered commits, then independently regenerates and
 qualifies the current source; intentionally improved source must not be required
 to equal an old snapshot, nor should the old snapshot be rewritten to match it.
+
+## Implemented follow-through: v19 compiler growth space
+
+Exact packed-byte/length keyword selection replaces per-keyword control-flow
+branches. The keyword body uses 15 CFG blocks; the full compiler uses 1,370
+instead of 1,522, within the unchanged 1,536-block and 1 MiB buffer limits.
+A fresh source-only cold replay passed 11 / 11 checks in approximately 124 seconds
+under the unchanged 180-second owner deadline. Its native qualification passed
+3,965 / 3,965 checks; source/reference/discovery passed 46 tests. A new dedicated
+keyword family checks 510 VM observations, including every keyword, offsets,
+unknown mutations, long input and embedded NUL, against both native generations
+in both flat and ELF forms. Source identity is recorded in the retained summary;
+no previous-version fixed point is substituted for this new compiler.
 
 ## Ordered remaining work and acceptance
 

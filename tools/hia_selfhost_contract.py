@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v18"
+PROFILE = "selfhost-core-linux-x86_64-v19"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -26,6 +26,8 @@ SOURCE_FILES = (
     "tools/hia_selfhost_effects.py",
     "tools/hia_selfhost_multi_results.py",
     "tools/hia_selfhost_void_results.py",
+    "tools/hia_selfhost_keywords.py",
+    "tests/test_hia_selfhost_keywords.py",
     "tools/hia_selfhost_owned_elf.py",
     "tools/hia_selfhost_owned_elf_cases.py",
     "tools/hia_selfhost_owned_flow_cases.py",

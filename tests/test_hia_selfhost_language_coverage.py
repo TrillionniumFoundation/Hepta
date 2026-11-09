@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v18 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v19 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v18"
+PROFILE = "selfhost-core-linux-x86_64-v19"
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -949,6 +949,10 @@ def coverage_manifest():
         "input_types": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"],
         "input_types_by_output": {"selfhost": [*WIDTHS, "bool", "readbuf", "mutbuf"],
                                   "selfhost_elf": [*WIDTHS, "bool", "readbuf", "mutbuf", "buffer", "chain"]},
+        "keyword_lookup_scope": {"representation": "four packed u64 words and exact byte/length equality",
+            "hash_dispatch": False, "maximum_keyword_bytes": 32,
+            "qualification": "tools.hia_selfhost_keywords.qualify on original B3 and mutated M3",
+            "all_input_correctness_proved": False},
         "internal_scalar_result_scope": {
             "cardinality": [0, 1, 2, 3], "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
             "types": [*WIDTHS, "bool"], "returned_resources_supported": False,

@@ -331,7 +331,7 @@ def independent_reference():
         "returned_resources_supported": False, "public_entry_abi_changed": False}
 
 
-def qualify(directory, compilers, checks, reference):
+def qualify(directory, compilers, checks, reference, *, family="multi"):
     from tools.qualify_hia_selfhost import (INVALID, NO_SPACE, compile_stage, digest,
         inspect_selfhost_object, invoke, observe_native_tool)
     from tools.qualify_hia_selfhost_owned_elf import inspect_owned_object
@@ -340,7 +340,7 @@ def qualify(directory, compilers, checks, reference):
         images = {}
         for case in reference["cases"]:
             program = case["program"]
-            prefix = label + "-multi-" + program
+            prefix = label + "-" + family + "-" + program
             if program not in images:
                 source = case["source"].encode()
                 owned = case["owned_elf_only"]
@@ -372,7 +372,7 @@ def qualify(directory, compilers, checks, reference):
                     and short.get("core_u32") == NO_SPACE and short.get("output_unchanged"))
                 observations.append(short)
             for kind, image, image_format in images[program]:
-                name = label + "-multi-" + case["id"] + "-" + kind
+                name = label + "-" + family + "-" + case["id"] + "-" + kind
                 initial = bytes.fromhex(case["initial_hex"])
                 result, output = invoke(directory, name, image, bytes.fromhex(case["source_hex"]),
                     image_format=image_format, capacity=len(initial), workspace_size=0,
@@ -383,7 +383,7 @@ def qualify(directory, compilers, checks, reference):
                 observations.append({"case": case["id"], "native": result, "actual_hex": output.hex(),
                                      "expected_hex": case["expected_hex"]})
         for case in reference["refusals"]:
-            name = label + "-multi-reject-" + case["id"]
+            name = label + "-" + family + "-reject-" + case["id"]
             result, output = invoke(directory, name, compiler, case["source"].encode(), capacity=512)
             checks[name] = bool(result.get("status") == "returned" and result.get("core_u32") == INVALID
                 and result.get("source_unchanged") and result.get("output_unchanged")
