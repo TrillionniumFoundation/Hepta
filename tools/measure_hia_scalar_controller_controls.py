@@ -554,15 +554,20 @@ def verify(args):
             require(row["pair"] == pair["pair"] and row["arm"] == arm
                     and row["case_id"] == pair["case_id"] and row["position"] == position, "cell schedule differs")
             rows.append(row)
-    require(summary["cells"] == rows, "summary differs from original cells")
+    require(wire(summary["cells"]) == wire(rows), "summary differs from original cells")
     recomputed = results_summary(rows, plan, store)
     for key, value in recomputed.items():
         if key == "status" and (summary["halted_reason"] is not None or not summary["execution_inputs_unchanged"]):
             value = "INCOMPLETE"
-        require(summary[key] == value, "summary recomputation differs: " + key)
+        require(wire(summary[key]) == wire(value), "summary recomputation differs: " + key)
     attempted = [row for row in rows if row["status"] != "not_started"]
     require(all(a["end_offset_ns"] <= b["start_offset_ns"] for a, b in zip(attempted, attempted[1:])), "call intervals overlap")
     costs = summary["measurement"]
+    require(all(type(costs[name]) is int and costs[name] >= 0 for name in (
+        "outer_wall_ns_to_summary_preparation", "all_attempted_call_wall_ns",
+        "admission_capture_export_audit_wall_ns")), "invalid outer cost integers")
+    require(all(row["end_offset_ns"] <= costs["outer_wall_ns_to_summary_preparation"]
+                for row in attempted), "attempted call ends outside the measured outer interval")
     require(sum(row["wall_ns"] for row in attempted) == costs["all_attempted_call_wall_ns"]
             and costs["outer_wall_ns_to_summary_preparation"] == costs["all_attempted_call_wall_ns"] + costs["admission_capture_export_audit_wall_ns"]
             and costs["admission_capture_export_audit_wall_ns"] >= 0, "outer cost accounting differs")

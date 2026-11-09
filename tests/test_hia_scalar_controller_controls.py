@@ -6,11 +6,14 @@ This module never launches the native evaluator. The separately frozen
 from collections import Counter
 from copy import deepcopy
 from hashlib import sha256
+import io
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import tempfile
 import unittest
 from unittest.mock import patch
+import zipfile
 
 from tools import measure_hia_scalar_controller_controls as study
 
@@ -213,7 +216,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             with self.subTest(fault=fault), self.assertRaises(ValueError):
                 study.results_summary(rows, plan, self.store)
 
-    def test_independent_verify_refuses_missing_objects_from_incomplete_campaign(self):
+    def independent_incomplete_fixture(self):
         plan, rows = self.incomplete_fixture()
         objective = {"authored_fixture": True}
         plan.update(schema=study.SCHEMA, protocol=study.protocol(), objective=objective,
@@ -240,6 +243,10 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
                 "admission_capture_export_audit_wall_ns": 5})
         study.write_new(self.root / "SUMMARY.json", summary)
         args = SimpleNamespace(directory=self.root, expected_plan_sha256=pin, output=None)
+        return args, rows, summary
+
+    def test_independent_verify_refuses_missing_objects_from_incomplete_campaign(self):
+        args, rows, summary = self.independent_incomplete_fixture()
         accepted = study.verify(args)
         self.assertEqual(accepted["campaign_status"], "INCOMPLETE")
         self.assertEqual(accepted["completed_pairs"], 0)
@@ -257,6 +264,72 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             finally:
                 path.write_bytes(raw)
 
+    def test_independent_verify_bounds_completed_and_failed_attempts_inside_outer(self):
+        for last_status in ("completed", "failed"):
+            # Each fixture uses a fresh directory so create-only evidence is
+            # preserved independently for both status cases.
+            with self.subTest(status=last_status), tempfile.TemporaryDirectory() as directory:
+                original_root, original_store = self.root, self.store
+                self.root = Path(directory)
+                (self.root / "objects").mkdir()
+                self.store = study.Store(self.root)
+                try:
+                    args, rows, summary = self.independent_incomplete_fixture()
+                    if last_status == "completed":
+                        rows[0].update(start_offset_ns=5, end_offset_ns=14)
+                        rows[1].update(status="not_started", **{key: None for key in (
+                            "result", "observations", "wall_ns", "cpu_ns", "start_offset_ns",
+                            "end_offset_ns", "call_error", "audit_error")})
+                    else:
+                        rows[1].update(start_offset_ns=14, end_offset_ns=31)
+                    plan = study.read_plan(self.root, args.expected_plan_sha256)
+                    summary.update(study.results_summary(rows, plan, self.store))
+                    attempted = [row for row in rows if row["status"] != "not_started"]
+                    outer = max(row["end_offset_ns"] for row in attempted)
+                    call_wall = sum(row["wall_ns"] for row in attempted)
+                    summary["measurement"].update(all_attempted_call_wall_ns=call_wall,
+                        outer_wall_ns_to_summary_preparation=outer,
+                        admission_capture_export_audit_wall_ns=outer-call_wall)
+                    for row in rows:
+                        (self.root / f"cell-{row['pair']:02d}-{row['arm']}.json").write_bytes(study.wire(row))
+                    path = self.root / "SUMMARY.json"
+                    path.write_bytes(study.wire(summary))
+                    self.assertEqual(study.verify(args)["campaign_status"], "INCOMPLETE")
+                    summary["measurement"]["outer_wall_ns_to_summary_preparation"] -= 1
+                    summary["measurement"]["admission_capture_export_audit_wall_ns"] -= 1
+                    path.write_bytes(study.wire(summary))
+                    with self.assertRaisesRegex(ValueError, "attempted call ends outside"):
+                        study.verify(args)
+                finally:
+                    self.root, self.store = original_root, original_store
+
+    def test_independent_verify_all_unstarted_does_not_invent_call_costs(self):
+        args, rows, summary = self.independent_incomplete_fixture()
+        for row in rows:
+            row.update(status="not_started", **{key: None for key in (
+                "result", "observations", "wall_ns", "cpu_ns", "start_offset_ns",
+                "end_offset_ns", "call_error", "audit_error")})
+            (self.root / f"cell-{row['pair']:02d}-{row['arm']}.json").write_bytes(study.wire(row))
+        plan = study.read_plan(self.root, args.expected_plan_sha256)
+        summary.update(study.results_summary(rows, plan, self.store))
+        summary["measurement"] = {"all_attempted_call_wall_ns": 0,
+            "outer_wall_ns_to_summary_preparation": 0, "admission_capture_export_audit_wall_ns": 0}
+        (self.root / "SUMMARY.json").write_bytes(study.wire(summary))
+        result = study.verify(args)
+        self.assertEqual(result["campaign_status"], "INCOMPLETE")
+        self.assertEqual(result["successful_native_calls"], 0)
+
+    def test_outer_measurements_require_exact_nonnegative_integers(self):
+        args, rows, summary = self.independent_incomplete_fixture()
+        original = deepcopy(summary)
+        for name in summary["measurement"]:
+            for invalid in (-1, True, float(original["measurement"][name])):
+                changed = deepcopy(original)
+                changed["measurement"][name] = invalid
+                (self.root / "SUMMARY.json").write_bytes(study.wire(changed))
+                with self.subTest(name=name, invalid=invalid), self.assertRaisesRegex(ValueError, "outer cost integers"):
+                    study.verify(args)
+
     def test_plan_pin_and_create_only_marker_prevent_silent_retrial(self):
         plan = {"schema": study.SCHEMA, "protocol": study.protocol(), "cases": study.cases(),
                 "schedule": study.schedule(), "objective": {}, "objective_sha256": study.digest({})}
@@ -269,6 +342,82 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 study.run(SimpleNamespace(directory=self.root, expected_plan_sha256=expected))
             loader.assert_not_called()
+
+
+class RetainedScalarOuterIntervalTests(unittest.TestCase):
+    """Offline audit of the original native records; no evaluator is launched."""
+    @classmethod
+    def setUpClass(cls):
+        path = (Path(__file__).resolve().parents[1] / "review-evidence"
+                / "hia-ndu-scalar-controls-20261108-23d1" / "original-campaign.zip")
+        raw = path.read_bytes()
+        if sha256(raw).hexdigest() != "d9025d10bacdd5e8558625c26fce40130effc87e05fe962a2387bfd4680add6d":
+            raise AssertionError("retained scalar campaign archive differs")
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            if archive.testzip() is not None:
+                raise AssertionError("retained scalar campaign CRC differs")
+            cls.files = {name.removeprefix("campaign/"): archive.read(name)
+                         for name in archive.namelist() if name.startswith("campaign/") and not name.endswith("/")}
+
+    def verify_files(self, files):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            original_read, original_iterdir = study.read_bytes, Path.iterdir
+
+            def read(path):
+                path = Path(path)
+                return files[str(path.relative_to(root))] if path.is_relative_to(root) else original_read(path)
+
+            def iterdir(path):
+                if path == root / "objects":
+                    return iter(root / name for name in files if name.startswith("objects/"))
+                return original_iterdir(path)
+
+            args = SimpleNamespace(directory=root, expected_plan_sha256=sha256(files["PLAN.json"]).hexdigest(), output=None)
+            with patch.object(study, "read_bytes", read), patch.object(Path, "iterdir", iterdir):
+                return study.verify(args)
+
+    def test_original_campaign_keeps_all_128_cells_and_64_native_calls(self):
+        result = self.verify_files(self.files)
+        self.assertEqual(result["verification"], "ORIGINAL_BYTES_AND_ACCOUNTING_VERIFIED")
+        self.assertEqual(result["campaign_status"], "MECHANISM_COMPLETE")
+        self.assertEqual((result["scheduled_cells_verified"], result["successful_native_calls"]), (128, 64))
+        self.assertEqual(result["new_native_calls"], 0)
+        self.assertFalse(result["economic_benefit_established"])
+
+    def test_review_4509542158_understated_outer_is_rejected(self):
+        files = dict(self.files)
+        summary = study.decode(files["SUMMARY.json"])
+        costs = summary["measurement"]
+        self.assertEqual(costs["all_attempted_call_wall_ns"], 943383830)
+        self.assertEqual(max(row["end_offset_ns"] for row in summary["cells"]), 1280472124)
+        costs["outer_wall_ns_to_summary_preparation"] = costs["all_attempted_call_wall_ns"]
+        costs["admission_capture_export_audit_wall_ns"] = 0
+        files["SUMMARY.json"] = study.wire(summary)
+        with self.assertRaisesRegex(ValueError, "attempted call ends outside"):
+            self.verify_files(files)
+
+    def test_original_outer_times_cannot_be_replaced_by_equal_python_floats(self):
+        for name in ("outer_wall_ns_to_summary_preparation", "all_attempted_call_wall_ns",
+                     "admission_capture_export_audit_wall_ns"):
+            files = dict(self.files)
+            summary = study.decode(files["SUMMARY.json"])
+            summary["measurement"][name] = float(summary["measurement"][name])
+            files["SUMMARY.json"] = study.wire(summary)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "outer cost integers"):
+                self.verify_files(files)
+
+    def test_summary_cannot_replace_exact_original_offsets_and_counts_by_floats(self):
+        for field in ("end_offset_ns", "successful_native_calls", "completed_pairs"):
+            files = dict(self.files)
+            summary = study.decode(files["SUMMARY.json"])
+            target = summary["cells"][0] if field == "end_offset_ns" else summary
+            original = deepcopy(summary)
+            target[field] = float(target[field])
+            self.assertEqual(summary, original)
+            files["SUMMARY.json"] = study.wire(summary)
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "summary differs|recomputation differs"):
+                self.verify_files(files)
 
 
 if __name__ == "__main__":

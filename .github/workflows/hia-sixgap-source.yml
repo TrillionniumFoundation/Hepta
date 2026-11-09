@@ -205,9 +205,9 @@ jobs:
           import unittest
           suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_controller_controls')
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not (result.wasSuccessful() and result.testsRun == 12 and not result.skipped
+          if not (result.wasSuccessful() and result.testsRun == 19 and not result.skipped
                   and not result.expectedFailures):
-              raise SystemExit('all twelve scalar evidence tests must pass without skips')
+              raise SystemExit('all named scalar evidence tests must pass without skips')
           PY
           python -B - <<'PY'
           from hashlib import sha256
