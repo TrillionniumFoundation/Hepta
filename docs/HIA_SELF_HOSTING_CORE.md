@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v15`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v16`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -161,7 +161,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
 | Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
-| Effects | `effects(read,write,trap)` or `effects(alloc,read,write,trap)`; allocation, drop and calls to allocating functions require `alloc` |
+| Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
 
 All integer operations use `u8`, `u16`, `u32`, `u64` or `usize`; booleans remain
 separate. `bit.not` complements exactly the declared width. Checked addition
@@ -887,3 +887,41 @@ cases use the exact `v2047` boundary. Twenty-four valid-Core/profile refusals co
 function and block parameters of all four resource types at `v2048`, `v8192` and
 `UINT64_MAX`. The original minimal failure and pre-fix qualification evidence are
 retained separately from the repaired source's final qualification.
+
+
+## v16 exact effect declarations and propagation
+
+The HIA-written parser now accepts every subset of Core's four declared effects
+in every order, including a pure `effects()` function. Unknown, duplicated and
+malformed effect entries are refused. The retained function record carries the
+complete four-bit effect mask; it uses the same workspace bytes as the former
+allocation flag. Every declared entry contributes exactly one Core structural
+node, preserving the original 262,144-node ceiling.
+
+The native checker requires each operation's static effects from the independent
+Core opcode contract. `int.cast` in checked mode additionally requires `trap`,
+even when its particular value fits or the conversion widens; wrapping casts do
+not gain that effect. Calls require the callee's complete declared set to be a
+subset of the caller's set. This applies to forward, backward and unused
+functions and does not infer authority from a caller further up the graph.
+Mandatory allocation requires `alloc,trap`, optional allocation and release
+require `alloc`, chain-head borrowing requires `read,trap`, and a whole-buffer
+fill requires `write` without adding a bounds trap. Existing resource and type
+checks remain separate requirements.
+
+The qualifier derives 101 valid Core/VM observations and 64 refusals before B0.
+The 65 possible ordered declarations cover all 16 effect sets. Native B3 and
+mutated M3 each compile and execute the 16 canonical declarations plus all 65
+orders in one called-function batch and the operation/call witnesses, then check
+all 64 refusals with unchanged output bytes. This produces 232 finite checks;
+it does not establish an all-input compiler refinement proof. The current
+compiler itself has 1,530 blocks and 6,060 instructions inside the unchanged
+1,536-block and 8,192-instruction ceilings. Its source, output and workspace
+ceilings remain 1 MiB apiece; child CPU, wall-time and cold-replay budgets remain
+unchanged.
+
+The implementation reconciles a prior unpublished effect-parser candidate with
+the v15 checked-cast source. The prior candidate's results remain observations
+of its own older source. Current-source qualification and source-only cold replay
+must pass separately. Signed scalars, general result shapes, returned resources,
+full identifiers/modules and general machine/compiler correctness remain open.

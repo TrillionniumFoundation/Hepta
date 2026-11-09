@@ -15,6 +15,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
+from tools.hia_selfhost_effects import source as effect_source
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -125,7 +126,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
-    account_nodes(w, 11 + count * 3)
+    account_nodes(w, 8 + count * 3)
     expect(s, w, 45)
     adjacent(w)
     expect(s, w, 62)
@@ -141,20 +142,9 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, @effects@)
     adjacent(w)
     expect(s, w, 40)
-    allocating = 0
-    if get(w, 8) == @alloc@:
-        next_token(s, w)
-        expect(s, w, 44)
-        allocating = 1
-        account_nodes(w, 1)
-    expect(s, w, @read@)
-    expect(s, w, 44)
-    expect(s, w, @write@)
-    expect(s, w, 44)
-    expect(s, w, @trap@)
-    expect(s, w, 41)
+    effects = parse_effects(s, w)
     if get(w, 48) == 0:
-        put(w, fb + 176, allocating)
+        put(w, fb + 176, effects)
     separated(w)
     expect(s, w, @entry@)
     adjacent(w)
@@ -377,7 +367,9 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     t = get(w, 304)
     expect(s, w, 61)
     op = get(w, 8)
-    if get(w, 288) > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
+    require_effects(w, instruction_effects(op))
+    x = get(w, 288)
+    if x > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
         return fail(w, 66)
     if (t >= 6 and t <= 9) and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
         fail(w, 21)
@@ -456,8 +448,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 if x >= get(w, 1024):
                     fail(w, 23)
                 fb = FBASE + x * FSTRIDE
-                if get(w, fb + 176) > get(w, FBASE + get(w, 72) * FSTRIDE + 176):
-                    fail(w, 65)
+                require_effects(w, get(w, fb + 176))
                 if n != get(w, fb + 24) or t != get(w, fb + 32):
                     fail(w, 24)
                 i = 0
@@ -500,6 +491,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 expect(s, w, 58)
                 if get(w, 8) == @checked@:
                     x = 1
+                    require_effects(w, 8)
                     next_token(s, w)
                 else:
                     expect(s, w, @wrap@)
@@ -1681,6 +1673,7 @@ def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
     normalize(o, w, t)
     return 0
 '''
+SOURCE += effect_source(W)
 
 
 def source_program():

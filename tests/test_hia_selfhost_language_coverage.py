@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v15 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v16 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v15"
+PROFILE = "selfhost-core-linux-x86_64-v16"
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -495,6 +495,9 @@ def positive_fixtures():
     spaced = simple_source().replace(b",", b" , ").replace(b" = ", b"   =   ")
     spaced = spaced.replace(b'{"value":7}', b'{ "value" : 7 }')
     fixtures.append(boundary_fixture("optional-ascii-spaces", spaced))
+    # Preserve the former valid-Core/profile refusal as an admitted witness.
+    fixtures.append(boundary_fixture("effect-trap-unused",
+        simple_source().replace(b"effects(read,write,trap)", b"effects(trap)")))
     # Distribute spaces across real lines: the independent assembly frontend
     # also has a 16 KiB per-line transport limit, separate from the 1 MiB source bound.
     lines = block_source([256] * 6).splitlines(keepends=True)
@@ -597,7 +600,6 @@ def rejected_fixtures():
         ("noncontiguous-function", seed.replace(b"fn f0(", b"fn f1(", 1), "contiguous function numbers"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
         ("unsupported-scalar-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "supported scalar types and entry return"),
-        ("unsupported-effect-combination", seed.replace(b"effects(read,write,trap)", b"effects(trap)"), "fixed declared effects"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
         ("unsupported-arbitrary-function-name", seed.replace(b"f0(", b"named("), "numeric function identifiers"),
         ("tab-whitespace", seed.replace(b"  v3", b"\tv3"), "ASCII space and LF only"),
@@ -884,6 +886,8 @@ def coverage_manifest():
              "checked-cast*", "dynamic-cast-*", "bool-equality-input-*", "boolean-equality-*", "boolean-ordering-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
         "control_flow": (["parse_block", "edge", "check_graph"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
+        "effects": (["parse_effects", "require_effects", "instruction_effects", "instruction"],
+                    ["declaration-*", "call-*-missing-*", "*-missing-*", "malformed-*", "int.cast-*"]),
         "calls": (["instruction", "args", "check_calls", "copy_argument"], ["parameters-16", "parameters-17", "call-*"]),
         "recursion": (["instruction", "parse_block", "check_calls"], ["recursion-*", "tail-*"]),
         "owned_resources": (["read_type", "owned_read_outputs", "owned_instruction",
@@ -903,6 +907,7 @@ def coverage_manifest():
                       "tools.hia_selfhost_loans.qualify_loans",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
         "control_flow": ["tools.qualify_hia_selfhost.qualify"],
+        "effects": ["tools.hia_selfhost_effects.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify"],
         "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],
         "owned_resources": ["tools.qualify_hia_selfhost_owned_elf.qualify",
@@ -1364,9 +1369,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        # v15 adds 25 checked-cast type pairs with five values each, plus
-        # the four Boolean input pairs for each of equality and inequality.
-        self.assertEqual(self.report["reference"]["scalar_cases"], 1050 + 125 + 8)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 1183)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])

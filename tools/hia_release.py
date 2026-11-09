@@ -59,6 +59,7 @@ BOOTSTRAP_FILES = (
     "tools/hia_selfhost_tailcalls.py",
     "tools/hia_selfhost_limits.py", "tools/hia_selfhost_capacity.py",
     "tools/hia_selfhost_cfg_worklist.py",
+    "tools/hia_selfhost_effects.py",
     "tools/hia_selfhost_process_owner.py", "tests/test_hia_selfhost_process_owner.py",
     "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",
@@ -70,6 +71,8 @@ BOOTSTRAP_FILES = (
 ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",
                "tools/hia_agent_native_transport.py")
 CANDIDATE_FILES = (
+    "tools/qualify_hia_safe_core_unsigned_casts.py", "tests/test_hia_safe_core_unsigned_casts.py",
+    "docs/HIA_SAFE_CORE_UNSIGNED_CASTS_V2.md",
     "tools/check_hia_safe_core.py", "tests/test_hia_safe_core_artifact.py",
     "tests/test_hia_safe_core_loader_contract.py",
     "tools/qualify_hia_native_ndu.py", "tests/test_hia_native_cohort_gate.py",
