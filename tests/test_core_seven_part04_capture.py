@@ -159,9 +159,12 @@ pid=os.fork()
 if pid==0:
  time.sleep(10)
 else:
- os.write(1,str(pid).encode()+b'\\n')
+ with open('/proc/'+str(pid)+'/stat') as stream:
+  birth=stream.read().rpartition(')')[2].split()[19]
+ os.write(1,(str(pid)+' '+birth+'\\n').encode())
 """
         started = time.monotonic()
+        deadline = started + 1.5
         result, files, _ = self.run_child(script)
         self.assertLess(time.monotonic() - started, 1.5)
         self.assertTrue(result['group_kill_sent'])
@@ -169,32 +172,36 @@ else:
         self.assertTrue(result['drain_complete'], result)
         self.assertFalse(result['cleanup_incomplete'], result)
         self.assertFalse(result['cleanup_deadline_exceeded'], result)
-        child = int(files[capture.DIAGNOSTIC_FILES[0]].strip())
-        state = Path('/proc') / str(child) / 'stat'
+        child, birth = files[capture.DIAGNOSTIC_FILES[0]].strip().decode().split()
+        identity = Path('/proc') / child / 'stat'
         # Closing inherited descriptors and publishing EXIT_ZOMBIE are separate
         # kernel exit observations. Keep the original total 1.5-second bound;
         # a signal receipt alone, a persistent live state, or a late Z is not
-        # enough to pass this real-child termination control.
-        deadline = started + 1.5
+        # enough to pass this real-child termination control. A reused PID no
+        # longer identifies this child, so compare its recorded start time too.
         observations = []
         while True:
             try:
-                fields = state.read_text().split()
-                current = fields[2]
-                self.assertEqual(int(fields[4]), result['pid'], 'descendant process group changed')
+                fields = identity.read_text().rpartition(')')[2].split()
+                current, observed_birth, group = fields[0], fields[19], int(fields[2])
+                same_identity = observed_birth == birth
             except FileNotFoundError:
-                current = None
+                current, observed_birth, group, same_identity = None, None, None, False
             observed_at = time.monotonic()
-            if not observations or observations[-1][1] != current:
-                observations.append([observed_at-started, current])
-            if observed_at >= deadline or current in (None, 'Z'):
+            observation = [current, same_identity, observed_birth, group]
+            if not observations or observations[-1][1:] != observation:
+                observations.append([observed_at-started, *observation])
+            if same_identity:
+                self.assertEqual(group, result['pid'], ('descendant process group changed', observations))
+            if observed_at >= deadline or current == 'Z' or not same_identity:
                 break
             time.sleep(min(.001, deadline-observed_at))
-        print(json.dumps(dict(descendant_pid=child, process_group=result['pid'],
+        print(json.dumps(dict(descendant_pid=int(child), descendant_starttime=birth,
+                              process_group=result['pid'],
                               states=observations, observed_elapsed=observed_at-started,
                               total_deadline_seconds=1.5)), flush=True)
         self.assertLess(observed_at, deadline, 'descendant exit observation exceeded the original total deadline')
-        if current is not None:
+        if same_identity:
             self.assertEqual(current, 'Z', 'descendant must not still execute')
 
     def test_simultaneous_stream_bursts_share_one_read_budget(self):

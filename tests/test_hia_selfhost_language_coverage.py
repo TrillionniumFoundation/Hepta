@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v13 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v14 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,8 +32,8 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v13"
-WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
+PROFILE = "selfhost-core-linux-x86_64-v14"
+WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
 CHECKED_ARITHMETIC = (*CHECKED_BINARY, "int.neg.checked")
@@ -425,6 +425,7 @@ def positive_fixtures():
         fixtures += [scalar_fixture("dynamic-integer-" + typ + "-" + str(index // 16),
             dynamic[index:index + 16], input_arguments=True) for index in range(0, len(dynamic), 16)]
     fixtures += select_input_fixtures()
+    fixtures += u16_flow_fixtures()
     from tools.hia_selfhost_bulk import OPS, bulk_cases, fixture_source, oracle
     for op in OPS:
         case = dict(next(row for row in bulk_cases() if row['opcode'] == op))
@@ -461,6 +462,40 @@ def positive_fixtures():
     padded = b"".join(b" " * (per_line + int(i < extra)) + line for i, line in enumerate(lines))
     fixtures.append(boundary_fixture("source-bytes-1048576", padded))
     return fixtures
+
+
+def u16_flow_fixtures():
+    """u16 is scalar even though its native type code follows owned types."""
+    repeated = (HEADER +
+        '  v3:u16 = const() {"value":65535}\n'
+        '  v4:u16 = call(v3,v3) {"function":"f1"}\n'
+        '  v5:u32 = int.cast(v4) {"mode":"wrap"}\n  ret(v5)\nend\n'
+        'fn f1(v0:u16,v1:u16) -> (u16) effects(read,write,trap) entry(b0)\n'
+        'block b0(v0:u16,v1:u16)\n  v2:bool = compare.eq(v0,v1)\n'
+        '  branch v2 b1(v0,v0) b1(v0,v1)\n'
+        'block b1(v3:u16,v4:u16)\n'
+        '  v5:u16 = int.add.wrap(v3,v4)\n  ret(v5)\nend\n').encode()
+    tail = (HEADER +
+        '  v3:u16 = const() {"value":65535}\n'
+        '  v4:u16 = const() {"value":32768}\n'
+        '  v5:u16 = const() {"value":4}\n'
+        '  v6:u16 = call(v3,v4,v5) {"function":"f1"}\n'
+        '  v7:u32 = int.cast(v6) {"mode":"wrap"}\n  ret(v7)\nend\n'
+        'fn f1(v0:u16,v1:u16,v2:u16) -> (u16) effects(read,write,trap) entry(b0)\n'
+        'block b0(v0:u16,v1:u16,v2:u16)\n'
+        '  v3:u16 = const() {"value":0}\n'
+        '  v4:bool = compare.eq(v2,v3)\n'
+        '  branch v4 b1(v0,v1) b2(v0,v1,v2)\n'
+        'block b1(v5:u16,v6:u16)\n'
+        '  v7:u16 = int.add.wrap(v5,v6)\n  ret(v7)\n'
+        'block b2(v8:u16,v9:u16,v10:u16)\n'
+        '  v11:u16 = const() {"value":1}\n'
+        '  v12:u16 = int.sub.checked(v10,v11)\n'
+        '  v13:u16 = int.add.wrap(v8,v9)\n'
+        '  v14:u16 = call(v9,v13,v12) {"function":"f1"}\n'
+        '  ret(v14)\nend\n').encode()
+    return [boundary_fixture("u16-repeated-call-and-edge", repeated, 65534),
+            boundary_fixture("u16-tail-call-swap-and-wrap", tail, 65531)]
 
 
 def rejected_fixtures():
@@ -520,7 +555,7 @@ def rejected_fixtures():
         ("ssa-index-2048", simple_source(variable=2048), "maximum SSA index 2047"),
         ("noncontiguous-function", seed.replace(b"fn f0(", b"fn f1(", 1), "contiguous function numbers"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
-        ("unsupported-scalar-u16", seed.replace(b"v3:u32", b"v3:u16").replace(b"-> (u32)", b"-> (u16)"), "supported scalar types and entry return"),
+        ("unsupported-scalar-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "supported scalar types and entry return"),
         ("unsupported-effect-combination", seed.replace(b"effects(read,write,trap)", b"effects(trap)"), "fixed declared effects"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
         ("unsupported-arbitrary-function-name", seed.replace(b"f0(", b"named("), "numeric function identifiers"),
@@ -546,6 +581,17 @@ def rejected_fixtures():
     )
     for name, source, boundary in additions:
         add(name, source, boundary)
+    scalar_resource_prefix = HEADER.replace("v8 selfhost\n", "v8 selfhost_elf\n").replace(
+        "effects(read,write,trap)", "effects(alloc,read,write,trap)")
+    for name, instruction in (
+            ("owner-drop", "_ = owner.drop(v3)"),
+            ("owner-move", "v4:u16 = owner.move(v3)"),
+            ("loan-end", "_ = loan.end(v3)"),
+            ("borrow-read", "v4:readbuf = borrow.read(v3)"),
+            ("buffer-length", "v4:usize = buffer.len(v3)")):
+        source = (scalar_resource_prefix + '  v3:u16 = const() {"value":65535}\n'
+            + "  " + instruction + '\n  v5:u32 = const() {"value":0}\n  ret(v5)\nend\n').encode()
+        add("u16-not-resource-" + name, source, "u16 is neither owner nor loan", "rejected")
     for op in NEW_INTEGER:
         arguments = "v3" if op in UNARY_INTEGER else "v3,v4"
         valid = (HEADER + '  v3:u32 = const() {"value":1}\n'
@@ -1028,7 +1074,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_select_covers_each_scalar_type_and_changing_inputs(self):
         rows = [row for row in scalar_cases() if row["opcode"] == "select"]
-        self.assertEqual(len(rows), 40)
+        self.assertEqual(len(rows), 48)
         for typ in (*WIDTHS, "bool"):
             selected = [row for row in rows if row["operand_type"] == typ]
             self.assertEqual(len(selected), 8)
@@ -1036,7 +1082,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertEqual({tuple(row["arguments"]) for row in rows if row["operand_type"] == "bool"},
                          {(c, a, b) for c in (False, True) for a in (False, True) for b in (False, True)})
         fixtures = select_input_fixtures()
-        self.assertEqual(len(fixtures), 28)
+        self.assertEqual(len(fixtures), 33)
         for typ in (*WIDTHS, "bool"):
             selected = [row for row in fixtures if row["id"].startswith("select-input-" + typ + "-")]
             self.assertEqual(len({row["source"] for row in selected}), 1)
@@ -1046,7 +1092,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles(self):
         reference = independent_references()
         # Includes all unsigned scalar operations, full-width and zero divisors.
-        self.assertEqual(len(reference["scalar"]), 824)
+        self.assertEqual(len(reference["scalar"]), 1050)
         self.assertTrue(all(row["reference_result"]["status"] == "trapped" for row in reference["traps"]))
         self.assertTrue(any(row["reference_result"]["status"] == "accepted" for row in reference["negative"]))
         self.assertTrue(any(row["reference_result"]["status"] == "rejected" for row in reference["negative"]))
@@ -1101,7 +1147,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
 
     def test_checked_arithmetic_covers_width_boundaries_and_both_write_orders(self):
         rows = checked_arithmetic_trap_cases()
-        self.assertEqual(len(rows), 120)
+        self.assertEqual(len(rows), 150)
         for typ, width in WIDTHS.items():
             for op in CHECKED_ARITHMETIC:
                 cases = [row for row in rows if row["operand_type"] == typ and row["opcode"] == op]
@@ -1158,7 +1204,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        self.assertEqual(self.report["reference"]["scalar_cases"], 824)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 1050)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])
@@ -1166,14 +1212,14 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
 
     def test_invalid_checked_shifts_trap_with_native_output_preserved(self):
         rows = [row for row in self.report["traps"] if row["kind"] == "shift"]
-        self.assertEqual(len(rows), 32)
+        self.assertEqual(len(rows), 40)
         for row in rows:
             self.assertEqual(row["execution"]["returncode"], -4)
             self.assertTrue(row["execution"]["shared_output_observation"]["unchanged"])
 
     def test_checked_arithmetic_traps_before_later_writes_and_preserves_prior_writes(self):
         rows = [row for row in self.report["traps"] if row["kind"] == "checked_arithmetic"]
-        self.assertEqual(len(rows), 240)
+        self.assertEqual(len(rows), 300)
         for row in rows:
             self.assertEqual(row["execution"]["returncode"], -4)
             self.assertEqual(row["observed_output_hex"], row["expected_output_hex"])
@@ -1208,6 +1254,37 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         self.assertTrue((directory / "independent-reference.json").is_file())
 
 
+def check_native_report_assertions(report, output):
+    """Run native unittest assertions on this invocation's actual report.
+
+    Reuse the complete native qualification just performed by the CLI, without
+    omitting the existing assertions or building a second compiler chain.
+    This does not admit external reports or add native observations.
+    """
+    class CurrentInvocationAssertions(SelfhostLanguageNativeTests):
+        @classmethod
+        def setUpClass(cls):
+            cls.temporary = None
+            cls.output = output
+            cls.report = report
+
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(CurrentInvocationAssertions)
+    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    complete = (result.testsRun == 8 and result.wasSuccessful() and not result.skipped
+                and not result.expectedFailures and not result.unexpectedSuccesses)
+    write_json(output.with_suffix(".assertions.json"), {
+        "schema": "hepta.hia.selfhost-language-native-assertions.v1",
+        "report_sha256": digest(output.read_bytes()),
+        "tests_run": result.testsRun,
+        "passed": complete,
+        "failures": [{"test": test.id(), "detail": detail} for test, detail in result.failures],
+        "errors": [{"test": test.id(), "detail": detail} for test, detail in result.errors],
+        "skipped": [{"test": test.id(), "reason": reason} for test, reason in result.skipped],
+        "additional_native_execution": False,
+    })
+    return complete
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
@@ -1221,9 +1298,11 @@ def main():
     if args.output is None:
         parser.error("--output is required for retained native qualification")
     result = qualify_language(args.output)
+    assertions_passed = (result["status"] == "SELFHOST_LANGUAGE_COVERAGE_PASS"
+                         and check_native_report_assertions(result, args.output))
     print(json.dumps({"status": result["status"], "output": str(args.output),
                       "counts": result.get("counts"), "error": result.get("error")}, sort_keys=True))
-    raise SystemExit(0 if result["status"] == "SELFHOST_LANGUAGE_COVERAGE_PASS" else 1)
+    raise SystemExit(0 if assertions_passed else 1)
 
 
 if __name__ == "__main__":

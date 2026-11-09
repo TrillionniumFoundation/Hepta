@@ -138,6 +138,31 @@ jobs:
           assert report['canonical_subjects']['original']['sha256'] != report['canonical_subjects']['candidate']['sha256']
           print('Strict refusal reproduced; original-delta proof/evaluation/adoption acceptance remains HOLD.')
           PY
+      - name: Independently validate actual frozen select output fragments
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B -m unittest tests.test_hia_original_select_fragments -v
+          python -B tools/qualify_hia_original_select_fragments.py \
+            --original "$RUNNER_TEMP/hia-sixgap/original-select-inputs/original-selfhost.hiaasm" \
+            --candidate "$RUNNER_TEMP/hia-sixgap/original-select-inputs/candidate-selfhost.hiaasm" \
+            --patch "$RUNNER_TEMP/hia-sixgap/original-select-inputs/fresh-select.patch" \
+            --output "$RUNNER_TEMP/hia-sixgap/original-select-fragments" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/original-select-fragments.log"
+          python -B - <<'PY'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap'
+          source = root / 'original-select-fragments'
+          manifest = sha256((source / 'artifact-manifest.json').read_bytes()).hexdigest()
+          subprocess.run([sys.executable, '-B', 'tools/replay_hia_original_select_fragments.py',
+              '--input', str(source), '--expected-manifest-sha256', manifest,
+              '--output', str(root / 'original-select-fragments-replay')], check=True)
+          PY
       - name: Verify public scalar proof scope and receipt rejection
         shell: bash
         run: |

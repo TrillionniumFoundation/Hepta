@@ -55,7 +55,7 @@ class Part04RunnerTests(unittest.TestCase):
     def setUpClass(cls):cls.prepared,cls.previous,cls.proposal,cls.diagnostic=fixture()
 
     def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0,
-                 timeout_mode='checkpoint'):
+                 timeout_mode='checkpoint',timeout_ready_seconds=5):
         if timeout_mode not in ('checkpoint','elapsed'):
             raise ValueError('unknown timeout fixture mode')
         with tempfile.TemporaryDirectory() as folder,ExitStack() as stack:
@@ -128,7 +128,7 @@ class Part04RunnerTests(unittest.TestCase):
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
                     if behavior=='target_timeout' and timeout_mode=='checkpoint':
-                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'])
+                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'],ready_seconds=timeout_ready_seconds)
                         self.timeout_clock=clock
                         real_append=collector._Sink.append
                         def append(sink,name,data,terminal=False):

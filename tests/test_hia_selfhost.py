@@ -238,10 +238,10 @@ class SelfhostSourceTests(unittest.TestCase):
     def test_select_reference_covers_all_scalar_types_and_rejects_bad_signatures(self):
         from tools.hia_selfhost_select import independent_select_reference
         result = independent_select_reference()
-        self.assertEqual(len(result["cases"]), 64)
+        self.assertEqual(len(result["cases"]), 78)
         self.assertEqual(len(result["rejections"]), 13)
-        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u32", "u64", "usize", "bool"})
-        for typ in ("u8", "u32", "u64", "usize", "bool"):
+        self.assertEqual({row["type"] for row in result["cases"]}, {"u8", "u16", "u32", "u64", "usize", "bool"})
+        for typ in ("u8", "u16", "u32", "u64", "usize", "bool"):
             self.assertEqual({row["condition"] for row in result["cases"] if row["type"] == typ}, {False, True})
 
     def test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals(self):
@@ -548,11 +548,11 @@ class SelfhostNativeTests(unittest.TestCase):
         rows = self.report["select_observations"]
         for compiler in ("original", "modified"):
             cases = [row for row in rows if row["case"].startswith(compiler + "-select-") and "-case-" in row["case"]]
-            self.assertEqual(len(cases), 64)
+            self.assertEqual(len(cases), 78)
             for row in cases:
                 self.assertTrue(self.report["checks"][row["case"]], row)
                 self.assertEqual(row["core_u32"], int(row["expected"]) & 0xffffffff)
-            for typ in ("u8", "u32", "u64", "usize", "bool"):
+            for typ in ("u8", "u16", "u32", "u64", "usize", "bool"):
                 chosen = [row for row in cases if row["type"] == typ]
                 self.assertEqual({row["condition"] for row in chosen}, {False, True})
                 self.assertGreater(len({row["input_sha256"] for row in chosen}), 1)

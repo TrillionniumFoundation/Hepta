@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v13"
+PROFILE = "selfhost-core-linux-x86_64-v14"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -125,7 +125,7 @@ def support_contract(root=ROOT):
         },
         "support": [
             {"area": "scalar_types", "status": "supported",
-             "items": ["u64", "usize", "u32", "u8", "bool"]},
+             "items": ["u64", "usize", "u32", "u8", "u16", "bool"]},
             {"area": "resources", "status": "bounded_subset",
              "items": ["borrowed readbuf/mutbuf parameters", "buffer.len",
                        "buffer.load", "buffer.store", "buffer.swap with both bounds before access",

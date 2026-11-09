@@ -50,7 +50,7 @@ def owned_define_outputs(w:mutbuf) -> u64:
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
-        if t >= 8:
+        if t == 8 or t == 9:
             owner_produce(w, v)
         i = i + 1
     return 0
@@ -144,7 +144,7 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
     if n != 1:
         return fail(w, 63)
     if op == @owner.move@ or op == @owner.drop@:
-        if at < 8:
+        if at != 8 and at != 9:
             return fail(w, 63)
         owner_free(w, a)
         if get(w, 40) != 0:
