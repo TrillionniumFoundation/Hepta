@@ -54,7 +54,13 @@ def release(root, name):
         "minimal_program": {"path": "examples/hia_safe_core/scalar_add.hia.json",
                             "sha256": lock["files"]["hepta"]["examples/hia_safe_core/scalar_add.hia.json"],
                             "function": "calculate", "arguments": [2, 3], "expected_values": [5],
-                            "direct_build_flags": ["--backend", "native", "--kind", "shared", "--linker", "ld"]}}
+                            "direct_build_flags": ["--backend", "native", "--kind", "shared", "--linker", "ld"],
+                            "proof_smoke_entry": "tools/qualify_hia_entry_proof.py",
+                            "proof_smoke_selection": name,
+                            "proof_linker_hash_style": "both",
+                            "proof_checker_profile": "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1",
+                            "proof_checker_profile_version_flag": False,
+                            "proof_and_native_call_share_final_image": True}}
 
 def development(path):
     root = Path(path).resolve()

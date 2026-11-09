@@ -193,6 +193,16 @@ jobs:
                     "cases": observed, "ok": True, "general_machine_proof": False}
           (root / "minimal-native.json").write_text(json.dumps(record, indent=2) + "\n")
           PY
+      - name: Prove and call the same selected minimum image
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B -m unittest tools.test_hia_entry_proof -v
+          python -B tools/qualify_hia_entry_proof.py \
+            --selection "$HIA_RELEASE_SELECTION" \
+            --hepta-root "$RUNNER_TEMP/hia-public-release/release/hepta" \
+            --runtime-checkout "$RUNNER_TEMP/hia-public-release/release/runtime" \
+            --output "$RUNNER_TEMP/hia-public-release/minimal-proof"
       - name: Run native examples and prove installation identity matches the lock
         shell: bash
         run: |
@@ -219,5 +229,6 @@ jobs:
             ${{ runner.temp }}/hia-public-release/*.log
             ${{ runner.temp }}/hia-public-release/*.json
             ${{ runner.temp }}/hia-public-release/*.txt
+            ${{ runner.temp }}/hia-public-release/minimal-proof/**
           if-no-files-found: error
           retention-days: 30

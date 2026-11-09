@@ -89,15 +89,27 @@ HIA_EXAMPLE_OUT="$(mktemp -d)"
 ```
 
 The interpreter result should contain 42. Generation/linkage alone does not
-establish a native call, independent proof or adoption. A separate all-input
-model check can consume these exact supplied bytes:
+establish a native call, independent proof or adoption. The default v9 checker
+does not accept `--profile-version`, and GNU ld can emit only `.gnu.hash` while
+the supplied-ELF checker requires both hash sections. Link the retained object
+explicitly into a separately identified image:
 
 ```sh
+ld -m elf_x86_64 -shared -z defs -z noexecstack -z relro -z now \
+  --build-id=none --hash-style=both "$HIA_EXAMPLE_OUT/calculate.o" \
+  -lc -o "$HIA_EXAMPLE_OUT/calculate-proof.so"
 "$HIA_PYTHON" -B tools/check_hia_safe_core.py \
   --source "$HIA_EXAMPLE" --object "$HIA_EXAMPLE_OUT/calculate.o" \
-  --image "$HIA_EXAMPLE_OUT/calculate.so" \
-  --profile-version 1 --output "$HIA_EXAMPLE_OUT/proof"
+  --image "$HIA_EXAMPLE_OUT/calculate-proof.so" \
+  --output "$HIA_EXAMPLE_OUT/proof"
 ```
+
+The proof binds `calculate-proof.so`; it does not cover a different final image.
+For the automatically retained lock/proof/native-call sequence, use the
+`qualify_hia_entry_proof.py` command in [INSTALL.md](../INSTALL.md). Both public
+release CI rows execute this additional gate. The interrupted local checkpoint
+and recovery-source scope are recorded in the
+[recovery ledger](../review-evidence/hia-entry-proof-728f6e-20261109/RECOVERY.md).
 
 Supplied-artifact profile:
 `hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`.

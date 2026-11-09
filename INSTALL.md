@@ -123,6 +123,32 @@ contract. Follow `docs/HIA_REPOSITORY_AGENT_TRIAL.md` there for the repository-t
 recorder and its public task package. A passing source qualification alone does
 not establish a completed fresh-Agent task or stable NDU economic benefit.
 
+## Prove and execute the same minimum image
+
+After materializing either selected source, run this adapter from the metadata
+checkout with its published Python dependencies:
+
+```sh
+HIA_PYTHON=/absolute/new/hia-python/bin/python
+"$HIA_PYTHON" -B tools/qualify_hia_entry_proof.py \
+  --selection current \
+  --hepta-root /absolute/new/hia-release/hepta \
+  --runtime-checkout /absolute/new/hia-release/runtime \
+  --output /absolute/new/hia-minimum-proof
+```
+
+For the named release, use `--selection v16` with that release's materialized
+roots. The output must be a new directory outside both source checkouts.
+The adapter checks the original locks and source identities before and after,
+verifies/interprets the locked example, emits one direct object, links one
+explicit both-hash ELF, runs the selected supplied-byte checker, and calls
+that same proven image for five arithmetic cases. This handles the documented
+GNU-ld hash-section difference and avoids the newer-only `--profile-version`
+option. Every command, stderr, failed attempt, proof query and artifact identity
+is retained. The result is a bounded model proof and finite native observation;
+it grants no adoption authority and is no general compiler or hardware proof.
+Both public-installation CI rows execute this additional gate.
+
 ## Agent entry and scope handoff
 
 Use the [Agent entry and proof-scope handoff](docs/HIA_AGENT_ENTRY_SCOPE_20261109.md)
