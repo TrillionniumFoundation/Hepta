@@ -1,0 +1,187 @@
+--- a/.github/workflows/hia-public-release.yml
++++ b/.github/workflows/hia-public-release.yml
+@@ -106,13 +106,15 @@
+           entry = Path(os.environ["GITHUB_WORKSPACE"])
+           root = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"
+           readme = (entry / "README.md").read_bytes()
+-          readme_text = readme.decode("utf-8")
+-          if not readme_text.strip():
+-              raise SystemExit("public README is empty")
++          entry_document_path = "INSTALL.md"
++          entry_document = (entry / entry_document_path).read_bytes()
++          entry_document_text = entry_document.decode("utf-8")
++          if not entry_document_text.strip():
++              raise SystemExit("public installation document is empty")
+           command = "python3 -B " + os.environ["HIA_RELEASE_ENTRY"]
+           lock_link = "](" + os.environ["HIA_RELEASE_LOCK"] + ")"
+-          if command not in readme_text or lock_link not in readme_text:
+-              raise SystemExit("public README lacks the entry command or release-lock link")
++          if command not in entry_document_text or lock_link not in entry_document_text:
++              raise SystemExit("public installation document lacks the entry command or release-lock link")
+           lock_raw = (entry / os.environ["HIA_RELEASE_LOCK"]).read_bytes()
+           lock = json.loads(lock_raw)
+           source = root / "release/hepta"
+@@ -138,11 +140,15 @@
+                   raise SystemExit("public task input differs from lock: " + name)
+               files[name] = {"sha256": measured, "bytes": len(raw)}
+           record = {
+-              "schema": "hepta.hia.public-source-inputs.v1",
++              "schema": "hepta.hia.public-source-inputs.v2",
+               "entry_commit": os.environ["GITHUB_SHA"],
+               "release_lock_sha256": hashlib.sha256(lock_raw).hexdigest(),
+               "hepta_source": lock["sources"]["hepta"],
+-              "entry_readme": {"sha256": hashlib.sha256(readme).hexdigest(), "bytes": len(readme)},
++              "entry_document": {"path": entry_document_path,
++                                 "sha256": hashlib.sha256(entry_document).hexdigest(),
++                                 "bytes": len(entry_document)},
++              "entry_readme": {"path": "README.md", "sha256": hashlib.sha256(readme).hexdigest(),
++                               "bytes": len(readme)},
+               "files": files,
+               "ok": True,
+           }
+--- /dev/null
++++ b/INSTALL.md
+@@ -0,0 +1,104 @@
++# Hepta / HIA
++
++HIA provides a typed Core language, explicit resource checks, direct native code
++generation and scoped verification for Agent-authored programs.
++
++## Start from the selected release
++
++Use the default release entry, **`python3 -B tools/hia_release.py`**, and its
++[version contract](releases/hia-current.json). The contract selects exact Hepta
++and runtime commits, file inventories, worker identity, backend and tool catalog.
++The [release guide](docs/HIA_RELEASE_ENTRY.md) records the selected release and
++its acceptance evidence.
++
++The selected public source is `2598f4309791d3a023cd5df585ad26810b20c744`,
++with the bounded `selfhost-core-linux-x86_64-v9` profile. The
++[current release reconciliation](review-evidence/hia-online-release-2598-20261108-e5ee/REPORT.md)
++records its original source-CI lock and the matching captured online identity.
++The named v16 source release below has a separate immutable lock and qualification scope.
++
++On Linux x86-64, install Git, Python 3.11 or newer and GNU binutils, then use new
++absolute paths for the three directories below:
++
++```sh
++git clone --depth=1 --filter=blob:none --sparse https://github.com/TrillionniumFoundation/Hepta.git /absolute/new/hia-entry
++git -C /absolute/new/hia-entry sparse-checkout set tools docs releases
++cd /absolute/new/hia-entry
++python3 -m venv /absolute/new/hia-python
++/absolute/new/hia-python/bin/python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
++HIA_RELEASE_PYTHON=/absolute/new/hia-python/bin/python
++"$HIA_RELEASE_PYTHON" -B tools/hia_release.py describe
++"$HIA_RELEASE_PYTHON" -B tools/hia_release.py materialize --directory /absolute/new/hia-release
++"$HIA_RELEASE_PYTHON" -B tools/hia_release.py check \
++  --hepta-root /absolute/new/hia-release/hepta \
++  --runtime-checkout /absolute/new/hia-release/runtime
++"$HIA_RELEASE_PYTHON" -B /absolute/new/hia-release/hepta/tools/qualify_hia_direct_native.py \
++  --output /absolute/new/hia-native.json
++```
++
++`describe` prints the contract and its SHA256. `materialize` obtains the exact
++public commits; `check` rechecks the selected source and installation identities.
++The native qualification command executes the examples and records its result.
++The metadata checkout and the materialized implementation have separate roles.
++Live runtime deployment and endpoint readback have their own acceptance receipts.
++
++## Install the named v16 source release
++
++The explicit entry **`python3 -B tools/hia_release_v16_6ecd802.py`** uses the
++[v16 source lock](releases/hia-v16-6ecd802.json) for Hepta
++`6ecd8023615a6e0b2dc269379fb059c656b38b6f`, tree
++`4c51962e030e9ea39c6498224c99eb40fbdd2f35`, and the bounded
++`selfhost-core-linux-x86_64-v16` profile. The runtime remains
++`4cd85c99c5f5a480832c48fbde8561bb365f67a9`.
++
++The lock is the unchanged 47,762-byte original from this source's
++[exact-source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42565807355).
++Its SHA256 is `b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0`.
++The default command and `hia-current.json` continue to select v9.
++
++From the metadata checkout above, on Linux x86-64 with the same Git, Python and
++GNU binutils prerequisites, use a new temporary destination:
++
++```bash
++HIA_V16_WORK="$(mktemp -d)"
++python3 -m venv "$HIA_V16_WORK/python"
++HIA_V16_PYTHON="$HIA_V16_WORK/python/bin/python"
++"$HIA_V16_PYTHON" -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
++HIA_V16_LOCK="$PWD/releases/hia-v16-6ecd802.json"
++HIA_V16_LOCK_SHA256=b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
++"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
++  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" describe
++"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
++  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" \
++  materialize --directory "$HIA_V16_WORK/release"
++"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
++  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" check \
++  --hepta-root "$HIA_V16_WORK/release/hepta" \
++  --runtime-checkout "$HIA_V16_WORK/release/runtime"
++"$HIA_V16_PYTHON" -B "$HIA_V16_WORK/release/hepta/tools/qualify_hia_direct_native.py" \
++  --output "$HIA_V16_WORK/native.json"
++```
++
++Pass the displayed lock and digest to the versioned entry. The release retains
++its original source-only qualification flags. Publishing and installing this
++named source does not change the online service's selected installation or
++establish full Core selfhosting, general machine correctness, external Agent
++adoption or stable NDU economic value. The
++[release guide](docs/HIA_RELEASE_ENTRY.md#named-v16-source-release--2026-11-09)
++records the source and public-entry validation boundaries.
++
++## Read proof results by scope
++
++A `proved` result applies to the subject, property, profile, assumptions and
++checker identity in that result. Read its unproved obligations before using it.
++Verification does not grant execution authority. The current
++[proof/Core/machine status](docs/HIA_PROOF_CORE_MACHINE_STATUS.json) records the
++qualified profiles and remaining limits; the
++[six-gap record](docs/HIA_SIXGAP_20261108.json) binds their evidence to source and
++runtime identities.
++
++The materialized source contains `docs/HIA_SELFHOST_CORE_SUPPORT.json`, the
++selfhost support matrix, and `docs/HIA_AGENT_PROOF_RESULTS.md`, the proof-result
++contract. Follow `docs/HIA_REPOSITORY_AGENT_TRIAL.md` there for the repository-task
++recorder and its public task package. A passing source qualification alone does
++not establish a completed fresh-Agent task or stable NDU economic benefit.
+--- a/docs/HIA_RELEASE_ENTRY.md
++++ b/docs/HIA_RELEASE_ENTRY.md
+@@ -1,6 +1,8 @@
+ # One HIA release entry and version contract
+ 
+ `python3 -B tools/hia_release.py` is the candidate's default release entry.
++Start with [`INSTALL.md`](../INSTALL.md) for the public installation commands.
++The root README remains empty; `INSTALL.md` is the checked discovery document.
+ `releases/hia-current.json` selects immutable commits from **both** repositories;
+ branch names, PR numbers and a compatible-looking tool list are not substitutes.
+ The lock is repository release metadata, not a signed attestation or a grant to
+@@ -63,10 +65,11 @@
+ 3,000 ms context limit and production budgets were not changed. That diagnostic
+ is not substituted for the selected `2598f430` source's own CI.
+ 
+-The main README discovery command, release entry and preflight helper remain
+-compatible with this selected source; both helper files are byte-identical to
+-the source-CI inventory. The metadata README and materialized source README may
+-differ because the source lock measures the implementation checkout.
++The public [`INSTALL.md`](../INSTALL.md) discovery command, release entry and
++preflight helper remain compatible with this selected source; both helper files
++are byte-identical to the source-CI inventory. The metadata installation document
++and materialized source README may differ because the source lock measures the
++implementation checkout.
+ 
+ ### Recorded post-merge observation — 2026-11-09
+ 
+@@ -135,7 +138,10 @@
+ The `current` row calls the default CLI without a lock override and keeps the
+ existing artifact name. The v16 row uses the named entry, original lock and
+ digest, with a separate artifact. A failure in either row is retained without
+-cancelling the other row.
++cancelling the other row. Discovery requires a nonempty `INSTALL.md` with each
++row's entry command and lock link. The `hepta.hia.public-source-inputs.v2` record
++binds that document's path, SHA256 and byte count; separate README metadata
++records its actual bytes without treating it as the installation document.
+ 
+ The source CI and the metadata entry's installation CI are distinct records.
+ The source commit's qualification does not substitute for the metadata head's

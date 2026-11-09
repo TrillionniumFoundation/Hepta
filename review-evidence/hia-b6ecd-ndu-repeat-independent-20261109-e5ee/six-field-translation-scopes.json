@@ -1,0 +1,335 @@
+{
+  "baseline": {
+    "assumptions": [
+      {
+        "id": "typed_inputs",
+        "statement": "The quantified domain is every argument tuple of the selected verified Core signature and its fixed-width scalar types."
+      },
+      {
+        "id": "core_semantics",
+        "statement": "The qualified primitive v1-v7 Core scalar semantics, trap ordering and the declared profile limits define the observations."
+      },
+      {
+        "id": "trusted_implementation",
+        "statement": "The listed Python checker, verifier, encoder and counterexample replay implementations are trusted; their correctness is not machine-proved."
+      },
+      {
+        "id": "loaded_source",
+        "statement": "The executing imported code corresponds to the recorded on-disk source inventory; no concurrent code, solver or process tampering occurs. Source hashes do not attest loaded memory."
+      },
+      {
+        "id": "solver",
+        "statement": "The identified Z3 Python binding and native library correctly answer the generated bit-vector queries; Python, the host OS and hardware execute them correctly."
+      },
+      {
+        "id": "point_of_use",
+        "statement": "Consumers rebind the exact Core and recompute the required proof at use; a serialized result never grants execution authority."
+      }
+    ],
+    "checker": {
+      "kind": "trusted_executable_smt_checker",
+      "machine_checked_implementation": false,
+      "method": "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples",
+      "name": "hepta.hia_translation_validation.validate_translation",
+      "runtime": {
+        "implementation": "CPython",
+        "version": "3.12.16"
+      },
+      "solver": {
+        "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+        "library_path": "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/z3/lib/libz3.so",
+        "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+        "name": "Z3",
+        "version": "4.15.4"
+      },
+      "source_identity": {
+        "hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+        "hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+        "hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+        "hia_opcodes.py": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec",
+        "hia_optimization.py": "ddda1bc33a4d99f07216b00f2d9f666314e41aa757cd88273b3b295e2d842267",
+        "hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+        "hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11",
+        "hia_program_llvm.py": "334776f8bf9623ffbb172393cda8a59d6950e66c9794f7c9d41d7f9bbd57667b",
+        "hia_program_runtime.py": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56",
+        "hia_scalar_proof_contract.py": "67e11ffbe394a2cd6b2f5a30a7f3af5c5c694033fd0624d3f5e8be6d829781c7",
+        "hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+        "hia_translation_validation.py": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb"
+      },
+      "source_identity_error": null,
+      "source_identity_sha256": "68f4f7f2612aca6cb211fa9071f68fe1064323ace62903727d513874b2ceb6e9"
+    },
+    "execution_authority": false,
+    "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+    "property": {
+      "id": "all_input_return_and_first_trap_equivalence",
+      "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+    },
+    "status": "proved",
+    "subject": {
+      "after_input_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "after_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "before_input_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "before_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "function": "calculate",
+      "kind": "canonical_core_comparison",
+      "selection": "selected_public_scalar_function"
+    },
+    "unproved_obligations": [
+      {
+        "id": "checker_soundness",
+        "statement": "A machine-checked correctness theorem for the Python verifier, SMT encoders, replay and Z3 remains open."
+      },
+      {
+        "id": "whole_language",
+        "statement": "No theorem for all HIA programs or constructs outside this scalar profile is established."
+      },
+      {
+        "id": "other_exports",
+        "statement": "Behavior or totality of other public exports is not established by this selected-entry proof."
+      },
+      {
+        "id": "core_to_machine",
+        "statement": "Compilation, actual native bytes and ISA refinement are not checked by this Core query."
+      },
+      {
+        "id": "abi_ffi_loading",
+        "statement": "ABI, FFI, linking, loading and host-memory contracts require separate validation."
+      },
+      {
+        "id": "resources",
+        "statement": "Physical resource quotas, VM instruction budgets, wall time, energy and performance gains are not proved."
+      },
+      {
+        "id": "concurrency",
+        "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside this proof."
+      },
+      {
+        "id": "normal_return_totality",
+        "statement": "Equivalence may preserve a trap; it does not establish that every input returns normally."
+      }
+    ]
+  },
+  "guard_denominator_10": {
+    "assumptions": [
+      {
+        "id": "typed_inputs",
+        "statement": "The quantified domain is every argument tuple of the selected verified Core signature and its fixed-width scalar types."
+      },
+      {
+        "id": "core_semantics",
+        "statement": "The qualified primitive v1-v7 Core scalar semantics, trap ordering and the declared profile limits define the observations."
+      },
+      {
+        "id": "trusted_implementation",
+        "statement": "The listed Python checker, verifier, encoder and counterexample replay implementations are trusted; their correctness is not machine-proved."
+      },
+      {
+        "id": "loaded_source",
+        "statement": "The executing imported code corresponds to the recorded on-disk source inventory; no concurrent code, solver or process tampering occurs. Source hashes do not attest loaded memory."
+      },
+      {
+        "id": "solver",
+        "statement": "The identified Z3 Python binding and native library correctly answer the generated bit-vector queries; Python, the host OS and hardware execute them correctly."
+      },
+      {
+        "id": "point_of_use",
+        "statement": "Consumers rebind the exact Core and recompute the required proof at use; a serialized result never grants execution authority."
+      }
+    ],
+    "checker": {
+      "kind": "trusted_executable_smt_checker",
+      "machine_checked_implementation": false,
+      "method": "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples",
+      "name": "hepta.hia_translation_validation.validate_translation",
+      "runtime": {
+        "implementation": "CPython",
+        "version": "3.12.16"
+      },
+      "solver": {
+        "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+        "library_path": "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/z3/lib/libz3.so",
+        "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+        "name": "Z3",
+        "version": "4.15.4"
+      },
+      "source_identity": {
+        "hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+        "hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+        "hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+        "hia_opcodes.py": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec",
+        "hia_optimization.py": "ddda1bc33a4d99f07216b00f2d9f666314e41aa757cd88273b3b295e2d842267",
+        "hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+        "hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11",
+        "hia_program_llvm.py": "334776f8bf9623ffbb172393cda8a59d6950e66c9794f7c9d41d7f9bbd57667b",
+        "hia_program_runtime.py": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56",
+        "hia_scalar_proof_contract.py": "67e11ffbe394a2cd6b2f5a30a7f3af5c5c694033fd0624d3f5e8be6d829781c7",
+        "hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+        "hia_translation_validation.py": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb"
+      },
+      "source_identity_error": null,
+      "source_identity_sha256": "68f4f7f2612aca6cb211fa9071f68fe1064323ace62903727d513874b2ceb6e9"
+    },
+    "execution_authority": false,
+    "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+    "property": {
+      "id": "all_input_return_and_first_trap_equivalence",
+      "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+    },
+    "status": "proved",
+    "subject": {
+      "after_input_sha256": "c451e93b8d4cbdc4b24f8452cf1ef49b868f5bcda3c58d8e31a1ef556a726786",
+      "after_sha256": "c451e93b8d4cbdc4b24f8452cf1ef49b868f5bcda3c58d8e31a1ef556a726786",
+      "before_input_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "before_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "function": "calculate",
+      "kind": "canonical_core_comparison",
+      "selection": "selected_public_scalar_function"
+    },
+    "unproved_obligations": [
+      {
+        "id": "checker_soundness",
+        "statement": "A machine-checked correctness theorem for the Python verifier, SMT encoders, replay and Z3 remains open."
+      },
+      {
+        "id": "whole_language",
+        "statement": "No theorem for all HIA programs or constructs outside this scalar profile is established."
+      },
+      {
+        "id": "other_exports",
+        "statement": "Behavior or totality of other public exports is not established by this selected-entry proof."
+      },
+      {
+        "id": "core_to_machine",
+        "statement": "Compilation, actual native bytes and ISA refinement are not checked by this Core query."
+      },
+      {
+        "id": "abi_ffi_loading",
+        "statement": "ABI, FFI, linking, loading and host-memory contracts require separate validation."
+      },
+      {
+        "id": "resources",
+        "statement": "Physical resource quotas, VM instruction budgets, wall time, energy and performance gains are not proved."
+      },
+      {
+        "id": "concurrency",
+        "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside this proof."
+      },
+      {
+        "id": "normal_return_totality",
+        "statement": "Equivalence may preserve a trap; it does not establish that every input returns normally."
+      }
+    ]
+  },
+  "guard_denominator_8": {
+    "assumptions": [
+      {
+        "id": "typed_inputs",
+        "statement": "The quantified domain is every argument tuple of the selected verified Core signature and its fixed-width scalar types."
+      },
+      {
+        "id": "core_semantics",
+        "statement": "The qualified primitive v1-v7 Core scalar semantics, trap ordering and the declared profile limits define the observations."
+      },
+      {
+        "id": "trusted_implementation",
+        "statement": "The listed Python checker, verifier, encoder and counterexample replay implementations are trusted; their correctness is not machine-proved."
+      },
+      {
+        "id": "loaded_source",
+        "statement": "The executing imported code corresponds to the recorded on-disk source inventory; no concurrent code, solver or process tampering occurs. Source hashes do not attest loaded memory."
+      },
+      {
+        "id": "solver",
+        "statement": "The identified Z3 Python binding and native library correctly answer the generated bit-vector queries; Python, the host OS and hardware execute them correctly."
+      },
+      {
+        "id": "point_of_use",
+        "statement": "Consumers rebind the exact Core and recompute the required proof at use; a serialized result never grants execution authority."
+      }
+    ],
+    "checker": {
+      "kind": "trusted_executable_smt_checker",
+      "machine_checked_implementation": false,
+      "method": "SMT unsatisfiability; concrete canonical-interpreter replay for counterexamples",
+      "name": "hepta.hia_translation_validation.validate_translation",
+      "runtime": {
+        "implementation": "CPython",
+        "version": "3.12.16"
+      },
+      "solver": {
+        "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+        "library_path": "/opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/site-packages/z3/lib/libz3.so",
+        "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+        "name": "Z3",
+        "version": "4.15.4"
+      },
+      "source_identity": {
+        "hia_bounded_memory.py": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d",
+        "hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+        "hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+        "hia_opcodes.py": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec",
+        "hia_optimization.py": "ddda1bc33a4d99f07216b00f2d9f666314e41aa757cd88273b3b295e2d842267",
+        "hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+        "hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11",
+        "hia_program_llvm.py": "334776f8bf9623ffbb172393cda8a59d6950e66c9794f7c9d41d7f9bbd57667b",
+        "hia_program_runtime.py": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56",
+        "hia_scalar_proof_contract.py": "67e11ffbe394a2cd6b2f5a30a7f3af5c5c694033fd0624d3f5e8be6d829781c7",
+        "hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+        "hia_translation_validation.py": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb"
+      },
+      "source_identity_error": null,
+      "source_identity_sha256": "68f4f7f2612aca6cb211fa9071f68fe1064323ace62903727d513874b2ceb6e9"
+    },
+    "execution_authority": false,
+    "profile": "hia.scalar-acyclic-bitvector-traps.v1",
+    "property": {
+      "id": "all_input_return_and_first_trap_equivalence",
+      "statement": "For every well-typed argument tuple, the selected before and after functions have the same return values or the same first specified Core trap code."
+    },
+    "status": "proved",
+    "subject": {
+      "after_input_sha256": "f5a69e52faec773c208a2f855f9aa63df4f2beaa431756d8fb365be62b7a8942",
+      "after_sha256": "f5a69e52faec773c208a2f855f9aa63df4f2beaa431756d8fb365be62b7a8942",
+      "before_input_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "before_sha256": "22d41c7bdb32021c8589ca5a585191eac2361267425983bedc2b4802f367d39b",
+      "function": "calculate",
+      "kind": "canonical_core_comparison",
+      "selection": "selected_public_scalar_function"
+    },
+    "unproved_obligations": [
+      {
+        "id": "checker_soundness",
+        "statement": "A machine-checked correctness theorem for the Python verifier, SMT encoders, replay and Z3 remains open."
+      },
+      {
+        "id": "whole_language",
+        "statement": "No theorem for all HIA programs or constructs outside this scalar profile is established."
+      },
+      {
+        "id": "other_exports",
+        "statement": "Behavior or totality of other public exports is not established by this selected-entry proof."
+      },
+      {
+        "id": "core_to_machine",
+        "statement": "Compilation, actual native bytes and ISA refinement are not checked by this Core query."
+      },
+      {
+        "id": "abi_ffi_loading",
+        "statement": "ABI, FFI, linking, loading and host-memory contracts require separate validation."
+      },
+      {
+        "id": "resources",
+        "statement": "Physical resource quotas, VM instruction budgets, wall time, energy and performance gains are not proved."
+      },
+      {
+        "id": "concurrency",
+        "statement": "Concurrency, signals, faults, side channels and hostile process modification are outside this proof."
+      },
+      {
+        "id": "normal_return_totality",
+        "statement": "Equivalence may preserve a trap; it does not establish that every input returns normally."
+      }
+    ]
+  }
+}

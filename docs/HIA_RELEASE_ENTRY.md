@@ -1,6 +1,8 @@
 # One HIA release entry and version contract
 
 `python3 -B tools/hia_release.py` is the candidate's default release entry.
+Start with [`INSTALL.md`](../INSTALL.md) for the public installation commands.
+The root README remains empty; `INSTALL.md` is the checked discovery document.
 `releases/hia-current.json` selects immutable commits from **both** repositories;
 branch names, PR numbers and a compatible-looking tool list are not substitutes.
 The lock is repository release metadata, not a signed attestation or a grant to
@@ -63,10 +65,11 @@ log and original-log digest are retained with the reconciliation record. The
 3,000 ms context limit and production budgets were not changed. That diagnostic
 is not substituted for the selected `2598f430` source's own CI.
 
-The main README discovery command, release entry and preflight helper remain
-compatible with this selected source; both helper files are byte-identical to
-the source-CI inventory. The metadata README and materialized source README may
-differ because the source lock measures the implementation checkout.
+The public [`INSTALL.md`](../INSTALL.md) discovery command, release entry and
+preflight helper remain compatible with this selected source; both helper files
+are byte-identical to the source-CI inventory. The metadata installation document
+and materialized source README may differ because the source lock measures the
+implementation checkout.
 
 ### Recorded post-merge observation — 2026-11-09
 
@@ -135,7 +138,10 @@ source/runtime check, native example and installation-manifest equality gate.
 The `current` row calls the default CLI without a lock override and keeps the
 existing artifact name. The v16 row uses the named entry, original lock and
 digest, with a separate artifact. A failure in either row is retained without
-cancelling the other row.
+cancelling the other row. Discovery requires a nonempty `INSTALL.md` with each
+row's entry command and lock link. The `hepta.hia.public-source-inputs.v2` record
+binds that document's path, SHA256 and byte count; separate README metadata
+records its actual bytes without treating it as the installation document.
 
 The source CI and the metadata entry's installation CI are distinct records.
 The source commit's qualification does not substitute for the metadata head's

@@ -1,0 +1,985 @@
+﻿2026-11-09T07:03:54.7627740Z Current runner version: '2.338.2'
+2026-11-09T07:03:54.7652539Z ##[group]Runner Image Provisioner
+2026-11-09T07:03:54.7653829Z Hosted Compute Agent
+2026-11-09T07:03:54.7654443Z Version: 20261028.624
+2026-11-09T07:03:54.7655327Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T07:03:54.7656218Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T07:03:54.7656906Z Worker ID: {fd35ba57-45c1-4641-aea4-62f75ff737c8}
+2026-11-09T07:03:54.7657707Z Region: southcentralus
+2026-11-09T07:03:54.7658337Z Cloud: Azure
+2026-11-09T07:03:54.7658928Z ##[endgroup]
+2026-11-09T07:03:54.7660496Z ##[group]Operating System
+2026-11-09T07:03:54.7661161Z Ubuntu
+2026-11-09T07:03:54.7662246Z 24.04.5
+2026-11-09T07:03:54.7662884Z LTS
+2026-11-09T07:03:54.7663508Z ##[endgroup]
+2026-11-09T07:03:54.7664173Z ##[group]Runner Image
+2026-11-09T07:03:54.7665297Z Image: ubuntu-24.04
+2026-11-09T07:03:54.7666042Z Version: 20261101.360.1
+2026-11-09T07:03:54.7667377Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T07:03:54.7669030Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T07:03:54.7670003Z ##[endgroup]
+2026-11-09T07:03:54.7671613Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T07:03:54.7673842Z Actions: read
+2026-11-09T07:03:54.7674631Z Contents: read
+2026-11-09T07:03:54.7675560Z Metadata: read
+2026-11-09T07:03:54.7676215Z Packages: read
+2026-11-09T07:03:54.7676849Z SecurityEvents: write
+2026-11-09T07:03:54.7677431Z ##[endgroup]
+2026-11-09T07:03:54.7679561Z Secret source: Actions
+2026-11-09T07:03:54.7680559Z Cache mode: write
+2026-11-09T07:03:54.7681640Z Prepare workflow directory
+2026-11-09T07:03:54.8219504Z Prepare all required actions
+2026-11-09T07:03:54.8268637Z Getting action download info
+2026-11-09T07:03:55.0838650Z Download action repository 'actions/checkout@v6' (SHA:d23441a48e516b6c34aea4fa41551a30e30af803)
+2026-11-09T07:03:55.2183887Z Download action repository 'github/codeql-action@v4' (SHA:33d7b85da1a04171e211befe2c739303b9a4c066)
+2026-11-09T07:03:55.8978388Z Complete job name: Analyze (c-cpp)
+2026-11-09T07:03:55.9818000Z ##[group]Run actions/checkout@v6
+2026-11-09T07:03:55.9819021Z with:
+2026-11-09T07:03:55.9819539Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T07:03:55.9823973Z   token: ***
+2026-11-09T07:03:55.9824458Z   ssh-strict: true
+2026-11-09T07:03:55.9825304Z   ssh-user: git
+2026-11-09T07:03:55.9825828Z   persist-credentials: true
+2026-11-09T07:03:55.9826396Z   clean: true
+2026-11-09T07:03:55.9826903Z   sparse-checkout-cone-mode: true
+2026-11-09T07:03:55.9827501Z   fetch-depth: 1
+2026-11-09T07:03:55.9827995Z   fetch-tags: false
+2026-11-09T07:03:55.9828492Z   show-progress: true
+2026-11-09T07:03:55.9829000Z   lfs: false
+2026-11-09T07:03:55.9829470Z   submodules: false
+2026-11-09T07:03:55.9829988Z   set-safe-directory: true
+2026-11-09T07:03:55.9830557Z   allow-unsafe-pr-checkout: false
+2026-11-09T07:03:55.9831437Z env:
+2026-11-09T07:03:55.9831938Z   CODE_SCANNING_REF: refs/pull/825/head
+2026-11-09T07:03:55.9832617Z   CODE_SCANNING_BASE_BRANCH: main
+2026-11-09T07:03:55.9833312Z   CODE_SCANNING_IS_ANALYZING_DEFAULT_BRANCH: false
+2026-11-09T07:03:55.9834071Z   CODE_SCANNING_IS_STEADY_STATE_DEFAULT_SETUP: true
+2026-11-09T07:03:55.9846368Z   CODE_SCANNING_WORKFLOW_FILE: H4sIAAAAAAAA/+xWTW/jNhC9+1cM3ALZPdC5FD0IWGAVR0ncGnbWUrBNg4CgqZHMRiYVfiSrbP3fC+ojtpqkdts9LuSDNHx88zjDmbFkawxgOFYpfpoOB9pJ0ph+/PoVcmFXbjnCB5R2JGTprBlxlSI1nEkpZE61k9TjYbMZKBlAWkm2FnwwQPkQDADG89OIxuNwNpvMzukiOjuYGDPP+XeGkzCO6MkinI0vDmVaMoN0qZnkq9cYJzENZ+H0+nf/cRqdhVfT5F96EIYyyYrqybtLMWOusP/sMU6i8PSaxkmYRM9O4yi5ugzAaocv9nyeL349m84/07PJNDpU16PSd1mhHmkmCvRnH/yhlsanpZGL/hXA5y+AsDHBO8+9ZlaLL6OCydyx3O99X0O1k4b4PHtQptX6l3g+e9eitZMS9XvvyGNL1GthjFCydulNjNv6EzSytLVxJS1K2zeWjN+xHPtGg9xpYStSp8IE8KiFxXZRpMSqO5S7Vk8tpEOiJEGtlQ4gY4VpFo3VzGJeddoyJgqSMWN3QdBGogMBCMkLl7aRa34EujgF3Ql3VgG496N0FcDxM/A13NKJIiVrlWIAUslOQfM0wQ3g6Gbolk5aRwpm0djh7dEbUjjhZblXyEvUN5ZRVnal5F4dr8C+sRDtjN0r4wXof4kwFsv28pO2zMYr5HfKWdBYKiOs0lVL6Qya5wt0zFvcx4efBz2CGK0rodTqSwWZ0qAxF8Zqgd1lEmnQLPd4m25x7BvEfUEaL8fGMm1JDf748FOLfxR2tb3eW3rKNaYorWCFaRqAQa7RmtH5JLm4OqGL6HwSJ4tJFNPLxfy3664R+GebhtfbS/+MEym8G/GE0Aym/UcRUtjtGdrp41+bTvpp2miiF/M4adX75Izqw4+Us3Vfr7/oShm7K75HcDlf7CUolX6bYBzScbRIJmeTcZhE+6g4oxy1FZnwbeRN0qvFNN5H5XRhtgT9NNcDwQhD7oRMTQA+uKQbJC+yaN5M42tlswPdmnfBKZYoU5S8IpzxlZB5s6npeSOUD0IruUZp4cMHOGquMvFZwvRol+jeob+pAQyH8AOcNpO4tlZg3HZY1KMhE3kAfz5bvIwaT4yvsG1o/KN03jcA+EMUxA8qE8DNgRPZh/W+oPUu2GzgdofUrjQyW/d/X2A3ALf9qgidVXUA91cD66DfS+KgkujF+RJ1pvS6bT3NHyMjzAFR98gn/N6G/nMb2o7knabRGWGzGfw1AMn6fZmvDAAA
+2026-11-09T07:03:55.9859080Z ##[endgroup]
+2026-11-09T07:03:56.2820615Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T07:03:56.2822611Z ##[group]Getting Git version info
+2026-11-09T07:03:56.2823320Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T07:03:56.2824472Z [command]/usr/bin/git version
+2026-11-09T07:03:56.2930482Z git version 2.56.0
+2026-11-09T07:03:56.2963751Z ##[endgroup]
+2026-11-09T07:03:56.2972167Z Temporarily overriding HOME='/home/runner/work/_temp/c5efb913-d070-4331-b847-570fdf708eb0' before making global git config changes
+2026-11-09T07:03:56.2975007Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T07:03:56.2981195Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T07:03:56.3055111Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T07:03:56.3076522Z ##[group]Determining repository object format
+2026-11-09T07:03:56.3077996Z ##[endgroup]
+2026-11-09T07:03:56.3079125Z ##[group]Initializing the repository
+2026-11-09T07:03:56.3081770Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T07:03:56.3211597Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T07:03:56.3213267Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T07:03:56.3215803Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T07:03:56.3217318Z hint: call:
+2026-11-09T07:03:56.3218922Z hint:
+2026-11-09T07:03:56.3220462Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T07:03:56.3222062Z hint:
+2026-11-09T07:03:56.3223148Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T07:03:56.3225037Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T07:03:56.3226207Z hint:
+2026-11-09T07:03:56.3226694Z hint: 	git branch -m <name>
+2026-11-09T07:03:56.3227319Z hint:
+2026-11-09T07:03:56.3228504Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T07:03:56.3230388Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T07:03:56.3239100Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T07:03:56.3323932Z ##[endgroup]
+2026-11-09T07:03:56.3325083Z ##[group]Disabling automatic garbage collection
+2026-11-09T07:03:56.3328991Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T07:03:56.3376852Z ##[endgroup]
+2026-11-09T07:03:56.3378433Z ##[group]Setting up auth
+2026-11-09T07:03:56.3379498Z Removing SSH command configuration
+2026-11-09T07:03:56.3384216Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T07:03:56.3438272Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T07:03:56.3853744Z Removing HTTP extra header
+2026-11-09T07:03:56.3861282Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T07:03:56.3908581Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T07:03:56.4146249Z Removing includeIf entries pointing to credentials config files
+2026-11-09T07:03:56.4153129Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T07:03:56.4197533Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T07:03:56.4445744Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T07:03:56.4495293Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Hepta/Hepta/.git.path /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:03:56.4538415Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/Hepta/Hepta/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:03:56.4590324Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:03:56.4630019Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:03:56.4667895Z ##[endgroup]
+2026-11-09T07:03:56.4675938Z ##[group]Fetching the repository
+2026-11-09T07:03:56.4677369Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +81fe7b59881ed07fb7037aec9e305f6538ec7cd1:refs/remotes/pull/825/head
+2026-11-09T07:03:57.4499582Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T07:03:57.4502730Z  * [new ref]         81fe7b59881ed07fb7037aec9e305f6538ec7cd1 -> pull/825/head
+2026-11-09T07:03:57.4509922Z ##[endgroup]
+2026-11-09T07:03:57.4512787Z ##[group]Determining the checkout info
+2026-11-09T07:03:57.4515921Z ##[endgroup]
+2026-11-09T07:03:57.4517739Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T07:03:57.4581368Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T07:03:57.4628568Z ##[group]Checking out the ref
+2026-11-09T07:03:57.4631555Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/825/head
+2026-11-09T07:03:57.6143707Z Note: switching to 'refs/remotes/pull/825/head'.
+2026-11-09T07:03:57.6145509Z 
+2026-11-09T07:03:57.6147011Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T07:03:57.6150276Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T07:03:57.6153809Z state without impacting any branches by switching back to a branch.
+2026-11-09T07:03:57.6156160Z 
+2026-11-09T07:03:57.6157553Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T07:03:57.6160838Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T07:03:57.6162817Z 
+2026-11-09T07:03:57.6163655Z   git switch -c <new-branch-name>
+2026-11-09T07:03:57.6166038Z 
+2026-11-09T07:03:57.6166882Z Or undo this operation with:
+2026-11-09T07:03:57.6168303Z 
+2026-11-09T07:03:57.6169042Z   git switch -
+2026-11-09T07:03:57.6170141Z 
+2026-11-09T07:03:57.6171669Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T07:03:57.6173970Z 
+2026-11-09T07:03:57.6177843Z HEAD is now at 81fe7b5 Publish qualified v16 source entry and preserve final acceptance evidence
+2026-11-09T07:03:57.6185250Z ##[endgroup]
+2026-11-09T07:03:57.6235336Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T07:03:57.6276462Z 81fe7b59881ed07fb7037aec9e305f6538ec7cd1
+2026-11-09T07:03:57.6653286Z ##[group]Run github/codeql-action/start-proxy@v4
+2026-11-09T07:03:57.6654701Z with:
+2026-11-09T07:03:57.6655855Z   registries_credentials: ***
+2026-11-09T07:03:57.6656963Z   language: c-cpp
+2026-11-09T07:03:57.6657914Z   registry_secrets: []
+2026-11-09T07:03:57.6668538Z   token: ***
+2026-11-09T07:03:57.6670521Z   matrix: {
+  "language": "c-cpp",
+  "category": "/language:c-cpp",
+  "build-mode": "none",
+  "runner": "[\"ubuntu-latest\"]"
+}
+2026-11-09T07:03:57.6673017Z env:
+2026-11-09T07:03:57.6673914Z   CODE_SCANNING_REF: refs/pull/825/head
+2026-11-09T07:03:57.6675335Z   CODE_SCANNING_BASE_BRANCH: main
+2026-11-09T07:03:57.6676647Z   CODE_SCANNING_IS_ANALYZING_DEFAULT_BRANCH: false
+2026-11-09T07:03:57.6678180Z   CODE_SCANNING_IS_STEADY_STATE_DEFAULT_SETUP: true
+2026-11-09T07:03:57.6705649Z   CODE_SCANNING_WORKFLOW_FILE: H4sIAAAAAAAA/+xWTW/jNhC9+1cM3ALZPdC5FD0IWGAVR0ncGnbWUrBNg4CgqZHMRiYVfiSrbP3fC+ojtpqkdts9LuSDNHx88zjDmbFkawxgOFYpfpoOB9pJ0ph+/PoVcmFXbjnCB5R2JGTprBlxlSI1nEkpZE61k9TjYbMZKBlAWkm2FnwwQPkQDADG89OIxuNwNpvMzukiOjuYGDPP+XeGkzCO6MkinI0vDmVaMoN0qZnkq9cYJzENZ+H0+nf/cRqdhVfT5F96EIYyyYrqybtLMWOusP/sMU6i8PSaxkmYRM9O4yi5ugzAaocv9nyeL349m84/07PJNDpU16PSd1mhHmkmCvRnH/yhlsanpZGL/hXA5y+AsDHBO8+9ZlaLL6OCydyx3O99X0O1k4b4PHtQptX6l3g+e9eitZMS9XvvyGNL1GthjFCydulNjNv6EzSytLVxJS1K2zeWjN+xHPtGg9xpYStSp8IE8KiFxXZRpMSqO5S7Vk8tpEOiJEGtlQ4gY4VpFo3VzGJeddoyJgqSMWN3QdBGogMBCMkLl7aRa34EujgF3Ql3VgG496N0FcDxM/A13NKJIiVrlWIAUslOQfM0wQ3g6Gbolk5aRwpm0djh7dEbUjjhZblXyEvUN5ZRVnal5F4dr8C+sRDtjN0r4wXof4kwFsv28pO2zMYr5HfKWdBYKiOs0lVL6Qya5wt0zFvcx4efBz2CGK0rodTqSwWZ0qAxF8Zqgd1lEmnQLPd4m25x7BvEfUEaL8fGMm1JDf748FOLfxR2tb3eW3rKNaYorWCFaRqAQa7RmtH5JLm4OqGL6HwSJ4tJFNPLxfy3664R+GebhtfbS/+MEym8G/GE0Aym/UcRUtjtGdrp41+bTvpp2miiF/M4adX75Izqw4+Us3Vfr7/oShm7K75HcDlf7CUolX6bYBzScbRIJmeTcZhE+6g4oxy1FZnwbeRN0qvFNN5H5XRhtgT9NNcDwQhD7oRMTQA+uKQbJC+yaN5M42tlswPdmnfBKZYoU5S8IpzxlZB5s6npeSOUD0IruUZp4cMHOGquMvFZwvRol+jeob+pAQyH8AOcNpO4tlZg3HZY1KMhE3kAfz5bvIwaT4yvsG1o/KN03jcA+EMUxA8qE8DNgRPZh/W+oPUu2GzgdofUrjQyW/d/X2A3ALf9qgidVXUA91cD66DfS+KgkujF+RJ1pvS6bT3NHyMjzAFR98gn/N6G/nMb2o7knabRGWGzGfw1AMn6fZmvDAAA
+2026-11-09T07:03:57.6732544Z ##[endgroup]
+2026-11-09T07:03:58.0212370Z Job run UUID is 6274d4f6-d0e3-4896-a883-7df01eb3e35c.
+2026-11-09T07:03:58.0239759Z Using registries_credentials input.
+2026-11-09T07:03:58.0241509Z No credentials found, skipping proxy setup.
+2026-11-09T07:03:58.0628218Z ##[group]Run github/codeql-action/init@v4
+2026-11-09T07:03:58.0629444Z with:
+2026-11-09T07:03:58.0630339Z   analysis-kinds: code-scanning
+2026-11-09T07:03:58.0631421Z   languages: c-cpp
+2026-11-09T07:03:58.0632337Z   build-mode: none
+2026-11-09T07:03:58.0633285Z   dependency-caching: true
+2026-11-09T07:03:58.0634954Z   config: default-setup:
+  org:
+    model-packs: [  ]
+threat-models: [  ]
+
+2026-11-09T07:03:58.0645245Z   token: ***
+2026-11-09T07:03:58.0647085Z   matrix: {
+  "language": "c-cpp",
+  "category": "/language:c-cpp",
+  "build-mode": "none",
+  "runner": "[\"ubuntu-latest\"]"
+}
+2026-11-09T07:03:58.0649153Z   debug: false
+2026-11-09T07:03:58.0650058Z   check-run-id: 129026558202
+2026-11-09T07:03:58.0651144Z   job-status: success
+2026-11-09T07:03:58.0652098Z env:
+2026-11-09T07:03:58.0652978Z   CODE_SCANNING_REF: refs/pull/825/head
+2026-11-09T07:03:58.0654164Z   CODE_SCANNING_BASE_BRANCH: main
+2026-11-09T07:03:58.0655672Z   CODE_SCANNING_IS_ANALYZING_DEFAULT_BRANCH: false
+2026-11-09T07:03:58.0657159Z   CODE_SCANNING_IS_STEADY_STATE_DEFAULT_SETUP: true
+2026-11-09T07:03:58.0681346Z   CODE_SCANNING_WORKFLOW_FILE: H4sIAAAAAAAA/+xWTW/jNhC9+1cM3ALZPdC5FD0IWGAVR0ncGnbWUrBNg4CgqZHMRiYVfiSrbP3fC+ojtpqkdts9LuSDNHx88zjDmbFkawxgOFYpfpoOB9pJ0ph+/PoVcmFXbjnCB5R2JGTprBlxlSI1nEkpZE61k9TjYbMZKBlAWkm2FnwwQPkQDADG89OIxuNwNpvMzukiOjuYGDPP+XeGkzCO6MkinI0vDmVaMoN0qZnkq9cYJzENZ+H0+nf/cRqdhVfT5F96EIYyyYrqybtLMWOusP/sMU6i8PSaxkmYRM9O4yi5ugzAaocv9nyeL349m84/07PJNDpU16PSd1mhHmkmCvRnH/yhlsanpZGL/hXA5y+AsDHBO8+9ZlaLL6OCydyx3O99X0O1k4b4PHtQptX6l3g+e9eitZMS9XvvyGNL1GthjFCydulNjNv6EzSytLVxJS1K2zeWjN+xHPtGg9xpYStSp8IE8KiFxXZRpMSqO5S7Vk8tpEOiJEGtlQ4gY4VpFo3VzGJeddoyJgqSMWN3QdBGogMBCMkLl7aRa34EujgF3Ql3VgG496N0FcDxM/A13NKJIiVrlWIAUslOQfM0wQ3g6Gbolk5aRwpm0djh7dEbUjjhZblXyEvUN5ZRVnal5F4dr8C+sRDtjN0r4wXof4kwFsv28pO2zMYr5HfKWdBYKiOs0lVL6Qya5wt0zFvcx4efBz2CGK0rodTqSwWZ0qAxF8Zqgd1lEmnQLPd4m25x7BvEfUEaL8fGMm1JDf748FOLfxR2tb3eW3rKNaYorWCFaRqAQa7RmtH5JLm4OqGL6HwSJ4tJFNPLxfy3664R+GebhtfbS/+MEym8G/GE0Aym/UcRUtjtGdrp41+bTvpp2miiF/M4adX75Izqw4+Us3Vfr7/oShm7K75HcDlf7CUolX6bYBzScbRIJmeTcZhE+6g4oxy1FZnwbeRN0qvFNN5H5XRhtgT9NNcDwQhD7oRMTQA+uKQbJC+yaN5M42tlswPdmnfBKZYoU5S8IpzxlZB5s6npeSOUD0IruUZp4cMHOGquMvFZwvRol+jeob+pAQyH8AOcNpO4tlZg3HZY1KMhE3kAfz5bvIwaT4yvsG1o/KN03jcA+EMUxA8qE8DNgRPZh/W+oPUu2GzgdofUrjQyW/d/X2A3ALf9qgidVXUA91cD66DfS+KgkujF+RJ1pvS6bT3NHyMjzAFR98gn/N6G/nMb2o7knabRGWGzGfw1AMn6fZmvDAAA
+2026-11-09T07:03:58.0706714Z   CODEQL_ACTION_JOB_RUN_UUID: 6274d4f6-d0e3-4896-a883-7df01eb3e35c
+2026-11-09T07:03:58.0708183Z   CODEQL_PROXY_HOST: 
+2026-11-09T07:03:58.0709141Z   CODEQL_PROXY_PORT: 
+2026-11-09T07:03:58.0710117Z   CODEQL_PROXY_CA_CERTIFICATE: 
+2026-11-09T07:03:58.0711197Z   CODEQL_PROXY_URLS: 
+2026-11-09T07:03:58.0712135Z ##[endgroup]
+2026-11-09T07:03:58.3950431Z Existing job run UUID is 6274d4f6-d0e3-4896-a883-7df01eb3e35c.
+2026-11-09T07:03:59.9984462Z ##[group]Setup CodeQL tools
+2026-11-09T07:04:00.0062072Z [command]/usr/bin/tar --version
+2026-11-09T07:04:00.0118817Z tar (GNU tar) 1.35
+2026-11-09T07:04:00.0119380Z Copyright (C) 2023 Free Software Foundation, Inc.
+2026-11-09T07:04:00.0120231Z License GPLv3+: GNU GPL version 3 or later <https://gnu.org/licenses/gpl.html>.
+2026-11-09T07:04:00.0120772Z This is free software: you are free to change and redistribute it.
+2026-11-09T07:04:00.0121183Z There is NO WARRANTY, to the extent permitted by law.
+2026-11-09T07:04:00.0121412Z 
+2026-11-09T07:04:00.0121530Z Written by John Gilmore and Jay Fenlason.
+2026-11-09T07:04:00.0130113Z Found gnu tar version 1.35.
+2026-11-09T07:04:00.1328442Z Found 14 overlay-base databases in the Actions cache.
+2026-11-09T07:04:00.1329439Z Found overlay databases for the following CodeQL versions in the Actions cache: 2.27.4, 2.27.3
+2026-11-09T07:04:00.1330704Z Using CodeQL version 2.27.4 since this is the highest enabled version that has a cached overlay-base database.
+2026-11-09T07:04:00.1481579Z Did not find CodeQL tools version 2.27.4 in the toolcache.
+2026-11-09T07:04:00.1487631Z Selected the per-language CodeQL bundle for 'cpp'.
+2026-11-09T07:04:00.1489526Z Using CodeQL CLI version 2.27.4 sourced from https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.4/codeql-bundle-cpp-linux64.tar.zst .
+2026-11-09T07:04:04.7924001Z Deleted the CodeQL tools at '/opt/hostedtoolcache/CodeQL/2.27.3' from the toolcache to free up disk space.
+2026-11-09T07:04:04.7936428Z Downloading CodeQL tools from https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.4/codeql-bundle-cpp-linux64.tar.zst . This may take a while.
+2026-11-09T07:04:04.7938184Z Streaming the extraction of the CodeQL bundle.
+2026-11-09T07:04:05.0630810Z [command]/usr/bin/tar -x --zstd --ignore-zeros --warning=no-unknown-keyword --overwrite -f - -C /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f
+2026-11-09T07:04:06.8033275Z Finished downloading and extracting CodeQL bundle to /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f (2.0s).
+2026-11-09T07:04:07.5907167Z {
+2026-11-09T07:04:07.5907871Z   "productName": "CodeQL",
+2026-11-09T07:04:07.5908349Z   "vendor": "GitHub",
+2026-11-09T07:04:07.5908747Z   "version": "2.27.4",
+2026-11-09T07:04:07.5909185Z   "sha": "7eb0047c90fffaeb822564a0ac56d585dc871f30",
+2026-11-09T07:04:07.5909726Z   "branches": [
+2026-11-09T07:04:07.5910074Z     "codeql-cli-2.27.4"
+2026-11-09T07:04:07.5910435Z   ],
+2026-11-09T07:04:07.5910870Z   "copyright": "Copyright (C) 2019-2026 GitHub, Inc.",
+2026-11-09T07:04:07.5911734Z   "unpackedLocation": "/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql",
+2026-11-09T07:04:07.5912679Z   "configFileLocation": "/home/runner/.config/codeql/config",
+2026-11-09T07:04:07.5913282Z   "configFileFound": false,
+2026-11-09T07:04:07.5913696Z   "overlayVersion": 4,
+2026-11-09T07:04:07.5914064Z   "features": {
+2026-11-09T07:04:07.5914447Z     "analysisSummaryV2Default": true,
+2026-11-09T07:04:07.5915120Z     "buildModeOption": true,
+2026-11-09T07:04:07.5915616Z     "bundleSupportsIncludeDiagnostics": true,
+2026-11-09T07:04:07.5916169Z     "bundleSupportsIncludeLogs": true,
+2026-11-09T07:04:07.5916672Z     "bundleSupportsOverlay": true,
+2026-11-09T07:04:07.5917302Z     "databaseInterpretResultsSupportsSarifRunProperty": true,
+2026-11-09T07:04:07.5918243Z     "featuresInVersionResult": true,
+2026-11-09T07:04:07.5918791Z     "indirectTracingSupportsStaticBinaries": false,
+2026-11-09T07:04:07.5919414Z     "informsAboutUnsupportedPathFilters": true,
+2026-11-09T07:04:07.5919954Z     "supportsPython312": true,
+2026-11-09T07:04:07.5920379Z     "mrvaPackCreate": true,
+2026-11-09T07:04:07.5920799Z     "threatModelOption": true,
+2026-11-09T07:04:07.5921244Z     "traceCommandUseBuildMode": true,
+2026-11-09T07:04:07.5921703Z     "v2ramSizing": true,
+2026-11-09T07:04:07.5922137Z     "mrvaPackCreateMultipleQueries": true,
+2026-11-09T07:04:07.5922651Z     "setsCodeqlRunnerEnvVar": true,
+2026-11-09T07:04:07.5923155Z     "sarifMergeRunsFromEqualCategory": true,
+2026-11-09T07:04:07.5923684Z     "forceOverwrite": true,
+2026-11-09T07:04:07.5924117Z     "generateSummarySymbolMap": true,
+2026-11-09T07:04:07.5924659Z     "pythonDefaultIsToNotExtractStdlib": true,
+2026-11-09T07:04:07.5925389Z     "queryServerRunQueries": true,
+2026-11-09T07:04:07.5925881Z     "queryServerTrimCacheWithMode": true,
+2026-11-09T07:04:07.5926461Z     "builtinExtractorsSpecifyDefaultQueries": true,
+2026-11-09T07:04:07.5927033Z     "bqrsDiffResultSets": true,
+2026-11-09T07:04:07.5927496Z     "bundleSupportsIncludeOption": true,
+2026-11-09T07:04:07.5928055Z     "suppressesMissingFileBaselineWarning": true,
+2026-11-09T07:04:07.5928607Z     "jsonDataExtensions": true
+2026-11-09T07:04:07.5929003Z   }
+2026-11-09T07:04:07.5929286Z }
+2026-11-09T07:04:07.5929985Z ##[endgroup]
+2026-11-09T07:04:07.5931093Z ##[group]Load language configuration
+2026-11-09T07:04:07.6077088Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql resolve languages --format=betterjson --extractor-options-verbosity=4 --extractor-include-aliases --filter-to-languages-with-queries
+2026-11-09T07:04:08.6191445Z {
+2026-11-09T07:04:08.6219465Z   "aliases" : {
+2026-11-09T07:04:08.6220000Z     "c" : "cpp",
+2026-11-09T07:04:08.6226852Z     "c++" : "cpp",
+2026-11-09T07:04:08.6227272Z     "c-c++" : "cpp",
+2026-11-09T07:04:08.6227647Z     "c-cpp" : "cpp"
+2026-11-09T07:04:08.6229652Z   },
+2026-11-09T07:04:08.6229974Z   "extractors" : {
+2026-11-09T07:04:08.6230571Z     "cpp" : [
+2026-11-09T07:04:08.6230901Z       {
+2026-11-09T07:04:08.6246203Z         "extractor_root" : "/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp",
+2026-11-09T07:04:08.6247063Z         "extractor_options" : {
+2026-11-09T07:04:08.6247468Z           "trap" : {
+2026-11-09T07:04:08.6247842Z             "title" : "TRAP options",
+2026-11-09T07:04:08.6248490Z             "description" : "Options about how the extractor handles TRAP files",
+2026-11-09T07:04:08.6249159Z             "type" : "object",
+2026-11-09T07:04:08.6249572Z             "visibility" : 3,
+2026-11-09T07:04:08.6249987Z             "properties" : {
+2026-11-09T07:04:08.6250379Z               "cache" : {
+2026-11-09T07:04:08.6250802Z                 "title" : "TRAP cache options",
+2026-11-09T07:04:08.6251511Z                 "description" : "Options about how the extractor handles its TRAP cache",
+2026-11-09T07:04:08.6252218Z                 "type" : "object",
+2026-11-09T07:04:08.6252655Z                 "properties" : {
+2026-11-09T07:04:08.6253072Z                   "dir" : {
+2026-11-09T07:04:08.6253499Z                     "title" : "TRAP cache directory",
+2026-11-09T07:04:08.6254133Z                     "description" : "The directory of the TRAP cache to use",
+2026-11-09T07:04:08.6254937Z                     "type" : "string"
+2026-11-09T07:04:08.6255367Z                   },
+2026-11-09T07:04:08.6255723Z                   "bound" : {
+2026-11-09T07:04:08.6256147Z                     "title" : "TRAP cache bound",
+2026-11-09T07:04:08.6256823Z                     "description" : "A soft limit (in MB) on the size of the TRAP cache",
+2026-11-09T07:04:08.6257496Z                     "type" : "string",
+2026-11-09T07:04:08.6257951Z                     "pattern" : "[0-9]+"
+2026-11-09T07:04:08.6258391Z                   },
+2026-11-09T07:04:08.6258974Z                   "write" : {
+2026-11-09T07:04:08.6259410Z                     "title" : "TRAP cache writeable",
+2026-11-09T07:04:08.6260141Z                     "description" : "Whether to write to the TRAP cache as well as reading it",
+2026-11-09T07:04:08.6260854Z                     "type" : "string",
+2026-11-09T07:04:08.6261337Z                     "pattern" : "(true|TRUE|false|FALSE)"
+2026-11-09T07:04:08.6261826Z                   }
+2026-11-09T07:04:08.6262149Z                 }
+2026-11-09T07:04:08.6262466Z               }
+2026-11-09T07:04:08.6262780Z             }
+2026-11-09T07:04:08.6263085Z           },
+2026-11-09T07:04:08.6263410Z           "scale_timeouts" : {
+2026-11-09T07:04:08.6263977Z             "title" : "Value to scale compiler introspection timeouts with",
+2026-11-09T07:04:08.6266744Z             "description" : "The extractor attempts to determine what compiler the source code being extracted is compiled with. To this end the extractor makes additional calls to the compiler, some of which are expected to return within a certain fixed time (either 10s or 15s). On some systems that are under high load this time might be too short, and can be scaled up using this option.\n",
+2026-11-09T07:04:08.6269337Z             "type" : "string",
+2026-11-09T07:04:08.6269747Z             "pattern" : "[0-9]+"
+2026-11-09T07:04:08.6270122Z           },
+2026-11-09T07:04:08.6270438Z           "log_verbosity" : {
+2026-11-09T07:04:08.6270909Z             "title" : "Verbosity of the extractor logging",
+2026-11-09T07:04:08.6272017Z             "description" : "Set the verbosity of the extractor logging to 'quiet' (0), 'normal' (1), 'chatty' (2), or 'noisy' (3). The default is 'normal'.\n",
+2026-11-09T07:04:08.6273092Z             "type" : "string",
+2026-11-09T07:04:08.6273497Z             "pattern" : "[0-3]"
+2026-11-09T07:04:08.6273896Z           },
+2026-11-09T07:04:08.6274411Z           "frontend_options" : {
+2026-11-09T07:04:08.6275083Z             "title" : "C/C++ extractor frontend options",
+2026-11-09T07:04:08.6276006Z             "description" : "Set additional options that should be passed to the C/C++ extractor frontend.\n",
+2026-11-09T07:04:08.6276835Z             "type" : "array",
+2026-11-09T07:04:08.6277237Z             "visibility" : 3
+2026-11-09T07:04:08.6277622Z           }
+2026-11-09T07:04:08.6277913Z         }
+2026-11-09T07:04:08.6278202Z       }
+2026-11-09T07:04:08.6278478Z     ]
+2026-11-09T07:04:08.6278807Z   }
+2026-11-09T07:04:08.6279193Z }
+2026-11-09T07:04:08.6363993Z Languages from configuration: cpp
+2026-11-09T07:04:08.6472345Z Using Git version 2.56.0
+2026-11-09T07:04:08.7881605Z Setting overlay database mode to overlay with caching because we are analyzing a pull request.
+2026-11-09T07:04:08.7883607Z Using overlay database mode: overlay with caching.
+2026-11-09T07:04:08.7886267Z Computing PR diff ranges...
+2026-11-09T07:04:09.5409178Z ##[warning]Cannot retrieve the full diff because there are too many (300) changed files in the pull request.
+2026-11-09T07:04:09.5420314Z Reverting overlay database mode to none because the PR diff ranges could not be computed.
+2026-11-09T07:04:09.5422454Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql resolve languages --format=betterjson --extractor-options-verbosity=4 --extractor-include-aliases
+2026-11-09T07:04:10.4460338Z {
+2026-11-09T07:04:10.4460592Z   "aliases" : {
+2026-11-09T07:04:10.4460828Z     "c" : "cpp",
+2026-11-09T07:04:10.4461037Z     "c++" : "cpp",
+2026-11-09T07:04:10.4461241Z     "c-c++" : "cpp",
+2026-11-09T07:04:10.4461459Z     "c-cpp" : "cpp"
+2026-11-09T07:04:10.4461660Z   },
+2026-11-09T07:04:10.4461841Z   "extractors" : {
+2026-11-09T07:04:10.4462043Z     "cpp" : [
+2026-11-09T07:04:10.4462235Z       {
+2026-11-09T07:04:10.4462625Z         "extractor_root" : "/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp",
+2026-11-09T07:04:10.4463107Z         "extractor_options" : {
+2026-11-09T07:04:10.4463372Z           "trap" : {
+2026-11-09T07:04:10.4463596Z             "title" : "TRAP options",
+2026-11-09T07:04:10.4464301Z             "description" : "Options about how the extractor handles TRAP files",
+2026-11-09T07:04:10.4464679Z             "type" : "object",
+2026-11-09T07:04:10.4465316Z             "visibility" : 3,
+2026-11-09T07:04:10.4465732Z             "properties" : {
+2026-11-09T07:04:10.4466124Z               "cache" : {
+2026-11-09T07:04:10.4466493Z                 "title" : "TRAP cache options",
+2026-11-09T07:04:10.4466898Z                 "description" : "Options about how the extractor handles its TRAP cache",
+2026-11-09T07:04:10.4467295Z                 "type" : "object",
+2026-11-09T07:04:10.4467543Z                 "properties" : {
+2026-11-09T07:04:10.4467777Z                   "dir" : {
+2026-11-09T07:04:10.4468023Z                     "title" : "TRAP cache directory",
+2026-11-09T07:04:10.4468392Z                     "description" : "The directory of the TRAP cache to use",
+2026-11-09T07:04:10.4468739Z                     "type" : "string"
+2026-11-09T07:04:10.4468979Z                   },
+2026-11-09T07:04:10.4469185Z                   "bound" : {
+2026-11-09T07:04:10.4469427Z                     "title" : "TRAP cache bound",
+2026-11-09T07:04:10.4469811Z                     "description" : "A soft limit (in MB) on the size of the TRAP cache",
+2026-11-09T07:04:10.4470182Z                     "type" : "string",
+2026-11-09T07:04:10.4470441Z                     "pattern" : "[0-9]+"
+2026-11-09T07:04:10.4470687Z                   },
+2026-11-09T07:04:10.4470913Z                   "write" : {
+2026-11-09T07:04:10.4471163Z                     "title" : "TRAP cache writeable",
+2026-11-09T07:04:10.4471577Z                     "description" : "Whether to write to the TRAP cache as well as reading it",
+2026-11-09T07:04:10.4471973Z                     "type" : "string",
+2026-11-09T07:04:10.4472249Z                     "pattern" : "(true|TRUE|false|FALSE)"
+2026-11-09T07:04:10.4472696Z                   }
+2026-11-09T07:04:10.4475424Z                 }
+2026-11-09T07:04:10.4483063Z               }
+2026-11-09T07:04:10.4483791Z             }
+2026-11-09T07:04:10.4484607Z           },
+2026-11-09T07:04:10.4485624Z           "scale_timeouts" : {
+2026-11-09T07:04:10.4486698Z             "title" : "Value to scale compiler introspection timeouts with",
+2026-11-09T07:04:10.4489809Z             "description" : "The extractor attempts to determine what compiler the source code being extracted is compiled with. To this end the extractor makes additional calls to the compiler, some of which are expected to return within a certain fixed time (either 10s or 15s). On some systems that are under high load this time might be too short, and can be scaled up using this option.\n",
+2026-11-09T07:04:10.4492598Z             "type" : "string",
+2026-11-09T07:04:10.4493189Z             "pattern" : "[0-9]+"
+2026-11-09T07:04:10.4493972Z           },
+2026-11-09T07:04:10.4494504Z           "log_verbosity" : {
+2026-11-09T07:04:10.4495460Z             "title" : "Verbosity of the extractor logging",
+2026-11-09T07:04:10.4496954Z             "description" : "Set the verbosity of the extractor logging to 'quiet' (0), 'normal' (1), 'chatty' (2), or 'noisy' (3). The default is 'normal'.\n",
+2026-11-09T07:04:10.4498477Z             "type" : "string",
+2026-11-09T07:04:10.4499047Z             "pattern" : "[0-3]"
+2026-11-09T07:04:10.4499802Z           },
+2026-11-09T07:04:10.4500310Z           "frontend_options" : {
+2026-11-09T07:04:10.4501147Z             "title" : "C/C++ extractor frontend options",
+2026-11-09T07:04:10.4502347Z             "description" : "Set additional options that should be passed to the C/C++ extractor frontend.\n",
+2026-11-09T07:04:10.4503415Z             "type" : "array",
+2026-11-09T07:04:10.4503990Z             "visibility" : 3
+2026-11-09T07:04:10.4504723Z           }
+2026-11-09T07:04:10.4505365Z         }
+2026-11-09T07:04:10.4505953Z       }
+2026-11-09T07:04:10.4506411Z     ]
+2026-11-09T07:04:10.4507097Z   }
+2026-11-09T07:04:10.4507562Z }
+2026-11-09T07:04:10.4633231Z Found 1 languages that support TRAP caching
+2026-11-09T07:04:10.4639614Z Looking in Actions cache for TRAP cache with key codeql-trap-1-2.27.4-cpp-unknown
+2026-11-09T07:04:10.5926797Z No TRAP cache found in Actions cache for cpp
+2026-11-09T07:04:10.5931051Z ##[endgroup]
+2026-11-09T07:04:10.5947461Z While resolving threads, found a cgroup CPUs file with 4 CPUs in /sys/fs/cgroup/cpuset.cpus.effective.
+2026-11-09T07:04:10.5952038Z Skipping download of dependency cache for cpp as we have no caching configuration for it.
+2026-11-09T07:04:10.5962428Z Writing augmented user configuration file to /home/runner/work/_temp/user-config.yaml
+2026-11-09T07:04:10.5963748Z ##[group]Augmented user configuration file contents
+2026-11-09T07:04:10.5967416Z default-setup:
+2026-11-09T07:04:10.5967813Z   org:
+2026-11-09T07:04:10.5968176Z     model-packs: []
+2026-11-09T07:04:10.5968580Z threat-models: []
+2026-11-09T07:04:10.5968809Z 
+2026-11-09T07:04:10.5969247Z ##[endgroup]
+2026-11-09T07:04:10.5972203Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql database init --force-overwrite --db-cluster /home/runner/work/_temp/codeql_databases --source-root=/home/runner/work/Hepta/Hepta --no-calculate-baseline --extractor-include-aliases --language=cpp --codescanning-config=/home/runner/work/_temp/user-config.yaml --build-mode=none
+2026-11-09T07:04:11.7856066Z Package install location: /home/runner/.codeql/packages
+2026-11-09T07:04:11.7857058Z Nothing downloaded.
+2026-11-09T07:04:12.8403396Z Resolving extractor cpp.
+2026-11-09T07:04:12.8495555Z Successfully loaded extractor C/C++ (cpp) from /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp.
+2026-11-09T07:04:12.8749725Z Created skeleton CodeQL database at /home/runner/work/_temp/codeql_databases/cpp. This in-progress database is ready to be populated by an extractor.
+2026-11-09T07:04:13.3859603Z ##[group]Run github/codeql-action/autobuild@v4
+2026-11-09T07:04:13.3859935Z with:
+2026-11-09T07:04:13.3862456Z   token: ***
+2026-11-09T07:04:13.3862911Z   matrix: {
+  "language": "c-cpp",
+  "category": "/language:c-cpp",
+  "build-mode": "none",
+  "runner": "[\"ubuntu-latest\"]"
+}
+2026-11-09T07:04:13.3863437Z env:
+2026-11-09T07:04:13.3863647Z   CODE_SCANNING_REF: refs/pull/825/head
+2026-11-09T07:04:13.3863936Z   CODE_SCANNING_BASE_BRANCH: main
+2026-11-09T07:04:13.3864226Z   CODE_SCANNING_IS_ANALYZING_DEFAULT_BRANCH: false
+2026-11-09T07:04:13.3864567Z   CODE_SCANNING_IS_STEADY_STATE_DEFAULT_SETUP: true
+2026-11-09T07:04:13.3871272Z   CODE_SCANNING_WORKFLOW_FILE: H4sIAAAAAAAA/+xWTW/jNhC9+1cM3ALZPdC5FD0IWGAVR0ncGnbWUrBNg4CgqZHMRiYVfiSrbP3fC+ojtpqkdts9LuSDNHx88zjDmbFkawxgOFYpfpoOB9pJ0ph+/PoVcmFXbjnCB5R2JGTprBlxlSI1nEkpZE61k9TjYbMZKBlAWkm2FnwwQPkQDADG89OIxuNwNpvMzukiOjuYGDPP+XeGkzCO6MkinI0vDmVaMoN0qZnkq9cYJzENZ+H0+nf/cRqdhVfT5F96EIYyyYrqybtLMWOusP/sMU6i8PSaxkmYRM9O4yi5ugzAaocv9nyeL349m84/07PJNDpU16PSd1mhHmkmCvRnH/yhlsanpZGL/hXA5y+AsDHBO8+9ZlaLL6OCydyx3O99X0O1k4b4PHtQptX6l3g+e9eitZMS9XvvyGNL1GthjFCydulNjNv6EzSytLVxJS1K2zeWjN+xHPtGg9xpYStSp8IE8KiFxXZRpMSqO5S7Vk8tpEOiJEGtlQ4gY4VpFo3VzGJeddoyJgqSMWN3QdBGogMBCMkLl7aRa34EujgF3Ql3VgG496N0FcDxM/A13NKJIiVrlWIAUslOQfM0wQ3g6Gbolk5aRwpm0djh7dEbUjjhZblXyEvUN5ZRVnal5F4dr8C+sRDtjN0r4wXof4kwFsv28pO2zMYr5HfKWdBYKiOs0lVL6Qya5wt0zFvcx4efBz2CGK0rodTqSwWZ0qAxF8Zqgd1lEmnQLPd4m25x7BvEfUEaL8fGMm1JDf748FOLfxR2tb3eW3rKNaYorWCFaRqAQa7RmtH5JLm4OqGL6HwSJ4tJFNPLxfy3664R+GebhtfbS/+MEym8G/GE0Aym/UcRUtjtGdrp41+bTvpp2miiF/M4adX75Izqw4+Us3Vfr7/oShm7K75HcDlf7CUolX6bYBzScbRIJmeTcZhE+6g4oxy1FZnwbeRN0qvFNN5H5XRhtgT9NNcDwQhD7oRMTQA+uKQbJC+yaN5M42tlswPdmnfBKZYoU5S8IpzxlZB5s6npeSOUD0IruUZp4cMHOGquMvFZwvRol+jeob+pAQyH8AOcNpO4tlZg3HZY1KMhE3kAfz5bvIwaT4yvsG1o/KN03jcA+EMUxA8qE8DNgRPZh/W+oPUu2GzgdofUrjQyW/d/X2A3ALf9qgidVXUA91cD66DfS+KgkujF+RJ1pvS6bT3NHyMjzAFR98gn/N6G/nMb2o7knabRGWGzGfw1AMn6fZmvDAAA
+2026-11-09T07:04:13.3878136Z   CODEQL_ACTION_JOB_RUN_UUID: 6274d4f6-d0e3-4896-a883-7df01eb3e35c
+2026-11-09T07:04:13.3878518Z   CODEQL_ACTION_FEATURE_MULTI_LANGUAGE: false
+2026-11-09T07:04:13.3878825Z   CODEQL_ACTION_FEATURE_SANDWICH: false
+2026-11-09T07:04:13.3879119Z   CODEQL_ACTION_FEATURE_SARIF_COMBINE: true
+2026-11-09T07:04:13.3879603Z   CODEQL_ACTION_FEATURE_WILL_UPLOAD: true
+2026-11-09T07:04:13.3879884Z   CODEQL_ACTION_VERSION: 4.39.3
+2026-11-09T07:04:13.3880141Z   CODEQL_ACTION_INIT_HAS_RUN: true
+2026-11-09T07:04:13.3880497Z   CODEQL_ACTION_ANALYSIS_KEY: dynamic/github-code-scanning/codeql:analyze
+2026-11-09T07:04:13.3880929Z   CODEQL_WORKFLOW_STARTED_AT: 2026-11-09T07:03:58.393Z
+2026-11-09T07:04:13.3881250Z   CODEQL_ACTION_HAS_SET_UP_CODEQL: true
+2026-11-09T07:04:13.3881531Z   CODEQL_EXTRACTOR_CPP_TRAP_CACHING: false
+2026-11-09T07:04:13.3881801Z   CODEQL_RAM: 14570
+2026-11-09T07:04:13.3882005Z   CODEQL_THREADS: 4
+2026-11-09T07:04:13.3882211Z   CODEQL_PROXY_HOST: 
+2026-11-09T07:04:13.3882430Z   CODEQL_PROXY_PORT: 
+2026-11-09T07:04:13.3882649Z   CODEQL_PROXY_CA_CERTIFICATE: 
+2026-11-09T07:04:13.3882893Z   CODEQL_PROXY_URLS: 
+2026-11-09T07:04:13.3883114Z ##[endgroup]
+2026-11-09T07:04:13.7087653Z Existing job run UUID is 6274d4f6-d0e3-4896-a883-7df01eb3e35c.
+2026-11-09T07:04:14.1989262Z Using build mode "none", nothing to autobuild. See https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages#codeql-build-modes for more information.
+2026-11-09T07:04:14.8534287Z ##[group]Run github/codeql-action/analyze@v4
+2026-11-09T07:04:14.8534615Z with:
+2026-11-09T07:04:14.8535061Z   category: /language:c-cpp
+2026-11-09T07:04:14.8535307Z   output: ../results
+2026-11-09T07:04:14.8535518Z   upload: always
+2026-11-09T07:04:14.8535724Z   skip-queries: false
+2026-11-09T07:04:14.8535973Z   checkout_path: /home/runner/work/Hepta/Hepta
+2026-11-09T07:04:14.8536270Z   upload-database: true
+2026-11-09T07:04:14.8536510Z   wait-for-processing: true
+2026-11-09T07:04:14.8539076Z   token: ***
+2026-11-09T07:04:14.8539536Z   matrix: {
+  "language": "c-cpp",
+  "category": "/language:c-cpp",
+  "build-mode": "none",
+  "runner": "[\"ubuntu-latest\"]"
+}
+2026-11-09T07:04:14.8540063Z   expect-error: false
+2026-11-09T07:04:14.8540275Z env:
+2026-11-09T07:04:14.8540477Z   CODE_SCANNING_REF: refs/pull/825/head
+2026-11-09T07:04:14.8540776Z   CODE_SCANNING_BASE_BRANCH: main
+2026-11-09T07:04:14.8541067Z   CODE_SCANNING_IS_ANALYZING_DEFAULT_BRANCH: false
+2026-11-09T07:04:14.8541434Z   CODE_SCANNING_IS_STEADY_STATE_DEFAULT_SETUP: true
+2026-11-09T07:04:14.8547935Z   CODE_SCANNING_WORKFLOW_FILE: H4sIAAAAAAAA/+xWTW/jNhC9+1cM3ALZPdC5FD0IWGAVR0ncGnbWUrBNg4CgqZHMRiYVfiSrbP3fC+ojtpqkdts9LuSDNHx88zjDmbFkawxgOFYpfpoOB9pJ0ph+/PoVcmFXbjnCB5R2JGTprBlxlSI1nEkpZE61k9TjYbMZKBlAWkm2FnwwQPkQDADG89OIxuNwNpvMzukiOjuYGDPP+XeGkzCO6MkinI0vDmVaMoN0qZnkq9cYJzENZ+H0+nf/cRqdhVfT5F96EIYyyYrqybtLMWOusP/sMU6i8PSaxkmYRM9O4yi5ugzAaocv9nyeL349m84/07PJNDpU16PSd1mhHmkmCvRnH/yhlsanpZGL/hXA5y+AsDHBO8+9ZlaLL6OCydyx3O99X0O1k4b4PHtQptX6l3g+e9eitZMS9XvvyGNL1GthjFCydulNjNv6EzSytLVxJS1K2zeWjN+xHPtGg9xpYStSp8IE8KiFxXZRpMSqO5S7Vk8tpEOiJEGtlQ4gY4VpFo3VzGJeddoyJgqSMWN3QdBGogMBCMkLl7aRa34EujgF3Ql3VgG496N0FcDxM/A13NKJIiVrlWIAUslOQfM0wQ3g6Gbolk5aRwpm0djh7dEbUjjhZblXyEvUN5ZRVnal5F4dr8C+sRDtjN0r4wXof4kwFsv28pO2zMYr5HfKWdBYKiOs0lVL6Qya5wt0zFvcx4efBz2CGK0rodTqSwWZ0qAxF8Zqgd1lEmnQLPd4m25x7BvEfUEaL8fGMm1JDf748FOLfxR2tb3eW3rKNaYorWCFaRqAQa7RmtH5JLm4OqGL6HwSJ4tJFNPLxfy3664R+GebhtfbS/+MEym8G/GE0Aym/UcRUtjtGdrp41+bTvpp2miiF/M4adX75Izqw4+Us3Vfr7/oShm7K75HcDlf7CUolX6bYBzScbRIJmeTcZhE+6g4oxy1FZnwbeRN0qvFNN5H5XRhtgT9NNcDwQhD7oRMTQA+uKQbJC+yaN5M42tlswPdmnfBKZYoU5S8IpzxlZB5s6npeSOUD0IruUZp4cMHOGquMvFZwvRol+jeob+pAQyH8AOcNpO4tlZg3HZY1KMhE3kAfz5bvIwaT4yvsG1o/KN03jcA+EMUxA8qE8DNgRPZh/W+oPUu2GzgdofUrjQyW/d/X2A3ALf9qgidVXUA91cD66DfS+KgkujF+RJ1pvS6bT3NHyMjzAFR98gn/N6G/nMb2o7knabRGWGzGfw1AMn6fZmvDAAA
+2026-11-09T07:04:14.8554536Z   CODEQL_ACTION_JOB_RUN_UUID: 6274d4f6-d0e3-4896-a883-7df01eb3e35c
+2026-11-09T07:04:14.8555056Z   CODEQL_ACTION_FEATURE_MULTI_LANGUAGE: false
+2026-11-09T07:04:14.8555355Z   CODEQL_ACTION_FEATURE_SANDWICH: false
+2026-11-09T07:04:14.8555640Z   CODEQL_ACTION_FEATURE_SARIF_COMBINE: true
+2026-11-09T07:04:14.8555931Z   CODEQL_ACTION_FEATURE_WILL_UPLOAD: true
+2026-11-09T07:04:14.8556226Z   CODEQL_ACTION_VERSION: 4.39.3
+2026-11-09T07:04:14.8556485Z   CODEQL_ACTION_INIT_HAS_RUN: true
+2026-11-09T07:04:14.8557022Z   CODEQL_ACTION_ANALYSIS_KEY: dynamic/github-code-scanning/codeql:analyze
+2026-11-09T07:04:14.8557453Z   CODEQL_WORKFLOW_STARTED_AT: 2026-11-09T07:03:58.393Z
+2026-11-09T07:04:14.8557770Z   CODEQL_ACTION_HAS_SET_UP_CODEQL: true
+2026-11-09T07:04:14.8558048Z   CODEQL_EXTRACTOR_CPP_TRAP_CACHING: false
+2026-11-09T07:04:14.8558327Z   CODEQL_RAM: 14570
+2026-11-09T07:04:14.8558530Z   CODEQL_THREADS: 4
+2026-11-09T07:04:14.8558794Z   CODEQL_ACTION_AUTOBUILD_DID_COMPLETE_SUCCESSFULLY: true
+2026-11-09T07:04:14.8559112Z   CODEQL_PROXY_HOST: 
+2026-11-09T07:04:14.8559326Z   CODEQL_PROXY_PORT: 
+2026-11-09T07:04:14.8559544Z   CODEQL_PROXY_CA_CERTIFICATE: 
+2026-11-09T07:04:14.8559789Z   CODEQL_PROXY_URLS: 
+2026-11-09T07:04:14.8559996Z ##[endgroup]
+2026-11-09T07:04:15.1788311Z Existing job run UUID is 6274d4f6-d0e3-4896-a883-7df01eb3e35c.
+2026-11-09T07:04:15.6350961Z While resolving threads, found a cgroup CPUs file with 4 CPUs in /sys/fs/cgroup/cpuset.cpus.effective.
+2026-11-09T07:04:15.6515840Z ##[group]Generating diff range extension pack
+2026-11-09T07:04:15.6517195Z No precomputed diff ranges found; skipping diff-informed analysis stage.
+2026-11-09T07:04:15.6518853Z ##[endgroup]
+2026-11-09T07:04:15.6571411Z ##[group]Extracting cpp
+2026-11-09T07:04:15.6577799Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql database trace-command --use-build-mode --working-dir /home/runner/work/Hepta/Hepta /home/runner/work/_temp/codeql_databases/cpp
+2026-11-09T07:04:16.5649827Z Running command in /home/runner/work/Hepta/Hepta: [/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp/tools/autobuild.sh]
+2026-11-09T07:04:16.5801936Z [2026-11-09 07:04:16] [build-stdout] Overlay mode: full (enabled: false)
+2026-11-09T07:04:16.5803077Z [2026-11-09 07:04:16] [build-stdout] Using 4 threads for extraction
+2026-11-09T07:04:16.5809461Z [2026-11-09 07:04:16] [build-stdout] Indexed folder "/home/runner/work/Hepta/Hepta", found 6 source files, 1 header files, 837 total files.
+2026-11-09T07:04:16.5810359Z [2026-11-09 07:04:16] [build-stdout] Searching for "clang"...
+2026-11-09T07:04:16.5811061Z [2026-11-09 07:04:16] [build-stdout] Found "clang" at: "/usr/bin/clang"
+2026-11-09T07:04:17.4044687Z [2026-11-09 07:04:17] [build-stdout] Searching for "clang++"...
+2026-11-09T07:04:17.4045901Z [2026-11-09 07:04:17] [build-stdout] Found "clang++" at: "/usr/bin/clang++"
+2026-11-09T07:04:18.9751129Z [2026-11-09 07:04:18] [build-stdout] Dependency resolution not enabled.
+2026-11-09T07:04:18.9752240Z [2026-11-09 07:04:18] [build-stdout] Generating compilation commands.
+2026-11-09T07:04:18.9753353Z [2026-11-09 07:04:18] [build-stdout] Running extraction commands.
+2026-11-09T07:04:20.4796305Z [2026-11-09 07:04:20] [build-stdout] Ran 6 commands [s=4,p=2,f=0]
+2026-11-09T07:04:20.4810388Z [2026-11-09 07:04:20] [build-stdout] Extraction completed successfully.
+2026-11-09T07:04:20.4862266Z [2026-11-09 07:04:20] [build-stderr] cpp/autobuilder: C/C++ was extracted with build-mode set to 'none'.
+2026-11-09T07:04:20.4935186Z [2026-11-09 07:04:20] [build-stderr] cpp/autobuilder: autobuild summary.
+2026-11-09T07:04:20.5108161Z ##[endgroup]
+2026-11-09T07:04:20.5115524Z ##[group]Finalizing cpp
+2026-11-09T07:04:20.5124097Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql database finalize --finalize-dataset --threads=4 --ram=14570 /home/runner/work/_temp/codeql_databases/cpp
+2026-11-09T07:04:21.3776617Z Running pre-finalize script /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp/tools/pre-finalize.sh in /home/runner/work/Hepta/Hepta.
+2026-11-09T07:04:21.4537151Z Running command in /home/runner/work/Hepta/Hepta: [/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp/tools/pre-finalize.sh]
+2026-11-09T07:04:21.4729456Z Pre-finalize script /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/cpp/tools/pre-finalize.sh completed in 95 ms.
+2026-11-09T07:04:21.4761378Z Running TRAP import for CodeQL database at /home/runner/work/_temp/codeql_databases/cpp...
+2026-11-09T07:04:22.3155392Z Importing TRAP files
+2026-11-09T07:04:23.1793965Z Merging relations
+2026-11-09T07:04:23.5248354Z Finished writing database (relations: 171.32 KiB; string pool: 2.13 MiB).
+2026-11-09T07:04:23.5668097Z TRAP import complete (2.1s).
+2026-11-09T07:04:23.8106415Z Finished zipping source archive (128.51 KiB).
+2026-11-09T07:04:23.8247418Z ##[endgroup]
+2026-11-09T07:04:23.8252305Z ##[group]Running queries for cpp
+2026-11-09T07:04:23.8254648Z [command]/home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/codeql database run-queries --ram=14570 --threads=4 --expect-discarded-cache /home/runner/work/_temp/codeql_databases/cpp --min-disk-free=1024 -v
+2026-11-09T07:04:24.6474427Z Writing logs to /home/runner/work/_temp/codeql_databases/cpp/log/database-run-queries-20261109.070424.644.log.
+2026-11-09T07:04:25.3180125Z Writing logs to /home/runner/work/_temp/codeql_databases/cpp/log/execute-queries-20261109.070425.315.log.
+2026-11-09T07:04:25.6883830Z Recording pack reference codeql/cpp-queries at /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0.
+2026-11-09T07:04:25.8901674Z Resolving data extensions.
+2026-11-09T07:04:27.0465958Z Finished resolving data extensions.
+2026-11-09T07:04:27.0994573Z Merging data extensions.
+2026-11-09T07:04:27.1701982Z Finished merging data extensions.
+2026-11-09T07:04:28.1548490Z [1/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-014/MemsetMayBeDeleted.qlx.
+2026-11-09T07:04:28.6726391Z [2/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-131/NoSpaceForZeroTerminator.qlx.
+2026-11-09T07:04:28.7536602Z [3/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-732/OpenCallMissingModeArgument.qlx.
+2026-11-09T07:04:28.7626306Z [4/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-079/CgiXss.qlx.
+2026-11-09T07:04:28.7876907Z [5/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-367/TOCTOUFilesystemRace.qlx.
+2026-11-09T07:04:28.8676608Z [6/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.qlx.
+2026-11-09T07:04:28.9116967Z [7/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-611/XXE.qlx.
+2026-11-09T07:04:28.9316452Z [8/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-120/BadlyBoundedWrite.qlx.
+2026-11-09T07:04:28.9766527Z [9/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-311/CleartextFileWrite.qlx.
+2026-11-09T07:04:29.0066568Z [10/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-468/SuspiciousAddWithSizeof.qlx.
+2026-11-09T07:04:29.0347022Z [11/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-120/VeryLikelyOverrunWrite.qlx.
+2026-11-09T07:04:29.0626952Z [12/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-311/CleartextTransmission.qlx.
+2026-11-09T07:04:29.0833280Z [13/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-134/UncontrolledFormatString.qlx.
+2026-11-09T07:04:29.0896555Z [14/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-326/InsufficientKeySize.qlx.
+2026-11-09T07:04:29.1697005Z [15/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-190/ComparisonWithWiderType.qlx.
+2026-11-09T07:04:29.2126818Z [16/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-190/ArithmeticUncontrolled.qlx.
+2026-11-09T07:04:29.2386521Z [17/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-704/WcharCharConversion.qlx.
+2026-11-09T07:04:29.2906942Z [18/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-497/ExposedSystemData.qlx.
+2026-11-09T07:04:29.2947447Z [19/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-089/SqlTainted.qlx.
+2026-11-09T07:04:29.2978145Z [20/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-676/DangerousFunctionOverflow.qlx.
+2026-11-09T07:04:29.3116940Z [21/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.qlx.
+2026-11-09T07:04:29.3186485Z [22/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-676/DangerousUseOfCin.qlx.
+2026-11-09T07:04:29.3406596Z [23/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-078/ExecTainted.qlx.
+2026-11-09T07:04:29.3497835Z [24/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.qlx.
+2026-11-09T07:04:29.3556307Z [25/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-327/OpenSslHeartbleed.qlx.
+2026-11-09T07:04:29.3586473Z [26/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.qlx.
+2026-11-09T07:04:29.3698032Z [27/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-253/HResultBooleanConversion.qlx.
+2026-11-09T07:04:29.3700519Z [28/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-327/BrokenCryptoAlgorithm.qlx.
+2026-11-09T07:04:29.4797967Z [29/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/OO/UnsafeUseOfThis.qlx.
+2026-11-09T07:04:29.4848235Z [30/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/SuspiciousCallToStrncat.qlx.
+2026-11-09T07:04:29.4986472Z [31/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/IteratorToExpiredContainer.qlx.
+2026-11-09T07:04:29.5097693Z [32/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/PointerOverflow.qlx.
+2026-11-09T07:04:29.5136231Z [33/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/UsingExpiredStackAddress.qlx.
+2026-11-09T07:04:29.5226229Z [34/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/AllocaInLoop.qlx.
+2026-11-09T07:04:29.5306050Z [35/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-319/UseOfHttp.qlx.
+2026-11-09T07:04:29.5456684Z [36/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.qlx.
+2026-11-09T07:04:29.5542109Z [37/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/SnprintfOverflow.qlx.
+2026-11-09T07:04:29.5602285Z [38/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/WrongTypeFormatArguments.qlx.
+2026-11-09T07:04:29.5618606Z [39/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/WrongNumberOfFormatArguments.qlx.
+2026-11-09T07:04:29.5695840Z [40/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Underspecified Functions/TooFewArguments.qlx.
+2026-11-09T07:04:29.5856344Z [41/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.qlx.
+2026-11-09T07:04:29.5896687Z [42/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/IntMultToLong.qlx.
+2026-11-09T07:04:29.6028064Z [43/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/RedundantNullCheckSimple.qlx.
+2026-11-09T07:04:29.6316429Z [44/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/OverflowStatic.qlx.
+2026-11-09T07:04:29.6352847Z [45/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/SignedOverflowCheck.qlx.
+2026-11-09T07:04:29.6416050Z [46/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/NewFreeMismatch.qlx.
+2026-11-09T07:04:29.6467682Z [47/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Conversion/CastArrayPointerArithmetic.qlx.
+2026-11-09T07:04:29.6501484Z [48/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/IncorrectCheckScanf.qlx.
+2026-11-09T07:04:29.6546232Z [49/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/ExtractionWarnings.qlx.
+2026-11-09T07:04:29.6606273Z [50/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/ExtractedFiles.qlx.
+2026-11-09T07:04:29.6636222Z [51/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/FailedExtractorInvocations.qlx.
+2026-11-09T07:04:29.6696284Z [52/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/MissingIncludes.qlx.
+2026-11-09T07:04:29.6749774Z [53/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/CompilerErrors.qlx.
+2026-11-09T07:04:29.6796083Z [54/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/ExtractorInformation.qlx.
+2026-11-09T07:04:29.6826682Z [55/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/ExtractionMetrics.qlx.
+2026-11-09T07:04:29.6886098Z [56/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/DatabaseQuality.qlx.
+2026-11-09T07:04:29.6916090Z [57/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Summary/LinesOfCode.qlx.
+2026-11-09T07:04:29.6939362Z [58/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/SucceededIncludes.qlx.
+2026-11-09T07:04:29.6940550Z [59/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Summary/LinesOfUserCode.qlx.
+2026-11-09T07:04:29.7780063Z [60/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/DoubleFree.qlx.
+2026-11-09T07:04:29.7788778Z [61/61] Loaded /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/UseAfterFree.qlx.
+2026-11-09T07:04:30.1137648Z Starting evaluation of codeql/cpp-queries/Critical/DoubleFree.ql.
+2026-11-09T07:04:30.1165734Z Starting evaluation of codeql/cpp-queries/Critical/IncorrectCheckScanf.ql.
+2026-11-09T07:04:30.1179962Z Starting evaluation of codeql/cpp-queries/Critical/NewFreeMismatch.ql.
+2026-11-09T07:04:31.6655997Z Starting evaluation of codeql/cpp-queries/Critical/OverflowStatic.ql.
+2026-11-09T07:04:32.0877207Z Starting evaluation of codeql/cpp-queries/Critical/UseAfterFree.ql.
+2026-11-09T07:04:32.0967143Z [1/61 eval 421ms] Evaluation done; writing results to codeql/cpp-queries/Critical/OverflowStatic.bqrs.
+2026-11-09T07:04:32.1859497Z Starting evaluation of codeql/cpp-queries/Diagnostics/ExtractedFiles.ql.
+2026-11-09T07:04:32.1876369Z Starting evaluation of codeql/cpp-queries/Diagnostics/ExtractionWarnings.ql.
+2026-11-09T07:04:32.2256848Z [2/61 eval 38ms] Evaluation done; writing results to codeql/cpp-queries/Diagnostics/ExtractedFiles.bqrs.
+2026-11-09T07:04:32.2398637Z Starting evaluation of codeql/cpp-queries/Diagnostics/FailedExtractorInvocations.ql.
+2026-11-09T07:04:32.2546114Z [3/61 eval 68ms] Evaluation done; writing results to codeql/cpp-queries/Diagnostics/ExtractionWarnings.bqrs.
+2026-11-09T07:04:32.2547546Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.ql.
+2026-11-09T07:04:32.2726104Z [4/61 eval 33ms] Evaluation done; writing results to codeql/cpp-queries/Diagnostics/FailedExtractorInvocations.bqrs.
+2026-11-09T07:04:32.2815846Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Arithmetic/IntMultToLong.ql.
+2026-11-09T07:04:32.3026124Z [5/61 eval 48ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.bqrs.
+2026-11-09T07:04:33.1103445Z [6/61 eval 3s] Evaluation done; writing results to codeql/cpp-queries/Critical/IncorrectCheckScanf.bqrs.
+2026-11-09T07:04:33.1888642Z [7/61 eval 908ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Arithmetic/IntMultToLong.bqrs.
+2026-11-09T07:04:33.4046100Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Arithmetic/SignedOverflowCheck.ql.
+2026-11-09T07:04:33.4058649Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Conversion/CastArrayPointerArithmetic.ql.
+2026-11-09T07:04:33.4165751Z [8/61 eval 13ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Conversion/CastArrayPointerArithmetic.bqrs.
+2026-11-09T07:04:33.5026259Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Format/SnprintfOverflow.ql.
+2026-11-09T07:04:33.5298596Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Format/WrongNumberOfFormatArguments.ql.
+2026-11-09T07:04:33.5676346Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Format/WrongTypeFormatArguments.ql.
+2026-11-09T07:04:33.6407139Z [9/61 eval 114ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Format/WrongNumberOfFormatArguments.bqrs.
+2026-11-09T07:04:33.6475940Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Memory Management/AllocaInLoop.ql.
+2026-11-09T07:04:33.6676557Z [10/61 eval 100ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Format/WrongTypeFormatArguments.bqrs.
+2026-11-09T07:04:33.6776323Z [11/61 eval 30ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Memory Management/AllocaInLoop.bqrs.
+2026-11-09T07:04:33.8958815Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Memory Management/PointerOverflow.ql.
+2026-11-09T07:04:33.8991373Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.ql.
+2026-11-09T07:04:33.9130495Z [12/61 eval 19ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Memory Management/PointerOverflow.bqrs.
+2026-11-09T07:04:33.9175921Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Memory Management/SuspiciousCallToStrncat.ql.
+2026-11-09T07:04:33.9266317Z [13/61 eval 30ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.bqrs.
+2026-11-09T07:04:33.9316002Z [14/61 eval 13ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Memory Management/SuspiciousCallToStrncat.bqrs.
+2026-11-09T07:04:34.1086298Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Memory Management/UsingExpiredStackAddress.ql.
+2026-11-09T07:04:34.1123583Z Starting evaluation of codeql/cpp-queries/Likely Bugs/OO/UnsafeUseOfThis.ql.
+2026-11-09T07:04:34.1135675Z Starting evaluation of codeql/cpp-queries/Likely Bugs/RedundantNullCheckSimple.ql.
+2026-11-09T07:04:34.1194204Z [15/61 eval 7ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/OO/UnsafeUseOfThis.bqrs.
+2026-11-09T07:04:34.1276348Z [16/61 eval 11ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/RedundantNullCheckSimple.bqrs.
+2026-11-09T07:04:34.1349180Z [17/61 eval 26ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Memory Management/UsingExpiredStackAddress.bqrs.
+2026-11-09T07:04:34.1536596Z Starting evaluation of codeql/cpp-queries/Likely Bugs/Underspecified Functions/TooFewArguments.ql.
+2026-11-09T07:04:34.1597595Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-014/MemsetMayBeDeleted.ql.
+2026-11-09T07:04:34.1687740Z [18/61 eval 15ms] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Underspecified Functions/TooFewArguments.bqrs.
+2026-11-09T07:04:34.1738152Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-078/ExecTainted.ql.
+2026-11-09T07:04:34.2442407Z [19/61 eval 84ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-014/MemsetMayBeDeleted.bqrs.
+2026-11-09T07:04:34.6616423Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-079/CgiXss.ql.
+2026-11-09T07:04:34.6972940Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-089/SqlTainted.ql.
+2026-11-09T07:04:34.7408189Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-120/BadlyBoundedWrite.ql.
+2026-11-09T07:04:34.7876311Z [20/61 eval 45ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-120/BadlyBoundedWrite.bqrs.
+2026-11-09T07:04:34.7879022Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-120/VeryLikelyOverrunWrite.ql.
+2026-11-09T07:04:34.7923618Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-131/NoSpaceForZeroTerminator.ql.
+2026-11-09T07:04:34.9316259Z [21/61 eval 141ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-131/NoSpaceForZeroTerminator.bqrs.
+2026-11-09T07:04:34.9387432Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-134/UncontrolledFormatString.ql.
+2026-11-09T07:04:35.0698342Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-190/ArithmeticUncontrolled.ql.
+2026-11-09T07:04:35.1169732Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-190/ComparisonWithWiderType.ql.
+2026-11-09T07:04:35.1398708Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.ql.
+2026-11-09T07:04:35.1440627Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-253/HResultBooleanConversion.ql.
+2026-11-09T07:04:35.1523802Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-311/CleartextFileWrite.ql.
+2026-11-09T07:04:35.1566770Z [22/61 eval 11ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-253/HResultBooleanConversion.bqrs.
+2026-11-09T07:04:35.1936584Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-311/CleartextTransmission.ql.
+2026-11-09T07:04:35.2058593Z [23/61 eval 59ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-311/CleartextFileWrite.bqrs.
+2026-11-09T07:04:35.2135789Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-319/UseOfHttp.ql.
+2026-11-09T07:04:35.2437984Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-326/InsufficientKeySize.ql.
+2026-11-09T07:04:35.2577667Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-327/BrokenCryptoAlgorithm.ql.
+2026-11-09T07:04:35.3049101Z [24/61 eval 63ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-326/InsufficientKeySize.bqrs.
+2026-11-09T07:04:35.3120240Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-327/OpenSslHeartbleed.ql.
+2026-11-09T07:04:35.3136722Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-367/TOCTOUFilesystemRace.ql.
+2026-11-09T07:04:35.3176792Z [25/61 eval 57ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-327/BrokenCryptoAlgorithm.bqrs.
+2026-11-09T07:04:35.3179104Z [26/61 eval 6ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-327/OpenSslHeartbleed.bqrs.
+2026-11-09T07:04:35.3205886Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-416/IteratorToExpiredContainer.ql.
+2026-11-09T07:04:35.4808059Z [27/61 eval 5.4s] Evaluation done; writing results to codeql/cpp-queries/Critical/DoubleFree.bqrs.
+2026-11-09T07:04:35.5115879Z [28/61 eval 3.4s] Evaluation done; writing results to codeql/cpp-queries/Critical/UseAfterFree.bqrs.
+2026-11-09T07:04:35.5276132Z [29/61 eval 865ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-079/CgiXss.bqrs.
+2026-11-09T07:04:35.5365770Z [30/61 eval 5.4s] Evaluation done; writing results to codeql/cpp-queries/Critical/NewFreeMismatch.bqrs.
+2026-11-09T07:04:35.6017374Z [31/61 eval 1.4s] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-078/ExecTainted.bqrs.
+2026-11-09T07:04:35.6086823Z [32/61 eval 670ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-134/UncontrolledFormatString.bqrs.
+2026-11-09T07:04:35.6776236Z [33/61 eval 482ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-311/CleartextTransmission.bqrs.
+2026-11-09T07:04:35.6866067Z [34/61 eval 989ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-089/SqlTainted.bqrs.
+2026-11-09T07:04:35.7106255Z [35/61 eval 498ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-319/UseOfHttp.bqrs.
+2026-11-09T07:04:35.7156329Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.ql.
+2026-11-09T07:04:35.7185947Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.ql.
+2026-11-09T07:04:35.7197567Z [36/61 eval 2ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:35.7215884Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-468/SuspiciousAddWithSizeof.ql.
+2026-11-09T07:04:35.7246036Z [37/61 eval 2ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:35.7275810Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-497/ExposedSystemData.ql.
+2026-11-09T07:04:35.7286421Z [38/61 eval 8ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-468/SuspiciousAddWithSizeof.bqrs.
+2026-11-09T07:04:35.7461371Z [39/61 eval 433ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-367/TOCTOUFilesystemRace.bqrs.
+2026-11-09T07:04:35.7500563Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-611/XXE.ql.
+2026-11-09T07:04:35.7996531Z [40/61 eval 481ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-416/IteratorToExpiredContainer.bqrs.
+2026-11-09T07:04:35.8186372Z [41/61 eval 94ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-497/ExposedSystemData.bqrs.
+2026-11-09T07:04:35.8266286Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-676/DangerousFunctionOverflow.ql.
+2026-11-09T07:04:35.8268006Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-676/DangerousUseOfCin.ql.
+2026-11-09T07:04:35.8295869Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-704/WcharCharConversion.ql.
+2026-11-09T07:04:35.8326236Z [42/61 eval 5ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-676/DangerousFunctionOverflow.bqrs.
+2026-11-09T07:04:35.8328072Z [43/61 eval 3ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-704/WcharCharConversion.bqrs.
+2026-11-09T07:04:35.8355863Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-732/OpenCallMissingModeArgument.ql.
+2026-11-09T07:04:35.8385949Z Starting evaluation of codeql/cpp-queries/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.ql.
+2026-11-09T07:04:35.8416056Z [44/61 eval 3ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-676/DangerousUseOfCin.bqrs.
+2026-11-09T07:04:35.8687041Z [45/61 eval 33ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.bqrs.
+2026-11-09T07:04:35.8688854Z Starting evaluation of codeql/cpp-queries/Summary/LinesOfCode.ql.
+2026-11-09T07:04:35.8715787Z Starting evaluation of codeql/cpp-queries/Summary/LinesOfUserCode.ql.
+2026-11-09T07:04:35.8736066Z [46/61 eval 37ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-732/OpenCallMissingModeArgument.bqrs.
+2026-11-09T07:04:35.8745795Z [47/61 eval 3ms] Evaluation done; writing results to codeql/cpp-queries/Summary/LinesOfCode.bqrs.
+2026-11-09T07:04:35.8765628Z Starting evaluation of codeql/cpp-queries/Telemetry/CompilerErrors.ql.
+2026-11-09T07:04:35.8795735Z [48/61 eval 6ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/CompilerErrors.bqrs.
+2026-11-09T07:04:35.9096064Z [49/61 eval 158ms] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-611/XXE.bqrs.
+2026-11-09T07:04:35.9125411Z Starting evaluation of codeql/cpp-queries/Telemetry/DatabaseQuality.ql.
+2026-11-09T07:04:35.9206983Z Starting evaluation of codeql/cpp-queries/Telemetry/ExtractionMetrics.ql.
+2026-11-09T07:04:35.9246793Z Starting evaluation of codeql/cpp-queries/Telemetry/ExtractorInformation.ql.
+2026-11-09T07:04:35.9305266Z [50/61 eval 17ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/DatabaseQuality.bqrs.
+2026-11-09T07:04:35.9345977Z [51/61 eval 9ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/ExtractionMetrics.bqrs.
+2026-11-09T07:04:35.9347375Z Starting evaluation of codeql/cpp-queries/Telemetry/MissingIncludes.ql.
+2026-11-09T07:04:35.9348621Z Starting evaluation of codeql/cpp-queries/Telemetry/SucceededIncludes.ql.
+2026-11-09T07:04:35.9349914Z [52/61 eval 2ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/MissingIncludes.bqrs.
+2026-11-09T07:04:35.9351407Z [53/61 eval 15ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/ExtractorInformation.bqrs.
+2026-11-09T07:04:35.9352910Z [54/61 eval 7ms] Evaluation done; writing results to codeql/cpp-queries/Telemetry/SucceededIncludes.bqrs.
+2026-11-09T07:04:36.0857765Z [55/61 eval 213ms] Evaluation done; writing results to codeql/cpp-queries/Summary/LinesOfUserCode.bqrs.
+2026-11-09T07:04:36.6370733Z [56/61 eval 3.1s] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Format/SnprintfOverflow.bqrs.
+2026-11-09T07:04:36.6439957Z [57/61 eval 3.2s] Evaluation done; writing results to codeql/cpp-queries/Likely Bugs/Arithmetic/SignedOverflowCheck.bqrs.
+2026-11-09T07:04:36.6516181Z [58/61 eval 1.5s] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-190/ComparisonWithWiderType.bqrs.
+2026-11-09T07:04:36.6549366Z [59/61 eval 1.5s] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.bqrs.
+2026-11-09T07:04:36.6678132Z [60/61 eval 1.9s] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-120/VeryLikelyOverrunWrite.bqrs.
+2026-11-09T07:04:36.7111888Z [61/61 eval 1.6s] Evaluation done; writing results to codeql/cpp-queries/Security/CWE/CWE-190/ArithmeticUncontrolled.bqrs.
+2026-11-09T07:04:36.7138663Z Shutting down query evaluator.
+2026-11-09T07:04:36.8797184Z Interpreting code scanning results for cpp
+2026-11-09T07:04:37.6825581Z Writing logs to /home/runner/work/_temp/codeql_databases/cpp/log/database-interpret-results-20261109.070437.679.log.
+2026-11-09T07:04:37.8350601Z Recording pack reference codeql/cpp-queries at /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0.
+2026-11-09T07:04:37.8650810Z Resolving extensions
+2026-11-09T07:04:38.9397814Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-367/TOCTOUFilesystemRace.ql...
+2026-11-09T07:04:38.9705843Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-367/TOCTOUFilesystemRace.bqrs.
+2026-11-09T07:04:38.9888932Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-131/NoSpaceForZeroTerminator.ql...
+2026-11-09T07:04:39.0047814Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-131/NoSpaceForZeroTerminator.bqrs.
+2026-11-09T07:04:39.0065834Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-014/MemsetMayBeDeleted.ql...
+2026-11-09T07:04:39.0206322Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-014/MemsetMayBeDeleted.bqrs.
+2026-11-09T07:04:39.0217334Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-079/CgiXss.ql...
+2026-11-09T07:04:39.0334632Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-079/CgiXss.bqrs.
+2026-11-09T07:04:39.0344501Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.ql...
+2026-11-09T07:04:39.0496715Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.bqrs.
+2026-11-09T07:04:39.0500761Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-732/OpenCallMissingModeArgument.ql...
+2026-11-09T07:04:39.0594211Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-732/OpenCallMissingModeArgument.bqrs.
+2026-11-09T07:04:39.0604130Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-311/CleartextFileWrite.ql...
+2026-11-09T07:04:39.0746354Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-311/CleartextFileWrite.bqrs.
+2026-11-09T07:04:39.0767657Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-311/CleartextTransmission.ql...
+2026-11-09T07:04:39.0896891Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-311/CleartextTransmission.bqrs.
+2026-11-09T07:04:39.0956161Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-611/XXE.ql...
+2026-11-09T07:04:39.1016009Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-611/XXE.bqrs.
+2026-11-09T07:04:39.1026865Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-120/BadlyBoundedWrite.ql...
+2026-11-09T07:04:39.1092964Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-120/BadlyBoundedWrite.bqrs.
+2026-11-09T07:04:39.1102434Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-120/VeryLikelyOverrunWrite.ql...
+2026-11-09T07:04:39.1189717Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-120/VeryLikelyOverrunWrite.bqrs.
+2026-11-09T07:04:39.1210574Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-134/UncontrolledFormatString.ql...
+2026-11-09T07:04:39.1288435Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-134/UncontrolledFormatString.bqrs.
+2026-11-09T07:04:39.1308298Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-468/SuspiciousAddWithSizeof.ql...
+2026-11-09T07:04:39.1376235Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-468/SuspiciousAddWithSizeof.bqrs.
+2026-11-09T07:04:39.1406497Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-326/InsufficientKeySize.ql...
+2026-11-09T07:04:39.1464409Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-326/InsufficientKeySize.bqrs.
+2026-11-09T07:04:39.1496312Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-190/ComparisonWithWiderType.ql...
+2026-11-09T07:04:39.1561052Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-190/ComparisonWithWiderType.bqrs.
+2026-11-09T07:04:39.1579654Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-190/ArithmeticUncontrolled.ql...
+2026-11-09T07:04:39.1643685Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-190/ArithmeticUncontrolled.bqrs.
+2026-11-09T07:04:39.1659834Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-089/SqlTainted.ql...
+2026-11-09T07:04:39.1738572Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-089/SqlTainted.bqrs.
+2026-11-09T07:04:39.1766429Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-078/ExecTainted.ql...
+2026-11-09T07:04:39.1826294Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-078/ExecTainted.bqrs.
+2026-11-09T07:04:39.1828766Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-704/WcharCharConversion.ql...
+2026-11-09T07:04:39.1885926Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-704/WcharCharConversion.bqrs.
+2026-11-09T07:04:39.1895408Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-497/ExposedSystemData.ql...
+2026-11-09T07:04:39.1963248Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-497/ExposedSystemData.bqrs.
+2026-11-09T07:04:39.1973519Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.ql...
+2026-11-09T07:04:39.2046496Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.bqrs.
+2026-11-09T07:04:39.2056270Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-676/DangerousFunctionOverflow.ql...
+2026-11-09T07:04:39.2107142Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-676/DangerousFunctionOverflow.bqrs.
+2026-11-09T07:04:39.2113536Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-676/DangerousUseOfCin.ql...
+2026-11-09T07:04:39.2193690Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-676/DangerousUseOfCin.bqrs.
+2026-11-09T07:04:39.2197853Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/IteratorToExpiredContainer.ql...
+2026-11-09T07:04:39.2266686Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/IteratorToExpiredContainer.bqrs.
+2026-11-09T07:04:39.2272889Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.ql...
+2026-11-09T07:04:39.2330344Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:39.2336721Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.ql...
+2026-11-09T07:04:39.2402341Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:39.2408688Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-327/OpenSslHeartbleed.ql...
+2026-11-09T07:04:39.2487145Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-327/OpenSslHeartbleed.bqrs.
+2026-11-09T07:04:39.2491701Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-327/BrokenCryptoAlgorithm.ql...
+2026-11-09T07:04:39.2561669Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-327/BrokenCryptoAlgorithm.bqrs.
+2026-11-09T07:04:39.2576390Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-319/UseOfHttp.ql...
+2026-11-09T07:04:39.2646286Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-319/UseOfHttp.bqrs.
+2026-11-09T07:04:39.2666495Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Security/CWE/CWE-253/HResultBooleanConversion.ql...
+2026-11-09T07:04:39.2692864Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-253/HResultBooleanConversion.bqrs.
+2026-11-09T07:04:39.2736295Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/OO/UnsafeUseOfThis.ql...
+2026-11-09T07:04:39.2766125Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/OO/UnsafeUseOfThis.bqrs.
+2026-11-09T07:04:39.2799128Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/SuspiciousCallToStrncat.ql...
+2026-11-09T07:04:39.2856398Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/SuspiciousCallToStrncat.bqrs.
+2026-11-09T07:04:39.2886678Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/UsingExpiredStackAddress.ql...
+2026-11-09T07:04:39.2926415Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/UsingExpiredStackAddress.bqrs.
+2026-11-09T07:04:39.2933381Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/AllocaInLoop.ql...
+2026-11-09T07:04:39.2995838Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/AllocaInLoop.bqrs.
+2026-11-09T07:04:39.3003957Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/PointerOverflow.ql...
+2026-11-09T07:04:39.3073623Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/PointerOverflow.bqrs.
+2026-11-09T07:04:39.3081575Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.ql...
+2026-11-09T07:04:39.3143885Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.bqrs.
+2026-11-09T07:04:39.3148682Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/WrongTypeFormatArguments.ql...
+2026-11-09T07:04:39.3215498Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/WrongTypeFormatArguments.bqrs.
+2026-11-09T07:04:39.3228032Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/SnprintfOverflow.ql...
+2026-11-09T07:04:39.3302972Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/SnprintfOverflow.bqrs.
+2026-11-09T07:04:39.3307151Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Format/WrongNumberOfFormatArguments.ql...
+2026-11-09T07:04:39.3387514Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/WrongNumberOfFormatArguments.bqrs.
+2026-11-09T07:04:39.3391166Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Conversion/CastArrayPointerArithmetic.ql...
+2026-11-09T07:04:39.3446892Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Conversion/CastArrayPointerArithmetic.bqrs.
+2026-11-09T07:04:39.3456618Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Underspecified Functions/TooFewArguments.ql...
+2026-11-09T07:04:39.3507216Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Underspecified Functions/TooFewArguments.bqrs.
+2026-11-09T07:04:39.3527202Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/SignedOverflowCheck.ql...
+2026-11-09T07:04:39.3575471Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/SignedOverflowCheck.bqrs.
+2026-11-09T07:04:39.3581014Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/IntMultToLong.ql...
+2026-11-09T07:04:39.3664630Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/IntMultToLong.bqrs.
+2026-11-09T07:04:39.3668258Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.ql...
+2026-11-09T07:04:39.3725319Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.bqrs.
+2026-11-09T07:04:39.3732264Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Likely Bugs/RedundantNullCheckSimple.ql...
+2026-11-09T07:04:39.3790776Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/RedundantNullCheckSimple.bqrs.
+2026-11-09T07:04:39.3802447Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/OverflowStatic.ql...
+2026-11-09T07:04:39.3879118Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/OverflowStatic.bqrs.
+2026-11-09T07:04:39.3881303Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/NewFreeMismatch.ql...
+2026-11-09T07:04:39.3937992Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/NewFreeMismatch.bqrs.
+2026-11-09T07:04:39.3958100Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/IncorrectCheckScanf.ql...
+2026-11-09T07:04:39.4007023Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/IncorrectCheckScanf.bqrs.
+2026-11-09T07:04:39.4019809Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/DoubleFree.ql...
+2026-11-09T07:04:39.4070033Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/DoubleFree.bqrs.
+2026-11-09T07:04:39.4097075Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Critical/UseAfterFree.ql...
+2026-11-09T07:04:39.4156041Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/UseAfterFree.bqrs.
+2026-11-09T07:04:39.4192495Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/ExtractionWarnings.ql...
+2026-11-09T07:04:39.4225983Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/ExtractionWarnings.bqrs.
+2026-11-09T07:04:39.4250970Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/ExtractedFiles.ql...
+2026-11-09T07:04:39.4296037Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/ExtractedFiles.bqrs.
+2026-11-09T07:04:39.4343306Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Diagnostics/FailedExtractorInvocations.ql...
+2026-11-09T07:04:39.4369886Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/FailedExtractorInvocations.bqrs.
+2026-11-09T07:04:39.4379103Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/ExtractorInformation.ql...
+2026-11-09T07:04:39.4436643Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/ExtractorInformation.bqrs.
+2026-11-09T07:04:39.4441873Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/MissingIncludes.ql...
+2026-11-09T07:04:39.4498415Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/MissingIncludes.bqrs.
+2026-11-09T07:04:39.4502346Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/CompilerErrors.ql...
+2026-11-09T07:04:39.4575052Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/CompilerErrors.bqrs.
+2026-11-09T07:04:39.4606898Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/DatabaseQuality.ql...
+2026-11-09T07:04:39.4677744Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/DatabaseQuality.bqrs.
+2026-11-09T07:04:39.4696320Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/ExtractionMetrics.ql...
+2026-11-09T07:04:39.4736458Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/ExtractionMetrics.bqrs.
+2026-11-09T07:04:39.4743179Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Telemetry/SucceededIncludes.ql...
+2026-11-09T07:04:39.4830615Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/SucceededIncludes.bqrs.
+2026-11-09T07:04:39.4836519Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Summary/LinesOfCode.ql...
+2026-11-09T07:04:39.4888569Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Summary/LinesOfCode.bqrs.
+2026-11-09T07:04:39.4897459Z Interpreting /home/runner/work/_temp/3215cc13-6fff-4792-ba8d-8e163935940f/codeql/qlpacks/codeql/cpp-queries/1.10.0/Summary/LinesOfUserCode.ql...
+2026-11-09T07:04:39.4939492Z  ... found results file at /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Summary/LinesOfUserCode.bqrs.
+2026-11-09T07:04:39.5543700Z Interpreted problem query "Time-of-check time-of-use filesystem race condition" (cpp/toctou-race-condition) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-367/TOCTOUFilesystemRace.bqrs.
+2026-11-09T07:04:39.5561113Z Interpreted problem query "No space for zero terminator" (cpp/no-space-for-terminator) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-131/NoSpaceForZeroTerminator.bqrs.
+2026-11-09T07:04:39.5565667Z Interpreted problem query "Call to `memset` may be deleted" (cpp/memset-may-be-deleted) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-014/MemsetMayBeDeleted.bqrs.
+2026-11-09T07:04:39.5569566Z Interpreted pathproblem query "CGI script vulnerable to cross-site scripting" (cpp/cgi-xss) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-079/CgiXss.bqrs.
+2026-11-09T07:04:39.5586565Z Interpreted problem query "Setting a DACL to NULL in a SECURITY_DESCRIPTOR" (cpp/unsafe-dacl-security-descriptor) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-732/UnsafeDaclSecurityDescriptor.bqrs.
+2026-11-09T07:04:39.5593197Z Interpreted problem query "File opened with O_CREAT flag but without mode argument" (cpp/open-call-with-mode-argument) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-732/OpenCallMissingModeArgument.bqrs.
+2026-11-09T07:04:39.5601672Z Interpreted pathproblem query "Cleartext storage of sensitive information in file" (cpp/cleartext-storage-file) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-311/CleartextFileWrite.bqrs.
+2026-11-09T07:04:39.5635119Z Interpreted pathproblem query "Cleartext transmission of sensitive information" (cpp/cleartext-transmission) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-311/CleartextTransmission.bqrs.
+2026-11-09T07:04:39.5640514Z Interpreted pathproblem query "XML external entity expansion" (cpp/external-entity-expansion) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-611/XXE.bqrs.
+2026-11-09T07:04:39.5644262Z Interpreted problem query "Badly bounded write" (cpp/badly-bounded-write) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-120/BadlyBoundedWrite.bqrs.
+2026-11-09T07:04:39.5665292Z Interpreted problem query "Likely overrunning write" (cpp/very-likely-overrunning-write) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-120/VeryLikelyOverrunWrite.bqrs.
+2026-11-09T07:04:39.5670473Z Interpreted pathproblem query "Uncontrolled format string" (cpp/tainted-format-string) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-134/UncontrolledFormatString.bqrs.
+2026-11-09T07:04:39.5675311Z Interpreted problem query "Suspicious add with sizeof" (cpp/suspicious-add-sizeof) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-468/SuspiciousAddWithSizeof.bqrs.
+2026-11-09T07:04:39.5679460Z Interpreted pathproblem query "Use of a cryptographic algorithm with insufficient key size" (cpp/insufficient-key-size) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-326/InsufficientKeySize.bqrs.
+2026-11-09T07:04:39.5689948Z Interpreted problem query "Comparison of narrow type with wide type in loop condition" (cpp/comparison-with-wider-type) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-190/ComparisonWithWiderType.bqrs.
+2026-11-09T07:04:39.5705163Z Interpreted pathproblem query "Uncontrolled data in arithmetic expression" (cpp/uncontrolled-arithmetic) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-190/ArithmeticUncontrolled.bqrs.
+2026-11-09T07:04:39.5711369Z Interpreted pathproblem query "Uncontrolled data in SQL query" (cpp/sql-injection) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-089/SqlTainted.bqrs.
+2026-11-09T07:04:39.5715947Z Interpreted pathproblem query "Uncontrolled data used in OS command" (cpp/command-line-injection) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-078/ExecTainted.bqrs.
+2026-11-09T07:04:39.5718898Z Interpreted problem query "Cast from char* to wchar_t*" (cpp/incorrect-string-type-conversion) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-704/WcharCharConversion.bqrs.
+2026-11-09T07:04:39.5722133Z Interpreted pathproblem query "Exposure of system data to an unauthorized control sphere" (cpp/system-data-exposure) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-497/ExposedSystemData.bqrs.
+2026-11-09T07:04:39.5725954Z Interpreted problem query "Unsigned difference expression compared to zero" (cpp/unsigned-difference-expression-compared-zero) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-191/UnsignedDifferenceExpressionComparedZero.bqrs.
+2026-11-09T07:04:39.5729743Z Interpreted problem query "Use of dangerous function" (cpp/dangerous-function-overflow) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-676/DangerousFunctionOverflow.bqrs.
+2026-11-09T07:04:39.5734051Z Interpreted problem query "Dangerous use of 'cin'" (cpp/dangerous-cin) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-676/DangerousUseOfCin.bqrs.
+2026-11-09T07:04:39.5738401Z Interpreted problem query "Iterator to expired container" (cpp/iterator-to-expired-container) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/IteratorToExpiredContainer.bqrs.
+2026-11-09T07:04:39.5742614Z Interpreted problem query "Use of string after lifetime ends" (cpp/use-of-string-after-lifetime-ends) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/UseOfStringAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:39.5747315Z Interpreted problem query "Use of unique pointer after lifetime ends" (cpp/use-of-unique-pointer-after-lifetime-ends) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-416/UseOfUniquePointerAfterLifetimeEnds.bqrs.
+2026-11-09T07:04:39.5752006Z Interpreted problem query "Use of a version of OpenSSL with Heartbleed" (cpp/openssl-heartbleed) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-327/OpenSslHeartbleed.bqrs.
+2026-11-09T07:04:39.5756536Z Interpreted problem query "Use of a broken or risky cryptographic algorithm" (cpp/weak-cryptographic-algorithm) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-327/BrokenCryptoAlgorithm.bqrs.
+2026-11-09T07:04:39.5760586Z Interpreted pathproblem query "Failure to use HTTPS URLs" (cpp/non-https-url) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-319/UseOfHttp.bqrs.
+2026-11-09T07:04:39.5764447Z Interpreted problem query "Cast between HRESULT and a Boolean type" (cpp/hresult-boolean-conversion) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Security/CWE/CWE-253/HResultBooleanConversion.bqrs.
+2026-11-09T07:04:39.5768653Z Interpreted pathproblem query "Unsafe use of this in constructor" (cpp/unsafe-use-of-this) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/OO/UnsafeUseOfThis.bqrs.
+2026-11-09T07:04:39.5772528Z Interpreted problem query "Potentially unsafe call to strncat" (cpp/unsafe-strncat) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/SuspiciousCallToStrncat.bqrs.
+2026-11-09T07:04:39.5776849Z Interpreted pathproblem query "Use of expired stack-address" (cpp/using-expired-stack-address) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/UsingExpiredStackAddress.bqrs.
+2026-11-09T07:04:39.5779967Z Interpreted problem query "Call to alloca in a loop" (cpp/alloca-in-loop) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/AllocaInLoop.bqrs.
+2026-11-09T07:04:39.5782923Z Interpreted problem query "Pointer overflow check" (cpp/pointer-overflow-check) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/PointerOverflow.bqrs.
+2026-11-09T07:04:39.5786550Z Interpreted pathproblem query "Returning stack-allocated memory" (cpp/return-stack-allocated-memory) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Memory Management/ReturnStackAllocatedMemory.bqrs.
+2026-11-09T07:04:39.5790918Z Interpreted problem query "Wrong type of arguments to formatting function" (cpp/wrong-type-format-argument) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/WrongTypeFormatArguments.bqrs.
+2026-11-09T07:04:39.5795677Z Interpreted problem query "Potentially overflowing call to snprintf" (cpp/overflowing-snprintf) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/SnprintfOverflow.bqrs.
+2026-11-09T07:04:39.5798983Z Interpreted problem query "Too few arguments to formatting function" (cpp/wrong-number-format-arguments) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Format/WrongNumberOfFormatArguments.bqrs.
+2026-11-09T07:04:39.5802649Z Interpreted pathproblem query "Upcast array used in pointer arithmetic" (cpp/upcast-array-pointer-arithmetic) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Conversion/CastArrayPointerArithmetic.bqrs.
+2026-11-09T07:04:39.5806050Z Interpreted problem query "Call to function with fewer arguments than declared parameters" (cpp/too-few-arguments) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Underspecified Functions/TooFewArguments.bqrs.
+2026-11-09T07:04:39.5809422Z Interpreted problem query "Signed overflow check" (cpp/signed-overflow-check) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/SignedOverflowCheck.bqrs.
+2026-11-09T07:04:39.5812592Z Interpreted problem query "Multiplication result converted to larger type" (cpp/integer-multiplication-cast-to-long) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/IntMultToLong.bqrs.
+2026-11-09T07:04:39.5816588Z Interpreted problem query "Bad check for overflow of integer addition" (cpp/bad-addition-overflow-check) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/Arithmetic/BadAdditionOverflowCheck.bqrs.
+2026-11-09T07:04:39.5820955Z Interpreted pathproblem query "Redundant null check due to previous dereference" (cpp/redundant-null-check-simple) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Likely Bugs/RedundantNullCheckSimple.bqrs.
+2026-11-09T07:04:39.5825246Z Interpreted problem query "Static array access may cause overflow" (cpp/static-buffer-overflow) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/OverflowStatic.bqrs.
+2026-11-09T07:04:39.5828970Z Interpreted problem query "Mismatching new/free or malloc/delete" (cpp/new-free-mismatch) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/NewFreeMismatch.bqrs.
+2026-11-09T07:04:39.5832898Z Interpreted problem query "Incorrect return-value check for a 'scanf'-like function" (cpp/incorrectly-checked-scanf) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/IncorrectCheckScanf.bqrs.
+2026-11-09T07:04:39.5836956Z Interpreted pathproblem query "Potential double free" (cpp/double-free) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/DoubleFree.bqrs.
+2026-11-09T07:04:39.5840440Z Interpreted pathproblem query "Potential use after free" (cpp/use-after-free) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Critical/UseAfterFree.bqrs.
+2026-11-09T07:04:39.5843367Z Interpreted diagnostic query "Extraction warnings" (cpp/diagnostics/extraction-warnings) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/ExtractionWarnings.bqrs.
+2026-11-09T07:04:39.5849014Z Interpreted diagnostic query "Extracted files" (cpp/diagnostics/successfully-extracted-files) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/ExtractedFiles.bqrs.
+2026-11-09T07:04:39.5852984Z Interpreted diagnostic query "Failed extractor invocations" (cpp/diagnostics/failed-extractor-invocations) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Diagnostics/FailedExtractorInvocations.bqrs.
+2026-11-09T07:04:39.5856377Z Interpreted metric query "C/C++ extraction information" (cpp/telemetry/extraction-information) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/ExtractorInformation.bqrs.
+2026-11-09T07:04:39.5859321Z Interpreted metric query "Failed to include header file" (cpp/telemetry/failed-includes) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/MissingIncludes.bqrs.
+2026-11-09T07:04:39.5862182Z Interpreted metric query "Compiler errors" (cpp/telemetry/compiler-errors) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/CompilerErrors.bqrs.
+2026-11-09T07:04:39.5865408Z Interpreted metric query "Database quality" (cpp/telemetry/database-quality) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/DatabaseQuality.bqrs.
+2026-11-09T07:04:39.5868280Z Interpreted metric query "Extraction metrics" (cpp/telemetry/extraction-metrics) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/ExtractionMetrics.bqrs.
+2026-11-09T07:04:39.5871342Z Interpreted metric query "Successfully included header files" (cpp/telemetry/succeeded-includes) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Telemetry/SucceededIncludes.bqrs.
+2026-11-09T07:04:39.5874215Z Interpreted metric query "Total lines of C/C++ code in the database" (cpp/summary/lines-of-code) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Summary/LinesOfCode.bqrs.
+2026-11-09T07:04:39.5877610Z Interpreted metric query "Total lines of user written C/C++ code in the database" (cpp/summary/lines-of-user-code) at path /home/runner/work/_temp/codeql_databases/cpp/results/codeql/cpp-queries/Summary/LinesOfUserCode.bqrs.
+2026-11-09T07:04:39.5879772Z Reading source archive /home/runner/work/_temp/codeql_databases/cpp/src.zip
+2026-11-09T07:04:39.6427148Z Interpreting diagnostic messages...
+2026-11-09T07:04:39.7095958Z Found 13 raw diagnostic messages.
+2026-11-09T07:04:39.7231873Z Processed diagnostic messages (removed 0 due to limits, created 0 summary diagnostics for status page).
+2026-11-09T07:04:39.7242468Z Interpreted diagnostic messages (80ms).
+2026-11-09T07:04:39.8113387Z Exporting results to SARIF...
+2026-11-09T07:04:39.9731569Z Exported results to SARIF (161ms).
+2026-11-09T07:04:40.0518152Z ##[endgroup]
+2026-11-09T07:04:40.0518948Z Analysis produced the following diagnostic information:
+2026-11-09T07:04:40.0520325Z ##[group]C/C++ was extracted with build-mode set to 'none' (1 result)
+2026-11-09T07:04:40.0521253Z   * C/C++ was extracted with build-mode set to 'none'. This means that all C/C++ source in the working directory will be scanned.
+2026-11-09T07:04:40.0521951Z     
+2026-11-09T07:04:40.0522389Z     If you would prefer to analyse using a build command, see the manual[1].
+2026-11-09T07:04:40.0523267Z     
+2026-11-09T07:04:40.0525735Z     [1]: https://docs.github.com/en/enterprise-server/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-the-codeql-workflow-for-compiled-languages#adding-build-steps-for-a-compiled-language
+2026-11-09T07:04:40.0527337Z ##[endgroup]
+2026-11-09T07:04:40.0527470Z 
+2026-11-09T07:04:40.0527945Z To speed up pull request analysis, file coverage information is only enabled when analyzing the default branch and protected branches.
+2026-11-09T07:04:40.0536285Z Post-processing sarif files: ["/home/runner/work/Hepta/results/cpp.sarif"]
+2026-11-09T07:04:40.0552920Z Adding fingerprints to SARIF file. See https://docs.github.com/en/code-security/reference/code-scanning/sarif-support-for-code-scanning#data-for-preventing-duplicated-alerts for more information.
+2026-11-09T07:04:40.0555192Z ##[group]Uploading code scanning results
+2026-11-09T07:04:40.0699900Z Uploading results
+2026-11-09T07:04:40.6384042Z Successfully uploaded results
+2026-11-09T07:04:40.6384998Z ##[endgroup]
+2026-11-09T07:04:40.6395202Z Skipping upload of dependency cache for cpp as we have no caching configuration for it.
+2026-11-09T07:04:40.6397302Z ##[group]Waiting for processing to finish
+2026-11-09T07:04:45.8717139Z Analysis upload status is complete.
+2026-11-09T07:04:45.8717910Z ##[endgroup]
+2026-11-09T07:04:46.2708583Z Post job cleanup.
+2026-11-09T07:04:46.6154306Z Post job cleanup.
+2026-11-09T07:04:46.9364376Z Existing job run UUID is 6274d4f6-d0e3-4896-a883-7df01eb3e35c.
+2026-11-09T07:04:46.9398476Z CodeQL job status was success.
+2026-11-09T07:04:46.9411432Z Sending status report for init-post step.
+2026-11-09T07:04:47.4053035Z Status report sent for init-post step.
+2026-11-09T07:04:47.4660975Z Post job cleanup.
+2026-11-09T07:04:47.8047313Z Post job cleanup.
+2026-11-09T07:04:47.8965436Z [command]/usr/bin/git version
+2026-11-09T07:04:47.9012385Z git version 2.56.0
+2026-11-09T07:04:47.9060825Z Temporarily overriding HOME='/home/runner/work/_temp/bf515009-6678-4c40-ae1c-3f8c692bf3c5' before making global git config changes
+2026-11-09T07:04:47.9062531Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T07:04:47.9067715Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T07:04:47.9105029Z Removing SSH command configuration
+2026-11-09T07:04:47.9111706Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T07:04:47.9152773Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T07:04:47.9444691Z Removing HTTP extra header
+2026-11-09T07:04:47.9445905Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T07:04:47.9487490Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T07:04:47.9763585Z Removing includeIf entries pointing to credentials config files
+2026-11-09T07:04:47.9773345Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T07:04:47.9811029Z includeif.gitdir:/home/runner/work/Hepta/Hepta/.git.path
+2026-11-09T07:04:47.9812089Z includeif.gitdir:/home/runner/work/Hepta/Hepta/.git/worktrees/*.path
+2026-11-09T07:04:47.9812604Z includeif.gitdir:/github/workspace/.git.path
+2026-11-09T07:04:47.9813006Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T07:04:47.9825512Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Hepta/Hepta/.git.path
+2026-11-09T07:04:47.9861793Z /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:47.9874697Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Hepta/Hepta/.git.path /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:47.9926062Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/Hepta/Hepta/.git/worktrees/*.path
+2026-11-09T07:04:47.9963648Z /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:47.9975407Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/Hepta/Hepta/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:48.0021653Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-09T07:04:48.0054499Z /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:48.0065723Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:48.0111185Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T07:04:48.0150733Z /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:48.0159930Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config
+2026-11-09T07:04:48.0203130Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T07:04:48.0447964Z Removing credentials config '/home/runner/work/_temp/git-credentials-efabe708-aced-4c47-8ae5-8872c60d40d6.config'
+2026-11-09T07:04:48.0605672Z Cleaning up orphan processes

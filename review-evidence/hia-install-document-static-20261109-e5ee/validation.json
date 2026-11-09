@@ -1,0 +1,104 @@
+{
+  "all_sections_after_named_v16_unchanged": true,
+  "baseline_main": "4fd6b62b442e4198f43bf3595fa9e35b0f438102",
+  "baseline_tree": "cb6e378d2ddf64fbde32817a5285eb3a24eaddac",
+  "configured_steps_per_row": 7,
+  "embedded_python_syntax": [
+    {
+      "ast_parse": "PASS",
+      "block_index": 0,
+      "step_index": 2
+    },
+    {
+      "ast_parse": "PASS",
+      "block_index": 0,
+      "step_index": 4
+    },
+    {
+      "ast_parse": "PASS",
+      "block_index": 0,
+      "step_index": 5
+    }
+  ],
+  "entry_document_fields": [
+    "path",
+    "sha256",
+    "bytes"
+  ],
+  "executed_native_lean_compiler_solver": false,
+  "executed_project_code": false,
+  "executed_workflow": false,
+  "fail_fast": false,
+  "historical_postmerge_section_unchanged": true,
+  "install_exact_original_readme": true,
+  "locked_input_gate_block_byte_identical": true,
+  "matrix_rows": [
+    {
+      "artifact_prefix": "hia-public-release",
+      "entry": "tools/hia_release.py",
+      "job_name": "public-release",
+      "lock": "releases/hia-current.json",
+      "lock_sha256": "9000d6eaa089f6bed92ea07a6561d91381a6f913263f0b1016d4f99e8789c1d3",
+      "selection": "current"
+    },
+    {
+      "artifact_prefix": "hia-public-release-v16",
+      "entry": "tools/hia_release_v16_6ecd802.py",
+      "job_name": "public-release-v16",
+      "lock": "releases/hia-v16-6ecd802.json",
+      "lock_sha256": "b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0",
+      "selection": "v16"
+    }
+  ],
+  "patch_apply_check_returncode": 0,
+  "paths": [
+    ".github/workflows/hia-public-release.yml",
+    "INSTALL.md",
+    "docs/HIA_RELEASE_ENTRY.md"
+  ],
+  "public_inputs_schema": "hepta.hia.public-source-inputs.v2",
+  "readme_metadata_fields": [
+    "path",
+    "sha256",
+    "bytes"
+  ],
+  "readme_retained_empty": true,
+  "readme_source_commit": "81fe7b59881ed07fb7037aec9e305f6538ec7cd1",
+  "required_public_inputs": [
+    "tools/hia_repository_agent_trial.py",
+    "tests/test_hia_repository_agent_trial.py",
+    "docs/HIA_REPOSITORY_AGENT_TRIAL.md",
+    "experiments/hia_repository_select_trial_20261108/public/PROMPT.txt",
+    "experiments/hia_repository_select_trial_20261108/public/task.json",
+    "tests/test_hia_scalar_proof_contract.py",
+    "tools/hia_selfhost_select.py",
+    "docs/HIA_AGENT_PROOF_RESULTS.md"
+  ],
+  "runtime_acceptance": "PENDING: future published head and actual main need their own CI.",
+  "schema": "hia-public-install-document-static-validation/v1",
+  "shell_syntax": [
+    {
+      "bash_n_returncode": 0,
+      "name": "Prepare an empty public-source destination",
+      "step_index": 2
+    },
+    {
+      "bash_n_returncode": 0,
+      "name": "Fetch exact public source without repository overrides",
+      "step_index": 3
+    },
+    {
+      "bash_n_returncode": 0,
+      "name": "Verify discoverable entry and materialized public task inputs",
+      "step_index": 4
+    },
+    {
+      "bash_n_returncode": 0,
+      "name": "Run native examples and prove installation identity matches the lock",
+      "step_index": 5
+    }
+  ],
+  "timeout_minutes": 35,
+  "unchanged_non_discovery_steps": 6,
+  "yaml_preserves_triggers_permissions_job_configuration": true
+}

@@ -1,0 +1,623 @@
+﻿2026-11-09T07:16:05.3556817Z Current runner version: '2.338.2'
+2026-11-09T07:16:05.3581195Z ##[group]Runner Image Provisioner
+2026-11-09T07:16:05.3582077Z Hosted Compute Agent
+2026-11-09T07:16:05.3582630Z Version: 20261028.624
+2026-11-09T07:16:05.3583293Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T07:16:05.3584003Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T07:16:05.3584679Z Worker ID: {af6fe6ce-cabc-4d03-9839-4e7ecb61ee34}
+2026-11-09T07:16:05.3585399Z Region: westcentralus
+2026-11-09T07:16:05.3585974Z Cloud: Azure
+2026-11-09T07:16:05.3586504Z ##[endgroup]
+2026-11-09T07:16:05.3588039Z ##[group]Operating System
+2026-11-09T07:16:05.3588671Z Ubuntu
+2026-11-09T07:16:05.3589225Z 24.04.5
+2026-11-09T07:16:05.3589814Z LTS
+2026-11-09T07:16:05.3590354Z ##[endgroup]
+2026-11-09T07:16:05.3590900Z ##[group]Runner Image
+2026-11-09T07:16:05.3591489Z Image: ubuntu-24.04
+2026-11-09T07:16:05.3592077Z Version: 20261101.360.1
+2026-11-09T07:16:05.3593399Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T07:16:05.3595020Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T07:16:05.3595972Z ##[endgroup]
+2026-11-09T07:16:05.3597249Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T07:16:05.3599491Z Contents: read
+2026-11-09T07:16:05.3600109Z Metadata: read
+2026-11-09T07:16:05.3600639Z ##[endgroup]
+2026-11-09T07:16:05.3602608Z Secret source: Actions
+2026-11-09T07:16:05.3603549Z Cache mode: write
+2026-11-09T07:16:05.3604505Z Prepare workflow directory
+2026-11-09T07:16:05.4086660Z Prepare all required actions
+2026-11-09T07:16:05.4135479Z Getting action download info
+2026-11-09T07:16:05.6900767Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T07:16:05.8610643Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T07:16:05.9713569Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-09T07:16:06.2330568Z Complete job name: public-release-v16
+2026-11-09T07:16:06.3084352Z ##[group]Run actions/checkout@v4
+2026-11-09T07:16:06.3085244Z with:
+2026-11-09T07:16:06.3085802Z   ref: 3586de2e86031bccf9c37d210fde84dac766d1c7
+2026-11-09T07:16:06.3086577Z   persist-credentials: false
+2026-11-09T07:16:06.3087427Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T07:16:06.3091805Z   token: ***
+2026-11-09T07:16:06.3092328Z   ssh-strict: true
+2026-11-09T07:16:06.3092824Z   ssh-user: git
+2026-11-09T07:16:06.3093349Z   clean: true
+2026-11-09T07:16:06.3093864Z   sparse-checkout-cone-mode: true
+2026-11-09T07:16:06.3094460Z   fetch-depth: 1
+2026-11-09T07:16:06.3094995Z   fetch-tags: false
+2026-11-09T07:16:06.3095526Z   show-progress: true
+2026-11-09T07:16:06.3096117Z   lfs: false
+2026-11-09T07:16:06.3096624Z   submodules: false
+2026-11-09T07:16:06.3097274Z   set-safe-directory: true
+2026-11-09T07:16:06.3097945Z   allow-unsafe-pr-checkout: false
+2026-11-09T07:16:06.3098725Z env:
+2026-11-09T07:16:06.3099279Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:06.3099982Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:06.3100576Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:06.3101120Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:06.3101719Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:06.3102288Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:06.3102931Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:06.3103755Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:06.3104744Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:06.3105657Z ##[endgroup]
+2026-11-09T07:16:06.5788855Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T07:16:06.5792047Z ##[group]Getting Git version info
+2026-11-09T07:16:06.5793312Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T07:16:06.5795043Z [command]/usr/bin/git version
+2026-11-09T07:16:06.5873807Z git version 2.56.0
+2026-11-09T07:16:06.5911442Z ##[endgroup]
+2026-11-09T07:16:06.5939964Z Temporarily overriding HOME='/home/runner/work/_temp/ff4a4ec0-332d-4353-a988-ee48bee06ef2' before making global git config changes
+2026-11-09T07:16:06.5959452Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T07:16:06.5978935Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T07:16:06.6001927Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T07:16:06.6005287Z ##[group]Initializing the repository
+2026-11-09T07:16:06.6006526Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T07:16:06.6425047Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T07:16:06.6428362Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T07:16:06.6430866Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T07:16:06.6432286Z hint: call:
+2026-11-09T07:16:06.6433293Z hint:
+2026-11-09T07:16:06.6434742Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T07:16:06.6435902Z hint:
+2026-11-09T07:16:06.6437306Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T07:16:06.6439184Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T07:16:06.6440723Z hint:
+2026-11-09T07:16:06.6441609Z hint: 	git branch -m <name>
+2026-11-09T07:16:06.6442539Z hint:
+2026-11-09T07:16:06.6443797Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T07:16:06.6445676Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T07:16:06.6449410Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T07:16:06.6638598Z ##[endgroup]
+2026-11-09T07:16:06.6640040Z ##[group]Disabling automatic garbage collection
+2026-11-09T07:16:06.6642629Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T07:16:06.6707994Z ##[endgroup]
+2026-11-09T07:16:06.6709497Z ##[group]Setting up auth
+2026-11-09T07:16:06.6711382Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T07:16:06.6744606Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T07:16:06.7090404Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T07:16:06.7124262Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T07:16:06.7325014Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T07:16:06.7362108Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T07:16:06.7563738Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T07:16:06.7607941Z ##[endgroup]
+2026-11-09T07:16:06.7609754Z ##[group]Fetching the repository
+2026-11-09T07:16:06.7621510Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 3586de2e86031bccf9c37d210fde84dac766d1c7
+2026-11-09T07:16:11.1286177Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T07:16:11.1290189Z  * branch            3586de2e86031bccf9c37d210fde84dac766d1c7 -> FETCH_HEAD
+2026-11-09T07:16:11.1295913Z ##[endgroup]
+2026-11-09T07:16:11.1298223Z ##[group]Determining the checkout info
+2026-11-09T07:16:11.1299978Z ##[endgroup]
+2026-11-09T07:16:11.1300944Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T07:16:11.1358828Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T07:16:11.1392525Z ##[group]Checking out the ref
+2026-11-09T07:16:11.1395398Z [command]/usr/bin/git checkout --progress --force 3586de2e86031bccf9c37d210fde84dac766d1c7
+2026-11-09T07:16:11.3117237Z Note: switching to '3586de2e86031bccf9c37d210fde84dac766d1c7'.
+2026-11-09T07:16:11.3118915Z 
+2026-11-09T07:16:11.3119767Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T07:16:11.3121768Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T07:16:11.3123743Z state without impacting any branches by switching back to a branch.
+2026-11-09T07:16:11.3124931Z 
+2026-11-09T07:16:11.3125788Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T07:16:11.3127692Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T07:16:11.3128737Z 
+2026-11-09T07:16:11.3129254Z   git switch -c <new-branch-name>
+2026-11-09T07:16:11.3129935Z 
+2026-11-09T07:16:11.3130539Z Or undo this operation with:
+2026-11-09T07:16:11.3131523Z 
+2026-11-09T07:16:11.3132155Z   git switch -
+2026-11-09T07:16:11.3133098Z 
+2026-11-09T07:16:11.3134403Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T07:16:11.3136104Z 
+2026-11-09T07:16:11.3137016Z HEAD is now at 3586de2 Publish qualified v16 alongside the verified v9 default
+2026-11-09T07:16:11.3152908Z ##[endgroup]
+2026-11-09T07:16:11.3204697Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T07:16:11.3231624Z 3586de2e86031bccf9c37d210fde84dac766d1c7
+2026-11-09T07:16:11.3243598Z ##[group]Removing auth
+2026-11-09T07:16:11.3248377Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T07:16:11.3301345Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T07:16:11.3493026Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T07:16:11.3516913Z http.https://github.com/.extraheader
+2026-11-09T07:16:11.3524109Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T07:16:11.3612905Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T07:16:11.3803375Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T07:16:11.3834318Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T07:16:11.4024904Z ##[endgroup]
+2026-11-09T07:16:11.4454275Z ##[group]Run actions/setup-python@v5
+2026-11-09T07:16:11.4455506Z with:
+2026-11-09T07:16:11.4456382Z   python-version: 3.12
+2026-11-09T07:16:11.4457477Z   check-latest: false
+2026-11-09T07:16:11.4466601Z   token: ***
+2026-11-09T07:16:11.4467709Z   update-environment: true
+2026-11-09T07:16:11.4468829Z   allow-prereleases: false
+2026-11-09T07:16:11.4469902Z   freethreaded: false
+2026-11-09T07:16:11.4470814Z env:
+2026-11-09T07:16:11.4471750Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:11.4472854Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:11.4473886Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:11.4474894Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:11.4476072Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:11.4477154Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:11.4478439Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:11.4479919Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:11.4482079Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:11.4483893Z ##[endgroup]
+2026-11-09T07:16:11.5950385Z ##[group]Installed versions
+2026-11-09T07:16:11.6470632Z (node:3078) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T07:16:11.6473343Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T07:16:11.6475736Z Successfully set up CPython (3.12.16)
+2026-11-09T07:16:11.6494452Z ##[endgroup]
+2026-11-09T07:16:11.6977706Z ##[group]Run set -euo pipefail
+2026-11-09T07:16:11.6978483Z [36;1mset -euo pipefail[0m
+2026-11-09T07:16:11.6979211Z [36;1mtest "$(git rev-parse HEAD)" = "3586de2e86031bccf9c37d210fde84dac766d1c7"[0m
+2026-11-09T07:16:11.6980065Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T07:16:11.6980806Z [36;1mpython -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'[0m
+2026-11-09T07:16:11.6981536Z [36;1mmkdir "$RUNNER_TEMP/hia-public-release"[0m
+2026-11-09T07:16:11.6982311Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-public-release/entry.txt"[0m
+2026-11-09T07:16:11.6983181Z [36;1mpython -m pip freeze > "$RUNNER_TEMP/hia-public-release/dependencies.txt"[0m
+2026-11-09T07:16:11.6983902Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T07:16:11.6984422Z [36;1mimport hashlib, json, os[0m
+2026-11-09T07:16:11.6985030Z [36;1mfrom pathlib import Path[0m
+2026-11-09T07:16:11.6985639Z [36;1mentry = Path(os.environ["GITHUB_WORKSPACE"])[0m
+2026-11-09T07:16:11.6986447Z [36;1mroot = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"[0m
+2026-11-09T07:16:11.6987424Z [36;1mlock_raw = (entry / os.environ["HIA_RELEASE_LOCK"]).read_bytes()[0m
+2026-11-09T07:16:11.6988296Z [36;1mlock_sha256 = hashlib.sha256(lock_raw).hexdigest()[0m
+2026-11-09T07:16:11.6989015Z [36;1mif lock_sha256 != os.environ["HIA_RELEASE_LOCK_SHA256"]:[0m
+2026-11-09T07:16:11.6989819Z [36;1m    raise SystemExit("selected release lock differs from the original byte pin")[0m
+2026-11-09T07:16:11.6990555Z [36;1mlock = json.loads(lock_raw)[0m
+2026-11-09T07:16:11.6991078Z [36;1midentities = {}[0m
+2026-11-09T07:16:11.6991620Z [36;1mfor actual, original in ([0m
+2026-11-09T07:16:11.6992294Z [36;1m        (os.environ["HIA_RELEASE_ENTRY"], "tools/hia_release.py"),[0m
+2026-11-09T07:16:11.6993104Z [36;1m        ("tools/hia_candidate_preflight.py", "tools/hia_candidate_preflight.py")):[0m
+2026-11-09T07:16:11.6993857Z [36;1m    raw = (entry / actual).read_bytes()[0m
+2026-11-09T07:16:11.6994471Z [36;1m    measured = hashlib.sha256(raw).hexdigest()[0m
+2026-11-09T07:16:11.6995100Z [36;1m    if measured != lock["files"]["hepta"][original]:[0m
+2026-11-09T07:16:11.6995999Z [36;1m        raise SystemExit("executing entry/preflight differs from the selected source: " + actual)[0m
+2026-11-09T07:16:11.6996858Z [36;1m    identities[actual] = {"sha256": measured, "bytes": len(raw)}[0m
+2026-11-09T07:16:11.6997795Z [36;1mrecord = {"selection": os.environ["HIA_RELEASE_SELECTION"],[0m
+2026-11-09T07:16:11.6998519Z [36;1m          "release_lock_sha256": lock_sha256, "files": identities}[0m
+2026-11-09T07:16:11.6999397Z [36;1m(root / "entry-files.json").write_text(json.dumps(record, indent=2) + "\n")[0m
+2026-11-09T07:16:11.7000180Z [36;1mPY[0m
+2026-11-09T07:16:11.7320437Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T07:16:11.7321116Z env:
+2026-11-09T07:16:11.7321671Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:11.7322212Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:11.7322705Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:11.7323229Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:11.7323756Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:11.7324255Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:11.7324893Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:11.7325546Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:11.7326337Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:11.7327300Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:11.7328063Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T07:16:11.7328845Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:11.7329535Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:11.7330491Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:11.7331366Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T07:16:11.7331953Z ##[endgroup]
+2026-11-09T07:16:13.1443342Z Collecting jsonschema==4.25.1
+2026-11-09T07:16:13.2644401Z   Downloading jsonschema-4.25.1-py3-none-any.whl.metadata (7.6 kB)
+2026-11-09T07:16:13.3129978Z Collecting z3-solver==4.15.4.0
+2026-11-09T07:16:13.3328196Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-09T07:16:13.3951505Z Collecting attrs>=22.2.0 (from jsonschema==4.25.1)
+2026-11-09T07:16:13.4140145Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-09T07:16:13.4446626Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.25.1)
+2026-11-09T07:16:13.4633382Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-09T07:16:13.4998947Z Collecting referencing>=0.28.4 (from jsonschema==4.25.1)
+2026-11-09T07:16:13.5187780Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-09T07:16:13.7881209Z Collecting rpds-py>=0.7.1 (from jsonschema==4.25.1)
+2026-11-09T07:16:13.8075794Z   Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-09T07:16:13.8423954Z Collecting typing-extensions>=4.4.0 (from referencing>=0.28.4->jsonschema==4.25.1)
+2026-11-09T07:16:13.8612430Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+2026-11-09T07:16:13.9025741Z Downloading jsonschema-4.25.1-py3-none-any.whl (90 kB)
+2026-11-09T07:16:13.9494271Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-09T07:16:14.3094447Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 86.5 MB/s  0:00:00
+2026-11-09T07:16:14.3288676Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-09T07:16:14.3550485Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-09T07:16:14.3758661Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-09T07:16:14.3980335Z Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-09T07:16:14.4277204Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-11-09T07:16:14.5112502Z Installing collected packages: z3-solver, typing-extensions, rpds-py, attrs, referencing, jsonschema-specifications, jsonschema
+2026-11-09T07:16:15.2448219Z 
+2026-11-09T07:16:15.2461675Z Successfully installed attrs-26.1.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 referencing-0.37.0 rpds-py-2026.9.1 typing-extensions-4.16.0 z3-solver-4.15.4.0
+2026-11-09T07:16:15.2469348Z 
+2026-11-09T07:16:15.2470092Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-09T07:16:15.2471012Z [notice] To update, run: pip install --upgrade pip
+2026-11-09T07:16:15.5610601Z ##[group]Run set -euo pipefail
+2026-11-09T07:16:15.5611085Z [36;1mset -euo pipefail[0m
+2026-11-09T07:16:15.5611484Z [36;1mrelease=(python -B "$HIA_RELEASE_ENTRY")[0m
+2026-11-09T07:16:15.5611925Z [36;1mcase "$HIA_RELEASE_SELECTION" in[0m
+2026-11-09T07:16:15.5612399Z [36;1m  current) ;; # Exercise the unchanged default selection without --lock.[0m
+2026-11-09T07:16:15.5612845Z [36;1m  v16)[0m
+2026-11-09T07:16:15.5613227Z [36;1m    release+=(--lock "$GITHUB_WORKSPACE/$HIA_RELEASE_LOCK"[0m
+2026-11-09T07:16:15.5613769Z [36;1m              --lock-sha256 "$HIA_RELEASE_LOCK_SHA256")[0m
+2026-11-09T07:16:15.5614183Z [36;1m    ;;[0m
+2026-11-09T07:16:15.5614472Z [36;1m  *) exit 2 ;;[0m
+2026-11-09T07:16:15.5614776Z [36;1mesac[0m
+2026-11-09T07:16:15.5615199Z [36;1m"${release[@]}" describe > "$RUNNER_TEMP/hia-public-release/describe.json"[0m
+2026-11-09T07:16:15.5616124Z [36;1m"${release[@]}" materialize --directory "$RUNNER_TEMP/hia-public-release/release" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/materialize.log"[0m
+2026-11-09T07:16:15.5617567Z [36;1m"${release[@]}" check --hepta-root "$RUNNER_TEMP/hia-public-release/release/hepta" --runtime-checkout "$RUNNER_TEMP/hia-public-release/release/runtime" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/check.log"[0m
+2026-11-09T07:16:15.5632238Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T07:16:15.5632667Z env:
+2026-11-09T07:16:15.5633010Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:15.5633365Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:15.5633682Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:15.5634069Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:15.5634419Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:15.5634740Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:15.5635112Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:15.5635527Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:15.5636145Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:15.5636735Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:15.5637384Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T07:16:15.5637898Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:15.5638365Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:15.5638861Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:15.5639360Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T07:16:15.5639761Z ##[endgroup]
+2026-11-09T07:16:51.5845498Z {"dependencies_installed": false, "hepta_root": "/home/runner/work/_temp/hia-public-release/release/hepta", "production_deployed": false, "release_lock_sha256": "b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0", "runtime_checkout": "/home/runner/work/_temp/hia-public-release/release/runtime", "status": "exact_sources_materialized"}
+2026-11-09T07:16:53.0847217Z {"production_deployed": false, "release_lock_sha256": "b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0", "status": "source_contract_verified"}
+2026-11-09T07:16:53.0964225Z ##[group]Run set -euo pipefail
+2026-11-09T07:16:53.0964760Z [36;1mset -euo pipefail[0m
+2026-11-09T07:16:53.0965143Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T07:16:53.0965550Z [36;1mimport hashlib, json, os[0m
+2026-11-09T07:16:53.0965928Z [36;1mfrom pathlib import Path[0m
+2026-11-09T07:16:53.0966338Z [36;1mentry = Path(os.environ["GITHUB_WORKSPACE"])[0m
+2026-11-09T07:16:53.0966848Z [36;1mroot = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"[0m
+2026-11-09T07:16:53.0967698Z [36;1mreadme = (entry / "README.md").read_bytes()[0m
+2026-11-09T07:16:53.0968152Z [36;1mreadme_text = readme.decode("utf-8")[0m
+2026-11-09T07:16:53.0968560Z [36;1mif not readme_text.strip():[0m
+2026-11-09T07:16:53.0968956Z [36;1m    raise SystemExit("public README is empty")[0m
+2026-11-09T07:16:53.0969505Z [36;1mcommand = "python3 -B " + os.environ["HIA_RELEASE_ENTRY"][0m
+2026-11-09T07:16:53.0970035Z [36;1mlock_link = "](" + os.environ["HIA_RELEASE_LOCK"] + ")"[0m
+2026-11-09T07:16:53.0970663Z [36;1mif command not in readme_text or lock_link not in readme_text:[0m
+2026-11-09T07:16:53.0971260Z [36;1m    raise SystemExit("public README lacks the entry command or release-lock link")[0m
+2026-11-09T07:16:53.0971871Z [36;1mlock_raw = (entry / os.environ["HIA_RELEASE_LOCK"]).read_bytes()[0m
+2026-11-09T07:16:53.0972334Z [36;1mlock = json.loads(lock_raw)[0m
+2026-11-09T07:16:53.0972723Z [36;1msource = root / "release/hepta"[0m
+2026-11-09T07:16:53.0973128Z [36;1mrequired = ([0m
+2026-11-09T07:16:53.0973494Z [36;1m    "tools/hia_repository_agent_trial.py",[0m
+2026-11-09T07:16:53.0973986Z [36;1m    "tests/test_hia_repository_agent_trial.py",[0m
+2026-11-09T07:16:53.0974439Z [36;1m    "docs/HIA_REPOSITORY_AGENT_TRIAL.md",[0m
+2026-11-09T07:16:53.0974916Z [36;1m    "experiments/hia_repository_select_trial_20261108/public/PROMPT.txt",[0m
+2026-11-09T07:16:53.0975531Z [36;1m    "experiments/hia_repository_select_trial_20261108/public/task.json",[0m
+2026-11-09T07:16:53.0976212Z [36;1m    "tests/test_hia_scalar_proof_contract.py",[0m
+2026-11-09T07:16:53.0976632Z [36;1m    "tools/hia_selfhost_select.py",[0m
+2026-11-09T07:16:53.0977220Z [36;1m    "docs/HIA_AGENT_PROOF_RESULTS.md",[0m
+2026-11-09T07:16:53.0977870Z [36;1m)[0m
+2026-11-09T07:16:53.0978194Z [36;1mfiles = {}[0m
+2026-11-09T07:16:53.0978523Z [36;1mfor name in required:[0m
+2026-11-09T07:16:53.0978915Z [36;1m    expected = lock["files"]["hepta"].get(name)[0m
+2026-11-09T07:16:53.0979356Z [36;1m    path = source / name[0m
+2026-11-09T07:16:53.0979727Z [36;1m    if not expected or not path.is_file():[0m
+2026-11-09T07:16:53.0980261Z [36;1m        raise SystemExit("public task input is not locked/materialized: " + name)[0m
+2026-11-09T07:16:53.0980757Z [36;1m    raw = path.read_bytes()[0m
+2026-11-09T07:16:53.0981591Z [36;1m    measured = hashlib.sha256(raw).hexdigest()[0m
+2026-11-09T07:16:53.0982067Z [36;1m    if measured != expected:[0m
+2026-11-09T07:16:53.0982513Z [36;1m        raise SystemExit("public task input differs from lock: " + name)[0m
+2026-11-09T07:16:53.0983036Z [36;1m    files[name] = {"sha256": measured, "bytes": len(raw)}[0m
+2026-11-09T07:16:53.0983424Z [36;1mrecord = {[0m
+2026-11-09T07:16:53.0983781Z [36;1m    "schema": "hepta.hia.public-source-inputs.v1",[0m
+2026-11-09T07:16:53.0984285Z [36;1m    "entry_commit": os.environ["GITHUB_SHA"],[0m
+2026-11-09T07:16:53.0984755Z [36;1m    "release_lock_sha256": hashlib.sha256(lock_raw).hexdigest(),[0m
+2026-11-09T07:16:53.0985266Z [36;1m    "hepta_source": lock["sources"]["hepta"],[0m
+2026-11-09T07:16:53.0985785Z [36;1m    "entry_readme": {"sha256": hashlib.sha256(readme).hexdigest(), "bytes": len(readme)},[0m
+2026-11-09T07:16:53.0986269Z [36;1m    "files": files,[0m
+2026-11-09T07:16:53.0986644Z [36;1m    "ok": True,[0m
+2026-11-09T07:16:53.0986940Z [36;1m}[0m
+2026-11-09T07:16:53.0987578Z [36;1m(root / "public-inputs.json").write_text(json.dumps(record, indent=2) + "\n")[0m
+2026-11-09T07:16:53.0988327Z [36;1mprint("Public discovery entry and exact task/proof inputs are present")[0m
+2026-11-09T07:16:53.0988835Z [36;1mPY[0m
+2026-11-09T07:16:53.1002825Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T07:16:53.1003276Z env:
+2026-11-09T07:16:53.1003605Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:53.1003940Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:53.1004290Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:53.1004605Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:53.1004952Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:53.1005295Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:53.1005689Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:53.1006146Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:53.1006696Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:53.1007541Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1008097Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T07:16:53.1008671Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1009146Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1009598Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1010049Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T07:16:53.1010485Z ##[endgroup]
+2026-11-09T07:16:53.1294803Z Public discovery entry and exact task/proof inputs are present
+2026-11-09T07:16:53.1369433Z ##[group]Run set -euo pipefail
+2026-11-09T07:16:53.1369896Z [36;1mset -euo pipefail[0m
+2026-11-09T07:16:53.1370290Z [36;1mulimit -c 0[0m
+2026-11-09T07:16:53.1371204Z [36;1mpython -B "$RUNNER_TEMP/hia-public-release/release/hepta/tools/qualify_hia_direct_native.py" --output "$RUNNER_TEMP/hia-public-release/direct-native.json" 2>&1 | tee "$RUNNER_TEMP/hia-public-release/direct-native.log"[0m
+2026-11-09T07:16:53.1372178Z [36;1mcd "$RUNNER_TEMP/hia-public-release/release/hepta"[0m
+2026-11-09T07:16:53.1373031Z [36;1mpython -B -E -s -m hepta.hia_agent_worker --installation-manifest > "$RUNNER_TEMP/hia-public-release/installation.json"[0m
+2026-11-09T07:16:53.1373710Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T07:16:53.1374082Z [36;1mimport json, os[0m
+2026-11-09T07:16:53.1374415Z [36;1mfrom pathlib import Path[0m
+2026-11-09T07:16:53.1374834Z [36;1mroot = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"[0m
+2026-11-09T07:16:53.1375580Z [36;1mlock = json.loads((Path(os.environ["GITHUB_WORKSPACE"]) / os.environ["HIA_RELEASE_LOCK"]).read_text())[0m
+2026-11-09T07:16:53.1376259Z [36;1minstallation = json.loads((root / "installation.json").read_text())[0m
+2026-11-09T07:16:53.1376779Z [36;1mif installation != lock["installation"]:[0m
+2026-11-09T07:16:53.1377675Z [36;1m    raise SystemExit("materialized installation does not match the public release lock")[0m
+2026-11-09T07:16:53.1378408Z [36;1mprint("Exact public source, runtime contract and installation identity match")[0m
+2026-11-09T07:16:53.1378907Z [36;1mPY[0m
+2026-11-09T07:16:53.1392052Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T07:16:53.1392460Z env:
+2026-11-09T07:16:53.1392796Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:16:53.1393166Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:16:53.1393464Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:16:53.1393829Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:16:53.1394220Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:16:53.1394572Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:16:53.1394946Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:16:53.1395350Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:16:53.1395915Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:16:53.1396477Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1396980Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T07:16:53.1397609Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1398096Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1398568Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:16:53.1399022Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T07:16:53.1399420Z ##[endgroup]
+2026-11-09T07:16:53.9127824Z test_all_general_registers_rex_arithmetic_shifts_conditions_and_internal_calls (tests.test_hia_machine_x64.EncoderExecutionTests.test_all_general_registers_rex_arithmetic_shifts_conditions_and_internal_calls) ... ok
+2026-11-09T07:16:53.9293795Z test_external_allocator_relocations_resolve_with_only_ld (tests.test_hia_machine_x64.EncoderExecutionTests.test_external_allocator_relocations_resolve_with_only_ld) ... ok
+2026-11-09T07:16:54.1191609Z test_independent_elf_and_isa_tools_accept_output (tests.test_hia_machine_x64.EncoderExecutionTests.test_independent_elf_and_isa_tools_accept_output) ... ok
+2026-11-09T07:16:54.1193009Z test_memory_sib_displacements_lea_and_low_byte_rex (tests.test_hia_machine_x64.EncoderExecutionTests.test_memory_sib_displacements_lea_and_low_byte_rex) ... ok
+2026-11-09T07:16:54.1196724Z test_elf_symbol_order_and_stack_flags (tests.test_hia_machine_x64.EncoderStructuralTests.test_elf_symbol_order_and_stack_flags) ... ok
+2026-11-09T07:16:54.1199210Z test_invalid_registers_immediates_labels_and_relocations_reject (tests.test_hia_machine_x64.EncoderStructuralTests.test_invalid_registers_immediates_labels_and_relocations_reject) ... ok
+2026-11-09T07:16:54.1200529Z test_relocation_and_local_branches_are_deterministic (tests.test_hia_machine_x64.EncoderStructuralTests.test_relocation_and_local_branches_are_deterministic) ... ok
+2026-11-09T07:16:55.5536675Z test_all_integer_widths_wrapping_bits_shifts_and_signed_division (tests.test_hia_program_native.DirectExecutionTests.test_all_integer_widths_wrapping_bits_shifts_and_signed_division) ... ok
+2026-11-09T07:16:55.7831480Z test_allocator_observer_checks_actual_frees_and_failed_allocation (tests.test_hia_program_native.DirectExecutionTests.test_allocator_observer_checks_actual_frees_and_failed_allocation) ... ok
+2026-11-09T07:16:56.3448900Z test_bulk_operations_v2_through_v6_match_vm (tests.test_hia_program_native.DirectExecutionTests.test_bulk_operations_v2_through_v6_match_vm) ... ok
+2026-11-09T07:16:56.8400243Z test_checked_arithmetic_comparisons_casts_and_unary (tests.test_hia_program_native.DirectExecutionTests.test_checked_arithmetic_comparisons_casts_and_unary) ... ok
+2026-11-09T07:17:08.7279183Z test_checked_failures_abort_in_isolated_native_processes (tests.test_hia_program_native.DirectExecutionTests.test_checked_failures_abort_in_isolated_native_processes) ... ok
+2026-11-09T07:17:09.5271482Z test_existing_source_qualification_corpus_runs_through_direct_backend (tests.test_hia_program_native.DirectExecutionTests.test_existing_source_qualification_corpus_runs_through_direct_backend) ... ok
+2026-11-09T07:17:10.0833876Z test_owned_memory_zero_initialization_and_ordinary_error_cleanup (tests.test_hia_program_native.DirectExecutionTests.test_owned_memory_zero_initialization_and_ordinary_error_cleanup) ... ok
+2026-11-09T07:17:10.1408471Z test_real_loops_calls_multiple_returns_and_parallel_block_moves (tests.test_hia_program_native.DirectExecutionTests.test_real_loops_calls_multiple_returns_and_parallel_block_moves) ... ok
+2026-11-09T07:17:11.0774351Z test_recursive_chain_and_composite_v7_have_real_dynamic_execution (tests.test_hia_program_native.DirectExecutionTests.test_recursive_chain_and_composite_v7_have_real_dynamic_execution) ... ok
+2026-11-09T07:17:11.0909714Z test_scalar_c_abi_register_and_stack_arguments (tests.test_hia_program_native.DirectExecutionTests.test_scalar_c_abi_register_and_stack_arguments) ... ok
+2026-11-09T07:17:11.3615122Z test_v8_chain_head_returned_loans_and_pop (tests.test_hia_program_native.DirectExecutionTests.test_v8_chain_head_returned_loans_and_pop) ... ok
+2026-11-09T07:17:12.8383744Z test_v8_parameter_loans_calls_cfg_recursion_and_aliases (tests.test_hia_program_native.DirectExecutionTests.test_v8_parameter_loans_calls_cfg_recursion_and_aliases) ... ok
+2026-11-09T07:17:12.9975919Z test_all_versioned_agent_core_examples_are_emitted_without_llvm (tests.test_hia_program_native.DirectObjectTests.test_all_versioned_agent_core_examples_are_emitted_without_llvm) ... ok
+2026-11-09T07:17:13.0020251Z test_artifact_mutation_rejected_even_with_recomputed_object_digest (tests.test_hia_program_native.DirectObjectTests.test_artifact_mutation_rejected_even_with_recomputed_object_digest) ... ok
+2026-11-09T07:17:13.3702415Z test_cli_native_object_and_explicit_target_rejection (tests.test_hia_program_native.DirectObjectTests.test_cli_native_object_and_explicit_target_rejection) ... ok
+2026-11-09T07:17:13.3704009Z test_common_core_api_rejects_unknown_backend_before_reading_program (tests.test_hia_program_native.DirectObjectTests.test_common_core_api_rejects_unknown_backend_before_reading_program) ... ok
+2026-11-09T07:17:13.3752291Z test_existing_output_is_preserved (tests.test_hia_program_native.DirectObjectTests.test_existing_output_is_preserved) ... ok
+2026-11-09T07:17:13.3761958Z test_foreign_target_is_explicitly_rejected (tests.test_hia_program_native.DirectObjectTests.test_foreign_target_is_explicitly_rejected) ... ok
+2026-11-09T07:17:13.3775994Z test_forged_verified_core_is_reverified_before_emission (tests.test_hia_program_native.DirectObjectTests.test_forged_verified_core_is_reverified_before_emission) ... ok
+2026-11-09T07:17:13.5997728Z test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch (tests.test_hia_program_native.DirectObjectTests.test_object_build_in_fresh_process_prohibits_llvm_import_and_process_launch) ... ok
+2026-11-09T07:17:13.6047924Z test_object_generation_is_deterministic_and_bound_to_exact_core (tests.test_hia_program_native.DirectObjectTests.test_object_generation_is_deterministic_and_bound_to_exact_core) ... ok
+2026-11-09T07:17:13.6059475Z test_route_inventory_names_explicit_direct_machine_selection (tests.test_hia_program_native.DirectObjectTests.test_route_inventory_names_explicit_direct_machine_selection) ... ok
+2026-11-09T07:17:13.8551865Z test_cli_native_shared_library_is_callable_with_ld (tests.test_hia_program_native.DirectSystemLinkerTests.test_cli_native_shared_library_is_callable_with_ld) ... ok
+2026-11-09T07:17:13.9898073Z test_system_linker_alone_produces_callable_shared_library (tests.test_hia_program_native.DirectSystemLinkerTests.test_system_linker_alone_produces_callable_shared_library) ... ok
+2026-11-09T07:17:16.4613646Z test_all_integer_cast_pairs_at_both_sides_of_each_destination_boundary (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_all_integer_cast_pairs_at_both_sides_of_each_destination_boundary) ... ok
+2026-11-09T07:17:18.4413677Z test_division_remainder_shift_comparison_and_negation_boundaries (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_division_remainder_shift_comparison_and_negation_boundaries) ... ok
+2026-11-09T07:17:18.6643103Z test_independent_vm_agrees_on_edge_semantics (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_independent_vm_agrees_on_edge_semantics) ... ok
+2026-11-09T07:17:18.6666516Z test_linked_text_changes_only_declared_call_displacements (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_linked_text_changes_only_declared_call_displacements) ... ok
+2026-11-09T07:17:18.6702463Z test_many_arguments_dirty_high_bits_parallel_edges_multiple_returns_and_large_frame (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_many_arguments_dirty_high_bits_parallel_edges_multiple_returns_and_large_frame) ... ok
+2026-11-09T07:17:20.6349157Z test_signed_unsigned_arithmetic_boundaries (tests.test_hia_machine_lowering_edges.MachineLoweringEdgeTests.test_signed_unsigned_arithmetic_boundaries) ... ok
+2026-11-09T07:17:20.8602864Z test_dirty_high_bits_callee_saves_stack_arguments_and_page_probe (tests.test_hia_program_native_review.DirectNativeIndependentReview.test_dirty_high_bits_callee_saves_stack_arguments_and_page_probe) ... ok
+2026-11-09T07:17:20.9613868Z test_invalid_complete_ranges_trap_before_any_partial_write (tests.test_hia_program_native_review.DirectNativeIndependentReview.test_invalid_complete_ranges_trap_before_any_partial_write) ... ok
+2026-11-09T07:17:29.8886728Z test_original_324_case_chain_allocator_and_failure_matrix (tests.test_hia_program_native_review.DirectNativeIndependentReview.test_original_324_case_chain_allocator_and_failure_matrix) ... ok
+2026-11-09T07:17:29.9321773Z test_zero_byte_memory_operations_call_neither_allocator_nor_libc_memory (tests.test_hia_program_native_review.DirectNativeIndependentReview.test_zero_byte_memory_operations_call_neither_allocator_nor_libc_memory) ... ok
+2026-11-09T07:17:29.9365123Z test_future_verifier_admission_cannot_silently_extend_machine_lowering (tests.test_hia_program_native_review.DirectNativeProfileReview.test_future_verifier_admission_cannot_silently_extend_machine_lowering) ... ok
+2026-11-09T07:17:29.9396794Z test_nonexported_core_hook_name_stays_a_private_renamed_function (tests.test_hia_program_native_review.DirectNativeProfileReview.test_nonexported_core_hook_name_stays_a_private_renamed_function) ... ok
+2026-11-09T07:17:29.9505354Z test_public_loader_hook_symbols_rejected_before_object_publication (tests.test_hia_program_native_review.DirectNativeProfileReview.test_public_loader_hook_symbols_rejected_before_object_publication) ... ok
+2026-11-09T07:17:29.9529851Z test_canonical_input_and_duplicate_keys (tests.test_hia_program.CanonicalInputAndCFGTests.test_canonical_input_and_duplicate_keys) ... ok
+2026-11-09T07:17:29.9537471Z test_immutable_snapshot_and_rechecked_public_constructor (tests.test_hia_program.CanonicalInputAndCFGTests.test_immutable_snapshot_and_rechecked_public_constructor) ... ok
+2026-11-09T07:17:29.9552136Z test_malformed_values_reject_with_controlled_errors (tests.test_hia_program.CanonicalInputAndCFGTests.test_malformed_values_reject_with_controlled_errors) ... ok
+2026-11-09T07:17:29.9571600Z test_ssa_cfg_effect_and_unknown_claim_rejections (tests.test_hia_program.CanonicalInputAndCFGTests.test_ssa_cfg_effect_and_unknown_claim_rejections) ... ok
+2026-11-09T07:17:30.0101379Z test_wrong_json_container_at_each_schema_position_is_rejected (tests.test_hia_program.CanonicalInputAndCFGTests.test_wrong_json_container_at_each_schema_position_is_rejected) ... ok
+2026-11-09T07:17:30.0138644Z test_allocation_failure_empty_owner_multireturn_and_error_cleanup (tests.test_hia_program.ResourceExecutionTests.test_allocation_failure_empty_owner_multireturn_and_error_cleanup) ... ok
+2026-11-09T07:17:30.0149121Z test_borrowed_call_reborrow_and_resume_parent (tests.test_hia_program.ResourceExecutionTests.test_borrowed_call_reborrow_and_resume_parent) ... ok
+2026-11-09T07:17:30.0165363Z test_local_stored_view_and_owner_cross_blocks_together (tests.test_hia_program.ResourceExecutionTests.test_local_stored_view_and_owner_cross_blocks_together) ... ok
+2026-11-09T07:17:30.0209301Z test_loop_carries_owner_and_mutable_loan_identity (tests.test_hia_program.ResourceExecutionTests.test_loop_carries_owner_and_mutable_loan_identity) ... ok
+2026-11-09T07:17:30.0237814Z test_write_read_move_drop_and_bounds (tests.test_hia_program.ResourceExecutionTests.test_write_read_move_drop_and_bounds) ... ok
+2026-11-09T07:17:30.0320620Z test_checked_and_wrapping_at_every_integer_width (tests.test_hia_program.ScalarExecutionTests.test_checked_and_wrapping_at_every_integer_width) ... ok
+2026-11-09T07:17:30.0380735Z test_closed_block_loop_and_calls (tests.test_hia_program.ScalarExecutionTests.test_closed_block_loop_and_calls) ... ok
+2026-11-09T07:17:30.0396174Z test_exact_arguments_and_no_host_fabricated_capabilities (tests.test_hia_program.ScalarExecutionTests.test_exact_arguments_and_no_host_fabricated_capabilities) ... ok
+2026-11-09T07:17:30.0420131Z test_signed_division_remainder_and_shift_semantics (tests.test_hia_program.ScalarExecutionTests.test_signed_division_remainder_and_shift_semantics) ... ok
+2026-11-09T07:17:30.0433378Z test_step_heap_and_call_budgets_are_not_semantic_traps (tests.test_hia_program.ScalarExecutionTests.test_step_heap_and_call_budgets_are_not_semantic_traps) ... ok
+2026-11-09T07:17:30.0437747Z test_callee_cannot_end_or_return_external_loan (tests.test_hia_program.StaticRejectionTests.test_callee_cannot_end_or_return_external_loan) ... ok
+2026-11-09T07:17:30.0482319Z test_consumed_owners_borrows_and_silent_loss (tests.test_hia_program.StaticRejectionTests.test_consumed_owners_borrows_and_silent_loss) ... ok
+2026-11-09T07:17:30.0496039Z test_duplicate_edge_owner_and_missing_parent_reject (tests.test_hia_program.StaticRejectionTests.test_duplicate_edge_owner_and_missing_parent_reject) ... ok
+2026-11-09T07:17:30.0503496Z test_exclusive_call_arguments_must_not_alias (tests.test_hia_program.StaticRejectionTests.test_exclusive_call_arguments_must_not_alias) ... ok
+2026-11-09T07:17:30.0511417Z test_join_cannot_change_loan_root_despite_matching_types (tests.test_hia_program.StaticRejectionTests.test_join_cannot_change_loan_root_despite_matching_types) ... ok
+2026-11-09T07:17:30.0524304Z test_suspended_parent_cannot_be_accessed_or_ended_first (tests.test_hia_program.StaticRejectionTests.test_suspended_parent_cannot_be_accessed_or_ended_first) ... ok
+2026-11-09T07:17:30.1733208Z test_canonical_core_and_input_identity_rechecked (tests.test_hia_program_composite.CompositeExecutionTests.test_canonical_core_and_input_identity_rechecked) ... ok
+2026-11-09T07:17:30.2164906Z test_changed_origin_and_changed_core_cannot_reuse_verified_object (tests.test_hia_program_composite.CompositeExecutionTests.test_changed_origin_and_changed_core_cannot_reuse_verified_object) ... ok
+2026-11-09T07:17:30.2648477Z test_completed_owned_result_survives_cancel_and_moves_out_once (tests.test_hia_program_composite.CompositeExecutionTests.test_completed_owned_result_survives_cancel_and_moves_out_once) ... ok
+2026-11-09T07:17:30.3743023Z test_cooperative_task_pending_running_complete_and_refusal (tests.test_hia_program_composite.CompositeExecutionTests.test_cooperative_task_pending_running_complete_and_refusal) ... ok
+2026-11-09T07:17:30.3995444Z test_generic_enum_both_owner_variants_failure_and_empty_padding (tests.test_hia_program_composite.CompositeExecutionTests.test_generic_enum_both_owner_variants_failure_and_empty_padding) ... ok
+2026-11-09T07:17:30.5333466Z test_nominal_internal_signatures_are_not_public_interpreter_inputs (tests.test_hia_program_composite.CompositeExecutionTests.test_nominal_internal_signatures_are_not_public_interpreter_inputs) ... ok
+2026-11-09T07:17:30.7079256Z test_normalized_module_preserves_explicit_public_entrypoints (tests.test_hia_program_composite.CompositeExecutionTests.test_normalized_module_preserves_explicit_public_entrypoints) ... ok
+2026-11-09T07:17:30.7193144Z test_scalar_task_has_primitive_linear_token_without_allocator_calls (tests.test_hia_program_composite.CompositeExecutionTests.test_scalar_task_has_primitive_linear_token_without_allocator_calls) ... ok
+2026-11-09T07:17:30.7208085Z test_stored_external_loan_can_be_borrowed_by_checked_callee (tests.test_hia_program_composite.CompositeExecutionTests.test_stored_external_loan_can_be_borrowed_by_checked_callee) ... ok
+2026-11-09T07:17:30.7247976Z test_stored_owner_parent_child_survive_aggregate_branch (tests.test_hia_program_composite.CompositeExecutionTests.test_stored_owner_parent_child_survive_aggregate_branch) ... ok
+2026-11-09T07:17:30.7380755Z test_alias_only_product_expansion_has_an_independent_budget (tests.test_hia_program_composite.CompositeRejectionTests.test_alias_only_product_expansion_has_an_independent_budget) ... ok
+2026-11-09T07:17:30.7396049Z test_borrowed_record_cannot_escape_or_expose_linear_field_by_copy (tests.test_hia_program_composite.CompositeRejectionTests.test_borrowed_record_cannot_escape_or_expose_linear_field_by_copy) ... ok
+2026-11-09T07:17:30.7406974Z test_enum_tag_cannot_be_fabricated_or_reinterpreted (tests.test_hia_program_composite.CompositeRejectionTests.test_enum_tag_cannot_be_fabricated_or_reinterpreted) ... ok
+2026-11-09T07:17:30.7462772Z test_equal_nominal_types_do_not_mask_different_loan_roots_at_join (tests.test_hia_program_composite.CompositeRejectionTests.test_equal_nominal_types_do_not_mask_different_loan_roots_at_join) ... ok
+2026-11-09T07:17:30.7516407Z test_exhaustive_match_rejects_missing_duplicate_and_wrong_nominal_payload (tests.test_hia_program_composite.CompositeRejectionTests.test_exhaustive_match_rejects_missing_duplicate_and_wrong_nominal_payload) ... ok
+2026-11-09T07:17:30.7806176Z test_expansion_is_bounded_during_elaboration (tests.test_hia_program_composite.CompositeRejectionTests.test_expansion_is_bounded_during_elaboration) ... ok
+2026-11-09T07:17:30.8322687Z test_explicit_primitive_exports_are_strict (tests.test_hia_program_composite.CompositeRejectionTests.test_explicit_primitive_exports_are_strict) ... ok
+2026-11-09T07:17:30.8864128Z test_invalid_runtime_task_transitions_trap (tests.test_hia_program_composite.CompositeRejectionTests.test_invalid_runtime_task_transitions_trap) ... ok
+2026-11-09T07:17:30.8913456Z test_missing_effects_generic_cycles_expansion_and_unknown_fields (tests.test_hia_program_composite.CompositeRejectionTests.test_missing_effects_generic_cycles_expansion_and_unknown_fields) ... ok
+2026-11-09T07:17:30.8963657Z test_normalized_core_invalid_discriminant_traps (tests.test_hia_program_composite.CompositeRejectionTests.test_normalized_core_invalid_discriminant_traps) ... ok
+2026-11-09T07:17:30.9019216Z test_pack_cannot_copy_owner_or_access_consumed_source (tests.test_hia_program_composite.CompositeRejectionTests.test_pack_cannot_copy_owner_or_access_consumed_source) ... ok
+2026-11-09T07:17:30.9026913Z test_same_layout_different_nominal_type_is_not_interchangeable (tests.test_hia_program_composite.CompositeRejectionTests.test_same_layout_different_nominal_type_is_not_interchangeable) ... ok
+2026-11-09T07:17:30.9067860Z test_stored_parent_must_wait_for_child_and_owner_for_both (tests.test_hia_program_composite.CompositeRejectionTests.test_stored_parent_must_wait_for_child_and_owner_for_both) ... ok
+2026-11-09T07:17:30.9203014Z test_task_protocol_signature_and_loan_captures_rejected (tests.test_hia_program_composite.CompositeRejectionTests.test_task_protocol_signature_and_loan_captures_rejected) ... ok
+2026-11-09T07:17:30.9210000Z test_tasks_are_linear_even_if_all_fields_are_scalars (tests.test_hia_program_composite.CompositeRejectionTests.test_tasks_are_linear_even_if_all_fields_are_scalars) ... ok
+2026-11-09T07:17:30.9721112Z test_captured_matrix_verifies_unselected_variant_before_admission (tests.test_hia_routes.RouteTests.test_captured_matrix_verifies_unselected_variant_before_admission) ... ok
+2026-11-09T07:17:30.9757241Z test_captured_route_cannot_claim_or_force_another_core_schema (tests.test_hia_routes.RouteTests.test_captured_route_cannot_claim_or_force_another_core_schema) ... ok
+2026-11-09T07:17:30.9798482Z test_captured_routes_execute_the_same_core_and_never_trust_a_receipt (tests.test_hia_routes.RouteTests.test_captured_routes_execute_the_same_core_and_never_trust_a_receipt) ... ok
+2026-11-09T07:17:31.0817577Z test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes (tests.test_hia_routes.RouteTests.test_cli_options_cannot_reinterpret_ranking_guarded_or_source_routes) ... ok
+2026-11-09T07:17:31.1141532Z test_cli_routes_and_optimization_publication_refusal (tests.test_hia_routes.RouteTests.test_cli_routes_and_optimization_publication_refusal) ... ok
+2026-11-09T07:17:31.2779928Z test_cli_v8_lower_and_run_use_the_same_explicit_contract (tests.test_hia_routes.RouteTests.test_cli_v8_lower_and_run_use_the_same_explicit_contract) ... ok
+2026-11-09T07:17:31.3018032Z test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes (tests.test_hia_routes.RouteTests.test_explicit_v8_source_route_keeps_returned_loans_and_cannot_override_wire_bytes) ... ok
+2026-11-09T07:17:31.3101085Z test_foreign_checkpoint_descriptor_cannot_become_core_or_rewrite_authority (tests.test_hia_routes.RouteTests.test_foreign_checkpoint_descriptor_cannot_become_core_or_rewrite_authority) ... ok
+2026-11-09T07:17:31.3164130Z test_independent_rust_profile_cannot_mint_default_or_native_admission (tests.test_hia_routes.RouteTests.test_independent_rust_profile_cannot_mint_default_or_native_admission) ... ok
+2026-11-09T07:17:31.3423650Z test_optimization_commands_have_explicit_distinct_contracts (tests.test_hia_routes.RouteTests.test_optimization_commands_have_explicit_distinct_contracts) ... ok
+2026-11-09T07:17:31.3430177Z test_route_context_is_rejected_before_capture_or_source_access (tests.test_hia_routes.RouteTests.test_route_context_is_rejected_before_capture_or_source_access) ... ok
+2026-11-09T07:17:31.5236549Z test_source_and_both_legacy_routes_execute_one_value_model (tests.test_hia_routes.RouteTests.test_source_and_both_legacy_routes_execute_one_value_model) ... ok
+2026-11-09T07:17:31.6629087Z test_source_and_legacy_share_resource_and_failure_semantics (tests.test_hia_routes.RouteTests.test_source_and_legacy_share_resource_and_failure_semantics) ... ok
+2026-11-09T07:17:31.6630712Z test_unknown_language_metadata_receipt_and_backend_never_fallback (tests.test_hia_routes.RouteTests.test_unknown_language_metadata_receipt_and_backend_never_fallback) ... ok
+2026-11-09T07:17:31.6648710Z test_versioned_inventory_has_all_languages_and_legacy_non_authorities (tests.test_hia_routes.RouteTests.test_versioned_inventory_has_all_languages_and_legacy_non_authorities) ... ok
+2026-11-09T07:17:31.6680480Z test_explicit_contract_and_absence_remain_distinct (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_explicit_contract_and_absence_remain_distinct) ... ok
+2026-11-09T07:17:31.7568993Z test_returned_read_mutable_and_cfg_loans_roundtrip_and_execute (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_returned_read_mutable_and_cfg_loans_roundtrip_and_execute) ... ok
+2026-11-09T07:17:31.7604562Z test_wrong_origin_downgrade_and_malformed_contract_refuse (tests.test_hia_opcode_catalog.AssemblyV8ContractTests.test_wrong_origin_downgrade_and_malformed_contract_refuse) ... ok
+2026-11-09T07:17:31.7654486Z test_all_six_comparisons_are_executable_discovered_spellings (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_all_six_comparisons_are_executable_discovered_spellings) ... ok
+2026-11-09T07:17:31.7660273Z test_bulk_version_is_checked_by_table_even_for_valid_types (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_bulk_version_is_checked_by_table_even_for_valid_types) ... ok
+2026-11-09T07:17:31.7743142Z test_cache_cannot_keep_literal_after_catalog_width_rebinding (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_cache_cannot_keep_literal_after_catalog_width_rebinding) ... ok
+2026-11-09T07:17:31.7841030Z test_cache_invalidates_when_imported_opcode_checker_changes (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_cache_invalidates_when_imported_opcode_checker_changes) ... ok
+2026-11-09T07:17:31.7864874Z test_catalog_is_detached_and_invalid_schemas_do_not_guess (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_catalog_is_detached_and_invalid_schemas_do_not_guess) ... ok
+2026-11-09T07:17:31.7919960Z test_closed_inventory_contains_real_comparisons_and_every_version (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_closed_inventory_contains_real_comparisons_and_every_version) ... ok
+2026-11-09T07:17:31.9599201Z test_generated_docs_and_cli_are_the_actual_catalog (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_generated_docs_and_cli_are_the_actual_catalog) ... ok
+2026-11-09T07:17:31.9625877Z test_guards_do_not_allow_live_owner_drop_or_unended_loans (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_guards_do_not_allow_live_owner_drop_or_unended_loans) ... ok
+2026-11-09T07:17:31.9645013Z test_local_signature_effect_and_attribute_constraints_are_live (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_local_signature_effect_and_attribute_constraints_are_live) ... ok
+2026-11-09T07:17:31.9693775Z test_versioned_type_groups_never_offer_types_rejected_by_that_version (tests.test_hia_opcode_catalog.OpcodeCatalogTests.test_versioned_type_groups_never_offer_types_rejected_by_that_version) ... ok
+2026-11-09T07:17:31.9724805Z test_actual_cfg_uses_the_independently_specified_boundary (tests.test_hia_capability_flow.CapabilityFlowTests.test_actual_cfg_uses_the_independently_specified_boundary) ... ok
+2026-11-09T07:17:31.9726591Z test_local_capability_loss_and_noninjective_names_are_rejected (tests.test_hia_capability_flow.CapabilityFlowTests.test_local_capability_loss_and_noninjective_names_are_rejected) ... ok
+2026-11-09T07:17:31.9728267Z test_noninternal_input_types_are_rejected_before_hash_or_iteration (tests.test_hia_capability_flow.CapabilityFlowTests.test_noninternal_input_types_are_rejected_before_hash_or_iteration) ... ok
+2026-11-09T07:17:31.9729929Z test_root_parent_suspension_type_and_parameter_origin_survive (tests.test_hia_capability_flow.CapabilityFlowTests.test_root_parent_suspension_type_and_parameter_origin_survive) ... ok
+2026-11-09T07:17:31.9731639Z test_selected_loan_requires_both_parent_and_root (tests.test_hia_capability_flow.CapabilityFlowTests.test_selected_loan_requires_both_parent_and_root) ... ok
+2026-11-09T07:17:31.9732774Z test_two_successive_edges_equal_the_composed_renaming (tests.test_hia_capability_flow.CapabilityFlowTests.test_two_successive_edges_equal_the_composed_renaming) ... ok
+2026-11-09T07:17:31.9738596Z test_unselected_external_parameter_can_be_forgotten_without_renaming_origin (tests.test_hia_capability_flow.CapabilityFlowTests.test_unselected_external_parameter_can_be_forgotten_without_renaming_origin) ... ok
+2026-11-09T07:17:31.9740087Z test_depth_limit_exactly_matches_root_zero_valuation (tests.test_hia_json_preflight.HIAPreflightTests.test_depth_limit_exactly_matches_root_zero_valuation) ... ok
+2026-11-09T07:17:31.9757623Z test_early_duplicate_decoded_keys (tests.test_hia_json_preflight.HIAPreflightTests.test_early_duplicate_decoded_keys) ... ok
+2026-11-09T07:17:32.7150094Z test_early_node_limit_refuses_before_any_full_json_load (tests.test_hia_json_preflight.HIAPreflightTests.test_early_node_limit_refuses_before_any_full_json_load) ... ok
+2026-11-09T07:17:32.7152554Z test_invalid_grammar_and_float_rejection (tests.test_hia_json_preflight.HIAPreflightTests.test_invalid_grammar_and_float_rejection) ... ok
+2026-11-09T07:17:32.8779976Z test_randomized_grammar_and_budget_equivalence_to_stdlib (tests.test_hia_json_preflight.HIAPreflightTests.test_randomized_grammar_and_budget_equivalence_to_stdlib) ... ok
+2026-11-09T07:17:32.8789117Z test_valid_json_and_scalar_shape_coverage (tests.test_hia_json_preflight.HIAPreflightTests.test_valid_json_and_scalar_shape_coverage) ... ok
+2026-11-09T07:17:32.8836155Z test_contract_shape_bound_input_and_permissions (tests.test_hia_returned_loans.ReturnedLoans.test_contract_shape_bound_input_and_permissions) ... ok
+2026-11-09T07:17:32.8855947Z test_duplicate_return_and_exclusive_call_alias_refuse (tests.test_hia_returned_loans.ReturnedLoans.test_duplicate_return_and_exclusive_call_alias_refuse) ... ok
+2026-11-09T07:17:32.8878436Z test_error_as_value_cleans_actual_allocations (tests.test_hia_returned_loans.ReturnedLoans.test_error_as_value_cleans_actual_allocations) ... ok
+2026-11-09T07:17:32.8954229Z test_explicit_new_schema_and_legacy_refusal (tests.test_hia_returned_loans.ReturnedLoans.test_explicit_new_schema_and_legacy_refusal) ... ok
+2026-11-09T07:17:32.8962765Z test_exported_resource_descriptor_is_refused (tests.test_hia_returned_loans.ReturnedLoans.test_exported_resource_descriptor_is_refused) ... ok
+2026-11-09T07:17:32.9229995Z test_forward_child_cfg_recursion_execute_with_balanced_resources (tests.test_hia_returned_loans.ReturnedLoans.test_forward_child_cfg_recursion_execute_with_balanced_resources) ... ok
+2026-11-09T07:17:32.9252298Z test_legacy_and_v8_nonreturning_loan_cfg_join_still_agree (tests.test_hia_returned_loans.ReturnedLoans.test_legacy_and_v8_nonreturning_loan_cfg_join_still_agree) ... ok
+2026-11-09T07:17:32.9355909Z test_multi_result_aliases_create_independent_runtime_views (tests.test_hia_returned_loans.ReturnedLoans.test_multi_result_aliases_create_independent_runtime_views) ... ok
+2026-11-09T07:17:32.9400134Z test_parent_and_owner_remain_suspended_until_returned_child_ends (tests.test_hia_returned_loans.ReturnedLoans.test_parent_and_owner_remain_suspended_until_returned_child_ends) ... ok
+2026-11-09T07:17:32.9421606Z test_partial_multi_result_failure_and_caller_trap_keep_live_loans (tests.test_hia_returned_loans.ReturnedLoans.test_partial_multi_result_failure_and_caller_trap_keep_live_loans) ... ok
+2026-11-09T07:17:32.9432939Z test_read_child_can_return_from_mutable_parameter_without_escalation (tests.test_hia_returned_loans.ReturnedLoans.test_read_child_can_return_from_mutable_parameter_without_escalation) ... ok
+2026-11-09T07:17:32.9594659Z test_resource_analyses_keep_separate_v8_qualification_profiles (tests.test_hia_returned_loans.ReturnedLoans.test_resource_analyses_keep_separate_v8_qualification_profiles) ... ok
+2026-11-09T07:17:32.9621399Z test_traps_and_budget_stops_retain_stopped_resource_ledger (tests.test_hia_returned_loans.ReturnedLoans.test_traps_and_budget_stops_retain_stopped_resource_ledger) ... ok
+2026-11-09T07:17:32.9652313Z test_wrong_origin_owner_escape_and_deeper_child_refuse (tests.test_hia_returned_loans.ReturnedLoans.test_wrong_origin_owner_escape_and_deeper_child_refuse) ... ok
+2026-11-09T07:17:32.9843298Z test_existing_source_default_and_unsupported_stored_origin_contracts (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_existing_source_default_and_unsupported_stored_origin_contracts) ... ok
+2026-11-09T07:17:33.0034811Z test_identity_child_relay_join_and_original_parent_survives (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_identity_child_relay_join_and_original_parent_survives) ... ok
+2026-11-09T07:17:33.0724787Z test_invalid_origins_lifetimes_suffixes_and_unused_helpers_reject (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_invalid_origins_lifetimes_suffixes_and_unused_helpers_reject) ... ok
+2026-11-09T07:17:34.0016583Z test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_nested_record_origin_is_named_nonfirst_leaf_with_scalar_writeback) ... ok
+2026-11-09T07:17:34.0324245Z test_other_version_consumers_fail_closed (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_other_version_consumers_fail_closed) ... ok
+2026-11-09T07:17:34.0579597Z test_record_field_path_changes_local_origins_and_stored_borrows_reject (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_record_field_path_changes_local_origins_and_stored_borrows_reject) ... ok
+2026-11-09T07:17:34.0730279Z test_source_retains_functions_calls_and_explicit_origin (tests.test_hia_returned_loans.ReturnedLoanSemantics.test_source_retains_functions_calls_and_explicit_origin) ... ok
+2026-11-09T07:17:34.1125097Z test_borrowed_chain_cannot_move_drop_pop_or_push (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_borrowed_chain_cannot_move_drop_pop_or_push) ... ok
+2026-11-09T07:17:34.1129552Z test_borrowed_payload_cannot_be_hidden_in_a_node (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_borrowed_payload_cannot_be_hidden_in_a_node) ... ok
+2026-11-09T07:17:34.1347988Z test_budget_stop_in_iterative_destruction_is_not_reported_as_cleanup (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_budget_stop_in_iterative_destruction_is_not_reported_as_cleanup) ... ok
+2026-11-09T07:17:34.1351707Z test_chain_descriptor_is_never_a_byte_buffer (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_chain_descriptor_is_never_a_byte_buffer) ... ok
+2026-11-09T07:17:34.1421029Z test_chain_head_loan_conflicts_and_suspended_reborrow (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_chain_head_loan_conflicts_and_suspended_reborrow) ... ok
+2026-11-09T07:17:34.1426265Z test_consuming_call_cannot_alias_chain_arguments (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_consuming_call_cannot_alias_chain_arguments) ... ok
+2026-11-09T07:17:34.6696381Z test_dynamic_lengths_cross_function_return_and_iterative_drop (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_dynamic_lengths_cross_function_return_and_iterative_drop) ... ok
+2026-11-09T07:17:34.6801092Z test_empty_head_traps_without_fabricating_a_view (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_empty_head_traps_without_fabricating_a_view) ... ok
+2026-11-09T07:17:34.8107659Z test_empty_payloads_have_real_headers_without_payload_allocations (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_empty_payloads_have_real_headers_without_payload_allocations) ... ok
+2026-11-09T07:17:35.5590630Z test_every_payload_and_node_failure_preserves_tail_and_releases_payload (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_every_payload_and_node_failure_preserves_tail_and_releases_payload) ... ok
+2026-11-09T07:17:35.6741722Z test_failed_push_returns_unchanged_readable_payload_and_original_tail (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_failed_push_returns_unchanged_readable_payload_and_original_tail) ... ok
+2026-11-09T07:17:37.7043019Z test_generic_records_stored_reborrows_error_enums_and_task_cancel (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_generic_records_stored_reborrows_error_enums_and_task_cancel) ... ok
+2026-11-09T07:17:37.7050770Z test_lost_and_reused_chain_are_rejected (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_lost_and_reused_chain_are_rejected) ... ok
+2026-11-09T07:17:37.7172672Z test_mutated_push_cannot_duplicate_tail_or_payload (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_mutated_push_cannot_duplicate_tail_or_payload) ... ok
+2026-11-09T07:17:37.7273273Z test_node_bytes_are_charged_to_heap_budget_before_allocation_attempt (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_node_bytes_are_charged_to_heap_budget_before_allocation_attempt) ... ok
+2026-11-09T07:17:37.7608157Z test_old_schemas_reject_new_types_and_ops (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_old_schemas_reject_new_types_and_ops) ... ok
+2026-11-09T07:17:37.7764791Z test_payload_descriptor_preserves_dynamic_extent (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_payload_descriptor_preserves_dynamic_extent) ... ok
+2026-11-09T07:17:37.7848727Z test_stored_loan_cannot_outlive_its_chain_root (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_stored_loan_cannot_outlive_its_chain_root) ... ok
+2026-11-09T07:17:37.7906726Z test_structured_identity_and_illegal_public_chain_exports (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_structured_identity_and_illegal_public_chain_exports) ... ok
+2026-11-09T07:17:37.7942681Z test_v1_existing_chain_nominal_name_and_parameter_keep_their_meaning (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_v1_existing_chain_nominal_name_and_parameter_keep_their_meaning) ... ok
+2026-11-09T07:17:37.9763759Z test_versioned_admission_and_nominal_normalization (tests.test_hia_recursive_chain.HIARecursiveChainTests.test_versioned_admission_and_nominal_normalization) ... ok
+2026-11-09T07:17:37.9764752Z 
+2026-11-09T07:17:37.9765282Z ----------------------------------------------------------------------
+2026-11-09T07:17:37.9765979Z Ran 173 tests in 44.149s
+2026-11-09T07:17:37.9766208Z 
+2026-11-09T07:17:37.9766336Z OK
+2026-11-09T07:17:38.0701188Z {"ok": true, "tests_run": 173, "source_sha256": "5808d0aec6afc871367f266eace5b588b46955f91c3ee302387c9083a4ace410", "output": "/home/runner/work/_temp/hia-public-release/direct-native.json"}
+2026-11-09T07:17:38.2555778Z Exact public source, runtime contract and installation identity match
+2026-11-09T07:17:38.2666553Z ##[group]Run actions/upload-artifact@v4
+2026-11-09T07:17:38.2666966Z with:
+2026-11-09T07:17:38.2667607Z   name: hia-public-release-v16-3586de2e86031bccf9c37d210fde84dac766d1c7
+2026-11-09T07:17:38.2668514Z   path: /home/runner/work/_temp/hia-public-release/*.log
+/home/runner/work/_temp/hia-public-release/*.json
+/home/runner/work/_temp/hia-public-release/*.txt
+
+2026-11-09T07:17:38.2669284Z   if-no-files-found: error
+2026-11-09T07:17:38.2669615Z   retention-days: 30
+2026-11-09T07:17:38.2669986Z   compression-level: 6
+2026-11-09T07:17:38.2670319Z   overwrite: false
+2026-11-09T07:17:38.2670704Z   include-hidden-files: false
+2026-11-09T07:17:38.2671076Z env:
+2026-11-09T07:17:38.2671399Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T07:17:38.2671798Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T07:17:38.2672140Z   GIT_CONFIG_COUNT: 1
+2026-11-09T07:17:38.2672494Z   GIT_CONFIG_KEY_0: credential.helper
+2026-11-09T07:17:38.2672907Z   GIT_CONFIG_VALUE_0: 
+2026-11-09T07:17:38.2673368Z   HIA_RELEASE_SELECTION: v16
+2026-11-09T07:17:38.2673772Z   HIA_RELEASE_ENTRY: tools/hia_release_v16_6ecd802.py
+2026-11-09T07:17:38.2674222Z   HIA_RELEASE_LOCK: releases/hia-v16-6ecd802.json
+2026-11-09T07:17:38.2675290Z   HIA_RELEASE_LOCK_SHA256: b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+2026-11-09T07:17:38.2675901Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:17:38.2676432Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T07:17:38.2676972Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:17:38.2677689Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:17:38.2678219Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T07:17:38.2678714Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T07:17:38.2679130Z ##[endgroup]
+2026-11-09T07:17:38.4295301Z (node:8887) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T07:17:38.4296138Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T07:17:38.4392562Z With the provided path, there will be 10 files uploaded
+2026-11-09T07:17:38.4393775Z Artifact name is valid!
+2026-11-09T07:17:38.4394351Z Root directory input is valid!
+2026-11-09T07:17:38.7976604Z Beginning upload of artifact content to blob storage
+2026-11-09T07:17:38.8420612Z (node:8887) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-09T07:17:39.2556108Z Uploaded bytes 102161
+2026-11-09T07:17:39.3202248Z Finished uploading artifact content to blob storage!
+2026-11-09T07:17:39.3203285Z SHA256 digest of uploaded artifact zip is 7cf44dab318dc4737433f32cc9178270c785f085592a54a33a1fb2665a67f657
+2026-11-09T07:17:39.3205341Z Finalizing artifact upload
+2026-11-09T07:17:39.7135636Z Artifact hia-public-release-v16-3586de2e86031bccf9c37d210fde84dac766d1c7.zip successfully finalized. Artifact ID 13656096893
+2026-11-09T07:17:39.7137887Z Artifact hia-public-release-v16-3586de2e86031bccf9c37d210fde84dac766d1c7 has been successfully uploaded! Final size is 102161 bytes. Artifact ID is 13656096893
+2026-11-09T07:17:39.7141903Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/42578231472/artifacts/13656096893
+2026-11-09T07:17:39.7333045Z Post job cleanup.
+2026-11-09T07:17:39.8555604Z (node:8899) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T07:17:39.8556590Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T07:17:39.8788607Z Post job cleanup.
+2026-11-09T07:17:39.9698089Z [command]/usr/bin/git version
+2026-11-09T07:17:39.9780264Z git version 2.56.0
+2026-11-09T07:17:39.9830571Z Temporarily overriding HOME='/home/runner/work/_temp/a28588c4-0ac7-483a-9fa8-2dfc6f4d2b32' before making global git config changes
+2026-11-09T07:17:39.9850380Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T07:17:39.9853098Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T07:17:39.9910893Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T07:17:39.9955154Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T07:17:40.0184385Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T07:17:40.0219603Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T07:17:40.0500023Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T07:17:40.0566642Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T07:17:40.0936276Z Cleaning up orphan processes
+2026-11-09T07:17:40.1268716Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
