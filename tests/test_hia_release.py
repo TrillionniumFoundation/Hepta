@@ -140,6 +140,8 @@ class ReleaseLockBoundaries(unittest.TestCase):
             "review-evidence/hia-ndu-prepared-20261108-5e6c/final-originals.tar.xz",
             "tools/qualify_hia_ndu_persistent_ranker.py", "tools/replay_hia_ndu_persistent_ranker.py",
             "tests/test_hia_ndu_persistent_ranker.py", "docs/HIA_NDU_PERSISTENT_RANKING.md",
+            "tests/test_hia_ndu_persistent_cost_intervals.py",
+            "review-evidence/hia-ndu-persistent-20261108-5e6c/originals.tar.xz",
             "rust/hia-ndu-bridge/src/main.rs",
             "tools/build_hia_ndu_bridge.py", "rust/hia-ndu-bridge/Cargo.toml",
             "rust/hia-ndu-bridge/Cargo.lock", "rust/hia-ndu-bridge/upstream.json",
