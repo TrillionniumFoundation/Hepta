@@ -1,0 +1,122 @@
+{
+  "schema": "hepta.ci.original-lean-acquisition-failure.v1",
+  "recorded_utc": "2026-11-09T06:08:46.005662+00:00",
+  "status": "ATTEMPT2_FAILURE_RETAINED",
+  "head": "6ecd8023615a6e0b2dc269379fb059c656b38b6f",
+  "run_id": 42565815228,
+  "job_id": 129004126604,
+  "run_attempt": 2,
+  "actual_checkout_commit": "6ecd8023615a6e0b2dc269379fb059c656b38b6f",
+  "download_events": [
+    {
+      "utc": "2026-11-09T06:00:03.9270224Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 1,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:15.1179091Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 1,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 1,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:16.1181201Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 2,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:16.2202352Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 2,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 2,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:18.2204492Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 3,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:18.3083955Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 3,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 4,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:22.3085717Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 4,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T06:00:22.4156882Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 4,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": null,
+        "exhausted": true
+      }
+    }
+  ],
+  "failed_steps": [
+    {
+      "name": "Acquire only the existing SHA-locked Lean checker",
+      "status": "completed",
+      "conclusion": "failure",
+      "number": 5,
+      "started_at": "2026-11-09T06:00:03Z",
+      "completed_at": "2026-11-09T06:00:22Z"
+    }
+  ],
+  "skipped_steps": [
+    "Kernel-check projected theorem, all concrete witnesses and negative controls",
+    "Post Run actions/setup-python@v5"
+  ],
+  "proximate_failure": "The unchanged four-attempt pinned Lean acquisition exhausted on four HTTP 504 responses. The main Lean proof checks were not executed.",
+  "underlying_gateway_cause": "UNKNOWN",
+  "first_attempt_archive": "../lean-acquisition-failures/files.json",
+  "first_attempt_archive_sha256": "e76980ba05fbfcfd58cbd236efce4b60acdd52ef0f8c1beeed778d7c7ee407d6",
+  "attempt1_overwritten": false,
+  "reruns_requested_by_this_observer": 0,
+  "source_or_budget_changes": 0,
+  "local_project_code_solver_native_executions": 0
+}

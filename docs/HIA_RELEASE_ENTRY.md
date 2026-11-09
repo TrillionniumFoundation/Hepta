@@ -72,6 +72,80 @@ differ because the source lock measures the implementation checkout.
 
 PR #818 merged as `bd4b846359a7f3200593750304aa744422221793`. That main commit passed its own [public installation CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552762057) and [retained online-readback CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552762051). A separately recorded formal describe and 8192-byte read then returned the complete 7048-byte manifest; the unchanged checker matched all three installation identities to the actual main lock. [The post-merge record](../review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-REPORT.md) retains the earlier 16384-byte read timeout, its historical-operation recovery and the successful independent observation. It establishes a timestamped manifest readback, not a newly executed worker or loaded runtime-binary attestation. The preparation-time record and its pending gates remain historical statements; this linked follow-up discharges those gates for this unchanged v9 selection. The six-item overall acceptance remains HOLD.
 
+## Named v16 source release — 2026-11-09
+
+The default entry and `releases/hia-current.json` continue to select the v9
+source described above. The separately named
+[`releases/hia-v16-6ecd802.json`](../releases/hia-v16-6ecd802.json) selects Hepta
+`6ecd8023615a6e0b2dc269379fb059c656b38b6f`, tree
+`4c51962e030e9ea39c6498224c99eb40fbdd2f35`, with the bounded
+`selfhost-core-linux-x86_64-v16` profile. Both selections retain runtime
+`4cd85c99c5f5a480832c48fbde8561bb365f67a9`, tree
+`6b78d53b53d51a6c070bb37e8e9f6a15ad26d0e8`.
+
+The v16 lock is the unchanged **47,762-byte** `release-lock.json` from
+[exact-source run 42565807355](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42565807355).
+Its SHA256 is
+`b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0`.
+The original artifact is `13652892138`, **36,367,360 bytes**, with SHA256
+`819cdb66f6fd7cb1de3c02f52bdabfbb27f009f30f849778d132df29f83ea8cc`.
+The lock's source identities, 374-file Hepta inventory, installation manifest,
+profile, runtime contract and source-only qualification flags remain intact.
+
+The named entry is **`python3 -B tools/hia_release_v16_6ecd802.py`**, a
+byte-identical copy of the selected source's `tools/hia_release.py`: **36,085
+bytes**, SHA256
+`2282167b6b0281e3a3660c2b75e5b81224b5a8f388eadc808140d36264afec11`.
+Its sibling preflight is already identical in both releases, with SHA256
+`ca2597a35f04bce129d6a96c4a56da0742cf3fd16d91edce06cad13d7d74e199`.
+The original default helper and v9 lock keep their original bytes. Each helper
+still checks its own source bytes and the preflight against the selected lock.
+
+From the root of the metadata checkout, on Linux x86-64 with Git, Python 3.11
+or newer and GNU binutils, these commands create an independent environment and
+materialized source pair:
+
+```bash
+HIA_V16_WORK="$(mktemp -d)"
+python3 -m venv "$HIA_V16_WORK/python"
+HIA_V16_PYTHON="$HIA_V16_WORK/python/bin/python"
+"$HIA_V16_PYTHON" -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+HIA_V16_LOCK="$PWD/releases/hia-v16-6ecd802.json"
+HIA_V16_LOCK_SHA256=b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0
+"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
+  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" describe
+"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
+  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" \
+  materialize --directory "$HIA_V16_WORK/release"
+"$HIA_V16_PYTHON" -B tools/hia_release_v16_6ecd802.py \
+  --lock "$HIA_V16_LOCK" --lock-sha256 "$HIA_V16_LOCK_SHA256" check \
+  --hepta-root "$HIA_V16_WORK/release/hepta" \
+  --runtime-checkout "$HIA_V16_WORK/release/runtime"
+"$HIA_V16_PYTHON" -B "$HIA_V16_WORK/release/hepta/tools/qualify_hia_direct_native.py" \
+  --output "$HIA_V16_WORK/native.json"
+```
+
+The global `--lock` and `--lock-sha256` options precede the subcommand. The named
+command always supplies this original lock explicitly; the ordinary default
+command remains the v9 selection.
+
+The public-release workflow checks `current` and `v16` separately, retaining the
+original 35-minute limit and every original discovery, public materialization,
+source/runtime check, native example and installation-manifest equality gate.
+The `current` row calls the default CLI without a lock override and keeps the
+existing artifact name. The v16 row uses the named entry, original lock and
+digest, with a separate artifact. A failure in either row is retained without
+cancelling the other row.
+
+The source CI and the metadata entry's installation CI are distinct records.
+The source commit's qualification does not substitute for the metadata head's
+two public-installation results or the subsequent main-merge validation. The
+named source keeps its original proof subjects and assumptions, unproved
+obligations and source-only flags. It does not switch the online service,
+establish general Core selfhosting or whole-compiler machine correctness, or
+grant external Agent adoption or stable NDU benefit. Earlier source failures,
+retry records and narrower evidence retain their original subjects and outcomes.
+
 ## Bound identities
 
 | Contract component | Measured identity and acceptance |

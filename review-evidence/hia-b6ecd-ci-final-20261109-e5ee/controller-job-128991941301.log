@@ -1,0 +1,570 @@
+﻿2026-11-09T05:41:40.4289002Z Current runner version: '2.338.2'
+2026-11-09T05:41:40.4309598Z ##[group]Runner Image Provisioner
+2026-11-09T05:41:40.4310486Z Hosted Compute Agent
+2026-11-09T05:41:40.4311027Z Version: 20261028.624
+2026-11-09T05:41:40.4311607Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T05:41:40.4312237Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T05:41:40.4312927Z Worker ID: {0d56e6f5-d10b-4fbf-b583-ea67adc82561}
+2026-11-09T05:41:40.4313594Z Region: westus2
+2026-11-09T05:41:40.4314148Z Cloud: Azure
+2026-11-09T05:41:40.4314651Z ##[endgroup]
+2026-11-09T05:41:40.4315855Z ##[group]Operating System
+2026-11-09T05:41:40.4316368Z Ubuntu
+2026-11-09T05:41:40.4316901Z 24.04.5
+2026-11-09T05:41:40.4317387Z LTS
+2026-11-09T05:41:40.4317862Z ##[endgroup]
+2026-11-09T05:41:40.4318386Z ##[group]Runner Image
+2026-11-09T05:41:40.4318938Z Image: ubuntu-24.04
+2026-11-09T05:41:40.4319463Z Version: 20261101.360.1
+2026-11-09T05:41:40.4320678Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T05:41:40.4321979Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T05:41:40.4322956Z ##[endgroup]
+2026-11-09T05:41:40.4323933Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T05:41:40.4325719Z Contents: read
+2026-11-09T05:41:40.4326319Z Metadata: read
+2026-11-09T05:41:40.4326809Z ##[endgroup]
+2026-11-09T05:41:40.4328517Z Secret source: Actions
+2026-11-09T05:41:40.4329360Z Cache mode: write
+2026-11-09T05:41:40.4330012Z Prepare workflow directory
+2026-11-09T05:41:40.4731801Z Prepare all required actions
+2026-11-09T05:41:40.4770669Z Getting action download info
+2026-11-09T05:41:40.7866372Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T05:41:40.9161809Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T05:41:41.1639794Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-09T05:41:41.3656446Z Complete job name: same-pool-native-controls
+2026-11-09T05:41:41.4328686Z ##[group]Run actions/checkout@v4
+2026-11-09T05:41:41.4329327Z with:
+2026-11-09T05:41:41.4329720Z   ref: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:41.4330208Z   persist-credentials: false
+2026-11-09T05:41:41.4330928Z   sparse-checkout: .github
+hepta
+tools
+tests
+docs
+benchmarks
+rust/hia-ndu-bridge
+
+2026-11-09T05:41:41.4331575Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T05:41:41.4334705Z   token: ***
+2026-11-09T05:41:41.4335068Z   ssh-strict: true
+2026-11-09T05:41:41.4335421Z   ssh-user: git
+2026-11-09T05:41:41.4335761Z   clean: true
+2026-11-09T05:41:41.4336118Z   sparse-checkout-cone-mode: true
+2026-11-09T05:41:41.4336532Z   fetch-depth: 1
+2026-11-09T05:41:41.4336881Z   fetch-tags: false
+2026-11-09T05:41:41.4337239Z   show-progress: true
+2026-11-09T05:41:41.4337594Z   lfs: false
+2026-11-09T05:41:41.4337924Z   submodules: false
+2026-11-09T05:41:41.4338284Z   set-safe-directory: true
+2026-11-09T05:41:41.4338707Z   allow-unsafe-pr-checkout: false
+2026-11-09T05:41:41.4339339Z env:
+2026-11-09T05:41:41.4339682Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:41.4340095Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:41.4340548Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:41.4341056Z ##[endgroup]
+2026-11-09T05:41:41.6973440Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T05:41:41.6975717Z ##[group]Getting Git version info
+2026-11-09T05:41:41.6976568Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T05:41:41.6977794Z [command]/usr/bin/git version
+2026-11-09T05:41:41.7048082Z git version 2.56.0
+2026-11-09T05:41:41.7065049Z ##[endgroup]
+2026-11-09T05:41:41.7077553Z Temporarily overriding HOME='/home/runner/work/_temp/1bf6a3b4-04c0-4607-ac76-3794e3a53c43' before making global git config changes
+2026-11-09T05:41:41.7079736Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T05:41:41.7081973Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T05:41:41.7133692Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T05:41:41.7135703Z ##[group]Initializing the repository
+2026-11-09T05:41:41.7137687Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T05:41:41.7731282Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T05:41:41.7732135Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T05:41:41.7733089Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T05:41:41.7733681Z hint: call:
+2026-11-09T05:41:41.7734007Z hint:
+2026-11-09T05:41:41.7734417Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T05:41:41.7734916Z hint:
+2026-11-09T05:41:41.7735375Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T05:41:41.7736100Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T05:41:41.7736703Z hint:
+2026-11-09T05:41:41.7737059Z hint: 	git branch -m <name>
+2026-11-09T05:41:41.7737437Z hint:
+2026-11-09T05:41:41.7737924Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T05:41:41.7743035Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T05:41:41.7754095Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T05:41:41.7806955Z ##[endgroup]
+2026-11-09T05:41:41.7810072Z ##[group]Disabling automatic garbage collection
+2026-11-09T05:41:41.7810635Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T05:41:41.7846125Z ##[endgroup]
+2026-11-09T05:41:41.7846754Z ##[group]Setting up auth
+2026-11-09T05:41:41.7851244Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:41:41.7890683Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:41:41.8786715Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:41:41.8822507Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:41:41.9028238Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:41:41.9066291Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:41:41.9265698Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T05:41:41.9306721Z ##[endgroup]
+2026-11-09T05:41:41.9307712Z ##[group]Fetching the repository
+2026-11-09T05:41:41.9317298Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --filter=blob:none --depth=1 origin 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:42.4624406Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T05:41:42.4625654Z  * branch            6ecd8023615a6e0b2dc269379fb059c656b38b6f -> FETCH_HEAD
+2026-11-09T05:41:42.4628308Z ##[endgroup]
+2026-11-09T05:41:42.4629320Z ##[group]Determining the checkout info
+2026-11-09T05:41:42.4630487Z ##[endgroup]
+2026-11-09T05:41:42.4631525Z ##[group]Setting up sparse checkout
+2026-11-09T05:41:42.4635281Z [command]/usr/bin/git sparse-checkout set .github hepta tools tests docs benchmarks rust/hia-ndu-bridge
+2026-11-09T05:41:42.4689114Z ##[endgroup]
+2026-11-09T05:41:42.4690776Z ##[group]Checking out the ref
+2026-11-09T05:41:42.4693124Z [command]/usr/bin/git checkout --progress --force 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:43.8935647Z Updating files:   0% (1/2203)
+2026-11-09T05:41:43.8943650Z Updating files:   1% (23/2203)
+2026-11-09T05:41:43.8954081Z Updating files:   2% (45/2203)
+2026-11-09T05:41:43.8963726Z Updating files:   3% (67/2203)
+2026-11-09T05:41:43.8975429Z Updating files:   4% (89/2203)
+2026-11-09T05:41:43.8988489Z Updating files:   5% (111/2203)
+2026-11-09T05:41:43.8996973Z Updating files:   6% (133/2203)
+2026-11-09T05:41:43.9011145Z Updating files:   7% (155/2203)
+2026-11-09T05:41:43.9026971Z Updating files:   8% (177/2203)
+2026-11-09T05:41:43.9128726Z Updating files:   9% (199/2203)
+2026-11-09T05:41:43.9172372Z Updating files:  10% (221/2203)
+2026-11-09T05:41:43.9185285Z Updating files:  11% (243/2203)
+2026-11-09T05:41:43.9200359Z Updating files:  12% (265/2203)
+2026-11-09T05:41:43.9214475Z Updating files:  13% (287/2203)
+2026-11-09T05:41:43.9230597Z Updating files:  14% (309/2203)
+2026-11-09T05:41:43.9244316Z Updating files:  15% (331/2203)
+2026-11-09T05:41:43.9259671Z Updating files:  16% (353/2203)
+2026-11-09T05:41:43.9273555Z Updating files:  17% (375/2203)
+2026-11-09T05:41:43.9285535Z Updating files:  18% (397/2203)
+2026-11-09T05:41:43.9300279Z Updating files:  19% (419/2203)
+2026-11-09T05:41:43.9313136Z Updating files:  20% (441/2203)
+2026-11-09T05:41:43.9322277Z Updating files:  21% (463/2203)
+2026-11-09T05:41:43.9333160Z Updating files:  22% (485/2203)
+2026-11-09T05:41:43.9347287Z Updating files:  23% (507/2203)
+2026-11-09T05:41:43.9361508Z Updating files:  24% (529/2203)
+2026-11-09T05:41:43.9381044Z Updating files:  25% (551/2203)
+2026-11-09T05:41:43.9449757Z Updating files:  26% (573/2203)
+2026-11-09T05:41:43.9450487Z Updating files:  27% (595/2203)
+2026-11-09T05:41:43.9450934Z Updating files:  28% (617/2203)
+2026-11-09T05:41:43.9451373Z Updating files:  29% (639/2203)
+2026-11-09T05:41:43.9451800Z Updating files:  30% (661/2203)
+2026-11-09T05:41:43.9463414Z Updating files:  31% (683/2203)
+2026-11-09T05:41:43.9473833Z Updating files:  32% (705/2203)
+2026-11-09T05:41:43.9491501Z Updating files:  33% (727/2203)
+2026-11-09T05:41:43.9514062Z Updating files:  34% (750/2203)
+2026-11-09T05:41:43.9535643Z Updating files:  35% (772/2203)
+2026-11-09T05:41:43.9552829Z Updating files:  36% (794/2203)
+2026-11-09T05:41:43.9573310Z Updating files:  37% (816/2203)
+2026-11-09T05:41:43.9592981Z Updating files:  38% (838/2203)
+2026-11-09T05:41:43.9617340Z Updating files:  39% (860/2203)
+2026-11-09T05:41:43.9636101Z Updating files:  40% (882/2203)
+2026-11-09T05:41:43.9652991Z Updating files:  41% (904/2203)
+2026-11-09T05:41:43.9669566Z Updating files:  42% (926/2203)
+2026-11-09T05:41:43.9679758Z Updating files:  43% (948/2203)
+2026-11-09T05:41:43.9687578Z Updating files:  44% (970/2203)
+2026-11-09T05:41:43.9697501Z Updating files:  45% (992/2203)
+2026-11-09T05:41:43.9749954Z Updating files:  46% (1014/2203)
+2026-11-09T05:41:43.9768537Z Updating files:  47% (1036/2203)
+2026-11-09T05:41:43.9778556Z Updating files:  48% (1058/2203)
+2026-11-09T05:41:43.9788956Z Updating files:  49% (1080/2203)
+2026-11-09T05:41:43.9802069Z Updating files:  50% (1102/2203)
+2026-11-09T05:41:43.9814463Z Updating files:  51% (1124/2203)
+2026-11-09T05:41:43.9832681Z Updating files:  52% (1146/2203)
+2026-11-09T05:41:43.9849687Z Updating files:  53% (1168/2203)
+2026-11-09T05:41:43.9863486Z Updating files:  54% (1190/2203)
+2026-11-09T05:41:43.9877417Z Updating files:  55% (1212/2203)
+2026-11-09T05:41:43.9890738Z Updating files:  56% (1234/2203)
+2026-11-09T05:41:43.9905653Z Updating files:  57% (1256/2203)
+2026-11-09T05:41:43.9918531Z Updating files:  58% (1278/2203)
+2026-11-09T05:41:43.9931628Z Updating files:  59% (1300/2203)
+2026-11-09T05:41:43.9944497Z Updating files:  60% (1322/2203)
+2026-11-09T05:41:43.9956795Z Updating files:  61% (1344/2203)
+2026-11-09T05:41:43.9970881Z Updating files:  62% (1366/2203)
+2026-11-09T05:41:43.9980969Z Updating files:  63% (1388/2203)
+2026-11-09T05:41:43.9994177Z Updating files:  64% (1410/2203)
+2026-11-09T05:41:44.0009018Z Updating files:  65% (1432/2203)
+2026-11-09T05:41:44.0022791Z Updating files:  66% (1454/2203)
+2026-11-09T05:41:44.0037475Z Updating files:  67% (1477/2203)
+2026-11-09T05:41:44.0052549Z Updating files:  68% (1499/2203)
+2026-11-09T05:41:44.0064538Z Updating files:  69% (1521/2203)
+2026-11-09T05:41:44.0080611Z Updating files:  70% (1543/2203)
+2026-11-09T05:41:44.0093605Z Updating files:  71% (1565/2203)
+2026-11-09T05:41:44.0107206Z Updating files:  72% (1587/2203)
+2026-11-09T05:41:44.0121592Z Updating files:  73% (1609/2203)
+2026-11-09T05:41:44.0136722Z Updating files:  74% (1631/2203)
+2026-11-09T05:41:44.0149380Z Updating files:  75% (1653/2203)
+2026-11-09T05:41:44.0160736Z Updating files:  76% (1675/2203)
+2026-11-09T05:41:44.0175357Z Updating files:  77% (1697/2203)
+2026-11-09T05:41:44.0187200Z Updating files:  78% (1719/2203)
+2026-11-09T05:41:44.0201349Z Updating files:  79% (1741/2203)
+2026-11-09T05:41:44.0213983Z Updating files:  80% (1763/2203)
+2026-11-09T05:41:44.0228603Z Updating files:  81% (1785/2203)
+2026-11-09T05:41:44.0241409Z Updating files:  82% (1807/2203)
+2026-11-09T05:41:44.0259247Z Updating files:  83% (1829/2203)
+2026-11-09T05:41:44.0276406Z Updating files:  84% (1851/2203)
+2026-11-09T05:41:44.0291953Z Updating files:  85% (1873/2203)
+2026-11-09T05:41:44.0310265Z Updating files:  86% (1895/2203)
+2026-11-09T05:41:44.0323725Z Updating files:  87% (1917/2203)
+2026-11-09T05:41:44.0338056Z Updating files:  88% (1939/2203)
+2026-11-09T05:41:44.0358833Z Updating files:  89% (1961/2203)
+2026-11-09T05:41:44.0380506Z Updating files:  90% (1983/2203)
+2026-11-09T05:41:44.0397445Z Updating files:  91% (2005/2203)
+2026-11-09T05:41:44.0417585Z Updating files:  92% (2027/2203)
+2026-11-09T05:41:44.0442779Z Updating files:  93% (2049/2203)
+2026-11-09T05:41:44.0465855Z Updating files:  94% (2071/2203)
+2026-11-09T05:41:44.0485626Z Updating files:  95% (2093/2203)
+2026-11-09T05:41:44.0503153Z Updating files:  96% (2115/2203)
+2026-11-09T05:41:44.0526261Z Updating files:  97% (2137/2203)
+2026-11-09T05:41:44.0545360Z Updating files:  98% (2159/2203)
+2026-11-09T05:41:44.0566024Z Updating files:  99% (2181/2203)
+2026-11-09T05:41:44.0566463Z Updating files: 100% (2203/2203)
+2026-11-09T05:41:44.0566854Z Updating files: 100% (2203/2203), done.
+2026-11-09T05:41:44.0646447Z Note: switching to '6ecd8023615a6e0b2dc269379fb059c656b38b6f'.
+2026-11-09T05:41:44.0646767Z 
+2026-11-09T05:41:44.0646979Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T05:41:44.0647428Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T05:41:44.0647870Z state without impacting any branches by switching back to a branch.
+2026-11-09T05:41:44.0648115Z 
+2026-11-09T05:41:44.0648300Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T05:41:44.0648720Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T05:41:44.0648941Z 
+2026-11-09T05:41:44.0649071Z   git switch -c <new-branch-name>
+2026-11-09T05:41:44.0649232Z 
+2026-11-09T05:41:44.0649358Z Or undo this operation with:
+2026-11-09T05:41:44.0649515Z 
+2026-11-09T05:41:44.0649629Z   git switch -
+2026-11-09T05:41:44.0649761Z 
+2026-11-09T05:41:44.0649964Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T05:41:44.0650258Z 
+2026-11-09T05:41:44.0650515Z HEAD is now at 6ecd802 merge(hia): retain current source ancestry in the v16 qualification candidate
+2026-11-09T05:41:44.0662376Z ##[endgroup]
+2026-11-09T05:41:44.0709638Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T05:41:44.0739318Z 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:44.0747166Z ##[group]Removing auth
+2026-11-09T05:41:44.0750006Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:41:44.0785601Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:41:44.1009890Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:41:44.1040853Z http.https://github.com/.extraheader
+2026-11-09T05:41:44.1048782Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T05:41:44.1085036Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:41:44.1297646Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:41:44.1332191Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:41:44.1542444Z ##[endgroup]
+2026-11-09T05:41:44.1770859Z ##[group]Run actions/setup-python@v5
+2026-11-09T05:41:44.1771144Z with:
+2026-11-09T05:41:44.1771359Z   python-version: 3.12
+2026-11-09T05:41:44.1771583Z   check-latest: false
+2026-11-09T05:41:44.1773683Z   token: ***
+2026-11-09T05:41:44.1773896Z   update-environment: true
+2026-11-09T05:41:44.1774135Z   allow-prereleases: false
+2026-11-09T05:41:44.1774364Z   freethreaded: false
+2026-11-09T05:41:44.1774595Z env:
+2026-11-09T05:41:44.1774797Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:44.1775033Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:44.1775350Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:44.1775640Z ##[endgroup]
+2026-11-09T05:41:44.2866343Z ##[group]Installed versions
+2026-11-09T05:41:44.2938115Z (node:2217) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:41:44.2938991Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:41:44.2939532Z Successfully set up CPython (3.12.16)
+2026-11-09T05:41:44.2940002Z ##[endgroup]
+2026-11-09T05:41:44.3060111Z ##[group]Run set -euo pipefail
+2026-11-09T05:41:44.3060502Z [36;1mset -euo pipefail[0m
+2026-11-09T05:41:44.3060851Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-11-09T05:41:44.3061255Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T05:41:44.3061620Z [36;1mmkdir "$RUNNER_TEMP/hia-scalar-controls"[0m
+2026-11-09T05:41:44.3062069Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-scalar-controls/source-before.txt"[0m
+2026-11-09T05:41:44.3062541Z [36;1mpython -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'[0m
+2026-11-09T05:41:44.3063250Z [36;1mpython -m pip freeze > "$RUNNER_TEMP/hia-scalar-controls/dependencies.txt"[0m
+2026-11-09T05:41:44.3096532Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:41:44.3096889Z env:
+2026-11-09T05:41:44.3097124Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:44.3097385Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:44.3097713Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:44.3098104Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:44.3098500Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:41:44.3098886Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:44.3099251Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:44.3099591Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:44.3099944Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:41:44.3100258Z ##[endgroup]
+2026-11-09T05:41:46.1500689Z Collecting jsonschema==4.25.1
+2026-11-09T05:41:46.1999650Z   Downloading jsonschema-4.25.1-py3-none-any.whl.metadata (7.6 kB)
+2026-11-09T05:41:46.2577323Z Collecting z3-solver==4.15.4.0
+2026-11-09T05:41:46.2647099Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-09T05:41:46.3491576Z Collecting attrs>=22.2.0 (from jsonschema==4.25.1)
+2026-11-09T05:41:46.3562226Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-09T05:41:46.3710547Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.25.1)
+2026-11-09T05:41:46.3779173Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-09T05:41:46.3955753Z Collecting referencing>=0.28.4 (from jsonschema==4.25.1)
+2026-11-09T05:41:46.4024120Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-09T05:41:46.6039007Z Collecting rpds-py>=0.7.1 (from jsonschema==4.25.1)
+2026-11-09T05:41:46.6114724Z   Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-09T05:41:46.6310571Z Collecting typing-extensions>=4.4.0 (from referencing>=0.28.4->jsonschema==4.25.1)
+2026-11-09T05:41:46.6379608Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+2026-11-09T05:41:46.6481356Z Downloading jsonschema-4.25.1-py3-none-any.whl (90 kB)
+2026-11-09T05:41:46.6653392Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-09T05:41:46.8992739Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 128.3 MB/s  0:00:00
+2026-11-09T05:41:46.9068440Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-09T05:41:46.9156283Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-09T05:41:46.9243370Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-09T05:41:46.9429014Z Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-09T05:41:46.9525682Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-11-09T05:41:47.0867472Z Installing collected packages: z3-solver, typing-extensions, rpds-py, attrs, referencing, jsonschema-specifications, jsonschema
+2026-11-09T05:41:47.6070775Z 
+2026-11-09T05:41:47.6073186Z Successfully installed attrs-26.1.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 referencing-0.37.0 rpds-py-2026.9.1 typing-extensions-4.16.0 z3-solver-4.15.4.0
+2026-11-09T05:41:47.6075003Z 
+2026-11-09T05:41:47.6075270Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-09T05:41:47.6075674Z [notice] To update, run: pip install --upgrade pip
+2026-11-09T05:41:47.8413291Z ##[group]Run set -euo pipefail
+2026-11-09T05:41:47.8413626Z [36;1mset -euo pipefail[0m
+2026-11-09T05:41:47.8413942Z [36;1mpython -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-scalar-controls/unit-tests.log"[0m
+2026-11-09T05:41:47.8414262Z [36;1mimport unittest[0m
+2026-11-09T05:41:47.8414674Z [36;1msuite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_controller_controls')[0m
+2026-11-09T05:41:47.8415134Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-09T05:41:47.8415519Z [36;1mif not (result.wasSuccessful() and result.testsRun > 0 and not result.skipped[0m
+2026-11-09T05:41:47.8415867Z [36;1m        and not result.expectedFailures):[0m
+2026-11-09T05:41:47.8416197Z [36;1m    raise SystemExit('scalar evidence controls must pass without skips')[0m
+2026-11-09T05:41:47.8416496Z [36;1mPY[0m
+2026-11-09T05:41:47.8435150Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:41:47.8435428Z env:
+2026-11-09T05:41:47.8435633Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:47.8435851Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:47.8436080Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:47.8436390Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.8436724Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:41:47.8437047Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.8437336Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.8437619Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.8437909Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:41:47.8438169Z ##[endgroup]
+2026-11-09T05:41:48.4035581Z test_all_unstarted_initial_admission_and_original_failed_prefix_remain_valid (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_all_unstarted_initial_admission_and_original_failed_prefix_remain_valid) ... ok
+2026-11-09T05:41:48.4084303Z test_call_intervals_and_full_costs_fit_inside_outer_measurement (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_call_intervals_and_full_costs_fit_inside_outer_measurement) ... ok
+2026-11-09T05:41:48.4102306Z test_completed_cell_is_audited_even_when_its_partner_fails (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_completed_cell_is_audited_even_when_its_partner_fails) ... ok
+2026-11-09T05:41:48.4174011Z test_failed_call_costs_and_statuses_are_checked_without_claiming_success (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_failed_call_costs_and_statuses_are_checked_without_claiming_success) ... ok
+2026-11-09T05:41:48.4198927Z test_failures_are_charged_and_unstarted_counterfactuals_are_not_zero (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_failures_are_charged_and_unstarted_counterfactuals_are_not_zero) ... ok
+2026-11-09T05:41:48.4207461Z test_frozen_64_pairs_balance_each_case_and_preserve_all_native_opportunities (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_frozen_64_pairs_balance_each_case_and_preserve_all_native_opportunities) ... ok
+2026-11-09T05:41:48.4276026Z test_incomplete_pair_still_verifies_each_attempted_object_and_raw_stream (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_incomplete_pair_still_verifies_each_attempted_object_and_raw_stream) ... ok
+2026-11-09T05:41:48.4901983Z test_independent_verify_refuses_missing_objects_from_incomplete_campaign (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_independent_verify_refuses_missing_objects_from_incomplete_campaign) ... ok
+2026-11-09T05:41:48.4905462Z test_object_paths_and_exact_json_keys_fail_closed (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_object_paths_and_exact_json_keys_fail_closed) ... ok
+2026-11-09T05:41:48.4960528Z test_only_one_scheduled_prefix_can_be_attempted_before_stop (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_only_one_scheduled_prefix_can_be_attempted_before_stop) ... ok
+2026-11-09T05:41:48.4980478Z test_plan_pin_and_create_only_marker_prevent_silent_retrial (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_plan_pin_and_create_only_marker_prevent_silent_retrial) ... ok
+2026-11-09T05:41:48.5008298Z test_raw_bytes_are_retained_and_detect_tampering (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_raw_bytes_are_retained_and_detect_tampering) ... ok
+2026-11-09T05:41:48.5031654Z test_self_consistent_wrong_cost_table_is_not_accepted_as_frozen_input (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_self_consistent_wrong_cost_table_is_not_accepted_as_frozen_input) ... ok
+2026-11-09T05:41:48.5113670Z test_unsettled_cleanup_and_false_frontier_are_refused (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_unsettled_cleanup_and_false_frontier_are_refused) ... ok
+2026-11-09T05:41:48.6501153Z test_zero_budget_and_empty_feasibility_do_not_dispatch_native_or_count_as_native_cases (tests.test_hia_scalar_controller_controls.ScalarControllerEvidenceTests.test_zero_budget_and_empty_feasibility_do_not_dispatch_native_or_count_as_native_cases) ... ok
+2026-11-09T05:41:48.6502173Z 
+2026-11-09T05:41:48.6502321Z ----------------------------------------------------------------------
+2026-11-09T05:41:48.6502788Z Ran 15 tests in 0.250s
+2026-11-09T05:41:48.6502953Z 
+2026-11-09T05:41:48.6503030Z OK
+2026-11-09T05:41:48.6703870Z ##[group]Run set -euo pipefail
+2026-11-09T05:41:48.6704166Z [36;1mset -euo pipefail[0m
+2026-11-09T05:41:48.6704422Z [36;1mrustup toolchain install 1.95.0 --profile minimal[0m
+2026-11-09T05:41:48.6704785Z [36;1mhia_scalar_upstream="$RUNNER_TEMP/hia-scalar-control-upstream"[0m
+2026-11-09T05:41:48.6705298Z [36;1mhia_scalar_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')[0m
+2026-11-09T05:41:48.6705753Z [36;1mgit init "$hia_scalar_upstream"[0m
+2026-11-09T05:41:48.6706351Z [36;1mgit -C "$hia_scalar_upstream" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git[0m
+2026-11-09T05:41:48.6706848Z [36;1mgit -C "$hia_scalar_upstream" config remote.origin.promisor true[0m
+2026-11-09T05:41:48.6707266Z [36;1mgit -C "$hia_scalar_upstream" config remote.origin.partialclonefilter blob:none[0m
+2026-11-09T05:41:48.6707842Z [36;1mgit -C "$hia_scalar_upstream" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hia_scalar_commit"[0m
+2026-11-09T05:41:48.6708372Z [36;1mtest "$(git -C "$hia_scalar_upstream" rev-parse FETCH_HEAD)" = "$hia_scalar_commit"[0m
+2026-11-09T05:41:48.6708756Z [36;1mRUSTC="$(rustup which --toolchain 1.95.0 rustc)" \[0m
+2026-11-09T05:41:48.6709096Z [36;1mCARGO_TARGET_DIR="$RUNNER_TEMP/hia-scalar-control-target" \[0m
+2026-11-09T05:41:48.6709420Z [36;1mpython -B tools/build_hia_ndu_bridge.py \[0m
+2026-11-09T05:41:48.6709812Z [36;1m  --upstream "$hia_scalar_upstream" --output "$RUNNER_TEMP/hia-scalar-controls/build" \[0m
+2026-11-09T05:41:48.6710224Z [36;1m  --cargo "$(rustup which --toolchain 1.95.0 cargo)" \[0m
+2026-11-09T05:41:48.6710551Z [36;1m  > "$RUNNER_TEMP/hia-scalar-controls/build.stdout.log" \[0m
+2026-11-09T05:41:48.6710883Z [36;1m  2> "$RUNNER_TEMP/hia-scalar-controls/build.stderr.log"[0m
+2026-11-09T05:41:48.6711164Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T05:41:48.6711370Z [36;1mimport json, os[0m
+2026-11-09T05:41:48.6711583Z [36;1mfrom pathlib import Path[0m
+2026-11-09T05:41:48.6711873Z [36;1mroot = Path(os.environ['RUNNER_TEMP']) / 'hia-scalar-controls'[0m
+2026-11-09T05:41:48.6712222Z [36;1mvalue = {'kind': 'same_workflow_original_native_build',[0m
+2026-11-09T05:41:48.6712546Z [36;1m    'source_sha': os.environ['HEPTA_SOURCE_SHA'],[0m
+2026-11-09T05:41:48.6713049Z [36;1m    'repository': os.environ['GITHUB_REPOSITORY'],[0m
+2026-11-09T05:41:48.6713425Z [36;1m    'run_id': os.environ['GITHUB_RUN_ID'], 'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],[0m
+2026-11-09T05:41:48.6713780Z [36;1m    'artifact_digest': None,[0m
+2026-11-09T05:41:48.6714149Z [36;1m    'scope': 'current workflow context; final uploaded archive digest is not self-referential',[0m
+2026-11-09T05:41:48.6714530Z [36;1m    'remote_attestation': False}[0m
+2026-11-09T05:41:48.6714891Z [36;1m(root / 'native-provenance.json').write_text(json.dumps(value, sort_keys=True) + '\n')[0m
+2026-11-09T05:41:48.6715241Z [36;1mPY[0m
+2026-11-09T05:41:48.6733396Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:41:48.6733681Z env:
+2026-11-09T05:41:48.6733882Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:48.6734100Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:48.6734346Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:48.6734675Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:48.6735018Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:41:48.6735354Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:48.6735679Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:48.6736000Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:48.6736316Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:41:48.6736585Z ##[endgroup]
+2026-11-09T05:41:48.6853809Z info: syncing channel updates for 1.95.0-x86_64-unknown-linux-gnu
+2026-11-09T05:41:48.8387302Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+2026-11-09T05:41:48.8389275Z info: downloading 3 components
+2026-11-09T05:41:55.7301591Z 
+2026-11-09T05:41:55.7368641Z   1.95.0-x86_64-unknown-linux-gnu installed - rustc 1.95.0 (59807616e 2026-04-14)
+2026-11-09T05:41:55.7369083Z 
+2026-11-09T05:41:55.8857767Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T05:41:55.8858421Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T05:41:55.8859276Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T05:41:55.8859740Z hint: call:
+2026-11-09T05:41:55.8859959Z hint:
+2026-11-09T05:41:55.8860259Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T05:41:55.8860607Z hint:
+2026-11-09T05:41:55.8860928Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T05:41:55.8861476Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T05:41:55.8861895Z hint:
+2026-11-09T05:41:55.8862061Z hint: 	git branch -m <name>
+2026-11-09T05:41:55.8862250Z hint:
+2026-11-09T05:41:55.8862504Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T05:41:55.8863201Z Initialized empty Git repository in /home/runner/work/_temp/hia-scalar-control-upstream/.git/
+2026-11-09T05:41:56.2737625Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-11-09T05:41:56.2738246Z  * branch            d3c2d760eca5065fc966820379c35c6e8d56e855 -> FETCH_HEAD
+2026-11-09T05:42:16.9117513Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:16.9117792Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:16.9118097Z [36;1mpython -B tools/measure_hia_scalar_controller_controls.py prepare \[0m
+2026-11-09T05:42:16.9118504Z [36;1m  --source "$GITHUB_WORKSPACE" --expected-source "$HEPTA_SOURCE_SHA" \[0m
+2026-11-09T05:42:16.9118928Z [36;1m  --native-binary "$RUNNER_TEMP/hia-scalar-control-target/debug/hia-ndu-bridge" \[0m
+2026-11-09T05:42:16.9119407Z [36;1m  --native-build-receipt "$RUNNER_TEMP/hia-scalar-controls/build/build-receipt.json" \[0m
+2026-11-09T05:42:16.9119863Z [36;1m  --native-provenance "$RUNNER_TEMP/hia-scalar-controls/native-provenance.json" \[0m
+2026-11-09T05:42:16.9120258Z [36;1m  --output "$RUNNER_TEMP/hia-scalar-controls/campaign" \[0m
+2026-11-09T05:42:16.9120592Z [36;1m  | tee "$RUNNER_TEMP/hia-scalar-controls/preparation.json"[0m
+2026-11-09T05:42:16.9121282Z [36;1mhia_scalar_plan=$(python -c 'import hashlib,os,pathlib; print(hashlib.sha256((pathlib.Path(os.environ["RUNNER_TEMP"])/"hia-scalar-controls/campaign/PLAN.json").read_bytes()).hexdigest())')[0m
+2026-11-09T05:42:16.9121998Z [36;1mprintf 'HIA_SCALAR_PLAN_SHA256=%s\n' "$hia_scalar_plan" >> "$GITHUB_ENV"[0m
+2026-11-09T05:42:16.9140543Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:16.9140812Z env:
+2026-11-09T05:42:16.9141062Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:16.9141269Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:16.9141499Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:16.9141814Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:16.9142150Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:16.9142481Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:16.9142976Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:16.9143263Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:16.9143570Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:16.9143823Z ##[endgroup]
+2026-11-09T05:42:17.2525860Z {"native_calls": 0, "pairs": 64, "plan": "/home/runner/work/_temp/hia-scalar-controls/campaign/PLAN.json", "plan_sha256": "6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8"}
+2026-11-09T05:42:17.2935845Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:17.2936106Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:17.2936296Z [36;1mulimit -c 0[0m
+2026-11-09T05:42:17.2936553Z [36;1mpython -B tools/measure_hia_scalar_controller_controls.py run \[0m
+2026-11-09T05:42:17.2936924Z [36;1m  --directory "$RUNNER_TEMP/hia-scalar-controls/campaign" \[0m
+2026-11-09T05:42:17.2937266Z [36;1m  --expected-plan-sha256 "$HIA_SCALAR_PLAN_SHA256" \[0m
+2026-11-09T05:42:17.2937580Z [36;1m  | tee "$RUNNER_TEMP/hia-scalar-controls/execution.log"[0m
+2026-11-09T05:42:17.2955683Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:17.2956105Z env:
+2026-11-09T05:42:17.2956274Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:17.2956480Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:17.2956708Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:17.2957016Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:17.2957391Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:17.2957720Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:17.2958009Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:17.2958294Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:17.2958584Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:17.2958959Z   HIA_SCALAR_PLAN_SHA256: 6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8
+2026-11-09T05:42:17.2959291Z ##[endgroup]
+2026-11-09T05:42:17.6129952Z {"pairs_accounted": 8, "halted": false}
+2026-11-09T05:42:17.7020812Z {"pairs_accounted": 16, "halted": false}
+2026-11-09T05:42:17.7925529Z {"pairs_accounted": 24, "halted": false}
+2026-11-09T05:42:17.8781923Z {"pairs_accounted": 32, "halted": false}
+2026-11-09T05:42:17.9660546Z {"pairs_accounted": 40, "halted": false}
+2026-11-09T05:42:18.0529035Z {"pairs_accounted": 48, "halted": false}
+2026-11-09T05:42:18.1399378Z {"pairs_accounted": 56, "halted": false}
+2026-11-09T05:42:18.2263993Z {"pairs_accounted": 64, "halted": false}
+2026-11-09T05:42:18.3383308Z {"economic_benefit_established": false, "paired_ordinary_minus_ndu_wall_ns": {"count": 64, "max_ns": -8005205, "mean_ns": -9252928.03125, "median_ns": -9216554.5, "min_ns": -11666288, "sample_stdev_ns": 421755.48606606695, "sum_ns": -592187394}, "status": "MECHANISM_COMPLETE", "summary": "/home/runner/work/_temp/hia-scalar-controls/campaign/SUMMARY.json"}
+2026-11-09T05:42:18.3568037Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:18.3568333Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:18.3568662Z [36;1mif test -f "$RUNNER_TEMP/hia-scalar-controls/campaign/SUMMARY.json"; then[0m
+2026-11-09T05:42:18.3569115Z [36;1m  python -B tools/measure_hia_scalar_controller_controls.py verify \[0m
+2026-11-09T05:42:18.3569511Z [36;1m    --directory "$RUNNER_TEMP/hia-scalar-controls/campaign" \[0m
+2026-11-09T05:42:18.3569871Z [36;1m    --expected-plan-sha256 "$HIA_SCALAR_PLAN_SHA256" \[0m
+2026-11-09T05:42:18.3570241Z [36;1m    --output "$RUNNER_TEMP/hia-scalar-controls/campaign/VERIFICATION.json"[0m
+2026-11-09T05:42:18.3570556Z [36;1melse[0m
+2026-11-09T05:42:18.3570883Z [36;1m  printf '%s\n' 'No completed summary exists; retained partial evidence is not a qualification.'[0m
+2026-11-09T05:42:18.3571258Z [36;1m  exit 1[0m
+2026-11-09T05:42:18.3571429Z [36;1mfi[0m
+2026-11-09T05:42:18.3589234Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:18.3589565Z env:
+2026-11-09T05:42:18.3589751Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:18.3589969Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:18.3590212Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:18.3590555Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.3590946Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:18.3591296Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.3591608Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.3591917Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.3592223Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:18.3592775Z   HIA_SCALAR_PLAN_SHA256: 6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8
+2026-11-09T05:42:18.3593148Z ##[endgroup]
+2026-11-09T05:42:18.5399149Z {"campaign_status": "MECHANISM_COMPLETE", "completed_pairs": 64, "economic_benefit_established": false, "new_native_calls": 0, "new_provider_calls": 0, "objects_verified": 307, "plan_sha256": "6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8", "scheduled_cells_verified": 128, "schema": "hepta.hia.scalar-controller-controls.v1", "scope": "independent original-byte replay; trusted local timing/process receipts, not remote/hardware attestation", "successful_native_calls": 64, "summary_sha256": "68b90df8785d18908ca53fa636e6ebf45bca3378f49ef84e170127281cccd204", "verification": "ORIGINAL_BYTES_AND_ACCOUNTING_VERIFIED"}
+2026-11-09T05:42:18.5535172Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:18.5535430Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:18.5535754Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-scalar-controls/source-after.txt"[0m
+2026-11-09T05:42:18.5536286Z [36;1mcmp "$RUNNER_TEMP/hia-scalar-controls/source-before.txt" "$RUNNER_TEMP/hia-scalar-controls/source-after.txt"[0m
+2026-11-09T05:42:18.5536761Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T05:42:18.5556031Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:18.5556397Z env:
+2026-11-09T05:42:18.5556732Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:18.5557087Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:18.5557443Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:18.5557839Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5558259Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:18.5558723Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5559098Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5559519Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5560058Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:18.5560642Z   HIA_SCALAR_PLAN_SHA256: 6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8
+2026-11-09T05:42:18.5561138Z ##[endgroup]
+2026-11-09T05:42:18.5808919Z ##[group]Run actions/upload-artifact@v4
+2026-11-09T05:42:18.5809173Z with:
+2026-11-09T05:42:18.5809494Z   name: hia-scalar-controller-controls-6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:18.5809887Z   path: /home/runner/work/_temp/hia-scalar-controls/
+2026-11-09T05:42:18.5810153Z   if-no-files-found: error
+2026-11-09T05:42:18.5810365Z   retention-days: 30
+2026-11-09T05:42:18.5810554Z   compression-level: 6
+2026-11-09T05:42:18.5810741Z   overwrite: false
+2026-11-09T05:42:18.5810929Z   include-hidden-files: false
+2026-11-09T05:42:18.5811127Z env:
+2026-11-09T05:42:18.5811305Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:18.5811513Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:18.5811758Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:18.5812091Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5812439Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:18.5812952Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5813264Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5813571Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:18.5813876Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:18.5814265Z   HIA_SCALAR_PLAN_SHA256: 6e004971d034f86bfaa803179de682854f843e4b2db6edfefba91be194be5ca8
+2026-11-09T05:42:18.5814616Z ##[endgroup]
+2026-11-09T05:42:18.7197378Z (node:3219) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:42:18.7198000Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:42:18.8720717Z With the provided path, there will be 577 files uploaded
+2026-11-09T05:42:18.8725758Z Artifact name is valid!
+2026-11-09T05:42:18.8726111Z Root directory input is valid!
+2026-11-09T05:42:19.3646659Z Beginning upload of artifact content to blob storage
+2026-11-09T05:42:19.7858571Z (node:3219) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-09T05:42:20.5144172Z Uploaded bytes 1695614
+2026-11-09T05:42:20.5911076Z Finished uploading artifact content to blob storage!
+2026-11-09T05:42:20.5912068Z SHA256 digest of uploaded artifact zip is d46fb19432aea914534506a81f44b2d86786adbc0bb26fdd5c61911f6f7fefb6
+2026-11-09T05:42:20.5914234Z Finalizing artifact upload
+2026-11-09T05:42:21.0064244Z Artifact hia-scalar-controller-controls-6ecd8023615a6e0b2dc269379fb059c656b38b6f.zip successfully finalized. Artifact ID 13652586985
+2026-11-09T05:42:21.0065272Z Artifact hia-scalar-controller-controls-6ecd8023615a6e0b2dc269379fb059c656b38b6f has been successfully uploaded! Final size is 1695614 bytes. Artifact ID is 13652586985
+2026-11-09T05:42:21.0070036Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/42565807356/artifacts/13652586985
+2026-11-09T05:42:21.0314436Z Post job cleanup.
+2026-11-09T05:42:21.1311230Z (node:3231) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:42:21.1311823Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:42:21.1454895Z Post job cleanup.
+2026-11-09T05:42:21.2178347Z [command]/usr/bin/git version
+2026-11-09T05:42:21.2245712Z git version 2.56.0
+2026-11-09T05:42:21.2276804Z Temporarily overriding HOME='/home/runner/work/_temp/32cecf7a-c462-4a2d-8362-e5d24a4fdef6' before making global git config changes
+2026-11-09T05:42:21.2278063Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T05:42:21.2281492Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T05:42:21.2327376Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:42:21.2365680Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:42:21.2601280Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:42:21.2639921Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:42:21.2881817Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:42:21.2919824Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:42:21.3334033Z Cleaning up orphan processes
+2026-11-09T05:42:21.3756385Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

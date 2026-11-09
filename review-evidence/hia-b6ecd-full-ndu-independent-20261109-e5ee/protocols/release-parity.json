@@ -1,0 +1,72 @@
+{
+  "derived_copy_of_original_protocol": {
+    "backends": [
+      "c",
+      "cpp",
+      "rust",
+      "hia"
+    ],
+    "batch_calls": 64,
+    "build_profile": "optimized-release-v1",
+    "correctness_seeds": [
+      0,
+      1,
+      255,
+      256,
+      4294967295
+    ],
+    "correctness_sizes": [
+      0,
+      1,
+      7,
+      64,
+      255,
+      256,
+      4096,
+      65536
+    ],
+    "decision_rule": "No tuning, retries, trimming or best-of selection after measurements.",
+    "holdout_seeds": [
+      383,
+      659,
+      1069
+    ],
+    "holdout_sizes": [
+      2,
+      63,
+      257,
+      1025,
+      8193,
+      32769,
+      65535
+    ],
+    "limits": [
+      "One bounded owned-buffer kernel, not multiple independent applications.",
+      "63 batch samples per backend/size; p99 equals the observed maximum, not per-call p99.",
+      "One shared host; affinity does not imply exclusive CPU or stable frequency.",
+      "Energy, manual engineering and past tool acquisition are unknown."
+    ],
+    "order": "rotate backends by seed index, reverse odd rotations; preserve every sample",
+    "performance_gate": {
+      "all_baselines_and_sizes_required": true,
+      "hia_median_ratio_maximum": 1.1,
+      "hia_tail_ratio_maximum": 1.2
+    },
+    "samples": 21,
+    "schema": "hepta.hia.release-parity.protocol.v1",
+    "semantics": "n <= 65536, seed u32; allocate n zeroed bytes, fill byte[i]=(i+seed) mod 256, return u64 sum and release; empty allocation has no malloc; allocation refusal returns 1001",
+    "training_seeds": [
+      19,
+      107,
+      223
+    ],
+    "training_sizes": [
+      64,
+      4096,
+      65536
+    ],
+    "warmup_calls": 3,
+    "workload": "fallible-owned-byte-fill-checksum"
+  },
+  "sha256_canonical": "4a92d55dd96c425418fde91405b4391773eed0838f0d882884afda3d877406c7"
+}
