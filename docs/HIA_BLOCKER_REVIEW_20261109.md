@@ -223,6 +223,19 @@ or independent operational admission. Runtime CI was queued at publication;
 neither the draft PR nor its offline tests is reported as a deployed change.
 The selected v9 installation-manifest PASS remains a separate established claim.
 
+## Metadata-review CI history
+
+The [original CodeQL failure](../review-evidence/hia-9d30-codeql-failure-20261109-e5ee/README.md)
+for evidence head `9d30ae19` is retained. Three jobs passed; Rust initialization
+failed while obtaining the official analysis bundle after HTTP 504 responses,
+so Rust analysis did not run. GitHub rejected a single-job rerun with HTTP 403
+and did not create another attempt. The run uses dynamic Default setup.
+
+This subsequent failure-evidence commit receives its own normal Default setup
+analysis through the documented new-commit trigger. The original 9d30 failure
+remains failed; an earlier head's green result is not substituted. No source
+implementation, scanner configuration, checks or retry limits were changed.
+
 ## Publication boundary
 
 This record adds evidence only. It does not change the default lock, release
