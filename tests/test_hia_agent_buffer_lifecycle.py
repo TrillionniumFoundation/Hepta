@@ -98,6 +98,34 @@ class BufferLifecycleTests(AgentToolCase):
         with self.assertRaisesRegex(AgentRejected, "released"):
             self.service.invoke_lease(lease, "copy_bytes", [{"bytes_hex": ""}, {"bytes_hex": ""}])
 
+    def test_cold_consumer_processes_preserve_lease_and_release_across_rollback(self):
+        from tools.qualify_hia_agent_buffer_lifecycle import ColdConsumer
+
+        _original, _revised, base, built, receipts = self.pair()
+        evaluation = self.session.evaluate(base, built, receipts=receipts)
+        adopted = self.adopt(built, evaluation, receipts)
+        output = self.root / "cold-consumer"
+        output.mkdir()
+        consumer = ColdConsumer(output, self.state_root, self.files_root)
+        lease = consumer.call("acquire", target_slot="byte-lifecycle")
+        self.assertEqual(lease["generation"], "1")
+        self.client.result("hia_rollback", self.session.arguments(target_slot="byte-lifecycle",
+            expected_current=adopted["current"], retained_generation="0", reason="cold consumer qualification"))
+        arguments = [{"bytes_hex": "0102fe"}, {"byte_length": 4, "fill_byte": 3}]
+        result = consumer.call("invoke", lease=lease, function="copy_bytes", arguments=arguments)
+        self.assertEqual(result["status"], "returned")
+        self.assertEqual(result["generation"], "1")
+        self.assertEqual(self.session.read(result["buffers"][1]["artifact"]), b"\x01\x02\xfe\x03")
+        current = consumer.call("acquire", target_slot="byte-lifecycle")
+        self.assertEqual(current["generation"], "0")
+        consumer.call("release", lease=current)
+        consumer.call("release", lease=lease)
+        refused = consumer.call("invoke", lease=lease, function="copy_bytes", arguments=arguments,
+                                expected_status="rejected")
+        self.assertEqual(refused, {"status": "rejected", "code": "E_HIA_LEASE"})
+        self.assertEqual(consumer.sequence, 6)
+        self.assertEqual(len(list(output.glob("consumer-worker-*.stdout.json"))), 6)
+
     def test_same_output_status_cannot_hide_changed_buffer_bytes(self):
         original = byte_program()
         changed = deepcopy(original)

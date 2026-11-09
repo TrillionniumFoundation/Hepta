@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v14"
+PROFILE = "selfhost-core-linux-x86_64-v15"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -94,7 +94,7 @@ def support_contract(root=ROOT):
             "caller_obligations": ["live private source allocation",
                 "live disjoint output and workspace allocations",
                 "no concurrent input modification", "entry buffers do not escape"],
-            "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic, zero divisor or mandatory allocation",
+            "native_runtime_trap": "UD2 for failed bounds, checked shift, unsigned checked arithmetic/cast, zero divisor or mandatory allocation",
         },
         "compiler_symbols": {"entry": "f0", "mutation_wrapper": "f13",
                              "call_graph_checker": "f12"},
@@ -142,7 +142,8 @@ def support_contract(root=ROOT):
                        "int.add.checked", "int.sub.checked", "int.mul.checked",
                        "int.div.checked", "int.rem.checked", "int.neg.checked", "bit.not",
                        "bit.and", "bit.or", "bit.xor", "int.shl.checked",
-                       "int.shr.checked", "int.cast wrap", "unsigned comparisons",
+                       "int.shr.checked", "int.cast wrap and checked", "unsigned comparisons",
+                       "boolean compare.eq and compare.ne",
                        "bool.and", "bool.or", "bool.not", "select (bool condition, matching scalars)"]},
             {"area": "control_flow", "status": "supported",
              "items": ["typed ret", "typed jump", "typed branch", "loops",

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v14`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v15`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -152,9 +152,9 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Values | `u64`, `usize` (64 bits), `u32`, `u16`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
-| Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
+| Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
 | Selection | `select(bool, T, T) -> T` for `u8`, `u16`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
-| Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
+| Casts | `int.cast` with `{"mode":"wrap"}` or `{"mode":"checked"}` between the supported unsigned integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
@@ -170,6 +170,25 @@ checked subtraction traps when the left operand is smaller than the right.
 An arithmetic trap uses `UD2`, as do bounds and shift traps. A trap occurs
 before later effects; stores completed before it remain observable. Arbitrary
 program execution has no rollback guarantee.
+
+The v15 profile adds checked unsigned casts and boolean equality. Checked casts
+preserve the mathematical value when it fits the target width, including
+same-width `u64` / `usize` and all widening casts. A narrowing cast traps on any
+lost high bit before subsequent effects; earlier stores remain observable.
+Boolean equality accepts matching `bool` operands and returns `bool`.
+Ordering comparisons still require integers, and casts still exclude booleans
+and resources. Both cast modes require the existing quoted JSON attribute.
+The extension keeps every source, output, workspace, instruction, block and SSA
+limit unchanged. It does not add signed integers, `unit`, general result shapes,
+arbitrary identifiers, modules or new foreign interfaces.
+
+Language qualification compares the independent Core VM and mathematical
+results for all 25 unsigned checked-cast pairs. Each pair also has a native
+input-dependent fixture, and every narrowing pair includes overflow just above
+the target limit and at the source maximum, with and without a prior store.
+The same boolean equality programs read all four truth-table inputs. Original
+B3 and mutated M3 compile and execute these witnesses. These are finite source
+and behavior observations, not a proof of complete Core correctness.
 
 The compiler returns the generated image size on success, `0xffffffff` for
 invalid/unsupported input, and `0xfffffffe` for insufficient output or workspace

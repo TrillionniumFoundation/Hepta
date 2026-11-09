@@ -137,3 +137,13 @@ It records the unsupported independent machine-refinement result separately.
 The consumer compiles and runs a new dynamic-select program using actual output
 bytes. A same-compiler baseline is explicitly an activation qualification;
 it is not a measured compiler optimization or a new unfamiliar-agent study.
+
+Every consumer acquisition, invocation and release in this qualification runs
+in a fresh Python process that reopens the original service database. The
+database is never copied. A generation-1 lease acquired before rollback is
+invoked after its owning client process has exited; a later acquisition observes
+generation 0, and a released lease remains rejected after another process opens
+the same state. Exact consumer requests, responses and stderr are retained
+alongside the existing tool transcript. This qualifies process restart on the
+same local state; it does not establish cross-host recovery, power-loss
+durability or activation through the remote MCP endpoint.

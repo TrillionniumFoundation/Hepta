@@ -83,6 +83,9 @@ CANDIDATE_FILES = (
     "tests/test_hia_agent_native_lease_snapshot.py",
     ".github/workflows/hia-sixgap-source.yml",
     ".github/workflows/hia-ndu-scalar-selection.yml",
+    ".github/workflows/hia-scalar-controller-controls.yml",
+    "tools/measure_hia_scalar_controller_controls.py", "tests/test_hia_scalar_controller_controls.py",
+    "docs/HIA_SCALAR_CONTROLLER_CONTROLS.md", "docs/HIA_NDU_SCALAR_CONTROL_RESULTS_20261108.md",
     "tools/hia_agent_native_qualification.py",
     "tools/qualify_hia_agent_buffer_lifecycle.py", "tests/test_hia_agent_buffer_lifecycle.py",
     "tests/test_hia_agent_external_roots.py",
@@ -155,6 +158,7 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
                       "experiments/hia_repository_select_trial_20261108",
                       "experiments/hia_release_20261107",
                       "experiments/hia_product_closure_20261107",
+                      "review-evidence/hia-ndu-scalar-controls-20261108-23d1",
                       "review-evidence/hia-agent-buffer-20261108-5e6c",
                       "review-evidence/hia-agent-original-select-delta-20261108-5e6c")
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),

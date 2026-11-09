@@ -21,6 +21,7 @@ WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "rea
  "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end"]
 WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
+WORDS += ["checked"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -497,12 +498,16 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 expect(s, w, 123)
                 expect(s, w, @mode@)
                 expect(s, w, 58)
-                expect(s, w, @wrap@)
+                if get(w, 8) == @checked@:
+                    x = 1
+                    next_token(s, w)
+                else:
+                    expect(s, w, @wrap@)
                 expect(s, w, 125)
                 if n != 1 or (at > 4 and at != 10) or (t > 4 and t != 10) or t == 0:
                     fail(w, 26)
                 load_var(o, w, 0, a, 0)
-                normalize(o, w, t)
+                cast_integer(o, w, t, x)
             else:
                 if op >= @borrow.read@ and op <= @loan.end@:
                     loan_operation(w, op, n, a, at, t)
@@ -599,7 +604,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         fail(w, 32)
     load_var(o, w, 1, b, 0)
     if op >= @compare.eq@ and op <= @compare.ge@:
-        if (at > 4 and at != 10) or at != bt or t != 5:
+        if (at > 4 and at != 10 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
             fail(w, 33)
         emit(o, w, 72)
         emit(o, w, 57)
@@ -1061,10 +1066,10 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
             fail(w, 50)
     else:
         if quoted == 1:
-            if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @function@:
+            if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @checked@ and kind != @function@:
                 fail(w, 51)
         else:
-            if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @function@:
+            if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @checked@ or kind == @function@:
                 fail(w, 51)
     put(w, 8, kind)
     return 0
@@ -1661,6 +1666,21 @@ def owner_type(t:u64) -> u64:
 '''
 SOURCE += OWNED_ELF_SOURCE
 SOURCE += CHAIN_ELF_SOURCE
+SOURCE += r'''
+
+def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
+    if checked == 1:
+        # Values in scalar slots are zero extended. Keep the full source in
+        # rcx, normalize the result, then require equality before later effects.
+        # This also admits same-width u64/usize and every widening cast.
+        emit_bytes(o, w, 12683592, 3)
+        normalize(o, w, t)
+        # cmp rax,rcx; je +2; ud2
+        emit_bytes(o, w, 3112727967447368, 7)
+        return 0
+    normalize(o, w, t)
+    return 0
+'''
 
 
 def source_program():
