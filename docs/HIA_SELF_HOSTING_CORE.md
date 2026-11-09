@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v13`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v14`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -842,3 +842,20 @@ cases use the exact `v2047` boundary. Twenty-four valid-Core/profile refusals co
 function and block parameters of all four resource types at `v2048`, `v8192` and
 `UINT64_MAX`. The original minimal failure and pre-fix qualification evidence are
 retained separately from the repaired source's final qualification.
+
+### v14 boolean equality admission
+
+The v14 profile extends `compare.eq` and `compare.ne` to matching `bool`
+operands. Their Core result is `bool`, as for the independent general Core
+checker. The previous v13 compiler rejected those valid input programs.
+Ordered comparisons still require matching unsigned integer operands; resource,
+mixed-type, wrong-result and malformed-arity comparisons remain rejected.
+
+The ordinary scalar corpus includes all eight boolean equality truth-table
+cases. The native select qualification additionally compiles each comparison
+once per original B3 and modified M3, then runs it with both operands read from
+caller bytes. The byte values 0, 1, 2 and 255 exercise zero/nonzero normalization
+before comparison. It checks flat output, the corresponding ELF text, short
+compiler output capacity and thirteen invalid comparison forms. This adds
+finite admission/execution evidence; general Core input shapes and all-input
+compiler correctness remain open.

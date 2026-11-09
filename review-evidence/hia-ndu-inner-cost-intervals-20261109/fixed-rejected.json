@@ -1,0 +1,38 @@
+{
+  "schema": "hepta.hia.ndu.inner-interval-review.v1",
+  "ref": "8e729e0c692ef6e58ed934c6045c9d37e8f1e114",
+  "expect": "reject",
+  "native_processes_started": 0,
+  "observations": [
+    {
+      "case": "persistent_round_gt_service",
+      "checker_sha256": "0bfe5bfe6b5b78d4afeb9ca34e4d90a464bb98aff1d7b6beac02e6bc17d3f805",
+      "accepted": false,
+      "error": "E_HIA_NDU_PERSISTENT_REPLAY: persistent exchange interval exceeds owner attempt"
+    },
+    {
+      "case": "persistent_startup_gt_preparation",
+      "checker_sha256": "0bfe5bfe6b5b78d4afeb9ca34e4d90a464bb98aff1d7b6beac02e6bc17d3f805",
+      "accepted": false,
+      "error": "E_HIA_NDU_PERSISTENT_REPLAY: startup exchange interval exceeds owner preparation"
+    },
+    {
+      "case": "persistent_transport_close_gt_owner_close",
+      "checker_sha256": "0bfe5bfe6b5b78d4afeb9ca34e4d90a464bb98aff1d7b6beac02e6bc17d3f805",
+      "accepted": false,
+      "error": "E_HIA_NDU_PERSISTENT_REPLAY: cleanup or transport close interval exceeds its enclosing close"
+    },
+    {
+      "case": "persistent_prepared_pump_gt_service",
+      "checker_sha256": "0bfe5bfe6b5b78d4afeb9ca34e4d90a464bb98aff1d7b6beac02e6bc17d3f805",
+      "accepted": false,
+      "error": "E_HIA_NDU_PERSISTENT_REPLAY: prepared pump interval exceeds owner attempt"
+    },
+    {
+      "case": "prepared_pump_gt_service",
+      "checker_sha256": "b71f526aab40acb1db72c2dbd38c7b828cd4af2e27efc531687fa4d68d80bc15",
+      "accepted": false,
+      "error": "E_HIA_NDU_PREPARED_REPLAY: native pump interval exceeds its enclosing owner attempt or call"
+    }
+  ]
+}

@@ -1676,6 +1676,7 @@
         "int.shr.checked",
         "int.cast wrap",
         "unsigned comparisons",
+        "boolean equality/inequality",
         "bool.and",
         "bool.or",
         "bool.not",
@@ -2207,7 +2208,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v13",
+  "profile": "selfhost-core-linux-x86_64-v14",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -3744,10 +3745,10 @@
         true
       ]
     ],
-    "count": 824,
+    "count": 832,
     "dynamic_integer_witnesses": "each new integer operation reads all operand bytes from the runtime source buffer",
     "groups": {
-      "boolean": 20,
+      "boolean": 28,
       "cast": 80,
       "scalar-u32": 181,
       "scalar-u64": 181,
@@ -3756,7 +3757,7 @@
     },
     "observation": "eight little-endian output bytes per scalar result, including all 64 bits",
     "reference": "independent general Core VM plus Python integer/boolean oracle, executed before B0",
-    "specification_sha256": "311284a45fe52c194512294f318d28a0f6fd70b99905e1905f0d4670c300f416",
+    "specification_sha256": "676b4a020d2716e11f1d325edc5c62f8f773a032f381770a9d6e55da2ff9c5e0",
     "unsigned_widths": {
       "u32": 32,
       "u64": 64,
@@ -3834,13 +3835,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "49a52ccaa04f1bb12fd34c59077041f29e2d777dc907e18d5ac9142d11372713"
+      "sha256": "db94cd63e3a43af0e1929bb8898abdcd479aa7c760527dfa5ebc53984a48d5ee"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "b6062d03a72079de32b5a3ebbebb66d575297b9b89b1625f5a6b42cba9432168"
+      "sha256": "fd5bbef58afa78dbfd7a61c5f1a35e149aae8663beee63b907c8678a8b3505b1"
     },
-    "semantic_support_sha256": "98835bbd8637c7caa86b060ef305118f5639f65c6130e4477e1dd4b7126d2aa6",
+    "semantic_support_sha256": "c6a5ae510dd7aceb0349fb63fad350f5a03c3a29def490065e079c028b3d1987",
     "support_projection_omits": [
       "source_identity"
     ]

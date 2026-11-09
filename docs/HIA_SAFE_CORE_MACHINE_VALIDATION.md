@@ -17,7 +17,7 @@ The profile identifier is
 | --- | --- |
 | Core | Explicit primitive Core v1-v8; one function and one scalar return |
 | Scalars | `u8`, `u32`, `u64`, `usize`, `bool` |
-| Operations | Constants; wrapping/checked unsigned add and subtract; bitwise and Boolean operations; six unsigned/equality comparisons; wrapping casts; scalar select; buffer length/load/store |
+| Operations | Constants; wrapping/checked unsigned add and subtract; wrapping unsigned multiply; bitwise and Boolean operations; six unsigned/equality comparisons; wrapping casts; scalar select; buffer length/load/store |
 | Control flow | At most 16 blocks / 64 operations; acyclic branch/jump/return/trap; no internal calls or recursion |
 | Borrowed storage | At most one `readbuf` or `mutbuf` function parameter; no owner creation, allocation, transfer, returned loan or concurrency |
 | Public ABI | SysV AMD64, at most six expanded argument words; a loan expands to pointer/length; borrowed entries return the existing packed ABI status / `u32` result |
@@ -45,6 +45,14 @@ execution fallback that can turn an unknown proof result into approval.
    flags, conditional branches, byte stores, stack operations and calls are
    interpreted from the decoded bytes. Unreviewed instructions are rejected,
    including instructions in unreachable regions.
+
+   The register-only 64-bit two-operand `IMUL` leaf uses the exact low
+   product, with carry derived from signed truncation. Its undefined zero flag
+   becomes a fresh arbitrary Boolean on each model execution. A candidate that
+   relies on the prior zero flag surviving multiplication must therefore pass
+   for both outcomes; the checker does not assign a convenient fixed value.
+   Checked multiplication and memory/narrow `IMUL` forms remain outside this
+   profile. This leaf extension does not prove refinement to the full ISA.
 
 3. **ABI.** The model starts with arbitrary raw argument-register words. Narrow
    types and Boolean normalization therefore cover dirty upper register bits.

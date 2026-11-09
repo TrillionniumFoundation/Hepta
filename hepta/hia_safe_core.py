@@ -36,7 +36,7 @@ ARTIFACT_OBLIGATIONS = (
 PINNED_Z3_VERSION = "4.15.4"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64, "bool": 1}
 LOANS = {"readbuf", "mutbuf"}
-OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.add.checked", "int.sub.checked",
+OPERATIONS = frozenset({"const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "int.add.checked", "int.sub.checked",
                         "bit.and", "bit.or", "bit.xor", "bit.not", "bool.and", "bool.or", "bool.not",
                         "int.cast", "select", "buffer.len", "buffer.load", "buffer.store",
                         *["compare." + c for c in ("eq", "ne", "lt", "le", "gt", "ge")]})
@@ -250,6 +250,8 @@ class _Theory:
                     value = self.normalized(a + b if name.startswith("int.add.") else a - b, typ)
                     if name.endswith("checked"):
                         trap = z.ULT(value, a) if name.startswith("int.add.") else z.ULT(a, b)
+                elif name == "int.mul.wrap":
+                    value = self.normalized(args[0] * args[1], typ)
                 elif name in ("bit.and", "bool.and", "bit.or", "bool.or", "bit.xor"):
                     a, b = args
                     value = a & b if name.endswith("and") else a | b if name.endswith("or") and name != "bit.xor" else a ^ b

@@ -597,7 +597,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         fail(w, 32)
     load_var(o, w, 1, b, 0)
     if op >= @compare.eq@ and op <= @compare.ge@:
-        if at > 4 or at != bt or t != 5:
+        if at > 5 or at != bt or t != 5 or (at == 5 and op != @compare.eq@ and op != @compare.ne@):
             fail(w, 33)
         emit(o, w, 72)
         emit(o, w, 57)

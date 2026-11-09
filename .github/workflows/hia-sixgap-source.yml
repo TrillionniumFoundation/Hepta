@@ -197,6 +197,58 @@ jobs:
           set -euo pipefail
           python -B -m unittest tests.test_hia_agent_macro_policy tests.test_hia_macro_strong_control tests.test_hia_macro_campaign tests.test_hia_macro_codex_provider tests.test_hia_repository_agent_trial -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/macro-cost-controls.log"
           python -B -m unittest tests.test_hia_native_cohort_gate tests.test_hia_native_performance_tail_gate tests.test_hia_native_ndu tests.test_hia_native_ndu_identity tests.test_hia_prepared_gate_profile -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/native-cohort-gate.log"
+      - name: Audit scalar control cells and replay the original registered measurements
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-controller-tests.log"
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_controller_controls')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not (result.wasSuccessful() and result.testsRun == 12 and not result.skipped
+                  and not result.expectedFailures):
+              raise SystemExit('all twelve scalar evidence tests must pass without skips')
+          PY
+          python -B - <<'PY'
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import zipfile
+          archive = Path('review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip')
+          assert sha256(archive.read_bytes()).hexdigest() == 'd9025d10bacdd5e8558625c26fce40130effc87e05fe962a2387bfd4680add6d'
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap/scalar-control-originals'
+          root.mkdir()
+          with zipfile.ZipFile(archive) as source:
+              assert len(source.infolist()) == len(set(source.namelist())) == 443
+              assert source.testzip() is None
+              for member in source.infolist():
+                  if not member.filename.startswith('campaign/'):
+                      continue
+                  target = root / member.filename
+                  assert not member.is_dir() and target.resolve().is_relative_to(root.resolve())
+                  target.parent.mkdir(parents=True, exist_ok=True)
+                  target.write_bytes(source.read(member))
+          PY
+          python -B tools/measure_hia_scalar_controller_controls.py verify \
+            --directory "$RUNNER_TEMP/hia-sixgap/scalar-control-originals/campaign" \
+            --expected-plan-sha256 882a8c1e8ed96c0b409c8f4183f6b6e079bafbe76a9872666b44304f1acbc493 \
+            --output "$RUNNER_TEMP/hia-sixgap/scalar-control-replay.json" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-control-replay.log"
+          python -B - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap'
+          report = json.loads((root / 'scalar-control-replay.json').read_bytes())
+          original = json.loads((root / 'scalar-control-originals/campaign/VERIFICATION.json').read_bytes())
+          assert report == original
+          assert report['verification'] == 'ORIGINAL_BYTES_AND_ACCOUNTING_VERIFIED'
+          assert report['scheduled_cells_verified'] == 128 and report['objects_verified'] == 307
+          assert report['completed_pairs'] == report['successful_native_calls'] == 64
+          assert report['new_native_calls'] == report['new_provider_calls'] == 0
+          assert report['economic_benefit_established'] is False
+          print('Original scalar evidence replays without new calls; incremental and economic value remain HOLD.')
+          PY
       - name: Check selfhost compiler input limits
         shell: bash
         run: |
