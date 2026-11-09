@@ -106,13 +106,15 @@ jobs:
           entry = Path(os.environ["GITHUB_WORKSPACE"])
           root = Path(os.environ["RUNNER_TEMP"]) / "hia-public-release"
           readme = (entry / "README.md").read_bytes()
-          readme_text = readme.decode("utf-8")
-          if not readme_text.strip():
-              raise SystemExit("public README is empty")
+          entry_document_path = "INSTALL.md"
+          entry_document = (entry / entry_document_path).read_bytes()
+          entry_document_text = entry_document.decode("utf-8")
+          if not entry_document_text.strip():
+              raise SystemExit("public installation document is empty")
           command = "python3 -B " + os.environ["HIA_RELEASE_ENTRY"]
           lock_link = "](" + os.environ["HIA_RELEASE_LOCK"] + ")"
-          if command not in readme_text or lock_link not in readme_text:
-              raise SystemExit("public README lacks the entry command or release-lock link")
+          if command not in entry_document_text or lock_link not in entry_document_text:
+              raise SystemExit("public installation document lacks the entry command or release-lock link")
           lock_raw = (entry / os.environ["HIA_RELEASE_LOCK"]).read_bytes()
           lock = json.loads(lock_raw)
           source = root / "release/hepta"
@@ -138,11 +140,15 @@ jobs:
                   raise SystemExit("public task input differs from lock: " + name)
               files[name] = {"sha256": measured, "bytes": len(raw)}
           record = {
-              "schema": "hepta.hia.public-source-inputs.v1",
+              "schema": "hepta.hia.public-source-inputs.v2",
               "entry_commit": os.environ["GITHUB_SHA"],
               "release_lock_sha256": hashlib.sha256(lock_raw).hexdigest(),
               "hepta_source": lock["sources"]["hepta"],
-              "entry_readme": {"sha256": hashlib.sha256(readme).hexdigest(), "bytes": len(readme)},
+              "entry_document": {"path": entry_document_path,
+                                 "sha256": hashlib.sha256(entry_document).hexdigest(),
+                                 "bytes": len(entry_document)},
+              "entry_readme": {"path": "README.md", "sha256": hashlib.sha256(readme).hexdigest(),
+                               "bytes": len(readme)},
               "files": files,
               "ok": True,
           }
