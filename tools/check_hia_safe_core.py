@@ -40,14 +40,14 @@ def _snapshot(path):
 
 
 def check(source, object_path, image_path, output, *, foreign_extent=None, timeout_ms=15000,
-          expected_sha256=None):
+          expected_sha256=None, profile_version=1):
     destination = Path(output).absolute()
     destination.mkdir(parents=False, exist_ok=False)
     started = time.monotonic()
     report = {
         "schema": "hepta.hia.safe-core-artifact-check.v1", "ok": False, "status": "running",
         "started_utc": datetime.now(timezone.utc).isoformat(),
-        "foreign_extent": foreign_extent, "timeout_ms": timeout_ms,
+        "foreign_extent": foreign_extent, "timeout_ms": timeout_ms, "profile_version": profile_version,
         "inputs": {}, "compiler_invoked": False, "linker_invoked": False,
         "native_execution_observed": False, "adopted": False,
         "unproved_obligations": [dict(row) for row in UNPROVED_OBLIGATIONS],
@@ -83,7 +83,7 @@ def check(source, object_path, image_path, output, *, foreign_extent=None, timeo
         manifest = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
         validation = validate_safe_core_artifact(
             checked, snapshots["object"], snapshots["image"], foreign_buffer_exports=manifest,
-            timeout_ms=timeout_ms, query_directory=destination / "queries")
+            timeout_ms=timeout_ms, query_directory=destination / "queries", profile_version=profile_version)
         report.update(ok=True, status="smt_validated_not_executed", validation=validation)
     except Exception as exc:
         report.update(status="rejected", error={"type": type(exc).__name__, "message": str(exc),
@@ -103,13 +103,16 @@ def main(argv=None):
     parser.add_argument("--output", required=True, help="new evidence directory under an existing parent")
     parser.add_argument("--foreign-extent", type=int)
     parser.add_argument("--timeout-ms", type=int, default=15000)
+    parser.add_argument("--profile-version", type=int, choices=(1, 2), default=1,
+                        help="v1 preserves the original scope; v2 also admits u16 and checked unsigned casts")
     for kind in ("source", "object", "image"):
         parser.add_argument("--" + kind + "-sha256")
     args = parser.parse_args(argv)
     pins = {kind: getattr(args, kind + "_sha256") for kind in ("source", "object", "image")
             if getattr(args, kind + "_sha256") is not None}
     report = check(args.source, args.object_path, args.image_path, args.output,
-                   foreign_extent=args.foreign_extent, timeout_ms=args.timeout_ms, expected_sha256=pins)
+                   foreign_extent=args.foreign_extent, timeout_ms=args.timeout_ms, expected_sha256=pins,
+                   profile_version=args.profile_version)
     print(json.dumps({"ok": report["ok"], "status": report["status"],
                       "output": str(Path(args.output).absolute()), "inputs": report["inputs"],
                       "error": report.get("error"), "elapsed_seconds": report["elapsed_seconds"]}, sort_keys=True))

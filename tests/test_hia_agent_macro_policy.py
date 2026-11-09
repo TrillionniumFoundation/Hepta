@@ -204,6 +204,157 @@ class MacroAdviceTests(unittest.TestCase):
         self.assertFalse(totals["complete"])
 
 
+class MacroStopGuardTests(unittest.TestCase):
+    def test_opt_in_empty_or_dominated_pools_stop_without_native_claim(self):
+        mutations = {
+            "empty": lambda d: d.update(plans=[]),
+            "tie": lambda d: d["plans"][0].update(
+                remaining_cost_ns=d["stop_remaining_ns"], uncertainty_ns=0),
+            "more_expensive": lambda d: d["plans"][0].update(
+                remaining_cost_ns=d["stop_remaining_ns"] + 1, uncertainty_ns=0),
+            "uncertainty_makes_tie": lambda d: d["plans"][0].update(
+                remaining_cost_ns=d["stop_remaining_ns"] - 10, uncertainty_ns=10),
+            "token_infeasible": lambda d: d["plans"][0].update(
+                model_tokens=d["budget"]["model_tokens"]),
+            "wall_infeasible": lambda d: (d.update(stop_remaining_ns=20_000_000_000),
+                d["plans"][0].update(remaining_cost_ns=10_000_000_000, uncertainty_ns=0)),
+        }
+        for name, change in mutations.items():
+            data = state()
+            change(data)
+            original = deepcopy(data)
+            with self.subTest(name=name), patch("hepta.hia_agent_macro_policy._native_rank") as rank:
+                result = advise_macro(wire(data), bridge={"binary": "unused", "build_receipt": "unused"},
+                                      skip_dominated_native=True)
+                rank.assert_not_called()
+            self.assertEqual(result["selected_id"], "abstain")
+            self.assertEqual(result["next_action"], "stop")
+            self.assertEqual(result["status"], "ADVISORY")
+            self.assertEqual(result["reason"], "caller_no_feasible_strict_improvement")
+            self.assertFalse(result["native_ndu_evaluated"])
+            self.assertIsNone(result["native_response"])
+            self.assertIsNone(result["native_identity"])
+            self.assertIsNone(result["selection_resolution"])
+            self.assertFalse(result["net_benefit_established"])
+            self.assertFalse(result["execution_authorized"])
+            guard = result["native_dispatch_guard"]
+            self.assertEqual(guard["request_sha256"], digest(result["native_request"]))
+            self.assertEqual(guard["competitive_plan_ids"], [])
+            self.assertFalse(guard["native_identity_validated_here"])
+            self.assertGreater(result["controller_wall_ns"], 0)
+            self.assertEqual(result["observed_costs"]["observed_wall_ns"],
+                data["ledger"][0]["wall_ns"] + result["controller_wall_ns"])
+            self.assertEqual(data, original)
+
+    def test_default_path_preserves_native_dispatch_on_empty_pool(self):
+        data = state()
+        data["plans"] = []
+        with patch("hepta.hia_agent_macro_policy._native_rank", side_effect=fixture_rank) as rank:
+            result = advise_macro(wire(data), bridge={})
+        self.assertEqual(rank.call_count, 1)
+        self.assertTrue(result["native_ndu_evaluated"])
+        self.assertNotIn("native_dispatch_guard", result)
+
+    def test_any_feasible_strict_improvement_keeps_original_native_path(self):
+        for cost in (0, 1, 100_000):
+            data = state()
+            data["plans"][0].update(remaining_cost_ns=cost, uncertainty_ns=0)
+            data["plans"].append({**deepcopy(data["plans"][0]), "id": "infeasible",
+                "remaining_cost_ns": 0, "model_tokens": 10000})
+            with self.subTest(cost=cost), patch("hepta.hia_agent_macro_policy._native_rank",
+                                              side_effect=fixture_rank) as rank:
+                result = advise_macro(wire(data), bridge={}, skip_dominated_native=True)
+            self.assertEqual(rank.call_count, 1)
+            self.assertTrue(result["native_ndu_evaluated"])
+            self.assertEqual(result["selected_id"], "measure")
+            self.assertFalse(result["native_dispatch_guard"]["skip_native"])
+            self.assertEqual(result["native_dispatch_guard"]["competitive_plan_ids"], ["measure"])
+
+    def test_guard_does_not_erase_unknown_costs_or_missing_bridge(self):
+        for missing in ("bridge", "wall_ns", "model_tokens", "receipt_sha256"):
+            data = state()
+            data["plans"] = []
+            if missing != "bridge":
+                data["ledger"][0][missing] = None
+            with self.subTest(missing=missing), patch("hepta.hia_agent_macro_policy._native_rank") as rank:
+                result = advise_macro(wire(data), bridge=None if missing == "bridge" else {},
+                                      skip_dominated_native=True)
+                rank.assert_not_called()
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertEqual(result["reason"], "native_bridge_unavailable" if missing == "bridge"
+                             else "unknown_observed_costs")
+
+    def test_guard_retains_exact_input_rejections(self):
+        changes = [lambda d: d["plans"][0].update(remaining_cost_ns=True),
+                   lambda d: d["plans"][0].update(uncertainty_ns=-1),
+                   lambda d: d["plans"][0].update(remaining_cost_ns=10**15, uncertainty_ns=1),
+                   lambda d: d["plans"].append(deepcopy(d["plans"][0])),
+                   lambda d: d["plans"][0].update(id="abstain"),
+                   lambda d: d["plans"][0].update(model_tokens=10**8 + 1)]
+        for change in changes:
+            data = state()
+            change(data)
+            with self.subTest(change=str(change)), patch("hepta.hia_agent_macro_policy._native_rank") as rank:
+                with self.assertRaises(MacroPolicyRejected):
+                    advise_macro(wire(data), bridge={}, skip_dominated_native=True)
+                rank.assert_not_called()
+        for raw in (b'{"a":NaN}', b'{"a":Infinity}', b'{"a":1,"a":2}'):
+            with self.subTest(raw=raw), self.assertRaises(MacroPolicyRejected):
+                advise_macro(raw, bridge={}, skip_dominated_native=True)
+        for value in (0, 1, None, "true"):
+            with self.subTest(flag=value), self.assertRaises(MacroPolicyRejected):
+                advise_macro(wire(state()), bridge={}, skip_dominated_native=value)
+
+    def test_guard_preserves_q32_conversion_and_budget_checks(self):
+        data = state()
+        data["plans"] = []
+        with patch("hepta.hia_agent_macro_policy.ns_to_ms_q32",
+                   side_effect=OptimizationRejected("Q32 overflow")), self.assertRaises(OptimizationRejected):
+            advise_macro(wire(data), bridge={}, skip_dominated_native=True)
+        with patch("hepta.hia_agent_macro_policy.time.perf_counter_ns",
+                   side_effect=[0, 20_000_000_000, 20_000_000_010]), patch(
+                   "hepta.hia_agent_macro_policy._native_rank") as rank:
+            result = advise_macro(wire(data), bridge={}, skip_dominated_native=True)
+            rank.assert_not_called()
+        self.assertEqual(result["reason"], "budget_exhausted_before_native")
+        self.assertFalse(result["native_dispatch_guard"]["skip_native"])
+        self.assertGreater(result["observed_costs"]["observed_wall_ns"], data["budget"]["wall_ns"])
+
+    def test_guard_overrun_and_repeated_calls_keep_all_actual_cost(self):
+        data = state()
+        data["plans"] = []
+        with patch("hepta.hia_agent_macro_policy.time.perf_counter_ns",
+                   side_effect=[0, 10, 20_000_000_000]), patch(
+                   "hepta.hia_agent_macro_policy._native_rank") as rank:
+            first = advise_macro(wire(data), bridge={}, skip_dominated_native=True)
+            rank.assert_not_called()
+        self.assertEqual(first["status"], "BLOCKED")
+        self.assertEqual(first["reason"], "budget_exhausted_after_stop_guard")
+        self.assertEqual(first["controller_wall_ns"], 20_000_000_000)
+        second = advise_macro(wire(first["next_state"]), bridge={}, skip_dominated_native=True)
+        self.assertEqual(second["reason"], "lifecycle_budget_exhausted")
+        self.assertGreater(second["observed_costs"]["observed_wall_ns"],
+                           first["observed_costs"]["observed_wall_ns"])
+
+    def test_cli_flag_is_explicit_and_cannot_change_assessment(self):
+        from tools.hia_agent_macro_policy import main
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source, target = root / "state.json", root / "advice.json"
+            data = state()
+            data["plans"] = []
+            source.write_bytes(wire(data))
+            with contextlib.redirect_stdout(io.StringIO()), patch("hepta.hia_agent_macro_policy._native_rank") as rank:
+                code = main(["advise", "--input", str(source), "--output", str(target),
+                    "--native-binary", "unused", "--native-build-receipt", "unused", "--skip-dominated-native"])
+                rank.assert_not_called()
+            self.assertEqual(code, 0)
+            import json
+            self.assertFalse(json.loads(target.read_bytes())["native_ndu_evaluated"])
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                main(["assess", "--input", str(source), "--output", str(target), "--skip-dominated-native"])
+
+
 class MacroComparisonTests(unittest.TestCase):
     def test_synthetic_success_never_closes_real_task_requirement(self):
         result = assess_macro_comparison(wire(comparison()))
