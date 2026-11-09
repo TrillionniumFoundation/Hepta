@@ -1,0 +1,1574 @@
+﻿2026-11-09T05:41:29.9787142Z Current runner version: '2.338.2'
+2026-11-09T05:41:29.9813117Z ##[group]Runner Image Provisioner
+2026-11-09T05:41:29.9813990Z Hosted Compute Agent
+2026-11-09T05:41:29.9814924Z Version: 20261028.624
+2026-11-09T05:41:29.9815684Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T05:41:29.9816458Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T05:41:29.9817215Z Worker ID: {cc948938-5519-4353-8c1f-49e6510d4a9c}
+2026-11-09T05:41:29.9817942Z Region: northcentralus
+2026-11-09T05:41:29.9818584Z Cloud: Azure
+2026-11-09T05:41:29.9819165Z ##[endgroup]
+2026-11-09T05:41:29.9820665Z ##[group]Operating System
+2026-11-09T05:41:29.9821303Z Ubuntu
+2026-11-09T05:41:29.9821940Z 24.04.5
+2026-11-09T05:41:29.9822542Z LTS
+2026-11-09T05:41:29.9823105Z ##[endgroup]
+2026-11-09T05:41:29.9823666Z ##[group]Runner Image
+2026-11-09T05:41:29.9824251Z Image: ubuntu-24.04
+2026-11-09T05:41:29.9825311Z Version: 20261101.360.1
+2026-11-09T05:41:29.9826637Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T05:41:29.9828356Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T05:41:29.9829326Z ##[endgroup]
+2026-11-09T05:41:29.9830588Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T05:41:29.9832461Z Contents: read
+2026-11-09T05:41:29.9833194Z Metadata: read
+2026-11-09T05:41:29.9833778Z ##[endgroup]
+2026-11-09T05:41:29.9836304Z Secret source: Actions
+2026-11-09T05:41:29.9837402Z Cache mode: write
+2026-11-09T05:41:29.9838161Z Prepare workflow directory
+2026-11-09T05:41:30.0550714Z Prepare all required actions
+2026-11-09T05:41:30.0622751Z Getting action download info
+2026-11-09T05:41:30.2998058Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T05:41:30.4207804Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T05:41:30.5673137Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-09T05:41:30.8244863Z Complete job name: native-selection
+2026-11-09T05:41:30.9073401Z ##[group]Run actions/checkout@v4
+2026-11-09T05:41:30.9074275Z with:
+2026-11-09T05:41:30.9074973Z   ref: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:30.9075575Z   persist-credentials: false
+2026-11-09T05:41:30.9076115Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T05:41:30.9079798Z   token: ***
+2026-11-09T05:41:30.9080216Z   ssh-strict: true
+2026-11-09T05:41:30.9080646Z   ssh-user: git
+2026-11-09T05:41:30.9081060Z   clean: true
+2026-11-09T05:41:30.9081497Z   sparse-checkout-cone-mode: true
+2026-11-09T05:41:30.9082016Z   fetch-depth: 1
+2026-11-09T05:41:30.9082440Z   fetch-tags: false
+2026-11-09T05:41:30.9082882Z   show-progress: true
+2026-11-09T05:41:30.9083318Z   lfs: false
+2026-11-09T05:41:30.9083715Z   submodules: false
+2026-11-09T05:41:30.9084155Z   set-safe-directory: true
+2026-11-09T05:41:30.9084796Z   allow-unsafe-pr-checkout: false
+2026-11-09T05:41:30.9085568Z env:
+2026-11-09T05:41:30.9086026Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:30.9086564Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:30.9087141Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:30.9087769Z ##[endgroup]
+2026-11-09T05:41:31.2335392Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T05:41:31.2337529Z ##[group]Getting Git version info
+2026-11-09T05:41:31.2338241Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T05:41:31.2339278Z [command]/usr/bin/git version
+2026-11-09T05:41:31.2471151Z git version 2.56.0
+2026-11-09T05:41:31.2493928Z ##[endgroup]
+2026-11-09T05:41:31.2509845Z Temporarily overriding HOME='/home/runner/work/_temp/a4c76fca-9f72-47b2-acd7-daa765e89d44' before making global git config changes
+2026-11-09T05:41:31.2512169Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T05:41:31.2515215Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T05:41:31.2610151Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T05:41:31.2612279Z ##[group]Initializing the repository
+2026-11-09T05:41:31.2613735Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T05:41:31.2735015Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T05:41:31.2736507Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T05:41:31.2737509Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T05:41:31.2738266Z hint: call:
+2026-11-09T05:41:31.2738696Z hint:
+2026-11-09T05:41:31.2739234Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T05:41:31.2739872Z hint:
+2026-11-09T05:41:31.2740482Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T05:41:31.2741436Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T05:41:31.2742194Z hint:
+2026-11-09T05:41:31.2742631Z hint: 	git branch -m <name>
+2026-11-09T05:41:31.2743159Z hint:
+2026-11-09T05:41:31.2743826Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T05:41:31.2758315Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T05:41:31.2771257Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T05:41:31.2828076Z ##[endgroup]
+2026-11-09T05:41:31.2829454Z ##[group]Disabling automatic garbage collection
+2026-11-09T05:41:31.2831415Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T05:41:31.2869076Z ##[endgroup]
+2026-11-09T05:41:31.2870462Z ##[group]Setting up auth
+2026-11-09T05:41:31.2877967Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:41:31.2919376Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:41:31.3365308Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:41:31.3411510Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:41:31.3657680Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:41:31.3705466Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:41:31.3966408Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T05:41:31.4020334Z ##[endgroup]
+2026-11-09T05:41:31.4021562Z ##[group]Fetching the repository
+2026-11-09T05:41:31.4038265Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:44.8679957Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T05:41:44.8680691Z  * branch            6ecd8023615a6e0b2dc269379fb059c656b38b6f -> FETCH_HEAD
+2026-11-09T05:41:44.8686726Z ##[endgroup]
+2026-11-09T05:41:44.8687715Z ##[group]Determining the checkout info
+2026-11-09T05:41:44.8689393Z ##[endgroup]
+2026-11-09T05:41:44.8696537Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T05:41:44.8762560Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T05:41:44.8811238Z ##[group]Checking out the ref
+2026-11-09T05:41:44.8815040Z [command]/usr/bin/git checkout --progress --force 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:45.9159498Z Updating files:  49% (4839/9833)
+2026-11-09T05:41:45.9200013Z Updating files:  50% (4917/9833)
+2026-11-09T05:41:45.9239122Z Updating files:  51% (5015/9833)
+2026-11-09T05:41:45.9274993Z Updating files:  52% (5114/9833)
+2026-11-09T05:41:45.9315241Z Updating files:  53% (5212/9833)
+2026-11-09T05:41:45.9364223Z Updating files:  54% (5310/9833)
+2026-11-09T05:41:45.9428698Z Updating files:  55% (5409/9833)
+2026-11-09T05:41:45.9471824Z Updating files:  56% (5507/9833)
+2026-11-09T05:41:45.9511261Z Updating files:  57% (5605/9833)
+2026-11-09T05:41:45.9566703Z Updating files:  58% (5704/9833)
+2026-11-09T05:41:45.9633822Z Updating files:  59% (5802/9833)
+2026-11-09T05:41:45.9798957Z Updating files:  60% (5900/9833)
+2026-11-09T05:41:45.9815688Z Updating files:  61% (5999/9833)
+2026-11-09T05:41:45.9816393Z Updating files:  62% (6097/9833)
+2026-11-09T05:41:45.9861234Z Updating files:  63% (6195/9833)
+2026-11-09T05:41:45.9914448Z Updating files:  64% (6294/9833)
+2026-11-09T05:41:45.9955988Z Updating files:  65% (6392/9833)
+2026-11-09T05:41:46.0094065Z Updating files:  66% (6490/9833)
+2026-11-09T05:41:46.0240292Z Updating files:  67% (6589/9833)
+2026-11-09T05:41:46.0359831Z Updating files:  68% (6687/9833)
+2026-11-09T05:41:46.0454430Z Updating files:  69% (6785/9833)
+2026-11-09T05:41:46.0596470Z Updating files:  70% (6884/9833)
+2026-11-09T05:41:46.0714266Z Updating files:  71% (6982/9833)
+2026-11-09T05:41:46.0780500Z Updating files:  72% (7080/9833)
+2026-11-09T05:41:46.1185792Z Updating files:  73% (7179/9833)
+2026-11-09T05:41:46.1347927Z Updating files:  74% (7277/9833)
+2026-11-09T05:41:46.1482128Z Updating files:  75% (7375/9833)
+2026-11-09T05:41:46.1550902Z Updating files:  76% (7474/9833)
+2026-11-09T05:41:46.1604848Z Updating files:  77% (7572/9833)
+2026-11-09T05:41:46.1989307Z Updating files:  78% (7670/9833)
+2026-11-09T05:41:46.2084308Z Updating files:  79% (7769/9833)
+2026-11-09T05:41:46.2174945Z Updating files:  80% (7867/9833)
+2026-11-09T05:41:46.2356403Z Updating files:  81% (7965/9833)
+2026-11-09T05:41:46.2786423Z Updating files:  82% (8064/9833)
+2026-11-09T05:41:46.3319396Z Updating files:  83% (8162/9833)
+2026-11-09T05:41:46.3664945Z Updating files:  84% (8260/9833)
+2026-11-09T05:41:46.5687844Z Updating files:  85% (8359/9833)
+2026-11-09T05:41:46.6808611Z Updating files:  86% (8457/9833)
+2026-11-09T05:41:46.6861036Z Updating files:  87% (8555/9833)
+2026-11-09T05:41:46.6974793Z Updating files:  88% (8654/9833)
+2026-11-09T05:41:46.7053069Z Updating files:  89% (8752/9833)
+2026-11-09T05:41:46.7130160Z Updating files:  90% (8850/9833)
+2026-11-09T05:41:46.7197604Z Updating files:  91% (8949/9833)
+2026-11-09T05:41:46.7277482Z Updating files:  92% (9047/9833)
+2026-11-09T05:41:46.7352695Z Updating files:  93% (9145/9833)
+2026-11-09T05:41:46.7428776Z Updating files:  94% (9244/9833)
+2026-11-09T05:41:46.7502637Z Updating files:  95% (9342/9833)
+2026-11-09T05:41:46.7608362Z Updating files:  96% (9440/9833)
+2026-11-09T05:41:46.7704761Z Updating files:  97% (9539/9833)
+2026-11-09T05:41:46.7819978Z Updating files:  98% (9637/9833)
+2026-11-09T05:41:46.7928415Z Updating files:  99% (9735/9833)
+2026-11-09T05:41:46.7928888Z Updating files: 100% (9833/9833)
+2026-11-09T05:41:46.7929269Z Updating files: 100% (9833/9833), done.
+2026-11-09T05:41:46.8032107Z Note: switching to '6ecd8023615a6e0b2dc269379fb059c656b38b6f'.
+2026-11-09T05:41:46.8032776Z 
+2026-11-09T05:41:46.8033200Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T05:41:46.8034048Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T05:41:46.8035187Z state without impacting any branches by switching back to a branch.
+2026-11-09T05:41:46.8035755Z 
+2026-11-09T05:41:46.8036102Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T05:41:46.8036769Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T05:41:46.8037085Z 
+2026-11-09T05:41:46.8037200Z   git switch -c <new-branch-name>
+2026-11-09T05:41:46.8037389Z 
+2026-11-09T05:41:46.8037497Z Or undo this operation with:
+2026-11-09T05:41:46.8037675Z 
+2026-11-09T05:41:46.8037773Z   git switch -
+2026-11-09T05:41:46.8037896Z 
+2026-11-09T05:41:46.8038122Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T05:41:46.8038440Z 
+2026-11-09T05:41:46.8038744Z HEAD is now at 6ecd802 merge(hia): retain current source ancestry in the v16 qualification candidate
+2026-11-09T05:41:46.8234590Z ##[endgroup]
+2026-11-09T05:41:46.8300613Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T05:41:46.8343850Z 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:46.8363280Z ##[group]Removing auth
+2026-11-09T05:41:46.8363977Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:41:46.8413293Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:41:46.8702151Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:41:46.8742802Z http.https://github.com/.extraheader
+2026-11-09T05:41:46.8751048Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T05:41:46.8795896Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:41:46.9056811Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:41:46.9107645Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:41:46.9357212Z ##[endgroup]
+2026-11-09T05:41:46.9634255Z ##[group]Run actions/setup-python@v5
+2026-11-09T05:41:46.9634965Z with:
+2026-11-09T05:41:46.9635207Z   python-version: 3.12
+2026-11-09T05:41:46.9635458Z   check-latest: false
+2026-11-09T05:41:46.9637932Z   token: ***
+2026-11-09T05:41:46.9638170Z   update-environment: true
+2026-11-09T05:41:46.9638443Z   allow-prereleases: false
+2026-11-09T05:41:46.9638699Z   freethreaded: false
+2026-11-09T05:41:46.9638923Z env:
+2026-11-09T05:41:46.9639151Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:46.9639423Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:46.9639758Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:46.9640107Z ##[endgroup]
+2026-11-09T05:41:47.1041211Z ##[group]Installed versions
+2026-11-09T05:41:47.1194880Z (node:2433) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:41:47.1196191Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:41:47.1197096Z Successfully set up CPython (3.12.16)
+2026-11-09T05:41:47.1197932Z ##[endgroup]
+2026-11-09T05:41:47.1348662Z ##[group]Run set -euo pipefail
+2026-11-09T05:41:47.1349044Z [36;1mset -euo pipefail[0m
+2026-11-09T05:41:47.1349394Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-11-09T05:41:47.1349848Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T05:41:47.1350245Z [36;1mmkdir "$RUNNER_TEMP/hia-ndu-scalar"[0m
+2026-11-09T05:41:47.1350698Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-ndu-scalar/source-before.txt"[0m
+2026-11-09T05:41:47.1351263Z [36;1mpython -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'[0m
+2026-11-09T05:41:47.1351773Z [36;1mpython -m pip freeze > "$RUNNER_TEMP/hia-ndu-scalar/dependencies.txt"[0m
+2026-11-09T05:41:47.1394272Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:41:47.1395139Z env:
+2026-11-09T05:41:47.1395493Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:47.1395920Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:47.1396477Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:47.1397104Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.1397782Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:41:47.1398469Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.1399100Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.1399714Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:47.1400704Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:41:47.1401058Z ##[endgroup]
+2026-11-09T05:41:51.0578519Z Collecting jsonschema==4.25.1
+2026-11-09T05:41:51.1057980Z   Downloading jsonschema-4.25.1-py3-none-any.whl.metadata (7.6 kB)
+2026-11-09T05:41:51.1363981Z Collecting z3-solver==4.15.4.0
+2026-11-09T05:41:51.1397988Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-09T05:41:51.1529811Z Collecting attrs>=22.2.0 (from jsonschema==4.25.1)
+2026-11-09T05:41:51.1561652Z   Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+2026-11-09T05:41:51.1686676Z Collecting jsonschema-specifications>=2023.03.6 (from jsonschema==4.25.1)
+2026-11-09T05:41:51.1717885Z   Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+2026-11-09T05:41:51.1905168Z Collecting referencing>=0.28.4 (from jsonschema==4.25.1)
+2026-11-09T05:41:51.1938196Z   Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+2026-11-09T05:41:51.4696920Z Collecting rpds-py>=0.7.1 (from jsonschema==4.25.1)
+2026-11-09T05:41:51.4734432Z   Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (4.1 kB)
+2026-11-09T05:41:51.4949127Z Collecting typing-extensions>=4.4.0 (from referencing>=0.28.4->jsonschema==4.25.1)
+2026-11-09T05:41:51.4980965Z   Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+2026-11-09T05:41:51.5051088Z Downloading jsonschema-4.25.1-py3-none-any.whl (90 kB)
+2026-11-09T05:41:51.5178424Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-09T05:41:51.6596022Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 213.4 MB/s  0:00:00
+2026-11-09T05:41:51.6630004Z Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-09T05:41:51.6692386Z Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+2026-11-09T05:41:51.6746155Z Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+2026-11-09T05:41:51.6800781Z Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (371 kB)
+2026-11-09T05:41:51.6859328Z Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-11-09T05:41:51.8922951Z Installing collected packages: z3-solver, typing-extensions, rpds-py, attrs, referencing, jsonschema-specifications, jsonschema
+2026-11-09T05:41:52.5127699Z 
+2026-11-09T05:41:52.5143751Z Successfully installed attrs-26.1.0 jsonschema-4.25.1 jsonschema-specifications-2025.9.1 referencing-0.37.0 rpds-py-2026.9.1 typing-extensions-4.16.0 z3-solver-4.15.4.0
+2026-11-09T05:41:52.5152133Z 
+2026-11-09T05:41:52.5152720Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-09T05:41:52.5153400Z [notice] To update, run: pip install --upgrade pip
+2026-11-09T05:41:52.8129176Z ##[group]Run set -euo pipefail
+2026-11-09T05:41:52.8129562Z [36;1mset -euo pipefail[0m
+2026-11-09T05:41:52.8129951Z [36;1m# Same anonymous exact-commit path as hia-unified-candidate.yml.[0m
+2026-11-09T05:41:52.8130518Z [36;1m# The builder verifies the original Git blobs and committed Cargo.lock.[0m
+2026-11-09T05:41:52.8130995Z [36;1mrustup toolchain install 1.95.0 --profile minimal[0m
+2026-11-09T05:41:52.8131424Z [36;1mhia_scalar_checkout="$RUNNER_TEMP/hia-ndu-scalar-upstream"[0m
+2026-11-09T05:41:52.8132076Z [36;1mhia_scalar_commit=$(python -c 'import json; print(json.load(open("rust/hia-ndu-bridge/upstream.json"))["commit"])')[0m
+2026-11-09T05:41:52.8132657Z [36;1mgit init "$hia_scalar_checkout"[0m
+2026-11-09T05:41:52.8133228Z [36;1mgit -C "$hia_scalar_checkout" remote add origin https://github.com/TrillionniumFoundation/hepta-private-ci.git[0m
+2026-11-09T05:41:52.8133878Z [36;1mgit -C "$hia_scalar_checkout" config remote.origin.promisor true[0m
+2026-11-09T05:41:52.8134837Z [36;1mgit -C "$hia_scalar_checkout" config remote.origin.partialclonefilter blob:none[0m
+2026-11-09T05:41:52.8135642Z [36;1mgit -C "$hia_scalar_checkout" -c protocol.version=2 fetch --filter=blob:none --depth=1 origin "$hia_scalar_commit"[0m
+2026-11-09T05:41:52.8136585Z [36;1mtest "$(git -C "$hia_scalar_checkout" rev-parse FETCH_HEAD)" = "$hia_scalar_commit"[0m
+2026-11-09T05:41:52.8137106Z [36;1mRUSTC="$(rustup which --toolchain 1.95.0 rustc)" \[0m
+2026-11-09T05:41:52.8137527Z [36;1mCARGO_TARGET_DIR="$RUNNER_TEMP/hia-ndu-scalar-target" \[0m
+2026-11-09T05:41:52.8137929Z [36;1mpython -B tools/build_hia_ndu_bridge.py \[0m
+2026-11-09T05:41:52.8138399Z [36;1m  --upstream "$hia_scalar_checkout" --output "$RUNNER_TEMP/hia-ndu-scalar/build" \[0m
+2026-11-09T05:41:52.8138895Z [36;1m  --cargo "$(rustup which --toolchain 1.95.0 cargo)" \[0m
+2026-11-09T05:41:52.8139304Z [36;1m  > "$RUNNER_TEMP/hia-ndu-scalar/build.stdout.log" \[0m
+2026-11-09T05:41:52.8139701Z [36;1m  2> "$RUNNER_TEMP/hia-ndu-scalar/build.stderr.log"[0m
+2026-11-09T05:41:52.8140163Z [36;1mprintf 'HEPTA_NDU_BRIDGE=%s\nHEPTA_NDU_BUILD=%s\nHEPTA_NDU_UPSTREAM=%s\n' \[0m
+2026-11-09T05:41:52.8140701Z [36;1m  "$RUNNER_TEMP/hia-ndu-scalar-target/debug/hia-ndu-bridge" \[0m
+2026-11-09T05:41:52.8141237Z [36;1m  "$RUNNER_TEMP/hia-ndu-scalar/build" "$hia_scalar_checkout" >> "$GITHUB_ENV"[0m
+2026-11-09T05:41:52.8163183Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:41:52.8163535Z env:
+2026-11-09T05:41:52.8163745Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:41:52.8164005Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:41:52.8164310Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:41:52.8165038Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:52.8165491Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:41:52.8165930Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:52.8166327Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:52.8166727Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:41:52.8167120Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:41:52.8167495Z ##[endgroup]
+2026-11-09T05:41:53.0117784Z info: syncing channel updates for 1.95.0-x86_64-unknown-linux-gnu
+2026-11-09T05:41:53.3395188Z info: latest update on 2026-04-16 for version 1.95.0 (59807616e 2026-04-14)
+2026-11-09T05:41:53.3526393Z info: downloading 3 components
+2026-11-09T05:42:01.0447280Z 
+2026-11-09T05:42:01.0522177Z   1.95.0-x86_64-unknown-linux-gnu installed - rustc 1.95.0 (59807616e 2026-04-14)
+2026-11-09T05:42:01.0522557Z 
+2026-11-09T05:42:01.1012458Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T05:42:01.1013450Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T05:42:01.1014578Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T05:42:01.1015707Z hint: call:
+2026-11-09T05:42:01.1016058Z hint:
+2026-11-09T05:42:01.1016494Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T05:42:01.1017057Z hint:
+2026-11-09T05:42:01.1017572Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T05:42:01.1018276Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T05:42:01.1018745Z hint:
+2026-11-09T05:42:01.1018977Z hint: 	git branch -m <name>
+2026-11-09T05:42:01.1019243Z hint:
+2026-11-09T05:42:01.1019620Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T05:42:01.1020345Z Initialized empty Git repository in /home/runner/work/_temp/hia-ndu-scalar-upstream/.git/
+2026-11-09T05:42:01.5039290Z From https://github.com/TrillionniumFoundation/hepta-private-ci
+2026-11-09T05:42:01.5039830Z  * branch            d3c2d760eca5065fc966820379c35c6e8d56e855 -> FETCH_HEAD
+2026-11-09T05:42:27.8450723Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:27.8451171Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:27.8451433Z [36;1mulimit -c 0[0m
+2026-11-09T05:42:27.8451793Z [36;1mpython -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/integration.log"[0m
+2026-11-09T05:42:27.8452429Z [36;1mfrom hashlib import sha256[0m
+2026-11-09T05:42:27.8452729Z [36;1mimport importlib.metadata[0m
+2026-11-09T05:42:27.8453006Z [36;1mimport json[0m
+2026-11-09T05:42:27.8453232Z [36;1mimport os[0m
+2026-11-09T05:42:27.8453470Z [36;1mfrom pathlib import Path[0m
+2026-11-09T05:42:27.8453743Z [36;1mimport platform[0m
+2026-11-09T05:42:27.8453983Z [36;1mimport sys[0m
+2026-11-09T05:42:27.8454206Z [36;1mimport time[0m
+2026-11-09T05:42:27.8454742Z [36;1mimport unittest[0m
+2026-11-09T05:42:27.8455211Z [36;1mfrom hepta.hia_ndu_optimizer import _native_rank[0m
+2026-11-09T05:42:27.8455703Z [36;1mfrom hepta.hia_ndu_scalar_selection import resolve_scalar_selection[0m
+2026-11-09T05:42:27.8456135Z [36;1m[0m
+2026-11-09T05:42:27.8456443Z [36;1mevidence = Path(os.environ['RUNNER_TEMP']) / 'hia-ndu-scalar'[0m
+2026-11-09T05:42:27.8456847Z [36;1mstarted = time.perf_counter_ns()[0m
+2026-11-09T05:42:27.8457237Z [36;1mreport = {'schema': 'hepta.hia.ndu-scalar-integration.v1',[0m
+2026-11-09T05:42:27.8457740Z [36;1m    'source_sha': os.environ['HEPTA_SOURCE_SHA'], 'status': 'INCOMPLETE',[0m
+2026-11-09T05:42:27.8458249Z [36;1m    'new_provider_calls': 0, 'economic_benefit_established': False,[0m
+2026-11-09T05:42:27.8458693Z [36;1m    'model_cost': None, 'full_cost_complete': False,[0m
+2026-11-09T05:42:27.8459385Z [36;1m    'scope': 'software integration and actual scalar native ABI including bounded persistent transport; no Agent or performance claim',[0m
+2026-11-09T05:42:27.8460124Z [36;1m    'python': sys.version, 'platform': platform.platform(),[0m
+2026-11-09T05:42:27.8460731Z [36;1m    'dependencies': {name: importlib.metadata.version(name) for name in ('jsonschema','z3-solver')}}[0m
+2026-11-09T05:42:27.8461241Z [36;1mtry:[0m
+2026-11-09T05:42:27.8461470Z [36;1m    if sys.platform != 'linux':[0m
+2026-11-09T05:42:27.8461872Z [36;1m        raise AssertionError('sealed ranking transport requires Linux')[0m
+2026-11-09T05:42:27.8462345Z [36;1m    bridge = {'binary': os.environ['HEPTA_NDU_BRIDGE'],[0m
+2026-11-09T05:42:27.8462859Z [36;1m        'build_receipt': str(Path(os.environ['HEPTA_NDU_BUILD']) / 'build-receipt.json')}[0m
+2026-11-09T05:42:27.8463476Z [36;1m    request = {'schema': 'hepta.hia.ndu-request.v1', 'objective_sha256': '1' * 64,[0m
+2026-11-09T05:42:27.8464000Z [36;1m        'generation': 1, 'resource_cap_q32': 1000, 'candidates': [[0m
+2026-11-09T05:42:27.8464768Z [36;1m            {'id': cid, 'cost_q32': cost, 'uncertainty_q32': 0, 'resource_q32': 0,[0m
+2026-11-09T05:42:27.8465259Z [36;1m             'hard_violation': False, 'support_sha256': '2' * 64}[0m
+2026-11-09T05:42:27.8465708Z [36;1m            for cid,cost in (('abstain',100),('beta',50),('alpha',50))]}[0m
+2026-11-09T05:42:27.8466196Z [36;1m    response, identity = _native_rank(bridge,request,timeout_s=2)[0m
+2026-11-09T05:42:27.8466720Z [36;1m    original_build_receipt = Path(bridge['build_receipt']).read_bytes()[0m
+2026-11-09T05:42:27.8467291Z [36;1m    if sha256(original_build_receipt).hexdigest() != identity['build_receipt_sha256']:[0m
+2026-11-09T05:42:27.8467937Z [36;1m        raise AssertionError('original native build receipt changed after the actual probe')[0m
+2026-11-09T05:42:27.8468484Z [36;1m    native_bytes = Path(bridge['binary']).read_bytes()[0m
+2026-11-09T05:42:27.8468877Z [36;1m    native_sha256 = sha256(native_bytes).hexdigest()[0m
+2026-11-09T05:42:27.8469266Z [36;1m    if not (native_sha256 == identity['binary_sha256'] ==[0m
+2026-11-09T05:42:27.8469692Z [36;1m            json.loads(original_build_receipt)['binary_sha256']):[0m
+2026-11-09T05:42:27.8470279Z [36;1m        raise AssertionError('retained native bytes differ from the actual probe or build receipt')[0m
+2026-11-09T05:42:27.8471007Z [36;1m    native_directory = evidence / 'native'[0m
+2026-11-09T05:42:27.8471340Z [36;1m    native_directory.mkdir()[0m
+2026-11-09T05:42:27.8471693Z [36;1m    retained_native = native_directory / 'hia-ndu-bridge'[0m
+2026-11-09T05:42:27.8472205Z [36;1m    with retained_native.open('xb') as stream:[0m
+2026-11-09T05:42:27.8472584Z [36;1m        stream.write(native_bytes)[0m
+2026-11-09T05:42:27.8472935Z [36;1m    if retained_native.read_bytes() != native_bytes:[0m
+2026-11-09T05:42:27.8473382Z [36;1m        raise AssertionError('retained native binary readback differs')[0m
+2026-11-09T05:42:27.8473816Z [36;1m    report['retained_native_binary'] = {[0m
+2026-11-09T05:42:27.8474298Z [36;1m        'path': 'native/hia-ndu-bridge', 'bytes': len(native_bytes), 'sha256': native_sha256,[0m
+2026-11-09T05:42:27.8475105Z [36;1m        'source_build_receipt_sha256': identity['build_receipt_sha256']}[0m
+2026-11-09T05:42:27.8475592Z [36;1m    selection = resolve_scalar_selection(request,response)[0m
+2026-11-09T05:42:27.8476125Z [36;1m    probe = {'request': request, 'native_response': response, 'native_identity': identity,[0m
+2026-11-09T05:42:27.8476822Z [36;1m        'selection_resolution': selection, 'scope': 'actual native ABI regression input; not a task cohort'}[0m
+2026-11-09T05:42:27.8477528Z [36;1m    (evidence / 'actual-native-tie.json').write_text(json.dumps(probe,indent=2) + '\n')[0m
+2026-11-09T05:42:27.8478059Z [36;1m    assert response['advisory_recommendation'] is None[0m
+2026-11-09T05:42:27.8478518Z [36;1m    assert response['disposition'] == 'ParetoSetRequiresSlowPath'[0m
+2026-11-09T05:42:27.8478982Z [36;1m    assert response['pareto_frontier'] == ['alpha','beta'][0m
+2026-11-09T05:42:27.8479376Z [36;1m    assert selection['selected_id'] == 'alpha'[0m
+2026-11-09T05:42:27.8479811Z [36;1m    assert selection['selection_source'] == 'caller_pareto_tie_policy'[0m
+2026-11-09T05:42:27.8480275Z [36;1m    report['actual_native_probe'] = {'completed': True,[0m
+2026-11-09T05:42:27.8480789Z [36;1m        'sha256': sha256((evidence / 'actual-native-tie.json').read_bytes()).hexdigest(),[0m
+2026-11-09T05:42:27.8481304Z [36;1m        'binary_sha256': identity['binary_sha256'],[0m
+2026-11-09T05:42:27.8481777Z [36;1m        'build_receipt_sha256': identity['build_receipt_sha256']}[0m
+2026-11-09T05:42:27.8482154Z [36;1m    modules = [[0m
+2026-11-09T05:42:27.8482428Z [36;1m        'tests.test_hia_ndu_scalar_selection',[0m
+2026-11-09T05:42:27.8482774Z [36;1m        'tests.test_hia_agent_macro_policy',[0m
+2026-11-09T05:42:27.8483120Z [36;1m        'tests.test_hia_macro_strong_control',[0m
+2026-11-09T05:42:27.8483461Z [36;1m        'tests.test_hia_macro_multistep',[0m
+2026-11-09T05:42:27.8483788Z [36;1m        'tests.test_hia_ndu_optimizer',[0m
+2026-11-09T05:42:27.8484125Z [36;1m        'tests.test_hia_ndu_optimizer_budget',[0m
+2026-11-09T05:42:27.8484735Z [36;1m        'tests.test_hia_ndu_optimizer_transport',[0m
+2026-11-09T05:42:27.8485100Z [36;1m        'tests.test_hia_ndu_prepared_ranker',[0m
+2026-11-09T05:42:27.8485449Z [36;1m        'tests.test_hia_ndu_persistent_ranker'][0m
+2026-11-09T05:42:27.8485889Z [36;1m    suite = unittest.defaultTestLoader.loadTestsFromNames(modules)[0m
+2026-11-09T05:42:27.8486345Z [36;1m    class Result(unittest.TextTestResult):[0m
+2026-11-09T05:42:27.8486687Z [36;1m        def __init__(self,*args,**kwargs):[0m
+2026-11-09T05:42:27.8487023Z [36;1m            super().__init__(*args,**kwargs)[0m
+2026-11-09T05:42:27.8487364Z [36;1m            self.completed_ids = [][0m
+2026-11-09T05:42:27.8508233Z [36;1m        def addSuccess(self,test):[0m
+2026-11-09T05:42:27.8508820Z [36;1m            self.completed_ids.append(test.id())[0m
+2026-11-09T05:42:27.8509262Z [36;1m            super().addSuccess(test)[0m
+2026-11-09T05:42:27.8509733Z [36;1m    result = unittest.TextTestRunner(verbosity=2,resultclass=Result).run(suite)[0m
+2026-11-09T05:42:27.8510627Z [36;1m    report['native_binary_sha256_after_suite'] = sha256(Path(bridge['binary']).read_bytes()).hexdigest()[0m
+2026-11-09T05:42:27.8511418Z [36;1m    report['native_binary_unchanged_after_suite'] = report['native_binary_sha256_after_suite'] == native_sha256[0m
+2026-11-09T05:42:27.8512055Z [36;1m    if not report['native_binary_unchanged_after_suite']:[0m
+2026-11-09T05:42:27.8512747Z [36;1m        raise AssertionError('original native binary changed during the integration suite')[0m
+2026-11-09T05:42:27.8513595Z [36;1m    required = 'tests.test_hia_ndu_scalar_selection.NativeScalarSelectionTests.test_actual_native_tie_and_injected_wrong_frontier'[0m
+2026-11-09T05:42:27.8514266Z [36;1m    required_persistent_native = [[0m
+2026-11-09T05:42:27.8515314Z [36;1m        'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_responses_equal_prepared_for_four_fresh_evaluations',[0m
+2026-11-09T05:42:27.8516450Z [36;1m        'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_rejects_bad_session_sequence_length_and_partial_header',[0m
+2026-11-09T05:42:27.8517511Z [36;1m        'tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_stops_at_the_startup_round_allowance'][0m
+2026-11-09T05:42:27.8518261Z [36;1m    persistent_completed = [name for name in result.completed_ids[0m
+2026-11-09T05:42:27.8518775Z [36;1m        if name.startswith('tests.test_hia_ndu_persistent_ranker.')][0m
+2026-11-09T05:42:27.8519384Z [36;1m    qualified = (result.wasSuccessful() and not result.skipped and not result.expectedFailures[0m
+2026-11-09T05:42:27.8519978Z [36;1m        and required in result.completed_ids and result.testsRun > 0[0m
+2026-11-09T05:42:27.8520404Z [36;1m        and len(persistent_completed) == 22[0m
+2026-11-09T05:42:27.8520875Z [36;1m        and all(name in result.completed_ids for name in required_persistent_native))[0m
+2026-11-09T05:42:27.8521426Z [36;1m    report['persistent_tests_completed'] = len(persistent_completed)[0m
+2026-11-09T05:42:27.8521958Z [36;1m    report['required_persistent_native_tests'] = required_persistent_native[0m
+2026-11-09T05:42:27.8522473Z [36;1m    report['required_persistent_native_tests_completed'] = all([0m
+2026-11-09T05:42:27.8522977Z [36;1m        name in result.completed_ids for name in required_persistent_native)[0m
+2026-11-09T05:42:27.8523493Z [36;1m    report.update(status='QUALIFIED' if qualified else 'FAILED',[0m
+2026-11-09T05:42:27.8524029Z [36;1m        modules=modules, tests_run=result.testsRun, successes=result.completed_ids,[0m
+2026-11-09T05:42:27.8524852Z [36;1m        failures=[{'test': t.id(),'traceback':detail} for t,detail in result.failures],[0m
+2026-11-09T05:42:27.8525424Z [36;1m        errors=[{'test': t.id(),'traceback':detail} for t,detail in result.errors],[0m
+2026-11-09T05:42:27.8526052Z [36;1m        expected_failures=[{'test':t.id(),'traceback':detail} for t,detail in result.expectedFailures],[0m
+2026-11-09T05:42:27.8526682Z [36;1m        skipped=[{'test':t.id(),'reason':reason} for t,reason in result.skipped],[0m
+2026-11-09T05:42:27.8527223Z [36;1m        required_native_test_completed=required in result.completed_ids)[0m
+2026-11-09T05:42:27.8527642Z [36;1m    if not qualified:[0m
+2026-11-09T05:42:27.8528135Z [36;1m        raise AssertionError('all named integration tests and the native test must pass with zero skips')[0m
+2026-11-09T05:42:27.8528689Z [36;1mexcept BaseException as error:[0m
+2026-11-09T05:42:27.8528998Z [36;1m    report['status'] = 'FAILED'[0m
+2026-11-09T05:42:27.8529398Z [36;1m    report['error'] = {'type':type(error).__name__,'message':str(error)}[0m
+2026-11-09T05:42:27.8529812Z [36;1m    raise[0m
+2026-11-09T05:42:27.8530051Z [36;1mfinally:[0m
+2026-11-09T05:42:27.8530394Z [36;1m    report['validation_wall_ns'] = time.perf_counter_ns() - started[0m
+2026-11-09T05:42:27.8530980Z [36;1m    (evidence / 'integration-result.json').write_text(json.dumps(report,indent=2) + '\n')[0m
+2026-11-09T05:42:27.8531447Z [36;1mPY[0m
+2026-11-09T05:42:27.8552192Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:27.8552568Z env:
+2026-11-09T05:42:27.8552799Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:27.8553076Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:27.8553403Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:27.8553964Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:27.8554710Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:27.8555209Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:27.8555649Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:27.8556075Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:27.8556492Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:27.8557000Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:27.8557527Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:27.8557995Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:27.8558379Z ##[endgroup]
+2026-11-09T05:42:28.9372554Z test_actual_native_tie_and_injected_wrong_frontier (tests.test_hia_ndu_scalar_selection.NativeScalarSelectionTests.test_actual_native_tie_and_injected_wrong_frontier) ... ok
+2026-11-09T05:42:28.9448423Z test_bounded_cost_table_matches_full_enum_without_more_information (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_bounded_cost_table_matches_full_enum_without_more_information) ... ok
+2026-11-09T05:42:28.9453407Z test_feasibility_partition_cannot_omit_duplicate_or_invent_rejection (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_feasibility_partition_cannot_omit_duplicate_or_invent_rejection) ... ok
+2026-11-09T05:42:28.9456435Z test_hard_and_resource_rejections_cannot_enter_selection (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_hard_and_resource_rejections_cannot_enter_selection) ... ok
+2026-11-09T05:42:28.9458643Z test_infeasible_incumbent_cannot_be_fabricated (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_infeasible_incumbent_cannot_be_fabricated) ... ok
+2026-11-09T05:42:28.9460862Z test_minimal_request_keeps_explicit_abstain (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_minimal_request_keeps_explicit_abstain) ... ok
+2026-11-09T05:42:28.9462149Z test_null_unique_choice_is_not_silently_abstain (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_null_unique_choice_is_not_silently_abstain) ... ok
+2026-11-09T05:42:28.9464218Z test_receipt_binds_exact_request_and_raw_reply_without_mutating_it (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_receipt_binds_exact_request_and_raw_reply_without_mutating_it) ... ok
+2026-11-09T05:42:28.9472377Z test_request_order_does_not_change_tie_resolution (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_request_order_does_not_change_tie_resolution) ... ok
+2026-11-09T05:42:28.9478015Z test_request_shape_and_exact_integer_boundaries_fail_closed (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_request_shape_and_exact_integer_boundaries_fail_closed) ... ok
+2026-11-09T05:42:28.9481594Z test_resource_cap_boundary_is_inclusive (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_resource_cap_boundary_is_inclusive) ... ok
+2026-11-09T05:42:28.9483513Z test_tie_with_incumbent_retains_it_without_claiming_native_abstention (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_tie_with_incumbent_retains_it_without_claiming_native_abstention) ... ok
+2026-11-09T05:42:28.9485842Z test_tied_cheaper_frontier_does_not_fall_back_to_dominated_incumbent (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_tied_cheaper_frontier_does_not_fall_back_to_dominated_incumbent) ... ok
+2026-11-09T05:42:28.9490594Z test_unique_minimum_preserves_actual_native_recommendation (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_unique_minimum_preserves_actual_native_recommendation) ... ok
+2026-11-09T05:42:28.9500651Z test_wrong_frontiers_and_dispositions_are_rejected (tests.test_hia_ndu_scalar_selection.ScalarSelectionTests.test_wrong_frontiers_and_dispositions_are_rejected) ... ok
+2026-11-09T05:42:28.9506287Z test_duplicate_attempts_and_receipts_cannot_be_double_charged (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_duplicate_attempts_and_receipts_cannot_be_double_charged) ... ok
+2026-11-09T05:42:28.9518975Z test_exhausted_lifecycle_budget_cannot_be_renewed (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_exhausted_lifecycle_budget_cannot_be_renewed) ... ok
+2026-11-09T05:42:28.9520557Z test_failed_search_and_unknown_completion_are_preserved (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_failed_search_and_unknown_completion_are_preserved) ... ok
+2026-11-09T05:42:28.9528929Z test_inconsistent_frontier_is_blocked_and_retained_as_rejected (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_inconsistent_frontier_is_blocked_and_retained_as_rejected) ... ok
+2026-11-09T05:42:28.9535701Z test_ledger_identity_is_reserved_before_native_work (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_ledger_identity_is_reserved_before_native_work) ... ok
+2026-11-09T05:42:28.9543454Z test_malformed_native_response_is_a_retained_rejection (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_malformed_native_response_is_a_retained_rejection) ... ok
+2026-11-09T05:42:28.9568053Z test_malformed_plans_and_boolean_costs_are_not_admitted (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_malformed_plans_and_boolean_costs_are_not_admitted) ... ok
+2026-11-09T05:42:28.9573690Z test_missing_native_bridge_is_blocked_and_charged (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_missing_native_bridge_is_blocked_and_charged) ... ok
+2026-11-09T05:42:28.9576481Z test_mutable_duplicate_and_nonfinite_inputs_rejected (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_mutable_duplicate_and_nonfinite_inputs_rejected) ... ok
+2026-11-09T05:42:28.9586461Z test_native_ambiguity_records_caller_choice_inside_frontier (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_native_ambiguity_records_caller_choice_inside_frontier) ... ok
+2026-11-09T05:42:28.9595879Z test_native_failure_remains_in_costed_next_state (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_native_failure_remains_in_costed_next_state) ... ok
+2026-11-09T05:42:28.9607624Z test_native_runtime_overrun_abstains_without_refund (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_native_runtime_overrun_abstains_without_refund) ... ok
+2026-11-09T05:42:28.9616540Z test_plan_model_token_overrun_is_hard_violation (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_plan_model_token_overrun_is_hard_violation) ... ok
+2026-11-09T05:42:28.9625684Z test_real_adapter_boundary_is_explicit_and_snapshot_bound (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_real_adapter_boundary_is_explicit_and_snapshot_bound) ... ok
+2026-11-09T05:42:28.9645960Z test_unknown_cost_never_becomes_free (tests.test_hia_agent_macro_policy.MacroAdviceTests.test_unknown_cost_never_becomes_free) ... ok
+2026-11-09T05:42:28.9844781Z test_complete_comparison_preserves_arithmetic_without_attestation (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_complete_comparison_preserves_arithmetic_without_attestation) ... ok
+2026-11-09T05:42:29.0055603Z test_declared_real_evidence_remains_unauthenticated (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_declared_real_evidence_remains_unauthenticated) ... ok
+2026-11-09T05:42:29.0245159Z test_declared_unperformed_phase_cannot_hide_costs (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_declared_unperformed_phase_cannot_hide_costs) ... ok
+2026-11-09T05:42:29.0445304Z test_failed_search_reverses_apparent_gain (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_failed_search_reverses_apparent_gain) ... ok
+2026-11-09T05:42:29.0643622Z test_failed_task_is_retained_and_blocks_win (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_failed_task_is_retained_and_blocks_win) ... ok
+2026-11-09T05:42:29.0843610Z test_forecast_future_use_cannot_replace_observed_use (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_forecast_future_use_cannot_replace_observed_use) ... ok
+2026-11-09T05:42:29.1042106Z test_incomplete_fast_control_is_not_a_completed_gain (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_incomplete_fast_control_is_not_a_completed_gain) ... ok
+2026-11-09T05:42:29.1231543Z test_missing_phase_cannot_be_assumed_zero (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_missing_phase_cannot_be_assumed_zero) ... ok
+2026-11-09T05:42:29.1438968Z test_no_real_native_value_call_blocks_ndu_claim (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_no_real_native_value_call_blocks_ndu_claim) ... ok
+2026-11-09T05:42:29.1640543Z test_over_budget_work_is_retained_as_failure (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_over_budget_work_is_retained_as_failure) ... ok
+2026-11-09T05:42:29.1842582Z test_partial_control_set_does_not_skip_strong_ordinary (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_partial_control_set_does_not_skip_strong_ordinary) ... ok
+2026-11-09T05:42:29.2220640Z test_registration_or_input_drift_is_rejected (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_registration_or_input_drift_is_rejected) ... ok
+2026-11-09T05:42:29.2795687Z test_same_agent_and_same_budget_are_required (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_same_agent_and_same_budget_are_required) ... ok
+2026-11-09T05:42:29.2999492Z test_synthetic_success_never_closes_real_task_requirement (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_synthetic_success_never_closes_real_task_requirement) ... ok
+2026-11-09T05:42:29.3533620Z test_task_denominator_cannot_be_reduced (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_task_denominator_cannot_be_reduced) ... ok
+2026-11-09T05:42:29.4330150Z test_unknown_cost_or_missing_use_invalidates_completed_comparison (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_unknown_cost_or_missing_use_invalidates_completed_comparison) ... ok
+2026-11-09T05:42:29.4532823Z test_unknown_model_or_adoption_cost_blocks_win (tests.test_hia_agent_macro_policy.MacroComparisonTests.test_unknown_model_or_adoption_cost_blocks_win) ... ok
+2026-11-09T05:42:29.4583975Z test_cli_output_never_overwrites_a_file_or_symlink_target (tests.test_hia_agent_macro_policy.MacroEntryTests.test_cli_output_never_overwrites_a_file_or_symlink_target) ... ok
+2026-11-09T05:42:29.4589056Z test_cli_rejects_fifo_and_oversized_file_before_reading (tests.test_hia_agent_macro_policy.MacroEntryTests.test_cli_rejects_fifo_and_oversized_file_before_reading) ... ok
+2026-11-09T05:42:29.4603038Z test_discovery_is_source_bound_and_example_costs_are_unknown (tests.test_hia_agent_macro_policy.MacroEntryTests.test_discovery_is_source_bound_and_example_costs_are_unknown) ... ok
+2026-11-09T05:42:29.4636077Z test_any_feasible_strict_improvement_keeps_original_native_path (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_any_feasible_strict_improvement_keeps_original_native_path) ... ok
+2026-11-09T05:42:29.4687393Z test_cli_flag_is_explicit_and_cannot_change_assessment (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_cli_flag_is_explicit_and_cannot_change_assessment) ... ok
+2026-11-09T05:42:29.4696023Z test_default_path_preserves_native_dispatch_on_empty_pool (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_default_path_preserves_native_dispatch_on_empty_pool) ... ok
+2026-11-09T05:42:29.4720842Z test_guard_does_not_erase_unknown_costs_or_missing_bridge (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_guard_does_not_erase_unknown_costs_or_missing_bridge) ... ok
+2026-11-09T05:42:29.4735294Z test_guard_overrun_and_repeated_calls_keep_all_actual_cost (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_guard_overrun_and_repeated_calls_keep_all_actual_cost) ... ok
+2026-11-09T05:42:29.4751146Z test_guard_preserves_q32_conversion_and_budget_checks (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_guard_preserves_q32_conversion_and_budget_checks) ... ok
+2026-11-09T05:42:29.4801066Z test_guard_retains_exact_input_rejections (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_guard_retains_exact_input_rejections) ... ok
+2026-11-09T05:42:29.4844945Z test_opt_in_empty_or_dominated_pools_stop_without_native_claim (tests.test_hia_agent_macro_policy.MacroStopGuardTests.test_opt_in_empty_or_dominated_pools_stop_without_native_claim) ... ok
+2026-11-09T05:42:29.4847605Z test_budget_uses_all_sunk_costs_failed_timeouts_and_tokens (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_budget_uses_all_sunk_costs_failed_timeouts_and_tokens) ... ok
+2026-11-09T05:42:29.4858362Z test_cancelled_cost_is_preserved_without_new_budget (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_cancelled_cost_is_preserved_without_new_budget) ... ok
+2026-11-09T05:42:29.4860588Z test_cannot_adopt_and_retain_same_candidate_plan (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_cannot_adopt_and_retain_same_candidate_plan) ... ok
+2026-11-09T05:42:29.4862807Z test_considers_all_plans_and_retains_incumbent_on_ties (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_considers_all_plans_and_retains_incumbent_on_ties) ... ok
+2026-11-09T05:42:29.4872081Z test_native_campaign_ordinary_uses_all_budget_feasible_plans (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_native_campaign_ordinary_uses_all_budget_feasible_plans) ... ok
+2026-11-09T05:42:29.4886508Z test_no_candidate_and_explicit_no_change_are_valid (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_no_candidate_and_explicit_no_change_are_valid) ... ok
+2026-11-09T05:42:29.4891791Z test_repeated_advice_cannot_refund_controller_cost (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_repeated_advice_cannot_refund_controller_cost) ... ok
+2026-11-09T05:42:29.4893852Z test_sixteen_plans_bound_and_unknown_parameters (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_sixteen_plans_bound_and_unknown_parameters) ... ok
+2026-11-09T05:42:29.4895575Z test_uncertainty_can_reverse_superficial_speed_gain (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_uncertainty_can_reverse_superficial_speed_gain) ... ok
+2026-11-09T05:42:29.4898811Z test_unknown_cost_or_completion_blocks_control (tests.test_hia_macro_strong_control.StrongOrdinaryTests.test_unknown_cost_or_completion_blocks_control) ... ok
+2026-11-09T05:42:29.4901374Z test_calibration_does_not_consume_heldout_or_failed_observations (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_calibration_does_not_consume_heldout_or_failed_observations) ... ok
+2026-11-09T05:42:29.4904056Z test_full_ordinary_considers_every_complete_continuation (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_full_ordinary_considers_every_complete_continuation) ... ok
+2026-11-09T05:42:29.4907075Z test_incomplete_cheapest_candidate_is_never_a_delivered_control (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_incomplete_cheapest_candidate_is_never_a_delivered_control) ... ok
+2026-11-09T05:42:29.4913577Z test_native_abstain_maps_only_to_actual_qualified_candidate (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_native_abstain_maps_only_to_actual_qualified_candidate) ... ok
+2026-11-09T05:42:29.4919540Z test_native_null_is_an_explicit_caller_tie_and_never_dominated_fallback (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_native_null_is_an_explicit_caller_tie_and_never_dominated_fallback) ... ok
+2026-11-09T05:42:29.4924946Z test_native_receives_same_cost_rows_and_an_actual_feasible_incumbent (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_native_receives_same_cost_rows_and_an_actual_feasible_incumbent) ... ok
+2026-11-09T05:42:29.4927476Z test_no_python_substitute_for_missing_native_ndu (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_no_python_substitute_for_missing_native_ndu) ... ok
+2026-11-09T05:42:29.4933110Z test_nonpositive_budget_never_schedules_zero_cost_candidates (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_nonpositive_budget_never_schedules_zero_cost_candidates) ... ok
+2026-11-09T05:42:29.4935930Z test_uncertainty_and_original_remaining_budget_bind_ordinary (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_uncertainty_and_original_remaining_budget_bind_ordinary) ... ok
+2026-11-09T05:42:29.4938642Z test_unchanged_registered_budget_applies_to_all_arms (tests.test_hia_macro_multistep.MatchedStrongControlTests.test_unchanged_registered_budget_applies_to_all_arms) ... ok
+2026-11-09T05:42:29.4941115Z test_previous_actual_bill_is_an_estimate_with_an_exact_equality_boundary (tests.test_hia_macro_multistep.ProposalReservationTests.test_previous_actual_bill_is_an_estimate_with_an_exact_equality_boundary) ... ok
+2026-11-09T05:42:29.5920751Z test_qualified_pool_survives_known_insufficient_tokens_without_a_second_dispatch (tests.test_hia_macro_multistep.ProposalReservationTests.test_qualified_pool_survives_known_insufficient_tokens_without_a_second_dispatch) ... ok
+2026-11-09T05:42:29.5923905Z test_unknown_or_unsettled_previous_attempt_freezes_even_with_positive_allowance (tests.test_hia_macro_multistep.ProposalReservationTests.test_unknown_or_unsettled_previous_attempt_freezes_even_with_positive_allowance) ... ok
+2026-11-09T05:42:29.6266091Z test_unknown_second_attempt_keeps_first_pool_unqualified_and_blocks_later_cells (tests.test_hia_macro_multistep.ProposalReservationTests.test_unknown_second_attempt_keeps_first_pool_unqualified_and_blocks_later_cells) ... ok
+2026-11-09T05:42:29.7039968Z test_extra_missing_relabelled_tasks_or_changed_allowance_reject (tests.test_hia_macro_multistep.SixTaskAssessmentTests.test_extra_missing_relabelled_tasks_or_changed_allowance_reject) ... ok
+2026-11-09T05:42:29.7197269Z test_incomplete_or_unknown_cost_can_never_be_a_completed_control (tests.test_hia_macro_multistep.SixTaskAssessmentTests.test_incomplete_or_unknown_cost_can_never_be_a_completed_control) ... ok
+2026-11-09T05:42:29.7670883Z test_six_task_v2_and_original_eight_task_v1_are_distinct (tests.test_hia_macro_multistep.SixTaskAssessmentTests.test_six_task_v2_and_original_eight_task_v1_are_distinct) ... ok
+2026-11-09T05:42:29.7673512Z test_actual_output_schema_flag_and_model_are_frozen_arguments (tests.test_hia_macro_multistep.StructuredOutputTests.test_actual_output_schema_flag_and_model_are_frozen_arguments) ... ok
+2026-11-09T05:42:29.7681490Z test_bad_json_retains_usage_and_is_only_a_planned_round_rejection (tests.test_hia_macro_multistep.StructuredOutputTests.test_bad_json_retains_usage_and_is_only_a_planned_round_rejection) ... ok
+2026-11-09T05:42:29.7683541Z test_foreign_tool_is_protocol_failure_not_content_retry (tests.test_hia_macro_multistep.StructuredOutputTests.test_foreign_tool_is_protocol_failure_not_content_retry) ... ok
+2026-11-09T05:42:29.7687193Z test_hidden_task_fields_cannot_enter_public_prompt (tests.test_hia_macro_multistep.StructuredOutputTests.test_hidden_task_fields_cannot_enter_public_prompt) ... ok
+2026-11-09T05:42:29.7693682Z test_only_the_exact_once_observed_pre_turn_warning_is_allowed (tests.test_hia_macro_multistep.StructuredOutputTests.test_only_the_exact_once_observed_pre_turn_warning_is_allowed) ... ok
+2026-11-09T05:42:29.7804000Z test_post_dispatch_observation_exception_freezes_later_cells (tests.test_hia_macro_multistep.StructuredOutputTests.test_post_dispatch_observation_exception_freezes_later_cells) ... ok
+2026-11-09T05:42:29.7806520Z test_unknown_usage_is_not_zero_or_recoverable (tests.test_hia_macro_multistep.StructuredOutputTests.test_unknown_usage_is_not_zero_or_recoverable) ... ok
+2026-11-09T05:42:29.7811944Z test_valid_envelope_does_not_skip_core_checker (tests.test_hia_macro_multistep.StructuredOutputTests.test_valid_envelope_does_not_skip_core_checker) ... ok
+2026-11-09T05:42:29.7814295Z test_integer_conversion_matches_exact_fraction_without_clipping (tests.test_hia_ndu_optimizer.FixedPointTests.test_integer_conversion_matches_exact_fraction_without_clipping) ... ok
+2026-11-09T05:42:29.7834593Z test_actual_search_budget_overrun_keeps_incumbent (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_actual_search_budget_overrun_keeps_incumbent) ... ok
+2026-11-09T05:42:29.8802793Z test_complete_matching_hashes_with_wrong_proof_scope_do_not_authorize (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_complete_matching_hashes_with_wrong_proof_scope_do_not_authorize) ... ok
+2026-11-09T05:42:29.8895786Z test_cost_dominated_candidate_is_not_proved_or_marked_safe (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_cost_dominated_candidate_is_not_proved_or_marked_safe) ... ok
+2026-11-09T05:42:29.8982452Z test_empty_finite_action_set_returns_existing_baseline (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_empty_finite_action_set_returns_existing_baseline) ... ok
+2026-11-09T05:42:29.9004599Z test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_exhausted_budget_skips_proof_but_still_binds_candidate_and_bridge) ... ok
+2026-11-09T05:42:29.9566768Z test_fresh_selected_proof_can_still_refuse_native_recommendation (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_fresh_selected_proof_can_still_refuse_native_recommendation) ... ok
+2026-11-09T05:42:29.9682235Z test_identical_unsupported_loop_never_becomes_an_identity_proof (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identical_unsupported_loop_never_becomes_an_identity_proof) ... ok
+2026-11-09T05:42:29.9725970Z test_identity_mismatches_and_authority_flags_are_not_accepted (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_identity_mismatches_and_authority_flags_are_not_accepted) ... ok
+2026-11-09T05:42:30.0697171Z test_modified_build_receipt_or_binary_does_not_rank (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_modified_build_receipt_or_binary_does_not_rank) ... ok
+2026-11-09T05:42:30.0794580Z test_native_uncertainty_is_explicitly_applied_before_pareto_ranking (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_native_uncertainty_is_explicitly_applied_before_pareto_ranking) ... ok
+2026-11-09T05:42:30.1340696Z test_real_ndu_selects_only_a_freshly_proved_candidate (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_real_ndu_selects_only_a_freshly_proved_candidate) ... ok
+2026-11-09T05:42:30.1439915Z test_search_of_losing_candidates_and_baseline_measurement_is_charged (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_search_of_losing_candidates_and_baseline_measurement_is_charged) ... ok
+2026-11-09T05:42:30.2236692Z test_structurally_safe_wrong_cheapest_candidate_is_rejected (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_structurally_safe_wrong_cheapest_candidate_is_rejected) ... ok
+2026-11-09T05:42:30.2351184Z test_unselected_export_cannot_change_behind_a_selected_function_proof (tests.test_hia_ndu_optimizer.NativeProofGatedRankingTests.test_unselected_export_cannot_change_behind_a_selected_function_proof) ... ok
+2026-11-09T05:42:30.2384655Z test_all_candidates_share_one_cap_and_losing_search_costs (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_all_candidates_share_one_cap_and_losing_search_costs) ... ok
+2026-11-09T05:42:30.2405748Z test_each_solver_timeout_uses_remaining_budget_including_paid_search (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_each_solver_timeout_uses_remaining_budget_including_paid_search) ... ok
+2026-11-09T05:42:30.2428177Z test_exact_budget_exhaustion_is_not_reported_as_an_overrun (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_exact_budget_exhaustion_is_not_reported_as_an_overrun) ... ok
+2026-11-09T05:42:30.2448382Z test_exhausted_search_never_starts_native_work_or_claims_native_receipt (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_exhausted_search_never_starts_native_work_or_claims_native_receipt) ... ok
+2026-11-09T05:42:30.2471163Z test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_may_finish_exactly_at_cap_if_net_margin_remains) ... ok
+2026-11-09T05:42:30.2492251Z test_final_proof_overshoot_still_preserves_incumbent (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_final_proof_overshoot_still_preserves_incumbent) ... ok
+2026-11-09T05:42:30.2513571Z test_less_than_one_profitable_millisecond_does_not_start_a_solver (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_profitable_millisecond_does_not_start_a_solver) ... ok
+2026-11-09T05:42:30.2533558Z test_less_than_one_solver_millisecond_never_rounds_the_budget_up (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_less_than_one_solver_millisecond_never_rounds_the_budget_up) ... ok
+2026-11-09T05:42:30.2555092Z test_native_budget_overrun_does_not_start_a_second_solver (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_budget_overrun_does_not_start_a_second_solver) ... ok
+2026-11-09T05:42:30.2575707Z test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_cost_exhausting_possible_gain_does_not_start_a_second_solver) ... ok
+2026-11-09T05:42:30.2622460Z test_native_remainder_cannot_be_rounded_up_for_the_final_solver (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_native_remainder_cannot_be_rounded_up_for_the_final_solver) ... ok
+2026-11-09T05:42:30.2642311Z test_proof_spending_remaining_budget_does_not_renew_native_timeout (tests.test_hia_ndu_optimizer_budget.RankingBudgetTests.test_proof_spending_remaining_budget_does_not_renew_native_timeout) ... ok
+2026-11-09T05:42:30.3341606Z test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate (tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_real_proofs_preserve_all_input_equivalence_and_reject_wrong_candidate) ... ok
+2026-11-09T05:42:30.3373155Z test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof (tests.test_hia_ndu_optimizer_budget.RealProofBudgetTests.test_unsupported_loop_remains_unknown_and_cannot_reach_final_proof) ... ok
+2026-11-09T05:42:30.3652091Z test_aba_path_replacement_cannot_execute_unadmitted_bytes (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_aba_path_replacement_cannot_execute_unadmitted_bytes) ... ok
+2026-11-09T05:42:30.6730536Z test_actual_deadline_kills_and_reaps_leader (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_actual_deadline_kills_and_reaps_leader) ... ok
+2026-11-09T05:42:30.7003209Z test_actual_nonzero_exit_remains_a_refusal (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_actual_nonzero_exit_remains_a_refusal) ... ok
+2026-11-09T05:42:30.7536203Z test_actual_stdout_and_stderr_overflow_are_stopped_at_the_output_bound (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_actual_stdout_and_stderr_overflow_are_stopped_at_the_output_bound) ... ok
+2026-11-09T05:42:30.7803239Z test_admitted_image_uses_required_kernel_seals_and_closes_descriptor (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_admitted_image_uses_required_kernel_seals_and_closes_descriptor) ... ok
+2026-11-09T05:42:30.8712438Z test_binary_fifo_without_writer_rejects_without_blocking (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_binary_fifo_without_writer_rejects_without_blocking) ... ok
+2026-11-09T05:42:30.8739318Z test_changed_binary_refuses_before_execution (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_changed_binary_refuses_before_execution) ... ok
+2026-11-09T05:42:30.9027004Z test_changed_original_path_after_admitted_execution_still_refuses (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_changed_original_path_after_admitted_execution_still_refuses) ... ok
+2026-11-09T05:42:30.9054726Z test_identity_admission_cannot_renew_an_exhausted_process_budget (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_identity_admission_cannot_renew_an_exhausted_process_budget) ... ok
+2026-11-09T05:42:30.9079332Z test_missing_required_seal_readback_rejects_before_execution (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_missing_required_seal_readback_rejects_before_execution) ... ok
+2026-11-09T05:42:30.9102826Z test_missing_sealing_capability_rejects_before_execution (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_missing_sealing_capability_rejects_before_execution) ... ok
+2026-11-09T05:42:31.0004853Z test_receipt_fifo_without_writer_rejects_without_blocking (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_receipt_fifo_without_writer_rejects_without_blocking) ... ok
+2026-11-09T05:42:31.1670563Z test_response_identity_and_advisory_boundaries_remain_required (tests.test_hia_ndu_optimizer_transport.NDUOptimizerTransportTests.test_response_identity_and_advisory_boundaries_remain_required) ... ok
+2026-11-09T05:42:31.1680825Z test_changed_ledger_cost_cannot_reuse_the_original_report (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_changed_ledger_cost_cannot_reuse_the_original_report) ... ok
+2026-11-09T05:42:31.1723651Z test_equal_python_boolean_and_float_coercions_do_not_pass_json_identity (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_equal_python_boolean_and_float_coercions_do_not_pass_json_identity) ... ok
+2026-11-09T05:42:31.2605359Z test_every_reported_pair_cost_difference_and_completion_is_checked (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_every_reported_pair_cost_difference_and_completion_is_checked) ... ok
+2026-11-09T05:42:31.2802824Z test_every_summary_statistic_is_recomputed (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_every_summary_statistic_is_recomputed) ... ok
+2026-11-09T05:42:31.2837845Z test_missing_duplicate_incomplete_or_non_integer_cells_are_refused (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_missing_duplicate_incomplete_or_non_integer_cells_are_refused) ... ok
+2026-11-09T05:42:31.2903053Z test_missing_extra_reordered_or_relabelled_report_structure_is_refused (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_missing_extra_reordered_or_relabelled_report_structure_is_refused) ... ok
+2026-11-09T05:42:31.2910292Z test_negative_zero_and_positive_pairs_keep_the_exact_denominator (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_negative_zero_and_positive_pairs_keep_the_exact_denominator) ... ok
+2026-11-09T05:42:31.2917488Z test_original_review_counterexample_is_refused (tests.test_hia_ndu_prepared_ranker.PreparedRankingReplayAnalysisTests.test_original_review_counterexample_is_refused) ... ok
+2026-11-09T05:42:31.3470646Z test_admission_and_sealing_once_but_every_request_executes (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_admission_and_sealing_once_but_every_request_executes) ... ok
+2026-11-09T05:42:31.3757582Z test_caller_mutation_cannot_rebind_submitted_request (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_caller_mutation_cannot_rebind_submitted_request) ... ok
+2026-11-09T05:42:31.3786630Z test_context_entry_failure_retires_the_admitted_descriptor (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_context_entry_failure_retires_the_admitted_descriptor) ... ok
+2026-11-09T05:42:31.4328405Z test_each_response_binds_actual_frozen_request_and_is_not_cached (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_each_response_binds_actual_frozen_request_and_is_not_cached) ... ok
+2026-11-09T05:42:31.4616395Z test_explicit_snapshot_is_unchanged_after_origin_paths_are_replaced (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_explicit_snapshot_is_unchanged_after_origin_paths_are_replaced) ... ok
+2026-11-09T05:42:31.4640522Z test_invalid_allowances_and_unadmitted_binary_refuse (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_invalid_allowances_and_unadmitted_binary_refuse) ... ok
+2026-11-09T05:42:31.4666970Z test_missing_seal_readback_refuses_before_process_start (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_missing_seal_readback_refuses_before_process_start) ... ok
+2026-11-09T05:42:31.4961855Z test_native_failure_is_retained_with_cleanup_and_no_automatic_retry (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_native_failure_is_retained_with_cleanup_and_no_automatic_retry) ... ok
+2026-11-09T05:42:31.5255727Z test_output_overflow_retains_actual_prefix_and_failure_cost (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_output_overflow_retains_actual_prefix_and_failure_cost) ... ok
+2026-11-09T05:42:31.5822890Z test_reentrant_observer_cannot_hide_a_nested_attempt_or_close (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_reentrant_observer_cannot_hide_a_nested_attempt_or_close) ... ok
+2026-11-09T05:42:31.6121833Z test_request_allowance_and_closed_owner_cannot_launch_more_processes (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_request_allowance_and_closed_owner_cannot_launch_more_processes) ... ok
+2026-11-09T05:42:31.6197406Z test_request_byte_limit_and_elapsed_timeout_refuse_before_spawn (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_request_byte_limit_and_elapsed_timeout_refuse_before_spawn) ... ok
+2026-11-09T05:42:31.6222685Z test_reused_numeric_descriptor_is_never_closed_as_owned (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_reused_numeric_descriptor_is_never_closed_as_owned) ... ok
+2026-11-09T05:42:31.6966587Z test_serialized_call_queue_is_not_charged_twice (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_serialized_call_queue_is_not_charged_twice) ... ok
+2026-11-09T05:42:31.8525473Z test_timeout_kills_and_reaps_actual_native_child (tests.test_hia_ndu_prepared_ranker.PreparedRankingTransportTests.test_timeout_kills_and_reaps_actual_native_child) ... ok
+2026-11-09T05:42:31.8889245Z test_original_native_rejects_bad_session_sequence_length_and_partial_header (tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_rejects_bad_session_sequence_length_and_partial_header) ... ok
+2026-11-09T05:42:31.9130746Z test_original_native_responses_equal_prepared_for_four_fresh_evaluations (tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_responses_equal_prepared_for_four_fresh_evaluations) ... ok
+2026-11-09T05:42:31.9210148Z test_original_native_stops_at_the_startup_round_allowance (tests.test_hia_ndu_persistent_ranker.NativePersistentRankerTests.test_original_native_stops_at_the_startup_round_allowance) ... ok
+2026-11-09T05:42:31.9549155Z test_changed_origin_path_cannot_replace_the_sealed_running_image (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_changed_origin_path_cannot_replace_the_sealed_running_image) ... ok
+2026-11-09T05:42:31.9882772Z test_external_reaping_refuses_before_any_numeric_group_signal (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_external_reaping_refuses_before_any_numeric_group_signal) ... ok
+2026-11-09T05:42:32.0188255Z test_failed_context_entry_closes_image_and_process (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_failed_context_entry_closes_image_and_process) ... ok
+2026-11-09T05:42:32.2157649Z test_frame_length_overflow_partial_frame_and_error_output_refuse (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_frame_length_overflow_partial_frame_and_error_output_refuse) ... ok
+2026-11-09T05:42:32.4524749Z test_greeting_mismatch_and_startup_timeout_close_real_child_and_descriptor (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_greeting_mismatch_and_startup_timeout_close_real_child_and_descriptor) ... ok
+2026-11-09T05:42:32.6578579Z test_idle_lifetime_watchdog_reaps_even_without_another_round (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_idle_lifetime_watchdog_reaps_even_without_another_round) ... ok
+2026-11-09T05:42:32.6610714Z test_invalid_limits_and_changed_image_cannot_launch (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_invalid_limits_and_changed_image_cannot_launch) ... ok
+2026-11-09T05:42:32.6935778Z test_observer_cannot_rewrite_startup_receipt_and_close_error_blocks_acceptance (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_observer_cannot_rewrite_startup_receipt_and_close_error_blocks_acceptance) ... ok
+2026-11-09T05:42:32.7232535Z test_observer_reentrancy_refuses_and_observer_failure_is_costed (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_observer_reentrancy_refuses_and_observer_failure_is_costed) ... ok
+2026-11-09T05:42:32.7575019Z test_one_process_evaluates_each_identical_request_and_costs_close (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_one_process_evaluates_each_identical_request_and_costs_close) ... ok
+2026-11-09T05:42:32.9099996Z test_owner_limit_and_total_wire_budget_are_bounded (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_owner_limit_and_total_wire_budget_are_bounded) ... ok
+2026-11-09T05:42:32.9745599Z test_parallel_call_waits_are_separate_from_disjoint_service_cost (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_parallel_call_waits_are_separate_from_disjoint_service_cost) ... ok
+2026-11-09T05:42:33.1062018Z test_real_round_timeout_kills_and_reaps_without_retry (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_real_round_timeout_kills_and_reaps_without_retry) ... ok
+2026-11-09T05:42:33.1401567Z test_request_copy_binds_actual_written_bytes_despite_caller_mutation (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_request_copy_binds_actual_written_bytes_despite_caller_mutation) ... ok
+2026-11-09T05:42:33.2313769Z test_response_sequence_session_and_request_replays_refuse_and_retire (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_response_sequence_session_and_request_replays_refuse_and_retire) ... ok
+2026-11-09T05:42:33.2342771Z test_startup_budget_cannot_launch_after_admission_exhausts_it (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_startup_budget_cannot_launch_after_admission_exhausts_it) ... ok
+2026-11-09T05:42:33.2733609Z test_startup_observer_failure_closes_and_costs_its_failure_observation (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_startup_observer_failure_closes_and_costs_its_failure_observation) ... ok
+2026-11-09T05:42:33.3366924Z test_trailing_response_and_close_suffix_cannot_be_hidden (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_trailing_response_and_close_suffix_cannot_be_hidden) ... ok
+2026-11-09T05:42:33.3411424Z test_watchdog_start_failure_still_reaps_the_started_child (tests.test_hia_ndu_persistent_ranker.PersistentRankerTests.test_watchdog_start_failure_still_reaps_the_started_child) ... ok
+2026-11-09T05:42:33.3412405Z 
+2026-11-09T05:42:33.3412609Z ----------------------------------------------------------------------
+2026-11-09T05:42:33.3413031Z Ran 180 tests in 4.416s
+2026-11-09T05:42:33.3413194Z 
+2026-11-09T05:42:33.3413281Z OK
+2026-11-09T05:42:33.3796745Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:33.3797137Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:33.3797381Z [36;1mulimit -c 0[0m
+2026-11-09T05:42:33.3797662Z [36;1mRUSTC="$(rustup which --toolchain 1.95.0 rustc)" \[0m
+2026-11-09T05:42:33.3798087Z [36;1mCARGO_TARGET_DIR="$RUNNER_TEMP/hia-ndu-scalar-target" \[0m
+2026-11-09T05:42:33.3798542Z [36;1mHIA_NDU_CARGO="$(rustup which --toolchain 1.95.0 cargo)" \[0m
+2026-11-09T05:42:33.3798903Z [36;1mpython -B - <<'PY'[0m
+2026-11-09T05:42:33.3799158Z [36;1mfrom hashlib import sha256[0m
+2026-11-09T05:42:33.3799427Z [36;1mimport json[0m
+2026-11-09T05:42:33.3799637Z [36;1mimport os[0m
+2026-11-09T05:42:33.3799862Z [36;1mfrom pathlib import Path[0m
+2026-11-09T05:42:33.3800113Z [36;1mimport re[0m
+2026-11-09T05:42:33.3800322Z [36;1mimport subprocess[0m
+2026-11-09T05:42:33.3800554Z [36;1mimport time[0m
+2026-11-09T05:42:33.3800863Z [36;1mevidence = Path(os.environ['RUNNER_TEMP']) / 'hia-ndu-scalar'[0m
+2026-11-09T05:42:33.3801275Z [36;1mrequired = [[0m
+2026-11-09T05:42:33.3801681Z [36;1m    'stream_tests::frame_bounds_and_partial_headers_refuse_before_unbounded_allocation',[0m
+2026-11-09T05:42:33.3802266Z [36;1m    'stream_tests::clean_boundary_eof_is_distinct_from_a_partial_frame',[0m
+2026-11-09T05:42:33.3802787Z [36;1m    'stream_tests::session_and_round_replay_refuse_before_json_evaluation'][0m
+2026-11-09T05:42:33.3803464Z [36;1mcommand = [os.environ['HIA_NDU_CARGO'], 'test', '--manifest-path',[0m
+2026-11-09T05:42:33.3803930Z [36;1m    str(Path(os.environ['HEPTA_NDU_BUILD']) / 'Cargo.toml'),[0m
+2026-11-09T05:42:33.3804354Z [36;1m    '-p', 'hia-ndu-bridge', '--locked', '--', '--nocapture'][0m
+2026-11-09T05:42:33.3805048Z [36;1mstarted = time.perf_counter_ns()[0m
+2026-11-09T05:42:33.3805426Z [36;1mreport = {'schema': 'hepta.hia.ndu-stream-rust-controls.v1',[0m
+2026-11-09T05:42:33.3805908Z [36;1m    'source_sha': os.environ['HEPTA_SOURCE_SHA'], 'status': 'INCOMPLETE',[0m
+2026-11-09T05:42:33.3806416Z [36;1m    'command': command, 'required_tests': required, 'automatic_retries': 0,[0m
+2026-11-09T05:42:33.3806887Z [36;1m    'target_cache_at_start': 'existing_from_native_build',[0m
+2026-11-09T05:42:33.3807375Z [36;1m    'scope': 'Rust framing unit controls; not NDU performance or machine proof',[0m
+2026-11-09T05:42:33.3807961Z [36;1m    'economic_benefit_established': False, 'whole_lifecycle_cost_complete': False}[0m
+2026-11-09T05:42:33.3808389Z [36;1mtry:[0m
+2026-11-09T05:42:33.3808717Z [36;1m    with (evidence / 'stream-rust-tests.stdout').open('xb') as stdout, \[0m
+2026-11-09T05:42:33.3809218Z [36;1m         (evidence / 'stream-rust-tests.stderr').open('xb') as stderr:[0m
+2026-11-09T05:42:33.3809744Z [36;1m        result = subprocess.run(command, stdout=stdout, stderr=stderr, check=False)[0m
+2026-11-09T05:42:33.3810208Z [36;1m    report['returncode'] = result.returncode[0m
+2026-11-09T05:42:33.3810606Z [36;1m    output = (evidence / 'stream-rust-tests.stdout').read_text()[0m
+2026-11-09T05:42:33.3811043Z [36;1m    passed = [name for name in required if re.search([0m
+2026-11-09T05:42:33.3811468Z [36;1m        r'^test ' + re.escape(name) + r' \.\.\. ok$', output, re.MULTILINE)][0m
+2026-11-09T05:42:33.3812013Z [36;1m    summary = 'test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;'[0m
+2026-11-09T05:42:33.3812497Z [36;1m    report['required_tests_passed'] = passed[0m
+2026-11-09T05:42:33.3812922Z [36;1m    report['zero_ignored_summary_present'] = summary in output[0m
+2026-11-09T05:42:33.3813426Z [36;1m    if result.returncode != 0 or passed != required or summary not in output:[0m
+2026-11-09T05:42:33.3814058Z [36;1m        raise AssertionError('three named native Rust framing controls must pass with zero ignored tests')[0m
+2026-11-09T05:42:33.3814748Z [36;1m    report['status'] = 'QUALIFIED'[0m
+2026-11-09T05:42:33.3815048Z [36;1mexcept BaseException as error:[0m
+2026-11-09T05:42:33.3815334Z [36;1m    report['status'] = 'FAILED'[0m
+2026-11-09T05:42:33.3815885Z [36;1m    report['error'] = {'type': type(error).__name__, 'message': str(error)}[0m
+2026-11-09T05:42:33.3816267Z [36;1m    raise[0m
+2026-11-09T05:42:33.3816479Z [36;1mfinally:[0m
+2026-11-09T05:42:33.3816794Z [36;1m    report['validation_wall_ns'] = time.perf_counter_ns() - started[0m
+2026-11-09T05:42:33.3817209Z [36;1m    for stream in ('stdout', 'stderr'):[0m
+2026-11-09T05:42:33.3817574Z [36;1m        path = evidence / ('stream-rust-tests.' + stream)[0m
+2026-11-09T05:42:33.3817921Z [36;1m        if path.exists():[0m
+2026-11-09T05:42:33.3818200Z [36;1m            raw = path.read_bytes()[0m
+2026-11-09T05:42:33.3818557Z [36;1m            report[stream] = {'path': path.name, 'bytes': len(raw),[0m
+2026-11-09T05:42:33.3818949Z [36;1m                'sha256': sha256(raw).hexdigest()}[0m
+2026-11-09T05:42:33.3819427Z [36;1m    (evidence / 'stream-rust-tests.json').write_text(json.dumps(report, indent=2) + '\n')[0m
+2026-11-09T05:42:33.3819877Z [36;1mPY[0m
+2026-11-09T05:42:33.3840558Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:33.3840914Z env:
+2026-11-09T05:42:33.3841134Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:33.3841391Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:33.3841681Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:33.3842084Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.3842665Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:33.3843093Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.3843478Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.3843864Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.3844256Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:33.3845321Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:33.3845829Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:33.3846275Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:33.3846645Z ##[endgroup]
+2026-11-09T05:42:33.7542974Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:33.7543327Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:33.7543569Z [36;1mulimit -c 0[0m
+2026-11-09T05:42:33.7543909Z [36;1mpython -B tools/qualify_hia_ndu_prepared_ranker.py register \[0m
+2026-11-09T05:42:33.7544312Z [36;1m  --binary "$HEPTA_NDU_BRIDGE" \[0m
+2026-11-09T05:42:33.7545169Z [36;1m  --build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \[0m
+2026-11-09T05:42:33.7545658Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \[0m
+2026-11-09T05:42:33.7546135Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-registration.log"[0m
+2026-11-09T05:42:33.7547224Z [36;1mhia_prepared_registration=$(python -B -c 'from hashlib import sha256; import os; from pathlib import Path; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-ndu-scalar/prepared-mechanism/registration.json").read_bytes()).hexdigest())')[0m
+2026-11-09T05:42:33.7548471Z [36;1mprintf '%s\n' "$hia_prepared_registration" > "$RUNNER_TEMP/hia-ndu-scalar/prepared-registration.sha256"[0m
+2026-11-09T05:42:33.7549069Z [36;1mpython -B tools/qualify_hia_ndu_prepared_ranker.py run \[0m
+2026-11-09T05:42:33.7549541Z [36;1m  --directory "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \[0m
+2026-11-09T05:42:33.7549997Z [36;1m  --registration-sha256 "$hia_prepared_registration" \[0m
+2026-11-09T05:42:33.7550431Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism.log"[0m
+2026-11-09T05:42:33.7550868Z [36;1mpython -B tools/replay_hia_ndu_prepared_ranker.py \[0m
+2026-11-09T05:42:33.7551322Z [36;1m  --directory "$RUNNER_TEMP/hia-ndu-scalar/prepared-mechanism" \[0m
+2026-11-09T05:42:33.7551771Z [36;1m  --registration-sha256 "$hia_prepared_registration" \[0m
+2026-11-09T05:42:33.7552206Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.json" \[0m
+2026-11-09T05:42:33.7552650Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/prepared-replay.log"[0m
+2026-11-09T05:42:33.7572915Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:33.7573266Z env:
+2026-11-09T05:42:33.7573477Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:33.7573735Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:33.7574041Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:33.7574734Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.7575180Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:33.7575636Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.7576028Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.7576416Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:33.7576810Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:33.7577299Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:33.7577815Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:33.7578260Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:33.7578623Z ##[endgroup]
+2026-11-09T05:42:33.9040812Z {
+2026-11-09T05:42:33.9041719Z   "maximum_native_calls": 1020,
+2026-11-09T05:42:33.9042139Z   "planned_cells": 72,
+2026-11-09T05:42:33.9042806Z   "registration_sha256": "42e85886523403ef6e3c8693ba5c970149aaa67d90f862ff9435f40d435465c5"
+2026-11-09T05:42:33.9043512Z }
+2026-11-09T05:42:41.5123846Z {
+2026-11-09T05:42:41.5124253Z   "analysis": [
+2026-11-09T05:42:41.5124906Z     {
+2026-11-09T05:42:41.5125247Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:41.5125703Z       "horizon": 1,
+2026-11-09T05:42:41.5126047Z       "pairs": [
+2026-11-09T05:42:41.5126337Z         {
+2026-11-09T05:42:41.5126664Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5127085Z             "one_shot_ndu": 14187059,
+2026-11-09T05:42:41.5127486Z             "ordinary_scalar": 179243,
+2026-11-09T05:42:41.5127884Z             "prepared_ndu": 8772661
+2026-11-09T05:42:41.5128612Z           },
+2026-11-09T05:42:41.5128917Z           "complete": true,
+2026-11-09T05:42:41.5129311Z           "one_shot_minus_prepared_ns": 5414398,
+2026-11-09T05:42:41.5129823Z           "ordinary_minus_prepared_ns": -8593418,
+2026-11-09T05:42:41.5130256Z           "pair": 1
+2026-11-09T05:42:41.5130566Z         },
+2026-11-09T05:42:41.5130835Z         {
+2026-11-09T05:42:41.5131136Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5131550Z             "one_shot_ndu": 11181411,
+2026-11-09T05:42:41.5131940Z             "ordinary_scalar": 151481,
+2026-11-09T05:42:41.5132331Z             "prepared_ndu": 8711929
+2026-11-09T05:42:41.5132685Z           },
+2026-11-09T05:42:41.5132983Z           "complete": true,
+2026-11-09T05:42:41.5133364Z           "one_shot_minus_prepared_ns": 2469482,
+2026-11-09T05:42:41.5133822Z           "ordinary_minus_prepared_ns": -8560448,
+2026-11-09T05:42:41.5134252Z           "pair": 2
+2026-11-09T05:42:41.5134786Z         },
+2026-11-09T05:42:41.5135049Z         {
+2026-11-09T05:42:41.5135359Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5135764Z             "one_shot_ndu": 11010905,
+2026-11-09T05:42:41.5136161Z             "ordinary_scalar": 153565,
+2026-11-09T05:42:41.5136546Z             "prepared_ndu": 8729682
+2026-11-09T05:42:41.5136914Z           },
+2026-11-09T05:42:41.5137222Z           "complete": true,
+2026-11-09T05:42:41.5137604Z           "one_shot_minus_prepared_ns": 2281223,
+2026-11-09T05:42:41.5138067Z           "ordinary_minus_prepared_ns": -8576117,
+2026-11-09T05:42:41.5138485Z           "pair": 3
+2026-11-09T05:42:41.5138765Z         },
+2026-11-09T05:42:41.5139030Z         {
+2026-11-09T05:42:41.5139322Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5139723Z             "one_shot_ndu": 10895721,
+2026-11-09T05:42:41.5140114Z             "ordinary_scalar": 158855,
+2026-11-09T05:42:41.5140508Z             "prepared_ndu": 8240463
+2026-11-09T05:42:41.5140873Z           },
+2026-11-09T05:42:41.5141164Z           "complete": true,
+2026-11-09T05:42:41.5141554Z           "one_shot_minus_prepared_ns": 2655258,
+2026-11-09T05:42:41.5142015Z           "ordinary_minus_prepared_ns": -8081608,
+2026-11-09T05:42:41.5142441Z           "pair": 4
+2026-11-09T05:42:41.5142727Z         },
+2026-11-09T05:42:41.5142997Z         {
+2026-11-09T05:42:41.5143310Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5143720Z             "one_shot_ndu": 10908284,
+2026-11-09T05:42:41.5144138Z             "ordinary_scalar": 153214,
+2026-11-09T05:42:41.5144947Z             "prepared_ndu": 8330901
+2026-11-09T05:42:41.5145348Z           },
+2026-11-09T05:42:41.5145644Z           "complete": true,
+2026-11-09T05:42:41.5146030Z           "one_shot_minus_prepared_ns": 2577383,
+2026-11-09T05:42:41.5146605Z           "ordinary_minus_prepared_ns": -8177687,
+2026-11-09T05:42:41.5147186Z           "pair": 5
+2026-11-09T05:42:41.5147630Z         },
+2026-11-09T05:42:41.5148189Z         {
+2026-11-09T05:42:41.5148639Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5149329Z             "one_shot_ndu": 10839868,
+2026-11-09T05:42:41.5149897Z             "ordinary_scalar": 162591,
+2026-11-09T05:42:41.5150455Z             "prepared_ndu": 8343364
+2026-11-09T05:42:41.5151348Z           },
+2026-11-09T05:42:41.5151829Z           "complete": true,
+2026-11-09T05:42:41.5165086Z           "one_shot_minus_prepared_ns": 2496504,
+2026-11-09T05:42:41.5165683Z           "ordinary_minus_prepared_ns": -8180773,
+2026-11-09T05:42:41.5166159Z           "pair": 6
+2026-11-09T05:42:41.5166483Z         }
+2026-11-09T05:42:41.5166774Z       ],
+2026-11-09T05:42:41.5167099Z       "prepared_saving_summary_ns": {
+2026-11-09T05:42:41.5167529Z         "max": 5414398,
+2026-11-09T05:42:41.5167864Z         "mean": 2982374.6666666665,
+2026-11-09T05:42:41.5168252Z         "median": 2536943.5,
+2026-11-09T05:42:41.5168627Z         "min": 2281223,
+2026-11-09T05:42:41.5168969Z         "observations": 6,
+2026-11-09T05:42:41.5169341Z         "positive_pairs": 6,
+2026-11-09T05:42:41.5170009Z         "sample_stdev": 1198040.392430517,
+2026-11-09T05:42:41.5170444Z         "sum": 17894248
+2026-11-09T05:42:41.5170764Z       }
+2026-11-09T05:42:41.5171046Z     },
+2026-11-09T05:42:41.5171335Z     {
+2026-11-09T05:42:41.5171664Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:41.5172106Z       "horizon": 4,
+2026-11-09T05:42:41.5172421Z       "pairs": [
+2026-11-09T05:42:41.5172731Z         {
+2026-11-09T05:42:41.5173038Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5173463Z             "one_shot_ndu": 46091904,
+2026-11-09T05:42:41.5173879Z             "ordinary_scalar": 1088801,
+2026-11-09T05:42:41.5174309Z             "prepared_ndu": 16981226
+2026-11-09T05:42:41.5174932Z           },
+2026-11-09T05:42:41.5175264Z           "complete": true,
+2026-11-09T05:42:41.5175689Z           "one_shot_minus_prepared_ns": 29110678,
+2026-11-09T05:42:41.5176208Z           "ordinary_minus_prepared_ns": -15892425,
+2026-11-09T05:42:41.5176667Z           "pair": 1
+2026-11-09T05:42:41.5176994Z         },
+2026-11-09T05:42:41.5177297Z         {
+2026-11-09T05:42:41.5177616Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5178056Z             "one_shot_ndu": 49783453,
+2026-11-09T05:42:41.5178504Z             "ordinary_scalar": 553868,
+2026-11-09T05:42:41.5178948Z             "prepared_ndu": 16217237
+2026-11-09T05:42:41.5179328Z           },
+2026-11-09T05:42:41.5179656Z           "complete": true,
+2026-11-09T05:42:41.5180071Z           "one_shot_minus_prepared_ns": 33566216,
+2026-11-09T05:42:41.5180585Z           "ordinary_minus_prepared_ns": -15663369,
+2026-11-09T05:42:41.5181050Z           "pair": 2
+2026-11-09T05:42:41.5181391Z         },
+2026-11-09T05:42:41.5181686Z         {
+2026-11-09T05:42:41.5182016Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5182457Z             "one_shot_ndu": 45548713,
+2026-11-09T05:42:41.5182894Z             "ordinary_scalar": 537007,
+2026-11-09T05:42:41.5183280Z             "prepared_ndu": 16214723
+2026-11-09T05:42:41.5183642Z           },
+2026-11-09T05:42:41.5183952Z           "complete": true,
+2026-11-09T05:42:41.5184572Z           "one_shot_minus_prepared_ns": 29333990,
+2026-11-09T05:42:41.5185113Z           "ordinary_minus_prepared_ns": -15677716,
+2026-11-09T05:42:41.5185639Z           "pair": 3
+2026-11-09T05:42:41.5185936Z         },
+2026-11-09T05:42:41.5186216Z         {
+2026-11-09T05:42:41.5186537Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5186961Z             "one_shot_ndu": 47238619,
+2026-11-09T05:42:41.5187382Z             "ordinary_scalar": 544731,
+2026-11-09T05:42:41.5187803Z             "prepared_ndu": 15700619
+2026-11-09T05:42:41.5188197Z           },
+2026-11-09T05:42:41.5188519Z           "complete": true,
+2026-11-09T05:42:41.5188934Z           "one_shot_minus_prepared_ns": 31538000,
+2026-11-09T05:42:41.5189575Z           "ordinary_minus_prepared_ns": -15155888,
+2026-11-09T05:42:41.5190035Z           "pair": 4
+2026-11-09T05:42:41.5190338Z         },
+2026-11-09T05:42:41.5190596Z         {
+2026-11-09T05:42:41.5190892Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5191286Z             "one_shot_ndu": 47331021,
+2026-11-09T05:42:41.5191730Z             "ordinary_scalar": 550010,
+2026-11-09T05:42:41.5192387Z             "prepared_ndu": 15874341
+2026-11-09T05:42:41.5192777Z           },
+2026-11-09T05:42:41.5193084Z           "complete": true,
+2026-11-09T05:42:41.5193497Z           "one_shot_minus_prepared_ns": 31456680,
+2026-11-09T05:42:41.5194000Z           "ordinary_minus_prepared_ns": -15324331,
+2026-11-09T05:42:41.5194726Z           "pair": 5
+2026-11-09T05:42:41.5195048Z         },
+2026-11-09T05:42:41.5195330Z         {
+2026-11-09T05:42:41.5195646Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5196079Z             "one_shot_ndu": 45640053,
+2026-11-09T05:42:41.5196505Z             "ordinary_scalar": 547246,
+2026-11-09T05:42:41.5196938Z             "prepared_ndu": 15547545
+2026-11-09T05:42:41.5197343Z           },
+2026-11-09T05:42:41.5197660Z           "complete": true,
+2026-11-09T05:42:41.5198267Z           "one_shot_minus_prepared_ns": 30092508,
+2026-11-09T05:42:41.5198779Z           "ordinary_minus_prepared_ns": -15000299,
+2026-11-09T05:42:41.5199227Z           "pair": 6
+2026-11-09T05:42:41.5199549Z         }
+2026-11-09T05:42:41.5199842Z       ],
+2026-11-09T05:42:41.5200171Z       "prepared_saving_summary_ns": {
+2026-11-09T05:42:41.5200594Z         "max": 33566216,
+2026-11-09T05:42:41.5200938Z         "mean": 30849678.666666668,
+2026-11-09T05:42:41.5201326Z         "median": 30774594.0,
+2026-11-09T05:42:41.5201695Z         "min": 29110678,
+2026-11-09T05:42:41.5202036Z         "observations": 6,
+2026-11-09T05:42:41.5202405Z         "positive_pairs": 6,
+2026-11-09T05:42:41.5202799Z         "sample_stdev": 1680271.0990416596,
+2026-11-09T05:42:41.5203229Z         "sum": 185098072
+2026-11-09T05:42:41.5203565Z       }
+2026-11-09T05:42:41.5203846Z     },
+2026-11-09T05:42:41.5204122Z     {
+2026-11-09T05:42:41.5204680Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:41.5205120Z       "horizon": 16,
+2026-11-09T05:42:41.5205460Z       "pairs": [
+2026-11-09T05:42:41.5205763Z         {
+2026-11-09T05:42:41.5206078Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5206495Z             "one_shot_ndu": 186937673,
+2026-11-09T05:42:41.5206916Z             "ordinary_scalar": 2152124,
+2026-11-09T05:42:41.5207328Z             "prepared_ndu": 44569195
+2026-11-09T05:42:41.5207717Z           },
+2026-11-09T05:42:41.5208090Z           "complete": true,
+2026-11-09T05:42:41.5208504Z           "one_shot_minus_prepared_ns": 142368478,
+2026-11-09T05:42:41.5209024Z           "ordinary_minus_prepared_ns": -42417071,
+2026-11-09T05:42:41.5209486Z           "pair": 1
+2026-11-09T05:42:41.5209804Z         },
+2026-11-09T05:42:41.5210094Z         {
+2026-11-09T05:42:41.5210415Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5210851Z             "one_shot_ndu": 185577771,
+2026-11-09T05:42:41.5211276Z             "ordinary_scalar": 2123300,
+2026-11-09T05:42:41.5211705Z             "prepared_ndu": 44514453
+2026-11-09T05:42:41.5212089Z           },
+2026-11-09T05:42:41.5212409Z           "complete": true,
+2026-11-09T05:42:41.5212838Z           "one_shot_minus_prepared_ns": 141063318,
+2026-11-09T05:42:41.5213363Z           "ordinary_minus_prepared_ns": -42391153,
+2026-11-09T05:42:41.5213824Z           "pair": 2
+2026-11-09T05:42:41.5214157Z         },
+2026-11-09T05:42:41.5214690Z         {
+2026-11-09T05:42:41.5215020Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5215486Z             "one_shot_ndu": 190528460,
+2026-11-09T05:42:41.5215932Z             "ordinary_scalar": 2074379,
+2026-11-09T05:42:41.5216399Z             "prepared_ndu": 45504121
+2026-11-09T05:42:41.5216816Z           },
+2026-11-09T05:42:41.5217150Z           "complete": true,
+2026-11-09T05:42:41.5217618Z           "one_shot_minus_prepared_ns": 145024339,
+2026-11-09T05:42:41.5218175Z           "ordinary_minus_prepared_ns": -43429742,
+2026-11-09T05:42:41.5218672Z           "pair": 3
+2026-11-09T05:42:41.5219017Z         },
+2026-11-09T05:42:41.5219325Z         {
+2026-11-09T05:42:41.5219677Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5220146Z             "one_shot_ndu": 186202591,
+2026-11-09T05:42:41.5220594Z             "ordinary_scalar": 2125564,
+2026-11-09T05:42:41.5221273Z             "prepared_ndu": 44914556
+2026-11-09T05:42:41.5221662Z           },
+2026-11-09T05:42:41.5221957Z           "complete": true,
+2026-11-09T05:42:41.5222388Z           "one_shot_minus_prepared_ns": 141288035,
+2026-11-09T05:42:41.5222925Z           "ordinary_minus_prepared_ns": -42788992,
+2026-11-09T05:42:41.5223410Z           "pair": 4
+2026-11-09T05:42:41.5223737Z         },
+2026-11-09T05:42:41.5224034Z         {
+2026-11-09T05:42:41.5224543Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5224998Z             "one_shot_ndu": 186934114,
+2026-11-09T05:42:41.5225415Z             "ordinary_scalar": 2109484,
+2026-11-09T05:42:41.5225848Z             "prepared_ndu": 44548092
+2026-11-09T05:42:41.5226262Z           },
+2026-11-09T05:42:41.5226610Z           "complete": true,
+2026-11-09T05:42:41.5227265Z           "one_shot_minus_prepared_ns": 142386022,
+2026-11-09T05:42:41.5227841Z           "ordinary_minus_prepared_ns": -42438608,
+2026-11-09T05:42:41.5228340Z           "pair": 5
+2026-11-09T05:42:41.5228674Z         },
+2026-11-09T05:42:41.5228978Z         {
+2026-11-09T05:42:41.5229301Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5229756Z             "one_shot_ndu": 183984900,
+2026-11-09T05:42:41.5230174Z             "ordinary_scalar": 2080681,
+2026-11-09T05:42:41.5230619Z             "prepared_ndu": 44683998
+2026-11-09T05:42:41.5231048Z           },
+2026-11-09T05:42:41.5231388Z           "complete": true,
+2026-11-09T05:42:41.5231853Z           "one_shot_minus_prepared_ns": 139300902,
+2026-11-09T05:42:41.5232370Z           "ordinary_minus_prepared_ns": -42603317,
+2026-11-09T05:42:41.5232823Z           "pair": 6
+2026-11-09T05:42:41.5233153Z         }
+2026-11-09T05:42:41.5233444Z       ],
+2026-11-09T05:42:41.5233765Z       "prepared_saving_summary_ns": {
+2026-11-09T05:42:41.5234195Z         "max": 145024339,
+2026-11-09T05:42:41.5234808Z         "mean": 141905182.33333334,
+2026-11-09T05:42:41.5235234Z         "median": 141828256.5,
+2026-11-09T05:42:41.5235643Z         "min": 139300902,
+2026-11-09T05:42:41.5236001Z         "observations": 6,
+2026-11-09T05:42:41.5236384Z         "positive_pairs": 6,
+2026-11-09T05:42:41.5236782Z         "sample_stdev": 1899835.2777211678,
+2026-11-09T05:42:41.5237229Z         "sum": 851431094
+2026-11-09T05:42:41.5237566Z       }
+2026-11-09T05:42:41.5237853Z     },
+2026-11-09T05:42:41.5238133Z     {
+2026-11-09T05:42:41.5238478Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:41.5238953Z       "horizon": 64,
+2026-11-09T05:42:41.5239288Z       "pairs": [
+2026-11-09T05:42:41.5239602Z         {
+2026-11-09T05:42:41.5239914Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5240335Z             "one_shot_ndu": 739585453,
+2026-11-09T05:42:41.5240742Z             "ordinary_scalar": 8225536,
+2026-11-09T05:42:41.5241179Z             "prepared_ndu": 160176820
+2026-11-09T05:42:41.5241571Z           },
+2026-11-09T05:42:41.5241876Z           "complete": true,
+2026-11-09T05:42:41.5242289Z           "one_shot_minus_prepared_ns": 579408633,
+2026-11-09T05:42:41.5242822Z           "ordinary_minus_prepared_ns": -151951284,
+2026-11-09T05:42:41.5243303Z           "pair": 1
+2026-11-09T05:42:41.5243631Z         },
+2026-11-09T05:42:41.5243907Z         {
+2026-11-09T05:42:41.5244207Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5244846Z             "one_shot_ndu": 749149968,
+2026-11-09T05:42:41.5245329Z             "ordinary_scalar": 8312437,
+2026-11-09T05:42:41.5245777Z             "prepared_ndu": 160432399
+2026-11-09T05:42:41.5246182Z           },
+2026-11-09T05:42:41.5246562Z           "complete": true,
+2026-11-09T05:42:41.5246987Z           "one_shot_minus_prepared_ns": 588717569,
+2026-11-09T05:42:41.5247447Z           "ordinary_minus_prepared_ns": -152119962,
+2026-11-09T05:42:41.5247881Z           "pair": 2
+2026-11-09T05:42:41.5248202Z         },
+2026-11-09T05:42:41.5248507Z         {
+2026-11-09T05:42:41.5248855Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5249259Z             "one_shot_ndu": 741038274,
+2026-11-09T05:42:41.5249878Z             "ordinary_scalar": 8317446,
+2026-11-09T05:42:41.5250299Z             "prepared_ndu": 160610420
+2026-11-09T05:42:41.5250649Z           },
+2026-11-09T05:42:41.5250955Z           "complete": true,
+2026-11-09T05:42:41.5251368Z           "one_shot_minus_prepared_ns": 580427854,
+2026-11-09T05:42:41.5251857Z           "ordinary_minus_prepared_ns": -152292974,
+2026-11-09T05:42:41.5252298Z           "pair": 3
+2026-11-09T05:42:41.5252599Z         },
+2026-11-09T05:42:41.5252873Z         {
+2026-11-09T05:42:41.5253172Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5253581Z             "one_shot_ndu": 739340187,
+2026-11-09T05:42:41.5253989Z             "ordinary_scalar": 8399038,
+2026-11-09T05:42:41.5254635Z             "prepared_ndu": 160109665
+2026-11-09T05:42:41.5255032Z           },
+2026-11-09T05:42:41.5255507Z           "complete": true,
+2026-11-09T05:42:41.5255912Z           "one_shot_minus_prepared_ns": 579230522,
+2026-11-09T05:42:41.5256411Z           "ordinary_minus_prepared_ns": -151710627,
+2026-11-09T05:42:41.5256868Z           "pair": 4
+2026-11-09T05:42:41.5257167Z         },
+2026-11-09T05:42:41.5257437Z         {
+2026-11-09T05:42:41.5257736Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5258145Z             "one_shot_ndu": 739070064,
+2026-11-09T05:42:41.5258587Z             "ordinary_scalar": 8198576,
+2026-11-09T05:42:41.5259036Z             "prepared_ndu": 160932947
+2026-11-09T05:42:41.5259429Z           },
+2026-11-09T05:42:41.5259748Z           "complete": true,
+2026-11-09T05:42:41.5260160Z           "one_shot_minus_prepared_ns": 578137117,
+2026-11-09T05:42:41.5260645Z           "ordinary_minus_prepared_ns": -152734371,
+2026-11-09T05:42:41.5261095Z           "pair": 5
+2026-11-09T05:42:41.5261403Z         },
+2026-11-09T05:42:41.5261697Z         {
+2026-11-09T05:42:41.5262032Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:41.5262469Z             "one_shot_ndu": 733281496,
+2026-11-09T05:42:41.5262871Z             "ordinary_scalar": 8558846,
+2026-11-09T05:42:41.5263320Z             "prepared_ndu": 160323688
+2026-11-09T05:42:41.5263717Z           },
+2026-11-09T05:42:41.5264148Z           "complete": true,
+2026-11-09T05:42:41.5264596Z           "one_shot_minus_prepared_ns": 572957808,
+2026-11-09T05:42:41.5265277Z           "ordinary_minus_prepared_ns": -151764842,
+2026-11-09T05:42:41.5265732Z           "pair": 6
+2026-11-09T05:42:41.5266029Z         }
+2026-11-09T05:42:41.5266306Z       ],
+2026-11-09T05:42:41.5266632Z       "prepared_saving_summary_ns": {
+2026-11-09T05:42:41.5267037Z         "max": 588717569,
+2026-11-09T05:42:41.5267427Z         "mean": 579813250.5,
+2026-11-09T05:42:41.5267819Z         "median": 579319577.5,
+2026-11-09T05:42:41.5268160Z         "min": 572957808,
+2026-11-09T05:42:41.5268527Z         "observations": 6,
+2026-11-09T05:42:41.5268899Z         "positive_pairs": 6,
+2026-11-09T05:42:41.5269275Z         "sample_stdev": 5098517.9928740375,
+2026-11-09T05:42:41.5269684Z         "sum": 3478879503
+2026-11-09T05:42:41.5270041Z       }
+2026-11-09T05:42:41.5270330Z     }
+2026-11-09T05:42:41.5270604Z   ],
+2026-11-09T05:42:41.5270882Z   "completed_cells": 72,
+2026-11-09T05:42:41.5271222Z   "failed_cells": 0,
+2026-11-09T05:42:41.5271560Z   "mechanism_execution_complete": true,
+2026-11-09T05:42:41.5271972Z   "original_native_calls": 1020,
+2026-11-09T05:42:41.5272471Z   "p2_acceptance": "HOLD",
+2026-11-09T05:42:41.5272827Z   "planned_cells": 72
+2026-11-09T05:42:41.5273182Z }
+2026-11-09T05:42:41.8514634Z {
+2026-11-09T05:42:41.8515272Z   "authority": "DENY_ALL",
+2026-11-09T05:42:41.8515682Z   "cells_replayed": 72,
+2026-11-09T05:42:41.8516078Z   "distinct_observed_pids": 1020,
+2026-11-09T05:42:41.8516506Z   "economic_benefit_established": false,
+2026-11-09T05:42:41.8516955Z   "machine_refinement_proved": false,
+2026-11-09T05:42:41.8517354Z   "ordinary_calls": 510,
+2026-11-09T05:42:41.8517750Z   "original_native_calls": 1020,
+2026-11-09T05:42:41.8518177Z   "paired_native_responses_byte_identical": 510,
+2026-11-09T05:42:41.8518727Z   "raw_identity_and_cost_arithmetic_consistent": true,
+2026-11-09T05:42:41.8519809Z   "registration_sha256": "42e85886523403ef6e3c8693ba5c970149aaa67d90f862ff9435f40d435465c5",
+2026-11-09T05:42:41.8520530Z   "reported_analysis_recomputed": true,
+2026-11-09T05:42:41.8521045Z   "schema": "hepta.hia.ndu-prepared-ranking-replay.v1",
+2026-11-09T05:42:41.8521547Z   "source_files_rehashed": 10,
+2026-11-09T05:42:41.8521969Z   "timings_independently_authenticated": false,
+2026-11-09T05:42:41.8522677Z   "verifier_sha256": "9f4fb093932821f81c454015187d66dc8b77898bd713899184bc15df95bdcbfb"
+2026-11-09T05:42:41.8523320Z }
+2026-11-09T05:42:41.8645347Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:41.8645706Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:41.8645951Z [36;1mulimit -c 0[0m
+2026-11-09T05:42:41.8646286Z [36;1mpython -B tools/qualify_hia_ndu_persistent_ranker.py register \[0m
+2026-11-09T05:42:41.8646699Z [36;1m  --binary "$HEPTA_NDU_BRIDGE" \[0m
+2026-11-09T05:42:41.8647071Z [36;1m  --build-receipt "$HEPTA_NDU_BUILD/build-receipt.json" \[0m
+2026-11-09T05:42:41.8647542Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \[0m
+2026-11-09T05:42:41.8648033Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-registration.log"[0m
+2026-11-09T05:42:41.8649135Z [36;1mhia_persistent_registration=$(python -B -c 'from hashlib import sha256; import os; from pathlib import Path; print(sha256((Path(os.environ["RUNNER_TEMP"])/"hia-ndu-scalar/persistent-mechanism/registration.json").read_bytes()).hexdigest())')[0m
+2026-11-09T05:42:41.8650403Z [36;1mprintf '%s\n' "$hia_persistent_registration" > "$RUNNER_TEMP/hia-ndu-scalar/persistent-registration.sha256"[0m
+2026-11-09T05:42:41.8651018Z [36;1mpython -B tools/qualify_hia_ndu_persistent_ranker.py run \[0m
+2026-11-09T05:42:41.8651489Z [36;1m  --directory "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \[0m
+2026-11-09T05:42:41.8651955Z [36;1m  --registration-sha256 "$hia_persistent_registration" \[0m
+2026-11-09T05:42:41.8652399Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism.log"[0m
+2026-11-09T05:42:41.8652849Z [36;1mpython -B tools/replay_hia_ndu_persistent_ranker.py \[0m
+2026-11-09T05:42:41.8653326Z [36;1m  --directory "$RUNNER_TEMP/hia-ndu-scalar/persistent-mechanism" \[0m
+2026-11-09T05:42:41.8653793Z [36;1m  --registration-sha256 "$hia_persistent_registration" \[0m
+2026-11-09T05:42:41.8654253Z [36;1m  --output "$RUNNER_TEMP/hia-ndu-scalar/persistent-replay.json" \[0m
+2026-11-09T05:42:41.8654985Z [36;1m  2>&1 | tee "$RUNNER_TEMP/hia-ndu-scalar/persistent-replay.log"[0m
+2026-11-09T05:42:41.8675378Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:41.8675725Z env:
+2026-11-09T05:42:41.8675937Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:41.8676195Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:41.8676490Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:41.8676904Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:41.8677342Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:41.8677793Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:41.8678181Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:41.8678561Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:41.8678946Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:41.8679431Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:41.8679935Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:41.8680373Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:41.8680738Z ##[endgroup]
+2026-11-09T05:42:42.0342043Z {
+2026-11-09T05:42:42.0342453Z   "maximum_native_evaluations": 1020,
+2026-11-09T05:42:42.0342989Z   "maximum_native_processes": 534,
+2026-11-09T05:42:42.0343418Z   "planned_cells": 72,
+2026-11-09T05:42:42.0344122Z   "registration_sha256": "6c55b99c49ccfff2d8e8cf4c429f4be07b163ae150d2b3df638c4f37b2e45e2d"
+2026-11-09T05:42:42.0345623Z }
+2026-11-09T05:42:44.7809936Z {
+2026-11-09T05:42:44.7810385Z   "analysis": [
+2026-11-09T05:42:44.7810761Z     {
+2026-11-09T05:42:44.7811156Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:44.7811703Z       "horizon": 1,
+2026-11-09T05:42:44.7812084Z       "pairs": [
+2026-11-09T05:42:44.7812427Z         {
+2026-11-09T05:42:44.7812792Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7813278Z             "ordinary_scalar": 168473,
+2026-11-09T05:42:44.7814124Z             "persistent_ndu": 8930354,
+2026-11-09T05:42:44.7814843Z             "prepared_ndu": 10239103
+2026-11-09T05:42:44.7815292Z           },
+2026-11-09T05:42:44.7815652Z           "complete": true,
+2026-11-09T05:42:44.7816140Z           "ordinary_minus_persistent_ns": -8761881,
+2026-11-09T05:42:44.7816690Z           "pair": 1,
+2026-11-09T05:42:44.7817126Z           "prepared_minus_persistent_ns": 1308749
+2026-11-09T05:42:44.7817650Z         },
+2026-11-09T05:42:44.7817958Z         {
+2026-11-09T05:42:44.7818310Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7818783Z             "ordinary_scalar": 209729,
+2026-11-09T05:42:44.7819234Z             "persistent_ndu": 8727258,
+2026-11-09T05:42:44.7819682Z             "prepared_ndu": 8509414
+2026-11-09T05:42:44.7820091Z           },
+2026-11-09T05:42:44.7820421Z           "complete": true,
+2026-11-09T05:42:44.7820865Z           "ordinary_minus_persistent_ns": -8517529,
+2026-11-09T05:42:44.7821367Z           "pair": 2,
+2026-11-09T05:42:44.7821790Z           "prepared_minus_persistent_ns": -217844
+2026-11-09T05:42:44.7822267Z         },
+2026-11-09T05:42:44.7822564Z         {
+2026-11-09T05:42:44.7822893Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7823346Z             "ordinary_scalar": 166459,
+2026-11-09T05:42:44.7823793Z             "persistent_ndu": 8925797,
+2026-11-09T05:42:44.7824238Z             "prepared_ndu": 8481051
+2026-11-09T05:42:44.7824888Z           },
+2026-11-09T05:42:44.7825227Z           "complete": true,
+2026-11-09T05:42:44.7825681Z           "ordinary_minus_persistent_ns": -8759338,
+2026-11-09T05:42:44.7826075Z           "pair": 3,
+2026-11-09T05:42:44.7826325Z           "prepared_minus_persistent_ns": -444746
+2026-11-09T05:42:44.7826606Z         },
+2026-11-09T05:42:44.7826782Z         {
+2026-11-09T05:42:44.7826976Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7827249Z             "ordinary_scalar": 174593,
+2026-11-09T05:42:44.7827518Z             "persistent_ndu": 8759117,
+2026-11-09T05:42:44.7827801Z             "prepared_ndu": 8385735
+2026-11-09T05:42:44.7828048Z           },
+2026-11-09T05:42:44.7828245Z           "complete": true,
+2026-11-09T05:42:44.7828520Z           "ordinary_minus_persistent_ns": -8584524,
+2026-11-09T05:42:44.7828818Z           "pair": 4,
+2026-11-09T05:42:44.7829070Z           "prepared_minus_persistent_ns": -373382
+2026-11-09T05:42:44.7829353Z         },
+2026-11-09T05:42:44.7829531Z         {
+2026-11-09T05:42:44.7829731Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7829998Z             "ordinary_scalar": 168192,
+2026-11-09T05:42:44.7830261Z             "persistent_ndu": 9385389,
+2026-11-09T05:42:44.7830520Z             "prepared_ndu": 8454151
+2026-11-09T05:42:44.7830759Z           },
+2026-11-09T05:42:44.7830953Z           "complete": true,
+2026-11-09T05:42:44.7831235Z           "ordinary_minus_persistent_ns": -9217197,
+2026-11-09T05:42:44.7831522Z           "pair": 5,
+2026-11-09T05:42:44.7831766Z           "prepared_minus_persistent_ns": -931238
+2026-11-09T05:42:44.7832051Z         },
+2026-11-09T05:42:44.7832232Z         {
+2026-11-09T05:42:44.7832439Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7832715Z             "ordinary_scalar": 177610,
+2026-11-09T05:42:44.7832983Z             "persistent_ndu": 8975910,
+2026-11-09T05:42:44.7833247Z             "prepared_ndu": 8871956
+2026-11-09T05:42:44.7833488Z           },
+2026-11-09T05:42:44.7833682Z           "complete": true,
+2026-11-09T05:42:44.7834164Z           "ordinary_minus_persistent_ns": -8798300,
+2026-11-09T05:42:44.7834757Z           "pair": 6,
+2026-11-09T05:42:44.7835017Z           "prepared_minus_persistent_ns": -103954
+2026-11-09T05:42:44.7835298Z         }
+2026-11-09T05:42:44.7835473Z       ],
+2026-11-09T05:42:44.7835673Z       "persistent_saving_summary_ns": {
+2026-11-09T05:42:44.7835940Z         "max": 1308749,
+2026-11-09T05:42:44.7836159Z         "mean": -127069.16666666667,
+2026-11-09T05:42:44.7836413Z         "median": -295613.0,
+2026-11-09T05:42:44.7836642Z         "min": -931238,
+2026-11-09T05:42:44.7837019Z         "observations": 6,
+2026-11-09T05:42:44.7837259Z         "positive_pairs": 1,
+2026-11-09T05:42:44.7837506Z         "sample_stdev": 758765.3502675031,
+2026-11-09T05:42:44.7837776Z         "sum": -762415
+2026-11-09T05:42:44.7837977Z       }
+2026-11-09T05:42:44.7838148Z     },
+2026-11-09T05:42:44.7838320Z     {
+2026-11-09T05:42:44.7838527Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:44.7838812Z       "horizon": 4,
+2026-11-09T05:42:44.7839015Z       "pairs": [
+2026-11-09T05:42:44.7839206Z         {
+2026-11-09T05:42:44.7839404Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7839672Z             "ordinary_scalar": 708885,
+2026-11-09T05:42:44.7839944Z             "persistent_ndu": 14067143,
+2026-11-09T05:42:44.7840226Z             "prepared_ndu": 16352562
+2026-11-09T05:42:44.7840469Z           },
+2026-11-09T05:42:44.7840665Z           "complete": true,
+2026-11-09T05:42:44.7840934Z           "ordinary_minus_persistent_ns": -13358258,
+2026-11-09T05:42:44.7841227Z           "pair": 1,
+2026-11-09T05:42:44.7841474Z           "prepared_minus_persistent_ns": 2285419
+2026-11-09T05:42:44.7841754Z         },
+2026-11-09T05:42:44.7841930Z         {
+2026-11-09T05:42:44.7842126Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7842390Z             "ordinary_scalar": 679861,
+2026-11-09T05:42:44.7842658Z             "persistent_ndu": 13713708,
+2026-11-09T05:42:44.7842929Z             "prepared_ndu": 16635266
+2026-11-09T05:42:44.7843176Z           },
+2026-11-09T05:42:44.7843517Z           "complete": true,
+2026-11-09T05:42:44.7843784Z           "ordinary_minus_persistent_ns": -13033847,
+2026-11-09T05:42:44.7844075Z           "pair": 2,
+2026-11-09T05:42:44.7844307Z           "prepared_minus_persistent_ns": 2921558
+2026-11-09T05:42:44.7844878Z         },
+2026-11-09T05:42:44.7845052Z         {
+2026-11-09T05:42:44.7845242Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7845502Z             "ordinary_scalar": 655937,
+2026-11-09T05:42:44.7845767Z             "persistent_ndu": 13841405,
+2026-11-09T05:42:44.7846041Z             "prepared_ndu": 17300839
+2026-11-09T05:42:44.7846280Z           },
+2026-11-09T05:42:44.7846469Z           "complete": true,
+2026-11-09T05:42:44.7846727Z           "ordinary_minus_persistent_ns": -13185468,
+2026-11-09T05:42:44.7847012Z           "pair": 3,
+2026-11-09T05:42:44.7847241Z           "prepared_minus_persistent_ns": 3459434
+2026-11-09T05:42:44.7847511Z         },
+2026-11-09T05:42:44.7847688Z         {
+2026-11-09T05:42:44.7847879Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7848143Z             "ordinary_scalar": 707472,
+2026-11-09T05:42:44.7848407Z             "persistent_ndu": 13997444,
+2026-11-09T05:42:44.7848666Z             "prepared_ndu": 16253217
+2026-11-09T05:42:44.7848903Z           },
+2026-11-09T05:42:44.7849092Z           "complete": true,
+2026-11-09T05:42:44.7849345Z           "ordinary_minus_persistent_ns": -13289972,
+2026-11-09T05:42:44.7849631Z           "pair": 4,
+2026-11-09T05:42:44.7849861Z           "prepared_minus_persistent_ns": 2255773
+2026-11-09T05:42:44.7850132Z         },
+2026-11-09T05:42:44.7850303Z         {
+2026-11-09T05:42:44.7850495Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7850769Z             "ordinary_scalar": 631912,
+2026-11-09T05:42:44.7851034Z             "persistent_ndu": 13230781,
+2026-11-09T05:42:44.7851300Z             "prepared_ndu": 15864797
+2026-11-09T05:42:44.7851540Z           },
+2026-11-09T05:42:44.7851898Z           "complete": true,
+2026-11-09T05:42:44.7852158Z           "ordinary_minus_persistent_ns": -12598869,
+2026-11-09T05:42:44.7852449Z           "pair": 5,
+2026-11-09T05:42:44.7852685Z           "prepared_minus_persistent_ns": 2634016
+2026-11-09T05:42:44.7852977Z         },
+2026-11-09T05:42:44.7853154Z         {
+2026-11-09T05:42:44.7853350Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7853625Z             "ordinary_scalar": 664112,
+2026-11-09T05:42:44.7853887Z             "persistent_ndu": 13333272,
+2026-11-09T05:42:44.7854154Z             "prepared_ndu": 15671620
+2026-11-09T05:42:44.7854744Z           },
+2026-11-09T05:42:44.7854950Z           "complete": true,
+2026-11-09T05:42:44.7855212Z           "ordinary_minus_persistent_ns": -12669160,
+2026-11-09T05:42:44.7855504Z           "pair": 6,
+2026-11-09T05:42:44.7855734Z           "prepared_minus_persistent_ns": 2338348
+2026-11-09T05:42:44.7856007Z         }
+2026-11-09T05:42:44.7856180Z       ],
+2026-11-09T05:42:44.7856378Z       "persistent_saving_summary_ns": {
+2026-11-09T05:42:44.7856649Z         "max": 3459434,
+2026-11-09T05:42:44.7856865Z         "mean": 2649091.3333333335,
+2026-11-09T05:42:44.7857115Z         "median": 2486182.0,
+2026-11-09T05:42:44.7857342Z         "min": 2255773,
+2026-11-09T05:42:44.7857560Z         "observations": 6,
+2026-11-09T05:42:44.7857790Z         "positive_pairs": 6,
+2026-11-09T05:42:44.7858034Z         "sample_stdev": 472152.2813922079,
+2026-11-09T05:42:44.7858294Z         "sum": 15894548
+2026-11-09T05:42:44.7858497Z       }
+2026-11-09T05:42:44.7858669Z     },
+2026-11-09T05:42:44.7858844Z     {
+2026-11-09T05:42:44.7859060Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:44.7859339Z       "horizon": 16,
+2026-11-09T05:42:44.7859543Z       "pairs": [
+2026-11-09T05:42:44.7859734Z         {
+2026-11-09T05:42:44.7859929Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7860196Z             "ordinary_scalar": 2581328,
+2026-11-09T05:42:44.7860458Z             "persistent_ndu": 31524625,
+2026-11-09T05:42:44.7860721Z             "prepared_ndu": 45396980
+2026-11-09T05:42:44.7860962Z           },
+2026-11-09T05:42:44.7861155Z           "complete": true,
+2026-11-09T05:42:44.7861425Z           "ordinary_minus_persistent_ns": -28943297,
+2026-11-09T05:42:44.7861713Z           "pair": 1,
+2026-11-09T05:42:44.7861944Z           "prepared_minus_persistent_ns": 13872355
+2026-11-09T05:42:44.7862222Z         },
+2026-11-09T05:42:44.7862398Z         {
+2026-11-09T05:42:44.7862593Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7862859Z             "ordinary_scalar": 2599692,
+2026-11-09T05:42:44.7863123Z             "persistent_ndu": 33353538,
+2026-11-09T05:42:44.7863587Z             "prepared_ndu": 46641282
+2026-11-09T05:42:44.7863826Z           },
+2026-11-09T05:42:44.7864019Z           "complete": true,
+2026-11-09T05:42:44.7864283Z           "ordinary_minus_persistent_ns": -30753846,
+2026-11-09T05:42:44.7864884Z           "pair": 2,
+2026-11-09T05:42:44.7865123Z           "prepared_minus_persistent_ns": 13287744
+2026-11-09T05:42:44.7865403Z         },
+2026-11-09T05:42:44.7865571Z         {
+2026-11-09T05:42:44.7865767Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7866023Z             "ordinary_scalar": 2612936,
+2026-11-09T05:42:44.7866279Z             "persistent_ndu": 31750975,
+2026-11-09T05:42:44.7866533Z             "prepared_ndu": 45700460
+2026-11-09T05:42:44.7866769Z           },
+2026-11-09T05:42:44.7866964Z           "complete": true,
+2026-11-09T05:42:44.7867219Z           "ordinary_minus_persistent_ns": -29138039,
+2026-11-09T05:42:44.7867496Z           "pair": 3,
+2026-11-09T05:42:44.7867727Z           "prepared_minus_persistent_ns": 13949485
+2026-11-09T05:42:44.7867999Z         },
+2026-11-09T05:42:44.7868171Z         {
+2026-11-09T05:42:44.7868362Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7868622Z             "ordinary_scalar": 2655145,
+2026-11-09T05:42:44.7868889Z             "persistent_ndu": 31871398,
+2026-11-09T05:42:44.7869151Z             "prepared_ndu": 45608920
+2026-11-09T05:42:44.7869549Z           },
+2026-11-09T05:42:44.7869750Z           "complete": true,
+2026-11-09T05:42:44.7870009Z           "ordinary_minus_persistent_ns": -29216253,
+2026-11-09T05:42:44.7870297Z           "pair": 4,
+2026-11-09T05:42:44.7870532Z           "prepared_minus_persistent_ns": 13737522
+2026-11-09T05:42:44.7870809Z         },
+2026-11-09T05:42:44.7870983Z         {
+2026-11-09T05:42:44.7871176Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7871441Z             "ordinary_scalar": 2546954,
+2026-11-09T05:42:44.7871704Z             "persistent_ndu": 31944464,
+2026-11-09T05:42:44.7872084Z             "prepared_ndu": 45285831
+2026-11-09T05:42:44.7872336Z           },
+2026-11-09T05:42:44.7872563Z           "complete": true,
+2026-11-09T05:42:44.7872817Z           "ordinary_minus_persistent_ns": -29397510,
+2026-11-09T05:42:44.7873110Z           "pair": 5,
+2026-11-09T05:42:44.7873341Z           "prepared_minus_persistent_ns": 13341367
+2026-11-09T05:42:44.7873616Z         },
+2026-11-09T05:42:44.7873796Z         {
+2026-11-09T05:42:44.7873988Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7874257Z             "ordinary_scalar": 2682647,
+2026-11-09T05:42:44.7874840Z             "persistent_ndu": 32011378,
+2026-11-09T05:42:44.7875117Z             "prepared_ndu": 45331075
+2026-11-09T05:42:44.7875366Z           },
+2026-11-09T05:42:44.7875563Z           "complete": true,
+2026-11-09T05:42:44.7876065Z           "ordinary_minus_persistent_ns": -29328731,
+2026-11-09T05:42:44.7876527Z           "pair": 6,
+2026-11-09T05:42:44.7876858Z           "prepared_minus_persistent_ns": 13319697
+2026-11-09T05:42:44.7877307Z         }
+2026-11-09T05:42:44.7877581Z       ],
+2026-11-09T05:42:44.7877902Z       "persistent_saving_summary_ns": {
+2026-11-09T05:42:44.7888644Z         "max": 13949485,
+2026-11-09T05:42:44.7889067Z         "mean": 13584695,
+2026-11-09T05:42:44.7889395Z         "median": 13539444.5,
+2026-11-09T05:42:44.7889711Z         "min": 13287744,
+2026-11-09T05:42:44.7890101Z         "observations": 6,
+2026-11-09T05:42:44.7890367Z         "positive_pairs": 6,
+2026-11-09T05:42:44.7890630Z         "sample_stdev": 302254.35104163515,
+2026-11-09T05:42:44.7890921Z         "sum": 81508170
+2026-11-09T05:42:44.7891134Z       }
+2026-11-09T05:42:44.7891309Z     },
+2026-11-09T05:42:44.7891482Z     {
+2026-11-09T05:42:44.7891690Z       "all_registered_cells_completed": true,
+2026-11-09T05:42:44.7891981Z       "horizon": 64,
+2026-11-09T05:42:44.7892188Z       "pairs": [
+2026-11-09T05:42:44.7892415Z         {
+2026-11-09T05:42:44.7892624Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7892908Z             "ordinary_scalar": 9952170,
+2026-11-09T05:42:44.7893185Z             "persistent_ndu": 103911576,
+2026-11-09T05:42:44.7893475Z             "prepared_ndu": 165120204
+2026-11-09T05:42:44.7893795Z           },
+2026-11-09T05:42:44.7894001Z           "complete": true,
+2026-11-09T05:42:44.7894277Z           "ordinary_minus_persistent_ns": -93959406,
+2026-11-09T05:42:44.7894868Z           "pair": 1,
+2026-11-09T05:42:44.7895120Z           "prepared_minus_persistent_ns": 61208628
+2026-11-09T05:42:44.7895401Z         },
+2026-11-09T05:42:44.7895604Z         {
+2026-11-09T05:42:44.7895814Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7896089Z             "ordinary_scalar": 10070029,
+2026-11-09T05:42:44.7896363Z             "persistent_ndu": 105136378,
+2026-11-09T05:42:44.7896637Z             "prepared_ndu": 163252425
+2026-11-09T05:42:44.7896880Z           },
+2026-11-09T05:42:44.7897078Z           "complete": true,
+2026-11-09T05:42:44.7897356Z           "ordinary_minus_persistent_ns": -95066349,
+2026-11-09T05:42:44.7897640Z           "pair": 2,
+2026-11-09T05:42:44.7897881Z           "prepared_minus_persistent_ns": 58116047
+2026-11-09T05:42:44.7898179Z         },
+2026-11-09T05:42:44.7898354Z         {
+2026-11-09T05:42:44.7898555Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7898823Z             "ordinary_scalar": 10425568,
+2026-11-09T05:42:44.7899100Z             "persistent_ndu": 104812908,
+2026-11-09T05:42:44.7899569Z             "prepared_ndu": 164548631
+2026-11-09T05:42:44.7899815Z           },
+2026-11-09T05:42:44.7900017Z           "complete": true,
+2026-11-09T05:42:44.7900282Z           "ordinary_minus_persistent_ns": -94387340,
+2026-11-09T05:42:44.7900569Z           "pair": 3,
+2026-11-09T05:42:44.7900803Z           "prepared_minus_persistent_ns": 59735723
+2026-11-09T05:42:44.7901082Z         },
+2026-11-09T05:42:44.7901261Z         {
+2026-11-09T05:42:44.7901458Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7901725Z             "ordinary_scalar": 10025596,
+2026-11-09T05:42:44.7902129Z             "persistent_ndu": 107172845,
+2026-11-09T05:42:44.7902404Z             "prepared_ndu": 163956864
+2026-11-09T05:42:44.7902645Z           },
+2026-11-09T05:42:44.7902836Z           "complete": true,
+2026-11-09T05:42:44.7903094Z           "ordinary_minus_persistent_ns": -97147249,
+2026-11-09T05:42:44.7903379Z           "pair": 4,
+2026-11-09T05:42:44.7903609Z           "prepared_minus_persistent_ns": 56784019
+2026-11-09T05:42:44.7903886Z         },
+2026-11-09T05:42:44.7904059Z         {
+2026-11-09T05:42:44.7904253Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7904783Z             "ordinary_scalar": 10152422,
+2026-11-09T05:42:44.7905056Z             "persistent_ndu": 109593184,
+2026-11-09T05:42:44.7905319Z             "prepared_ndu": 163667304
+2026-11-09T05:42:44.7905565Z           },
+2026-11-09T05:42:44.7905762Z           "complete": true,
+2026-11-09T05:42:44.7906043Z           "ordinary_minus_persistent_ns": -99440762,
+2026-11-09T05:42:44.7906341Z           "pair": 5,
+2026-11-09T05:42:44.7906578Z           "prepared_minus_persistent_ns": 54074120
+2026-11-09T05:42:44.7906865Z         },
+2026-11-09T05:42:44.7907043Z         {
+2026-11-09T05:42:44.7907236Z           "all_attempt_arm_wall_ns": {
+2026-11-09T05:42:44.7907510Z             "ordinary_scalar": 10032760,
+2026-11-09T05:42:44.7907777Z             "persistent_ndu": 103806520,
+2026-11-09T05:42:44.7908049Z             "prepared_ndu": 174716976
+2026-11-09T05:42:44.7908301Z           },
+2026-11-09T05:42:44.7908488Z           "complete": true,
+2026-11-09T05:42:44.7908751Z           "ordinary_minus_persistent_ns": -93773760,
+2026-11-09T05:42:44.7909044Z           "pair": 6,
+2026-11-09T05:42:44.7909279Z           "prepared_minus_persistent_ns": 70910456
+2026-11-09T05:42:44.7909552Z         }
+2026-11-09T05:42:44.7909726Z       ],
+2026-11-09T05:42:44.7909926Z       "persistent_saving_summary_ns": {
+2026-11-09T05:42:44.7910192Z         "max": 70910456,
+2026-11-09T05:42:44.7910414Z         "mean": 60138165.5,
+2026-11-09T05:42:44.7910649Z         "median": 58925885.0,
+2026-11-09T05:42:44.7910881Z         "min": 54074120,
+2026-11-09T05:42:44.7911105Z         "observations": 6,
+2026-11-09T05:42:44.7911341Z         "positive_pairs": 6,
+2026-11-09T05:42:44.7911589Z         "sample_stdev": 5821717.999760509,
+2026-11-09T05:42:44.7911848Z         "sum": 360828993
+2026-11-09T05:42:44.7912051Z       }
+2026-11-09T05:42:44.7912257Z     }
+2026-11-09T05:42:44.7912443Z   ],
+2026-11-09T05:42:44.7912629Z   "completed_cells": 72,
+2026-11-09T05:42:44.7912856Z   "failed_cells": 0,
+2026-11-09T05:42:44.7913084Z   "mechanism_execution_complete": true,
+2026-11-09T05:42:44.7913370Z   "native_processes_started": 534,
+2026-11-09T05:42:44.7913639Z   "native_responses_checked": 1020,
+2026-11-09T05:42:44.7913904Z   "p2_acceptance": "HOLD",
+2026-11-09T05:42:44.7914137Z   "planned_cells": 72
+2026-11-09T05:42:44.7914535Z }
+2026-11-09T05:42:45.1654078Z {
+2026-11-09T05:42:45.1654762Z   "authority": "DENY_ALL",
+2026-11-09T05:42:45.1655048Z   "cells_replayed": 72,
+2026-11-09T05:42:45.1655325Z   "distinct_observed_pids": 534,
+2026-11-09T05:42:45.1655609Z   "economic_benefit_established": false,
+2026-11-09T05:42:45.1655913Z   "machine_refinement_proved": false,
+2026-11-09T05:42:45.1656195Z   "ordinary_calls": 510,
+2026-11-09T05:42:45.1656454Z   "original_native_responses_checked": 1020,
+2026-11-09T05:42:45.1656788Z   "paired_native_responses_byte_identical": 510,
+2026-11-09T05:42:45.1657334Z   "persistent_native_processes": 24,
+2026-11-09T05:42:45.1657623Z   "prepared_native_processes": 510,
+2026-11-09T05:42:45.1657989Z   "raw_frame_identity_cleanup_and_cost_arithmetic_consistent": true,
+2026-11-09T05:42:45.1658567Z   "registration_sha256": "6c55b99c49ccfff2d8e8cf4c429f4be07b163ae150d2b3df638c4f37b2e45e2d",
+2026-11-09T05:42:45.1659130Z   "schema": "hepta.hia.ndu-persistent-ranking-replay.v1",
+2026-11-09T05:42:45.1659578Z   "source_files_rehashed": 14,
+2026-11-09T05:42:45.1659936Z   "timings_independently_authenticated": false,
+2026-11-09T05:42:45.1660667Z   "verifier_sha256": "c0433f4acb1a03002f963e46309f40db09ab1d39013cb7b312691cb92be5ad09"
+2026-11-09T05:42:45.1661202Z }
+2026-11-09T05:42:45.1772334Z ##[group]Run set -euo pipefail
+2026-11-09T05:42:45.1772694Z [36;1mset -euo pipefail[0m
+2026-11-09T05:42:45.1773137Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-ndu-scalar/source-after.txt"[0m
+2026-11-09T05:42:45.1773842Z [36;1mcmp "$RUNNER_TEMP/hia-ndu-scalar/source-before.txt" "$RUNNER_TEMP/hia-ndu-scalar/source-after.txt"[0m
+2026-11-09T05:42:45.1774819Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"[0m
+2026-11-09T05:42:45.1775275Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T05:42:45.1795636Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T05:42:45.1795997Z env:
+2026-11-09T05:42:45.1796225Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:45.1796499Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:45.1796815Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:45.1797233Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.1797710Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:45.1798177Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.1798592Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.1799005Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.1799437Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:45.1799939Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:45.1800457Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:45.1800908Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:45.1801293Z ##[endgroup]
+2026-11-09T05:42:45.2275035Z ##[group]Run actions/upload-artifact@v4
+2026-11-09T05:42:45.2275367Z with:
+2026-11-09T05:42:45.2275709Z   name: hia-ndu-scalar-selection-6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:45.2276165Z   path: /home/runner/work/_temp/hia-ndu-scalar/
+2026-11-09T05:42:45.2276479Z   if-no-files-found: error
+2026-11-09T05:42:45.2276720Z   retention-days: 30
+2026-11-09T05:42:45.2276942Z   compression-level: 6
+2026-11-09T05:42:45.2277160Z   overwrite: false
+2026-11-09T05:42:45.2277378Z   include-hidden-files: false
+2026-11-09T05:42:45.2277634Z env:
+2026-11-09T05:42:45.2277836Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T05:42:45.2278085Z   GIT_TERMINAL_PROMPT: 0
+2026-11-09T05:42:45.2278378Z   HEPTA_SOURCE_SHA: 6ecd8023615a6e0b2dc269379fb059c656b38b6f
+2026-11-09T05:42:45.2278776Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.2279210Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T05:42:45.2279666Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.2280052Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.2280438Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T05:42:45.2280828Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T05:42:45.2281309Z   HEPTA_NDU_BRIDGE: /home/runner/work/_temp/hia-ndu-scalar-target/debug/hia-ndu-bridge
+2026-11-09T05:42:45.2281829Z   HEPTA_NDU_BUILD: /home/runner/work/_temp/hia-ndu-scalar/build
+2026-11-09T05:42:45.2282278Z   HEPTA_NDU_UPSTREAM: /home/runner/work/_temp/hia-ndu-scalar-upstream
+2026-11-09T05:42:45.2282817Z ##[endgroup]
+2026-11-09T05:42:45.3980993Z (node:5175) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:42:45.3981845Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:42:45.5108703Z With the provided path, there will be 475 files uploaded
+2026-11-09T05:42:45.5109709Z Artifact name is valid!
+2026-11-09T05:42:45.5110168Z Root directory input is valid!
+2026-11-09T05:42:45.7775989Z Beginning upload of artifact content to blob storage
+2026-11-09T05:42:46.6058829Z (node:5175) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-09T05:42:46.9535079Z Uploaded bytes 8087254
+2026-11-09T05:42:46.9859553Z Finished uploading artifact content to blob storage!
+2026-11-09T05:42:46.9860649Z SHA256 digest of uploaded artifact zip is 829735b11f5a4be9eb30e0eaee180dc7cca6b1fc3f93797e2d343b3c8d2dfad0
+2026-11-09T05:42:46.9862691Z Finalizing artifact upload
+2026-11-09T05:42:47.3432830Z Artifact hia-ndu-scalar-selection-6ecd8023615a6e0b2dc269379fb059c656b38b6f.zip successfully finalized. Artifact ID 13651783665
+2026-11-09T05:42:47.3434703Z Artifact hia-ndu-scalar-selection-6ecd8023615a6e0b2dc269379fb059c656b38b6f has been successfully uploaded! Final size is 8087254 bytes. Artifact ID is 13651783665
+2026-11-09T05:42:47.3440635Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/42565807348/artifacts/13651783665
+2026-11-09T05:42:47.3693747Z Post job cleanup.
+2026-11-09T05:42:47.4917716Z (node:5187) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T05:42:47.4918673Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T05:42:47.5072625Z Post job cleanup.
+2026-11-09T05:42:47.6020662Z [command]/usr/bin/git version
+2026-11-09T05:42:47.6070779Z git version 2.56.0
+2026-11-09T05:42:47.6111295Z Temporarily overriding HOME='/home/runner/work/_temp/46bac97e-dfc7-4b40-8e84-e2bb1b7b2086' before making global git config changes
+2026-11-09T05:42:47.6112616Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T05:42:47.6116740Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T05:42:47.6158469Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T05:42:47.6198918Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T05:42:47.6525008Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T05:42:47.6565375Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T05:42:47.6955840Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T05:42:47.6996888Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T05:42:47.7471704Z Cleaning up orphan processes
+2026-11-09T05:42:47.7831720Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

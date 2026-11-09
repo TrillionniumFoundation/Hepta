@@ -1,244 +1,139 @@
 # HIA six-track blocker review — 2026-11-09
 
-**Overall acceptance remains HOLD.** The selected public v9 installation has a
-verified post-merge manifest readback. The combined v14 source has passed its
-own applicable CI; it has not been promoted to the public default or activated by this
-review. Existing proof requirements and original failed observations remain intact.
+**Overall acceptance remains HOLD.** The selected v9 public installation and its timestamped formal manifest readback agree. Final v16 source B has completed its original qualification cohort and has been integrated into both source baselines. This publication adds its separately named public installation entry and preserves the original evidence. Complete Core coverage, general machine correctness, original Agent-delta adoption and stable NDU economic benefit are not established.
 
-## Public selection and observed identity
+The [previous review at main 74063163](https://github.com/TrillionniumFoundation/Hepta/blob/74063163ad19d096a4ff9a66a6f25728e6ce0d8f/docs/HIA_BLOCKER_REVIEW_20261109.md) and all older evidence remain available. Later results bind their own subjects; no ancestor result is transferred to a new commit.
 
-The default remains source `2598f4309791d3a023cd5df585ad26810b20c744`, tree
-`4c073a29839eff1e75fbcc6dd28db4108c04160c`, runtime source
-`4cd85c99c5f5a480832c48fbde8561bb365f67a9`, profile
-`selfhost-core-linux-x86_64-v9`. The original 37,527-byte source-CI lock has SHA256
-`9000d6eaa089f6bed92ea07a6561d91381a6f913263f0b1016d4f99e8789c1d3`.
+## Public entries and observed online identity
 
-[PR #818](https://github.com/TrillionniumFoundation/Hepta/pull/818) aligned that
-public selection with the observed worker. Its actual main merge `bd4b8463`
-passed [public installation CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552762057).
-A subsequent formal connector read returned the complete 7,048-byte manifest;
-the unchanged checker matched worker/backend/catalog identity to the actual lock.
-The earlier timeout, historical-operation recovery and successful independent
-read are retained in the [post-merge report](../review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-REPORT.md).
-
-[PR #820](https://github.com/TrillionniumFoundation/Hepta/pull/820) published that
-record. Its main merge `de31c4840c2b900a309f4c06ea3fc204c8630df1` passed its own
-[public installation](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42556868174),
-[online evidence replay](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42556868190)
-and CodeQL. The original lock bytes remain unchanged.
-
-This is a timestamped installation-manifest observation. Reobserving an immutable
-operation does not prove a newly executed worker, loaded runtime build provenance,
-continuous uptime or future installation states. The original lock's source-only
-and deployment flags were not rewritten. Later operational changes require their
-own observations and cannot be attributed to this review without evidence.
-
-## Qualified parents and combined source
-
-| Role | Commit | Result |
+| Role | Exact source | Selection |
 | --- | --- | --- |
-| Loader, lease, cohort and first deadline integration | `2aa206882c7d6298d74ddc1ddf3a4ccb052e41a6` | 19/19 associated workflows succeeded, all attempt 1 |
-| Bounded u16/v14 and copied-fragment qualification | `635c57bd7fd0b9f37480b4da091af4dddfd53a36` | 19/19 associated workflows succeeded, all attempt 1 |
-| Combined v14 source in [PR #817](https://github.com/TrillionniumFoundation/Hepta/pull/817) | `6a8c297b3f8f21506d11c2cb093c1c58d84ffe55` | 19/19 associated workflows succeeded, all attempt 1; later source changes need their own qualification |
+| Default public release and timestamped online HIA manifest | `2598f4309791d3a023cd5df585ad26810b20c744`, tree `4c073a29839eff1e75fbcc6dd28db4108c04160c`, bounded v9 profile | Unchanged `tools/hia_release.py` and `releases/hia-current.json` |
+| Separately named v16 source release | `6ecd8023615a6e0b2dc269379fb059c656b38b6f`, tree `4c51962e030e9ea39c6498224c99eb40fbdd2f35`, bounded v16 profile | `tools/hia_release_v16_6ecd802.py`, explicit `releases/hia-v16-6ecd802.json` and SHA256 |
+| Runtime in both original locks | `4cd85c99c5f5a480832c48fbde8561bb365f67a9`, tree `6b78d53b53d51a6c070bb37e8e9f6a15ad26d0e8` | No live transition performed |
 
-The combined tree is `635d02f8f2b8151ae4697365e1962b070e4015a3`. Both parent
-histories, their full file union, original failures and the 723 distinct control
-inventory are retained. Three fixtures combine PID/starttime identity with all
-prior cleanup assertions and both timeout premises. The production collector and
-two readers retain their exact bytes, 60-second process and two-second cleanup
-limits, and leader/streams scope.
+The default lock is the original 37,527-byte source-CI member, SHA256 `9000d6eaa089f6bed92ea07a6561d91381a6f913263f0b1016d4f99e8789c1d3`.
+The named v16 lock is the original 47,762-byte member, SHA256 `b3c3725e183d98bec2819155f2d4cd525c3f45305d04ec8fa686e13f454e50e0`.
+Neither lock was regenerated or had its source-only flags rewritten.
 
-The [final CI readback](../review-evidence/hia-6a-ci-final-20261109-e5ee/README.md)
-retains every run and job identity. Initialization completed at 04:58:44 UTC with
-80/80 successful jobs. Across all 19 workflows there are 113 successful jobs and
-one conditional skip: an optional workflow_dispatch native NDU job was not
-requested by the PR event. The separate native NDU integration workflow passed.
+The v16 entry is a byte-identical copy of B's original helper under a versioned filename. The old v9 helper cannot validate the new inventory under the existing executing-source identity gate. The shared preflight already has identical bytes. The [release guide](HIA_RELEASE_ENTRY.md#named-v16-source-release--2026-11-09) contains complete commands; the [five-path static review](../review-evidence/hia-v16-public-entry-static-20261109-e5ee/README.md) retains exact identities and checks.
 
-The focused integration run passed eight methods, including both preoutput
-subtests. Four separately injected observations comprise one positive case and
-three required refusals, not four additional unique methods. The two distinct
-historical 108-method failures remain unchanged. See the
-[exact integration report](https://github.com/TrillionniumFoundation/Hepta/blob/6a8c297b3f8f21506d11c2cb093c1c58d84ffe55/docs/HIA_V14_FIXTURE_INTEGRATION_20261109.md).
+The public workflow independently checks current and v16, retaining every original gate and the 35-minute limit per row. Current exercises the true default without a lock override and retains its original artifact name. Source qualification, static review, the metadata head's two installation jobs and actual-main post-merge installation are distinct evidence.
 
-During review, [PR #816](https://github.com/TrillionniumFoundation/Hepta/pull/816)
-was independently merged into the source baseline as
-`20eace37747fde9aa0fc9c14cdb0159db30f5161`. Later integration must retain this
-new ancestor. Prospective merge metadata is not a substitute for actual job
-checkout logs and artifact source fields.
+### Retained actual-main installation and formal readback
 
-The two default-checkout jobs actually used the initial PR merge
-`d8dbec3de419ae45f719774dccbdfecb8bfa4493`, with the same `635d02f8` tree as
-`6a8c297b`. They did not use either the head commit itself or the later prospective
-merge. Their [independent identity review](../review-evidence/hia-6a-default-checkout-20261109-e5ee/README.md)
-retains actual checkout logs, metadata and original artifacts. Linux reports
-83/83 tests; Safe Core reports 45 tests, three positive cases, three supplied-byte
-rechecks and five rejected controls. Producer and consumer profiles intentionally
-differ; their subjects, properties, assumptions and checker identities agree.
+[PR823](https://github.com/TrillionniumFoundation/Hepta/pull/823) merged as `74063163ad19d096a4ff9a66a6f25728e6ce0d8f`. Its own [public installation run 42570014483](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42570014483) passed all 11 steps. The original native result contains 173 matching planned/executed IDs and no failure, error, skip, expected failure or unexpected success. Source/tree/cleanliness, describe/materialize/check, locked task inputs and the complete installation manifest agree. The lock fetched from that exact main commit is byte-identical to the original source-CI member. The [original artifact and independent readback](../review-evidence/hia-main740-public-installation-20261109-e5ee/README.md) retain these observations.
 
-## Subsequent v16 source candidate
+The formal online read at **03:01:50–03:03:18 UTC** returned the complete 7,048-byte manifest with `next_cursor=null`. The unchanged checker returned `PASS_CURRENT_INSTALLATION_READBACK`; worker, backend and catalog matched v9. Manifest SHA256: `d05cf5c78bed8da1cb9486f307097e4a2303780dd76da1c7ee44bafbee08969c`. The earlier 16,384-byte timeout and historical-operation recovery remain in the [formal readback record](../review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-REPORT.md).
 
-After the complete 6a qualification, PR817 advanced to
-`6ecd8023615a6e0b2dc269379fb059c656b38b6f`, tree
-`4c51962e030e9ea39c6498224c99eb40fbdd2f35`. This candidate combines PR821 at
-`e0c1ac3c` and PR822 at `ff456fd8` and preserves the independent `20eace37`
-baseline. Both ordinary merge orders produced the same tree without conflicts.
-The public source 2598 was already an ancestor.
+This is a timestamped installation-manifest observation. It does not prove continuous uptime, a newly executed native worker, loaded runtime-binary provenance or future states. Later metadata CI is not a new online observation.
 
-The [local merge preflight and actual publication records](../review-evidence/hia-v16-merge-preflight-20261109-e5ee/PUBLICATION.md)
-distinguish temporary local review commits from actual API-created commits.
-Intermediate `50262236` has parents e0 and ff; final `6ecd8023` has ordered
-parents 20 and that intermediate. The eleven reused tree entries and both remote
-commit trees/parents were checked. Relative to 6a, 64 paths change without a base
-deletion; all 380 prior evidence blobs remain, with 25 added evidence paths.
+## Final v16 source qualification and integration
 
-The candidate retains both frozen-compiler and current-compiler lifecycle checks,
-the corrected elapsed fixture clock, original capacity limits and strict Agent
-HOLD. It adds bounded unsigned checked casts, bool equality, effect propagation,
-explicit Safe Core v2 cast validation and an opt-in scalar stop guard. A skipped
-native evaluation is never reported as an executed or identity-verified NDU call.
+B has ordered parents `20eace37747fde9aa0fc9c14cdb0159db30f5161` and `50262236d9d1807ca8df0eccfb9f5f7ee9f6206c`. The intermediate commit combines e0 and ff. Both prior source histories and the independent PR816 integration remain. Relative to qualified 6a, 64 paths change with no base deletion; all 380 prior evidence blobs remain, with 25 added evidence paths.
 
-This source's own applicable CI and original release lock are required. At this
-publication point only the PR817 candidate branch moved; the source baseline
-branches, public v9 default and live service did not. No 6a, parent or local
-preflight qualification transfers to this commit.
+The [frozen original CI cohort](../review-evidence/hia-b6ecd-ci-final-20261109-e5ee/final-readback.md) completed **19/19 successful workflows**: 17 on attempt 1, Shared on attempt 2 and Guarded on attempt 3. Its latest 115 job records comprise **114 successes plus one conditional skip** for an optional workflow-dispatch native job. Initialization completed 80/80 jobs. This is not a claim that every job ran without a skip.
 
-The earlier ff456 checkpoint has a retained
-[assembly workflow failure](../review-evidence/hia-ff456-assembly-failure-20261109-e5ee/failure-review.json):
-[run 42562232933](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42562232933),
-attempt 1, passed its 175-test unit suite, then failed after the existing four
-attempts to download a pinned Lean dependency all returned HTTP 504. Three later
-qualification steps did not run. The workflow remains failed; the underlying
-gateway cause is unknown, and the unit result does not replace the missing gates.
-Original log, metadata and the complete failed artifact are retained. The final
-6ecd candidate has separate workflows and no result is transferred between them.
+Shared attempt 1 and Guarded attempts 1 and 2 exhausted the original four pinned-Lean download attempts with HTTP 504; affected proof steps did not run. Those failures and the older ff456 assembly failure remain. Successful later attempts actually obtained the same pinned dependency and ran the original gates. No dependency hash, proof gate or acquisition retry limit was weakened. The gateway's underlying cause remains unknown.
 
-## Independent v14 artifact review
+At **06:21:19 and 06:21:21 UTC**, expected-SHA, non-force fast-forwards advanced both source baselines to B. GitHub independently reports [PR817](https://github.com/TrillionniumFoundation/Hepta/pull/817) and [PR808](https://github.com/TrillionniumFoundation/Hepta/pull/808) merged at that exact commit. Actual refs, preconditions and tree/parent records are in the [integration packet](../review-evidence/hia-b6ecd-source-integration-20261109-e5ee/README.md). Integration created no different source tree and did not merge full source into metadata-only main.
 
-The [parent read-only audit](../review-evidence/hia-635c-independent-20261109-e5ee/README.md)
-qualifies identity and scope consistency only for original `635c57bd` artifact
-`13646795635`, from [source run 42552813567](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552813567).
-The 32,398,297-byte ZIP matches its official SHA256
-`577e5ab4311d6bd6f66a106eb676806277e809225f408b83851c5e2e5b1a5cee`.
+Those updates triggered a **separate 22-run cohort**. Its immutable [06:45:36–39 UTC phase snapshot](../review-evidence/hia-b6ecd-postintegration-phase-20261109-e5ee/README.md) records 20 successful and two running workflows; 118 latest job records comprise 115 successes, two running and one conditional skip. Post-integration Guarded attempt 1 again failed on four HTTP 504 responses; one evidence-based failed-job rerun passed on attempt 2. Both original outcomes remain. Running workflows are not counted as successes in that snapshot, and this cohort is not merged into the original 19-run denominator.
 
-All 252 exported source identities match their cold/language/lock hashes and
-exact public Git blobs. Original reports retain 11/11 cold, 1,215/1,215 nested
-and 1,026/1,026 language checks; these overlap and cannot be added as unique tests.
-All 555 fragment evidence files were hash-checked. Five proofs and five independent
-rechecks concern the same 25 obligations. Five typed outputs contain four distinct
-whole images and two distinct copied 35-byte fragments. The 200 projection calls
-and 64 whole-program calls remain separate finite observations.
+The separate [06:55:07 UTC terminal snapshot](../review-evidence/hia-b6ecd-postintegration-final-20261109-e5ee/README.md) subsequently records **22/22 successful workflows**: 21 on attempt 1 and Guarded on attempt 2. Its 118 latest job records comprise **117 successes and one conditional skip**. The earlier phase snapshot and original 19-run package were rehashed unchanged. This terminal packet retains the new full-NDU log/metadata; its additional ZIP and numerical samples are not substituted for the independently reconciled original full-NDU artifact discussed below.
 
-The reviewer did not execute a new project compiler, solver, generated native
-image or dynamic project test. These scoped reports assume initialized, disjoint,
-normalized input slots and the stated compiler refinement premise. The fragment
-lemma does not prove its preconditions or reachability in arbitrary surroundings.
+## Independent source and machine-report review
 
-The combined `6a8c297b` source now has a separate
-[independent exact-source audit](../review-evidence/hia-6a-source-independent-20261109-e5ee/README.md),
-using its own successful [source run 42558245653](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42558245653)
-and original artifact `13649338156`. The 32,401,939-byte ZIP matches official
-SHA256 `0de6b5217abcb1568b06f4e9f5c95eb30d9c487678d51007c57f9ddc6e3c7169`.
-Its original 46,609-byte release lock has SHA256
-`57c6d240add46c3ee27884d24193bb607ec7983674e58b135072ac281d60345d`.
+The [exact-source audit](../review-evidence/hia-b6ecd-source-independent-20261109-e5ee/exact-source/README.md) binds artifact `13652892138`: 36,367,360 bytes, official SHA256 `819cdb66f6fd7cb1de3c02f52bdabfbb27f009f30f849778d132df29f83ea8cc`. Release, runtime, cold, language, fragment, leaf, Safe Core and strict-support inventories were independently matched to exact Git blobs. Overlapping Hepta groups cover **688 distinct paths**; group counts are not added as unique files.
 
-This review independently binds 365 Hepta release-file hashes, 13 runtime hashes,
-252 cold exports and the separate qualifier source inventories. The overlapping
-groups cover 679 distinct Hepta paths and are not added as unique files. It
-checks 29 successful proof/recheck reports and 145 retained query/result records,
-and connects actual frozen C1 output slices to copied projection object and final
-ELF text. These counts describe original reports and internal byte/hash/result
-consistency, not 145 different theorems or a new local solver run. Cold, language,
-fragment and original strict Agent boundaries remain as above. The included
-standard-library audit script ran with exit code 0 without importing project code
-or executing a compiler, solver or native image.
+Original reports retain 11 cold outer checks, 1,447 nested checks and 1,196 language checks. Fixed-point identities and the intentional wrapper transition retain their own meaning. Finite language cases and traps do not prove arbitrary-input compiler correctness.
 
-All 23,715 original source-CI member byte streams are also
-[retained with an independent integrity reader](../review-evidence/hia-6a-source-originals-20261109-e5ee/README.md).
-The representation deduplicates identical content and retains every original
-member mapping and ZIP attributes. It preserves 1,614,719,391 bytes of original
-member content as 13,657 distinct objects in a 6,611,612-byte compressed archive.
-Every object and original-member mapping was checked, and the standalone reader
-returned exit 0. This is a different container, not the original ZIP byte stream;
-its digest is not presented as GitHub's official ZIP digest. Preservation does not
-rerun or strengthen the original scoped qualifications.
+The audit checks **29 successful proof/recheck reports and 145 retained query/result records**, including six scope fields and checker identities. Replays of the same obligations are not new theorems. The frozen C1 select fragment has five typed cases, four distinct whole images and two distinct copied 35-byte fragments. Original and independent rechecks concern the same 25 obligations; 200 projection and 64 whole-program calls are finite observations. Initialized, disjoint, normalized slots and the compiler-refinement premise remain assumptions. Arbitrary-context composition is not proved.
+
+The [default-checkout audit](../review-evidence/hia-b6ecd-source-independent-20261109-e5ee/default-checkout/README.md) binds actual merge checkout `16add3df22d58fd5486541837cdaf73a21317c49`, parents 20 and B, with B's tree. Those jobs did not use B's commit identity itself. Linux reports 83 matching planned/started/finished successes. Safe Core v1 retains 45 tests, three positive cases, three supplied-byte rechecks and five rejected controls. Safe Core v2 retains 26 programs, 130 original obligations and a replay of those same 130, plus three independent artifact rechecks. Intentional producer/consumer profile and canonical/raw Core-hash distinctions remain.
+
+All **28,122 original source-CI member streams** are [preserved and independently checked](../review-evidence/hia-b6ecd-source-originals-20261109-e5ee/README.md): 1,885,015,870 bytes, 16,121 distinct objects, a 7,366,924-byte archive. Every object, CRC, member mapping and aggregate count was checked. This container is not the original ZIP byte stream and cannot recompute GitHub's ZIP digest.
+
+The reviewer used standard-library byte/JSON/AST/hash readers. No new project compiler, solver, generated native image or dynamic loader experiment was executed in this independent source review.
+
+## Buffer lifecycle and original unfamiliar-Agent task
+
+Frozen C1 and current B compiler-buffer continuations have separate subjects and exact source hashes. Each retains 25 worker requests, six reopened consumer processes and three original consumer receipts. Each uses the same Core against itself, satisfies its required Core/canonical-behavior/encoding claims and reaches a scoped **nonproduction, unchanged** lifecycle result. General compiler lowering remains unsupported. This closes the reviewed finite buffer-continuation engineering range.
+
+The original semantic-change task retains its four-claim result:
+
+| Required claim | Original outcome |
+| --- | --- |
+| Core | proved |
+| Behavior equivalence | unknown |
+| Encoding | proved |
+| Compiler lowering | unsupported |
+
+It remains `HOLD_REAL_DELTA_STRICT_GATE`; evaluation returns `E_HIA_CLAIM_REQUIRED`, with no adoption. The original counterexample and refusals remain. C0 rejects the extension while C1 accepts it, so unconditional all-input equivalence is unsuitable as a new extension property. A versioned extension property is a different subject and cannot retroactively satisfy the frozen contract.
+
+Full original provider interactions, tokens and billing remain unavailable. A no-model campaign or dispatch counter is not a provider ledger; unknown cost is not zero.
+
+## NDU performance and economic boundaries
+
+The [scalar/controller review](../review-evidence/hia-b6ecd-ndu-independent-20261109-e5ee/README.md) binds B's own artifacts. Scalar integration records 180 successes and three Rust framing controls. Each prepared/persistent campaign completes 72 cells with zero failed/unstarted/retried cells, 1,020 original native responses and 510 ordinary calls. Independent standard-library replays return exit 0 and reproduce the original summaries byte for byte.
+
+**Ordinary is faster in all 24 matched pairs in each campaign.** Prepared beats one-shot in 24/24 pairs. Persistent beats prepared in all 18 pairs at horizons 4/16/64, but only one of six pairs at horizon 1. Median total times from the persistent campaign are:
+
+| Horizon | Ordinary ms | Prepared ms | Persistent ms |
+| --- | ---: | ---: | ---: |
+| 1 | 0.171533 | 8.495233 | 8.928076 |
+| 4 | 0.671987 | 16.302890 | 13.777557 |
+| 16 | 2.606314 | 45.502950 | 31.907931 |
+| 64 | 10.051395 | 164.252748 | 104.974643 |
+
+The frozen controller completes 64 pairs/128 calls with the same winner in each pair. **NDU is faster in 0/64 pairs**. Median NDU is 9.2602645 ms versus 0.044612 ms for Ordinary; median paired Ordinary-minus-NDU is -9.2165545 ms. Original outer wall time includes capture/export/audit costs. Independent verify-only execution checks 307 objects/128 cells without running prepare or native modes.
+
+The full native NDU artifact has a separate [independent review](../review-evidence/hia-b6ecd-full-ndu-independent-20261109-e5ee/README.md) and [complete member preservation](../review-evidence/hia-b6ecd-full-ndu-originals-20261109-e5ee/README.md). It comes from [run 42565815059](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42565815059), artifact `13653895483`; original ZIP SHA256 `d8ad94fe9ab18679c1475de2e490c03620081e58bad52654031c73253e2d1dff`.
+
+The bounded narrowed-reduction result passes **9/9 training and 21/21 holdout** compiler-performance comparisons. Two other retained parity groups report 0/9 plus 3/21, and 9/9 plus 18/21. The independent audit recalculates all 360 requests, 72 original JSONL files and 7,560 batches across the three groups. Thus the bounded narrowed kernel has a full-sample performance result; it is not evidence of general compiler superiority.
+
+All 21 narrowed holdout median ratios are below 1, from 0.3750794211 to 0.9325095057 (recorded medians 6.75%–62.49% lower than the corresponding controls). These finite batch measurements are not confidence intervals or production-tail guarantees. The older guarded/narrowed receipts retain their own schemas: the guarded proof binds `hia.o`, and the retained trusted-linker step produces a separately hashed `hia.so`. This review does not relabel those receipts as six-field machine proofs or collapse object and loaded-library identity.
+
+The pre-registered distinct-code guarded opportunity retains 84 samples and reports `no-economic-opportunity`. Both module gates remain unmet. Three original native-policy cohorts each have 12 complete rows and **zero NDU policy invocations**; incremental/gated/whole-lifecycle net-benefit flags remain false. A successful compiled-kernel comparison is distinct from extra value supplied by NDU policy.
+
+The scalar/controller campaigns use finite synthetic workloads on a shared host. The controller campaign has no model calls or real tasks. Independent readers verify byte identity, arithmetic and internal consistency, not independently authenticated timings. Complete global/model/provider and monetary costs remain unknown. Transport improvements and a faster compiled program do not by themselves establish stable incremental NDU value or economic benefit.
+
+## Runtime source candidates
+
+### Mac helper PR111
+
+[Runtime draft PR111](https://github.com/TrillionniumFoundation/hepta-runtime/pull/111) is `82de085a0223a6a3a3bf9573902bf252c4a0c8bf`, tree `bfc93c575fd30131f0ce3462009ebb00b247495d`, based solely on fixed runtime 4cd. The unrelated runtime default branch is unchanged.
+
+The helper reserves journal capacity for 26 control-event types under the operation lock before effects. Unrecordable observations cannot authorize effects. The 37 original fake-test method bodies remain with five additions; the actual local suite passes 42 methods. The finite 15-event refusal and 16-event activation/rollback/finish fixtures establish the reviewed capacity boundary, not arbitrary I/O success or indefinite convergence.
+
+Both original existing Linux CI runs pass on attempt 1. Each of three executed jobs records 2,389 passing/40 skipped all-feature tests and 2,360 passing/28 skipped no-default-feature tests. Actual head or same-tree merge checkouts are retained in the [original CI packet](../review-evidence/runtime-pr111-ci-20261109-e5ee/README.md). These repeated Rust configurations are separate from the 42 Python fake tests, which that workflow does not invoke.
+
+Real Mac activation, trusted loaded-build/configuration identity, state/lease compatibility and operational admission remain unestablished. Linux CI did not deploy the helper.
+
+### Private startup-receipt PR112
+
+[Runtime draft PR112](https://github.com/TrillionniumFoundation/hepta-runtime/pull/112) is separate and based on fixed 4cd. At this preparation snapshot, head `246696b049273ec67eda7874e3b78777e53dffe9`, tree `3f5bc4d4ac895212b9cd10095bd9a7ef30d3aaf1`, contains seven changed files with 14 Unix library and three CLI focused tests.
+
+The design binds provenance to the same buffer used for parsing, carries an immutable loaded-config wrapper and publishes an opt-in private receipt only after both runtime initialization sets succeed. Original RuntimeConfig serialization, old loader and policy-digest method bodies remain unchanged. It adds no hidden configuration digest to public MCP output.
+
+The first head's three jobs failed at formatting before these tests ran; originals remain. A reviewed whitespace/optional-comma correction passes all three new format gates. Compilation, test execution and final qualification must come from [this head's PR run](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42574689582) and [push run](https://github.com/TrillionniumFoundation/hepta-runtime/actions/runs/42574683513). This preparation record does not claim that the 17 tests passed.
+
+Even a successful producer candidate needs Mac build/load qualification, a trusted private adapter binding OS process-start, loaded image, service target and held locks, and a new unified runtime lock. `configuration_initialized` does not prove listener readiness, native-worker execution or persistent-state compatibility. Existing active slots, leases and artifacts cannot be assumed compatible because SQLite layout or directory is unchanged. Post-link I/O uncertainty remains explicit. Neither release lock selects this candidate; it was not inserted into PR111 or activated online.
 
 ## Six-track disposition
 
-| Track | Established evidence | Remaining blocker |
+| Track | Established result | Remaining requirement |
 | --- | --- | --- |
-| P0 release consistency | Selected public v9 lock, actual-main installation CI and timestamped formal worker/backend/catalog readback agree. Combined v14 has completed its own 19 applicable workflows. | Promotion of a later integrated source still needs that source's original lock, public installation qualification and an appropriately verified operational transition/readback. |
-| P0 proof semantics | Reviewed proofs/rechecks retain subject, property, profile, assumptions, checker identity and unproved obligations. | Scoped records do not establish global safety or discharge the broader P1 correctness obligations. |
-| P1 complete Core selfhosting | Qualified v14 has six bounded scalar types; ELF declares 50 operation names and flat output 40. | Signed scalars i8/i16/i32/i64/isize and unit remain unsupported; Core declares twelve scalar types in total. General returned owners/loans, multiple-result calls, module graphs, arbitrary identifiers, full effect/resource combinations and general object linking also remain outside the implementation. Operation names are not complete language coverage. |
-| P1 machine correctness | Safe Core artifact validation and actual copied-output-fragment checks bind their exact subjects and assumptions. | Whole compiler refinement, general ABI/resources/FFI/ISA/loader behavior and arbitrary-context composition remain unproved. |
-| P1 unfamiliar Agent task | Real frozen patch, independent consumers and original strict refusals are retained. A separate finite buffer continuation passes a nonproduction lifecycle with outcome unchanged. | For the original task, behavior equivalence remains unknown and lowering unsupported; evaluation rejects the missing required claim, with no adoption. The separate lifecycle does not qualify that task. C0 rejection/C1 acceptance also makes unconditional all-input equality unsuitable for the extension. Full original provider interactions/tokens/billing remain unavailable. |
-| P2 stable NDU/economic value | The combined 6a source's own original CI reports 172 integration tests and three Rust controls; both registered 72-cell campaigns independently replay byte for byte. | Ordinary is faster in all 24 pairs in each new 6a campaign. Persistent beats prepared at horizons 4/16/64 but only one of six pairs at horizon 1. These transport improvements do not establish incremental value against Ordinary. Complete provider/model and economic cost remain unknown. |
+| P0 release consistency | Selected v9 public lock, actual-main installation and timestamped formal worker/backend/catalog readback agree. B is independently qualified/integrated and has an original named lock/helper. | The named entry needs its own metadata-head and actual-main installation results. A future online selection change needs its own observed transition. |
+| P0 proof semantics | Reviewed six-field proof/recheck records retain subject, property, profile, assumptions, checker identity and unproved obligations; legacy optimization receipts keep their explicitly limited schemas. | Scoped PASS does not establish global safety or discharge broader P1 correctness. |
+| P1 complete Core selfhosting | Six bounded scalar types, checked unsigned casts, bool equality/effect propagation; 50 ELF operation names and 40 flat-output names. | Signed i8/i16/i32/i64/isize and unit remain outside the scalar support matrix. General returned owners/loans, multiple-result calls, module graphs, arbitrary identifiers, full effect/resource combinations and general linking remain outside the implementation. Names are not full language coverage. |
+| P1 machine correctness | Exact Core/machine/checker-bound Safe Core v1/v2, leaf and copied-fragment reports with independent rechecks. | Whole-compiler refinement, general ABI/resources/FFI/ISA/loader behavior and arbitrary-context composition remain unproved. |
+| P1 unfamiliar Agent task | Both actual compiler-buffer continuations complete separate nonproduction unchanged lifecycles. Frozen patch, consumers, counterexample and strict refusals remain. | The original task still lacks two required claims, evaluation rejects it and adoption is absent. Full provider interactions/tokens/billing remain unavailable. |
+| P2 stable NDU/economic value | Measured transport improvements and a full-sample bounded narrowed-kernel performance result; all registered comparisons and negative samples retained. | Ordinary wins all scalar pairs and 64 controller pairs. Distinct-code opportunity finds no economic opportunity. Stable incremental policy benefit and complete economic return are not established. |
 
-The original Agent report stays `HOLD_REAL_DELTA_STRICT_GATE`. The fragment
-reports retain `evaluation_performed=false`, `adoption_authorized=false` and
-`agent_proof_receipt_issued=false`. A future versioned extension property is a
-different subject and cannot retroactively change the frozen task's four-claim
-contract. Its remaining obligations are listed in the
-[extension proof plan](https://github.com/TrillionniumFoundation/Hepta/blob/6a8c297b3f8f21506d11c2cb093c1c58d84ffe55/docs/HIA_AGENT_EXTENSION_PROOF_PLAN_20261108.md).
-
-The [new 6a NDU review](../review-evidence/hia-6a-ndu-independent-20261109-e5ee/README.md)
-binds run 42558245656 and artifact 13648987153. Its 8,085,898-byte ZIP matches
-official SHA256 `b115dda0b04c35f9fb60a6d26eacd4aa74cb479af27c7179c165e5a2d93057b0`.
-All 475 original file members are retained, together with the registration,
-source identities, raw responses, timing records and independent replay results.
-Each campaign checks 1,020 original native responses and 510 ordinary calls;
-these are original observations, not new native evaluations by the reviewer.
-The standard-library replayers check identity and arithmetic and do not
-independently authenticate the original timings.
-
-The earlier NDU evidence remains in the
-[ffa audit](../review-evidence/hia-ffa64-independent-20261108-e5ee/README.md).
-The new campaigns also use synthetic finite cost tables on a shared host with
-no real task or model call. Missing cost is not zero; failed samples remain;
-transport improvements are not relabeled economic gains.
-
-## Mac activation source candidate
-
-[Runtime draft PR #111](https://github.com/TrillionniumFoundation/hepta-runtime/pull/111)
-publishes an experimental activation helper at commit
-`82de085a0223a6a3a3bf9573902bf252c4a0c8bf`, tree
-`bfc93c575fd30131f0ce3462009ebb00b247495d`, with the exact selected runtime
-`4cd85c99c5f5a480832c48fbde8561bb365f67a9` as its only parent. The 13 added
-paths were read back byte for byte. Its independent base branch preserves the
-runtime repository's unrelated default branch.
-
-The helper checks operation ownership, process identity, configuration ownership
-and expiry before effects. The latest correction reserves durable journal
-capacity for 26 control-event types before configuration or restart intent under
-the same operation lock. Repeated observations do not consume necessary reserved
-slots; observations that cannot be recorded cannot authorize later effects.
-Five new boundary cases bring the actual pure-fake test run to 42 successful
-methods. The 37 prior method bodies and all earlier success and failure records
-remain intact. A 15-event capacity refuses before effects; the finite 16-event
-activation/rollback/finish path completes in the offline fixture.
-
-This closes the reviewed finite journal-capacity defect. It does not establish
-real Mac activation, disk/I/O success, convergence under indefinitely changing
-observations, loaded full-configuration identity, state/in-flight compatibility
-or independent operational admission. Runtime CI was queued at publication;
-neither the draft PR nor its offline tests is reported as a deployed change.
-The selected v9 installation-manifest PASS remains a separate established claim.
-
-## Metadata-review CI history
-
-The [original CodeQL failure](../review-evidence/hia-9d30-codeql-failure-20261109-e5ee/README.md)
-for evidence head `9d30ae19` is retained. Three jobs passed; Rust initialization
-failed while obtaining the official analysis bundle after HTTP 504 responses,
-so Rust analysis did not run. GitHub rejected a single-job rerun with HTTP 403
-and did not create another attempt. The run uses dynamic Default setup.
-
-This subsequent failure-evidence commit receives its own normal Default setup
-analysis through the documented new-commit trigger. The original 9d30 failure
-remains failed; an earlier head's green result is not substituted. No source
-implementation, scanner configuration, checks or retry limits were changed.
+These are substantive implementation, proof, original-task and empirical/data obligations. They cannot be closed by renaming HOLD, substituting a same-program lifecycle for the original change, counting an unexecuted proof, transferring ancestor CI or treating missing cost as zero.
 
 ## Publication boundary
 
-This record adds evidence only. It does not change the default lock, release
-helper, source installation, runtime configuration or service process. Source
-integration and metadata-only main remain separate. Overall acceptance stays
-HOLD until each outstanding requirement is established for its actual subject.
+This publication adds a separately named source release, checks both public entries and preserves original evidence. The default lock/helper, selected runtime and live service are unchanged. Runtime candidates retain their own identities and scopes. Overall six-track acceptance remains HOLD until the remaining requirements are established for their actual subjects.
+
