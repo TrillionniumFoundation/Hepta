@@ -16,7 +16,7 @@ Eleven markers have original byte offsets 65, 102701, 104333, 112569, 112729, 11
 
 ## Separate marker-only evidence protocol
 
-The protocol is seven-certificate-first-six-diagnostic-v1, target SevenCertificatePart04. Its fixed process trace is p04-markers-v1. Old diagnostic and acceptance interfaces are unchanged.
+The protocol is seven-certificate-first-six-diagnostic-v1, target SevenCertificatePart04. Its current fixed process trace is p04-markers-v2. This trace adds mandatory boolean cleanup_deadline_exceeded evidence and refuses late wait/read/exit observations without renewing the original cleanup deadline. The 60-second process and two-second cleanup limits are unchanged. Historical p04-markers-v1 records remain historical evidence for their original source/checker; the v2 checker explicitly rejects them as new strict-deadline qualification. Neither trace admits a target module.
 
 The trace contains one start, zero to eleven ordered marker events and one terminal record. There are no per-read events or claims about per-read timing. Complete stdout and stderr are still retained, bounded, hashed and independently read. Each marker event records the exact stdout byte offset, original and instrumented source offsets and received timestamp. Independent replay uses its own complete LF-delimited raw parser, not the collector observer, to reconstruct the marker sequence. It rejects foreign, duplicate, reordered, partial and unmatched marker-like lines, including stderr markers; timestamps must be finite, monotone and within the process elapsed time.
 

@@ -95,7 +95,15 @@ class Part04RunnerTests(unittest.TestCase):
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
                     if behavior=='target_timeout':
                         origin=time.monotonic()
-                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=lambda:origin+(time.monotonic()-origin)*100)))
+                        def clock():
+                            elapsed=time.monotonic()-origin
+                            # Accelerate only the 60-second process interval.
+                            # Keep the collector's separate two-second cleanup
+                            # in real time, including scheduling and fsync cost.
+                            process=min(elapsed*100,collector.PROCESS_SECONDS)
+                            cleanup=max(0,elapsed-collector.PROCESS_SECONDS/100)
+                            return origin+process+cleanup
+                        capture_stack.enter_context(patch.object(collector,'time',SimpleNamespace(monotonic=clock)))
                     captured=collector.capture_result(executable,source,output,root,**kwargs)
                 if behavior=='malformed_terminal':
                     event_path=root/runner.CAPTURE_FILES[2]
