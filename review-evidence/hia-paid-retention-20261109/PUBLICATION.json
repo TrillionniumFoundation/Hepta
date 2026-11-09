@@ -1878,5 +1878,33 @@
     "independent_holdout_claim": false,
     "p1_v2_integration_claim": false,
     "p5_promotion": "HOLD"
+  },
+  "post_publication_workflow_retention_fix": {
+    "parent_commit": "504316df60c15e80b1a212d6e9dc59f9040ad3af",
+    "parent_tree": "1096ae13088ce57f9871475f5f31d39b52c78f41",
+    "path": ".github/workflows/hia-paid-observation-retention.yml",
+    "before": {
+      "git_blob": "f57970719d509cb4bd4805ef51d876e499b911a3",
+      "bytes": 1737,
+      "sha256": "ddca384a4fd345dc8d987a9cb0c80f4752a7ff29fdc8a55d81655a01b9a490f9"
+    },
+    "after": {
+      "git_blob": "4df02ef18f3a205c60b4c85292dcf982ae5a4d3e",
+      "bytes": 1774,
+      "sha256": "720b315a885957d148dd6e55861dea6025139689ecbe08671f60675699cd91cc"
+    },
+    "change": "Add include-hidden-files: true only for the dedicated RUNNER_TEMP/hia-paid-retention artifact directory so the original source/.github/workflows snapshot is retained.",
+    "reason": "The fetched official actions/upload-artifact v4 action.yml defines include-hidden-files default false.",
+    "official_definition": "https://github.com/actions/upload-artifact/blob/v4/action.yml",
+    "core_producer_two_tests_protocol_unchanged": true,
+    "portable_twelve_case_runner_unchanged": true,
+    "original_source_projection_and_bundle_unchanged": true,
+    "prior_published_head_runs_retained": {
+      "push": 42644845636,
+      "pull_request": 42644992306,
+      "status_when_fix_prepared": "queued"
+    },
+    "new_head_requires_own_ci": true,
+    "official_definition_git_blob": "2a0ecf19e8d0087dd2e5d1785dcf764811e79fae"
   }
 }
