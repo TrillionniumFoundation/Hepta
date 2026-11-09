@@ -1,0 +1,491 @@
+{
+  "artifact_rechecks": [
+    {
+      "case": "scalar_add",
+      "compiler_invoked": false,
+      "ok": true,
+      "report": "scalar_add/independent-check/attempt.json"
+    },
+    {
+      "case": "guarded_update",
+      "compiler_invoked": false,
+      "ok": true,
+      "report": "guarded_update/independent-check/attempt.json"
+    },
+    {
+      "case": "read_byte",
+      "compiler_invoked": false,
+      "ok": true,
+      "report": "read_byte/independent-check/attempt.json"
+    }
+  ],
+  "claims": {
+    "complete_selected_model_validation": true,
+    "default_release_or_production_admission_changed": false,
+    "finite_native_tests_passed": true,
+    "machine_checked_isa_refinement_proved": false,
+    "whole_language_soundness_proved": false
+  },
+  "completed_utc": "2026-11-09T04:09:06.037037+00:00",
+  "elapsed_seconds": 5.141492348,
+  "git_head": "d8dbec3de419ae45f719774dccbdfecb8bfa4493",
+  "negative": [
+    {
+      "case": "addition_becomes_subtraction",
+      "core_sha256": "18e87ce97ca8473508ccf95b8554aec10c04ebd2f8df2b3a77af627a1595ee8a",
+      "counterexample": {
+        "abi_words": [
+          0,
+          1073741824
+        ],
+        "initial_rsp": 9223372036854775816,
+        "obligation": "core_to_final_image_return_abort_and_caller_bytes"
+      },
+      "elapsed_seconds": 0.06397720799999718,
+      "error": "E_HIA_SAFE_CORE: core_to_final_image_return_abort_and_caller_bytes: sat",
+      "final_image_sha256": "7577bab1ddd0ec7cd5258c120ae9ea1934ba7366b4392314c341e3d286fa5ce8",
+      "object_sha256": "7e7dbab37010a1a3b57888f410c459b5c5eeee37fa3101dc90ca003272cc4ae0",
+      "status": "rejected_with_sat_counterexample"
+    },
+    {
+      "case": "equal_extent_is_admitted",
+      "core_sha256": "867621ea08f380427bd5c181bdddb35597b7269dead8196c017ea8481e714249",
+      "counterexample": {
+        "abi_words": [
+          9223372036854775795,
+          63,
+          63
+        ],
+        "initial_rsp": 6507701461550383128,
+        "obligation": "machine_memory_access_bounds"
+      },
+      "elapsed_seconds": 0.0871333990000025,
+      "error": "E_HIA_SAFE_CORE: machine_memory_access_bounds: sat",
+      "final_image_sha256": "1b2c25afe4fc7a2802b8055b9f63fbf0fc66f504d291cfe6d550bf0a3c2e21a0",
+      "object_sha256": "e8b2e9f4d8243dee84ff55f0b691e4e2e33edd7a5f208a32cc4a7efd3be3b3de",
+      "status": "rejected_with_sat_counterexample"
+    },
+    {
+      "case": "byte_store_becomes_word_store",
+      "core_sha256": "6a2fb5579622562bdb50dde2356b32b5060550c720e3acf28951907100f7905f",
+      "counterexample": {
+        "abi_words": [
+          2,
+          4096,
+          4094,
+          0,
+          1
+        ],
+        "initial_rsp": 18446744073709543464,
+        "obligation": "machine_memory_access_bounds"
+      },
+      "elapsed_seconds": 0.09931399300000265,
+      "error": "E_HIA_SAFE_CORE: machine_memory_access_bounds: sat",
+      "final_image_sha256": "bcfb566a05e656b840591a4ca0c5955573e81213febe80d59f35ad7b9ed264c6",
+      "object_sha256": "edf7790d6212b7045573f4306b12119742dfbde4bb4218028757b1b011f398d3",
+      "status": "rejected_with_sat_counterexample"
+    },
+    {
+      "case": "callee_saved_rbx_is_clobbered",
+      "core_sha256": "18e87ce97ca8473508ccf95b8554aec10c04ebd2f8df2b3a77af627a1595ee8a",
+      "counterexample": {
+        "abi_words": [
+          0,
+          0
+        ],
+        "initial_rsp": 9223372036854775816,
+        "obligation": "sysv_stack_alignment_and_preservation"
+      },
+      "elapsed_seconds": 0.061473314999993534,
+      "error": "E_HIA_SAFE_CORE: sysv_stack_alignment_and_preservation: sat",
+      "final_image_sha256": "1469841658a3bce0c4035e1e177f2e800c3a0bba8c6cd6878f515309289cfc39",
+      "object_sha256": "7ceb557760e6f7eb817ca95c334c8be53af23ec2f7a50388ec44e0bfef4c98ce",
+      "status": "rejected_with_sat_counterexample"
+    },
+    {
+      "case": "nonreturning_abort_uses_invalid_stack",
+      "core_sha256": "867621ea08f380427bd5c181bdddb35597b7269dead8196c017ea8481e714249",
+      "counterexample": {
+        "abi_words": [
+          18417646787977281519,
+          41,
+          182945334563962904
+        ],
+        "initial_rsp": 9201136097816504312,
+        "obligation": "machine_memory_access_bounds"
+      },
+      "elapsed_seconds": 0.09656416300000359,
+      "error": "E_HIA_SAFE_CORE: machine_memory_access_bounds: sat",
+      "final_image_sha256": "b10557c59f9b9eeb3ca2e050686fc0bb8f758857976f81bb297f4b79c33ae06c",
+      "object_sha256": "9bcf0c8bc52581c9357d2121ab5a9605bff81969399b9a797420402a1d9c794b",
+      "status": "rejected_with_sat_counterexample"
+    }
+  ],
+  "ok": true,
+  "positive": [
+    {
+      "case": "scalar_add",
+      "elapsed_seconds": 0.0824426900000006,
+      "ok": true,
+      "report": "scalar_add/attempt.json"
+    },
+    {
+      "case": "guarded_update",
+      "elapsed_seconds": 0.23153775499999796,
+      "ok": true,
+      "report": "guarded_update/attempt.json"
+    },
+    {
+      "case": "read_byte",
+      "elapsed_seconds": 0.18965572100000117,
+      "ok": true,
+      "report": "read_byte/attempt.json"
+    }
+  ],
+  "replay": [
+    {
+      "elapsed_seconds": 0.0013208599999998683,
+      "expected": "sat",
+      "query": "addition_becomes_subtraction/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "088dbc8f1c236bb887dccc6f0ce750250570e9b8aee9c29ead77080eeb59fb6f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.00021509199999769635,
+      "expected": "unsat",
+      "query": "addition_becomes_subtraction/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "6bd7adeec0b1bcdc7f8ac2641aa29cf8a0eb17f54f6e6b110cf88f2e2a200e83",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.00019400100000410703,
+      "expected": "unsat",
+      "query": "addition_becomes_subtraction/queries/02-sysv_stack_alignment_and_preservation.smt2",
+      "query_sha256": "9e6022e1e4fd43a7414623099ea3eb558add14bb344f5485ca47e59e03b5fc78",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.00017331899999817324,
+      "expected": "unsat",
+      "query": "addition_becomes_subtraction/queries/03-all_inputs_reach_a_terminal_model_outcome.smt2",
+      "query_sha256": "d6ab202aec1f09df5d42809936ac70527d648a8284ebfdbe82bedd572aa02849",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.0015010600000024965,
+      "expected": "sat",
+      "query": "addition_becomes_subtraction/queries/04-core_to_final_image_return_abort_and_caller_bytes.smt2",
+      "query_sha256": "91cfd82b3ea5ea20a76f5bab6dfbc866ad0e6093036d98b47e084f68a229573f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.006421063000004779,
+      "expected": "sat",
+      "query": "byte_store_becomes_word_store/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "648d9b7566a630d37227448ba2b1d85baa1c747d2f9db25fd82b40fd50fbd7a4",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.008377734999996278,
+      "expected": "sat",
+      "query": "byte_store_becomes_word_store/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "509b4ea22d465008fe60fb8f5cf5cb8f7bf251cdf46e7b13efb1048ad66e4c24",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.001246027000000538,
+      "expected": "sat",
+      "query": "callee_saved_rbx_is_clobbered/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "088dbc8f1c236bb887dccc6f0ce750250570e9b8aee9c29ead77080eeb59fb6f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.00018483699999904957,
+      "expected": "unsat",
+      "query": "callee_saved_rbx_is_clobbered/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "6bd7adeec0b1bcdc7f8ac2641aa29cf8a0eb17f54f6e6b110cf88f2e2a200e83",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.0012870489999983192,
+      "expected": "sat",
+      "query": "callee_saved_rbx_is_clobbered/queries/02-sysv_stack_alignment_and_preservation.smt2",
+      "query_sha256": "ee0799fc53cdbe8b419a49ff1e4bc130a2c1898dce139dfcb3c50d5790c6d339",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.0063193499999982805,
+      "expected": "sat",
+      "query": "equal_extent_is_admitted/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "88feb815eeb2f9034250630540e05bc41220ee00103ce553c4b455ca93f4be1f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.01008991100000145,
+      "expected": "sat",
+      "query": "equal_extent_is_admitted/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "084454b759283b98adb32572b1357348eb30be4bca607f6cefd36d068faf85eb",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.00643906000000527,
+      "expected": "sat",
+      "query": "guarded_update/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "648d9b7566a630d37227448ba2b1d85baa1c747d2f9db25fd82b40fd50fbd7a4",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.027196838000001833,
+      "expected": "unsat",
+      "query": "guarded_update/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "3ded435b61230f33e0787daf544b76ee754da2189a612bf84a17ec7e546491eb",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.0004939499999991881,
+      "expected": "unsat",
+      "query": "guarded_update/queries/02-sysv_stack_alignment_and_preservation.smt2",
+      "query_sha256": "2ffe5f71fad55963a694c6e71e2b5a02d1492971f6840594cabc3548f18ff3ef",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.02644100500000235,
+      "expected": "unsat",
+      "query": "guarded_update/queries/03-all_inputs_reach_a_terminal_model_outcome.smt2",
+      "query_sha256": "2992393806dd5f32234b7dc19f61c4182b26aa9a675c008b890a90bf10eb1e60",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.04005289399999867,
+      "expected": "unsat",
+      "query": "guarded_update/queries/04-core_to_final_image_return_abort_and_caller_bytes.smt2",
+      "query_sha256": "789252a77856abb03eb520ba73b56d8df7c766fe99e2afb78e777d546ff8ebe4",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.006868223000005003,
+      "expected": "sat",
+      "query": "nonreturning_abort_uses_invalid_stack/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "88feb815eeb2f9034250630540e05bc41220ee00103ce553c4b455ca93f4be1f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.008451295000000414,
+      "expected": "sat",
+      "query": "nonreturning_abort_uses_invalid_stack/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "e0326046a0876323f8bd07513d78607e539f50fe6fc1db1bee44935ba7c1b24b",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.006313181000002999,
+      "expected": "sat",
+      "query": "read_byte/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "88feb815eeb2f9034250630540e05bc41220ee00103ce553c4b455ca93f4be1f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.030795140999998694,
+      "expected": "unsat",
+      "query": "read_byte/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "a3fc680e0d4333edd62de867c3242377f01109a67013e07fd0ccf48973752a7c",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.0004929279999998926,
+      "expected": "unsat",
+      "query": "read_byte/queries/02-sysv_stack_alignment_and_preservation.smt2",
+      "query_sha256": "bae2c95cd0826e476104fa7ec8bdc439455465a18445786dd7fc15392000c17f",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.027975034000000676,
+      "expected": "unsat",
+      "query": "read_byte/queries/03-all_inputs_reach_a_terminal_model_outcome.smt2",
+      "query_sha256": "949ba8baa24039198119513b81a2e1e83439b92e0bdb923e008c984feddc6783",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.02831969100000009,
+      "expected": "unsat",
+      "query": "read_byte/queries/04-core_to_final_image_return_abort_and_caller_bytes.smt2",
+      "query_sha256": "a8d75a2b0dbcc8bf7676a138cda5e9af9245e1f64291edf8dd42e12e4214da0a",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.0013961619999989239,
+      "expected": "sat",
+      "query": "scalar_add/queries/00-caller_contract_nonvacuous.smt2",
+      "query_sha256": "088dbc8f1c236bb887dccc6f0ce750250570e9b8aee9c29ead77080eeb59fb6f",
+      "result": "sat"
+    },
+    {
+      "elapsed_seconds": 0.00021926800000215962,
+      "expected": "unsat",
+      "query": "scalar_add/queries/01-machine_memory_access_bounds.smt2",
+      "query_sha256": "6bd7adeec0b1bcdc7f8ac2641aa29cf8a0eb17f54f6e6b110cf88f2e2a200e83",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.00020651999999898862,
+      "expected": "unsat",
+      "query": "scalar_add/queries/02-sysv_stack_alignment_and_preservation.smt2",
+      "query_sha256": "9e6022e1e4fd43a7414623099ea3eb558add14bb344f5485ca47e59e03b5fc78",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.00019917800000257557,
+      "expected": "unsat",
+      "query": "scalar_add/queries/03-all_inputs_reach_a_terminal_model_outcome.smt2",
+      "query_sha256": "d6ab202aec1f09df5d42809936ac70527d648a8284ebfdbe82bedd572aa02849",
+      "result": "unsat"
+    },
+    {
+      "elapsed_seconds": 0.00017899899999918034,
+      "expected": "unsat",
+      "query": "scalar_add/queries/04-core_to_final_image_return_abort_and_caller_bytes.smt2",
+      "query_sha256": "80e66dddbf0b336de9f44a341adf3ce764ead8cd941f96fffbbea00823059d0b",
+      "result": "unsat"
+    }
+  ],
+  "schema": "hepta.hia.safe-core-qualification.v1",
+  "source_identity": {
+    "examples/hia_safe_core/guarded_update.hia.json": "d66f51d0a72813aa11d35ee1f062f92599314de2b3f279002f59ab8d31bf8c76",
+    "examples/hia_safe_core/read_byte.hia.json": "d154145534e61ce007f401a5c71918112b26b7d6c81c2a5fa34599bfb7989d07",
+    "examples/hia_safe_core/scalar_add.hia.json": "a4b603a4aab5b62e90b8109290f2e69d7310d36cd4188be54f5985cc83185db3",
+    "hepta/elf_shared_abi.py": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+    "hepta/hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+    "hepta/hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+    "hepta/hia_machine_elf.py": "c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101",
+    "hepta/hia_machine_x64.py": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",
+    "hepta/hia_native_byte_abi.py": "0bb40a17f76c27146a48a6d3d229228c9a89bfd96d4b9d65b3b9c70215a3edd6",
+    "hepta/hia_opcodes.py": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec",
+    "hepta/hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+    "hepta/hia_program_native.py": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c",
+    "hepta/hia_safe_core.py": "e5b5bc6d495a42b9373270c28b6969e0223c622091220780aa14a2fa5a0e6ba5",
+    "hepta/hia_safe_core_elf.py": "2f6ef7c6ade26d54d3d02ba1f35e450086a4c1ea81b60dbeb3f1f0b30a07cb6f",
+    "hepta/hia_safe_core_x64.py": "94560da1baf4526d93d5c7449f74afc2db6967ea70b42e962af33fbca3dcd092",
+    "hepta/hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253",
+    "tests/test_hia_safe_core.py": "b288ec0425a901e3760df61c2d98746da1a8f59478f78453796e5a578fd5d331",
+    "tests/test_hia_safe_core_artifact.py": "cd3a94e100599d1f487fb98dc73db37111e2342032f2e6f58ea7c7c8987e4ea9",
+    "tests/test_hia_safe_core_loader_contract.py": "551a837050327a29f3645efeabb9a4f5501a10e209dc5e5f8b5fe2307598b15a",
+    "tools/build_hia_safe_core.py": "cb73b5f9914f7a86d1e2e493bd98c8bd71670917fcf1c481810deb19e1b520b9",
+    "tools/check_hia_safe_core.py": "fbcab5603fcf3de7d438e3137fd32b9152a0f00171aae2ca834fad638aa645ff",
+    "tools/qualify_hia_safe_core.py": "6b57af0532ae4c8706eeaeab025f2a863dca5fdb0878d75e221a6f53e91c592d"
+  },
+  "source_unchanged": true,
+  "started_utc": "2026-11-09T04:09:00.898127+00:00",
+  "status": "passed",
+  "tests": {
+    "case_counts": {
+      "tests.test_hia_safe_core.SafeCoreTests.test_borrowed_guarded_update_preserves_all_other_bytes_and_abi_rejections": {
+        "abi_rejections": 3,
+        "native_guarded_updates": 256,
+        "no_write_cases": 3
+      },
+      "tests.test_hia_safe_core.SafeCoreTests.test_checked_add_and_sub_are_proved_at_every_admitted_integer_width": {
+        "all_input_checked_arithmetic_functions": 8
+      },
+      "tests.test_hia_safe_core.SafeCoreTests.test_native_wrapping_boundaries_match_independent_math": {
+        "native_arithmetic_pairs": 64
+      }
+    },
+    "count": 45,
+    "errors": [],
+    "executed": [
+      "tests.test_hia_safe_core.SafeCoreDecoderTests.test_unsupported_opcode_and_branch_into_an_immediate_are_rejected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_abort_symbol_version_cannot_be_rebound",
+      "tests.test_hia_safe_core.SafeCoreTests.test_all_input_obligations_and_exact_final_bytes_are_bound",
+      "tests.test_hia_safe_core.SafeCoreTests.test_all_unsigned_conditions_are_checked_on_actual_final_images",
+      "tests.test_hia_safe_core.SafeCoreTests.test_borrowed_guarded_update_preserves_all_other_bytes_and_abi_rejections",
+      "tests.test_hia_safe_core.SafeCoreTests.test_checked_add_and_sub_are_proved_at_every_admitted_integer_width",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_add_producer_cannot_revalidate_its_own_wrong_machine_code",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_callee_saved_register_clobber_is_detected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_equal_extent_guard_produces_a_real_memory_bound_counterexample",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_wide_foreign_store_is_not_a_byte_store",
+      "tests.test_hia_safe_core.SafeCoreTests.test_final_instruction_byte_change_cannot_reuse_source_or_a_receipt",
+      "tests.test_hia_safe_core.SafeCoreTests.test_final_relocation_target_must_match_exact_symbol_and_plt",
+      "tests.test_hia_safe_core.SafeCoreTests.test_gnu_hash_bloom_bucket_and_chain_must_resolve_the_export",
+      "tests.test_hia_safe_core.SafeCoreTests.test_load_alignment_and_permissions_cannot_be_promoted",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loader_metadata_cannot_be_read_from_an_unloaded_benign_copy",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loader_metadata_cannot_disable_its_load_binding",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loop_call_allocation_and_unsupported_types_are_outside_profile",
+      "tests.test_hia_safe_core.SafeCoreTests.test_missing_solver_never_publishes_a_candidate",
+      "tests.test_hia_safe_core.SafeCoreTests.test_native_wrapping_boundaries_match_independent_math",
+      "tests.test_hia_safe_core.SafeCoreTests.test_nonreturning_abort_call_cannot_push_beyond_the_declared_stack",
+      "tests.test_hia_safe_core.SafeCoreTests.test_nonreturning_abort_call_must_still_write_to_the_admitted_stack",
+      "tests.test_hia_safe_core.SafeCoreTests.test_partial_page_overlay_cannot_evade_whole_section_mapping_checks",
+      "tests.test_hia_safe_core.SafeCoreTests.test_plt_indirection_cannot_redirect_to_another_got_slot",
+      "tests.test_hia_safe_core.SafeCoreTests.test_readonly_bounds_abort_matches_native_model_without_assuming_in_bounds_inputs",
+      "tests.test_hia_safe_core.SafeCoreTests.test_relro_cannot_remove_execution_from_the_checked_text",
+      "tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping",
+      "tests.test_hia_safe_core.SafeCoreTests.test_saved_smt_queries_replay_with_the_bound_solver",
+      "tests.test_hia_safe_core.SafeCoreTests.test_solver_unknown_never_publishes_a_candidate",
+      "tests.test_hia_safe_core.SafeCoreTests.test_sysv_hash_cycles_or_missing_symbols_are_rejected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_unrelated_second_relro_authority_cannot_hide_from_got_filter",
+      "tests.test_hia_safe_core.SafeCoreTests.test_unsigned_scalar_boolean_bitwise_cast_and_select_models",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_alternate_core_is_not_qualified_by_matching_producer_metadata",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_emission_and_linking_can_be_disabled_during_consumer_validation",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_equivalent_noncanonical_instruction_bytes_are_independently_accepted",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_exact_supplied_bytes_and_scoped_checker_identity_are_bound",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_final_bytes_cannot_disagree_with_the_supplied_object",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_fresh_consumer_does_not_import_native_producers",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_joint_object_and_final_arithmetic_mutation_produces_a_counterexample",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_last_identity_check_cannot_publish_a_proof_after_the_deadline",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_pinned_input_mismatch_rejects_before_any_solver_query",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_rejected_command_retains_original_bytes_queries_and_counterexample",
+      "tests.test_hia_safe_core_artifact.SafeCoreImmutableInputTests.test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_non_load_headers_can_change_order_without_changing_the_image",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_real_direct_linker_pins_both_lookup_tables",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_unsorted_load_headers_reject_before_solver_identity"
+    ],
+    "failures": [],
+    "inventory": [
+      "tests.test_hia_safe_core.SafeCoreDecoderTests.test_unsupported_opcode_and_branch_into_an_immediate_are_rejected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_abort_symbol_version_cannot_be_rebound",
+      "tests.test_hia_safe_core.SafeCoreTests.test_all_input_obligations_and_exact_final_bytes_are_bound",
+      "tests.test_hia_safe_core.SafeCoreTests.test_all_unsigned_conditions_are_checked_on_actual_final_images",
+      "tests.test_hia_safe_core.SafeCoreTests.test_borrowed_guarded_update_preserves_all_other_bytes_and_abi_rejections",
+      "tests.test_hia_safe_core.SafeCoreTests.test_checked_add_and_sub_are_proved_at_every_admitted_integer_width",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_add_producer_cannot_revalidate_its_own_wrong_machine_code",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_callee_saved_register_clobber_is_detected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_equal_extent_guard_produces_a_real_memory_bound_counterexample",
+      "tests.test_hia_safe_core.SafeCoreTests.test_faulty_wide_foreign_store_is_not_a_byte_store",
+      "tests.test_hia_safe_core.SafeCoreTests.test_final_instruction_byte_change_cannot_reuse_source_or_a_receipt",
+      "tests.test_hia_safe_core.SafeCoreTests.test_final_relocation_target_must_match_exact_symbol_and_plt",
+      "tests.test_hia_safe_core.SafeCoreTests.test_gnu_hash_bloom_bucket_and_chain_must_resolve_the_export",
+      "tests.test_hia_safe_core.SafeCoreTests.test_load_alignment_and_permissions_cannot_be_promoted",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loader_metadata_cannot_be_read_from_an_unloaded_benign_copy",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loader_metadata_cannot_disable_its_load_binding",
+      "tests.test_hia_safe_core.SafeCoreTests.test_loop_call_allocation_and_unsupported_types_are_outside_profile",
+      "tests.test_hia_safe_core.SafeCoreTests.test_missing_solver_never_publishes_a_candidate",
+      "tests.test_hia_safe_core.SafeCoreTests.test_native_wrapping_boundaries_match_independent_math",
+      "tests.test_hia_safe_core.SafeCoreTests.test_nonreturning_abort_call_cannot_push_beyond_the_declared_stack",
+      "tests.test_hia_safe_core.SafeCoreTests.test_nonreturning_abort_call_must_still_write_to_the_admitted_stack",
+      "tests.test_hia_safe_core.SafeCoreTests.test_partial_page_overlay_cannot_evade_whole_section_mapping_checks",
+      "tests.test_hia_safe_core.SafeCoreTests.test_plt_indirection_cannot_redirect_to_another_got_slot",
+      "tests.test_hia_safe_core.SafeCoreTests.test_readonly_bounds_abort_matches_native_model_without_assuming_in_bounds_inputs",
+      "tests.test_hia_safe_core.SafeCoreTests.test_relro_cannot_remove_execution_from_the_checked_text",
+      "tests.test_hia_safe_core.SafeCoreTests.test_relro_must_keep_its_reviewed_writable_mapping",
+      "tests.test_hia_safe_core.SafeCoreTests.test_saved_smt_queries_replay_with_the_bound_solver",
+      "tests.test_hia_safe_core.SafeCoreTests.test_solver_unknown_never_publishes_a_candidate",
+      "tests.test_hia_safe_core.SafeCoreTests.test_sysv_hash_cycles_or_missing_symbols_are_rejected",
+      "tests.test_hia_safe_core.SafeCoreTests.test_unrelated_second_relro_authority_cannot_hide_from_got_filter",
+      "tests.test_hia_safe_core.SafeCoreTests.test_unsigned_scalar_boolean_bitwise_cast_and_select_models",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_alternate_core_is_not_qualified_by_matching_producer_metadata",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_emission_and_linking_can_be_disabled_during_consumer_validation",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_equivalent_noncanonical_instruction_bytes_are_independently_accepted",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_exact_supplied_bytes_and_scoped_checker_identity_are_bound",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_final_bytes_cannot_disagree_with_the_supplied_object",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_fresh_consumer_does_not_import_native_producers",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_joint_object_and_final_arithmetic_mutation_produces_a_counterexample",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_last_identity_check_cannot_publish_a_proof_after_the_deadline",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_pinned_input_mismatch_rejects_before_any_solver_query",
+      "tests.test_hia_safe_core_artifact.SafeCoreArtifactTests.test_rejected_command_retains_original_bytes_queries_and_counterexample",
+      "tests.test_hia_safe_core_artifact.SafeCoreImmutableInputTests.test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_non_load_headers_can_change_order_without_changing_the_image",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_real_direct_linker_pins_both_lookup_tables",
+      "tests.test_hia_safe_core_loader_contract.SafeCoreLoaderContractTests.test_unsorted_load_headers_reject_before_solver_identity"
+    ],
+    "skipped": []
+  }
+}
