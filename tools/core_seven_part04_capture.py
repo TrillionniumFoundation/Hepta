@@ -22,7 +22,7 @@ import termios
 import time
 
 TARGET = 'SevenCertificatePart04'
-TRACE = 'p04-markers-v1'
+TRACE = 'p04-markers-v2'
 PREFIX = 'HIA_SEVEN_DIAG_v1_P04_'
 DIAGNOSTIC_FILES = tuple(TARGET + suffix for suffix in ('.stdout', '.stderr', '.events.jsonl'))
 START_LIMIT = 2368
@@ -307,9 +307,13 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
 
     class PendingEIOTimeout(CaptureFailure):
         pass
+
+    class CleanupDeadlineExceeded(CaptureFailure):
+        pass
     result = {'trace': TRACE, 'process_started': False, 'returncode': None, 'signal': None,
               'timeout_seconds': PROCESS_SECONDS, 'platform': None, 'pty': None,
               'leader_reaped': False, 'group_kill_sent': False, 'drain_complete': False,
+              'cleanup_deadline_exceeded': False,
               'kernel_core_syntax_connection_checked': False, 'authority': 'DENY_ALL',
               'metadata_written_bytes': 0, 'metadata_remaining_bytes': METADATA_LIMIT,
               'raw_written_bytes': 0, 'compact_receipt_reference': None}
@@ -320,7 +324,20 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
 
     def leader_exit():
         # WNOWAIT preserves our leader PID/PGID until group signalling is done.
-        return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+        observed = os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+        check_active_deadline(check_process=observed is not None)
+        return observed
+
+    def check_active_deadline(*, check_process=True):
+        # Admission uses observation time, including a syscall that began in
+        # budget but returned late. Cleanup has its own fixed, unrenewed limit.
+        now = time.monotonic()
+        if cleanup_deadline is not None and now >= cleanup_deadline:
+            result['cleanup_deadline_exceeded'] = True
+            raise CleanupDeadlineExceeded('cleanup observation deadline exceeded')
+        if (check_process and cleanup_deadline is None and status == 'diagnostic_completed' and
+                now >= started + PROCESS_SECONDS):
+            raise PendingEIOTimeout('60-second process deadline')
 
     def kill_group():
         nonlocal group_signalled
@@ -416,13 +433,14 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                 return
             else:
                 raise
+        offset = observed_bytes[stream]
+        observed_bytes[stream] += len(data)
+        check_active_deadline()
         if not data:
             observer.finish(stream)
             eof.add(stream)
             close_stream(fd)
             return
-        offset = observed_bytes[stream]
-        observed_bytes[stream] += len(data)
         elapsed = validate_elapsed(time.monotonic() - started)
         # Reserve the complete replay batch before persisting any of this read.
         # A rejected read still consumes observed_bytes; collection then stops.
@@ -528,7 +546,13 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
                                    else started + PROCESS_SECONDS) - now))
             if pending_eio is not None:
                 wait = min(wait, 0.001, max(0, pending_eio[1] - time.monotonic()))
-            for key, _ in selector.select(wait):
+            ready = selector.select(wait)
+            if cleanup_deadline is None and time.monotonic() >= started + PROCESS_SECONDS:
+                # No read or exit observation is being accepted. Enter the
+                # normal timeout transition, then drain under its fixed budget.
+                continue
+            check_active_deadline()
+            for key, _ in ready:
                 collect(key.fd, key.data)
                 if raw_limit_hit:
                     break
@@ -547,7 +571,8 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             metadata_limit_hit = True
             status = 'diagnostic_output_limit'
         kill_group()
-        cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
+        if cleanup_deadline is None:
+            cleanup_deadline = time.monotonic() + CLEANUP_SECONDS
     finally:
         if process is not None:
             kill_group()
@@ -557,6 +582,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             while streams and collect_enabled and not raw_limit_hit and time.monotonic() < cleanup_deadline:
                 try:
                     ready = selector.select(0)
+                    check_active_deadline()
                     if not ready:
                         break
                     for key, _ in ready:
@@ -572,7 +598,12 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             try:
                 process.wait(timeout=max(0, cleanup_deadline - time.monotonic()))
                 result['leader_reaped'] = True
+                check_active_deadline()
+            except CleanupDeadlineExceeded:
+                reason = (reason or '') + '; leader reap observation after cleanup deadline'
+                status = 'diagnostic_infrastructure_failed'
             except subprocess.TimeoutExpired:
+                result['cleanup_deadline_exceeded'] = True
                 reason = (reason or '') + '; leader reap deadline exceeded'
                 status = 'diagnostic_infrastructure_failed'
             result['returncode'] = validate_signed(process.returncode)
@@ -589,7 +620,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
             status, reason = 'diagnostic_infrastructure_failed', 'process group cleanup incomplete'
         if raw_limit_hit:
             status, reason = 'diagnostic_output_limit', 'combined raw read budget exhausted'
-        if status == 'diagnostic_completed' and (not result['leader_reaped'] or not result['drain_complete']):
+        if status == 'diagnostic_completed' and (not result['leader_reaped'] or not result['drain_complete'] or result['cleanup_deadline_exceeded']):
             status, reason = 'diagnostic_infrastructure_failed', 'incomplete cleanup or output drain'
         if process is not None and process.stderr is not None and not process.stderr.closed:
             process.stderr.close()
@@ -608,7 +639,7 @@ def capture_result(executable, source, output, root_path, *, safe_root, markers=
         result.update(status=status, error=safe_error(reason) if reason is not None else None, observed_bytes=observed_bytes,
                       output_truncated=raw_limit_hit or metadata_limit_hit, marker_count=marker_count, last_observed_marker=last_marker,
                       next_planned_marker_id=(markers[marker_count]['id'] if marker_count < len(markers) else None),
-                      cleanup_incomplete=process is not None and not (result['leader_reaped'] and result['drain_complete'] and 'group_cleanup_error' not in result),
+                      cleanup_incomplete=process is not None and not (result['leader_reaped'] and result['drain_complete'] and not result['cleanup_deadline_exceeded'] and 'group_cleanup_error' not in result),
                       elapsed_seconds=elapsed_seconds)
         if sink is not None:
             result['raw_files'] = {name: row for name, row in sink.identities().items()

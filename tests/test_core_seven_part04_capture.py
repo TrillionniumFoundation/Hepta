@@ -159,17 +159,33 @@ pid=os.fork()
 if pid==0:
  time.sleep(10)
 else:
- os.write(1,str(pid).encode()+b'\\n')
+ with open('/proc/'+str(pid)+'/stat') as stream:
+  birth=stream.read().rpartition(')')[2].split()[19]
+ os.write(1,(str(pid)+' '+birth+'\\n').encode())
 """
         started = time.monotonic()
+        deadline = started + 1.5
         result, files, _ = self.run_child(script)
-        self.assertLess(time.monotonic() - started, 1.5)
         self.assertTrue(result['group_kill_sent'])
         self.assertTrue(result['leader_reaped'])
-        child = int(files[capture.DIAGNOSTIC_FILES[0]].strip())
-        state = Path('/proc') / str(child) / 'stat'
-        if state.exists():
-            self.assertEqual(state.read_text().split()[2], 'Z', 'descendant must not still execute')
+        child, birth = files[capture.DIAGNOSTIC_FILES[0]].strip().decode().split()
+        identity = Path('/proc') / child / 'stat'
+        observations = []
+        # SIGKILL and descriptor EOF can precede the kernel's final zombie
+        # transition. Observe that transition within the original whole-test
+        # budget, without granting the collector any extra cleanup time.
+        while True:
+            try:
+                fields = identity.read_text().rpartition(')')[2].split()
+                state, same_identity = fields[0], fields[19] == birth
+            except FileNotFoundError:
+                state, same_identity = 'absent', False
+            observed = time.monotonic()
+            observations.append((state, same_identity))
+            self.assertLess(observed, deadline, ('descendant termination deadline', observations))
+            if state == 'Z' or not same_identity:
+                break
+            time.sleep(min(0.005, deadline - observed))
 
     def test_simultaneous_stream_bursts_share_one_read_budget(self):
         script = """import os,threading

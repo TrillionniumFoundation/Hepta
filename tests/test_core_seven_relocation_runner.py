@@ -54,7 +54,7 @@ class Part04RunnerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):cls.prepared,cls.previous,cls.proposal,cls.diagnostic=fixture()
 
-    def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0):
+    def exercise(self,behavior='success',inspect=None,full=False,*,target_startup_delay=0,timeout_ready_seconds=5):
         with tempfile.TemporaryDirectory() as folder,ExitStack() as stack:
             stack.enter_context(patch.object(runner,'_git_baseline',return_value=dict(head='a'*40,tree='b'*40)))
             home=Path(folder);exe=home/'pinned/bin/lean';exe.parent.mkdir(parents=True)
@@ -125,7 +125,7 @@ class Part04RunnerTests(unittest.TestCase):
                     capture_stack.enter_context(patch.object(collector.subprocess,'Popen',side_effect=popen))
                     capture_stack.enter_context(patch.object(collector,'platform_observation',return_value=PLATFORM))
                     if behavior=='target_timeout':
-                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'])
+                        clock=_MarkerTimeoutClock(self.diagnostic.manifest['markers'],ready_seconds=timeout_ready_seconds)
                         self.timeout_clock=clock
                         real_append=collector._Sink.append
                         def append(sink,name,data,terminal=False):

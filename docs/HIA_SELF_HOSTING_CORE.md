@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v13`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v14`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -149,11 +149,11 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | `u64`, `usize` (64 bits), `u32`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Values | `u64`, `usize` (64 bits), `u32`, `u16`, `u8`, `bool`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
 | Constants | Typed integer literals and `true` / `false` boolean literals |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; `bool.and`, `bool.or`, `bool.not` |
-| Selection | `select(bool, T, T) -> T` for `u8`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
+| Selection | `select(bool, T, T) -> T` for `u8`, `u16`, `u32`, `u64`, `usize`, and `bool`; true chooses the second operand, false the third; resources are excluded |
 | Casts | `int.cast` with `{"mode":"wrap"}` between integer types |
 | Bytes | `buffer.len`, `buffer.load`, `buffer.store`, `buffer.swap`, `buffer.fill`, `buffer.fill_range`, `buffer.copy`, `buffer.copy_range`, `buffer.move_within` |
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
@@ -163,7 +163,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | `effects(read,write,trap)` or `effects(alloc,read,write,trap)`; allocation, drop and calls to allocating functions require `alloc` |
 
-All integer operations use `u8`, `u32`, `u64` or `usize`; booleans remain
+All integer operations use `u8`, `u16`, `u32`, `u64` or `usize`; booleans remain
 separate. `bit.not` complements exactly the declared width. Checked addition
 traps when the mathematical sum exceeds that width's unsigned maximum, and
 checked subtraction traps when the left operand is smaller than the right.
@@ -351,6 +351,32 @@ under the same 8 MiB stack cap. Its recursive VM call-budget refusal is
 explicitly retained and is not reported as a VM deep-recursion success.
 Tail-related type/arity/alias refusals, valid-general-Core non-tail refusals,
 one-byte-short output and matching flat/ELF `.text` are part of the cold replay.
+
+## v14 unsigned 16-bit scalar semantics
+
+The v14 compiler admits `u16` constants, all of the existing unsigned integer
+operations, wrap casts, comparison and selection, and `u16` helper parameters,
+block arguments and single scalar returns. Constants must lie in `0..65535`.
+Wrapping operations normalize to 16 bits; checked shifts require an amount below
+16. Checked addition and multiplication compare the full result with its
+normalized value, while subtraction, division, remainder and negation retain the
+existing unsigned trap conditions. Boolean and byte-buffer element types remain
+distinct.
+
+The new internal type code follows the existing resource codes. Resource and
+owner classification therefore uses explicit closed sets throughout parameters,
+argument duplication, calls, edges, capability graphs and ownership operations.
+A scalar cannot become a resource merely because its code is numerically larger.
+The language qualification includes repeated scalar call/edge arguments and a
+same-frame tail-call recurrence with `u16` swaps and wrapping results, alongside
+all five unsigned widths, all 25 width pairs of wrap casts and arithmetic traps.
+The original and modified compiler images both execute these finite witnesses.
+
+The 1 MiB source/output/workspace, 1,536-block, 8,192-instruction, native child
+and cold replay time limits are unchanged. Signed scalar types, returned
+resources, general multiple-result calls and general compiler correctness remain
+outside the claim. This extension does not turn the fifty opcode names into
+coverage of all Core inputs.
 
 ## Parse, validate and generate
 
