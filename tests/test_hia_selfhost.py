@@ -24,6 +24,74 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_shared_failure_guards_preserve_conditional_effects_and_argument_laziness(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder, source_program
+        from tools.hia_selfhost_loans import reference_source
+        from hepta.hia_program import execute_program, verify_program
+        guard = next(n for n in ast.parse(source_program()).body if n.name == 'guard_failure')
+        helper = ast.parse('''def fail(o:mutbuf, code:u64) -> u64:
+    old = byte(o, 0)
+    store(o, 0, old + code)
+    return code
+''').body[0]
+
+        def program(body, enabled):
+            entry = ast.parse(body).body[0]
+            nodes = [entry, helper, guard]
+            names = {n.name: 'f' + str(i) for i, n in enumerate(nodes)}
+            signatures = {n.name: ([a.annotation.id for a in n.args.args], n.returns.id) for n in nodes}
+            functions = []
+            for node in nodes:
+                mapping = dict(names)
+                if not enabled:
+                    mapping.pop('guard_failure')
+                builder = Builder(node, mapping, signatures)
+                builder.statements(node.body)
+                functions.append({'name': names[node.name], 'params': [builder.param(v) for v in builder.params],
+                    'returns': [builder.returns], 'effects': ['read', 'write', 'trap'], 'entry': 'b0',
+                    'blocks': builder.blocks})
+            doc = {'schema': 'hepta.hia.program.v8', 'module': 'guard_controls', 'functions': functions}
+            verify_program(doc)
+            return doc
+
+        body = '''def example(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if byte(s, 0) > 1:
+        fail(o, 5)
+    if byte(s, 0) > 2:
+        fail(o, 7)
+    return 0
+'''
+        original, shared = (program(body, enabled) for enabled in (False, True))
+        self.assertLess(len(shared['functions'][0]['blocks']), len(original['functions'][0]['blocks']))
+        # The helper must not turn its own conditional call into recursion.
+        self.assertFalse(any(op['op'] == 'call' and op['attrs']['function'] == 'f2'
+            for block in shared['functions'][2]['blocks'] for op in block['ops']))
+        for byte, initial, expected in ((0, '', [0]), (1, '', [0]), (0, '03', [0, 3]),
+                (1, '03', [0, 3]), (2, '03', [0, 8]), (3, '03', [0, 15]), (255, '03', [0, 15])):
+            for doc in (original, shared):
+                case = {'source': render_assembly(doc), 'source_hex': bytes([byte]).hex(), 'initial_hex': initial}
+                result = execute_program(assemble_program(reference_source(case)), 'reference_entry', [])
+                self.assertEqual(result['values'], expected)
+                self.assertEqual(result['resources']['live_owners'], 0)
+                self.assertEqual(result['resources']['live_local_loans'], 0)
+        # A memory argument is deliberately not eligible: evaluating byte(s,1)
+        # before its false guard would trap with this one-byte input.
+        effectful = body.replace('fail(o, 5)', 'fail(o, byte(s, 1))')
+        for enabled in (False, True):
+            doc = program(effectful, enabled)
+            case = {'source': render_assembly(doc), 'source_hex': '00', 'initial_hex': ''}
+            result = execute_program(assemble_program(reference_source(case)), 'reference_entry', [])
+            self.assertEqual(result['values'], [0])
+        # True guards with empty output still trap; sharing does not fabricate
+        # a successful failure-store or suppress the original bounds check.
+        for doc in (original, shared):
+            case = {'source': render_assembly(doc), 'source_hex': '02', 'initial_hex': ''}
+            from hepta.hia_program_runtime import HIAProgramTrap
+            with self.assertRaises(HIAProgramTrap) as trapped:
+                execute_program(assemble_program(reference_source(case)), 'reference_entry', [])
+            self.assertEqual(trapped.exception.report['error']['code'], 'bounds')
+
     def test_inferred_total_helpers_refuse_loops_checked_shifts_memory_and_recursion(self):
         import ast
         from tools.generate_hia_selfhost import total_scalar_functions

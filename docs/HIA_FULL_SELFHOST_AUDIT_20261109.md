@@ -340,3 +340,25 @@ mutation when disabled. Both actual captures reject at the existing expanded
 standard-library gate. No production checker was changed, no skip introduced,
 and the original failed full run is not relabeled passing. The separate control
 summary retains compiler-state and source/receipt identities.
+
+
+### Guard sharing and locked QEMU replay
+
+Exact conditional failure effects now share a small HIA helper without eager
+workspace access or effectful argument evaluation. The helper is excluded from
+its own rewrite. Independent VM comparisons retain false-guard empty-buffer
+success, ordered true effects, original bounds traps and lazy memory arguments.
+Compiler size is **109 functions / 1,362 blocks / 7,208 operations**, reclaiming
+143 blocks with no capacity/deadline change. Fresh source controls passed 39,
+cold passed 11/11 with native **3837/3837**
+in 140.290 seconds, and fresh language passed **1,196/1,196**
+plus all 10 native-report assertions. These receipts are separate from v24's
+preceding source bytes and are retained in `v24-guard-headroom-summary.json`.
+
+The first full-repository run additionally rejected the system QEMU identity in
+two real AArch64 corpus tests. The project's existing bootstrap installer fetched
+and verified the locked QEMU 8.2.2 archive and executable in a task-local tree
+(SHA-256 `e4f8d99e9ff69c3cefffab71cee358ce2af1ecba1282d04c3eeb44ef76f5a71e`).
+Both tests then passed against the unchanged original `f535528` checkout in
+9.767 seconds. No hardcoded tool identity or native-vs-emulator claim was changed.
+This isolated replay does not make the earlier full-suite invocation green.

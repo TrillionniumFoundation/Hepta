@@ -1172,3 +1172,18 @@ the successor. This is a finite executable filter, not replacement of the full
 production CLI, installer, package/module build pipeline, worker or interpreter.
 Source declarations here do not imply that execution gates have passed; use the
 fresh source-bound cold report for actual results.
+
+
+### Conditional failure-guard sharing
+
+The authoring aid can replace exactly `if condition: fail(workspace, constant)`
+with a call to one HIA-authored conditional helper. It does not predicate the
+failure effect: the helper branches before invoking the original `fail`, and
+false guards do not access workspace bytes. The condition retains its original
+short-circuit lowering. Only a mutable-buffer name and an integer constant are
+eligible arguments; expressions that could read/trap, return statements,
+multiple statements and else arms are not moved or speculated. The helper is
+excluded from its own rewrite. This is source authoring only, not a native
+source-identity dispatch or relaxed checker. VM controls compare both forms,
+including ordered effects, empty-buffer false guards, true bounds traps and an
+ineligible effectful argument. Existing capacity and timing bounds remain.

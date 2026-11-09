@@ -1720,6 +1720,13 @@ SOURCE += SIGNED_SOURCE
 SOURCE += TRAP_SOURCE
 SOURCE += RETURNED_LOAN_SOURCE
 SOURCE += CLI_SOURCE
+SOURCE += r'''
+
+def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
+    if condition:
+        fail(w, code)
+    return 0
+'''
 
 
 def source_program():
@@ -1855,6 +1862,25 @@ class Builder:
                 # speculate an unproven call, memory access or checked shift.
                 arm = s.body[0] if len(s.body) == 1 else None
                 other = s.orelse[0] if len(s.orelse) == 1 else None
+                # Share only this exact conditional *effect*, not its
+                # condition or a potentially effectful argument evaluation.
+                # The helper branches before calling the original fail;
+                # unlike predication, a false guard performs no workspace I/O.
+                call = arm.value if isinstance(arm, ast.Expr) else None
+                if (not s.orelse and self.node.name != 'guard_failure'
+                        and 'guard_failure' in self.names
+                        and self.signatures.get('guard_failure') == (['bool', 'mutbuf', 'u64'], 'u64')
+                        and isinstance(call, ast.Call) and isinstance(call.func, ast.Name)
+                        and call.func.id == 'fail' and not call.keywords and len(call.args) == 2
+                        and isinstance(call.args[0], ast.Name)
+                        and self.env[call.args[0].id][1] == 'mutbuf'
+                        and isinstance(call.args[1], ast.Constant) and type(call.args[1].value) is int
+                        and 0 <= call.args[1].value < (1 << 64)):
+                    condition = self.expr(s.test)
+                    assert condition[1] == 'bool'
+                    self.op('call', [condition, self.expr(call.args[0]), self.expr(call.args[1])],
+                            'u64', function=self.names['guard_failure'])
+                    continue
                 if (isinstance(arm, ast.Assign) and len(arm.targets) == 1
                         and isinstance(arm.targets[0], ast.Name)
                         and arm.targets[0].id in self.env
