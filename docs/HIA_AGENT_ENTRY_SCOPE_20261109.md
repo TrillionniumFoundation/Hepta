@@ -1,8 +1,9 @@
 # HIA Agent entry and proof-scope handoff
 
 Snapshot: 2026-11-09. Reviewed metadata main:
-`0487859a143b74a2a9b33cadf465d25c5f826cc2`, merging
-[PR #827](https://github.com/TrillionniumFoundation/Hepta/pull/827).
+`e2a4b4b09598e5b03a8d883b62c3cc800c1d5a66`, merging
+[PR #828](https://github.com/TrillionniumFoundation/Hepta/pull/828) after
+[PR #827](https://github.com/TrillionniumFoundation/Hepta/pull/827)'s discovery repair.
 Start with [INSTALL.md](../INSTALL.md); the root README is intentionally empty.
 This checkpoint neither promotes a release nor qualifies a new runtime.
 
@@ -12,8 +13,8 @@ This checkpoint neither promotes a release nor qualifies a new runtime.
 | --- | --- | --- |
 | Default/current | `python3 -B tools/hia_release.py`; [hia-current.json](../releases/hia-current.json); Hepta `2598f4309791d3a023cd5df585ad26810b20c744`; bounded `selfhost-core-linux-x86_64-v9` | Read the printed lock digest, materialize this source and check both repositories. |
 | Named v16 | `python3 -B tools/hia_release_v16_6ecd802.py` with the explicit [v16 lock](../releases/hia-v16-6ecd802.json) and digest; Hepta `6ecd8023615a6e0b2dc269379fb059c656b38b6f`; bounded `selfhost-core-linux-x86_64-v16` | Separate source qualification; does not replace current or activate online. |
-| Development | `codex/hia-sixgap-source-5e6c-20261108`, observed at `dfde9df60e80d820e25527bc75624a063a92a36d`; [#826](https://github.com/TrillionniumFoundation/Hepta/pull/826) open at `0946d17dffc43d4ff03649e3bd73daf9612069a9` | Branches move. Record actual commit/tree, dirty state and installation identities. An open PR is not a selected release. |
-| Online MCP | Retained formal readback reconciled the historical `2598f430` worker; see [release reconciliation](HIA_RELEASE_ENTRY.md#recorded-post-merge-observation--2026-11-09). A fresh attempt below failed before manifest publication. | Current identity is unestablished by this attempt. A new Agent must read an authenticated current manifest; no fresh loaded-binary or live-adoption attestation exists here. |
+| Development | `codex/hia-sixgap-source-5e6c-20261108`, observed at `2e2afc1ad725db85cb8cf7eba69f657cae7c4464`; [#826](https://github.com/TrillionniumFoundation/Hepta/pull/826) merged on 2026-11-09 at 08:38:28 UTC, adding the outer-CPU accounting repair | Branches move. Record actual commit/tree, dirty state and installation identities. This source merge is separate from metadata main and does not select a release. |
+| Online MCP | Retained formal readbacks match the public `2598f430` installation; a separate launch attempt below failed before manifest publication. | These observations do not establish continuous uptime, the current loaded binary or live adoption. A new Agent must obtain its own authenticated current manifest. |
 
 Both published locks select runtime
 `4cd85c99c5f5a480832c48fbde8561bb365f67a9`, tree
@@ -49,8 +50,10 @@ System V AMD64. Scalar ABI:
 `hepta.hia.program.direct-linux-x86_64.v1`.
 Borrowed-byte exports use a separate explicit ABI profile.
 
+### Retained online observations
 
-A fresh read-only `hia_describe(section="manifest", max_bytes=32000)`
+During preparation of #828, a fresh read-only
+`hia_describe(section="manifest", max_bytes=32000)`
 returned `unknown / HIA_OBSERVATION_UNAVAILABLE`, with
 `stage=initial_publication cause=publication_invalid`.
 The exact original request SHA256 was
@@ -61,8 +64,31 @@ missing configured Python executable in
 `hepta-hia-release-321daf28-6d5c/venv/bin/python`.
 Both stdout and stderr were empty and at EOF. No automatic retry, source
 change, context/candidate, verification, emission, evaluation or adoption
-occurred. This is a current launch failure; it does not invalidate or refresh
+occurred. This was an observed launch failure; it does not invalidate or refresh
 the earlier successful historical identity capture.
+
+The separately retained [formal readback in the #826 source merge](https://github.com/TrillionniumFoundation/Hepta/tree/2e2afc1ad725db85cb8cf7eba69f657cae7c4464/review-evidence/hia-online-fresh-20261109)
+contains completed describe/read requests and the unchanged checker's
+`PASS_CURRENT_INSTALLATION_READBACK` result for all three public-v9 installation
+digests. Its manifest SHA256 is
+`d05cf5c78bed8da1cb9486f307097e4a2303780dd76da1c7ee44bafbee08969c`.
+The capture contains no timestamp establishing its order relative to the
+exit-127 attempt. A matching retained response does not demonstrate repair of
+that missing Python path, a newly executing worker, uptime or later state.
+The same archive leaves admission freeze, complete owner inventory and
+user-domain controller observation open; it records no configuration change,
+restart, release promotion or adoption.
+
+The current follow-up completed another authenticated describe/read pair,
+retained in [live-observation.json](../review-evidence/hia-sixpriorities-20261109-3977/live-observation.json):
+describe request `r-fb5a9ead950ceec08e2b2f8d0b92e8d6604ccc4c14352fe7149baf56eadf1edb`
+and read request `r-833311467fb922a79ef147978764e6619421d09deff964aca537ab085f6cbf8f`.
+The [checked entry comparison](../review-evidence/hia-sixpriorities-20261109-3977/live-entry-catalog.json)
+matches all three current-v9 installation digests. This is successful
+authenticated observation and retained-byte retrieval in this follow-up.
+The returned immutable manifest is the same `d05cf5c7...` artifact; these
+responses establish neither repair of the earlier Python path nor a newly
+executing worker, loaded-binary attestation, deployment or adoption.
 
 ## Minimum program
 
@@ -90,14 +116,28 @@ HIA_EXAMPLE_OUT="$(mktemp -d)"
 
 The interpreter result should contain 42. Generation/linkage alone does not
 establish a native call, independent proof or adoption. A separate all-input
-model check can consume these exact supplied bytes:
+model check consumes exact supplied source/object/image bytes. The selected
+default v9 checker's CLI has no `--profile-version` option. Its supplied-ELF
+validator requires both SysV and GNU dynamic hash sections, while GNU ld 2.44
+can build the shared image above with only `.gnu.hash`. For this proof path,
+link the existing exact object explicitly into a separately named image:
 
 ```sh
+ld -m elf_x86_64 -shared -z defs -z noexecstack -z relro -z now \
+  --build-id=none --hash-style=both "$HIA_EXAMPLE_OUT/calculate.o" \
+  -lc -o "$HIA_EXAMPLE_OUT/calculate-proof.so"
 "$HIA_PYTHON" -B tools/check_hia_safe_core.py \
   --source "$HIA_EXAMPLE" --object "$HIA_EXAMPLE_OUT/calculate.o" \
-  --image "$HIA_EXAMPLE_OUT/calculate.so" \
-  --profile-version 1 --output "$HIA_EXAMPLE_OUT/proof"
+  --image "$HIA_EXAMPLE_OUT/calculate-proof.so" \
+  --output "$HIA_EXAMPLE_OUT/proof"
 ```
+
+The separate proof receipt binds `calculate-proof.so`, not the earlier
+`calculate.so`; preserve both final-image digests and the linker invocation.
+The follow-up fresh-entry trial retained the original unsupported-option
+failure, the GNU-hash-only ELF rejection and the successful same-object
+both-hash validation. This explicit linking step does not alter either pinned
+source or installation lock, waive a rejected image or grant adoption authority.
 
 Supplied-artifact profile:
 `hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1`.
@@ -109,9 +149,11 @@ trusted; complete hardware ISA refinement and execution authority are not
 proved. Read the selected source's `docs/HIA_AGENT_PROOF_RESULTS.md` and
 `docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md`.
 
-Commands were checked against pinned repository definitions through reads;
-they were not executed in this checkpoint after its environment became
-unavailable.
+The original preparation checked these commands through repository reads and
+did not execute them locally after its environment became unavailable. The
+later exact-main hosted runs below independently executed the workflow's
+minimal CLI/native program for both selected releases; this is distinct from
+local documentation-command execution or a fresh-Agent study.
 
 ## Execution, proof and adoption intersection
 
@@ -130,14 +172,16 @@ validator is not proof of the complete compiler buffer workload.
 
 | Priority | Snapshot | Next evidence |
 | --- | --- | --- |
-| P0 | #827 discovery repair merged; checked entry catalog and four-selection/CLI/MCP handoff added. Online exit-127 remains. Partial. | Exact-head current/v16 public installation plus a fresh Agent completing discovery and minimum program. |
-| P1 | Scalar retained-byte proof and compiler-buffer lifecycle have distinct scopes. Local adoption identity projection was unfinished and is excluded here. | Tested same-artifact Core/plan/object/final/ABI/proof/adoption binding. |
-| P2 | Nine valid-Core reference-only witness observations below. No bootstrap/native result. | Actual bootstrap combination matrix for signed, multiple results, returned resources, naming, module and calls. |
-| P3 | Scoped scalar model proofs and local adoption tests do not establish general compiler soundness. Proposed richer qualifier did not complete. | Nontrivial closed family with exact proof inputs and adopted consumer, then model-to-production/ownership/loading obligations. |
+| P0 | Public discovery, checked catalog and minimum CLI/native publication PASS on exact metadata main `e2a4b4b0`; both current/v16 jobs pass. Current-follow-up authenticated manifest retrieval matches v9; online provenance has the separate limits above. | Independent fresh Agent completing discovery and minimum program; resolution of the observed launch failure and loaded-runtime provenance. |
+| P1 | Prepared development source now retains explicit Core/plan/object/final/ABI/proof/generation projection; canonical and planned native adoption tests pass. Scalar and compiler-buffer proof scopes remain separate. | Publication and full compiler-buffer independent refinement; no production activation. |
+| P2 | Prepared source actual B0→B3 matrix 9/9 expectations PASS; two native successes and seven valid-Core refusals; exact f0 ABI retained. | Implement rejected signed, multiresult, returned-resource and general naming/module combinations. |
+| P3 | Three prepared unsigned branch/arithmetic instances (u8/u32/u64) complete all-input model proofs and 24 actual adopted-consumer observations, including rollback and lease checks. | Kernel-checked model/ISA/loader/ownership theorem chain and general compiler soundness. |
 | P4 | HOLD. Controlled generated narrowed-kernel full-path measurements are not a demonstrated production hotspot win. | Actual hotspot, strong matched baseline, repeated tails and full amortization costs. |
-| P5 | HOLD. Existing four-arm bounded macro controls use passive feedback without optional paid READ. | Information acquisition that can change later actions under matched Agent/budget, with failures, fallback and full costs. |
+| P5 | Separate paid-READ mechanism pilot 30/30 cells retained; real schema observation changes later actions and is charged. Trained/native NDU NOT_RUN. | Independent real tasks, matched trained NDU versus strongest controls, full costs and incremental utility. |
 
-The reference witness work kept the real assembly entry
+The following table preserves the original reference-only checkpoint. It is
+superseded for finite native execution by the new matrix summarized above.
+The original reference witness work kept the real assembly entry
 `f0(readbuf,mutbuf,mutbuf)->u32`. Reference execution removed only the three
 unused external entry parameters. General Core admission and expected reference
 values were checked; the final column is the intended bootstrap expectation,
@@ -169,16 +213,16 @@ included in this PR. Their native/proof/adoption qualification and local
 documentation-command execution are **NOT_RUN** after interruption. The entry
 adapter below has separate hosted-CI checks.
 
-This PR changes five paths: this document, INSTALL.md, the new entry adapter,
+The merged #828 changed five paths: this document, INSTALL.md, the new entry adapter,
 its focused test module and the public-release workflow. The workflow retains
 all seven original steps and adds one entry-catalog/minimal-CLI step. Empty
 README, release locks/helpers, proof gates and online selection remain unchanged.
-Hosted exact-head public-installation and CodeQL checks remain required; older
-results do not qualify this head. Overall acceptance stays HOLD.
+Its own final-head and actual-main hosted checks completed as recorded below;
+older results are not substituted for either. Overall acceptance stays HOLD.
 
 ## Executable entry adapter follow-up
 
-This PR adds `tools/hia_entry_catalog.py` and five focused
+The merged #828 added `tools/hia_entry_catalog.py` and five focused
 identity-boundary test methods. The standard-library adapter verifies both
 original lock/helper sets, reports exact selections, syntax, target and the
 scalar proof service profile, and compares a caller-supplied retained online
@@ -194,10 +238,11 @@ pre-existing installation, discovery, exact-source, native qualification and
 installation-manifest equality gate remains. These are finite checks, not a
 general machine proof or a fresh-Agent study.
 
-The local executor remained unavailable while this follow-up was prepared.
-Local checks are NOT_RUN. Only this new head's hosted CI can establish its
-executed result; the initial documentation-only head's success does not
-qualify these changes. The online exit-127 failure above remains unresolved.
+The local executor remained unavailable while #828 was prepared; its local
+checks were NOT_RUN. Its own final-head and actual-main hosted CI establish
+the executed results below. The initial documentation-only head's success is
+not used to qualify the executable changes. No repair of the separately
+observed online exit-127 path is established by these installation runs.
 
 ### First executable-head workflow failure
 
@@ -206,5 +251,48 @@ creating any jobs. Static inspection found that the new-step insertion had
 omitted the original native-qualification step name and left duplicate
 `shell`/`run` keys in one step. No adapter test, CLI/native example or
 installation check ran in that failed workflow. The follow-up restores the
-original step boundary and every original step; it needs its own exact-head
-workflow run. This failure remains failed and is not relabelled by later CI.
+original step boundary and every original step. The corrected final head and
+merge have their own successful runs below. This failure remains failed and
+is not relabelled by later CI.
+
+## Exact-head and actual-main publication results
+
+The final #828 head is `3a77d0bf7b89fc14df2510964dcfa681c0dd9cfc`.
+Its merge into metadata main is
+`e2a4b4b09598e5b03a8d883b62c3cc800c1d5a66`, tree
+`e800d0f3858a916628269d4b29aad0f5d5c2e111`.
+Each run below completed successfully on attempt 1 at its stated exact commit.
+
+| Subject | Public installation | CodeQL |
+| --- | --- | --- |
+| Final #828 head `3a77d0bf` | [42585423626](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42585423626), both selections PASS | [42585425614](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42585425614), all four jobs PASS |
+| Actual metadata main `e2a4b4b0` | [42585805111](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42585805111), both selections PASS | [42585805848](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42585805848), all four jobs PASS |
+
+Actual-main public jobs `129055224235` (current) and `129055224044` (v16)
+completed every step, including the five entry-catalog test methods, selected
+CLI verification and VM return, direct shared-image build with GNU ld, and
+actual native calls for addition, zero and unsigned wraparound. The workflow
+also retained its exact-source materialization, original native qualifier,
+locked-input checks and complete installation-manifest equality gates.
+
+These observations close the public entry/catalog/CLI-smoke publication gate.
+They do not establish an independent Agent trial, current live-runtime
+provenance, whole-language selfhosting, general machine correctness or P1-P5
+acceptance. The source branch's later #826 merge and its CI remain a separate
+subject; neither published lock changes here.
+
+## Independent entry and executable follow-through
+
+The new [independent Agent report](../review-evidence/hia-sixpriorities-20261109-3977/fresh-agent-REPORT.md)
+retains commands, exact pinned sources, both failures, successful separate-image
+proof and actual native calls. Its jsonschema 4.26.0 versus requested 4.25.1
+deviation remains explicit; this is one finite Agent observation, not an exact
+dependency-install reproduction or a population claim.
+
+Prepared source changes add a reviewable same-artifact adoption projection,
+actual selfhost feature matrix and a separate paid-observation runner. The
+[follow-through record](../review-evidence/hia-sixpriorities-20261109-3977/README.md)
+indexes results and remaining obligations. Those changes are local development
+commits pending publication; existing release locks and online configuration
+retain their identities. Earlier unfinished/refused observations below and above
+remain historical results, not passing runs.

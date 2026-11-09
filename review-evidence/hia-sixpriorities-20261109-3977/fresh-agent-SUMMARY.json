@@ -1,0 +1,327 @@
+{
+  "adoption": false,
+  "committed": false,
+  "dependency_deviation": {
+    "jsonschema_observed": "4.26.0",
+    "jsonschema_requested": "4.25.1",
+    "z3_solver_observed": "4.15.4.0"
+  },
+  "direct_native_qualification": {
+    "errors": [],
+    "failures": [],
+    "git_head": "2598f4309791d3a023cd5df585ad26810b20c744",
+    "git_status": "",
+    "git_tree": "4c073a29839eff1e75fbcc6dd28db4108c04160c",
+    "inventory_complete": true,
+    "ok": true,
+    "skipped": [],
+    "source_unchanged": true,
+    "tests_run": 173
+  },
+  "entry_url": "https://github.com/TrillionniumFoundation/Hepta/blob/main/INSTALL.md",
+  "independent_model_proof": {
+    "checker": {
+      "name": "hepta.hia_safe_core.validate_safe_core_artifact",
+      "producer_reemission_used": false,
+      "solver": {
+        "binding_sha256": "47a3218e5e032a0d5b3ea0fdd581a721d1cb64f2ab7b7320549a8e2f41c86f61",
+        "library_sha256": "56d9977b9276bcb8cda9973a14058fcaa9f3bfee14ed57408b9faacd76d4d8f3",
+        "name": "Z3",
+        "version": "4.15.4"
+      },
+      "source_identity": {
+        "elf_shared_abi.py": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+        "hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+        "hia_json_preflight.py": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2",
+        "hia_opcodes.py": "567ee7744dcfb8125caddfe63de0316bb89b837fb3c4200eb4ccec6c8356ca84",
+        "hia_program.py": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5",
+        "hia_safe_core.py": "e5b5bc6d495a42b9373270c28b6969e0223c622091220780aa14a2fa5a0e6ba5",
+        "hia_safe_core_elf.py": "6709935715ddef5ffb3e19c37476f1802b0e669523bb95f0478b5de0e1d6778e",
+        "hia_safe_core_x64.py": "d00fbe9d9cf463d09e88279f54ac7404b98a4edfebc4311a7b2fff17a2f9fe4d",
+        "hia_schema.py": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+      }
+    },
+    "obligations": [
+      {
+        "elapsed_seconds": 0.024715672000183986,
+        "expected": "sat",
+        "name": "caller_contract_nonvacuous",
+        "query_file": "00-caller_contract_nonvacuous.smt2",
+        "query_sha256": "088dbc8f1c236bb887dccc6f0ce750250570e9b8aee9c29ead77080eeb59fb6f",
+        "result": "sat"
+      },
+      {
+        "elapsed_seconds": 0.001133863999712048,
+        "expected": "unsat",
+        "name": "machine_memory_access_bounds",
+        "query_file": "01-machine_memory_access_bounds.smt2",
+        "query_sha256": "6bd7adeec0b1bcdc7f8ac2641aa29cf8a0eb17f54f6e6b110cf88f2e2a200e83",
+        "result": "unsat"
+      },
+      {
+        "elapsed_seconds": 0.000865331000113656,
+        "expected": "unsat",
+        "name": "sysv_stack_alignment_and_preservation",
+        "query_file": "02-sysv_stack_alignment_and_preservation.smt2",
+        "query_sha256": "9e6022e1e4fd43a7414623099ea3eb558add14bb344f5485ca47e59e03b5fc78",
+        "result": "unsat"
+      },
+      {
+        "elapsed_seconds": 0.003372347000095033,
+        "expected": "unsat",
+        "name": "all_inputs_reach_a_terminal_model_outcome",
+        "query_file": "03-all_inputs_reach_a_terminal_model_outcome.smt2",
+        "query_sha256": "d6ab202aec1f09df5d42809936ac70527d648a8284ebfdbe82bedd572aa02849",
+        "result": "unsat"
+      },
+      {
+        "elapsed_seconds": 0.00015882299976510694,
+        "expected": "unsat",
+        "name": "core_to_final_image_return_abort_and_caller_bytes",
+        "query_file": "04-core_to_final_image_return_abort_and_caller_bytes.smt2",
+        "query_sha256": "80e66dddbf0b336de9f44a341adf3ce764ead8cd941f96fffbbea00823059d0b",
+        "result": "unsat"
+      }
+    ],
+    "ok": true,
+    "profile": "hia.safe-core.unsigned-acyclic-single-borrow.supplied-elf.x86_64.v1",
+    "status": "smt_validated_not_executed",
+    "subject": {
+      "core_sha256": "18e87ce97ca8473508ccf95b8554aec10c04ebd2f8df2b3a77af627a1595ee8a",
+      "entry_symbol": "calculate",
+      "final_image_sha256": "b505bd0d35d3c773f528e3a5cfafa3c45885ddce4b38f73913f800472a2ed72a",
+      "foreign_buffer_exports": [],
+      "input_sha256": "18e87ce97ca8473508ccf95b8554aec10c04ebd2f8df2b3a77af627a1595ee8a",
+      "object_sha256": "59f74cdcf2ffe1690c5b61913c6521b1e8d1e37178a3298cdfe532b999037158"
+    },
+    "unproved_obligations": [
+      {
+        "property": "complete_x86_hardware_refinement",
+        "reason": "The independent instruction semantics and ELF/loader model are trusted Python implementations.",
+        "status": "unproved"
+      },
+      {
+        "property": "whole_HIA_language_refinement",
+        "reason": "Only the declared finite Safe Core profile is admitted.",
+        "status": "unproved"
+      },
+      {
+        "property": "foreign_pointer_provenance_and_liveness",
+        "reason": "The synchronous caller supplies the live private allocation and stack.",
+        "status": "assumed"
+      },
+      {
+        "property": "concurrency_signals_faults_and_side_channels",
+        "reason": "These observations lie outside the sequential return/abort/byte model.",
+        "status": "unproved"
+      },
+      {
+        "property": "execution_authorization",
+        "reason": "A mathematical validation receipt does not authorize loading, execution or adoption.",
+        "status": "not_granted"
+      }
+    ]
+  },
+  "independent_model_proof_and_actual_same_image_native_call_completed": true,
+  "live_mcp_identity_established": false,
+  "materialized_and_checked": true,
+  "metadata_commit": "e2a4b4b09598e5b03a8d883b62c3cc800c1d5a66",
+  "minimum_program": "examples/hia_safe_core/scalar_add.hia.json",
+  "online_mutation": false,
+  "original_proof_failures": [
+    {
+      "evidence": "proof-document-command.stderr",
+      "exit": 2,
+      "message": "unrecognized arguments: --profile-version 1"
+    },
+    {
+      "evidence": "native/proof/attempt.json",
+      "exit": 1,
+      "message": "E_HIA_SAFE_CORE_ELF: missing section .hash"
+    }
+  ],
+  "population_scope": "one finite independent Agent observation; no population inference",
+  "real_native_call_default_image": {
+    "cases": [
+      {
+        "arguments": [
+          35,
+          7
+        ],
+        "expected": 42,
+        "observed": 42
+      },
+      {
+        "arguments": [
+          0,
+          0
+        ],
+        "expected": 0,
+        "observed": 0
+      },
+      {
+        "arguments": [
+          2,
+          3
+        ],
+        "expected": 5,
+        "observed": 5
+      },
+      {
+        "arguments": [
+          4294967295,
+          1
+        ],
+        "expected": 0,
+        "observed": 0
+      },
+      {
+        "arguments": [
+          4294967295,
+          4294967295
+        ],
+        "expected": 4294967294,
+        "observed": 4294967294
+      }
+    ],
+    "image_sha256_after": "b783dd88a23b529dc39117656ac43ce7ac0ff00440264fd61bbcb46ba9f72aeb",
+    "image_sha256_before": "b783dd88a23b529dc39117656ac43ce7ac0ff00440264fd61bbcb46ba9f72aeb",
+    "mechanism": "ctypes.CDLL SysV AMD64 calculate(uint32_t,uint32_t)->uint32_t",
+    "status": "native_called"
+  },
+  "real_native_call_proved_image": {
+    "cases": [
+      {
+        "arguments": [
+          35,
+          7
+        ],
+        "expected": 42,
+        "observed": 42
+      },
+      {
+        "arguments": [
+          0,
+          0
+        ],
+        "expected": 0,
+        "observed": 0
+      },
+      {
+        "arguments": [
+          2,
+          3
+        ],
+        "expected": 5,
+        "observed": 5
+      },
+      {
+        "arguments": [
+          4294967295,
+          1
+        ],
+        "expected": 0,
+        "observed": 0
+      },
+      {
+        "arguments": [
+          4294967295,
+          4294967295
+        ],
+        "expected": 4294967294,
+        "observed": 4294967294
+      }
+    ],
+    "image_sha256_after": "b505bd0d35d3c773f528e3a5cfafa3c45885ddce4b38f73913f800472a2ed72a",
+    "image_sha256_before": "b505bd0d35d3c773f528e3a5cfafa3c45885ddce4b38f73913f800472a2ed72a",
+    "mechanism": "ctypes.CDLL SysV AMD64 calculate(uint32_t,uint32_t)->uint32_t",
+    "status": "native_called"
+  },
+  "recovery": "Same direct object explicitly relinked with original GNU ld flags plus --hash-style=both; final image is distinct",
+  "schema": "hepta.independent-entry-usability-observation.v1",
+  "selected_entry": {
+    "entry_argv": [
+      "python3",
+      "-B",
+      "tools/hia_release.py"
+    ],
+    "installation": {
+      "backend_sha256": "929d12c5e99c8df5cc8c138aad7e9d527560b31dd8953126beec0a2920f0febe",
+      "catalog_sha256": "61325aadc2fa6740c84037227c9410f5e299267d908cfbbd0be6b05eedfbfbf8",
+      "worker_sha256": "7f767953145e722f4cf62cbb4e3617fa2f9b388f3940ad926b5bb9a7309ae642"
+    },
+    "lock": {
+      "path": "releases/hia-current.json",
+      "sha256": "9000d6eaa089f6bed92ea07a6561d91381a6f913263f0b1016d4f99e8789c1d3"
+    },
+    "minimal_program": {
+      "arguments": [
+        2,
+        3
+      ],
+      "direct_build_flags": [
+        "--backend",
+        "native",
+        "--kind",
+        "shared",
+        "--linker",
+        "ld"
+      ],
+      "expected_values": [
+        5
+      ],
+      "function": "calculate",
+      "path": "examples/hia_safe_core/scalar_add.hia.json",
+      "sha256": "a4b603a4aab5b62e90b8109290f2e69d7310d36cd4188be54f5985cc83185db3"
+    },
+    "proof": {
+      "compiler_buffer_independent_refinement": "unsupported",
+      "contract": "docs/HIA_AGENT_PROOF_RESULTS.md",
+      "execution_authority_granted": false,
+      "scope": "one unsigned scalar acyclic function; shared ELF; no borrowed or foreign entries",
+      "service_profile": "hia.agent.safe-core.scalar-supplied-elf.x86_64.v1",
+      "sha256": "94b994d8cec3abe8fda89852ca2c9ad6b67d519f48f86f328303a3e0eb480601"
+    },
+    "qualification": {
+      "agent_first_use_passed": false,
+      "default_branch_updated": false,
+      "native_ndu_value_passed": false,
+      "production_deployed": false,
+      "runtime_source_only_loading_enforced": false,
+      "source_lock_only": true
+    },
+    "release_id": "hia-sixgap-ci-2598f4309791d3a023cd5df585ad26810b20c744",
+    "selection": "current",
+    "selfhost_profile": "selfhost-core-linux-x86_64-v9",
+    "sources": {
+      "hepta": {
+        "commit": "2598f4309791d3a023cd5df585ad26810b20c744",
+        "repository": "https://github.com/TrillionniumFoundation/Hepta.git",
+        "tree": "4c073a29839eff1e75fbcc6dd28db4108c04160c"
+      },
+      "runtime": {
+        "commit": "4cd85c99c5f5a480832c48fbde8561bb365f67a9",
+        "repository": "https://github.com/TrillionniumFoundation/hepta-runtime.git",
+        "tree": "6b78d53b53d51a6c070bb37e8e9f6a15ad26d0e8"
+      }
+    },
+    "syntax": {
+      "assembly": "hia-asm.v1",
+      "contract": "docs/HIA_AGENT_ASSEMBLY.md",
+      "primitive_core": "hepta.hia.program.v8",
+      "sha256": "412afc4f48318cc3a8ec5c9c5aeeaa2f4d2a66cc654849a0f14ce6a083ff2732"
+    },
+    "target_abi": {
+      "borrowed_bytes_profile": "hepta.hia.program.direct-linux-x86_64-borrowed-bytes.v1",
+      "calling_convention": "System V AMD64; explicit borrowed-byte wrapper",
+      "external_linker_scope": "B0/shared-library linking and explicit ELF object qualification; the flat successor chain needs no linker",
+      "llvm_or_assembler_fallback": false,
+      "machine": "ELF64 / AMD64 / little-endian / LP64",
+      "primary_codegen": "hia-direct",
+      "scalar_profile": "hepta.hia.program.direct-linux-x86_64.v1",
+      "target": "x86_64-unknown-linux-gnu"
+    },
+    "whole_language_selfhost": false
+  },
+  "unmodified_documented_recipe_completed": false
+}
