@@ -23,6 +23,29 @@ CLI `hia build` defaults to LLVM and CLI `hia emit` emits LLVM text. Select
 The public-installation workflow checks this adapter and actually builds and
 calls the selected minimal scalar image for each locked source.
 
+The catalog distinguishes text assembly `hia-asm.v1` (primitive schemas v6/v7/v8),
+the bounded selfhost input schema v8, and the minimum example's Core JSON
+schema `hepta.hia.program.v1`. A selfhost profile such as v9 or v16 names a
+compiler support contract; it is not a language schema number.
+
+## Pin a reviewed metadata entry
+
+The installation example below clones the default metadata branch. If your
+given entry is a commit or pull-request URL, first clone it as shown, then
+select that entry's full 40-character commit before running its tools:
+
+```sh
+HIA_ENTRY_COMMIT=FULL_40_CHARACTER_COMMIT_FROM_THE_ENTRY_URL
+git -C /absolute/new/hia-entry fetch --depth=1 origin "$HIA_ENTRY_COMMIT"
+git -C /absolute/new/hia-entry checkout --detach "$HIA_ENTRY_COMMIT"
+git -C /absolute/new/hia-entry rev-parse HEAD
+```
+
+Replace the placeholder with the exact reviewed metadata commit. This identifies
+the entry tools and instructions; the release lock separately identifies the
+materialized Hepta/runtime source. A candidate PR's tools may not yet exist on
+the default branch.
+
 ## Start from the selected release
 
 Use the default release entry, **`python3 -B tools/hia_release.py`**, and its

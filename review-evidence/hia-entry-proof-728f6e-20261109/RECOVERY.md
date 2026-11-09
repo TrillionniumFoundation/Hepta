@@ -93,3 +93,24 @@ acceptance without changing executable files or workflow bytes. A subsequent
 head has its own CI identity and cannot borrow the prior terminal status.
 The online endpoint still lacks a fresh usable manifest; this acceptance is
 for the two locked installation paths.
+
+## Independent entry-discovery follow-up
+
+A fresh read-only Agent started only from the INSTALL.md URL at metadata head
+`9c604ad7e30126eef8794b26e9aa61d23bea57dc`. It independently followed both
+release locks, the pinned assembly/checker definitions and the development
+branch, and derived both minimum-program command sequences. Its own native
+execution was NOT_RUN while the executor was unavailable. Its new online
+manifest request returned MCP Internal error without a manifest or job identity;
+that is distinct from the historical exit-127 observation.
+
+The trial found two gaps corrected here: a reviewed metadata URL needs an
+explicit detached checkout when the candidate is not on the default branch;
+the catalog must distinguish assembly's primitive v6/v7/v8 acceptance,
+selfhost's v8 input, and the v1 JSON minimum. The original primitive_core field
+remains with explicit selfhost scope; new fields report the assembly range and
+minimum schema. One regression checks the distinction in both selections.
+
+The executor briefly returned with /workspace sources available, while some
+/tmp evidence was lost. Original recovery and any later runs have independent
+identities; earlier interruption and NOT_RUN statuses remain historical facts.

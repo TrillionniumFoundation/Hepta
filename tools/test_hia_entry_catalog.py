@@ -23,6 +23,18 @@ class EntryCatalogTests(unittest.TestCase):
         for row in report["entries"]:
             self.assertIn("native", row["minimal_program"]["direct_build_flags"])
             self.assertFalse(row["proof"]["execution_authority_granted"])
+    def test_assembly_selfhost_and_minimum_json_schemas_are_distinct(self):
+        for row in entry.describe()["entries"]:
+            with self.subTest(profile=row["selfhost_profile"]):
+                syntax = row["syntax"]
+                self.assertEqual(syntax["assembly"], "hia-asm.v1")
+                self.assertEqual(syntax["assembly_primitive_core_schemas"],
+                                 ["hepta.hia.program.v6", "hepta.hia.program.v7",
+                                  "hepta.hia.program.v8"])
+                self.assertEqual(syntax["selfhost_input_schema"], "hepta.hia.program.v8")
+                self.assertEqual(syntax["primitive_core"], syntax["selfhost_input_schema"])
+                self.assertIn("not the full assembly", syntax["primitive_core_scope"])
+                self.assertEqual(row["minimal_program"]["schema"], "hepta.hia.program.v1")
     def test_changed_lock_and_helper_are_rejected(self):
         original = Path.read_bytes
         for path in ("releases/hia-current.json", "tools/hia_release.py"):
