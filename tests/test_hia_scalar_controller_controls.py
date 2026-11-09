@@ -335,6 +335,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
         summary.update(schema=study.SCHEMA, plan_sha256=pin, cells=rows,
             halted_reason={"authored_fixture": True}, execution_inputs_unchanged=True,
             measurement={"all_attempted_call_wall_ns": 26,
+                "outer_cpu_ns": {"parent": 10, "children": 7},
                 "outer_wall_ns_to_summary_preparation": 31,
                 "admission_capture_export_audit_wall_ns": 5})
         study.write_new(self.root / "SUMMARY.json", summary)
@@ -410,6 +411,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
         plan = study.read_plan(self.root, args.expected_plan_sha256)
         summary.update(study.results_summary(rows, plan, self.store))
         summary["measurement"] = {"all_attempted_call_wall_ns": 0,
+            "outer_cpu_ns": {"parent": 0, "children": 0},
             "outer_wall_ns_to_summary_preparation": 0, "admission_capture_export_audit_wall_ns": 0}
         (self.root / "SUMMARY.json").write_bytes(study.wire(summary))
         result = study.verify(args)
@@ -419,13 +421,34 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
     def test_outer_measurements_require_exact_nonnegative_integers(self):
         args, rows, summary = self.independent_incomplete_fixture()
         original = deepcopy(summary)
-        for name in summary["measurement"]:
+        for name in ("outer_wall_ns_to_summary_preparation", "all_attempted_call_wall_ns",
+                     "admission_capture_export_audit_wall_ns"):
             for invalid in (-1, True, float(original["measurement"][name])):
                 changed = deepcopy(original)
                 changed["measurement"][name] = invalid
                 (self.root / "SUMMARY.json").write_bytes(study.wire(changed))
                 with self.subTest(name=name, invalid=invalid), self.assertRaisesRegex(ValueError, "outer cost integers"):
                     study.verify(args)
+
+    def test_incomplete_failed_attempt_cpu_remains_inside_exact_outer_counters(self):
+        args, rows, summary = self.independent_incomplete_fixture()
+        path = self.root / "SUMMARY.json"
+        for cpu in ({"parent": 7, "children": 5}, {"parent": 10, "children": 7}):
+            summary["measurement"]["outer_cpu_ns"] = cpu
+            path.write_bytes(study.wire(summary))
+            self.assertEqual(study.verify(args)["campaign_status"], "INCOMPLETE")
+        for invalid in (None, "unmeasured", {}, {"parent": 7},
+                        {"parent": 10, "children": 7, "other": 0},
+                        {"parent": 6, "children": 5}, {"parent": 7, "children": 4},
+                        {"parent": -1, "children": 5}, {"parent": True, "children": 5},
+                        {"parent": 7.0, "children": 5}):
+            if invalid is None:
+                summary["measurement"].pop("outer_cpu_ns", None)
+            else:
+                summary["measurement"]["outer_cpu_ns"] = invalid
+            path.write_bytes(study.wire(summary))
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "outer CPU"):
+                study.verify(args)
 
     def test_plan_pin_and_create_only_marker_prevent_silent_retrial(self):
         plan = {"schema": study.SCHEMA, "protocol": study.protocol(), "cases": study.cases(),
@@ -481,6 +504,27 @@ class RetainedScalarOuterIntervalTests(unittest.TestCase):
         self.assertEqual((result["scheduled_cells_verified"], result["successful_native_calls"]), (128, 64))
         self.assertEqual(result["new_native_calls"], 0)
         self.assertFalse(result["economic_benefit_established"])
+
+    def test_original_outer_cpu_cannot_understate_retained_attempts_or_change_json_types(self):
+        original = study.decode(self.files["SUMMARY.json"])
+        totals = {key: sum(row["cpu_ns"][key] for row in original["cells"]
+                          if row["status"] != "not_started") for key in ("parent", "children")}
+        self.assertEqual(totals, {"parent": 624900000, "children": 119849000})
+        files = dict(self.files)
+        original["measurement"]["outer_cpu_ns"] = totals
+        files["SUMMARY.json"] = study.wire(original)
+        self.assertEqual(self.verify_files(files)["campaign_status"], "MECHANISM_COMPLETE")
+        for invalid in (None, "unmeasured", {"parent": 0, "children": 0},
+                        {"parent": -1, "children": -1}, {"parent": True, "children": False},
+                        {"parent": float(totals["parent"]), "children": totals["children"]}):
+            summary = deepcopy(original)
+            if invalid is None:
+                summary["measurement"].pop("outer_cpu_ns")
+            else:
+                summary["measurement"]["outer_cpu_ns"] = invalid
+            files["SUMMARY.json"] = study.wire(summary)
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(ValueError, "outer CPU"):
+                self.verify_files(files)
 
     def test_review_4509542158_understated_outer_is_rejected(self):
         files = dict(self.files)
