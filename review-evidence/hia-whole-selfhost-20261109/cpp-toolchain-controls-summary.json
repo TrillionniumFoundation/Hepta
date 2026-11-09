@@ -1,0 +1,43 @@
+{
+  "actual_toolchain_states": {
+    "-O0": {
+      "assertions_enabled": true,
+      "glibcxx_release_present": true,
+      "macro_dump_sha256": "e1ce7a7fb0430b5c9dd7d5d6d14810fc5cb9f8c0e679fa475a45d883c801fb56",
+      "new_source_mutation": "_GLIBCXX_NO_ASSERTIONS=1"
+    },
+    "-O2": {
+      "assertions_enabled": false,
+      "glibcxx_release_present": true,
+      "macro_dump_sha256": "ec4ed919c207ecb01deb1cdfcb694084df9bddd2c684fe55e122b92e02ed7d04",
+      "new_source_mutation": "_GLIBCXX_ASSERTIONS=1"
+    }
+  },
+  "boost_constructor_replay": "PASS on original f535528 source with the task-local Boost 1.83 include path; not a full-run pass",
+  "full_repository_pass": false,
+  "full_repository_run_source": "f53552837dc8d0058087e593d832b93e42528cbd",
+  "full_repository_run_still_running": true,
+  "isolated_boost_dependency": {
+    "bytes": 10731924,
+    "package": "libboost1.83-dev_1.83.0-5ubuntu5_amd64.deb",
+    "sha256": "c17abc5a40a074c3d959655191ebec1561fa25f14f4948f6788be49417d4b234",
+    "system_installed": false
+  },
+  "macro_control_root_cause": "libstdc++ 15 automatically enables _GLIBCXX_ASSERTIONS for -O0, so repeating that definition is not a semantic change; production exact standard expansion comparison was correct",
+  "negative_control_skipped": false,
+  "original_enabling_mutation_retained_when_assertions_disabled": true,
+  "original_observed_failures": [
+    "missing Boost headers in actual constructor compilation",
+    "macro mutation did not change an already enabled standard-library assertion"
+  ],
+  "patched_macro_control": "PASS for both -O0 and -O2; both must reject with expanded standard-library contract diagnostic",
+  "patched_test_sha256": "6b2618adc25509610cc64ff617d48108cc814703cadee3c0f752188658707ce5",
+  "production_checker_changed": false,
+  "receipts_sha256": {
+    "v23-cpp-audit-repro-02.log": "1ab231f81748cf1eeafef225abc45be0acb2ed304ee8bb65a78f5157cec56fc0",
+    "v23-cpp-constructor-repro-01.log": "9278d1070069d170408c74ca7935282e71f96346abba00505c7579faefe2fd9c",
+    "v24-cpp-macro-control-01.log": "7fcb94b79540f9633f8160d7fe40f62132ae4f3282c550fdf1ab58c5cfcbbd18"
+  },
+  "schema": "hepta.full-audit.cpp-toolchain-controls.v1",
+  "whole_stack_rewrite_complete": false
+}

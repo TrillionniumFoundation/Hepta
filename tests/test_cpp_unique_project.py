@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import tempfile
 import unittest
 
@@ -74,10 +75,33 @@ template <> struct default_delete<unsigned char[]> {
             self.lower()
 
     def test_macro_changed_standard_header_semantics_reject(self):
-        self.rewrite("owners.h", "#include <memory>",
-                     "#define _GLIBCXX_ASSERTIONS 1\n#include <memory>")
-        with self.assertRaisesRegex(ValueError, "expanded standard-library contract"):
-            self.lower()
+        # libstdc++ 15 enables assertions by default in unoptimized builds.
+        # Repeating that definition is not a semantic mutation. Preserve the
+        # old enabling control when assertions are off, and disable the actual
+        # default when they are on. Exercise both captured optimization modes;
+        # the trusted reference retains each mode but not the project macros.
+        header = self.project / "owners.h"
+        original = header.read_text()
+        database = self.project / "compile_commands.json"
+        commands = json.loads(database.read_text())
+        for optimization in ("-O0", "-O2"):
+            with self.subTest(optimization=optimization):
+                changed = json.loads(json.dumps(commands))
+                for command in changed:
+                    command["arguments"].insert(1, optimization)
+                database.write_text(json.dumps(changed))
+                probe = subprocess.run([CLANGXX, "-std=c++20", optimization, "-dM", "-E",
+                    "-x", "c++", "-include", "memory", "/dev/null"],
+                    capture_output=True, text=True, check=True, timeout=15)
+                macros = {line.split()[1] for line in probe.stdout.splitlines()
+                          if line.startswith("#define ")}
+                self.assertIn("_GLIBCXX_RELEASE", macros,
+                    "this macro mutation controls the actual captured libstdc++ contract")
+                mutation = ("#define _GLIBCXX_NO_ASSERTIONS 1\n"
+                    if "_GLIBCXX_ASSERTIONS" in macros else "#define _GLIBCXX_ASSERTIONS 1\n")
+                header.write_text(original.replace("#include <memory>", mutation + "#include <memory>"))
+                with self.assertRaisesRegex(ValueError, "expanded standard-library contract"):
+                    self.lower()
 
     def test_moved_from_and_unsequenced_owner_use_reject(self):
         self.rewrite("consume.cpp", "return final_owner.score(index);", "return owned.score(index);")

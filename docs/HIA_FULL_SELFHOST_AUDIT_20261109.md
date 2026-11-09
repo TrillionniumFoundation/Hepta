@@ -323,3 +323,20 @@ filter does not replace general names/modules, composites, the production
 runtime/library, package/build/install pipeline, Agent worker/service/store,
 optimizer or proof construction. See `v24-executable-summary.json` in the review
 evidence directory for source identities, per-case statuses and receipt hashes.
+
+
+### Full-audit C++ dependency and negative-control diagnosis
+
+The isolated real constructor test passes against the unchanged `f535528` source
+when a package-hash-verified, task-local Boost 1.83 include tree is supplied. The
+system include tree and running full-suite environment were not modified.
+
+The macro failure is a control-fixture assumption, not a demonstrated production
+checker bypass: libstdc++ 15 already enables `_GLIBCXX_ASSERTIONS` in unoptimized
+builds. Defining it again does not change the expanded standard-library contract.
+The negative test now probes the actual toolchain and tests both `-O0` and `-O2`,
+disabling the real default when enabled and retaining the original enabling
+mutation when disabled. Both actual captures reject at the existing expanded
+standard-library gate. No production checker was changed, no skip introduced,
+and the original failed full run is not relabeled passing. The separate control
+summary retains compiler-state and source/receipt identities.
