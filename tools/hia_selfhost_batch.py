@@ -2,6 +2,8 @@
 
 Only qualification fixtures are transformed. Every operand remains loaded from
 caller bytes and every result remains separately observable in the output.
+Identical typed scalar constants may share an SSA definition after byte-offset
+relocation; no load, arithmetic operation, store or call is removed.
 """
 from collections import defaultdict
 from copy import deepcopy
@@ -38,6 +40,7 @@ def batch_cases(cases, maximum=12):
             original = documents[chunk[0]["source"]]
             fn = original["functions"][0]
             ops,serial,source_base,output_base = [],3,0,0
+            constants = {}
             for case in chunk:
                 document = documents[case["source"]]
                 entry = document["functions"][0]
@@ -65,6 +68,13 @@ def batch_cases(cases, maximum=12):
                         names[old["name"]]=fresh;out["name"]=fresh
                         if old["name"] in offsets:
                             op["attrs"]["value"] += source_base if offsets[old["name"]]=="input" else output_base
+                    if op["op"] == "const" and len(op["out"]) == 1:
+                        key = (op["out"][0]["type"], json.dumps(op["attrs"],sort_keys=True))
+                        if key in constants:
+                            names[instruction["out"][0]["name"]] = constants[key]
+                            serial -= 1
+                            continue
+                        constants[key] = op["out"][0]["name"]
                     ops.append(op)
                 source_base+=len(bytes.fromhex(case["source_hex"]))
                 output_base+=len(bytes.fromhex(case["expected_hex"]))
@@ -72,12 +82,15 @@ def batch_cases(cases, maximum=12):
             ops.append({"op":"const","args":[],"out":[{"name":zero,"type":"u32"}],"attrs":{"value":0}})
             block={**fn["blocks"][0],"ops":ops,"term":{"op":"ret","values":[zero]}}
             updated={**original,"functions":[{**fn,"blocks":[block]},*original["functions"][1:]]}
+            # render_assembly itself fully verifies the document AND checks
+            # its parsed canonical round trip. The VM later rechecks the actual
+            # wrapper plus this program before B0; do not duplicate that parse.
             source=render_assembly(updated)
-            assemble_program(source.encode())
             result.append({**chunk[0],"id":name+"-batch-"+str(batch_index)+"-sample",
                 "program":name+"-batch-"+str(batch_index),"source":source,
                 "source_hex":"".join(c["source_hex"] for c in chunk),
                 "initial_hex":"".join(c["initial_hex"] for c in chunk),
                 "expected_hex":"".join(c["expected_hex"] for c in chunk),
+                "fixture_transform": "rebase-input/output-byte-indices; share-identical-typed-constants-only",
                 "input_cases":[{"id":c["id"],"source_hex":c["source_hex"],"expected_values":c["expected_values"]} for c in chunk]})
     return result

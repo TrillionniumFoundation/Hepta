@@ -49,7 +49,7 @@ class ChainSourceTests(unittest.TestCase):
 
     def test_independent_flow_inputs_close_chain_roots_and_nested_loans(self):
         rows = flow_cases()
-        self.assertEqual(len(rows), 13)
+        self.assertEqual(len(rows), 14)
         for case in rows:
             with self.subTest(case=case["id"]):
                 resources = reference(case)["resources"]
@@ -58,8 +58,8 @@ class ChainSourceTests(unittest.TestCase):
 
     def test_invalid_core_stays_distinct_from_valid_profile_exclusions(self):
         rows, outside = refusals(), profile_refusal_ids()
-        self.assertEqual(len(rows), 75)
-        self.assertEqual(len(outside), 19)
+        self.assertEqual(len(rows), 74)
+        self.assertEqual(len(outside), 18)
         for name, source in rows.items():
             with self.subTest(case=name):
                 if name in outside:

@@ -176,12 +176,17 @@ def independent_reference():
 
 def qualify(directory,compilers,checks,reference,*,family="signed"):
     from tools.hia_selfhost_multi_results import qualify as observations
-    from tools.qualify_hia_selfhost import compile_stage,invoke
+    from tools.qualify_hia_selfhost import compile_stage,invoke,digest
     rows=observations(directory,compilers,checks,reference,family=family)
     for label,compiler in compilers:
+        images = {}
         for case in reference["traps"]:
             name=label+"-"+family+"-trap-"+case["id"]
-            image,receipt=compile_stage(directory,name+"-build",compiler,case["source"].encode())
+            source = case["source"].encode()
+            identity = digest(source)
+            if identity not in images:
+                images[identity] = compile_stage(directory,name+"-build",compiler,source)
+            image,receipt = images[identity]
             result,output=invoke(directory,name,image,bytes.fromhex(case["source_hex"]),capacity=8,
                 workspace_size=0,output_initial=bytes.fromhex(case["initial_hex"]),observe_trap_writes=True)
             checks[name]=bool(result.get("status")=="child_failed" and result.get("returncode")==-4

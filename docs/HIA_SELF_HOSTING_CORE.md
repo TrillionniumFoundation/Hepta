@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v20`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v21`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -199,7 +199,7 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Internal functions return zero to three scalars; returned loans and owners are excluded.
+Internal functions return zero to three scalars or owned buffer/chain values; returned loans are excluded.
 The flat profile has no owned types or allocator imports. The explicit ELF
 profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
@@ -1080,3 +1080,24 @@ three-operand select cannot be packed into an over-capacity twelve-case batch.
 The initial over-capacity refusal and CI cold timeout remain failed observations,
 not passing receipts. No witness, output byte or original compiler limit is
 removed to obtain the later run.
+
+## v21 owned-result transfer inside the fixed Core profile
+
+Internal `selfhost_elf` calls may return zero to three values mixing scalars,
+owned buffers and owned chains. Private results now use three 16-byte slots in a
+64-byte area; frame overhead is 576 bytes rather than 544. This is an explicit
+private ABI change, not a source/output/workspace limit increase. The public
+`f0(readbuf,mutbuf,mutbuf)->u32` entry remains unchanged. Scalars occupy slot word
+zero; resource results transfer both descriptor words. The callee consumes its
+owner without freeing it and the caller establishes a fresh live root. A
+returned owner cannot retain a live descendant loan, be returned twice, or leave
+a sibling owner behind. Exact ordered self-tail tuples preserve the original
+result pointer and reuse the same frame.
+
+`tools.hia_selfhost_owner_results` adds input-dependent VM/native witnesses for
+full-width buffer descriptors, three-owner tuples, scalar/owner ordering,
+backward transfers, empty/fallible allocation, a nonempty returned chain and
+owner-carrying self tails. Unsafe lifetime variants remain rejection controls.
+Returned borrowed views still require a provenance contract not implemented by
+this native subset. Neither this change nor a bootstrap fixed point establishes
+a rewrite of the full HIA toolchain or an all-input refinement proof.

@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v20 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v21 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v20"
+PROFILE = "selfhost-core-linux-x86_64-v21"
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -959,7 +959,9 @@ def coverage_manifest():
             "all_input_correctness_proved": False},
         "internal_scalar_result_scope": {
             "cardinality": [0, 1, 2, 3], "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
-            "types": scalar_types, "returned_resources_supported": False,
+            "types": scalar_types, "returned_resources_supported": True, "returned_loans_supported": False,
+            "owned_result_types": ["buffer", "chain"], "private_result_stride_bytes": 16,
+            "private_result_area_bytes": 64,
             "combinations": ["forward/backward direct calls", "branches", "loop-carried values",
                              "exact ordered self-tail returns", "borrowed parameters", "consumed owner parameters"],
             "qualification": "tools.hia_selfhost_multi_results.qualify on original B3 and mutated M3",
@@ -969,6 +971,7 @@ def coverage_manifest():
             "allocation_effect": "alloc required for allocation, drop and calls to allocating functions",
             "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract",
             "multi_result_operations": ["buffer.try_new returns buffer,bool"],
+            "bounded_scalar_owner_multi_result_call_return_abi_supported": True,
             "general_multi_result_call_return_abi_supported": False,
             "chain_operations_qualified_separately": True,
             "flat_owned_parameters_and_operations_supported": False,
@@ -985,6 +988,7 @@ def coverage_manifest():
             "allocator_qualification": "tools.qualify_hia_selfhost_chain_flow.qualify; explicit ordinary allocator NULL inputs and native event conservation",
             "host_native_fixture_compilation_after_B0": True,
             "external_assembler_in_successor_compilation": False,
+            "bounded_scalar_owner_multi_result_call_return_abi_supported": True,
             "general_multi_result_call_return_abi_supported": False,
             "finite_witnesses_are_all_input_correctness_proof": False},
         "features": features,

@@ -62,6 +62,7 @@ BOOTSTRAP_FILES = (
     "tools/hia_selfhost_effects.py",
     "tools/hia_selfhost_multi_results.py",
     "tools/hia_selfhost_void_results.py",
+    "tools/hia_selfhost_owner_results.py",
     "tools/hia_selfhost_keywords.py",
     "tools/hia_selfhost_signed.py",
     "tools/hia_selfhost_signed_cases.py",

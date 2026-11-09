@@ -1,9 +1,9 @@
-"""Bounded scalar result tuples in the native selfhosting compiler.
+"""Bounded scalar and owned-resource tuples in the native selfhost compiler.
 
-Only internal scalar call/return shapes change. The public f0 borrowed-buffer
-entry and the existing private 32-byte result area keep their layout. Native
-successor compilers execute these HIA-authored parsers/checkers/emitters; no
-host tuple adapter rewrites their output.
+Private calls use three 16-byte slots in a 64-byte aligned result area. Scalars
+use the first word; owners transfer both descriptor words without freeing them.
+Borrowed-view returns remain refused until their provenance contract is present.
+The public f0 borrowed-buffer entry is unchanged.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
         if count >= 3:
             return fail(w, 3)
         t = read_type(s, w)
-        if scalar_type(t) != 1:
+        if scalar_type(t) != 1 and owner_type(t) != 1:
             return fail(w, 3)
         if count == 0:
             first = t
@@ -48,13 +48,20 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         t = variable(w, v)
         if t != get(w, base + 192 + count * 8):
             return fail(w, 13)
+        if owner_type(t) == 1:
+            owner_free(w, v)
         if get(w, 256) != 0:
             if v != get(w, 296 + count * 16):
                 return fail(w, 59)
         else:
             load_var(o, w, 0, v, 0)
             mem(o, w, 139, 2, 5, 18446744073709551608)
-            mem(o, w, 137, 0, 2, count * 8)
+            mem(o, w, 137, 0, 2, count * 16)
+            if owner_type(t) == 1:
+                load_var(o, w, 0, v, 1)
+                mem(o, w, 137, 0, 2, count * 16 + 8)
+        if owner_type(t) == 1:
+            owner_consume(w, v)
         count = count + 1
         if get(w, 8) != 41:
             expect(s, w, 44)
@@ -63,6 +70,7 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 41)
     if count != get(w, base + 184):
         return fail(w, 13)
+    loan_finish(w)
     account_nodes(w, 3 + count)
     if get(w, 256) == 0:
         emit(o, w, 201)
@@ -83,7 +91,7 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
     while i < count:
         v = get(w, 296 + i * 16)
         t = get(w, 304 + i * 16)
-        if scalar_type(t) != 1:
+        if scalar_type(t) != 1 and owner_type(t) != 1:
             return fail(w, 24)
         if get(w, 48) > 0:
             if t != get(w, base + 192 + i * 8):
@@ -91,9 +99,14 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
         define(w, v, t)
         if get(w, 40) != 0:
             return 0
+        if owner_type(t) == 1:
+            owner_produce(w, v)
         if get(w, 256) == 0:
-            mem(o, w, 139, 0, 5, 0 - frame(w) + 512 + i * 8)
+            mem(o, w, 139, 0, 5, 0 - frame(w) + 512 + i * 16)
             store_var(o, w, v, 0)
+            if owner_type(t) == 1:
+                mem(o, w, 139, 0, 5, 0 - frame(w) + 512 + i * 16 + 8)
+                store_var(o, w, v, 1)
         i = i + 1
     return 0
 '''
@@ -249,7 +262,8 @@ def cases():
               + body.text() + "  ret(" + result + ")\nend\n" + helper)
     add("pair-owned-argument", source, [], [8, 201], owned=True)
     from tools.hia_selfhost_void_results import cases as void_cases
-    return rows + void_cases()
+    from tools.hia_selfhost_owner_results import cases as owner_cases
+    return rows + void_cases() + owner_cases()
 
 
 def refusals():
@@ -287,9 +301,11 @@ def refusals():
         "fn f1() -> (u32,buffer) effects(alloc,read,write,trap) entry(b0)\nblock b0()\n"
         '  v0:usize = const() {"value":8}\n  v1:buffer = buffer.new(v0)\n'
         '  v2:u32 = const() {"value":17}\n  ret(v2,v1)\nend\n')
-    reject("returned-owner-second", owner, "accepted")
+    # A valid owner return is now in the positive family; do not relabel it
+    # as a refusal merely because previous compiler profiles did not admit it.
     from tools.hia_selfhost_void_results import refusals as void_refusals
-    return list(rows.values()) + void_refusals()
+    from tools.hia_selfhost_owner_results import refusals as owner_refusals
+    return list(rows.values()) + void_refusals() + owner_refusals()
 
 
 def independent_reference():
@@ -328,7 +344,7 @@ def independent_reference():
         rejected.append({**case, "reference_result": result})
     return {"cases": accepted, "refusals": rejected,
         "before_B0": True, "all_input_correctness_proved": False,
-        "returned_resources_supported": False, "public_entry_abi_changed": False}
+        "returned_resources_supported": True, "returned_loans_supported": False, "public_entry_abi_changed": False}
 
 
 def qualify(directory, compilers, checks, reference, *, family="multi"):

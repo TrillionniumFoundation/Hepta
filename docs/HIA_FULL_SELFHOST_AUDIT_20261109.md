@@ -51,7 +51,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
 | Scanner / assembly parser | Fixed canonical `hia-asm.v1` bytes | General identifiers, full grammar and diagnostics |
-| Core validation / ownership | Fixed scalar and resource profile, CFG/call checks | Composites, returned owners/loans, full signatures |
+| Core validation / ownership | Fixed scalar and resource profile, CFG/call checks | Composites, returned-loan provenance, full signatures |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
 | Modules / packages / build | No full HIA replacement | Module graph, package/build/install orchestration |
@@ -118,8 +118,11 @@ files to violate the existing no-group-write check, `/tmp` was itself inside a
 Git project, and a piped Linux crash collector delayed SIGILL classification.
 The failures are not passes. A private non-project temp directory, umask 077 and
 post-exec nondumpable disposable native children yielded a passing 20-test
-focused replay without increasing timeouts or weakening file checks. Full v20
-unified and language qualification must run on their own source snapshot.
+focused replay without increasing timeouts or weakening file checks. Full v20 unified qualification on exact commit `24dc49a` subsequently passed
+**571/571** with no skipped tests, errors or failures, and its language
+qualification passed **1,196/1,196**. These receipts do not qualify later code.
+GitHub v20 cold and unified gates still failed their unchanged 180-second cold
+deadline; the local pass is not a substitute for those failures.
 
 The first v20 cold attempt correctly rejected a fixture exceeding 2,048 SSA
 values; another correctly rejected a VM fixture with 257 results against a
@@ -133,8 +136,9 @@ cold timeout is also retained as a failure rather than replaced by the local run
 1. Preserve the admitted source grammar and capacity accounting while making the
    compiler large enough to implement missing language features within explicit
    resource bounds; do not silently raise a ceiling to hide a layout conflict.
-2. Implement all Core scalar types and result/resource transfers, then composite
-   type elaboration and complete ownership/loan behavior. Retain independent VM,
+2. All Core scalar types are implemented in the fixed profile. Complete
+   returned-loan provenance, composite elaboration and general signatures after
+   the bounded owned-result stage. Retain independent VM,
    negative-control, native and modified-self bootstrap observations.
 3. Implement arbitrary identifiers, module graphs and a general linker/export
    interface in HIA. Compile multi-module programs from source bytes without a
@@ -150,3 +154,38 @@ cold timeout is also retained as a failure rather than replaced by the local run
 Until those gates execute successfully, `whole_stack_rewritten_in_hia` and
 `whole_HIA_language_self_hosted` must remain false. This ledger is the continuation
 of implementation, not a declaration that planning or a subset closes the goal.
+
+## Implemented follow-through: v21 owned-result transfer
+
+The private ABI now reserves 64 bytes, with three 16-byte result slots and a
+576-byte frame overhead. The unchanged public entry still returns u32; the
+source/output/workspace caps remain 1 MiB. Both buffer descriptor words cross
+call/return boundaries, and chain descriptors retain their zero spare word.
+Callees transfer rather than free returned owners; caller-side fresh roots and
+callee-side descendant/liveness checks preserve linear cleanup. Exact ordered
+self-tail calls preserve the original result pointer. Returned loans are still
+refused, not silently turned into fresh external roots.
+
+The first local v21 attempt failed because an old chain fixture required a now
+supported owner tuple to be refused. Its exact source was preserved and moved
+to positive VM, independent native backend and successor ELF execution; unsafe
+resource controls remain negative. The second cold replay passed 11/11 and
+3,467/3,467 nested checks, about 138 seconds. Subsequent fixture-performance
+changes have new source identities and require new execution receipts.
+
+To address the actual GitHub deadline without raising it or dropping inputs,
+qualification-only wrappers coalesce equal initialization runs and use Core's
+guaranteed zeroed allocation; constant-only SSA sharing preserves every load,
+arithmetic operation, store and call. Duplicate assembly round trips already
+performed by the strict renderer are not repeated. The standalone keyword
+fixture lowers exactly the live compiler keyword body, checked against the
+complete generated document. Native trap observations remain fresh processes;
+only identical source compilations within one compiler generation can be reused.
+
+The final v21 fixture replay (`v21-cold-03`) passed 11/11 and 3,467/3,467
+checks in about **126 seconds**, preserving all 88 tuple observations and 31
+refusals. The previous valid chain-owner result exclusion is additionally run
+through independent VM, direct native and linked successor ELF observations.
+Both source manifests and separate generation fixed points are retained in
+`review-evidence/hia-whole-selfhost-20261109/v21-cold-summary.json`. This does not
+turn the still-open CI or whole-stack gates into passes.

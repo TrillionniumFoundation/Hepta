@@ -45,8 +45,27 @@ def all_true(body, conditions):
     return body.value("u32", "select", [value, body.const("u32", 1), body.const("u32", 0)])
 
 
+def formerly_excluded_owner_result():
+    """Unchanged former refusal, now required to execute successfully."""
+    return program("""  v3:chain = chain.empty()
+  v4:chain,v5:bool = call(v3) {"function":"f1"}
+  _ = owner.drop(v4)
+  v6:u32 = const() {"value":1}
+  v7:u32 = const() {"value":0}
+  v8:u32 = select(v5,v6,v7)
+  ret(v8)
+""", """fn f1(v0:chain) -> (chain,bool) effects(alloc,read,write,trap) entry(b0)
+block b0(v0:chain)
+  v1:bool = chain.is_empty(v0)
+  ret(v0,v1)
+end
+""")
+
+
 def cases():
-    rows = []
+    rows = [{"id": "chain-flow-profile-multiple-call-return-values",
+             "source": formerly_excluded_owner_result(), "expected_result": 1,
+             "expected_output_hex": INITIAL.hex()}]
 
     def add(name, source, result, output=INITIAL):
         rows.append({"id": "chain-flow-" + name, "source": source,
@@ -401,24 +420,6 @@ end
 """
     rows["chain-flow-profile-flat-dormant-chain-loop"] = (flat + loop).encode()
     rows["chain-flow-profile-flat-dormant-chain-tail"] = (flat + tail).encode()
-
-    # The general language permits multiple returned values; the successor's
-    # bounded scalar-return ABI deliberately does not. Both owned results are
-    # consumed after the call so this is not an ownership leak negative.
-    multi = program("""  v3:chain = chain.empty()
-  v4:chain,v5:bool = call(v3) {"function":"f1"}
-  _ = owner.drop(v4)
-  v6:u32 = const() {"value":1}
-  v7:u32 = const() {"value":0}
-  v8:u32 = select(v5,v6,v7)
-  ret(v8)
-""", """fn f1(v0:chain) -> (chain,bool) effects(alloc,read,write,trap) entry(b0)
-block b0(v0:chain)
-  v1:bool = chain.is_empty(v0)
-  ret(v0,v1)
-end
-""")
-    rows["chain-flow-profile-multiple-call-return-values"] = multi.encode()
 
     # Both incoming paths have identical types but assign the head loan to a
     # different chain position at the join. This is an invalid loan graph.

@@ -316,8 +316,24 @@ def reference_source(case):
     for initial in (bytes.fromhex(case["source_hex"]), bytes.fromhex(case["initial_hex"]), b""):
         owner = b.value("buffer", "buffer.new", [b.const("usize", len(initial))])
         view = b.value("mutbuf", "borrow.mut", [owner])
-        for i, value in enumerate(initial):
-            b.effect("buffer.store", [view, b.const("usize", i), b.const("u8", value)])
+        # Core buffer.new yields zeroed storage. Materialize every nonzero
+        # input byte exactly, coalescing only equal adjacent bytes. This keeps
+        # the target program and all observations unchanged while avoiding
+        # hundreds of redundant wrapper SSA definitions per large fixture.
+        i = 0
+        while i < len(initial):
+            end = i + 1
+            while end < len(initial) and initial[end] == initial[i]:
+                end += 1
+            value = initial[i]
+            if value:
+                if end - i >= 3:
+                    b.effect("buffer.fill_range", [view, b.const("usize", i),
+                        b.const("usize", end - i), b.const("u8", value)])
+                else:
+                    for index in range(i, end):
+                        b.effect("buffer.store", [view, b.const("usize", index), b.const("u8", value)])
+            i = end
         owners.append(owner); loans.append(view)
     b.effect("loan.end", [loans[0]])
     loans[0] = b.value("readbuf", "borrow.read", [owners[0]])

@@ -27,6 +27,21 @@ class SelfhostSignedTests(unittest.TestCase):
         self.assertFalse(self.signed["all_input_correctness_proved"])
         self.assertFalse(self.casts["all_input_correctness_proved"])
 
+    def test_batched_programs_share_only_identical_typed_constants(self):
+        from collections import Counter
+        from hepta.hia_agent_assembly import assemble_program
+        from tools.hia_selfhost_signed_cases import cases
+        from tools.hia_selfhost_batch import batch_cases
+        originals = {c["id"]: c for c in unbatched_cases()}
+        for case in cases():
+            ops = assemble_program(case["source"].encode()).as_dict()["functions"][0]["blocks"][0]["ops"]
+            expected = Counter()
+            for witness in case["input_cases"]:
+                source_ops = assemble_program(originals[witness["id"]]["source"].encode()).as_dict()["functions"][0]["blocks"][0]["ops"]
+                expected.update(op["op"] for op in source_ops if op["op"] != "const")
+            self.assertEqual(Counter(op["op"] for op in ops if op["op"] != "const"), expected)
+            self.assertIn("share-identical-typed-constants-only", case["fixture_transform"])
+
     def test_signed_types_cover_all_integer_operations_select_literals_and_unit_calls(self):
         programs={r["program"] for r in unbatched_cases()}
         operations={"int.add.wrap","int.sub.wrap","int.mul.wrap","int.add.checked","int.sub.checked",

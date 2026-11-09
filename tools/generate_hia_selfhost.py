@@ -246,7 +246,6 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while (get(w, 8) == 256 or get(w, 8) == 95) and get(w, 40) == 0:
         instruction(s, o, w)
     if get(w, 8) == @ret@:
-        loan_finish(w)
         next_token(s, w)
         adjacent(w)
         return_results(s, o, w)
@@ -356,7 +355,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     x = get(w, 288)
     if x > 1 and op != @call@ and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
         return fail(w, 66)
-    if (t >= 6 and t <= 9) and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
+    if (t >= 6 and t <= 9) and op != @borrow.read@ and op != @borrow.mut@ and op != @call@ and (op < @buffer.new@ or op > @chain.head_mut@):
         fail(w, 21)
     next_token(s, w)
     adjacent(w)
@@ -855,7 +854,7 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def frame(w:mutbuf) -> u64:
-    return (get(w, FBASE + get(w, 72) * FSTRIDE + 40) + 2) * 16 + 544
+    return (get(w, FBASE + get(w, 72) * FSTRIDE + 40) + 2) * 16 + 576
 
 def copy_argument(o:mutbuf, w:mutbuf, v:u64, i:u64, t:u64) -> u64:
     load_var(o, w, 0, v, 0)

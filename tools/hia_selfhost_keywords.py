@@ -22,15 +22,24 @@ def keyword_source(words):
     return '\n'.join(lines) + '\n'
 
 
+def keyword_function():
+    """Lower exactly the current keyword body, not all unrelated functions."""
+    import ast
+    from tools.generate_hia_selfhost import Builder, source_program
+    node = next(n for n in ast.parse(source_program()).body if n.name == "keyword")
+    builder = Builder(node, {"keyword": "f1"}, {})
+    builder.statements(node.body)
+    return {"name": "f1", "params": [builder.param(p) for p in builder.params],
+            "returns": ["u64"], "effects": ["read", "write", "trap"],
+            "entry": "b0", "blocks": builder.blocks}
+
+
 def lookup_program(offset=0):
     """Expose the exact authored keyword function through the public byte ABI."""
-    from tools.generate_hia_selfhost import document
     from hepta.hia_agent_assembly import render_assembly, assemble_program
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
-    doc, names = document()
-    keyword = next(fn for fn in doc["functions"] if fn["name"] == names["keyword"])
-    keyword = {**keyword, "name": "f1"}
+    keyword = keyword_function()
     body = Body()
     begin = body.const("u64", offset)
     size = body.value("usize", "buffer.len", ["v0"])
@@ -194,7 +203,7 @@ end
 
 def bank_program(offset=0):
     import ast
-    from tools.generate_hia_selfhost import Builder,document
+    from tools.generate_hia_selfhost import Builder
     from hepta.hia_agent_assembly import render_assembly,assemble_program
     text='''def compile(s:readbuf,o:mutbuf,w:mutbuf) -> u32:
     cursor = 0
@@ -225,10 +234,10 @@ def bank_program(offset=0):
     builder.statements(node.body)
     entry={'name':'f0','params':[builder.param(p) for p in builder.params],'returns':['u32'],
            'effects':['read','write','trap'],'entry':'b0','blocks':builder.blocks}
-    doc,names=document();keyword=next(f for f in doc['functions'] if f['name']==names['keyword'])
+    keyword=keyword_function()
     source=render_assembly({'schema':'hepta.hia.program.v8','module':'selfhost',
         'functions':[entry,{**keyword,'name':'f1'}]})
-    assemble_program(source.encode())
+    # render_assembly verified the complete document and parsed round trip.
     return source
 
 

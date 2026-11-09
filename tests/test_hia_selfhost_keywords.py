@@ -41,6 +41,12 @@ class SelfhostKeywordTests(unittest.TestCase):
                 names += [p["name"] for op in b["ops"] for p in op["out"]]
                 self.assertTrue(all(int(name[1:]) < 2048 for name in names))
 
+    def test_fixture_keyword_function_is_exactly_the_live_compiler_body(self):
+        from tools.hia_selfhost_keywords import keyword_function
+        full, names = document()
+        original = next(fn for fn in full["functions"] if fn["name"] == names["keyword"])
+        self.assertEqual(keyword_function(), {**original, "name": "f1"})
+
     def test_outside_the_packed_grammar_fails_at_authoring_time(self):
         for word in ("", "x" * 33, "f\0n", "汉"):
             with self.subTest(word=word), self.assertRaises((ValueError, UnicodeError)):
