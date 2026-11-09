@@ -217,13 +217,13 @@ def independent_reference():
             'all_input_correctness_or_performance_proved': False}
 
 
-def qualify(directory, compilers, checks, reference):
+def qualify(directory, compilers, checks, reference, *, prefix="cfg-worklist"):
     from tools.qualify_hia_selfhost import compile_stage, invoke, observe_native_tool, INVALID
     from tools.qualify_hia_selfhost_owned_elf import inspect_owned_object
     observations = []
     for label, compiler in compilers:
         for row in reference['cases']:
-            name = label + '-cfg-worklist-' + row['id']
+            name = label + '-' + prefix + '-' + row['id']
             source = row['source'].encode()
             owned = b'v8 selfhost_elf\n' in source
             artifact, build = compile_stage(directory, name + '-build', compiler, source,
@@ -248,7 +248,7 @@ def qualify(directory, compilers, checks, reference):
             observations.append({'case': name, 'build': build, 'inspection': inspection,
                                  'linking': linking, 'execution': result, 'output_hex': output.hex()})
         for row in reference['refusals']:
-            name = label + '-cfg-worklist-reject-' + row['id']
+            name = label + '-' + prefix + '-reject-' + row['id']
             result, output = invoke(directory, name, compiler, row['source'].encode(),
                                     capacity=512, workspace_fill=0x5a)
             checks[name] = bool(result.get('status') == 'returned' and result.get('core_u32') == INVALID

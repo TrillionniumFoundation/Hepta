@@ -161,8 +161,7 @@ def chain_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
         return 0
     if count != 3 or t != 9 or get(w, 320) != 8 or get(w, 336) != 5:
         return fail(w, 67)
-    if get(w, FBASE + get(w, 72) * FSTRIDE + 176) != 1:
-        return fail(w, 65)
+    require_effects(w, 1)
     owner_free(w, a)
     if get(w, 40) != 0:
         return 0

@@ -23,13 +23,13 @@ from hepta.hia_program_native import emit_program_machine
 from hepta.hia_safe_core import build_safe_core, _profile
 
 
-def build(source, output, *, foreign_extent=None, linker="ld", timeout_ms=15000):
+def build(source, output, *, foreign_extent=None, linker="ld", timeout_ms=15000, profile_version=1):
     destination = Path(output).absolute()
     destination.mkdir(parents=False, exist_ok=False)
     started = time.monotonic()
     report = {"schema": "hepta.hia.safe-core-attempt.v1", "ok": False, "status": "running",
               "started_utc": datetime.now(timezone.utc).isoformat(),
-              "foreign_extent": foreign_extent, "timeout_ms": timeout_ms}
+              "foreign_extent": foreign_extent, "timeout_ms": timeout_ms, "profile_version": profile_version}
     path = destination / "attempt.json"
 
     def save():
@@ -43,13 +43,14 @@ def build(source, output, *, foreign_extent=None, linker="ld", timeout_ms=15000)
         checked = verify_program(original)
         functions = checked.as_dict()["functions"]
         manifest = () if foreign_extent is None else ((functions[0]["name"], foreign_extent),)
-        _profile(checked, foreign_buffer_exports=manifest)
+        _profile(checked, foreign_buffer_exports=manifest, profile_version=profile_version)
         (destination / "core.hia.json").write_bytes(checked.canonical_bytes)
         image = emit_program_machine(checked, foreign_buffer_exports=manifest)
         (destination / "candidate.o").write_bytes(image.object_bytes)
         (destination / "candidate.text.bin").write_bytes(image.text_bytes)
         result = build_safe_core(checked, destination / "program.so", foreign_extent=foreign_extent,
-                                 linker=linker, timeout_ms=timeout_ms, query_directory=destination / "queries")
+                                 linker=linker, timeout_ms=timeout_ms, query_directory=destination / "queries",
+                                 profile_version=profile_version)
         report.update(ok=True, status="smt_validated_not_executed", result=result)
     except Exception as exc:
         report.update(status="rejected", error={"type": type(exc).__name__, "message": str(exc),
@@ -69,9 +70,11 @@ def main(argv=None):
     parser.add_argument("--foreign-extent", type=int)
     parser.add_argument("--linker", default="ld")
     parser.add_argument("--timeout-ms", type=int, default=15000)
+    parser.add_argument("--profile-version", type=int, choices=(1, 2), default=1,
+                        help="v1 preserves the original scope; v2 also admits u16 and checked unsigned casts")
     args = parser.parse_args(argv)
     report = build(args.source, args.output, foreign_extent=args.foreign_extent,
-                   linker=args.linker, timeout_ms=args.timeout_ms)
+                   linker=args.linker, timeout_ms=args.timeout_ms, profile_version=args.profile_version)
     print(json.dumps({"ok": report["ok"], "status": report["status"], "output": str(Path(args.output).absolute()),
                       "error": report.get("error"), "elapsed_seconds": report["elapsed_seconds"]}, sort_keys=True))
     return 0 if report["ok"] else 1

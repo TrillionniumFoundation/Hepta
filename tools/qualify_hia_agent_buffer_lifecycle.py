@@ -84,6 +84,81 @@ class PinnedWorker:
         return report["response"]
 
 
+class ColdConsumer:
+    """Reopen the same authority database in a fresh process for every call."""
+    def __init__(self, output, state, source_root):
+        self.output, self.state, self.source_root = output, state, source_root
+        self.identities = installation_manifest()
+        self.worker_sha256 = sha256(Path(__file__).read_bytes()).hexdigest()
+        self.sequence = 0
+
+    def call(self, action, *, expected_status="completed", **arguments):
+        self.sequence += 1
+        request = {"state_root": str(self.state), "source_root": str(self.source_root),
+            "installation": self.identities, "worker_sha256": self.worker_sha256,
+            "action": action, "arguments": arguments}
+        raw = wire(request)
+        prefix = self.output / ("consumer-worker-" + str(self.sequence).zfill(4))
+        prefix.with_suffix(".request.json").write_bytes(raw + b"\n")
+        command = [sys.executable, "-B", "-E", "-s", str(Path(__file__).resolve()), "--consumer-worker"]
+        started = time.monotonic_ns()
+        try:
+            completed = subprocess.run(command, cwd=ROOT, input=raw, capture_output=True, timeout=90)
+        except subprocess.TimeoutExpired as exc:
+            prefix.with_suffix(".stdout.json").write_bytes(exc.stdout or b"")
+            prefix.with_suffix(".stderr.log").write_bytes(exc.stderr or b"")
+            prefix.with_suffix(".process.json").write_bytes(wire({"command": command, "timed_out": True,
+                "wall_ns": time.monotonic_ns() - started, "request_sha256": sha256(raw).hexdigest()}) + b"\n")
+            raise
+        prefix.with_suffix(".stdout.json").write_bytes(completed.stdout)
+        prefix.with_suffix(".stderr.log").write_bytes(completed.stderr)
+        prefix.with_suffix(".process.json").write_bytes(wire({"command": command, "timed_out": False,
+            "returncode": completed.returncode, "wall_ns": time.monotonic_ns() - started,
+            "request_sha256": sha256(raw).hexdigest()}) + b"\n")
+        require(completed.returncode == 0, "cold consumer process failed: " + completed.stderr.decode(errors="replace")[:4096])
+        response = json.loads(completed.stdout)
+        require(response.get("request_sha256") == sha256(raw).hexdigest()
+                and response.get("action") == action and response.get("installation") == self.identities
+                and response.get("worker_sha256") == self.worker_sha256,
+                "cold consumer response does not bind the exact request and source")
+        require(response.get("status") == expected_status, "cold consumer operation returned an unexpected status")
+        return response["result"]
+
+
+def consumer_worker():
+    """Private qualification subprocess, not a runtime tool or public API."""
+    raw = sys.stdin.buffer.read(4 * 1024 * 1024 + 1)
+    require(0 < len(raw) <= 4 * 1024 * 1024, "bounded consumer request required")
+    request = json.loads(raw)
+    require(set(request) == {"state_root", "source_root", "installation", "worker_sha256", "action", "arguments"},
+            "unexpected consumer request fields")
+    require(installation_manifest() == request["installation"], "consumer installation changed")
+    require(sha256(Path(__file__).read_bytes()).hexdigest() == request["worker_sha256"], "consumer worker source changed")
+    action, arguments = request["action"], request["arguments"]
+    require(action in {"acquire", "invoke", "release"}, "unknown consumer action")
+    expected = {"acquire": {"target_slot"}, "invoke": {"lease", "function", "arguments"}, "release": {"lease"}}
+    require(type(arguments) is dict and set(arguments) == expected[action], "unexpected consumer action arguments")
+    service = HIAAgentService(Path(request["state_root"]), artifact_roots=(Path(request["source_root"]),))
+    try:
+        try:
+            if action == "acquire":
+                result = service.acquire_slot(arguments["target_slot"])
+            elif action == "invoke":
+                result = service.invoke_lease(arguments["lease"], arguments["function"], arguments["arguments"])
+            else:
+                result = service.release_slot(arguments["lease"])
+            status = "completed"
+        except AgentRejected as exc:
+            status, result = "rejected", {"status": "rejected", "code": exc.code}
+    finally:
+        service.close()
+    require(installation_manifest() == request["installation"], "consumer installation changed during operation")
+    require(sha256(Path(__file__).read_bytes()).hexdigest() == request["worker_sha256"], "consumer worker source changed during operation")
+    sys.stdout.buffer.write(wire({"action": action, "request_sha256": sha256(raw).hexdigest(),
+        "installation": request["installation"], "worker_sha256": request["worker_sha256"],
+        "status": status, "result": result}) + b"\n")
+
+
 def run(compiler_source, expected_sha256, output):
     output.mkdir(parents=True, exist_ok=False)
     compiler_source = compiler_source.resolve(strict=True)
@@ -172,11 +247,11 @@ def run(compiler_source, expected_sha256, output):
         adopted = client.result("hia_adopt", adoption_arguments)
         replay = client.result("hia_adopt", adoption_arguments)
         require(replay == adopted, "adoption did not recover the original retained operation")
-        consumer = HIAAgentService(worker.state, artifact_roots=(compiler_source.parent,))
-        lease = consumer.acquire_slot(slot)
+        consumer = ColdConsumer(output, worker.state, compiler_source.parent)
+        lease = consumer.call("acquire", target_slot=slot)
         rollback = client.result("hia_rollback", session.arguments(target_slot=slot,
             expected_current=adopted["current"], retained_generation="0", reason="retain a nonproduction baseline for future calls"))
-        invocation = consumer.invoke_lease(lease, "f0", cases[0]["arguments"])
+        invocation = consumer.call("invoke", lease=lease, function="f0", arguments=cases[0]["arguments"])
         require(invocation["status"] == "returned" and invocation["generation"] == "1", "retained compiler lease did not execute")
         size = invocation["values"][0]
         require(0 < size <= 8192, "compiler did not return a bounded native image")
@@ -189,21 +264,19 @@ def run(compiler_source, expected_sha256, output):
             require(result["status"] == "returned" and result["core_u32"] == expected
                     and result["source_unchanged"] and observed == bytes([condition]), "new native select consumer disagreed")
             runs.append(result)
-        current = consumer.acquire_slot(slot)
+        current = consumer.call("acquire", target_slot=slot)
         require(current["generation"] == "0", "rollback changed an existing lease or failed to restore future acquisition")
-        consumer.release_slot(current)
-        consumer.release_slot(lease)
-        try:
-            consumer.invoke_lease(lease, "f0", cases[0]["arguments"])
-        except AgentRejected as exc:
-            require(exc.code == "E_HIA_LEASE", "released lease failed for an unrelated reason")
-            released = {"status": "rejected", "code": exc.code}
-        else:
-            raise AssertionError("released compiler lease executed")
+        consumer.call("release", lease=current)
+        consumer.call("release", lease=lease)
+        released = consumer.call("invoke", lease=lease, function="f0", arguments=cases[0]["arguments"],
+                                 expected_status="rejected")
+        require(released["code"] == "E_HIA_LEASE", "released lease failed for an unrelated reason")
         require(installation_manifest() == worker.identities, "installed worker changed during qualification")
         require(sha256(compiler_source.read_bytes()).hexdigest() == expected_sha256, "frozen compiler source changed")
         report.update(status="PASS_SCOPED_NONPRODUCTION_LIFECYCLE", adoption=adopted,
             adoption_replay_identical=True, rollback=rollback, consumer_invocation=invocation,
+            consumer_processes=consumer.sequence, consumer_state_reopened_for_every_operation=True,
+            consumer_authority_database_copied=False,
             consumer_image={"byte_length": size, "sha256": sha256(emitted).hexdigest()},
             consumer_runs=runs, released_lease= released,
             acceptance_scope="same frozen Core activation; exact buffer workload, owned local worker and consumer generations only",
@@ -213,8 +286,6 @@ def run(compiler_source, expected_sha256, output):
         report.update(status="FAILED", error={"type": type(exc).__name__, "message": str(exc)[:4096]})
         raise
     finally:
-        if consumer is not None:
-            consumer.close()
         journal.close()
         report["worker_calls"] = worker.sequence
         report["wall_ns"] = str(time.monotonic_ns() - started)
@@ -224,6 +295,9 @@ def run(compiler_source, expected_sha256, output):
 
 
 def main():
+    if sys.argv[1:] == ["--consumer-worker"]:
+        consumer_worker()
+        return
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compiler-source", type=Path, required=True)
     parser.add_argument("--expected-source-sha256", required=True)

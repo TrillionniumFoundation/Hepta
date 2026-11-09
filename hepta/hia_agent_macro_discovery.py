@@ -29,6 +29,13 @@ def macro_policy_guidance(installation):
             "recursive_utility_evaluated": False,
             "learned_macro_dynamics": False,
             "missing_bridge_behavior": "BLOCKED; no substitute evaluator",
+            "optional_stopping_guard": {
+                "cli_flag": "--skip-dominated-native",
+                "default_enabled": False,
+                "scope": "skip native only when no feasible supplied plan strictly improves incumbent scalar cost",
+                "skipped_call_is_ndu_evaluation": False,
+                "unused_native_image_validated": False,
+            },
         },
         "state_schema": STATE_SCHEMA,
         "comparison_schema": COMPARISON_SCHEMA,

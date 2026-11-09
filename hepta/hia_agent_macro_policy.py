@@ -270,18 +270,26 @@ def advise_ordinary(raw):
     return result
 
 
-def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
+def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000,
+                 skip_dominated_native=False):
     """Rank explicit macro plans through the original native value interface.
 
     Forecast costs include the complete remaining sequence, including model
     calls and unsuccessful search. All observed sunk costs and this invocation
     remain charged. No native image means BLOCKED, never a Python substitute.
     The response only recommends the first action; actual tools recheck state.
+
+    The opt-in caller guard can retain the incumbent without invoking NDU when
+    no feasible supplied plan strictly improves its fixed scalar cost. It does
+    not admit a plan or validate an unused native image. The default native
+    path and its experimental call-count contract remain unchanged.
     """
     started = time.perf_counter_ns()
     data = _decode(raw)
     totals = _state(data)
     _integer(timeout_ns, "native timeout", minimum=1)
+    if type(skip_dominated_native) is not bool:
+        _fail("skip_dominated_native requires an explicit boolean")
     # Reserve the deterministic receipt identity/capacity before any native
     # work. A full or colliding journal must not discard an executed attempt.
     next_entry_id = "controller." + str(len(data["ledger"]))
@@ -325,8 +333,31 @@ def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
                    "generation": data["generation"], "resource_cap_q32": ns_to_ms_q32(max(remaining, 0)),
                    "candidates": rows}
         result["native_request"] = request
+        if skip_dominated_native:
+            # All state, cost, resource and Q32 checks above still run. This
+            # predicate belongs only to hia-total-cost-ms-v1: one minimized
+            # supplied-cost axis, zero Pareto tolerance, incumbent wins ties.
+            # It cannot replace native selection of any alternative. In
+            # particular, a zero-cost feasible improvement must still run NDU.
+            competitive = sorted(row["id"] for row in rows[1:]
+                if not row["hard_violation"]
+                and row["resource_q32"] <= request["resource_cap_q32"]
+                and row["cost_q32"] < rows[0]["cost_q32"])
+            result["native_dispatch_guard"] = {
+                "schema": "hepta.hia.agent.scalar-stop-guard.v1",
+                "profile": "hia-total-cost-ms-v1",
+                "request_sha256": digest(request),
+                "decision_elapsed_ns": elapsed,
+                "remaining_wall_ns": remaining,
+                "competitive_plan_ids": competitive,
+                "skip_native": remaining > 0 and not competitive,
+                "native_identity_validated_here": False,
+                "scope": "caller stopping predicate; no alternative admission or NDU evaluation",
+            }
         if remaining <= 0:
             result["reason"] = "budget_exhausted_before_native"
+        elif skip_dominated_native and not competitive:
+            result.update(status="ADVISORY", reason="caller_no_feasible_strict_improvement")
         else:
             try:
                 response, identity = _native_rank(bridge, request,
@@ -351,6 +382,9 @@ def advise_macro(raw, *, bridge=None, timeout_ns=1_000_000_000):
                 # Preserve failed calls in the next state; never refund work.
                 result.update(status="BLOCKED", reason="native_evaluator_rejected", native_error=str(error))
     elapsed = time.perf_counter_ns() - started
+    if (result.get("native_dispatch_guard", {}).get("skip_native")
+            and elapsed > data["budget"]["wall_ns"] - totals["observed_wall_ns"]):
+        result.update(status="BLOCKED", reason="budget_exhausted_after_stop_guard")
     evidence = {key: value for key, value in result.items() if key not in {"next_state", "ledger_entry"}}
     entry = {"id": next_entry_id, "phase": "controller",
              "status": "completed" if result["status"] == "ADVISORY" else "rejected",

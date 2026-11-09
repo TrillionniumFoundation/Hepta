@@ -16,7 +16,7 @@ Eleven markers have original byte offsets 65, 102701, 104333, 112569, 112729, 11
 
 ## Separate marker-only evidence protocol
 
-The protocol is seven-certificate-first-six-diagnostic-v1, target SevenCertificatePart04. Its fixed process trace is p04-markers-v1. Old diagnostic and acceptance interfaces are unchanged.
+The protocol is seven-certificate-first-six-diagnostic-v1, target SevenCertificatePart04. Its current fixed process trace is p04-markers-v2. This trace adds mandatory boolean cleanup_deadline_exceeded evidence and refuses late wait/read/exit observations without renewing the original cleanup deadline. The 60-second process and two-second cleanup limits are unchanged. Historical p04-markers-v1 records remain historical evidence for their original source/checker; the v2 checker explicitly rejects them as new strict-deadline qualification. Neither trace admits a target module.
 
 The trace contains one start, zero to eleven ordered marker events and one terminal record. There are no per-read events or claims about per-read timing. Complete stdout and stderr are still retained, bounded, hashed and independently read. Each marker event records the exact stdout byte offset, original and instrumented source offsets and received timestamp. Independent replay uses its own complete LF-delimited raw parser, not the collector observer, to reconstruct the marker sequence. It rejects foreign, duplicate, reordered, partial and unmatched marker-like lines, including stderr markers; timestamps must be finite, monotone and within the process elapsed time.
 
@@ -27,6 +27,8 @@ The five parent inventories remain complete maps. The target inventory receipt s
 ## Unchanged bounds and measured serialization
 
 Limits remain 60 seconds per process, a 540-second new-launch cutoff, 600-second external command limit and 15-minute job. Cleanup is bounded by two seconds; the pending-PTY-EIO check stays inside the original process deadline. The collector retains nonreaping leader identity until group signalling and never signals a reused PID after reap. Escaped descendants and hostile-host mutation beyond the stated checks are not containment guarantees.
+
+The cleanup fields describe the owned leader and the captured streams. `group_kill_sent` records a successful group-signal syscall; `leader_reaped`, `drain_complete`, and `cleanup_deadline_exceeded` bind the leader wait and stdout/stderr observations to the fixed deadline. They do not certify individual termination or reaping of every descendant. In [Linux v6.18 exit processing](https://github.com/torvalds/linux/blob/7d0a66e4bb9081d75c82ec4957c50034cb0ea449/kernel/exit.c), descriptor cleanup precedes publication of `EXIT_ZOMBIE`; an EOF observation and a `/proc` zombie-state observation are separate. The harmless Python descendant fixture separately requires its known child to reach `Z` or disappear within its original 1.5-second total test deadline. A live state or a terminal observation returned after that fixed deadline still fails the test. This finite fixture observation is not an all-descendant production proof.
 
 Raw target cap remains 507,392 bytes. Original event limits remain 8,192 preterminal, 12,288 event stream and 4,096 terminal; combined RESULT plus events remains 16,384. This protocol imposes tighter serialized subcaps: start 2,368; each marker 224; terminal 3,584; event stream 8,416; RESULT 7,968. Actual serialization is checked, not inferred from character counts.
 

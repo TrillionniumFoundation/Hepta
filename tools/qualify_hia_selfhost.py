@@ -33,7 +33,7 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
-                          "loan", "resource", "tail", "select")
+                          "loan", "resource", "tail", "select", "effects")
 PHASE_REFERENCE_FILES = {
     "resource": "independent-resource-reference.json",
     "bulk": "independent-bulk-reference.json",
@@ -42,6 +42,7 @@ PHASE_REFERENCE_FILES = {
     "capacity": "independent-capacity-reference.json",
     "tail": "independent-tail-reference.json",
     "select": "independent-select-reference.json",
+    "effects": "independent-effect-reference.json",
 }
 
 
@@ -502,6 +503,9 @@ def qualification_phase(request_path):
     elif family == "cfg":
         from tools.hia_selfhost_cfg_worklist import qualify as qualify_cfg
         observations = qualify_cfg(directory, compilers, checks, reference)
+    elif family == "effects":
+        from tools.hia_selfhost_effects import qualify as qualify_effects
+        observations = qualify_effects(directory, compilers, checks, reference)
     elif family == "owned":
         from tools.qualify_hia_selfhost_owned_elf import qualify as qualify_owned_elf
         owned = qualify_owned_elf(directory / (label + "-owned-elf"), compiler)
@@ -692,6 +696,9 @@ def qualify(output):
     from tools.hia_selfhost_select import independent_select_reference, qualify_select
     select_reference = independent_select_reference()
     (directory / "independent-select-reference.json").write_text(json.dumps(select_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_effects import independent_reference as effect_reference_run
+    effect_reference = effect_reference_run()
+    (directory / "independent-effect-reference.json").write_text(json.dumps(effect_reference, indent=2, sort_keys=True) + "\n")
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -795,6 +802,7 @@ def qualify(output):
     expanded_capacity = phase_observations("capacity")
     tail_observations = phase_observations("tail")
     select_observations = phase_observations("select")
+    effect_observations = phase_observations("effects")
     checks["source_closure_unchanged"] = source_manifest() == before
     report = {
         "schema": "hepta.hia.selfhost-qualification.v6",
@@ -819,6 +827,7 @@ def qualify(output):
         "expanded_capacity_observations": expanded_capacity, "independent_capacity_reference": capacity_reference,
         "tail_call_observations": tail_observations, "independent_tail_reference": tail_reference,
         "select_observations": select_observations, "independent_select_reference": select_reference,
+        "effect_observations": effect_observations, "independent_effect_reference": effect_reference,
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,

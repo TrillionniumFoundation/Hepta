@@ -41,16 +41,21 @@ def main(argv=None):
     parser.add_argument("--native-binary", type=Path)
     parser.add_argument("--native-build-receipt", type=Path)
     parser.add_argument("--timeout-ns", type=int, default=1_000_000_000)
+    parser.add_argument("--skip-dominated-native", action="store_true",
+        help="opt in to the fixed scalar caller stopping guard; skipped calls are not NDU evaluations")
     args = parser.parse_args(argv)
     if bool(args.native_binary) != bool(args.native_build_receipt):
         parser.error("native binary and exact source-bound build receipt must be supplied together")
     if args.mode != "advise" and args.native_binary:
         parser.error("only advise uses a native evaluator")
+    if args.mode != "advise" and args.skip_dominated_native:
+        parser.error("only advise supports the scalar native-dispatch guard")
     try:
         raw = _read_input(args.input)
         if args.mode == "advise":
             bridge = {"binary": str(args.native_binary), "build_receipt": str(args.native_build_receipt)} if args.native_binary else None
-            result = advise_macro(raw, bridge=bridge, timeout_ns=args.timeout_ns)
+            result = advise_macro(raw, bridge=bridge, timeout_ns=args.timeout_ns,
+                                  skip_dominated_native=args.skip_dominated_native)
             succeeded = result["status"] == "ADVISORY"
         elif args.mode == "ordinary":
             result = advise_ordinary(raw)

@@ -15,12 +15,14 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.hia_selfhost_limits import MAX_INSTRUCTIONS, MAX_CORE_NODES, MAX_RELOCATIONS
 from tools.hia_selfhost_owned_elf import SOURCE as OWNED_ELF_SOURCE
 from tools.hia_selfhost_chain_elf import SOURCE as CHAIN_ELF_SOURCE
+from tools.hia_selfhost_effects import source as effect_source
 
-TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9}
+TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
  "const", "int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor", "int.shl.checked", "int.shr.checked", "compare.eq", "compare.ne", "compare.lt", "compare.le", "compare.gt", "compare.ge", "bool.and", "bool.or", "bool.not", "int.cast", "buffer.len", "buffer.load", "buffer.store", "call", "selfhost_elf", "buffer.swap", "bit.not", "int.add.checked", "int.sub.checked", "select", "int.mul.checked", "int.div.checked", "int.rem.checked", "int.neg.checked", "buffer.fill", "buffer.fill_range", "buffer.copy", "buffer.copy_range", "buffer.move_within", "borrow.read", "borrow.mut", "loan.end"]
 WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
+WORDS += ["checked"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -124,13 +126,13 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
-    account_nodes(w, 11 + count * 3)
+    account_nodes(w, 8 + count * 3)
     expect(s, w, 45)
     adjacent(w)
     expect(s, w, 62)
     expect(s, w, 40)
     rt = read_type(s, w)
-    if rt > 5:
+    if rt > 5 and rt != 10:
         fail(w, 3)
     if get(w, 48) == 0:
         put(w, fb + 24, count)
@@ -140,20 +142,9 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, @effects@)
     adjacent(w)
     expect(s, w, 40)
-    allocating = 0
-    if get(w, 8) == @alloc@:
-        next_token(s, w)
-        expect(s, w, 44)
-        allocating = 1
-        account_nodes(w, 1)
-    expect(s, w, @read@)
-    expect(s, w, 44)
-    expect(s, w, @write@)
-    expect(s, w, 44)
-    expect(s, w, @trap@)
-    expect(s, w, 41)
+    effects = parse_effects(s, w)
     if get(w, 48) == 0:
-        put(w, fb + 176, allocating)
+        put(w, fb + 176, effects)
     separated(w)
     expect(s, w, @entry@)
     adjacent(w)
@@ -313,7 +304,7 @@ def args(s:readbuf, w:mutbuf, is_edge:u64) -> u64:
             return fail(w, 15)
         j = 0
         while j < n:
-            if v == get(w, ARGS + j * 8) and (t >= 7 or (is_edge == 1 and t == 6)):
+            if v == get(w, ARGS + j * 8) and ((t >= 7 and t <= 9) or (is_edge == 1 and t == 6)):
                 fail(w, 16)
             j = j + 1
         put(w, ARGS + n * 8, v)
@@ -359,7 +350,7 @@ def edge(s:readbuf, o:mutbuf, w:mutbuf, arm:u64) -> u64:
             t = get(w, bb + 40 + i * 16)
             mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16)
             store_var(o, w, v, 0)
-            if t >= 6:
+            if t >= 6 and t <= 9:
                 mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16 + 8)
                 store_var(o, w, v, 1)
             i = i + 1
@@ -376,9 +367,11 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     t = get(w, 304)
     expect(s, w, 61)
     op = get(w, 8)
-    if get(w, 288) > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
+    require_effects(w, instruction_effects(op))
+    x = get(w, 288)
+    if x > 1 and op != @buffer.try_new@ and op != @chain.try_push@ and op != @chain.pop@:
         return fail(w, 66)
-    if t >= 6 and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
+    if (t >= 6 and t <= 9) and op != @borrow.read@ and op != @borrow.mut@ and (op < @buffer.new@ or op > @chain.head_mut@):
         fail(w, 21)
     next_token(s, w)
     adjacent(w)
@@ -426,6 +419,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             fail(w, 22)
         if t == 4 and x > 255:
             fail(w, 22)
+        if t == 10 and x > 65535:
+            fail(w, 22)
         emit(o, w, 72)
         emit(o, w, 184)
         emit8(o, w, x)
@@ -453,8 +448,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 if x >= get(w, 1024):
                     fail(w, 23)
                 fb = FBASE + x * FSTRIDE
-                if get(w, fb + 176) > get(w, FBASE + get(w, 72) * FSTRIDE + 176):
-                    fail(w, 65)
+                require_effects(w, get(w, fb + 176))
                 if n != get(w, fb + 24) or t != get(w, fb + 32):
                     fail(w, 24)
                 i = 0
@@ -475,7 +469,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                     while i < n:
                         mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16)
                         store_var(o, w, i, 0)
-                        if get(w, fb + 48 + i * 8) >= 6:
+                        if resource_type(get(w, fb + 48 + i * 8)) == 1:
                             mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16 + 8)
                             store_var(o, w, i, 1)
                         i = i + 1
@@ -495,12 +489,17 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 expect(s, w, 123)
                 expect(s, w, @mode@)
                 expect(s, w, 58)
-                expect(s, w, @wrap@)
+                if get(w, 8) == @checked@:
+                    x = 1
+                    require_effects(w, 8)
+                    next_token(s, w)
+                else:
+                    expect(s, w, @wrap@)
                 expect(s, w, 125)
-                if n != 1 or at > 4 or t > 4 or t == 0:
+                if n != 1 or (at > 4 and at != 10) or (t > 4 and t != 10) or t == 0:
                     fail(w, 26)
                 load_var(o, w, 0, a, 0)
-                normalize(o, w, t)
+                cast_integer(o, w, t, x)
             else:
                 if op >= @borrow.read@ and op <= @loan.end@:
                     loan_operation(w, op, n, a, at, t)
@@ -597,7 +596,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         fail(w, 32)
     load_var(o, w, 1, b, 0)
     if op >= @compare.eq@ and op <= @compare.ge@:
-        if at > 4 or at != bt or t != 5:
+        if (at > 4 and at != 10 and (at != 5 or (op != @compare.eq@ and op != @compare.ne@))) or at != bt or t != 5:
             fail(w, 33)
         emit(o, w, 72)
         emit(o, w, 57)
@@ -626,7 +625,7 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
         if t != 5:
             fail(w, 35)
     else:
-        if t > 4:
+        if t > 4 and t != 10:
             fail(w, 35)
     if op == @int.add.wrap@:
         emit(o, w, 72)
@@ -665,6 +664,8 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
                                     width = 32
                                 if t == 4:
                                     width = 8
+                                if t == 10:
+                                    width = 16
                                 emit(o, w, 72)
                                 emit(o, w, 131)
                                 emit(o, w, 249)
@@ -685,13 +686,13 @@ def operation(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t
     return 0
 
 def define(w:mutbuf, v:u64, t:u64) -> u64:
-    if v >= 2048 or t == 0 or t > 9:
+    if v >= 2048 or t == 0 or t > 10:
         return fail(w, 37)
     if get(w, VBASE + v * 16) != 0:
         return fail(w, 38)
     put(w, VBASE + v * 16, t)
     put(w, VBASE + v * 16 + 8, get(w, 88) + 1)
-    if t >= 6:
+    if t >= 6 and t <= 9:
         put(w, CAPBASE + v * 24, v)
         put(w, CAPBASE + v * 24 + 8, 0)
         put(w, CAPBASE + v * 24 + 16, 1)
@@ -709,16 +710,16 @@ def variable(w:mutbuf, v:u64) -> u64:
     t = get(w, VBASE + v * 16)
     if t == 0:
         return fail(w, 40)
-    if get(w, 264) == 1 and t >= 6 and get(w, CAPBASE + v * 24 + 16) == 0:
+    if get(w, 264) == 1 and (t >= 6 and t <= 9) and get(w, CAPBASE + v * 24 + 16) == 0:
         return fail(w, 62)
     return t
 
 def read_type(s:readbuf, w:mutbuf) -> u64:
     t = get(w, 8)
     next_token(s, w)
-    if t < @u64@ or t > @chain@:
+    if t < @u64@ or t > @u16@:
         return fail(w, 41)
-    if t >= @buffer@ and get(w, 232) != 1:
+    if (t >= @buffer@ and t <= @chain@) and get(w, 232) != 1:
         return fail(w, 64)
     return t - @u64@ + 1
 
@@ -865,7 +866,7 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
         t = get(w, fb + 48 + i * 8)
         mem(o, w, 139, 0, 7, i * 16)
         store_var(o, w, i, 0)
-        if t >= 6:
+        if t >= 6 and t <= 9:
             mem(o, w, 139, 0, 7, i * 16 + 8)
             store_var(o, w, i, 1)
         i = i + 1
@@ -877,7 +878,7 @@ def frame(w:mutbuf) -> u64:
 def copy_argument(o:mutbuf, w:mutbuf, v:u64, i:u64, t:u64) -> u64:
     load_var(o, w, 0, v, 0)
     mem(o, w, 137, 0, 5, 0 - frame(w) + i * 16)
-    if t >= 6:
+    if t >= 6 and t <= 9:
         load_var(o, w, 0, v, 1)
         mem(o, w, 137, 0, 5, 0 - frame(w) + i * 16 + 8)
     return 0
@@ -893,6 +894,10 @@ def normalize(o:mutbuf, w:mutbuf, t:u64) -> u64:
         emit(o, w, 72)
         emit(o, w, 37)
         emit4(o, w, 255)
+    if t == 10:
+        emit(o, w, 72)
+        emit(o, w, 37)
+        emit4(o, w, 65535)
     if t == 3:
         emit(o, w, 137)
         emit(o, w, 192)
@@ -1053,10 +1058,10 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
             fail(w, 50)
     else:
         if quoted == 1:
-            if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @function@:
+            if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @checked@ and kind != @function@:
                 fail(w, 51)
         else:
-            if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @function@:
+            if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @checked@ or kind == @function@:
                 fail(w, 51)
     put(w, 8, kind)
     return 0
@@ -1216,7 +1221,7 @@ def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
 def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
     load_var(o, w, 0, a, 0)
     if op == @bit.not@:
-        if n != 1 or at < 1 or at > 4 or t != at:
+        if n != 1 or at < 1 or (at > 4 and at != 10) or t != at:
             fail(w, 31)
         # NOT is a full machine word operation; restore the declared width.
         emit(o, w, 72)
@@ -1225,13 +1230,13 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
         normalize(o, w, t)
         return 0
     if op == @int.neg.checked@:
-        if n != 1 or at < 1 or at > 4 or t != at:
+        if n != 1 or at < 1 or (at > 4 and at != 10) or t != at:
             fail(w, 31)
         # The only representable unsigned negation is zero. Test before any
         # later operation, preserving all earlier observable stores.
         emit_bytes(o, w, 3112727966942536, 7)
         return 0
-    if n != 2 or at != bt or t != at or t == 0 or t > 4:
+    if n != 2 or at != bt or t != at or t == 0 or (t > 4 and t != 10):
         fail(w, 34)
     load_var(o, w, 1, b, 0)
     if op == @int.div.checked@ or op == @int.rem.checked@:
@@ -1261,7 +1266,7 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
         emit(o, w, 2)
         emit(o, w, 15)
         emit(o, w, 11)
-    if (op == @int.add.checked@ or op == @int.mul.checked@) and (t == 3 or t == 4):
+    if (op == @int.add.checked@ or op == @int.mul.checked@) and (t == 3 or t == 4 or t == 10):
         # A narrow result can overflow without a 64-bit carry. Save the full
         # result, normalize rax, then require that no high bits were lost.
         emit(o, w, 72)
@@ -1280,7 +1285,7 @@ def checked_integer(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, bt:
 
 
 def select_scalar(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, at:u64, bt:u64, t:u64) -> u64:
-    if n != 3 or at != 5 or bt == 0 or bt > 5 or t != bt or variable(w, get(w, ARGS + 16)) != bt:
+    if n != 3 or at != 5 or bt == 0 or (bt > 5 and bt != 10) or t != bt or variable(w, get(w, ARGS + 16)) != bt:
         fail(w, 60)
     # Core select(cond, true_value, false_value). Full-width moves preserve
     # the already-normalized scalar slots, including u64/usize high bits.
@@ -1399,7 +1404,7 @@ def operation_dispatch(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, b:u64, at:u64, 
     return operation(o, w, op, n, a, b, at, bt, t)
 
 def loan_live(w:mutbuf, v:u64) -> u64:
-    if get(w, VBASE + v * 16 + 8) == get(w, 88) + 1 and get(w, VBASE + v * 16) >= 6 and get(w, CAPBASE + v * 24 + 16) == 1:
+    if get(w, VBASE + v * 16 + 8) == get(w, 88) + 1 and resource_type(get(w, VBASE + v * 16)) == 1 and get(w, CAPBASE + v * 24 + 16) == 1:
         return 1
     return 0
 
@@ -1479,15 +1484,15 @@ def loan_call(w:mutbuf, n:u64) -> u64:
     other = 0
     while i < n:
         v = get(w, ARGS + i * 8)
-        if variable(w, v) >= 6:
-            if variable(w, v) >= 8:
+        if resource_type(variable(w, v)) == 1:
+            if owner_type(variable(w, v)) == 1:
                 owner_free(w, v)
             else:
                 loan_access(w, v)
             j = 0
             while j < i:
                 other = get(w, ARGS + j * 8)
-                if variable(w, other) >= 6 and get(w, CAPBASE + v * 24) == get(w, CAPBASE + other * 24):
+                if resource_type(variable(w, other)) == 1 and get(w, CAPBASE + v * 24) == get(w, CAPBASE + other * 24):
                     if variable(w, v) >= 7 or variable(w, other) >= 7:
                         return fail(w, 62)
                 j = j + 1
@@ -1505,7 +1510,7 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
     if block == 0:
         while i < 16:
             packed = 0
-            if i < count and get(w, bb + 40 + i * 16) >= 6:
+            if i < count and resource_type(get(w, bb + 40 + i * 16)) == 1:
                 packed = i | (i << 4)
             store(w, bb + 304 + i, packed)
             i = i + 1
@@ -1520,15 +1525,15 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
     i = 0
     while i < count:
         v = get(w, bb + 32 + i * 16)
-        if get(w, bb + 40 + i * 16) >= 6:
+        if resource_type(get(w, bb + 40 + i * 16)) == 1:
             packed = byte(w, bb + 304 + i)
             root = packed & 15
             parent = packed >> 4
             if root >= count or parent >= count:
                 return fail(w, 62)
-            if get(w, bb + 40 + root * 16) < 6 or get(w, bb + 40 + parent * 16) < 6:
+            if resource_type(get(w, bb + 40 + root * 16)) == 0 or resource_type(get(w, bb + 40 + parent * 16)) == 0:
                 return fail(w, 62)
-            if get(w, bb + 40 + i * 16) >= 8:
+            if owner_type(get(w, bb + 40 + i * 16)) == 1:
                 if root != i or parent != i:
                     return fail(w, 62)
                 put(w, 352, get(w, 352) + 1)
@@ -1561,7 +1566,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     parent = 0
     packed = 0
     while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
-        if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or get(w, VBASE + i * 16) >= 8):
+        if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
         i = i + 1
     i = 0
@@ -1569,7 +1574,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
         packed = 0
         if i < n:
             v = get(w, ARGS + i * 8)
-            if variable(w, v) >= 6:
+            if resource_type(variable(w, v)) == 1:
                 root = loan_argument(w, n, get(w, CAPBASE + v * 24))
                 parent = get(w, CAPBASE + v * 24 + 8)
                 if parent == 0:
@@ -1597,7 +1602,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     return 0
 
 def owner_free(w:mutbuf, v:u64) -> u64:
-    if variable(w, v) < 8:
+    if owner_type(variable(w, v)) == 0:
         return fail(w, 62)
     if get(w, 264) == 0:
         return 0
@@ -1609,7 +1614,7 @@ def owner_free(w:mutbuf, v:u64) -> u64:
     return 0
 
 def owner_produce(w:mutbuf, v:u64) -> u64:
-    if variable(w, v) < 8:
+    if owner_type(variable(w, v)) == 0:
         return fail(w, 62)
     put(w, CAPBASE + v * 24, v)
     put(w, CAPBASE + v * 24 + 8, 0)
@@ -1620,7 +1625,7 @@ def owner_produce(w:mutbuf, v:u64) -> u64:
 def owner_consume(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0:
         return 0
-    if variable(w, v) < 8 or get(w, 352) == 0:
+    if owner_type(variable(w, v)) == 0 or get(w, 352) == 0:
         return fail(w, 62)
     put(w, CAPBASE + v * 24 + 16, 0)
     put(w, 352, get(w, 352) - 1)
@@ -1633,14 +1638,42 @@ def owner_call_consume(w:mutbuf, n:u64) -> u64:
     v = 0
     while i < n:
         v = get(w, ARGS + i * 8)
-        if variable(w, v) >= 8:
+        if owner_type(variable(w, v)) == 1:
             owner_consume(w, v)
         i = i + 1
+    return 0
+
+# Scalar codes are not an ordered prefix once u16 is admitted. Resource
+# predicates stay closed so scalar words never acquire owner/loan state.
+def resource_type(t:u64) -> u64:
+    if t >= 6 and t <= 9:
+        return 1
+    return 0
+
+def owner_type(t:u64) -> u64:
+    if t == 8 or t == 9:
+        return 1
     return 0
 
 '''
 SOURCE += OWNED_ELF_SOURCE
 SOURCE += CHAIN_ELF_SOURCE
+SOURCE += r'''
+
+def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64) -> u64:
+    if checked == 1:
+        # Values in scalar slots are zero extended. Keep the full source in
+        # rcx, normalize the result, then require equality before later effects.
+        # This also admits same-width u64/usize and every widening cast.
+        emit_bytes(o, w, 12683592, 3)
+        normalize(o, w, t)
+        # cmp rax,rcx; je +2; ud2
+        emit_bytes(o, w, 3112727967447368, 7)
+        return 0
+    normalize(o, w, t)
+    return 0
+'''
+SOURCE += effect_source(W)
 
 
 def source_program():
