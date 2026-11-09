@@ -1,10 +1,25 @@
 # HIA Agent entry and proof-scope handoff
 
-Snapshot: 2026-11-09. Reviewed metadata main:
+Historical #828 entry snapshot: 2026-11-09. Reviewed metadata main:
 `0487859a143b74a2a9b33cadf465d25c5f826cc2`, merging
 [PR #827](https://github.com/TrillionniumFoundation/Hepta/pull/827).
 Start with [INSTALL.md](../INSTALL.md); the root README is intentionally empty.
 This checkpoint neither promotes a release nor qualifies a new runtime.
+
+
+## Current entry-proof follow-up: PR #832
+
+This follow-up is based on metadata main
+`e2a4b4b09598e5b03a8d883b62c3cc800c1d5a66`, after #827 and #828 merged.
+It adds a second proof/native gate to both locked public installation paths.
+Recovered executable head `de04e8e19deed90f3737cbcb91e0ced277dac805` passed
+its own current-v9 and named-v16 hosted checks and all four CodeQL jobs.
+Both rows passed 5 catalog tests, 10 proof-boundary tests, the same-image
+proof/native adapter, all 173 original native tests and installation identity.
+See the [recovery ledger](../review-evidence/hia-entry-proof-728f6e-20261109/RECOVERY.md)
+for exact run, job and artifact identities. The old #828 sections below remain
+historical, including their failed attempts and then-unresolved CI status.
+The online endpoint still lacks a fresh usable manifest for this follow-up.
 
 ## Select the installation
 
@@ -12,7 +27,7 @@ This checkpoint neither promotes a release nor qualifies a new runtime.
 | --- | --- | --- |
 | Default/current | `python3 -B tools/hia_release.py`; [hia-current.json](../releases/hia-current.json); Hepta `2598f4309791d3a023cd5df585ad26810b20c744`; bounded `selfhost-core-linux-x86_64-v9` | Read the printed lock digest, materialize this source and check both repositories. |
 | Named v16 | `python3 -B tools/hia_release_v16_6ecd802.py` with the explicit [v16 lock](../releases/hia-v16-6ecd802.json) and digest; Hepta `6ecd8023615a6e0b2dc269379fb059c656b38b6f`; bounded `selfhost-core-linux-x86_64-v16` | Separate source qualification; does not replace current or activate online. |
-| Development | `codex/hia-sixgap-source-5e6c-20261108`, observed at `dfde9df60e80d820e25527bc75624a063a92a36d`; [#826](https://github.com/TrillionniumFoundation/Hepta/pull/826) open at `0946d17dffc43d4ff03649e3bd73daf9612069a9` | Branches move. Record actual commit/tree, dirty state and installation identities. An open PR is not a selected release. |
+| Development | `codex/hia-sixgap-source-5e6c-20261108`, observed at `2e2afc1ad725db85cb8cf7eba69f657cae7c4464` for #832. The older checkpoint observed `dfde9df60e80d820e25527bc75624a063a92a36d`. | Branches move. Record actual commit/tree, dirty state and installation identities. An open PR is not a selected release. |
 | Online MCP | Retained formal readback reconciled the historical `2598f430` worker; see [release reconciliation](HIA_RELEASE_ENTRY.md#recorded-post-merge-observation--2026-11-09). A fresh attempt below failed before manifest publication. | Current identity is unestablished by this attempt. A new Agent must read an authenticated current manifest; no fresh loaded-binary or live-adoption attestation exists here. |
 
 Both published locks select runtime
@@ -50,7 +65,7 @@ System V AMD64. Scalar ABI:
 Borrowed-byte exports use a separate explicit ABI profile.
 
 
-A fresh read-only `hia_describe(section="manifest", max_bytes=32000)`
+The historical #828 read-only `hia_describe(section="manifest", max_bytes=32000)`
 returned `unknown / HIA_OBSERVATION_UNAVAILABLE`, with
 `stage=initial_publication cause=publication_invalid`.
 The exact original request SHA256 was
@@ -121,9 +136,9 @@ trusted; complete hardware ISA refinement and execution authority are not
 proved. Read the selected source's `docs/HIA_AGENT_PROOF_RESULTS.md` and
 `docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md`.
 
-Commands were checked against pinned repository definitions through reads;
-they were not executed in this checkpoint after its environment became
-unavailable.
+At the original #828 documentation checkpoint these commands were checked
+against pinned definitions through reads; local execution was unavailable.
+The #832 proof/native acceptance has its own head and hosted results below.
 
 ## Execution, proof and adoption intersection
 
@@ -138,7 +153,11 @@ proof subject and adoption generation bound to the same artifact. Later
 reemission does not replace original proof inputs. The raw borrowed-buffer
 validator is not proof of the complete compiler buffer workload.
 
-## P0-P5 status
+## Historical #828 P0-P5 checkpoint
+
+This table and the reference witnesses below retain the earlier #828 state.
+They are not the status of the later #831-#833 candidates. See the recovery
+ledger for #832 hosted acceptance.
 
 | Priority | Snapshot | Next evidence |
 | --- | --- | --- |
@@ -181,16 +200,16 @@ included in this PR. Their native/proof/adoption qualification and local
 documentation-command execution are **NOT_RUN** after interruption. The entry
 adapter below has separate hosted-CI checks.
 
-This PR changes five paths: this document, INSTALL.md, the new entry adapter,
+The earlier PR #828 changed five paths: this document, INSTALL.md, the new entry adapter,
 its focused test module and the public-release workflow. The workflow retains
 all seven original steps and adds one entry-catalog/minimal-CLI step. Empty
 README, release locks/helpers, proof gates and online selection remain unchanged.
 Hosted exact-head public-installation and CodeQL checks remain required; older
 results do not qualify this head. Overall acceptance stays HOLD.
 
-## Executable entry adapter follow-up
+## Historical #828 executable entry adapter follow-up
 
-This PR adds `tools/hia_entry_catalog.py` and five focused
+PR #828 added `tools/hia_entry_catalog.py` and five focused
 identity-boundary test methods. The standard-library adapter verifies both
 original lock/helper sets, reports exact selections, syntax, target and the
 scalar proof service profile, and compares a caller-supplied retained online
@@ -211,7 +230,7 @@ Local checks are NOT_RUN. Only this new head's hosted CI can establish its
 executed result; the initial documentation-only head's success does not
 qualify these changes. The online exit-127 failure above remains unresolved.
 
-### First executable-head workflow failure
+### Historical #828 first executable-head workflow failure
 
 Head `81b6d808` produced public-release run `42584887985`, which failed before
 creating any jobs. Static inspection found that the new-step insertion had
