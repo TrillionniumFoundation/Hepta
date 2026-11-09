@@ -66,8 +66,24 @@ execution fallback that can turn an unknown proof result into approval.
    allocated sections, including dynamic symbols/strings/relocations/hash and
    version tables, must refer to the bytes the `PT_LOAD` mapping really loads.
    Partial overlapping page mappings, extra executable segments and unreviewed
-   loader hooks reject. SysV/GNU hash tables must actually resolve the checked
+   loader hooks reject. `PT_LOAD` entries must retain the gABI's ascending
+   virtual-address order in the actual program-header table, before any sorted
+   overlap calculation. Reordering a complete load-header record can leave all
+   section bindings unchanged while breaking the loader's mapping bounds.
+   SysV/GNU hash tables must actually resolve the checked
    entrypoint; a matching symbol-table label alone is insufficient.
+   Direct shared-image linkage explicitly requests `--hash-style=both` (through
+   `-Wl,` for a C driver), because distribution-specific GNU-ld defaults otherwise
+   omit a lookup table required by this closed profile. The build receipt
+   records this flag. See [ELF gABI, Program Header / PT_LOAD](https://gabi.xinuos.com/elf/07-pheader.html).
+   The single `PT_GNU_RELRO` must retain its reviewed read-only header shape and
+   file/virtual mapping inside the GOT's writable load. Its effective protection
+   is `[floor(start / 4096) * 4096, floor(end / 4096) * 4096)` and must cover the
+   entire GOT. A raw range that contains the GOT is insufficient: it could also
+   remove execution from the checked text, or a second RELRO header could select
+   a different range. This follows the trusted glibc loader's
+   [`_dl_protect_relro`](https://sources.debian.org/src/glibc/2.44-1/elf/dl-reloc.c/)
+   and remains limited to this Linux x86-64, 4 KiB GNU-ld shape.
 
 5. **Final immutable image.** `build_safe_core` links into a private temporary
    directory, validates those final bytes, and publishes the exact bytes only

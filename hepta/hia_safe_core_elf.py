@@ -68,6 +68,13 @@ class _ELF:
                 self.slice(off, filesz)
                 self.segments.append(dict(type=typ, flags=flags, offset=off, addr=addr,
                                           filesz=filesz, memsz=memsz, align=align))
+            # The loader consumes program headers in file order. Sorting only
+            # for the overlap check can silently admit a non-ELF load order:
+            # first/last PT_LOAD entries determine a loader's mapping bounds.
+            # Preserve the gABI p_vaddr ordering contract before normalization.
+            loads = [seg for seg in self.segments if seg["type"] == 1]
+            require(all(left["addr"] <= right["addr"] for left, right in zip(loads, loads[1:])),
+                    "PT_LOAD entries are not in ascending virtual-address order")
             # ELF loaders map pages, not section intervals.  A second partial
             # PT_LOAD could otherwise replace one page of a checked section.
             loaded_pages = sorted((s["addr"] // 4096, (s["addr"] + s["memsz"] + 4095) // 4096)
@@ -285,10 +292,26 @@ def bind_final_image(object_bytes, text_bytes, final_bytes, export):
             linked["addr"] == plt["addr"] + plt["size"] and
             linked["addr"] + linked["size"] == textload["addr"] + textload["filesz"],
             "executable segment contains unbound bytes")
-    final.load_binding(got, 6)
-    relro = [s for s in final.segments if s["type"] == 0x6474E552 and
-             s["addr"] <= got["addr"] and got["addr"] + got["size"] <= s["addr"] + s["memsz"]]
-    require(len(relro) == 1, "GOT is outside the unique RELRO range")
+    writable = final.load_binding(got, 6)
+    relros = [s for s in final.segments if s["type"] == 0x6474E552]
+    require(len(relros) == 1, "expected exactly one RELRO authority")
+    relro = relros[0]
+    require(relro["flags"] == 4 and relro["align"] == 1 and
+            relro["filesz"] == relro["memsz"] and relro["memsz"] > 0 and
+            writable["addr"] <= relro["addr"] and
+            relro["addr"] + relro["memsz"] <= writable["addr"] + writable["filesz"] and
+            relro["offset"] - writable["offset"] == relro["addr"] - writable["addr"],
+            "RELRO differs from the reviewed writable load mapping")
+    # glibc elf/dl-reloc.c:_dl_protect_relro protects
+    # [ALIGN_DOWN(start), ALIGN_DOWN(end)) with PROT_READ.
+    # Raw GOT containment alone neither establishes its effective protection
+    # nor prevents a forged RELRO range from removing execution from .text.
+    protected_start = relro["addr"] // 4096 * 4096
+    protected_end = (relro["addr"] + relro["memsz"]) // 4096 * 4096
+    require(writable["addr"] // 4096 * 4096 <= protected_start < protected_end <=
+            (writable["addr"] + writable["memsz"] + 4095) // 4096 * 4096 and
+            protected_start <= got["addr"] and got["addr"] + got["size"] <= protected_end,
+            "GOT is outside the effective RELRO page protection")
     require([s["name"] for s in final.sections if s["type"] in (4, 9)] == [".rela.plt"] and
             rela["entsize"] == 24 and rela["size"] == 24 and
             rela["link"] == final.section(".dynsym")["index"] and rela["info"] == got["index"],
