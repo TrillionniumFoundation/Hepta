@@ -1,0 +1,297 @@
+﻿2026-11-09T04:15:56.6176702Z Current runner version: '2.338.2'
+2026-11-09T04:15:56.6201687Z ##[group]Runner Image Provisioner
+2026-11-09T04:15:56.6202655Z Hosted Compute Agent
+2026-11-09T04:15:56.6203252Z Version: 20261028.624
+2026-11-09T04:15:56.6203889Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T04:15:56.6204592Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T04:15:56.6205224Z Worker ID: {8f579a6c-afdc-4036-be8c-4af6b7241ae0}
+2026-11-09T04:15:56.6205983Z Region: centralus
+2026-11-09T04:15:56.6206476Z Cloud: Azure
+2026-11-09T04:15:56.6206947Z ##[endgroup]
+2026-11-09T04:15:56.6208296Z ##[group]Operating System
+2026-11-09T04:15:56.6208879Z Ubuntu
+2026-11-09T04:15:56.6209604Z 24.04.5
+2026-11-09T04:15:56.6210189Z LTS
+2026-11-09T04:15:56.6210642Z ##[endgroup]
+2026-11-09T04:15:56.6211238Z ##[group]Runner Image
+2026-11-09T04:15:56.6211800Z Image: ubuntu-24.04
+2026-11-09T04:15:56.6212426Z Version: 20261101.360.1
+2026-11-09T04:15:56.6213695Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T04:15:56.6215285Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T04:15:56.6216197Z ##[endgroup]
+2026-11-09T04:15:56.6217393Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T04:15:56.6219291Z Contents: read
+2026-11-09T04:15:56.6219926Z Metadata: read
+2026-11-09T04:15:56.6220484Z ##[endgroup]
+2026-11-09T04:15:56.6222820Z Secret source: Actions
+2026-11-09T04:15:56.6223808Z Cache mode: write
+2026-11-09T04:15:56.6224473Z Prepare workflow directory
+2026-11-09T04:15:56.6587777Z Prepare all required actions
+2026-11-09T04:15:56.6621871Z Getting action download info
+2026-11-09T04:15:56.8636704Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T04:15:56.9592932Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T04:15:57.1367863Z Complete job name: Part04 cleanup deadlines and timeout replay
+2026-11-09T04:15:57.1935768Z ##[group]Run actions/checkout@v4
+2026-11-09T04:15:57.1936214Z with:
+2026-11-09T04:15:57.1936564Z   ref: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:15:57.1936931Z   persist-credentials: false
+2026-11-09T04:15:57.1937250Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T04:15:57.1939688Z   token: ***
+2026-11-09T04:15:57.1939938Z   ssh-strict: true
+2026-11-09T04:15:57.1940195Z   ssh-user: git
+2026-11-09T04:15:57.1940443Z   clean: true
+2026-11-09T04:15:57.1940705Z   sparse-checkout-cone-mode: true
+2026-11-09T04:15:57.1941006Z   fetch-depth: 1
+2026-11-09T04:15:57.1941261Z   fetch-tags: false
+2026-11-09T04:15:57.1941526Z   show-progress: true
+2026-11-09T04:15:57.1941789Z   lfs: false
+2026-11-09T04:15:57.1942031Z   submodules: false
+2026-11-09T04:15:57.1942295Z   set-safe-directory: true
+2026-11-09T04:15:57.1942594Z   allow-unsafe-pr-checkout: false
+2026-11-09T04:15:57.1942974Z env:
+2026-11-09T04:15:57.1943258Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:15:57.1943681Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:15:57.1943971Z   PYTHONOPTIMIZE: 0
+2026-11-09T04:15:57.1944226Z ##[endgroup]
+2026-11-09T04:15:57.4281299Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T04:15:57.4282570Z ##[group]Getting Git version info
+2026-11-09T04:15:57.4282977Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T04:15:57.4283575Z [command]/usr/bin/git version
+2026-11-09T04:15:57.4364284Z git version 2.56.0
+2026-11-09T04:15:57.4378101Z ##[endgroup]
+2026-11-09T04:15:57.4390895Z Temporarily overriding HOME='/home/runner/work/_temp/992491d9-dc7b-4160-95bc-31c9c37fe54d' before making global git config changes
+2026-11-09T04:15:57.4392413Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T04:15:57.4394783Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T04:15:57.4455918Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T04:15:57.4457437Z ##[group]Initializing the repository
+2026-11-09T04:15:57.4458482Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T04:15:57.4570216Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T04:15:57.4571182Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T04:15:57.4573195Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T04:15:57.4573926Z hint: call:
+2026-11-09T04:15:57.4574530Z hint:
+2026-11-09T04:15:57.4575147Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T04:15:57.4575799Z hint:
+2026-11-09T04:15:57.4576415Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T04:15:57.4577385Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T04:15:57.4578163Z hint:
+2026-11-09T04:15:57.4578598Z hint: 	git branch -m <name>
+2026-11-09T04:15:57.4579220Z hint:
+2026-11-09T04:15:57.4579894Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T04:15:57.4585541Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T04:15:57.4596787Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T04:15:57.4787647Z ##[endgroup]
+2026-11-09T04:15:57.4788240Z ##[group]Disabling automatic garbage collection
+2026-11-09T04:15:57.4791830Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T04:15:57.4835530Z ##[endgroup]
+2026-11-09T04:15:57.4836043Z ##[group]Setting up auth
+2026-11-09T04:15:57.4842929Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:15:57.4887001Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:15:57.5230226Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:15:57.5269927Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:15:57.5468703Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:15:57.5506510Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:15:57.5709416Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T04:15:57.5755224Z ##[endgroup]
+2026-11-09T04:15:57.5755834Z ##[group]Fetching the repository
+2026-11-09T04:15:57.5764896Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:11.8009903Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T04:16:11.8010697Z  * branch            6a8c297b3f8f21506d11c2cb093c1c58d84ffe55 -> FETCH_HEAD
+2026-11-09T04:16:11.8013870Z ##[endgroup]
+2026-11-09T04:16:11.8014342Z ##[group]Determining the checkout info
+2026-11-09T04:16:11.8019938Z ##[endgroup]
+2026-11-09T04:16:11.8020809Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T04:16:11.8133761Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T04:16:11.8170083Z ##[group]Checking out the ref
+2026-11-09T04:16:11.8173383Z [command]/usr/bin/git checkout --progress --force 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:12.8512732Z Updating files:  79% (7747/9798)
+2026-11-09T04:16:12.8578486Z Updating files:  80% (7839/9798)
+2026-11-09T04:16:12.8695759Z Updating files:  81% (7937/9798)
+2026-11-09T04:16:12.8891004Z Updating files:  82% (8035/9798)
+2026-11-09T04:16:12.9430059Z Updating files:  83% (8133/9798)
+2026-11-09T04:16:12.9553921Z Updating files:  84% (8231/9798)
+2026-11-09T04:16:13.1160171Z Updating files:  85% (8329/9798)
+2026-11-09T04:16:13.2114745Z Updating files:  86% (8427/9798)
+2026-11-09T04:16:13.2149757Z Updating files:  87% (8525/9798)
+2026-11-09T04:16:13.2256832Z Updating files:  88% (8623/9798)
+2026-11-09T04:16:13.2316897Z Updating files:  89% (8721/9798)
+2026-11-09T04:16:13.2373961Z Updating files:  90% (8819/9798)
+2026-11-09T04:16:13.2436990Z Updating files:  91% (8917/9798)
+2026-11-09T04:16:13.2495482Z Updating files:  92% (9015/9798)
+2026-11-09T04:16:13.2554629Z Updating files:  93% (9113/9798)
+2026-11-09T04:16:13.2609649Z Updating files:  94% (9211/9798)
+2026-11-09T04:16:13.2664842Z Updating files:  95% (9309/9798)
+2026-11-09T04:16:13.2747483Z Updating files:  96% (9407/9798)
+2026-11-09T04:16:13.2819425Z Updating files:  97% (9505/9798)
+2026-11-09T04:16:13.2907041Z Updating files:  98% (9603/9798)
+2026-11-09T04:16:13.2989382Z Updating files:  99% (9701/9798)
+2026-11-09T04:16:13.2989745Z Updating files: 100% (9798/9798)
+2026-11-09T04:16:13.2989995Z Updating files: 100% (9798/9798), done.
+2026-11-09T04:16:13.3057781Z Note: switching to '6a8c297b3f8f21506d11c2cb093c1c58d84ffe55'.
+2026-11-09T04:16:13.3058100Z 
+2026-11-09T04:16:13.3058277Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T04:16:13.3058671Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T04:16:13.3059296Z state without impacting any branches by switching back to a branch.
+2026-11-09T04:16:13.3059656Z 
+2026-11-09T04:16:13.3059826Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T04:16:13.3060228Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T04:16:13.3060450Z 
+2026-11-09T04:16:13.3060555Z   git switch -c <new-branch-name>
+2026-11-09T04:16:13.3060704Z 
+2026-11-09T04:16:13.3060802Z Or undo this operation with:
+2026-11-09T04:16:13.3060946Z 
+2026-11-09T04:16:13.3061024Z   git switch -
+2026-11-09T04:16:13.3061135Z 
+2026-11-09T04:16:13.3061561Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T04:16:13.3061845Z 
+2026-11-09T04:16:13.3062089Z HEAD is now at 6a8c297 fix(hia): integrate bounded v14 with preserved identity and deadline controls
+2026-11-09T04:16:13.3215217Z ##[endgroup]
+2026-11-09T04:16:13.3269109Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T04:16:13.3303184Z 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:13.3311656Z ##[group]Removing auth
+2026-11-09T04:16:13.3314272Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:16:13.3349971Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:16:13.3562238Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:16:13.3595366Z http.https://github.com/.extraheader
+2026-11-09T04:16:13.3600981Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T04:16:13.3638775Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:16:13.3845914Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:16:13.3880193Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:16:13.4084522Z ##[endgroup]
+2026-11-09T04:16:13.4364480Z ##[group]Run actions/setup-python@v5
+2026-11-09T04:16:13.4364648Z with:
+2026-11-09T04:16:13.4364772Z   python-version: 3.12
+2026-11-09T04:16:13.4364906Z   check-latest: false
+2026-11-09T04:16:13.4366400Z   token: ***
+2026-11-09T04:16:13.4366525Z   update-environment: true
+2026-11-09T04:16:13.4366670Z   allow-prereleases: false
+2026-11-09T04:16:13.4366803Z   freethreaded: false
+2026-11-09T04:16:13.4366928Z env:
+2026-11-09T04:16:13.4367227Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:13.4367425Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:16:13.4367569Z   PYTHONOPTIMIZE: 0
+2026-11-09T04:16:13.4367690Z ##[endgroup]
+2026-11-09T04:16:13.5300914Z ##[group]Installed versions
+2026-11-09T04:16:13.5378922Z (node:2206) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T04:16:13.5379589Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T04:16:13.5380069Z Successfully set up CPython (3.12.16)
+2026-11-09T04:16:13.5380457Z ##[endgroup]
+2026-11-09T04:16:13.5606068Z ##[group]Run set -euo pipefail
+2026-11-09T04:16:13.5606413Z [36;1mset -euo pipefail[0m
+2026-11-09T04:16:13.5606608Z [36;1mtest "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"[0m
+2026-11-09T04:16:13.5606856Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T04:16:13.5607086Z [36;1mpython -m pip install 'z3-solver==4.15.4.0'[0m
+2026-11-09T04:16:13.5607392Z [36;1mpython -c "import z3,sys; sys.exit(0 if z3.get_version_string() == '4.15.4' else 1)"[0m
+2026-11-09T04:16:13.5646076Z shell: /usr/bin/bash -e {0}
+2026-11-09T04:16:13.5646263Z env:
+2026-11-09T04:16:13.5646459Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:13.5646664Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:16:13.5646874Z   PYTHONOPTIMIZE: 0
+2026-11-09T04:16:13.5647050Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:13.5647316Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T04:16:13.5647613Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:13.5647899Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:13.5648123Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:13.5648345Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T04:16:13.5648535Z ##[endgroup]
+2026-11-09T04:16:14.6138735Z Collecting z3-solver==4.15.4.0
+2026-11-09T04:16:14.6949988Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-09T04:16:14.7136572Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-09T04:16:15.0623458Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 92.8 MB/s  0:00:00
+2026-11-09T04:16:15.1190782Z Installing collected packages: z3-solver
+2026-11-09T04:16:15.4824507Z Successfully installed z3-solver-4.15.4.0
+2026-11-09T04:16:15.4830588Z 
+2026-11-09T04:16:15.4830897Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-09T04:16:15.4831272Z [notice] To update, run: pip install --upgrade pip
+2026-11-09T04:16:15.5901824Z ##[group]Run set -euo pipefail
+2026-11-09T04:16:15.5902075Z [36;1mset -euo pipefail[0m
+2026-11-09T04:16:15.5902232Z [36;1mtimeout 180s python -B - <<'PY'[0m
+2026-11-09T04:16:15.5902400Z [36;1mimport json, sys, unittest[0m
+2026-11-09T04:16:15.5902570Z [36;1mexpected = sorted([[0m
+2026-11-09T04:16:15.5902906Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_wait_return_is_failed_even_when_leader_and_streams_are_closed',[0m
+2026-11-09T04:16:15.5903401Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_waitid_exit_observation_cannot_complete',[0m
+2026-11-09T04:16:15.5903870Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_nonempty_read_counts_bytes_without_persisting_them',[0m
+2026-11-09T04:16:15.5904337Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_cleanup_read_does_not_renew_deadline',[0m
+2026-11-09T04:16:15.5904807Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_empty_select_does_not_renew_deadline',[0m
+2026-11-09T04:16:15.5905266Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_complete_v2_capture_replays_in_both_consumers',[0m
+2026-11-09T04:16:15.5905884Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_late_wait_replays_only_as_incomplete_cleanup',[0m
+2026-11-09T04:16:15.5906375Z [36;1m    'tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_rehashed_deadline_lies_and_legacy_trace_do_not_qualify',[0m
+2026-11-09T04:16:15.5906889Z [36;1m    'tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_short_transient_cleanup_delay_keeps_real_two_second_budget',[0m
+2026-11-09T04:16:15.5907383Z [36;1m    'tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_cleanup_delay_over_two_seconds_still_fails',[0m
+2026-11-09T04:16:15.5907884Z [36;1m    'tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_preoutput_timeout_replays_empty_prefix_without_inventing_markers',[0m
+2026-11-09T04:16:15.5908228Z [36;1m])[0m
+2026-11-09T04:16:15.5908357Z [36;1mloader = unittest.TestLoader()[0m
+2026-11-09T04:16:15.5908518Z [36;1mdef flatten(items):[0m
+2026-11-09T04:16:15.5908666Z [36;1m    for item in items:[0m
+2026-11-09T04:16:15.5908842Z [36;1m        if isinstance(item, unittest.TestSuite):[0m
+2026-11-09T04:16:15.5909206Z [36;1m            yield from flatten(item)[0m
+2026-11-09T04:16:15.5909368Z [36;1m        else:[0m
+2026-11-09T04:16:15.5909502Z [36;1m            yield item.id()[0m
+2026-11-09T04:16:15.5909651Z [36;1mfor name,count in [[0m
+2026-11-09T04:16:15.5909821Z [36;1m        ('tests.test_core_seven_part04_capture',41),[0m
+2026-11-09T04:16:15.5910064Z [36;1m        ('tests.test_core_seven_part04_runner.Part04RunnerTests',17),[0m
+2026-11-09T04:16:15.5910335Z [36;1m        ('tests.test_core_seven_relocation_runner.Part04RunnerTests',23)]:[0m
+2026-11-09T04:16:15.5910603Z [36;1m    actual = list(flatten(loader.loadTestsFromName(name)))[0m
+2026-11-09T04:16:15.5910855Z [36;1m    if len(actual) != len(set(actual)) or len(actual) != count:[0m
+2026-11-09T04:16:15.5911114Z [36;1m        raise SystemExit('historical Part04 inventory changed: '+name)[0m
+2026-11-09T04:16:15.5911348Z [36;1msuite = loader.loadTestsFromNames([[0m
+2026-11-09T04:16:15.5911539Z [36;1m    'tests.test_core_seven_part04_deadlines',[0m
+2026-11-09T04:16:15.5911738Z [36;1m    'tests.test_core_seven_relocation_timeout',[0m
+2026-11-09T04:16:15.5911909Z [36;1m])[0m
+2026-11-09T04:16:15.5912035Z [36;1mactual = sorted(flatten(suite))[0m
+2026-11-09T04:16:15.5912289Z [36;1mprint(json.dumps({'expected':expected,'actual':actual,'loader_errors':loader.errors}))[0m
+2026-11-09T04:16:15.5912592Z [36;1mif sys.flags.optimize or loader.errors or actual != expected:[0m
+2026-11-09T04:16:15.5912854Z [36;1m    raise SystemExit('Part04 deadline control inventory changed')[0m
+2026-11-09T04:16:15.5913240Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-09T04:16:15.5913511Z [36;1mif (result.testsRun != 11 or not result.wasSuccessful() or result.skipped[0m
+2026-11-09T04:16:15.5913797Z [36;1m        or result.expectedFailures or result.unexpectedSuccesses):[0m
+2026-11-09T04:16:15.5914072Z [36;1m    raise SystemExit('Part04 deadline controls incomplete or failed')[0m
+2026-11-09T04:16:15.5914307Z [36;1mPY[0m
+2026-11-09T04:16:15.5914454Z [36;1mtest "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"[0m
+2026-11-09T04:16:15.5914686Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T04:16:15.5932797Z shell: /usr/bin/bash -e {0}
+2026-11-09T04:16:15.5932952Z env:
+2026-11-09T04:16:15.5933106Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:16:15.5933300Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:16:15.5933444Z   PYTHONOPTIMIZE: 0
+2026-11-09T04:16:15.5933607Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:15.5933853Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T04:16:15.5934094Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:15.5934313Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:15.5934529Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:16:15.5934869Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T04:16:15.5935061Z ##[endgroup]
+2026-11-09T04:16:15.9197180Z test_complete_v2_capture_replays_in_both_consumers (tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_complete_v2_capture_replays_in_both_consumers) ... ok
+2026-11-09T04:16:15.9468445Z test_late_wait_replays_only_as_incomplete_cleanup (tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_late_wait_replays_only_as_incomplete_cleanup) ... ok
+2026-11-09T04:16:15.9663077Z test_rehashed_deadline_lies_and_legacy_trace_do_not_qualify (tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_rehashed_deadline_lies_and_legacy_trace_do_not_qualify) ... ok
+2026-11-09T04:16:15.9784380Z test_late_cleanup_read_does_not_renew_deadline (tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_cleanup_read_does_not_renew_deadline) ... ok
+2026-11-09T04:16:15.9901104Z test_late_empty_select_does_not_renew_deadline (tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_empty_select_does_not_renew_deadline) ... ok
+2026-11-09T04:16:16.0008085Z test_late_nonempty_read_counts_bytes_without_persisting_them (tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_nonempty_read_counts_bytes_without_persisting_them) ... ok
+2026-11-09T04:16:16.0126369Z test_late_wait_return_is_failed_even_when_leader_and_streams_are_closed (tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_wait_return_is_failed_even_when_leader_and_streams_are_closed) ... ok
+2026-11-09T04:16:16.0244053Z test_late_waitid_exit_observation_cannot_complete (tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_waitid_exit_observation_cannot_complete) ... ok
+2026-11-09T04:16:40.5483221Z test_cleanup_delay_over_two_seconds_still_fails (tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_cleanup_delay_over_two_seconds_still_fails) ... ok
+2026-11-09T04:16:43.4441057Z test_preoutput_timeout_replays_empty_prefix_without_inventing_markers (tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_preoutput_timeout_replays_empty_prefix_without_inventing_markers) ... ok
+2026-11-09T04:16:44.6120454Z test_short_transient_cleanup_delay_keeps_real_two_second_budget (tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_short_transient_cleanup_delay_keeps_real_two_second_budget) ... ok
+2026-11-09T04:16:44.6121246Z 
+2026-11-09T04:16:44.6121422Z ----------------------------------------------------------------------
+2026-11-09T04:16:44.6121758Z Ran 11 tests in 28.712s
+2026-11-09T04:16:44.6121894Z 
+2026-11-09T04:16:44.6121972Z OK
+2026-11-09T04:16:44.6132444Z {"expected": ["tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_complete_v2_capture_replays_in_both_consumers", "tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_late_wait_replays_only_as_incomplete_cleanup", "tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_rehashed_deadline_lies_and_legacy_trace_do_not_qualify", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_cleanup_read_does_not_renew_deadline", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_empty_select_does_not_renew_deadline", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_nonempty_read_counts_bytes_without_persisting_them", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_wait_return_is_failed_even_when_leader_and_streams_are_closed", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_waitid_exit_observation_cannot_complete", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_cleanup_delay_over_two_seconds_still_fails", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_preoutput_timeout_replays_empty_prefix_without_inventing_markers", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_short_transient_cleanup_delay_keeps_real_two_second_budget"], "actual": ["tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_complete_v2_capture_replays_in_both_consumers", "tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_late_wait_replays_only_as_incomplete_cleanup", "tests.test_core_seven_part04_deadlines.Part04DeadlineReplayTests.test_rehashed_deadline_lies_and_legacy_trace_do_not_qualify", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_cleanup_read_does_not_renew_deadline", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_empty_select_does_not_renew_deadline", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_nonempty_read_counts_bytes_without_persisting_them", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_wait_return_is_failed_even_when_leader_and_streams_are_closed", "tests.test_core_seven_part04_deadlines.Part04DeadlineTests.test_late_waitid_exit_observation_cannot_complete", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_cleanup_delay_over_two_seconds_still_fails", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_preoutput_timeout_replays_empty_prefix_without_inventing_markers", "tests.test_core_seven_relocation_timeout.RelocationTimeoutTests.test_short_transient_cleanup_delay_keeps_real_two_second_budget"], "loader_errors": []}
+2026-11-09T04:16:44.9182832Z Post job cleanup.
+2026-11-09T04:16:45.0041828Z (node:2309) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T04:16:45.0042497Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T04:16:45.0239815Z Post job cleanup.
+2026-11-09T04:16:45.0963468Z [command]/usr/bin/git version
+2026-11-09T04:16:45.1000153Z git version 2.56.0
+2026-11-09T04:16:45.1039764Z Temporarily overriding HOME='/home/runner/work/_temp/7d72d2f8-0e57-4d21-be94-e921fe350e41' before making global git config changes
+2026-11-09T04:16:45.1040473Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T04:16:45.1040993Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T04:16:45.1064565Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:16:45.1097383Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:16:45.1335427Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:16:45.1380887Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:16:45.1621032Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:16:45.1666914Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:16:45.2048244Z Cleaning up orphan processes
+2026-11-09T04:16:45.2322593Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

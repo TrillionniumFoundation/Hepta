@@ -1,0 +1,466 @@
+﻿2026-11-09T04:28:40.5724638Z Current runner version: '2.338.2'
+2026-11-09T04:28:40.5743769Z ##[group]Runner Image Provisioner
+2026-11-09T04:28:40.5744476Z Hosted Compute Agent
+2026-11-09T04:28:40.5744897Z Version: 20261028.624
+2026-11-09T04:28:40.5745325Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-09T04:28:40.5745850Z Build Date: 2026-10-28T21:51:42Z
+2026-11-09T04:28:40.5746309Z Worker ID: {d275be3d-0b48-409c-9ae7-526dd9b1561e}
+2026-11-09T04:28:40.5746878Z Region: southcentralus
+2026-11-09T04:28:40.5747285Z Cloud: Azure
+2026-11-09T04:28:40.5747654Z ##[endgroup]
+2026-11-09T04:28:40.5748540Z ##[group]Operating System
+2026-11-09T04:28:40.5748951Z Ubuntu
+2026-11-09T04:28:40.5749343Z 24.04.5
+2026-11-09T04:28:40.5749748Z LTS
+2026-11-09T04:28:40.5750102Z ##[endgroup]
+2026-11-09T04:28:40.5750497Z ##[group]Runner Image
+2026-11-09T04:28:40.5750924Z Image: ubuntu-24.04
+2026-11-09T04:28:40.5751366Z Version: 20261101.360.1
+2026-11-09T04:28:40.5752411Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-09T04:28:40.5753438Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-09T04:28:40.5754079Z ##[endgroup]
+2026-11-09T04:28:40.5754891Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T04:28:40.5756469Z Contents: read
+2026-11-09T04:28:40.5756848Z Metadata: read
+2026-11-09T04:28:40.5757298Z ##[endgroup]
+2026-11-09T04:28:40.5758769Z Secret source: Actions
+2026-11-09T04:28:40.5759422Z Cache mode: write
+2026-11-09T04:28:40.5760159Z Prepare workflow directory
+2026-11-09T04:28:40.6133559Z Prepare all required actions
+2026-11-09T04:28:40.6166323Z Getting action download info
+2026-11-09T04:28:40.8388704Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T04:28:40.9076510Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T04:28:41.0608406Z Complete job name: Isolated source and execution controls / part04-capture
+2026-11-09T04:28:41.1136394Z ##[group]Run actions/checkout@v4
+2026-11-09T04:28:41.1136833Z with:
+2026-11-09T04:28:41.1137108Z   ref: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:41.1137456Z   persist-credentials: false
+2026-11-09T04:28:41.1137768Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T04:28:41.1140000Z   token: ***
+2026-11-09T04:28:41.1140246Z   ssh-strict: true
+2026-11-09T04:28:41.1140495Z   ssh-user: git
+2026-11-09T04:28:41.1140741Z   clean: true
+2026-11-09T04:28:41.1140995Z   sparse-checkout-cone-mode: true
+2026-11-09T04:28:41.1141289Z   fetch-depth: 1
+2026-11-09T04:28:41.1141531Z   fetch-tags: false
+2026-11-09T04:28:41.1141783Z   show-progress: true
+2026-11-09T04:28:41.1142037Z   lfs: false
+2026-11-09T04:28:41.1142398Z   submodules: false
+2026-11-09T04:28:41.1142651Z   set-safe-directory: true
+2026-11-09T04:28:41.1142936Z   allow-unsafe-pr-checkout: false
+2026-11-09T04:28:41.1143298Z env:
+2026-11-09T04:28:41.1143574Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:41.1143982Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:28:41.1144273Z   CONTROL_GROUP: part04-capture
+2026-11-09T04:28:41.1144549Z ##[endgroup]
+2026-11-09T04:28:41.2985505Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T04:28:41.2986671Z ##[group]Getting Git version info
+2026-11-09T04:28:41.2987047Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-09T04:28:41.2987583Z [command]/usr/bin/git version
+2026-11-09T04:28:41.3057029Z git version 2.56.0
+2026-11-09T04:28:41.3078065Z ##[endgroup]
+2026-11-09T04:28:41.3082693Z Temporarily overriding HOME='/home/runner/work/_temp/fbf094b9-2b0f-4ca8-94b9-c0ad2588d68c' before making global git config changes
+2026-11-09T04:28:41.3083867Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T04:28:41.3086775Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T04:28:41.3133318Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-09T04:28:41.3145096Z ##[group]Initializing the repository
+2026-11-09T04:28:41.3148401Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-09T04:28:41.3394906Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T04:28:41.3395829Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T04:28:41.3396371Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T04:28:41.3396955Z hint: call:
+2026-11-09T04:28:41.3397187Z hint:
+2026-11-09T04:28:41.3397510Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T04:28:41.3397862Z hint:
+2026-11-09T04:28:41.3398320Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T04:28:41.3399129Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T04:28:41.3399777Z hint:
+2026-11-09T04:28:41.3400135Z hint: 	git branch -m <name>
+2026-11-09T04:28:41.3400545Z hint:
+2026-11-09T04:28:41.3401181Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T04:28:41.3402042Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-09T04:28:41.3413938Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T04:28:41.3495036Z ##[endgroup]
+2026-11-09T04:28:41.3498848Z ##[group]Disabling automatic garbage collection
+2026-11-09T04:28:41.3499498Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-09T04:28:41.3535904Z ##[endgroup]
+2026-11-09T04:28:41.3536559Z ##[group]Setting up auth
+2026-11-09T04:28:41.3541677Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:28:41.3583018Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:28:41.3881513Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:28:41.3919879Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:28:41.4114785Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:28:41.4150215Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:28:41.4341088Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T04:28:41.4428042Z ##[endgroup]
+2026-11-09T04:28:41.4428623Z ##[group]Fetching the repository
+2026-11-09T04:28:41.4436307Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:48.4811621Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T04:28:48.4812971Z  * branch            6a8c297b3f8f21506d11c2cb093c1c58d84ffe55 -> FETCH_HEAD
+2026-11-09T04:28:48.4814939Z ##[endgroup]
+2026-11-09T04:28:48.4815681Z ##[group]Determining the checkout info
+2026-11-09T04:28:48.4816873Z ##[endgroup]
+2026-11-09T04:28:48.4822422Z [command]/usr/bin/git sparse-checkout disable
+2026-11-09T04:28:48.4885190Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T04:28:48.4921377Z ##[group]Checking out the ref
+2026-11-09T04:28:48.4924299Z [command]/usr/bin/git checkout --progress --force 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:49.5048949Z Updating files:  81% (8020/9798)
+2026-11-09T04:28:49.5231996Z Updating files:  82% (8035/9798)
+2026-11-09T04:28:49.5757812Z Updating files:  83% (8133/9798)
+2026-11-09T04:28:49.5876514Z Updating files:  84% (8231/9798)
+2026-11-09T04:28:49.7481240Z Updating files:  85% (8329/9798)
+2026-11-09T04:28:49.8427082Z Updating files:  86% (8427/9798)
+2026-11-09T04:28:49.8461227Z Updating files:  87% (8525/9798)
+2026-11-09T04:28:49.8546489Z Updating files:  88% (8623/9798)
+2026-11-09T04:28:49.8606188Z Updating files:  89% (8721/9798)
+2026-11-09T04:28:49.8663427Z Updating files:  90% (8819/9798)
+2026-11-09T04:28:49.8726486Z Updating files:  91% (8917/9798)
+2026-11-09T04:28:49.8786170Z Updating files:  92% (9015/9798)
+2026-11-09T04:28:49.8842616Z Updating files:  93% (9113/9798)
+2026-11-09T04:28:49.8898174Z Updating files:  94% (9211/9798)
+2026-11-09T04:28:49.8954284Z Updating files:  95% (9309/9798)
+2026-11-09T04:28:49.9022684Z Updating files:  96% (9407/9798)
+2026-11-09T04:28:49.9094276Z Updating files:  97% (9505/9798)
+2026-11-09T04:28:49.9181746Z Updating files:  98% (9603/9798)
+2026-11-09T04:28:49.9263851Z Updating files:  99% (9701/9798)
+2026-11-09T04:28:49.9264311Z Updating files: 100% (9798/9798)
+2026-11-09T04:28:49.9264693Z Updating files: 100% (9798/9798), done.
+2026-11-09T04:28:49.9331845Z Note: switching to '6a8c297b3f8f21506d11c2cb093c1c58d84ffe55'.
+2026-11-09T04:28:49.9332140Z 
+2026-11-09T04:28:49.9332580Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-09T04:28:49.9333057Z changes and commit them, and you can discard any commits you make in this
+2026-11-09T04:28:49.9333386Z state without impacting any branches by switching back to a branch.
+2026-11-09T04:28:49.9333577Z 
+2026-11-09T04:28:49.9333723Z If you want to create a new branch to retain commits you create, you may
+2026-11-09T04:28:49.9334050Z do so (now or later) by using -c with the switch command. Example:
+2026-11-09T04:28:49.9334240Z 
+2026-11-09T04:28:49.9334337Z   git switch -c <new-branch-name>
+2026-11-09T04:28:49.9334465Z 
+2026-11-09T04:28:49.9334556Z Or undo this operation with:
+2026-11-09T04:28:49.9334671Z 
+2026-11-09T04:28:49.9334746Z   git switch -
+2026-11-09T04:28:49.9334833Z 
+2026-11-09T04:28:49.9334995Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-09T04:28:49.9335200Z 
+2026-11-09T04:28:49.9335664Z HEAD is now at 6a8c297 fix(hia): integrate bounded v14 with preserved identity and deadline controls
+2026-11-09T04:28:49.9484870Z ##[endgroup]
+2026-11-09T04:28:49.9546914Z [command]/usr/bin/git log -1 --format=%H
+2026-11-09T04:28:49.9582377Z 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:49.9592161Z ##[group]Removing auth
+2026-11-09T04:28:49.9595326Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:28:49.9636816Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:28:49.9869987Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:28:49.9906078Z http.https://github.com/.extraheader
+2026-11-09T04:28:49.9910616Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T04:28:49.9950761Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:28:50.0157557Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:28:50.0194369Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:28:50.0406917Z ##[endgroup]
+2026-11-09T04:28:50.0668252Z ##[group]Run actions/setup-python@v5
+2026-11-09T04:28:50.0668433Z with:
+2026-11-09T04:28:50.0668556Z   python-version: 3.12
+2026-11-09T04:28:50.0668696Z   check-latest: false
+2026-11-09T04:28:50.0670144Z   token: ***
+2026-11-09T04:28:50.0670275Z   update-environment: true
+2026-11-09T04:28:50.0670419Z   allow-prereleases: false
+2026-11-09T04:28:50.0670559Z   freethreaded: false
+2026-11-09T04:28:50.0670684Z env:
+2026-11-09T04:28:50.0670830Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:50.0671181Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:28:50.0671333Z   CONTROL_GROUP: part04-capture
+2026-11-09T04:28:50.0671490Z ##[endgroup]
+2026-11-09T04:28:50.1586113Z ##[group]Installed versions
+2026-11-09T04:28:50.1659691Z (node:2198) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T04:28:50.1660451Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T04:28:50.1661047Z Successfully set up CPython (3.12.16)
+2026-11-09T04:28:50.1661541Z ##[endgroup]
+2026-11-09T04:28:50.1800183Z ##[group]Run set -euo pipefail
+2026-11-09T04:28:50.1800472Z [36;1mset -euo pipefail[0m
+2026-11-09T04:28:50.1800662Z [36;1mtest "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"[0m
+2026-11-09T04:28:50.1800925Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T04:28:50.1801196Z [36;1mpython -m pip install 'z3-solver==4.15.4.0'[0m
+2026-11-09T04:28:50.1801480Z [36;1mpython -c "import z3; assert z3.get_version_string() == '4.15.4'"[0m
+2026-11-09T04:28:50.1893533Z shell: /usr/bin/bash -e {0}
+2026-11-09T04:28:50.1893969Z env:
+2026-11-09T04:28:50.1894313Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:50.1894656Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:28:50.1894919Z   CONTROL_GROUP: part04-capture
+2026-11-09T04:28:50.1895219Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:50.1895694Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T04:28:50.1896360Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:50.1896882Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:50.1897406Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:50.1897811Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T04:28:50.1898134Z ##[endgroup]
+2026-11-09T04:28:53.4521319Z Collecting z3-solver==4.15.4.0
+2026-11-09T04:28:53.5415660Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-09T04:28:53.5623765Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-09T04:28:53.9619110Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 79.1 MB/s  0:00:00
+2026-11-09T04:28:54.0937334Z Installing collected packages: z3-solver
+2026-11-09T04:28:54.4397125Z Successfully installed z3-solver-4.15.4.0
+2026-11-09T04:28:54.4402580Z 
+2026-11-09T04:28:54.4402921Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-09T04:28:54.4403255Z [notice] To update, run: pip install --upgrade pip
+2026-11-09T04:28:54.5364897Z ##[group]Run set -euo pipefail
+2026-11-09T04:28:54.5365506Z [36;1mset -euo pipefail[0m
+2026-11-09T04:28:54.5365656Z [36;1mtimeout 180s python -B - <<'PYDIAG'[0m
+2026-11-09T04:28:54.5365829Z [36;1mimport hashlib, json, os, unittest[0m
+2026-11-09T04:28:54.5365985Z [36;1mgroups = {[0m
+2026-11-09T04:28:54.5366205Z [36;1m    'sources': (['tests.test_core_syntax_declaration_diagnostic_sources'], 16),[0m
+2026-11-09T04:28:54.5366526Z [36;1m    'partition-sources-a': (['tests.test_core_syntax_partition_sources'], 8),[0m
+2026-11-09T04:28:54.5366814Z [36;1m    'partition-sources-b': (['tests.test_core_syntax_partition_sources'], 8),[0m
+2026-11-09T04:28:54.5367141Z [36;1m    'partition-diagnostic-sources': (['tests.test_core_syntax_partition_diagnostic_sources'], 9),[0m
+2026-11-09T04:28:54.5367509Z [36;1m    'partition-diagnostic-capture': (['tests.test_core_syntax_partition_diagnostic_capture'], 5),[0m
+2026-11-09T04:28:54.5367909Z [36;1m    'partition-diagnostic-execution': (['tests.test_core_syntax_partition_diagnostic_runner'], 16),[0m
+2026-11-09T04:28:54.5368213Z [36;1m    'byte-facts-dag': (['tests.test_core_byte_facts_dag'], 14),[0m
+2026-11-09T04:28:54.5368468Z [36;1m    'byte-facts-sources': (['tests.test_core_byte_facts_sources'], 21),[0m
+2026-11-09T04:28:54.5368744Z [36;1m    'byte-facts-diagnostic': (['tests.test_core_byte_facts_diagnostic'], 12),[0m
+2026-11-09T04:28:54.5369178Z [36;1m    'byte-facts-execution': (['tests.test_core_byte_facts_runner'], 22),[0m
+2026-11-09T04:28:54.5369455Z [36;1m    'byte-facts-replay': (['tests.test_core_byte_facts_capture_replay'], 8),[0m
+2026-11-09T04:28:54.5369735Z [36;1m    'seven-sources-a': (['tests.test_core_seven_certificate_sources'], 11),[0m
+2026-11-09T04:28:54.5370003Z [36;1m    'seven-sources-b': (['tests.test_core_seven_certificate_sources'], 10),[0m
+2026-11-09T04:28:54.5370266Z [36;1m    'seven-sources-c': (['tests.test_core_seven_certificate_sources'], 10),[0m
+2026-11-09T04:28:54.5370547Z [36;1m    'seven-pending-eio': (['tests.test_core_seven_certificate_pending_eio'], 15),[0m
+2026-11-09T04:28:54.5370840Z [36;1m    'seven-diagnostic': (['tests.test_core_seven_certificate_diagnostic'], 12),[0m
+2026-11-09T04:28:54.5371117Z [36;1m    'seven-execution-a': (['tests.test_core_seven_certificate_runner'], 8),[0m
+2026-11-09T04:28:54.5371382Z [36;1m    'seven-execution-b': (['tests.test_core_seven_certificate_runner'], 7),[0m
+2026-11-09T04:28:54.5371670Z [36;1m    'seven-execution-inverse': (['tests.test_core_seven_certificate_runner'], 1),[0m
+2026-11-09T04:28:54.5371955Z [36;1m    'partition-execution': (['tests.test_core_syntax_partitioned'], 12),[0m
+2026-11-09T04:28:54.5372451Z [36;1m    'noncomputable-sources': (['tests.test_core_syntax_noncomputable_diagnostic_sources'], 16),[0m
+2026-11-09T04:28:54.5372803Z [36;1m    'noncomputable-execution': (['tests.test_core_syntax_noncomputable_diagnostic_runner'], 8),[0m
+2026-11-09T04:28:54.5373116Z [36;1m    'execution': (['tests.test_core_syntax_declaration_diagnostic_runner',[0m
+2026-11-09T04:28:54.5373370Z [36;1m                   'tests.test_core_syntax_diagnostic_capture'], 42),[0m
+2026-11-09T04:28:54.5373657Z [36;1m    'relocation-proposal': (['tests.test_core_seven_parallel_relocation_sources'], 23),[0m
+2026-11-09T04:28:54.5373979Z [36;1m    'relocation-sources': (['tests.test_core_seven_relocation_sources'], 12),[0m
+2026-11-09T04:28:54.5374457Z [36;1m    'relocation-grammar': (['tests.test_core_seven_relocation_runner.Part04ReplayGrammarTests', 'tests.test_core_seven_relocation_runner.RelocationNumericBoundsTests'], 10),[0m
+2026-11-09T04:28:54.5374969Z [36;1m    'relocation-runner-a': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 11),[0m
+2026-11-09T04:28:54.5375318Z [36;1m    'relocation-runner-b': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 11),[0m
+2026-11-09T04:28:54.5375682Z [36;1m    'relocation-runner-inverse': (['tests.test_core_seven_relocation_runner.Part04RunnerTests'], 1),[0m
+2026-11-09T04:28:54.5376132Z [36;1m    'part04-sources': (['tests.test_core_seven_part04_sources'], 9),[0m
+2026-11-09T04:28:54.5376388Z [36;1m    'part04-capture': (['tests.test_core_seven_part04_capture'], 41),[0m
+2026-11-09T04:28:54.5376687Z [36;1m    'part04-grammar': (['tests.test_core_seven_part04_runner.Part04ReplayGrammarTests'], 6),[0m
+2026-11-09T04:28:54.5377014Z [36;1m    'part04-runner-a': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),[0m
+2026-11-09T04:28:54.5377325Z [36;1m    'part04-runner-b': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 8),[0m
+2026-11-09T04:28:54.5377648Z [36;1m    'part04-runner-inverse': (['tests.test_core_seven_part04_runner.Part04RunnerTests'], 1),[0m
+2026-11-09T04:28:54.5377905Z [36;1m    'seven-acceptance-fast': ([[0m
+2026-11-09T04:28:54.5378092Z [36;1m        'tests.test_core_seven_acceptance.SchemaTests',[0m
+2026-11-09T04:28:54.5378314Z [36;1m        'tests.test_core_seven_acceptance.FilesystemTests',[0m
+2026-11-09T04:28:54.5378542Z [36;1m        'tests.test_core_seven_acceptance.CaptureTests',[0m
+2026-11-09T04:28:54.5378755Z [36;1m        'tests.test_core_seven_acceptance.ClockTests',[0m
+2026-11-09T04:28:54.5378961Z [36;1m        'tests.test_core_seven_acceptance.LaunchTests',[0m
+2026-11-09T04:28:54.5379173Z [36;1m        'tests.test_core_seven_acceptance.TransitionTests',[0m
+2026-11-09T04:28:54.5379511Z [36;1m        'tests.test_core_seven_acceptance.VerifiedDisplayTests',[0m
+2026-11-09T04:28:54.5379756Z [36;1m        'tests.test_core_seven_acceptance.ReceiptBoundaryTests',[0m
+2026-11-09T04:28:54.5380136Z [36;1m        'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_actual_child_self_identity_matches_the_shared_authentication',[0m
+2026-11-09T04:28:54.5380653Z [36;1m        'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_mismatched_pidfd_namespace_cannot_use_a_guessed_proc_pid',[0m
+2026-11-09T04:28:54.5381159Z [36;1m        'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_inconsistent_procfs_session_cannot_attest_child_identity',[0m
+2026-11-09T04:28:54.5381667Z [36;1m        'tests.test_core_seven_acceptance.OwnedProcessIdentityTests.test_unavailable_pidfd_never_falls_back_to_numeric_proc_path',[0m
+2026-11-09T04:28:54.5381990Z [36;1m    ], 112),[0m
+2026-11-09T04:28:54.5382898Z [36;1m    'seven-acceptance-records': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),[0m
+2026-11-09T04:28:54.5383802Z [36;1m    'seven-acceptance-record_types': (['tests.test_core_seven_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),[0m
+2026-11-09T04:28:54.5384262Z [36;1m    'seven-acceptance-full_eleven': (['tests.test_core_seven_acceptance.FullRunTests'], 1),[0m
+2026-11-09T04:28:54.5384696Z [36;1m    'seven-acceptance-fail_every_stage': (['tests.test_core_seven_acceptance.RunnerAdversaryTests.test_failure_at_each_of_eleven_stages'], 1),[0m
+2026-11-09T04:28:54.5385805Z [36;1m    'seven-acceptance-adversary_provenance_finalization': (['tests.test_core_seven_acceptance.RunnerAdversaryTests.test_bad_capture_inventory_source_module', 'tests.test_core_seven_acceptance.RunnerAdversaryTests.test_deadline_after_expensive_prelaunch_checks', 'tests.test_core_seven_acceptance.RunnerAdversaryTests.test_stale_root_and_symlink', 'tests.test_core_seven_acceptance.ProvenanceTests', 'tests.test_core_seven_acceptance.FinalReplayFailureTests'], 6),[0m
+2026-11-09T04:28:54.5386893Z [36;1m    'seven-acceptance-write_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_writes_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5387413Z [36;1m    'seven-acceptance-fsync_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_fsyncs_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5388053Z [36;1m    'seven-acceptance-reread_faults': (['tests.test_core_seven_acceptance.ReceiptTransactionTests.test_all_rereads_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5388646Z [36;1m    'seven-acceptance-review_boundaries_shadows': (['tests.test_core_seven_acceptance.SupportShadowTests', 'tests.test_core_seven_acceptance.BoundaryReplayTests'], 3),[0m
+2026-11-09T04:28:54.5389425Z [36;1m    'seven-acceptance-negative_pair_1': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_byte_modulo_alias', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_changed_exact_byte'], 2),[0m
+2026-11-09T04:28:54.5390326Z [36;1m    'seven-acceptance-negative_pair_2': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_duplicate_keys', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_leading_zero'], 2),[0m
+2026-11-09T04:28:54.5391210Z [36;1m    'seven-acceptance-negative_pair_3': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_literal_two', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_stale_descriptor'], 2),[0m
+2026-11-09T04:28:54.5392106Z [36;1m    'seven-acceptance-negative_pair_4': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_unordered_keys', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_arm_implementation'], 2),[0m
+2026-11-09T04:28:54.5393176Z [36;1m    'seven-acceptance-negative_pair_5': (['tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_condition', 'tests.test_core_seven_acceptance.NegativeMutationTests.test_exact_negation_wrong_phi'], 2),[0m
+2026-11-09T04:28:54.5394567Z [36;1m    'full-relocation-acceptance-fast': (['tests.test_core_seven_relocation_acceptance.SchemaTests', 'tests.test_core_seven_relocation_acceptance.FilesystemTests', 'tests.test_core_seven_relocation_acceptance.CaptureTests', 'tests.test_core_seven_relocation_acceptance.ClockTests', 'tests.test_core_seven_relocation_acceptance.LaunchTests', 'tests.test_core_seven_relocation_acceptance.TransitionTests', 'tests.test_core_seven_relocation_acceptance.VerifiedDisplayTests', 'tests.test_core_seven_relocation_acceptance.ReceiptBoundaryTests'], 108),[0m
+2026-11-09T04:28:54.5396249Z [36;1m    'full-relocation-acceptance-records': (['tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_all_failed_stage_codes_and_fields', 'tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_every_nested_identity_plan_run_field', 'tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_exact_approved_serialized_reserve'], 3),[0m
+2026-11-09T04:28:54.5397300Z [36;1m    'full-relocation-acceptance-record_types': (['tests.test_core_seven_relocation_acceptance.RecordAndSizingTests.test_every_nested_wrong_type_unknown_and_numeric_bounds'], 1),[0m
+2026-11-09T04:28:54.5397859Z [36;1m    'full-relocation-acceptance-full_eleven': (['tests.test_core_seven_relocation_acceptance.FullRunTests'], 1),[0m
+2026-11-09T04:28:54.5398304Z [36;1m    'full-relocation-acceptance-runner': (['tests.test_core_seven_relocation_acceptance.RunnerAdversaryTests'], 4),[0m
+2026-11-09T04:28:54.5398894Z [36;1m    'full-relocation-acceptance-provenance_shadows': (['tests.test_core_seven_relocation_acceptance.ProvenanceTests', 'tests.test_core_seven_relocation_acceptance.SupportShadowTests'], 4),[0m
+2026-11-09T04:28:54.5399497Z [36;1m    'full-relocation-acceptance-final_replay': (['tests.test_core_seven_relocation_acceptance.FinalReplayFailureTests'], 1),[0m
+2026-11-09T04:28:54.5399968Z [36;1m    'full-relocation-acceptance-clock_replay': (['tests.test_core_seven_relocation_acceptance.BoundaryReplayTests'], 1),[0m
+2026-11-09T04:28:54.5400506Z [36;1m    'full-relocation-acceptance-writes_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_writes_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5401185Z [36;1m    'full-relocation-acceptance-fsyncs_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_fsyncs_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5401784Z [36;1m    'full-relocation-acceptance-rereads_faults': (['tests.test_core_seven_relocation_acceptance.ReceiptTransactionTests.test_all_rereads_fail_closed'], 1),[0m
+2026-11-09T04:28:54.5402539Z [36;1m    'full-relocation-acceptance-negative_byte_modulo_alias': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_byte_modulo_alias'], 1),[0m
+2026-11-09T04:28:54.5403224Z [36;1m    'full-relocation-acceptance-negative_changed_exact_byte': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_changed_exact_byte'], 1),[0m
+2026-11-09T04:28:54.5403891Z [36;1m    'full-relocation-acceptance-negative_duplicate_keys': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_duplicate_keys'], 1),[0m
+2026-11-09T04:28:54.5404542Z [36;1m    'full-relocation-acceptance-negative_leading_zero': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_leading_zero'], 1),[0m
+2026-11-09T04:28:54.5405171Z [36;1m    'full-relocation-acceptance-negative_literal_two': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_literal_two'], 1),[0m
+2026-11-09T04:28:54.5405818Z [36;1m    'full-relocation-acceptance-negative_stale_descriptor': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_stale_descriptor'], 1),[0m
+2026-11-09T04:28:54.5406552Z [36;1m    'full-relocation-acceptance-negative_unordered_keys': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_unordered_keys'], 1),[0m
+2026-11-09T04:28:54.5407240Z [36;1m    'full-relocation-acceptance-negative_wrong_arm_implementation': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_arm_implementation'], 1),[0m
+2026-11-09T04:28:54.5407927Z [36;1m    'full-relocation-acceptance-negative_wrong_condition': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_condition'], 1),[0m
+2026-11-09T04:28:54.5408562Z [36;1m    'full-relocation-acceptance-negative_wrong_phi': (['tests.test_core_seven_relocation_acceptance.NegativeMutationTests.test_exact_negation_wrong_phi'], 1),[0m
+2026-11-09T04:28:54.5409201Z [36;1m    'full-relocation-acceptance-source_contract': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_exact_protocol_identity_and_actual_inputs'], 1),[0m
+2026-11-09T04:28:54.5410098Z [36;1m    'full-relocation-acceptance-protocols': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_old_and_diagnostic_protocols_rejected', 'tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_old_diagnostic_and_extra_container_files_rejected'], 2),[0m
+2026-11-09T04:28:54.5410999Z [36;1m    'full-relocation-acceptance-retained_source': (['tests.test_core_seven_relocation_acceptance.RelocationBoundaryTests.test_rehashed_actual_retained_candidate_rejected'], 1),[0m
+2026-11-09T04:28:54.5411412Z [36;1m}[0m
+2026-11-09T04:28:54.5411527Z [36;1mdef flatten(node):[0m
+2026-11-09T04:28:54.5411667Z [36;1m    for item in node:[0m
+2026-11-09T04:28:54.5411833Z [36;1m        if isinstance(item, unittest.TestSuite):[0m
+2026-11-09T04:28:54.5412026Z [36;1m            yield from flatten(item)[0m
+2026-11-09T04:28:54.5412322Z [36;1m        else:[0m
+2026-11-09T04:28:54.5412451Z [36;1m            yield item[0m
+2026-11-09T04:28:54.5412589Z [36;1minventories = {}[0m
+2026-11-09T04:28:54.5412718Z [36;1msuites = {}[0m
+2026-11-09T04:28:54.5412868Z [36;1mfor group, (names, expected) in groups.items():[0m
+2026-11-09T04:28:54.5413187Z [36;1m    cases = sorted(flatten(unittest.defaultTestLoader.loadTestsFromNames(names)), key=lambda case: case.id())[0m
+2026-11-09T04:28:54.5413502Z [36;1m    if unittest.defaultTestLoader.errors:[0m
+2026-11-09T04:28:54.5413886Z [36;1m        print(json.dumps({'group': group, 'loader_errors': unittest.defaultTestLoader.errors}), flush=True)[0m
+2026-11-09T04:28:54.5414262Z [36;1m    assert not unittest.defaultTestLoader.errors, 'isolated test loading failed: ' + group[0m
+2026-11-09T04:28:54.5414611Z [36;1m    if group.startswith(('partition-sources-', 'seven-sources-', 'seven-execution-')):[0m
+2026-11-09T04:28:54.5414921Z [36;1m        complete_expected = 31 if group.startswith('seven-sources-') else 16[0m
+2026-11-09T04:28:54.5415270Z [36;1m        assert len(cases) == len({case.id() for case in cases}) == complete_expected, 'complete split inventory changed'[0m
+2026-11-09T04:28:54.5415580Z [36;1m        if group.startswith('partition-sources-'):[0m
+2026-11-09T04:28:54.5415789Z [36;1m            start = 0 if group.endswith('-a') else 8[0m
+2026-11-09T04:28:54.5415980Z [36;1m            cases = cases[start:start + 8][0m
+2026-11-09T04:28:54.5416166Z [36;1m        elif group.startswith('seven-sources-'):[0m
+2026-11-09T04:28:54.5416363Z [36;1m            cases = cases['abc'.index(group[-1])::3][0m
+2026-11-09T04:28:54.5416532Z [36;1m        else:[0m
+2026-11-09T04:28:54.5416805Z [36;1m            inverse_id = 'tests.test_core_seven_certificate_runner.SevenRunnerTests.test_full_inverse_replay_integration'[0m
+2026-11-09T04:28:54.5417151Z [36;1m            inverse = [case for case in cases if case.id() == inverse_id][0m
+2026-11-09T04:28:54.5417479Z [36;1m            ordinary = [case for case in cases if case.id() != inverse_id][0m
+2026-11-09T04:28:54.5417765Z [36;1m            assert len(inverse) == 1 and len(ordinary) == 15, 'runner split inventory changed'[0m
+2026-11-09T04:28:54.5418062Z [36;1m            # Preserve full truthful IDs; the indivisible full inverse runs alone.[0m
+2026-11-09T04:28:54.5418393Z [36;1m            cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2][0m
+2026-11-09T04:28:54.5418675Z [36;1m    if group.startswith('part04-runner-'):[0m
+2026-11-09T04:28:54.5418951Z [36;1m        assert len(cases) == len({case.id() for case in cases}) == 17, 'complete Part04 runner inventory changed'[0m
+2026-11-09T04:28:54.5419342Z [36;1m        inverse_id = 'tests.test_core_seven_part04_runner.Part04RunnerTests.test_full_inverse_replay_integration'[0m
+2026-11-09T04:28:54.5419677Z [36;1m        inverse = [case for case in cases if case.id() == inverse_id][0m
+2026-11-09T04:28:54.5419923Z [36;1m        ordinary = [case for case in cases if case.id() != inverse_id][0m
+2026-11-09T04:28:54.5420209Z [36;1m        assert len(inverse) == 1 and len(ordinary) == 16, 'Part04 runner split inventory changed'[0m
+2026-11-09T04:28:54.5420553Z [36;1m        cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2][0m
+2026-11-09T04:28:54.5420835Z [36;1m    if group.startswith('relocation-runner-'):[0m
+2026-11-09T04:28:54.5421122Z [36;1m        assert len(cases) == len({case.id() for case in cases}) == 23, 'complete relocation runner inventory changed'[0m
+2026-11-09T04:28:54.5421525Z [36;1m        inverse_id = 'tests.test_core_seven_relocation_runner.Part04RunnerTests.test_full_inverse_replay_integration'[0m
+2026-11-09T04:28:54.5421858Z [36;1m        inverse = [case for case in cases if case.id() == inverse_id][0m
+2026-11-09T04:28:54.5422102Z [36;1m        ordinary = [case for case in cases if case.id() != inverse_id][0m
+2026-11-09T04:28:54.5422554Z [36;1m        assert len(inverse) == 1 and len(ordinary) == 22, 'relocation runner split inventory changed'[0m
+2026-11-09T04:28:54.5422902Z [36;1m        cases = inverse if group.endswith('-inverse') else ordinary[0 if group.endswith('-a') else 1::2][0m
+2026-11-09T04:28:54.5423172Z [36;1m    ids = [case.id() for case in cases][0m
+2026-11-09T04:28:54.5423422Z [36;1m    assert len(ids) == len(set(ids)) == expected, 'isolated test inventory changed: ' + group[0m
+2026-11-09T04:28:54.5423659Z [36;1m    inventories[group] = ids[0m
+2026-11-09T04:28:54.5423929Z [36;1m    suites[group] = unittest.TestSuite(cases)[0m
+2026-11-09T04:28:54.5424161Z [36;1mall_ids = [test_id for ids in inventories.values() for test_id in ids][0m
+2026-11-09T04:28:54.5424435Z [36;1mall_names = sorted({name for names, _ in groups.values() for name in names})[0m
+2026-11-09T04:28:54.5424789Z [36;1mcomplete_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(all_names))][0m
+2026-11-09T04:28:54.5425167Z [36;1massert len(all_ids) == len(set(all_ids)) == len(complete_ids) == 712, 'combined inventory changed'[0m
+2026-11-09T04:28:54.5425490Z [36;1massert set(all_ids) == set(complete_ids), 'split omitted or duplicated controls'[0m
+2026-11-09T04:28:54.5425900Z [36;1macceptance_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_acceptance'))][0m
+2026-11-09T04:28:54.5426402Z [36;1massigned_acceptance_ids = [test_id for group, ids in inventories.items() if group.startswith('seven-acceptance-') for test_id in ids][0m
+2026-11-09T04:28:54.5426950Z [36;1massert len(acceptance_ids) == len(set(acceptance_ids)) == len(assigned_acceptance_ids) == len(set(assigned_acceptance_ids)) == 140, 'complete acceptance inventory changed'[0m
+2026-11-09T04:28:54.5427458Z [36;1massert set(acceptance_ids) == set(assigned_acceptance_ids), 'acceptance shards omitted or duplicated controls'[0m
+2026-11-09T04:28:54.5427916Z [36;1mpart04_names = ['tests.test_core_seven_part04_sources', 'tests.test_core_seven_part04_capture', 'tests.test_core_seven_part04_runner'][0m
+2026-11-09T04:28:54.5428450Z [36;1mpart04_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(part04_names))][0m
+2026-11-09T04:28:54.5428875Z [36;1massigned_part04_ids = [test_id for group, ids in inventories.items() if group.startswith('part04-') for test_id in ids][0m
+2026-11-09T04:28:54.5429352Z [36;1massert len(part04_ids) == len(set(part04_ids)) == len(assigned_part04_ids) == len(set(assigned_part04_ids)) == 73, 'complete Part04 inventory changed'[0m
+2026-11-09T04:28:54.5429792Z [36;1massert set(part04_ids) == set(assigned_part04_ids), 'Part04 shards omitted or duplicated controls'[0m
+2026-11-09T04:28:54.5430253Z [36;1mlegacy_ids = [test_id for group, ids in inventories.items() if not group.startswith(('relocation-', 'full-relocation-acceptance-')) for test_id in ids][0m
+2026-11-09T04:28:54.5430728Z [36;1massert len(legacy_ids) == len(set(legacy_ids)) == 504, 'all prior isolated controls must remain assigned once'[0m
+2026-11-09T04:28:54.5431215Z [36;1mrelocation_names = ['tests.test_core_seven_parallel_relocation_sources', 'tests.test_core_seven_relocation_sources', 'tests.test_core_seven_relocation_runner'][0m
+2026-11-09T04:28:54.5431733Z [36;1mrelocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames(relocation_names))][0m
+2026-11-09T04:28:54.5432307Z [36;1massigned_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('relocation-') for test_id in ids][0m
+2026-11-09T04:28:54.5432853Z [36;1massert len(relocation_ids) == len(set(relocation_ids)) == len(assigned_relocation_ids) == len(set(assigned_relocation_ids)) == 68, 'complete relocation inventory changed'[0m
+2026-11-09T04:28:54.5433348Z [36;1massert set(relocation_ids) == set(assigned_relocation_ids), 'relocation shards omitted or duplicated controls'[0m
+2026-11-09T04:28:54.5433832Z [36;1mfull_relocation_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromName('tests.test_core_seven_relocation_acceptance'))][0m
+2026-11-09T04:28:54.5434387Z [36;1massigned_full_relocation_ids = [test_id for group, ids in inventories.items() if group.startswith('full-relocation-acceptance-') for test_id in ids][0m
+2026-11-09T04:28:54.5435023Z [36;1massert len(full_relocation_ids) == len(set(full_relocation_ids)) == len(assigned_full_relocation_ids) == len(set(assigned_full_relocation_ids)) == 140, 'complete full relocation acceptance inventory changed'[0m
+2026-11-09T04:28:54.5435724Z [36;1massert set(full_relocation_ids) == set(assigned_full_relocation_ids), 'full relocation acceptance shards omitted or duplicated controls'[0m
+2026-11-09T04:28:54.5436212Z [36;1mold_ids = [test_id for group, ids in inventories.items() if not group.startswith('full-relocation-acceptance-') for test_id in ids][0m
+2026-11-09T04:28:54.5436609Z [36;1massert len(old_ids) == len(set(old_ids)) == 572, 'all prior isolated controls retained once'[0m
+2026-11-09T04:28:54.5436928Z [36;1m# The deadline controls run in their own job, but must remain disjoint[0m
+2026-11-09T04:28:54.5437177Z [36;1m# from all 712 source and fake-child controls above.[0m
+2026-11-09T04:28:54.5437468Z [36;1mdeadline_ids = [case.id() for case in flatten(unittest.defaultTestLoader.loadTestsFromNames([[0m
+2026-11-09T04:28:54.5437823Z [36;1m    'tests.test_core_seven_part04_deadlines', 'tests.test_core_seven_relocation_timeout']))][0m
+2026-11-09T04:28:54.5438154Z [36;1massert not unittest.defaultTestLoader.errors, 'deadline test loading failed'[0m
+2026-11-09T04:28:54.5438485Z [36;1massert len(deadline_ids) == len(set(deadline_ids)) == 11, 'deadline control inventory changed'[0m
+2026-11-09T04:28:54.5438817Z [36;1massert not set(all_ids).intersection(deadline_ids), 'deadline controls assigned twice'[0m
+2026-11-09T04:28:54.5439151Z [36;1massert len(set(all_ids).union(deadline_ids)) == 723, 'integrated control inventory changed'[0m
+2026-11-09T04:28:54.5439490Z [36;1mgroup = os.environ['CONTROL_GROUP'][0m
+2026-11-09T04:28:54.5439678Z [36;1mids, suite = inventories[group], suites[group][0m
+2026-11-09T04:28:54.5439860Z [36;1mexpected = groups[group][1][0m
+2026-11-09T04:28:54.5440063Z [36;1mprint(json.dumps({'group': group, 'count': len(ids), 'tests': ids,[0m
+2026-11-09T04:28:54.5440371Z [36;1m                  'inventory_sha256': hashlib.sha256('\n'.join(ids).encode()).hexdigest()}), flush=True)[0m
+2026-11-09T04:28:54.5440665Z [36;1mresult = unittest.TextTestRunner(verbosity=2).run(suite)[0m
+2026-11-09T04:28:54.5440967Z [36;1massert result.testsRun == expected and result.wasSuccessful(), 'isolated controls failed'[0m
+2026-11-09T04:28:54.5441327Z [36;1massert not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses[0m
+2026-11-09T04:28:54.5441583Z [36;1mPYDIAG[0m
+2026-11-09T04:28:54.5441729Z [36;1mtest "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"[0m
+2026-11-09T04:28:54.5441952Z [36;1mtest -z "$(git status --porcelain --untracked-files=all)"[0m
+2026-11-09T04:28:54.5459653Z shell: /usr/bin/bash -e {0}
+2026-11-09T04:28:54.5459798Z env:
+2026-11-09T04:28:54.5459945Z   EXPECTED_HEAD: 6a8c297b3f8f21506d11c2cb093c1c58d84ffe55
+2026-11-09T04:28:54.5460144Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T04:28:54.5460299Z   CONTROL_GROUP: part04-capture
+2026-11-09T04:28:54.5460478Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:54.5460713Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-09T04:28:54.5460944Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:54.5461157Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:54.5461367Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-09T04:28:54.5461582Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-09T04:28:54.5461763Z ##[endgroup]
+2026-11-09T04:28:55.2268484Z {"group": "part04-capture", "count": 41, "tests": ["tests.test_core_seven_part04_capture.Part04CaptureTests.test_append_budget_never_recovers_from_truncation_or_replacement", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_clean_prefix_nonzero_and_timeout", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_cleanup_error_never_yields_success", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_complete_fragmented_real_child_has_only_thirteen_events", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_confirmation_read_respects_remaining_combined_raw_quota", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_descendant_stderr_owner_killed_only_after_confirmation", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_exact_grace_boundary_is_rejected", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_exact_raw_cap_and_overflow_both_refuse_success", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_full_production_raw_cap_leaves_room_for_exact_single_display", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_grace_deadline_checked_after_exit_observation_and_reread", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_held_descendant_descriptors_are_killed_after_leader_exits", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_injected_eio_with_persistent_live_slave_never_resolves", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_interruption_never_resolves_pending_eio", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_invalid_final_clock_closes_files_and_refuses_terminal", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_large_unsafe_error_is_bounded_and_serializable", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_metadata_subcap_failure_retains_terminal_reserve", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_nonzero_natural_exit_remains_failed", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_partial_marker_eof_rejects", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_pending_eio_timeout_never_resolves_after_group_kill", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_platform_parser_accepts_quoted_values_and_rejects_duplicates", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_process_deadline_checked_after_exit_observation_and_reread", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_pty_allocation_configuration_readback_and_isatty_fail_closed", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_eio_delayed_natural_exit_resolves_before_group_kill", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_live_child_close_expires_without_refresh_or_spin", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_reopened_slave_data_is_counted_discarded_before_kill", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_reopened_slave_eagain_fails_before_kill", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_shared_raw_limit_counts_every_read_and_kills_no_newline_flood", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_simultaneous_stream_bursts_share_one_read_budget", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_timeout_eio_after_group_kill_before_waitid_exit_remains_timeout", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_timeout_empty_and_partial_output_reaps_leader_and_preserves_prefix", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_unsafe_preexisting_log_files_block_without_launch_or_overwrite", "tests.test_core_seven_part04_capture.Part04CaptureTests.test_unsupported_platform_not_embedded_in_terminal", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_all_fragment_sizes_and_same_read", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_constant_caps_keep_original_and_new_envelopes", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_exact_planned_count_and_target", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_finite_path_settings_clock_signed_and_error_schema", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_foreign_duplicate_reordered_excess_malformed", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_observation_clock_reversal_rejected", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_partial_foreign_and_long_markerlike_at_eof", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_sink_enforces_tighter_serialized_caps", "tests.test_core_seven_part04_capture.Part04GrammarTests.test_unsafe_or_substituted_paths_fail_before_launch"], "inventory_sha256": "8d515523130d9e88a0212b8628151e0a83d15605251f5a015a0bfa9f98e85695"}
+2026-11-09T04:28:55.2304258Z test_append_budget_never_recovers_from_truncation_or_replacement (tests.test_core_seven_part04_capture.Part04CaptureTests.test_append_budget_never_recovers_from_truncation_or_replacement) ... ok
+2026-11-09T04:28:55.4017251Z test_clean_prefix_nonzero_and_timeout (tests.test_core_seven_part04_capture.Part04CaptureTests.test_clean_prefix_nonzero_and_timeout) ... ok
+2026-11-09T04:28:55.4672094Z test_cleanup_error_never_yields_success (tests.test_core_seven_part04_capture.Part04CaptureTests.test_cleanup_error_never_yields_success) ... ok
+2026-11-09T04:28:55.6301090Z test_complete_fragmented_real_child_has_only_thirteen_events (tests.test_core_seven_part04_capture.Part04CaptureTests.test_complete_fragmented_real_child_has_only_thirteen_events) ... ok
+2026-11-09T04:28:55.6423030Z test_confirmation_read_respects_remaining_combined_raw_quota (tests.test_core_seven_part04_capture.Part04CaptureTests.test_confirmation_read_respects_remaining_combined_raw_quota) ... ok
+2026-11-09T04:28:55.6552905Z test_descendant_stderr_owner_killed_only_after_confirmation (tests.test_core_seven_part04_capture.Part04CaptureTests.test_descendant_stderr_owner_killed_only_after_confirmation) ... ok
+2026-11-09T04:28:55.6662273Z test_exact_grace_boundary_is_rejected (tests.test_core_seven_part04_capture.Part04CaptureTests.test_exact_grace_boundary_is_rejected) ... ok
+2026-11-09T04:28:55.7091728Z test_exact_raw_cap_and_overflow_both_refuse_success (tests.test_core_seven_part04_capture.Part04CaptureTests.test_exact_raw_cap_and_overflow_both_refuse_success) ... ok
+2026-11-09T04:28:55.9766664Z test_full_production_raw_cap_leaves_room_for_exact_single_display (tests.test_core_seven_part04_capture.Part04CaptureTests.test_full_production_raw_cap_leaves_room_for_exact_single_display) ... ok
+2026-11-09T04:28:56.0094005Z test_grace_deadline_checked_after_exit_observation_and_reread (tests.test_core_seven_part04_capture.Part04CaptureTests.test_grace_deadline_checked_after_exit_observation_and_reread) ... ok
+2026-11-09T04:28:56.0699382Z {"descendant_pid": 2273, "descendant_starttime": "3092", "process_group": 2272, "states": [[0.060475200999999146, null, false, null, null]], "observed_elapsed": 0.060475200999999146, "total_deadline_seconds": 1.5}
+2026-11-09T04:28:56.0712359Z test_held_descendant_descriptors_are_killed_after_leader_exits (tests.test_core_seven_part04_capture.Part04CaptureTests.test_held_descendant_descriptors_are_killed_after_leader_exits) ... ok
+2026-11-09T04:28:56.1317978Z test_injected_eio_with_persistent_live_slave_never_resolves (tests.test_core_seven_part04_capture.Part04CaptureTests.test_injected_eio_with_persistent_live_slave_never_resolves) ... ok
+2026-11-09T04:28:56.1430124Z test_interruption_never_resolves_pending_eio (tests.test_core_seven_part04_capture.Part04CaptureTests.test_interruption_never_resolves_pending_eio) ... ok
+2026-11-09T04:28:56.1531393Z test_invalid_final_clock_closes_files_and_refuses_terminal (tests.test_core_seven_part04_capture.Part04CaptureTests.test_invalid_final_clock_closes_files_and_refuses_terminal) ... ok
+2026-11-09T04:28:56.1566606Z test_large_unsafe_error_is_bounded_and_serializable (tests.test_core_seven_part04_capture.Part04CaptureTests.test_large_unsafe_error_is_bounded_and_serializable) ... ok
+2026-11-09T04:28:56.1668534Z test_metadata_subcap_failure_retains_terminal_reserve (tests.test_core_seven_part04_capture.Part04CaptureTests.test_metadata_subcap_failure_retains_terminal_reserve) ... ok
+2026-11-09T04:28:56.2294637Z test_nonzero_natural_exit_remains_failed (tests.test_core_seven_part04_capture.Part04CaptureTests.test_nonzero_natural_exit_remains_failed) ... ok
+2026-11-09T04:28:56.2401540Z test_partial_marker_eof_rejects (tests.test_core_seven_part04_capture.Part04CaptureTests.test_partial_marker_eof_rejects) ... ok
+2026-11-09T04:28:56.2508728Z test_pending_eio_timeout_never_resolves_after_group_kill (tests.test_core_seven_part04_capture.Part04CaptureTests.test_pending_eio_timeout_never_resolves_after_group_kill) ... ok
+2026-11-09T04:28:56.2522086Z test_platform_parser_accepts_quoted_values_and_rejects_duplicates (tests.test_core_seven_part04_capture.Part04CaptureTests.test_platform_parser_accepts_quoted_values_and_rejects_duplicates) ... ok
+2026-11-09T04:28:56.2746276Z test_process_deadline_checked_after_exit_observation_and_reread (tests.test_core_seven_part04_capture.Part04CaptureTests.test_process_deadline_checked_after_exit_observation_and_reread) ... ok
+2026-11-09T04:28:56.2822636Z test_pty_allocation_configuration_readback_and_isatty_fail_closed (tests.test_core_seven_part04_capture.Part04CaptureTests.test_pty_allocation_configuration_readback_and_isatty_fail_closed) ... ok
+2026-11-09T04:28:56.3440651Z test_real_eio_delayed_natural_exit_resolves_before_group_kill (tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_eio_delayed_natural_exit_resolves_before_group_kill) ... ok
+2026-11-09T04:28:56.4052913Z test_real_live_child_close_expires_without_refresh_or_spin (tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_live_child_close_expires_without_refresh_or_spin) ... ok
+2026-11-09T04:28:56.4281167Z test_real_reopened_slave_data_is_counted_discarded_before_kill (tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_reopened_slave_data_is_counted_discarded_before_kill) ... ok
+2026-11-09T04:28:56.4390308Z test_real_reopened_slave_eagain_fails_before_kill (tests.test_core_seven_part04_capture.Part04CaptureTests.test_real_reopened_slave_eagain_fails_before_kill) ... ok
+2026-11-09T04:28:56.4930454Z test_shared_raw_limit_counts_every_read_and_kills_no_newline_flood (tests.test_core_seven_part04_capture.Part04CaptureTests.test_shared_raw_limit_counts_every_read_and_kills_no_newline_flood) ... ok
+2026-11-09T04:28:56.5636666Z test_simultaneous_stream_bursts_share_one_read_budget (tests.test_core_seven_part04_capture.Part04CaptureTests.test_simultaneous_stream_bursts_share_one_read_budget) ... ok
+2026-11-09T04:28:56.7669933Z test_timeout_eio_after_group_kill_before_waitid_exit_remains_timeout (tests.test_core_seven_part04_capture.Part04CaptureTests.test_timeout_eio_after_group_kill_before_waitid_exit_remains_timeout) ... ok
+2026-11-09T04:28:57.0746888Z test_timeout_empty_and_partial_output_reaps_leader_and_preserves_prefix (tests.test_core_seven_part04_capture.Part04CaptureTests.test_timeout_empty_and_partial_output_reaps_leader_and_preserves_prefix) ... ok
+2026-11-09T04:28:57.0787828Z test_unsafe_preexisting_log_files_block_without_launch_or_overwrite (tests.test_core_seven_part04_capture.Part04CaptureTests.test_unsafe_preexisting_log_files_block_without_launch_or_overwrite) ... ok
+2026-11-09T04:28:57.0805174Z test_unsupported_platform_not_embedded_in_terminal (tests.test_core_seven_part04_capture.Part04CaptureTests.test_unsupported_platform_not_embedded_in_terminal) ... ok
+2026-11-09T04:28:57.2095610Z test_all_fragment_sizes_and_same_read (tests.test_core_seven_part04_capture.Part04GrammarTests.test_all_fragment_sizes_and_same_read) ... ok
+2026-11-09T04:28:57.2096737Z test_constant_caps_keep_original_and_new_envelopes (tests.test_core_seven_part04_capture.Part04GrammarTests.test_constant_caps_keep_original_and_new_envelopes) ... ok
+2026-11-09T04:28:57.2097724Z test_exact_planned_count_and_target (tests.test_core_seven_part04_capture.Part04GrammarTests.test_exact_planned_count_and_target) ... ok
+2026-11-09T04:28:57.2098916Z test_finite_path_settings_clock_signed_and_error_schema (tests.test_core_seven_part04_capture.Part04GrammarTests.test_finite_path_settings_clock_signed_and_error_schema) ... ok
+2026-11-09T04:28:57.2111789Z test_foreign_duplicate_reordered_excess_malformed (tests.test_core_seven_part04_capture.Part04GrammarTests.test_foreign_duplicate_reordered_excess_malformed) ... ok
+2026-11-09T04:28:57.2112988Z test_observation_clock_reversal_rejected (tests.test_core_seven_part04_capture.Part04GrammarTests.test_observation_clock_reversal_rejected) ... ok
+2026-11-09T04:28:57.2118880Z test_partial_foreign_and_long_markerlike_at_eof (tests.test_core_seven_part04_capture.Part04GrammarTests.test_partial_foreign_and_long_markerlike_at_eof) ... ok
+2026-11-09T04:28:57.2131799Z test_sink_enforces_tighter_serialized_caps (tests.test_core_seven_part04_capture.Part04GrammarTests.test_sink_enforces_tighter_serialized_caps) ... ok
+2026-11-09T04:28:57.2134534Z test_unsafe_or_substituted_paths_fail_before_launch (tests.test_core_seven_part04_capture.Part04GrammarTests.test_unsafe_or_substituted_paths_fail_before_launch) ... ok
+2026-11-09T04:28:57.2135077Z 
+2026-11-09T04:28:57.2135227Z ----------------------------------------------------------------------
+2026-11-09T04:28:57.2135528Z Ran 41 tests in 1.988s
+2026-11-09T04:28:57.2135650Z 
+2026-11-09T04:28:57.2135723Z OK
+2026-11-09T04:28:57.2658874Z Post job cleanup.
+2026-11-09T04:28:57.3442706Z (node:2318) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T04:28:57.3443171Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T04:28:57.3619980Z Post job cleanup.
+2026-11-09T04:28:57.4237438Z [command]/usr/bin/git version
+2026-11-09T04:28:57.4271408Z git version 2.56.0
+2026-11-09T04:28:57.4295903Z Temporarily overriding HOME='/home/runner/work/_temp/fd66ee80-aecf-41c5-a11e-bc97a18e3c15' before making global git config changes
+2026-11-09T04:28:57.4296840Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T04:28:57.4300040Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-09T04:28:57.4334650Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T04:28:57.4366342Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T04:28:57.4591806Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T04:28:57.4628711Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T04:28:57.4878944Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T04:28:57.4917787Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T04:28:57.5251422Z Cleaning up orphan processes
+2026-11-09T04:28:57.5514880Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
