@@ -107,15 +107,23 @@ def qualify():
                   "shared Core acceptance modules are included explicitly"]}
 
 
+def normalize_report_path(value, root=ROOT):
+    requested = Path(value).absolute()
+    # Inspect the supplied spelling before resolve erases links. Then resolve
+    # dot-dot segments before testing whether output is inside the checkout.
+    if requested.exists() or any(p.is_symlink() for p in (requested, *requested.parents)):
+        raise ValueError("report requires a new nonsymlink output path")
+    output = requested.resolve()
+    if output.is_relative_to(Path(root).resolve()):
+        raise ValueError("report must be outside the exact source checkout")
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    output = args.output.absolute()
-    if output.exists() or any(p.is_symlink() for p in (output, *output.parents)):
-        raise ValueError("report requires a new nonsymlink output path")
-    if output.is_relative_to(ROOT):
-        raise ValueError("report must be outside the exact source checkout")
+    output = normalize_report_path(args.output)
     report = qualify()
     with output.open("x") as stream:
         json.dump(report, stream, sort_keys=True, indent=2)
