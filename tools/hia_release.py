@@ -102,6 +102,8 @@ CANDIDATE_FILES = (
     "docs/HIA_SELFHOST_MACHINE_PLAN_HEADER_REPAIR_20261108.md",
     "tools/qualify_hia_ndu_prepared_ranker.py", "tools/replay_hia_ndu_prepared_ranker.py",
     "tests/test_hia_ndu_prepared_ranker.py", "docs/HIA_NDU_PREPARED_RANKING.md",
+    "tests/test_hia_ndu_prepared_cost_intervals.py",
+    "review-evidence/hia-ndu-prepared-20261108-5e6c/final-originals.tar.xz",
     "tools/qualify_hia_ndu_persistent_ranker.py", "tools/replay_hia_ndu_persistent_ranker.py",
     "tests/test_hia_ndu_persistent_ranker.py", "docs/HIA_NDU_PERSISTENT_RANKING.md",
     "rust/hia-ndu-bridge/src/main.rs",
@@ -154,7 +156,8 @@ SOURCE_DIRECTORIES = ("hepta", "docs", "tools", "tests", "examples", "benchmarks
                       "experiments/hia_release_20261107",
                       "experiments/hia_product_closure_20261107",
                       "review-evidence/hia-agent-buffer-20261108-5e6c",
-                      "review-evidence/hia-agent-original-select-delta-20261108-5e6c")
+                      "review-evidence/hia-agent-original-select-delta-20261108-5e6c",
+                      "review-evidence/hia-ndu-prepared-20261108-5e6c")
 MATERIALIZATION = {"hepta_sparse_directories": list(SOURCE_DIRECTORIES),
     "runtime_sparse_directories": None,
     "omitted_scope": "Historical campaigns and artifact/report archives outside this release's qualified source closure"}

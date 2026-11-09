@@ -102,6 +102,44 @@ def check_analysis(cells, analysis):
             "reported paired analysis or summary differs from cell ledger")
 
 
+def check_cost_intervals(cells, report):
+    """Reconcile nested measured intervals without adding them twice.
+
+    This registered campaign invokes each cell and call serially. The outer
+    intervals include bookkeeping beyond the nested timers, so they provide
+    upper bounds, not an exact decomposition of overhead or a host attestation.
+    """
+    campaign = exact_integer(report["actual_campaign_wall_ns_to_summary"], positive=True)
+    require(report["nested_cell_wall_added_again"] is False,
+            "campaign timer must not add nested cell costs again")
+    cell_total = 0
+    for cell in cells:
+        cell_wall = exact_integer(cell["wall_ns"], positive=True)
+        cell_total += cell_wall
+        call_walls = [exact_integer(row["wall_ns"], positive=True) for row in cell["calls"]]
+        require(sum(call_walls) <= cell_wall,
+                "serial call intervals exceed their enclosing cell")
+        if cell["arm"] == "prepared_ndu":
+            cost = cell["prepared_cost"]
+            require(len(cost["attempts"]) == len(call_walls),
+                    "prepared attempts differ from recorded calls")
+            serial_cost = exact_integer(cost["preparation"]["preparation_wall_ns"], positive=True)
+            serial_cost += exact_integer(cost["close_wall_ns"], positive=True)
+            for attempt, call_wall in zip(cost["attempts"], call_walls):
+                service = exact_integer(attempt["wall_ns"], positive=True)
+                queued = exact_integer(attempt["queue_wait_ns"])
+                caller = exact_integer(attempt["caller_wall_ns"], positive=True)
+                require(caller == service + queued and caller <= call_wall,
+                        "prepared caller interval or queue differs from enclosing call")
+                # Calls are serial, so these queue intervals cannot overlap
+                # another prepared call in this particular campaign.
+                serial_cost += caller
+            require(serial_cost <= cell_wall,
+                    "prepared serial intervals exceed their enclosing cell")
+    require(cell_total <= campaign,
+            "serial cell intervals exceed the measured campaign")
+
+
 def replay(directory, registration_sha256):
     root = Path(directory)
     registration_raw = (root / "registration.json").read_bytes()
@@ -257,6 +295,7 @@ def replay(directory, registration_sha256):
     require(native_count == report["original_native_calls"] == 1020 and ordinary_count == 510,
             "full native/ordinary denominator")
     check_analysis(cells, report["analysis"])
+    check_cost_intervals(cells, report)
     return {"schema": "hepta.hia.ndu-prepared-ranking-replay.v1",
             "registration_sha256": registration_sha256,
             "verifier_sha256": sha256(Path(__file__).read_bytes()).hexdigest(),
@@ -265,6 +304,7 @@ def replay(directory, registration_sha256):
             "source_files_rehashed": len(EXPECTED_SOURCE), "cells_replayed": len(cells),
             "raw_identity_and_cost_arithmetic_consistent": True,
             "reported_analysis_recomputed": True,
+            "nested_cost_intervals_reconciled": True,
             "timings_independently_authenticated": False, "machine_refinement_proved": False,
             "economic_benefit_established": False, "authority": "DENY_ALL"}
 
