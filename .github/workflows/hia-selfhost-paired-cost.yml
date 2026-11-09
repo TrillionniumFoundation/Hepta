@@ -1,0 +1,135 @@
+name: HIA paired compiler cost evidence tests
+
+on:
+  push:
+    branches:
+      - 'codex/hia-performance-preserved-*'
+  pull_request:
+    paths:
+      - 'hepta/**'
+      - 'tools/analyze_hia_selfhost_machine_plans.py'
+      - 'tools/qualify_hia_selfhost*.py'
+      - 'tools/hia_selfhost_child.py'
+      - 'tests/test_hia_selfhost_paired_cost.py'
+      - 'tests/test_hia_selfhost_machine_plans.py'
+      - 'docs/HIA_SELFHOST_PAIRED_COST_20261109.md'
+      - '.github/workflows/hia-selfhost-paired-cost.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paired-cost-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the exact 19 evidence-accounting and effect-oracle tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/hia-selfhost-paired-cost"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-selfhost-paired-cost/tests.log"
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import platform
+          import subprocess
+          import sys
+          import unittest
+
+          def git(*args):
+              return subprocess.check_output(["git", *args], text=True).strip()
+
+          def identity():
+              return {"commit": git("rev-parse", "HEAD"),
+                      "tree": git("rev-parse", "HEAD^{tree}"),
+                      "status": git("status", "--porcelain", "--untracked-files=all")}
+
+          before = identity()
+          if before["commit"] != os.environ["HEPTA_SOURCE_SHA"] or before["status"]:
+              raise SystemExit("refuse an unexpected or dirty source checkout")
+
+          expected = ["tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_intact_rejection_and_hash_effects_pass","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_invalid_return_does_not_hide_output_damage","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_matching_return_and_output_do_not_hide_workspace_damage","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_matching_return_does_not_hide_output_tail_write","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_matching_return_does_not_hide_wrong_output_byte","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_missing_workspace_observation_is_refused","tests.test_hia_selfhost_machine_plans.MachinePlanEffectOracles.test_unexpected_workspace_observation_is_refused","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_duplicate_and_nonfinite_json_fields_are_refused","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_equal_timings_do_not_replace_equal_inputs_and_outputs","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_failed_control_cannot_leave_report_passing","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_incomplete_campaign_keeps_outer_cost_and_infers_no_saving","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_missing_control_stays_in_original_denominator","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_missing_counterfactual_is_not_zero","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_missing_preparation_is_unknown_not_free","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_native_and_outer_intervals_must_nest","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_original_pairs_not_difference_of_unpaired_medians","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_reordered_pair_refuses_paired_inference","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_summary_cannot_replace_original_timing","tests.test_hia_selfhost_paired_cost.PairedCompilerCostTests.test_tail_retains_the_slowest_original_observation"]
+          modules = ["tests.test_hia_selfhost_paired_cost",
+                     "tests.test_hia_selfhost_machine_plans"]
+
+          def inventory(suite):
+              out = []
+              for test in suite:
+                  out.extend(inventory(test) if isinstance(test, unittest.TestSuite)
+                             else [test.id()])
+              return out
+
+          class Result(unittest.TextTestResult):
+              def __init__(self, *args, **kwargs):
+                  super().__init__(*args, **kwargs)
+                  self.executed_test_ids = []
+
+              def startTest(self, test):
+                  self.executed_test_ids.append(test.id())
+                  super().startTest(test)
+
+          loader = unittest.TestLoader()
+          suite = loader.loadTestsFromNames(modules)
+          loaded = sorted(inventory(suite))
+          result = unittest.TextTestRunner(
+              stream=sys.stdout, verbosity=2, resultclass=Result).run(suite)
+          after = identity()
+          ok = (before == after and not loader.errors and loaded == expected
+                and sorted(result.executed_test_ids) == expected
+                and result.testsRun == 19 and result.wasSuccessful()
+                and not result.skipped and not result.expectedFailures
+                and not result.unexpectedSuccesses)
+          source_files = {}
+          for name in ("tools/analyze_hia_selfhost_machine_plans.py",
+                       "tests/test_hia_selfhost_paired_cost.py",
+                       "tests/test_hia_selfhost_machine_plans.py",
+                       "docs/HIA_SELFHOST_PAIRED_COST_20261109.md",
+                       ".github/workflows/hia-selfhost-paired-cost.yml"):
+              raw = Path(name).read_bytes()
+              source_files[name] = {"bytes": len(raw), "sha256": sha256(raw).hexdigest(),
+                                    "git_blob": git("rev-parse", "HEAD:" + name)}
+          report = {
+              "schema": "hepta.hia.selfhost-paired-cost-tests.v1",
+              "ok": ok, "source_before": before, "source_after": after,
+              "source_files": source_files, "python": sys.version,
+              "platform": platform.platform(),
+              "expected_test_ids": expected, "loaded_test_ids": loaded,
+              "executed_test_ids": result.executed_test_ids,
+              "tests_run": result.testsRun, "skipped": result.skipped,
+              "failures": [[test.id(), detail] for test, detail in result.failures],
+              "errors": [[test.id(), detail] for test, detail in result.errors],
+              "loader_errors": loader.errors,
+              "expected_failures": [[test.id(), detail] for test, detail in result.expectedFailures],
+              "unexpected_successes": [test.id() for test in result.unexpectedSuccesses],
+              "claims": {"evidence_accounting_tests_passed": ok,
+                         "original_native_campaign_rerun": False,
+                         "original_raw_campaign_verified": False,
+                         "full_cost_performance_qualified": False,
+                         "ndu_increment_established": False},
+          }
+          destination = Path(os.environ["RUNNER_TEMP"]) / "hia-selfhost-paired-cost" / "RESULT.json"
+          destination.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(report, sort_keys=True))
+          raise SystemExit(0 if ok else 1)
+          PY
+      - name: Retain exact test inventory, source identities and full output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-selfhost-paired-cost-tests-${{ env.HEPTA_SOURCE_SHA }}-${{ github.event_name }}
+          path: ${{ runner.temp }}/hia-selfhost-paired-cost/
+          if-no-files-found: error
+          retention-days: 30
