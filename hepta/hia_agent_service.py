@@ -911,6 +911,12 @@ class HIAAgentService:
             "native_artifact": subject["native_artifact"], "build_receipt": subject["build_receipt"],
             "object_artifact": built["object_artifact"], "object_sha256": sha256(object_bytes).hexdigest(),
             "final_image_sha256": sha256(final_bytes).hexdigest(), "output_kind": built["output_kind"],
+            # These identities were already transitively bound by build_receipt.
+            # Keep them explicit when a consumer reads a detached proof artifact.
+            "target_profile": built["target_profile"], "backend_profile": built["backend_profile"],
+            "abi_signatures": built["signatures"],
+            "machine_plan": built["codegen"].get("plan"),
+            "machine_plan_sha256": built["native_build"]["machine_plan_sha256"],
             "entry_symbols": [fn["name"] for fn in program.as_dict()["functions"]],
             "foreign_buffer_exports": built["native_build"].get("foreign_buffer_exports")}
 

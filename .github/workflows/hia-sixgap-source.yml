@@ -45,6 +45,36 @@ jobs:
           set -euo pipefail
           ulimit -c 0
           python -B -m unittest discover -s tests -p 'test_hia_agent_native*.py' -v 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/agent-native.log"
+      - name: Qualify capped-add specification through actual scalar adoption
+        shell: bash
+        run: |
+          set -euo pipefail
+          ulimit -c 0
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-tests.log"
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_adoption_chain')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not (result.wasSuccessful() and result.testsRun >= 3
+                  and not result.skipped and not result.expectedFailures):
+              raise SystemExit('capped-add tests must complete without skips')
+          PY
+          python -B tools/qualify_hia_scalar_adoption_chain.py \
+            --output "$RUNNER_TEMP/hia-sixgap/scalar-adoption-chain" \
+            --campaign-id "capped-add-$HEPTA_SOURCE_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-chain.log"
+          python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-replay.log"
+          from hashlib import sha256
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-sixgap'
+          packet = root / 'scalar-adoption-chain'
+          manifest = sha256((packet / 'original-files.json').read_bytes()).hexdigest()
+          subprocess.run([sys.executable, '-B', 'tools/replay_hia_scalar_adoption_chain.py',
+              '--input', str(packet), '--expected-manifest-sha256', manifest,
+              '--output', str(root / 'scalar-adoption-replay.json')], check=True)
+          PY
       - name: Qualify borrowed-buffer lifecycle and the unchanged frozen compiler
         shell: bash
         run: |

@@ -123,6 +123,11 @@ class AgentNativeMachineValidationTests(AgentToolCase):
         self.assertEqual(binding["object_artifact"], build["object_artifact"])
         self.assertEqual(binding["object_sha256"], sha256(object_bytes).hexdigest())
         self.assertEqual(binding["final_image_sha256"], built["native_artifact"]["sha256"])
+        self.assertEqual(binding["target_profile"], build["target_profile"])
+        self.assertEqual(binding["backend_profile"], build["backend_profile"])
+        self.assertEqual(binding["abi_signatures"], build["signatures"])
+        self.assertIsNone(binding["machine_plan"])
+        self.assertIsNone(binding["machine_plan_sha256"])
         self.assertEqual(binding["output_kind"], "shared")
         self.assertEqual(binding["foreign_buffer_exports"], [])
         self.assertIn("transform", binding["entry_symbols"])
@@ -302,6 +307,9 @@ class AgentNativeMachineValidationTests(AgentToolCase):
             lambda row: row["artifact_binding"].update(object_sha256="0" * 64),
             lambda row: row["artifact_binding"].update(final_image_sha256="0" * 64),
             lambda row: row["artifact_binding"].pop("object_artifact"),
+            lambda row: row["artifact_binding"].pop("target_profile"),
+            lambda row: row["artifact_binding"].pop("machine_plan_sha256"),
+            lambda row: row["artifact_binding"].update(abi_signatures={}),
             lambda row: row["artifact_binding"].update(foreign_buffer_exports=[["transform", 4096]]),
             lambda row: row["validation"]["subject"].update(core_sha256="0" * 64),
             lambda row: row["validation"]["subject"].update(object_sha256="0" * 64),

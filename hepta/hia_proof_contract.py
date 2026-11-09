@@ -76,6 +76,10 @@ def _safe_core_method(status, subject, evidence):
     _require(type(binding) is dict and binding.get("candidate_core_sha256") == subject["candidate_core_sha256"]
              and binding.get("native_artifact") == subject["native_artifact"]
              and binding.get("build_receipt") == subject["build_receipt"]
+             and binding.get("target_profile") == subject["target_profile"]
+             and binding.get("backend_profile") == subject["backend_profile"]
+             and type(binding.get("abi_signatures")) is dict
+             and "machine_plan" in binding and "machine_plan_sha256" in binding
              and binding.get("final_image_sha256") == subject["native_artifact"]["sha256"]
              and type(binding.get("object_artifact")) is dict
              and binding["object_artifact"].get("sha256") == binding.get("object_sha256"),

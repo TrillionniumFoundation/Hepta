@@ -199,6 +199,14 @@ not get a refinement proof. A valid scoped native proof can satisfy an exact
 artifact's required lowering claim while the existing workload, equivalence,
 resource and conditional adoption gates still apply.
 
+The [capped-add specification-to-adoption qualification](HIA_SCALAR_ADOPTION_CHAIN_20261109.md)
+connects a four-block unsigned mathematical specification, explicit block-layout
+plan, both original objects/final images, independent proofs and actual
+generation-bound consumer calls. The native proof's artifact binding explicitly
+includes the target, backend, ABI signatures and machine plan; these were
+previously bound transitively by its immutable build receipt. The qualification
+does not extend the scalar Agent profile or establish whole-compiler soundness.
+
 The proof envelope carries the raw report, all five ordered obligations, the
 actual independent checker and solver identities, and immutable SMT query
 references. Nonvacuity must be SAT and the four violation queries UNSAT. A
