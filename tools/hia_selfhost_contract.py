@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v13"
+PROFILE = "selfhost-core-linux-x86_64-v14"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -142,7 +142,7 @@ def support_contract(root=ROOT):
                        "int.add.checked", "int.sub.checked", "int.mul.checked",
                        "int.div.checked", "int.rem.checked", "int.neg.checked", "bit.not",
                        "bit.and", "bit.or", "bit.xor", "int.shl.checked",
-                       "int.shr.checked", "int.cast wrap", "unsigned comparisons",
+                       "int.shr.checked", "int.cast wrap", "unsigned comparisons", "boolean equality/inequality",
                        "bool.and", "bool.or", "bool.not", "select (bool condition, matching scalars)"]},
             {"area": "control_flow", "status": "supported",
              "items": ["typed ret", "typed jump", "typed branch", "loops",

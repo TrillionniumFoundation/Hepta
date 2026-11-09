@@ -212,6 +212,17 @@ class SelfhostSourceTests(unittest.TestCase):
             with self.subTest(case=name), self.assertRaises(HIAProgramRejected):
                 assemble_program(source)
 
+    def test_boolean_equality_admits_bool_but_rejects_ordering_and_mixed_types(self):
+        from tools.hia_selfhost_select import independent_boolean_equality_reference
+        result = independent_boolean_equality_reference()
+        self.assertEqual(len(result["cases"]), 32)
+        self.assertEqual(len(result["rejections"]), 13)
+        for opcode in ("compare.eq", "compare.ne"):
+            cases = [row for row in result["cases"] if row["opcode"] == opcode]
+            self.assertEqual(len(cases), 16)
+            self.assertEqual({row["expected"] for row in cases}, {False, True})
+            self.assertTrue(all(row["reference_result"]["status"] == "returned" for row in cases))
+
     def test_tail_reference_uses_real_recursion_and_preserves_vm_budget_refusal(self):
         from tools.hia_selfhost_tailcalls import independent_tail_reference
         result = independent_tail_reference()

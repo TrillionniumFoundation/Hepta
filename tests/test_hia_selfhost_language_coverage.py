@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v13 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v14 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v13"
+PROFILE = "selfhost-core-linux-x86_64-v14"
 WIDTHS = {"u8": 8, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -145,6 +145,10 @@ def scalar_cases():
         for a in (False, True):
             for b in (False, True):
                 add("boolean", "bool", op, [a, b], (a and b) if op == "bool.and" else (a or b))
+    for op in ("compare.eq", "compare.ne"):
+        for a in (False, True):
+            for b in (False, True):
+                add("boolean", "bool", op, [a, b], a == b if op == "compare.eq" else a != b)
     for source, sw in WIDTHS.items():
         for target, tw in WIDTHS.items():
             for value in (0, 1, (1 << (sw - 1)) - 1, 1 << (sw - 1), (1 << sw) - 1):
@@ -1046,7 +1050,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
     def test_independent_core_vm_agrees_with_scalar_buffer_and_boundary_oracles(self):
         reference = independent_references()
         # Includes all unsigned scalar operations, full-width and zero divisors.
-        self.assertEqual(len(reference["scalar"]), 824)
+        self.assertEqual(len(reference["scalar"]), 832)
         self.assertTrue(all(row["reference_result"]["status"] == "trapped" for row in reference["traps"]))
         self.assertTrue(any(row["reference_result"]["status"] == "accepted" for row in reference["negative"]))
         self.assertTrue(any(row["reference_result"]["status"] == "rejected" for row in reference["negative"]))
