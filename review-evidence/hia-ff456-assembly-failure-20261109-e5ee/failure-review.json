@@ -1,0 +1,159 @@
+{
+  "schema": "hepta.ci.original-failure-readback.v1",
+  "status": "FAILURE_RETAINED",
+  "head": "ff456fd8a4df2b61f34b479c89f96ffcf65a9e5f",
+  "tree": "955dcedbd30924e5815bb106b506ec28262545e3",
+  "run_id": 42562232933,
+  "job_id": 128980954534,
+  "attempt": 1,
+  "proximate_failure": "Pinned Lean bootstrap download returned HTTP 504 on all four original attempts and exhausted the existing retry policy, ending step 11 with exit code 1.",
+  "underlying_gateway_cause": "UNKNOWN; original logs do not establish origin server, network, proxy, or CDN cause.",
+  "original_download_events": [
+    {
+      "utc": "2026-11-09T05:20:40.0565667Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 1,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:40.1338682Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 1,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 1,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:41.1340238Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 2,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:41.1891580Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 2,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 2,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:43.1893197Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 3,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:43.2479381Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 3,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": 4,
+        "exhausted": false
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:47.2481381Z",
+      "event": {
+        "component": "lean",
+        "event": "download_attempt",
+        "attempt": 4,
+        "maximum_attempts": 4
+      }
+    },
+    {
+      "utc": "2026-11-09T05:20:47.3034787Z",
+      "event": {
+        "component": "lean",
+        "event": "download_transient_failure",
+        "attempt": 4,
+        "maximum_attempts": 4,
+        "error_type": "HTTPError",
+        "http_status": 504,
+        "retry_after_seconds": null,
+        "exhausted": true
+      }
+    }
+  ],
+  "preceding_unit_suite": {
+    "tests_run": 175,
+    "planned_unique_ids": 175,
+    "failures": 0,
+    "errors": 0,
+    "skipped": [],
+    "expected_failures": [],
+    "status": "passed",
+    "duration_seconds_reported": 310.921
+  },
+  "downstream_steps_skipped": [
+    "Qualify actual C++ callback implementation migration",
+    "Qualify call expansion and chained proofs on the migrated Core",
+    "Require completed evidence and unchanged tracked source"
+  ],
+  "artifact": {
+    "id": 13651811615,
+    "bytes": 12408,
+    "sha256": "d959d6b0bc2b01e27f4a98d3bb3e4f5c32bbe5247daad14c80c8d379b60a9d2c",
+    "members": [
+      {
+        "path": "SCOPE.json",
+        "bytes": 1650,
+        "sha256": "78363ca9a7555ec13f70c876722c0d7f492fcae55789dfaab7992e83deb7f4f8"
+      },
+      {
+        "path": "UNIT_RESULT.json",
+        "bytes": 22708,
+        "sha256": "808233a0eb38b948c137b916db85d5c89135bdf11700be2bc81f6536780ac814"
+      },
+      {
+        "path": "python-packages.txt",
+        "bytes": 153,
+        "sha256": "7fec3ac777ea1893a992fc23791354ecb87d46e1e99d3045c414dce9ec708778"
+      },
+      {
+        "path": "source-sha.txt",
+        "bytes": 41,
+        "sha256": "c830b6015d680c2cbc786dcc58f270a6f5d707d14adcc99f773d760bdb3e1d79"
+      },
+      {
+        "path": "source-tree.txt",
+        "bytes": 41,
+        "sha256": "bbe00abd0dd8f1219541848ce2624b5b84d28e92fa5ebc820cd5e777a11e3d64"
+      },
+      {
+        "path": "unit-tests.log",
+        "bytes": 33159,
+        "sha256": "d5a09b16713abeeb2403193cc59281ec426e1d2fa6020a30fde882db4b014715"
+      }
+    ]
+  },
+  "scope": "This original ff456 workflow remains failed. Passing unit tests do not substitute for the skipped proof/qualification gates. Final candidate 6ecd has separate original queued workflows; no qualification is transferred.",
+  "local_project_code_solver_native_executions": 0,
+  "reruns_requested": 0,
+  "cancel_requests": 0,
+  "source_changes": 0,
+  "optional_bootstrap_blob_comparison": "Not obtained: both GitHub contents reads raised exceptions whose details were not serialized. No equality claim about bootstrap bytes at ff456 and 6ecd is made from those reads."
+}
