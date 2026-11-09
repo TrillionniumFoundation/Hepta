@@ -2588,7 +2588,7 @@
         "return_results": "f92"
       },
       "items": [
-        "one to three scalar results",
+        "zero to three scalar results",
         "exact signatures",
         "forward direct calls",
         "backward direct calls",
@@ -2615,7 +2615,7 @@
         "return_results": "f92"
       },
       "items": [
-        "direct self call immediately returning its exact one-to-three scalar result tuple in order",
+        "direct self call immediately returning its exact zero-to-three scalar result tuple in order",
         "parallel argument staging and same-frame entry jump",
         "non-tail self calls and mutual recursion rejected",
         "non-tail cycles in non-entry-reachable functions rejected"
@@ -3004,6 +3004,7 @@
   },
   "internal_scalar_result_scope": {
     "cardinality": [
+      0,
       1,
       2,
       3
@@ -3106,7 +3107,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v17",
+  "profile": "selfhost-core-linux-x86_64-v18",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -5034,13 +5035,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "c2beccf607f98ff0d9688d6570b073d15746894892caeb0059799b4675d921fb"
+      "sha256": "589c08ca7caa7ecd6f0309641f53a7a9e69adab76a84a3378069dcbdf1fc2d44"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "bbc028eb1a20efffd750c665de978e5d73544a38fcfc36e6445c38ee962d161e"
+      "sha256": "f0f39f486046d2085659727781785853da176fce78b0a0811a2503c59b67854e"
     },
-    "semantic_support_sha256": "b2083a4bf0758331b4c2b09da75a21fed1e803d49e034123da952f95914d4c6b",
+    "semantic_support_sha256": "e6d083a658ae9678430b158e43d4ca80636d3d69ae2572de7004b5f2be42e530",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5051,9 +5052,9 @@
       "core": "hepta.hia.program.v8",
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "function_names": "contiguous f0..f127",
-      "function_results": "one to three scalars internally; public f0 remains exactly u32; owners and loans cannot be returned",
+      "function_results": "zero to three scalars internally; public f0 remains exactly u32; owners and loans cannot be returned",
       "header": "hia-asm.v1",
-      "instruction_results": "zero or one; internal calls have one to three scalar results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+      "instruction_results": "zero or one; internal calls have zero to three scalar results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
       "module": "selfhost",
       "object_module": "selfhost_elf",
       "value_names": "unique per function v0..v2047",

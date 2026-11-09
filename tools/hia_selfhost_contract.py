@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v17"
+PROFILE = "selfhost-core-linux-x86_64-v18"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -25,6 +25,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_cfg_worklist.py",
     "tools/hia_selfhost_effects.py",
     "tools/hia_selfhost_multi_results.py",
+    "tools/hia_selfhost_void_results.py",
     "tools/hia_selfhost_owned_elf.py",
     "tools/hia_selfhost_owned_elf_cases.py",
     "tools/hia_selfhost_owned_flow_cases.py",
@@ -82,8 +83,8 @@ def support_contract(root=ROOT):
                    "block_names": "contiguous b0..b255 per function",
                    "value_names": "unique per function v0..v2047",
                    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
-                   "instruction_results": "zero or one; internal calls have one to three scalar results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
-                   "function_results": "one to three scalars internally; public f0 remains exactly u32; owners and loans cannot be returned",
+                   "instruction_results": "zero or one; internal calls have zero to three scalar results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+                   "function_results": "zero to three scalars internally; public f0 remains exactly u32; owners and loans cannot be returned",
                    "whitespace": "ASCII space and LF; shared assembly adjacency rules"},
         "abi": {
             "entry": "f0", "calling_convention": "SysV AMD64",
@@ -162,10 +163,10 @@ def support_contract(root=ROOT):
                        "full callee-declaration subset check at every call",
                        "exact structural-node accounting for declared effects"]},
             {"area": "calls", "status": "bounded_subset",
-             "items": ["one to three scalar results", "exact signatures", "forward direct calls",
+             "items": ["zero to three scalar results", "exact signatures", "forward direct calls",
                        "backward direct calls", "HIA-checked non-self acyclic call graph"]},
             {"area": "recursion", "status": "bounded_subset",
-             "items": ["direct self call immediately returning its exact one-to-three scalar result tuple in order",
+             "items": ["direct self call immediately returning its exact zero-to-three scalar result tuple in order",
                        "parallel argument staging and same-frame entry jump",
                        "non-tail self calls and mutual recursion rejected",
                        "non-tail cycles in non-entry-reachable functions rejected"],

@@ -30,11 +30,9 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
             if get(w, 8) == 41:
                 return fail(w, 3)
     expect(s, w, 41)
-    if count == 0:
-        return fail(w, 3)
     if get(w, 48) == 0:
         put(w, base + 184, count)
-    account_nodes(w, count - 1)
+    account_nodes(w, count)
     return first
 
 def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
@@ -79,8 +77,6 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
     i = 0
     v = 0
     t = 0
-    if count == 0:
-        return fail(w, 24)
     if get(w, 48) > 0:
         if count != get(w, base + 184):
             return fail(w, 24)
@@ -252,7 +248,8 @@ def cases():
               .replace("effects(read,write,trap)", "effects(alloc,read,write,trap)")
               + body.text() + "  ret(" + result + ")\nend\n" + helper)
     add("pair-owned-argument", source, [], [8, 201], owned=True)
-    return rows
+    from tools.hia_selfhost_void_results import cases as void_cases
+    return rows + void_cases()
 
 
 def refusals():
@@ -291,7 +288,8 @@ def refusals():
         '  v0:usize = const() {"value":8}\n  v1:buffer = buffer.new(v0)\n'
         '  v2:u32 = const() {"value":17}\n  ret(v2,v1)\nend\n')
     reject("returned-owner-second", owner, "accepted")
-    return list(rows.values())
+    from tools.hia_selfhost_void_results import refusals as void_refusals
+    return list(rows.values()) + void_refusals()
 
 
 def independent_reference():

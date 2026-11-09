@@ -61,6 +61,7 @@ BOOTSTRAP_FILES = (
     "tools/hia_selfhost_cfg_worklist.py",
     "tools/hia_selfhost_effects.py",
     "tools/hia_selfhost_multi_results.py",
+    "tools/hia_selfhost_void_results.py",
     "tools/hia_selfhost_process_owner.py", "tests/test_hia_selfhost_process_owner.py",
     "tools/replay_hia_selfhost_upgrade.py",
     "tools/generate_hia_selfhost_contract.py", "tools/replay_hia_selfhost_cold.py",

@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v17`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v18`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -198,7 +198,7 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Internal functions return one to three scalars; returned loans and owners are excluded.
+Internal functions return zero to three scalars; returned loans and owners are excluded.
 The flat profile has no owned types or allocator imports. The explicit ELF
 profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
@@ -975,3 +975,23 @@ owners/loans, arbitrary identifiers, module graphs and general linking remain
 open; the scalar supplied-ELF proof service is not widened by this change.
 Exact-source execution reports, rather than this support declaration, determine
 which native, cold-replay and language gates actually passed.
+
+## v18 empty internal result tuples
+
+Internal `fn fN(...) -> ()` and `_ = call(...)` are now ordinary native
+zero-result calls. `ret()` is valid only for an empty signature. This does not
+allow discarding a callee's scalar results, changing the public `f0` ABI,
+returning owners/loans, skipping effects or leaking owned resources. An empty
+self-call remains legal only immediately before `ret()` and uses the same-frame
+entry jump. Structural node accounting starts with the signature-independent
+base, then adds the actual result count, avoiding unsigned `count - 1` underflow.
+
+The existing `multi` family retains its 43 scalar-tuple cases and 17 refusals.
+It additionally checks 20 empty-result observations across seven programs:
+empty bodies, input-dependent writes, backward calls, both branch arms, loops,
+same-frame self-tail calls and consumed owner cleanup. Seven new refusal cases
+cover invented results, an unsupported void public entry, non-immediate tail
+returns, leaked owners, live child loans and missing write effects. All accepted
+observations are checked by the independent Core VM before B0, then by both B3
+and modified M3 in flat/ELF formats where applicable. This is finite evidence,
+not a claim that the complete HIA language or Python toolchain has been replaced.

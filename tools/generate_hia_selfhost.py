@@ -127,7 +127,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
-    account_nodes(w, 8 + count * 3)
+    account_nodes(w, 7 + count * 3)
     expect(s, w, 45)
     adjacent(w)
     expect(s, w, 62)
