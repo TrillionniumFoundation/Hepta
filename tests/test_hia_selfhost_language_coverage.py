@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v23 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v24 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -949,7 +949,12 @@ def coverage_manifest():
         "general_core_opcodes_outside_profile": sorted(set(OPCODES) - set(supported)),
         "input_types": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],
         "input_types_by_output": {"selfhost": [*scalar_types, "readbuf", "mutbuf"],
-                                  "selfhost_elf": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"]},
+                                  "selfhost_elf": [*scalar_types, "readbuf", "mutbuf", "buffer", "chain"],
+                                  "selfhost_exec": [*scalar_types, "readbuf", "mutbuf"]},
+        "executable_cli_scope": {"contract": contract["executable_cli"],
+            "qualification": "tools.qualify_hia_selfhost_cli.qualify in the cold qualification cli family",
+            "independent_reference_before_B0": True,
+            "covered_by_this_language_run": False, "all_input_correctness_proved": False},
         "signed_and_unit_scope": {"types": ["i8", "i16", "i32", "i64", "isize", "unit"],
             "qualification": ["tools.hia_selfhost_signed_cases.qualify", "tools.hia_selfhost_scalar_casts.qualify"],
             "before_B0_independent_VM": True, "all_input_correctness_proved": False},

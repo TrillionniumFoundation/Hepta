@@ -1137,3 +1137,38 @@ The unchanged 1 MiB scratch reserves one byte per SSA and one byte per block
 parameter for formal identity; these are distinct from root/parent and block ID.
 No source, SSA, block, operation, relocation or execution deadline was raised.
 This remains a finite canonical subset, not a whole-language/whole-stack claim.
+
+
+## v24 syscall-only executable compiler entry
+
+The `selfhost_exec` module selects a static Linux x86-64 ET_EXEC image. The HIA
+compiler emits its ELF headers, entry and rel32 patches itself. Its kernel entry
+uses only mmap/read/write/exit, with a non-writable executable PT_LOAD and a
+non-executable GNU_STACK; there is no PT_INTERP, libc or dynamic loader. The
+existing borrowed-buffer f0 ABI remains unchanged behind that entry. Entry
+memory is three disjoint 1 MiB regions in one anonymous private RW mapping.
+
+The filter accepts no arguments, reads source from stdin and writes compiled
+bytes to stdout. Exit codes are 0 success, 2 invalid source, 3 source/output
+capacity, 4 I/O/mmap failure and 64 unexpected argument. The bounded stdin read
+admits exactly 1 MiB and detects one byte beyond that bound. EINTR and partial
+reads/writes are handled in the machine entry; inherited SIGPIPE may terminate
+a closed-pipe write. Failed writes are not atomic filesystem publication: some
+prefix may already have escaped. No arbitrary filename opening is implemented.
+Owned/chain runtime operations remain in the separate libc-linked object profile,
+not this borrowed-buffer executable profile.
+
+The CLI qualification has independent Core VM byte-program observations and
+Core-admitted source/output-capacity fixtures established before B0. It runs
+E1/E2/E3 direct-kernel fixed points for both original and genuinely modified
+compiler source, plus an executable-only original-to-modified M1/M2/M3 chain
+(M1 differs from M2, M2 equals M3, M3 differs from original), compares unrelated
+executable and flat compilation output,
+and retains error exits for malformed input, extra arguments, over-capacity
+input/output, closed stdin, /dev/full and RLIMIT_AS-induced mmap failure.
+Each observed process is owned through the existing dedicated Linux subreaper;
+its Python setup helper replaces itself via execve and does not compile or run
+the successor. This is a finite executable filter, not replacement of the full
+production CLI, installer, package/module build pipeline, worker or interpreter.
+Source declarations here do not imply that execution gates have passed; use the
+fresh source-bound cold report for actual results.

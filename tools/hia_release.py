@@ -39,6 +39,8 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/hia_selfhost_cli.py", "tools/hia_selfhost_cli_child.py",
+    "tools/qualify_hia_selfhost_cli.py", "tests/test_hia_selfhost_cli.py",
     SUPPORT, "docs/HIA_SELF_HOSTING_CORE.md", "examples/hia_bootstrap/selfhost.hiaasm",
     "examples/hia_bootstrap/bytesum.hiaasm", "tools/hia_selfhost_child.py",
     "tools/qualify_hia_selfhost.py", "tools/generate_hia_selfhost.py",

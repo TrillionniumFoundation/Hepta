@@ -2388,6 +2388,37 @@
     "this_inventory_is_execution_evidence": false,
     "whole_HIA_language_self_hosted": false
   },
+  "executable_cli_scope": {
+    "all_input_correctness_proved": false,
+    "contract": {
+      "anonymous_rw_mapping_bytes": 3145728,
+      "arbitrary_path_opening": false,
+      "atomic_output_publication": false,
+      "exit_codes": {
+        "capacity": 3,
+        "invalid_source": 2,
+        "io_or_mmap_failure": 4,
+        "success": 0,
+        "unexpected_argument": 64
+      },
+      "interface": "no arguments; source from stdin; compiled bytes to stdout",
+      "kernel_dependencies": [
+        "mmap",
+        "read",
+        "write",
+        "exit"
+      ],
+      "output_capacity_bytes": 1048576,
+      "signals": "inherited dispositions; SIGPIPE can terminate closed-pipe writes",
+      "source_capacity_bytes": 1048576,
+      "supported_runtime_resources": "borrowed entry buffers/scalars only; owned/chain libc objects require selfhost_elf",
+      "target": "Linux x86-64 static ET_EXEC, no PT_INTERP or libc",
+      "whole_stack_cli_replaced": false
+    },
+    "covered_by_this_language_run": false,
+    "independent_reference_before_B0": true,
+    "qualification": "tools.qualify_hia_selfhost_cli.qualify in the cold qualification cli family"
+  },
   "features": [
     {
       "area": "scalar_types",
@@ -3032,6 +3063,22 @@
       "mutbuf",
       "buffer",
       "chain"
+    ],
+    "selfhost_exec": [
+      "u64",
+      "usize",
+      "u32",
+      "u8",
+      "u16",
+      "bool",
+      "i8",
+      "i16",
+      "i32",
+      "i64",
+      "isize",
+      "unit",
+      "readbuf",
+      "mutbuf"
     ]
   },
   "internal_scalar_result_scope": {
@@ -3176,7 +3223,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v23",
+  "profile": "selfhost-core-linux-x86_64-v24",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -5120,13 +5167,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "1685d94effc1c9e9586e38278d2ab9a09f23360c91b536be6278166a76a245a9"
+      "sha256": "773cd23506f17194be8b7cd656e076d8cef943dd0cac40ced6a8cf2ea05dc0c7"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "d434d57f5f1226985c855a59bfc5139b7364ae68d012ef72e4dcec1732830547"
+      "sha256": "6b5795753cb23d55b89bb14c522dd7c8c7ef6b252b7493e9d3d485b8ebf1e68e"
     },
-    "semantic_support_sha256": "54af14cb6244aa93b8194ec863b465770b69de0b372980919be4a76ba1f6c591",
+    "semantic_support_sha256": "541e98c2c0b8246664a1e25ffacecc620236bfdd69d754fcbcb4f2325bde5365",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5136,6 +5183,7 @@
       "block_names": "contiguous b0..b255 per function",
       "core": "hepta.hia.program.v8",
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
+      "executable_module": "selfhost_exec",
       "function_names": "contiguous f0..f127",
       "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",

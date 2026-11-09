@@ -36,7 +36,7 @@ COMPONENTS = (
     ("optimizer_and_proof_tools", ("hepta/hia_ndu_optimizer.py", "hepta/hia_translation_validation.py", "hepta/hia_scalar_proof_contract.py"), "open",
      "Planning/optimization/translation validation and proof construction are not rewritten; finite proof scopes do not establish whole compiler refinement."),
     ("cli_and_release", ("hepta/cli.py", "hepta/__main__.py", "tools/hia_release.py"), "open",
-     "The CLI, installation/materialization/release tools and clean-machine executable entry are not a complete HIA-only toolchain."),
+     "A bounded Linux stdin/stdout compiler ET_EXEC entry is authored in HIA and requires current-source qualification; production CLI, installation/materialization/release tools and whole clean-machine toolchain remain open."),
 )
 
 

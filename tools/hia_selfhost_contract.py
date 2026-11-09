@@ -13,8 +13,12 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v23"
+PROFILE = "selfhost-core-linux-x86_64-v24"
 SOURCE_FILES = (
+    "tools/hia_selfhost_cli.py",
+    "tools/hia_selfhost_cli_child.py",
+    "tools/qualify_hia_selfhost_cli.py",
+    "tests/test_hia_selfhost_cli.py",
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
     "tools/hia_selfhost_contract.py",
@@ -91,7 +95,7 @@ def support_contract(root=ROOT):
         "target": {"triple": "x86_64-unknown-linux-gnu", "system": "Linux",
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",
-                   "module": "selfhost", "object_module": "selfhost_elf",
+                   "module": "selfhost", "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
                    "function_names": "contiguous f0..f127",
                    "block_names": "contiguous b0..b255 per function",
                    "value_names": "unique per function v0..v2047",
@@ -113,6 +117,19 @@ def support_contract(root=ROOT):
                 "live disjoint output and workspace allocations",
                 "no concurrent input modification", "entry buffers do not escape"],
             "native_runtime_trap": "UD2 for failed bounds, checked shift, signed/unsigned checked arithmetic/cast, zero divisor or mandatory allocation",
+        },
+        "executable_cli": {
+            "target": "Linux x86-64 static ET_EXEC, no PT_INTERP or libc",
+            "interface": "no arguments; source from stdin; compiled bytes to stdout",
+            "source_capacity_bytes": 1048576, "output_capacity_bytes": 1048576,
+            "anonymous_rw_mapping_bytes": 3145728,
+            "exit_codes": {"success": 0, "invalid_source": 2, "capacity": 3,
+                           "io_or_mmap_failure": 4, "unexpected_argument": 64},
+            "arbitrary_path_opening": False, "atomic_output_publication": False,
+            "signals": "inherited dispositions; SIGPIPE can terminate closed-pipe writes",
+            "supported_runtime_resources": "borrowed entry buffers/scalars only; owned/chain libc objects require selfhost_elf",
+            "kernel_dependencies": ["mmap", "read", "write", "exit"],
+            "whole_stack_cli_replaced": False,
         },
         "compiler_symbols": {"entry": "f0", "mutation_wrapper": "f13",
                              "call_graph_checker": "f12"},
@@ -258,6 +275,7 @@ def support_contract(root=ROOT):
                                            "libc and the system dynamic loader"],
             "successor_trusted_dependencies": ["stdlib-only ctypes/mmap loader",
                 "Linux kernel", "x86-64 hardware", "caller-owned private buffers"],
+            "executable_trusted_dependencies": ["Linux kernel", "x86-64 hardware", "stdin/stdout descriptor contracts"],
             "owned_object_trusted_dependencies": ["ordinary GNU ld and system dynamic loader",
                 "libc calloc/free and their allocation/lifetime contract"],
             "allocator_qualification_dependencies": ["host C compiler and assembler for the explicit allocator witness only",

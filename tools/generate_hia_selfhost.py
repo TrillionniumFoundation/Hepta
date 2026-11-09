@@ -21,6 +21,7 @@ from tools.hia_selfhost_keywords import keyword_source
 from tools.hia_selfhost_signed import SOURCE as SIGNED_SOURCE
 from tools.hia_selfhost_traps import SOURCE as TRAP_SOURCE
 from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
+from tools.hia_selfhost_cli import SOURCE as CLI_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -29,7 +30,7 @@ WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
 WORDS += ["checked", "null"]
 WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
-WORDS += ["return_loans"]
+WORDS += ["return_loans", "selfhost_exec"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -84,10 +85,16 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(w, 232, 1)
             expect(s, w, @selfhost_elf@)
         else:
-            expect(s, w, @selfhost@)
+            if get(w, 8) == @selfhost_exec@:
+                put(w, 232, 2)
+                expect(s, w, @selfhost_exec@)
+            else:
+                expect(s, w, @selfhost@)
         expect(s, w, 10)
         if get(w, 232) == 1:
             elf_begin(o, w)
+        if get(w, 232) == 2:
+            cli_begin(o, w)
         wrapper(o, w)
         put(w, 240, get(w, 56))
         while get(w, 8) == @fn@ and get(w, 40) == 0:
@@ -105,6 +112,8 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if get(w, 232) == 1:
             chain_drop_helper(o, w)
             elf_finish(o, w)
+        if get(w, 232) == 2:
+            cli_finish(o, w)
         if phase == 1:
             if get(w, 56) > length(o):
                 return 4294967294
@@ -1710,6 +1719,7 @@ SOURCE += MULTI_RESULT_SOURCE
 SOURCE += SIGNED_SOURCE
 SOURCE += TRAP_SOURCE
 SOURCE += RETURNED_LOAN_SOURCE
+SOURCE += CLI_SOURCE
 
 
 def source_program():
@@ -1761,7 +1771,7 @@ class Builder:
         return self.block_env_keys[b['id']]
     def jump(self,b,env,keys): self.block['term']={'op':'jump','target':b['id'],'args':[env[k][0] for k in keys]}
     def total_scalar_expression(self, e):
-        # Only expressions with no calls, reads, checked shifts or other
+        # Only expressions with no unproven calls, reads, checked shifts or other
         # possible effects can replace short-circuit branches with bool ops.
         if isinstance(e, (ast.Name, ast.Constant)):
             return True
@@ -1842,7 +1852,7 @@ class Builder:
             elif isinstance(s,ast.If):
                 # Only total scalar arm expressions may be evaluated eagerly.
                 # Conditions retain ordinary short-circuit lowering. Never
-                # speculate a call, memory access or checked shift.
+                # speculate an unproven call, memory access or checked shift.
                 arm = s.body[0] if len(s.body) == 1 else None
                 other = s.orelse[0] if len(s.orelse) == 1 else None
                 if (isinstance(arm, ast.Assign) and len(arm.targets) == 1

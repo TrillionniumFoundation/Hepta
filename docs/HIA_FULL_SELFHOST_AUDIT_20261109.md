@@ -51,13 +51,13 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
 | Scanner / assembly parser | Fixed canonical `hia-asm.v1` bytes | General identifiers, full grammar and diagnostics |
-| Core validation / ownership | Fixed scalar and resource profile, CFG/call checks | Composites, returned-loan provenance, full signatures |
+| Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
 | Modules / packages / build | No full HIA replacement | Module graph, package/build/install orchestration |
 | Agent tools / persistence | Compiled leaf programs, not service rewrite | Worker/service/store/protocol implementations |
 | Optimizer / proof tools | Selected compiled kernels only | Planner, optimizer, validators and proof construction |
-| CLI / release | Public checked entry exists, host orchestrated | Standalone HIA toolchain entry and release path |
+| CLI / release | Bounded HIA Linux syscall-only compiler filter; production entry host orchestrated | Full production CLI, installation, package/build and release path |
 
 `tools/audit_hia_selfhost_closure.py --output <new.json>` inventories every live
 Python package file with AST imports and SHA-256, maps implementation authorities,
@@ -281,3 +281,45 @@ without changing any capacity. The fresh pinned source passes 43 source/referenc
 tests, 3,797 native cold checks and 1,196 language checks plus ten report asserts.
 The complete repository run remains independently active on the unchanged
 f535528 checkout; this later source is not falsely attributed to that run.
+
+
+## Implemented follow-through: v24 kernel-executable compiler filter
+
+HIA now emits a static Linux x86-64 ET_EXEC compiler entry with stdin/stdout I/O.
+It directly uses mmap/read/write/exit; no PT_INTERP, libc or dynamic loader is
+needed by this executable. The canonical borrowed-buffer compiler ABI remains
+inside it, and its original 1 MiB limits remain unchanged. It has no arbitrary
+path opening, full production CLI or installer. The syscall entry's output is
+not atomic filesystem publication, and inherited SIGPIPE remains explicit.
+
+Fresh source-only cold `v24-cold-03` passed **11/11** and native **3,837/3,837** in
+141.380 seconds under the unchanged 180-second deadline. Both original and
+modified flat chains reach byte fixed points. Both executable compiler chains
+also reproduce themselves directly through kernel exec; the original executable
+additionally builds a genuinely changed M1/M2/M3 executable chain, with M1 != M2,
+M2 == M3 and M3 != original. Independent Core VM byte-program observations and
+Core-admitted source/output-capacity fixtures precede B0. The live compiler has
+108 functions, 1,505 blocks and 7,217 operations, within the unchanged limits.
+
+Fresh language `v24-language-02` passed **1,196/1,196**, with all 10 report
+assertions passing and no skipped cases. The exact CI source-step Python body
+passed **67 tests**, and the focused source/ownership group passed 41. Earlier
+`v24-language-01` correctly failed a stale inventory; its failure is retained.
+The inventory was regenerated from reviewed actual contract/source bytes before
+the final cold and language runs, not overwritten with an old receipt.
+
+The previous GitHub source gate at `2bf39a4` failed because two unittest names
+were mistakenly joined into one import string. That is fixed by separate names
+and validated with the actual workflow step body. Prior GitHub failures,
+platform cancellations and skipped downstream jobs remain failures/gaps, not
+current-source passes. Full-repository regression on exact `f535528` is still
+running; it already exposed a missing Boost-header dependency and an independent
+C++ macro-rejection failure. It is not counted as passing. A task-local,
+package-hash-verified Boost 1.83 header tree is being used for isolated diagnosis,
+without changing the running checkout or system include tree.
+
+Whole-stack status stays OPEN: **212 Python files / 76,126 lines** remain. This
+filter does not replace general names/modules, composites, the production
+runtime/library, package/build/install pipeline, Agent worker/service/store,
+optimizer or proof construction. See `v24-executable-summary.json` in the review
+evidence directory for source identities, per-case statuses and receipt hashes.
