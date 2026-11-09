@@ -2,7 +2,7 @@
 
 Private calls use three 16-byte slots in a 64-byte aligned result area. Scalars
 use the first word; owners transfer both descriptor words without freeing them.
-Borrowed-view returns remain refused until their provenance contract is present.
+Borrowed-view returns require the exact original-formal provenance contract.
 The public f0 borrowed-buffer entry is unchanged.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ def read_result_types(s:readbuf, w:mutbuf) -> u64:
         if count >= 3:
             return fail(w, 3)
         t = read_type(s, w)
-        if scalar_type(t) != 1 and owner_type(t) != 1:
+        if scalar_type(t) != 1 and resource_type(t) != 1:
             return fail(w, 3)
         if count == 0:
             first = t
@@ -50,6 +50,9 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             return fail(w, 13)
         if owner_type(t) == 1:
             owner_free(w, v)
+        if t == 6 or t == 7:
+            returned_loan(w, v, get(w, base + 216 + count * 8))
+        put(w, 400 + count * 8, v)
         if get(w, 256) != 0:
             if v != get(w, 296 + count * 16):
                 return fail(w, 59)
@@ -57,11 +60,9 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             load_var(o, w, 0, v, 0)
             mem(o, w, 139, 2, 5, 18446744073709551608)
             mem(o, w, 137, 0, 2, count * 16)
-            if owner_type(t) == 1:
+            if resource_type(t) == 1:
                 load_var(o, w, 0, v, 1)
                 mem(o, w, 137, 0, 2, count * 16 + 8)
-        if owner_type(t) == 1:
-            owner_consume(w, v)
         count = count + 1
         if get(w, 8) != 41:
             expect(s, w, 44)
@@ -70,6 +71,10 @@ def return_results(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 41)
     if count != get(w, base + 184):
         return fail(w, 13)
+    i = 0
+    while i < count:
+        returned_consume(w, get(w, 400 + i * 8), get(w, base + 192 + i * 8))
+        i = i + 1
     loan_finish(w)
     account_nodes(w, 3 + count)
     if get(w, 256) == 0:
@@ -91,7 +96,7 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
     while i < count:
         v = get(w, 296 + i * 16)
         t = get(w, 304 + i * 16)
-        if scalar_type(t) != 1 and owner_type(t) != 1:
+        if scalar_type(t) != 1 and resource_type(t) != 1:
             return fail(w, 24)
         if get(w, 48) > 0:
             if t != get(w, base + 192 + i * 8):
@@ -101,10 +106,12 @@ def call_results(o:mutbuf, w:mutbuf, callee:u64) -> u64:
             return 0
         if owner_type(t) == 1:
             owner_produce(w, v)
+        if t == 6 or t == 7:
+            call_loan(w, base, i, v, t)
         if get(w, 256) == 0:
             mem(o, w, 139, 0, 5, 0 - frame(w) + 512 + i * 16)
             store_var(o, w, v, 0)
-            if owner_type(t) == 1:
+            if resource_type(t) == 1:
                 mem(o, w, 139, 0, 5, 0 - frame(w) + 512 + i * 16 + 8)
                 store_var(o, w, v, 1)
         i = i + 1
@@ -263,7 +270,8 @@ def cases():
     add("pair-owned-argument", source, [], [8, 201], owned=True)
     from tools.hia_selfhost_void_results import cases as void_cases
     from tools.hia_selfhost_owner_results import cases as owner_cases
-    return rows + void_cases() + owner_cases()
+    from tools.hia_selfhost_returned_loans import cases as loan_cases
+    return rows + void_cases() + owner_cases() + loan_cases()
 
 
 def refusals():
@@ -305,7 +313,8 @@ def refusals():
     # as a refusal merely because previous compiler profiles did not admit it.
     from tools.hia_selfhost_void_results import refusals as void_refusals
     from tools.hia_selfhost_owner_results import refusals as owner_refusals
-    return list(rows.values()) + void_refusals() + owner_refusals()
+    from tools.hia_selfhost_returned_loans import refusals as loan_refusals
+    return list(rows.values()) + void_refusals() + owner_refusals() + loan_refusals()
 
 
 def independent_reference():
@@ -344,7 +353,7 @@ def independent_reference():
         rejected.append({**case, "reference_result": result})
     return {"cases": accepted, "refusals": rejected,
         "before_B0": True, "all_input_correctness_proved": False,
-        "returned_resources_supported": True, "returned_loans_supported": False, "public_entry_abi_changed": False}
+        "returned_resources_supported": True, "returned_loans_supported": True, "public_entry_abi_changed": False}
 
 
 def qualify(directory, compilers, checks, reference, *, family="multi"):

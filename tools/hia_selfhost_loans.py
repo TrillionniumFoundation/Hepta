@@ -371,7 +371,7 @@ def independent_loan_reference():
                                 "general_core": "accepted", "native_profile": "rejected"})
     return {"cases": cases, "rejected": rejected, "outside_profile": outside_profile, "before_B0": True,
             "claims": {"all_input_proof": False, "owned_resources_supported": False,
-                       "returned_loans_supported": False}}
+                       "returned_loans_supported": True}}
 
 
 def qualify_loans(directory, compilers, checks, reference):

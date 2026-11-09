@@ -38,6 +38,7 @@ NEW_SUITES = (
     "tests.test_hia_selfhost_process_owner",
     "tests.test_hia_selfhost_contract",
     "tests.test_hia_selfhost_multi_results",
+    "tests.test_hia_selfhost_returned_loans",
     "tests.test_hia_selfhost_keywords",
     "tests.test_hia_selfhost_signed",
     "tests.test_hia_selfhost_traps",

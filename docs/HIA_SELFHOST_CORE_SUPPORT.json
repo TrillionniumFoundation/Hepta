@@ -54,6 +54,14 @@
     "blocks_per_function": 256,
     "blocks_total": 1536,
     "core_structural_nodes": 262144,
+    "formal_origin_block_bytes": [
+      930576,
+      955152
+    ],
+    "formal_origin_value_bytes": [
+      928528,
+      930576
+    ],
     "function_results": 3,
     "functions": 128,
     "instruction_results": 3,
@@ -72,18 +80,24 @@
     "resource_graph_queued_replays_per_block_max": 1,
     "result_signature_workspace_record_offsets": {
       "count": 184,
+      "return_loan_origins": [
+        216,
+        224,
+        232
+      ],
       "types": [
         192,
         200,
         208
       ]
     },
+    "signature_prepasses": 1,
     "source_bytes": 1048576,
     "ssa_index_max": 2047,
     "tail_self_call_additional_frames": 0,
     "workspace_required_bytes": 1048576
   },
-  "profile": "selfhost-core-linux-x86_64-v22",
+  "profile": "selfhost-core-linux-x86_64-v23",
   "required_replay": {
     "cold_command": "python -B tools/replay_hia_selfhost_cold.py --output <new-report.json>",
     "fixed_point": "B1 == B2 == B3 bytes",
@@ -109,10 +123,10 @@
       "stdlib-only disposable witness child"
     ],
     "files": {
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "3e0362051eda25d7036129ff05d150becbc7e651e32198303740668feefe823b",
-      "docs/HIA_SELF_HOSTING_CORE.md": "6c7fb0590169ffee38e896f422b3df9cea78dfa111817511dc0539ef4e7f7081",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "ddb89eb251d57914a12d3700a0a70598dda9390b19b5f6cd422ba2547b81d8c1",
+      "docs/HIA_SELF_HOSTING_CORE.md": "c950fef2427ca7ee540edc8ad4beae4d46a9e809856002b185815b0526e18f5e",
       "examples/hia_bootstrap/bytesum.hiaasm": "74bbcc3a6e0ac0962ec32017f4d8c971c91bca0f53c3de7846d65de6194ce4ae",
-      "examples/hia_bootstrap/selfhost.hiaasm": "8b0ad0feeef18376effb6e1a35b9490dbeea720175ed129f9eba7a66c4b297e2",
+      "examples/hia_bootstrap/selfhost.hiaasm": "f8528afa299693bf7e2bc36fcf8c75d25b00dfe4d58a9b0f4f04780628dcacde",
       "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
       "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
       "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
@@ -327,15 +341,16 @@
       "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
       "tests/test_hia_selfhost.py": "ef82dd652bf5801ee06d6eba0dec43c75e10c32f43e362f962206f42414b5c5f",
       "tests/test_hia_selfhost_chain.py": "2f0709e1dac4a6172670ec965e43bddeb25019770d58f530c7e79f6cd0a1073a",
-      "tests/test_hia_selfhost_contract.py": "c47d1ca3e4c7d9500c94d2e376d53ca0b7d239f46e034de6889bff74a15bac56",
+      "tests/test_hia_selfhost_contract.py": "910bf17db31f7b1023938f07e36973c7b3081154299662698ae498fe81ba9301",
       "tests/test_hia_selfhost_keywords.py": "0178813e27994ee304cef9ddacbe99269dedfb031e571e27ac03194fb7d7aa5f",
-      "tests/test_hia_selfhost_language_coverage.py": "65e441bc52d2302fa6508e45fa37c750281024706fd0c45260d772ed6829a798",
-      "tests/test_hia_selfhost_multi_results.py": "9ae298165ca7d051296b30393a6fe44e4b0f44373a0c5f84a0ce60490d83bfa6",
+      "tests/test_hia_selfhost_language_coverage.py": "b6fb1ecc739522a009c890b60203c90d6334a0f38f891b3cab4026fe393edb27",
+      "tests/test_hia_selfhost_multi_results.py": "5ceeb6ce77b3e6340c273c0789dd4781b1dbc79e78a95b9f445cbbdda1ab1ff5",
       "tests/test_hia_selfhost_owned_flow.py": "2039ce6d74b071ccbd8553053623174f79d30da68a64da5151e853af3a8d41c4",
       "tests/test_hia_selfhost_process_owner.py": "888a3b0652aed4c8b724d99792bf02b4765a5340fb8b585cc557a1f86a571fab",
+      "tests/test_hia_selfhost_returned_loans.py": "8987e10dd5cd14abd912926a555621acf9a0c4b4cf5c68ebca4f9b80827f7542",
       "tests/test_hia_selfhost_signed.py": "32c9687f838e1f9115a1ac75dfbd2ad4edf6d8c80c31369624c04a230546a0e0",
       "tests/test_hia_selfhost_traps.py": "54e68a4890cb238e154f1889033ee656a34a74059cb984d1406c23943e8175ce",
-      "tools/generate_hia_selfhost.py": "76f57f12aea93fce07d9e51af4617f083ccefacd59dcd09268605f7077611e0d",
+      "tools/generate_hia_selfhost.py": "85ad765026914cdb154710a6868b5f44eeec5d1b959bc09367c2ab6f5b51407b",
       "tools/generate_hia_selfhost_contract.py": "fa752ad75b91575419f6a389049f17a171abbb3647e2a4a0ad0bd334dd7ba980",
       "tools/hia_selfhost_batch.py": "c245170ebfbc6591aaac16be662961861d353f11190fb4e73f386e4d80952928",
       "tools/hia_selfhost_bulk.py": "076a2cd18fe0594957523343ff862a2a355a32cc417958eedca4f964ea23b661",
@@ -348,12 +363,12 @@
       "tools/hia_selfhost_chain_elf.py": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00",
       "tools/hia_selfhost_chain_flow_cases.py": "dcbfa0e3870ebd65403304aebdc80202c91b3c88e1ae163801a8daeda829d571",
       "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
-      "tools/hia_selfhost_contract.py": "05c9e2a19a5110838752e74db1233802bde6e76317e5fc6e425bd8ee712cc5c9",
+      "tools/hia_selfhost_contract.py": "d90051202ef528f0cd0ff65f84e8a5cd21fdf245e58c9f78ed5e1e67cc2a8401",
       "tools/hia_selfhost_effects.py": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf",
       "tools/hia_selfhost_keywords.py": "520ab33266a408a67135ec21390e0ad29534832ca973c3e088d4d1442e78b9cc",
       "tools/hia_selfhost_limits.py": "6bcf8c044b86a2a5a57c5b3b0f70d20b38882c3b9c29341d83e8f295efa0a783",
-      "tools/hia_selfhost_loans.py": "a5f063eadad19a8a73976a2ee2a0bb46a7cafc112484d2ee44cff7596b69504a",
-      "tools/hia_selfhost_multi_results.py": "95366421b497d47976f7cc8d6148c53055a2ff2d34cfb741c5f14407564ff060",
+      "tools/hia_selfhost_loans.py": "82f3362753857ea66de8633d50576606ec3f09e2cd317413dca292cec4ad07d4",
+      "tools/hia_selfhost_multi_results.py": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f",
       "tools/hia_selfhost_owned_elf.py": "7e971a1f80c4d22cd3e8d7bb8fb420859508f9d23a56ed00f1ab83db58c3cdde",
       "tools/hia_selfhost_owned_elf_cases.py": "f254256618628bd6f3293bbfc8bc6947eefe17aa4758d9315cd5bf6fbb1c16b9",
       "tools/hia_selfhost_owned_flow_cases.py": "ba7449c936d5214117c7a860cf587582c69f5d0cdb7ca7c36459b92244b98580",
@@ -362,6 +377,7 @@
       "tools/hia_selfhost_process_owner.py": "4fb68c370c90a6cb82f1c24f6aa57881ceafe698d6b6571fffaeb57bfc215ecf",
       "tools/hia_selfhost_references.py": "733fe9cfa43876278e3943e4bbd257b6041cf3af9e8a5ad881c16f141f331a1b",
       "tools/hia_selfhost_resources.py": "069eaaf7e077360ac290183c93eca9e7b4263dbeb8ee7a2819805634a8c46388",
+      "tools/hia_selfhost_returned_loans.py": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb",
       "tools/hia_selfhost_scalar_casts.py": "186a017ced061813e754b8c773aaea809cd3c8af949886adbc9d93e0789b77fc",
       "tools/hia_selfhost_select.py": "875aa66d76527b61c04bdd09287d44325aee0e758e65de1293072c6917c82fef",
       "tools/hia_selfhost_signed.py": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555",
@@ -503,7 +519,7 @@
     {
       "area": "calls",
       "items": [
-        "zero to three scalar or owned results",
+        "zero to three scalar, owned or parameter-bound borrowed results",
         "exact signatures",
         "forward direct calls",
         "backward direct calls",
@@ -514,7 +530,7 @@
     {
       "area": "recursion",
       "items": [
-        "direct self call immediately returning its exact zero-to-three scalar/owner result tuple in order",
+        "direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
         "parallel argument staging and same-frame entry jump",
         "non-tail self calls and mutual recursion rejected",
         "non-tail cycles in non-entry-reachable functions rejected"
@@ -555,7 +571,6 @@
         "scratch_is_heap": false
       },
       "excluded": [
-        "returned loans",
         "more than three results"
       ],
       "items": [
@@ -571,6 +586,7 @@
         "chain.head_mut",
         "owned buffer and chain parameters and results on internal calls",
         "owner root and live-descendant checks before move, drop or call",
+        "parameter-bound returned loans: exact formal origin, external/direct-child provenance, descriptor transfer and CFG origin joins",
         "borrow.read/borrow.mut from owned buffers",
         "head loans retain chain root and parent across nested loans and exact CFG joins",
         "linear owner transfers through exact capability graph edges"
@@ -581,11 +597,10 @@
     {
       "area": "general_core_checker",
       "items": [
-        "general function result shapes including resource-bearing results",
+        "unbounded result arities and composite resource-bearing results",
         "module graph",
         "arbitrary identifiers",
-        "all resource combinations",
-        "returned parameter loans"
+        "all resource combinations"
       ],
       "status": "not_implemented"
     },
@@ -627,9 +642,9 @@
     "core": "hepta.hia.program.v8",
     "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
     "function_names": "contiguous f0..f127",
-    "function_results": "zero to three scalars or owned buffer/chain values internally; public f0 remains exactly u32; returned loans are refused",
+    "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
     "header": "hia-asm.v1",
-    "instruction_results": "zero or one; internal calls have zero to three scalar or owned results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+    "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
     "module": "selfhost",
     "object_module": "selfhost_elf",
     "value_names": "unique per function v0..v2047",

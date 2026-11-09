@@ -63,6 +63,7 @@ BOOTSTRAP_FILES = (
     "tools/hia_selfhost_multi_results.py",
     "tools/hia_selfhost_void_results.py",
     "tools/hia_selfhost_owner_results.py",
+    "tools/hia_selfhost_returned_loans.py",
     "tools/hia_selfhost_keywords.py",
     "tools/hia_selfhost_signed.py",
     "tools/hia_selfhost_signed_cases.py",
@@ -80,6 +81,7 @@ BOOTSTRAP_FILES = (
     "tests/test_hia_selfhost_owned_flow.py",
     "tests/test_hia_selfhost_chain.py",
     "tests/test_hia_selfhost_multi_results.py",
+    "tests/test_hia_selfhost_returned_loans.py",
     "tests/test_hia_selfhost_language_coverage.py", "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
 )
 ENTRY_FILES = ("README.md", "docs/HIA_RELEASE_ENTRY.md", "tools/hia_release.py", "tools/hia_candidate_preflight.py",

@@ -46,12 +46,15 @@ def snapshot():
     return {"sha256": sha256(raw).hexdigest(), "files": files}
 
 
-def inventory():
+def inventory(*, repository_wide=False):
     rows = []
-    for path in sorted(set((ROOT / "tests").glob("test_hia*.py"))
-                       | set((ROOT / "tests").glob("test_core_seven_shared*.py"))):
+    paths = (set((ROOT / "tests").rglob("test*.py")) if repository_wide else
+             set((ROOT / "tests").rglob("test_hia*.py"))
+             | set((ROOT / "tests").rglob("test_core_seven_shared*.py")))
+    for path in sorted(paths):
         data = path.read_bytes()
-        row = {"path": path.relative_to(ROOT).as_posix(), "module": "tests." + path.stem,
+        row = {"path": path.relative_to(ROOT).as_posix(),
+               "module": ".".join(path.relative_to(ROOT).with_suffix("").parts),
                "sha256": sha256(data).hexdigest()}
         try:
             tree = ast.parse(data, filename=str(path))
@@ -64,11 +67,11 @@ def inventory():
     return rows
 
 
-def qualify():
+def qualify(*, repository_wide=False):
     started = time.monotonic_ns()
     before = snapshot()
     initial_status = os.fsdecode(git("status", "--porcelain", "--untracked-files=all"))
-    modules = inventory()
+    modules = inventory(repository_wide=repository_wide)
     suite = unittest.defaultTestLoader.loadTestsFromNames([row["module"] for row in modules])
     expected = _ids(suite)
     result = unittest.TextTestRunner(stream=sys.stdout, verbosity=2, resultclass=Result).run(suite)
@@ -82,7 +85,9 @@ def qualify():
                   or not stable or initial_status or final_status)
     ok = not failed and not gaps and complete
     return {"schema": "hepta.hia.full-test-inventory.v1",
-        "status": "FULL_HIA_TESTS_PASS" if ok else "FAIL" if failed else "OPEN_TEST_OR_PLATFORM_GAPS",
+        "status": ("FULL_REPOSITORY_TESTS_PASS" if repository_wide else "FULL_HIA_TESTS_PASS")
+                  if ok else "FAIL" if failed else "OPEN_TEST_OR_PLATFORM_GAPS",
+        "inventory_scope": "all_repository_unittests" if repository_wide else "hia_and_shared_core",
         "ok": ok, "completed_utc": datetime.now(timezone.utc).isoformat(),
         "elapsed_ns": time.monotonic_ns() - started,
         "git_head": os.fsdecode(git("rev-parse", "HEAD")).strip(),
@@ -100,7 +105,8 @@ def qualify():
         "expected_failures": [{"id": t.id(), "traceback": trace} for t, trace in result.expectedFailures],
         "unexpected_successes": [t.id() for t in result.unexpectedSuccesses],
         "claims": {"whole_stack_rewritten_in_hia": False, "all_input_correctness_proved": False,
-                   "all_platforms_qualified": False, "non_HIA_repository_tests_included": False},
+                   "all_platforms_qualified": False,
+                   "non_HIA_repository_tests_included": repository_wide},
         "notes": ["AST method counts are static inventory, not executed-case counts",
                   "class-setup failures/skips can prevent expected test IDs from starting",
                   "all skipped and expected-failure records remain open, not passes",
@@ -122,9 +128,11 @@ def normalize_report_path(value, root=ROOT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--repository-wide", action="store_true",
+                        help="include every live tests/**/test*.py, not only HIA/shared Core modules")
     args = parser.parse_args()
     output = normalize_report_path(args.output)
-    report = qualify()
+    report = qualify(repository_wide=args.repository_wide)
     with output.open("x") as stream:
         json.dump(report, stream, sort_keys=True, indent=2)
         stream.write("\n")

@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v22"
+PROFILE = "selfhost-core-linux-x86_64-v23"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -27,6 +27,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_multi_results.py",
     "tools/hia_selfhost_void_results.py",
     "tools/hia_selfhost_owner_results.py",
+    "tools/hia_selfhost_returned_loans.py",
     "tools/hia_selfhost_keywords.py",
     "tools/hia_selfhost_signed.py",
     "tools/hia_selfhost_signed_cases.py",
@@ -68,6 +69,7 @@ SOURCE_FILES = (
     "tests/test_hia_selfhost_chain.py",
     "tests/test_hia_selfhost_language_coverage.py",
     "tests/test_hia_selfhost_multi_results.py",
+    "tests/test_hia_selfhost_returned_loans.py",
     "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
 )
 
@@ -94,8 +96,8 @@ def support_contract(root=ROOT):
                    "block_names": "contiguous b0..b255 per function",
                    "value_names": "unique per function v0..v2047",
                    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
-                   "instruction_results": "zero or one; internal calls have zero to three scalar or owned results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
-                   "function_results": "zero to three scalars or owned buffer/chain values internally; public f0 remains exactly u32; returned loans are refused",
+                   "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
+                   "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
                    "whitespace": "ASCII space and LF; shared assembly adjacency rules"},
         "abi": {
             "entry": "f0", "calling_convention": "SysV AMD64",
@@ -122,7 +124,7 @@ def support_contract(root=ROOT):
             "instruction_results": 3, "function_results": 3,
             "internal_result_area_bytes": 64, "internal_result_stride_bytes": 16,
             "internal_result_descriptor_words": 2, "internal_frame_overhead_bytes": 576,
-            "result_signature_workspace_record_offsets": {"count": 184, "types": [192, 200, 208]},
+            "result_signature_workspace_record_offsets": {"count": 184, "types": [192, 200, 208], "return_loan_origins": [216, 224, 232]},
             "instructions": MAX_INSTRUCTIONS, "core_structural_nodes": MAX_CORE_NODES,
             "relative_relocations": MAX_RELOCATIONS,
             "acyclic_call_depth_max": 128,
@@ -132,6 +134,9 @@ def support_contract(root=ROOT):
             "resource_graph_queue_entries_per_function": 256,
             "resource_graph_queue_workspace_start": 926480,
             "resource_graph_queue_workspace_end_exclusive": 928528,
+            "formal_origin_value_bytes": [928528, 930576],
+            "formal_origin_block_bytes": [930576, 955152],
+            "signature_prepasses": 1,
         },
         "capacity_derivation": {
             "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,
@@ -177,10 +182,10 @@ def support_contract(root=ROOT):
                        "full callee-declaration subset check at every call",
                        "exact structural-node accounting for declared effects"]},
             {"area": "calls", "status": "bounded_subset",
-             "items": ["zero to three scalar or owned results", "exact signatures", "forward direct calls",
+             "items": ["zero to three scalar, owned or parameter-bound borrowed results", "exact signatures", "forward direct calls",
                        "backward direct calls", "HIA-checked non-self acyclic call graph"]},
             {"area": "recursion", "status": "bounded_subset",
-             "items": ["direct self call immediately returning its exact zero-to-three scalar/owner result tuple in order",
+             "items": ["direct self call immediately returning its exact zero-to-three scalar/owner/loan result tuple in order",
                        "parallel argument staging and same-frame entry jump",
                        "non-tail self calls and mutual recursion rejected",
                        "non-tail cycles in non-entry-reachable functions rejected"],
@@ -194,10 +199,11 @@ def support_contract(root=ROOT):
                        "chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut",
                        "owned buffer and chain parameters and results on internal calls",
                        "owner root and live-descendant checks before move, drop or call",
+                       "parameter-bound returned loans: exact formal origin, external/direct-child provenance, descriptor transfer and CFG origin joins",
                        "borrow.read/borrow.mut from owned buffers",
                        "head loans retain chain root and parent across nested loans and exact CFG joins",
                        "linear owner transfers through exact capability graph edges"],
-             "excluded": ["returned loans", "more than three results"],
+             "excluded": ["more than three results"],
              "chains": {"node_bytes": 24, "descriptor": "head pointer with zero spare word",
                  "push": "consume chain and buffer; success returns extended chain, empty buffer, true; null allocation returns both inputs in fresh owner names and false",
                  "pop": "consume chain; nonempty returns tail and owned payload after freeing node; empty returns empty chain, empty buffer, false",
@@ -213,8 +219,8 @@ def support_contract(root=ROOT):
                  "workspace_is_heap": False,
                  "assumptions": ["ordinary libc allocator contract", "Linux SysV AMD64 linkage and loader"]}},
             {"area": "general_core_checker", "status": "not_implemented",
-             "items": ["general function result shapes including resource-bearing results", "module graph",
-                       "arbitrary identifiers", "all resource combinations", "returned parameter loans"]},
+             "items": ["unbounded result arities and composite resource-bearing results", "module graph",
+                       "arbitrary identifiers", "all resource combinations"]},
             {"area": "successor_output", "status": "bounded_subset",
              "items": ["flat position-independent x86-64 image",
                        "HIA-written relative call and branch relocations"]},

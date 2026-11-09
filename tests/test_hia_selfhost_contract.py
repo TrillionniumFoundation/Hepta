@@ -54,7 +54,7 @@ class SelfhostContractTests(unittest.TestCase):
         self.assertEqual(owned["items"][:4], ["buffer.new", "buffer.try_new", "owner.move", "owner.drop"])
         self.assertFalse(owned["allocation"]["workspace_is_heap"])
         self.assertEqual(owned["allocation"]["imports"], ["calloc", "free"])
-        self.assertEqual(owned["excluded"], ["returned loans", "more than three results"])
+        self.assertEqual(owned["excluded"], ["more than three results"])
         self.assertEqual(contract["limits"]["internal_result_area_bytes"], 64)
         self.assertEqual(contract["limits"]["internal_result_stride_bytes"], 16)
         self.assertEqual(contract["limits"]["internal_result_descriptor_words"], 2)

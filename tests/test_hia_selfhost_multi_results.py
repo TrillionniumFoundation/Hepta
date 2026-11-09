@@ -12,8 +12,8 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
         cls.reference = independent_reference()
 
     def test_tuple_values_match_independent_full_width_core_vm_observations(self):
-        self.assertEqual(len(self.reference["cases"]), 88)
-        self.assertEqual(len({case["program"] for case in self.reference["cases"]}), 29)
+        self.assertEqual(len(self.reference["cases"]), 124)
+        self.assertEqual(len({case["program"] for case in self.reference["cases"]}), 41)
         for case in self.reference["cases"]:
             self.assertEqual(case["reference_result"]["status"], "returned")
             expected = ([case["expected_result"], *bytes.fromhex(case["expected_hex"])] if case["reference_entry"] == "reference_entry"
@@ -30,7 +30,7 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
         self.assertIn(1 << 63, values)
         self.assertTrue(any(case["owned_elf_only"] for case in cases()))
         self.assertTrue(self.reference["returned_resources_supported"])
-        self.assertFalse(self.reference["returned_loans_supported"])
+        self.assertTrue(self.reference["returned_loans_supported"])
         self.assertFalse(self.reference["public_entry_abi_changed"])
         self.assertFalse(self.reference["all_input_correctness_proved"])
 
@@ -39,7 +39,7 @@ class SelfhostMultiResultSourceTests(unittest.TestCase):
         self.assertEqual(len(void), 20)
         self.assertEqual({case["program"] for case in void}, {
             "void-empty", "void-write", "void-backward", "void-branch", "void-loop", "void-tail", "void-owned"})
-        old = [case for case in self.reference["cases"] if not case["program"].startswith(("void-", "owner-"))]
+        old = [case for case in self.reference["cases"] if not case["program"].startswith(("void-", "owner-", "loan-"))]
         self.assertEqual(len(old), 43)
         negatives = {case["id"]: case for case in self.reference["refusals"]}
         self.assertEqual(negatives["call-discarded-results"]["reference_result"]["status"], "rejected")

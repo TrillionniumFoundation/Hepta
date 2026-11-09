@@ -20,6 +20,7 @@ from tools.hia_selfhost_multi_results import SOURCE as MULTI_RESULT_SOURCE
 from tools.hia_selfhost_keywords import keyword_source
 from tools.hia_selfhost_signed import SOURCE as SIGNED_SOURCE
 from tools.hia_selfhost_traps import SOURCE as TRAP_SOURCE
+from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -28,6 +29,7 @@ WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
 WORDS += ["checked", "null"]
 WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
+WORDS += ["return_loans"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -40,6 +42,10 @@ CBASE, CSTATE = 858368, 874752
 # Current-block capability records use previously unused workspace. No public
 # source, output, workspace, block or SSA ceiling changes.
 CAPBASE, KBASE, CAPTMP, QBASE = 875776, 924928, 926464, 926480
+# One-byte original formal identities; 0 means no external borrowed origin.
+# Separate from block identity and resource parent/root, including at CFG joins.
+ORIGINBASE, BLOCKORIGIN = 928528, 930576
+# BLOCKORIGIN + 1536 * 16 == 955152 < the unchanged 1 MiB workspace.
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
@@ -58,6 +64,7 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     while i < 1536:
         store(w, KBASE + i, 0)
         i = i + 1
+    put(w, 432, 1)
     while phase < 3:
         i = 0
         while i < 256:
@@ -101,7 +108,10 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if phase == 1:
             if get(w, 56) > length(o):
                 return 4294967294
-        phase = phase + 1
+        if phase == 0 and get(w, 432) == 1:
+            put(w, 432, 0)
+        else:
+            phase = phase + 1
     fix_all(o, w)
     if get(w, 40) != 0:
         return 4294967295
@@ -156,6 +166,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         fail(w, 4)
     adjacent(w)
     expect(s, w, 41)
+    read_return_loans(s, w)
     expect(s, w, 10)
     if f == 0:
         if count != 3 or rt != 3 or get(w, fb + 184) != 1:
@@ -172,7 +183,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         fail(w, 6)
     if get(w, 48) == 0:
         put(w, fb + 16, get(w, 96))
-        if get(w, 40) == 0:
+        if get(w, 40) == 0 and get(w, 432) == 0:
             check_graph(s, o, w)
     return 0
 
@@ -678,6 +689,7 @@ def define(w:mutbuf, v:u64, t:u64) -> u64:
     if get(w, VBASE + v * 16) != 0:
         return fail(w, 38)
     put(w, VBASE + v * 16, t)
+    store(w, ORIGINBASE + v, 0)
     put(w, VBASE + v * 16 + 8, get(w, 88) + 1)
     if t >= 6 and t <= 9:
         put(w, CAPBASE + v * 24, v)
@@ -1004,7 +1016,7 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
         put(w, 0, pos)
         return 0
     c = byte(s, pos)
-    if c == 10 or c == 40 or c == 41 or c == 44 or c == 58 or c == 61 or c == 123 or c == 125 or c == 45 or c == 62:
+    if c == 10 or c == 40 or c == 41 or c == 44 or c == 58 or c == 61 or c == 123 or c == 125 or c == 45 or c == 62 or c == 91 or c == 93:
         put(w, 8, c)
         put(w, 0, pos + 1)
         return 0
@@ -1040,7 +1052,7 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
             if get(w, 0) != pos:
                 fail(w, 48)
             if quoted == 1:
-                if c != 102:
+                if c != 102 and c != 118:
                     fail(w, 49)
                 put(w, 0, pos + 1)
             kind = 256
@@ -1048,6 +1060,8 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
                 kind = 257
             if c == 98:
                 kind = 258
+            if c == 118 and quoted == 1:
+                kind = 260
             put(w, 16, val)
         else:
             fail(w, 50)
@@ -1449,6 +1463,7 @@ def loan_operation(w:mutbuf, op:u64, n:u64, a:u64, at:u64, t:u64) -> u64:
     return loan_borrow(w, a, t)
 
 def loan_produce(w:mutbuf, v:u64, a:u64) -> u64:
+    store(w, ORIGINBASE + v, byte(w, ORIGINBASE + a))
     put(w, CAPBASE + v * 24, get(w, CAPBASE + a * 24))
     put(w, CAPBASE + v * 24 + 8, a + 1)
     put(w, 280, get(w, 280) + 1)
@@ -1497,6 +1512,9 @@ def loan_call(w:mutbuf, n:u64) -> u64:
     return 0
 
 def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
+    if get(w, 432) == 1:
+        put(w, 264, 0)
+        return 0
     put(w, 280, 0)
     put(w, 352, 0)
     i = 0
@@ -1504,12 +1522,17 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
     packed = 0
     root = 0
     parent = 0
+    origin = 0
     if block == 0:
         while i < 16:
             packed = 0
             if i < count and resource_type(get(w, bb + 40 + i * 16)) == 1:
                 packed = i | (i << 4)
             store(w, bb + 304 + i, packed)
+            origin = 0
+            if i < count and (get(w, bb + 40 + i * 16) == 6 or get(w, bb + 40 + i * 16) == 7):
+                origin = i + 1
+            store(w, BLOCKORIGIN + get(w, 88) * 16 + i, origin)
             i = i + 1
         store(w, KBASE + get(w, 88), 1)
     put(w, 264, byte(w, KBASE + get(w, 88)))
@@ -1522,6 +1545,7 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
     i = 0
     while i < count:
         v = get(w, bb + 32 + i * 16)
+        store(w, ORIGINBASE + v, byte(w, BLOCKORIGIN + get(w, 88) * 16 + i))
         if resource_type(get(w, bb + 40 + i * 16)) == 1:
             packed = byte(w, bb + 304 + i)
             root = packed & 15
@@ -1562,6 +1586,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     root = 0
     parent = 0
     packed = 0
+    origin = 0
     while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
@@ -1584,11 +1609,17 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     i = 0
     while i < 16:
         packed = byte(w, CAPTMP + i)
+        origin = 0
+        if i < n:
+            origin = byte(w, ORIGINBASE + get(w, ARGS + i * 8))
         if byte(w, KBASE + bid) == 1:
+            if origin != byte(w, BLOCKORIGIN + bid * 16 + i):
+                return fail(w, 62)
             if packed != byte(w, BBASE + bid * BSTRIDE + 304 + i):
                 return fail(w, 62)
         else:
             store(w, BBASE + bid * BSTRIDE + 304 + i, packed)
+            store(w, BLOCKORIGIN + bid * 16 + i, origin)
         i = i + 1
     if byte(w, KBASE + bid) == 0:
         if get(w, 384) >= 256:
@@ -1678,12 +1709,13 @@ SOURCE += effect_source(W)
 SOURCE += MULTI_RESULT_SOURCE
 SOURCE += SIGNED_SOURCE
 SOURCE += TRAP_SOURCE
+SOURCE += RETURNED_LOAN_SOURCE
 
 
 def source_program():
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
-    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE',
+    for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
                 'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
         text = text.replace(key, str(globals()[key]))
     return text

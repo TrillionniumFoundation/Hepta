@@ -228,3 +228,43 @@ retains module-load failures, actual executed IDs, all skips and expected failur
 and never promotes platform gaps or finite tests into whole-stack closure.
 Non-HIA repository tests and real cross-target/hardware runs remain separately
 required where applicable; this full HIA run has not yet been reported passed.
+
+## Actual full HIA test run and v23 follow-through
+
+The exact b4d332b checkout derived 474 modules / 4,393 static methods and ran
+4,388 unittest cases in 1,217.640 seconds. It **FAILED**: four failures, eighteen
+errors and 299 skips. Source bytes stayed unchanged; expected case IDs were not
+all started because class setup and platform gaps prevented some execution.
+The source-bound public summary retains every failing/error ID and all skip
+reasons (`v22-all-hia-tests-summary.json`). Static methods are not run counts.
+
+One actual defect was resolving a rustup proxy to `rustup` before execution,
+which changes argv[0] dispatch. Preflight now executes the requested absolute
+path while separately pinning resolved bytes and rejecting rebinding/drift.
+Actual Rust compilation plus a multicall-alias regression and existing tamper
+controls pass. Missing pinned Rust 1.90, Clang20, QEMU and native-profile inputs
+remain real qualification gaps until supplied and run; no skip is a pass.
+
+The next compiler stage implements internal parameter-bound returned loans:
+exact external formal identity through CFG renaming, forward/backward calls,
+shared tuple slots, swapped formal order, caller-owned parent views and checked
+self-tail returns. Returned values are all validated before consumption, and
+the caller creates local child capabilities rather than inventing external
+roots. The public ABI and existing capacity/deadline ceilings are unchanged.
+This does not replace the still-Python runtime, modules/build, CLI, Agent worker
+and optimizer/proof stack, or establish complete language/refinement closure.
+
+The final v23 cold replay passed 11/11 and 3,797/3,797 checks, with 124 tuple
+observations and 47 refusals (36/16 specifically for returned loans). Both
+original and changed compilers reach distinct fixed points. Language coverage
+passed 1,196/1,196 plus all ten retained report assertions. The earlier language
+run failed only its duplicated stale profile label (1,195/1,196), remains retained,
+and was corrected by importing the source-bound contract profile. This is not
+a claim that the first full-repository test run passed.
+
+The inventory runner now also has `--repository-wide`, deriving every live
+`tests/**/test*.py` (730 modules at this stage), including non-HIA language,
+module/package, C-migration, runtime and frontend tests. It retains their exact
+IDs, source snapshot, load/setup failures and gaps independently of the narrower
+HIA-only run. All three inventory/path controls pass; execution requires an
+exact clean checkout and actual tool/native-profile inputs.

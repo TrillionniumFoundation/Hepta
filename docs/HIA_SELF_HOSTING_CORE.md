@@ -1119,3 +1119,21 @@ at once under the existing qualification budget. Source/family/payload hashes
 and actual child PIDs are checked before B0; every B/M generation remains
 sequential. This scheduling does not reuse native witness children, relax their
 limits, or establish full-language/whole-stack correctness.
+
+## v23 parameter-bound borrowed results
+
+The bounded native compiler admits internal readbuf/mutbuf results only with
+`return_loans(["vN",null,...])` matching the result tuple. The named formal must
+be a borrowed input with sufficient permission. A returned loan must retain that
+exact formal origin through CFG renaming, have no children, and be external or
+a direct child of an external input. Every result is checked before any returned
+capability is consumed. Callers receive both descriptor words and a local child
+loan tied to the actual argument. The public f0 ABI is unchanged.
+
+One signature-only pass precedes the original semantic/size/write passes, so
+forward-call result origins are available before checking any body. The first
+pass does not admit resource graphs; all bodies are checked on the second pass.
+The unchanged 1 MiB scratch reserves one byte per SSA and one byte per block
+parameter for formal identity; these are distinct from root/parent and block ID.
+No source, SSA, block, operation, relocation or execution deadline was raised.
+This remains a finite canonical subset, not a whole-language/whole-stack claim.

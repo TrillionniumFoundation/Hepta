@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v22 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v23 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v22"
+from tools.hia_selfhost_contract import PROFILE
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -959,7 +959,7 @@ def coverage_manifest():
             "all_input_correctness_proved": False},
         "internal_scalar_result_scope": {
             "cardinality": [0, 1, 2, 3], "public_entry": "unchanged f0(readbuf,mutbuf,mutbuf)->u32",
-            "types": scalar_types, "returned_resources_supported": True, "returned_loans_supported": False,
+            "types": scalar_types, "returned_resources_supported": True, "returned_loans_supported": True,
             "owned_result_types": ["buffer", "chain"], "private_result_stride_bytes": 16,
             "private_result_area_bytes": 64,
             "combinations": ["forward/backward direct calls", "branches", "loop-carried values",

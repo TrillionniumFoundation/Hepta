@@ -211,11 +211,13 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
         for name in ("codex", "clang", "rustc"):
             try:
                 report["probes"][name + "_version"] = {
-                    "passed": True, "process": _owned([report["tools"][name]["path"], "--version"],
+                    "passed": True, "process": _owned([report["requested_tool_paths"][name], "--version"],
                         folder, folder / (name + "-version"), wall_seconds)}
             except Exception as exc:
                 report["probes"][name + "_version"] = {"passed": False, "error": str(exc)}
-        command = [report["tools"]["codex"]["path"]]
+        # Preserve argv[0] dispatch for symlinked/multicall tools (notably rustup).
+        # Resolved bytes remain pinned separately and rechecked at completion.
+        command = [report["requested_tool_paths"]["codex"]]
         # Expose only these documented local path settings. Paths are always
         # fresh children of the admitted output; there is no arbitrary config,
         # home relocation, permission or thread-store selector in this API.
@@ -257,7 +259,7 @@ def preflight(output, *, codex, clang, rustc, campaign=None, registered_paths=No
         for language, tool in (("hia", "clang"), ("rust", "rustc")):
             try:
                 report["probes"][language + "_native"] = _native_probe(
-                    language, report["tools"][tool]["path"], folder / (language + "-native"), wall_seconds)
+                    language, report["requested_tool_paths"][tool], folder / (language + "-native"), wall_seconds)
             except Exception as exc:
                 report["probes"][language + "_native"] = {"passed": False, "error": str(exc)}
         report["tools_unchanged"] = all(identity(path) == report["tools"][name]

@@ -252,6 +252,28 @@ class AgentPreflightTests(unittest.TestCase):
         self.assertFalse(result["passed"])
         self.assertFalse(result["tools_unchanged"])
 
+    def test_multicall_tool_preserves_requested_argv0_and_pins_resolved_bytes(self):
+        alias = self.root / "rustc-alias"
+        alias.symlink_to(self.tools["rustc"])
+        self.tools["rustc"] = str(alias)
+        commands, native = [], []
+        actual = self.fake_process
+        def record(argv, *args, **kwargs):
+            commands.append(argv)
+            return actual(argv, *args, **kwargs)
+        def compile_probe(language, executable, *args):
+            native.append((language, executable))
+            return {"passed": True}
+        with patch.object(probe, "run_owned", side_effect=record), \
+                patch.object(probe, "_native_probe", side_effect=compile_probe):
+            result = probe.preflight(self.root / "result", **self.tools)
+        self.assertTrue(result["passed"], result)
+        self.assertIn([str(alias), "--version"], commands)
+        self.assertIn(("rust", str(alias)), native)
+        self.assertEqual(result["tools"]["rustc"], identity(alias))
+        self.assertNotEqual(result["tools"]["rustc"]["path"], str(alias))
+        self.assertTrue(result["tools_unchanged"])
+
     def test_requested_tool_symlink_rebinding_cannot_preserve_readiness(self):
         selected = self.root / "selected-codex"
         selected.symlink_to(self.tools["codex"])

@@ -24,7 +24,7 @@ COMPONENTS = (
     ("assembly_frontend", ("hepta/hia_agent_assembly.py",), "partial",
      "HIA scanner/parser implements the declared fixed assembly grammar only; arbitrary names and full syntax remain open."),
     ("core_verifier_and_resources", ("hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
-     "Native fixed-profile checks exist; composite elaboration, returned-loan provenance and general result signatures remain open; bounded owner tuples are implemented."),
+     "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification."),
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py"), "open",
      "Core reference interpreter, general runtime/task/I/O and production library are not rewritten as HIA."),
     ("native_backend_and_linker", ("hepta/hia_program_native.py", "hepta/hia_program_aarch64.py", "hepta/hia_program_llvm.py"), "partial",

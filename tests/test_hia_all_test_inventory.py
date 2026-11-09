@@ -6,6 +6,15 @@ from tools.qualify_hia_all_tests import ROOT, inventory, normalize_report_path
 
 
 class FullHIAInventoryTests(unittest.TestCase):
+    def test_repository_mode_includes_non_hia_tests_without_replacing_hia_inventory(self):
+        rows = inventory(repository_wide=True)
+        expected = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tests").rglob("test*.py")}
+        self.assertEqual({row["path"] for row in rows}, expected)
+        self.assertEqual(len(rows), len(expected))
+        self.assertLess({row["path"] for row in inventory()}, expected)
+        self.assertTrue(any(not row["module"].startswith("tests.test_hia")
+                            for row in rows))
+
     def test_every_live_hia_and_shared_acceptance_module_is_included_once(self):
         rows = inventory()
         expected = {p.relative_to(ROOT).as_posix() for p in (ROOT / "tests").rglob("test_hia*.py")}
