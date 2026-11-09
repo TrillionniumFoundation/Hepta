@@ -90,6 +90,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
         observation = {"stdin": study.wire(request), "native_identity": plan["native"]["identity"],
             "response_admitted": True, "error": None, "authored_unit_fixture": True,
             "pump": {"started": True, "pid": 1234, "cleanup_confirmed": True, "streams_complete": True,
+                "wall_ns": 20,
                 "eof": {"stdout": True, "stderr": True}, "returncode": 0, "error": None,
                 "stdout": study.wire(response)+b"\n", "stderr": b""}}
         row = {"pair": 1, "arm": "ndu", "status": "completed", "call_error": None,
@@ -99,6 +100,45 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             "cpu_ns": {"parent": 10, "children": 5}}
         self.retain(row, result, observation)
         return case, plan, row, result, observation
+
+    def test_native_pump_wall_is_exact_and_contained_in_completed_call(self):
+        for invalid in (None, True, 20.0, -1, 31):
+            case, plan, row, result, observation = self.fixture()
+            if invalid is None:
+                observation["pump"].pop("wall_ns")
+            else:
+                observation["pump"]["wall_ns"] = invalid
+            self.retain(row, result, observation)
+            for audit in (study.audit_completed, study.audit_retained_attempt):
+                with self.subTest(invalid=invalid, audit=audit.__name__), self.assertRaisesRegex(
+                        ValueError, "native pump wall"):
+                    audit(row, case, plan, self.store)
+
+    def test_native_pump_interval_accepts_zero_and_exact_call_boundary(self):
+        for wall in (0, 30):
+            case, plan, row, result, observation = self.fixture()
+            observation["pump"]["wall_ns"] = wall
+            self.retain(row, result, observation)
+            for audit in (study.audit_completed, study.audit_retained_attempt):
+                with self.subTest(wall=wall, audit=audit.__name__):
+                    self.assertEqual(audit(row, case, plan, self.store), "alpha")
+
+    def test_failed_and_audit_error_attempts_cannot_bypass_pump_wall_check(self):
+        for status in ("failed", "completed"):
+            for invalid in (None, True, 20.0, -1, 31):
+                case, plan, row, result, observation = self.fixture()
+                if invalid is None:
+                    observation["pump"].pop("wall_ns")
+                else:
+                    observation["pump"]["wall_ns"] = invalid
+                row.update(status=status, audit_error={"authored_fixture": True})
+                if status == "failed":
+                    row["call_error"] = {"authored_fixture": True}
+                    result = None
+                self.retain(row, result, observation)
+                with self.subTest(status=status, invalid=invalid), self.assertRaisesRegex(
+                        ValueError, "native pump wall"):
+                    study.audit_retained_attempt(row, case, plan, self.store)
 
     def retain(self, row, result, observation):
         row["result"] = self.store.json(result)
@@ -158,6 +198,7 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             cpu_ns={"parent": 3, "children": 0}, input_sha256=study.digest(frozen),
             result=self.store.json(result), observations=self.store.json([]))
         partial = {"stdin": b"authored incomplete request", "pump": {
+            "wall_ns": 11,
             "stdout": b"authored partial reply", "stderr": b"authored diagnostic",
             "streams_complete": False}}
         rows[1].update(status="failed", wall_ns=17, start_offset_ns=9, end_offset_ns=26,
@@ -395,6 +436,29 @@ class RetainedScalarOuterIntervalTests(unittest.TestCase):
         costs["admission_capture_export_audit_wall_ns"] = 0
         files["SUMMARY.json"] = study.wire(summary)
         with self.assertRaisesRegex(ValueError, "attempted call ends outside"):
+            self.verify_files(files)
+
+    def test_review_4509674154_one_ns_calls_cannot_contain_original_native_pumps(self):
+        files = dict(self.files)
+        summary = study.decode(files["SUMMARY.json"])
+        rows = summary["cells"]
+        for row in rows:
+            if row["arm"] == "ndu":
+                row["wall_ns"] = 1
+                row["end_offset_ns"] = row["start_offset_ns"] + 1
+                files[f"cell-{row['pair']:02d}-ndu.json"] = study.wire(row)
+        # Recompute the attacker's summary without admitting these costs. The
+        # actual verify below must audit the unchanged original pump records.
+        plan = study.decode(files["PLAN.json"])
+        with patch.object(study, "audit_retained_attempt",
+                          side_effect=lambda row, case, plan, store: case["expected_id"]):
+            summary.update(study.results_summary(rows, plan, None))
+        costs = summary["measurement"]
+        costs["all_attempted_call_wall_ns"] = sum(row["wall_ns"] for row in rows)
+        costs["admission_capture_export_audit_wall_ns"] = (
+            costs["outer_wall_ns_to_summary_preparation"] - costs["all_attempted_call_wall_ns"])
+        files["SUMMARY.json"] = study.wire(summary)
+        with self.assertRaisesRegex(ValueError, "native pump wall"):
             self.verify_files(files)
 
     def test_original_outer_times_cannot_be_replaced_by_equal_python_floats(self):

@@ -316,6 +316,7 @@ def audit_completed(row, case, plan, store):
             and len(observations) == 1, "one actual native observation required")
     native, identity = observations[0], plan["native"]["identity"]
     pump = native["pump"]
+    audit_pump_wall(pump, row)
     require(native["response_admitted"] is True and native["error"] is None
             and native["native_identity"] == result["native_identity"] == identity,
             "native identity or admission differs")
@@ -355,6 +356,14 @@ def audit_completed(row, case, plan, store):
             and selection["request_sha256"] == digest(request) and resolved == case["expected_id"]
             and selection["incremental_ndu_advantage_established"] is False, "caller selection differs")
     return result["selected_id"]
+
+
+def audit_pump_wall(pump, row):
+    """A retained inner pump cannot outlast the complete enclosing call."""
+    if pump is not None:
+        require(type(pump) is dict and type(pump.get("wall_ns")) is int
+                and 0 <= pump["wall_ns"] <= row["wall_ns"],
+                "invalid native pump wall or pump exceeds enclosing call")
 
 
 def descriptive(values):
@@ -404,6 +413,7 @@ def audit_retained_attempt(row, case, plan, store):
         require(pump is None or (type(pump) is dict
                 and type(pump.get("stdout")) is bytes and type(pump.get("stderr")) is bytes),
                 "original native stream bytes missing")
+        audit_pump_wall(pump, row)
     if status == "failed":
         require(type(row.get("call_error")) is dict and retained_result is None,
                 "failed call must retain its error and absent result")

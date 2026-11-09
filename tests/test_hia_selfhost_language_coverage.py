@@ -1162,7 +1162,7 @@ class SelfhostLanguageNativeTests(unittest.TestCase):
         groups = {row["id"] for row in self.report["positive"]}
         for group in groups:
             self.assertEqual({row["compiler"] for row in self.report["positive"] if row["id"] == group}, {"B3", "M3"})
-        self.assertEqual(self.report["reference"]["scalar_cases"], 824)
+        self.assertEqual(self.report["reference"]["scalar_cases"], 832)
 
     def test_negative_inputs_are_transactionally_rejected_by_both_compilers(self):
         self.assertTrue(self.report["negative"])
