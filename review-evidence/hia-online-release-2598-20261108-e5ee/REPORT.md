@@ -142,3 +142,7 @@ changes to `releases/hia-current.json`.
 After publication, retain the actual main public-installation CI and obtain a
 new formal describe/read pair against the then-current main lock. Record that
 pair separately from this preparation-time capture.
+
+## Later post-merge record — 2026-11-09
+
+The preparation-time gate above is retained as it was recorded. [The separate post-merge record](postmerge-REPORT.md) binds main `bd4b846359a7f3200593750304aa744422221793`, its successful public installation and retained-readback CI, the initial formal-read transport timeout, and a later successful independent formal read against the unchanged original v9 lock. It does not reclassify this earlier capture as post-merge or transfer historical qualification to a new source.

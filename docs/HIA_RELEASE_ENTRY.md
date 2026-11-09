@@ -68,6 +68,10 @@ compatible with this selected source; both helper files are byte-identical to
 the source-CI inventory. The metadata README and materialized source README may
 differ because the source lock measures the implementation checkout.
 
+### Recorded post-merge observation — 2026-11-09
+
+PR #818 merged as `bd4b846359a7f3200593750304aa744422221793`. That main commit passed its own [public installation CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552762057) and [retained online-readback CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42552762051). A separately recorded formal describe and 8192-byte read then returned the complete 7048-byte manifest; the unchanged checker matched all three installation identities to the actual main lock. [The post-merge record](../review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-REPORT.md) retains the earlier 16384-byte read timeout, its historical-operation recovery and the successful independent observation. It establishes a timestamped manifest readback, not a newly executed worker or loaded runtime-binary attestation. The preparation-time record and its pending gates remain historical statements; this linked follow-up discharges those gates for this unchanged v9 selection. The six-item overall acceptance remains HOLD.
+
 ## Bound identities
 
 | Contract component | Measured identity and acceptance |

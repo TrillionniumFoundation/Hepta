@@ -53,3 +53,9 @@ jobs:
           set -euo pipefail
           python -B review-evidence/hia-online-release-2598-20261108-e5ee/replay.py > "$RUNNER_TEMP/hia-2598-readback.json"
           diff -u review-evidence/hia-online-release-2598-20261108-e5ee/verification-replay.json "$RUNNER_TEMP/hia-2598-readback.json"
+      - name: Replay the post-merge public-install and independent formal readback record
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -B review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-replay.py > "$RUNNER_TEMP/hia-2598-postmerge-readback.json"
+          diff -u review-evidence/hia-online-release-2598-20261108-e5ee/postmerge-verification-replay.json "$RUNNER_TEMP/hia-2598-postmerge-readback.json"
