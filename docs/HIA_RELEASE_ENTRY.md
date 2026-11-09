@@ -13,45 +13,60 @@ source release. The metadata checkout is not the worker installation.
 
 ## Selected unified source — 2026-11-08
 
-This metadata candidate selects Hepta `321daf28ef230a532f0f382469a9f6fc4f4fa249`, runtime
-`4cd85c99c5f5a480832c48fbde8561bb365f67a9`, and the exact CI-produced release lock
-SHA256 `1c4b747721bfc215549512287d62febbadfaf7bce3cd2b6baafeed3d67a10c18`. The release identifier is `hia-sixgap-ci-321daf28ef230a532f0f382469a9f6fc4f4fa249`.
+This metadata selects Hepta `2598f4309791d3a023cd5df585ad26810b20c744`,
+tree `4c073a29839eff1e75fbcc6dd28db4108c04160c`, and runtime
+`4cd85c99c5f5a480832c48fbde8561bb365f67a9`. The selected profile is
+`selfhost-core-linux-x86_64-v9`; the release identifier is
+`hia-sixgap-ci-2598f4309791d3a023cd5df585ad26810b20c744`.
 
-The [source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42497221761)
-and [native scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42497221815)
-qualify the same selected source SHA. The source job retains the original
-`release-lock.json`, successful `freeze` and `check`, native/SMT qualification,
-cold selfhost replay and declared input-language coverage. The scalar job retains
-the exact native build receipt and actual wire response, and requires all named
-integration tests plus the named native regression to finish with zero skips.
+The public lock is the unchanged 37,527-byte `release-lock.json` from the
+successful [exact source CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42503095942).
+Its SHA256 is
+`9000d6eaa089f6bed92ea07a6561d91381a6f913263f0b1016d4f99e8789c1d3`.
+The complete original artifact has SHA256
+`e05ffacd052fd71de606457afd3c19d89cb514c346a7b8431085274fb54e353e`;
+the GitHub artifact metadata and downloaded bytes independently agree.
+The same source's [NDU scalar integration CI](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42503095787)
+also completed successfully. The source CI retains freeze/check, direct native
+qualification, 83 Agent native tests, cold selfhost replay, proof checks and
+the declared language-profile coverage. These are the original records for
+this source, not measurements transferred from another release.
 
-This source preserves the Safe Core loader allocation-flag binding repair and
-the explicit caller policy for ambiguous scalar Pareto ties. It adds scoped
-results to all five public scalar SMT validation APIs, expands the versioned
-HIA selfhost compiler, and binds the repository-task instructions, recorder and
-proof regression sources in the public release lock. The new compiler profile
-is `selfhost-core-linux-x86_64-v8`; the exact source run passed
-`456` language checks, including the retained fixed-point,
-mutation, rejection and dependency-closure evidence.
+The [current reconciliation record](../review-evidence/hia-online-release-2598-20261108-e5ee/REPORT.md)
+retains a complete formal `h.hia_describe` / `h.hia_read` capture. The unchanged
+main checker verifies its manifest and all three worker/backend/catalog
+identities against this original source-CI lock. The same capture fails against
+the preceding public `321daf28` lock; that mismatch is retained. Independent
+read-only source inventory checks found the observed worker equal to the
+selected clean `2598f430` source. The observed source selection already existed;
+this metadata change performs no online configuration change or service restart.
 
-These qualification results preserve their declared proof and language scope.
-Whole general-Core selfhosting and a universal Core-to-machine theorem remain
-open. Two actual fresh CLI attempts at the public repository task failed with
-`HTTP400 model_not_found` before running repository commands; their original
-records remain retained. Model billing and complete interaction costs are
-unknown. A separately registered [fresh Agent repository study](HIA_FRESH_AGENT_SELECT_RESULTS_20261108.md) completed the actual select patch, 298 native language checks, 189 nested cold checks and six separate C-consumer inputs; a later frozen-patch rerun passed 35 tests. Compatible service adoption, complete historical interaction capture and full provider costs remain incomplete. Those independent-study results retain their original source and v6 profile. The preceding c821 release also records a distinct learner patch and finite evaluation; its [original record](../review-evidence/hia-sixgap-20261108-c184/prior-main1205-sixgap.json) is retained separately with its own source and incomplete lifecycle/cost scope. The separate [four-pair native control experiment](HIA_NATIVE_NDU_RESULTS_20261108.md)
-completed on historical source `d1c97d22`; one of four pairs favored NDU, and
-the experiment established no stable time or economic benefit. Those measurements
-are not transferred to this selected successor.
+The capture predates this metadata publication. Public installation CI on the
+actual metadata commit and a fresh formal readback after its merge remain
+separate acceptance records. This offline replay is not itself a fresh endpoint
+observation. The lock's original qualification flags remain byte-for-byte
+unchanged, including its source-only and deployment boundaries.
 
-Public materialization from this metadata commit, normal main adoption, and an
-independent live endpoint version readback are separate remaining observations.
-The current main README discovery entry and public installation checks are preserved exactly. The metadata
-checkout and materialized implementation checkout may have different README
-bytes; the source lock measures the latter. The frozen source-only qualification
-fields stay unchanged. Read the current [six-gap record](HIA_SIXGAP_20261108.json)
-for exact evidence and remaining obligations. Earlier snapshots below retain
-their original versions and scope.
+General Core selfhosting, whole-compiler machine correctness, the unfamiliar
+Agent's full lifecycle and stable NDU economic value remain open. The separate
+v13 candidate retains its own source, CI and release obligations. The original
+`321daf28` qualifications in the status documents and historical sections below
+retain their earlier subjects; they do not become proofs of this selection.
+The [six-gap record](HIA_SIXGAP_20261108.json) and
+[proof/Core/machine record](HIA_PROOF_CORE_MACHINE_STATUS.json) now expose this
+current release selection separately from those historical qualification fields.
+
+A recovery-time diagnostic on the preceding `321daf28` checkout executed 69
+native boundary tests: 68 passed and one deadline test failed after evaluation
+admission observed the original context budget had expired. Its full redacted
+log and original-log digest are retained with the reconciliation record. The
+3,000 ms context limit and production budgets were not changed. That diagnostic
+is not substituted for the selected `2598f430` source's own CI.
+
+The main README discovery command, release entry and preflight helper remain
+compatible with this selected source; both helper files are byte-identical to
+the source-CI inventory. The metadata README and materialized source README may
+differ because the source lock measures the implementation checkout.
 
 ## Bound identities
 

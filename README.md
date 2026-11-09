@@ -11,6 +11,12 @@ and runtime commits, file inventories, worker identity, backend and tool catalog
 The [release guide](docs/HIA_RELEASE_ENTRY.md) records the selected release and
 its acceptance evidence.
 
+The selected public source is `2598f4309791d3a023cd5df585ad26810b20c744`,
+with the bounded `selfhost-core-linux-x86_64-v9` profile. The
+[current release reconciliation](review-evidence/hia-online-release-2598-20261108-e5ee/REPORT.md)
+records its original source-CI lock and the matching captured online identity.
+Later v13 work retains its separate candidate and qualification scope.
+
 On Linux x86-64, install Git, Python 3.11 or newer and GNU binutils, then use new
 absolute paths for the three directories below:
 
