@@ -6,6 +6,12 @@ independent machine proof and actual adopted consumer calls. It uses the existin
 local HIA Agent service and its real native children. It does not select a public
 release, activate the online worker or claim a fresh model learned the language.
 
+> V2 follow-up status: the current source was recovered after the local executor
+> became unavailable. Its final qualification is pending. The earlier four-width
+> archive below remains historical v1 evidence. See
+> [the recovery record](../review-evidence/hia-scalar-chain-replay-recovery-20261109-728f/README.md)
+> for the completed earlier checks, interrupted final suite and required gates.
+
 ## Program family and mathematical contract
 
 For `u8`, `u32`, `u64` and `usize`, the specification is
@@ -88,14 +94,62 @@ contexts and rehashes the planned artifact chain. It also checks u64 carry
 coverage and that an ordinary valid-Core implementation with the wrong capped
 result fails the mathematical specification.
 
-`tools/replay_hia_scalar_adoption_chain.py` accepts the complete four-type packet,
-an independently selected `--expected-manifest-sha256`, and a new `--output`
-file. It rehashes the original packet and replays all 52 retained queries in
-fresh solver contexts. This read-only replay does not load native code or create
-a second adoption observation. The exact-source CI adds the new focused tests,
-the full four-type qualification and this replay as an independent step; all
-original steps remain. The existing upload step retains the new receipts and
-failure logs inside its original output root.
+The qualifier now exports a **v2 packet**. Besides the original objects, images
+and queries, it retains the admitted canonical Core bytes, seven complete profile
+definitions, context/workload/objective/cost-policy originals, every proof's
+evidence and assumptions, and the actual adoption and rollback receipt bytes.
+Every exported artifact retains its full original ID, URI and SHA-256 in the
+family's `exports` map. The private service database is still unnecessary for
+independent reading.
+
+`tools/replay_hia_scalar_adoption_chain.py` accepts the complete four-type v2
+packet, an independently selected `--expected-manifest-sha256`, and a new
+`--output` file. Its default acceptance requires all of the following:
+
+1. Read and hash the selected manifest and all evidence members, retaining the
+   same immutable bytes for every subsequent comparison. A report or dependency
+   missing from that manifest cannot supply evidence.
+2. Reconstruct the exact Core, complete profiles, plan, two original objects and
+   final images, ABI, proof subjects and assumptions, evaluation, adopted
+   generation and rollback from their original receipts. Check all 125 native
+   workload observations per image, eight initial owner calls and both rollback
+   owner calls, plus the complete intent/response journal. The summary identity
+   chain must equal this reconstruction. When the separately reviewed adoption
+   identity projection is present, its complete contents must agree as well.
+3. Recompute the mathematical specification and both independent machine-model
+   validations from the original Core/object/image bytes. Require the same
+   checker and actual solver identities and byte-identical regenerated queries.
+   Retain these new queries and results beside the replay JSON in a new
+   `.recomputed` directory. This path never calls an emitter, linker, native
+   runner or service owner.
+4. Replay the 52 original queries once more in fresh solver contexts. These are
+   the **same 52 obligations** checked by the regeneration stage; the two passes
+   are not 104 different mathematical obligations.
+
+The v2 replay reports `complete_artifact_chain_checked=true` only after the
+whole selected matrix passes. `--types u32`, for example, explicitly requests a
+single-type replay and cannot qualify the omitted types. The default remains
+`u8 u32 u64 usize`. The nine added regression methods check missing originals,
+complete artifact references, ABI and generation inconsistencies, every owner
+result, journal completeness, query inventories, changed bytes, solver identity,
+and historical scope; one method also verifies that fresh model checks never
+invoke emission, linkage or native execution.
+
+Historical v1 evidence remains unchanged. It did not export all of the receipt
+dependencies needed for the new complete-chain reader. It therefore requires
+the explicit `--legacy-query-only` option and returns
+`status=passed_saved_queries_only` with `complete_artifact_chain_checked=false`.
+Its saved-query result cannot satisfy the v2 gate. The exact-source CI runs both
+focused test modules without skips, then requires a fresh full v2 qualification,
+four complete reconstructed chains and both 52-query passes.
+
+This read-only replay does not create a second native execution or authenticate
+the original machine operator independently. The caller-selected manifest and
+the original qualification provenance remain necessary. Matching references,
+recorded observations and freshly solved independent models do not prove the
+Python checker, hardware ISA, operating-system loader or foreign resource
+liveness in a proof-assistant kernel. All such flags remain false, as do
+execution authority, complete compiler-buffer refinement and economic benefit.
 
 ## Acceptance boundary
 

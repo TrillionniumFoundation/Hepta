@@ -194,22 +194,39 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
             service = HIAAgentService(Path(temporary) / "state")
             client = ToolClient(service.call, journal=record)
             session = Session(client, prefix=campaign_id + "/" + typ)
+            row["exports"] = {}
 
             def capture(reference, filename):
                 data = session.read(reference)
                 (directory / filename).write_bytes(data)
+                row["exports"][filename] = dict(reference)
                 return json.loads(data) if filename.endswith(".json") else data
 
+            def capture_proof(reference, name):
+                proof = capture(reference, name + "-proof.json")
+                for check in proof["checks"]:
+                    capture(check["evidence_artifact"], name + "-" + check["claim"] + "-evidence.json")
+                    capture(check["assumptions_artifact"], name + "-" + check["claim"] + "-assumptions.json")
+                return proof
+
+            capture(session.discovery["manifest"], "installation-manifest.json")
+            for name, reference in session.manifest["profile_manifests"].items():
+                capture(reference, "profile-" + name + ".json")
             session.freeze(workload)
             candidate = session.import_program(document)
             require(candidate["sha256"] == specification["core_sha256"], "specification and imported Core differ")
-            session.freeze(workload, baseline=candidate, objective=objective)
+            capture(candidate, "core.hia.json")
+            frozen = session.freeze(workload, baseline=candidate, objective=objective)
+            context_record = capture(frozen["manifest"], "context.json")
+            capture(context_record["workload"], "workload.json")
+            capture(context_record["objective"], "objective.json")
+            capture(context_record["budget"]["cost_policy"], "cost-policy.json")
             row.update(phase="emission", candidate=candidate, context=session.context)
             save()
             core_check = session.verify(candidate, base=candidate,
                                         claims=["core_admission", "behavior_equivalence"])
             require(all(check["status"] == "proved" for check in core_check["checks"]), "Core claims did not pass")
-            capture(core_check["verification_receipt"], "core-proof.json")
+            capture_proof(core_check["verification_receipt"], "core")
             plan = {"schema": "hepta.hia.agent.block-layout.v1", "core_sha256": candidate["sha256"],
                     "block_order": {"capped_add": ["entry", "limited", "room", "sum"]}}
             plan_ref = session.artifact(plan)
@@ -218,7 +235,7 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
                 "kind": "agent_machine_plan", "backend_profile": session.backend,
                 "plan_profile": session.profiles["plan"], "plan": plan_ref})
             require(plan_check["checks"][0]["status"] == "proved", "explicit layout was not accepted")
-            capture(plan_check["verification_receipt"], "plan-proof.json")
+            capture_proof(plan_check["verification_receipt"], "plan")
             canonical = session.emit(candidate, receipts=[core_check["verification_receipt"]])
             planned = session.emit(candidate, receipts=[core_check["verification_receipt"]], codegen={
                 "kind": "agent_plan", "plan_profile": session.profiles["plan"], "plan": plan_ref,
@@ -250,7 +267,7 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
                         "proof and emitted plan differ")
             encoded = session.encoding(candidate, planned)
             require(encoded["checks"][0]["status"] == "proved", "actual encoding identity check incomplete")
-            capture(encoded["verification_receipt"], "encoding-proof.json")
+            capture_proof(encoded["verification_receipt"], "encoding")
             # Conditional plan preservation is required for emission. Only the
             # independent final-image proof is supplied for adoption's lowering claim.
             receipts = [core_check["verification_receipt"], encoded["verification_receipt"],
@@ -271,6 +288,7 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
                 expected_current={"generation": "0", "epoch": "0"}, candidate_artifact=planned["native_artifact"],
                 evaluation_receipt=evaluation["evaluation_receipt"], verification_receipts=receipts))
             row["adoption"] = adoption
+            capture(adoption["adoption_receipt"], "adoption.json")
             lease = service.acquire_slot(slot)
             observations = []
             try:
@@ -289,6 +307,7 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
                     expected_current=adoption["current"], retained_generation=adoption["previous"]["generation"],
                     reason="qualification restores the independently verified canonical artifact"))
                 require(rollback["active_artifact"] == canonical["native_artifact"], "rollback selected another artifact")
+                capture(rollback["rollback_receipt"], "rollback.json")
                 old = service.invoke_lease(lease, "capped_add", [1, 1, 1])
                 require(old["artifact"] == planned["native_artifact"], "rollback changed an in-flight lease")
                 restored = service.acquire_slot(slot)
@@ -312,7 +331,14 @@ def qualify_family(typ, directory, row, *, campaign_id, save):
                     "target_profile": builds["planned"]["target_profile"],
                     "backend_profile": builds["planned"]["backend_profile"],
                     "abi_signatures": builds["planned"]["signatures"],
+                    "context_manifest": frozen["manifest"],
+                    "core_proof": core_check["verification_receipt"],
+                    "plan_proof": plan_check["verification_receipt"],
+                    "encoding_proof": encoded["verification_receipt"],
                     "machine_proof": machine_proofs["planned"]["verification_receipt"],
+                    "evaluation_receipt": evaluation["evaluation_receipt"],
+                    "adoption_receipt": adoption["adoption_receipt"],
+                    "rollback_receipt": rollback["rollback_receipt"],
                     "adoption": adoption, "owner_artifact": observations[0]["observation"]["artifact"]},
                 full_search_cost_complete=ledger["full_search_cost_complete"],
                 net_optimization_benefit_proved=False)
@@ -337,7 +363,7 @@ def main(argv=None):
     require(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"},
             "the existing Linux x86-64 qualification target is required")
     args.output.mkdir(parents=True, exist_ok=False)
-    report = {"schema": "hepta.hia.scalar-adoption-chain.v1", "status": "started",
+    report = {"schema": "hepta.hia.scalar-adoption-chain.v2", "status": "started",
         "specification": SPECIFICATION, "types": args.types, "campaign_id": args.campaign_id,
         "mode": "in_process_domain_service_with_actual_native_children", "families": [],
         "source": source_identity(), "claims": {

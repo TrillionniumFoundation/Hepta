@@ -52,9 +52,10 @@ jobs:
           ulimit -c 0
           python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-tests.log"
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_scalar_adoption_chain')
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_scalar_adoption_chain', 'tests.test_hia_scalar_chain_replay'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not (result.wasSuccessful() and result.testsRun >= 3
+          if not (result.wasSuccessful() and result.testsRun >= 12
                   and not result.skipped and not result.expectedFailures):
               raise SystemExit('capped-add tests must complete without skips')
           PY
@@ -64,6 +65,7 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-chain.log"
           python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-sixgap/scalar-adoption-replay.log"
           from hashlib import sha256
+          import json
           import os
           from pathlib import Path
           import subprocess
@@ -74,6 +76,11 @@ jobs:
           subprocess.run([sys.executable, '-B', 'tools/replay_hia_scalar_adoption_chain.py',
               '--input', str(packet), '--expected-manifest-sha256', manifest,
               '--output', str(root / 'scalar-adoption-replay.json')], check=True)
+          replay = json.loads((root / 'scalar-adoption-replay.json').read_bytes())
+          assert replay['status'] == 'passed' and replay['complete_artifact_chain_checked'] is True
+          assert len(replay['families']) == 4 and len(replay['queries']) == 52
+          assert sum(row['fresh_queries_checked'] for row in replay['recomputed']) == 52
+          assert replay['fresh_native_execution'] is False and replay['kernel_checked_isa_proof'] is False
           PY
       - name: Qualify borrowed-buffer lifecycle and the unchanged frozen compiler
         shell: bash
