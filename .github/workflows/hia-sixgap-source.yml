@@ -55,7 +55,7 @@ jobs:
           suite = unittest.defaultTestLoader.loadTestsFromNames((
               'tests.test_hia_scalar_adoption_chain', 'tests.test_hia_scalar_chain_replay'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          if not (result.wasSuccessful() and result.testsRun >= 12
+          if not (result.wasSuccessful() and result.testsRun >= 16
                   and not result.skipped and not result.expectedFailures):
               raise SystemExit('capped-add tests must complete without skips')
           PY

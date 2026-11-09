@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 TYPES = ("u8", "u32", "u64", "usize")
 REQUIRED_CLAIMS = ("core_admission", "behavior_equivalence", "encoding_check", "lowering_refinement")
+REQUIRED_PROFILES = {"compiler", "target", "backend", "artifact", "validation", "lowering", "plan"}
 SPECIFICATION_OBLIGATIONS = (
     ("unsigned_input_domain_nonvacuous", "sat"),
     ("core_always_returns_and_preserves_caller_bytes", "unsat"),
@@ -139,27 +140,57 @@ def _check_proof(packet, family, filename, claims, subject, context, installatio
     return record
 
 
-def _check_journal(packet, family):
+def _check_journal(packet, family, context, evaluation, adoption, rollback):
     events = [json.loads(line) for line in packet.read(family["type"] + "/calls.jsonl").splitlines()]
     require(len(events) == 2 * family["tool_call_count"], "tool journal is incomplete")
     responses = []
+    request_keys = set()
     for index in range(0, len(events), 2):
         intent, response = events[index:index + 2]
         require(intent["phase"] == "intent" and response["phase"] == "response"
                 and intent["sequence"] == response["sequence"] == index // 2 + 1
                 and intent["tool"] == response["tool"] and intent["arguments"] == response["arguments"]
                 and response["response"]["status"] == "completed", "tool intent/response journal differs")
+        request_key = intent["arguments"].get("request_key")
+        if request_key is not None:
+            require(type(request_key) is str and 0 < len(request_key) <= 192
+                    and request_key not in request_keys, "journal mutation request identity differs")
+            request_keys.add(request_key)
         responses.append(response)
+    expected = {
+        "hia_evaluate": {"baseline_artifact": evaluation["baseline_artifact"],
+            "candidate_artifact": evaluation["candidate_artifact"],
+            "build_receipt": evaluation["build_receipt"],
+            "verification_receipts": evaluation["verification_receipts"]},
+        "hia_adopt": {"target_slot": adoption["target_slot"], "expected_current": adoption["previous"],
+            "candidate_artifact": adoption["active_artifact"],
+            "evaluation_receipt": adoption["evaluation_receipt"],
+            "verification_receipts": adoption["verification_receipts"]},
+        "hia_rollback": {"target_slot": rollback["target_slot"], "expected_current": rollback["previous"],
+            "retained_generation": rollback["current"]["generation"], "reason": rollback["reason"]},
+    }
+    sequences = []
     for tool, key in (("hia_evaluate", "evaluation"), ("hia_adopt", "adoption"), ("hia_rollback", "rollback")):
         selected = [row for row in responses if row["tool"] == tool]
         require(len(selected) == 1 and selected[0]["response"]["result"] == family[key],
                 "recorded " + tool + " response differs from the selected result")
+        row = selected[0]
+        arguments = row["arguments"]
+        fields = {**expected[tool], "catalog_sha256": context["catalog_sha256"],
+                  "context": family["context"]}
+        require(set(arguments) == set(fields) | {"request_key"}
+                and type(arguments["request_key"]) is str and arguments["request_key"] in request_keys
+                and all(arguments[name] == value for name, value in fields.items()),
+                "journal request differs from its original receipt: " + tool)
+        sequences.append(row["sequence"])
+    require(sequences[0] < sequences[1] < sequences[2], "journal operation order differs")
     return len(responses)
 
 
 def check_family(packet, report, family):
     """Reconstruct chain edges from original artifacts, not from summary links."""
     from hepta.hia_program import verify_program
+    from hepta.hia_machine_plan import preservation_checks
     from tools.qualify_hia_scalar_adoption_chain import SPECIFICATION, witness_vectors
 
     typ = family["type"]
@@ -172,7 +203,8 @@ def check_family(packet, report, family):
     installation = report["source"]["installation"]
     manifest = packet.artifact(family, "installation-manifest.json")
     require(manifest["installation"] == installation, "recorded installation manifest differs")
-    require(set(manifest["profiles"]) == set(manifest["profile_manifests"]), "profile definition inventory differs")
+    require(set(manifest["profiles"]) == set(manifest["profile_manifests"]) == REQUIRED_PROFILES,
+            "original profile inventory differs")
     for name, reference in manifest["profile_manifests"].items():
         packet.artifact(family, "profile-" + name + ".json", reference)
         require(reference["sha256"] == manifest["profiles"][name]["sha256"], "profile definition digest differs")
@@ -216,7 +248,8 @@ def check_family(packet, report, family):
             "equivalence baseline is not the same exact Core")
     plan_subject = {"kind": "agent_machine_plan", "backend_profile": manifest["profiles"]["backend"],
                     "plan_profile": manifest["profiles"]["plan"], "plan": plan_ref}
-    _check_proof(packet, family, "plan-proof.json", ("lowering_refinement",), plan_subject, context, installation)
+    plan_proof = _check_proof(packet, family, "plan-proof.json", ("lowering_refinement",),
+                              plan_subject, context, installation)
     builds, proofs = {}, {}
     for mode in ("canonical", "planned"):
         emitted = family[mode]
@@ -266,11 +299,33 @@ def check_family(packet, report, family):
                     "machine query is not bound to its obligation")
             packet.artifact(family, mode + "-" + query["name"], query["artifact"])
         builds[mode], proofs[mode] = build, evidence
+    plan_evidence = packet.reference(family, plan_proof["checks"][0]["evidence_artifact"])
+    require(plan_evidence["plan"] == plan and plan_evidence["choice_checks"] == preservation_checks(plan, core)
+            and plan_evidence["canonical_object_sha256"] == builds["canonical"]["object_sha256"]
+            and plan_evidence["planned_object_sha256"] == builds["planned"]["object_sha256"]
+            and plan_evidence["canonical_frame_bytes"] == builds["canonical"]["native_build"]["function_frames"]
+            and plan_evidence["planned_frame_bytes"] == builds["planned"]["native_build"]["function_frames"]
+            and plan_evidence["same_slots"] is True and plan_evidence["same_frame_sizes"] is True
+            and plan_evidence["canonical_frame_bytes"] == plan_evidence["planned_frame_bytes"]
+            and plan_evidence["implicit_optimizer_used"] is False,
+            "plan proof evidence differs from the exact plan and original objects")
     require(family["canonical"]["native_artifact"]["sha256"] != family["planned"]["native_artifact"]["sha256"],
             "the two retained layouts are not distinct")
     planned_subject = {"kind": "native_artifact", "backend_profile": builds["planned"]["backend_profile"],
         "native_artifact": family["planned"]["native_artifact"], "build_receipt": family["planned"]["build_receipt"]}
-    _check_proof(packet, family, "encoding-proof.json", ("encoding_check",), planned_subject, context, installation)
+    encoding_proof = _check_proof(packet, family, "encoding-proof.json", ("encoding_check",),
+                                  planned_subject, context, installation)
+    encoding_evidence = packet.reference(family, encoding_proof["checks"][0]["evidence_artifact"])
+    rederived = encoding_evidence["native_build"]
+    original_native = builds["planned"]["native_build"]
+    # Reemission happened in a different temporary directory. Its command paths
+    # are execution records, while every other native-build identity must agree.
+    require(encoding_evidence["rederived_sha256"] == family["planned"]["native_artifact"]["sha256"]
+            and encoding_evidence["no_llvm_or_external_assembler"] is True
+            and set(rederived) == set(original_native)
+            and {key: value for key, value in rederived.items() if key != "commands"}
+                == {key: value for key, value in original_native.items() if key != "commands"},
+            "encoding proof evidence differs from the selected native build")
     receipts = [family["exports"][name] for name in
                 ("core-proof.json", "encoding-proof.json", "planned-machine-proof.json")]
     evaluation = packet.artifact(family, "evaluation.json", family["evaluation"]["evaluation_receipt"])
@@ -386,7 +441,7 @@ def check_family(packet, report, family):
         "adoption_receipt": family["exports"]["adoption.json"], "rollback_receipt": family["exports"]["rollback.json"],
         "adoption": family["adoption"], "owner_artifact": adoption["active_artifact"]}
     require(family["identity_chain"] == expected_chain, "declared identity chain differs from original evidence reconstruction")
-    calls = _check_journal(packet, family)
+    calls = _check_journal(packet, family, context, evaluation, adoption, rollback)
     return {"type": typ, "status": "consistent", "identity_chain": expected_chain,
             "tool_calls_checked": calls, "original_artifacts_checked": len(family["exports"]),
             "recorded_owner_calls_checked": len(observations), "abi_signatures": abi}

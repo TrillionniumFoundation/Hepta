@@ -123,6 +123,112 @@ class ScalarChainReplayTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "journal is incomplete"):
             check_family(packet, self.report, self.family)
 
+    def assert_dependency_rejected(self, filename, mutate, message):
+        packet = self.isolated_packet()
+        actual_reference = packet.reference
+        reference = self.family["exports"][filename]
+        inconsistent = deepcopy(actual_reference(self.family, reference))
+        mutate(inconsistent)
+
+        def read(family, selected):
+            # Keep original artifact/hash reads intact, then isolate the
+            # relationship check from its independently validated dependency.
+            return inconsistent if selected == reference else actual_reference(family, selected)
+
+        with patch.object(packet, "reference", side_effect=read):
+            with self.assertRaisesRegex(ValueError, message):
+                check_family(packet, self.report, self.family)
+
+    def test_plan_evidence_matches_exact_plan_and_both_original_objects(self):
+        changes = [
+            lambda evidence: evidence["plan"]["block_order"]["capped_add"].reverse(),
+            lambda evidence: evidence.update(canonical_object_sha256="0" * 64),
+            lambda evidence: evidence.update(planned_object_sha256="0" * 64),
+            lambda evidence: evidence["choice_checks"][0].update(checked=False),
+            lambda evidence: evidence["canonical_frame_bytes"].update(capped_add=0),
+            lambda evidence: evidence["planned_frame_bytes"].update(capped_add=0),
+            lambda evidence: evidence.update(same_slots=False),
+            lambda evidence: evidence.update(implicit_optimizer_used=True),
+        ]
+        for index, change in enumerate(changes):
+            with self.subTest(inconsistent_plan_field=index):
+                self.assert_dependency_rejected("plan-lowering_refinement-evidence.json", change,
+                                                "plan proof evidence differs")
+
+    def test_encoding_evidence_matches_rederived_image_and_complete_build_identity(self):
+        changes = [
+            lambda evidence: evidence.update(rederived_sha256="0" * 64),
+            lambda evidence: evidence.update(no_llvm_or_external_assembler=False),
+            lambda evidence: evidence["native_build"]["object_artifact"].update(id="another-object"),
+            lambda evidence: evidence["native_build"]["function_frames"].update(capped_add=0),
+            lambda evidence: evidence["native_build"].update(artifact_bytes=0),
+        ]
+        for field in ("core_sha256", "input_sha256", "implementation_sha256", "machine_plan_sha256",
+                      "object_sha256", "artifact_sha256", "target", "profile", "kind"):
+            changes.append(lambda evidence, field=field: evidence["native_build"].update({field: "different"}))
+        for index, change in enumerate(changes):
+            with self.subTest(inconsistent_encoding_field=index):
+                self.assert_dependency_rejected("encoding-encoding_check-evidence.json", change,
+                                                "encoding proof evidence differs")
+
+    def test_profile_inventory_cannot_omit_a_complete_profile_definition(self):
+        packet = self.isolated_packet()
+        actual_artifact = packet.artifact
+
+        def read(family, name, expected=None):
+            value = actual_artifact(family, name, expected)
+            if name == "installation-manifest.json":
+                value = deepcopy(value)
+                del value["profiles"]["artifact"]
+                del value["profile_manifests"]["artifact"]
+            return value
+
+        with patch.object(packet, "artifact", side_effect=read):
+            with self.assertRaisesRegex(ValueError, "original profile inventory differs"):
+                check_family(packet, self.report, self.family)
+
+    def test_operation_requests_and_order_must_match_the_original_receipts(self):
+        changes = [
+            ("hia_evaluate", "catalog_sha256", "0" * 64),
+            ("hia_evaluate", "context", {**self.family["context"], "id": "another-context"}),
+            ("hia_evaluate", "baseline_artifact", self.family["planned"]["native_artifact"]),
+            ("hia_evaluate", "candidate_artifact", self.family["canonical"]["native_artifact"]),
+            ("hia_evaluate", "build_receipt", self.family["canonical"]["build_receipt"]),
+            ("hia_evaluate", "verification_receipts", []),
+            ("hia_adopt", "target_slot", "different-slot"),
+            ("hia_adopt", "expected_current", {"generation": "1", "epoch": "1"}),
+            ("hia_adopt", "candidate_artifact", self.family["canonical"]["native_artifact"]),
+            ("hia_adopt", "evaluation_receipt", {**self.family["evaluation"]["evaluation_receipt"], "id": "other"}),
+            ("hia_rollback", "target_slot", "different-slot"),
+            ("hia_rollback", "expected_current", {"generation": "0", "epoch": "0"}),
+            ("hia_rollback", "retained_generation", "1"),
+            ("hia_rollback", "reason", "different-reason"),
+        ]
+        for tool, field, value in changes:
+            with self.subTest(tool=tool, field=field):
+                packet = self.isolated_packet()
+                events = [json.loads(line) for line in packet.read("u32/calls.jsonl").splitlines()]
+                for event in events:
+                    if event["tool"] == tool:
+                        event["arguments"][field] = deepcopy(value)
+                packet.files["u32/calls.jsonl"] = b"\n".join(json.dumps(event).encode() for event in events) + b"\n"
+                with self.assertRaisesRegex(ValueError, "journal request differs"):
+                    check_family(packet, self.report, self.family)
+
+        packet = self.isolated_packet()
+        events = [json.loads(line) for line in packet.read("u32/calls.jsonl").splitlines()]
+        pairs = [events[index:index + 2] for index in range(0, len(events), 2)]
+        adopt = next(index for index, pair in enumerate(pairs) if pair[0]["tool"] == "hia_adopt")
+        rollback = next(index for index, pair in enumerate(pairs) if pair[0]["tool"] == "hia_rollback")
+        pairs[adopt], pairs[rollback] = pairs[rollback], pairs[adopt]
+        for index, pair in enumerate(pairs, 1):
+            for event in pair:
+                event["sequence"] = index
+        packet.files["u32/calls.jsonl"] = b"\n".join(
+            json.dumps(event).encode() for pair in pairs for event in pair) + b"\n"
+        with self.assertRaisesRegex(ValueError, "journal operation order differs"):
+            check_family(packet, self.report, self.family)
+
     def test_changed_member_bytes_fail_the_selected_manifest(self):
         destination = self.root / "changed-packet"
         shutil.copytree(self.output, destination)

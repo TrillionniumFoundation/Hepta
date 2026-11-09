@@ -113,7 +113,11 @@ packet, an independently selected `--expected-manifest-sha256`, and a new
    final images, ABI, proof subjects and assumptions, evaluation, adopted
    generation and rollback from their original receipts. Check all 125 native
    workload observations per image, eight initial owner calls and both rollback
-   owner calls, plus the complete intent/response journal. The summary identity
+   owner calls, plus the complete intent/response journal. The plan receipt's exact
+   document, choice checks, object hashes and frames must agree with both original
+   builds. Encoding rederivation must agree with every stable build field; only
+   temporary command paths can differ. Evaluate, adopt and rollback requests must
+   match their receipts and appear in that order. The summary identity
    chain must equal this reconstruction. When the separately reviewed adoption
    identity projection is present, its complete contents must agree as well.
 3. Recompute the mathematical specification and both independent machine-model
@@ -129,11 +133,13 @@ packet, an independently selected `--expected-manifest-sha256`, and a new
 The v2 replay reports `complete_artifact_chain_checked=true` only after the
 whole selected matrix passes. `--types u32`, for example, explicitly requests a
 single-type replay and cannot qualify the omitted types. The default remains
-`u8 u32 u64 usize`. The nine added regression methods check missing originals,
+`u8 u32 u64 usize`. The thirteen added regression methods check missing originals,
 complete artifact references, ABI and generation inconsistencies, every owner
 result, journal completeness, query inventories, changed bytes, solver identity,
-and historical scope; one method also verifies that fresh model checks never
-invoke emission, linkage or native execution.
+and historical scope. Additional dependency regressions check the exact profile
+inventory, original plan/object/frame relations, complete stable encoding-build
+identity, and journal requests and operation ordering. One method also verifies
+that fresh model checks never invoke emission, linkage or native execution.
 
 Historical v1 evidence remains unchanged. It did not export all of the receipt
 dependencies needed for the new complete-chain reader. It therefore requires
