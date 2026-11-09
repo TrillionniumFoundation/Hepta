@@ -24,6 +24,22 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_reference_process_envelopes_refuse_changed_identity_payload_and_provenance(self):
+        from copy import deepcopy
+        from tools.hia_selfhost_references import validate_envelope, digest, SCHEMA
+        payload = {"cases": [{"id": "input-0", "expected_hex": "80"}]}
+        report = {"schema": SCHEMA, "family": "signed", "before_B0": True,
+                  "source_manifest_sha256": "pinned-source", "worker_pid": 123,
+                  "reference": payload, "reference_sha256": digest(payload)}
+        self.assertEqual(validate_envelope(report, "signed", "pinned-source"), payload)
+        changes = ({"schema": "other"}, {"family": "keyword"}, {"before_B0": False},
+                   {"source_manifest_sha256": "other-source"}, {"worker_pid": True},
+                   {"reference_sha256": "changed"}, {"reference": {"cases": []}})
+        for change in changes:
+            changed = deepcopy(report); changed.update(change)
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                validate_envelope(changed, "signed", "pinned-source")
+
     def test_authoring_short_circuit_cfg_preserves_trap_order_and_join_values(self):
         import ast
         from tools.generate_hia_selfhost import Builder
@@ -387,6 +403,15 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertEqual(scheduling["maximum_host_oracle_workers"], 2)
         self.assertTrue(scheduling["fresh_seed_and_generation_chain_sequential"])
         self.assertFalse(scheduling["native_child_processes_reused"])
+        self.assertTrue(scheduling["independent_references_completed_before_B0"])
+        from tools.hia_selfhost_references import BUILDERS
+        references = scheduling["reference_processes"]
+        self.assertEqual({r["family"] for r in references}, set(BUILDERS))
+        self.assertEqual(len({r["worker_pid"] for r in references}), len(BUILDERS))
+        for row in references:
+            self.assertEqual(row["returncode"], 0)
+            self.assertLessEqual(row["completed_monotonic_ns"], scheduling["seed_started_monotonic_ns"])
+            self.assertEqual(row["command"][1:4], ["-I", "-S", "-B"])
         from tools.qualify_hia_selfhost import QUALIFICATION_FAMILIES
         self.assertEqual(len(scheduling["phase_inventory"]), 2 * len(QUALIFICATION_FAMILIES))
         self.assertEqual(len(scheduling["phases"]), 2 * len(QUALIFICATION_FAMILIES))

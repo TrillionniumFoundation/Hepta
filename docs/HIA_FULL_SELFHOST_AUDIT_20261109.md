@@ -189,3 +189,15 @@ through independent VM, direct native and linked successor ELF observations.
 Both source manifests and separate generation fixed points are retained in
 `review-evidence/hia-whole-selfhost-20261109/v21-cold-summary.json`. This does not
 turn the still-open CI or whole-stack gates into passes.
+
+### Pre-B0 reference scheduling follow-through
+
+Independent Core references now run in fresh isolated processes under the
+existing two-worker budget. Each report binds the exact source manifest, family,
+actual child PID and payload hash; source/payload/provenance substitution is
+refused. All 13 references must complete before B0 starts. Seed construction,
+B1/B2/B3 and the modified chain remain sequential. Every native observation
+retains its fresh child process and existing resource/deadline controls.
+The fresh source-only replay passed 11/11 and 3,467/3,467 native checks in
+approximately **111 seconds**, with identical compiler image hashes. This local
+result is not a GitHub deadline pass; the next exact-source CI must execute.

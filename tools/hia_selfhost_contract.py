@@ -32,6 +32,7 @@ SOURCE_FILES = (
     "tools/hia_selfhost_signed_cases.py",
     "tools/hia_selfhost_scalar_casts.py",
     "tools/hia_selfhost_batch.py",
+    "tools/hia_selfhost_references.py",
     "tests/test_hia_selfhost_signed.py",
     "tests/test_hia_selfhost_keywords.py",
     "tools/hia_selfhost_owned_elf.py",

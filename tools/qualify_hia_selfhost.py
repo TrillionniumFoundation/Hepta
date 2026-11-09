@@ -689,44 +689,13 @@ def qualify(output):
     directory = output.with_suffix(".evidence")
     directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     source, sample = SOURCE.read_bytes(), SAMPLE.read_bytes()
-    from tools.hia_selfhost_resources import independent_resource_reference, qualify_resources
-    resource_reference = independent_resource_reference()
-    from tools.hia_selfhost_bulk import independent_bulk_reference, qualify_bulk
-    bulk_reference = independent_bulk_reference()
-    (directory / "independent-bulk-reference.json").write_text(json.dumps(bulk_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_loans import independent_loan_reference, qualify_loans
-    loan_reference = independent_loan_reference()
-    (directory / "independent-loan-reference.json").write_text(json.dumps(loan_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_cfg_worklist import independent_reference as cfg_reference_run, qualify as qualify_cfg
-    cfg_reference = cfg_reference_run()
-    (directory / "independent-cfg-worklist-reference.json").write_text(json.dumps(cfg_reference, indent=2, sort_keys=True) + "\n")
-    (directory / "independent-resource-reference.json").write_text(json.dumps(resource_reference, indent=2, sort_keys=True) + "\n")
-    independent = independent_call_reference(sample)
-    (directory / "independent-core-reference.json").write_text(json.dumps(independent, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_capacity import independent_capacity_reference, qualify_capacity
-    capacity_reference = independent_capacity_reference()
-    (directory / "independent-capacity-reference.json").write_text(json.dumps(capacity_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_tailcalls import independent_tail_reference, qualify_tailcalls
-    tail_reference = independent_tail_reference()
-    (directory / "independent-tail-reference.json").write_text(json.dumps(tail_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_select import independent_select_reference, qualify_select
-    select_reference = independent_select_reference()
-    (directory / "independent-select-reference.json").write_text(json.dumps(select_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_effects import independent_reference as effect_reference_run
-    effect_reference = effect_reference_run()
-    (directory / "independent-effect-reference.json").write_text(json.dumps(effect_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_multi_results import independent_reference as multi_reference_run
-    multi_reference = multi_reference_run()
-    (directory / "independent-multi-result-reference.json").write_text(json.dumps(multi_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_keywords import independent_reference as keyword_reference_run
-    keyword_reference = keyword_reference_run()
-    (directory / "independent-keyword-reference.json").write_text(json.dumps(keyword_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_signed_cases import independent_reference as signed_reference_run
-    signed_reference = signed_reference_run()
-    (directory / "independent-signed-reference.json").write_text(json.dumps(signed_reference, indent=2, sort_keys=True) + "\n")
-    from tools.hia_selfhost_scalar_casts import independent_reference as cast_reference_run
-    cast_reference = cast_reference_run()
-    (directory / "independent-scalar-cast-reference.json").write_text(json.dumps(cast_reference, indent=2, sort_keys=True) + "\n")
+    from tools.hia_selfhost_references import build_references
+    references, reference_receipts = build_references(directory, before, PHASE_REFERENCE_FILES, QUALIFICATION_WORKERS)
+    resource_reference, bulk_reference, loan_reference, cfg_reference = [references[f] for f in ("resource", "bulk", "loan", "cfg")]
+    capacity_reference, tail_reference, select_reference = [references[f] for f in ("capacity", "tail", "select")]
+    effect_reference, multi_reference, keyword_reference = [references[f] for f in ("effects", "multi", "keyword")]
+    signed_reference, cast_reference, independent = [references[f] for f in ("signed", "scalar-casts", "core")]
+    seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
     previous = seed
@@ -866,6 +835,9 @@ def qualify(output):
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,
             "fresh_seed_and_generation_chain_sequential": True,
+            "independent_references_completed_before_B0": all(r["completed_monotonic_ns"] <= seed_started_monotonic_ns for r in reference_receipts),
+            "seed_started_monotonic_ns": seed_started_monotonic_ns,
+            "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
