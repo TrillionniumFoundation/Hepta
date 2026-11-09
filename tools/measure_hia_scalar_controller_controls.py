@@ -497,6 +497,23 @@ def audit_measurement(rows, costs):
                 + costs["admission_capture_export_audit_wall_ns"], "outer cost accounting differs")
 
 
+def audit_outer_cpu(rows, costs):
+    """Contain attempted-call CPU in the same cumulative counter domains.
+
+    Both boundaries and calls use cpu(): RUSAGE_SELF for the parent and
+    RUSAGE_CHILDREN for waited children, each including user plus system time.
+    These counters are nested costs, never additional paired-call charges.
+    """
+    observed = costs.get("outer_cpu_ns")
+    domains = ("parent", "children")
+    require(type(observed) is dict and set(observed) == set(domains)
+            and all(type(observed[key]) is int and observed[key] >= 0 for key in domains),
+            "invalid outer CPU counters")
+    attempted = [row for row in rows if row["status"] != "not_started"]
+    require(all(observed[key] >= sum(row["cpu_ns"][key] for row in attempted)
+                for key in domains), "outer CPU understates attempted call costs")
+
+
 def error_record(error):
     return {"type": type(error).__name__, "message": str(error), "traceback": traceback.format_exc()}
 
@@ -581,6 +598,7 @@ def run(args):
             "native_build_included": False, "final_summary_write_included": False, "nested_costs_added_again": False})
     if halted is not None or not unchanged:
         report["status"] = "INCOMPLETE"
+    audit_outer_cpu(rows, report["measurement"])
     write_new(root / "SUMMARY.json", report)
     return {"status": report["status"], "summary": str(root / "SUMMARY.json"),
             "paired_ordinary_minus_ndu_wall_ns": report["paired_ordinary_minus_ndu_wall_ns"],
@@ -619,6 +637,7 @@ def verify(args):
             and costs["outer_wall_ns_to_summary_preparation"] == costs["all_attempted_call_wall_ns"] + costs["admission_capture_export_audit_wall_ns"]
             and costs["admission_capture_export_audit_wall_ns"] >= 0, "outer cost accounting differs")
     audit_measurement(rows, costs)
+    audit_outer_cpu(rows, costs)
     objects = 0
     for path in (root / "objects").iterdir():
         require(HEX.fullmatch(path.name) and sha256(read_bytes(path)).hexdigest() == path.name, "stored object integrity failure")

@@ -1,0 +1,106 @@
+{
+  "schema": "hepta.hia.independent-machine-scope-observed-summary.v1",
+  "source": {
+    "repository": "TrillionniumFoundation/Hepta",
+    "published_commit": "edf48dcf9190b177740eb2802c26f24cfec3c936",
+    "local_commit": "18d1ebdf1ebb86da0e8b35a6dbe2e8b82051798a",
+    "tree": "03fed48a967fd33a2cd864c2ac5db8616abb1724",
+    "local_identity_unchanged_before_and_after_review": true,
+    "reviewed_file_sha256": {
+      "hepta/hia_safe_core.py": "9d7f95fe06ec70ab984b24c750339b288e421ceb6849c4d2547501b213f8c79b",
+      "hepta/hia_safe_core_x64.py": "8a6e2248ecf57df25718b59e918cd6c0db1090ec1898a8d902e42efb75e762a7",
+      "hepta/hia_safe_core_elf.py": "2f6ef7c6ade26d54d3d02ba1f35e450086a4c1ea81b60dbeb3f1f0b30a07cb6f",
+      "hepta/elf_shared_abi.py": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02",
+      "tests/test_hia_safe_core_unsigned_casts.py": "def921b79c4aab5410691b527369ed31f09af11cc1c244a1db6ab48262335dcc",
+      "tests/test_hia_safe_core_artifact.py": "f2cb87ff649d7f5af8ec809086ccd8de093bd13214410f790d5b3fef87f62f81",
+      "tests/test_hia_safe_core_loader_contract.py": "551a837050327a29f3645efeabb9a4f5501a10e209dc5e5f8b5fe2307598b15a",
+      "tests/test_hia_program.py": "73de53638397a1d564b3580551c83fa0ecf936c79af3ba1c5334b929aad45d3c"
+    }
+  },
+  "evidence_kind": "observed_summary_only",
+  "complete_new_raw_qualification_archive": false,
+  "original_tool_stdout_stderr_saved_as_files": false,
+  "temporary_native_images_and_smt_queries_retained": false,
+  "source_modified": false,
+  "branch_modified": false,
+  "new_benchmark_campaign": false,
+  "review": {
+    "new_deterministic_blocking_bug_found": false,
+    "formal_independent_checker_soundness_proof": false,
+    "isa_model_review": "Two-operand 64-bit register IMUL uses the low product, signed128 truncation CF and a fresh arbitrary ZF; no unsupported flag conditions are admitted.",
+    "cast_model_review": "Checked unsigned cast tests normalized source values against the target maximum. v1 rejects checked casts/u16; explicit v2 admits the extension.",
+    "loader_model_review": "Supplied object/final bytes bind symbol identities, segment order and pages, dynamic lookup, call relocations, PLT/GOT and effective RELRO containment; actual mapping by a loader remains an assumption."
+  },
+  "small_suite": {
+    "command": "/workspace/scratch/5e86aa42d2b9/verify-venv/bin/python -B -m unittest -v tests.test_hia_safe_core_unsigned_casts tests.test_hia_safe_core_artifact tests.test_hia_safe_core_loader_contract",
+    "working_directory": "/workspace/scratch/5e86aa42d2b9/followup-convergence",
+    "status": "PASS",
+    "tests_run": 25,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "elapsed_seconds": 3.398,
+    "process_exit_code": 0,
+    "counts_overlap_prior_suites": true
+  },
+  "combined_subject": {
+    "purpose": "Exercise the joint v2 u16 IMUL and checked-narrowing integration with dirty ABI words.",
+    "core": {
+      "schema": "hepta.hia.program.v8",
+      "module": "mixed_mul_cast_review",
+      "functions": [{
+        "name": "mixed",
+        "params": [{"name": "a", "type": "u16"}, {"name": "z", "type": "u16"}],
+        "returns": ["u8"],
+        "effects": ["trap"],
+        "entry": "entry",
+        "blocks": [{
+          "id": "entry",
+          "params": [{"name": "a", "type": "u16"}, {"name": "z", "type": "u16"}],
+          "ops": [
+            {"op": "int.mul.wrap", "args": ["a", "z"], "out": [{"name": "product", "type": "u16"}], "attrs": {}},
+            {"op": "int.cast", "args": ["product"], "out": [{"name": "result", "type": "u8"}], "attrs": {"mode": "checked"}}
+          ],
+          "term": {"op": "ret", "values": ["result"]}
+        }]
+      }]
+    },
+    "profile_version": 2,
+    "observed_validation_profile": "hia.safe-core.unsigned-acyclic-single-borrow.x86_64.v2",
+    "observed_obligations": [
+      {"name": "caller_contract_nonvacuous", "result": "sat"},
+      {"name": "machine_memory_access_bounds", "result": "unsat"},
+      {"name": "sysv_stack_alignment_and_preservation", "result": "unsat"},
+      {"name": "all_inputs_reach_a_terminal_model_outcome", "result": "unsat"},
+      {"name": "core_to_final_image_return_abort_and_caller_bytes", "result": "unsat"}
+    ],
+    "native_nontrapping_observations": [
+      {"a": 0, "z": 65535, "expected": 0, "observed": 0},
+      {"a": 1, "z": 255, "expected": 255, "observed": 255},
+      {"a": 65535, "z": 65535, "expected": 1, "observed": 1},
+      {"a": 65543, "z": 65545, "expected": 63, "observed": 63},
+      {"a": 18446744073709551615, "z": 18446744073709551615, "expected": 1, "observed": 1},
+      {"a": 256, "z": 256, "expected": 0, "observed": 0}
+    ],
+    "native_ctypes_argument_types": ["c_uint64", "c_uint64"],
+    "native_ctypes_return_type": "c_uint64",
+    "aborting_native_inputs_launched": false,
+    "corrected_attempt_exit_code": 0,
+    "setup_failure": {
+      "order": "before corrected combined-subject attempt",
+      "stage": "authored fixture construction, before build or solver invocation",
+      "exception": "TypeError",
+      "message": "i() takes from 1 to 3 positional arguments but 4 were given",
+      "cause": "The test helper receives attributes as keyword arguments, not a fourth positional attrs dictionary.",
+      "correction": "Use i('int.cast', ['product'], [('result', 'u8')], mode='checked').",
+      "failed_attempt_relabelled_as_pass": false,
+      "original_traceback_file_retained": false
+    }
+  },
+  "trust_and_scope": {
+    "trusted": ["Independent Python Core/x86/ELF models and canonical Core verifier", "Pinned Z3 implementation", "SysV caller contract and live initialized disjoint borrowed range", "Loader mapping of inspected bytes and immediate binding to nonreturning libc abort", "Sequential execution without signals, concurrency or hardware faults"],
+    "not_established": ["Complete x86 hardware ISA refinement", "Python checker soundness proof", "General Core or whole-compiler correctness", "General ABI/resources/FFI/loader correctness", "Foreign pointer provenance or liveness", "Execution/adoption authorization", "Provider accounting or NDU economic benefit"],
+    "machine_track_overall": "HOLD",
+    "six_track_overall": "HOLD"
+  }
+}
