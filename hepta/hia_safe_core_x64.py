@@ -94,6 +94,11 @@ def decode(data):
                 # Register-only selection has no conditional memory access.
                 # REX.R extends the destination; REX.B extends the source.
                 op, args = "cmovne", (reg, rm)
+            elif extension == 0xaf:
+                mode, reg, rm, disp, group = modrm()
+                require(wide and mode == 3,
+                        "only 64-bit register-register IMUL is admitted")
+                op, args = "imul", (reg, rm)
             elif extension == 0xb6:
                 mode, reg, rm, disp, group = modrm()
                 require(wide and mode == 2, "unreviewed zero-extending byte load")
@@ -307,6 +312,20 @@ class Executor:
                     # this also preserves self-aliases. CMOV never changes flags.
                     regs[destination] = z.simplify(z.If(z.Not(state.flags["zf"]),
                         regs[source], regs[destination]))
+                elif op == "imul":
+                    destination, source = args
+                    # Two-operand IMUL keeps the low product. CF (and OF,
+                    # outside this decoder's condition set) reports signed
+                    # truncation, not unsigned overflow. Read both operands
+                    # before writing, including self-aliases.
+                    full = z.SignExt(64, regs[destination]) * z.SignExt(64, regs[source])
+                    product = z.Extract(63, 0, full)
+                    regs[destination] = z.simplify(product)
+                    # ZF is architecturally undefined. A fresh arbitrary value
+                    # overapproximates every allowed result; preserving the old
+                    # ZF or deriving it from the product could prove false code.
+                    state.flags = {"cf": full != z.SignExt(64, product),
+                        "zf": z.Bool("imul_undefined_zf_step_" + str(self.steps), ctx=self.ctx)}
                 elif op in ("load", "load8", "lea"):
                     dst, base, disp = args
                     address = z.simplify(regs[base] + self.value(disp))

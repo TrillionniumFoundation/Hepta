@@ -355,7 +355,7 @@ class SafeCoreTests(unittest.TestCase):
         loop = {"schema": "hepta.hia.program.v8", "module": "loop", "functions": [
             f("loop", [("a", "u32")], ["u32"], [], [b("entry", [("a", "u32")], [], jump("entry", "a"))])]}
         signed = arithmetic("int.add.wrap", "i32")
-        wide = arithmetic("int.mul.wrap", "u32")
+        wide = arithmetic("int.mul.checked", "u32")
         for name, core in (("loop", loop), ("signed", signed), ("multiply", wide)):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 build_safe_core(core, self.newpath(name + ".so"))

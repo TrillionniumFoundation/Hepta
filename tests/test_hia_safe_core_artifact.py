@@ -4,6 +4,8 @@ from __future__ import annotations
 from hashlib import sha256
 import importlib.util
 import json
+import ctypes
+import os
 from pathlib import Path
 import platform
 import shutil
@@ -17,7 +19,9 @@ from hepta.hia_program import verify_program
 from hepta.hia_program_native import emit_program_machine, compile_program_machine
 from hepta.hia_safe_core import validate_safe_core_artifact, SafeCoreRejected
 from hepta.hia_safe_core_elf import _ELF
-from hepta.hia_safe_core_x64 import decode
+from hepta.hia_safe_core_x64 import decode, SafeCoreMachineRejected
+from hepta.hia_machine_x64 import Code
+from hepta.hia_machine_elf import write_elf_object
 from tools.check_hia_safe_core import check
 from tests.test_hia_program import arithmetic, b, c, f, ret
 
@@ -27,6 +31,21 @@ AVAILABLE = (platform.system() == "Linux" and platform.machine().lower() in {"x8
 
 
 class SafeCoreImmutableInputTests(unittest.TestCase):
+    def test_imul_register_fields_and_unreviewed_encodings(self):
+        for destination in range(16):
+            for source in range(16):
+                encoded = bytes([0x48 | ((destination >> 3) << 2) | (source >> 3),
+                                 0x0f, 0xaf, 0xc0 | ((destination & 7) << 3) | (source & 7)])
+                with self.subTest(destination=destination, source=source):
+                    instruction = decode(encoded)[0]
+                    self.assertEqual((instruction.op, instruction.args, instruction.size),
+                                     ("imul", (destination, source), 4))
+        for encoded in ("0fafc1", "400fafc1", "660fafc1", "4a0fafc1",
+                        "480faf01", "480faf8100000000", "f0480fafc1",
+                        "48480fafc1", "480faf", "c30fafc1"):
+            with self.subTest(encoded=encoded), self.assertRaises(SafeCoreMachineRejected):
+                decode(bytes.fromhex(encoded))
+
     def test_mutable_buffers_and_bytes_subclasses_are_rejected_before_parsing(self):
         class DerivedBytes(bytes):
             pass
@@ -43,9 +62,14 @@ class SafeCoreImmutableInputTests(unittest.TestCase):
 class SafeCoreArtifactTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.temporary = tempfile.TemporaryDirectory(prefix="hia-safe-core-artifact-tests-")
-        cls.addClassCleanup(cls.temporary.cleanup)
-        cls.root = Path(cls.temporary.name)
+        retained = os.environ.get("HIA_SAFE_CORE_ARTIFACT_EVIDENCE")
+        if retained:
+            cls.root = Path(retained)
+            cls.root.mkdir(parents=False, exist_ok=False)
+        else:
+            cls.temporary = tempfile.TemporaryDirectory(prefix="hia-safe-core-artifact-tests-")
+            cls.addClassCleanup(cls.temporary.cleanup)
+            cls.root = Path(cls.temporary.name)
         cls.core = verify_program(arithmetic("int.add.wrap", "u32"))
         cls.image = emit_program_machine(cls.core)
         cls.final = cls.root / "reference.so"
@@ -100,6 +124,125 @@ class SafeCoreArtifactTests(unittest.TestCase):
         at = offsets[0]
         self.assertEqual(self.image.text_bytes[at:at + 3], b"\x48\x01\xc8")
         return self.mutate_pair(self.image.object_bytes, self.data, at, b"\x48\x29\xc8")
+
+    def custom_leaf(self, code, name="leaf"):
+        # Retain the established two-function, two-relocation artifact shape.
+        code.ret()
+        code.call("abort")
+        code.emit(b"\x0f\x0b")
+        wrapper = code.offset
+        code.push("rbp")
+        code.mov_rr("rbp", "rsp")
+        code.call("__hia_native_fn_0")
+        code.emit(b"\xc9")
+        code.ret()
+        text, relocations = code.finalize()
+        symbols = [{"name": "__hia_native_fn_0", "offset": 0, "size": wrapper, "global": False},
+                   {"name": "calculate", "offset": wrapper,
+                    "size": len(text) - wrapper, "global": True}]
+        obj = write_elf_object(text, symbols, relocations)
+        directory = self.root / (self._testMethodName + "-" + name)
+        directory.mkdir()
+        object_path, final_path = directory / "leaf.o", directory / "leaf.so"
+        object_path.write_bytes(obj)
+        process = subprocess.run(["ld", "-m", "elf_x86_64", "-shared", "-z", "defs",
+            "-z", "noexecstack", "-z", "relro", "-z", "now", "--hash-style=both",
+            "--build-id=none", str(object_path), "-lc", "-o", str(final_path)],
+            capture_output=True, text=True, timeout=30)
+        self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+        return obj, final_path.read_bytes()
+
+    def test_wrapping_multiplication_is_proved_and_executed_at_all_unsigned_widths(self):
+        directory = self.newdir()
+        for typ, width in (("u8", 8), ("u32", 32), ("u64", 64), ("usize", 64)):
+            with self.subTest(type=typ):
+                core = verify_program(arithmetic("int.mul.wrap", typ))
+                image = emit_program_machine(core)
+                final = directory / (typ + ".so")
+                compile_program_machine(image, program=core, output=final, linker="ld")
+                (directory / (typ + ".json")).write_bytes(core.canonical_bytes)
+                (directory / (typ + ".o")).write_bytes(image.object_bytes)
+                proof = validate_safe_core_artifact(core, image.object_bytes, final.read_bytes(),
+                    query_directory=directory / (typ + "-queries"))
+                (directory / (typ + "-validation.json")).write_text(json.dumps(proof, indent=2) + "\n")
+                self.assertTrue(proof["ok"])
+                self.assertEqual([row["result"] for row in proof["obligations"]],
+                                 ["sat", "unsat", "unsat", "unsat", "unsat"])
+                self.assertEqual(proof["subject"]["final_image_sha256"], sha256(final.read_bytes()).hexdigest())
+                for key in ("subject", "property", "profile", "assumptions", "checker", "unproved_obligations"):
+                    self.assertIn(key, proof)
+                function = ctypes.CDLL(str(final)).calculate
+                function.argtypes, function.restype = [ctypes.c_uint64, ctypes.c_uint64], ctypes.c_uint64
+                mask = (1 << width) - 1
+                values = (0, 1, 2, 127, 255, 1 << (width - 1), mask, (1 << 64) - 1)
+                for left in values:
+                    for right in values:
+                        self.assertEqual(function(left, right), (left * right) & mask)
+        self.case_counts = {"all_input_wrapping_multiply_functions": 4,
+                            "native_wrapping_multiply_calls": 256}
+
+    def test_imul_zero_flag_is_arbitrary_after_a_known_zero_flag(self):
+        core = verify_program({"schema": "hepta.hia.program.v8", "module": "flags", "functions": [
+            f("calculate", [], ["u64"], [], [b("entry", [], [c("one", "u64", 1)], ret("one"))])]})
+        code = Code()
+        code.xor("rax", "rax")
+        code.imul("rax", "rax")
+        code.setcc("e", "rax")
+        obj, data = self.custom_leaf(code)
+        (self.root / (self._testMethodName + "-core.json")).write_bytes(core.canonical_bytes)
+        with self.assertRaises(SafeCoreRejected) as caught:
+            validate_safe_core_artifact(core, obj, data,
+                query_directory=self.root / (self._testMethodName + "-queries"))
+        (self.root / (self._testMethodName + "-validation.json")).write_text(json.dumps(
+            caught.exception.validation, indent=2) + "\n")
+        self.assertEqual(caught.exception.counterexample["obligation"],
+                         "core_to_final_image_return_abort_and_caller_bytes")
+        self.assertEqual(caught.exception.validation["obligations"][-1]["result"], "sat")
+
+    def test_joint_product_to_sum_mutation_is_refuted(self):
+        core = verify_program(arithmetic("int.mul.wrap", "u32"))
+        image = emit_program_machine(core)
+        directory = self.newdir()
+        final = directory / "product.so"
+        compile_program_machine(image, program=core, output=final, linker="ld")
+        offsets = [at for at, instruction in decode(image.text_bytes).items()
+                   if instruction.op == "imul" and instruction.args == (0, 1)]
+        self.assertEqual(len(offsets), 1)
+        obj, data = self.mutate_pair(image.object_bytes, final.read_bytes(), offsets[0], b"\x48\x01\xc8\x90")
+        (directory / "mutated.o").write_bytes(obj)
+        (directory / "mutated.so").write_bytes(data)
+        (directory / "core.json").write_bytes(core.canonical_bytes)
+        with self.assertRaises(SafeCoreRejected) as caught:
+            validate_safe_core_artifact(core, obj, data, query_directory=directory / "queries")
+        (directory / "validation.json").write_text(json.dumps(caught.exception.validation, indent=2) + "\n")
+        witness = caught.exception.counterexample
+        self.assertEqual(witness["obligation"], "core_to_final_image_return_abort_and_caller_bytes")
+        left, right = [word & 0xffffffff for word in witness["abi_words"]]
+        self.assertNotEqual((left * right) & 0xffffffff, (left + right) & 0xffffffff)
+
+    def test_imul_carry_matches_signed_not_unsigned_truncation(self):
+        pairs = ((1 << 63, 1), ((1 << 64) - 1, 1), ((1 << 64) - 1, (1 << 64) - 1),
+                 ((1 << 63) - 1, 2), (1 << 63, (1 << 64) - 1), (1 << 63, 2))
+        for index, (left, right) in enumerate(pairs):
+            signed = lambda word: word - (1 << 64) if word >= 1 << 63 else word
+            product = signed(left) * signed(right)
+            carry = int(not -(1 << 63) <= product < 1 << 63)
+            core = verify_program({"schema": "hepta.hia.program.v8", "module": "carry", "functions": [
+                f("calculate", [], ["u64"], [], [b("entry", [], [c("flag", "u64", carry)], ret("flag"))])]})
+            code = Code()
+            code.mov_imm("rax", left)
+            code.mov_imm("rcx", right)
+            code.imul("rax", "rcx")
+            code.setcc("b", "rax")
+            with self.subTest(left=left, right=right, carry=carry):
+                obj, data = self.custom_leaf(code, str(index))
+                proof = validate_safe_core_artifact(core, obj, data,
+                    query_directory=self.root / (self._testMethodName + "-queries-" + str(index)))
+                self.assertTrue(proof["ok"])
+                (self.root / (self._testMethodName + "-core-" + str(index) + ".json")).write_bytes(core.canonical_bytes)
+                (self.root / (self._testMethodName + "-validation-" + str(index) + ".json")).write_text(
+                    json.dumps(proof, indent=2) + "\n")
+        self.case_counts = {"all_input_constant_imul_carry_functions": len(pairs)}
 
     def test_exact_supplied_bytes_and_scoped_checker_identity_are_bound(self):
         report = validate_safe_core_artifact(self.core, self.image.object_bytes, self.data)
