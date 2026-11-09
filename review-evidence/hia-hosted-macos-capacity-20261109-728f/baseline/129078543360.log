@@ -1,0 +1,583 @@
+﻿2026-11-09T09:23:03.0916080Z Current runner version: '2.338.2'
+2026-11-09T09:23:03.0933320Z ##[group]Runner Image Provisioner
+2026-11-09T09:23:03.0933940Z Hosted Compute Agent
+2026-11-09T09:23:03.0934440Z Version: 20261103.629
+2026-11-09T09:23:03.0934880Z Commit: 15dbd9ccb5dbf34fae002b6ed1a2670f52df37bc
+2026-11-09T09:23:03.0935410Z Build Date: 2026-11-03T17:26:59Z
+2026-11-09T09:23:03.0935870Z Worker ID: {e332d4ca-6b6e-4ce5-9d9a-792cf1a87a0b}
+2026-11-09T09:23:03.0936370Z Region: westus
+2026-11-09T09:23:03.0936750Z Cloud: MacCloud
+2026-11-09T09:23:03.0937140Z ##[endgroup]
+2026-11-09T09:23:03.0938090Z ##[group]Operating System
+2026-11-09T09:23:03.0938540Z macOS
+2026-11-09T09:23:03.0939010Z 15.8.2
+2026-11-09T09:23:03.0939510Z 24H232
+2026-11-09T09:23:03.0939870Z ##[endgroup]
+2026-11-09T09:23:03.0940230Z ##[group]Runner Image
+2026-11-09T09:23:03.0941770Z Image: macos-15-arm64
+2026-11-09T09:23:03.0942860Z Version: 20261104.0514.1
+2026-11-09T09:23:03.0944430Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20261104.0514/images/macos/macos-15-arm64-Readme.md
+2026-11-09T09:23:03.0946260Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20261104.0514
+2026-11-09T09:23:03.0947160Z ##[endgroup]
+2026-11-09T09:23:03.0948080Z ##[group]GITHUB_TOKEN Permissions
+2026-11-09T09:23:03.0951170Z Contents: read
+2026-11-09T09:23:03.0951560Z Metadata: read
+2026-11-09T09:23:03.0952340Z ##[endgroup]
+2026-11-09T09:23:03.0956030Z Secret source: Actions
+2026-11-09T09:23:03.0956770Z Cache mode: write
+2026-11-09T09:23:03.0957220Z Prepare workflow directory
+2026-11-09T09:23:03.1495420Z Prepare all required actions
+2026-11-09T09:23:03.1536520Z Getting action download info
+2026-11-09T09:23:03.3715790Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-09T09:23:03.7599580Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-09T09:23:03.9077460Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-09T09:23:04.1609640Z Complete job name: macos-15 / aarch64 / clang
+2026-11-09T09:23:04.2635270Z ##[group]Run actions/checkout@v4
+2026-11-09T09:23:04.2637830Z with:
+2026-11-09T09:23:04.2638980Z   ref: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:04.2641560Z   repository: TrillionniumFoundation/Hepta
+2026-11-09T09:23:04.2645810Z   token: ***
+2026-11-09T09:23:04.2646200Z   ssh-strict: true
+2026-11-09T09:23:04.2646580Z   ssh-user: git
+2026-11-09T09:23:04.2646950Z   persist-credentials: true
+2026-11-09T09:23:04.2647340Z   clean: true
+2026-11-09T09:23:04.2647710Z   sparse-checkout-cone-mode: true
+2026-11-09T09:23:04.2648160Z   fetch-depth: 1
+2026-11-09T09:23:04.2648520Z   fetch-tags: false
+2026-11-09T09:23:04.2648950Z   show-progress: true
+2026-11-09T09:23:04.2649320Z   lfs: false
+2026-11-09T09:23:04.2649680Z   submodules: false
+2026-11-09T09:23:04.2650040Z   set-safe-directory: true
+2026-11-09T09:23:04.2650440Z   allow-unsafe-pr-checkout: false
+2026-11-09T09:23:04.2651730Z env:
+2026-11-09T09:23:04.2652310Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:04.2652990Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:04.2653470Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:04.2653910Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:04.2654300Z ##[endgroup]
+2026-11-09T09:23:04.8708710Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-09T09:23:04.8710590Z ##[group]Getting Git version info
+2026-11-09T09:23:04.8711250Z Working directory is '/Users/runner/work/Hepta/Hepta'
+2026-11-09T09:23:04.8712810Z [command]/opt/homebrew/bin/git version
+2026-11-09T09:23:04.9537640Z git version 2.56.0
+2026-11-09T09:23:04.9574860Z ##[endgroup]
+2026-11-09T09:23:04.9581060Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/4cebc50b-0238-4a71-be73-c02d7190adc9/.gitconfig'
+2026-11-09T09:23:04.9583190Z Temporarily overriding HOME='/Users/runner/work/_temp/4cebc50b-0238-4a71-be73-c02d7190adc9' before making global git config changes
+2026-11-09T09:23:04.9586060Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T09:23:04.9587730Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/Hepta/Hepta
+2026-11-09T09:23:04.9707820Z Deleting the contents of '/Users/runner/work/Hepta/Hepta'
+2026-11-09T09:23:04.9761830Z ##[group]Initializing the repository
+2026-11-09T09:23:04.9763300Z [command]/opt/homebrew/bin/git init /Users/runner/work/Hepta/Hepta
+2026-11-09T09:23:04.9997010Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-09T09:23:04.9998810Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-09T09:23:05.0000810Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-09T09:23:05.0002230Z hint: call:
+2026-11-09T09:23:05.0002940Z hint:
+2026-11-09T09:23:05.0003770Z hint: 	git config --global init.defaultBranch <name>
+2026-11-09T09:23:05.0004840Z hint:
+2026-11-09T09:23:05.0006000Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-09T09:23:05.0007830Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-09T09:23:05.0009180Z hint:
+2026-11-09T09:23:05.0009840Z hint: 	git branch -m <name>
+2026-11-09T09:23:05.0010630Z hint:
+2026-11-09T09:23:05.0011710Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-09T09:23:05.0017960Z Initialized empty Git repository in /Users/runner/work/Hepta/Hepta/.git/
+2026-11-09T09:23:05.0032870Z [command]/opt/homebrew/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T09:23:05.0121900Z ##[endgroup]
+2026-11-09T09:23:05.0124750Z ##[group]Disabling automatic garbage collection
+2026-11-09T09:23:05.0127480Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-11-09T09:23:05.0194870Z ##[endgroup]
+2026-11-09T09:23:05.0197280Z ##[group]Setting up auth
+2026-11-09T09:23:05.0201320Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T09:23:05.0323700Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T09:23:05.1933030Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T09:23:05.2087230Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T09:23:05.3769290Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T09:23:05.4070590Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T09:23:05.5423110Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-09T09:23:05.5426520Z ##[endgroup]
+2026-11-09T09:23:05.5427610Z ##[group]Fetching the repository
+2026-11-09T09:23:05.5429650Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:29.6560420Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-09T09:23:29.6564710Z  * branch            39dedf9f7933b9743fb8a6c720e5deb4615296eb -> FETCH_HEAD
+2026-11-09T09:23:29.6572440Z ##[endgroup]
+2026-11-09T09:23:29.6573030Z ##[group]Determining the checkout info
+2026-11-09T09:23:29.6573520Z ##[endgroup]
+2026-11-09T09:23:29.6612660Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-11-09T09:23:29.6725740Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-09T09:23:29.6797490Z ##[group]Checking out the ref
+2026-11-09T09:23:29.6801630Z [command]/opt/homebrew/bin/git checkout --progress --force 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:30.9465870Z Updating files:  18% (1850/9966)
+2026-11-09T09:23:31.2275600Z Updating files:  19% (1894/9966)
+2026-11-09T09:23:31.3795700Z Updating files:  20% (1994/9966)
+2026-11-09T09:23:31.4628260Z Updating files:  21% (2093/9966)
+2026-11-09T09:23:31.9613510Z Updating files:  22% (2193/9966)
+2026-11-09T09:23:32.0627860Z Updating files:  22% (2210/9966)
+2026-11-09T09:23:32.0945980Z Updating files:  23% (2293/9966)
+2026-11-09T09:23:32.1422340Z Updating files:  24% (2392/9966)
+2026-11-09T09:23:32.1768430Z Updating files:  25% (2492/9966)
+2026-11-09T09:23:32.2286960Z Updating files:  26% (2592/9966)
+2026-11-09T09:23:32.2722310Z Updating files:  27% (2691/9966)
+2026-11-09T09:23:32.2830880Z Updating files:  28% (2791/9966)
+2026-11-09T09:23:32.2993250Z Updating files:  29% (2891/9966)
+2026-11-09T09:23:32.3463070Z Updating files:  30% (2990/9966)
+2026-11-09T09:23:32.3669250Z Updating files:  31% (3090/9966)
+2026-11-09T09:23:32.3907080Z Updating files:  32% (3190/9966)
+2026-11-09T09:23:32.4125420Z Updating files:  33% (3289/9966)
+2026-11-09T09:23:32.4415140Z Updating files:  34% (3389/9966)
+2026-11-09T09:23:32.5406330Z Updating files:  35% (3489/9966)
+2026-11-09T09:23:32.7050250Z Updating files:  36% (3588/9966)
+2026-11-09T09:23:32.7893530Z Updating files:  36% (3601/9966)
+2026-11-09T09:23:32.8096940Z Updating files:  37% (3688/9966)
+2026-11-09T09:23:32.8235330Z Updating files:  38% (3788/9966)
+2026-11-09T09:23:32.8931850Z Updating files:  39% (3887/9966)
+2026-11-09T09:23:32.9820100Z Updating files:  40% (3987/9966)
+2026-11-09T09:23:33.0120800Z Updating files:  41% (4087/9966)
+2026-11-09T09:23:33.0331940Z Updating files:  42% (4186/9966)
+2026-11-09T09:23:33.0585890Z Updating files:  43% (4286/9966)
+2026-11-09T09:23:33.0882140Z Updating files:  44% (4386/9966)
+2026-11-09T09:23:33.1670900Z Updating files:  45% (4485/9966)
+2026-11-09T09:23:33.2191650Z Updating files:  46% (4585/9966)
+2026-11-09T09:23:33.2407600Z Updating files:  47% (4685/9966)
+2026-11-09T09:23:33.4738140Z Updating files:  48% (4784/9966)
+2026-11-09T09:23:33.4982410Z Updating files:  49% (4884/9966)
+2026-11-09T09:23:33.5074720Z Updating files:  50% (4983/9966)
+2026-11-09T09:23:33.5254100Z Updating files:  51% (5083/9966)
+2026-11-09T09:23:33.5449610Z Updating files:  52% (5183/9966)
+2026-11-09T09:23:33.5639640Z Updating files:  53% (5282/9966)
+2026-11-09T09:23:33.5833490Z Updating files:  54% (5382/9966)
+2026-11-09T09:23:33.6028250Z Updating files:  55% (5482/9966)
+2026-11-09T09:23:33.6168140Z Updating files:  56% (5581/9966)
+2026-11-09T09:23:33.6322390Z Updating files:  57% (5681/9966)
+2026-11-09T09:23:33.6594820Z Updating files:  58% (5781/9966)
+2026-11-09T09:23:33.6755300Z Updating files:  59% (5880/9966)
+2026-11-09T09:23:33.6918300Z Updating files:  60% (5980/9966)
+2026-11-09T09:23:33.7041460Z Updating files:  61% (6080/9966)
+2026-11-09T09:23:33.7093060Z Updating files:  61% (6139/9966)
+2026-11-09T09:23:33.7323070Z Updating files:  62% (6179/9966)
+2026-11-09T09:23:33.7494900Z Updating files:  63% (6279/9966)
+2026-11-09T09:23:33.7611360Z Updating files:  64% (6379/9966)
+2026-11-09T09:23:33.8367540Z Updating files:  65% (6478/9966)
+2026-11-09T09:23:33.8899620Z Updating files:  66% (6578/9966)
+2026-11-09T09:23:33.9200700Z Updating files:  67% (6678/9966)
+2026-11-09T09:23:33.9687120Z Updating files:  68% (6777/9966)
+2026-11-09T09:23:33.9997270Z Updating files:  69% (6877/9966)
+2026-11-09T09:23:34.0223360Z Updating files:  70% (6977/9966)
+2026-11-09T09:23:34.0444490Z Updating files:  71% (7076/9966)
+2026-11-09T09:23:34.2361610Z Updating files:  72% (7176/9966)
+2026-11-09T09:23:34.3004730Z Updating files:  73% (7276/9966)
+2026-11-09T09:23:34.3356120Z Updating files:  74% (7375/9966)
+2026-11-09T09:23:34.3534170Z Updating files:  75% (7475/9966)
+2026-11-09T09:23:34.3648520Z Updating files:  76% (7575/9966)
+2026-11-09T09:23:34.4965420Z Updating files:  77% (7674/9966)
+2026-11-09T09:23:34.5208210Z Updating files:  78% (7774/9966)
+2026-11-09T09:23:34.5466420Z Updating files:  79% (7874/9966)
+2026-11-09T09:23:34.6583700Z Updating files:  80% (7973/9966)
+2026-11-09T09:23:34.7069250Z Updating files:  81% (8073/9966)
+2026-11-09T09:23:34.7177960Z Updating files:  81% (8168/9966)
+2026-11-09T09:23:34.8804100Z Updating files:  82% (8173/9966)
+2026-11-09T09:23:35.0432600Z Updating files:  83% (8272/9966)
+2026-11-09T09:23:35.1453940Z Updating files:  84% (8372/9966)
+2026-11-09T09:23:35.6275310Z Updating files:  85% (8472/9966)
+2026-11-09T09:23:35.7321440Z Updating files:  86% (8571/9966)
+2026-11-09T09:23:36.2627880Z Updating files:  86% (8574/9966)
+2026-11-09T09:23:36.2820250Z Updating files:  87% (8671/9966)
+2026-11-09T09:23:36.3069850Z Updating files:  88% (8771/9966)
+2026-11-09T09:23:36.3241240Z Updating files:  89% (8870/9966)
+2026-11-09T09:23:36.3404470Z Updating files:  90% (8970/9966)
+2026-11-09T09:23:36.3542310Z Updating files:  91% (9070/9966)
+2026-11-09T09:23:36.3736120Z Updating files:  92% (9169/9966)
+2026-11-09T09:23:36.3972280Z Updating files:  93% (9269/9966)
+2026-11-09T09:23:36.4144210Z Updating files:  94% (9369/9966)
+2026-11-09T09:23:36.4319350Z Updating files:  95% (9468/9966)
+2026-11-09T09:23:36.4605910Z Updating files:  96% (9568/9966)
+2026-11-09T09:23:36.4802770Z Updating files:  97% (9668/9966)
+2026-11-09T09:23:36.5016160Z Updating files:  98% (9767/9966)
+2026-11-09T09:23:36.5206470Z Updating files:  99% (9867/9966)
+2026-11-09T09:23:36.5210790Z Updating files: 100% (9966/9966)
+2026-11-09T09:23:36.5211120Z Updating files: 100% (9966/9966), done.
+2026-11-09T09:23:36.5381670Z HEAD is now at 39dedf9 fix(hia): refresh exact source identities after proof contract clarification
+2026-11-09T09:23:36.5514250Z ##[endgroup]
+2026-11-09T09:23:36.5748520Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-11-09T09:23:36.5877680Z 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:36.6439660Z ##[group]Run mkdir -p artifacts
+2026-11-09T09:23:36.6440240Z [36;1mmkdir -p artifacts[0m
+2026-11-09T09:23:36.6440610Z [36;1mcat > artifacts/native-host.json <<'JSON'[0m
+2026-11-09T09:23:36.6441520Z [36;1m{"schema":"hepta.native-host.v3","status":"failed","error":"Native host setup or execution did not finish; inspect retained setup/test logs.","requested_compiler":"clang","requested_family":"clang","claims":{"cross_host_results_inferred":false}}[0m
+2026-11-09T09:23:36.6442390Z [36;1mJSON[0m
+2026-11-09T09:23:36.6442750Z [36;1mcat > artifacts/stb-divide-host.json <<'JSON'[0m
+2026-11-09T09:23:36.6444470Z [36;1m{"schema":"hepta.c-stb-divide-qualification.v1","ok":false,"status":"failed","error":"Complete component setup or execution did not finish; inspect retained setup and component logs.","claims":{"cross_host_results_inferred":false,"cpp_migration":false}}[0m
+2026-11-09T09:23:36.6445820Z [36;1mJSON[0m
+2026-11-09T09:23:36.6446100Z [36;1mcat > artifacts/original-type-preflight.json <<'JSON'[0m
+2026-11-09T09:23:36.6447140Z [36;1m{"schema":"hepta.c-original-type-host-preflight.v1","ok":false,"status":"failed","error":"Original-type preflight did not finish; inspect retained setup/preflight logs.","claims":{"native_component_qualified":false,"cross_host_results_inferred":false,"original_type_guard_bypassed":false}}[0m
+2026-11-09T09:23:36.6448060Z [36;1mJSON[0m
+2026-11-09T09:23:36.6448270Z [36;1mgit rev-parse HEAD > artifacts/native-host-setup.log[0m
+2026-11-09T09:23:36.6520330Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:23:36.6520670Z env:
+2026-11-09T09:23:36.6521050Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:36.6521360Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:36.6521610Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:36.6521860Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:36.6522170Z ##[endgroup]
+2026-11-09T09:23:36.7812710Z ##[group]Run actions/setup-python@v5
+2026-11-09T09:23:36.7812970Z with:
+2026-11-09T09:23:36.7813160Z   python-version: 3.13
+2026-11-09T09:23:36.7813340Z   check-latest: false
+2026-11-09T09:23:36.7815770Z   token: ***
+2026-11-09T09:23:36.7815940Z   update-environment: true
+2026-11-09T09:23:36.7816800Z   allow-prereleases: false
+2026-11-09T09:23:36.7817050Z   freethreaded: false
+2026-11-09T09:23:36.7817260Z env:
+2026-11-09T09:23:36.7817630Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:36.7817970Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:36.7818180Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:36.7818480Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:36.7818730Z ##[endgroup]
+2026-11-09T09:23:37.0028530Z ##[group]Installed versions
+2026-11-09T09:23:37.0142340Z (node:3172) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T09:23:37.0143870Z Successfully set up CPython (3.13.17)
+2026-11-09T09:23:37.0144910Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T09:23:37.0146350Z ##[endgroup]
+2026-11-09T09:23:37.0259420Z ##[group]Run set -euo pipefail
+2026-11-09T09:23:37.0259710Z [36;1mset -euo pipefail[0m
+2026-11-09T09:23:37.0260040Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-before.log[0m
+2026-11-09T09:23:37.0260670Z [36;1mgit status --porcelain --untracked-files=no > artifacts/native-host-tracked-before.log[0m
+2026-11-09T09:23:37.0261160Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"[0m
+2026-11-09T09:23:37.0261530Z [36;1mtest ! -s artifacts/native-host-tracked-before.log[0m
+2026-11-09T09:23:37.0261970Z [36;1mrustup toolchain install 1.90.0 --profile minimal 2>&1 | tee -a artifacts/native-host-setup.log[0m
+2026-11-09T09:23:37.0310790Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:23:37.0311270Z env:
+2026-11-09T09:23:37.0311560Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:37.0311960Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:37.0312150Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:37.0312450Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:37.0312740Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:37.0313220Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:23:37.0313660Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:37.0314060Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:37.0314430Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:37.0314730Z ##[endgroup]
+2026-11-09T09:23:37.5303930Z info: syncing channel updates for 1.90.0-aarch64-apple-darwin
+2026-11-09T09:23:37.7163150Z info: latest update on 2025-09-18 for version 1.90.0 (1159e78c4 2025-09-14)
+2026-11-09T09:23:37.7224740Z info: downloading 3 components
+2026-11-09T09:23:44.8446130Z 
+2026-11-09T09:23:44.9512800Z   1.90.0-aarch64-apple-darwin installed - rustc 1.90.0 (1159e78c4 2025-09-14)
+2026-11-09T09:23:44.9513880Z 
+2026-11-09T09:23:44.9514520Z info: self-update is disabled for this build of rustup
+2026-11-09T09:23:44.9514990Z info: any updates to rustup will need to be fetched with your system package manager
+2026-11-09T09:23:44.9897930Z ##[group]Run python -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log
+2026-11-09T09:23:44.9898790Z [36;1mpython -m unittest tests.test_native_host_evidence -v 2>&1 | tee artifacts/native-host-adapter-tests.log[0m
+2026-11-09T09:23:44.9947260Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:23:44.9947620Z env:
+2026-11-09T09:23:44.9948120Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:44.9948570Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:44.9948810Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:44.9949150Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:44.9949510Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:44.9950060Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:23:44.9950540Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:44.9951800Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:44.9952320Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:44.9952710Z ##[endgroup]
+2026-11-09T09:23:45.8916290Z test_clang_windows_macros_cannot_qualify_as_msvc (tests.test_native_host_evidence.NativeHostCompilerDriverTests.test_clang_windows_macros_cannot_qualify_as_msvc) ... ok
+2026-11-09T09:23:45.8945270Z test_identity_probe_requires_unique_markers_c11_and_matching_version (tests.test_native_host_evidence.NativeHostCompilerDriverTests.test_identity_probe_requires_unique_markers_c11_and_matching_version) ... ok
+2026-11-09T09:23:45.8954700Z test_msvc_driver_keeps_c_and_rust_objects_separate_with_spaces (tests.test_native_host_evidence.NativeHostCompilerDriverTests.test_msvc_driver_keeps_c_and_rust_objects_separate_with_spaces) ... ok
+2026-11-09T09:23:45.8957260Z test_msvc_type_control_compiles_without_linking (tests.test_native_host_evidence.NativeHostCompilerDriverTests.test_msvc_type_control_compiles_without_linking) ... ok
+2026-11-09T09:23:45.9385810Z test_requested_gcc_is_checked_against_actual_clang_macros (tests.test_native_host_evidence.NativeHostCompilerDriverTests.test_requested_gcc_is_checked_against_actual_clang_macros) ... ok
+2026-11-09T09:23:45.9421330Z test_execution_failure_without_returned_report_is_still_failed (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_execution_failure_without_returned_report_is_still_failed) ... ok
+2026-11-09T09:23:46.0147680Z test_host_capture_rejection_does_not_claim_qualification (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_host_capture_rejection_does_not_claim_qualification) ... ok
+2026-11-09T09:23:46.0511470Z test_host_subprocess_uses_bounded_capture_and_preserves_status (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_host_subprocess_uses_bounded_capture_and_preserves_status) ... ok
+2026-11-09T09:23:46.1459280Z test_msvc_compile_failure_retains_all_prior_and_failing_commands (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_msvc_compile_failure_retains_all_prior_and_failing_commands) ... ok
+2026-11-09T09:23:46.1477380Z test_post_execution_validator_failure_keeps_raw_trace_and_fails (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_post_execution_validator_failure_keeps_raw_trace_and_fails) ... ok
+2026-11-09T09:23:46.1483470Z test_real_temp_directory_canonicalizes_like_native_artifact (tests.test_native_host_evidence.NativeHostFailureEvidenceTests.test_real_temp_directory_canonicalizes_like_native_artifact) ... ok
+2026-11-09T09:23:46.2723410Z test_legacy_receipt_extra_files_aliases_and_symlinks_refuse (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_legacy_receipt_extra_files_aliases_and_symlinks_refuse) ... ok
+2026-11-09T09:23:47.1782680Z test_missing_truncated_or_changed_originals_cannot_qualify (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_missing_truncated_or_changed_originals_cannot_qualify) ... ok
+2026-11-09T09:23:47.2719810Z test_originals_survive_temp_cleanup_with_raw_crlf_and_create_only_archive (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_originals_survive_temp_cleanup_with_raw_crlf_and_create_only_archive) ... ok
+2026-11-09T09:23:48.0117700Z test_resealed_manifest_cannot_replace_native_roles_or_original_output (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_resealed_manifest_cannot_replace_native_roles_or_original_output) ... ok
+2026-11-09T09:23:48.0818200Z test_retention_failure_cannot_hide_original_failure_or_admit_success (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_retention_failure_cannot_hide_original_failure_or_admit_success) ... ok
+2026-11-09T09:23:48.2339440Z test_second_profile_failure_retains_first_profile_and_partial_outputs (tests.test_native_host_evidence.NativeHostRetainedEvidenceTests.test_second_profile_failure_retains_first_profile_and_partial_outputs) ... ok
+2026-11-09T09:23:48.2341340Z 
+2026-11-09T09:23:48.2341540Z ----------------------------------------------------------------------
+2026-11-09T09:23:48.2342360Z Ran 17 tests in 2.443s
+2026-11-09T09:23:48.2342610Z 
+2026-11-09T09:23:48.2342780Z OK
+2026-11-09T09:23:48.2872930Z ##[group]Run python tools/validate_native_host.py \
+2026-11-09T09:23:48.2873470Z [36;1mpython tools/validate_native_host.py \[0m
+2026-11-09T09:23:48.2873930Z [36;1m  --rustc "$(rustup which --toolchain 1.90.0 rustc)" \[0m
+2026-11-09T09:23:48.2874310Z [36;1m  --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \[0m
+2026-11-09T09:23:48.2874670Z [36;1m  --expected-system 'Darwin' --expected-machine 'aarch64' \[0m
+2026-11-09T09:23:48.2875060Z [36;1m  --artifact-directory artifacts/native-host-artifacts \[0m
+2026-11-09T09:23:48.2875460Z [36;1m  --output artifacts/native-host.json[0m
+2026-11-09T09:23:48.2920770Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:23:48.2921030Z env:
+2026-11-09T09:23:48.2921280Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:48.2921610Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:48.2921980Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:48.2922300Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:48.2923000Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:48.2923430Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:23:48.2924020Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:48.2924410Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:48.2925090Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:48.2925450Z ##[endgroup]
+2026-11-09T09:23:54.4227240Z {"status": "passed", "output": "artifacts/native-host.json", "error": null}
+2026-11-09T09:23:54.4795120Z ##[group]Run set +e
+2026-11-09T09:23:54.4795730Z [36;1mset +e[0m
+2026-11-09T09:23:54.4796410Z [36;1mpython -m unittest tests.test_clang_capture -v 2>&1 | tee artifacts/clang-capture-tests.log[0m
+2026-11-09T09:23:54.4797000Z [36;1mcapture_status=${PIPESTATUS[0]}[0m
+2026-11-09T09:23:54.4797670Z [36;1mexit "$capture_status"[0m
+2026-11-09T09:23:54.4878660Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:23:54.4879110Z env:
+2026-11-09T09:23:54.4879590Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:23:54.4880000Z   HEPTA_HOST_CC: clang
+2026-11-09T09:23:54.4880330Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:23:54.4880620Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:23:54.4881100Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:54.4881680Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:23:54.4882790Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:54.4883350Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:54.4883820Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:23:54.4884280Z ##[endgroup]
+2026-11-09T09:23:54.7485920Z test_bad_utf8_stdout_is_rejected (tests.test_clang_capture.CaptureBudgets.test_bad_utf8_stdout_is_rejected) ... ok
+2026-11-09T09:23:54.8501860Z test_child_exit_failure_does_not_turn_into_success (tests.test_clang_capture.CaptureBudgets.test_child_exit_failure_does_not_turn_into_success) ... ok
+2026-11-09T09:23:58.2577660Z test_descendant_cancelled_even_when_parent_succeeds (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_even_when_parent_succeeds) ... ok
+2026-11-09T09:24:01.5897620Z test_descendant_cancelled_on_output_limit (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_on_output_limit) ... ok
+2026-11-09T09:24:06.8310140Z test_descendant_cancelled_on_wall_timeout (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_on_wall_timeout) ... ok
+2026-11-09T09:24:10.2453520Z test_descendant_cancelled_when_parent_fails (tests.test_clang_capture.CaptureBudgets.test_descendant_cancelled_when_parent_fails) ... ok
+2026-11-09T09:24:10.2556570Z test_invalid_byte_limits_reject_before_launch (tests.test_clang_capture.CaptureBudgets.test_invalid_byte_limits_reject_before_launch) ... ok
+2026-11-09T09:24:10.2657260Z test_invalid_timeout_budgets_reject_before_launch (tests.test_clang_capture.CaptureBudgets.test_invalid_timeout_budgets_reject_before_launch) ... ok
+2026-11-09T09:24:10.6775890Z test_launch_failure_cannot_start_the_requested_command (tests.test_clang_capture.CaptureBudgets.test_launch_failure_cannot_start_the_requested_command) ... ok
+2026-11-09T09:24:10.6778240Z test_oversize_stdin_without_process_launch (tests.test_clang_capture.CaptureBudgets.test_oversize_stdin_without_process_launch) ... ok
+2026-11-09T09:24:10.7653210Z test_real_clang_c_preprocess (tests.test_clang_capture.CaptureBudgets.test_real_clang_c_preprocess) ... ok
+2026-11-09T09:24:11.2012340Z test_real_exit_status_and_streams_are_preserved (tests.test_clang_capture.CaptureBudgets.test_real_exit_status_and_streams_are_preserved) ... ok
+2026-11-09T09:24:11.2699530Z test_stderr_limit (tests.test_clang_capture.CaptureBudgets.test_stderr_limit) ... ok
+2026-11-09T09:24:11.3404430Z test_stdout_limit (tests.test_clang_capture.CaptureBudgets.test_stdout_limit) ... ok
+2026-11-09T09:24:11.4522200Z test_success_preserves_text_and_input (tests.test_clang_capture.CaptureBudgets.test_success_preserves_text_and_input) ... ok
+2026-11-09T09:24:11.6185900Z test_wall_timeout (tests.test_clang_capture.CaptureBudgets.test_wall_timeout) ... ok
+2026-11-09T09:24:11.6186290Z 
+2026-11-09T09:24:11.6186530Z ----------------------------------------------------------------------
+2026-11-09T09:24:11.6233620Z Ran 16 tests in 16.961s
+2026-11-09T09:24:11.6233770Z 
+2026-11-09T09:24:11.6233890Z OK
+2026-11-09T09:24:11.6621480Z ##[group]Run python -m unittest tests.test_clang_capture_ownership tests.test_darwin_capture \
+2026-11-09T09:24:11.6622390Z [36;1mpython -m unittest tests.test_clang_capture_ownership tests.test_darwin_capture \[0m
+2026-11-09T09:24:11.6623160Z [36;1m  tests.test_cpp_unique_capture.UniqueCaptureResourceTests.test_real_guardian_pipe_eof_preserves_compiler_status \[0m
+2026-11-09T09:24:11.6624170Z [36;1m  -v 2>&1 | tee artifacts/clang-capture-ownership-tests.log[0m
+2026-11-09T09:24:11.6664850Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:24:11.6665630Z env:
+2026-11-09T09:24:11.6665940Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:24:11.6666370Z   HEPTA_HOST_CC: clang
+2026-11-09T09:24:11.6666600Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:24:11.6666930Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:24:11.6667340Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:11.6667910Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:24:11.6668480Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:11.6668950Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:11.6669450Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:11.6669860Z ##[endgroup]
+2026-11-09T09:24:12.3207850Z test_actual_group_signal_retains_unreaped_leader_and_original_exit_status (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_actual_group_signal_retains_unreaped_leader_and_original_exit_status) ... ok
+2026-11-09T09:24:12.4073060Z test_external_reaper_is_refused_without_signalling_lost_group_identity (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_external_reaper_is_refused_without_signalling_lost_group_identity) ... ok
+2026-11-09T09:24:12.6109700Z test_growth_after_final_stat_is_refused_with_bounded_failure_prefixes (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_growth_after_final_stat_is_refused_with_bounded_failure_prefixes) ... ok
+2026-11-09T09:24:12.6224960Z test_missing_waitid_or_nondefault_sigchld_refuses_before_spawn (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_missing_waitid_or_nondefault_sigchld_refuses_before_spawn) ... ok
+2026-11-09T09:24:12.6918870Z test_primary_rejection_retains_failed_cleanup_without_a_second_attempt (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_primary_rejection_retains_failed_cleanup_without_a_second_attempt) ... ok
+2026-11-09T09:24:12.8097230Z test_reap_error_after_effect_cannot_repeat_numeric_group_signal (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_reap_error_after_effect_cannot_repeat_numeric_group_signal) ... ok
+2026-11-09T09:24:13.0128740Z test_stopped_child_is_not_accepted_as_a_completed_capture (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_stopped_child_is_not_accepted_as_a_completed_capture) ... ok
+2026-11-09T09:24:13.0921870Z test_unconfirmed_wait_refuses_instead_of_returning_success (tests.test_clang_capture_ownership.CaptureOwnershipTests.test_unconfirmed_wait_refuses_instead_of_returning_success) ... ok
+2026-11-09T09:24:13.1787460Z test_actual_compiler_launch_errno_is_retained (tests.test_darwin_capture.DarwinGuardianTests.test_actual_compiler_launch_errno_is_retained) ... ok
+2026-11-09T09:24:13.2665150Z test_compiler_can_close_stdout_before_its_exit_status_is_ready (tests.test_darwin_capture.DarwinGuardianTests.test_compiler_can_close_stdout_before_its_exit_status_is_ready) ... ok
+2026-11-09T09:24:13.3647730Z test_compiler_cannot_inherit_the_private_status_descriptor (tests.test_darwin_capture.DarwinGuardianTests.test_compiler_cannot_inherit_the_private_status_descriptor) ... ok
+2026-11-09T09:24:13.7019550Z test_complete_frame_without_writer_eof_cannot_complete_capture (tests.test_darwin_capture.DarwinGuardianTests.test_complete_frame_without_writer_eof_cannot_complete_capture) ... ok
+2026-11-09T09:24:13.7694830Z test_group_permission_error_keeps_errno_and_never_retries (tests.test_darwin_capture.DarwinGuardianTests.test_group_permission_error_keeps_errno_and_never_retries) ... ok
+2026-11-09T09:24:14.3019080Z test_live_guardian_and_actual_compiler_exit_status_are_distinct (tests.test_darwin_capture.DarwinGuardianTests.test_live_guardian_and_actual_compiler_exit_status_are_distinct) ... ok
+2026-11-09T09:24:14.6510960Z test_malformed_extra_and_forged_status_frames_refuse (tests.test_darwin_capture.DarwinGuardianTests.test_malformed_extra_and_forged_status_frames_refuse) ... ok
+2026-11-09T09:24:14.7596770Z test_stream_readers_reach_eof_while_guardian_remains_alive (tests.test_darwin_capture.DarwinGuardianTests.test_stream_readers_reach_eof_while_guardian_remains_alive) ... ok
+2026-11-09T09:24:17.1556420Z test_timeout_and_overflow_terminate_the_owned_descendant_group (tests.test_darwin_capture.DarwinGuardianTests.test_timeout_and_overflow_terminate_the_owned_descendant_group) ... ok
+2026-11-09T09:24:17.2112470Z test_unexpected_guardian_exit_is_refused_even_with_a_complete_frame (tests.test_darwin_capture.DarwinGuardianTests.test_unexpected_guardian_exit_is_refused_even_with_a_complete_frame) ... ok
+2026-11-09T09:24:17.2446360Z test_writer_close_error_after_spawn_keeps_real_guardian_owned (tests.test_darwin_capture.DarwinGuardianTests.test_writer_close_error_after_spawn_keeps_real_guardian_owned) ... ok
+2026-11-09T09:24:17.4012360Z test_real_guardian_pipe_eof_preserves_compiler_status (tests.test_cpp_unique_capture.UniqueCaptureResourceTests.test_real_guardian_pipe_eof_preserves_compiler_status) ... ok
+2026-11-09T09:24:17.4013330Z 
+2026-11-09T09:24:17.4013600Z ----------------------------------------------------------------------
+2026-11-09T09:24:17.4013970Z Ran 20 tests in 5.542s
+2026-11-09T09:24:17.4014190Z 
+2026-11-09T09:24:17.4014330Z OK
+2026-11-09T09:24:17.4454740Z ##[group]Run set +e
+2026-11-09T09:24:17.4455070Z [36;1mset +e[0m
+2026-11-09T09:24:17.4455710Z [36;1mpython -m unittest tests.test_c_parameter_types.OriginalTypeEmissionProcessTests -v 2>&1 | tee artifacts/original-type-process-tests.log[0m
+2026-11-09T09:24:17.4456510Z [36;1mprocess_status=${PIPESTATUS[0]}[0m
+2026-11-09T09:24:17.4456820Z [36;1mexit "$process_status"[0m
+2026-11-09T09:24:17.4495310Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:24:17.4495680Z env:
+2026-11-09T09:24:17.4495940Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:24:17.4496380Z   HEPTA_HOST_CC: clang
+2026-11-09T09:24:17.4496630Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:24:17.4496860Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:24:17.4497140Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:17.4497710Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:24:17.4498650Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:17.4499090Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:17.4499650Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:17.4499940Z ##[endgroup]
+2026-11-09T09:24:18.3354840Z test_real_wait_preserves_exit_status_streams_and_quoted_arguments (tests.test_c_parameter_types.OriginalTypeEmissionProcessTests.test_real_wait_preserves_exit_status_streams_and_quoted_arguments) ... ok
+2026-11-09T09:24:18.3395600Z test_stale_tool_or_command_identity_is_rejected_before_launch (tests.test_c_parameter_types.OriginalTypeEmissionProcessTests.test_stale_tool_or_command_identity_is_rejected_before_launch) ... ok
+2026-11-09T09:24:18.3428400Z test_windows_dispatch_waits_with_inherited_io_and_no_exec_or_shell (tests.test_c_parameter_types.OriginalTypeEmissionProcessTests.test_windows_dispatch_waits_with_inherited_io_and_no_exec_or_shell) ... ok
+2026-11-09T09:24:18.3432870Z test_zero_exit_does_not_admit_missing_empty_or_oversize_ast (tests.test_c_parameter_types.OriginalTypeEmissionProcessTests.test_zero_exit_does_not_admit_missing_empty_or_oversize_ast) ... ok
+2026-11-09T09:24:18.3434610Z 
+2026-11-09T09:24:18.3435020Z ----------------------------------------------------------------------
+2026-11-09T09:24:18.3435790Z Ran 4 tests in 0.730s
+2026-11-09T09:24:18.3436170Z 
+2026-11-09T09:24:18.3436380Z OK
+2026-11-09T09:24:18.3833950Z ##[group]Run set +e
+2026-11-09T09:24:18.3834160Z [36;1mset +e[0m
+2026-11-09T09:24:18.3834390Z [36;1mpython tools/preflight_c_original_types.py \[0m
+2026-11-09T09:24:18.3834700Z [36;1m  --clang clang --expected-system 'Darwin' \[0m
+2026-11-09T09:24:18.3835040Z [36;1m  --output-directory artifacts/original-type-preflight \[0m
+2026-11-09T09:24:18.3835450Z [36;1m  --github-env "$GITHUB_ENV" 2>&1 | tee artifacts/original-type-preflight.log[0m
+2026-11-09T09:24:18.3835830Z [36;1mpreflight_status=${PIPESTATUS[0]}[0m
+2026-11-09T09:24:18.3836170Z [36;1mif [ -f artifacts/original-type-preflight/qualification.json ]; then[0m
+2026-11-09T09:24:18.3836710Z [36;1m  cp artifacts/original-type-preflight/qualification.json artifacts/original-type-preflight.json[0m
+2026-11-09T09:24:18.3837130Z [36;1mfi[0m
+2026-11-09T09:24:18.3837320Z [36;1mexit "$preflight_status"[0m
+2026-11-09T09:24:18.3872850Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:24:18.3873240Z env:
+2026-11-09T09:24:18.3873500Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:24:18.3873820Z   HEPTA_HOST_CC: clang
+2026-11-09T09:24:18.3874010Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:24:18.3874270Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:24:18.3874570Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:18.3875020Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:24:18.3875510Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:18.3875890Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:18.3876270Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:18.3876650Z ##[endgroup]
+2026-11-09T09:24:32.1917860Z {"cases": [{"diagnostic_codes": [], "expected_migration_ok": true, "name": "fixed_array", "observed_shape": {"const": true, "element": {"const": false, "kind": "UInt", "restrict": false, "spelling": "unsigned int", "volatile": false}, "extent": 8, "kind": "ConstantArray", "restrict": false, "spelling": "const unsigned int[8]", "volatile": false}, "observed_state": "fixed", "passed": true, "report": "/Users/runner/work/Hepta/Hepta/artifacts/original-type-preflight/fixed_array/migration.json", "report_sha256": "75b3640572b41968d257caf117d04d4faeb5255857f4614f32c651a5e06332fa"}, {"diagnostic_codes": ["E_C_VLA_PARAMETER"], "expected_migration_ok": false, "name": "vla_entry", "observed_shape": {"const": true, "element": {"const": false, "kind": "UInt", "restrict": false, "spelling": "unsigned int", "volatile": false}, "extent": null, "kind": "VariableArray", "restrict": false, "spelling": "const unsigned int[++n]", "volatile": false}, "observed_state": "variable", "passed": true, "report": "/Users/runner/work/Hepta/Hepta/artifacts/original-type-preflight/vla_entry/migration.json", "report_sha256": "cf628db06c831644772402f33243297ccbac85c7039d9ebaa4879236c5b397bf"}], "ok": true, "schema": "hepta.c-original-type-host-preflight.v1", "status": "original_type_host_preflight_passed", "system": "Darwin"}
+2026-11-09T09:24:32.2476480Z ##[group]Run linker_args=()
+2026-11-09T09:24:32.2477520Z [36;1mlinker_args=()[0m
+2026-11-09T09:24:32.2478210Z [36;1mif [ "$RUNNER_OS" = "Windows" ]; then[0m
+2026-11-09T09:24:32.2478660Z [36;1m  test -n "$HEPTA_HOST_LINKER"[0m
+2026-11-09T09:24:32.2479280Z [36;1m  linker_args=(--linker "$HEPTA_HOST_LINKER")[0m
+2026-11-09T09:24:32.2481410Z [36;1mfi[0m
+2026-11-09T09:24:32.2482200Z [36;1mset +e[0m
+2026-11-09T09:24:32.2482740Z [36;1mpython tools/qualify_c_stb_divide.py \[0m
+2026-11-09T09:24:32.2483490Z [36;1m  --clang "$HEPTA_CAPTURE_CLANG" --rustc "$(rustup which --toolchain 1.90.0 rustc)" \[0m
+2026-11-09T09:24:32.2484000Z [36;1m  "${linker_args[@]}" \[0m
+2026-11-09T09:24:32.2484900Z [36;1m  --cc "$HEPTA_HOST_CC" --cc-family "$HEPTA_HOST_CC_FAMILY" \[0m
+2026-11-09T09:24:32.2485600Z [36;1m  --expected-system 'Darwin' --expected-machine 'aarch64' \[0m
+2026-11-09T09:24:32.2486750Z [36;1m  --output-directory artifacts/stb-divide-host 2>&1 | tee artifacts/stb-divide-host.log[0m
+2026-11-09T09:24:32.2487840Z [36;1mstb_status=${PIPESTATUS[0]}[0m
+2026-11-09T09:24:32.2488370Z [36;1mif [ -f artifacts/stb-divide-host/qualification.json ]; then[0m
+2026-11-09T09:24:32.2489120Z [36;1m  cp artifacts/stb-divide-host/qualification.json artifacts/stb-divide-host.json[0m
+2026-11-09T09:24:32.2489670Z [36;1mfi[0m
+2026-11-09T09:24:32.2490660Z [36;1mexit "$stb_status"[0m
+2026-11-09T09:24:32.2582340Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:24:32.2582850Z env:
+2026-11-09T09:24:32.2583450Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:24:32.2583870Z   HEPTA_HOST_CC: clang
+2026-11-09T09:24:32.2584940Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:24:32.2585550Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:24:32.2586280Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:32.2587370Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:24:32.2588080Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:32.2588770Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:32.2589770Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:24:32.2590840Z   HEPTA_CAPTURE_CLANG: /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+2026-11-09T09:24:32.2591600Z ##[endgroup]
+2026-11-09T09:25:26.9746600Z {
+2026-11-09T09:25:26.9748400Z   "ok": true,
+2026-11-09T09:25:26.9750820Z   "status": "passed_for_actual_host_and_declared_component_variants",
+2026-11-09T09:25:26.9751330Z   "seconds": 54.31543025000002,
+2026-11-09T09:25:26.9751740Z   "report": "artifacts/stb-divide-host/qualification.json",
+2026-11-09T09:25:26.9752140Z   "error": null
+2026-11-09T09:25:26.9764250Z }
+2026-11-09T09:25:27.0830080Z ##[group]Run set -euo pipefail
+2026-11-09T09:25:27.0831940Z [36;1mset -euo pipefail[0m
+2026-11-09T09:25:27.0832510Z [36;1mgit rev-parse HEAD 'HEAD^{tree}' > artifacts/native-host-source-after.log[0m
+2026-11-09T09:25:27.0833080Z [36;1mgit status --porcelain --untracked-files=no > artifacts/native-host-tracked-after.log[0m
+2026-11-09T09:25:27.0833650Z [36;1mtest "$(git rev-parse HEAD)" = "$HEPTA_QUALIFICATION_HEAD_SHA"[0m
+2026-11-09T09:25:27.0834110Z [36;1mtest ! -s artifacts/native-host-tracked-after.log[0m
+2026-11-09T09:25:27.0834750Z [36;1mcmp artifacts/native-host-source-before.log artifacts/native-host-source-after.log[0m
+2026-11-09T09:25:27.1224190Z shell: /bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-09T09:25:27.1224530Z env:
+2026-11-09T09:25:27.1226330Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:25:27.1227080Z   HEPTA_HOST_CC: clang
+2026-11-09T09:25:27.1227440Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:25:27.1228020Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:25:27.1228430Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.1229040Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:25:27.1229520Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.1230010Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.1230540Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.1235270Z   HEPTA_CAPTURE_CLANG: /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+2026-11-09T09:25:27.1237320Z ##[endgroup]
+2026-11-09T09:25:27.2929700Z ##[group]Run actions/upload-artifact@v4
+2026-11-09T09:25:27.2930720Z with:
+2026-11-09T09:25:27.2931590Z   name: native-macos-15-clang-39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:25:27.2936440Z   path: artifacts/native-host.json
+artifacts/native-host-artifacts/
+artifacts/native-host-setup.log
+artifacts/native-host-source-before.log
+artifacts/native-host-source-after.log
+artifacts/native-host-tracked-before.log
+artifacts/native-host-tracked-after.log
+artifacts/native-host-adapter-tests.log
+artifacts/clang-capture-tests.log
+artifacts/clang-capture-ownership-tests.log
+artifacts/original-type-process-tests.log
+artifacts/original-type-preflight.json
+artifacts/original-type-preflight.log
+artifacts/original-type-preflight/
+artifacts/stb-divide-host.json
+artifacts/stb-divide-host.log
+artifacts/stb-divide-host/
+
+2026-11-09T09:25:27.2941170Z   if-no-files-found: error
+2026-11-09T09:25:27.2941580Z   compression-level: 6
+2026-11-09T09:25:27.2941840Z   overwrite: false
+2026-11-09T09:25:27.2942340Z   include-hidden-files: false
+2026-11-09T09:25:27.2942630Z env:
+2026-11-09T09:25:27.2942990Z   HEPTA_QUALIFICATION_HEAD_SHA: 39dedf9f7933b9743fb8a6c720e5deb4615296eb
+2026-11-09T09:25:27.2943540Z   HEPTA_HOST_CC: clang
+2026-11-09T09:25:27.2943930Z   HEPTA_HOST_CC_FAMILY: clang
+2026-11-09T09:25:27.2944230Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-09T09:25:27.2944630Z   pythonLocation: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.2945120Z   PKG_CONFIG_PATH: /Users/runner/hostedtoolcache/Python/3.13.17/arm64/lib/pkgconfig
+2026-11-09T09:25:27.2945730Z   Python_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.2946270Z   Python2_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.2946790Z   Python3_ROOT_DIR: /Users/runner/hostedtoolcache/Python/3.13.17/arm64
+2026-11-09T09:25:27.2947570Z   HEPTA_CAPTURE_CLANG: /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang
+2026-11-09T09:25:27.2948110Z ##[endgroup]
+2026-11-09T09:25:28.1808760Z (node:6474) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T09:25:28.1902990Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T09:25:28.2980700Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-09T09:25:28.2987320Z The least common ancestor is /Users/runner/work/Hepta/Hepta/artifacts. This will be the root directory of the artifact
+2026-11-09T09:25:28.2988750Z With the provided path, there will be 165 files uploaded
+2026-11-09T09:25:28.2989870Z Artifact name is valid!
+2026-11-09T09:25:28.2990450Z Root directory input is valid!
+2026-11-09T09:25:28.6040800Z Beginning upload of artifact content to blob storage
+2026-11-09T09:25:29.1529050Z (node:6474) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-09T09:25:29.2882010Z Uploaded bytes 1982659
+2026-11-09T09:25:29.3062340Z Finished uploading artifact content to blob storage!
+2026-11-09T09:25:29.3064200Z SHA256 digest of uploaded artifact zip is d34f2dc1709e584674092876178d7742dc68e4c0ac179b4480bd085b50c54724
+2026-11-09T09:25:29.3065570Z Finalizing artifact upload
+2026-11-09T09:25:29.7810080Z Artifact native-macos-15-clang-39dedf9f7933b9743fb8a6c720e5deb4615296eb.zip successfully finalized. Artifact ID 13662567127
+2026-11-09T09:25:29.7815630Z Artifact native-macos-15-clang-39dedf9f7933b9743fb8a6c720e5deb4615296eb has been successfully uploaded! Final size is 1982659 bytes. Artifact ID is 13662567127
+2026-11-09T09:25:29.7816870Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/42592903358/artifacts/13662567127
+2026-11-09T09:25:29.8060750Z Post job cleanup.
+2026-11-09T09:25:29.9651180Z (node:6495) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-09T09:25:29.9669910Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-09T09:25:29.9937090Z Post job cleanup.
+2026-11-09T09:25:30.1350800Z [command]/opt/homebrew/bin/git version
+2026-11-09T09:25:30.1427080Z git version 2.56.0
+2026-11-09T09:25:30.1449520Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/a68b1c7a-f36b-466f-9b19-6024a21d3c9d/.gitconfig'
+2026-11-09T09:25:30.1465200Z Temporarily overriding HOME='/Users/runner/work/_temp/a68b1c7a-f36b-466f-9b19-6024a21d3c9d' before making global git config changes
+2026-11-09T09:25:30.1467440Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T09:25:30.1471520Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/Hepta/Hepta
+2026-11-09T09:25:30.1550330Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T09:25:30.1642210Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T09:25:30.2960890Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T09:25:30.3029000Z http.https://github.com/.extraheader
+2026-11-09T09:25:30.3040580Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-09T09:25:30.3122180Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T09:25:30.4091370Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T09:25:30.4154620Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T09:25:30.5129730Z Cleaning up orphan processes
+2026-11-09T09:25:31.9867250Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
