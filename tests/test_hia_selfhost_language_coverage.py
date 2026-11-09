@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v24 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v25 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -492,6 +492,9 @@ def positive_fixtures():
                  boundary_fixture("blocks-per-function-256", block_source([256])),
                  boundary_fixture("blocks-total-1536", block_source([256] * 6)),
                  boundary_fixture("ssa-index-2047", simple_source(variable=2047))]
+    # Preserve both original valid-Core/profile refusals as admitted witnesses.
+    fixtures += [boundary_fixture("noncontiguous-function", simple_source().replace(b"fn f0(", b"fn f1(", 1)),
+                 boundary_fixture("unsupported-arbitrary-function-name", simple_source().replace(b"f0(", b"named("))]
     spaced = simple_source().replace(b",", b" , ").replace(b" = ", b"   =   ")
     spaced = spaced.replace(b'{"value":7}', b'{ "value" : 7 }')
     fixtures.append(boundary_fixture("optional-ascii-spaces", spaced))
@@ -597,11 +600,9 @@ def rejected_fixtures():
         ("blocks-total-1537", block_source([256] * 6 + [1]), "1536 total blocks"),
         ("functions-129", backward_chain_source() + scalar_function(128).encode(), "128 functions"),
         ("ssa-index-2048", simple_source(variable=2048), "maximum SSA index 2047"),
-        ("noncontiguous-function", seed.replace(b"fn f0(", b"fn f1(", 1), "contiguous function numbers"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
         ("non-u32-public-entry-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "public entry remains u32 despite internal signed scalar support"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
-        ("unsupported-arbitrary-function-name", seed.replace(b"f0(", b"named("), "numeric function identifiers"),
         ("tab-whitespace", seed.replace(b"  v3", b"\tv3"), "ASCII space and LF only"),
         ("crlf-whitespace", seed.replace(b"\n", b"\r\n"), "ASCII space and LF only"),
         ("unknown-cast-mode", parameter_source(1).replace(b'"mode":"wrap"', b'"mode":"truncate"'), "closed checked/wrap cast modes"),
@@ -806,7 +807,7 @@ def independent_references():
             scalar_doc = checked.as_dict()
             scalar_doc["functions"][0]["params"] = []
             scalar_doc["functions"][0]["blocks"][0]["params"] = []
-            result = execute_program(scalar_doc, "f0", [])
+            result = execute_program(scalar_doc, scalar_doc["functions"][0]["name"], [])
             if result["status"] != "returned" or result["result"] != fixture["expected_result"]:
                 raise AssertionError({"case": fixture["id"], "reference": result})
             item.update({"reference_result": result,
@@ -1001,7 +1002,8 @@ def coverage_manifest():
                    "hia_functions": {name: names[name] for name in (
                        "compile", "parse_function", "parse_params", "parse_block", "define",
                        "variable", "next_token", "decimal", "adjacent", "separated", "expect")},
-                   "new_positive": ["optional-ascii-spaces", "ssa-index-2047"],
+                   "new_positive": ["optional-ascii-spaces", "ssa-index-2047", "noncontiguous-function",
+                                    "unsupported-arbitrary-function-name"],
                    "new_negative": [row["id"] for row in negative if row["id"].startswith(
                        ("existing-", "noncontiguous-", "entry-", "unsupported-", "tab-", "crlf-", "ssa-"))]},
         "limits": {"contract": contract["limits"],

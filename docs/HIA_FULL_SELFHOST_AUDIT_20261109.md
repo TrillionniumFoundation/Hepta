@@ -50,7 +50,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
-| Scanner / assembly parser | Fixed canonical `hia-asm.v1` bytes | General identifiers, full grammar and diagnostics |
+| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function names and exact lookup | General SSA/block identifiers, full module grammar and diagnostics |
 | Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
@@ -362,3 +362,32 @@ and verified the locked QEMU 8.2.2 archive and executable in a task-local tree
 Both tests then passed against the unchanged original `f535528` checkout in
 9.767 seconds. No hardcoded tool identity or native-vs-emulator claim was changed.
 This isolated replay does not make the earlier full-suite invocation green.
+
+
+### v25 general function identifiers — qualified, not whole frontend closure
+
+Function declarations and quoted call targets now use source byte names rather
+than forced contiguous `fN` spelling. First-defined entry ABI remains the three
+borrowed buffers returning `u32` with ELF export `f0`. ASCII names up to 128 bytes
+include keyword/contextual, underscore, leading-zero suffix and long numeric
+suffix controls. Length plus every source byte is compared after a hash filter;
+the real equal-hash `aaB`/`aba` pair remains semantically distinct. Duplicate,
+undefined, runtime-reserved, oversized and malformed names still reject. Forward
+calls, loan returns and direct self-tail calls retain the full semantic pass.
+
+All compiler functions were also alpha-renamed to readable authoring names:
+original and changed-source compiler images reproduced the matching canonical
+bytes, including an actual syscall-only executable compiling its renamed source.
+The independent Core VM references were established before B0, not replaced by
+outputs from the successor compiler. Existing language fixture IDs were retained:
+two previous profile refusals are now positive cases, not discarded tests.
+
+Exact-source cold replay passed **11/11**, native **4,009/4,009** in 151.317 seconds;
+full language **1,196/1,196**, with all 10 native-report assertions and 72 exact
+workflow-body source tests passed. The original B1=B2=B3 hash is
+`ca7b8951441ce93c5b92803eba4fce60ab4bcb6aeb69ad9ceb71641e2a7e3722`;
+changed M1 differs from M2=M3. Source is 115 functions, 1,445 blocks, 7,481
+operations and 489,766 bytes. Capacities and cold deadlines were not increased.
+`v25-function-identifiers-summary.json` retains source and execution receipts.
+General SSA/block names, modules/exports, full runtime/build/release and the other
+open component authorities are not closed by this function-name extension.

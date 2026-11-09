@@ -22,6 +22,7 @@ from tools.hia_selfhost_signed import SOURCE as SIGNED_SOURCE
 from tools.hia_selfhost_traps import SOURCE as TRAP_SOURCE
 from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
 from tools.hia_selfhost_cli import SOURCE as CLI_SOURCE
+from tools.hia_selfhost_names import SOURCE as NAMES_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -106,9 +107,10 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 4294967295
         if phase == 0:
             put(w, 1024, get(w, 64))
-            check_calls(w)
-            if get(w, 40) != 0:
-                return 4294967295
+            if get(w, 432) == 0:
+                check_calls(w)
+                if get(w, 40) != 0:
+                    return 4294967295
         if get(w, 232) == 1:
             chain_drop_helper(o, w)
             elf_finish(o, w)
@@ -131,7 +133,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     separated(w)
     if get(w, 32) != 0:
         fail(w, 49)
-    f = expect(s, w, 257)
+    f = read_function_name(s, w, 1)
     adjacent(w)
     if f != get(w, 64) or f >= 128:
         return fail(w, 2)
@@ -265,7 +267,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     loan_incoming(w, bb, count, b)
     put(w, 96, b + 1)
     expect(s, w, 10)
-    while (get(w, 8) == 256 or get(w, 8) == 95) and get(w, 40) == 0:
+    while (get(w, 8) == 261 or get(w, 8) == 95) and get(w, 40) == 0:
         instruction(s, o, w)
     if get(w, 8) == @ret@:
         next_token(s, w)
@@ -431,16 +433,17 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             expect(s, w, 58)
             if get(w, 32) != 1:
                 fail(w, 49)
-            x = expect(s, w, 257)
+            x = read_function_name(s, w, 0)
             expect(s, w, 125)
             if x >= 128:
                 fail(w, 23)
             else:
-                if x == get(w, 72):
-                    put(w, 256, v + 1)
-                else:
-                    if get(w, 48) == 0:
-                        store(w, CBASE + get(w, 72) * 128 + x, 1)
+                if get(w, 432) == 0:
+                    if x == get(w, 72):
+                        put(w, 256, v + 1)
+                    else:
+                        if get(w, 48) == 0:
+                            store(w, CBASE + get(w, 72) * 128 + x, 1)
             if get(w, 48) > 0:
                 if x >= get(w, 1024):
                     fail(w, 23)
@@ -989,6 +992,8 @@ def write4(o:mutbuf, at:u64, x:u64) -> u64:
     return 0
 
 def expect(s:readbuf, w:mutbuf, kind:u64) -> u64:
+    if kind == 256 or kind == 258 or kind == 260:
+        return read_numbered(s, w, kind)
     value = get(w, 16)
     if get(w, 8) != kind:
         fail(w, 45)
@@ -1030,9 +1035,10 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
         put(w, 0, pos + 1)
         return 0
     if c == 95:
-        put(w, 8, 95)
-        put(w, 0, pos + 1)
-        return 0
+        if pos + 1 == n or is_word(byte(s, pos + 1)) == 0:
+            put(w, 8, 95)
+            put(w, 0, pos + 1)
+            return 0
     if c == 34:
         quoted = 1
         put(w, 32, 1)
@@ -1054,33 +1060,13 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
         put(w, 0, pos + 1)
     kind = keyword(s, begin, pos - begin)
     if kind == 0:
-        c = byte(s, begin)
-        if c == 118 or c == 102 or c == 98:
-            put(w, 0, begin + 1)
-            val = decimal(s, w, begin + 1)
-            if get(w, 0) != pos:
-                fail(w, 48)
-            if quoted == 1:
-                if c != 102 and c != 118:
-                    fail(w, 49)
-                put(w, 0, pos + 1)
-            kind = 256
-            if c == 102:
-                kind = 257
-            if c == 98:
-                kind = 258
-            if c == 118 and quoted == 1:
-                kind = 260
-            put(w, 16, val)
-        else:
-            fail(w, 50)
+        kind = 261
+    if quoted == 1:
+        if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @checked@ and kind != @function@:
+            kind = 261
     else:
-        if quoted == 1:
-            if kind != @value@ and kind != @mode@ and kind != @wrap@ and kind != @checked@ and kind != @function@:
-                fail(w, 51)
-        else:
-            if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @checked@ or kind == @function@:
-                fail(w, 51)
+        if kind == @value@ or kind == @mode@ or kind == @wrap@ or kind == @checked@ or kind == @function@:
+            kind = 261
     put(w, 8, kind)
     return 0
 
@@ -1727,6 +1713,7 @@ def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
         fail(w, code)
     return 0
 '''
+SOURCE += NAMES_SOURCE
 
 
 def source_program():

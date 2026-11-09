@@ -33,8 +33,9 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
-                          "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli")
+                          "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names")
 PHASE_REFERENCE_FILES = {
+    "names": "independent-names-reference.json",
     "cli": "independent-cli-reference.json",
     "explicit-traps": "independent-explicit-traps-reference.json",
     "resource": "independent-resource-reference.json",
@@ -497,6 +498,9 @@ def qualification_phase(request_path):
         # fresh generation chain, transported into this worker's own directory.
         (directory / (label + "-bytesum.image.bin")).write_bytes(data["sample_image"])
         observations = qualify_elf_outputs(directory, ((label, compiler, source),), data["sample"], checks)
+    elif family == "names":
+        from tools.hia_selfhost_names import qualify as qualify_names
+        observations = qualify_names(directory, compiler, checks, reference, label)
     elif family == "cli":
         from tools.qualify_hia_selfhost_cli import qualify as qualify_cli
         source = data["source"] if label == "original" else data["modified_source"]
@@ -840,6 +844,8 @@ def qualify(output):
         "keyword_observations": keyword_observations, "independent_keyword_reference": keyword_reference,
         "signed_observations": phase_observations("signed"), "independent_signed_reference": signed_reference,
         "scalar_cast_observations": phase_observations("scalar-casts"), "independent_scalar_cast_reference": cast_reference,
+        "function_name_observations": phase_observations("names"),
+        "independent_function_name_reference": references["names"],
         "executable_cli_observations": phase_observations("cli"),
         "independent_executable_cli_reference": references["cli"],
         "explicit_trap_observations": phase_observations("explicit-traps"),

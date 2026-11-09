@@ -133,8 +133,9 @@ successor compiler or the production runtime.
 
 The flat-image input is ordinary HIA assembly with the fixed header
 `hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
-bounded ELF object profile described below. Names are numeric: contiguous `f0`,
-`f1`, ... functions; contiguous `b0`, `b1`, ... blocks within each function;
+bounded ELF object profile described below. Function names are unique Core ASCII
+identifiers of at most 128 bytes; the first definition supplies the public ABI.
+Block names remain contiguous `b0`, `b1`, ... within each function;
 and `vN` SSA values. Function signature variables are `v0`, `v1`, ... and the
 entry block must exactly reproduce their names and types. SSA numbers elsewhere
 need not be contiguous, but each definition must be unique in its function.
@@ -1187,3 +1188,41 @@ excluded from its own rewrite. This is source authoring only, not a native
 source-identity dispatch or relaxed checker. VM controls compare both forms,
 including ordered effects, empty-buffer false guards, true bounds traps and an
 ineligible effectful argument. Existing capacity and timing bounds remain.
+
+
+## v25 exact-byte general function names
+
+Definitions and quoted direct-call targets admit unique Core ASCII names
+`[A-Za-z_][A-Za-z_0-9]{0,127}`, including names that coincide with grammar
+keywords. The Core `__hia_` prefix and native runtime function names remain
+reserved. The first function definition has the existing three-buffer/u32
+source ABI; the emitted external symbol remains `f0`. This is not general
+exports/linking, module names or block/SSA renaming. Blocks, parameters and SSA
+spelling retain their previous numeric bounds and canonical spelling.
+
+The signature prepass records source offset, length and a 32-bit filter hash in
+the existing 320-byte function record at offsets 240/248/256. Lookup searches
+at most 128 entries, requires matching length and every actual source byte,
+and never chooses behavior from a hash alone. The actual equal-hash names
+`aaB` and `aba` have different runtime functions in the independent witnesses.
+No string copy or new workspace allocation is needed; source bytes remain
+immutable throughout compilation. Identifier temporaries use offsets 456,
+464 and 472 in the existing state region. All original capacity limits remain.
+
+The first pass discovers all names/signatures only. It does not admit placeholder
+self-tail identities or call graph edges. Full semantic checking and the call
+DAG pass occur after every definition is known, so both forward references and
+cycles are checked by real resolved identity. The lexer exposes general word
+spelling; numeric SSA/block/quoted-origin parsing occurs only in its required
+context, preserving overflow, leading-zero, quoted-output and adjacency checks.
+
+Before-B0 Core references cover named scalar calls, grammar-keyword and maximum
+length names, equal hashes with different values, parameter-bound returned loans,
+CFG and exact self-tail returns, the 128-function boundary, and invalid/reserved/
+duplicate/undefined names. The native name family compares flat and linked ELF
+observations from original and modified compilers. Complete alpha-renaming of
+the compiler uses independently reverified source: R1/R2 must equal the relevant
+canonical compiler bytes, and the named syscall-only compiler must reproduce
+its own executable directly through kernel exec. The two former numeric-name
+profile refusals retain their original case IDs as admitted language witnesses.
+These are finite gates, not an all-input compiler refinement or whole-stack claim.

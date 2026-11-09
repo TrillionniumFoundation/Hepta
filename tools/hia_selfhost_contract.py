@@ -13,8 +13,10 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v24"
+PROFILE = "selfhost-core-linux-x86_64-v25"
 SOURCE_FILES = (
+    "tools/hia_selfhost_names.py",
+    "tests/test_hia_selfhost_names.py",
     "tools/hia_selfhost_cli.py",
     "tools/hia_selfhost_cli_child.py",
     "tools/qualify_hia_selfhost_cli.py",
@@ -96,7 +98,7 @@ def support_contract(root=ROOT):
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",
                    "module": "selfhost", "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
-                   "function_names": "contiguous f0..f127",
+                   "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
                    "block_names": "contiguous b0..b255 per function",
                    "value_names": "unique per function v0..v2047",
                    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
@@ -104,7 +106,7 @@ def support_contract(root=ROOT):
                    "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
                    "whitespace": "ASCII space and LF; shared assembly adjacency rules"},
         "abi": {
-            "entry": "f0", "calling_convention": "SysV AMD64",
+            "entry": "f0", "source_entry": "first defined function; emitted public symbol stays f0", "calling_convention": "SysV AMD64",
             "parameters": ["source_ptr", "source_len_u64", "output_ptr",
                            "output_len_u64", "workspace_ptr", "workspace_len_u64"],
             "core_types": ["readbuf", "mutbuf", "mutbuf"],
@@ -154,6 +156,11 @@ def support_contract(root=ROOT):
             "formal_origin_value_bytes": [928528, 930576],
             "formal_origin_block_bytes": [930576, 955152],
             "signature_prepasses": 1,
+            "function_name_bytes": 128,
+            "function_name_record_offsets": {"source_offset": 240, "bytes": 248, "filter_hash": 256},
+            "identifier_temporary_offsets": [456, 464, 472],
+            "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
+            "semantic_call_graph_checked_after_all_names_and_signatures": True,
         },
         "capacity_derivation": {
             "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,

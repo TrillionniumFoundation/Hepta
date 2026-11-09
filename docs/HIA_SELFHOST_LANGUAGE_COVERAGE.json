@@ -3143,8 +3143,20 @@
         928528,
         930576
       ],
+      "function_name_bytes": 128,
+      "function_name_record_offsets": {
+        "bytes": 248,
+        "filter_hash": 256,
+        "source_offset": 240
+      },
+      "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
       "function_results": 3,
       "functions": 128,
+      "identifier_temporary_offsets": [
+        456,
+        464,
+        472
+      ],
       "instruction_results": 3,
       "instructions": 8192,
       "internal_frame_overhead_bytes": 576,
@@ -3172,6 +3184,7 @@
           208
         ]
       },
+      "semantic_call_graph_checked_after_all_names_and_signatures": true,
       "signature_prepasses": 1,
       "source_bytes": 1048576,
       "ssa_index_max": 2047,
@@ -3223,7 +3236,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v24",
+  "profile": "selfhost-core-linux-x86_64-v25",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -4138,12 +4151,6 @@
       "source_sha256": "6e4ac777255cc01eac57cbee01693d07d419f6ba1a6371507f00723ed74442f3"
     },
     {
-      "boundary": "contiguous function numbers",
-      "general_core_expected": null,
-      "id": "noncontiguous-function",
-      "source_sha256": "74407fc879d4da21745f3577021a0c437e0456179193c2607a3212707cc1dd22"
-    },
-    {
       "boundary": "entry signature names/types",
       "general_core_expected": null,
       "id": "entry-signature-name",
@@ -4160,12 +4167,6 @@
       "general_core_expected": null,
       "id": "unsupported-module-name",
       "source_sha256": "d2ef7ada1060611b7913eaeda56ae5e293153d5a44626dd5bfdf98b2c57f16b6"
-    },
-    {
-      "boundary": "numeric function identifiers",
-      "general_core_expected": null,
-      "id": "unsupported-arbitrary-function-name",
-      "source_sha256": "b0e0d7bca099ed2962446bdff060023c00cac009b0a022fe7612d55f57b7e17c"
     },
     {
       "boundary": "ASCII space and LF only",
@@ -5167,13 +5168,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "4e4318f007d7a9f88a71184e47ec347274e1df5a66f60cc8e3af6a8355e21804"
+      "sha256": "97ed97a2556e83f1e905f2c116d3db50a27257f74063c89440b26d8d596b6c64"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "8043d1eafa2d81ab18aaff0f05eafdf1903b98466be2cbf979402524a6952c06"
+      "sha256": "fa3ce38becb83fdca7068c282d96184d3ba24a978902aa3627c61d51779ec671"
     },
-    "semantic_support_sha256": "541e98c2c0b8246664a1e25ffacecc620236bfdd69d754fcbcb4f2325bde5365",
+    "semantic_support_sha256": "1a1a681a328e976b943f355a04fb99726681f3814a4806838a7cae89a0d03223",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5184,7 +5185,7 @@
       "core": "hepta.hia.program.v8",
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "executable_module": "selfhost_exec",
-      "function_names": "contiguous f0..f127",
+      "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
       "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",
       "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
@@ -5245,16 +5246,16 @@
       "existing-effects-separation",
       "existing-entry-separation",
       "ssa-index-2048",
-      "noncontiguous-function",
       "entry-signature-name",
       "unsupported-module-name",
-      "unsupported-arbitrary-function-name",
       "tab-whitespace",
       "crlf-whitespace"
     ],
     "new_positive": [
       "optional-ascii-spaces",
-      "ssa-index-2047"
+      "ssa-index-2047",
+      "noncontiguous-function",
+      "unsupported-arbitrary-function-name"
     ]
   }
 }
