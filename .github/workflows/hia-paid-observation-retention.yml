@@ -1,0 +1,52 @@
+name: HIA paid observation retention
+
+on:
+  push:
+    branches:
+      - 'codex/hia-paid-retention-published-*'
+  pull_request:
+    paths:
+      - 'tools/qualify_hia_paid_observation.py'
+      - 'tools/qualify_hia_paid_retention.py'
+      - 'tests/test_hia_paid_observation*.py'
+      - 'benchmarks/hia_paid_observation/**'
+      - 'docs/HIA_PAID_OBSERVATION.md'
+      - 'review-evidence/hia-paid-retention-20261109/**'
+      - '.github/workflows/hia-paid-observation-retention.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paid-retention:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      HEPTA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEPTA_SOURCE_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run all 12 exact tests and retain every fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/hia-paid-retention"
+          python -B tools/qualify_hia_paid_retention.py \
+            --expected-commit "$HEPTA_SOURCE_SHA" \
+            --output "$RUNNER_TEMP/hia-paid-retention/evidence" \
+            2>&1 | tee "$RUNNER_TEMP/hia-paid-retention/tests.log"
+      - name: Retain source identities, complete results and original databases
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-paid-retention-${{ env.HEPTA_SOURCE_SHA }}-${{ github.event_name }}
+          path: ${{ runner.temp }}/hia-paid-retention/
+          if-no-files-found: error
+          retention-days: 30

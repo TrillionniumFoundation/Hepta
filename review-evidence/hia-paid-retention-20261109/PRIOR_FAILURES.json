@@ -1,0 +1,60 @@
+{
+  "schema": "hepta.hia.paid-retention.prior-development-failures.v1",
+  "evidence_kind": "transcribed retained session outcome; not the missing original per-case journal",
+  "original_attempt": {
+    "base_commit": "cf862a423338b9c1e81e9727637278c177d326fd",
+    "candidate_committed": false,
+    "tests_run": 11,
+    "failures": 3,
+    "errors": 0,
+    "reported_duration_seconds": 48.901
+  },
+  "failures": [
+    {
+      "test": "tests.test_hia_paid_observation.PaidObservationTests.test_full_registered_matrix_keeps_failure_control_and_ndu_not_run",
+      "expected": "PASS_MECHANISM",
+      "observed": "FAIL_MECHANISM"
+    },
+    {
+      "test": "tests.test_hia_paid_observation_retention.PaidObservationRetentionTests.test_effect_completed_then_evaluator_failure_retains_db_and_prior_cells",
+      "expected_unresolved_operation_ids": [],
+      "observed_unresolved_operation_ids": [
+        "80d0cd1b7b0f4717bbecc0acb617a7a1/holdout-0-voi/step-1"
+      ]
+    },
+    {
+      "test": "tests.test_hia_paid_observation_retention.PaidObservationRetentionTests.test_lost_effect_ack_keeps_original_owner_and_pending_operation",
+      "expected": "FAILED_EXECUTION",
+      "observed": "BLOCKED_CALIBRATION"
+    }
+  ],
+  "original_per_case_fixtures_available": false,
+  "original_failure_causes": "UNRESOLVED; environment failure is not established as the cause",
+  "recovered_candidate_files": {
+    "tools/qualify_hia_paid_observation.py": "1926bb696c6e85d8c3ce90a7f34d603acc15b8bc35ee3ccb77cdeb35d3c697ed",
+    "tests/test_hia_paid_observation_retention.py": "c6fb6a6eebf477222ea9ffff0eb6542afa752c5e3aaed35440f1bf980d5409c9"
+  },
+  "subsequent_diagnostic": {
+    "attempt": "paid-retention-diagnostic-20261109-1",
+    "source_unchanged": true,
+    "registered_wall_budget_ns": 2000000000,
+    "tests_run": 3,
+    "failures": 0,
+    "errors": 0,
+    "wall_ns": 10198140945,
+    "status": "PASS",
+    "scope": "fresh tests with original test bodies and protocol, preserving TemporaryDirectory fixtures; does not explain or erase the earlier failures"
+  },
+  "original_readonly_audit": {
+    "session_id": 17910,
+    "current_session_lookup": "Unknown process id",
+    "original_exit_status": "UNKNOWN",
+    "recovered_stdout_status": "PASS",
+    "producer_executions": 0,
+    "subprocess_invocations": 0,
+    "readback_stdout_sha256": "56ddef4e059ab0cea37363ccb21190e18ce6931d260d06080538b02eb65cf347",
+    "readback_report_sha256": "b1f3dd9d88fe95cd67729a3a097cf9b5ef4b35c1abba805b4a601f6c1d15ec4a"
+  },
+  "ndu_status": "NOT_RUN",
+  "incremental_ndu_benefit_established": false
+}
