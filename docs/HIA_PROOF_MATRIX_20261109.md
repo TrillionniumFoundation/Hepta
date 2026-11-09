@@ -83,3 +83,10 @@ Local runs used Python 3.12, Z3 4.15.4 and jsonschema 4.26.0. The new hosted
 workflow pins jsonschema 4.25.1 and Z3 4.15.4.0 and repeats all three
 qualifications on its exact source commit; hosted success must be reported
 separately from these local observations.
+
+A subsequent combined local run under the workflow-pinned jsonschema 4.25.1
+and Z3 4.15.4.0 passed all **59 tests**, with no skips, failures or errors.
+The exact log is `review-evidence/hia-proof-matrix-20261109-3977/exact-pinned-tests.log`.
+Original scalar/matrix/pilot results above retain their original environment.
+The workflow YAML parsed locally. GitHub publication was rejected by automatic
+approval review; this change has no hosted exact-head CI result.

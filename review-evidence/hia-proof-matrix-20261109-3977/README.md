@@ -8,6 +8,7 @@ inputs are bound by retained inventories, not inferred from the base commit.
 | Original output | Result |
 | --- | --- |
 | `adoption-projection-tests.log` | 49 native receipt/tool tests pass |
+| `exact-pinned-tests.log` | Combined 59 tests pass under jsonschema 4.25.1 and Z3 4.15.4.0; no skips/errors/failures |
 | `feature-matrix-native-02.json` and `feature-matrix-native.tar.xz` | Actual matrix 9/9; B1=B2=B3; unchanged source closure |
 | `feature-matrix-native.json` and `feature-matrix-stale-contract.tar.xz` | Original stale-contract refusal, no native matrix cases |
 | `scalar-chain-run1.json` and `scalar-proof-adoption.tar.xz` | All three closed instances pass; 24 finite native consumer observations, 39 cold consumer operations |
