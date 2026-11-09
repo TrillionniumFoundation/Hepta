@@ -1,4 +1,4 @@
-"""Finite witnesses for the declared Selfhost-Core v21 output-format profiles.
+"""Finite witnesses for the declared Selfhost-Core v22 output-format profiles.
 
 The Python side constructs ordinary input assembly and independent mathematical/
 Core-VM observations before B0. Native B3 and mutated M3 compile every native
@@ -32,7 +32,7 @@ if __package__ in {None, ""}:
 
 COVERAGE_PATH = "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
 SELF_PATH = "tests/test_hia_selfhost_language_coverage.py"
-PROFILE = "selfhost-core-linux-x86_64-v21"
+PROFILE = "selfhost-core-linux-x86_64-v22"
 WIDTHS = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": 64}
 BINARY_INTEGER = ("int.add.wrap", "int.sub.wrap", "int.mul.wrap", "bit.and", "bit.or", "bit.xor")
 CHECKED_BINARY = ("int.add.checked", "int.sub.checked", "int.mul.checked", "int.div.checked", "int.rem.checked")
@@ -885,7 +885,7 @@ def coverage_manifest():
             ["scalar-*", "dynamic-integer-*", "boolean", "cast", "shift-trap-*", "checked-trap-*",
              "checked-cast*", "dynamic-cast-*", "bool-equality-input-*", "boolean-equality-*", "boolean-ordering-*",
              "bit.not-*", "int.add.checked-*", "int.sub.checked-*", "select-*"]),
-        "control_flow": (["parse_block", "edge", "check_graph"], ["boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
+        "control_flow": (["parse_block", "edge", "check_graph", "explicit_trap"], ["explicit-*", "boolean", "blocks-*", "inbound-entry-edge", "existing-unreachable-block"]),
         "effects": (["parse_effects", "require_effects", "instruction_effects", "instruction"],
                     ["declaration-*", "call-*-missing-*", "*-missing-*", "malformed-*", "int.cast-*"]),
         "calls": (["instruction", "args", "check_calls", "copy_argument", "read_result_types", "return_results", "call_results"],
@@ -907,7 +907,7 @@ def coverage_manifest():
         "resources": ["tools.hia_selfhost_resources.qualify_resources", "tools.hia_selfhost_bulk.qualify_bulk",
                       "tools.hia_selfhost_loans.qualify_loans",
                       "tests.test_hia_selfhost.SelfhostNativeTests.test_native_edges_reject_readonly_duplicates_but_calls_keep_legal_aliases"],
-        "control_flow": ["tools.qualify_hia_selfhost.qualify"],
+        "control_flow": ["tools.qualify_hia_selfhost.qualify", "tools.hia_selfhost_traps.qualify"],
         "effects": ["tools.hia_selfhost_effects.qualify"],
         "calls": ["tools.hia_selfhost_cases.backward_chain_source", "tools.qualify_hia_selfhost.qualify", "tools.hia_selfhost_multi_results.qualify"],
         "recursion": ["tools.hia_selfhost_tailcalls.qualify_tailcalls"],

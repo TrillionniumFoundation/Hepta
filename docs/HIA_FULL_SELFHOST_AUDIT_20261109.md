@@ -201,3 +201,30 @@ retains its fresh child process and existing resource/deadline controls.
 The fresh source-only replay passed 11/11 and 3,467/3,467 native checks in
 approximately **111 seconds**, with identical compiler image hashes. This local
 result is not a GitHub deadline pass; the next exact-source CI must execute.
+
+## Implemented follow-through: v22 explicit traps and full test inventory
+
+All five Core trap terminators are now parsed, effect-checked, accounted and
+lowered in HIA. Independent VM observations preserve each semantic code, actual
+earlier output writes, branch choice and live owner/loan state on error paths.
+Flat and ELF successors execute real UD2, including scalar/void callees. The ABI
+does not return a trap-code word. Six malformed/effect controls remain rejected.
+The fresh v22 cold replay passed 11/11 and **3,581/3,581** native checks in about
+111 seconds; 71 source/reference/discovery checks passed. The compiler has
+101 functions, 1,489 blocks and 7,357 operations, within unchanged capacities.
+
+The exact v21 unified candidate run executed 575 tests and failed only an Agent
+discovery assertion hard-coded to v20. It is retained as a failed run. Discovery
+now compares the entire current source-bound contract, not a version label.
+GitHub source/Agent failures on `25ca259` had the same exact cause; downstream
+skipped jobs are not passes. Fresh v22 CI must run independently.
+
+**Scope correction:** the 571/575-test unified candidate gate is a selected
+source/native/installation inventory, not every repository test. The new
+`tools/qualify_hia_all_tests.py` derives its inventory from every live
+`tests/test_hia*.py` plus shared Core acceptance modules. At v22 it inventories
+473 modules and 4,391 static methods. It binds every tracked checkout file,
+retains module-load failures, actual executed IDs, all skips and expected failures,
+and never promotes platform gaps or finite tests into whole-stack closure.
+Non-HIA repository tests and real cross-target/hardware runs remain separately
+required where applicable; this full HIA run has not yet been reported passed.

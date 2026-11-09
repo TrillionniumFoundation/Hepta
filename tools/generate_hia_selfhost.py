@@ -19,6 +19,7 @@ from tools.hia_selfhost_effects import source as effect_source
 from tools.hia_selfhost_multi_results import SOURCE as MULTI_RESULT_SOURCE
 from tools.hia_selfhost_keywords import keyword_source
 from tools.hia_selfhost_signed import SOURCE as SIGNED_SOURCE
+from tools.hia_selfhost_traps import SOURCE as TRAP_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -26,6 +27,7 @@ WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "rea
 WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
 WORDS += ["checked", "null"]
+WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -250,6 +252,10 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         adjacent(w)
         return_results(s, o, w)
     else:
+        if get(w, 8) == @trap@:
+            explicit_trap(s, o, w)
+            expect(s, w, 10)
+            return 0
         if get(w, 8) == @jump@:
             next_token(s, w)
             edge(s, o, w, 0)
@@ -1671,6 +1677,7 @@ def cast_integer(o:mutbuf, w:mutbuf, t:u64, checked:u64, at:u64) -> u64:
 SOURCE += effect_source(W)
 SOURCE += MULTI_RESULT_SOURCE
 SOURCE += SIGNED_SOURCE
+SOURCE += TRAP_SOURCE
 
 
 def source_program():

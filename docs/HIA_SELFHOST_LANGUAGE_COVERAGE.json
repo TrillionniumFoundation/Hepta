@@ -2532,11 +2532,13 @@
     {
       "area": "control_flow",
       "existing_evidence": [
-        "tools.qualify_hia_selfhost.qualify"
+        "tools.qualify_hia_selfhost.qualify",
+        "tools.hia_selfhost_traps.qualify"
       ],
       "hia_functions": {
         "check_graph": "f11",
         "edge": "f5",
+        "explicit_trap": "f100",
         "parse_block": "f3"
       },
       "items": [
@@ -2544,10 +2546,12 @@
         "typed jump",
         "typed branch",
         "loops",
+        "explicit trap with one of the five Core error codes",
         "block reachability",
         "no inbound entry edges"
       ],
       "new_witnesses": [
+        "explicit-*",
         "boolean",
         "blocks-*",
         "inbound-entry-edge",
@@ -3159,7 +3163,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v21",
+  "profile": "selfhost-core-linux-x86_64-v22",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -5103,13 +5107,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "ee5264b3efd58d7fa55324f667ffda3177a1b3f39f16a0e6bce52656bd5f009f"
+      "sha256": "9507c527e0d438208212386fa20a6d5d1ad6d270687e6b2adfce94f109feaff6"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "ad5f7f7ef267193de6de59437b01988fefa0de3df072587edcc5b1519c530a68"
+      "sha256": "f6038c2e5f2268e24a657b1576bb2d2a6e299331313e7c7d59404f0d802ac7ba"
     },
-    "semantic_support_sha256": "b2325d147ded160810badcbfb4c58001edb347d1cf8ed0753730fced707c819e",
+    "semantic_support_sha256": "9a8f566c7124e872b6381b4dbb97793341b91db4a7fcf4c5c379eb6719ed29ad",
     "support_projection_omits": [
       "source_identity"
     ]

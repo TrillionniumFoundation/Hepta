@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v21"
+PROFILE = "selfhost-core-linux-x86_64-v22"
 SOURCE_FILES = (
     "tools/generate_hia_selfhost.py",
     "tools/generate_hia_selfhost_contract.py",
@@ -33,6 +33,8 @@ SOURCE_FILES = (
     "tools/hia_selfhost_scalar_casts.py",
     "tools/hia_selfhost_batch.py",
     "tools/hia_selfhost_references.py",
+    "tools/hia_selfhost_traps.py",
+    "tests/test_hia_selfhost_traps.py",
     "tests/test_hia_selfhost_signed.py",
     "tests/test_hia_selfhost_keywords.py",
     "tools/hia_selfhost_owned_elf.py",
@@ -165,6 +167,7 @@ def support_contract(root=ROOT):
                        "signed decimal literals with exact width bounds", "unit null literal"]},
             {"area": "control_flow", "status": "supported",
              "items": ["typed ret", "typed jump", "typed branch", "loops",
+                       "explicit trap with one of the five Core error codes",
                        "block reachability", "no inbound entry edges"]},
             {"area": "effects", "status": "supported",
              "items": ["empty, partial and complete declared effect sets in any order",

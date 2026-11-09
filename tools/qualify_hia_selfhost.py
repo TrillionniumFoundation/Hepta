@@ -33,8 +33,9 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
-                          "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts")
+                          "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps")
 PHASE_REFERENCE_FILES = {
+    "explicit-traps": "independent-explicit-traps-reference.json",
     "resource": "independent-resource-reference.json",
     "bulk": "independent-bulk-reference.json",
     "loan": "independent-loan-reference.json",
@@ -513,6 +514,9 @@ def qualification_phase(request_path):
     elif family == "multi":
         from tools.hia_selfhost_multi_results import qualify as qualify_multi
         observations = qualify_multi(directory, compilers, checks, reference)
+    elif family == "explicit-traps":
+        from tools.hia_selfhost_traps import qualify as qualify_traps
+        observations = qualify_traps(directory, compilers, checks, reference)
     elif family == "signed":
         from tools.hia_selfhost_signed_cases import qualify as qualify_signed
         observations = qualify_signed(directory, compilers, checks, reference)
@@ -831,6 +835,8 @@ def qualify(output):
         "keyword_observations": keyword_observations, "independent_keyword_reference": keyword_reference,
         "signed_observations": phase_observations("signed"), "independent_signed_reference": signed_reference,
         "scalar_cast_observations": phase_observations("scalar-casts"), "independent_scalar_cast_reference": cast_reference,
+        "explicit_trap_observations": phase_observations("explicit-traps"),
+        "independent_explicit_trap_reference": references["explicit-traps"],
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,

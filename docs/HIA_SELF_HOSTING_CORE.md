@@ -24,7 +24,7 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v21`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v22`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
 complete Python seed package. It is checked before B0. A stale source file,
@@ -1101,3 +1101,21 @@ owner-carrying self tails. Unsafe lifetime variants remain rejection controls.
 Returned borrowed views still require a provenance contract not implemented by
 this native subset. Neither this change nor a bootstrap fixed point establishes
 a rewrite of the full HIA toolchain or an all-input refinement proof.
+
+## v22 explicit terminal Core errors
+
+The HIA compiler admits `trap allocation`, `trap bounds`,
+`trap division_by_zero`, `trap overflow` and `trap user`. The declared `trap`
+effect is required and the exact terminator structure contributes three Core
+nodes. The emitted UD2 terminates the current native child; this borrowed-byte
+ABI does not return a machine-readable trap-code word. Independent VM evidence
+records the semantic code and actual earlier output writes. Traps in scalar and
+void callees, input-dependent branch choice and trapping with live owner/loan
+state are qualified separately from normal-return cleanup. An error path is not
+rewritten to a successful return or reported as normal owner destruction.
+
+The pre-B0 Core oracle inventory runs in fresh isolated processes, at most two
+at once under the existing qualification budget. Source/family/payload hashes
+and actual child PIDs are checked before B0; every B/M generation remains
+sequential. This scheduling does not reuse native witness children, relax their
+limits, or establish full-language/whole-stack correctness.

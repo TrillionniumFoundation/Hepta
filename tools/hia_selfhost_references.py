@@ -23,6 +23,7 @@ if __package__ in {None, ""}:
 from tools.hia_selfhost_contract import CONTRACT_PATH, file_digests, validate_contract
 
 BUILDERS = {
+    "explicit-traps": ("tools.hia_selfhost_traps", "independent_reference"),
     "resource": ("tools.hia_selfhost_resources", "independent_resource_reference"),
     "bulk": ("tools.hia_selfhost_bulk", "independent_bulk_reference"),
     "loan": ("tools.hia_selfhost_loans", "independent_loan_reference"),
