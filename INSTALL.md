@@ -102,3 +102,9 @@ selfhost support matrix, and `docs/HIA_AGENT_PROOF_RESULTS.md`, the proof-result
 contract. Follow `docs/HIA_REPOSITORY_AGENT_TRIAL.md` there for the repository-task
 recorder and its public task package. A passing source qualification alone does
 not establish a completed fresh-Agent task or stable NDU economic benefit.
+
+## Agent entry and scope handoff
+
+Use the [Agent entry and proof-scope handoff](docs/HIA_AGENT_ENTRY_SCOPE_20261109.md)
+to distinguish current, named, development and online installations, CLI/MCP
+backends, the minimum program and the remaining P0-P5 acceptance gates.
