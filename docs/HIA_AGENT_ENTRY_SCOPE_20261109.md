@@ -195,3 +195,13 @@ The local executor remained unavailable while this follow-up was prepared.
 Local checks are NOT_RUN. Only this new head's hosted CI can establish its
 executed result; the initial documentation-only head's success does not
 qualify these changes. The online exit-127 failure above remains unresolved.
+
+### First executable-head workflow failure
+
+Head `81b6d808` produced public-release run `42584887985`, which failed before
+creating any jobs. Static inspection found that the new-step insertion had
+omitted the original native-qualification step name and left duplicate
+`shell`/`run` keys in one step. No adapter test, CLI/native example or
+installation check ran in that failed workflow. The follow-up restores the
+original step boundary and every original step; it needs its own exact-head
+workflow run. This failure remains failed and is not relabelled by later CI.

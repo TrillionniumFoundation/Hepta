@@ -193,6 +193,7 @@ jobs:
                     "cases": observed, "ok": True, "general_machine_proof": False}
           (root / "minimal-native.json").write_text(json.dumps(record, indent=2) + "\n")
           PY
+      - name: Run native examples and prove installation identity matches the lock
         shell: bash
         run: |
           set -euo pipefail
