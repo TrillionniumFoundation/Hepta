@@ -365,6 +365,56 @@ def descriptive(values):
         "sample_stdev_ns": statistics.stdev(values) if len(values) > 1 else None}
 
 
+def audit_retained_attempt(row, case, plan, store):
+    """Check every attempted cell, including failures and partial raw streams.
+
+    Retaining failed bytes does not admit their decision or promote a partial
+    stream to complete. A successful cell gets its semantic audit even if the
+    other arm in its pair failed. Only paired timing needs two successes.
+    """
+    status = row["status"]
+    require(status in {"not_started", "failed", "completed"}, "unknown call status")
+    if status == "not_started":
+        require(all(row.get(key) is None for key in ("result", "observations", "wall_ns",
+                    "cpu_ns", "start_offset_ns", "end_offset_ns", "call_error", "audit_error")),
+                "unstarted call contains execution observations")
+        return None
+    require(type(row["wall_ns"]) is int and row["wall_ns"] >= 0
+            and type(row["start_offset_ns"]) is int and row["start_offset_ns"] >= 0
+            and type(row["end_offset_ns"]) is int
+            and row["end_offset_ns"]-row["start_offset_ns"] == row["wall_ns"]
+            and type(row["cpu_ns"]) is dict and set(row["cpu_ns"]) == {"parent", "children"}
+            and all(type(n) is int and n >= 0 for n in row["cpu_ns"].values()),
+            "invalid attempted call costs")
+    frozen = {"pool": case["pool"], "remaining_wall_ns": case["remaining_wall_ns"],
+              "objective_sha256": plan["objective_sha256"], "generation": row["pair"]}
+    require(row["input_sha256"] == digest(frozen), "attempt input differs from frozen pair")
+    # Reading both top-level references and unpacking all nested raw references
+    # is necessary: enumerating existing objects cannot detect an absent object.
+    retained_result = decode(store.read(row["result"]))
+    observations = store.unpack(decode(store.read(row["observations"])))
+    require(type(observations) is list and all(type(item) is dict for item in observations),
+            "attempt observations must be a list of original records")
+    require((row["arm"] == "ordinary" and observations == [])
+            or (row["arm"] == "ndu" and len(observations) <= 1),
+            "unexpected native observations for attempted arm")
+    for native in observations:
+        require(type(native.get("stdin")) is bytes, "original request bytes missing")
+        pump = native.get("pump")
+        require(pump is None or (type(pump) is dict
+                and type(pump.get("stdout")) is bytes and type(pump.get("stderr")) is bytes),
+                "original native stream bytes missing")
+    if status == "failed":
+        require(type(row.get("call_error")) is dict and retained_result is None,
+                "failed call must retain its error and absent result")
+        return None
+    require(row.get("call_error") is None, "completed call retains a call error")
+    if row.get("audit_error") is not None:
+        require(type(row["audit_error"]) is dict, "invalid retained audit error")
+        return None
+    return audit_completed(row, case, plan, store)
+
+
 def results_summary(rows, plan, store):
     cases_by_id = {case["id"]: case for case in plan["cases"]}
     pairs = []
@@ -372,9 +422,10 @@ def results_summary(rows, plan, store):
     for entry in plan["schedule"]:
         found = [row for row in rows if row["pair"] == entry["pair"]]
         require([row["arm"] for row in found] == entry["order"], "missing or reordered cell")
-        complete = all(row["status"] == "completed" and row["audit_error"] is None for row in found)
+        winners = [audit_retained_attempt(row, cases_by_id[entry["case_id"]], plan, store)
+                   for row in found]
+        complete = all(winner is not None for winner in winners)
         if complete:
-            winners = [audit_completed(row, cases_by_id[entry["case_id"]], plan, store) for row in found]
             require(winners[0] == winners[1], "selectors disagree on identical pool")
         arms = {row["arm"]: row for row in found}
         pairs.append({**entry, "complete_and_same_choice": complete,

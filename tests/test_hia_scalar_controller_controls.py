@@ -134,15 +134,37 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
             with self.subTest(fault=fault), self.assertRaises(ValueError):
                 study.audit_completed(row, case, plan, self.store)
 
-    def test_failures_are_charged_and_unstarted_counterfactuals_are_not_zero(self):
-        plan = {"cases": study.cases(), "schedule": study.schedule()}
+    def incomplete_fixture(self):
+        """One successful ordinary call and one failed native call, no process."""
+        plan = {"cases": study.cases(), "schedule": study.schedule(), "objective_sha256": "1"*64}
         rows = []
         for entry in plan["schedule"]:
-            for arm in entry["order"]:
+            for position, arm in enumerate(entry["order"], 1):
                 rows.append({"pair": entry["pair"], "arm": arm, "status": "not_started",
-                    "audit_error": None, "wall_ns": None, "cpu_ns": None})
-        rows[0].update(status="completed", wall_ns=9, cpu_ns={"parent": 3, "children": 0})
-        rows[1].update(status="failed", wall_ns=17, cpu_ns={"parent": 4, "children": 5})
+                    "case_id": entry["case_id"], "position": position, "call_error": None,
+                    "audit_error": None, "wall_ns": None, "cpu_ns": None,
+                    "start_offset_ns": None, "end_offset_ns": None,
+                    "result": None, "observations": None})
+        case = plan["cases"][0]
+        frozen = {"pool": case["pool"], "remaining_wall_ns": case["remaining_wall_ns"],
+                  "objective_sha256": plan["objective_sha256"], "generation": 1}
+        result = {"pool": case["pool"], "remaining_wall_ns": case["remaining_wall_ns"],
+                  "arm": "ordinary", "selected_id": case["expected_id"],
+                  "native_ndu_evaluated": False, "native_response": None, "native_identity": None}
+        rows[0].update(status="completed", wall_ns=9, start_offset_ns=0, end_offset_ns=9,
+            cpu_ns={"parent": 3, "children": 0}, input_sha256=study.digest(frozen),
+            result=self.store.json(result), observations=self.store.json([]))
+        partial = {"stdin": b"authored incomplete request", "pump": {
+            "stdout": b"authored partial reply", "stderr": b"authored diagnostic",
+            "streams_complete": False}}
+        rows[1].update(status="failed", wall_ns=17, start_offset_ns=9, end_offset_ns=26,
+            cpu_ns={"parent": 4, "children": 5}, input_sha256=study.digest(frozen),
+            call_error={"type": "AuthoredFixtureError", "message": "not a native run"},
+            result=self.store.json(None), observations=self.store.json(self.store.pack([partial])))
+        return plan, rows
+
+    def test_failures_are_charged_and_unstarted_counterfactuals_are_not_zero(self):
+        plan, rows = self.incomplete_fixture()
         result = study.results_summary(rows, plan, self.store)
         self.assertEqual(result["status"], "INCOMPLETE")
         self.assertEqual(result["attempted_calls"], 2)
@@ -151,6 +173,89 @@ class ScalarControllerEvidenceTests(unittest.TestCase):
         self.assertIsNone(result["pairs"][0]["ordinary_minus_ndu_wall_ns"])
         self.assertIsNone(result["paired_ordinary_minus_ndu_wall_ns"]["sum_ns"])
         self.assertFalse(result["economic_benefit_established"])
+
+    def test_incomplete_pair_still_verifies_each_attempted_object_and_raw_stream(self):
+        for fault in ("successful-result", "failed-observations", "failed-stdout", "failed-stderr"):
+            with self.subTest(fault=fault):
+                plan, rows = self.incomplete_fixture()
+                if fault == "successful-result":
+                    missing = rows[0]["result"]
+                elif fault == "failed-observations":
+                    missing = rows[1]["observations"]
+                else:
+                    packed = study.decode(self.store.read(rows[1]["observations"]))
+                    missing = packed[0]["pump"][fault.removeprefix("failed-")]["raw_bytes"]
+                path = self.root / missing["path"]
+                raw = path.read_bytes()
+                path.unlink()
+                try:
+                    with self.assertRaises((ValueError, OSError)):
+                        study.results_summary(rows, plan, self.store)
+                finally:
+                    path.write_bytes(raw)
+
+    def test_completed_cell_is_audited_even_when_its_partner_fails(self):
+        plan, rows = self.incomplete_fixture()
+        result = study.decode(self.store.read(rows[0]["result"]))
+        result["selected_id"] = "wrong-authored-winner"
+        rows[0]["result"] = self.store.json(result)
+        with self.assertRaisesRegex(ValueError, "same-pool winner"):
+            study.results_summary(rows, plan, self.store)
+
+    def test_failed_call_costs_and_statuses_are_checked_without_claiming_success(self):
+        for fault in ("wall", "negative-cpu", "boolean-cpu", "interval", "status"):
+            plan, rows = self.incomplete_fixture()
+            if fault == "wall": rows[1]["wall_ns"] = True
+            elif fault == "negative-cpu": rows[1]["cpu_ns"]["children"] = -1
+            elif fault == "boolean-cpu": rows[1]["cpu_ns"]["children"] = True
+            elif fault == "interval": rows[1]["end_offset_ns"] += 1
+            else: rows[1]["status"] = "unknown"
+            with self.subTest(fault=fault), self.assertRaises(ValueError):
+                study.results_summary(rows, plan, self.store)
+
+    def test_independent_verify_refuses_missing_objects_from_incomplete_campaign(self):
+        plan, rows = self.incomplete_fixture()
+        objective = {"authored_fixture": True}
+        plan.update(schema=study.SCHEMA, protocol=study.protocol(), objective=objective,
+                    objective_sha256=study.digest(objective), execution_inputs={})
+        case = plan["cases"][0]
+        for row in rows[:2]:
+            row["input_sha256"] = study.digest({"pool": case["pool"],
+                "remaining_wall_ns": case["remaining_wall_ns"],
+                "objective_sha256": plan["objective_sha256"], "generation": row["pair"]})
+        binary = self.store.put(b"authored fixture, not a native executable")
+        receipt = self.store.json({"binary_sha256": binary["sha256"]})
+        plan["native"] = {"binary": binary, "build_receipt": receipt, "provenance": None,
+            "identity": {"binary_sha256": binary["sha256"], "build_receipt_sha256": receipt["sha256"]}}
+        study.write_new(self.root / "PLAN.json", plan)
+        pin = sha256((self.root / "PLAN.json").read_bytes()).hexdigest()
+        study.write_new(self.root / "RUN-STARTED.json", {"plan_sha256": pin})
+        for row in rows:
+            study.write_new(self.root / f"cell-{row['pair']:02d}-{row['arm']}.json", row)
+        summary = study.results_summary(rows, plan, self.store)
+        summary.update(schema=study.SCHEMA, plan_sha256=pin, cells=rows,
+            halted_reason={"authored_fixture": True}, execution_inputs_unchanged=True,
+            measurement={"all_attempted_call_wall_ns": 26,
+                "outer_wall_ns_to_summary_preparation": 31,
+                "admission_capture_export_audit_wall_ns": 5})
+        study.write_new(self.root / "SUMMARY.json", summary)
+        args = SimpleNamespace(directory=self.root, expected_plan_sha256=pin, output=None)
+        accepted = study.verify(args)
+        self.assertEqual(accepted["campaign_status"], "INCOMPLETE")
+        self.assertEqual(accepted["completed_pairs"], 0)
+        self.assertFalse(accepted["economic_benefit_established"])
+        partial = study.decode(self.store.read(rows[1]["observations"]))
+        for reference in (rows[0]["result"], rows[1]["observations"],
+                          partial[0]["pump"]["stdout"]["raw_bytes"],
+                          partial[0]["pump"]["stderr"]["raw_bytes"]):
+            path = self.root / reference["path"]
+            raw = path.read_bytes()
+            path.unlink()
+            try:
+                with self.subTest(reference=reference), self.assertRaises((ValueError, OSError)):
+                    study.verify(args)
+            finally:
+                path.write_bytes(raw)
 
     def test_plan_pin_and_create_only_marker_prevent_silent_retrial(self):
         plan = {"schema": study.SCHEMA, "protocol": study.protocol(), "cases": study.cases(),
