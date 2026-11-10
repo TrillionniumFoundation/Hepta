@@ -1549,3 +1549,11 @@ remains queued. Current full/remote/platform/clean-machine gates remain OPEN.
 The package still has220 Python modules. No old production implementation,
 default/live/release/main route or general frontend/runtime/build/service/proof
 closure was removed or promoted by this native-linker candidate.
+
+
+First exact native-linker candidate46dcf93 failed the clean111-test source gate:
+the existing release-freeze assertion detected all seven new inputs missing from
+BOOTSTRAP_FILES. The original failure and clean source report are retained;
+no cold or later joint steps were run by that failed driver. The correction adds
+those exact inputs to the frozen release closure, preserving the assertion.
+A fresh complete pipeline, not a relabeled partial rerun, is required afterward.
