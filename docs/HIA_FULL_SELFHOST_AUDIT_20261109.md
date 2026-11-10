@@ -539,3 +539,13 @@ in later source, but the failed run is not relabeled. See
 both STB modules passes17tests in63.304seconds, including their real native setup;
 that also does not replace the failed HIA/shared-Core inventory or establish its
 process-order cause. Latest-source full inventories remain required.
+
+
+The repaired clean implementation commit`b048608b1ba6eb7144bce2f2b1d079383590a43a`
+now passes the ACTUAL workflow recovery/regeneration and source-test steps:
+**78tests in76.477seconds**, Git clean before/after, no skips. The earlier78test
+failure remains retained. Both wider inventories have started afresh on a
+separate unchanged checkout of that exact implementation: all HIA/shared-Core,
+and separately all repository test modules. They do not reuse prior results.
+A passive read-only watcher retains any failed STB migration report before test
+temporary-directory finalization; it does not wrap, retry, skip or change tests.
