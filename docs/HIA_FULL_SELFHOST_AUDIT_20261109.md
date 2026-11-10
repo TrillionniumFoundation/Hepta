@@ -845,3 +845,48 @@ source workflow, language or whole-repository result. The next source-bound
 qualification binds the full 297-file compiler source closure. Component status
 remains 3 partial / 5 open; whole-stack completion and all-input correctness
 remain false. See `docs/HIA_CORE_JSON_FRONTEND_NATIVE.md`.
+
+
+## Incremental SHA and combined-source continuation
+
+The current candidate integrates the primitive Core JSON frontend and both HIA
+SHA libraries without replacing or dropping either branch. The incremental
+library implements an explicit HIA initialization/update/finalize state machine
+with 1,184 private bytes, at-most-8-MiB chunks and the SHA byte-length bound of
+2^61-1 total bytes. It removes the one-shot total-size restriction from explicitly
+selected bytes-valued Core payload hashing, not from unrelated APIs or resource
+budgets. Python still owns allocation, code loading and chunk scheduling.
+
+Development observations: six streaming tests passed, including an independent
+Core VM sequence before fresh native B0/B1/B2, FIPS vectors, padding/split points,
+1,000 random partitions, copy/repeated digest/update, >8-MiB payloads, private
+concurrency, invalid transitions, length overflow and canaries. The combined
+pre-merge integration ran 40 tests including a real cold replay and passed.
+Those observations are not current merged-source qualification. Fresh clean
+combined-source source/cold/native/consumer checks are required and recorded in
+separate exact-commit receipts when complete.
+
+Remote PR837 unified regression on4593f2b is retained as FAIL:595tests,
+1cold-replay failure and6 exact-source-closure errors. Source identities had not
+included the newly added package modules. The combined candidate explicitly
+binds369 reviewed paths, all219 top-level Python compiler modules, preserves
+all historical projections and transfers exactly1,168 bytes from raw logs to
+identity metadata within the same aggregate envelope. Development closure
+replay initially exposed two stale count assertions; both were updated to the
+actual reviewed additions, with all negative controls retained. The subsequent
+15-test source-identity/accounting/provenance replay passed. Historical remote
+failures are not relabeled successful by these new-source observations.
+
+### Required final state: HIA only, then retire legacy
+
+The requested final distribution must contain the full native HIA compiler,
+runtime, standard library, modules/build/install/CLI, worker/persistence and
+optimization/proof authorities, with the old production stack removed. Optional
+native backends and more generated HIA files are not that final state.
+Before removing a still-required authority, its complete HIA replacement must
+pass conformance/negative controls, the default path must switch without a
+legacy fallback, full source-only and changed-source bootstraps must pass, fresh
+whole-repository and applicable platform/resource regressions must pass, and
+clean-machine installation plus real-project builds must execute without the
+legacy toolchain. Current gates are OPEN; no old authority is deleted here.
+Git history and non-shipped evidence retain recovery and audit custody.

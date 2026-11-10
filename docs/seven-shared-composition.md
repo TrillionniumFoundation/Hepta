@@ -714,7 +714,7 @@ commit; source-control success cannot confer Lean proof or production authority.
 
 ## Reviewed native JSON source identity continuation (v11)
 
-The current closed identity has 360 source records, including the 217 actual
+The v11 closed identity has 360 source records, including the 217 actual
 root-level Python compiler modules. Its 23 explicitly named JSON additions bind
 five bridge modules, four HIA application sources and their authoring/build/
 driver/conformance inputs. The entire prior 337-path v10 checkpoint and every
@@ -727,3 +727,21 @@ raw global 803,727, display 4,096; their sum remains 1,048,576 bytes. Source,
 module, container, per-stage, process and time caps are unchanged. The v10
 identity remains 157,811 bytes in the historical projection. These accounting
 controls and finite tests do not grant broader proof or execution authority.
+
+
+## Reviewed SHA-256 source identity continuation (v12)
+
+The combined native JSON/SHA continuation has 369 explicitly listed source
+records, including all 219 actual top-level compiler package modules. Nine
+reviewed one-shot/incremental SHA source, loader, authoring, build and test
+paths are added. Unlisted or absent package filenames still fail before
+external identity construction; no filesystem-discovered permissive list is used.
+The complete v11 360-path JSON projection and all preceding projections retain
+their exact independent commitments. Protocol v12 never relabels a v11 receipt.
+
+The exact maximal identity is 162,045 bytes. Its extra 1,168 bytes are transferred
+from raw logs to metadata: metadata reserve 241,921, raw-log allowance 802,559.
+The aggregate evidence/container envelope, source/module/process caps and owner
+deadlines remain unchanged. Exact-boundary/one-byte-over tests remain in force.
+These are source-identity and accounting controls, not proof of the new hash
+algorithm or of whole-stack equivalence.
