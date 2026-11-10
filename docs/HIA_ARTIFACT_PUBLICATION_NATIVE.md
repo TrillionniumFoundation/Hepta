@@ -104,3 +104,12 @@ DB failure can likewise leave content: this is not a file/SQLite transaction,
 crash-recovery implementation or license to replay. Existing request-intent
 unknown/conflict behavior remains mandatory. Neither filesystem capture nor
 stdout grants immunity against a later writer or atomic stdout delivery.
+
+A public `AgentStore.put` admits the complete current source and executable once
+for its paired pure-hash and durable-write operations. Both execute the same
+immutable admitted code, not two potentially different mutable build paths.
+There is no cross-call code cache or metadata-only source trust: every next
+public put/get again performs full source-byte and executable hash admission.
+Selection changes between the pair refuse without file publication or DB
+issuance. This bounded code view reduces redundant custody scans; it does not
+change the original Agent context deadline or artifact quotas.

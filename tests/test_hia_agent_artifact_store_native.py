@@ -240,6 +240,46 @@ class AgentArtifactStoreRouteTests(unittest.TestCase):
         self.assertEqual(self.store.db.execute('SELECT count(*) FROM artifacts').fetchone()[0],0)
         self.assertEqual(list(self.store.artifacts.iterdir()),[])
 
+    def test_one_put_uses_one_immutable_code_admission_but_next_call_revalidates(self):
+        import hepta.hia_agent_store as store
+        import hepta.artifact_publication_native as native
+        original_run=subprocess.run;original_admit=native._admitted_code
+        code=self.app.read_bytes();operations=[]
+        def replace_between_hash_and_put(argv,*args,**kwargs):
+            result=original_run(argv,*args,**kwargs);operations.append(argv[1])
+            if argv[1]=='store-hash':self.app.write_bytes(b'changed mutable executable path')
+            return result
+        try:
+            with patch.object(native,'_admitted_code',wraps=original_admit) as admit,\
+                 patch.object(native.subprocess,'run',side_effect=replace_between_hash_and_put):
+                ref=self.store.put(b'one admitted version','input')
+                self.assertEqual(operations,['store-hash','store-put'])
+                self.assertEqual(admit.call_count,1)
+                # No persistent code cache may let a new public call execute
+                # stale code after the on-disk selected program has changed.
+                with self.assertRaises(store.AgentRejected) as error:self.store.put(b'next call','input')
+                self.assertEqual(error.exception.code,'E_HIA_ARTIFACT_NATIVE_CUSTODY')
+                self.assertEqual(admit.call_count,2)
+                self.assertEqual(self.store.db.execute('SELECT count(*) FROM artifacts').fetchone()[0],1)
+        finally:self.app.write_bytes(code)
+        self.assertEqual(self.store.get(ref)[0],b'one admitted version')
+
+    def test_selection_cannot_change_between_hash_and_file_publication(self):
+        import hepta.hia_agent_store as store
+        import hepta.artifact_publication_native as native
+        original_run=subprocess.run
+        for replacement in ('',str(self.case/'different.json')):
+            def change_selection(argv,*args,**kwargs):
+                result=original_run(argv,*args,**kwargs)
+                if argv[1]=='store-hash':os.environ['HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST']=replacement
+                return result
+            with patch.dict(os.environ,{'HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST':str(self.manifest)}),\
+                 patch.object(native.subprocess,'run',side_effect=change_selection):
+                with self.assertRaises(store.AgentRejected) as error:self.store.put(b'no mixed admission','input')
+                self.assertEqual(error.exception.code,'E_HIA_ARTIFACT_NATIVE_CUSTODY')
+            self.assertEqual(self.store.db.execute('SELECT count(*) FROM artifacts').fetchone()[0],0)
+            self.assertEqual(list(self.store.artifacts.iterdir()),[])
+
     def test_actual_native_fsync_failures_cannot_issue_DB_refs_or_replay_effects(self):
         import hepta.hia_agent_store as store
         import hepta.artifact_publication_native as native

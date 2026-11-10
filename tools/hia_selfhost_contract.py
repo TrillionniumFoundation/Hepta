@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v54-native-Agent-artifact-files"
+PROFILE = "selfhost-core-linux-x86_64-v55-call-local-Agent-artifact-custody"
 SOURCE_FILES = (
     'tests/test_hia_agent_artifact_store_native.py',
     'tests/test_hia_artifact_publication_route.py',
@@ -399,6 +399,7 @@ def support_contract(root=ROOT):
             "hosted_route_requires_source_tree": True,
             "native_link_diagnostic_differs_from_reference_EXISTS": True,
             "Agent_artifact_file_selection": "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST; sealed current-source executable; no fallback",
+            "Agent_put_code_admission": "one full source-byte/code-hash admission per public put; hash and durable put use the same immutable bytes; no cross-call code or metadata-only source cache; selection changes refuse",
             "Agent_file_payload_limit_bytes": 67108864,
             "Agent_empty_artifacts_supported": True,
             "Agent_file_runtime": "HIA streaming SHA; private owned directory; exact lowercase digest names; UUID4 O_EXCL temporary; no-replace link; full-byte dedup; file then directory fsync before receipt",

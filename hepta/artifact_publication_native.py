@@ -40,12 +40,35 @@ def _admitted_code(manifest):
     return code
 
 
-def _execute_native(manifest,operation,stage,destination,expected):
+def _validated_code(manifest):
     from .artifact_publication import PublicationRejected
-    try:code=_admitted_code(manifest)
+    try:return _admitted_code(manifest)
     except PublicationRejected:raise
     except (OSError,ValueError,TypeError,KeyError) as exc:
         raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: selected executable unavailable or invalid') from exc
+
+
+class _StoreAdmission(tuple):
+    """Call-local immutable code, never cached between public store calls."""
+    def __new__(cls,manifest,code):
+        return tuple.__new__(cls,(os.fspath(manifest),code))
+
+
+def admit_artifact_store(manifest):
+    # One AgentStore.put is one code-admission boundary. Its pure hash and
+    # durable put must use the SAME admitted bytes, even if the mutable build
+    # path changes between them. The next public call rehashes every source.
+    return _StoreAdmission(manifest,_validated_code(manifest))
+
+
+def _execute_native(manifest,operation,stage,destination,expected,_admission=None):
+    from .artifact_publication import PublicationRejected
+    if _admission is None:code=_validated_code(manifest)
+    else:
+        if (type(_admission) is not _StoreAdmission or _admission[0]!=os.fspath(manifest)
+                or operation not in ('store-hash','store-put','store-get')):
+            _reject('E_PUBLISH_NATIVE_CUSTODY','call-local artifact code admission differs')
+        code=_admission[1]
     fd=None
     try:
         fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
@@ -94,7 +117,7 @@ def invoke_native(manifest,operation,stage,destination,expected=b''):
     return receipt
 
 
-def invoke_artifact_store(manifest,operation,root,*,data=b'',digest='-'):
+def invoke_artifact_store(manifest,operation,root,*,data=b'',digest='-',_admission=None):
     """Only the artifact byte layer; DB-issued refs and journal stay in AgentStore."""
     if operation not in ('store-hash','store-put','store-get'):
         _reject('E_PUBLISH_INPUT','unknown native Agent artifact operation')
@@ -103,7 +126,7 @@ def invoke_artifact_store(manifest,operation,root,*,data=b'',digest='-'):
     if operation=='store-get' and (type(digest) is not str or re.fullmatch('[0-9a-f]{64}',digest) is None):
         _reject('E_PUBLISH_INPUT','Agent artifact key is not exact lower hexadecimal')
     raw=_execute_native(manifest,operation,Path(root),digest if operation=='store-get' else '-',
-                        data if operation!='store-get' else b'')
+                        data if operation!='store-get' else b'',_admission)
     if operation=='store-get':
         if len(raw)>64<<20:_reject('E_PUBLISH_LIMIT','native artifact output exceeds original quota')
         return raw
