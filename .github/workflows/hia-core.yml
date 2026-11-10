@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_module_graph core_workspace_json core_workspace_json_cli agent_identity elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -25,6 +25,7 @@ jobs:
           import unittest
           names = (
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
+              "tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests",
               "tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests",
               "tests.test_hia_source_head_identity", "tests.test_hia_integrated_workflow",
               "tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests",
@@ -120,6 +121,10 @@ jobs:
         run: python -B -m unittest tests.test_hia_core_workspace_json_native tests.test_hia_core_workspace_json_cli -v
         env:
           HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native Core capability edge policy and actual CFG
+        run: python -B -m unittest tests.test_hia_capability_renaming_native -v
+        env:
+          HEPTA_HIA_CAPABILITY_RENAMING_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
