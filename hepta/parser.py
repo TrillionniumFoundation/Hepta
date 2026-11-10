@@ -353,6 +353,20 @@ class Parser:
         self._expect(">", "Expected '>' after a generic element type")
 
     def _type(self) -> Type:
+        import os
+        manifest = os.environ.get('HEPTA_HIA_TYPE_PARSER_MANIFEST', '')
+        if manifest:
+            from .hia_type_parser_native import packet, installed_type_parser
+            try:
+                wire = packet(self.tokens, self.position, self.depth)
+            except ValueError:
+                # Explicit candidate profile only; existing grammar remains
+                # available for inputs outside its token/byte/depth envelope.
+                return self._type_reference()
+            return installed_type_parser(manifest).parse_type(self, wire)
+        return self._type_reference()
+
+    def _type_reference(self) -> Type:
         with self._nested():
             if self.current.kind in {"read", "mut"}:
                 mode = self._advance().value

@@ -1129,3 +1129,24 @@ tools are not all production runtime. The ledger remains **3 partial / 5 open**.
 Production activation/default switching, whole-repository completion, full
 language correctness and native-only retirement are **not** claimed. A fresh
 remote run is required; the historical timeout remains FAIL.
+
+
+## HIA type grammar continuation (development source)
+
+The operator-selected native type grammar now replaces real `Parser._type`
+recognition inside its explicit token/byte profile: paths, generic type/lifetime
+arguments, raw/ref/array/slice forms, exact depth/diagnostics/cursor and `>>`/`>=`
+mutation. Independent VM observations precede B0; real B1/B2 fixed-point builds,
+750 deterministic recursive/mutated type inputs, depth boundaries and 300 actual
+source files pass development conformance. Both lexical modes are explicit;
+selected tests disable the original Python type grammar, and dual-selected tests
+also disable the original lexical recognizer. Clean final qualification remains
+separate from these development results. See [profile](HIA_TYPE_PARSER_NATIVE.md).
+
+Shared source closure v15 binds exactly 375 paths/220 top-level Python modules
+and retains every earlier projection, including all 370 v14 paths. The extra
+663 identity bytes transfer from logs to metadata inside the same aggregate
+1 MiB evidence budget; compiler/runtime/process/call limits remain unchanged.
+The entire source parser, semantics, modules, runtime and delivery are NOT closed.
+Previous PR846 remote cold FAIL at 180 seconds/26 phases remains a failure;
+local passes do not replace it. No main/default/release activation is performed.
