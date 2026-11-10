@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 217 Python
-files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not a
+HIA. The qualified `069087b0` snapshot contains a live `hepta/` package with 219 Python
+files, 76,788 lines and 4,158,056 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **415 Python files /132280lines** under `tools/`,
+The audit also inventories **423 Python files /133556lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-632Python files. Tests, historical evidence, experiments, examples, benchmarks
+642Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -24,14 +24,31 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation:** GitHub login is restored and original history through
-`27fa34413e09ff012d3d467b7ad3af8acff508e4` has been pushed and independently read
-back. Earlier upload-pending statements below are historical. Fresh source
-inventory includes the HIA JSON value-arena candidate and10036tracked paths;
-its clean committed finite qualification is recorded below, not full closure. The latest complete
-open-PR inventory has466entries (457drafts), not evidence that all are integrated.
-The subsequent v30 full-repository process ended without a final report or
-observed exit status; its retained partial log is **not** a completed pass.
+**Current continuation (2026-11-10):** high-level Hepta source token recognition
+now executes in a19-function HIA application under explicit operator selection.
+The existing token API and real Python parser/module callers exercise that
+path; Python numeric values/AST parsing/type checking and the default reference
+remain. Exact069087b0 clean-source CI passed104tests; native cold replay passed
+11/11outer and5,047/5,047native checks in160.561seconds under the unchanged180
+second deadline. Language coverage passed1,242checks, combined native libraries
+62tests, existing selected/default consumers83each, incremental55, and actual
+selected/default parser/module tests63each. All are finite source-bound scopes.
+
+The exact source-CI receipt was reused with its original clock after a retained
+ENOSPC cold failure; that failure is not relabelled. A prior application/opcode
+coverage declaration error was also retained and fixed without dropping gates.
+The clean-snapshot inventory and full tracked-file identities reconstruct from
+`implementation-boundary-source-lexer-delta.json`; source and native manifest
+bindings are in `source-lexer-summary.json`. Metadata merging preserves all312
+qualified exported paths byte-for-byte, recorded separately rather than called
+a new cold run. No default/release lock/service/main activation has occurred.
+
+The latest observed open-PR inventory has470entries (459drafts), at2026-11-10
+05:14:45UTC; titles are not integration proof. The oldv30full-repository attempt
+remains incomplete. The later exact2484f5c full run completed7,697tests with
+six known exact-source-closure errors, no skips, and unchanged source; it is
+FAIL, not promoted by newer local gates. Other newer full-repository attempts
+remain independently pending. Whole-stack status is still3partial/5open.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -42,7 +59,7 @@ selfhost candidate. Development continues here from PR #834 source commit
 v17 internal scalar result work. Do not copy a full compiler into metadata-only
 `main`, silently advance release locks, or promote unrelated candidate branches.
 
-The open-PR inventory observed during this audit contains 465 entries. Many
+The earlier open-PR inventory observed during this audit contained 465 entries. Many
 are stacked historical/research branches; their titles or isolated success
 receipts do not establish integration into the selected source. Current adjacent
 work includes #829 information pricing, #830 copied-image proof/adoption, #831
@@ -981,3 +998,14 @@ The661-byte identity increase is transferred from raw logs to metadata;
 aggregate evidence/container/source/module/process limits remain unchanged.
 See HIA_SOURCE_LEXER_NATIVE.md. Fresh source-bound execution receipts are
 required; the existing compiler fixed points are not whole-frontend closure.
+
+
+### Exact source-lexer delivery checkpoint
+
+The qualified source069087b0 remains the execution authority. Public records
+retain the native lexer manifest, cold/CI/language/library/caller clocks and
+identities, historical failures and losslessly reconstructable source inventory.
+The metadata-only merge incorporates the preceding scalar-export qualification
+without changing any of the312qualified compiler export paths. Native source
+lexing does not close numeric value construction, the full frontend/type/module
+graph, general runtime, agent services or build/release retirement.
