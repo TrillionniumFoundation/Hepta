@@ -68,3 +68,23 @@ jobs:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Selected native scalar identity and installed Agent resources
         run: python -B -m unittest tests.test_hia_agent_identity_native tests.test_hia_agent_installed_resources -v
+      - name: Retain bounded-scope native failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-core-native-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          compression-level: 1
+          retention-days: 7
+          # Explicit metadata/log allowlist only: no native images, buffers,
+          # per-case raw captures, phase ZIPs or recursive evidence directory.
+          path: |
+            ${{ runner.temp }}/hia-cold.json
+            ${{ runner.temp }}/hia-cold.cold/process-owner.json
+            ${{ runner.temp }}/hia-cold.cold/process-owner.json.*.log
+            ${{ runner.temp }}/hia-cold.cold/stdout.log
+            ${{ runner.temp }}/hia-cold.cold/stderr.log
+            ${{ runner.temp }}/hia-cold.cold/qualification.json
+            ${{ runner.temp }}/hia-cold.cold/qualification.evidence/phase-index.json
+            ${{ runner.temp }}/hia-cold.cold/qualification.evidence/phase-*.json
+            ${{ runner.temp }}/hia-language.json
