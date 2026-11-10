@@ -4,7 +4,9 @@ import ctypes
 from pathlib import Path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/sha256_stream.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/sha256_stream.hiaasm')
 SCHEMA = 'hepta.hia.sha256-stream-native.v1'
 STATE_BYTES = 1184
 MAX_CHUNK = 8 << 20

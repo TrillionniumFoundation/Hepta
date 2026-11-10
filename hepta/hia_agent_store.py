@@ -129,9 +129,8 @@ def _agent_resource_path(name):
     An installed package never searches cwd, HOME, sys.prefix or another source
     tree. Missing individual packaged resources do not fall back to sources.
     """
-    root = Path(__file__).resolve().parent.parent
-    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
-    return resource_root / name
+    from .hia_json_preflight_native import _source_resource_path
+    return _source_resource_path(name)
 
 
 def _reference_uint64(value):

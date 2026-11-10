@@ -9,7 +9,9 @@ from pathlib import Path
 from .hia_core_module_graph_native import CoreModuleRejected
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_workspace_facts.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_facts.hiaasm')
 SCHEMA = 'hepta.hia.core-workspace-facts-native.v1'
 MAX_BYTES = 8 << 20
 ARENA_BYTES = (64 << 20) + 4096

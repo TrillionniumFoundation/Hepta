@@ -8,7 +8,9 @@ import ctypes
 from pathlib import Path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, scratch_sizes
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_snapshot_json.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/agent_snapshot_json.hiaasm')
 SCHEMA = 'hepta.hia.agent-snapshot-json-native.v1'
 MAX_BYTES = 8 << 20
 MAX_NODES = 1 << 20

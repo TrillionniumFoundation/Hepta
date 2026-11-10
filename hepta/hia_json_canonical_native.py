@@ -15,7 +15,9 @@ from .hia_json_decode_native import arena_sizes
 from .hia_json_preflight_native import (NativeHiaJsonImage, _installed_json_image,
     MAX_BYTES, MAX_NODES, MAX_DEPTH)
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_canonical.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_canonical.hiaasm')
 SCHEMA = 'hepta.hia.json-canonical-native.v1'
 
 

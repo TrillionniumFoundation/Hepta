@@ -11,7 +11,9 @@ from pathlib import Path
 import struct
 from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/function_shape.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/function_shape.hiaasm')
 MAX_BYTES=8388608
 MAX_NODES=262144
 MAX_DEPTH=64

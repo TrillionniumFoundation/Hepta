@@ -20,7 +20,18 @@ MAX_NODES = 1 << 20
 MAX_DEPTH = 128
 MAX_IMAGE_BYTES = 1 << 20
 SCHEMA = 'hepta.hia.json-preflight-native.v1'
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_preflight.hiaasm'
+def _source_resource_path(name):
+    """Source-owned checkout or installed-package resource, never cwd/HOME.
+
+    The installed path remains package-owned even if an individual resource
+    is missing; there is no source-tree fallback for selected native images.
+    """
+    root = Path(__file__).resolve().parent.parent
+    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
+    return resource_root / name
+
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hiaasm')
 
 
 def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:

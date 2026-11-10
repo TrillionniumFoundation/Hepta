@@ -13,7 +13,9 @@ import struct
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/capability_renaming.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/capability_renaming.hiaasm')
 SCHEMA = 'hepta.hia.capability-renaming-native.v1'
 MAGIC = int.from_bytes(b'HIACAP01', 'little')
 RESULT = int.from_bytes(b'HIACAR01', 'little')

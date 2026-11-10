@@ -13,8 +13,9 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v53-current-main-native-agent-Core-publication-union'
+PROFILE = 'selfhost-core-linux-x86_64-v54-native-installed-source-bindings'
 SOURCE_FILES = (
+    'docs/HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md',
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
     'tools/build_hia_capability_renaming.py',

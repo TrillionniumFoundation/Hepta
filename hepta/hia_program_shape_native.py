@@ -6,7 +6,9 @@ from pathlib import Path
 from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 from .hia_function_shape_native import ERROR_CODES as FUNCTION_ERRORS,scratch_sizes
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/program_shape.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/program_shape.hiaasm')
 SCHEMA='hepta.hia.program-shape-native.v1'
 SELECTOR='HEPTA_HIA_PROGRAM_SHAPE_MANIFEST'
 ERROR_CODES={**FUNCTION_ERRORS,0xfffffff4:'E_HIA_SCHEMA',0xfffffff3:'E_HIA_CALL',0xfffffff2:'E_HIA_TYPE'}

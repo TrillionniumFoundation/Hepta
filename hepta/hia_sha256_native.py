@@ -10,7 +10,9 @@ import os
 from pathlib import Path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/sha256.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/sha256.hiaasm')
 SCHEMA='hepta.hia.sha256-native.v1'
 MAX_BYTES=8<<20
 WORKSPACE_BYTES=1088

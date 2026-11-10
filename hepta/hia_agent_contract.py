@@ -31,6 +31,22 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
+    'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
+    'examples/hia_bootstrap/agent_snapshot.hiaasm',
+    'examples/hia_bootstrap/capability_renaming.hiaasm',
+    'examples/hia_bootstrap/core_json_frontend.hiaasm',
+    'examples/hia_bootstrap/core_module_graph.hiaasm',
+    'examples/hia_bootstrap/core_workspace_facts.hiaasm',
+    'examples/hia_bootstrap/core_workspace_json.hiaasm',
+    'examples/hia_bootstrap/core_workspace_materialize.hiaasm',
+    'examples/hia_bootstrap/function_shape.hiaasm',
+    'examples/hia_bootstrap/instruction_policy.hiaasm',
+    'examples/hia_bootstrap/json_canonical.hiaasm',
+    'examples/hia_bootstrap/json_decode.hiaasm',
+    'examples/hia_bootstrap/json_preflight.hiaasm',
+    'examples/hia_bootstrap/program_shape.hiaasm',
+    'examples/hia_bootstrap/sha256.hiaasm',
+    'examples/hia_bootstrap/sha256_stream.hiaasm',
 )
 
 

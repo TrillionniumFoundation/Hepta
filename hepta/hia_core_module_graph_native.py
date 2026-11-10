@@ -16,7 +16,9 @@ from .hia_program import verify_program
 from .hia_program_tools import bounded_json_wire, decode_json
 from .hia_schema import PRIMITIVE_SCHEMAS
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_module_graph.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_module_graph.hiaasm')
 SCHEMA = 'hepta.hia.core-module-graph-native.v1'
 WORKSPACE_SCHEMA = 'hepta.hia.core-workspace.v1'
 MAGIC = int.from_bytes(b'HIAMOD01', 'little')

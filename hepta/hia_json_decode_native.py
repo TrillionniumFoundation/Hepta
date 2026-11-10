@@ -13,7 +13,9 @@ import struct
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, scratch_sizes, MAX_BYTES, MAX_NODES, MAX_DEPTH
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_decode.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_decode.hiaasm')
 SCHEMA = 'hepta.hia.json-decode-native.v1'
 MAGIC = 5208772604367785521
 NONE = (1 << 64) - 1

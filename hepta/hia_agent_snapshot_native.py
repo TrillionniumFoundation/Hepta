@@ -11,7 +11,9 @@ from pathlib import Path
 import struct
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_snapshot.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/agent_snapshot.hiaasm')
 SCHEMA = 'hepta.hia.agent-snapshot-native.v1'
 MAX_EXTENT = 1 << 20
 MAX_WIRE = (4 << 20) + 96

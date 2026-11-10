@@ -9,7 +9,9 @@ from pathlib import Path
 import struct
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/instruction_policy.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/instruction_policy.hiaasm')
 SCHEMA='hepta.hia.instruction-policy-native.v1'
 SELECTOR='HEPTA_HIA_INSTRUCTION_POLICY_MANIFEST'
 ERROR_CODES={0xfffffffb:'E_HIA_FORMAT',0xfffffff9:'E_HIA_TYPE',0xfffffff8:'E_HIA_LOAN',

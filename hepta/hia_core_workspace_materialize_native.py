@@ -4,7 +4,9 @@ from pathlib import Path
 from .hia_core_module_graph_native import CoreModuleRejected
 from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/core_workspace_materialize.hiaasm'
+from .hia_json_preflight_native import _source_resource_path
+
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_materialize.hiaasm')
 SCHEMA='hepta.hia.core-workspace-materialize-native.v1'
 ARENA_BYTES=88<<20
 WORKSPACE_BYTES=(16<<20)+8192
