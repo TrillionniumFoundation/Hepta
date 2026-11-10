@@ -8,6 +8,19 @@ import unittest
 from tools.check_hia_core_only import check, ROOT
 
 class CoreOnlyTests(unittest.TestCase):
+    def test_removed_source_fixture_is_refused_without_any_deleted_import(self):
+        import shutil
+        with tempfile.TemporaryDirectory(prefix='hia-removed-fixture-') as folder:
+            root=Path(folder);(root/'docs').mkdir();(root/'tests').mkdir()
+            for name in ('pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json'):
+                shutil.copyfile(ROOT/name,root/name)
+            # Construct only the negative input at runtime, not an unused
+            # retained source-language fixture in this Core-only test module.
+            fixture='module removed;'+'\n'+'export "C" '+'fn gone() -> u32 { return 1; }'
+            (root/'tests'/'retired.py').write_text('SOURCE = '+repr(fixture)+'\n')
+            with self.assertRaisesRegex(ValueError,'removed high-level source fixture'):
+                check(root)
+
     def test_actual_tree_has_no_high_level_source_or_import(self):
         self.assertEqual(check()['status'],'PASS')
 

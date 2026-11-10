@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v42-core-agent-integrated-snapshots"
+PROFILE = "selfhost-core-linux-x86_64-v43-core-agent-workspace-snapshots"
 SOURCE_FILES = (
     'docs/HIA_AGENT_SNAPSHOT_JSON_NATIVE.md',
     'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
@@ -231,8 +231,15 @@ SOURCE_FILES = (
     'tests/test_hia_agent_installed_resources.py',
     'tools/build_hia_agent_identity.py',
     'tools/generate_hia_agent_identity.py',
+    'tests/test_hia_returned_loan_interfaces.py',
     'tests/test_hia_program_llvm.py',
     'tests/test_hia_composite_bulk_native.py',
+    'tools/generate_hia_core_module_graph.py',
+    'examples/hia_bootstrap/core_module_graph.hiaasm',
+    'tools/build_hia_core_module_graph.py',
+    'tools/compile_hia_core_workspace.py',
+    'tests/test_hia_core_module_graph_native.py',
+    'docs/HIA_CORE_MODULE_GRAPH.md',
 )
 
 
@@ -277,6 +284,18 @@ def support_contract(root=ROOT):
             "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
             "whole_agent_editing_and_persistence_replaced": False,
             "production_activated": False,
+        },
+        "core_module_graph_application": {
+            "source": "examples/hia_bootstrap/core_module_graph.hiaasm",
+            "schema": "hepta.hia.core-workspace.v1",
+            "modules": 1024, "functions": 1024, "imports": 4096,
+            "calls": 16384, "exports": 1024, "input_bytes": 8388608,
+            "policy": "native names/privacy/import/call/entry/cycle/order; no host resolver fallback",
+            "host_boundaries": ["JSON framing", "Core materialization and verification",
+                                "filesystem/build/custody", "installation"],
+            "original_external_export_names_preserved": False,
+            "nominal_type_linking_complete": False,
+            "whole_module_build_install_complete": False,
         },
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",

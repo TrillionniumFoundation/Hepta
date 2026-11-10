@@ -7,6 +7,16 @@ class RouteRejected(ValueError):
 def route_inventory():
     return {"schema":"hepta.hia.routes.v2", "inputs":["standalone-hia", "agent-assembly"],
             "authority":"hepta.hia_program.verify_program", "implicit_fallback_allowed":False,
+            "versions": {
+                "latest_core_schema": "hepta.hia.program.v8",
+                "admitted_primitive_schemas": ["hepta.hia.program.v" + str(v) for v in range(1, 9)]},
+            "optimization_profiles": [
+                {"entry": "hepta.hia_optimization.verify_optimization",
+                 "scope": "primitive v1-v7; compositional scalar rewrites with unchanged resource/CFG interfaces",
+                 "v8_qualified": False},
+                {"entry": "hepta.hia_translation_validation.validate_translation",
+                 "scope": "primitive v1-v7; selected public scalar function, acyclic bit-vector/trap profile",
+                 "v8_qualified": False}],
             "backends":[
                 {"backend":"direct-machine","entry":"hepta.hia_program_native.build_program_machine",
                  "same_standalone_core":True,"selection":"hia build --backend native; direct API",

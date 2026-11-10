@@ -1,7 +1,8 @@
 """Native child fault isolation, finite denominator and source-oracle checks.
 
 The C shared library is only an independent *transport* control: it is not a
-Hepta native compiler qualification. The second test class uses real Hepta.
+native HIA compiler qualification. Actual Core compiler observations have
+their own source-bound native suites; no removed high-level fixture is used.
 """
 from __future__ import annotations
 
@@ -136,23 +137,6 @@ uint32_t max_unsigned(uint32_t a, uint32_t b) { return a > b ? a : b; }
         with self.assertRaisesRegex(HIADifferentialRejected, "output budget"):
             compare_oracle_with_native(_ScalarOracle(), library,
                 {"checked_add": [[1, 2]], "max_unsigned": [[1, 2]]})
-
-
-_NATIVE_SOURCE = '''module hia_native_differential;
-export "C" fn checked_add(a: i32, b: i32) -> i32 effects {panic} {
-    return a + b;
-}
-export "C" fn max_unsigned(a: u32, b: u32) -> u32 effects {} {
-    if a < b { return b; } else { return a; }
-}
-'''
-
-
-@unittest.skipUnless(shutil.which("clang") and
-    (os.environ.get("RUSTC") or shutil.which("rustc")),
-    "source-native test requires Clang and pinned Rust")
-class RealHeptaEndToEndTests(unittest.TestCase):
-    pass
 
 
 if __name__ == "__main__":

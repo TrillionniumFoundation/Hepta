@@ -18,7 +18,8 @@ if __package__ in {None, ''}:
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
-    candidates = {'preflight': ('json_preflight', 'json-preflight'),
+    candidates = {'core-module-graph': ('core_module_graph', 'core-module-graph'),
+                  'preflight': ('json_preflight', 'json-preflight'),
                   'decode': ('json_decode', 'json-decode'),
                   'canonical': ('json_canonical', 'json-canonical'),
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
