@@ -1,14 +1,24 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09
 
-**Current type-validation candidate (2026-11-10; qualification pending):**
-HIA now implements the complete `valid_type`, explicit generic argument
-validation/mapping and instantiated owned-payload-shape phases in the optional
-candidate. Native development19PASS and shared closure15PASS do not qualify a
-clean commit or the whole repository. Exact-source cold/CI/composition evidence
-is still required. Declaration, expression, flow/ownership and the remaining
-runtime/tools/build/delivery stack stay foreign; the whole objective remains
-open. See `HIA_TYPE_VALIDATION_NATIVE.md`. Historical checkpoint receipts below
-refer only to their pinned sources, never to this newer candidate.
+**Current type-validation qualified phase (2026-11-10):** clean implementation
+`01c4460bf5c23777e96713360af4f5077b53be1f` implements complete HIA type validity,
+explicit generic argument validation/mapping and instantiated owned-payload
+shapes in the optional candidate. SourceCI109PASS; cold11/11+5049PASS;
+language1242+10PASS; native120PASS; shared15PASS; release18PASS. Selected/default
+semantic168, parser/modules63, JSON83, incremental55eachPASS. An additional
+231strict callers PASS with eight original paths disabled. Exact source bytes,
+clocks and individually verified raw archive are bound in type-validation
+summary/source-equivalence and a lossless full-tree inventory delta.
+
+This is not the whole checker or whole stack. Declaration, expression,
+flow/ownership, host objects and runtime/tools/build/delivery remain foreign.
+The distinct existing native grammar/ELF-linker/CLI/streaming-hash/compiler
+branch has not yet been merged and jointly qualified. Shared identityv19 binds
+391paths/223root modules, preserving390v18 and all older projections.134bytes
+move from logs to metadata under unchanged aggregate caps. Current-source
+repository-wide and remote CI are unqualified. No defaults/production/main or
+release locks are switched. See `HIA_TYPE_VALIDATION_NATIVE.md`. Historical
+receipts below qualify only their own pinned sources.
 
 **Full-regression failure retained:** published source-parser predecessor
 `a146e0aac16909241614d7093afbe5c04255e612` finished FAIL (7,737tests,

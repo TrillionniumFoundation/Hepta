@@ -1,4 +1,4 @@
-# HIA semantic type-validity controller — candidate, whole stack still open
+# HIA semantic type-validity controller — qualified phase, whole stack still open
 
 This successor of the type-graph dependency implements the existing complete
 `_Checker.valid_type`, `generic_arguments`, and `valid_owned_payload_shapes`
@@ -95,3 +95,7 @@ must be recorded separately on exact source. The old type-graph cold receipt
 can build a development candidate; it does not qualify this newer source.
 Finite tests are not proofs for all accepted inputs. Whole-stack closure is
 still open.
+
+## Exact clean-source phase acceptance
+
+Qualified implementation: `01c4460bf5c23777e96713360af4f5077b53be1f`. Clean source CI109PASS; cold11/11+5049PASS, 122.626s under unchanged180+3-second limits; language1242+10PASS; combined native120PASS; shared15PASS; release18PASS. Selected/default semantic168, parser/modules63, JSON83, incremental55eachPASS. Additional231strict composition PASS with eight original foreign paths disabled simultaneously. All prior5049witness names/successes preserved. Exact counts/clocks, verified archive and lossless full-tree inventory are in `type-validation-summary.json`. Whole-repository and remote CI remain unqualified at capture; no branch-specific result qualifies a future combined-source merge.
