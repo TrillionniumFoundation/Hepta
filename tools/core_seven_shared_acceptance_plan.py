@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v16'
-PROTOCOL = 'seven-shared-acceptance-v16'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v17'
+PROTOCOL = 'seven-shared-acceptance-v17'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -207,11 +207,18 @@ NATIVE_OBSERVER_ADDITIONS = (
     'tests/test_hia_selfhost_native_observer.py',
     'examples/hia_bootstrap/native_observer_packer.hiaasm',
 )
-# Observer inputs and the cold-exported protocol document add822 identity
+SOURCE_LEXER_ADDITIONS = (
+    'examples/hia_bootstrap/source_lexer.hiaasm',
+    'hepta/hia_source_lexer_native.py',
+    'tests/test_hia_source_lexer_native.py',
+    'tools/build_hia_source_lexer.py',
+    'tools/generate_hia_source_lexer.py',
+)
+# Five explicit source lexer/integer inputs add661 identity
 # bytes, transferred from raw logs within the same aggregate envelope. All
 # execution capacities and deadlines are unchanged.
-IDENTITY_CAP = 164058
-IDENTITY_RESERVE_DELTA = 19345
+IDENTITY_CAP = 164719
+IDENTITY_RESERVE_DELTA = 20006
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -302,16 +309,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
-                                    *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS)))
+                                    *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 384 and commitment(paths) == '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7',
+    require(len(paths) == len(set(paths)) == 389 and commitment(paths) == '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in NATIVE_OBSERVER_ADDITIONS)
+    previous = tuple(name for name in paths if name not in SOURCE_LEXER_ADDITIONS)
+    require(len(previous) == 384 and commitment(previous) == '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7',
+            'historical CLI/export/native-observer source identity projection')
+    previous = tuple(name for name in previous if name not in NATIVE_OBSERVER_ADDITIONS)
     require(len(previous) == 378 and commitment(previous) == '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535',
             'historical combined JSON CLI/export source identity projection')
     previous = tuple(name for name in previous if name not in EXPORT_CLI_ADDITIONS)

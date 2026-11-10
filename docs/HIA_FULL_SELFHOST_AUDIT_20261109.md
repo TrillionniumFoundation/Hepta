@@ -1320,3 +1320,23 @@ Python files/133920lines and separate non-Python support. Ledger remains
 build/install/release,Agent/store,optimizer/proof,cross-platform and clean-machine
 real-project closure remain OPEN. No production/default switch or legacy
 retirement has occurred. Old required implementation cannot be removed yet.
+
+
+## Source lexer/integer plus executable JSON CLI composition candidate
+
+Development checkpoint, not completed clean-source acceptance: the bounded v2
+source lexer and integer magnitude application from c57fb17 is composed with
+841fce7 native JSON flat/ELF/executable CLI and native observer. An additional
+real composition test checks standalone JSON CLI output executed by the fresh
+HIA-native observer. Development16tests and shared-source15tests passed. Fresh
+source/cold/language/native/build/installed/default/full gates remain required.
+No prior acceptance is relabeled as combined proof.
+
+The explicit shared-source identity advances to v17/389paths, adding exactly
+five lexer application inputs and preserving the v16/384path projection and all
+older commitments. The aggregate evidence ceiling stays1048576bytes; identity
+maximal164719bytes,metadata244595/raw799885/display4096. All compiler/module/
+process/time limits remain unchanged. A new API bridge makes220production
+Python modules; general parser, float object conversion, AST/types/module/
+linker/runtime/build/install/Agent/store/proof remain foreign/open. No default
+switch, release lock, production activation or old-code retirement occurs.

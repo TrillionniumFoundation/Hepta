@@ -222,4 +222,17 @@ class Lexer:
 
 
 def tokenize(source: str, path: str = "<input>") -> list[Token]:
+    # Only an operator-selected local native image. The HIA implementation
+    # recognizes tokens/spans; numeric objects still use a documented bridge.
+    # Unsupported source representations retain the existing reference API.
+    import os
+    manifest = os.environ.get('HEPTA_HIA_SOURCE_LEXER_MANIFEST')
+    if manifest and type(source) is str:
+        try:
+            encoded_size = len(source.encode('utf-8'))
+        except UnicodeEncodeError:
+            encoded_size = (8 << 20) + 1
+        if encoded_size <= 8 << 20:
+            from .hia_source_lexer_native import installed_source_lexer
+            return installed_source_lexer(manifest).tokenize(source, path)
     return Lexer(source, path).tokenize()

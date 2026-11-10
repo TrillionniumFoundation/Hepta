@@ -39,6 +39,8 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_source_lexer.py", "tools/build_hia_source_lexer.py",
+    "tests/test_hia_source_lexer_native.py", "examples/hia_bootstrap/source_lexer.hiaasm",
     "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",
     "tests/test_hia_core_json_cli.py", "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
     "tests/test_hia_selfhost_word_io.py",

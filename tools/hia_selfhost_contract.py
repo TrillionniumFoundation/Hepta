@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v30"
 SOURCE_FILES = (
+    "tools/generate_hia_source_lexer.py", "tools/build_hia_source_lexer.py",
+    "tests/test_hia_source_lexer_native.py", "examples/hia_bootstrap/source_lexer.hiaasm",
     "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",
     "tests/test_hia_core_json_cli.py", "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
     "tests/test_hia_selfhost_word_io.py",
@@ -222,6 +224,21 @@ def support_contract(root=ROOT):
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
+        "source_lexer_application": {"status": "bounded_subset",
+             "source": "examples/hia_bootstrap/source_lexer.hiaasm",
+             "selection": "HEPTA_HIA_SOURCE_LEXER_MANIFEST; default reference unchanged",
+             "input_bytes": 8388608, "maximum_tokens_including_EOF": 1048576,
+             "workspace_bytes": 128, "token_row_bytes": 56,
+             "manifest_schema": "hepta.hia.source-lexer-native.v2",
+             "command_word_offset": 120, "commands": {"0": "tokens", "1": "integer magnitude"},
+             "integer_input_bytes": 8192, "integer_nonseparator_characters": 4096,
+             "integer_workspace_bytes": 2176, "integer_magnitude_capacity_bytes": 2048,
+             "items": ["scalar UTF-8 decoding and code-point spans with CR/LF/CRLF positions",
+                       "nested comments, keywords, identifiers, lifetimes, operators, numeric lexical grammar and ABI strings",
+                       "validation/count pass before native token output publication",
+                       "arbitrary-size decimal/hex/octal/binary integer magnitudes with strict separator/prefix grammar"],
+             "still_foreign": ["integer object construction from magnitude bytes", "float value conversion and finite check", "Token/Span/Diagnostic objects",
+                               "source parser/AST/type checker", "module/package resolution"]},
         "support": [
             {"area": "scalar_types", "status": "supported",
              "items": ["u64", "usize", "u32", "u8", "u16", "bool", "i8", "i16", "i32", "i64", "isize", "unit"]},
