@@ -4,21 +4,21 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 212 Python
-files, 76,126 lines and 4,125,579 bytes. These are source inventory figures, not a
+HIA. The current implementation contains a live `hepta/` package with 213 Python
+files, 76,265 lines and 4,132,463 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **406 Python files /130802lines** under `tools/`,
+The audit also inventories **408 Python files /131262lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-618Python files. Tests, historical evidence, experiments, examples, benchmarks
+621Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
-`implementation-boundary-v28.json` plus `implementation-boundary-v29-delta.json`.
-The clean `f787ae4` snapshot accounts for **all10,016 tracked paths**
+`implementation-boundary-v28.json` plus `implementation-boundary-v30-delta.json`.
+The clean `1b45c4e` snapshot accounts for **all10,027 tracked paths**
 by identity, role and language, distinguishing research/evidence from live code.
 Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
@@ -649,3 +649,57 @@ v29 report byte-for-byte; this avoids duplicating the unchanged10000path invento
 Finite native observations are not all-input proofs. Full JSON/Core frontend,
 module graphs, general runtime/library, Agent service/store, build/install/release
 and applicable physical-platform gates still prevent whole-stack closure.
+
+
+## Completed old inventories and v30 HIA JSON admission candidate
+
+The original clean **`b048608` all-repository inventory is now PASS**:
+7666tests/732modules,0failures/0errors/0skips, complete inventory, unchanged source,
+Git clean before/after. Its wrapper elapsed4604.920seconds; unittest4599.849seconds.
+See `full-repository-third-run-summary.json`. This is a pass only for that old
+source, not a promotion of later module/entry/JSON changes. The separate exact
+`d701f9a` HIA/shared-Core4428test pass remains separately source-bound.
+
+`examples/hia_bootstrap/json_preflight.hiaasm` now implements iterative JSON
+syntax, strict UTF-8/escaped Unicode, decoded duplicate keys, exact object scopes
+and pre-allocation node/depth budgets in HIA. It is compiled by the qualified HIA
+native compiler. An operator-selected source/image-bound manifest routes the
+EXISTING `preflight_hia_json` API through the HIA candidate inside its profile;
+the default Python reference and full JSON value decoder remain unchanged.
+The application profile admits8MiBwire,1..1048576nodes,rootdepth0..128; its private
+key/state buffers are distinct from unchanged compiler capacities. Production,
+Mac service, package installation and default-backend activation are NOT claimed.
+
+The final local candidate implementation commit **`1b45c4eef1057cb4708919b933ed66eecd8933e6`**
+has these finite observations:
+
+- HIA JSON and independent-reference group19testsPASS10.280seconds. A real VM
+  owner/loan wrapper executes before freshB0→B1→B2; B2 compiles the JSON source.
+  Controls cover2000random trees plus randomized budgets,2000mutations, all256
+  single/quoted bytes, decoded Unicode aliases,16384unique keys, exact/over1Mnode,
+  128depth/8MiBwire, concurrency, scratch and artifact identity failures. The old
+  six regressions additionally execute under actual native API selection.
+- With a locally built manifest selected,65existing production-consumer regressions
+  pass22.719seconds across tools,queue,assembly and actual Rust byte DAG consumers.
+- The current declared compiler source closure passes cold11/11/native4351/4351
+  in169.083seconds at the unchanged180second deadline. Original and modified
+  fixed-point byte identities are unchanged; the complete source manifest matches.
+- Actual recovery/regeneration and source CI steps pass **90tests**,79.374seconds
+  total, on clean committed`1b45c4e`, Git clean before and after.
+
+The first clean35020f4 CI attempt retained **90tests/1failure**: five new declared
+source files were absent from the release freeze inventory. They were added to
+`BOOTSTRAP_FILES`; exact inventory equality was not weakened.24contract/release
+regressions pass, then completely fresh cleanCI02 passes. The failed attempt is
+retained in `v30-json-preflight-summary.json`, not relabeled. A fresh complete
+all-repository inventory now runs on immutable`1b45c4e`; it is NOT yet a pass.
+
+Receipts: `v30-json-preflight-summary.json`, losslessly reconstructed
+`implementation-boundary-v30-delta.json`, and `docs/HIA_JSON_PREFLIGHT_NATIVE.md`.
+The production package still has213Python files/76265lines; tools408/131262.
+Adding an optional HIA backend does not remove those Python authorities or count
+as full JSON decoding. All8component boundaries remain3partial/5open. No all-input
+refinement or worst-case cost proof, complete frontend/runtime/build/Agent rewrite,
+release-lock promotion, main import or remote CI qualification is asserted.
+**These local commits still await the user's existing gh-login restoration before
+original Git history can be pushed.** PR836remotehead remains644e179.
