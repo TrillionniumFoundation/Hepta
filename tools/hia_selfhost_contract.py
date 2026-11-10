@@ -15,6 +15,15 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v44-core-agent-workspace-public-abi"
 SOURCE_FILES = (
+    'docs/HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json',
+    'docs/HIA_CORE_SAFETY_CONTROL_RESTORATION.md',
+    'tests/hia_artifact_session_fixture.py',
+    'tests/fixtures/hia_artifact_session/byte_sum.hia.json',
+    'tests/fixtures/hia_artifact_session/packet_xor.hia.json',
+    'tests/test_hia_artifact_session.py',
+    'tests/test_hia_v6_differential.py',
+    'tests/test_clang_capture_environment.py',
+
     'docs/HIA_OPCODE_REFERENCE.md',
     'docs/hia-opcode-catalog.v8.json',
     'tests/test_hia_qualification_entrypoints.py',

@@ -1,0 +1,780 @@
+{
+  "functions": [
+    {
+      "blocks": [
+        {
+          "id": "b1",
+          "ops": [
+            {
+              "args": [
+                "arg1"
+              ],
+              "attrs": {},
+              "op": "buffer.try_new",
+              "out": [
+                {
+                  "name": "v3",
+                  "type": "buffer"
+                },
+                {
+                  "name": "v4",
+                  "type": "bool"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v5",
+                  "type": "u8"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "arg1",
+              "type": "usize"
+            },
+            {
+              "name": "arg2",
+              "type": "u32"
+            }
+          ],
+          "term": {
+            "cond": "v4",
+            "else": {
+              "args": [
+                "arg1",
+                "arg2",
+                "v4",
+                "v3",
+                "v5"
+              ],
+              "target": "b3"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "arg1",
+                "arg2",
+                "v4",
+                "v3",
+                "v5"
+              ],
+              "target": "b2"
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "ops": [
+            {
+              "args": [
+                "p9"
+              ],
+              "attrs": {},
+              "op": "owner.move",
+              "out": [
+                {
+                  "name": "v16",
+                  "type": "buffer"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v17",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p6",
+              "type": "usize"
+            },
+            {
+              "name": "p7",
+              "type": "u32"
+            },
+            {
+              "name": "p8",
+              "type": "bool"
+            },
+            {
+              "name": "p9",
+              "type": "buffer"
+            },
+            {
+              "name": "p10",
+              "type": "u8"
+            }
+          ],
+          "term": {
+            "args": [
+              "p6",
+              "p7",
+              "v16",
+              "p6",
+              "v17"
+            ],
+            "op": "jump",
+            "target": "b4"
+          }
+        },
+        {
+          "id": "b3",
+          "ops": [
+            {
+              "args": [
+                "p14"
+              ],
+              "attrs": {},
+              "op": "owner.drop",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1000
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v68",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "p15"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v69",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v68",
+                "v69"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "v70",
+                  "type": "u64"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p11",
+              "type": "usize"
+            },
+            {
+              "name": "p12",
+              "type": "u32"
+            },
+            {
+              "name": "p13",
+              "type": "bool"
+            },
+            {
+              "name": "p14",
+              "type": "buffer"
+            },
+            {
+              "name": "p15",
+              "type": "u8"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "v70"
+            ]
+          }
+        },
+        {
+          "id": "b4",
+          "ops": [
+            {
+              "args": [
+                "p22",
+                "p21"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v23",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p18",
+              "type": "usize"
+            },
+            {
+              "name": "p19",
+              "type": "u32"
+            },
+            {
+              "name": "p20",
+              "type": "buffer"
+            },
+            {
+              "name": "p21",
+              "type": "usize"
+            },
+            {
+              "name": "p22",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "cond": "v23",
+            "else": {
+              "args": [
+                "p18",
+                "p19",
+                "p20",
+                "p21",
+                "p22"
+              ],
+              "target": "b6"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "p18",
+                "p19",
+                "p20",
+                "p21",
+                "p22"
+              ],
+              "target": "b5"
+            }
+          }
+        },
+        {
+          "id": "b5",
+          "ops": [
+            {
+              "args": [
+                "p28"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v34",
+                  "type": "u32"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v34",
+                "p25"
+              ],
+              "attrs": {},
+              "op": "int.add.wrap",
+              "out": [
+                {
+                  "name": "v35",
+                  "type": "u32"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v35"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v36",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "p26"
+              ],
+              "attrs": {},
+              "op": "borrow.mut",
+              "out": [
+                {
+                  "name": "v37",
+                  "type": "mutbuf"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v37",
+                "p28",
+                "v36"
+              ],
+              "attrs": {},
+              "op": "buffer.store",
+              "out": []
+            },
+            {
+              "args": [
+                "v37"
+              ],
+              "attrs": {},
+              "op": "loan.end",
+              "out": []
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v38",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "p28",
+                "v38"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "v39",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p24",
+              "type": "usize"
+            },
+            {
+              "name": "p25",
+              "type": "u32"
+            },
+            {
+              "name": "p26",
+              "type": "buffer"
+            },
+            {
+              "name": "p27",
+              "type": "usize"
+            },
+            {
+              "name": "p28",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "args": [
+              "p24",
+              "p25",
+              "p26",
+              "p27",
+              "v39"
+            ],
+            "op": "jump",
+            "target": "b4"
+          }
+        },
+        {
+          "id": "b6",
+          "ops": [
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v40",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 0
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v41",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p29",
+              "type": "usize"
+            },
+            {
+              "name": "p30",
+              "type": "u32"
+            },
+            {
+              "name": "p31",
+              "type": "buffer"
+            },
+            {
+              "name": "p32",
+              "type": "usize"
+            },
+            {
+              "name": "p33",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "args": [
+              "p29",
+              "p30",
+              "p31",
+              "v40",
+              "p29",
+              "v41"
+            ],
+            "op": "jump",
+            "target": "b7"
+          }
+        },
+        {
+          "id": "b7",
+          "ops": [
+            {
+              "args": [
+                "p47",
+                "p46"
+              ],
+              "attrs": {},
+              "op": "compare.lt",
+              "out": [
+                {
+                  "name": "v48",
+                  "type": "bool"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p42",
+              "type": "usize"
+            },
+            {
+              "name": "p43",
+              "type": "u32"
+            },
+            {
+              "name": "p44",
+              "type": "buffer"
+            },
+            {
+              "name": "p45",
+              "type": "u64"
+            },
+            {
+              "name": "p46",
+              "type": "usize"
+            },
+            {
+              "name": "p47",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "cond": "v48",
+            "else": {
+              "args": [
+                "p42",
+                "p43",
+                "p44",
+                "p45",
+                "p46",
+                "p47"
+              ],
+              "target": "b9"
+            },
+            "op": "branch",
+            "then": {
+              "args": [
+                "p42",
+                "p43",
+                "p44",
+                "p45",
+                "p46",
+                "p47"
+              ],
+              "target": "b8"
+            }
+          }
+        },
+        {
+          "id": "b8",
+          "ops": [
+            {
+              "args": [
+                "p51"
+              ],
+              "attrs": {},
+              "op": "borrow.read",
+              "out": [
+                {
+                  "name": "v61",
+                  "type": "readbuf"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v61",
+                "p54"
+              ],
+              "attrs": {},
+              "op": "buffer.load",
+              "out": [
+                {
+                  "name": "v62",
+                  "type": "u8"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v61"
+              ],
+              "attrs": {},
+              "op": "loan.end",
+              "out": []
+            },
+            {
+              "args": [
+                "v62"
+              ],
+              "attrs": {
+                "mode": "wrap"
+              },
+              "op": "int.cast",
+              "out": [
+                {
+                  "name": "v63",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [
+                "p52",
+                "v63"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "v64",
+                  "type": "u64"
+                }
+              ]
+            },
+            {
+              "args": [],
+              "attrs": {
+                "value": 1
+              },
+              "op": "const",
+              "out": [
+                {
+                  "name": "v65",
+                  "type": "usize"
+                }
+              ]
+            },
+            {
+              "args": [
+                "p54",
+                "v65"
+              ],
+              "attrs": {},
+              "op": "int.add.checked",
+              "out": [
+                {
+                  "name": "v66",
+                  "type": "usize"
+                }
+              ]
+            }
+          ],
+          "params": [
+            {
+              "name": "p49",
+              "type": "usize"
+            },
+            {
+              "name": "p50",
+              "type": "u32"
+            },
+            {
+              "name": "p51",
+              "type": "buffer"
+            },
+            {
+              "name": "p52",
+              "type": "u64"
+            },
+            {
+              "name": "p53",
+              "type": "usize"
+            },
+            {
+              "name": "p54",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "args": [
+              "p49",
+              "p50",
+              "p51",
+              "v64",
+              "p53",
+              "v66"
+            ],
+            "op": "jump",
+            "target": "b7"
+          }
+        },
+        {
+          "id": "b9",
+          "ops": [
+            {
+              "args": [
+                "p57"
+              ],
+              "attrs": {},
+              "op": "owner.move",
+              "out": [
+                {
+                  "name": "v67",
+                  "type": "buffer"
+                }
+              ]
+            },
+            {
+              "args": [
+                "v67"
+              ],
+              "attrs": {},
+              "op": "owner.drop",
+              "out": []
+            }
+          ],
+          "params": [
+            {
+              "name": "p55",
+              "type": "usize"
+            },
+            {
+              "name": "p56",
+              "type": "u32"
+            },
+            {
+              "name": "p57",
+              "type": "buffer"
+            },
+            {
+              "name": "p58",
+              "type": "u64"
+            },
+            {
+              "name": "p59",
+              "type": "usize"
+            },
+            {
+              "name": "p60",
+              "type": "usize"
+            }
+          ],
+          "term": {
+            "op": "ret",
+            "values": [
+              "p58"
+            ]
+          }
+        }
+      ],
+      "effects": [
+        "alloc",
+        "read",
+        "trap",
+        "write"
+      ],
+      "entry": "b1",
+      "name": "full_lifecycle",
+      "params": [
+        {
+          "name": "arg1",
+          "type": "usize"
+        },
+        {
+          "name": "arg2",
+          "type": "u32"
+        }
+      ],
+      "returns": [
+        "u64"
+      ]
+    }
+  ],
+  "module": "core_artifact_byte_sum",
+  "schema": "hepta.hia.program.v1"
+}
