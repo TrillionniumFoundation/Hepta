@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `6933f8c8` snapshot contains a live `hepta/` package with 219 Python
+HIA. The qualified `d5ac87bc` snapshot contains a live `hepta/` package with 219 Python
 files, 76,816 lines and 4,159,869 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **423 Python files /133895lines** under `tools/`,
+The audit also inventories **425 Python files /134224lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-642Python files. Tests, historical evidence, experiments, examples, benchmarks
+644Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -24,7 +24,33 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation (2026-11-10):** the selected 30-function HIA source image
+**Current integrated checkpoint (2026-11-10):** exact clean d5ac87bc combines
+the source lexer/integer/binary64 image, independent two-object C export audit,
+exact-length compiler keyword dispatch and HIA-emitted fresh native byte-ABI
+observation. Both parents' selected code bytes and full audit narratives are
+retained. The source contract includes318files; the shared compiler-hash closure
+remains the exact independently checked370paths /219root modules. No compiler
+ceiling, witness, phase worker,180-second cold deadline or3-second cleanup limit
+is weakened. The observer child is native, but supervision and literal ISA
+authoring remain foreign; it is not whole-runtime retirement or a sandbox.
+
+On this same source, actual clean workflow checks104PASS; fresh source-only
+cold11/11+5,049/5,049PASS127.214seconds; language1,242+10PASS; combined native
+libraries77PASS; selected/default consumers83each; incremental55; shared15;
+real selected/default parser/module callers63each. The original same-source
+CI clock is retained separately from the328.382-second orchestration clock.
+The binary64 midpoint supplement's source AND emitted image identities remain
+exactly equal to this integrated installed candidate. These observations do
+not establish remote speed or all-input equivalence. Public frontend-observer
+summary, source equivalence and lossless delta bind this integrated source.
+
+The old df52f8f full regression also ended FAIL:7,736tests/739modules,2failures,
+1error,complete inventory/unchanged source. The error explicitly reports
+ENOSPC; the two original failure causes remain unestablished. A later isolated
+two-test diagnostic passes on that same immutable source with free disk, but
+does not requalify the original run. Current whole-stack ledger remains OPEN.
+
+**Prior float checkpoint (2026-11-10):** the selected 30-function HIA source image
 also converts decimal floating literals to binary64 using exact rational integer
 arithmetic, quotient/remainder comparison and nearest ties-to-even rounding.
 Normal, subnormal, zero-underflow and nonfinite-overflow handling execute in HIA.
