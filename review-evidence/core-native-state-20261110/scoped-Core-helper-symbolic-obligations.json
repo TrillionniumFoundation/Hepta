@@ -1,0 +1,76 @@
+{
+  "actual_hia_source_sha256": "77f472f3126b59e3efd32c4a8185966b4537c6ac5868fc5afa294cc2f0744e1d",
+  "arbitrary_other_caller_bytes_preserved": true,
+  "assumptions": {
+    "high_four_bytes_zero": true,
+    "offsets": [
+      0,
+      8,
+      24,
+      40,
+      56,
+      80,
+      88,
+      96,
+      104,
+      112,
+      120,
+      136,
+      224,
+      240,
+      248
+    ],
+    "private_store_value_max": 4294967295,
+    "workspace_bytes": 256
+  },
+  "functions": {
+    "get": {
+      "name": "f37",
+      "sha256": "8a2f2da0f24115cef8d237c250312b24416d7c4e2d29bf51b9b0bd9c5fb0fbdf"
+    },
+    "put": {
+      "name": "f36",
+      "sha256": "b6ab996bc9cd4b3d5b4f6569e302e33e8853384c6376a00e7f3c7f5289500562"
+    },
+    "state_get32": {
+      "name": "f39",
+      "sha256": "b4988eff0ff45582eec995971709c929b3c4ae917a3fae738b0dad27ea4f7a66"
+    },
+    "state_put32": {
+      "name": "f38",
+      "sha256": "7d2d1ce71ea60cb713d9a82913f02c30f6515a1c7e6280c3486e473cd8437572"
+    }
+  },
+  "native_isa_or_compiler_equivalence_proved": false,
+  "obligations": [
+    {
+      "counterexample_retained": false,
+      "name": "get_equivalence_under_zero_high_bytes",
+      "query_sha256": "a36ec17d40b4b8dbf1963f66a0515aaf90a3cdafb1d003d3da68fe6b301b0812",
+      "result": "unsat"
+    },
+    {
+      "counterexample_retained": false,
+      "name": "put_full_memory_equivalence_for_u32_values",
+      "query_sha256": "28a05b31583030b501ae2afd89e907ae4f24508b836c7be062d1a1a8a7895ac1",
+      "result": "unsat"
+    },
+    {
+      "counterexample_retained": true,
+      "name": "not_a_general_u64_store_replacement",
+      "query_sha256": "3a25ba80e75aff1c2103b55d1bc9d7fddbf1005ab7d22d031cf0a97e8e164702",
+      "result": "sat"
+    },
+    {
+      "counterexample_retained": true,
+      "name": "header_clearing_is_necessary",
+      "query_sha256": "df5841a744387ea95f1d5a1d844c6d8bd1ca92b9f08c86c604c88bc241668a2f",
+      "result": "sat"
+    }
+  ],
+  "private_invariant_reachability_proved": false,
+  "solver_version": "4.15.4",
+  "source_commit": "79b53adaab0dd8d6869f6682e4a30810fc501156",
+  "status": "SCOPED_SYMBOLIC_HELPER_OBLIGATIONS_PASS",
+  "whole_language_proof": false
+}
