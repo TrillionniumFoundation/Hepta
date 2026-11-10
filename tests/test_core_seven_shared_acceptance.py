@@ -153,6 +153,20 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(len(old.encode(historical)), 144713)
         self.assertEqual({n: identity['sources'][n] for n in old.source_paths()},
                          historical['sources'])
+        union_identity = identity
+        self.assertEqual(len(identity['sources']), 416)
+        token_parser = {**identity, 'sources': {n: record for n, record in identity['sources'].items() if n not in (*p.SHA256_STREAM_ADDITIONS, *p.JSON_CLI_ADDITIONS, *p.EXPORT_CLI_ADDITIONS, *p.NATIVE_OBSERVER_ADDITIONS, *p.ELF_LINKER_ADDITIONS, *p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_EXPRESSIONS_ADDITIONS)}}
+        self.assertEqual(len(token_parser['sources']), 380)
+        self.assertEqual(p.commitment(tuple(sorted(token_parser['sources']))), 'b70e5910a8cad3f61d16343c0795cb0a8ae2b89406f5b8fdc91ebdbcd88f4a14')
+        self.assertEqual(len(p.encode(token_parser)), 163498)
+        token_type = {**identity, 'sources': {n: record for n, record in token_parser['sources'].items() if n not in p.SOURCE_PARSER_ADDITIONS}}
+        self.assertEqual(len(token_type['sources']), 375)
+        self.assertEqual(p.commitment(tuple(sorted(token_type['sources']))), '49a2a910de52a02227d9d96fcf488df753362970ea79e92521d6e3efc984481e')
+        self.assertEqual(len(p.encode(token_type)), 162832)
+        identity = {**identity, 'sources': {n: record for n, record in identity['sources'].items() if n not in (*p.TYPE_PARSER_ADDITIONS, *p.SOURCE_PARSER_ADDITIONS)}}
+        self.assertEqual(len(identity['sources']), 406)
+        self.assertEqual(len(p.encode(identity)), 167000)
+        self.assertEqual(p.commitment(tuple(sorted(identity['sources']))), '855761770d145406609a3b2daf764765305b101b0619c50315adee135846ae2a')
         linker_v18 = {**identity, 'sources': {n: record for n, record in identity['sources'].items()
             if n not in (*p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_EXPRESSIONS_ADDITIONS)}}
         self.assertEqual(len(linker_v18['sources']), 396)
@@ -256,8 +270,8 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(p.commitment(tuple(sorted(previous['sources']))),
                          'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0')
         self.assertEqual(len(p.encode(previous)), 156044)
-        raw_identity = p.encode(identity)
-        self.assertEqual(len(raw_identity), 167000)
+        raw_identity = p.encode(union_identity)
+        self.assertEqual(len(raw_identity), 168329)
         self.assertEqual(len(p.encode(p0_p3)) - len(p.encode(previous)), 634)
         self.assertEqual(len(p.encode(safe_core)) - len(p.encode(p0_p3)), 365)
         self.assertEqual(len(p.encode(scoped_agent_ndu)) - len(p.encode(safe_core)), 637)
@@ -270,21 +284,21 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(len(p.encode(integrated_v17)) - len(p.encode(observer_v16)), 661)
         self.assertEqual(len(p.encode(source_types_v18)) - len(p.encode(integrated_v17)), 661)
         self.assertEqual(len(p.encode(expressions_v19)) - len(p.encode(source_types_v18)), 691)
-        self.assertEqual(len(raw_identity) - len(p.encode(expressions_v19)), 929)
-        self.assertEqual(len(raw_identity) - len(p.encode(linker_v18)), 1352)
+        self.assertEqual(len(p.encode(identity)) - len(p.encode(expressions_v19)), 929)
+        self.assertEqual(len(p.encode(identity)) - len(p.encode(linker_v18)), 1352)
         self.assertEqual(p.cap('IDENTITY.json'), len(raw_identity))
         self.assertEqual(p.IDENTITY_RESERVE_DELTA,
                          len(raw_identity) - len(old.encode(historical)))
-        self.assertEqual(p.METADATA_RESERVE, 246876)
-        self.assertEqual(p.RAW_GLOBAL, 797604)
-        self.assertEqual(p.METADATA_RESERVE - 237556, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(806924 - p.RAW_GLOBAL, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(p.METADATA_RESERVE - 236919, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(807561 - p.RAW_GLOBAL, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(p.METADATA_RESERVE - 236554, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(807926 - p.RAW_GLOBAL, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(p.METADATA_RESERVE - 235920, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
-        self.assertEqual(808560 - p.RAW_GLOBAL, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929)
+        self.assertEqual(p.METADATA_RESERVE, 248205)
+        self.assertEqual(p.RAW_GLOBAL, 796275)
+        self.assertEqual(p.METADATA_RESERVE - 237556, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(806924 - p.RAW_GLOBAL, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(p.METADATA_RESERVE - 236919, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(807561 - p.RAW_GLOBAL, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(p.METADATA_RESERVE - 236554, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(807926 - p.RAW_GLOBAL, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(p.METADATA_RESERVE - 235920, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
+        self.assertEqual(808560 - p.RAW_GLOBAL, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 691 + 929 + 1329)
         self.assertEqual(p.METADATA_RESERVE - old.METADATA_RESERVE,
                          old.RAW_GLOBAL - p.RAW_GLOBAL)
         self.assertEqual(p.METADATA_RESERVE + p.RAW_GLOBAL + p.BUDGETS['display'],
@@ -312,9 +326,9 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 406)
+        self.assertEqual(len(paths), 416)
         self.assertTrue(set(old.source_paths()) < set(paths))
-        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS, *p.SAFE_CORE_ADDITIONS, *p.SCOPED_AGENT_NDU_ADDITIONS, *p.PERSISTENT_NDU_ADDITIONS, *p.JSON_NATIVE_ADDITIONS, *p.SHA256_NATIVE_ADDITIONS, *p.JSON_CLI_ADDITIONS, *p.EXPORT_CLI_ADDITIONS, *p.NATIVE_OBSERVER_ADDITIONS, *p.SOURCE_LEXER_ADDITIONS, *p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_EXPRESSIONS_ADDITIONS):
+        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS, *p.SAFE_CORE_ADDITIONS, *p.SCOPED_AGENT_NDU_ADDITIONS, *p.PERSISTENT_NDU_ADDITIONS, *p.JSON_NATIVE_ADDITIONS, *p.SHA256_NATIVE_ADDITIONS, *p.JSON_CLI_ADDITIONS, *p.EXPORT_CLI_ADDITIONS, *p.NATIVE_OBSERVER_ADDITIONS, *p.SOURCE_LEXER_ADDITIONS, *p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_EXPRESSIONS_ADDITIONS, *p.TYPE_PARSER_ADDITIONS, *p.SOURCE_PARSER_ADDITIONS):
             self.assertIn(name, paths)
             self.assertTrue((p.ROOT / name).is_file(), name)
         self.assertIn(p.shared.HELPER_PATH, paths)
@@ -326,7 +340,7 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         registered = p.source_paths()
         expected = tuple(n for n in registered if n.startswith('hepta/') and
                          n.count('/') == 1 and n.endswith('.py'))
-        self.assertEqual(len(expected), 222)
+        self.assertEqual(len(expected), 224)
         self.assertEqual(expected, tuple(sorted(x.relative_to(p.ROOT).as_posix()
                          for x in (p.ROOT / 'hepta').glob('*.py'))))
         with tempfile.TemporaryDirectory(prefix='hia-compiler-inputs-') as directory:

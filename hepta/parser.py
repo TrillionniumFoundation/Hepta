@@ -94,6 +94,19 @@ class Parser:
             self.depth -= 1
 
     def parse(self) -> Program:
+        import os
+        manifest = os.environ.get("HEPTA_HIA_SOURCE_PARSER_MANIFEST", "")
+        if manifest:
+            from .hia_source_parser_native import packet, installed_source_parser
+            try:
+                wire = packet(self)
+            except ValueError:
+                # Explicit candidate profile only. No default grammar switch.
+                return self._parse_reference()
+            return installed_source_parser(manifest).parse(self, wire)
+        return self._parse_reference()
+
+    def _parse_reference(self) -> Program:
         name = "main"
         if self._take("module"):
             name = self._path()
@@ -368,12 +381,28 @@ class Parser:
         self._expect(">", "Expected '>' after a generic element type")
 
     def _type(self) -> Type:
+        import os
+        manifest = os.environ.get('HEPTA_HIA_TYPE_PARSER_MANIFEST', '')
+        if manifest:
+            from .hia_type_parser_native import packet, installed_type_parser
+            try:
+                wire = packet(self.tokens, self.position, self.depth)
+            except ValueError:
+                # Bounded candidate profile; this is not native-only closure.
+                return self._source_or_reference_type()
+            return installed_type_parser(manifest).parse_type(self, wire)
+        return self._source_or_reference_type()
+
+    def _source_or_reference_type(self) -> Type:
         if self.native_types is None:
-            return self._reference_type()
+            return self._type_reference()
         from .hia_source_types_native import parse_type
         with self._nested():
             return parse_type(self, self.native_types, self.native_type_lexer,
                               _MAX_NESTING - self.depth + 1, _MAX_NESTING)
+
+    def _type_reference(self) -> Type:
+        return self._reference_type()
 
     def _reference_type(self) -> Type:
         with self._nested():

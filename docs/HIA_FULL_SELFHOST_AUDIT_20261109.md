@@ -2025,3 +2025,45 @@ including no-foreign-grammar and no-host-decimal controls.15shared identity and
 aggregate boundary tests passed separately. These are not clean-commit cold or
 whole-repository results. The boundary inventory still counts222production
 Python modules and435host Python tools, with3partial/5open components.
+
+
+## HIA type grammar continuation (development source)
+
+The operator-selected native type grammar now replaces real `Parser._type`
+recognition inside its explicit token/byte profile: paths, generic type/lifetime
+arguments, raw/ref/array/slice forms, exact depth/diagnostics/cursor and `>>`/`>=`
+mutation. Independent VM observations precede B0; real B1/B2 fixed-point builds,
+750 deterministic recursive/mutated type inputs, depth boundaries and 300 actual
+source files pass development conformance. Both lexical modes are explicit;
+selected tests disable the original Python type grammar, and dual-selected tests
+also disable the original lexical recognizer. Clean final qualification remains
+separate from these development results. See [profile](HIA_TYPE_PARSER_NATIVE.md).
+
+Shared source closure v15 binds exactly 375 paths/220 top-level Python modules
+and retains every earlier projection, including all 370 v14 paths. The extra
+663 identity bytes transfer from logs to metadata inside the same aggregate
+1 MiB evidence budget; compiler/runtime/process/call limits remain unchanged.
+The entire source parser, semantics, modules, runtime and delivery are NOT closed.
+Previous PR846 remote cold FAIL at 180 seconds/26 phases remains a failure;
+local passes do not replace it. No main/default/release activation is performed.
+
+
+## Whole-source grammar and native linker composition (development)
+
+This integration retains the complete bounded token-driven source task machine
+and its iterative type parser, alongside the existing v3 numeric lexer,
+source-driven type/expression parsers, streaming SHA, standalone JSON compiler
+and static ELF linker. All application selectors remain explicit. Selecting both
+type profiles gives the token type parser precedence; out-of-token-profile input
+can use the source type profile before the reference. The whole-program parser
+has precedence for Program parsing within its explicit validated-token profile.
+
+The whole-program profile is at most 4,096 tokens / 1 MiB packet and requires a
+3,158,016-byte private workspace. Out-of-profile reference behavior remains and
+Python token/AST materialization, semantic checking, modules/build, runtime,
+Agent/persistence and proof authorities remain foreign. This is not default
+activation, full-stack closure or authorization to delete required old code.
+Both separately reviewed 406-path and 380-path parent projections and all older
+projections remain exact inside the 416-path union. The additional 1,329 metadata
+bytes are transferred from raw logs inside the same aggregate evidence envelope.
+Fresh combined-source qualification is required; parent passes are not inherited.
