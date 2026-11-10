@@ -902,3 +902,25 @@ the selected exports plus the closed allocator imports.
 This checks real multi-object linkage and typed C ABI calls. It is not a
 Hepta source-module graph resolver, a native linker implementation or a
 whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.
+
+
+### High-level Hepta source scanning in HIA (candidate, whole stack OPEN)
+
+Added a19-function HIA source lexical recognizer, distinct from the assembly
+compiler scanner. It performs UTF-8 scalar/code-point position tracking,
+nested comments, keywords/identifiers, lifetime/operator/string/numeric token
+grammar and lexical diagnostics in HIA. An explicit operator manifest routes
+the existing tokenize API and actual parser callers through native recognition.
+Default/reference behavior remains unchanged, including fallback for source
+representations outside this bounded candidate profile. Python numeric
+materialization and AST/parser/type/module/runtime paths remain live.
+
+The token ABI validates/counts before publishing any output and keeps the
+8MiB input,1M-token including EOF and128-byte workspace profile explicit.
+Compiler caps/deadlines do not change. Exact source closure v14 adds five
+reviewed source-lexer paths, retains the365-path SHA-256 and all older
+projections independently, and binds all219actual root Python modules.
+The661-byte identity increase is transferred from raw logs to metadata;
+aggregate evidence/container/source/module/process limits remain unchanged.
+See HIA_SOURCE_LEXER_NATIVE.md. Fresh source-bound execution receipts are
+required; the existing compiler fixed points are not whole-frontend closure.

@@ -744,3 +744,15 @@ from raw logs to metadata: metadata241384, raw803096, display4096; the sum remai
 standalone selfhost export qualifier remains bound by its own complete support
 and release inventories; this shared proof profile does not silently acquire
 additional compiler or proof semantics.
+
+
+### Source lexer identity extension (v14 candidate)
+
+The reviewed source identity now has370paths, commitment
+`414e724f72c675c8cf7139da0710af16ec4417b4926a334b3f5c3c171b3b44f4`,
+including all219actual root compiler modules and five exact native source
+lexer inputs. Removing precisely those five paths preserves the historical
+365-path SHA-256 commitment; every preceding projection remains independently
+checked. Maximum identity162169bytes transfers661bytes from raw logs to
+metadata (242045metadata +802435raw +4096display =1048576). No source, module,
+process, time, aggregate evidence/container or authority cap is expanded.
