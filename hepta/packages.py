@@ -117,6 +117,14 @@ def package_snapshot(package: Package) -> dict:
                       "dependencies": {a: Path(os.path.relpath(d.root, package.root)).as_posix() for a, d in sorted(p.dependencies.items())}}
         manifest = p.root / "hepta.toml"
         files[Path(os.path.relpath(manifest, package.root)).as_posix()] = digest(manifest.read_bytes())
+        # Path.rglob does not descend into directory symlinks. Module imports
+        # do follow them, so an alias could otherwise retarget an import between
+        # already-hashed directories without changing a v1 content lock.
+        # Refuse this unrepresented topology instead of issuing a partial lock.
+        for candidate in sorted(p.source_root.rglob("*")):
+            if candidate.is_symlink() and candidate.is_dir():
+                _inside(candidate.resolve(), p.source_root, "Source directory symlink escapes its source_root")
+                fail("E_PACKAGE_SOURCE_LINK", "Source directory symlinks are not supported by package locks; use a real directory", candidate)
         for f in sorted(p.source_root.rglob("*.hepta")):
             _inside(f.resolve(), p.root, "Source symlink escapes its package")
             if f.is_file():
