@@ -887,7 +887,26 @@ class SelfhostNativeTests(unittest.TestCase):
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         row = next(row for row in self.report["elf_object_observations"]
                    if row["case"] == "original-elf-bytesum")
-        data = Path(row["compilation"]["produced_image"]).read_bytes()
+        from hashlib import sha256
+        import zipfile
+        from tools.hia_evidence_archive import verify_archive
+        path = Path(row["compilation"]["produced_image"])
+        if path.is_file():
+            data = path.read_bytes()
+        else:
+            # Completed phase ownership seals raw bytes losslessly. Replay the
+            # actual archive rather than dropping this independent inspector
+            # witness or recompiling a substitute artifact.
+            receipt = json.loads((path.parent / "ARCHIVED.json").read_bytes())
+            archive = path.parent.with_name(path.parent.name + ".zip")
+            self.assertEqual(Path(receipt["archive"]), archive)
+            self.assertEqual(sha256(archive.read_bytes()).hexdigest(), receipt["archive_sha256"])
+            manifest = verify_archive(archive)
+            self.assertEqual(manifest["source_directory"], str(path.parent))
+            self.assertIn(path.name, manifest["files"])
+            with zipfile.ZipFile(archive) as packed:
+                data = packed.read(path.name)
+        self.assertEqual(sha256(data).hexdigest(), row["compilation"]["produced_sha256"])
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),

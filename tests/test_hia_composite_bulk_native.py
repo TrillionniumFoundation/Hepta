@@ -44,16 +44,16 @@ class CompositeBulkCoreTests(unittest.TestCase):
 import os
 from pathlib import Path
 from unittest.mock import patch
-from hepta.hia_program_aarch64 import _read, HIAProgramAArch64Rejected
+from hepta.hia_program_llvm import _read_artifact, HIAProgramLLVMRejected
 p=Path("artifact");p.write_bytes(b"ordinary bytes")
 original=os.open
 def race(path,flags,*args,**kwargs):
     if Path(path)==p:
         p.unlink();os.mkfifo(p)
     return original(path,flags,*args,**kwargs)
-with patch("hepta.hia_program_aarch64.os.open",race):
-    try:_read(p,1024)
-    except HIAProgramAArch64Rejected:raise SystemExit(0)
+with patch("hepta.hia_program_llvm.os.open",race):
+    try:_read_artifact(p)
+    except HIAProgramLLVMRejected:raise SystemExit(0)
     raise SystemExit(1)
 '''
         import os

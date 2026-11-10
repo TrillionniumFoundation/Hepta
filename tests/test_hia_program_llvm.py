@@ -38,7 +38,15 @@ class StandaloneHIANativeTests(unittest.TestCase):
         cls.program = verify_program(cls.document)
         cls.ir = emit_program_llvm(cls.program)
         cls.library_path = cls.path / "program.so"
-        with patch("hepta.pipeline.analyze", side_effect=AssertionError("a source/Rust gate must not execute")):
+        import builtins
+        original_import = builtins.__import__
+        def core_only_import(name, globals=None, locals=None, fromlist=(), level=0):
+            forbidden = ("pipeline", "parser", "frontend", "ast")
+            if (any(name == "hepta." + part or name.startswith("hepta." + part + ".") for part in forbidden)
+                    or name == "hepta" and any(part in forbidden for part in (fromlist or ()))):
+                raise AssertionError("a removed high-level source gate must not execute")
+            return original_import(name, globals, locals, fromlist, level)
+        with patch("builtins.__import__", side_effect=core_only_import):
             cls.receipt = compile_program_llvm(cls.ir, program=cls.program,
                                               output=cls.library_path, clang=CLANG)
         cls.library = ctypes.CDLL(str(cls.library_path))
