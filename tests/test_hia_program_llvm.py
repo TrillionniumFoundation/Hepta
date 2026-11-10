@@ -38,7 +38,17 @@ class StandaloneHIANativeTests(unittest.TestCase):
         cls.program = verify_program(cls.document)
         cls.ir = emit_program_llvm(cls.program)
         cls.library_path = cls.path / "program.so"
-        with patch("hepta.pipeline.analyze", side_effect=AssertionError("a source/Rust gate must not execute")):
+        # The source frontend is absent in the Core-only product. Block its
+        # import at the real compile boundary rather than trying to patch a
+        # deleted module (which fails before any Core code is exercised).
+        import builtins
+        original_import = builtins.__import__
+        def core_only_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name in {"hepta.pipeline", "hepta.backend"} or (name == "hepta" and
+                    set(fromlist or ()) & {"pipeline", "backend"}):
+                raise AssertionError("a source/Rust gate must not execute")
+            return original_import(name, globals, locals, fromlist, level)
+        with patch("builtins.__import__", side_effect=core_only_import):
             cls.receipt = compile_program_llvm(cls.ir, program=cls.program,
                                               output=cls.library_path, clang=CLANG)
         cls.library = ctypes.CDLL(str(cls.library_path))

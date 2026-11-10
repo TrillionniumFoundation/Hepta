@@ -123,6 +123,20 @@ class RustOwnedMemoryParity(unittest.TestCase):
         return key
 
 
+    def admit(self, value, name="fixture"):
+        # This helper admits Core only; the deleted source frontend must not be
+        # restored to exercise independent primitive/nominal resource parity.
+        if type(value) is not dict:
+            raise AssertionError("Core fixture required; source input is not admitted")
+        kind = "nominal-hia" if "composite" in value["schema"] else "primitive-hia"
+        key = self.remember(value, name, kind)
+        core = verify_program(value)
+        item = type(self).inputs[key]
+        item["program_sha256"] = core.sha256
+        item["normalization"] = core.normalization_report
+        type(self).programs[core.sha256] = core.as_dict()
+        return core
+
     def raw_run(self, raw, entry, arguments, *, steps=10000, heap=32768, fail=None):
         argv = [self.executable, "--owned-run", entry, json.dumps(arguments, separators=(",", ":")),
                 str(steps), str(heap), "none" if fail is None else str(fail)]
