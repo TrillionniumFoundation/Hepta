@@ -1425,3 +1425,43 @@ full-current-source regression, remote and clean-machine gates remain OPEN.
 Parent2d12212 remote42769896908sourcePASS/coldRUNNING atcapture; parent841timeout
 and older failures remain retained. No default/release/production switch or old
 requiredimplementation removal. This is not whole-stack closure.
+
+
+## Native compiler scratch/header throughput development
+
+The actual baseline B3 compiler was sampled while performing 32 native
+self-compilations, without changing profiler kernel settings or qualification
+limits. Of 17455 in-image 1ms samples, generic get/put accounted for25.25%/19.46%,
+next_token10.78%, keyword7.01%. The external C diagnostic is not a HIA production
+implementation or a correctness proof. A prior numeric-identifier fast rejection
+experiment showed no speedup and was rejected, with its patch/results retained.
+
+This candidate uses the existing HIA buffer.fill_range primitive for precisely
+those scratch byte ranges previously zeroed by loops. The two per-SSA strided
+8byte fields still clear only their original bytes, never the intervening holes.
+Compiler-private header fields32,48,64,72,232 use byte accesses: quote0..1,
+phase0..2, function count0..128, ordinal0..127, output profile0..2 respectively.
+Their complete256byte header is cleared before every semantic pass, so all
+higher bytes stay zero. Function count is checked before incrementing; the
+128-function ceiling and every other physical limit are unchanged. Generic
+get/put retain their exact word/partial-write/trap ABI. Input values, output
+position, error code, counters and table extents are not narrowed.
+
+Development-only native B1=B2 was observed. Four repetitions interleaved against
+the accepted parent image on this same, non-isolated host show parent/candidate
+wall ratios1.123(current compiler),1.143(parent compiler),1.111(source lexer).
+Every produced image is byte-identical across old/new compilers. A separate
+foreign diagnostic compared full1MiB output and full1MiB scratch, not just
+selected header words, for48valid/invalid inputs with bothzero and0xA5 scratch
+preimages:96comparisons all agree exactly, including return values. These are
+finite development observations, not all-input proof, exact-source acceptance,
+or evidence that remote180s cold qualification now passes. Fresh clean-source,
+cold/language/components/build/installed/full and remote gates remain required.
+No deadline/cap/evidence ceiling, default, live installation or release lock is
+changed, and no required legacy implementation is removed.
+
+Development tests19/19 passed35.407seconds: live scanner/keyword Core VM,
+unaligned word reads/all64bits and native partial-store traps, complete scalar
+exports, two actual linked HIA objects, refusal/no-output and poisoned scratch.
+The source/contract inventories were regenerated. This remains a development
+checkpoint until the following fresh exact-commit gates complete.

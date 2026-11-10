@@ -71,6 +71,70 @@ class SelfhostKeywordTests(unittest.TestCase):
         original = next(fn for fn in full["functions"] if fn["name"] == names["keyword"])
         self.assertEqual(keyword_function(), {**original, "name": "f1"})
 
+    def test_live_scanner_numeric_identifiers_preserve_full_token_state_in_Core_VM(self):
+        from hepta.hia_agent_assembly import assemble_program, render_assembly
+        from hepta.hia_program import execute_program
+        from tools.hia_selfhost_bulk import Body
+        from tools.hia_selfhost_keywords import REFERENCE_WRAPPER
+        doc, names = document()
+        functions = {fn['name']: fn for fn in doc['functions']}
+        needed = set()
+        def visit(name):
+            if name in needed:
+                return
+            needed.add(name)
+            for block in functions[name]['blocks']:
+                for op in block['ops']:
+                    if op['op'] == 'call':
+                        visit(op['attrs']['function'])
+        visit(names['next_token'])
+        visit(names['get'])
+        helpers = render_assembly({'schema':'hepta.hia.program.v8',
+            'module':'live_scanner_reference',
+            'functions':[fn for fn in doc['functions'] if fn['name'] in needed]})
+        # Existing independently checked four-word materializer allocates the
+        # EXACT input length, not a padded buffer that could mask EOF reads.
+        wrapper = REFERENCE_WRAPPER.split('block b3(',1)[0]
+        wrapper = wrapper.replace('reference_entry','observe_token',1)
+        wrapper = wrapper.replace('-> (u32,u8)','-> ('+','.join(['u64']*9)+')',1)
+        body = Body(44)
+        body.effect('loan.end',['v43'])
+        source = body.value('readbuf','borrow.read',['v42'])
+        owner = body.value('buffer','buffer.new',[body.const('usize',128)])
+        workspace = body.value('mutbuf','borrow.mut',[owner])
+        body.effect('buffer.fill',[workspace,body.const('u8',0)])
+        code = body.value('u64','call',[source,workspace],{'function':names['next_token']})
+        positions = (0,8,16,24,32,40,104,120)
+        observed = [body.value('u64','call',[workspace,body.const('u64',at)],
+                    {'function':names['get']}) for at in positions]
+        body.effect('loan.end',[source]);body.effect('loan.end',[workspace])
+        body.effect('owner.drop',['v42']);body.effect('owner.drop',[owner])
+        wrapper += 'block b3(v42:buffer,v43:mutbuf)\n'+body.text()
+        wrapper += '  ret('+','.join([code,*observed])+')\nend\n'
+        checked = assemble_program(helpers+wrapper)
+        unknown = ('v','b','f','i','u','x','v0','v123','f0','b0','x9abc',
+                   'u0','i0','u64x','i16x','f32','v0.value','b9-mode')
+        allowed_quoted = {'value','mode','wrap','checked','function'}
+        for word in (*W,*unknown):
+            for prefix,quoted in (('',False),('   ',False),(' ',True)):
+                text = prefix+('"'+word+'"' if quoted else word)
+                wire = text.encode('ascii')
+                self.assertLessEqual(len(wire),32)
+                padded = wire.ljust(32,b'\0')
+                arguments = [int.from_bytes(padded[i:i+8],'little') for i in range(0,32,8)]+[len(wire)]
+                token = W.get(word,261)
+                if quoted and word not in allowed_quoted:
+                    token = 261
+                if not quoted and word in allowed_quoted:
+                    token = 261
+                result = execute_program(checked,'observe_token',arguments)
+                expected = [0,len(wire),token,0,len(prefix),int(quoted),0,0,0]
+                with self.subTest(text=text):
+                    self.assertEqual(result['status'],'returned')
+                    self.assertEqual(result['values'],expected)
+                    self.assertEqual(result['resources']['live_owners'],0)
+                    self.assertEqual(result['resources']['live_local_loans'],0)
+
     def test_outside_the_packed_grammar_fails_at_authoring_time(self):
         for word in ("", "x" * 33, "f\0n", "汉"):
             with self.subTest(word=word), self.assertRaises((ValueError, UnicodeError)):

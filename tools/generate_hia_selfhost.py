@@ -61,20 +61,11 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if length(o) > 1048576:
         return 4294967294
-    i = 0
-    while i < 17408:
-        put(w, CBASE + i, 0)
-        i = i + 8
-    i = 0
-    while i < 1536:
-        store(w, KBASE + i, 0)
-        i = i + 1
+    fill_range(w, CBASE, 17408, 0)
+    fill_range(w, KBASE, 1536, 0)
     put(w, 432, 1)
     while phase < 3:
-        i = 0
-        while i < 256:
-            put(w, i, 0)
-            i = i + 8
+        fill_range(w, 0, 256, 0)
         put(w, 248, 4)
         put(w, 264, 0)
         put(w, 272, 0)
@@ -165,8 +156,8 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     put(w, 480, 0)
     i = 0
     while i < 2048:
-        put(w, 955152 + i * 24 + 8, 0)
-        put(w, VBASE + i * 16, 0)
+        fill_range(w, 955152 + i * 24 + 8, 8, 0)
+        fill_range(w, VBASE + i * 16, 8, 0)
         i = i + 1
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
@@ -1759,6 +1750,14 @@ def source_program():
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',
                 'MAX_INSTRUCTIONS', 'MAX_CORE_NODES', 'MAX_RELOCATIONS']:
         text = text.replace(key, str(globals()[key]))
+    # These private header words are cleared in full before each semantic
+    # pass. Their only writes are quote0/1, phase0..2, function counts0..128,
+    # function ordinal0..127 and output profile0..2. Higher bytes remain zero.
+    # Use byte accesses for those internal state fields without narrowing any
+    # input, public scalar value, counter, table extent or generic get/put ABI.
+    for at in (32, 48, 64, 72, 232):
+        text = text.replace(f'get(w, {at})', f'byte(w, {at})')
+        text = text.replace(f'put(w, {at},', f'store(w, {at},')
     return text
 
 
@@ -1861,6 +1860,7 @@ class Builder:
             if name=='length': return self.cast(self.op('buffer.len',args,'usize'),'u64')
             if name=='byte': return self.cast(self.op('buffer.load',[args[0],self.cast(args[1],'usize')],'u8'),'u64')
             if name=='store': return self.op('buffer.store',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'u8')])
+            if name=='fill_range': return self.op('buffer.fill_range',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'usize'),self.cast(args[3],'u8')])
             if name=='choose':
                 assert len(args)==3 and args[0][1]=='bool' and args[1][1]==args[2][1]
                 return self.op('select',args,args[1][1])
