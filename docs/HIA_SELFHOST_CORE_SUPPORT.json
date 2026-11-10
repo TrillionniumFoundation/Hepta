@@ -472,7 +472,7 @@
       "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
       "tools/hia_selfhost_cli.py": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f",
       "tools/hia_selfhost_cli_child.py": "46229de9524b795df54d2b4ba49789c4c0a2174ed25318d68d135427d6353289",
-      "tools/hia_selfhost_contract.py": "bb2dd5f4b860edf33aa4b7b9b32b50d4ce0149c24272dd832432e2e4d76e716d",
+      "tools/hia_selfhost_contract.py": "f406dc94c6704426f6c3bccbeb9ad354661cba85ba1bf3d54538511357cfabaf",
       "tools/hia_selfhost_effects.py": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf",
       "tools/hia_selfhost_exports.py": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382",
       "tools/hia_selfhost_exports_cases.py": "c5cc5b4aeefcdb639b34c103fb057a6a167ee48080e9ff0f024b1c6cf7a8687c",
@@ -708,6 +708,27 @@
       ],
       "output_format": "selfhost_elf or explicit scalar-export ELF only",
       "status": "bounded_subset"
+    },
+    {
+      "area": "high_level_source_lexing",
+      "input_bytes": 8388608,
+      "items": [
+        "scalar UTF-8 decoding and code-point spans with CR/LF/CRLF positions",
+        "nested comments, keywords, identifiers, lifetimes, operators, numeric lexical grammar and ABI strings",
+        "validation/count pass before native token output publication"
+      ],
+      "maximum_tokens_including_EOF": 1048576,
+      "selection": "HEPTA_HIA_SOURCE_LEXER_MANIFEST; default reference unchanged",
+      "source": "examples/hia_bootstrap/source_lexer.hiaasm",
+      "status": "bounded_subset",
+      "still_foreign": [
+        "numeric value conversion and finite float check",
+        "Token/Span/Diagnostic objects",
+        "source parser/AST/type checker",
+        "module/package resolution"
+      ],
+      "token_row_bytes": 56,
+      "workspace_bytes": 128
     },
     {
       "area": "general_core_checker",
