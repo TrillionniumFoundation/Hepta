@@ -253,6 +253,31 @@ class ByteABINativeTests(unittest.TestCase):
                 self.assertEqual(result["capture"]["stdout_total_bytes"], 7)
                 self.assertTrue(result["capture_error"])
 
+    def test_explicit_v2_machine_plan_preserves_byte_admission_and_native_output(self):
+        from tests.test_hia_machine_plan import explicit_plan
+        program = verify_program(byte_program())
+        plan = explicit_plan(program,
+            function_order=list(reversed([fn["name"] for fn in program.as_dict()["functions"]])),
+            scratch_registers={"r10": "r11", "r11": "r10"},
+            instruction_selection={"move_immediate": "mov32_if_exact", "alu_immediate": "imm8_if_exact"},
+            function_alignment=32)
+        manifest = (("copy_bytes", 4096),)
+        image = emit_program_machine(program, foreign_buffer_exports=manifest, machine_plan=plan)
+        canonical = emit_program_machine(program, foreign_buffer_exports=manifest)
+        self.assertNotEqual(image.text_bytes, canonical.text_bytes)
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "planned.so"
+            compile_program_machine(image, program=program, output=output, linker="ld", machine_plan=plan)
+            library = ctypes.CDLL(str(output))
+            fn = library.copy_bytes; fn.argtypes = [ctypes.c_void_p, ctypes.c_uint64] * 2; fn.restype = ctypes.c_uint64
+            source = ctypes.create_string_buffer(bytes(range(256)))
+            target = ctypes.create_string_buffer(256)
+            self.assertEqual(fn(source, 256, target, 256), 0)
+            self.assertEqual(target.raw, source.raw[:256])
+            self.assertEqual(fn(source, 256, source, 256), 4 << 32)
+            self.assertEqual(fn(None, 1, target, 256), 2 << 32)
+
+
 
 if __name__ == "__main__":
     unittest.main()
