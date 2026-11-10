@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v44-core-agent-workspace-public-abi"
+PROFILE = "selfhost-core-linux-x86_64-v45-core-workspace-json"
 SOURCE_FILES = (
+    'docs/HIA_CORE_WORKSPACE_JSON_NATIVE.md',
+    'examples/hia_bootstrap/core_workspace_json.hiaasm',
+    'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
+    'tools/generate_hia_core_workspace_json.py',
+    'tools/generate_hia_core_workspace_json_cli.py',
+    'tools/build_hia_core_workspace_json.py',
+    'tests/test_hia_core_workspace_json_native.py',
     'docs/HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json',
     'docs/HIA_CORE_SAFETY_CONTROL_RESTORATION.md',
     'tests/hia_artifact_session_fixture.py',
@@ -272,6 +279,22 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "core_workspace_json_application": {
+            "sources": ["examples/hia_bootstrap/core_workspace_json.hiaasm",
+                        "examples/hia_bootstrap/core_workspace_json_packer.hiaasm"],
+            "interface": "explicit standalone hia-workspace-json; stdin JSON to HIAMOD01 module facts",
+            "maximum_wire_and_fact_bytes": 8388608,
+            "maximum_nodes": 1048576, "maximum_depth": 128,
+            "modules": 1024, "functions": 1024, "imports": 4096,
+            "calls": 16384, "exports": 1024,
+            "private_arena_bytes": 67112960, "private_scratch_bytes": 16785408,
+            "refusal": "private decoded arena/scratch may change; no stdout before successful framing",
+            "native_runtime_foreign_decoder_or_encoder_required": False,
+            "facts_grant_Core_or_module_policy_admission": False,
+            "module_policy": "separate mandatory HIA module graph; nominal linking remains OPEN",
+            "host_boundaries": ["build/custody", "Core materialization/verification", "installation"],
+            "default_changed": False, "whole_native_workspace_qualified": False,
+        },
         "agent_snapshot_json_application": {
             "sources": ["examples/hia_bootstrap/agent_snapshot_json.hiaasm",
                         "examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm"],
