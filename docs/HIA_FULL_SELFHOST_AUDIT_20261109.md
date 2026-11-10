@@ -885,3 +885,20 @@ Public receipts: `v33-core-json-frontend-summary.json`,
 `v34-exact-source-closure-summary.json` and the losslessly reconstructable v33/v34
 inventory deltas under `review-evidence/hia-whole-selfhost-20261109/`.
 Component status remains 3 partial / 5 open. Whole-stack completion is false.
+
+
+### Independent cross-object scalar export audit
+
+Two independently compiled HIA ELF objects are linked into one actual C
+executable with `-z defs`, immediate binding and a non-executable stack. Both
+source modules deliberately contain `private_value` with different results;
+only public identifiers are prefixed. The independent Core VM evaluates all
+10 public observations before the first seed/successor is built. The real
+C caller uses declared `int8_t`, `bool`, `uintptr_t` and sixteen mixed scalar
+arguments (including stack arguments), and exercises allocator imports in both
+objects. Exact per-object symbols exclude private helpers and include only
+the selected exports plus the closed allocator imports.
+
+This checks real multi-object linkage and typed C ABI calls. It is not a
+Hepta source-module graph resolver, a native linker implementation or a
+whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.

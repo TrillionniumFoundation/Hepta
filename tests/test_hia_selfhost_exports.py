@@ -44,6 +44,38 @@ class ExportNativeTests(unittest.TestCase):
     def setUpClass(cls):
         cls.doc=document();checked=assemble_program(assembly(cls.doc))
         assert execute_program(checked,'via_private',[])['values']==[41]
+        # Establish the two-object semantics BEFORE building any successor.
+        # Both objects deliberately contain a differently valued private helper
+        # with the same source identifier. Only public names are prefixed.
+        cls.link_documents=[];cls.link_reference={}
+        cls.link_arguments=[250,65000,4000000000,2**64-10,17,-120,-32000,
+            -2000000000,-(2**63)+7,-9,True,3,4,5,6,7]
+        for prefix,private in (('left_',41),('right_',59)):
+            doc=copy.deepcopy(cls.doc)
+            allocator=allocated_document()
+            doc['functions'].extend(allocator['functions'])
+            doc['exports'].extend(allocator['exports'])
+            names={f['name']:prefix+f['name'][:128-len(prefix)] for f in doc['functions']
+                if f['name']!='private_value'}
+            for f in doc['functions']:
+                if f['name']=='private_value':f['blocks'][0]['ops'][0]['attrs']['value']=private
+                f['name']=names.get(f['name'],f['name'])
+                for block in f['blocks']:
+                    for op in block['ops']:
+                        if op['op']=='call':
+                            callee=op['attrs']['function']
+                            op['attrs']['function']=names.get(callee,callee)
+            doc['exports']=[names[name] for name in doc['exports']]
+            doc['module']=prefix+'library'
+            checked=assemble_program(assembly(doc))
+            for name,args in (('mixed',cls.link_arguments),('via_private',[]),
+                              ('allocated_size',[37]),('identity_i8',[-120]),
+                              ('identity_bool',[True])):
+                result=execute_program(checked,prefix+name,args)
+                assert result['status']=='returned',result
+                assert result['resources']['live_owners']==0,result
+                cls.link_reference[prefix+name]=int(result['values'][0])
+            cls.link_documents.append(doc)
         cls.temporary=tempfile.TemporaryDirectory(prefix='hia-native-exports-')
         cls.folder=Path(cls.temporary.name);cls.serial=0
         seed,_=build_seed(cls.folder)
@@ -115,6 +147,46 @@ class ExportNativeTests(unittest.TestCase):
         lib.allocated_size.argtypes=[ctypes.c_uint64];lib.allocated_size.restype=ctypes.c_uint64
         for size in (0,1,17,4096):self.assertEqual(lib.allocated_size(size),size)
         lib.second.argtypes=[];lib.second.restype=ctypes.c_uint64;self.assertEqual(lib.second(),2)
+
+    def test_two_HIA_objects_link_together_with_typed_C_callers(self):
+        """Real link unit, not two isolated ctypes loads or a module-graph claim."""
+        from hepta.object_symbols import inspect_object_symbols
+        objects=[];defined=set()
+        for i,doc in enumerate(self.link_documents):
+            obj,receipt=compile_stage(self.folder,'two-objects-'+str(i),self.second,assembly(doc))
+            self.assertEqual(receipt['forbidden_compiler_modules_loaded'],[])
+            symbols=inspect_object_symbols(obj.read_bytes(),'ELF64',62)
+            self.assertEqual(symbols['defined'],frozenset(doc['exports']))
+            self.assertEqual(symbols['undefined'],frozenset({'calloc','free'}))
+            self.assertNotIn('private_value',symbols['defined'])
+            self.assertTrue(defined.isdisjoint(symbols['defined']))
+            defined.update(symbols['defined']);objects.append(obj)
+        types='uint8_t,uint16_t,uint32_t,uint64_t,uintptr_t,int8_t,int16_t,int32_t,int64_t,intptr_t,bool,uint8_t,uint16_t,uint32_t,uint64_t,uintptr_t'
+        args='UINT8_C(250),UINT16_C(65000),UINT32_C(4000000000),UINT64_MAX-9,17,-120,-32000,-INT32_C(2000000000),INT64_MIN+7,-9,true,3,4,5,6,7'
+        declarations=[];checks=[]
+        for prefix in ('left_','right_'):
+            declarations.extend((f'extern uint64_t {prefix}mixed({types});',
+                f'extern uint64_t {prefix}via_private(void);',
+                f'extern uintptr_t {prefix}allocated_size(uintptr_t);',
+                f'extern int8_t {prefix}identity_i8(int8_t);',
+                f'extern bool {prefix}identity_bool(bool);'))
+            for name,call in (('mixed',args),('via_private',''),
+                              ('allocated_size','37'),('identity_i8','-120'),
+                              ('identity_bool','true')):
+                expected=self.link_reference[prefix+name]
+                literal=f'UINT64_C({expected})' if expected>=0 else str(expected)
+                checks.append(f'  if ({prefix}{name}({call}) != {literal}) return {len(checks)+1};')
+        driver=self.folder/'two-objects-caller.c'
+        driver.write_text('#include <stdint.h>\n#include <stdbool.h>\n'+
+            '\n'.join(declarations)+'\nint main(void) {\n'+
+            '\n'.join(checks)+'\n  return 0;\n}\n')
+        executable=self.folder/'two-objects-caller'
+        subprocess.run(['cc','-std=c11','-O2','-Wall','-Wextra','-Werror',
+            '-Wl,-z,defs,-z,noexecstack,-z,relro,-z,now',str(driver),
+            *(str(obj) for obj in objects),'-o',str(executable)],
+            check=True,capture_output=True)
+        result=subprocess.run([str(executable)],capture_output=True,timeout=10)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
 
     def test_full_export_table_and_longest_names(self):
         lib,obj,inventory=self.linked(dense_document(),'dense128')
