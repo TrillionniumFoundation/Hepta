@@ -1259,6 +1259,21 @@ def account_nodes(w:mutbuf, amount:u64) -> u64:
 def emit_bytes(o:mutbuf, w:mutbuf, x:u64, remaining:u64) -> u64:
     if remaining == 0:
         return 0
+    phase = get(w, 48)
+    if phase == 0:
+        return 0
+    pos = get(w, 56)
+    if phase == 1 or (pos <= length(o) and remaining <= length(o) - pos):
+        if phase == 2:
+            i = 0
+            while i < remaining:
+                store(o, pos + i, x & 255)
+                x = x >> 8
+                i = i + 1
+        put(w, 56, pos + remaining)
+        return 0
+    # Real short-capacity calls retain the exact per-byte prefix writes and
+    # counter updates before the original buffer.store trap. No trap is hidden.
     emit(o, w, x & 255)
     return emit_bytes(o, w, x >> 8, remaining - 1)
 # Kept in a separate HIA function so the per-function SSA ceiling stays 2047.

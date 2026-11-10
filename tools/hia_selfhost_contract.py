@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v48-main-consolidation"
+PROFILE = "selfhost-core-linux-x86_64-v49-main-native-word-emission"
 SOURCE_FILES = (
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
@@ -86,6 +86,7 @@ SOURCE_FILES = (
     'tests/test_hia_core_json_cli.py',
     'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
     'tests/test_hia_selfhost_word_io.py',
+    'tests/test_hia_selfhost_emitter_words.py',
     'tools/generate_hia_sha256_stream.py',
     'tests/test_hia_sha256_stream_native.py',
     'examples/hia_bootstrap/sha256_stream.hiaasm',
