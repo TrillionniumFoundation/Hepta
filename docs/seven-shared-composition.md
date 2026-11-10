@@ -711,3 +711,19 @@ boundaries still reject one excess byte.
 These are explicit source registration and accounting changes. Acceptance of
 the repaired source requires fresh complete execution and replay at its own
 commit; source-control success cannot confer Lean proof or production authority.
+
+## Reviewed native JSON source identity continuation (v11)
+
+The current closed identity has 360 source records, including the 217 actual
+root-level Python compiler modules. Its 23 explicitly named JSON additions bind
+five bridge modules, four HIA application sources and their authoring/build/
+driver/conformance inputs. The entire prior 337-path v10 checkpoint and every
+older projection retain their independent exact commitments; discovery of an
+extra module still refuses rather than broadening the accepted closure.
+
+The maximal identity encoding is now 160,877 bytes. Exactly 3,066 bytes are
+transferred from the raw-log allocation to metadata: metadata reserve 240,753,
+raw global 803,727, display 4,096; their sum remains 1,048,576 bytes. Source,
+module, container, per-stage, process and time caps are unchanged. The v10
+identity remains 157,811 bytes in the historical projection. These accounting
+controls and finite tests do not grant broader proof or execution authority.

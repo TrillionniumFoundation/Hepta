@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 216 Python
-files, 76,568 lines and 4,146,940 bytes. These are source inventory figures, not a
+HIA. The current implementation contains a live `hepta/` package with 217 Python
+files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **412 Python files /131754lines** under `tools/`,
+The audit also inventories **415 Python files /132280lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-628Python files. Tests, historical evidence, experiments, examples, benchmarks
+632Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -758,7 +758,7 @@ Remote qualification of the new source must execute separately. Whole-stack
 closure and all-input refinement/worst-case-cost claims remain false.
 
 
-## v32 native canonical wire continuation (exact qualification pending)
+## v32 native canonical wire continuation (source-bound local qualification)
 
 The22function HIA canonical-wire library decodes an arena, performs iterative
 object-child linked-list merge sort in Unicode-codepoint order, emits compact
@@ -792,3 +792,96 @@ files and412host tools remain non-HIA authorities where described. All8component
 boundaries still3partial/5open. Existing frozen v31 full-repository run remains
 independent and running; no newer global pass is asserted. See
 `docs/HIA_JSON_CANONICAL_NATIVE.md` for the actual ABI, integration and boundaries.
+
+Exact committed implementation `23d461a4e714b6ef9fe44af9c8b6d3fb161e3bac`
+now passes the actual clean-source workflow: 97 tests, 91.244668275 seconds
+including regeneration, with a clean worktree before and after. Its cold replay
+passes all 11 gates and 4,351 native checks in 173.628063743 seconds; language
+coverage passes 1,242/1,242 plus the separate assertion checks. The existing
+180-second cold deadline and compiler capacities remain unchanged.
+
+The same frozen source passes 26 native JSON tests, then builds both application
+images with its completed B3 compiler and cold receipt. Existing consumers pass
+83 tests with both manifests selected and 83 with the default reference. The
+complete sequential qualification takes 407.422016382 seconds. The first
+orchestration attempt failed before running tests because its external helper
+file did not exist; that setup failure is retained separately from the successful
+source-bound run. See `review-evidence/hia-whole-selfhost-20261109/v32-json-canonical-summary.json`
+and its losslessly reconstructable static-audit delta. Remote CI and current
+whole-repository qualification are not promoted to passes by these local results.
+
+## v33 primitive JSON Core native frontend (exact qualification pending)
+
+The 40-function HIA frontend now decodes serialized primitive v8 Core, checks
+closed representation shapes, preserves identifiers/declaration order/returned
+loan metadata and emits bounded assembly for the real native HIA semantic
+compiler. Its runtime path does not call the Python JSON parser, Core verifier
+or renderer. A separate host driver still handles pinned manifests, allocation,
+filesystem, subprocesses and trusted receipt metadata. General exports/composites
+and the production CLI/service/runtime/build pipeline remain open.
+
+Independent VM observations and the original/genuinely modified compiler JSON
+inputs precede B0. Fresh B0/B1/B2 builds the frontend; both full compiler inputs
+render exact source bytes and produce three generations with the required fixed
+points. Native byte programs execute, including 24 distinct returned-loan/general
+name programs and the caller-owned-parent case through explicit ELF selection
+and actual external linking. Default flat mode refuses ELF/executable label
+selection; an operator must explicitly select ELF in addition to its module
+label. This does not rewrite the external linker/libc allocation runtime.
+
+The development class passes 9 tests in 22.647 seconds, including randomized
+field ordering, Unicode fragments/subtree boundaries, source drift, concurrency,
+exact/over output capacity, shape confusion, injection and real native semantic
+refusal. The first class run correctly refused the caller-owned-parent ELF label
+under default flat selection; explicit ELF profile support and actual linking
+were added without dropping that witness. The source/default regression replay
+passes 70 tests in 13.817 seconds. Its initial uncommitted run used a stale source
+contract and group-writable temporary files, which the existing strict boundary
+correctly refused. The contract was regenerated and private fixture permissions
+restored; no check or production limit was weakened. Both failed logs remain.
+
+These development observations are not substitutes for a clean committed cold,
+source workflow, language or whole-repository result. The next source-bound
+qualification binds the full 297-file compiler source closure. Component status
+remains 3 partial / 5 open; whole-stack completion and all-input correctness
+remain false. See `docs/HIA_CORE_JSON_FRONTEND_NATIVE.md`.
+
+
+## v33/v34 completed source-bound local qualification
+
+Native frontend implementation `3fb8601fb1c6384401998fe37536180d7b79f1a5`
+passes the actual source workflow: 99 tests, clean source before/after. Its cold
+report passes all 11 gates / 4,351 native compiler checks in 178.556889613 seconds
+within the unchanged 180-second deadline. Language coverage is 1,242/1,242 plus
+its separate assertion checks; 33 fresh native JSON/frontend tests pass, followed
+by 83 existing consumers with both JSON manifests selected and 83 default.
+The full sequential qualification is 440.407369086 seconds. Completed cold B3
+builds all three candidate images. This supersedes pending qualification above,
+not the stated whole-stack limitations or the historical failures.
+
+The ongoing frozen `2484f5c` full-repository run exposed six source-closure errors,
+independently reproduced as six errors in 15 tests: the fixed old compiler input
+inventory omitted the new native JSON modules. Follow-up
+`bfd3b4406805c6e7ea25089022183331034f838a` binds 23 explicit bridge/HIA source/
+build/driver/conformance additions, all 217 actual compiler Python modules and
+360 source paths. The exact prior 337-path commitment and all older projections
+remain checked; unknown/missing modules still refuse. Protocol v11 transfers
+3,066 bytes from raw logs into identity metadata, preserving the 1 MiB aggregate
+and all source/module/container/process/time caps. The initial development
+accounting assertion accidentally compared the new identity to an older
+projection; the original 131-byte historical comparison is now retained against
+its proper 337-path identity alongside the new exact 3,066-byte assertion.
+
+That clean committed follow-up passes 251 shared/legacy adversarial tests in
+480.615 seconds, then 99 actual workflow source tests and a clean static audit.
+All 298 exported native compiler source-manifest paths remain byte-identical to
+the native-qualified implementation; this equivalence is checked path by path.
+Native qualification is reused only for that identical source closure, not
+invented as a newly executed cold run on the follow-up commit. The older full
+repository run remains running with observed errors, not a completed or current
+pass; the repair does not relabel it. Remote CI remains separately unqualified.
+
+Public receipts: `v33-core-json-frontend-summary.json`,
+`v34-exact-source-closure-summary.json` and the losslessly reconstructable v33/v34
+inventory deltas under `review-evidence/hia-whole-selfhost-20261109/`.
+Component status remains 3 partial / 5 open. Whole-stack completion is false.
