@@ -1156,48 +1156,35 @@ def qualify_language(output):
         negative = rejected_fixtures()
         traps = shift_trap_cases() + checked_arithmetic_trap_cases() + checked_cast_trap_cases()
         for label, compiler in (("B3", b3), ("M3", m3)):
+            # Fresh per-generation fixture stages, never an existing snapshot.
+            import secrets
+            from tools.hia_evidence_archive import OWNER, archive_completed_stage
+            case_directory = directory / label
+            case_directory.mkdir(mode=0o700)
+            archive_token = secrets.token_hex(32)
+            (case_directory / OWNER).write_text(archive_token)
             for fixture in positive:
-                name = label + "-" + fixture["id"]
-                image, build = compile_stage(directory, name + "-build", compiler, fixture["source"])
-                result, observed = invoke(directory, name, image, fixture["input"],
-                    capacity=fixture["capacity"], workspace_size=fixture["workspace_size"])
-                good = (result.get("status") == "returned" and result.get("abi_status") == 0
-                    and result.get("core_u32") == fixture["expected_result"]
-                    and result.get("source_unchanged") and not result.get("forbidden_compiler_modules_loaded")
-                    and observed == fixture["expected_output"])
+                name = label + '-' + fixture['id']
+                image, build = compile_stage(case_directory, name + '-build', compiler, fixture['source'])
+                result, observed = invoke(case_directory, name, image, fixture['input'], capacity=fixture['capacity'], workspace_size=fixture['workspace_size'])
+                good = result.get('status') == 'returned' and result.get('abi_status') == 0 and (result.get('core_u32') == fixture['expected_result']) and result.get('source_unchanged') and (not result.get('forbidden_compiler_modules_loaded')) and (observed == fixture['expected_output'])
                 checks[name] = bool(good)
-                report["positive"].append({"compiler": label, "id": fixture["id"],
-                    "case_ids": fixture["case_ids"], "build": build, "execution": result,
-                    "expected_result": fixture["expected_result"],
-                    "expected_output_sha256": digest(fixture["expected_output"]),
-                    "observed_output_sha256": digest(observed)})
+                report['positive'].append({'compiler': label, 'id': fixture['id'], 'case_ids': fixture['case_ids'], 'build': build, 'execution': result, 'expected_result': fixture['expected_result'], 'expected_output_sha256': digest(fixture['expected_output']), 'observed_output_sha256': digest(observed)})
             for fixture in negative:
-                name = label + "-reject-" + fixture["id"]
-                result, observed = invoke(directory, name, compiler, fixture["source"], capacity=512)
-                good = (result.get("status") == "returned" and result.get("abi_status") == 0
-                    and result.get("core_u32") == INVALID and result.get("source_unchanged")
-                    and result.get("output_unchanged") and observed == bytes([0xa5]) * 512
-                    and not result.get("forbidden_compiler_modules_loaded"))
+                name = label + '-reject-' + fixture['id']
+                result, observed = invoke(case_directory, name, compiler, fixture['source'], capacity=512)
+                good = result.get('status') == 'returned' and result.get('abi_status') == 0 and (result.get('core_u32') == INVALID) and result.get('source_unchanged') and result.get('output_unchanged') and (observed == bytes([165]) * 512) and (not result.get('forbidden_compiler_modules_loaded'))
                 checks[name] = bool(good)
-                report["negative"].append({"compiler": label, "id": fixture["id"],
-                                          "execution": result, "transactional_rejection": bool(good)})
+                report['negative'].append({'compiler': label, 'id': fixture['id'], 'execution': result, 'transactional_rejection': bool(good)})
             for fixture in traps:
-                name = label + "-" + fixture["id"]
-                image, build = compile_stage(directory, name + "-build", compiler, fixture["source"])
-                result, observed = invoke(directory, name, image, fixture.get("input", b""), capacity=8, workspace_size=0,
-                                           observe_trap_writes=True)
-                good = (result.get("status") == "child_failed" and result.get("returncode") == -4
-                    and result.get("shared_output_observation", {}).get("available")
-                    and observed == fixture["expected_output"])
+                name = label + '-' + fixture['id']
+                image, build = compile_stage(case_directory, name + '-build', compiler, fixture['source'])
+                result, observed = invoke(case_directory, name, image, fixture.get('input', b''), capacity=8, workspace_size=0, observe_trap_writes=True)
+                good = result.get('status') == 'child_failed' and result.get('returncode') == -4 and result.get('shared_output_observation', {}).get('available') and (observed == fixture['expected_output'])
                 checks[name] = bool(good)
-                report["traps"].append({"compiler": label, "id": fixture["id"], "kind": fixture["kind"],
-                                        "prior_store": fixture.get("prior_store", False),
-                                        "operand_type": fixture["operand_type"],
-                                        "result_type": fixture.get("result_type"),
-                                        "runtime_input_hex": fixture.get("input", b"").hex(),
-                                        "expected_output_hex": fixture["expected_output"].hex(),
-                                        "observed_output_hex": observed.hex(),
-                                        "build": build, "execution": result})
+                report['traps'].append({'compiler': label, 'id': fixture['id'], 'kind': fixture['kind'], 'prior_store': fixture.get('prior_store', False), 'operand_type': fixture['operand_type'], 'result_type': fixture.get('result_type'), 'runtime_input_hex': fixture.get('input', b'').hex(), 'expected_output_hex': fixture['expected_output'].hex(), 'observed_output_hex': observed.hex(), 'build': build, 'execution': result})
+            report.setdefault("fixture_archives", []).append(
+                archive_completed_stage(case_directory, archive_token))
         checks["source_closure_unchanged"] = source_manifest() == before
         report["counts"] = {"scalar_witnesses": len(reference["scalar"]),
             "positive_programs_per_compiler": len(positive),
