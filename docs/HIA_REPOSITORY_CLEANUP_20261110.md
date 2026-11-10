@@ -30,3 +30,13 @@ The live worker still contains the old language; repository cleanup alone does
 not migrate that deployment. Full native Agent persistence, module/build/runtime
 coverage, remote cold-timeout closure and native-only project acceptance remain
 open.
+
+## Fixed-source acceptance
+
+Source `90d8f94515ee9dacf535b26029ce18210df74ed9` passed 137 source controls,
+5,049 cold native checks, 1,242 language checks and 171 related component tests.
+All 38 cold and two language evidence archives were independently replayed.
+Actual wheel installation, isolated hosted entry calls and copied native
+capabilities/verify/compile profiles passed. This does not make the hosted
+Agent or Runtime native-only. The complete retained regression remains pending
+at publication; consult the current scoped review receipt for its actual state.

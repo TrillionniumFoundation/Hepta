@@ -43,3 +43,22 @@ Raw file captures, exact release-manifest identities and the read-only collector
 are retained separately in the task evidence, not packaged as product modules.
 The upstream default branch is not the deployed patched Runtime and was not used
 as a substitute for the deployed HIA contract.
+
+## Original-operation continuity at cutover
+
+`hia_provider` prepares requests from its single current configured worker
+profile; terminal reports must match that exact worker/backend/profile. Its
+existing changed-installation tests keep the same mutation key rather than
+allocating another execution. Merely changing the configured pins does not
+qualify typed observation of original jobs bound to the old installation.
+A migration must account for every original operation, with a validated
+observation/drain or explicit versioned read-only observation support. Never
+solve an identity conflict by inventing new request keys, clearing the durable
+store or accepting an old report under new code identity.
+
+## Separate installed smoke
+
+On the qualified Core-only wheel, an actual fixed-argv v1 discovery request
+completed under freshly computed worker/backend pins. Reusing the live old pins
+returned failure before creating the new private state root. These were local
+isolated observations, not a live Runtime/SSH/MCP migration or old-store replay.
