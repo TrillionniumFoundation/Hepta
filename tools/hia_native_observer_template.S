@@ -43,7 +43,7 @@ reading:
  xor eax, eax
  xor edi, edi
  lea rsi, [r12+rbx]
- mov edx, 5242929
+ mov edx, 5242937
  sub rdx, rbx
  syscall
  cmp rax, -4
@@ -52,13 +52,13 @@ reading:
  js io_error
  je read_done
  add rbx, rax
- cmp rbx, 5242928
+ cmp rbx, 5242936
  ja capacity_error
  jmp reading
 read_done:
- cmp rbx, 48
+ cmp rbx, 56
  jb invalid_frame
- mov rax, 0x313053424f414948
+ mov rax, 0x323053424f414948
  cmp [r12], rax
  jne invalid_frame
  mov rax, [r12+8]
@@ -72,7 +72,7 @@ read_done:
  ja invalid_frame
  mov [rsp+24], rcx
  add rax, rcx
- add rax, 48
+ add rax, 56
  cmp rax, rbx
  jne invalid_frame
  mov rax, [r12+24]
@@ -85,11 +85,19 @@ read_done:
  mov [rsp+40], rax
  cmp qword ptr [r12+40], 255
  ja invalid_frame
+ mov rax, [r12+48]
+ cmp rax, -1
+ je valid_output_fd
+ cmp rax, 3
+ jb invalid_frame
+ cmp rax, 2147483647
+ ja invalid_frame
+valid_output_fd:
  mov rsi, [rsp+16]
  call map_rw
  mov r13, rax
  mov rdi, rax
- lea rsi, [r12+48]
+ lea rsi, [r12+56]
  mov rcx, [rsp+16]
  cld
  rep movsb
@@ -100,14 +108,35 @@ read_done:
  syscall
  test rax, rax
  jne io_error
- mov esi, 2097152
+ mov esi, 1048576
+ call map_rw
+ mov r15, rax
+ mov rsi, [rsp+32]
+ test rsi, rsi
+ jne output_extent
+ inc rsi
+output_extent:
+ mov r8, [r12+48]
+ cmp r8, -1
+ jne output_shared
  call map_rw
  mov r14, rax
- lea r15, [rax+1048576]
  mov rdi, r14
  mov rcx, [rsp+32]
  mov al, 165
  rep stosb
+ jmp output_ready
+output_shared:
+ xor edi, edi
+ mov edx, 3
+ mov r10d, 1
+ xor r9d, r9d
+ mov eax, 9
+ syscall
+ cmp rax, -4095
+ jae io_error
+ mov r14, rax
+output_ready:
  mov rdi, r15
  mov rcx, [rsp+40]
  mov al, [r12+40]
@@ -120,7 +149,7 @@ read_done:
  jne io_error
  # Fresh native image, standard six-argument public byte ABI.
  mov rdi, [rsp+16]
- lea rdi, [r12+rdi+48]
+ lea rdi, [r12+rdi+56]
  mov rsi, [rsp+24]
  mov rdx, r14
  mov rcx, [rsp+32]
@@ -140,13 +169,13 @@ read_done:
  add rax, [rsp+88]
  sub rax, [rsp+72]
  mov [rsp+112], rax
- mov rax, 0x313052424f414948
+ mov rax, 0x323052424f414948
  mov [rsp+96], rax
  lea rsi, [rsp+96]
  mov edx, 24
  call write_all
  mov rsi, [rsp+16]
- lea rsi, [r12+rsi+48]
+ lea rsi, [r12+rsi+56]
  mov rdx, [rsp+24]
  call write_all
  mov rsi, r14
