@@ -1,7 +1,7 @@
-"""Source-bound hosted custody for the three-stage native workspace filter.
+"""Source-bound hosted custody for the four-stage native workspace filter.
 
-This builder does not grant native-only installation or whole Core admission.
-The executable performs mandatory existing bounded native semantic checking.
+This builder does not grant native-only installation or whole Core compilation.
+Full primitive Core admission precedes the existing bounded native compiler.
 """
 import argparse
 import ctypes
@@ -17,8 +17,9 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 
 ROOT=Path(__file__).resolve().parents[1]
-SCHEMA='hepta.hia.core-workspace-pipeline-build.v1'
+SCHEMA='hepta.hia.core-workspace-pipeline-build.v2'
 SOURCES=('examples/hia_bootstrap/core_workspace_json.hiaasm',
+         'examples/hia_bootstrap/core_admission.hiaasm',
          'examples/hia_bootstrap/core_json_frontend.hiaasm',
          'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm',
          'examples/hia_bootstrap/selfhost.hiaasm')
@@ -47,17 +48,17 @@ def build(output,compiler,cold_report):
         raise ValueError('completed matching-source cold qualification required for native workspace pipeline')
     output.mkdir(mode=0o700)
     images={}
-    for name,candidate in [('workspace','core-workspace-json'),('frontend','core-frontend')]:
+    for name,candidate in [('workspace','core-workspace-json'),('admission','core-admission'),('frontend','core-frontend')]:
         manifest=build_candidate(output/name,compiler,cold_report,candidate=candidate)
         metadata=json.loads(manifest.read_bytes());path=manifest.parent/metadata['image_path'];raw=path.read_bytes()
         if sha256(raw).hexdigest()!=metadata['image_sha256']:
             raise ValueError('native workspace pipeline component image changed')
         images[name]=(path,raw)
-    packer,compile_receipt=compile_stage(output,'pipeline-packer',compiler,pins[ROOT/SOURCES[2]])
+    packer,compile_receipt=compile_stage(output,'pipeline-packer',compiler,pins[ROOT/SOURCES[3]])
     images['packer']=(packer,packer.read_bytes());images['compiler']=(compiler,pins[compiler])
-    parts=[images[name][1] for name in ('workspace','frontend','compiler')]
+    parts=[images[name][1] for name in ('workspace','admission','frontend','compiler')]
     if any(not 0<len(raw)<=1<<20 for raw in parts):raise ValueError('component exceeds unchanged 1-MiB image profile')
-    frame=struct.pack('<5Q',MAGIC,*(len(raw) for raw in parts),1)+b''.join(parts)
+    frame=struct.pack('<6Q',MAGIC,*(len(raw) for raw in parts),1)+b''.join(parts)
     if len(frame)>BUNDLE_LIMIT:raise ValueError('native application bundle exceeds explicit packer profile')
     native=NativeHiaJsonImage(images['packer'][1],sha256(images['packer'][1]).hexdigest())
     source=ctypes.create_string_buffer(frame,len(frame));arena=ctypes.create_string_buffer(BUNDLE_LIMIT)
@@ -80,6 +81,7 @@ def build(output,compiler,cold_report):
         'runtime_host_payload_decoder_materializer_renderer_or_semantic_checker_required':False,
         'host_authoring_build_filesystem_custody_and_installation':True,
         'Core_profile':'primitive v8; existing native compiler limits; ELF object only',
+        'mandatory_complete_primitive_Core_admission':True,
         'whole_native_delivery_qualified':False,'production_activated':False}
     with (output/'build.json').open('x') as stream:json.dump(record,stream,indent=2,sort_keys=True);stream.write('\n')
     return executable

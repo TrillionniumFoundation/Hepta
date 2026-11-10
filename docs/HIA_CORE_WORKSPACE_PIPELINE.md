@@ -1,8 +1,11 @@
 # Native workspace compilation pipeline
 
 The explicit `hia-workspace-compile` filter composes the **current** HIA workspace
-JSON materializer, HIA primitive Core JSON frontend and mandatory native HIA
-semantic compiler inside one copied Linux x86-64 executable. It does not carry a
+JSON materializer, complete primitive Core admission, HIA Core JSON frontend and
+mandatory native HIA semantic compiler inside one copied Linux x86-64 executable.
+The full Core type/call/resource/loan/CFG check is mandatory before representation
+or compilation; selecting this path never substitutes the old host checker.
+It does not carry a
 second, older fact-encoder/materializer implementation. It preserves the current
 workspace JSON path and its original public names, privacy, cycle and capture
 avoidance policy. Default selections remain unchanged; there is no host fallback.
@@ -13,7 +16,7 @@ existing frontend/compiler. Older versions and nominal types are refused, never
 silently upgraded or erased. Unsupported Core programs remain unsupported.
 Representation is not semantic admission: all private functions are checked,
 including unused ones. Invalid SSA and owner drop under a live loan are refused
-by the native compiler before stdout. Only ELF relocatable objects are returned;
+by full native Core admission before the compiler or stdout. Only ELF relocatable objects are returned;
 an executable project still requires linking.
 
 ## Build and use
@@ -51,14 +54,18 @@ unchanged. Input is at most 8 MiB; the linked JSON view is at most 8 MiB, render
 assembly and ELF output at most 1 MiB. Decoder key scratch uses separate 16-MiB
 output views. The shared private arena is at least the current workspace arena
 and private graph tables, and is explicitly cleared to the next image's fresh
-initialization ABI before reuse. No scratch aliases cross image calls.
+initialization ABI before reuse. Full Core admission uses disjoint 64-MiB state
+and 32-MiB JSON arena regions; these regions are reused only after it returns.
+No scratch aliases cross image calls. The unchanged 256-MiB child address limit
+still bounds the complete copied filter.
 
 The existing compiler's 128-function, 256-block-per-function and 1,536-total-block
 limits still apply even when workspace representation succeeds. The trusted HIA
-application packer has an explicitly separate `3 * 1 MiB + 4096` byte bundle
-profile for three <=1-MiB images plus their syscall ELF envelope. This does not
+application packer has an explicitly separate `4 * 1 MiB + 4096` byte bundle
+profile for four <=1-MiB images plus their syscall ELF envelope. This does not
 expand a compiler source/output/scratch buffer or an existing qualification-child
-profile. The old application generators and generated images are unchanged.
+profile. The v2 bundle magic and build schema reject older three-image bundles;
+there is no old-bundle fallback. Other application generators/images are unchanged.
 
 Standalone statuses: 0 success, 2 policy/representation/semantic refusal, 3 byte
 or arena capacity, 4 I/O failure, 64 unexpected arguments. Read/write EINTR is
@@ -70,11 +77,13 @@ creating its new output directory; existing output paths are not overwritten.
 ## Required evidence and remaining closure
 
 Independent VM bytes and refusal canaries precede a fresh native seed. Native
-controls cover full three-image packer boundaries, original/modified actual
+controls cover full four-image packer boundaries, original/modified actual
 projects with independent Core VM oracles, public/private symbol policy, native
 SSA/loan/invalid-unused-function refusals, copied empty PATH/one exec/no opens or
 children, real EINTR/descriptor/memory failures, and 128/129-function partial-write
-boundaries. Source/contract CI, fresh exact-source cold, real source-bound builder
+boundaries. A refusing Core image demonstrably stops a workspace that the actual
+compiler would otherwise accept, proving that this additional gate is mandatory.
+Source/contract CI, fresh exact-source cold, real source-bound builder
 and public-route acceptance, installation/lifecycles and complete current-source
 regression are separate gates. No development control substitutes for those gates.
 

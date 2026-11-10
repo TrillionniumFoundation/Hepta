@@ -1,4 +1,4 @@
-"""Author a HIA packer composing the current three native workspace stages.
+"""Author a HIA packer composing four mandatory native workspace stages.
 
 This is a hosted authoring aid. Runtime JSON policy/materialization, Core
 representation and mandatory semantic compilation run in separate HIA images
@@ -12,15 +12,17 @@ from tools.generate_hia_selfhost import Builder,compact_authoring_cfg,total_scal
 from tools.generate_hia_core_workspace_json_cli import WORKSPACE_BYTES
 from tools.generate_hia_core_json_cli import source_program as json_packer_source
 
-MAGIC=int.from_bytes(b'HIAWCP01','little')
+MAGIC=int.from_bytes(b'HIAWCP02','little')
 IMAGE_LIMIT=1<<20
-BUNDLE_LIMIT=3*IMAGE_LIMIT+4096
+BUNDLE_LIMIT=4*IMAGE_LIMIT+4096
 WIRE_LIMIT=8<<20
 JSON_OFFSET=WIRE_LIMIT+4096
 FRONTEND_OFFSET=JSON_OFFSET+(16<<20)
 ARENA_OFFSET=FRONTEND_OFFSET+(16<<20)
 FRONTEND_ARENA=(64<<20)+4096
-MAPPING_BYTES=ARENA_OFFSET+max(WORKSPACE_BYTES,FRONTEND_ARENA)
+CORE_STATE=64<<20
+CORE_ARENA=32<<20
+MAPPING_BYTES=ARENA_OFFSET+max(WORKSPACE_BYTES,FRONTEND_ARENA,CORE_STATE+CORE_ARENA)
 
 
 def template():
@@ -57,6 +59,15 @@ def template():
     # Workspace duplicate-module (-3) and other policy errors are INVALID,
     # never IO failures. Its linked-JSON overflow has a separate -18 code.
     refuse(0xfffffffe,'space');refuse(0xffffffee,'space');length_check(WIRE_LIMIT)
+    # The complete Core policy is mandatory before representation/compilation.
+    # State and decoded JSON have disjoint full-profile regions. Reuse only
+    # after the previous workspace image has finished, with fresh zero state.
+    clear(CORE_STATE+CORE_ARENA)
+    pointer('49 8d bc 24',JSON_OFFSET);emit('4c 89 ee')
+    pointer('49 8d 94 24',ARENA_OFFSET);emit('b9');word(CORE_STATE)
+    pointer('4d 8d 84 24',ARENA_OFFSET+CORE_STATE);emit('41 b9');word(CORE_ARENA)
+    call('admission')
+    refuse(0xfffffffe,'space');emit('85 c0');branch('0f 85','invalid')
     # Start the next image with exactly its fresh-arena initialization ABI.
     clear(FRONTEND_ARENA)
     pointer('49 8d bc 24',JSON_OFFSET);emit('4c 89 ee')
@@ -96,17 +107,18 @@ def template():
 def source_program():
     prefix,holes=template()
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 40 or length(s) > {BUNDLE_LIMIT} or read_word(s, 0) != {MAGIC}:
+    if length(s) < 48 or length(s) > {BUNDLE_LIMIT} or read_word(s, 0) != {MAGIC}:
         return 4294967295
     workspace = read_word(s, 8)
-    frontend = read_word(s, 16)
-    compiler = read_word(s, 24)
-    profile = read_word(s, 32)
-    if workspace == 0 or workspace > 1048576 or frontend == 0 or frontend > 1048576 or compiler == 0 or compiler > 1048576 or profile != 1:
+    admission = read_word(s, 16)
+    frontend = read_word(s, 24)
+    compiler = read_word(s, 32)
+    profile = read_word(s, 40)
+    if workspace == 0 or workspace > 1048576 or admission == 0 or admission > 1048576 or frontend == 0 or frontend > 1048576 or compiler == 0 or compiler > 1048576 or profile != 1:
         return 4294967295
-    if length(s) != 40 + workspace + frontend + compiler:
+    if length(s) != 48 + workspace + admission + frontend + compiler:
         return 4294967295
-    size = {len(prefix)} + workspace + frontend + compiler
+    size = {len(prefix)} + workspace + admission + frontend + compiler
     if size > {BUNDLE_LIMIT} or length(o) < size:
         return 4294967294
 '''
@@ -118,11 +130,12 @@ def source_program():
     text+=f'''    put_word(o, 96, size)
     put_word(o, 104, size)
     put_four(o, {holes['workspace']}, {len(prefix)-holes['workspace']-4})
-    put_four(o, {holes['frontend']}, {len(prefix)-holes['frontend']-4} + workspace)
-    put_four(o, {holes['compiler']}, {len(prefix)-holes['compiler']-4} + workspace + frontend)
-    i = 40
+    put_four(o, {holes['admission']}, {len(prefix)-holes['admission']-4} + workspace)
+    put_four(o, {holes['frontend']}, {len(prefix)-holes['frontend']-4} + workspace + admission)
+    put_four(o, {holes['compiler']}, {len(prefix)-holes['compiler']-4} + workspace + admission + frontend)
+    i = 48
     while i < length(s):
-        store(o, {len(prefix)} + i - 40, byte(s, i))
+        store(o, {len(prefix)} + i - 48, byte(s, i))
         i = i + 1
     return size
 '''

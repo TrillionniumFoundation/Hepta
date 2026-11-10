@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import resource
 import shutil
 import struct
 import subprocess
@@ -20,15 +21,16 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm'
 
 
-def frame(workspace,frontend,compiler,profile=1):
-    return struct.pack('<5Q',MAGIC,len(workspace),len(frontend),len(compiler),profile)+workspace+frontend+compiler
+def frame(workspace,admission,frontend,compiler,profile=1):
+    return struct.pack('<6Q',MAGIC,len(workspace),len(admission),len(frontend),len(compiler),profile)+workspace+admission+frontend+compiler
 
 
-def expected_image(workspace,frontend,compiler):
-    prefix,holes=template();data=bytearray(prefix+workspace+frontend+compiler)
+def expected_image(workspace,admission,frontend,compiler):
+    prefix,holes=template();data=bytearray(prefix+workspace+admission+frontend+compiler)
     struct.pack_into('<QQ',data,96,len(data),len(data))
-    for name,start in [('workspace',len(prefix)),('frontend',len(prefix)+len(workspace)),
-                       ('compiler',len(prefix)+len(workspace)+len(frontend))]:
+    for name,start in [('workspace',len(prefix)),('admission',len(prefix)+len(workspace)),
+                       ('frontend',len(prefix)+len(workspace)+len(admission)),
+                       ('compiler',len(prefix)+len(workspace)+len(admission)+len(frontend))]:
         struct.pack_into('<i',data,holes[name],start-holes[name]-4)
     return bytes(data)
 
@@ -59,12 +61,14 @@ class CoreWorkspacePipelineSourceTests(unittest.TestCase):
     def test_independent_VM_complete_packer_bytes_before_new_native_seed(self):
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
         from tools.qualify_hia_selfhost_cli import inspect_executable
-        parts=(b'\xc3',b'\x31\xc0\xc3',b'\x90\x90\x31\xc0\xc3')
+        parts=(b'\xc3',b'\x31\xc0\xc3',b'\x90\xc3',b'\x90\x90\x31\xc0\xc3')
         wire=frame(*parts);wanted=expected_image(*parts)
         self.assertEqual(vm_pack(wire,len(wanted)+8),(len(wanted),wanted));inspect_executable(wanted)
         for bad,capacity,status in [(wire,len(wanted)-1,0xfffffffe),(wire+b'x',4096,0xffffffff),
             (frame(*parts,profile=0),4096,0xffffffff),(frame(*parts,profile=2),4096,0xffffffff),
-            (frame(b'',parts[1],parts[2]),4096,0xffffffff),(b'',4096,0xffffffff)]:
+            (frame(b'',*parts[1:]),4096,0xffffffff),(frame(parts[0],b'',*parts[2:]),4096,0xffffffff),
+            (struct.pack('<Q',int.from_bytes(b'HIAWCP01','little'))+wire[8:],4096,0xffffffff),
+            (b'',4096,0xffffffff)]:
             self.assertEqual(vm_pack(bad,capacity),(status,b'\xa5'*capacity))
 
 
@@ -74,6 +78,8 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         CoreWorkspacePipelineSourceTests().test_independent_VM_complete_packer_bytes_before_new_native_seed()
         from tests.test_hia_core_workspace_json_native import CoreWorkspaceJsonSourceTests
         CoreWorkspaceJsonSourceTests().test_complete_independent_vm_before_any_native_image()
+        from tests.test_hia_core_admission_native import VALID,borrowed_owner,interpreted,wire
+        assert interpreted(wire(VALID))==0 and interpreted(wire(borrowed_owner()))==0xfffffff8
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
         root=os.environ.get('HEPTA_HIA_WORKSPACE_PIPELINE_EVIDENCE')
@@ -86,7 +92,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         def load(path):
             raw=path.read_bytes();return NativeHiaJsonImage(raw,sha256(raw).hexdigest())
         cls.compiler=load(compiler);images={}
-        for name,path in [('workspace','core_workspace_json'),('frontend','core_json_frontend'),
+        for name,path in [('workspace','core_workspace_json'),('admission','core_admission'),('frontend','core_json_frontend'),
                           ('packer','core_workspace_pipeline_packer'),('linker','elf_static_linker')]:
             image,_=compile_stage(cls.folder,name,compiler,(ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes())
             images[name]=image.read_bytes()
@@ -94,12 +100,13 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         cls.linker=NativeHiaJsonImage(images['linker'],sha256(images['linker']).hexdigest())
         from hepta.hia_core_workspace_json_native import NativeCoreWorkspaceJson
         cls.workspace=NativeCoreWorkspaceJson(images['workspace'],sha256(images['workspace']).hexdigest())
-        parts=(images['workspace'],images['frontend'],compiler.read_bytes());wanted=expected_image(*parts)
+        parts=(images['workspace'],images['admission'],images['frontend'],compiler.read_bytes());wanted=expected_image(*parts)
+        cls.parts=parts
         size,packed=cls.call(cls.packer,frame(*parts),BUNDLE_LIMIT,0)
         assert size==len(wanted) and packed==wanted
         cls.executable=cls.folder/'hia-workspace-compile';cls.executable.write_bytes(packed);cls.executable.chmod(0o700)
         cls.source_pins={name:sha256((ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes()).hexdigest()
-            for name,path in [('workspace','core_workspace_json'),('frontend','core_json_frontend'),
+            for name,path in [('workspace','core_workspace_json'),('admission','core_admission'),('frontend','core_json_frontend'),
                               ('packer','core_workspace_pipeline_packer'),('compiler','selfhost')]}
         (cls.folder/'development-build.json').write_text(json.dumps({'status':'DEVELOPMENT_NOT_COLD_QUALIFICATION',
             'source_sha256':cls.source_pins,'image_sha256':{n:sha256(v).hexdigest() for n,v in images.items()},
@@ -119,8 +126,30 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         assert output.raw[capacity:]==b'\xa5'*64 and state.raw[scratch:]==b'\x5a'*64
         return status,ctypes.string_at(output,status) if status<=capacity else output.raw[:capacity]
 
+    @staticmethod
+    def native_limits():
+        resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+        resource.setrlimit(resource.RLIMIT_CPU,(10,10))
+        resource.setrlimit(resource.RLIMIT_AS,(256<<20,256<<20))
+
     def run_cli(self,wire,*args,**kwargs):
+        kwargs.setdefault('preexec_fn',self.native_limits)
         return subprocess.run([str(self.executable),*args],input=wire,capture_output=True,env={'PATH':''},timeout=20,**kwargs)
+
+    def test_complete_Core_gate_is_mandatory_before_frontend_compiler_and_has_no_fallback(self):
+        # The real four-image pipeline accepts this workspace. A selected Core
+        # image refusal must stop it, even though the unchanged compiler would
+        # admit it. This observes the actual native call, not manifest prose.
+        wire=json.dumps(project()).encode()
+        self.assertEqual(self.run_cli(wire).returncode,0)
+        for status,expected in ((0xfffffff8,2),(0xfffffffe,3),(0xfffffffd,2)):
+            admission=b'\xb8'+struct.pack('<I',status)+b'\xc3'
+            parts=(self.parts[0],admission,*self.parts[2:])
+            size,raw=self.call(self.packer,frame(*parts),BUNDLE_LIMIT,0)
+            self.assertEqual((size,raw),(len(expected_image(*parts)),expected_image(*parts)))
+            target=self.folder/('mandatory-core-gate-'+str(status));target.write_bytes(raw);target.chmod(0o700)
+            result=subprocess.run([str(target)],input=wire,capture_output=True,env={'PATH':''},timeout=20,preexec_fn=self.native_limits)
+            self.assertEqual((result.returncode,result.stdout,result.stderr),(expected,b'',b''))
 
     def test_copied_native_pipeline_and_actual_original_modified_projects(self):
         from hepta.hia_core_workspace_json_native import link_workspace
@@ -145,7 +174,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
             for inc,wire,wanted,oracle in cases:
                 trace=copied/('project-'+str(inc)+'.trace')
                 result=subprocess.run([tracer,'-f','-e','trace=execve,openat,clone,fork,vfork','-o',str(trace),str(target)],
-                    input=wire,capture_output=True,env={'PATH':''},cwd=copied,timeout=20)
+                    input=wire,capture_output=True,env={'PATH':''},cwd=copied,timeout=20,preexec_fn=self.native_limits)
                 self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted,b''))
                 text=trace.read_text();self.assertEqual(text.count('execve('),1)
                 for forbidden in ('openat(','clone(','fork(','vfork('):self.assertNotIn(forbidden,text)
@@ -217,12 +246,13 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
             os.close(read_fd)
             if write_fd!=-1:os.close(write_fd)
 
-    def test_native_packer_full_three_image_capacity_and_transactional_refusal(self):
-        parts=(b'\x01'*(1<<20),b'\x02'*(1<<20),b'\x03'*(1<<20));wanted=expected_image(*parts);wire=frame(*parts)
+    def test_native_packer_full_four_image_capacity_and_transactional_refusal(self):
+        parts=(b'\x01'*(1<<20),b'\x02'*(1<<20),b'\x03'*(1<<20),b'\x04'*(1<<20));wanted=expected_image(*parts);wire=frame(*parts)
         self.assertEqual(self.call(self.packer,wire,BUNDLE_LIMIT,0),(len(wanted),wanted))
         for bad,capacity,status in [(wire,len(wanted)-1,0xfffffffe),(wire+b'x',BUNDLE_LIMIT,0xffffffff),
             (frame(*parts,profile=0),BUNDLE_LIMIT,0xffffffff),
-            (frame(parts[0]+b'x',parts[1],parts[2]),BUNDLE_LIMIT,0xffffffff)]:
+            (frame(parts[0]+b'x',*parts[1:]),BUNDLE_LIMIT,0xffffffff),
+            (frame(parts[0],parts[1]+b'x',*parts[2:]),BUNDLE_LIMIT,0xffffffff)]:
             self.assertEqual(self.call(self.packer,bad,capacity,0),(status,b'\xa5'*capacity))
 
 

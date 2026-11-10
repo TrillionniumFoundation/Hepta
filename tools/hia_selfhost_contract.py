@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v54-native-Core-admission-cli"
+PROFILE = "selfhost-core-linux-x86_64-v55-native-Core-workspace-admission-pipeline"
 SOURCE_FILES = (
     'tools/generate_hia_core_admission_cli.py',
     'examples/hia_bootstrap/core_admission_cli_packer.hiaasm',
@@ -438,11 +438,12 @@ def support_contract(root=ROOT):
         "core_workspace_pipeline_application": {
             "source": "examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm",
             "selection": "explicit standalone hia-workspace-compile or pipeline-manifest; defaults unchanged; no fallback",
-            "stages": ["current native workspace JSON policy/materialization", "native Core frontend", "mandatory native semantic compiler"],
+            "stages": ["current native workspace JSON policy/materialization", "mandatory full primitive native Core admission", "native Core frontend", "mandatory native semantic compiler"],
             "Core_profile": "primitive v8; older feature versions and nominal types refused, not erased/upgraded",
             "wire_and_linked_JSON_bytes": 8388608,
             "assembly_and_object_bytes": 1048576,
-            "trusted_application_bundle_bytes": 3149824,
+            "trusted_application_bundle_bytes": 4198400,
+            "mandatory_complete_primitive_Core_admission": True,
             "maximum_each_embedded_image_bytes": 1048576,
             "existing_compiler_and_qualification_child_caps_changed": False,
             "output": "ELF64 x86-64 relocatable only; linking remains a separate mandatory step",

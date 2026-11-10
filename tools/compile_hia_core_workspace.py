@@ -3,8 +3,8 @@
 The workspace is inline and closed: no filesystem import discovery or package
 manager, no high-level resolver, no reference-policy fallback. Selecting the
 workspace JSON image also replaces host framing, fact encoding and Core JSON
-materialization. The explicit complete pipeline also replaces host semantic
-checking with the existing mandatory bounded native compiler. General Core
+materialization. The explicit complete pipeline runs full primitive Core
+admission before the existing mandatory bounded native compiler. General Core
 support and filesystem/build/install custody remain OPEN; no path silently
 falls back or changes the default selection.
 """
@@ -60,6 +60,7 @@ def compile_pipeline(wire,manifest_path,output):
     metadata=json.loads(manifest_raw,object_pairs_hook=_unique_manifest_pairs);sources=current_sources()
     if (type(metadata) is not dict or metadata.get('schema')!=SCHEMA
             or metadata.get('status')!='NATIVE_WORKSPACE_PIPELINE_BUILT' or metadata.get('profile')!=PROFILE
+            or metadata.get('mandatory_complete_primitive_Core_admission') is not True
             or metadata.get('source_manifest')!=sources
             or metadata.get('source_sha256')!={name:sources.get(name) for name in SOURCES}
             or metadata.get('executable_path')!='hia-workspace-compile'):
@@ -95,6 +96,7 @@ def compile_pipeline(wire,manifest_path,output):
         'manifest_sha256':sha256(manifest_raw).hexdigest(),'executable_sha256':sha256(code).hexdigest(),
         'host_payload_decoder_materializer_renderer_and_semantic_checker':False,
         'mandatory_native_semantic_compiler':True,'sealed_code_descriptor':True,
+        'mandatory_complete_primitive_Core_admission':True,
         'host_filesystem_build_install_custody':True,'whole_native_delivery_qualified':False,'production_activated':False}
     with (output/'workspace.receipt.json').open('x') as stream:json.dump(receipt,stream,indent=2,sort_keys=True);stream.write('\n')
     return image
