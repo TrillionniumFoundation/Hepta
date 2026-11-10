@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in agent_binary64_format agent_binary64 agent_data_json core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -35,6 +35,9 @@ jobs:
               "tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests",
               "tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests",
               "tests.test_hia_agent_identity_native.AgentIdentitySourceTests",
+              "tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests",
+              "tests.test_hia_agent_binary64_native.AgentBinary64SourceTests",
+              "tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests",
               "tests.test_hia_agent_slice_native.AgentSliceSourceTests",
               "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
               "tests.test_hia_agent_stdio.AgentStdioSourceTests",
@@ -98,6 +101,9 @@ jobs:
               'tests.test_hia_core_json_cli',
               'tests.test_hia_elf_linker',
               'tests.test_hia_agent_identity_native',
+              'tests.test_hia_agent_data_json_native',
+              'tests.test_hia_agent_binary64_native',
+              'tests.test_hia_agent_binary64_format_native',
               'tests.test_hia_agent_slice_native',
               'tests.test_hia_agent_installed_resources',
               'tests.test_hia_native_child_limits',

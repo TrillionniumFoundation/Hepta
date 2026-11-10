@@ -29,6 +29,9 @@ DISCOVERY_FILES = (
 NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/agent_identity.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
+    'examples/hia_bootstrap/agent_data_json.hiaasm',
+    'examples/hia_bootstrap/agent_binary64.hiaasm',
+    'examples/hia_bootstrap/agent_binary64_format.hiaasm',
 )
 
 
@@ -49,8 +52,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in ("examples/hia_bootstrap/agent_identity.hiaasm",
-                          "examples/hia_bootstrap/agent_slice.hiaasm"):
+    for native_source in NATIVE_SOURCE_FILES:
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),

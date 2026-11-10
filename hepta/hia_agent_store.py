@@ -33,7 +33,14 @@ class AgentRejected(ValueError):
 
 
 def wire(value):
-    return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False, sort_keys=True)
+    selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
+    renderer = None
+    if selected:
+        from .hia_agent_binary64_format_native import installed_agent_binary64_format
+        image = installed_agent_binary64_format(selected)
+        renderer = lambda number: image.render(number).decode('ascii')
+    return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
+                             sort_keys=True, float_renderer=renderer)
 
 
 def digest(value):
@@ -45,11 +52,39 @@ def decode_data(payload):
 
     Reuse Core's duplicate-key/depth/node/string preflight after replacing only
     outside-string fractional/exponent number tokens with an integer token.
-    The original stdlib JSON decoder remains the sole value producer. Core
-    programs still use their existing stricter integer-only decoder.
+    By default the stdlib JSON decoder remains the value producer. An explicit
+    installed Agent-data image replaces syntax/tree decoding, not the hosted
+    object bridge. A separate explicit binary64 image can also replace decimal
+    conversion; without it that operation remains hosted. Core programs retain their
+    stricter, separate integer-only decoder. A selected image never falls back.
     """
     if type(payload) not in (bytes, str):
         reject("E_HIA_JSON", "JSON data must be UTF-8 bytes or text")
+    selected_binary64 = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
+    binary64 = None
+    def floating(text):
+        nonlocal binary64
+        if selected_binary64:
+            from .hia_agent_binary64_native import installed_agent_binary64
+            try:
+                if binary64 is None:
+                    binary64 = installed_agent_binary64(selected_binary64)
+                return binary64.convert(text)
+            except ValueError as exc:
+                reject("E_HIA_JSON", str(exc))
+        value = float(text)
+        if not math.isfinite(value):
+            reject("E_HIA_JSON", "nonfinite JSON number")
+        return value
+
+    selected = os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST')
+    if selected:
+        raw = payload if type(payload) is bytes else payload.encode('utf-8')
+        if len(raw) > MAX_INPUT_BYTES:
+            reject("E_HIA_JSON", "JSON data exceeds 8 MiB")
+        from .hia_agent_data_json_native import installed_agent_data_json
+        return installed_agent_data_json(selected).decode(raw,
+            max_nodes=262144, max_depth=128, parse_float=floating)
     source = payload.decode("utf-8") if type(payload) is bytes else payload
     if len(source.encode("utf-8")) > MAX_INPUT_BYTES:
         reject("E_HIA_JSON", "JSON data exceeds 8 MiB")
@@ -80,12 +115,6 @@ def decode_data(payload):
             index += 1
     checked_source = source if not tokens else "".join([*tokens, source[previous:]])
     preflight_hia_json(checked_source, max_nodes=262144, max_depth=128)
-
-    def floating(text):
-        value = float(text)
-        if not math.isfinite(value):
-            reject("E_HIA_JSON", "nonfinite JSON number")
-        return value
 
     return json.loads(source, parse_float=floating,
         parse_constant=lambda _value: reject("E_HIA_JSON", "nonfinite JSON literal"))
