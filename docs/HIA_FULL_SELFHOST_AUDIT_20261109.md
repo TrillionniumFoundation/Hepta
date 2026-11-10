@@ -9,6 +9,15 @@ files, 76,126 lines and 4,125,579 bytes. These are source inventory figures, not
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
+The audit also inventories **406 Python files /130549lines** under `tools/`,
+separately from the production package. These include host authoring, build,
+qualification and delivery authorities: they have not been rewritten merely
+because a generated compiler reproduces itself. Package plus tool roots total
+618Python files. Tests, historical evidence, experiments, examples, benchmarks
+and formal-support scripts are explicitly outside those two AST-inventory roots;
+no claim that those excluded roots are HIA replacements is made. Current file
+hashes/imports and these scope exclusions are in `implementation-boundary-v27.json`.
+
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
 compiler source. The selected public v9 source lock is `2598f430`; the separately
@@ -511,3 +520,22 @@ or process-state cause remains OPEN. `v26-full-hia-test-run-summary.json` retain
 the failed result. Neither isolated capture nor the separate current compiler
 checks relabel that full run successful. The older41a317a all-repository run
 continues separately and does not contain later fixes.
+
+The complete workflow source steps on clean`aaaed68` then found **1failure in
+78tests**: the keyword fixture had not applied the new authoring compaction and
+thus no longer equaled the live compiler body. The exact-equality assertion is
+unchanged; the fixture now applies the same verified transformation. All four
+keyword source/reference tests pass. Fresh final cold replay after this repair
+passes11/11 and4257/4257 in**161.414seconds**, with identical compiler machine
+bytes to the earlier pass; the new source manifest and language1196/1196 plus
+10assertions are retained separately. A fresh clean-source78test replay is still
+required before claiming that workflow step passes.
+
+The41a317a all-repository run has now completed **7654tests/731modules,1failure,
+1error,0skips**, complete inventory and unchanged source. Its two diagnostics
+are exactly the earlier HSIR-depth and masked-CPU IR-PGO defects, already repaired
+in later source, but the failed run is not relabeled. See
+`full-repository-second-run-summary.json`. The exact9663be1 isolated replay of
+both STB modules passes17tests in63.304seconds, including their real native setup;
+that also does not replace the failed HIA/shared-Core inventory or establish its
+process-order cause. Latest-source full inventories remain required.

@@ -43,20 +43,26 @@ COMPONENTS = (
 def audit(root=ROOT):
     root = Path(root)
     contract = validate_contract(root)
-    records = []
-    for path in sorted((root / "hepta").rglob("*.py")):
-        data = path.read_bytes()
-        tree = ast.parse(data, filename=str(path))
-        imports = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                imports.update(n.name for n in node.names)
-            elif isinstance(node, ast.ImportFrom):
-                imports.add("." * node.level + (node.module or ""))
-        records.append({"path": path.relative_to(root).as_posix(), "implementation_language": "Python",
-            "bytes": len(data), "lines": len(data.splitlines()), "sha256": sha256(data).hexdigest(),
-            "functions": sum(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) for n in ast.walk(tree)),
-            "imports": sorted(imports)})
+    def python_inventory(directory):
+        records = []
+        for path in sorted((root / directory).rglob("*.py")):
+            data = path.read_bytes()
+            tree = ast.parse(data, filename=str(path))
+            imports = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    imports.update(n.name for n in node.names)
+                elif isinstance(node, ast.ImportFrom):
+                    imports.add("." * node.level + (node.module or ""))
+            records.append({"path": path.relative_to(root).as_posix(), "implementation_language": "Python",
+                "bytes": len(data), "lines": len(data.splitlines()), "sha256": sha256(data).hexdigest(),
+                "functions": sum(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) for n in ast.walk(tree)),
+                "imports": sorted(imports)})
+        return records
+    records = python_inventory("hepta")
+    # Host-side authoring/build/qualification tools are not HIA replacements.
+    # Keep them distinct from the production package, not absent from the audit.
+    tools = python_inventory("tools")
     paths = {row["path"] for row in records}
     components = []
     for name, authority, status, boundary in COMPONENTS:
@@ -69,8 +75,17 @@ def audit(root=ROOT):
     source = (root / "examples/hia_bootstrap/selfhost.hiaasm").read_bytes()
     return {"schema": "hepta.hia.whole-selfhost-static-audit.v1",
         "profile": contract["profile"], "live_python_package": records,
+        "live_python_tools": tools,
+        "inventory_scope": {"ast_and_hash_roots": ["hepta/", "tools/"],
+            "tools_are_not_all_production_runtime": True,
+            "unlisted_roots_qualified": False,
+            "excluded_roles": ["tests", "historical artifacts/evidence/reports",
+                               "experiments", "examples", "benchmarks", "formal-support scripts"]},
         "totals": {"python_files": len(records), "python_lines": sum(r["lines"] for r in records),
                    "python_bytes": sum(r["bytes"] for r in records),
+                   "python_tool_files": len(tools), "python_tool_lines": sum(r["lines"] for r in tools),
+                   "python_tool_bytes": sum(r["bytes"] for r in tools),
+                   "package_and_tool_python_files": len(records) + len(tools),
                    "component_statuses": dict(Counter(r["status"] for r in components))},
         "compiler_source": {"path": "examples/hia_bootstrap/selfhost.hiaasm", "sha256": sha256(source).hexdigest(),
                             "bytes": len(source), "functions": sum(line.startswith(b"fn ") for line in source.splitlines())},

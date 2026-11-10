@@ -25,13 +25,18 @@ def keyword_source(words):
 def keyword_function():
     """Lower exactly the current keyword body, not all unrelated functions."""
     import ast
-    from tools.generate_hia_selfhost import Builder, source_program
+    from tools.generate_hia_selfhost import Builder, source_program, compact_authoring_cfg
     node = next(n for n in ast.parse(source_program()).body if n.name == "keyword")
     builder = Builder(node, {"keyword": "f1"}, {})
     builder.statements(node.body)
-    return {"name": "f1", "params": [builder.param(p) for p in builder.params],
+    function = {"name": "f1", "params": [builder.param(p) for p in builder.params],
             "returns": ["u64"], "effects": ["read", "write", "trap"],
             "entry": "b0", "blocks": builder.blocks}
+    # Apply the same authoring-only CFG transformation as the live compiler;
+    # the existing exact-function equality test must keep comparing like bytes.
+    document = {"schema": "hepta.hia.program.v8", "module": "keyword_fixture",
+                "functions": [function]}
+    return compact_authoring_cfg(document)["functions"][0]
 
 
 def lookup_program(offset=0):
