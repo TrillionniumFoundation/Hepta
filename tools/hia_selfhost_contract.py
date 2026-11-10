@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v43-core-cold-failure-reports"
+PROFILE = "selfhost-core-linux-x86_64-v44-core-native-witness-replay"
 SOURCE_FILES = (
     'tools/qualify_hia_composite_bulk.py',
     'tests/test_hia_composite_bulk_native.py',

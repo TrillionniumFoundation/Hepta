@@ -887,7 +887,25 @@ class SelfhostNativeTests(unittest.TestCase):
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         row = next(row for row in self.report["elf_object_observations"]
                    if row["case"] == "original-elf-bytesum")
-        data = Path(row["compilation"]["produced_image"]).read_bytes()
+        # The completed native phase has already losslessly archived its raw
+        # paths. Inspect the exact original bytes, never rebuild the witness or
+        # silently skip the negative controls because the raw file was retired.
+        import zipfile
+        from hashlib import sha256
+        from tools.hia_evidence_archive import verify_archive
+        phase = next(p for p in self.report["qualification_scheduling"]["phases"]
+                     if (p["family"], p["compiler_label"]) == ("elf", "original"))
+        receipt = phase["raw_artifacts"]
+        archive = Path(receipt["archive"])
+        self.assertEqual(sha256(archive.read_bytes()).hexdigest(), receipt["archive_sha256"])
+        manifest = verify_archive(archive)
+        original = Path(row["compilation"]["produced_image"])
+        self.assertEqual(original.parent, Path(manifest["source_directory"]))
+        with zipfile.ZipFile(archive) as packed:
+            data = packed.read(original.name)
+        self.assertEqual(len(data), row["compilation"]["produced_bytes"])
+        self.assertEqual(sha256(data).hexdigest(), row["compilation"]["produced_sha256"])
+        inspect_selfhost_object(data)
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),
