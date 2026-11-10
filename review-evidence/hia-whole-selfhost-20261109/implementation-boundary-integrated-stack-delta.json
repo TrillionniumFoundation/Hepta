@@ -1,0 +1,3246 @@
+{
+  "base_path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v28.json",
+  "base_sha256": "c21a4c3f5cd4ea97d3cadbde4910e7f110a46e78dda650efa2d23429302b63ea",
+  "lossless_reconstruction_checked": true,
+  "metadata": {
+    "authorities_in_live_package": [
+      "hepta/__main__.py",
+      "hepta/cli.py",
+      "hepta/hia_agent_assembly.py",
+      "hepta/hia_agent_service.py",
+      "hepta/hia_agent_store.py",
+      "hepta/hia_agent_worker.py",
+      "hepta/hia_capability_flow.py",
+      "hepta/hia_core_json_frontend_native.py",
+      "hepta/hia_json_canonical_native.py",
+      "hepta/hia_json_decode.py",
+      "hepta/hia_json_decode_native.py",
+      "hepta/hia_json_preflight.py",
+      "hepta/hia_json_preflight_native.py",
+      "hepta/hia_ndu_optimizer.py",
+      "hepta/hia_program.py",
+      "hepta/hia_program_aarch64.py",
+      "hepta/hia_program_composite.py",
+      "hepta/hia_program_llvm.py",
+      "hepta/hia_program_native.py",
+      "hepta/hia_program_runtime.py",
+      "hepta/hia_scalar_proof_contract.py",
+      "hepta/hia_sha256_native.py",
+      "hepta/hia_sha256_stream_native.py",
+      "hepta/hia_source_lexer_native.py",
+      "hepta/hia_translation_validation.py",
+      "hepta/lexer.py",
+      "hepta/modules.py",
+      "hepta/packages.py",
+      "hepta/pipeline.py",
+      "hepta/runtime_io.py",
+      "hepta/runtime_task_tree.py"
+    ],
+    "closure_gates": [
+      "full language/Core conformance with independent negative controls",
+      "HIA implementations replace the live Python authorities rather than call through to them",
+      "arbitrary identifiers, module graph, linking and a real standalone CLI",
+      "source-only B0/B1/B2/B3 and modified-source fixed points for the full toolchain",
+      "fresh current-source regression, cross-target and resource failure qualification",
+      "clean-machine installation and real project build without a Python compiler dependency"
+    ],
+    "compiler_source": {
+      "bytes": 451924,
+      "functions": 123,
+      "path": "examples/hia_bootstrap/selfhost.hiaasm",
+      "sha256": "272efe1caf76710f7e0859ec4b10391001fa5d9875b4552c0a7f57a542d90de8"
+    },
+    "components": [
+      {
+        "boundary": "HIA scanner/parser supports general ASCII module/function/SSA/formal/block identifiers and arbitrary entry declaration order in the bounded assembly profile. A separate explicitly selected HIA source lexical recognizer handles high-level Hepta token grammar, UTF-8 positions, diagnostics and arbitrary-size integer magnitudes; Python object construction, float conversion, AST parsing and the default reference remain. Explicitly selected HIA JSON decoding/canonicalization are integrated into existing inputs. A separate HIA primitive v8 JSON Core representation frontend emits assembly for real native semantic compilation; host drivers still handle manifests, allocation, files and child receipts. Foreign-object bridging and caller-owned serialization remain Python. Explicit scalar-export JSON representation requires operator ELF selection; general module graphs, composites/full frontend grammar and whole-runtime replacement remain open.",
+        "component": "assembly_frontend",
+        "current_authorities": [
+          "hepta/hia_agent_assembly.py",
+          "hepta/lexer.py",
+          "hepta/hia_source_lexer_native.py",
+          "hepta/hia_json_preflight.py",
+          "hepta/hia_json_preflight_native.py",
+          "hepta/hia_json_decode.py",
+          "hepta/hia_json_decode_native.py",
+          "hepta/hia_json_canonical_native.py",
+          "hepta/hia_core_json_frontend_native.py"
+        ],
+        "status": "partial",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification.",
+        "component": "core_verifier_and_resources",
+        "current_authorities": [
+          "hepta/hia_program.py",
+          "hepta/hia_capability_flow.py",
+          "hepta/hia_program_composite.py"
+        ],
+        "status": "partial",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "One-shot and incremental SHA-256 state/padding/compression algorithms are implemented in HIA and can be explicitly selected for Core content digests, with bounded chunks rather than an 8-MiB total-input limit; host code-custody hashing remains. A HIA-emitted syscall-only observer executes ordinary flat-ABI qualification calls in fresh sealed native children; the host supervisor and independent generation/shared/trap loader remain. Core reference interpretation, general production runtime/task/I/O and the complete production library remain open.",
+        "component": "execution_and_standard_library",
+        "current_authorities": [
+          "hepta/hia_program_runtime.py",
+          "hepta/runtime_io.py",
+          "hepta/runtime_task_tree.py",
+          "hepta/hia_sha256_native.py",
+          "hepta/hia_sha256_stream_native.py"
+        ],
+        "status": "open",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "HIA writes bounded Linux x86-64 flat/ELF images, including multiple exact-name scalar C exports and allocator relocations. General module/link graphs, resource-bearing public ABI, actual shared-object linking and other native targets remain Python/external tools.",
+        "component": "native_backend_and_linker",
+        "current_authorities": [
+          "hepta/hia_program_native.py",
+          "hepta/hia_program_aarch64.py",
+          "hepta/hia_program_llvm.py"
+        ],
+        "status": "partial",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "Module graphs, package locks, build orchestration and the complete frontend pipeline remain Python.",
+        "component": "modules_packages_build",
+        "current_authorities": [
+          "hepta/modules.py",
+          "hepta/packages.py",
+          "hepta/pipeline.py"
+        ],
+        "status": "open",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "The real Agent worker/service, durable tools and protocol orchestration remain Python.",
+        "component": "agent_tools_and_persistence",
+        "current_authorities": [
+          "hepta/hia_agent_worker.py",
+          "hepta/hia_agent_service.py",
+          "hepta/hia_agent_store.py"
+        ],
+        "status": "open",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "Planning/optimization/translation validation and proof construction are not rewritten; finite proof scopes do not establish whole compiler refinement.",
+        "component": "optimizer_and_proof_tools",
+        "current_authorities": [
+          "hepta/hia_ndu_optimizer.py",
+          "hepta/hia_translation_validation.py",
+          "hepta/hia_scalar_proof_contract.py"
+        ],
+        "status": "open",
+        "whole_component_rewritten_in_hia": false
+      },
+      {
+        "boundary": "Bounded Linux syscall-only stdin/stdout entries exist for assembly and the two-stage JSON Core-to-machine pipeline. The HIA ELF packer writes headers, patches calls and copies pinned frontend/compiler images; runtime parsing/verification/codegen need no Python driver. Explicit native CLI builds still use a host filesystem/custody driver. Full production command surface, installation/materialization/release and whole clean-machine toolchain remain open.",
+        "component": "cli_and_release",
+        "current_authorities": [
+          "hepta/cli.py",
+          "hepta/__main__.py",
+          "tools/hia_release.py"
+        ],
+        "status": "open",
+        "whole_component_rewritten_in_hia": false
+      }
+    ],
+    "evidence_kind": "static inventory and explicit implementation boundary, not execution evidence",
+    "general_core_integer_types_not_in_native_selfhost": [],
+    "inventory_scope": {
+      "ast_and_hash_roots": [
+        "hepta/",
+        "tools/"
+      ],
+      "excluded_roles": [
+        "tests",
+        "historical artifacts/evidence/reports",
+        "experiments",
+        "examples",
+        "benchmarks",
+        "formal-support scripts"
+      ],
+      "tools_are_not_all_production_runtime": true,
+      "unlisted_roots_qualified": false
+    },
+    "legacy_retirement": {
+      "eligible_now": false,
+      "final_distribution_requires_no_legacy_production_implementation": true,
+      "git_history_and_nonshipped_review_evidence_are_not_live_providers": true,
+      "optional_native_backends_are_not_retirement": true,
+      "required_before_removal": [
+        "complete HIA implementation of every live authority",
+        "default native routes with no legacy fallback",
+        "whole-toolchain source-only and changed-source bootstrap",
+        "fresh complete regressions and all applicable platform gates",
+        "clean-machine install and real project builds without legacy toolchain"
+      ],
+      "status": "BLOCKED_BY_OPEN_IMPLEMENTATION_AND_QUALIFICATION_GATES"
+    },
+    "limits": [
+      "AST imports do not enumerate dynamic imports or prove dependency closure",
+      "line counts do not measure semantic completion",
+      "a byte fixed point proves only the declared compiler subset's observed self-reproduction",
+      "external OS, ABI, allocator and linker dependencies must stay explicit",
+      "historical or adjacent-branch CI does not qualify changed source bytes"
+    ],
+    "profile": "selfhost-core-linux-x86_64-v30",
+    "schema": "hepta.hia.whole-selfhost-static-audit.v1",
+    "totals": {
+      "component_statuses": {
+        "open": 5,
+        "partial": 3
+      },
+      "package_and_tool_python_files": 648,
+      "python_bytes": 4161818,
+      "python_files": 220,
+      "python_lines": 76872,
+      "python_tool_bytes": 7704020,
+      "python_tool_files": 428,
+      "python_tool_lines": 134501
+    },
+    "tracked_tree": {
+      "all_tracked_paths_accounted_for": true,
+      "capture_is_checkout_state_not_commit_qualification": true,
+      "file_identity_manifest_sha256": "b2fe5c60b2cce40d83a9529fb62d0fa4b21c5e8bc982ef6e1e7735484833e442",
+      "file_inventory_is_execution_evidence": false,
+      "file_inventory_is_semantic_audit": false,
+      "git_head_at_capture": "4f95ee91fd3aac0513135e22512f310ed806267d",
+      "live_non_python_support_sources": [
+        {
+          "bytes": 6894,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 191,
+          "path": "formal/HeptaCore.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "d3c3fb1e773cde932b5801684ddaffba2149dd565a67950a4c3b8623bca63423"
+        },
+        {
+          "bytes": 10694,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 279,
+          "path": "formal/HeptaMemory.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "4cb928c449e14ff4a12f81487e28507e1fc8cd2690ddb436058310362fe1f726"
+        },
+        {
+          "bytes": 17828,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 325,
+          "path": "formal/HiaCapabilityBorrow.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "9435379c47d31f9d6c5349d2ded92bab5a5c145e0eca66a0479df55445924ae3"
+        },
+        {
+          "bytes": 13472,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 269,
+          "path": "formal/HiaCapabilityLifecycle.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "e530f7e7bfbfd759a7ac27c81290a5ad1d0b4b524417d185981d47b3fb610020"
+        },
+        {
+          "bytes": 12871,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 286,
+          "path": "formal/HiaCapabilityRenaming.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "8b427bae5f716c3a39945df652f63a75351aab12ee5f32a6b848fbec3997f4dc"
+        },
+        {
+          "bytes": 7183,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 166,
+          "path": "formal/HiaInitializationPrefix.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "167316fc09da9a871b2fbcb3667966fcc6f9288b7ac1ede2f0aac501c8636278"
+        },
+        {
+          "bytes": 4795,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 122,
+          "path": "formal/HiaNduBudgetErasure.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "6f3583caf3c3b952356485884d62d60fc99ca094c172feef153fcd60915d5107"
+        },
+        {
+          "bytes": 4951,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 109,
+          "path": "formal/HiaRegisterSafety.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "40f10041a8031f5f459d30229d42528b2f990d88c0035b5c6d31d76608f7b10a"
+        },
+        {
+          "bytes": 1968,
+          "kind": "file",
+          "language": "Lean",
+          "lines": 54,
+          "path": "formal/HiaSelectedCore.lean",
+          "rewritten_in_hia": false,
+          "role": "formal_support",
+          "sha256": "6e3ead9a3b3dc54a9a0aaa1748b4efc3274bbe8a24387fdc5702cb2ef7059b4d"
+        },
+        {
+          "bytes": 13380,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 239,
+          "path": "rust/hia-core-shadow/src/byte_dag.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "ca76976de292f0fa5a924e721e9f6512943ba863fed4b036d5ac4518231ecda7"
+        },
+        {
+          "bytes": 23611,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 395,
+          "path": "rust/hia-core-shadow/src/finite_heap.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "ab82e1415de1c246c210abec2ce0dd356ad1c1db582a3b34042fb07c2fd06dc6"
+        },
+        {
+          "bytes": 15561,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 311,
+          "path": "rust/hia-core-shadow/src/finite_heap/scalars.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "8fed466bfae161327333da35bedf733032dead8366278794bb0654278e67d809"
+        },
+        {
+          "bytes": 28994,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 708,
+          "path": "rust/hia-core-shadow/src/lib.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "be682c1217ab9a8e202cdbf313f9ae1ca2db6f28e2ba02d90699025d29f1c111"
+        },
+        {
+          "bytes": 7131,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 138,
+          "path": "rust/hia-core-shadow/src/main.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "add62a6fe3e19c92c5461a83214c2b2d9226fc82f554796f829994342226b458"
+        },
+        {
+          "bytes": 34618,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 752,
+          "path": "rust/hia-core-shadow/src/ownership.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "b33df95c71562b1c68899106f1592919a6dc3d486261a4845cd83e2ba4644536"
+        },
+        {
+          "bytes": 40536,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 808,
+          "path": "rust/hia-core-shadow/src/scalar_vm.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "dcf672a281cedc5065e70270d184a8da7db86df0ce90b6269774f3eb85ffcdeb"
+        },
+        {
+          "bytes": 38382,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 775,
+          "path": "rust/hia-core-shadow/src/scalar_vm/byte_memory.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "70cf6c9449dc131af1e79be032e6ae3714bb039ea061bd9e966c0562fd5107a7"
+        },
+        {
+          "bytes": 14758,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 284,
+          "path": "rust/hia-core-shadow/src/scalar_vm/byte_memory/abort_cleanup.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "01972619fda17abf460e2eac7aaf0c247a181e4be2ba814492922bbf99011932"
+        },
+        {
+          "bytes": 9770,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 208,
+          "path": "rust/hia-core-shadow/src/static_budget.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "4b753b53248902e13906d0ee260b3d26aed505b0e1306f47c696f458844929d1"
+        },
+        {
+          "bytes": 2513,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 48,
+          "path": "rust/hia-core-shadow/tests/bound_execution.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "8c614160bd31e7945772367717fe4c326e7b855136921e4d497433590c225501"
+        },
+        {
+          "bytes": 4851,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 102,
+          "path": "rust/hia-core-shadow/tests/bound_execution_v2.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "914eab9b57dcf43ba670428d0ea505f8a0b231c738f2cfe593837aefa61d20df"
+        },
+        {
+          "bytes": 5461,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 111,
+          "path": "rust/hia-core-shadow/tests/bound_execution_v3.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "9cacf7ffe3bc220bfa3bd2c718d43216f3dccd2172e345fc6f5de45375cb05ef"
+        },
+        {
+          "bytes": 7663,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 135,
+          "path": "rust/hia-core-shadow/tests/bound_execution_v4.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "ec5800b6910f0c878660f4febfd8e4c0517e9deb409adf70e3194cccb1415845"
+        },
+        {
+          "bytes": 10412,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 167,
+          "path": "rust/hia-core-shadow/tests/byte_dag.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "f132f512220c95005af012737399abf5bab00a410732ff24e0f3aa343c747bbb"
+        },
+        {
+          "bytes": 3905,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 101,
+          "path": "rust/hia-core-shadow/tests/calls.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "0db19ed6a432926d78b77dd94e559d586cc1239faceec6e0c2809fd6b5f249d2"
+        },
+        {
+          "bytes": 9379,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 184,
+          "path": "rust/hia-core-shadow/tests/chain.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "c6dcdeb53633bca861ac0c9351d4777e5f272fd23165727a066f18a4fb2abd62"
+        },
+        {
+          "bytes": 5856,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 90,
+          "path": "rust/hia-core-shadow/tests/finite_heap.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "dbc6e6724e17e2edcecaa70f8c8bf82ece040719f3bebb19a09050f8f39ba130"
+        },
+        {
+          "bytes": 1777,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 45,
+          "path": "rust/hia-core-shadow/tests/json_budget.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "5d6e44a7a8b12a3b84eb970ed4bb536bf163b040753e15e69d5fbdeddf1ca457"
+        },
+        {
+          "bytes": 2782,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 64,
+          "path": "rust/hia-core-shadow/tests/json_integer_tokens.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "cbaa4d2f338c0b533b46f82439ddf25d9832c211c36e6a577e41312e2c82a138"
+        },
+        {
+          "bytes": 8376,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 195,
+          "path": "rust/hia-core-shadow/tests/owned.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "3cbbc172a3e73b1c4d9368d97b7ec4d1a8d2f4955623590b3364e0c899ffa36c"
+        },
+        {
+          "bytes": 6910,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 135,
+          "path": "rust/hia-core-shadow/tests/owned_vm.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "49890453c4d21ae60ba0eed1daf17e5e12796ec7e2d7bc769d840c5cedfca8b8"
+        },
+        {
+          "bytes": 3666,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 68,
+          "path": "rust/hia-core-shadow/tests/returned_chains.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "5c0bb023e29c687c02e70d1637ba253c215f566d52a2caa62af006a755d80b91"
+        },
+        {
+          "bytes": 7212,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 142,
+          "path": "rust/hia-core-shadow/tests/returned_loans.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "d3022deabba887af0ff826218d661c1183913af270b94eeae5ff9aefd7bcb981"
+        },
+        {
+          "bytes": 3427,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 75,
+          "path": "rust/hia-core-shadow/tests/returned_record_fields.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "fba393f0991e0f392935fca3cb39baa5b067f4c9ac7a79a3cd35b817bf2ff12c"
+        },
+        {
+          "bytes": 13359,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 265,
+          "path": "rust/hia-core-shadow/tests/scalar_vm.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "8b7f0aad98855b0cb40afacc58ab6e976ad06efb4d0698f172a66a5b1b3a2d8f"
+        },
+        {
+          "bytes": 5161,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 133,
+          "path": "rust/hia-core-shadow/tests/shadow.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "f5e26b66ce6aec3b84dd4d77e1e424329a1cdb2d876931e90502e87345e976af"
+        },
+        {
+          "bytes": 8058,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 148,
+          "path": "rust/hia-core-shadow/tests/static_budget.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "9e9c29eac21a26174e46ce9c898173017abd9693168971f403ef7cb4056559b4"
+        },
+        {
+          "bytes": 13140,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 334,
+          "path": "rust/hia-ndu-bridge/src/main.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "cf61b6055fb7299d661092d7e75a3e5c05125b780cbca72545f2de717bf4f574"
+        },
+        {
+          "bytes": 5660,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 110,
+          "path": "rust/hia-ndu-dynamic-model/src/main.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "c54c596a9f67fd9d693a742481f56caa8f1df9aec43e6c10fc58995d975c04c4"
+        },
+        {
+          "bytes": 5444,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 137,
+          "path": "rust/hia-ndu-dynamic-model/src/model.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "4e1a0e0c4b59786e1c92ded5d32e4e5248f599b478cf454323412a879d77943d"
+        },
+        {
+          "bytes": 11330,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 283,
+          "path": "rust/hia-ndu-dynamic-model/src/ndu.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "2b2fbe2b913b8afe9fefe0bf5c498f37588ff1cdfca98de3ddf19f63d94e5dbc"
+        },
+        {
+          "bytes": 9907,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 223,
+          "path": "rust/hia-ndu-dynamic-model/src/planner.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "6c1c6ec01082db14e25598bb83ee3384b62b444538ed70a49cb8c7c9cf3fcff5"
+        },
+        {
+          "bytes": 9389,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 204,
+          "path": "rust/hia-ndu-dynamic-model/src/workload.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "0ec3428517b446e66efddb2121e9313bca811879832c87fa06d48bffbe0dfff2"
+        },
+        {
+          "bytes": 5996,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 148,
+          "path": "rust/hia-ndu-raw-model/src/main.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "50cadf05af51d4f60c9971d63820b9235bcddd55d39cbdbee87d436d23220ed8"
+        },
+        {
+          "bytes": 5895,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 186,
+          "path": "rust/hia-ndu-raw-model/src/model.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "6f21383b8c382aa672257253f3560522da7dd76241db6cd4973c1a6d08ed0b37"
+        },
+        {
+          "bytes": 12842,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 353,
+          "path": "rust/hia-ndu-raw-model/src/ndu.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "cde4a6e069bb9f89ec724bceaf94cb6daa76076e3b48f578edc594d2fd9af1ef"
+        },
+        {
+          "bytes": 8527,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 253,
+          "path": "rust/hia-ndu-raw-model/src/planner.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "af58cb062656175eef2319ce45ed1ada2053b3672f339fcde1dffffefcfb83f7"
+        },
+        {
+          "bytes": 9839,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 162,
+          "path": "rust/hia-ndu-value/src/main.rs",
+          "rewritten_in_hia": false,
+          "role": "native_rust_bridges",
+          "sha256": "995ab3660f23eb9bed4ef0053700c5671cc02da5ed706c4bde20cb06acedb4ab"
+        },
+        {
+          "bytes": 913,
+          "kind": "file",
+          "language": "C",
+          "lines": 24,
+          "path": "tools/fixtures/c_owned_allocator.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "3a3ff8a37e880bb1c52d0f82144c2caa71e7b59c8e4b463e3b7c7c5b936665a4"
+        },
+        {
+          "bytes": 2291,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 44,
+          "path": "tools/fixtures/c_owned_allocator.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "22fe049997dc7713eec65d4a7216173be7e0cf0948ab7164b9b9dee45d3b436f"
+        },
+        {
+          "bytes": 2663,
+          "kind": "file",
+          "language": "C",
+          "lines": 59,
+          "path": "tools/fixtures/c_ring_buffer_benchmark.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "c8f6ae195d1c984f7f38b85e125aba66f4eba70364842385016b70657e6347ee"
+        },
+        {
+          "bytes": 8052,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 204,
+          "path": "tools/fixtures/hia_agent_maintenance_resource.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "f8039be9a17eeca0880ecf7ed6858bcf3576bde0b87a7e0c3e8e1550c86aa7c4"
+        },
+        {
+          "bytes": 7542,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 192,
+          "path": "tools/fixtures/hia_agent_resource.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "73563d78755d41d7be9428d641a9115103d55d0c462625e5ad26adc95e47dc39"
+        },
+        {
+          "bytes": 23819,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 364,
+          "path": "tools/fixtures/io_controls.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "52d93fdf2657c69484cbc41dfe264c6415078189bd01d59fd8d7ddc903994c0f"
+        },
+        {
+          "bytes": 3352,
+          "kind": "file",
+          "language": "C",
+          "lines": 80,
+          "path": "tools/fixtures/io_faults.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "da2e17515dea0914f9fa196894583faf960a1047d0a7501f51cad81120f8a299"
+        },
+        {
+          "bytes": 10440,
+          "kind": "file",
+          "language": "C",
+          "lines": 234,
+          "path": "tools/fixtures/ring_maintenance_host.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "d00a4600aaba12c771413e0dfdc94d8afc383d51a821ec8881571aef79362ddf"
+        },
+        {
+          "bytes": 3715,
+          "kind": "file",
+          "language": "C",
+          "lines": 69,
+          "path": "tools/fixtures/ring_optimization_host.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "2f6d05a2efa4d9cbc22f40b17008c092d32b22b73283ced5db7f4afca3bb10cb"
+        },
+        {
+          "bytes": 12093,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 232,
+          "path": "tools/fixtures/shared_runtime_controls.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "917ee0568ddc5ecf79bb002db31fd723c419e117f58b9b34730deb512ffdf848"
+        },
+        {
+          "bytes": 732,
+          "kind": "file",
+          "language": "C",
+          "lines": 15,
+          "path": "tools/fixtures/shared_runtime_faults.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "afaa8712088beb500f441cd05f580cd9896bc8636ea39a7791dc643ba6d84cb5"
+        },
+        {
+          "bytes": 21265,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 351,
+          "path": "tools/fixtures/task_io_controls.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "619013145f0ff4860280d4d030def84a95b4515126273a1440a577a76af57fb6"
+        },
+        {
+          "bytes": 2816,
+          "kind": "file",
+          "language": "C",
+          "lines": 60,
+          "path": "tools/fixtures/task_io_faults.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "020b9b9b3c16b8dc1033804d0e71e9c210630e368cb2af7e35c999764e938046"
+        },
+        {
+          "bytes": 21565,
+          "kind": "file",
+          "language": "Rust",
+          "lines": 381,
+          "path": "tools/fixtures/task_tree_controls.rs",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "c5a7e67f0e8cbc1bef15332c70972bb0df752e69e9110c70d8745e8c9a411f79"
+        },
+        {
+          "bytes": 4333,
+          "kind": "file",
+          "language": "C",
+          "lines": 124,
+          "path": "tools/hia_selfhost_chain_allocator_witness.c",
+          "rewritten_in_hia": false,
+          "role": "host_authoring_build_qualification",
+          "sha256": "1a0476d584c6b87bd88287cb9cdd8f7597ab9749012a861fb50a0d8ff27fc3b2"
+        }
+      ],
+      "research_is_not_live_runtime": true,
+      "role_language_totals": [
+        {
+          "bytes": 55858,
+          "files": 16,
+          "language": "C",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 588,
+          "files": 1,
+          "language": "C++",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 1420,
+          "files": 2,
+          "language": "C-header",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 10718,
+          "files": 4,
+          "language": "HIA-assembly",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 15037,
+          "files": 9,
+          "language": "Hepta-source",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 136169,
+          "files": 11,
+          "language": "Python",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 14555,
+          "files": 11,
+          "language": "Rust",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 4577932,
+          "files": 101,
+          "language": "other",
+          "role": "benchmarks"
+        },
+        {
+          "bytes": 538961,
+          "files": 91,
+          "language": "other",
+          "role": "ci_workflows"
+        },
+        {
+          "bytes": 4467277,
+          "files": 497,
+          "language": "other",
+          "role": "documentation"
+        },
+        {
+          "bytes": 93459,
+          "files": 33,
+          "language": "C",
+          "role": "examples"
+        },
+        {
+          "bytes": 108444,
+          "files": 54,
+          "language": "C++",
+          "role": "examples"
+        },
+        {
+          "bytes": 10937,
+          "files": 11,
+          "language": "C++-header",
+          "role": "examples"
+        },
+        {
+          "bytes": 14577,
+          "files": 10,
+          "language": "C-header",
+          "role": "examples"
+        },
+        {
+          "bytes": 1117607,
+          "files": 12,
+          "language": "HIA-assembly",
+          "role": "examples"
+        },
+        {
+          "bytes": 127794,
+          "files": 81,
+          "language": "Hepta-source",
+          "role": "examples"
+        },
+        {
+          "bytes": 978,
+          "files": 1,
+          "language": "Python",
+          "role": "examples"
+        },
+        {
+          "bytes": 29781,
+          "files": 8,
+          "language": "Rust",
+          "role": "examples"
+        },
+        {
+          "bytes": 414514,
+          "files": 49,
+          "language": "other",
+          "role": "examples"
+        },
+        {
+          "bytes": 80656,
+          "files": 9,
+          "language": "Lean",
+          "role": "formal_support"
+        },
+        {
+          "bytes": 5300,
+          "files": 1,
+          "language": "Python",
+          "role": "formal_support"
+        },
+        {
+          "bytes": 37474,
+          "files": 7,
+          "language": "other",
+          "role": "formal_support"
+        },
+        {
+          "bytes": 28964,
+          "files": 8,
+          "language": "C",
+          "role": "host_authoring_build_qualification"
+        },
+        {
+          "bytes": 7704020,
+          "files": 428,
+          "language": "Python",
+          "role": "host_authoring_build_qualification"
+        },
+        {
+          "bytes": 96627,
+          "files": 7,
+          "language": "Rust",
+          "role": "host_authoring_build_qualification"
+        },
+        {
+          "bytes": 16108,
+          "files": 2,
+          "language": "other",
+          "role": "host_authoring_build_qualification"
+        },
+        {
+          "bytes": 4161818,
+          "files": 220,
+          "language": "Python",
+          "role": "live_python_package"
+        },
+        {
+          "bytes": 435478,
+          "files": 39,
+          "language": "Rust",
+          "role": "native_rust_bridges"
+        },
+        {
+          "bytes": 63833,
+          "files": 15,
+          "language": "other",
+          "role": "native_rust_bridges"
+        },
+        {
+          "bytes": 91636,
+          "files": 46,
+          "language": "C",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 49257,
+          "files": 29,
+          "language": "C++",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 270277,
+          "files": 19,
+          "language": "C-header",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 12424,
+          "files": 2,
+          "language": "HIA-assembly",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 58243,
+          "files": 45,
+          "language": "Hepta-source",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 26228,
+          "files": 6,
+          "language": "LLVM-IR",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 58282,
+          "files": 5,
+          "language": "Lean",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 2841913,
+          "files": 230,
+          "language": "Python",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 219210,
+          "files": 420,
+          "language": "Rust",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 144365381,
+          "files": 2658,
+          "language": "other",
+          "role": "research_experiments"
+        },
+        {
+          "bytes": 763317,
+          "files": 33,
+          "language": "C",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 75048,
+          "files": 8,
+          "language": "C++",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 30948,
+          "files": 8,
+          "language": "C++-header",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 163478,
+          "files": 20,
+          "language": "C-header",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 304,
+          "files": 1,
+          "language": "HIA-assembly",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 215739,
+          "files": 213,
+          "language": "Hepta-source",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 217315,
+          "files": 12,
+          "language": "LLVM-IR",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 42884,
+          "files": 7,
+          "language": "Lean",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 6690469,
+          "files": 404,
+          "language": "Python",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 3738404,
+          "files": 162,
+          "language": "Rust",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 575902094,
+          "files": 3174,
+          "language": "other",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 7025,
+          "files": 2,
+          "language": "shell",
+          "role": "retained_evidence"
+        },
+        {
+          "bytes": 62497,
+          "files": 8,
+          "language": "other",
+          "role": "root_build_or_other"
+        },
+        {
+          "bytes": 11672,
+          "files": 14,
+          "language": "C",
+          "role": "tests"
+        },
+        {
+          "bytes": 1873411,
+          "files": 2,
+          "language": "C++-header",
+          "role": "tests"
+        },
+        {
+          "bytes": 37990,
+          "files": 10,
+          "language": "C-header",
+          "role": "tests"
+        },
+        {
+          "bytes": 8197358,
+          "files": 749,
+          "language": "Python",
+          "role": "tests"
+        },
+        {
+          "bytes": 847833,
+          "files": 90,
+          "language": "other",
+          "role": "tests"
+        }
+      ],
+      "tracked_bytes": 771237521,
+      "tracked_paths": 10115,
+      "untracked_paths_included": false,
+      "working_tree_dirty_at_capture": false
+    },
+    "whole_stack_rewritten_in_hia": false
+  },
+  "reconstructed_report_sha256": "7636d9c0d8becc9206c5c3c3ca126c903ba45797ef0dc0b5a5807d3012a1157a",
+  "reconstruction": "Apply path-indexed remove/replace/add to base lists; sort by path; insert into metadata. JSON indent2/sort_keys with final newline reconstructs exact bytes.",
+  "record_patches": {
+    "live_python_package": {
+      "remove": [],
+      "replace_or_add": [
+        {
+          "bytes": 2652,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_decode_native",
+            ".hia_json_preflight_native",
+            "__future__",
+            "ctypes",
+            "pathlib",
+            "struct"
+          ],
+          "lines": 50,
+          "path": "hepta/hia_core_json_frontend_native.py",
+          "sha256": "f49169312647e8e663526a0a3d35a5f1e8e0278c1aae161a16258e98fcf72bd0"
+        },
+        {
+          "bytes": 25616,
+          "functions": 31,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_optimization",
+            ".hia_stateful",
+            "__future__",
+            "copy",
+            "fcntl",
+            "hashlib",
+            "json",
+            "os",
+            "pathlib",
+            "secrets",
+            "stat",
+            "threading"
+          ],
+          "lines": 528,
+          "path": "hepta/hia_durable_queue.py",
+          "sha256": "6c7212b891242da141f573e5e93964047ca1774bf554e78cf3354dd2e9d3b9e6"
+        },
+        {
+          "bytes": 10756,
+          "functions": 9,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_bounded_wire",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            "__future__",
+            "hashlib",
+            "json",
+            "re"
+          ],
+          "lines": 226,
+          "path": "hepta/hia_full_cost_gate.py",
+          "sha256": "a6d8e5f7355089dc1071d9ce72a5c59973fe9610e31002a3d212176092fa3e49"
+        },
+        {
+          "bytes": 21323,
+          "functions": 22,
+          "implementation_language": "Python",
+          "imports": [
+            ".",
+            ".hia_program_tools",
+            "__future__",
+            "dataclasses",
+            "hashlib",
+            "json",
+            "threading",
+            "types",
+            "weakref"
+          ],
+          "lines": 429,
+          "path": "hepta/hia_incremental.py",
+          "sha256": "aec831522e1abdb6a20678b63570116bb76605439e1dc2d5bdf35abd9a65caf8"
+        },
+        {
+          "bytes": 3523,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_decode_native",
+            ".hia_json_preflight_native",
+            "__future__",
+            "ctypes",
+            "os",
+            "pathlib",
+            "struct"
+          ],
+          "lines": 68,
+          "path": "hepta/hia_json_canonical_native.py",
+          "sha256": "a61dee0998b0161b2284f5d735cf00512bd64816f69d7914f629e553c39a9599"
+        },
+        {
+          "bytes": 2342,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_decode_native",
+            ".hia_json_preflight",
+            "__future__",
+            "json",
+            "os"
+          ],
+          "lines": 49,
+          "path": "hepta/hia_json_decode.py",
+          "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+        },
+        {
+          "bytes": 6718,
+          "functions": 6,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_preflight_native",
+            "__future__",
+            "ctypes",
+            "pathlib",
+            "struct"
+          ],
+          "lines": 151,
+          "path": "hepta/hia_json_decode_native.py",
+          "sha256": "57be95526cca1dd52fd156f131992b6a750800228493afe975c5f50845a29ed1"
+        },
+        {
+          "bytes": 8983,
+          "functions": 7,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_preflight_native",
+            "__future__",
+            "json",
+            "os"
+          ],
+          "lines": 222,
+          "path": "hepta/hia_json_preflight.py",
+          "sha256": "e56260ddb2ced64392b17e8d8035dd7d4a2ddcefad0bdb9163fa5a09fc6055f1"
+        },
+        {
+          "bytes": 6321,
+          "functions": 8,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ctypes",
+            "functools",
+            "hashlib",
+            "json",
+            "mmap",
+            "pathlib",
+            "platform",
+            "struct"
+          ],
+          "lines": 134,
+          "path": "hepta/hia_json_preflight_native.py",
+          "sha256": "66c1c77ebed85c8ae7525521e09d2dba587faab427a84083a0167209e1e2b76f"
+        },
+        {
+          "bytes": 9918,
+          "functions": 6,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_bounded_wire",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_paired_holdout",
+            "__future__",
+            "hashlib",
+            "json",
+            "re"
+          ],
+          "lines": 211,
+          "path": "hepta/hia_native_paired_replay.py",
+          "sha256": "0b3fcb3020715ec3c522d3659aa35768c1d050146b9ac592b189e53aba0f5abc"
+        },
+        {
+          "bytes": 41627,
+          "functions": 41,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_capability_flow",
+            ".hia_json_canonical_native",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_opcodes",
+            ".hia_program_composite",
+            ".hia_program_runtime",
+            ".hia_schema",
+            ".hia_sha256_native",
+            "__future__",
+            "collections",
+            "dataclasses",
+            "hashlib",
+            "json",
+            "re"
+          ],
+          "lines": 897,
+          "path": "hepta/hia_program.py",
+          "sha256": "a6918558fca70ce4be6ecaed22e39a347486856e7cc8527b8a2ef385bd72b258"
+        },
+        {
+          "bytes": 21012,
+          "functions": 13,
+          "implementation_language": "Python",
+          "imports": [
+            ".artifact_publication",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_program",
+            "__future__",
+            "copy",
+            "json",
+            "math",
+            "os",
+            "pathlib",
+            "re",
+            "stat",
+            "tempfile"
+          ],
+          "lines": 443,
+          "path": "hepta/hia_program_tools.py",
+          "sha256": "972a1fa77d28f79bce104d342ce753148cc690f4f05971be75f2d6ad603b6db6"
+        },
+        {
+          "bytes": 23449,
+          "functions": 12,
+          "implementation_language": "Python",
+          "imports": [
+            ".",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_opcodes",
+            ".hia_rust_byte_cleanup",
+            "__future__",
+            "hashlib",
+            "json",
+            "pathlib",
+            "re"
+          ],
+          "lines": 413,
+          "path": "hepta/hia_rust_byte_dag.py",
+          "sha256": "738164528fb198e2c7c03b6029ebd610d4f38fd759f7b48588bead8b8bc559da"
+        },
+        {
+          "bytes": 2262,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_preflight_native",
+            ".hia_sha256_stream_native",
+            "__future__",
+            "ctypes",
+            "hashlib",
+            "os",
+            "pathlib"
+          ],
+          "lines": 51,
+          "path": "hepta/hia_sha256_native.py",
+          "sha256": "c2e1674a1ea25af01bf4439dea33e4a7b7434d3746cbb490bbed8fcc55a8504b"
+        },
+        {
+          "bytes": 2683,
+          "functions": 9,
+          "implementation_language": "Python",
+          "imports": [
+            ".hia_json_preflight_native",
+            "__future__",
+            "ctypes",
+            "pathlib"
+          ],
+          "lines": 67,
+          "path": "hepta/hia_sha256_stream_native.py",
+          "sha256": "baeaf8a99d75638fdfccaedb7b096f9476f1697dd007e254208a8a0b91c575df"
+        },
+        {
+          "bytes": 6482,
+          "functions": 5,
+          "implementation_language": "Python",
+          "imports": [
+            ".ast",
+            ".hia_json_preflight_native",
+            ".lexer",
+            "__future__",
+            "ctypes",
+            "math",
+            "pathlib",
+            "struct"
+          ],
+          "lines": 121,
+          "path": "hepta/hia_source_lexer_native.py",
+          "sha256": "b4f731e7e55237031e93e895b0f5c098db9d6541302197c932f166953c035dd3"
+        },
+        {
+          "bytes": 44950,
+          "functions": 40,
+          "implementation_language": "Python",
+          "imports": [
+            ".elf_shared_abi",
+            ".hia_adaptive",
+            ".hia_continuation",
+            ".hia_json_decode",
+            ".hia_json_preflight",
+            ".hia_native_differential",
+            ".hia_program",
+            ".hia_queue_commit",
+            ".native_mapping_identity",
+            ".native_tool_identity",
+            "__future__",
+            "ctypes",
+            "dataclasses",
+            "hashlib",
+            "json",
+            "os",
+            "pathlib",
+            "secrets",
+            "shutil",
+            "subprocess",
+            "tempfile",
+            "time"
+          ],
+          "lines": 835,
+          "path": "hepta/hia_stateful.py",
+          "sha256": "e85ac7270b2edf9c3b998e62b01033aac7aab6d610b1395cdb2e25891e5f6b49"
+        },
+        {
+          "bytes": 9782,
+          "functions": 14,
+          "implementation_language": "Python",
+          "imports": [
+            ".ast",
+            ".hia_source_lexer_native",
+            "__future__",
+            "dataclasses",
+            "math",
+            "os",
+            "typing"
+          ],
+          "lines": 238,
+          "path": "hepta/lexer.py",
+          "sha256": "45f09d54a8a01dd266f2971b667f02ee750e1dcf7e133eebd92a4e014e98ed9b"
+        }
+      ]
+    },
+    "live_python_tools": {
+      "remove": [],
+      "replace_or_add": [
+        {
+          "bytes": 14641,
+          "functions": 5,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "ast",
+            "collections",
+            "hashlib",
+            "hepta.hia_opcodes",
+            "json",
+            "os",
+            "pathlib",
+            "subprocess",
+            "sys",
+            "tools.hia_selfhost_contract"
+          ],
+          "lines": 195,
+          "path": "tools/audit_hia_selfhost_closure.py",
+          "sha256": "e491d51f886f0d564f2107f7e06e725f9c4e6a7f98e3549c7581726d7766626b"
+        },
+        {
+          "bytes": 4439,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "hashlib",
+            "json",
+            "pathlib",
+            "struct",
+            "tools.build_hia_json_preflight",
+            "tools.generate_hia_core_json_cli",
+            "tools.qualify_hia_selfhost",
+            "tools.qualify_hia_selfhost_cli"
+          ],
+          "lines": 82,
+          "path": "tools/build_hia_core_json_cli.py",
+          "sha256": "37ff967c17e75aaf04d151c720f7475a89e1a767b8c4d9066183a5ebc2d86515"
+        },
+        {
+          "bytes": 808,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "pathlib",
+            "tools.build_hia_json_preflight"
+          ],
+          "lines": 22,
+          "path": "tools/build_hia_core_json_frontend.py",
+          "sha256": "5f79b87eb22210251943941d95820687dab500e78b343a4abad93b356280163f"
+        },
+        {
+          "bytes": 811,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "pathlib",
+            "tools.build_hia_json_preflight"
+          ],
+          "lines": 22,
+          "path": "tools/build_hia_json_canonical.py",
+          "sha256": "f0fbe4617e3d111fd3120b5b55cbe4b090dc5f13243f39e501ace72ce28fe1ed"
+        },
+        {
+          "bytes": 808,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "pathlib",
+            "tools.build_hia_json_preflight"
+          ],
+          "lines": 22,
+          "path": "tools/build_hia_json_decode.py",
+          "sha256": "00a4999db5f939fe8ada2fad2be6d47c51ccab595212bfee81dbbe488c91e0c0"
+        },
+        {
+          "bytes": 4552,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "hashlib",
+            "json",
+            "pathlib",
+            "sys",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 85,
+          "path": "tools/build_hia_json_preflight.py",
+          "sha256": "0daa082d3ac87bae1d108a97f5fbe91db3dcb283b604522e718f7509dab89f1b"
+        },
+        {
+          "bytes": 3438,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "hashlib",
+            "json",
+            "pathlib",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 64,
+          "path": "tools/build_hia_sha256.py",
+          "sha256": "5a17d91ebe5d4ecb718fe5036c29db1a3c9cb7cc5aab82acc652201d17de1502"
+        },
+        {
+          "bytes": 3167,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "hashlib",
+            "json",
+            "pathlib",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 60,
+          "path": "tools/build_hia_source_lexer.py",
+          "sha256": "8c96bc135648ecaacb2a0db0666df4218eae3e74a5ca542208f78cbec77fc063"
+        },
+        {
+          "bytes": 3317,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "hashlib",
+            "hepta.hia_core_json_frontend_native",
+            "hepta.hia_json_preflight_native",
+            "json",
+            "pathlib",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 66,
+          "path": "tools/compile_hia_core_json.py",
+          "sha256": "5e75a2853797b5568c7e472a701cdc11047d31665efa47b39ef44a13d58bdade"
+        },
+        {
+          "bytes": 45872,
+          "functions": 39,
+          "implementation_language": "Python",
+          "imports": [
+            "concurrent.futures",
+            "dataclasses",
+            "hashlib",
+            "json",
+            "os",
+            "pathlib",
+            "re",
+            "stat",
+            "subprocess",
+            "tools",
+            "tools.check_guarded_slice_lean",
+            "types"
+          ],
+          "lines": 825,
+          "path": "tools/core_seven_shared_acceptance_plan.py",
+          "sha256": "d2308e30580a398c209bf185ecf77ba989f440d2726867c725bcce35ba6be6fd"
+        },
+        {
+          "bytes": 7694,
+          "functions": 9,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "struct",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 192,
+          "path": "tools/generate_hia_core_json_cli.py",
+          "sha256": "3a43b995305275416a33bd612381d3ad3b0ee9b1026b0420c3897f8ecc237a9c"
+        },
+        {
+          "bytes": 14799,
+          "functions": 6,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_json_canonical",
+            "tools.generate_hia_json_decode",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 408,
+          "path": "tools/generate_hia_core_json_frontend.py",
+          "sha256": "059f7beec21291a2572f9cb82ff66de27584f17c7ef362869b2be2cba0718d25"
+        },
+        {
+          "bytes": 7307,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_json_decode",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 211,
+          "path": "tools/generate_hia_json_canonical.py",
+          "sha256": "063053bf7539a605ee834bd32e6a07b98ebd0c6b027af0b224b7f9107b9d47d9"
+        },
+        {
+          "bytes": 8178,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_json_preflight",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 220,
+          "path": "tools/generate_hia_json_decode.py",
+          "sha256": "fffc97c704cc75ad88239fe79d7b7f83418199a732364f834e006ebfd5f8548f"
+        },
+        {
+          "bytes": 12383,
+          "functions": 2,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 378,
+          "path": "tools/generate_hia_json_preflight.py",
+          "sha256": "e1c03f776840f5139c4ac197586e1b676ff9d2739c817a403d46baf4d6eb0ec4"
+        },
+        {
+          "bytes": 5060,
+          "functions": 4,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "struct",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 97,
+          "path": "tools/generate_hia_native_observer.py",
+          "sha256": "057da1a391db3c43d89333126df40175cad4ef38bd1812f952b92d8a5a0f7bfb"
+        },
+        {
+          "bytes": 78986,
+          "functions": 20,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "copy",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "json",
+            "pathlib",
+            "sys",
+            "tools.hia_selfhost_chain_elf",
+            "tools.hia_selfhost_cli",
+            "tools.hia_selfhost_effects",
+            "tools.hia_selfhost_exports",
+            "tools.hia_selfhost_keywords",
+            "tools.hia_selfhost_limits",
+            "tools.hia_selfhost_multi_results",
+            "tools.hia_selfhost_names",
+            "tools.hia_selfhost_owned_elf",
+            "tools.hia_selfhost_returned_loans",
+            "tools.hia_selfhost_signed",
+            "tools.hia_selfhost_traps"
+          ],
+          "lines": 2119,
+          "path": "tools/generate_hia_selfhost.py",
+          "sha256": "06f0bcdda41685d797613acafed8b2913f4947b27e45285a56ce8eaa8943d641"
+        },
+        {
+          "bytes": 5474,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 147,
+          "path": "tools/generate_hia_sha256.py",
+          "sha256": "4114a26ff0ea47229bccbedadcb40efdd9715a8dd0739d2fcb55c98f8ddbdf97"
+        },
+        {
+          "bytes": 4420,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "pathlib",
+            "tools.generate_hia_selfhost",
+            "tools.generate_hia_sha256"
+          ],
+          "lines": 129,
+          "path": "tools/generate_hia_sha256_stream.py",
+          "sha256": "247816be2a50d384a6dd86a1d8cad909a48fbcdef54444f2394a7789fb137238"
+        },
+        {
+          "bytes": 14159,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "ast",
+            "hepta.hia_agent_assembly",
+            "hepta.lexer",
+            "pathlib",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 426,
+          "path": "tools/generate_hia_source_lexer.py",
+          "sha256": "61332635f3d5430023d6619cfd578e8fd807deeb3417d81bca413a1f16db96ba"
+        },
+        {
+          "bytes": 39733,
+          "functions": 12,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "ast",
+            "hashlib",
+            "importlib.util",
+            "json",
+            "os",
+            "pathlib",
+            "re",
+            "subprocess",
+            "sys"
+          ],
+          "lines": 642,
+          "path": "tools/hia_release.py",
+          "sha256": "c208d086d5676be0865673fb3be0c374c7ad78e03fa02ffa8f8779e52ac654ab"
+        },
+        {
+          "bytes": 24849,
+          "functions": 3,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "hashlib",
+            "json",
+            "pathlib",
+            "tools.hia_selfhost_limits"
+          ],
+          "lines": 377,
+          "path": "tools/hia_selfhost_contract.py",
+          "sha256": "529fab320a61af25be41e2c0aa25dd94e535ed183efc555e27a7ca27e9b5b6cc"
+        },
+        {
+          "bytes": 6932,
+          "functions": 1,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__"
+          ],
+          "lines": 210,
+          "path": "tools/hia_selfhost_exports.py",
+          "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+        },
+        {
+          "bytes": 8819,
+          "functions": 8,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "copy",
+            "hepta.hia_agent_assembly",
+            "tools.generate_hia_selfhost"
+          ],
+          "lines": 165,
+          "path": "tools/hia_selfhost_exports_cases.py",
+          "sha256": "c5cc5b4aeefcdb639b34c103fb057a6a167ee48080e9ff0f024b1c6cf7a8687c"
+        },
+        {
+          "bytes": 2924,
+          "functions": 1,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "ctypes",
+            "hashlib",
+            "json",
+            "pathlib",
+            "platform",
+            "re",
+            "resource",
+            "sys"
+          ],
+          "lines": 45,
+          "path": "tools/hia_selfhost_exports_child.py",
+          "sha256": "d6a96f7bbdbf3f4e73b6476a247280b32b25c1efcbba598610d90b4fb5daa1de"
+        },
+        {
+          "bytes": 14062,
+          "functions": 8,
+          "implementation_language": "Python",
+          "imports": [
+            "ast",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "tools.generate_hia_selfhost",
+            "tools.hia_selfhost_bulk",
+            "tools.hia_selfhost_cases",
+            "tools.hia_selfhost_loans",
+            "tools.hia_selfhost_multi_results"
+          ],
+          "lines": 277,
+          "path": "tools/hia_selfhost_keywords.py",
+          "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+        },
+        {
+          "bytes": 1853,
+          "functions": 0,
+          "implementation_language": "Python",
+          "imports": [],
+          "lines": 32,
+          "path": "tools/hia_selfhost_limits.py",
+          "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+        },
+        {
+          "bytes": 39803,
+          "functions": 20,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "hepta.hia_program_runtime",
+            "pathlib",
+            "tools.generate_hia_selfhost",
+            "tools.hia_selfhost_bulk",
+            "tools.hia_selfhost_capacity",
+            "tools.hia_selfhost_cases",
+            "tools.hia_selfhost_cfg_worklist",
+            "tools.hia_selfhost_loans",
+            "tools.hia_selfhost_returned_loans",
+            "tools.hia_selfhost_tailcalls",
+            "tools.qualify_hia_selfhost",
+            "tools.qualify_hia_selfhost_cli"
+          ],
+          "lines": 766,
+          "path": "tools/hia_selfhost_names.py",
+          "sha256": "f03aeea600a91932115ff2da88a38f3d74aa2fcfbbe5cc5e767f433dc5a5d982"
+        },
+        {
+          "bytes": 13907,
+          "functions": 8,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "contextlib",
+            "fcntl",
+            "hashlib",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "json",
+            "os",
+            "pathlib",
+            "struct",
+            "subprocess",
+            "time",
+            "tools.generate_hia_native_observer",
+            "tools.hia_selfhost_bulk",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 243,
+          "path": "tools/hia_selfhost_native_observer.py",
+          "sha256": "1fff85eb393143133cee3140d365fd4d111cee57dd4f6807aae766003d151cf4"
+        },
+        {
+          "bytes": 7494,
+          "functions": 0,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__"
+          ],
+          "lines": 249,
+          "path": "tools/hia_selfhost_owned_elf.py",
+          "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+        },
+        {
+          "bytes": 6975,
+          "functions": 7,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "concurrent.futures",
+            "hashlib",
+            "importlib",
+            "json",
+            "os",
+            "pathlib",
+            "subprocess",
+            "sys",
+            "time",
+            "tools.hia_selfhost_contract"
+          ],
+          "lines": 145,
+          "path": "tools/hia_selfhost_references.py",
+          "sha256": "b4b3b5c39452132f05aef1917ac8148a9ade69ce35837d8fe0291bd0bac537b0"
+        },
+        {
+          "bytes": 59029,
+          "functions": 26,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "argparse",
+            "concurrent.futures",
+            "hashlib",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "hepta.hia_program_native",
+            "json",
+            "os",
+            "pathlib",
+            "platform",
+            "shutil",
+            "struct",
+            "subprocess",
+            "sys",
+            "time",
+            "tools.hia_selfhost_bulk",
+            "tools.hia_selfhost_capacity",
+            "tools.hia_selfhost_cases",
+            "tools.hia_selfhost_cfg_worklist",
+            "tools.hia_selfhost_contract",
+            "tools.hia_selfhost_effects",
+            "tools.hia_selfhost_keywords",
+            "tools.hia_selfhost_loans",
+            "tools.hia_selfhost_multi_results",
+            "tools.hia_selfhost_names",
+            "tools.hia_selfhost_native_observer",
+            "tools.hia_selfhost_references",
+            "tools.hia_selfhost_resources",
+            "tools.hia_selfhost_scalar_casts",
+            "tools.hia_selfhost_select",
+            "tools.hia_selfhost_signed_cases",
+            "tools.hia_selfhost_tailcalls",
+            "tools.hia_selfhost_traps",
+            "tools.qualify_hia_selfhost",
+            "tools.qualify_hia_selfhost_chain_elf",
+            "tools.qualify_hia_selfhost_chain_flow",
+            "tools.qualify_hia_selfhost_cli",
+            "tools.qualify_hia_selfhost_exports",
+            "tools.qualify_hia_selfhost_owned_elf"
+          ],
+          "lines": 946,
+          "path": "tools/qualify_hia_selfhost.py",
+          "sha256": "bbe717d5222dc93ff593c9cf9e38bfae7c09d4da1ffb265ae49bf5987a23b843"
+        },
+        {
+          "bytes": 9842,
+          "functions": 5,
+          "implementation_language": "Python",
+          "imports": [
+            "__future__",
+            "hashlib",
+            "hepta.hia_agent_assembly",
+            "hepta.hia_program",
+            "hepta.hia_program_native",
+            "hepta.hia_program_runtime",
+            "json",
+            "pathlib",
+            "sys",
+            "tools.hia_selfhost_exports_cases",
+            "tools.hia_selfhost_process_owner",
+            "tools.qualify_hia_selfhost"
+          ],
+          "lines": 143,
+          "path": "tools/qualify_hia_selfhost_exports.py",
+          "sha256": "8a6ce7f528d6c63195bc5cde60d6a37a8860f47214f797a39af833889b7b3e8a"
+        }
+      ]
+    },
+    "tracked_tree.file_identity_manifest": {
+      "remove": [],
+      "replace_or_add": [
+        {
+          "bytes": 19680,
+          "kind": "file",
+          "language": "other",
+          "path": ".github/workflows/hia-p2-selfhost-results.yml",
+          "role": "ci_workflows",
+          "sha256": "abc9af1a5a141a2e5538d8a72e84c94de1c57d41bc0abc871e805148b701899e"
+        },
+        {
+          "bytes": 8092,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_CORE_JSON_CLI_NATIVE.md",
+          "role": "documentation",
+          "sha256": "d56fbe736a12c562d6d5975809c6dd05727e3d91e0dae1eec3fda66c63c6ca85"
+        },
+        {
+          "bytes": 5371,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_CORE_JSON_FRONTEND_NATIVE.md",
+          "role": "documentation",
+          "sha256": "892c2419632adf40cfaa30754f90e7d73ca2b30cfcbbcfc8959a426e33df599a"
+        },
+        {
+          "bytes": 88815,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_FULL_SELFHOST_AUDIT_20261109.md",
+          "role": "documentation",
+          "sha256": "7027cf1f69e364f9cfc44e0b083add7380934f50c49175c2d65e500a4e4a676d"
+        },
+        {
+          "bytes": 3763,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_JSON_CANONICAL_NATIVE.md",
+          "role": "documentation",
+          "sha256": "b496a07238cf525b6693584a37a2423a072ffe4057d1627daa4fc952ae1dce06"
+        },
+        {
+          "bytes": 4243,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_JSON_DECODE_NATIVE.md",
+          "role": "documentation",
+          "sha256": "0ba0ceac8bc41f18b8d17d5164407fcff54d003f4ac6e735de0d569186789536"
+        },
+        {
+          "bytes": 3951,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_JSON_PREFLIGHT_NATIVE.md",
+          "role": "documentation",
+          "sha256": "403f85eb36ed87e8c8c7d72d0eb821d65c463ec8ae776811e36ce3f617ff09bb"
+        },
+        {
+          "bytes": 6020,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_NATIVE_BYTE_ABI_OBSERVER.md",
+          "role": "documentation",
+          "sha256": "05a0743fcf1c3d20c6d57e6806f6338341d4a58c2702b7ab9b0aecc820107f1c"
+        },
+        {
+          "bytes": 52760,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+          "role": "documentation",
+          "sha256": "c78edf4b167f62f22f92a4005bc6e6277361ca5f4a65e8c8a66360d608903885"
+        },
+        {
+          "bytes": 176606,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json",
+          "role": "documentation",
+          "sha256": "4e57e7c2ed8e5f6c7aaed079963858027d190ceced77720621650aa94bcd9b9f"
+        },
+        {
+          "bytes": 91198,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SELF_HOSTING_CORE.md",
+          "role": "documentation",
+          "sha256": "88b91b681f86b042425841639549dfe788748240b415091e698cdd0ffde3b2f7"
+        },
+        {
+          "bytes": 3164,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SHA256_NATIVE.md",
+          "role": "documentation",
+          "sha256": "1b6c35b8a0890bef85f850f907aedb864ae47dce5815be52aef21cc3dc91e861"
+        },
+        {
+          "bytes": 3852,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SHA256_STREAM_NATIVE.md",
+          "role": "documentation",
+          "sha256": "f47bc3b36132f2167fdc1dd0ebbd2304a0ae4fb53fa33fc8264f6affb2f151ed"
+        },
+        {
+          "bytes": 3340,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/HIA_SOURCE_LEXER_NATIVE.md",
+          "role": "documentation",
+          "sha256": "7fdbf4c0c3bdc5b5d98b3e1054c5f02bb568a2a071a4ca9d09d9e7f64910a34b"
+        },
+        {
+          "bytes": 52010,
+          "kind": "file",
+          "language": "other",
+          "path": "docs/seven-shared-composition.md",
+          "role": "documentation",
+          "sha256": "7d574f111c80f25544231ac906579b9fe3ecab37769f82321b295c64888be48a"
+        },
+        {
+          "bytes": 17753,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
+          "role": "examples",
+          "sha256": "87b88780e8c2b26487fa9964bdcfe94244de7e4c1064d10d9aa3c5da4af75fbb"
+        },
+        {
+          "bytes": 160526,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/core_json_frontend.hiaasm",
+          "role": "examples",
+          "sha256": "33b399f67c58bf4abdef1a2a17de850629777416653eecf2f11f83b04a99b6c0"
+        },
+        {
+          "bytes": 106345,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/json_canonical.hiaasm",
+          "role": "examples",
+          "sha256": "555f4ca8de9b288a163370eb4213d09f724f13cbbb002f75a06401b4401f9b34"
+        },
+        {
+          "bytes": 82026,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/json_decode.hiaasm",
+          "role": "examples",
+          "sha256": "151f00a9645fea753aff528cedf79ee1c761afae82c3ed1a13e463cc914053a9"
+        },
+        {
+          "bytes": 56409,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/json_preflight.hiaasm",
+          "role": "examples",
+          "sha256": "89276ce2c47edab2dc3339434e47bae1b2c726f5681e497c24e10ceddd564c56"
+        },
+        {
+          "bytes": 20355,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/native_observer_packer.hiaasm",
+          "role": "examples",
+          "sha256": "81ece2a11530c9f2292c6921d20d9d080ffadd04a362eba801dd2d1ea499df66"
+        },
+        {
+          "bytes": 451924,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/selfhost.hiaasm",
+          "role": "examples",
+          "sha256": "272efe1caf76710f7e0859ec4b10391001fa5d9875b4552c0a7f57a542d90de8"
+        },
+        {
+          "bytes": 24479,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/sha256.hiaasm",
+          "role": "examples",
+          "sha256": "0723907796b06d47b3f686692b22c727c16eb779150e58d81ea06d803412dcf7"
+        },
+        {
+          "bytes": 30784,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/sha256_stream.hiaasm",
+          "role": "examples",
+          "sha256": "7fdc436867514b3d1dd741e3c3d86c0b95cc19d5b69907d5df9febf29639cb68"
+        },
+        {
+          "bytes": 79112,
+          "kind": "file",
+          "language": "HIA-assembly",
+          "path": "examples/hia_bootstrap/source_lexer.hiaasm",
+          "role": "examples",
+          "sha256": "b22c95e9f0b4b16c04c1150d4f780c7ad2fe9d155886ceb30dec646e2d77439e"
+        },
+        {
+          "bytes": 2652,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_core_json_frontend_native.py",
+          "role": "live_python_package",
+          "sha256": "f49169312647e8e663526a0a3d35a5f1e8e0278c1aae161a16258e98fcf72bd0"
+        },
+        {
+          "bytes": 25616,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_durable_queue.py",
+          "role": "live_python_package",
+          "sha256": "6c7212b891242da141f573e5e93964047ca1774bf554e78cf3354dd2e9d3b9e6"
+        },
+        {
+          "bytes": 10756,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_full_cost_gate.py",
+          "role": "live_python_package",
+          "sha256": "a6d8e5f7355089dc1071d9ce72a5c59973fe9610e31002a3d212176092fa3e49"
+        },
+        {
+          "bytes": 21323,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_incremental.py",
+          "role": "live_python_package",
+          "sha256": "aec831522e1abdb6a20678b63570116bb76605439e1dc2d5bdf35abd9a65caf8"
+        },
+        {
+          "bytes": 3523,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_json_canonical_native.py",
+          "role": "live_python_package",
+          "sha256": "a61dee0998b0161b2284f5d735cf00512bd64816f69d7914f629e553c39a9599"
+        },
+        {
+          "bytes": 2342,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_json_decode.py",
+          "role": "live_python_package",
+          "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+        },
+        {
+          "bytes": 6718,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_json_decode_native.py",
+          "role": "live_python_package",
+          "sha256": "57be95526cca1dd52fd156f131992b6a750800228493afe975c5f50845a29ed1"
+        },
+        {
+          "bytes": 8983,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_json_preflight.py",
+          "role": "live_python_package",
+          "sha256": "e56260ddb2ced64392b17e8d8035dd7d4a2ddcefad0bdb9163fa5a09fc6055f1"
+        },
+        {
+          "bytes": 6321,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_json_preflight_native.py",
+          "role": "live_python_package",
+          "sha256": "66c1c77ebed85c8ae7525521e09d2dba587faab427a84083a0167209e1e2b76f"
+        },
+        {
+          "bytes": 9918,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_native_paired_replay.py",
+          "role": "live_python_package",
+          "sha256": "0b3fcb3020715ec3c522d3659aa35768c1d050146b9ac592b189e53aba0f5abc"
+        },
+        {
+          "bytes": 41627,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_program.py",
+          "role": "live_python_package",
+          "sha256": "a6918558fca70ce4be6ecaed22e39a347486856e7cc8527b8a2ef385bd72b258"
+        },
+        {
+          "bytes": 21012,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_program_tools.py",
+          "role": "live_python_package",
+          "sha256": "972a1fa77d28f79bce104d342ce753148cc690f4f05971be75f2d6ad603b6db6"
+        },
+        {
+          "bytes": 23449,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_rust_byte_dag.py",
+          "role": "live_python_package",
+          "sha256": "738164528fb198e2c7c03b6029ebd610d4f38fd759f7b48588bead8b8bc559da"
+        },
+        {
+          "bytes": 2262,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_sha256_native.py",
+          "role": "live_python_package",
+          "sha256": "c2e1674a1ea25af01bf4439dea33e4a7b7434d3746cbb490bbed8fcc55a8504b"
+        },
+        {
+          "bytes": 2683,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_sha256_stream_native.py",
+          "role": "live_python_package",
+          "sha256": "baeaf8a99d75638fdfccaedb7b096f9476f1697dd007e254208a8a0b91c575df"
+        },
+        {
+          "bytes": 6482,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_source_lexer_native.py",
+          "role": "live_python_package",
+          "sha256": "b4f731e7e55237031e93e895b0f5c098db9d6541302197c932f166953c035dd3"
+        },
+        {
+          "bytes": 44950,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/hia_stateful.py",
+          "role": "live_python_package",
+          "sha256": "e85ac7270b2edf9c3b998e62b01033aac7aab6d610b1395cdb2e25891e5f6b49"
+        },
+        {
+          "bytes": 9782,
+          "kind": "file",
+          "language": "Python",
+          "path": "hepta/lexer.py",
+          "role": "live_python_package",
+          "sha256": "45f09d54a8a01dd266f2971b667f02ee750e1dcf7e133eebd92a4e014e98ed9b"
+        },
+        {
+          "bytes": 60249,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/core-json-cli-native-summary.json",
+          "role": "retained_evidence",
+          "sha256": "20b3108af904440d765deeb84a22f41652eeacf5b6247af2aad8107439119bbb"
+        },
+        {
+          "bytes": 1433,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/export-two-object-c-link-summary.json",
+          "role": "retained_evidence",
+          "sha256": "26aa400140523679b3ba8b1d8408de92f5163dbed7adf3e53baccef6febe8e2f"
+        },
+        {
+          "bytes": 176623,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/full-repository-third-run-summary.json",
+          "role": "retained_evidence",
+          "sha256": "7f4fc46c723c442a3df158dac66639e3485b240dec90cba92e549e547de92e94"
+        },
+        {
+          "bytes": 87991,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-core-json-cli-delta.json",
+          "role": "retained_evidence",
+          "sha256": "243c1dd6bc138a0bff8eb51144538650ed8b406281482367d16962531074aa31"
+        },
+        {
+          "bytes": 97243,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-json-cli-exports-delta.json",
+          "role": "retained_evidence",
+          "sha256": "565f2e2abd9668060d7956dfbae5aaa9bc796d09b2b5af84e99e040e0ae0d8c3"
+        },
+        {
+          "bytes": 89130,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-multiple-exports-delta.json",
+          "role": "retained_evidence",
+          "sha256": "2b6d8b3ecb0438522e0cfe9fcee2c264502a4fa884e5b5d4756ed05f6a297dd2"
+        },
+        {
+          "bytes": 94104,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-native-observer-delta.json",
+          "role": "retained_evidence",
+          "sha256": "1957918e29f40c3a9d79fd7815ef2a97a2d2970e7cd7c0cf78d5b56a781e5304"
+        },
+        {
+          "bytes": 94762,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-native-shared-observer-delta.json",
+          "role": "retained_evidence",
+          "sha256": "abf34d94913cbbf8c3d57e8b5ea107b3a66ab30400792e28d90cc7615bf30e32"
+        },
+        {
+          "bytes": 72002,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-sha256-delta.json",
+          "role": "retained_evidence",
+          "sha256": "361ab91b871417f980ddbd9ae4743e50ee02110859d7e4b3df6249ffba23a3ca"
+        },
+        {
+          "bytes": 83180,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-sha256-stream-delta.json",
+          "role": "retained_evidence",
+          "sha256": "8e2749fcda7ccb041176e34cc63366e55f780335ba9421842404d9c00c029eb0"
+        },
+        {
+          "bytes": 96158,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-source-integer-delta.json",
+          "role": "retained_evidence",
+          "sha256": "389a0ab52f2291dc94102f2c0695ac6905ad93f8d4ca1a5d2495eeaf11f7fa65"
+        },
+        {
+          "bytes": 93753,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-source-lexer-delta.json",
+          "role": "retained_evidence",
+          "sha256": "8f6b89ca97eb5570d5a6471279ecc4870b9eb2e9049a0460648fb9f2f3b515af"
+        },
+        {
+          "bytes": 3464847,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v28.json",
+          "role": "retained_evidence",
+          "sha256": "c21a4c3f5cd4ea97d3cadbde4910e7f110a46e78dda650efa2d23429302b63ea"
+        },
+        {
+          "bytes": 44555,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v29-delta.json",
+          "role": "retained_evidence",
+          "sha256": "d6f9a9d2fbc023739cf3e8b84482a8315edf1eb00cf261e381d7bcbc9b2ff116"
+        },
+        {
+          "bytes": 52532,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v30-delta.json",
+          "role": "retained_evidence",
+          "sha256": "703a69ab268725ff7befc60a93ea1556233afe7eca71249c38d6d8af705a5284"
+        },
+        {
+          "bytes": 64634,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v31-delta.json",
+          "role": "retained_evidence",
+          "sha256": "28751b17113704e27dafadcbe7a01d606403f4a4b5d0e3b74a9253f98af0e7b2"
+        },
+        {
+          "bytes": 68639,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v32-delta.json",
+          "role": "retained_evidence",
+          "sha256": "73d2bcc2d0422b76bb9ec12795744d90195dfdf1c65a9c55de27cb7960d36f40"
+        },
+        {
+          "bytes": 73733,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v33-delta.json",
+          "role": "retained_evidence",
+          "sha256": "77c1ebea2f10920b3d93b1da219ed86361b3052a9187bd132e0311a5d93a2ea5"
+        },
+        {
+          "bytes": 75293,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/implementation-boundary-v34-delta.json",
+          "role": "retained_evidence",
+          "sha256": "b60085c696502e94ff5df0e5f3cff14e547282b8a3555b2a97c29f30a4e372fb"
+        },
+        {
+          "bytes": 132377,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/json-cli-exports-native-summary.json",
+          "role": "retained_evidence",
+          "sha256": "908c4172e17ebf6edd85cd1fa4b256015327c33f5a73e4fc7c658b152c269d0a"
+        },
+        {
+          "bytes": 21577,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/multiple-scalar-exports-summary.json",
+          "role": "retained_evidence",
+          "sha256": "fab217ba8e045483e0c5b66dacb709e7ac1f9937bb49f759d5dfc992cbcebd63"
+        },
+        {
+          "bytes": 72336,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/native-byte-abi-observer-summary.json",
+          "role": "retained_evidence",
+          "sha256": "ebf615132a27242a247a32c5d7b3c0a1f6a84f33522b3175f74daf6077690205"
+        },
+        {
+          "bytes": 63787,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/native-shared-byte-abi-observer-summary.json",
+          "role": "retained_evidence",
+          "sha256": "5d20f335f7b748d6c0269d60d3f37f6deed8b929f18ea7df6f772955d6f5b1c5"
+        },
+        {
+          "bytes": 48566,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/sha256-native-library-summary.json",
+          "role": "retained_evidence",
+          "sha256": "b5eca012afa8fc2e3747ccfd1328c0b6c97d8396b4542efa728f0c8beeac1771"
+        },
+        {
+          "bytes": 19724,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/sha256-stream-native-library-summary.json",
+          "role": "retained_evidence",
+          "sha256": "3ff06e0615301457cedd7a7748bdc749b247e608c7df429a87f2ef5d3dd62e55"
+        },
+        {
+          "bytes": 51188,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-integer-source-equivalence.json",
+          "role": "retained_evidence",
+          "sha256": "2f7a6cabab15d5b6a60dbad2fc6c35413a9029485910677562eae2d04f65c824"
+        },
+        {
+          "bytes": 24199,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-integer-summary.json",
+          "role": "retained_evidence",
+          "sha256": "6a67324074918248ca9b266eaf4c121bc52393281dfb752672116f567a142252"
+        },
+        {
+          "bytes": 247816,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-lexer-open-pr-inventory.json",
+          "role": "retained_evidence",
+          "sha256": "5058f41312c3df560e88997155c02e5beeb353ac208bdecb553dc3ef75a19c24"
+        },
+        {
+          "bytes": 534,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-lexer-remote-cold-failure-summary.json",
+          "role": "retained_evidence",
+          "sha256": "31ab35f2ecc79e007ee7d0091f7d37b656dfbe94bf7debc068f7672558598844"
+        },
+        {
+          "bytes": 44686,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-lexer-source-equivalence.json",
+          "role": "retained_evidence",
+          "sha256": "e461ccd45428751dee647af5da4f404afcb998bfd8f4559b779863b17cc197ee"
+        },
+        {
+          "bytes": 18873,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/source-lexer-summary.json",
+          "role": "retained_evidence",
+          "sha256": "f54e5066e994887c2af79416fa394f66f6a5ace816c118d7ea96d1b2bbc9ae8f"
+        },
+        {
+          "bytes": 6096,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v27-full-hia-test-run-summary.json",
+          "role": "retained_evidence",
+          "sha256": "6be036040d980fbb36d01577bd0ccae33c7ae4c0b902333df67c9b6c331110d5"
+        },
+        {
+          "bytes": 3416,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v27-github-failure-artifacts-summary.json",
+          "role": "retained_evidence",
+          "sha256": "57e4e03dce8c2e55887b84b86333872d6ec1876e1aeb963785f14342b92dc81f"
+        },
+        {
+          "bytes": 33463,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v28-entry-order-summary.json",
+          "role": "retained_evidence",
+          "sha256": "6c39b46e446fcfe934f5376bf234dbd782a96bfe51ddb41b7feef9d3a76fdcc8"
+        },
+        {
+          "bytes": 667864,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v28-full-hia-test-run-summary.json",
+          "role": "retained_evidence",
+          "sha256": "b9bb5a7ded7296768a8cd9319f121c7f9772f1c18e35c4e6a33e3ef55d94d463"
+        },
+        {
+          "bytes": 31558,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v29-module-identifiers-summary.json",
+          "role": "retained_evidence",
+          "sha256": "ee247a6575dfd979eebb74fb61dd0b754fd3111928adeb2ba355645ce4d6c378"
+        },
+        {
+          "bytes": 36554,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v30-json-preflight-summary.json",
+          "role": "retained_evidence",
+          "sha256": "a9ff450f4c6cecdc877740b6b3d3885a1f1e032200a85b7e3d174b4cb4e0b606"
+        },
+        {
+          "bytes": 1598,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v31-full-repository-final-failure-summary.json",
+          "role": "retained_evidence",
+          "sha256": "a05bc8be13eae03f54f2908a33da9be1ffc90f4b6fdcfdef2c311f096baf9387"
+        },
+        {
+          "bytes": 39278,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v31-json-value-arena-summary.json",
+          "role": "retained_evidence",
+          "sha256": "9568b863121276892678b298bb798eb428c54f55aed00d9c9420788e3da58e63"
+        },
+        {
+          "bytes": 46799,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v32-json-canonical-summary.json",
+          "role": "retained_evidence",
+          "sha256": "dd2de472866b4abe9072081572a16f330726df3f4e1aaac8f5e435a0d6fcbf46"
+        },
+        {
+          "bytes": 52928,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v33-core-json-frontend-summary.json",
+          "role": "retained_evidence",
+          "sha256": "502d42481347c97f8c8ea8d2987db793ee6250c8121af4b71a1523cf58c01ff5"
+        },
+        {
+          "bytes": 38035,
+          "kind": "file",
+          "language": "other",
+          "path": "review-evidence/hia-whole-selfhost-20261109/v34-exact-source-closure-summary.json",
+          "role": "retained_evidence",
+          "sha256": "9c63ea9bffd71085ef57bf5370e38714ac57bcd8a4c2623df783264ee1284947"
+        },
+        {
+          "bytes": 21113,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_core_seven_shared_acceptance.py",
+          "role": "tests",
+          "sha256": "0bfdd448770eecf96eae7dfbc2235dd89144a6a4be928a4b1ba0d83b2e69bb2b"
+        },
+        {
+          "bytes": 17503,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_core_seven_shared_source_closure.py",
+          "role": "tests",
+          "sha256": "31cb2518e8f555c19ceb4560fd50e4592979e17ace262668ad33b9899cf697c3"
+        },
+        {
+          "bytes": 22178,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_core_json_cli.py",
+          "role": "tests",
+          "sha256": "13f155e32b8325545f868f7803fb94888cb868c55ce490f2627717394562674b"
+        },
+        {
+          "bytes": 18771,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_core_json_frontend_native.py",
+          "role": "tests",
+          "sha256": "61720f2d1933153fee69226ff05f87eb06d342f894bda5d7acd7379d8eeea1b6"
+        },
+        {
+          "bytes": 13371,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_json_canonical_native.py",
+          "role": "tests",
+          "sha256": "dcb47e28ee99c7e5e328bf9c9d9cc619b52fbc4bc7c990d7bb3226d861168eae"
+        },
+        {
+          "bytes": 12600,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_json_decode_native.py",
+          "role": "tests",
+          "sha256": "403ddc9ded0bd513823d07acb1a0e423c9aae647d130205d61a1076456aae0e4"
+        },
+        {
+          "bytes": 13837,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_json_preflight_native.py",
+          "role": "tests",
+          "sha256": "72d403644528edcbc19ced065e1fad4f429f5d8dd9b6a1764dee857b2937fa7a"
+        },
+        {
+          "bytes": 11744,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_contract.py",
+          "role": "tests",
+          "sha256": "bf2c55ab64d053a1608aa28f51dfce8587658a4bdf6363838db81df53d558fec"
+        },
+        {
+          "bytes": 13512,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_exports.py",
+          "role": "tests",
+          "sha256": "ee29e65b267baee6ec3004ead56b94fe5162a27ba5e9d30fe48da3b45267c0fc"
+        },
+        {
+          "bytes": 4683,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_keywords.py",
+          "role": "tests",
+          "sha256": "b42a20f4625b57fbcf02c57b1fd299887c9f310d1fde27060de343d568201015"
+        },
+        {
+          "bytes": 97901,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_language_coverage.py",
+          "role": "tests",
+          "sha256": "c9db235004af04b333acbd7f6c32378d0de985923fa600f7d0240f3342ecd024"
+        },
+        {
+          "bytes": 11041,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_native_observer.py",
+          "role": "tests",
+          "sha256": "d88346f9278cb38efe42c96db83ac1d088c62c59c2a0d0ccda093956b8f1d49a"
+        },
+        {
+          "bytes": 5898,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_selfhost_word_io.py",
+          "role": "tests",
+          "sha256": "d324b01fd337284e3e1df5a4722a01b38790f41e5073efbb7409df94d438d7d1"
+        },
+        {
+          "bytes": 8185,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_sha256_native.py",
+          "role": "tests",
+          "sha256": "20a89b473b5cb5b984f769a9f57fa639003b3ec987217b6cc8f60bb9036dd0dd"
+        },
+        {
+          "bytes": 11019,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_sha256_stream_native.py",
+          "role": "tests",
+          "sha256": "1d288e9393834ec5d5843eafbf42573645a6dc24eb283a77785d746e8c3c7c3b"
+        },
+        {
+          "bytes": 17087,
+          "kind": "file",
+          "language": "Python",
+          "path": "tests/test_hia_source_lexer_native.py",
+          "role": "tests",
+          "sha256": "7911a4b34be6ad1bdd23ffb1a608732256102cd2877231a46748bacda8ed4e41"
+        },
+        {
+          "bytes": 14641,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/audit_hia_selfhost_closure.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "e491d51f886f0d564f2107f7e06e725f9c4e6a7f98e3549c7581726d7766626b"
+        },
+        {
+          "bytes": 4439,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_core_json_cli.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "37ff967c17e75aaf04d151c720f7475a89e1a767b8c4d9066183a5ebc2d86515"
+        },
+        {
+          "bytes": 808,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_core_json_frontend.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "5f79b87eb22210251943941d95820687dab500e78b343a4abad93b356280163f"
+        },
+        {
+          "bytes": 811,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_json_canonical.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "f0fbe4617e3d111fd3120b5b55cbe4b090dc5f13243f39e501ace72ce28fe1ed"
+        },
+        {
+          "bytes": 808,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_json_decode.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "00a4999db5f939fe8ada2fad2be6d47c51ccab595212bfee81dbbe488c91e0c0"
+        },
+        {
+          "bytes": 4552,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_json_preflight.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "0daa082d3ac87bae1d108a97f5fbe91db3dcb283b604522e718f7509dab89f1b"
+        },
+        {
+          "bytes": 3438,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_sha256.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "5a17d91ebe5d4ecb718fe5036c29db1a3c9cb7cc5aab82acc652201d17de1502"
+        },
+        {
+          "bytes": 3167,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/build_hia_source_lexer.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "8c96bc135648ecaacb2a0db0666df4218eae3e74a5ca542208f78cbec77fc063"
+        },
+        {
+          "bytes": 3317,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/compile_hia_core_json.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "5e75a2853797b5568c7e472a701cdc11047d31665efa47b39ef44a13d58bdade"
+        },
+        {
+          "bytes": 45872,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/core_seven_shared_acceptance_plan.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "d2308e30580a398c209bf185ecf77ba989f440d2726867c725bcce35ba6be6fd"
+        },
+        {
+          "bytes": 7694,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_core_json_cli.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "3a43b995305275416a33bd612381d3ad3b0ee9b1026b0420c3897f8ecc237a9c"
+        },
+        {
+          "bytes": 14799,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_core_json_frontend.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "059f7beec21291a2572f9cb82ff66de27584f17c7ef362869b2be2cba0718d25"
+        },
+        {
+          "bytes": 7307,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_json_canonical.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "063053bf7539a605ee834bd32e6a07b98ebd0c6b027af0b224b7f9107b9d47d9"
+        },
+        {
+          "bytes": 8178,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_json_decode.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "fffc97c704cc75ad88239fe79d7b7f83418199a732364f834e006ebfd5f8548f"
+        },
+        {
+          "bytes": 12383,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_json_preflight.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "e1c03f776840f5139c4ac197586e1b676ff9d2739c817a403d46baf4d6eb0ec4"
+        },
+        {
+          "bytes": 5060,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_native_observer.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "057da1a391db3c43d89333126df40175cad4ef38bd1812f952b92d8a5a0f7bfb"
+        },
+        {
+          "bytes": 78986,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_selfhost.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "06f0bcdda41685d797613acafed8b2913f4947b27e45285a56ce8eaa8943d641"
+        },
+        {
+          "bytes": 5474,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_sha256.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "4114a26ff0ea47229bccbedadcb40efdd9715a8dd0739d2fcb55c98f8ddbdf97"
+        },
+        {
+          "bytes": 4420,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_sha256_stream.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "247816be2a50d384a6dd86a1d8cad909a48fbcdef54444f2394a7789fb137238"
+        },
+        {
+          "bytes": 14159,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/generate_hia_source_lexer.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "61332635f3d5430023d6619cfd578e8fd807deeb3417d81bca413a1f16db96ba"
+        },
+        {
+          "bytes": 3763,
+          "kind": "file",
+          "language": "other",
+          "path": "tools/hia_native_observer_template.S",
+          "role": "host_authoring_build_qualification",
+          "sha256": "59854cb21370e5e1a20901a7c6749e96cfa4f14efa0b50d8fe5174a83d433a94"
+        },
+        {
+          "bytes": 39733,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_release.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "c208d086d5676be0865673fb3be0c374c7ad78e03fa02ffa8f8779e52ac654ab"
+        },
+        {
+          "bytes": 24849,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_contract.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "529fab320a61af25be41e2c0aa25dd94e535ed183efc555e27a7ca27e9b5b6cc"
+        },
+        {
+          "bytes": 6932,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_exports.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+        },
+        {
+          "bytes": 8819,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_exports_cases.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "c5cc5b4aeefcdb639b34c103fb057a6a167ee48080e9ff0f024b1c6cf7a8687c"
+        },
+        {
+          "bytes": 2924,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_exports_child.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "d6a96f7bbdbf3f4e73b6476a247280b32b25c1efcbba598610d90b4fb5daa1de"
+        },
+        {
+          "bytes": 14062,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_keywords.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+        },
+        {
+          "bytes": 1853,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_limits.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+        },
+        {
+          "bytes": 39803,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_names.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "f03aeea600a91932115ff2da88a38f3d74aa2fcfbbe5cc5e767f433dc5a5d982"
+        },
+        {
+          "bytes": 13907,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_native_observer.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "1fff85eb393143133cee3140d365fd4d111cee57dd4f6807aae766003d151cf4"
+        },
+        {
+          "bytes": 7494,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_owned_elf.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+        },
+        {
+          "bytes": 6975,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/hia_selfhost_references.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "b4b3b5c39452132f05aef1917ac8148a9ade69ce35837d8fe0291bd0bac537b0"
+        },
+        {
+          "bytes": 59029,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/qualify_hia_selfhost.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "bbe717d5222dc93ff593c9cf9e38bfae7c09d4da1ffb265ae49bf5987a23b843"
+        },
+        {
+          "bytes": 9842,
+          "kind": "file",
+          "language": "Python",
+          "path": "tools/qualify_hia_selfhost_exports.py",
+          "role": "host_authoring_build_qualification",
+          "sha256": "8a6ce7f528d6c63195bc5cde60d6a37a8860f47214f797a39af833889b7b3e8a"
+        }
+      ]
+    }
+  },
+  "schema": "hepta.hia.whole-selfhost-static-audit-delta.v1",
+  "whole_stack_rewritten_in_hia": false
+}

@@ -1327,6 +1327,65 @@ release, production/runtime and default retirement remain open. Static audit
 still records 218 package Python files and 423 tool Python files, with **3 partial
 / 5 open** components. Neither full-repository acceptance nor whole-stack HIA
 closure is claimed.
+
+## Unified native component qualification: exact subject 4f95ee9
+
+The standalone JSON Core CLI/export compiler, incremental SHA library, native
+source lexer with arbitrary-size bounded integer magnitudes, exact keyword
+buckets and shared-output native observer are now integrated in one source
+subject: `4f95ee91fd3aac0513135e22512f310ed806267d`. The combined source is
+qualified afresh; individual fork receipts are not treated as combined evidence.
+
+Completed local pipeline, Git-clean before and after every step:
+
+- Actual recovery/regeneration workflow:108tests PASS.
+- Source-only cold replay:11/11 checks and5,049/5,049 native checks PASS in
+  101.204seconds nested, retaining the180-second gate and separate3-second
+  cleanup. All328 exported payloads match the committed source bytes.
+- Language:1,242checks plus10assertions PASS; combined native components:96tests
+  PASS; exact shared-source closure:15tests PASS.
+- Actual B3 builds decoder/canonicalizer/SHA/Core frontend/source lexer and both
+  flat/ELF standalone JSON CLI profiles. Selected/default existing consumers:
+  83tests each PASS; selected incremental policy:55PASS. Selected/default real
+  parser and module callers:63tests each PASS.
+- Actual installed CLI outputs execute through fresh HIA-emitted native observer
+  children without the legacy fallback, with syscall traces retained. Two
+  independently compiled export objects still link to a real typed C caller,
+  including16mixed scalar arguments and independent VM comparison. C/linking
+  remain explicitly foreign.
+
+The combined v17 source identity contains389explicit paths and all220actual
+root compiler modules. Both the separate370-path lexer fork and384-path observer
+fork, plus every older projection, remain exact. The new661metadata bytes are
+offset by661fewer raw-log bytes; aggregate evidence stays1048576bytes and all
+other physical capacities/deadlines/worker counts remain unchanged.
+
+Initial combined subject4a44a37 passed source108 and cold5049, but review found
+the CLI execution fixture still expected the old HIAOBR01 response marker. After
+the in-flight cold owner completed and confirmed cleanup, remaining orchestration
+was cancelled, not labelled an accepted pipeline. The fixture was corrected to
+the actual HIAOBR02 wire protocol and this fresh complete pipeline reran. An
+intermediate launcher incorrectly reused an existing source-CI output path and
+failed before test execution; that harness failure is also retained. Neither
+failure was hidden by reusing a receipt or deleting tests.
+
+Separately, shared-observer remote run
+[42764255774](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42764255774)
+onb4b1e4c failed cold qualification at unchanged180seconds:28/38phases completed,
+zero phase exceptions, owned cleanup complete. Its complete artifact and job
+logs are retained. The prior a19b612 remote success and this combined local PASS
+do not override that failure or qualify a new remote source. Combined-source
+remote CI and full-repository regression require their own fresh outcomes.
+
+Reviewable `integrated-native-stack-summary.json` and the lossless
+`implementation-boundary-integrated-stack-delta.json` bind this exact subject.
+Static inventory:220package Python files/76,872lines and428tool Python
+files/134,501lines. Tool counts include build/authoring/qualification machinery,
+not just production runtime. The ledger remains**3partial/5open**: literal ISA
+authoring, parent supervision/oracles, B0, host object construction, AST and type
+checking, module/runtime authorities and build/link/release still need work.
+No production/default switch, main merge, full-language/all-input equivalence,
+full-repository PASS or whole-stack HIA closure is claimed.
 This checks real multi-object linkage and typed C ABI calls. It is not a
 Hepta source-module graph resolver, a native linker implementation or a
 whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.
