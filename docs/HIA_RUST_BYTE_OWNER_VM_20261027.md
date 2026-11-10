@@ -3,7 +3,7 @@
 This document records the byte-owner v3 and returned-loan v4 boundaries and
 historical evidence. The same Machine has a separately identified
 [v5 chain capability set](HIA_RUST_RETURNED_CHAINS_V8.md), including the
-[owned-memory corpus](HIA_RUST_OWNED_MEMORY_VM_20261028.md) for source/nominal
+owned-memory corpus (historical path `HIA_RUST_OWNED_MEMORY_VM_20261028.md`; not shipped in this tree) for source/nominal
 lowering, actual observations and negative controls. Modules without chains
 retain the v3/v4 profiles described below. Historical counts do not qualify
 the expanded implementation or a later integrated revision.

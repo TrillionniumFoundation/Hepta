@@ -110,8 +110,8 @@ python -B tools/qualify_hia_selfhost_owned_elf.py --compiler native.evidence/B3.
 
 All 17 changed source files, their byte lengths, SHA256 values and Git blob
 identities are listed in
-[`source-manifest.json`](../review-evidence/hia-selfhost-owned-elf-20261108-5e6c/source-manifest.json).
-[`qualification-summary.json`](../review-evidence/hia-selfhost-owned-elf-20261108-5e6c/qualification-summary.json)
+`source-manifest.json` (historical path `../review-evidence/hia-selfhost-owned-elf-20261108-5e6c/source-manifest.json`; not shipped in this tree).
+`qualification-summary.json` (historical path `../review-evidence/hia-selfhost-owned-elf-20261108-5e6c/qualification-summary.json`; not shipped in this tree)
 records the scoped results and all archive hashes. The native, cold, language
 and preliminary ZIPs retain source inputs, machine artifacts, source-only
 export, independent references, object inspection, linker logs and raw child

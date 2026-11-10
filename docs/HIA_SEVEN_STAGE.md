@@ -67,7 +67,7 @@ unused helpers and code hidden by small execution budgets. Nominal inputs
 first require normalization; Rust does not directly interpret a nominal
 schema. Python Core remains the standalone/native admission authority.
 See the [consumer support table](HIA_PROGRAM.md) and
-[current Rust memory execution profile](HIA_RUST_OWNED_MEMORY_VM_20261028.md).
+current Rust memory execution profile (historical path `HIA_RUST_OWNED_MEMORY_VM_20261028.md`; not shipped in this tree).
 The general static step/live-payload analyzers retain their declared schema
 and cycle restrictions. A partial-v3 call-depth result does not imply a static
 bound on chain destruction or live heap; unsupported analyses return unknown

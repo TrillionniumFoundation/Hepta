@@ -40,7 +40,7 @@ admitted only with a compatible bound original-type receipt and the required
 pointer contract. Runtime-sized parameter entry effects and forged/mismatched
 types refuse. Strict JSON contracts distinguish absent from empty input and
 reject duplicate keys and unsupported Python object hooks. See
-[C_ORIGINAL_PARAMETER_TYPES.md](C_ORIGINAL_PARAMETER_TYPES.md).
+C_ORIGINAL_PARAMETER_TYPES.md (historical path `C_ORIGINAL_PARAMETER_TYPES.md`; not shipped in this tree).
 
 Native scalar optimization keeps its v1–v7 boundary. A v8 Core that can be
 interpreted or directly compiled does not thereby enter a scalar proof or

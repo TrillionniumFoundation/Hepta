@@ -3,7 +3,7 @@
 Status: normative interface design, 2026-11-06. The accompanying
 [`HIA_AGENT_NATIVE_TOOL_CATALOG.json`](HIA_AGENT_NATIVE_TOOL_CATALOG.json) is the
 versioned application contract. The implementation and its separate execution
-evidence are tracked in [`HIA_AGENT_NATIVE_IMPLEMENTATION.md`](HIA_AGENT_NATIVE_IMPLEMENTATION.md).
+evidence are tracked in `HIA_AGENT_NATIVE_IMPLEMENTATION.md` (historical path `HIA_AGENT_NATIVE_IMPLEMENTATION.md`; not shipped in this tree).
 Schema validation alone is not native execution qualification or a self-hosting claim.
 
 ## 1. Product decision

@@ -87,7 +87,7 @@ being restored. All crate source/test files and `Cargo.lock` were checked to be
 byte-identical to the merged checkout after the run. The five `include_bytes!`
 fixtures were checked against their Git blob identities, which are identical in
 both input commits. The manifest, full test log and machine-readable result are
-in [`reports/hia-six-track-convergence-20261030/safety-dynamic/rust`](../reports/hia-six-track-convergence-20261030/safety-dynamic/rust).
+in `reports/hia-six-track-convergence-20261030/safety-dynamic/rust` (historical path `../reports/hia-six-track-convergence-20261030/safety-dynamic/rust`; not shipped in this tree).
 
 This test includes the retained v3/v4 invocation contracts and the added static
 budget, finite-entry heap, raw byte-DAG admission and abort-cleanup unit tests.

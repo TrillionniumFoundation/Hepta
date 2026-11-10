@@ -152,7 +152,7 @@ The three authored API trace profiles are small transfers, bursts, and transfers
 near capacity. Each trace has 4,096 records. Training uses seed `1708132849` and
 four passes. Development already observed seed `2097394567`; its protocol and
 negative result remain separately archived. The
-[registered amendment](../experiments/ring_optimization/AMENDMENT_20261030.json)
+registered amendment (historical path `../experiments/ring_optimization/AMENDMENT_20261030.json`; not shipped in this tree)
 changes only the formal held-out seed to `3698156298`, selected by one OS-random
 draw before its input generation or execution. The unit trace-generation test
 uses the fixed development seeds so ordinary CI cannot consume the new formal
@@ -196,7 +196,7 @@ there was no parameter change, replacement seed, or result-driven retry.
 
 ### Maintenance and host result
 
-The [formal maintenance result](../experiments/ring_maintenance/RESULT_20261030.json)
+The formal maintenance result (historical path `../experiments/ring_maintenance/RESULT_20261030.json`; not shipped in this tree)
 records 1,380 actual top-level process invocations and an 11.485-second
 instrumented qualification. That count is not the total of all compiler
 subprocesses or forked descendants in the operating system.
@@ -221,7 +221,7 @@ the migrated arm even where its observed batch/runtime values are lower.
 
 ### Strong-static optimization result
 
-The [formal optimization result](../experiments/ring_optimization/RESULT_20261030.json)
+The formal optimization result (historical path `../experiments/ring_optimization/RESULT_20261030.json`; not shipped in this tree)
 contains 82 actual top-level process invocations, including 60 held-out
 invocations and real positive
 LLVM IR counters for all nine APIs. Every arm executed 983,040 held-out
@@ -245,10 +245,10 @@ optimization, or universal performance advantage is inferred.
 
 ### Published receipts
 
-The [maintenance receipt archive](../experiments/ring_maintenance/EVIDENCE_20261030.tar.gz)
+The maintenance receipt archive (historical path `../experiments/ring_maintenance/EVIDENCE_20261030.tar.gz`; not shipped in this tree)
 contains 4,260 retained textual/stream artifacts and is 918,639 bytes, SHA-256
 `129436aa33bb440da1fd2345640858098a64b8954316f6bd7319d511e841bcfd`.
-The [optimization receipt archive](../experiments/ring_optimization/EVIDENCE_20261030.tar.gz)
+The optimization receipt archive (historical path `../experiments/ring_optimization/EVIDENCE_20261030.tar.gz`; not shipped in this tree)
 contains 329 such artifacts and is 535,071 bytes, SHA-256
 `ae1a4668b02b21c194633c40c875d03e77bd96d0e373c6ad8f0c213dcffda22a`.
 Their manifests explicitly inventory the 21 and 14 omitted native/replayable

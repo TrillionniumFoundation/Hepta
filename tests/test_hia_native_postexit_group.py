@@ -103,12 +103,18 @@ class HIANativePostExitGroupTests(unittest.TestCase):
                     return 7;
                 }}
             """)
-            with self.assertRaisesRegex(
-                    HIADifferentialRejected,
-                    "unexpected error/signal " + str(-signal.SIGSYS)):
-                self._run(library, "stall", timeout=0.35)
-            time.sleep(1.1)
-            self.assertFalse(marker.exists(), "native fork escaped pre-load syscall denial")
+            # The short budget includes interpreter setup and can expire
+            # before native entry. Keep its refusal, and independently require
+            # the exact kernel signal with the existing 2s observation budget.
+            for budget in (0.35, 2.0):
+                with self.subTest(timeout=budget):
+                    expected="unexpected error/signal " + str(-signal.SIGSYS)
+                    if budget==0.35:
+                        expected+="|native child timed out; process group terminated"
+                    with self.assertRaisesRegex(HIADifferentialRejected,expected):
+                        self._run(library, "stall", timeout=budget)
+                    time.sleep(1.1)
+                    self.assertFalse(marker.exists(), "native fork escaped pre-load syscall denial")
 
     def test_nonforking_timeout_still_terminates_worker(self):
         with tempfile.TemporaryDirectory() as td:

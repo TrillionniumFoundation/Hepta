@@ -60,7 +60,7 @@ four-pair authored-task result, prior failures and unknown fees remain intact.
 
 ## Original evidence
 
-The [original archive](../review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip)
+The original archive (historical path `../review-evidence/hia-ndu-scalar-controls-20261108-23d1/original-campaign.zip`; not shipped in this tree)
 is 1,283,026 bytes with SHA-256
 `d9025d10bacdd5e8558625c26fce40130effc87e05fe962a2387bfd4680add6d`.
 It contains the pre-execution plan, all 128 original scheduled cell records,
@@ -69,7 +69,7 @@ image, original request/reply streams, test log and verification result.
 
 The frozen plan SHA-256 is
 `882a8c1e8ed96c0b409c8f4183f6b6e079bafbe76a9872666b44304f1acbc493`.
-[Independent offline verification](../review-evidence/hia-ndu-scalar-controls-20261108-23d1/VERIFICATION.json)
+Independent offline verification (historical path `../review-evidence/hia-ndu-scalar-controls-20261108-23d1/VERIFICATION.json`; not shipped in this tree)
 checked all 307 objects and 128 scheduled cells without launching new native
 or provider calls. Eight evidence-integrity regression tests passed.
 

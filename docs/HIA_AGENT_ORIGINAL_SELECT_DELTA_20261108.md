@@ -107,7 +107,7 @@ python -B tools/qualify_hia_agent_original_select_delta.py \
   --output fresh-strict-replay
 ```
 
-See [`analysis.json`](../review-evidence/hia-agent-original-select-delta-20261108-5e6c/analysis.json)
+See `analysis.json` (historical path `../review-evidence/hia-agent-original-select-delta-20261108-5e6c/analysis.json`; not shipped in this tree)
 for the measured worker identities, all checker/source bindings, exact result
 statuses and the remaining property boundary. This is a new isolated worker
 reenactment, not remote MCP endpoint qualification, production deployment or a

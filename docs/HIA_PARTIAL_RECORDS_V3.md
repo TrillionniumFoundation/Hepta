@@ -118,7 +118,7 @@ loans. Composite v3 normalizes to primitive v7: a v8 `return_loans` declaration
 inside this nominal input is rejected, never silently erased. The primitive v8
 verifier, VM and existing returned-loan execution path are unchanged.
 
-The later [composite v4](HIA_COMPOSITE_RETURNED_LOANS_V4.md) is an explicit new
+The later composite v4 (historical path `HIA_COMPOSITE_RETURNED_LOANS_V4.md`; not shipped in this tree) is an explicit new
 input profile targeting primitive v8. It permits primitive loan results with
 original-parameter/field contracts while retaining these partial-state rules.
 V3 bytes still normalize to v7 and reject the new annotations. Partial states,

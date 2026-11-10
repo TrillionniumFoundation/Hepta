@@ -21,11 +21,11 @@ than persistent NDU in every paired comparison.
 **P2 remains HOLD.** This is a transport optimization with a measured
 single-request regression. It does not establish incremental NDU value over
 the strong ordinary control or an economic benefit. Both earlier
-[prepared-image campaigns](HIA_NDU_PREPARED_RANKING.md) and the historical
+prepared-image campaigns (historical path `HIA_NDU_PREPARED_RANKING.md`; not shipped in this tree) and the historical
 four-pair task campaign retain their own outcomes and source identities.
 
 Complete original records, costs, source snapshots and independent replay are
-in [the persistent evidence directory](../review-evidence/hia-ndu-persistent-20261108-5e6c/).
+in the persistent evidence directory (historical path `../review-evidence/hia-ndu-persistent-20261108-5e6c/`; not shipped in this tree).
 
 ## Explicit transport profile
 
@@ -294,7 +294,7 @@ criteria.
 
 ## Later source-bound CI observation: 14b2c03c
 
-The [complete retained 14b2c03c campaign](../review-evidence/hia-ndu-14b-ci-20261108-5e6c/README.md)
+The complete retained 14b2c03c campaign (historical path `../review-evidence/hia-ndu-14b-ci-20261108-5e6c/README.md`; not shipped in this tree)
 contains 72 completed cells, no failed or unstarted cells, no automatic retries,
 1,020 native responses from 534 processes, and 510 byte-identical native-response
 pairs. At horizon one, persistent transport won 2/6 pairs and its aggregate

@@ -63,4 +63,4 @@ This catalog generates local checking and agent discovery. The ownership/CFG che
 
 Core v8 adds explicit `return_loans` contracts; it does not invent new opcodes. Assembly v1 accepts explicit primitive v6/v7/v8 and preserves this field. Historical schemas are accepted only through their named adapters; no profile is guessed.
 
-Query the complete version-specific JSON with `hepta hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.
+Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.

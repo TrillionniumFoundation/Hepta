@@ -273,5 +273,5 @@ def render_opcode_reference() -> str:
         rows.append(f"| `{spec.name}` | v{spec.since} | {fmt(spec.operands)} | {fmt(spec.results)} | {fmt(spec.attributes)} | {fmt(spec.effects)} | {fmt(spec.guards)} |")
     rows += ["", "`int.cast` additionally requires `trap` in checked mode. `call` propagates all callee effects. Traps abort; normal/error-as-value returns must balance ownership. VM fuel, call depth, native stack, payload and allocator overhead are separate budgets.", "",
         "Core v8 adds explicit `return_loans` contracts; it does not invent new opcodes. Assembly v1 accepts explicit primitive v6/v7/v8 and preserves this field. Historical schemas are accepted only through their named adapters; no profile is guessed.", "",
-        "Query the complete version-specific JSON with `hepta hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.", ""]
+        "Query the complete version-specific JSON with `hia catalog --schema hepta.hia.program.v8`. The catalog includes terminators, conditional effects, resource transitions, trap descriptions and exact scope limitations.", ""]
     return "\n".join(rows)

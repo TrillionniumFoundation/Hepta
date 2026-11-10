@@ -274,8 +274,8 @@ resolution rejects unknown names, wrong generic arity, recursive by-value
 layouts and resource-budget expansion. Type definitions, instantiations,
 nesting and flattened fields have explicit finite limits. Unused declarations
 are checked for shape, type references and cycles; generic layouts are fully
-checked at concrete instantiation. Composite input provides generic nominal type parameters;
-bounded generic function specialization belongs to the existing source adapter.
+checked at concrete instantiation. Composite input provides generic nominal type parameters. There is no
+high-level source adapter or source-function specialization route.
 
 `record.make` consumes linear fields into a record. `record.unpack` consumes a
 linear record and returns all fields. `record.get` may copy a non-linear field;
@@ -364,11 +364,9 @@ and does not acquire v8 returned-loan contracts. See
 effect, error and cooperative-cleanup rules and
 `examples/hia_program/partial_record.hia` for a checked input.
 
-The source adapter separately preserves original scalar export eligibility
-before specialization and scalarization. A record that flattens to one scalar
-does not thereby become a C scalar entrypoint. Checked source field restoration
-uses the existing primitive v1 path; it does not silently upgrade a source
-program or declare a general uninitialized-memory model.
+Core exports are explicit verified declarations. Flattening a record into a
+scalar does not grant a foreign ABI entrypoint. Composite normalization and
+primitive admission remain independent of the removed source language.
 
 ## Interpreter, native code and external conditions
 

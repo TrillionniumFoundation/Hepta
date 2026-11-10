@@ -5,9 +5,42 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import shutil
 from tools.check_hia_core_only import check, ROOT
 
 class CoreOnlyTests(unittest.TestCase):
+    def test_stale_string_selector_refuses_instead_of_disappearing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            (root/'tools').mkdir()
+            (root/'tools/gate.py').write_text("SUITE = ('tests.test_deleted_language',)\n")
+            with self.assertRaisesRegex(ValueError,'absent test selector'):
+                check(root)
+
+    def test_relative_alias_import_of_removed_parser_refuses(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            (root/'hepta').mkdir()
+            (root/'hepta/bridge.py').write_text('from . import parser as old_parser\n')
+            with self.assertRaisesRegex(ValueError,'deleted-language import'):
+                check(root)
+
+    def test_removed_cli_instruction_cannot_return_through_documentation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            (root/'docs/START.md').write_text('Run `hepta hia build input.json`.\n')
+            with self.assertRaisesRegex(ValueError,'removed CLI instruction'):
+                check(root)
+
     def test_actual_tree_has_no_high_level_source_or_import(self):
         self.assertEqual(check()['status'],'PASS')
 

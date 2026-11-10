@@ -74,7 +74,7 @@ It refuses unsupported adjusted/computed declarators, rather than rewriting
 them as pointer contracts. The responsible declaration retains its diagnostic
 code separately from later unattempted declarations.
 
-See [C_MIGRATION.md](C_MIGRATION.md). This is a finite admission repair, not
+See C_MIGRATION.md (historical path `C_MIGRATION.md`; not shipped in this tree). This is a finite admission repair, not
 a universal C declarator analysis, source-equivalence proof or arbitrary C++
 migration qualification. Native counterexamples retain the exact earlier
 source identity that produced them.

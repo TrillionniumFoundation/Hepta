@@ -16,7 +16,7 @@ application-level performance result.
 ## Source maintenance and functional contract
 
 The mandatory first stage is the existing
-[`qualify_hia_stb_divide_update.py`](../tools/qualify_hia_stb_divide_update.py).
+`qualify_hia_stb_divide_update.py` (historical path `../tools/qualify_hia_stb_divide_update.py`; not shipped in this tree).
 It pins both full upstream headers, captures their exact compile configuration,
 migrates all six definitions, lowers both versions to Core and direct LLVM,
 and retains original C, Core interpreter and native observations. The service
@@ -47,7 +47,7 @@ specified for HIA, original C/C++, and the independent Rust implementation:
 | `service_stb_div_eucl` | Euclidean quotient, with nonnegative remainder |
 | `service_stb_mod_trunc` | Remainder corresponding to truncating division |
 | `service_stb_mod_floor` | Remainder with the divisor's sign when nonzero |
-| `service_stb_mod_eucl` | Remainder in `[0, abs(divisor))` |
+| `service_stb_mod_eucl` | Remainder in `0, abs(divisor))` |
 
 Every function has the Linux x86-64 C ABI `int64_t(int32_t, int32_t)`.
 Successful results are signed 32-bit integers. A zero divisor returns
@@ -80,7 +80,7 @@ The fixed policy is:
 
 This policy is required by both `execute_program` and
 `build_program_native`, through the existing composed
-[`qualify_bounded_resources`](HIA_BOUNDED_BYTE_PROFILE.md) admission. The
+[`qualify_bounded_resources` (historical path `HIA_BOUNDED_BYTE_PROFILE.md`; not shipped in this tree) admission. The
 current translation has 18 explicit exports: six original translated bodies,
 translation helpers and six service wrappers. Every explicit export and the
 private definition graph participates in the reused analyses; the profile is

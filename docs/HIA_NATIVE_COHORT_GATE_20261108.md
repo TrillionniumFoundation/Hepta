@@ -74,9 +74,9 @@ python -m unittest tests.test_hia_native_cohort_gate \
 
 Retained evidence:
 
-- [Original-assessor red test log](../review-evidence/hia-native-cohort-gate-20261108/reproduced-red-tests.log)
-- [Recovered candidate focused test log](../review-evidence/hia-native-cohort-gate-20261108/recovered-focused-tests.log)
-- [Source identities and result summary](../review-evidence/hia-native-cohort-gate-20261108/validation.json)
+- Original-assessor red test log (historical path `../review-evidence/hia-native-cohort-gate-20261108/reproduced-red-tests.log`; not shipped in this tree)
+- Recovered candidate focused test log (historical path `../review-evidence/hia-native-cohort-gate-20261108/recovered-focused-tests.log`; not shipped in this tree)
+- Source identities and result summary (historical path `../review-evidence/hia-native-cohort-gate-20261108/validation.json`; not shipped in this tree)
 
 Existing historical benchmark receipts were not rerun or rewritten; this patch
 does not establish their completeness under the stronger assessor until their

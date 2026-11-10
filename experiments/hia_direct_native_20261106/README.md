@@ -52,9 +52,9 @@ returned loans, and existing source-to-Core fixtures.
 
 ```sh
 python -B tools/qualify_hia_direct_native.py --output /tmp/hia-direct-result.json
-python -m hepta hia build examples/hia_program/parameter_loan_return_v8.hia \
+hia build examples/hia_program/parameter_loan_return_v8.hia \
   --backend native --kind object -o /tmp/hia-direct-v8.o
-python -m hepta hia build examples/hia_program/parameter_loan_return_v8.hia \
+hia build examples/hia_program/parameter_loan_return_v8.hia \
   --backend native --kind shared --linker ld -o /tmp/hia-direct-v8.so
 ```
 

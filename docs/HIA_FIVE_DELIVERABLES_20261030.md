@@ -20,14 +20,14 @@
 | 5. Agent 表示对照复制 | 原三臂、双模型、四任务协议保持不变；重新登记并执行新回答，保留全部失败和成本 | **复制已完成，优势验收失败**：24 cells、47 次请求；Qwen 0/12、Granite 2/12，成功均为 Rust | compact HIA 相对 JSON HIA 或 Rust 的开发优势；跨模型优势结论 |
 
 表中的独立资格各有冻结源码、登记和作用范围。测试数、案例数、原生观察数不是同一种计量，不能相加成一个“总覆盖率”。最终状态入口为
-[ACCEPTANCE.json](../evidence/hia_five_deliverables_20261030/ACCEPTANCE.json)；
+ACCEPTANCE.json (historical path `../evidence/hia_five_deliverables_20261030/ACCEPTANCE.json`; not shipped in this tree)；
 集成终态入口为
-[integration/attempt03/RESULT.json](../evidence/hia_five_deliverables_20261030/integration/attempt03/RESULT.json)。
+integration/attempt03/RESULT.json (historical path `../evidence/hia_five_deliverables_20261030/integration/attempt03/RESULT.json`; not shipped in this tree)。
 没有终态文件或终态不成功时，均不能把 pending 改为通过。
 
 ## 2. 共同语义：资源安全究竟保证什么
 
-[执行与资源合同](HIA_SEMANTICS_CONTRACT.md)把紧凑 assembly、JSON Core、名义复合资源和受限源语言适配器接到实际的 standalone Core 上。源输入的哈希、canonical Core 的哈希和最后执行的 native 字节是不同身份；其中一个一致不能自动证明另外两个等价。
+执行与资源合同 (historical path `HIA_SEMANTICS_CONTRACT.md`; not shipped in this tree)把紧凑 assembly、JSON Core、名义复合资源和受限源语言适配器接到实际的 standalone Core 上。源输入的哈希、canonical Core 的哈希和最后执行的 native 字节是不同身份；其中一个一致不能自动证明另外两个等价。
 
 整数语义明确区分 checked 与 wrapping。checked 加减乘检查数学结果范围；checked shift 检查移位量，不能误解为结果也不丢位；有符号除法向零截断，余数随之定义。每个 block 的指令有顺序，首个实际 trap 发生后，后续读写、运算和释放不再执行。优化器不能用“最终数值一样”掩盖先发生的错误或不同的资源观察。
 
@@ -38,7 +38,7 @@ owner 是线性资源能力，loan 携带实际根、父子关系和读写权限
 返回、语义 trap、评估器预算停止和成功取消具有不同的资源含义。native trap 调用 `abort`，没有承诺其后运行语言析构；协作式 `cancel` 只有在取消过程正常完成时才算完成清理。取消过程中 trap 或预算耗尽必须传播停止状态。本轮没有新增通用线程、共享内存原子、后台异步执行或抢占取消，不能从同步任务合同推出一般并发的数据竞争自由。
 
 上述独立回归实际运行了 70 项测试，零失败、零错误、零 skip，且源清单未漂移；其范围和日志见
-[合同回归结果](../evidence/semantics_contract_20261030/RESULT.json)。它确认有限合同回归执行过，不构成所有输入和整个工具链的形式化证明。
+合同回归结果 (historical path `../evidence/semantics_contract_20261030/RESULT.json`; not shipped in this tree)。它确认有限合同回归执行过，不构成所有输入和整个工具链的形式化证明。
 
 ## 3. 跨调用优化：从完整 leaf 实现到 guarded 证明链
 
@@ -62,25 +62,25 @@ native 构建还核对 fresh LLVM emission 与实际构建回执中的 Core、�
 | 合计 | **892** | **1,784** | **38** |
 
 源与 component 输入的结束检查均通过，完整区间为 54.561269853 秒。C++ 组件观察明确包含 callback error `4001`。证据见
-[call-expansion/SUMMARY.json](../evidence/hia_five_deliverables_20261030/call-expansion/SUMMARY.json)及
-[原始归档](../evidence/hia_five_deliverables_20261030/call-expansion/raw.tar.xz)。
+call-expansion/SUMMARY.json (historical path `../evidence/hia_five_deliverables_20261030/call-expansion/SUMMARY.json`; not shipped in this tree)及
+原始归档 (historical path `../evidence/hia_five_deliverables_20261030/call-expansion/raw.tar.xz`; not shipped in this tree)。
 
 这条变换明确不保持解释器 fuel、调用深度预算、诊断位置或栈用量：移除一次调用就可能改变这些结果。资格中的 38 项是 VM 分配失败观察，不能写成 38 次 native 失败注入；调用展开 qualifier 也没有声称测得 native 分配轨迹。组件的实际 allocator 观察由下面的独立组件资格承担。
 
 ## 4. C++ 迁移：真正重写实现，也保留成本不利结果
 
 新增 profile 为 `cpp20-captured-unique-owner-synchronous-borrowed-callback-v1`。本次 `callback_project_migration` 是为了这个有限 profile 构造、并实际编译/迁移/运行的仓库内组件；**本轮没有迁移一个既有第三方生产库**。原生迁移链真实执行成功，验证了这个组件的实现路径，不能因此把第 3 项的生产代表性也标为完全达标。
-[示例组件](../examples/cpp/callback_project_migration/)含两个 translation unit、完整 owner 头文件和三个自由函数实现：入口创建并填充两个独占字节数组，把复合 owner 移到另一文件的 consumer，再调用一个实际 C++ 函数指针。callback 只在同步调用期间借读 owner，返回计算值或错误。
+示例组件 (historical path `../examples/cpp/callback_project_migration/`; not shipped in this tree)含两个 translation unit、完整 owner 头文件和三个自由函数实现：入口创建并填充两个独占字节数组，把复合 owner 移到另一文件的 consumer，再调用一个实际 C++ 函数指针。callback 只在同步调用期间借读 owner，返回计算值或错误。
 
 迁移生成了入口、consumer、callback 和复合算法的实际 Hepta/Core 实现。目标没有链接原 C++ object，也没有靠 C++ callback thunk 完成工作。闭合 callback 绑定被检查后专门化为直接 Core 调用。默认 deleter 的 `unique_ptr<unsigned char[]>` leaf 仍依赖明确、重新检查的编译器合同，标准库本体没有被迁移；这与“自动翻译整个 C++ 标准库”是不同范围。
 
-资源合同覆盖按字段顺序构造、逆序释放、分配拒绝、leaf/composite 构造失败、跨文件移动前后取消、索引错误、callback 错误及成功返回。空绑定、借用逃逸、强制转换后写入、读取 moved-from owner、重复 callback 和缺失定义拒绝整个迁移。详细边界见 [CPP_CALLBACK_PROJECT_CONTRACT.md](CPP_CALLBACK_PROJECT_CONTRACT.md)。
+资源合同覆盖按字段顺序构造、逆序释放、分配拒绝、leaf/composite 构造失败、跨文件移动前后取消、索引错误、callback 错误及成功返回。空绑定、借用逃逸、强制转换后写入、读取 moved-from owner、重复 callback 和缺失定义拒绝整个迁移。详细边界见 CPP_CALLBACK_PROJECT_CONTRACT.md (historical path `CPP_CALLBACK_PROJECT_CONTRACT.md`; not shipped in this tree)。
 
 ### 4.1 最终完整资格
 
 本节只使用最终冻结生产代码的完整运行：原工作目录为 `/tmp/hepta-five-integrated-20261030-02/callback/`，编译器源码哈希为 `53212a3a91c572de11f5f23448111fe74a91fb72288f7f44c0d6e16c413343a5`。更早开发快照和 cost-only 扩展不冒充这次资格。稳定归档入口为
-[component/SUMMARY.json](../evidence/hia_five_deliverables_20261030/component/SUMMARY.json)及
-[component/raw.tar.xz](../evidence/hia_five_deliverables_20261030/component/raw.tar.xz)。
+component/SUMMARY.json (historical path `../evidence/hia_five_deliverables_20261030/component/SUMMARY.json`; not shipped in this tree)及
+component/raw.tar.xz (historical path `../evidence/hia_five_deliverables_20261030/component/raw.tar.xz`; not shipped in this tree)。
 
 | 配置 | 输入案例 | 实际分配 / 释放 | 分配拒绝 | 最终 live owner | live bytes / owner 高水位 |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -118,20 +118,20 @@ native 构建还核对 fresh LLVM emission 与实际构建回执中的 Core、�
 
 当前 profile 限定为最多 8 个状态、32 条转移、4 个未来批次，共同终值、单位 discount、零路径风险和单一加性总成本上限。它完整搜索这个已声明图，不能推断图外所有机器指令、任意算法重写或未知硬件未来行为。费用按每个事件转换成 Q32 后再相加；先合计纳秒再转换会改变结果。例如总费用同为 2 ns 的两条路径，单事件 debit 为 8,589，而两个 1 ns 阶段之和为 8,588，原生目标严格偏好后者。
 
-压缩必须保留预算可行的完整最优前沿和所有必要同值路径，不能用随机两个样本代表很大的 tie。一个 656 路径图可以压到 native 候选容量内；同结构的全零成本图会因完整同值前沿过大而拒绝。未知、拒绝、超时状态不会变成可执行权限，搜索限额耗尽不会发布部分“最优”答案。详细条件与独立穷举见 [HIA_NDU_COMPRESSION.md](HIA_NDU_COMPRESSION.md)。
+压缩必须保留预算可行的完整最优前沿和所有必要同值路径，不能用随机两个样本代表很大的 tie。一个 656 路径图可以压到 native 候选容量内；同结构的全零成本图会因完整同值前沿过大而拒绝。未知、拒绝、超时状态不会变成可执行权限，搜索限额耗尽不会发布部分“最优”答案。详细条件与独立穷举见 HIA_NDU_COMPRESSION.md (historical path `HIA_NDU_COMPRESSION.md`; not shipped in this tree)。
 
 ### 5.1 数值边界和“等价”的准确层级
 
 新增数值边界资格实际执行 **11 项测试、12 次原生调用，零 skip**，冻结生产代码未变化。其中两次全量 native request 拒绝是预期观察：未压缩路径可以因过大累计成本造成 i64 编码溢出或超出 utility profile，而压缩先排除不可负担路径后仍能产生合法请求。
 
 所以等价结论是：在共同验证的有限图 profile 内，保留可行候选的完整获胜前沿、建议和 disposition；**不声称未压缩与压缩请求的整体接受/拒绝行为在这些数值越界情况下也完全相同**。保留路径受 `completion_value_ns <= 10^12`、`remaining_budget_ns <= 10^12` 和非负成本约束；后续放宽这些界限必须重新检查数值证明。结果和范围见
-[数值边界 GATE](../artifacts/hia-ndu-numeric-boundaries-20261030/GATE.json)与
-[SCOPE](../artifacts/hia-ndu-numeric-boundaries-20261030/SCOPE.json)。
+数值边界 GATE (historical path `../artifacts/hia-ndu-numeric-boundaries-20261030/GATE.json`; not shipped in this tree)与
+SCOPE (historical path `../artifacts/hia-ndu-numeric-boundaries-20261030/SCOPE.json`; not shipped in this tree)。
 
 ### 5.2 相同目标和完整成本使负结果可见
 
 独立四控制实验保留九次重复，控制流水线中位耗时分别为：旧纳秒 DP 0.725350 ms、精确 Q32 DP 1.210466 ms、原生全枚举 8.250853 ms、原生压缩 4.098156 ms。八个实际 native 差分案例的完整前沿、建议与 disposition 一致。压缩降低了该次原生输入构造/传输/执行开销，但仍慢于同目标 Q32 DP；这些控制器夹具成本不能直接当作整个程序的净收益。见
-[四控制结果](../artifacts/hia-ndu-compression-four-controls-20261030/RESULT.json)。
+四控制结果 (historical path `../artifacts/hia-ndu-compression-four-controls-20261030/RESULT.json`; not shipped in this tree)。
 
 进一步的八臂 pilot 真实执行了证明、构建、加载和 workload；所有八个 episode 都完成，输出检查和注册预算都通过。它是共享主机上的单组 pilot，使用 19 次调用、5 元素初始 probe，以及 5/19/47 元素的后续批次。完整账目如下：
 
@@ -149,7 +149,7 @@ native 构建还核对 fresh LLVM emission 与实际构建回执中的 Core、�
 每个 native standalone 总账都计入同一原始二进制 manifest 中 **24.541661996 秒**的构建成本；这是复用二进制的原始构建记录，没有冒称本次重建，也没有把它改记为零。共同校准/证明/driver 成本按每个 standalone 策略计一次，各臂实际决策、构建、执行和证据写入归入自身账目。工具安装、既有依赖缓存取得和最终汇总写入仍是声明的排除项。
 
 固定 small/wide 实际发生两次重新提案、证明、编译和安装转移；两种 NDU、Q32 DP 和最佳固定计划都选择停止继续优化，并在当前代码上交付余下工作。`stop` 仍要完成 workload，不能等同于零工作、零成本的 `abstain`。完整证据见
-[八臂结果](../artifacts/hia-ndu-eight-arm-20261030/RESULT.json)。之前七臂 pilot 中压缩原生的 episode 反而更慢，原记录也保留；不能挑选八臂中 0.472808 秒一项推导总体排名。
+八臂结果 (historical path `../artifacts/hia-ndu-eight-arm-20261030/RESULT.json`; not shipped in this tree)。之前七臂 pilot 中压缩原生的 episode 反而更慢，原记录也保留；不能挑选八臂中 0.472808 秒一项推导总体排名。
 
 这里得到的是压缩机制和受控原生执行的有效性，**没有得到相对精确 Q32 DP 的端到端净收益优势**。NDU 的 `authority` 始终是 `DENY_ALL`，`safety_certificate=false`：它提出建议，资源与语义许可来自独立检查，执行还要核对实际产物和实际预算。
 
@@ -205,7 +205,7 @@ Granite 的两次成功是 Rust 的 `clamped_delta_bias` 和 `floor_multiple_v2`
 
 attempt03 的 `QUALIFICATION_SOURCE_REBIND.json` 逐字节核对 `hepta`、`tools`、`examples` 与已执行组件/展开资格的快照一致；差异仅为测试观察器修正和增加数值边界测试。最终集成源码内容哈希为 `2260c364ffde304045c64dd45f2fc6a0b20aa4c7a6867522d43c9b7e80725f44`。这使现有实际观测可以绑定到未变的生产实现，而不是靠声称“测试修好了”掩盖代码变化。
 
-新增 [CI workflow](../.github/workflows/hepta-intelligent-assembly-closure.yml)固定 PR head，安装 Python/Z3/Clang 20，要求所选测试零 skip，并实际执行 callback 与 call-expansion qualifier。原 native NDU 可以通过手动 dispatch 的独立 job 请求；未请求时明确记为 `not_qualified`，请求后私库访问、原生构建或执行失败不能被写成通过。CI 不把共享主机上的相对速度作为硬门槛。详细操作见 [CI 说明](INTELLIGENT_ASSEMBLY_CI.md)。
+新增 CI workflow (historical path `../.github/workflows/hepta-intelligent-assembly-closure.yml`; not shipped in this tree)固定 PR head，安装 Python/Z3/Clang 20，要求所选测试零 skip，并实际执行 callback 与 call-expansion qualifier。原 native NDU 可以通过手动 dispatch 的独立 job 请求；未请求时明确记为 `not_qualified`，请求后私库访问、原生构建或执行失败不能被写成通过。CI 不把共享主机上的相对速度作为硬门槛。详细操作见 CI 说明 (historical path `INTELLIGENT_ASSEMBLY_CI.md`; not shipped in this tree)。
 
 代码提交 `053d07045a06335011050277d3c563cf3ddefe70` 的两条远端工作流现已实际完成，API 返回的 `head_sha` 均与该提交一致：
 
