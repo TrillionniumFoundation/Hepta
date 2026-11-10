@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v50-main-native-workspace-word-emission"
+PROFILE = "selfhost-core-linux-x86_64-v51-main-native-Agent-render"
 SOURCE_FILES = (
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
@@ -512,7 +512,8 @@ def support_contract(root=ROOT):
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",
                         "examples/hia_bootstrap/agent_stdio_packer.hiaasm"],
-            "commands": ["capabilities", "verify", "compile"],
+            "commands": ["capabilities", "verify", "compile", "render-assembly"],
+            "assembly_rendering_requires_native_semantic_compiler_acceptance": True,
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hiaasm",
             "output_profile_selection": "explicit build-time flat/elf/exec; never inferred from payload",
             "native_runtime_python_required": False,

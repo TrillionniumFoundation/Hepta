@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def capabilities_bytes():
     return (json.dumps({
         'schema': 'hepta.hia.agent-stdio.v1', 'implementation': 'hia-native',
-        'operations': ['capabilities', 'verify', 'compile'], 'build_profile': 0,
+        'operations': ['capabilities', 'verify', 'compile', 'render-assembly'], 'build_profile': 0,
         'input': 'primitive-v8-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
         'compiler_bytes_max': LIMIT, 'program_nodes_max': 1048576, 'json_depth_max': 128,
         'target': 'linux-x86_64', 'runtime_python_required': False,
@@ -66,6 +66,9 @@ def dispatcher_source():
         return 4294967295
     if matches(s, 7, 28548189479661411) == 1:
         return 2
+    if matches(s, 15, 7002378775433209202) == 1:
+        if byte(s, 8) == 115 and byte(s, 9) == 115 and byte(s, 10) == 101 and byte(s, 11) == 109 and byte(s, 12) == 98 and byte(s, 13) == 108 and byte(s, 14) == 121:
+            return 3
     if matches(s, 12, 7809644627822477667) == 1:
         if byte(s, 8) == 116 and byte(s, 9) == 105 and byte(s, 10) == 101 and byte(s, 11) == 115:
             return capabilities(o, profile)
@@ -149,6 +152,7 @@ def template():
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('83 f8 01'); branch('0f 84', 'mode')
     emit('83 f8 02'); branch('0f 84', 'mode')
+    emit('83 f8 03'); branch('0f 84', 'mode')
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('85 c0'); branch('0f 84', 'io')
     branch('e9', 'reply_output')
@@ -186,7 +190,10 @@ def template():
     emit('85 c0'); branch('0f 84', 'invalid')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('01'); branch('0f 84', 'verified')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('03'); branch('0f 84', 'assembly_output')
     emit('41 89 c6 4d 89 e7'); branch('e9', 'write')
+    label('assembly_output')
+    emit('44 89 e8'); branch('e9', 'reply_output')  # preserved checked frontend length
     label('verified'); dispatch('dispatch_verified', reply=True)
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('83 f8 02'); branch('0f 86', 'io')
