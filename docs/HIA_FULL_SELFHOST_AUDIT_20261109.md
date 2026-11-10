@@ -1396,3 +1396,32 @@ JSON/nativeobserver composition with a floating literal) and the unbound
 assembly-inventory boundary fixture passed20tests/17.664seconds. The earlier
 34test development run also passed19lexer plus15unchanged shared-source tests.
 These are development observations, not final exact-source/remote/full acceptance.
+
+
+### Exact float composition5253985 local qualification complete
+
+Clean5253985012daf508906244862d6579560751e4e2 passed all20fresh steps in
+518.886seconds: actualsource109tests, cold11/11+5049/5049/all38phases123.186seconds
+underunchanged180+3, language1242+10, combinednative100, sharedclosure15, actual
+B3JSON/sha/frontend/lexerbuilds,83selected+83defaultconsumers,55incremental,
+63selected+63defaultparser/modules, flat/ELF/execCLIbuilds,26installedobservations
+plus4raworiginal/changedexecutablecompiler-generationobservations.
+No parent execution acceptance substitutes for those fresh combined gates.
+
+All328cold input hashes remain unchanged in the metadata continuation. The raw
+20862924byte archive has SHA256daf85f157705d7b505dde1181f551654c14d0f18143071e6318cb42d42d4f946;
+every member compared with retained originals. Publicsource-float composition
+summary and lossless inventory delta retain subject/provenance/receipts/failures.
+The current lexer source4b1a5f06eb3f7b10ec4a8d3e5b7115f7c94149f8cd5029e202f1d482642572ed
+and image587b5b21bb86df56b66cefe99659194453443b71e1cb5fa09c790c6b87e8aacf
+also exactly match the earlier independent midpoint observation. That historical
+observation is explicitly NOT re-executed or counted as fresh tests here.
+
+Staticinventory220packagePython/76887lines plus428hosttools/134701lines, ledger
+3partial/5open. The unboundauditor now explicitly records high-level source
+lexing/numeric conversion and their remaining Python object/parser boundaries.
+Generalparser/Core/composites/module/linker/runtime/installation/services/proof,
+full-current-source regression, remote and clean-machine gates remain OPEN.
+Parent2d12212 remote42769896908sourcePASS/coldRUNNING atcapture; parent841timeout
+and older failures remain retained. No default/release/production switch or old
+requiredimplementation removal. This is not whole-stack closure.

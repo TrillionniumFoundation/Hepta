@@ -82,3 +82,10 @@ integer and float random/boundary/transactional controls are retained.
 No compiler caps, process limits, deadlines, source-identity membership, default
 routes, release lock or production implementation is changed by this import.
 Fresh clean-source combined qualification is still required.
+
+
+The clean combined5253985 subsequently passed the109source,5049native/all38cold,
+1242language,100combinedcomponents and all selected/default/installed gates in
+`source-float-cli-composition-native-summary.json`. This completes this local
+checkpoint only: full-current-source/remote/clean-machine/generalfrontend
+closure and eventual old-production retirement remain open.
