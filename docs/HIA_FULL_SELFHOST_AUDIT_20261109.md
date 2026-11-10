@@ -1,5 +1,10 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09
 
+> **Current product scope (2026-11-10): HIA Core + Agent.** High-level Hepta
+> syntax/AST/checker port expansion is frozen reference work, not a closure
+> prerequisite. Historical results below remain scoped evidence, not current
+> native-only delivery. All nine whole-product obligations remain OPEN.
+
 ## Decision and source authority
 
 **Whole-stack rewrite is OPEN, not complete.** This continuation adds an
@@ -2067,3 +2072,30 @@ Both separately reviewed 406-path and 380-path parent projections and all older
 projections remain exact inside the 416-path union. The additional 1,329 metadata
 bytes are transferred from raw logs inside the same aggregate evidence envelope.
 Fresh combined-source qualification is required; parent passes are not inherited.
+
+
+## Native Agent scalar identity acceptance — Core/Agent scope
+
+The explicit HIA scalar identity candidate is qualified on exact commit
+`8ce57530583986db0fda64a926ccd3dff3261b8f`, with a fresh 18-stage run. The selected HIA app
+checks canonical u64 decimal and lowercase SHA-256 grammar; it does not compute
+a digest, authorize an operation or implement durable persistence. Reference
+numeric/regex predicates are disabled in real selected store/worker controls.
+
+The actual isolation gate found an eager foreign-comparison import via macro
+advice. Its failed receipt remains FAIL. Ordinary discovery now avoids that
+import; explicit native NDU still uses the original bounded process pump, with
+unchanged cleanup/output/deadline semantics and import time charged to budget.
+The same strict blocked-import/empty-PATH worker gate was rerun, not relaxed.
+
+Exact source CI, original+modified cold bootstrap, language coverage, real B3
+application build, selected/default Agent calls, process controls, installed
+compatibility CLI and lossless evidence archival are recorded in
+`../review-evidence/hia-whole-selfhost-20261109/agent-identity-native-summary.json`.
+
+The wheel is still a Python-host development installation. In particular it
+omits this native app's source resource; selected-native installed identity is
+not qualified. JSON/schema/correlation/auth, edit orchestration, SQLite and
+filesystem recovery, Core module/build/runtime and native-only release remain
+OPEN. Scope change and this component pass do not close any whole obligation.
+Default service/main/release locks and legacy implementations remain unchanged.
