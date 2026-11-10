@@ -31,6 +31,8 @@ SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
+# Explicit per-phase transport; never enabled for seed or generation controls.
+NATIVE_OBSERVER = None
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -130,6 +132,11 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False):
     """Copy private inputs and run one pinned artifact under fixed limits."""
+    if (NATIVE_OBSERVER is not None and image_format == 'flat-x86-64'
+            and output_initial is None and not observe_trap_writes):
+        from tools.hia_selfhost_native_observer import invoke as observe_native
+        return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill)
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")
@@ -446,7 +453,8 @@ def _phase_manifest_digest(manifest):
 
 
 def _phase_inputs(directory, family, compiler, label):
-    paths = {"compiler": compiler, "source": SOURCE, "sample": SAMPLE,
+    paths = {"native_observer": directory / "native-observer.elf",
+             "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
              "modified_source": directory / "modified-selfhost.hiaasm"}
     if family in PHASE_REFERENCE_FILES:
         paths["reference"] = directory / PHASE_REFERENCE_FILES[family]
@@ -475,7 +483,7 @@ def qualification_phase(request_path):
             or request["compiler_label"] not in {"original", "modified"}):
         raise ValueError("unknown qualification phase request")
     family, label = request["family"], request["compiler_label"]
-    expected_inputs = {"compiler", "source", "sample", "modified_source"}
+    expected_inputs = {"native_observer", "compiler", "source", "sample", "modified_source"}
     if family in PHASE_REFERENCE_FILES:
         expected_inputs.add("reference")
     if family == "elf":
@@ -489,6 +497,12 @@ def qualification_phase(request_path):
     data = _read_phase_inputs(request["inputs"])
     directory = Path(request["directory"])
     compiler = Path(request["inputs"]["compiler"]["path"])
+    # This is a content-bound, freshly HIA-emitted adapter, not a cached child.
+    # The module imported by family helpers must share this explicit binding.
+    import tools.qualify_hia_selfhost as runtime
+    runtime.NATIVE_OBSERVER = Path(request['inputs']['native_observer']['path'])
+    global NATIVE_OBSERVER
+    NATIVE_OBSERVER = runtime.NATIVE_OBSERVER
     compilers = ((label, compiler),)
     reference = json.loads(data["reference"]) if "reference" in data else None
     checks = {}
@@ -603,7 +617,8 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
     started = time.monotonic_ns()
     with (directory / (stem + ".stdout.log")).open("wb") as stdout, (directory / (stem + ".stderr.log")).open("wb") as stderr:
         # At most two host-oracle workers run concurrently. Their native calls
-        # remain individual, unchanged, resource-limited child processes.
+        # remain individual resource-limited children; ordinary flat ABI calls
+        # now exec a sealed HIA-emitted observer without a Python child runtime.
         with subprocess.Popen(command, cwd=phase_directory, stdin=subprocess.DEVNULL,
                               stdout=stdout, stderr=stderr) as process:
             returncode = process.wait()
@@ -712,6 +727,10 @@ def qualify(output):
     capacity_reference, tail_reference, select_reference = [references[f] for f in ("capacity", "tail", "select")]
     effect_reference, multi_reference, keyword_reference = [references[f] for f in ("effects", "multi", "keyword")]
     signed_reference, cast_reference, independent = [references[f] for f in ("signed", "scalar-casts", "core")]
+    from tools.hia_selfhost_native_observer import independent_reference as observer_reference, build as build_observer
+    native_observer_reference = observer_reference()
+    (directory / 'independent-native-observer-reference.json').write_text(
+        json.dumps(native_observer_reference,indent=2,sort_keys=True)+'\n')
     seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
@@ -738,6 +757,10 @@ def qualify(output):
     checks["modified_compiler_differs_from_original"] = modified_stages[2]["produced_sha256"] != stages[2]["produced_sha256"]
     # The generated wrapper's actual stack reservation is part of the change.
     checks["modified_wrapper_machine_bytes"] = original.read_bytes()[:8] == bytes.fromhex("554889e54883ec40") and previous.read_bytes()[:8] == bytes.fromhex("554889e54883ec50")
+    native_observer, native_observer_build = build_observer(directory, original, native_observer_reference)
+    checks['native_observer_independent_VM_reference_before_B0'] = native_observer_reference['before_B0']
+    checks['native_observer_exact_HIA_emission'] = (
+        digest(native_observer.read_bytes()) == native_observer_reference['expected_image_sha256'])
     observations = []
     for label, compiler in (("original", original), ("modified", previous)):
         executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
@@ -823,7 +846,9 @@ def qualify(output):
     report = {
         "schema": "hepta.hia.selfhost-qualification.v6",
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
-        "profile": contract["profile"], "target": contract["target"], "abi": contract["abi"],
+        "profile": contract["profile"],
+        "native_observer_build": native_observer_build,
+        "native_observer_reference": native_observer_reference, "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
         "checkout": checkout_identity(),
         "source_manifest": before, "source_bytes": len(source), "source_sha256": digest(source),
@@ -864,6 +889,8 @@ def qualify(output):
             "seed_started_monotonic_ns": seed_started_monotonic_ns,
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
+            "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
+            "shared_post_trap_captures_and_generation_controls": "retained independent stdlib loader",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
@@ -884,7 +911,8 @@ def qualify(output):
                    "whole_HIA_language_self_hosted": False,
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
-            "B0 GNU ld, libc and dynamic loader", "successor stdlib ctypes/mmap loader and operating system",
+            "B0 GNU ld, libc and dynamic loader", "fresh HIA-emitted static ELF observer and operating system for phase flat ABI calls",
+            "stdlib ctypes/mmap retained for generation controls, shared ELF and post-trap shared capture",
             "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
             "host C compiler and assembler compile the separate allocator qualification witness only",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],

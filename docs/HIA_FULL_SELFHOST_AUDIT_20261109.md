@@ -1056,3 +1056,50 @@ The metadata-only merge incorporates the preceding scalar-export qualification
 without changing any of the312qualified compiler export paths. Native source
 lexing does not close numeric value construction, the full frontend/type/module
 graph, general runtime, agent services or build/release retirement.
+
+## Qualification transport continuation: exact native observer subject eebf5a7
+
+The multiple-export subject's real remote workflow
+[42756927029](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42756927029)
+completed **FAIL** on bf3360f: source/native/language passed, but source-only cold
+replay exceeded its unchanged 180-second deadline. Twenty-six of 38 phases had
+completed, with no reported phase exception, and owned-process cleanup was
+confirmed. Full logs and the cold artifact remain retained. The earlier local
+5,047-check pass does not replace that failure.
+
+The exact executable subject `eebf5a7b04c5408924882936548168bf6886a34a`
+adds exact-length keyword buckets and a HIA-emitted native byte-ABI observer for
+ordinary qualification phase calls. The observer is emitted by an actual HIA
+packer compiled by B3, compared with independent pre-B0 VM observations of every
+ELF byte, and execs afresh from sealed bytes. Its supplied image is mapped RW then
+RX. It has no Python runtime/libc/interpreter/linker in that child. The fixed ISA
+syscall bridge still has explicit literal-instruction authoring; this is **not**
+a high-level runtime/whole-stack retirement claim. Original B/M generations,
+shared-library calls, custom preimages and post-UD2 shared captures retain the
+independent stdlib loader. Host supervision, oracles, B0, linking and release
+remain foreign authorities. See [the protocol and exact boundary](HIA_NATIVE_BYTE_ABI_OBSERVER.md).
+
+Clean-commit local acceptance (not a remote performance guarantee):
+
+- Actual recovery/regeneration workflow: 103 source tests pass.
+- Source-only cold: 11/11 isolation/ownership checks and 5,049/5,049 native checks
+  pass in 127.155 seconds, keeping 180 seconds plus separate 3-second cleanup.
+- Language: 1,242 checks and 10 assertions pass.
+- Native observer/export/JSON/SHA regressions: 58 tests pass; shared closure: 15
+  tests pass. No witness, compiler ceiling or host worker is removed/increased.
+- Separate real-kernel observations agree with the legacy loader for all six
+  hard/soft resource limits and non-dumpability, inclusive maximum image/source/
+  output/workspace sizes, and maximum-frame-plus-one refusal. These are separate
+  observations, not relabelled cold pre-B0 references.
+- An earlier keyword-only language run failed with ENOSPC; an initial VM fixture
+  exceeded the unchanged return-list bound. Both failures are retained, rather
+  than reclassified as passes.
+
+Public `native-byte-abi-observer-summary.json` and its lossless static-audit delta
+bind the exact executable subject. Later evidence-only metadata must preserve
+all 313 declared source files byte-for-byte. This branch's source inventory is
+218 package Python files / 76,667 lines and 423 tool Python files / 133,444 lines;
+tools are not all production runtime. The ledger remains **3 partial / 5 open**.
+Production activation/default switching, whole-repository completion, full
+language correctness and native-only retirement are **not** claimed. A fresh
+remote run is required; the historical timeout remains FAIL.

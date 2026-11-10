@@ -54,7 +54,9 @@ class SelfhostKeywordTests(unittest.TestCase):
         self.assertLessEqual(blocks, MAX_BLOCKS)
         self.assertLessEqual(operations, MAX_INSTRUCTIONS)
         keyword = next(fn for fn in doc["functions"] if fn["name"] == names["keyword"])
-        self.assertLessEqual(len(keyword["blocks"]), 16)
+        # The authoring strategy now has one branch per distinct byte length;
+        # physical per-function/global Core caps above remain unchanged.
+        self.assertLessEqual(len(keyword["blocks"]), 16 + 2 * len({len(word) for word in W}))
         self.assertTrue(any(op["op"] == "select" for b in keyword["blocks"] for op in b["ops"]))
         for fn in doc["functions"]:
             self.assertLessEqual(len(fn["blocks"]), 256)
