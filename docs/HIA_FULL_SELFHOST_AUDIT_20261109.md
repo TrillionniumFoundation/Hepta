@@ -2,14 +2,15 @@
 
 ## Decision and source authority
 
-**Whole-stack rewrite is OPEN, not complete.** This continuation adds an
-operator-selected source type parser in HIA. It recognizes the complete existing
-type grammar with an explicit bounded stack: qualified paths, generic arguments
-and lifetimes, arrays/slices, read/mut references and raw const/mut pointers.
-It is not a declaration/expression parser or a semantic type checker. Default
-backends and old implementations remain unchanged, pending whole-stack closure.
-The new implementation completed its own fresh qualification atfc5540f as
-recorded below; baseline results are not substituted for changed-source evidence.
+**Whole-stack rewrite is OPEN, not complete.** Latest accepted application
+scope is explicitly selected source block/statement parsing in HIA, composed
+with the actual HIA expression/type/scanner definitions. The exact executable
+subject is `d7f772d91f033824499e223693f32ca37cb8992a` (draft PR #852).
+Declaration grammar, semantic checking, full module/runtime/tooling and build/
+release authority remain foreign; default/production/main are unchanged.
+Its qualification uses pinned successful03checkpoints plus an explicit04
+continuation for a CLI helper path correction. All earlier failed reports remain
+FAIL. This is not a whole-language or entire-repository success.
 
 ### Latest qualified baseline (before source type parsing)
 
@@ -32,8 +33,9 @@ Current combined local evidence is108source tests, cold11/11+5,049native checks
 in101.204seconds under180+3seconds,1,242language checks+10assertions,96native
 component tests,15shared-identity controls,83selected+83default consumers,
 55selected incremental tests and63selected+63default parser/module callers.
-The audit ledger remains **3partial/5open**. A separately frozen full-repository
-run at4f95ee9 is pending. Remote CI atd7d1a34 has passed all four source, cold, native and language
+The audit ledger remains **3partial/5open**. The separately frozen full-repository
+run at4f95ee9 ended7,784tests/0errors/2failures/0skips; its unchanged two-method
+targeted rerun passed but does not override the full-suite failure. Remote CI atd7d1a34 has passed all four source, cold, native and language
 jobs (run42766783539). The cold native checks took174.082seconds under
 the unchanged180second deadline. No
 full-repository or whole-stack PASS is established. Earlier shared-observer remote b4b1e4c timed
@@ -1743,3 +1745,46 @@ compiler/execution/worker/deadline limit is unchanged.
 
 This section is implementation scope and development history, not a completed
 clean-source qualification or a remote/full-repository success claim.
+
+### Completed statement-stage qualification and exact boundary
+
+Current exact source d7f772d passed111original source/recovery tests, fresh cold
+11/11isolation+5,049/5,049native checks in102.470seconds (outer103.221s),
+1,242language checks+10assertions,128native component tests,15shared identity
+controls,83selected+83default consumers,55incremental and63lexer-selected+
+63default parser/module tests. Type-only, expression-only, statement-only,
+combined type+expression+statement, and default frontend callers each passed98
+tests, using actual current B3-built images and the locked Rust1.90toolchain.
+
+The03orchestrator then failed before any native standalone CLI observations
+because its helper retained the old runtime-directory path after physical
+evidence moved to persistent storage. Its failed report/log and empty attempted
+observation directory are retained. The04continuation checked the exact clean
+subject, all343cold-exported source payloads against Git and current bytes, the
+11cold checks/authoritative cleanup, actual compiler/observer/CLI/application
+image hashes and all25successful phase logs, then resumed only the corrected
+CLI16observations, owner8regressions and static audit. Every pin remained equal
+afterwards. This is explicitly checkpointed acceptance, not a claim that03ran
+without failure or a repeated full pipeline. Accepted step durations sum to
+506.255s; the continuation itself took11.443s. Raw01/02/03failures stay FAIL.
+A copied packaging assertion initially compared the statement manifest with
+the expression source file and correctly refused; its failure log is retained
+and the corrected assertion matches the actual statement source.
+
+Actual statement image bytes/hash, complete step logs and lineage are recorded
+in `review-evidence/hia-whole-selfhost-20261109/source-statements-native-summary.json`.
+The new static-audit delta losslessly reconstructs the exact clean-source audit.
+The ended cold/application artifact archive has56,095regular members and
+3,383,635,758uncompressed bytes, all compared byte-for-byte against retained
+originals. Compressed31,326,852bytes, SHA256
+`45318e9233bb78c56b2fa743f122d46821abede33734330822d0073c744c9f0d`.
+Logs outside that archive also remain retained.
+
+The audit explicitly maps26remaining foreign authority files across9obligations
+(declarations; high-level types/effects/ownership/lifetimes; resource/concurrency
+lowering; modules/packages/pipeline; output/toolchains; Core reference/checking;
+runtime/Agent; optimization/proofs; CLI/authoring/build/release). This conservative
+authority map and all223package/434tool files are pinned, not silently retired.
+The ledger remains3partial/5open. The exact statement full-repository run is
+queued behind the previous immutable expression suite and8GiBpersistent free
+storage; it is NOT a full-repository PASS. This draft's remote CI is still pending.
