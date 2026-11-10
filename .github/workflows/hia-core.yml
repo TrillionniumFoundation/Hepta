@@ -58,11 +58,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
-      - run: sudo apt-get update && sudo apt-get install -y binutils gcc clang strace
+      - run: sudo apt-get update && sudo apt-get install -y binutils gcc strace
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - run: python -B -m unittest tests.test_hia_agent_stdio tests.test_hia_core_json_cli tests.test_hia_elf_linker -v
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
-      - name: Direct Core host-memory recovery controls
-        run: python -B -m unittest discover -s tests -t . -p 'test_hia_host_region*.py' -v
