@@ -1,20 +1,19 @@
 """Operator-selected HIA source token recognition, with a Python value bridge.
 
 The actual HIA image scans source, comments, identifiers, operator/number
-grammar, UTF-8 positions and integer magnitudes. Python constructs Token/Span
-and integer objects and converts finite floats. This is not the source
+grammar, UTF-8 positions, integer magnitudes and binary64 bits. Python constructs
+Token/Span and numeric objects from native bytes. This is not the source
 parser, a compiler default switch, or a whole-frontend rewrite claim.
 """
 from __future__ import annotations
 import ctypes
-import math
 from pathlib import Path
 import struct
 from .ast import Diagnostic,HeptaError,Span
 from .hia_json_preflight_native import NativeHiaJsonImage,_installed_json_image
 
 SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/source_lexer.hiaasm'
-SCHEMA='hepta.hia.source-lexer-native.v2'
+SCHEMA='hepta.hia.source-lexer-native.v3'
 MAX_BYTES=8<<20
 MAX_TOKENS=1<<20
 KEYWORD_ORDER=('as','const','effects','else','enum','export','extern','false','fn',
@@ -38,7 +37,7 @@ def _error(code,message,span):
     raise HeptaError(Diagnostic(code,message,span,phase='lex'))
 
 
-def materialize(source,path,wire,raw,integer_value):
+def materialize(source,path,wire,raw,integer_value,float_value):
     """Bridge a native token table; no host token recognition is performed."""
     from .lexer import Token
     if len(raw)%56:raise RuntimeError('invalid native source token table size')
@@ -58,12 +57,12 @@ def materialize(source,path,wire,raw,integer_value):
         elif kind==3:
             name='INT';value=integer_value(wire[begin:finish])
         elif kind==4:
-            name='FLOAT';literal=value.replace('_','')
+            name='FLOAT'
             try:
-                value=float(literal)
-            except (ValueError,OverflowError):_error('E_LEX_NUMBER','Invalid numeric literal',span)
-            if not math.isfinite(value):
+                value=float_value(wire[begin:finish])
+            except OverflowError:
                 _error('E_LEX_NUMBER','Floating-point literal must be finite',span)
+            except ValueError:_error('E_LEX_NUMBER','Invalid numeric literal',span)
         elif kind==5:name='STRING'
         elif 128<=kind<128+len(KEYWORD_ORDER):name=KEYWORD_ORDER[kind-128]
         elif 512<=kind<512+len(PAIR_ORDER):name=PAIR_ORDER[kind-512]
@@ -75,6 +74,22 @@ def materialize(source,path,wire,raw,integer_value):
 
 
 class NativeSourceLexer(NativeHiaJsonImage):
+    def float_value(self,wire: bytes):
+        """Only binary64 object construction is foreign, not decimal parsing."""
+        if type(wire) is not bytes:raise TypeError('HIA float parser requires bytes')
+        if len(wire)>8192:raise ValueError('outside native source float byte profile')
+        source=ctypes.create_string_buffer(wire,max(1,len(wire)))
+        output=ctypes.create_string_buffer(8)
+        state=ctypes.create_string_buffer(6272)
+        struct.pack_into('<Q',state,120,2)
+        size=self._entry(source,len(wire),output,8,state,6272)
+        if size==0xfffffffc:raise OverflowError('native source float is nonfinite')
+        if size==0xffffffff:raise ValueError('invalid native source float literal')
+        if size!=8:raise RuntimeError('native source float rejected declared buffers')
+        if (struct.unpack('<Q',output.raw)[0]>>52)&2047==2047:
+            raise RuntimeError('native source float returned nonfinite bits')
+        return struct.unpack('<d',output.raw)[0]
+
     def integer_value(self,wire: bytes):
         """Only object materialization is foreign; literal parsing is HIA."""
         if type(wire) is not bytes:raise TypeError('HIA integer parser requires bytes')
@@ -114,7 +129,7 @@ class NativeSourceLexer(NativeHiaJsonImage):
             _error(kind,message,Span(start,end,line,column,path))
         if not (0<status<=capacity and status%56==0):
             raise RuntimeError('native source lexer rejected declared buffers')
-        return materialize(source,path,wire,output.raw[:status],self.integer_value)
+        return materialize(source,path,wire,output.raw[:status],self.integer_value,self.float_value)
 
 
 def installed_source_lexer(path: str) -> NativeSourceLexer:

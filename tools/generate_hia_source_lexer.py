@@ -3,7 +3,7 @@
 This is not the assembly compiler scanner. Native code recognizes source
 tokens, nested comments, UTF-8 code points, spans and numeric token grammar.
 The HIA image also converts arbitrary-size source integers to little-endian
-magnitudes. The host constructs objects and finite binary64 values; full
+magnitudes and decimal-to-binary64 rounded bits. The host constructs objects; full
 parsing/type checking remain open.
 """
 from __future__ import annotations
@@ -23,6 +23,8 @@ def lexer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     mode = get(w, 120)
     if mode == 1:
         return integer(s, o, w)
+    if mode == 2:
+        return decimal_float(s, o, w)
     if mode != 0:
         return 4294967293
     initialize(w, 0)
@@ -392,8 +394,268 @@ def integer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 '''
 
 
+FLOAT_SOURCE=r'''
+def decimal_float(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) > 8192 or length(w) < 6272:
+        return 4294967293
+    if length(o) < 8:
+        return 4294967294
+    stop = decend(s, 0)
+    if stop == 4294967295:
+        return 4294967295
+    fraction = stop
+    fraction_end = stop
+    floating = False
+    if stop < length(s) and byte(s, stop) == 46:
+        floating = True
+        fraction = stop + 1
+        stop = decend(s, fraction)
+        fraction_end = stop
+        if stop == 4294967295:
+            return 4294967295
+    mantissa_end = stop
+    exponent = 0
+    negative = False
+    if stop < length(s) and (byte(s, stop) == 101 or byte(s, stop) == 69):
+        floating = True
+        start = stop + 1
+        if start < length(s) and (byte(s, start) == 43 or byte(s, start) == 45):
+            negative = byte(s, start) == 45
+            start = start + 1
+        stop = decend(s, start)
+        if stop == 4294967295:
+            return 4294967295
+        i = start
+        while i < stop:
+            ch = byte(s, i)
+            if ch != 95 and exponent < 100000:
+                exponent = exponent * 10 + ch - 48
+                if exponent > 100000:
+                    exponent = 100000
+            i = i + 1
+    if stop != length(s) or floating == False:
+        return 4294967295
+    i = 0
+    count = 0
+    while i < length(s):
+        if byte(s, i) != 95:
+            count = count + 1
+        i = i + 1
+    if count > 4096:
+        return 4294967295
+    used = 1
+    store(w, 128, 0)
+    i = 0
+    significant = 0
+    fraction_digits = 0
+    while i < mantissa_end:
+        ch = byte(s, i)
+        if ch >= 48 and ch <= 57:
+            if ch != 48 or significant != 0:
+                significant = significant + 1
+            if i >= fraction and i < fraction_end:
+                fraction_digits = fraction_digits + 1
+            used = multiply(w, 128, used, 10, ch - 48)
+        i = i + 1
+    if significant == 0:
+        return publish(o, 0)
+    power = 200000 + exponent
+    if negative:
+        power = 200000 - exponent
+    power = power - fraction_digits
+    order = power + significant - 1
+    if order > 200308:
+        return 4294967292
+    if order < 199675:
+        return publish(o, 0)
+    denominator = 1
+    store(w, 2176, 1)
+    if power >= 200000:
+        i = 0
+        while i < power - 200000:
+            used = multiply(w, 128, used, 10, 0)
+            i = i + 1
+    else:
+        i = 0
+        while i < 200000 - power:
+            denominator = multiply(w, 2176, denominator, 10, 0)
+            i = i + 1
+    binary = 20000 + bitlength(w, 128, used) - bitlength(w, 2176, denominator)
+    comparison = 0
+    if binary >= 20000:
+        copy(w, 4224, 2176, denominator)
+        shifted = left(w, 4224, denominator, binary - 20000)
+        comparison = compare(w, 128, used, 4224, shifted)
+    else:
+        copy(w, 4224, 128, used)
+        shifted = left(w, 4224, used, 20000 - binary)
+        comparison = compare(w, 4224, shifted, 2176, denominator)
+    if comparison == 0:
+        binary = binary - 1
+    subnormal = binary < 18978
+    if subnormal:
+        used = left(w, 128, used, 1074)
+    else:
+        if binary <= 20052:
+            used = left(w, 128, used, 20052 - binary)
+        else:
+            denominator = left(w, 2176, denominator, binary - 20052)
+    quotient = 0
+    nb = bitlength(w, 128, used)
+    db = bitlength(w, 2176, denominator)
+    if nb >= db:
+        remaining = nb - db
+        if remaining > 53:
+            return 4294967293
+        shifted = left(w, 2176, denominator, remaining)
+        running = True
+        while running:
+            quotient = quotient << 1
+            if compare(w, 128, used, 2176, shifted) != 0:
+                used = subtract(w, 128, used, 2176, shifted)
+                quotient = quotient + 1
+            if remaining == 0:
+                running = False
+            else:
+                shifted = right(w, 2176, shifted)
+                remaining = remaining - 1
+    used = left(w, 128, used, 1)
+    halfway = compare(w, 128, used, 2176, denominator)
+    if halfway == 2 or (halfway == 1 and (quotient & 1) != 0):
+        quotient = quotient + 1
+    if subnormal:
+        return publish(o, quotient)
+    if quotient == 9007199254740992:
+        quotient = quotient >> 1
+        binary = binary + 1
+    if binary > 21023:
+        return 4294967292
+    bits = ((binary - 18977) << 52) | (quotient - 4503599627370496)
+    return publish(o, bits)
+
+def decend(s:readbuf, begin:u64) -> u64:
+    i = begin
+    separator = False
+    while i < length(s) and (byte(s, i) == 95 or (byte(s, i) >= 48 and byte(s, i) <= 57)):
+        ch = byte(s, i)
+        if ch == 95:
+            if i == begin or separator:
+                return 4294967295
+            separator = True
+        else:
+            separator = False
+        i = i + 1
+    if i == begin or separator:
+        return 4294967295
+    return i
+
+def multiply(w:mutbuf, at:u64, used:u64, factor:u64, carry:u64) -> u64:
+    i = 0
+    while i < used:
+        value = byte(w, at + i) * factor + carry
+        store(w, at + i, value & 255)
+        carry = value >> 8
+        i = i + 1
+    while carry != 0:
+        store(w, at + used, carry & 255)
+        carry = carry >> 8
+        used = used + 1
+    return used
+
+def bitlength(w:mutbuf, at:u64, used:u64) -> u64:
+    value = byte(w, at + used - 1)
+    bits = (used - 1) * 8
+    while value != 0:
+        bits = bits + 1
+        value = value >> 1
+    return bits
+
+def copy(w:mutbuf, target:u64, source:u64, used:u64) -> u64:
+    i = 0
+    while i < used:
+        store(w, target + i, byte(w, source + i))
+        i = i + 1
+    return used
+
+def left(w:mutbuf, at:u64, used:u64, bits:u64) -> u64:
+    whole = bits >> 3
+    part = bits & 7
+    high = 0
+    if part != 0:
+        high = byte(w, at + used - 1) >> (8 - part)
+    i = used
+    while i > 0:
+        i = i - 1
+        value = (byte(w, at + i) << part) & 255
+        if part != 0 and i > 0:
+            value = value | (byte(w, at + i - 1) >> (8 - part))
+        store(w, at + i + whole, value)
+    i = 0
+    while i < whole:
+        store(w, at + i, 0)
+        i = i + 1
+    used = used + whole
+    if high != 0:
+        store(w, at + used, high)
+        used = used + 1
+    return used
+
+def right(w:mutbuf, at:u64, used:u64) -> u64:
+    i = 0
+    while i < used:
+        value = byte(w, at + i) >> 1
+        if i + 1 < used:
+            value = value | ((byte(w, at + i + 1) & 1) << 7)
+        store(w, at + i, value)
+        i = i + 1
+    if used > 1 and byte(w, at + used - 1) == 0:
+        used = used - 1
+    return used
+
+def compare(w:mutbuf, a:u64, au:u64, b:u64, bu:u64) -> u64:
+    if au < bu:
+        return 0
+    if au > bu:
+        return 2
+    i = au
+    while i > 0:
+        i = i - 1
+        av = byte(w, a + i)
+        bv = byte(w, b + i)
+        if av < bv:
+            return 0
+        if av > bv:
+            return 2
+    return 1
+
+def subtract(w:mutbuf, a:u64, au:u64, b:u64, bu:u64) -> u64:
+    i = 0
+    borrow = 0
+    while i < au:
+        bv = 0
+        if i < bu:
+            bv = byte(w, b + i)
+        value = byte(w, a + i) + 256 - bv - borrow
+        store(w, a + i, value & 255)
+        borrow = 0
+        if value < 256:
+            borrow = 1
+        i = i + 1
+    while au > 1 and byte(w, a + au - 1) == 0:
+        au = au - 1
+    return au
+
+def publish(o:mutbuf, bits:u64) -> u32:
+    i = 0
+    while i < 8:
+        store(o, i, (bits >> (i * 8)) & 255)
+        i = i + 1
+    return 8
+'''
+
+
 def source_program():
-    text=SOURCE+'\ndef keyword(s:readbuf, begin:u64, end:u64) -> u64:\n'
+    text=SOURCE+FLOAT_SOURCE+'\ndef keyword(s:readbuf, begin:u64, end:u64) -> u64:\n'
     for i,word in enumerate(KEYWORD_ORDER):
         assert len(word)<=16
         raw=word.encode()

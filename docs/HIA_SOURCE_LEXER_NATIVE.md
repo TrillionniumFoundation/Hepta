@@ -10,6 +10,11 @@ The same image parses nonnegative source integers in decimal, hexadecimal,
 octal and binary, including strict prefix and separator validation. It emits
 a minimal little-endian magnitude; Python only constructs the integer object
 from those bytes, without calling a host literal parser.
+Decimal floating-point literals are converted to binary64 bits using only HIA
+integer arithmetic: exact numerator/denominator accumulation, binary scaling,
+quotient/remainder comparison and nearest ties-to-even rounding. Normal,
+subnormal, underflow-to-zero and nonfinite-overflow handling execute in HIA.
+Python only constructs a float object from the eight returned bytes.
 
 The first pass validates and counts tokens. Only a successful first pass with
 enough output capacity permits the second pass to emit the token table.
@@ -20,14 +25,19 @@ partially publish token rows. Workspaces and outputs are private per call.
 
 - Linux x86-64 LP64, immutable source/hash-bound local executable image.
 - At most 8 MiB scalar UTF-8 source and 1,048,576 tokens **including EOF**.
-- Manifest schema `hepta.hia.source-lexer-native.v2` declares a little-endian
+- Manifest schema `hepta.hia.source-lexer-native.v3` declares a little-endian
   u64 command at workspace offset 120. Command 0 uses 128 workspace bytes;
   each token row is seven little-endian u64 fields:
   kind, code-point start/end, line, column, UTF-8 value start/end.
 - Command 1 parses one integer using 2,176 workspace bytes, at most 8,192
   input bytes and a 2,048-byte output magnitude. The unchanged 4,096
   non-separator-character limit includes a radix prefix. Zero emits one zero
-  byte. Unknown commands and the old v1 manifest refuse explicitly.
+  byte.
+- Command 2 parses one decimal floating literal using 6,272 workspace bytes,
+  at most 8,192 wire bytes /4,096 non-separator characters and exactly eight
+  output bytes. Three 2,048-byte private integer arenas hold the rational and
+  temporary scaling values. Nonfinite overflow returns a distinct refusal;
+  unknown commands and old v1/v2 manifests refuse explicitly.
 - Numeric lexical length limit remains 4,096 non-separator characters.
 - Limits of the selfhost compiler are unchanged. Application token buffers do
   not expand compiler source/output/workspace or process deadlines.
@@ -50,7 +60,7 @@ refuses; it does not silently fall back to the reference scanner.
 ## Remaining boundaries
 
 The Python bridge still allocates buffers, constructs Token/Span/Diagnostic
-and integer objects, converts finite binary64 values, and
+and numeric objects from native bytes, and
 maps paths/errors into the existing API. Python also authors the checked-in
 HIA source and builds the B0 seed. The source parser, AST/type checker,
 composites, module/package resolution, general linking, standalone toolchain
