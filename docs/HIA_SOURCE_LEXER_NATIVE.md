@@ -78,3 +78,12 @@ by the documented host bridge. This checkpoint does not merge the separate
 native-float candidate, change compiler/deadline/resource limits, or establish
 whole-stack closure. Development16tests and shared-identity15tests passed;
 fresh clean-source qualification is required before publication as accepted.
+
+
+The fresh clean-source continuation f063abb subsequently passed the109source,
+5049native/all38cold phases,1242language,97combined components and all installed/
+default caller gates described in the whole-selfhost ledger and public
+`source-lexer-cli-composition-native-summary.json`. This supersedes only the
+pending status of this local checkpoint, not any remote/full-source failure or
+whole-stack boundary above. Parent841fce7 remote cold failed180s/26of38phases;
+the new candidate still requires its own remote and full-repository outcomes.

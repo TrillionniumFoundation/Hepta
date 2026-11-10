@@ -1340,3 +1340,37 @@ process/time limits remain unchanged. A new API bridge makes220production
 Python modules; general parser, float object conversion, AST/types/module/
 linker/runtime/build/install/Agent/store/proof remain foreign/open. No default
 switch, release lock, production activation or old-code retirement occurs.
+
+
+### Exact combined implementation f063abb: local qualification complete
+
+Clean `f063abb10a3799c67b141ccedc483977835ead18` passes all20fresh qualification
+steps in490.780seconds: actual source workflow109tests; cold11/11 plus5049/5049
+native checks/all38phases in117.376seconds under unchanged180+3; language1242
+checks plus10assertions;97combined native component tests;15shared-source tests;
+actualB3JSON/sha/lexer/frontend builds;83selected and83default existing callers;
+55incremental tests;63selected and63default real parser/module tests; all three
+flat/ELF/exec CLI builds;26installed observations and4actual raw executable
+compiler generation observations. The new standaloneJSON->lexer->nativeobserver
+composition is freshly executed in those97tests, not inferred from parents.
+All328cold inputs are byte-identical between qualified implementation and this
+metadata continuation. Host object bridging, float conversion, source authors,
+build drivers and the remaining open authorities are not HIA replacements.
+
+Public `source-lexer-cli-composition-native-summary.json` binds complete receipts
+and the lossless static inventory delta. Ended raw evidence archive20630445bytes,
+SHA256f7e7ddd28a36d9973b971ff068e5ca91a166548a2556d6660d51ea834471b4c8:
+every archive member compared with retained originals.220package Python modules/
+76872lines plus428host tools/134435lines remain; ledger3partial/5open. No default,
+production activation, release lock or old implementation removal occurs.
+
+Parent841fce7 remote run42768119487 cold job129671739792 failed180s with actual
+ownerQUALIFICATION_TIMEOUT,return-9,26/38completed phases,0completed-phase
+exceptions and confirmedcleanup. Full37728107byteZIPartifact13741053010 retained,
+SHA2563942a9da5c0e7afab6f3705ab3c66d9a766f7909939c908369d83b565f4eec4b.
+Unfinished phases are not passes; local acceptance never supersedes that remote
+failure. Source job passed; remaining remote jobs/full-current-source regression
+are separate. Older exact4c0fb93 whole-repository run finished7743tests/741modules
+with0failures/errors/skips and unchanged source, but does not qualify newer
+commits. Older bd3full failure and previous remote failures remain retained.
+Whole-stack rewrite and old-production retirement remain OPEN.
