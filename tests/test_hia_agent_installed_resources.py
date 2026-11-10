@@ -5,9 +5,18 @@ import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
 from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+('examples/hia_bootstrap/agent_identity.hiaasm','examples/hia_bootstrap/agent_slice.hiaasm')
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
+    def test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths(self):
+        import ast
+        source=ast.parse((ROOT/'setup.py').read_text())
+        functions=[n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='agent_resources']
+        self.assertEqual(len(functions),1)
+        namespace={'ast':ast,'Path':Path,'ROOT':ROOT}
+        exec(compile(ast.Module(body=functions,type_ignores=[]),'setup.py','exec'),namespace)
+        self.assertEqual(namespace['agent_resources'](),RESOURCES)
+
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
         declared={line.removeprefix('include ') for line in (ROOT/'MANIFEST.in').read_text().splitlines() if line.startswith('include ')}
         self.assertEqual(declared,set(RESOURCES));self.assertEqual(len(declared),len(RESOURCES))

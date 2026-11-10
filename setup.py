@@ -24,7 +24,10 @@ def agent_resources():
         values[symbol]=names
     if any(Path(n).name!=n for n in values['DISCOVERY_FILES']):
         raise ValueError('invalid Agent discovery resource filenames')
-    return tuple('docs/'+n for n in names)+('examples/hia_bootstrap/agent_identity.hiaasm','examples/hia_bootstrap/agent_slice.hiaasm')
+    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']
+    if len(names)!=len(set(names)) or any(Path(n).is_absolute() or '..' in Path(n).parts for n in names):
+        raise ValueError('invalid or duplicate Agent resource paths')
+    return names
 
 class AgentResourceBuild(build_py):
     def run(self):
