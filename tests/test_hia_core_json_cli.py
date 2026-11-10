@@ -279,6 +279,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import compile_stage
         from tools.qualify_hia_selfhost_cli import inspect_executable
         stable = []
+        self.exec_chain_observations = []
         for index,(wire,source) in enumerate(zip(self.exec_wires,self.exec_sources)):
             expected,_=compile_stage(self.folder,f'exec-reference-{index}',self.compiler,source)
             with (patch('json.loads',side_effect=AssertionError('foreign payload parser')),
@@ -296,6 +297,12 @@ class CoreJsonCliNativeTests(unittest.TestCase):
                 if generation==2:command=['/usr/bin/strace','-qq','-o',str(trace),*command]
                 process=subprocess.run(command,input=source,capture_output=True,timeout=15,
                     cwd=self.folder,env={'PATH':'/nonexistent','HOME':'/nonexistent','LANG':'C'})
+                stdout=self.folder/f'JSON-native-exec-{index}-{generation}.stdout.bin'
+                stdout.write_bytes(process.stdout)
+                self.exec_chain_observations.append({'compiler_index':index,'generation':generation,
+                    'compiler_sha256':sha256(path.read_bytes()).hexdigest(),
+                    'input_sha256':sha256(source).hexdigest(),'stdout_sha256':sha256(process.stdout).hexdigest(),
+                    'stdout_path':str(stdout),'returncode':process.returncode,'stderr_hex':process.stderr.hex()})
                 self.assertEqual((process.returncode,process.stderr),(0,b''))
                 if generation==2:
                     calls=re.findall(r'^([a-z0-9_]+)\(',trace.read_text(),re.MULTILINE)
