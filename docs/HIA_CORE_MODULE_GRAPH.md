@@ -32,9 +32,13 @@ is no Python name resolver/topological algorithm or old-policy fallback. The
 host still owns JSON framing, Core materialization/verification, metadata and
 filesystem/process/build custody. These are explicit unfinished native boundaries.
 
-Linked definitions currently use generated `fN` symbols, described by the
-`function_names` receipt. Original entry export spelling is not yet preserved
-as an external C ABI name; external ABI-name compatibility remains OPEN.
+Entry-module public exports preserve their original spelling through linked Core
+and native ELF scalar wrappers. Nonpublic definitions use capture-avoiding `fN`
+names; generated names cannot shadow a public name such as `f1`. The
+`function_names` and `public_export_names` receipt records describe this mapping.
+This does not add resource-bearing public ABIs or remove the existing native
+compiler export/signature/loader-hook restrictions. Host Core materialization
+remains a bridge, not a native module system closure.
 
 ```sh
 python -B -m tools.build_hia_core_module_graph --compiler /qualified/B3.image.bin \

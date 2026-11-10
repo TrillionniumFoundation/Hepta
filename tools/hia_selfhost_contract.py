@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v41-core-agent-target-witnesses"
+PROFILE = "selfhost-core-linux-x86_64-v42-core-public-export-abi"
 SOURCE_FILES = (
     'tools/qualify_hia_composite_bulk.py',
     'tests/test_hia_composite_bulk_native.py',
@@ -200,7 +200,7 @@ def support_contract(root=ROOT):
             "policy": "native names/privacy/import/call/entry/cycle/order; no host resolver fallback",
             "host_boundaries": ["JSON framing", "Core materialization and verification",
                                 "filesystem/build/custody", "installation"],
-            "original_external_export_names_preserved": False,
+            "original_external_export_names_preserved": True,
             "nominal_type_linking_complete": False,
             "whole_module_build_install_complete": False,
         },
