@@ -68,7 +68,33 @@ class LoadedProject:
                             "root": str(self.package.root)} if self.package else None}
 
 
+def _resolve_reference(unit, name, role, span):
+    if "::" not in name:
+        declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
+        return unit.names.get(name, name) if name in declarations else name
+    parts = name.split("::")
+    if parts[0] in unit.imports:
+        imported = unit.imports[parts[0]]
+        declarations = imported.types if role == "type" or len(parts) > 2 else {**imported.types, **imported.functions}
+        declaration = declarations.get(parts[1])
+        if declaration is None:
+            fail("E_MODULE_SYMBOL", "Unknown imported symbol: " + name, span)
+        if not (getattr(declaration, "public", False) or getattr(declaration, "extern_c", False) or getattr(declaration, "export_c", False)):
+            fail("E_MODULE_PRIVATE", "Imported symbol is private: " + name, span)
+        return "::".join([imported.names[parts[1]], *parts[2:]])
+    if parts[0] in unit.types:
+        return "::".join([unit.names[parts[0]], *parts[1:]])
+    if parts[0] == "Result":
+        return name
+    fail("E_MODULE_NAMESPACE", "Unknown namespace: " + parts[0], span)
+
+
 def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject:
+    selected_symbols = os.environ.get("HEPTA_HIA_MODULE_SYMBOLS_MANIFEST")
+    native_symbols = None
+    if selected_symbols:
+        from .hia_module_symbols_native import installed_module_symbols
+        native_symbols = installed_module_symbols(selected_symbols)
     requested_path = Path(entry).absolute()
     entry = Path(entry).resolve()
     bindings = {str(requested_path): str(entry)}
@@ -155,7 +181,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         types = {s.name: s for s in [*program.structs, *getattr(program, "enums", [])]}
         functions = {f.name: f for f in program.functions}
         declarations = [*program.structs, *getattr(program, "enums", []), *program.functions]
-        if len(types) + len(functions) != len(declarations) or set(types) & set(functions):
+        if native_symbols is not None:
+            native_symbols.admit(program, span)
+        elif len(types) + len(functions) != len(declarations) or set(types) & set(functions):
             fail("E_MODULE_DUPLICATE", "Duplicate declaration name in module", span)
         relative = Path(os.path.relpath(path, owner.root)).as_posix()
         prefix = "M" + digest(relative.encode())[:16] + "_"
@@ -166,7 +194,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
         source_bytes[str(path)] = data
         stack.append(path)
         for imp in getattr(program, "imports", []):
-            if imp.alias in unit.imports or imp.alias in types or imp.alias in functions:
+            if native_symbols is not None:
+                native_symbols.alias(unit, imp.alias, imp.span)
+            elif imp.alias in unit.imports or imp.alias in types or imp.alias in functions:
                 fail("E_MODULE_ALIAS", "Import alias collides with an existing name: " + imp.alias, imp.span)
             parts = imp.name.split("::")
             if parts[0] in pkg.dependencies:
@@ -191,25 +221,9 @@ def load_project(entry, *, locked=False, source_overrides=None) -> LoadedProject
     module_reports = []
     for unit in units.values():
         def resolve(name, role, span):
-            if "::" not in name:
-                declarations = unit.types if role == "type" else {**unit.types, **unit.functions}
-                return unit.names.get(name, name) if name in declarations else name
-            parts = name.split("::")
-            if parts[0] in unit.imports:
-                imported = unit.imports[parts[0]]
-                declarations = imported.types if role == "type" or len(parts) > 2 else {**imported.types, **imported.functions}
-                declaration = declarations.get(parts[1])
-                if declaration is None:
-                    fail("E_MODULE_SYMBOL", "Unknown imported symbol: " + name, span)
-                if not (getattr(declaration, "public", False) or getattr(declaration, "extern_c", False) or getattr(declaration, "export_c", False)):
-                    fail("E_MODULE_PRIVATE", "Imported symbol is private: " + name, span)
-                return "::".join([imported.names[parts[1]], *parts[2:]])
-            if parts[0] in unit.types:
-                return "::".join([unit.names[parts[0]], *parts[1:]])
-            if parts[0] == "Result":
-                return name
-            fail("E_MODULE_NAMESPACE", "Unknown namespace: " + parts[0], span)
-
+            if native_symbols is not None:
+                return native_symbols.resolve(unit, name, role, span)
+            return _resolve_reference(unit, name, role, span)
         def transform(value, params=frozenset()):
             if isinstance(value, Type):
                 name = value.name if value.name in params else resolve(value.name, "type", Span(path=str(unit.path)))

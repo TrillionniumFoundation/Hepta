@@ -163,7 +163,26 @@
     "tail_self_call_additional_frames": 0,
     "workspace_required_bytes": 1048576
   },
-  "profile": "selfhost-core-linux-x86_64-v37",
+  "module_symbols_application": {
+    "input_bytes": 8388608,
+    "manifest_schema": "hepta.hia.module-symbols-native.v1",
+    "policy": [
+      "duplicate declaration and import alias admission",
+      "complete existing local/imported type/term name resolution",
+      "privacy/extern/export visibility, qualified enum tails and Result"
+    ],
+    "selected_reference_fallback": false,
+    "selection": "HEPTA_HIA_MODULE_SYMBOLS_MANIFEST; default reference unchanged",
+    "source": "examples/hia_bootstrap/module_symbols.hiaasm",
+    "status": "explicit_candidate",
+    "still_foreign": [
+      "AST fact transport and traversal",
+      "path/hash/prefix generation",
+      "filesystem and package loading, dependency traversal/cycles",
+      "build/runtime and default production path"
+    ]
+  },
+  "profile": "selfhost-core-linux-x86_64-v38",
   "required_replay": {
     "cold_command": "python -B tools/replay_hia_selfhost_cold.py --output <new-report.json>",
     "fixed_point": "B1 == B2 == B3 bytes",
@@ -233,9 +252,10 @@
       "stdin/stdout descriptor contracts"
     ],
     "files": {
+      "docs/HIA_MODULE_SYMBOLS_NATIVE.md": "2ae4ec99bacd9405af41bc059badb1da6511cc1223e9fab5a4ac61958e5877e1",
       "docs/HIA_NATIVE_BYTE_ABI_OBSERVER.md": "05a0743fcf1c3d20c6d57e6806f6338341d4a58c2702b7ab9b0aecc820107f1c",
       "docs/HIA_NATIVE_ELF_LINKER.md": "4926e098a1d8484073fdbf386ebca86c0ce81c170de057c7c99b6f275819e757",
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "07c2c67208b1592b23f370df35d5d1f8d736b2d597df4bcdee8b1473e55e3b39",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "033d580051e780b675dde661d0ed8367740169fb416e29c8d1f7892059758a39",
       "docs/HIA_SELF_HOSTING_CORE.md": "88b91b681f86b042425841639549dfe788748240b415091e698cdd0ffde3b2f7",
       "examples/hia_bootstrap/bytesum.hiaasm": "74bbcc3a6e0ac0962ec32017f4d8c971c91bca0f53c3de7846d65de6194ce4ae",
       "examples/hia_bootstrap/core_json_cli_packer.hiaasm": "4c2cf26f60c242b52a0a58fd90f42ab7306d01a678447176d9bb4ffa3c1d7e58",
@@ -244,6 +264,7 @@
       "examples/hia_bootstrap/json_canonical.hiaasm": "555f4ca8de9b288a163370eb4213d09f724f13cbbb002f75a06401b4401f9b34",
       "examples/hia_bootstrap/json_decode.hiaasm": "151f00a9645fea753aff528cedf79ee1c761afae82c3ed1a13e463cc914053a9",
       "examples/hia_bootstrap/json_preflight.hiaasm": "89276ce2c47edab2dc3339434e47bae1b2c726f5681e497c24e10ceddd564c56",
+      "examples/hia_bootstrap/module_symbols.hiaasm": "78db5d53320d0a13110e0823ad9a7d0e5b79ecb07c35b0ad91e97ffec22c4224",
       "examples/hia_bootstrap/native_filter_packer.hiaasm": "63ec799f8b427e089c2a66bc345c1ca1ed6b022c12e6af5bfebd6953d66b4c2d",
       "examples/hia_bootstrap/native_observer_packer.hiaasm": "81ece2a11530c9f2292c6921d20d9d080ffadd04a362eba801dd2d1ea499df66",
       "examples/hia_bootstrap/selfhost.hiaasm": "89d0f0b6193ee47ec447ca669f786e8e46acbe26517a6874a441988ea0db94a4",
@@ -364,6 +385,7 @@
       "hepta/hia_machine_plan.py": "ae3e54c4dc3299ba9b6d0a9b4caec55e26f3233e5699d3a0cab7deb1337efb8a",
       "hepta/hia_machine_x64.py": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9",
       "hepta/hia_migrate.py": "62446f8c263dbe1b93a1767063c25e1998846eecfcaa680139ddf484a6d8ec42",
+      "hepta/hia_module_symbols_native.py": "dfc86ff6a5f8bd4b027616591fc614d3be336f40684ec44b725248df2d780474",
       "hepta/hia_multiversion.py": "1f04d6f5e5db7ce56f155e9490061b436aa2d529fee54f1120c66a2e7ddf62ee",
       "hepta/hia_narrowing.py": "7f30ae46f04008913b349f7ca0c51453622e79882e2d01eb2add3c229ca501c6",
       "hepta/hia_native_byte_abi.py": "0bb40a17f76c27146a48a6d3d229228c9a89bfd96d4b9d65b3b9c70215a3edd6",
@@ -446,7 +468,7 @@
       "hepta/llvm_ssa_pipeline.py": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad",
       "hepta/llvm_ssa_target.py": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b",
       "hepta/migration_ir.py": "6320d124d4a16eab04ef96f8879111747a23c4fe77b4707fe2f28730784653bb",
-      "hepta/modules.py": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea",
+      "hepta/modules.py": "3c1dc93a479bf3db4b9eb46de3597b1c031aab29cffe38eead5b4fbdc094a3fa",
       "hepta/native_local_views.py": "a5ff9e9e78684b979d341e751f0011b9c4e8d65f1ee72b290721ef86dbbcc54c",
       "hepta/native_mapping_identity.py": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010",
       "hepta/native_resource_gate.py": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800",
@@ -485,6 +507,7 @@
       "tests/test_hia_json_decode_native.py": "403ddc9ded0bd513823d07acb1a0e423c9aae647d130205d61a1076456aae0e4",
       "tests/test_hia_json_preflight.py": "3d76fb49250c886df9cc27ca5015ed94501340bb88d3f569a9723d831343caf4",
       "tests/test_hia_json_preflight_native.py": "72d403644528edcbc19ced065e1fad4f429f5d8dd9b6a1764dee857b2937fa7a",
+      "tests/test_hia_module_symbols_native.py": "630ccedb0982dc5e380c071e89c189babfc8578a50da4876039fea956277162f",
       "tests/test_hia_selfhost.py": "0fe1cb645c6f626534a5fb98f4dee839089e9a35a2c79af2ad7c2a9b1c9308b3",
       "tests/test_hia_selfhost_chain.py": "63ed06fa164d02f24c46c4cb1f3a4c7d0bbaeca514dadc941293d60e27a6d44b",
       "tests/test_hia_selfhost_cli.py": "6f6f32425f85293692d178f10553b958190455495ac3a2e82c35675e5c5741c0",
@@ -514,6 +537,7 @@
       "tools/build_hia_json_canonical.py": "f0fbe4617e3d111fd3120b5b55cbe4b090dc5f13243f39e501ace72ce28fe1ed",
       "tools/build_hia_json_decode.py": "00a4999db5f939fe8ada2fad2be6d47c51ccab595212bfee81dbbe488c91e0c0",
       "tools/build_hia_json_preflight.py": "91e8b69798ae25c5e0e12cb0cea69c90299f88d8c63112b946ed1d667dd65053",
+      "tools/build_hia_module_symbols.py": "5c11ac41d18e0ef7f79922857ddc22f200711ab8015eb8bd6e11cbd1a326ba76",
       "tools/build_hia_sha256.py": "5a17d91ebe5d4ecb718fe5036c29db1a3c9cb7cc5aab82acc652201d17de1502",
       "tools/build_hia_source_expressions.py": "65a7e080ad9322e2e7e623ea4408caa026c596305435be64283f8b71cab48886",
       "tools/build_hia_source_lexer.py": "54e103eac7ae740a9e0442de02ee5d0a214184c018e231e061571144c88a1cc5",
@@ -527,6 +551,7 @@
       "tools/generate_hia_json_canonical.py": "063053bf7539a605ee834bd32e6a07b98ebd0c6b027af0b224b7f9107b9d47d9",
       "tools/generate_hia_json_decode.py": "fffc97c704cc75ad88239fe79d7b7f83418199a732364f834e006ebfd5f8548f",
       "tools/generate_hia_json_preflight.py": "e1c03f776840f5139c4ac197586e1b676ff9d2739c817a403d46baf4d6eb0ec4",
+      "tools/generate_hia_module_symbols.py": "f6e1296a7252022ecbca7b8e12286d9294d604d3e84942c30e3d7b92f432b25d",
       "tools/generate_hia_native_filter.py": "23bb0f2067cbb78d80fa60bc68265cad8b809cf39cb1097fb01171dac3b5f8e5",
       "tools/generate_hia_native_observer.py": "057da1a391db3c43d89333126df40175cad4ef38bd1812f952b92d8a5a0f7bfb",
       "tools/generate_hia_selfhost.py": "7325ef45e7d38500e6fdac385d154d8cad182cc4635dfa2c7503eed2855b89d4",
@@ -552,7 +577,7 @@
       "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
       "tools/hia_selfhost_cli.py": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f",
       "tools/hia_selfhost_cli_child.py": "46229de9524b795df54d2b4ba49789c4c0a2174ed25318d68d135427d6353289",
-      "tools/hia_selfhost_contract.py": "353ea044235d92a79f254c7c18f4260fceb3061847c0b47c079c1f87c9c8e019",
+      "tools/hia_selfhost_contract.py": "1667ff5ba3040e5c6c30ae00c18839bc7629e68c0f42fb92c6d41f20e82711c7",
       "tools/hia_selfhost_effects.py": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf",
       "tools/hia_selfhost_exports.py": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382",
       "tools/hia_selfhost_exports_cases.py": "c5cc5b4aeefcdb639b34c103fb057a6a167ee48080e9ff0f024b1c6cf7a8687c",

@@ -6,6 +6,13 @@ on:
     paths:
       - 'examples/hia_bootstrap/source_parser.hiaasm'
       - 'hepta/hia_source_parser_native.py'
+      - 'tools/generate_hia_module_symbols.py'
+      - 'tools/build_hia_module_symbols.py'
+      - 'hepta/hia_module_symbols_native.py'
+      - 'hepta/modules.py'
+      - 'tests/test_hia_module_symbols_native.py'
+      - 'examples/hia_bootstrap/module_symbols.hiaasm'
+      - 'docs/HIA_MODULE_SYMBOLS_NATIVE.md'
       - 'tests/test_hia_source_parser_native.py'
       - 'tools/build_hia_source_parser.py'
       - 'tools/generate_hia_source_parser.py'
@@ -174,6 +181,7 @@ jobs:
           python -B -m tools.generate_hia_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-observer-generator.log"
           python -B -m tools.generate_hia_source_expressions 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-expressions-generator.log"
           python -B -m tools.generate_hia_source_types 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-types-generator.log"
+          python -B -m tools.generate_hia_module_symbols 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/module-symbols-generator.log"
           python -B -m tools.generate_hia_source_parser 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-parser-generator.log"
           python -B -m tools.generate_hia_type_parser 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/type-parser-generator.log"
           python -B -m tools.generate_hia_sha256 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-generator.log"
@@ -194,6 +202,7 @@ jobs:
           from pathlib import Path
           names = (
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
+              "tests.test_hia_module_symbols_native.ModuleSymbolsSourceTests",
               "tests.test_hia_source_parser_native.SourceParserSourceTests",
               "tests.test_hia_type_parser_native.TypeParserSourceTests",
               "tests.test_hia_source_lexer_native.SourceLexerSourceTests",
@@ -349,6 +358,7 @@ jobs:
           python -B -m unittest -v tests.test_hia_selfhost_process_owner 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/process-owner-tests.log"
           python -B -m unittest -v tests.test_hia_source_expressions_native.SourceExpressionsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-expressions-tests.log"
           python -B -m unittest -v tests.test_hia_source_types_native.SourceTypesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-types-tests.log"
+          python -B -m unittest -v tests.test_hia_module_symbols_native.NativeModuleSymbolsTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/module-symbols-tests.log"
           python -B -m unittest -v tests.test_hia_source_parser_native.SourceParserNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-parser-tests.log"
           python -B -m unittest -v tests.test_hia_type_parser_native.TypeParserNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/type-parser-tests.log"
           python -B -m unittest -v tests.test_hia_sha256_native.Sha256HiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-tests.log"

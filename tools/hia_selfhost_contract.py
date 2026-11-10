@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v37"
+PROFILE = "selfhost-core-linux-x86_64-v38"
 SOURCE_FILES = (
+    'docs/HIA_MODULE_SYMBOLS_NATIVE.md',
+    'examples/hia_bootstrap/module_symbols.hiaasm',
+    'tests/test_hia_module_symbols_native.py',
+    'tools/build_hia_module_symbols.py',
+    'tools/generate_hia_module_symbols.py',
+
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
     'examples/hia_bootstrap/native_filter_packer.hiaasm',
@@ -244,6 +250,17 @@ def support_contract(root=ROOT):
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
+        "module_symbols_application": {"status": "explicit_candidate",
+            "source": "examples/hia_bootstrap/module_symbols.hiaasm",
+            "selection": "HEPTA_HIA_MODULE_SYMBOLS_MANIFEST; default reference unchanged",
+            "manifest_schema": "hepta.hia.module-symbols-native.v1", "input_bytes": 8388608,
+            "policy": ["duplicate declaration and import alias admission",
+                       "complete existing local/imported type/term name resolution",
+                       "privacy/extern/export visibility, qualified enum tails and Result"],
+            "selected_reference_fallback": False,
+            "still_foreign": ["AST fact transport and traversal", "path/hash/prefix generation",
+                              "filesystem and package loading, dependency traversal/cycles",
+                              "build/runtime and default production path"]},
         "source_expressions_application": {"status": "bounded_subset",
              "source": "examples/hia_bootstrap/source_expressions.hiaasm",
              "selection": "HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST; default reference unchanged",

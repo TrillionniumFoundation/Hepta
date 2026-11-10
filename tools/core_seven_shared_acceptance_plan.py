@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v21'
-PROTOCOL = 'seven-shared-acceptance-v21'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v22'
+PROTOCOL = 'seven-shared-acceptance-v22'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -251,12 +251,15 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
 # the aggregate envelope and every execution/process/deadline limit stay fixed.
 # Expression grammar paths add691bytes, offset by691fewer raw bytes.
 # Native linker paths add929bytes. Both reviewed branch projections remain exact.
+# Module-symbol inputs add801metadata bytes, paid by801fewer raw log bytes.
 # Total evidence envelope and every execution/deadline/worker bound stay fixed.
 TYPE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_type_parser.hiaasm', 'hepta/hia_type_parser_native.py', 'tests/test_hia_type_parser_native.py', 'tools/build_hia_type_parser.py', 'tools/generate_hia_type_parser.py')
 SOURCE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_parser.hiaasm', 'hepta/hia_source_parser_native.py', 'tests/test_hia_source_parser_native.py', 'tools/build_hia_source_parser.py', 'tools/generate_hia_source_parser.py')
 
-IDENTITY_CAP = 168329
-IDENTITY_RESERVE_DELTA = 23616
+MODULE_SYMBOLS_ADDITIONS = ('docs/HIA_MODULE_SYMBOLS_NATIVE.md', 'examples/hia_bootstrap/module_symbols.hiaasm', 'hepta/hia_module_symbols_native.py', 'tests/test_hia_module_symbols_native.py', 'tools/build_hia_module_symbols.py', 'tools/generate_hia_module_symbols.py')
+
+IDENTITY_CAP = 169130
+IDENTITY_RESERVE_DELTA = 24417
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -348,16 +351,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
-                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS)))
+                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *MODULE_SYMBOLS_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     union_paths = SOURCE_IDENTITY_PATHS
-    require(len(union_paths) == len(set(union_paths)) == 416 and commitment(union_paths) == '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933',
+    require(len(union_paths) == len(set(union_paths)) == 422 and commitment(union_paths) == 'cd8ef4487c29cf1d613f0f61a3f850b65d85e73af2cf2c59cb11b2d4c3211b39',
             'reviewed exact source identity closure')
-    paths = tuple(name for name in union_paths if name not in (*TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS))
+    prior_paths = tuple(name for name in union_paths if name not in MODULE_SYMBOLS_ADDITIONS)
+    require(len(prior_paths) == 416 and commitment(prior_paths) == '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933',
+            'historical whole-source parser and linker identity projection')
+    paths = tuple(name for name in prior_paths if name not in (*TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS))
     require(len(paths) == len(set(paths)) == 406 and commitment(paths) == '855761770d145406609a3b2daf764765305b101b0619c50315adee135846ae2a',
             'historical combined type-expression linker identity projection')
     linker_v18 = tuple(name for name in paths if name not in (*SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS))
@@ -410,7 +416,7 @@ def source_paths():
     previous = tuple(name for name in previous if name not in P0_P3_ADDITIONS)
     require(len(previous) == 323 and commitment(previous) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
             'historical native-Agent source identity projection')
-    source_parser_v16 = tuple(name for name in union_paths if name not in (
+    source_parser_v16 = tuple(name for name in prior_paths if name not in (
         *SHA256_STREAM_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS,
         *NATIVE_OBSERVER_ADDITIONS, *ELF_LINKER_ADDITIONS,
         *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS))

@@ -2,51 +2,42 @@
 
 ## Decision and source authority
 
-**Whole-stack rewrite is OPEN, not complete.** This continuation adds an
-operator-selected source type parser in HIA. It recognizes the complete existing
-type grammar with an explicit bounded stack: qualified paths, generic arguments
-and lifetimes, arrays/slices, read/mut references and raw const/mut pointers.
-It is not a declaration/expression parser or a semantic type checker. Default
-backends and old implementations remain unchanged, pending whole-stack closure.
-The new implementation completed its own fresh qualification atfc5540f as
-recorded below; baseline results are not substituted for changed-source evidence.
+**Whole-stack rewrite and native-only retirement are OPEN.** The most recent
+published combined qualification is implementation
+`cee47c516bc3a19d8136a8daae61a8f547ac2cdc`, reviewed at
+`3e1a00201ac4ebb5e3c2f3d19d7e539bbe33e47d` in draft PR #842. It combines
+the actual whole-source/token-type grammar, source lexer/types/expressions,
+JSON/SHA/compiler/standalone CLI/native observer and static ELF linker. See
+`review-evidence/hia-whole-selfhost-20261109/whole-source-linker-summary.json`
+and its exact source-equivalence and lossless inventory delta.
 
-### Latest qualified baseline (before source type parsing)
+That fixed source passed33fresh stages:115source checks,11/11cold-isolation
+checks and5,049native checks in100.761seconds under the unchanged180+3deadline,
+1,242language checks+10assertions,162native component tests,15shared identity
+tests,83selected+83default consumers,55incremental tests,63parser/module callers
+and seven98-test frontend modes, plus actual installed original/modified compiler
+and native ELF linker CLI execution. B1=B2=B3; original/modified source evidence
+is retained. These finite local observations are not complete regression,
+all-input refinement, clean-machine/platform qualification or whole-stack proof.
 
-The latest combined executable
-qualification subject is `4f95ee91fd3aac0513135e22512f310ed806267d`; current
-assembly-aware inventory subject is `115d042`, with all328qualified cold payloads
-preserved byte-for-byte through review head `d7d1a34` (draft PR #845).
+The accepted baseline has224production Python modules (77,879lines,
+4,219,375bytes) and439host-tool Python files (138,296lines,7,847,557bytes),
+with3partial/5open implementation areas. Tools are separately inventoried,
+not all called production runtime. Tests/evidence/research/assembly support
+remain independently classified, not silently treated as native HIA.
 
-The qualified baseline `hepta/` package has **220 Python files /76,872lines /
-4,161,818bytes**. Separately, baseline `tools/` has **428 Python files /134,502lines /
-7,704,073bytes**. The648combined files include foreign authoring, build,
-qualification and delivery authorities; tools are not all production runtime.
-These inventories are neither a completion percentage nor proof of semantic
-replacement. Assembly `.S`/`.s` support files are now explicitly classified,
-not silently counted as HIA. Tests, historical evidence, experiments, examples,
-benchmarks and formal-support scripts are outside those two Python roots, but
-remain accounted for by tracked-file identity and role in the lossless audits.
+### Current module-symbol continuation, not yet fixed-source qualified
 
-Current combined local evidence is108source tests, cold11/11+5,049native checks
-in101.204seconds under180+3seconds,1,242language checks+10assertions,96native
-component tests,15shared-identity controls,83selected+83default consumers,
-55selected incremental tests and63selected+63default parser/module callers.
-The audit ledger remains **3partial/5open**. A separately frozen full-repository
-run at4f95ee9 is pending. Remote CI atd7d1a34 has passed all four source, cold, native and language
-jobs (run42766783539). The cold native checks took174.082seconds under
-the unchanged180second deadline. No
-full-repository or whole-stack PASS is established. Earlier shared-observer remote b4b1e4c timed
-out at180seconds (28/38phases, cleanup complete), and remains FAIL despite local
-passes and an earlier a19b612 remote success.
-
-Exact current inventories reconstruct from `implementation-boundary-v28.json`
-plus `implementation-boundary-integrated-stack-delta.json` and the separately
-labelled `implementation-boundary-integrated-current-inventory-delta.json`.
-See `integrated-native-stack-summary.json` and
-`integrated-current-inventory-summary.json` for distinct executable/inventory
-subjects and source-equivalence evidence. Main/release locks, production and
-default backends have not been switched.
+The next explicitly selected HIA application implements the complete existing
+module declaration/alias and local/imported name/privacy policy. Independent VM,
+actual B0/B1/B2/application native execution and selected module project tests
+have run in development, including a real no-host-resolver control. Fresh exact
+source qualification, remote CI and full-repository acceptance remain required.
+The candidate module/package area is now partial, not complete. File IO,
+symlink/root checks, graph traversal/cycles, source prefix/hashes, package/lock
+parsing and AST transformation still run in host code. No default switch,
+production activation or legacy deletion occurred. The final delivery must have
+no legacy implementation fallback, but this candidate is not that final state.
 
 ### Historical qualified checkpoints (not current closure claims)
 

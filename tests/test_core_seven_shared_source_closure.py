@@ -99,7 +99,7 @@ OBSERVER_V16_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9
 INTEGRATED_V17_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
 SOURCE_TYPES_V18_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
 SOURCE_EXPRESSIONS_V19_COMMITMENT = '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f'
-CURRENT_COMMITMENT = '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933'
+CURRENT_COMMITMENT = 'cd8ef4487c29cf1d613f0f61a3f850b65d85e73af2cf2c59cb11b2d4c3211b39'
 ELF_LINKER_ADDITIONS = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
@@ -160,7 +160,9 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
 TYPE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_type_parser.hiaasm', 'hepta/hia_type_parser_native.py', 'tests/test_hia_type_parser_native.py', 'tools/build_hia_type_parser.py', 'tools/generate_hia_type_parser.py')
 SOURCE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_parser.hiaasm', 'hepta/hia_source_parser_native.py', 'tests/test_hia_source_parser_native.py', 'tools/build_hia_source_parser.py', 'tools/generate_hia_source_parser.py')
 
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS)
+MODULE_SYMBOLS_ADDITIONS = ('docs/HIA_MODULE_SYMBOLS_NATIVE.md', 'examples/hia_bootstrap/module_symbols.hiaasm', 'hepta/hia_module_symbols_native.py', 'tests/test_hia_module_symbols_native.py', 'tools/build_hia_module_symbols.py', 'tools/generate_hia_module_symbols.py')
+
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *MODULE_SYMBOLS_ADDITIONS)
 
 
 @contextmanager
@@ -179,18 +181,22 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         union = plan.source_paths()
-        self.assertEqual(len(union), 416)
+        self.assertEqual(len(union), 422)
+        prior = tuple(n for n in union if n not in MODULE_SYMBOLS_ADDITIONS)
+        self.assertEqual(len(prior), 416)
+        self.assertEqual(plan.commitment(prior), '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933')
+        self.assertEqual(plan.MODULE_SYMBOLS_ADDITIONS, MODULE_SYMBOLS_ADDITIONS)
         self.assertEqual(plan.commitment(union), CURRENT_COMMITMENT)
         self.assertEqual(plan.TYPE_PARSER_ADDITIONS, TYPE_PARSER_ADDITIONS)
         self.assertEqual(plan.SOURCE_PARSER_ADDITIONS, SOURCE_PARSER_ADDITIONS)
-        self.assertEqual(sum(n.startswith('hepta/') and n.count('/') == 1 and n.endswith('.py') for n in union), 224)
-        token_parser = tuple(n for n in union if n not in (*SHA256_STREAM_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *ELF_LINKER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS))
+        self.assertEqual(sum(n.startswith('hepta/') and n.count('/') == 1 and n.endswith('.py') for n in union), 225)
+        token_parser = tuple(n for n in prior if n not in (*SHA256_STREAM_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *ELF_LINKER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS))
         self.assertEqual(len(token_parser), 380)
         self.assertEqual(plan.commitment(token_parser), 'b70e5910a8cad3f61d16343c0795cb0a8ae2b89406f5b8fdc91ebdbcd88f4a14')
         token_type = tuple(n for n in token_parser if n not in SOURCE_PARSER_ADDITIONS)
         self.assertEqual(len(token_type), 375)
         self.assertEqual(plan.commitment(token_type), '49a2a910de52a02227d9d96fcf488df753362970ea79e92521d6e3efc984481e')
-        actual = tuple(n for n in union if n not in (*TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS))
+        actual = tuple(n for n in prior if n not in (*TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS))
         self.assertEqual(plan.commitment(actual), '855761770d145406609a3b2daf764765305b101b0619c50315adee135846ae2a')
         self.assertEqual(len(actual), 406)
         self.assertEqual(plan.ELF_LINKER_ADDITIONS, ELF_LINKER_ADDITIONS)
