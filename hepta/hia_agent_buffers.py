@@ -9,6 +9,7 @@ This adapter is finite execution evidence, not a new equivalence theorem.
 from __future__ import annotations
 
 from hashlib import sha256
+import os
 import re
 
 from .hia_agent_store import reject
@@ -35,7 +36,7 @@ def export_manifest(workload):
     return tuple(sorted(exports))
 
 
-def buffer_size(value):
+def _buffer_size_reference(value):
     """Validate one immutable-value descriptor before allocating any bytes."""
     if type(value) is not dict:
         reject("E_HIA_ARGUMENTS", "borrowed arguments require a byte snapshot")
@@ -54,10 +55,26 @@ def buffer_size(value):
     reject("E_HIA_ARGUMENTS", "buffer snapshot has missing or unknown fields")
 
 
-def buffer_bytes(value):
-    size = buffer_size(value)
+def _buffer_bytes_reference(value):
+    size = _buffer_size_reference(value)
     return (bytes.fromhex(value["bytes_hex"]) if "bytes_hex" in value
             else bytes([value["fill_byte"]]) * size)
+
+
+def buffer_size(value):
+    manifest = os.environ.get('HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST')
+    if manifest:
+        from .hia_agent_snapshot_native import installed_snapshot
+        return installed_snapshot(manifest).evaluate(value)
+    return _buffer_size_reference(value)
+
+
+def buffer_bytes(value):
+    manifest = os.environ.get('HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST')
+    if manifest:
+        from .hia_agent_snapshot_native import installed_snapshot
+        return installed_snapshot(manifest).evaluate(value, materialize=True)
+    return _buffer_bytes_reference(value)
 
 
 def validate_arguments(signature, arguments):

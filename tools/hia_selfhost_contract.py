@@ -13,8 +13,25 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v38-core-only"
+PROFILE = "selfhost-core-linux-x86_64-v39-core-agent-snapshot"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+    'docs/HIA_AGENT_SNAPSHOT_NATIVE.md',
+    'examples/hia_bootstrap/agent_snapshot.hiaasm',
+    'tools/generate_hia_agent_snapshot.py',
+    'tools/build_hia_agent_snapshot.py',
+    'tests/test_hia_agent_snapshot_native.py',
+    'tests/test_hia_agent_buffer_lifecycle.py',
+    'tests/test_hia_agent_external_roots.py',
+    'tests/test_hia_agent_native_lease_snapshot.py',
     'docs/HIA_AGENT_STDIO_NATIVE.md',
     'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm',
     'examples/hia_bootstrap/agent_stdio_packer.hiaasm',
@@ -162,6 +179,18 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "agent_snapshot_application": {
+            "source": "examples/hia_bootstrap/agent_snapshot.hiaasm",
+            "selection": "operator HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST; hosted default unchanged",
+            "wire_schema": "typed-fields-v1; no paths or addresses",
+            "maximum_snapshot_bytes": 1048576,
+            "native_scratch_bytes": 64,
+            "output_header_bytes": 8,
+            "admission_and_materialization": "native field inventory, value tags, exact lowercase hex and fill range; no output on refusal",
+            "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
+            "whole_agent_editing_and_persistence_replaced": False,
+            "production_activated": False,
+        },
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",
                         "examples/hia_bootstrap/agent_stdio_packer.hiaasm"],

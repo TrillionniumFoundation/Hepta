@@ -23,7 +23,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'canonical': ('json_canonical', 'json-canonical'),
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
-                  'native-filter': ('native_filter_packer', 'native-filter')}
+                  'native-filter': ('native_filter_packer', 'native-filter'),
+                  'agent-snapshot': ('agent_snapshot', 'agent-snapshot')}
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
     source_name, protocol = candidates[candidate]
