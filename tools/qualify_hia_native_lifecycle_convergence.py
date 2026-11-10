@@ -200,7 +200,19 @@ def _run(output, *, clang, rustc, expected_head, native_commands):
     status = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
     if expected_head is not None and (head != expected_head or status):
         raise ValueError("clean exact expected source commit required")
-    clang, rustc = str(Path(clang).resolve()), str(Path(rustc).resolve())
+    clang = str(Path(clang).resolve())
+    requested_rustc = str(Path(rustc).absolute())
+    rustc_path = Path(requested_rustc).resolve(strict=True)
+    if rustc_path.name == "rustup":
+        selected = subprocess.run([requested_rustc, "--print", "sysroot"],
+            capture_output=True, text=True, timeout=15, check=True)
+        sysroot = Path(selected.stdout.strip())
+        if selected.stderr or not sysroot.is_absolute():
+            raise ValueError("actual Rust compiler sysroot selection refused")
+        rustc_path = (sysroot / "bin" / "rustc").resolve(strict=True)
+        if rustc_path.name != "rustc":
+            raise ValueError("actual Rust compiler identity required")
+    rustc = str(rustc_path)
     tools = {"clang": {"path": clang, "sha256": digest_executable(clang)},
              "rustc": {"path": rustc, "sha256": digest_executable(rustc)}}
     _write(output / "protocol.json", PROTOCOL)

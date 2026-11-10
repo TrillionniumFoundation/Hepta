@@ -253,9 +253,15 @@ class ReturnedLoanInterfaceTests(unittest.TestCase):
 
     def test_routes_show_current_admission_and_distinct_proof_boundary(self):
         inventory = route_inventory()
-        self.assertIn("v1-v8", inventory["inputs"][0]["input"])
-        self.assertEqual(inventory["versions"]["latest_core_schema"], "hepta.hia.program.v8")
-        self.assertTrue(all("v1-v7" in entry["scope"] for entry in inventory["optimization_profiles"][:2]))
+        from hepta.hia_schema import schema_registry
+        self.assertEqual(inventory["inputs"], ["standalone-hia", "agent-assembly"])
+        self.assertFalse(inventory["implicit_fallback_allowed"])
+        self.assertEqual(schema_registry()["latest_core_schema"], "hepta.hia.program.v8")
+        # The preceding real solver test retains v8 admission versus v1-v7
+        # proof refusal. The route catalog no longer describes removed inputs.
+        references = inventory["backends"][1:]
+        self.assertTrue(all(entry["agent_entry_allowed"] is False for entry in references))
+        self.assertTrue(all(entry["fallback_used"] is False for entry in references))
 
 
 if __name__ == "__main__":
