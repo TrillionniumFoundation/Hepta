@@ -1586,3 +1586,55 @@ limit, test inventory, compiler capability or process/evidence budget is raised.
 Fresh scoped-checkout source verification and current remote execution are
 required for this workflow-only correction; fc5540fcomponent evidence is not
 relabelled as a new whole-toolchain run.
+
+## Source expression grammar continuation (v32 candidate, NOT whole-stack closure)
+
+The operator-selected `HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST` application now
+implements the existing expression/prefix/argument grammar in executable HIA,
+composing the actual type grammar and source scanner helpers. It covers all
+binary precedences, unary operators, named calls, index/field postfixes, casts,
+arrays, struct values, qualified paths and turbofish type lists. Explicit
+128-byte frames preserve the existing caller's remaining combined 96-level
+syntax budget; standalone admission is bounded at128 frames. This is not an
+implementation of declaration/statement grammar, semantic checking or modules.
+
+The128-byte arena supports parents allocated after left children; the foreign
+bridge validates ownership/cycles/ranges then constructs objects iteratively.
+A separate bitset records actual generic `>>`/`>=` splits without modifying
+real binary operators, including error cursors and previously split initial
+operator tokens. Workspace is25024fixed bytes plus ceil(input-bytes/8) trace
+bytes, input8MiB and1Mnodes. Ordinary invalid/short-output calls leave output
+untouched. A separately tagged diagnostic-only replay preserves completed
+namespace observations on failure; it is rejected by the AST arena decoder.
+HIA lexer token values supply integer/float objects; host grammar fallback is
+not used. Host object construction, value bridging, manifests and authoring
+remain explicit foreign dependencies.
+
+Development controls execute four complete hand-specified arenas in the
+independent Core VM before B0, then compare every byte with actual B1/B2-built
+native code. Controls exercise all operator-pair precedences,300 composed
+expressions, real complete source examples, exact errors/token cursors/spans,
+qualified names after failures, nesting boundaries, long left chains,
+concurrent actual parsers with reference lexer/expression/type helpers patched
+to fail, poisoned output guards and malformed arenas. Latest development
+application/shared-closure/static-inventory tests:28PASS. This is development
+acceptance only: fresh clean-source cold/language/native/install, current-head
+remote and full-repository gates remain required.
+
+All failed development captures remain: initial namespace observations were
+lost on errors (fixed with the explicitly separate HIA diagnostic replay),
+string-error consumed bytes excluded the closing quote (fixed using the actual
+scanner cursor), one corpus fixture used a nonrecursive glob, one invocation
+named a nonexistent audit test module, and a new hand-written VM oracle omitted
+two token columns. A later run also hit actual `/tmp` inode exhaustion; its
+failures were retained and an independent private temporary root was selected,
+without deleting existing evidence or changing compiler/execution budgets.
+
+Shared identity v19 explicitly includes399paths/all222actual package modules,
+commitment`1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f`.
+It preserves exact v18/394, v17/389 and both prior fork projections. Additional
+691metadata bytes transfer from raw capture:245947metadata +798533raw
++4096display =1048576unchanged. No previous phase/worker/deadline/compiler
+limits are raised. Defaults/production/main/release locks remain unchanged;
+whole-stack ledger stays3partial/5open, no legacy retirement authorized by this
+component result.
