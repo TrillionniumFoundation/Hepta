@@ -33,10 +33,40 @@ POLICY_SOURCE='''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             op = 2
         if a == 8 and uint(s, 32, 8) == 8602282538829113719:
             op = 3
+        if a == 9 and uint(s, 32, 8) == 8462313613564015731 and uint(s, 40, 1) == 116:
+            op = 4
+        if a == 9 and uint(s, 32, 8) == 7306858834166772851 and uint(s, 40, 1) == 116:
+            op = 5
+        if a == 10 and uint(s, 32, 8) == 7018909932991771763 and uint(s, 40, 2) == 26739:
+            op = 6
         if op == 0:
             return 16
         put(w, 8, op)
+        if op == 6:
+            return op
         x = normalize(s, o, 0)
+        if op == 4 or op == 5:
+            if x == 0:
+                return 16
+            start = 32 + a + b
+            if op == 4:
+                if c != 1 or byte(s, start) != 45:
+                    return 16
+            if op == 5:
+                if c != 64:
+                    return 16
+                i = 0
+                while i < 64:
+                    v = byte(s, start + i)
+                    if v < 48 or v > 102:
+                        return 16
+                    if v > 57 and v < 97:
+                        return 16
+                    store(w, 2256 + i, v)
+                    store(w, 2416 + i, v)
+                    i = i + 1
+                store(w, 2320, 0)
+            return op
         y = normalize(s, o, 1)
         if x == 0 or y == 0:
             return 16
@@ -51,6 +81,82 @@ POLICY_SOURCE='''def policy(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if same == 1:
                 return 16
         return op
+    if phase == 10:
+        mode = get(w, 2072) & 4294967295
+        uid = get(w, 2076) & 4294967295
+        if mode & 61440 != 16384 or mode & 18 != 0 or uid != get(w, 120):
+            return 10
+        return 0
+    if phase == 11:
+        if regular(w, 272) == 0:
+            return 10
+        size = get(w, 320)
+        if size > 67108864:
+            return 17
+        if get(w, 112) == 1:
+            put(w, 16, size)
+        return 0
+    if phase == 12:
+        write(w, 2336, 12777924611700526, 7)
+        store(w, 2206, (byte(w, 2206) & 15) | 64)
+        store(w, 2208, (byte(w, 2208) & 63) | 128)
+        i = 0
+        while i < 16:
+            value = byte(w, 2200 + i)
+            store(w, 2343 + i * 2, hex(value >> 4))
+            store(w, 2344 + i * 2, hex(value & 15))
+            i = i + 1
+        store(w, 2375, 0)
+        return 0
+    if phase == 13:
+        if length(o) < 32:
+            return 16
+        i = 0
+        while i < 32:
+            value = byte(o, i)
+            store(w, 2560 + i, value)
+            store(w, 2256 + i * 2, hex(value >> 4))
+            store(w, 2257 + i * 2, hex(value & 15))
+            i = i + 1
+        store(w, 2320, 0)
+        return 0
+    if phase == 14:
+        i = 0
+        while i < 64:
+            if byte(w, 2256 + i) != byte(w, 2416 + i):
+                return 11
+            i = i + 1
+        return 0
+    if phase == 15:
+        if length(o) < 32:
+            return 16
+        i = 0
+        while i < 32:
+            store(o, i, byte(w, 2560 + i))
+            i = i + 1
+        return 0
+    if phase == 16:
+        if get(w, 16) > 67108864:
+            return 17
+        return 0
+    if phase == 17:
+        copy(w, 128, 848, 144)
+        return 0
+    if phase == 18:
+        copy(w, 128, 2640, 144)
+        return 0
+    if phase == 19:
+        copy(w, 2640, 128, 144)
+        return 0
+    if phase == 20:
+        offset = get(w, 40)
+        count = get(w, 24)
+        total = get(w, 16)
+        if total > 67108864:
+            return 17
+        if offset > total or count > total - offset:
+            return 11
+        return 0
     if phase == 1:
         if regular(w, 272) == 0:
             return 10

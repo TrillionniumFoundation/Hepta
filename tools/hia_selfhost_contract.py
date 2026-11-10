@@ -13,8 +13,9 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v53-native-artifact-publication-route"
+PROFILE = "selfhost-core-linux-x86_64-v54-native-Agent-artifact-files"
 SOURCE_FILES = (
+    'tests/test_hia_agent_artifact_store_native.py',
     'tests/test_hia_artifact_publication_route.py',
     'tools/generate_hia_artifact_publication.py',
     'tools/hia_artifact_publication_syscalls.S',
@@ -384,7 +385,7 @@ def support_contract(root=ROOT):
         "artifact_publication_application": {
             "sources": ["examples/hia_bootstrap/artifact_publication_policy.hiaasm", "examples/hia_bootstrap/artifact_publication_packer.hiaasm", "examples/hia_bootstrap/sha256_stream.hiaasm"],
             "selection": "explicit standalone hia-artifact; defaults unchanged",
-            "operations": ["publish", "verify", "withdraw"],
+            "operations": ["publish", "verify", "withdraw", "store-put", "store-get", "store-hash"],
             "authority": "nonempty exact expected bytes and same ordinary inode; never prior digest/receipt",
             "publication": "no-replace hard link; post-link full byte and identity recheck; cleanup only original owned inode",
             "native_runtime_Python_libc_or_child_required": False,
@@ -397,6 +398,13 @@ def support_contract(root=ROOT):
             "hosted_public_API_selection": "HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST; exact code via sealed memfd; invalid selection has no fallback",
             "hosted_route_requires_source_tree": True,
             "native_link_diagnostic_differs_from_reference_EXISTS": True,
+            "Agent_artifact_file_selection": "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST; sealed current-source executable; no fallback",
+            "Agent_file_payload_limit_bytes": 67108864,
+            "Agent_empty_artifacts_supported": True,
+            "Agent_file_runtime": "HIA streaming SHA; private owned directory; exact lowercase digest names; UUID4 O_EXCL temporary; no-replace link; full-byte dedup; file then directory fsync before receipt",
+            "Agent_get_runtime": "capture and authenticate entire ordinary file before stdout; one pinned directory descriptor; nofollow/nonblock; identity/size/byte checks",
+            "Agent_file_fsync_failure": "no success or DB reference issuance; directory fsync failure can leave immutable content; no automatic replay",
+            "Agent_DB_authority_and_intent": "unchanged hosted SQLite WAL namespace, metadata identity, transactions and request journal; not replaced",
             "full_Agent_persistence_replaced": False,
             "default_changed": False, "whole_native_delivery_qualified": False,
         },

@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'examples/hia_bootstrap/artifact_publication_policy.hiaasm'
 
 
-def observe(wire, output_bytes, workspace, offsets=()):
+def observe(wire, output_bytes, workspace, offsets=(), workspace_offsets=()):
     b=Body(0);owners=[];views=[]
     for data,size in ((wire,max(1,len(wire))),(output_bytes,1048576),(workspace,4096)):
         owner=b.value('buffer','buffer.new',[b.const('usize',size)]);owners.append(owner)
@@ -22,6 +22,7 @@ def observe(wire, output_bytes, workspace, offsets=()):
         views.append(view)
     result=b.value('u32','call',views,{'function':'f0'})
     values=[b.value('u8','buffer.load',[views[1],b.const('usize',at)]) for at in offsets]
+    values += [b.value('u8','buffer.load',[views[2],b.const('usize',at)]) for at in workspace_offsets]
     for view in views:b.effect('loan.end',[view])
     for owner in owners:b.effect('owner.drop',[owner])
     source=('hia-asm.v1 hepta.hia.program.v8 artifact_reference\nfn observe() -> ('+
@@ -278,25 +279,36 @@ def vm_pack(policy,sha):
     struct.pack_into('<Q',wanted,96,len(wanted));struct.pack_into('<Q',wanted,104,len(wanted))
     for key,at in holes.items():struct.pack_into('<I',wanted,at,len(prefix)+(len(policy) if key=='sha_hole' else 0)-at-4)
     b=Body(0);owners=[];views=[]
-    for data,size in ((wire,len(wire)),(b'',len(wanted)),(b'',1)):
+    # The reference expected bytes have a separate owner that the packer does
+    # not receive. A compact VM loop compares EVERY output byte without
+    # exceeding the unchanged human-assembly line/return-list budgets.
+    for data,size in ((wire,len(wire)),(b'',len(wanted)),(b'',1),(wanted,len(wanted))):
         owner=b.value('buffer','buffer.new',[b.const('usize',size)]);owners.append(owner);view=b.value('mutbuf','borrow.mut',[owner])
         for at,value in enumerate(data):
             if value:b.effect('buffer.store',[view,b.const('usize',at),b.const('u8',value)])
-        if not views:b.effect('loan.end',[view]);view=b.value('readbuf','borrow.read',[owner])
+        if len(views) in (0,3):
+            b.effect('loan.end',[view]);view=b.value('readbuf','borrow.read',[owner])
         views.append(view)
-    result=b.value('u32','call',views,{'function':'f0'})
-    mismatch=b.const('u8',0)
-    for at,expected in enumerate(wanted):
-        value=b.value('u8','buffer.load',[views[1],b.const('usize',at)])
-        different=b.value('u8','bit.xor',[value,b.const('u8',expected)])
-        mismatch=b.value('u8','bit.or',[mismatch,different])
-    values=[mismatch]
+    result=b.value('u32','call',views[:3],{'function':'f0'})
+    mismatch=b.value('u8','call',[views[1],views[3]],{'function':'observe_bytes'})
     for view in views:b.effect('loan.end',[view])
     for owner in owners:b.effect('owner.drop',[owner])
-    source=('hia-asm.v1 hepta.hia.program.v8 packer_reference\nfn observe() -> ('+','.join(['u32']+['u8']*len(values))+') effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+b.text()+'  ret('+','.join([result,*values])+')\nend\n'+(ROOT/'examples/hia_bootstrap/artifact_publication_packer.hiaasm').read_text().split('\n',1)[1])
+    reference_body="""def compare(o:mutbuf, s:readbuf) -> u8:
+    position = 0
+    error = 0
+    while position < length(s):
+        error = error | (byte(o, position) ^ byte(s, position))
+        position = position + 1
+    return error
+"""
+    reference=render_assembly(document(reference_body,'independent_byte_comparison')).split('\n',1)[1]
+    reference=reference.replace('fn f0(', 'fn observe_bytes(')
+    source=('hia-asm.v1 hepta.hia.program.v8 packer_reference\n'
+        'fn observe() -> (u32,u8) effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+b.text()+
+        '  ret('+result+','+mismatch+')\nend\n'+reference+
+        (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hiaasm').read_text().split('\n',1)[1])
     actual=execute_program(assemble_program(source),'observe',[],max_steps=2000000)
-    assert actual['status']=='returned' and actual['values'][0]==len(wanted),actual
-    assert actual['values'][1:]==[0],actual
+    assert actual['status']=='returned' and actual['values']==[len(wanted),0],actual
     assert (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hiaasm').read_text()==render_assembly(document(packer_source(),'artifact_publication_packer'))
 
 

@@ -482,8 +482,28 @@ class NativeLifecycleTests(AgentToolCase):
                 raise AssertionError("native tool imported LLVM: " + name)
             return original_import(name, *args, **kwargs)
 
+        original_popen = subprocess.Popen
+        def no_external_object_emitter(argv, *args, **kwargs):
+            # An explicitly selected artifact byte store is a separate native
+            # filesystem operation, not an external object compiler. Permit
+            # only that admitted/sealed executable; retain the original ban
+            # for default runs and every other child (including LLVM/ld).
+            import fcntl, os
+            selector = os.environ.get('HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST')
+            if (not selector or not isinstance(argv, (list, tuple)) or len(argv) != 4
+                    or argv[1] not in ('store-put','store-get','store-hash')
+                    or not str(argv[0]).startswith('/proc/self/fd/')):
+                raise AssertionError('object emission launched an external process')
+            fd = int(str(argv[0]).rsplit('/',1)[1])
+            self.assertIn(fd, kwargs.get('pass_fds', ()))
+            required = fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL
+            self.assertEqual(fcntl.fcntl(fd,fcntl.F_GET_SEALS)&required,required)
+            from hepta.artifact_publication_native import _admitted_code
+            expected = _admitted_code(selector)
+            self.assertEqual(os.pread(fd,len(expected)+1,0),expected)
+            return original_popen(argv,*args,**kwargs)
         with patch("builtins.__import__", guarded_import), \
-                patch("subprocess.Popen", side_effect=AssertionError("object emission launched a subprocess")):
+                patch("subprocess.Popen", side_effect=no_external_object_emitter):
             build = session.emit(candidate, kind="object")
         self.assertFalse(build["linker_used"])
         self.assertFalse(build["llvm_codegen_used"])

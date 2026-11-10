@@ -2,7 +2,8 @@
 
 Build/install/code custody are hosted; runtime policy, exact byte verification,
 receipt and SHA are HIA behind a fixed Linux syscall adapter. Not default Agent
-persistence, a transaction journal, directory durability or native-only release.
+persistence, a transaction journal or native-only release. The explicitly
+selected Agent byte layer adds file/directory fsync, not SQLite replacement.
 """
 from __future__ import annotations
 import argparse
@@ -14,6 +15,7 @@ from tools.qualify_hia_selfhost import compile_stage,invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.generate_hia_artifact_publication import MAGIC
 ROOT=Path(__file__).resolve().parents[1]
+OPERATIONS=['publish','verify','withdraw','store-put','store-get','store-hash']
 SOURCES=('examples/hia_bootstrap/artifact_publication_policy.hiaasm',
          'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
          'examples/hia_bootstrap/sha256_stream.hiaasm',
@@ -66,9 +68,11 @@ def build(output:Path,compiler:Path,cold_report:Path):
         'executable_path':path.name,'executable_sha256':sha256(executable).hexdigest(),'executable':inspection,
         'image_sha256':{label:sha256(raw).hexdigest() for label,(_,raw) in images.items()},
         'compile_receipts':receipts,'native_packer_receipt':result,'frame_sha256':sha256(frame).hexdigest(),
-        'operations':['publish','verify','withdraw'],'artifact_payload_fixed_size_limit':None,
+        'operations':OPERATIONS,'artifact_payload_fixed_size_limit':None,
+        'Agent_artifact_file_limit_bytes':64<<20,'Agent_artifact_empty_supported':True,
+        'Agent_artifact_put_file_and_directory_fsync':True,'SQLite_journal_replaced':False,
         'runtime_Python_or_libc_or_child_required':False,'host_build_and_code_custody':True,
-        'point_in_time_consistency_only':True,'directory_fsync_or_crash_recovery_provided':False,
+        'point_in_time_consistency_only':True,'generic_publication_directory_fsync':False,'crash_recovery_provided':False,
         'full_Agent_persistence_replaced':False,'default_changed':False,'whole_native_delivery_qualified':False}
     with (output/'build.json').open('x') as stream:json.dump(report,stream,indent=2,sort_keys=True);stream.write('\n')
     return path
