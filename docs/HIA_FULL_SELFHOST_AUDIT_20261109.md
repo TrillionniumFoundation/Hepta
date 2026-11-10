@@ -5,7 +5,7 @@
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
 HIA. The current implementation contains a live `hepta/` package with 215 Python
-files, 76,481 lines and 4,142,351 bytes. These are source inventory figures, not a
+files, 76,484 lines and 4,142,523 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
@@ -28,7 +28,7 @@ a semantic review, execution qualification or completion percentage.
 `27fa34413e09ff012d3d467b7ad3af8acff508e4` has been pushed and independently read
 back. Earlier upload-pending statements below are historical. Fresh source
 inventory includes the HIA JSON value-arena candidate and10036tracked paths;
-clean committed qualification is still separately required. The latest complete
+its clean committed finite qualification is recorded below, not full closure. The latest complete
 open-PR inventory has466entries (457drafts), not evidence that all are integrated.
 The subsequent v30 full-repository process ended without a final report or
 observed exit status; its retained partial log is **not** a completed pass.
@@ -712,3 +712,47 @@ refinement or worst-case cost proof, complete frontend/runtime/build/Agent rewri
 release-lock promotion, main import or remote CI qualification is asserted.
 **These local commits still await the user's existing gh-login restoration before
 original Git history can be pushed.** PR836remotehead remains644e179.
+
+
+## v31 HIA JSON values and exact current-source qualification
+
+The15function HIA JSON value-arena library now constructs typed values, ordered
+parent/sibling relationships, decoded UTF-8 strings/keys and original integer
+lexemes. An explicitly selected source/image/compiler-bound backend integrates
+existing Core/Agent inputs, queue journals, state wire, full-cost, paired replay
+and Rust byte-DAG. The default reference, foreign Python-object materialization,
+canonical encoder, semantic Core checker and service/runtime remain Python.
+This is not a whole JSON/runtime-stack rewrite or production activation.
+
+Exact final implementation **`2484f5c4107203dbac1b3154f95f6a8c21df0b8e`** passes:
+
+- Actual clean committed workflow recovery/regeneration and94source tests,
+  84.120seconds total, Git clean before/after.
+- Source-only cold11/11 plus native4351/4351,166.202seconds at the unchanged
+  180second deadline; original and changed-source fixed points retained.
+- Language1242/1242 and10report assertions.
+- Fresh native JSON18tests,18.106seconds, including actual independent VM
+  observations before freshB0/B1/B2 and compiled value decoding.
+- Explicitly installed HIA value backend83existing consumer tests,26.463seconds;
+  separately default-reference83tests,22.315seconds. No skipped case is a pass.
+
+Earlier implementation51d56f6 also passed its actual94source tests, cold11/11
+plus4351native checks in177.203seconds, language1242 and native JSON18tests.
+The final follow-up restores the prior detached-object bridge for internally
+produced, already structured canonical JSON, avoiding a redundant hostile-wire
+preflight of that same graph. Submitted-wire checks/budgets are unchanged; final
+source steps return to84.120seconds from the earlier130.600seconds. Both source
+identities and outcomes are retained, not substituted for each other.
+
+The215Python-package/410host-tool inventory, all10036tracked implementation paths
+and the3partial/5open component ledger remain explicit. Static records reconstruct
+losslessly from v28 plus `implementation-boundary-v31-delta.json`; actual finite
+receipts are in `v31-json-value-arena-summary.json`. No compiler capacity/deadline,
+release lock, main branch, host service or Mac task was changed.
+
+The earlier v30 full run produced no final report or observed exit status, and
+is retained as INCOMPLETE, not a pass. A completely fresh whole-repository
+inventory is running on immutable2484f5c with the actual pinned prerequisites.
+It remains separate from all finite passes above and from old7666/4428passes.
+Remote qualification of the new source must execute separately. Whole-stack
+closure and all-input refinement/worst-case-cost claims remain false.
