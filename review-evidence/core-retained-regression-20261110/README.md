@@ -55,14 +55,26 @@ run remains **FAIL**: **3,566 executed tests, 148 failures / 99 errors / zero
 skips**, incomplete inventory after class-setup errors. A generic value-role
 adapter had incorrectly been supplied to raw-model tests; it is not interchangeable
 with the separately source-bound raw-model adapter. Both old failures and the
-new correct build receipt are retained. The new immutable implementation's
-whole-repository regression has started and is **not yet accepted**.
+new correct build receipt are retained. The immutable `17bb8c4...` whole-repository regression completed **PASS**:
+**389 modules / 3,590 executed tests / zero failures, errors, skips or expected
+failures**, complete static/dynamic inventory; source clean before and after.
+Elapsed 1,323.341 seconds; see `full-repository.json` and the exact runner/collector.
+This does not qualify whole-native delivery.
 
 The parent cost candidate's actual remote run **42819832134** also remains
 **FAIL** at the original cold deadline: source SUCCESS, native 6/11, 28 completed
 phases, ten unfinished. Artifact13766420866 and all336 exported Git payloads were
 independently checked. Local scoped passes do not establish remote deadline
-robustness, and the new source has no remote pass claim yet.
+robustness, and the new source has no remote pass claim.
+
+The actual current-source remote run **42825541295** is also terminal **FAIL**:
+source SUCCESS, cold 6/11, 34 phases completed, original/modified names and
+exports unfinished. The unchanged 180-second deadline expired; three-second
+owned cleanup completed. Later language and application steps were SKIPPED.
+Artifact13768367922:49,178,960 bytes, SHA-256
+`30af480d9cc3a80ff85a185214ab5093b9e495b56feb0799e5b33c6bb58c99ac`;
+all411 exported payloads independently compared to actual review Git blobs.
+Local full-repository PASS does not relabel that remote failure.
 
 ## Custody and limits
 
