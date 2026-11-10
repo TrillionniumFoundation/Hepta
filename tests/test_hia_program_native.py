@@ -433,6 +433,25 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
         self.assertEqual(run.returncode,0,run.stdout+run.stderr)
         self.assertEqual(run.stdout.strip(),"7 7 0 1")
 
+    def test_bulk_operations_v2_through_v6_match_vm(self):
+        from tests.test_hia_bulk_memory import bulk_program
+        from tests.test_hia_overlap_move import move_program, empty_program
+        from tests.test_hia_swap_v4 import swap_program
+        from tests.test_hia_offset_copy_v5 import copy_program
+        from tests.test_hia_range_fill_v6 import fill_program
+        fixtures = [
+            (bulk_program(), "v2", "bulk", [[n,count,byte] for n,count in ((1,0),(1,1),(17,0),(17,12),(17,17)) for byte in (0,7,255)]),
+            (move_program(),"v3","move_bytes",[[5,dst,src,count,probe] for dst,src,count in ((1,0,4),(0,1,4),(0,0,5),(5,5,0)) for probe in range(5)]),
+            (empty_program(),"v3empty","empty",[[0],[7]]),
+            (swap_program(),"v4","swap_bytes",[[5,left,right,probe] for left,right in ((0,4),(4,0),(2,2),(1,3)) for probe in range(5)]),
+            (copy_program(),"v5","copy_offset",[[5,dst,src,count,probe] for dst,src,count in ((0,0,5),(1,2,2),(2,1,2),(5,5,0)) for probe in range(5)]),
+            (fill_program(),"v6","fill_range",[[5,offset,count,byte,probe] for offset,count in ((0,5),(1,3),(5,0),(0,0)) for byte in (0,255) for probe in range(5)]),
+            (fill_program(read=False),"v6empty","fill_range",[[0,0,0,255,0]]),
+        ]
+        for document,basename,name,cases in fixtures:
+            program,library,_=self.build_fixture(document,basename)
+            for arguments in cases:
+                with self.subTest(fixture=basename,arguments=arguments): self.assert_vm(name,arguments,library,program)
 
     def test_recursive_chain_and_composite_v7_have_real_dynamic_execution(self):
         for basename in ("core_v7","composite_v2"):
@@ -448,7 +467,29 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
                     for mode in (0,1,2): self.assert_vm("chain_task",[n,mode],library,program)
             if "chain_empty_pop" in names: self.assert_vm("chain_empty_pop",[],library,program)
 
+    def test_v8_parameter_loans_calls_cfg_recursion_and_aliases(self):
+        from tests.test_hia_returned_loans import document, loan_program, multiple_shared, swapped_mutable, fallible_return_program
+        programs=[loan_program(mode,form) for mode in ("read","mut") for form in ("forward","child","cfg","recursive")]
+        combined=document(*(fn for item in programs for fn in item["functions"]))
+        combined["exports"]=[item["exports"][0] for item in programs]
+        program,library,_=self.build_fixture(combined,"v8loans")
+        for name in combined["exports"]:
+            for length in (1,3,17):
+                for byte in (0,17,250,255): self.assert_vm(name,[length,byte],library,program)
+        for form in ("forward","children","mixed"):
+            program,library,_=self.build_fixture(multiple_shared(form),"v8shared_"+form)
+            for byte in (0,37,128,255): self.assert_vm("shared",[byte],library,program)
+        program,library,_=self.build_fixture(swapped_mutable(),"v8swapped")
+        self.assert_vm("swapped",[],library,program)
+        program,library,_=self.build_fixture(fallible_return_program(),"v8fallible")
+        self.assert_vm("fallible_entry",[],library,program)
 
+    def test_v8_chain_head_returned_loans_and_pop(self):
+        from tests.test_hia_returned_chain_loans import chain_program
+        for mode in ("read","mut"):
+            for form in ("forward","child"):
+                document=chain_program(mode,form); program,library,_=self.build_fixture(document,"v8chain_"+mode+"_"+form)
+                for byte in (0,37,250,255): self.assert_vm(document["exports"][0],[byte],library,program)
 
 
 

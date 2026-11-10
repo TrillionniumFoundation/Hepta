@@ -14,6 +14,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -85,6 +86,37 @@ print("PASS native+quarantine double receipt loss permanently fenced", stage)
 '''
 
 
+class QuarantineReceiptTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("actual Linux x86-64 host required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("actual Clang required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(Path(cls.temp.name), Path(compiler).resolve(), {})
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, stage):
+        outcome = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
+            capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(
+            outcome.returncode, 0,
+            f"stage={stage} stdout={outcome.stdout}\nstderr={outcome.stderr}",
+        )
+        self.assertIn("PASS native+quarantine double receipt", outcome.stdout)
+
+    def test_quarantine_receipt_fails_before_append(self):
+        self._probe("pre_event")
+
+    def test_quarantine_receipt_fails_after_append(self):
+        self._probe("post_event")
 
 
 if __name__ == "__main__":

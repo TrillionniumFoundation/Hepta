@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -63,6 +64,43 @@ print("PASS retained owner identity and real C execution", scenario)
 '''
 
 
+class OwnerRetirementTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("actual Linux x86-64 required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("actual Clang required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(Path(cls.temp.name), Path(compiler).resolve(), {})
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _check(self, scenario):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, scenario],
+            capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(
+            result.returncode, 0,
+            f"scenario={scenario} stdout={result.stdout}\nstderr={result.stderr}",
+        )
+        self.assertIn("PASS retained owner identity", result.stdout)
+
+    def test_region_identity_collision_does_not_retire_other_memfd_owner(self):
+        self._check("region-collision")
+
+    def test_region_malformed_mutation_does_not_leak_closed_owner(self):
+        self._check("region-malformed")
+
+    def test_library_identity_collision_does_not_retire_other_native_code(self):
+        self._check("library-collision")
+
+    def test_library_malformed_mutation_does_not_leak_closed_owner(self):
+        self._check("library-malformed")
 
 
 if __name__ == "__main__":

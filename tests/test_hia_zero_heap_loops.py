@@ -86,6 +86,10 @@ class ZeroHeapLoopQualification(unittest.TestCase):
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_UNBOUNDED"):
             analyze_constant_live_heap(core)
 
+    def test_noncyclic_existing_owned_budget_is_unchanged(self):
+        from tests.test_hia_heap_bound import local_buffers
+        core = verify_program(local_buffers())
+        self.assertEqual(analyze_constant_live_heap(core), {"finite": 12})
 
 
 if __name__ == "__main__":

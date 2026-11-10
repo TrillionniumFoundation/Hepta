@@ -166,6 +166,28 @@ else:
                                                    executable_sha256=digest,
                                                    profile=profile)
 
+    def test_v8_contract_receipt_cannot_be_omitted_downgraded_or_backported(self):
+        from tests.test_hia_returned_loans import loan_program
+
+        program = loan_program()
+        with tempfile.TemporaryDirectory() as td:
+            exe, digest = self.make_fake(Path(td))
+            checked = crosscheck_rust_shadow(program, exe, executable_sha256=digest)
+            self.assertEqual(checked["shadow_report"]["schema"], "hepta.hia.rust-owner-shadow.v2")
+            self.assertIs(checked["shadow_report"]["claims"]["v8_parameter_bound_loan_returns_checked"], True)
+            for mode in ("missing_v8_contract", "false_v8_contract", "integer_v8_contract", "downgrade_v8"):
+                with self.subTest(mode=mode):
+                    exe, digest = self.make_fake(Path(td), mode=mode)
+                    with self.assertRaises(HIARustCrosscheckRejected):
+                        crosscheck_rust_shadow(program, exe, executable_sha256=digest)
+            for mode in ("early_v8_contract", "premature_v8_schema"):
+                exe, digest = self.make_fake(Path(td), mode=mode)
+                with self.assertRaises(HIARustCrosscheckRejected):
+                    crosscheck_rust_shadow(owned_program(), exe, executable_sha256=digest)
+            exe, digest = self.make_fake(Path(td), profile="scalar")
+            scalar = scalar_program(); scalar["schema"] = "hepta.hia.program.v8"
+            with self.assertRaisesRegex(HIARustCrosscheckRejected, "scalar profile"):
+                crosscheck_rust_shadow(scalar, exe, executable_sha256=digest, profile="scalar")
 
     def test_exact_executable_identity_is_required(self):
         with tempfile.TemporaryDirectory() as td:
@@ -241,6 +263,21 @@ class RustShadowCrosscheckNative(unittest.TestCase):
                               version == 7)
 
 
+    def test_actual_v8_returned_loans_have_independent_versioned_admission(self):
+        from tests.test_hia_returned_loans import loan_program, multiple_shared, swapped_mutable
+        from tests.test_hia_returned_chain_loans import chain_program
+
+        programs = [loan_program(mode, form) for mode in ("read", "mut")
+                    for form in ("forward", "child", "cfg", "recursive")]
+        programs += [multiple_shared(form) for form in ("forward", "children", "mixed")]
+        programs.append(swapped_mutable())
+        programs += [chain_program(mode, form) for mode in ("read", "mut")
+                     for form in ("forward", "child")]
+        for source in programs:
+            report = self.crosscheck(source, "owned")
+            self.assertEqual(report["shadow_report"]["schema"], "hepta.hia.rust-owner-shadow.v2")
+            self.assertIs(report["shadow_report"]["claims"]["v8_parameter_bound_loan_returns_checked"], True)
+            self.assertIs(report["claims"]["rust_is_production_admission_authority"], False)
 
     def test_normalized_nominal_resources_and_cooperative_tasks(self):
         # Rust checks primitive Core. Composite source must first take the

@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -59,6 +60,37 @@ print("PASS no unowned writable mapping and exact C reentry", scenario)
 '''
 
 
+class BorrowAdmissionTokenFailureTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("actual Linux x86-64 required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("actual Clang required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(
+            Path(cls.temp.name), Path(compiler).resolve(), {}
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _check(self, scenario):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, scenario],
+            capture_output=True, text=True, timeout=15, check=False,
+        )
+        self.assertEqual(result.returncode, 0,
+                         f"scenario={scenario} stdout={result.stdout} stderr={result.stderr}")
+        self.assertIn("PASS no unowned writable mapping", result.stdout)
+
+    def test_public_write_borrow_token_failure_keeps_pages_inaccessible(self):
+        self._check("external")
+
+    def test_native_call_lease_token_failure_keeps_pages_inaccessible(self):
+        self._check("native")
 
 
 if __name__ == "__main__":

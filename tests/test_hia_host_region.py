@@ -14,6 +14,7 @@ import unittest
 
 from hepta.hia_host_region import (HostRegion,HostRegionRejected,NativeRegionLibrary,
     TrustedRegionContract,RegionLease,retained_host_regions,MAX_REGIONS)
+from tests.hia_host_region_fixture import build_fixture,exercise,ENTRIES
 
 
 @unittest.skipUnless(sys.platform=="linux" and hasattr(os,"memfd_create"),"Linux memfd required")
@@ -94,6 +95,68 @@ print("uncertain close retained; numeric fd attempted once")
         self.assertEqual(result.returncode,0,result.stderr.decode())
 
 
+@unittest.skipUnless(sys.platform=="linux" and shutil.which(os.environ.get("HEPTA_TEST_CLANG","clang")),"actual native Clang/Linux required")
+class HostRegionNativeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.temporary=tempfile.TemporaryDirectory()
+        cls.directory=Path(cls.temporary.name)
+        cls.report={}
+        cls.path,cls.digest=build_fixture(cls.directory,Path(shutil.which(os.environ.get("HEPTA_TEST_CLANG","clang"))).resolve(),cls.report)
+
+    @classmethod
+    def tearDownClass(cls): cls.temporary.cleanup()
+
+    def test_real_hia_bridge_threads_quarantine_and_recovery(self):
+        evidence=exercise(self.path,self.digest)
+        self.assertGreaterEqual(evidence["native_concurrent_reader_peak"],2)
+        self.assertEqual(len(evidence["denials"]),18)
+        self.assertFalse(evidence["retained_after"]["regions"])
+
+    def test_reviewed_code_uses_pinned_bytes_after_source_path_replaced(self):
+        mutable=self.directory/"replaceable.so"
+        mutable.write_bytes(self.path.read_bytes())
+        library=NativeRegionLibrary(mutable,self.digest,TrustedRegionContract(ENTRIES,True))
+        region=HostRegion(7)
+        try:
+            with self.assertRaises(HostRegionRejected): copy.copy(library)
+            with self.assertRaises(HostRegionRejected): copy.deepcopy(library)
+            mutable.write_bytes(b"replaced after sealed pin")
+            self.assertEqual(region.call(library,"region_fill",generation=0,argument=13),sum(range(13,20)))
+        finally:
+            region.close();library.close()
+
+    def test_digest_mismatch_cannot_reach_callable_library(self):
+        before=len(retained_host_regions()["libraries"])
+        with self.assertRaises(HostRegionRejected):
+            NativeRegionLibrary(self.path,"0"*64,TrustedRegionContract(ENTRIES,True))
+        self.assertEqual(len(retained_host_regions()["libraries"]),before)
+
+    def test_uncertain_worker_launch_permanently_denies_reuse(self):
+        script='''
+import sys,threading
+from unittest.mock import patch
+from hepta.hia_host_region import HostRegion,NativeRegionLibrary,TrustedRegionContract,HostRegionRejected,HostRegionUncertain
+r=HostRegion(4096)
+l=NativeRegionLibrary(sys.argv[1],sys.argv[2],TrustedRegionContract((("region_delayed_sum","read"),),True))
+real=threading.Thread.start
+def start(thread):
+    real(thread)
+    raise RuntimeError("started but caller observation failed")
+with patch("hepta.hia_host_region.threading.Thread.start",new=start):
+    try:r.call(l,"region_delayed_sum",generation=0,argument=30)
+    except HostRegionUncertain:pass
+    else:raise AssertionError("uncertain start admitted")
+for job in r._jobs.values():job["thread"].join(1)
+assert r.snapshot()["state"]=="permanent_deny"
+for operation in (lambda:r.recover(timeout=0),r.close,l.close):
+    try:operation()
+    except HostRegionRejected:pass
+    else:raise AssertionError("unconfirmed ownership was reclaimed")
+print("launch uncertainty retained even after observed return; permanent deny")
+'''
+        result=subprocess.run([sys.executable,"-c",script,str(self.path),self.digest],capture_output=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr.decode())
 
 
 if __name__=="__main__": unittest.main()
