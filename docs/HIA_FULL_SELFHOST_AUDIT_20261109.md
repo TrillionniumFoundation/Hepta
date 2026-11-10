@@ -9,14 +9,19 @@ files, 76,126 lines and 4,125,579 bytes. These are source inventory figures, not
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **406 Python files /130549lines** under `tools/`,
+The audit also inventories **406 Python files /130782lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
 618Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
-hashes/imports and these scope exclusions are in `implementation-boundary-v27.json`.
+hashes/imports and these scope exclusions are in `implementation-boundary-v28.json`.
+That clean `d701f9a` snapshot additionally accounts for **all10,013 tracked paths**
+by identity, role and language, distinguishing research/evidence from live code.
+Its live non-Python support inventory includes46Rust,8C and9Lean source files;
+none is silently counted as rewritten in HIA. Whole-tree file accounting is not
+a semantic review, execution qualification or completion percentage.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -549,3 +554,54 @@ separate unchanged checkout of that exact implementation: all HIA/shared-Core,
 and separately all repository test modules. They do not reuse prior results.
 A passive read-only watcher retains any failed STB migration report before test
 temporary-directory finalization; it does not wrap, retry, skip or change tests.
+
+## v28 arbitrary entry order, exact-source qualification and full-run diagnosis
+
+The native HIA parser now admits a declared entry at any block-source position.
+Entry parameters, external borrow origins, forbidden incoming-entry edges, CFG
+replay, initial prologue jumps and same-frame self-tail jumps all use the actual
+entry index. The exact formerly excluded later-entry program is retained as a
+positive witness. Entry-last/middle256/1536block graphs, reverse resource joins,
+returned-loan tails and wrong-origin/join negative controls are retained. No
+source/output/workspace, SSA, operation, block, relocation or time limit increased.
+The relocation derivation includes128possible entry jumps:11395<12000; the Core
+wire bound includes the complete arbitrary-identifier source payload.
+
+Pinned implementation **`d701f9ab2324babe98eabb02f9c693b84f657247`** has:
+
+- Source-only cold replay11/11, native4347/4347 in171.134462998seconds.
+- Language1196/1196 plus10report assertions; source group60tests passes.
+- Full native unittest class19tests in207.334seconds, including20whole-compiler
+  last/middle entry-layout checks across original and modified successors,
+  canonical-source reproduction, static ET_EXEC reproduction and owned/chain CFGs.
+- Actual clean committed workflow recovery/regeneration and source steps pass
+  **80tests**,84.274seconds for both steps, Git clean before and after.
+
+The first source-group run retained one stale relocation-bound assertion failure.
+The first cold run passed narrowly at179.978seconds; the second exceeded180seconds
+and remains failed. Packed keyword matching now omits only comparisons against
+provably unwritten zero tail words, retaining length and every occupied packed
+word; all prior observations and extra boundary mutation controls remain. The
+first clean committed CI attempt also caught a missing staged keyword helper;
+that failed commit is retained, the omitted implementation was committed, and
+clean CI02 passed. None of those attempts is relabeled as final-source success.
+
+The fresh `b048608` HIA/shared-Core inventory finished **4414tests/477modules,
+0failures/2setup errors,0skips**,1697.169seconds, unchanged source and incomplete
+execution. The passive watcher retained the actual failed STB migration: input
+`{"fixture":"full_capture_only"}` lacked `configurations`. A clean-interpreter
+reconstruction on the old source shows the preceding Linux relative-directory
+test leaves `c_migration_project.capture_project` bound to a temporary MagicMock:
+its first lazy import occurred while the dependency was patched. The test now
+resolves the consumer before patching that dependency; production migration and
+native STB assertions are unchanged. A clean-process regression passes, and the
+original ordered Linux-then-actual-STB modules pass22tests in63.678seconds.
+**This does not promote either failed full HIA run.** A completely fresh full HIA
+inventory is running on unchanged clean `d701f9a`; the previous all-repository
+`b048608` run remains running separately. Current-head remote CI is still required.
+
+Receipts: `v28-entry-order-summary.json`, `v27-full-hia-test-run-summary.json` and
+`implementation-boundary-v28.json` under the existing review-evidence directory.
+General module grammar/diagnostics, composites, module/export/link graphs,
+production runtime/stdlib, build/install/release, Agent service/store/tools,
+optimizer/proof construction and applicable real-platform gates remain OPEN.
