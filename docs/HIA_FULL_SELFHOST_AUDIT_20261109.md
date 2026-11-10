@@ -1527,3 +1527,10 @@ loading, object construction and arena/cursor validation, most frontend grammar
 and type checking, modules/builds, execution/runtime, tools and release. No main
 merge, production/default switch or legacy retirement is authorized by these
 local component observations alone.
+
+The first clean qualification at4f78442ran109source tests and failed one release
+closure control: four new bootstrap files were missing from the explicit release
+freeze inventory. No cold/native downstream gates ran in that failed pipeline.
+The four files are now explicitly included, without relaxing the exact-inventory
+assertion or modifying a release lock. The failed report and complete log remain
+retained; a corrected commit requires a completely fresh qualification.
