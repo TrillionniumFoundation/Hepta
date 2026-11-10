@@ -13,8 +13,23 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v38-core-only"
+PROFILE = "selfhost-core-linux-x86_64-v39-core-only"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_SELF_HOSTING_CORE.md',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+    'docs/HIA_OPCODE_REFERENCE.md',
+    'docs/hia-opcode-catalog.v8.json',
+    'examples/hia_program/finite_aarch64_runtime.c',
+    'examples/hia_program/finite_aarch64_multi_runtime.c',
+
     'docs/HIA_AGENT_STDIO_NATIVE.md',
     'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm',
     'examples/hia_bootstrap/agent_stdio_packer.hiaasm',

@@ -38,7 +38,7 @@ class StandaloneHIANativeTests(unittest.TestCase):
         cls.program = verify_program(cls.document)
         cls.ir = emit_program_llvm(cls.program)
         cls.library_path = cls.path / "program.so"
-        with patch("hepta.pipeline.analyze", side_effect=AssertionError("a source/Rust gate must not execute")):
+        with patch.dict("sys.modules", {"hepta.pipeline": None}):
             cls.receipt = compile_program_llvm(cls.ir, program=cls.program,
                                               output=cls.library_path, clang=CLANG)
         cls.library = ctypes.CDLL(str(cls.library_path))
