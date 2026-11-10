@@ -122,6 +122,23 @@ class NativeChildHardLimitTests(unittest.TestCase):
         self.assertEqual(self.observe("huge_virtual_allocation"), ("value", 7))
 
 
+    def test_short_deadline_can_expire_before_native_entry_and_still_reaps(self):
+        # Real interpreter startup delay, not a mocked return/clock: a deadline
+        # refusal cannot establish which native signal would have occurred.
+        original, identity, fd = differential._pin_native_artifact(self.library)
+        try:
+            differential._check_artifact_unchanged(self.library, original, identity)
+            with patch.object(differential, "_WORKER",
+                              "import time; time.sleep(0.5)\n" + differential._WORKER):
+                with self.assertRaisesRegex(differential.HIADifferentialRejected,
+                                            "native child timed out; process group terminated"):
+                    differential._observe_native(self.library, "healthy", "i32", [],
+                                                 timeout=0.2, pinned_fd=fd)
+            self.assertEqual(self.observe("healthy"), ("value", 7))
+        finally:
+            os.close(fd)
+
+
     def test_worker_timeout_and_normal_exit_both_reap_forked_descendants(self):
         # Kernel seccomp now SIGSYS-kills any fork/clone before the DSO can
         # create a descendant. A separate non-forking stall still checks the
@@ -159,10 +176,15 @@ int32_t stall_only(void) { sleep(3); return 7; }
             subprocess.run(["clang", "-O0", "-shared", "-fPIC",
                             str(c_source), "-o", str(library)],
                            check=True, timeout=30)
+            # The 0.2s budget includes isolated-interpreter startup. Under
+            # load it can expire before the native symbol runs. Keep that
+            # exact short-budget rejection AND a separate strict SIGSYS
+            # witness with the existing 3s fork-return observation budget.
             for symbol, timeout in (("fork_and_stall", 0.2),
+                                    ("fork_and_stall", 3.0),
                                     ("fork_and_return", 3.0),
                                     ("stall_only", 0.2)):
-                with self.subTest(symbol=symbol):
+                with self.subTest(symbol=symbol, timeout=timeout):
                     original, identity, fd = differential._pin_native_artifact(library)
                     try:
                         differential._check_artifact_unchanged(library, original, identity)
@@ -174,9 +196,11 @@ int32_t stall_only(void) { sleep(3); return 7; }
                         else:
                             # Native fork attempts must SIGSYS-fail before
                             # any child can start or escape the process group.
+                            expected = "unexpected error/signal " + str(-signal.SIGSYS)
+                            if timeout == 0.2:
+                                expected += "|native child timed out; process group terminated"
                             with self.assertRaisesRegex(
-                                    differential.HIADifferentialRejected,
-                                    "unexpected error/signal " + str(-signal.SIGSYS)):
+                                    differential.HIADifferentialRejected, expected):
                                 differential._observe_native(
                                     library, symbol, "i32", [], timeout=timeout, pinned_fd=fd)
                     finally:
