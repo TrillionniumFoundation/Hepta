@@ -13,8 +13,13 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v44-core-native-witness-replay"
+PROFILE = "selfhost-core-linux-x86_64-v45-core-workspace-json"
 SOURCE_FILES = (
+    'tools/generate_hia_core_workspace_json.py',
+    'examples/hia_bootstrap/core_workspace_json.hiaasm',
+    'tools/build_hia_core_workspace_json.py',
+    'tests/test_hia_core_workspace_json_native.py',
+    'docs/HIA_CORE_WORKSPACE_JSON.md',
     'tools/qualify_hia_composite_bulk.py',
     'tests/test_hia_composite_bulk_native.py',
     'tests/test_hia_program_native.py',
@@ -192,6 +197,20 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "core_workspace_json_application": {
+            "source": "examples/hia_bootstrap/core_workspace_json.hiaasm",
+            "schema": "hepta.hia.core-workspace.v1",
+            "modules": 1024, "functions": 1024, "imports": 4096,
+            "calls": 16384, "exports": 1024, "input_bytes": 8388608,
+            "native": ["JSON syntax/framing", "fact encoding", "existing mandatory graph policy",
+                       "public ABI capture avoidance", "Core JSON materialization"],
+            "host_boundaries": ["general Core type/resource verification", "filesystem/build/install custody"],
+            "graph_relocation_mutable_buffer_parameters": 1,
+            "host_workspace_materialization_fallback": False,
+            "native_general_Core_verifier": False,
+            "whole_module_build_install_complete": False,
+            "production_activated": False,
+        },
         "core_module_graph_application": {
             "source": "examples/hia_bootstrap/core_module_graph.hiaasm",
             "schema": "hepta.hia.core-workspace.v1",

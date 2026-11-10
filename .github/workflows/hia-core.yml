@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in agent_identity core_module_graph elf_linker native_filter core_json_cli agent_stdio sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in agent_identity core_module_graph core_workspace_json elf_linker native_filter core_json_cli agent_stdio sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -26,6 +26,7 @@ jobs:
           names = (
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
               "tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests",
+              "tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests",
               "tests.test_hia_agent_identity_native.AgentIdentitySourceTests",
               "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
               "tests.test_hia_agent_stdio.AgentStdioSourceTests",
@@ -70,6 +71,10 @@ jobs:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
+        env:
+          HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native Core workspace JSON materialization and actual ABI
+        run: python -B -m unittest tests.test_hia_core_workspace_json_native -v
         env:
           HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Preserve bounded cold reports on success or failure

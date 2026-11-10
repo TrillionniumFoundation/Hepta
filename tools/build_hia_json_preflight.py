@@ -18,7 +18,8 @@ if __package__ in {None, ''}:
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
-    candidates = {'core-module-graph': ('core_module_graph', 'core-module-graph'),
+    candidates = {'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
+                  'core-module-graph': ('core_module_graph', 'core-module-graph'),
                   'preflight': ('json_preflight', 'json-preflight'),
                   'decode': ('json_decode', 'json-decode'),
                   'canonical': ('json_canonical', 'json-canonical'),
@@ -69,6 +70,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         'hia_json_value_arena_implemented': candidate in ('decode', 'canonical'),
         'hia_json_canonical_wire_implemented': candidate == 'canonical',
         'hia_primitive_Core_representation_frontend': candidate == 'core-frontend',
+        'hia_workspace_JSON_graph_and_Core_materialization': candidate == 'core-workspace-json',
         'foreign_object_bridge_is_python': candidate == 'decode',
         'whole_stack_rewritten_in_hia': False}, indent=2, sort_keys=True) + '\n')
     return path
