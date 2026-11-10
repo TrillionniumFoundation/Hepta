@@ -219,7 +219,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
             input=observer_frame(code,source,1,1,90),capture_output=True,timeout=15,
             cwd=self.folder,env={'PATH':'/nonexistent','HOME':'/nonexistent','LANG':'C'})
         self.assertEqual((process.returncode,process.stderr),(0,b''))
-        self.assertEqual(process.stdout[:8],b'HIAOBR01')
+        self.assertEqual(process.stdout[:8],b'HIAOBR02')
         self.assertEqual(struct.unpack_from('<Q',process.stdout,8)[0],hash_reference(source))
         # bytesum.hiaasm deliberately stores the checksum into BOTH output
         # and workspace. Verify both actual stores, not an assumed untouched
