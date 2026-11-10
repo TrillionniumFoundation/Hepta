@@ -36,8 +36,10 @@ No default service or release lock is changed.
 The program accepts no command-line arguments. Exit0means compiled;
 2means invalid JSON/representation/semantic input;3means wire/node/depth/
 assembly/native-output capacity;4means mapping or descriptor I/O failure;
-64means usage. Refusal writes no stdout. Kernel failures/signals can terminate
-the process; this is not an unconditional liveness guarantee.
+64means usage. Input/semantic/capacity/usage refusals write no stdout. An I/O
+failure can follow a partial output write; pipe publication is not transactional.
+Kernel failures/signals can terminate the process; this is not an unconditional
+liveness guarantee.
 
 ## Resource and trust boundaries
 
@@ -69,6 +71,26 @@ first generation already equal its fixed point; it remains a failed attempt.
 The corrected test requires generations2and3to agree and remain distinct from
 the original compiler. Development tests are not exact-source cold acceptance
 or current remote CI; separate immutable receipts record those gates.
+
+## Completed exact-source local acceptance
+
+Implementation `bc9aa4a4865c2e52e085a79597791d9fb6c45607` passes104source checks,
+source-only cold11/11and4351/4351native checks in153.139seconds under the same
+180-second deadline,9CLI component tests and15source-identity/accounting/
+provenance controls. Each stage starts/ends with clean committed source. Fresh
+completedB3builds both actual flat and ELF CLI artifacts. Their installed and
+copied executables compile the original compiler byte-for-byte, execute a new
+byte program, preserve explicit ELF selection and have the actual syscall-only
+trace. Strace-injected first read/writeEINTRs are retried successfully; a real
+nonblocking pipe accepts a correct prefix then exits4on EAGAIN, never reporting
+partial publication as success. Static inventory is219package+420tool Python
+files,3partial/5opencomponent boundaries. Public receipts and lossless inventory
+delta are in `review-evidence/hia-whole-selfhost-20261109/`.
+
+The compiler machine bytes are unchanged from the streaming qualification; this
+does not promote that older commit's full-repository or language results into
+fresh complete regression for this CLI source. Current full-repository/platform
+and whole-toolchain gates remain separate and open.
 
 General language/composites/modules, runtime/task/I/O/library, full command
 surface, build/install/release, Agent/store and optimizer/proof tooling remain

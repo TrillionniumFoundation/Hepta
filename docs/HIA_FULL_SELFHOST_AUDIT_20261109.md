@@ -13,9 +13,10 @@ The streaming checkpoint inventories **418 Python files /132664lines** under `to
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-637Python files. The subsequent standalone JSON CLI adds two host build/authoring
-tools, not two rewritten production authorities; its source-bound inventory is
-recorded separately. Tests, historical evidence, experiments, examples, benchmarks
+637Python files. The subsequent qualified standalone JSON CLI has420tools/
+132951lines and219package files:639Python files combined. Its two new host
+build/authoring tools are not rewritten production authorities. Tests, historical
+evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -26,7 +27,7 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation:** Native HIA Core JSON representation, one-shot SHA and
+**Streaming qualification:** Native HIA Core JSON representation, one-shot SHA and
 incremental SHA are integrated in the current candidate. Exact implementation
 `bd3e9c2a9e61e7b6a540fee1c26d54d03003c313` passes 102 clean source tests,
 cold 11/11 with 4,351 native checks in150.394seconds, language1,242/1,242,
@@ -37,6 +38,15 @@ regression on this immutable implementation is running with no final result.
 Its receipts and exact static inventory are recorded in
 `sha256-stream-native-library-summary.json` and the lossless streaming delta.
 Historical local/remote failures below are retained, not promoted by these passes.
+
+**Current standalone JSON CLI:** Exact implementation
+`bc9aa4a4865c2e52e085a79597791d9fb6c45607` passes104source checks, fresh cold11/11/
+4351native in153.139seconds,9CLI tests,15exact-source controls, actual completedB3
+flat/ELFbuilds and installed/copied executable observations including EINTR and
+real partial-write failure. Its syscall-only runtime has no host payload parser
+or Python driver; the build driver and complete production CLI remain host-owned.
+No current-source full-repository result, production activation or retirement is
+claimed. See `core-json-cli-native-summary.json` and its lossless inventory delta.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -994,3 +1004,10 @@ Four reviewed CLI inputs extend the exact identity to373paths, retaining all
 bytes transfer from raw logs within the same aggregate envelope. These finite
 development checks do not substitute for fresh committed qualification. See
 `docs/HIA_CORE_JSON_CLI_NATIVE.md`; whole-stack rewrite/retirement remain OPEN.
+
+The exact committedbc9aa4a continuation subsequently completed local acceptance:
+104source/4351cold/9CLI/15sourcecontrols, actual B3-built flat/ELF artifacts and
+installed/copied execution all pass with clean source. Actual first-read/write
+EINTRretry and a real nonblocking partial-output failure are retained. Those
+finite receipts do not establish the whole production command surface or close
+full-repository/platform/native-only retirement gates.
