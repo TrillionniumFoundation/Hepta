@@ -34,10 +34,6 @@ CLANG = os.environ.get("HIA_KERNEL_CLANG", os.environ.get("CLANG", "/usr/lib/llv
 OBJDUMP = os.environ.get("HIA_KERNEL_OBJDUMP", "llvm-objdump")
 
 
-def source(expression):
-    return 'module t; export "C" fn f(w:u32)->u32 effects {panic} {return ' + expression + ';}'
-
-
 class KernelLeafAdmissionTests(unittest.TestCase):
 
 

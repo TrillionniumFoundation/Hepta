@@ -4,6 +4,7 @@ import ast
 from hashlib import sha256
 import json
 from pathlib import Path
+import re
 import sys
 ROOT=Path(__file__).resolve().parents[1]
 FORBIDDEN_MODULES=frozenset({
@@ -27,6 +28,14 @@ def check(root=ROOT):
             if '__pycache__' in p.parts:continue
             files[p.relative_to(root).as_posix()]=sha256(p.read_bytes()).hexdigest()
             tree=ast.parse(p.read_bytes(),filename=str(p))
+            # Removed-language fixtures can survive even when imports and all
+            # their former helpers have been deleted. HIA assembly has no
+            # semicolon-terminated module declaration; retain its Core tests.
+            for n in ast.walk(tree):
+                if (isinstance(n,ast.Constant) and isinstance(n.value,str)
+                        and re.search(r'\bmodule\s+[A-Za-z_]\w*\s*;',n.value)
+                        and re.search(r'\bfn\s+\w+\s*\(',n.value)):
+                    problems.append(f'{p.relative_to(root)}:{n.lineno}: removed high-level source fixture')
             # Negative import-refusal strings in tests are intentionally legal.
             for n in ast.walk(tree):
                 names=[]
