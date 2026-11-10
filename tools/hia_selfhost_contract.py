@@ -13,8 +13,11 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v37"
+PROFILE = "selfhost-core-linux-x86_64-v38"
 SOURCE_FILES = (
+    "tools/generate_hia_agent_identity.py", "tools/build_hia_agent_identity.py",
+    "tests/test_hia_agent_identity_native.py", "examples/hia_bootstrap/agent_identity.hiaasm",
+    "docs/HIA_AGENT_IDENTITY_NATIVE.md",
     'docs/HIA_AGENT_ONLY_SCOPE.md',
     'docs/HIA_AGENT_ONLY_SCOPE.json',
     'tests/test_hia_agent_entry.py',
@@ -290,6 +293,19 @@ def support_contract(root=ROOT):
                                "Token/Span/Diagnostic/Type object allocation and arena/cursor validation",
                                "declaration/statement/expression grammar", "semantic type checker",
                                "module/package resolution", "runtime, tooling and complete release chain"]},
+        "agent_identity_application": {"status": "bounded_subset",
+             "source": "examples/hia_bootstrap/agent_identity.hiaasm",
+             "selection": "HEPTA_HIA_AGENT_IDENTITY_MANIFEST; default reference unchanged",
+             "manifest_schema": "hepta.hia.agent-identity-native.v1",
+             "maximum_packet_bytes": 80, "packet_header_bytes": 16,
+             "result_bytes": 24, "workspace_bytes": 0,
+             "items": ["canonical decimal u64 with pre-multiply overflow refusal",
+                       "exact lowercase ASCII SHA-256 digest grammar",
+                       "owned byte packet validation; short output publishes nothing",
+                       "selected store sequence and worker digest-format callers have no reference fallback"],
+             "still_foreign": ["JSON decoding and object/value bridge",
+                               "SHA-256 computation and worker correlation/authorization",
+                               "durable journal, artifact I/O and complete Agent protocol"]},
         "source_parser_application": {"status": "bounded_subset",
              "source": "examples/hia_bootstrap/source_parser.hiaasm",
              "selection": "HEPTA_HIA_SOURCE_PARSER_MANIFEST; default reference unchanged",
