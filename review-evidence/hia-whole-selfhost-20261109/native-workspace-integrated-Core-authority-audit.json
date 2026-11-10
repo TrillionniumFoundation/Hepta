@@ -1,0 +1,1350 @@
+{
+  "can_retire_host_checker": false,
+  "can_switch_general_Core_default": false,
+  "composite_schemas": [
+    "hepta.hia.composite.v1",
+    "hepta.hia.composite.v2",
+    "hepta.hia.composite.v3",
+    "hepta.hia.composite.v4"
+  ],
+  "effects": [
+    "alloc",
+    "read",
+    "trap",
+    "write"
+  ],
+  "existing_bounded_v8_native_compiler_frontend_is_general_verifier": false,
+  "existing_native_workspace_JSON_image_replaces_general_Core_checks": false,
+  "mandatory_native_replacement_surfaces": [
+    "bounded immutable JSON snapshot and integer-only wire budgets",
+    "exact primitive declarations, identifiers, effects, all SSA definitions and CFG edges/reachability",
+    "v7 chains and v8 formal-bound returned-loan declarations",
+    "closed versioned opcode argument/result/attribute/scalar constraints",
+    "instruction owner/loan lifetime, aliasing, consuming calls, callee interfaces and effect bounds",
+    "injective edge capability renaming with complete owner/root/parent identity",
+    "all predecessor states and every reachable block; returned-loan origin and live-local resource closure",
+    "nominal composite elaboration followed by the same full primitive checks",
+    "manually constructed VerifiedProgram still rechecked; no producer/hash/receipt authority"
+  ],
+  "opcode_count": 50,
+  "opcode_rules": {
+    "bit.and": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "bit_and",
+      "since": 1
+    },
+    "bit.not": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "bit_not",
+      "since": 1
+    },
+    "bit.or": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "bit_or",
+      "since": 1
+    },
+    "bit.xor": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "bit_xor",
+      "since": 1
+    },
+    "bool.and": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bool",
+        "bool"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "bool_and",
+      "since": 1
+    },
+    "bool.not": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bool"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "bool_not",
+      "since": 1
+    },
+    "bool.or": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bool",
+        "bool"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "bool_or",
+      "since": 1
+    },
+    "borrow.mut": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "mutable_source"
+      ],
+      "resource_transition": "borrow",
+      "results": [
+        "mutbuf"
+      ],
+      "semantic_rule": "exclusive_loan",
+      "since": 1
+    },
+    "borrow.read": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bytes"
+      ],
+      "resource_transition": "borrow",
+      "results": [
+        "readbuf"
+      ],
+      "semantic_rule": "shared_loan",
+      "since": 1
+    },
+    "buffer.copy": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0",
+        "read:1",
+        "distinct:0:1"
+      ],
+      "operands": [
+        "mutbuf",
+        "readbuf",
+        "usize"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "checked_disjoint_copy",
+      "since": 2
+    },
+    "buffer.copy_range": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0",
+        "read:1",
+        "distinct:0:1"
+      ],
+      "operands": [
+        "mutbuf",
+        "readbuf",
+        "usize",
+        "usize",
+        "usize"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "checked_disjoint_offset_copy",
+      "since": 5
+    },
+    "buffer.fill": {
+      "attributes": [],
+      "effects": [
+        "write"
+      ],
+      "guards": [
+        "write:0"
+      ],
+      "operands": [
+        "mutbuf",
+        "u8"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "fill_entire_view",
+      "since": 2
+    },
+    "buffer.fill_range": {
+      "attributes": [],
+      "effects": [
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0"
+      ],
+      "operands": [
+        "mutbuf",
+        "usize",
+        "usize",
+        "u8"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "check_complete_range_before_fill",
+      "since": 6
+    },
+    "buffer.len": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bytes"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "usize"
+      ],
+      "semantic_rule": "byte_extent",
+      "since": 1
+    },
+    "buffer.load": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "trap"
+      ],
+      "guards": [
+        "read:0"
+      ],
+      "operands": [
+        "view",
+        "usize"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "u8"
+      ],
+      "semantic_rule": "checked_byte_load",
+      "since": 1
+    },
+    "buffer.move_within": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0"
+      ],
+      "operands": [
+        "mutbuf",
+        "usize",
+        "usize",
+        "usize"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "checked_overlap_memmove",
+      "since": 3
+    },
+    "buffer.new": {
+      "attributes": [],
+      "effects": [
+        "alloc",
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "usize"
+      ],
+      "resource_transition": "allocate",
+      "results": [
+        "buffer"
+      ],
+      "semantic_rule": "zeroed_byte_allocation",
+      "since": 1
+    },
+    "buffer.store": {
+      "attributes": [],
+      "effects": [
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0"
+      ],
+      "operands": [
+        "mutbuf",
+        "usize",
+        "u8"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "checked_byte_store",
+      "since": 1
+    },
+    "buffer.swap": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "write",
+        "trap"
+      ],
+      "guards": [
+        "write:0"
+      ],
+      "operands": [
+        "mutbuf",
+        "usize",
+        "usize"
+      ],
+      "resource_transition": "none",
+      "results": [],
+      "semantic_rule": "check_both_indices_before_swap",
+      "since": 4
+    },
+    "buffer.try_new": {
+      "attributes": [],
+      "effects": [
+        "alloc"
+      ],
+      "guards": [],
+      "operands": [
+        "usize"
+      ],
+      "resource_transition": "allocate",
+      "results": [
+        "buffer",
+        "bool"
+      ],
+      "semantic_rule": "zeroed_byte_allocation_or_empty_owner_false",
+      "since": 1
+    },
+    "call": {
+      "attributes": [
+        "function"
+      ],
+      "effects": [],
+      "guards": [
+        "callee_interface"
+      ],
+      "operands": null,
+      "resource_transition": "call",
+      "results": null,
+      "semantic_rule": "checked_callee_and_parameter_loan_contract",
+      "since": 1
+    },
+    "chain.empty": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [],
+      "resource_transition": "empty_chain",
+      "results": [
+        "chain"
+      ],
+      "semantic_rule": "empty_chain",
+      "since": 7
+    },
+    "chain.head_mut": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "chain"
+      ],
+      "resource_transition": "chain_borrow",
+      "results": [
+        "mutbuf"
+      ],
+      "semantic_rule": "exclusive_head_loan",
+      "since": 7
+    },
+    "chain.head_read": {
+      "attributes": [],
+      "effects": [
+        "read",
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "chain"
+      ],
+      "resource_transition": "chain_borrow",
+      "results": [
+        "readbuf"
+      ],
+      "semantic_rule": "shared_head_loan",
+      "since": 7
+    },
+    "chain.is_empty": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "chain"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "chain_empty_test",
+      "since": 7
+    },
+    "chain.pop": {
+      "attributes": [],
+      "effects": [
+        "alloc"
+      ],
+      "guards": [
+        "free:0"
+      ],
+      "operands": [
+        "chain"
+      ],
+      "resource_transition": "chain_transfer",
+      "results": [
+        "chain",
+        "buffer",
+        "bool"
+      ],
+      "semantic_rule": "pop_or_empty_payload_false",
+      "since": 7
+    },
+    "chain.try_push": {
+      "attributes": [],
+      "effects": [
+        "alloc"
+      ],
+      "guards": [
+        "free:0",
+        "free:1"
+      ],
+      "operands": [
+        "chain",
+        "buffer"
+      ],
+      "resource_transition": "chain_transfer",
+      "results": [
+        "chain",
+        "buffer",
+        "bool"
+      ],
+      "semantic_rule": "push_or_return_owned_inputs",
+      "since": 7
+    },
+    "compare.eq": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "equality",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_eq",
+      "since": 1
+    },
+    "compare.ge": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_ge",
+      "since": 1
+    },
+    "compare.gt": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_gt",
+      "since": 1
+    },
+    "compare.le": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_le",
+      "since": 1
+    },
+    "compare.lt": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_lt",
+      "since": 1
+    },
+    "compare.ne": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "equality",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "bool"
+      ],
+      "semantic_rule": "compare_ne",
+      "since": 1
+    },
+    "const": {
+      "attributes": [
+        "value"
+      ],
+      "effects": [],
+      "guards": [],
+      "operands": [],
+      "resource_transition": "none",
+      "results": [
+        "declared:scalar"
+      ],
+      "semantic_rule": "exact_scalar_literal",
+      "since": 1
+    },
+    "int.add.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_add_checked",
+      "since": 1
+    },
+    "int.add.wrap": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_add_wrap",
+      "since": 1
+    },
+    "int.cast": {
+      "attributes": [
+        "mode"
+      ],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "declared:integer"
+      ],
+      "semantic_rule": "integer_cast_mode",
+      "since": 1
+    },
+    "int.div.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_div_checked",
+      "since": 1
+    },
+    "int.mul.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_mul_checked",
+      "since": 1
+    },
+    "int.mul.wrap": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_mul_wrap",
+      "since": 1
+    },
+    "int.neg.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_neg_checked",
+      "since": 1
+    },
+    "int.rem.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_rem_checked",
+      "since": 1
+    },
+    "int.shl.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_shl_checked",
+      "since": 1
+    },
+    "int.shr.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_shr_checked",
+      "since": 1
+    },
+    "int.sub.checked": {
+      "attributes": [],
+      "effects": [
+        "trap"
+      ],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_sub_checked",
+      "since": 1
+    },
+    "int.sub.wrap": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "integer",
+        "=0"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "integer_sub_wrap",
+      "since": 1
+    },
+    "loan.end": {
+      "attributes": [],
+      "effects": [],
+      "guards": [
+        "end_local_loan:0"
+      ],
+      "operands": [
+        "view"
+      ],
+      "resource_transition": "end_loan",
+      "results": [],
+      "semantic_rule": "end_local_childless_loan",
+      "since": 1
+    },
+    "owner.drop": {
+      "attributes": [],
+      "effects": [
+        "alloc"
+      ],
+      "guards": [
+        "free:0"
+      ],
+      "operands": [
+        "owner"
+      ],
+      "resource_transition": "drop_owner",
+      "results": [],
+      "semantic_rule": "release_unborrowed_owner",
+      "since": 1
+    },
+    "owner.move": {
+      "attributes": [],
+      "effects": [],
+      "guards": [
+        "free:0"
+      ],
+      "operands": [
+        "owner"
+      ],
+      "resource_transition": "move_owner",
+      "results": [
+        "=0"
+      ],
+      "semantic_rule": "move_unborrowed_owner",
+      "since": 1
+    },
+    "select": {
+      "attributes": [],
+      "effects": [],
+      "guards": [],
+      "operands": [
+        "bool",
+        "scalar",
+        "=1"
+      ],
+      "resource_transition": "none",
+      "results": [
+        "=1"
+      ],
+      "semantic_rule": "scalar_select",
+      "since": 1
+    }
+  },
+  "primitive_schemas": [
+    "hepta.hia.program.v1",
+    "hepta.hia.program.v2",
+    "hepta.hia.program.v3",
+    "hepta.hia.program.v4",
+    "hepta.hia.program.v5",
+    "hepta.hia.program.v6",
+    "hepta.hia.program.v7",
+    "hepta.hia.program.v8"
+  ],
+  "schema": "hia.general-Core-native-authority-audit.v1",
+  "source_commit": "b6cc73288b47620b91d1036c72c7781c26cdfd4a",
+  "sources": {
+    "hepta/hia_capability_flow.py": {
+      "definitions": {
+        "Capability": {
+          "first_line": 14,
+          "last_line": 20
+        },
+        "CapabilityFlowRejected": {
+          "first_line": 23,
+          "last_line": 26
+        },
+        "CapabilityFlowRejected.__init__": {
+          "first_line": 24,
+          "last_line": 26
+        },
+        "rename_capabilities": {
+          "first_line": 29,
+          "last_line": 58
+        }
+      },
+      "sha256": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530"
+    },
+    "hepta/hia_opcodes.py": {
+      "definitions": {
+        "ExecutionObservationRejected": {
+          "first_line": 44,
+          "last_line": 45
+        },
+        "OpcodeRejected": {
+          "first_line": 38,
+          "last_line": 41
+        },
+        "OpcodeRejected.__init__": {
+          "first_line": 39,
+          "last_line": 41
+        },
+        "OpcodeSpec": {
+          "first_line": 120,
+          "last_line": 130
+        },
+        "_matches": {
+          "first_line": 210,
+          "last_line": 214
+        },
+        "_table": {
+          "first_line": 133,
+          "last_line": 182
+        },
+        "check_instruction": {
+          "first_line": 217,
+          "last_line": 236
+        },
+        "opcode_catalog": {
+          "first_line": 239,
+          "last_line": 263
+        },
+        "opcode_spec": {
+          "first_line": 191,
+          "last_line": 199
+        },
+        "render_opcode_reference": {
+          "first_line": 266,
+          "last_line": 277
+        },
+        "scalar_value_valid": {
+          "first_line": 202,
+          "last_line": 207
+        },
+        "validate_execution_observation": {
+          "first_line": 48,
+          "last_line": 116
+        }
+      },
+      "sha256": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec"
+    },
+    "hepta/hia_program.py": {
+      "definitions": {
+        "HIAProgramRejected": {
+          "first_line": 51,
+          "last_line": 56
+        },
+        "HIAProgramRejected.__init__": {
+          "first_line": 54,
+          "last_line": 56
+        },
+        "VerifiedProgram": {
+          "first_line": 339,
+          "last_line": 417
+        },
+        "VerifiedProgram.as_dict": {
+          "first_line": 386,
+          "last_line": 387
+        },
+        "VerifiedProgram.canonical_json": {
+          "first_line": 350,
+          "last_line": 351
+        },
+        "VerifiedProgram.input_sha256": {
+          "first_line": 354,
+          "last_line": 356
+        },
+        "VerifiedProgram.normalization_report": {
+          "first_line": 370,
+          "last_line": 384
+        },
+        "VerifiedProgram.report": {
+          "first_line": 389,
+          "last_line": 417
+        },
+        "VerifiedProgram.scalar_entrypoints": {
+          "first_line": 359,
+          "last_line": 367
+        },
+        "VerifiedProgram.sha256": {
+          "first_line": 346,
+          "last_line": 347
+        },
+        "_BlockCheck": {
+          "first_line": 572,
+          "last_line": 771
+        },
+        "_BlockCheck.__init__": {
+          "first_line": 573,
+          "last_line": 578
+        },
+        "_BlockCheck.access": {
+          "first_line": 606,
+          "last_line": 611
+        },
+        "_BlockCheck.ancestors": {
+          "first_line": 591,
+          "last_line": 598
+        },
+        "_BlockCheck.borrow": {
+          "first_line": 613,
+          "last_line": 625
+        },
+        "_BlockCheck.children": {
+          "first_line": 588,
+          "last_line": 589
+        },
+        "_BlockCheck.finish": {
+          "first_line": 738,
+          "last_line": 771
+        },
+        "_BlockCheck.instruction": {
+          "first_line": 627,
+          "last_line": 718
+        },
+        "_BlockCheck.owner_free": {
+          "first_line": 600,
+          "last_line": 604
+        },
+        "_BlockCheck.transfer": {
+          "first_line": 720,
+          "last_line": 736
+        },
+        "_BlockCheck.value": {
+          "first_line": 580,
+          "last_line": 586
+        },
+        "_FunctionInterface": {
+          "first_line": 562,
+          "last_line": 569
+        },
+        "_bad_constant": {
+          "first_line": 102,
+          "last_line": 103
+        },
+        "_bounded_detached_snapshot": {
+          "first_line": 219,
+          "last_line": 292
+        },
+        "_bounded_input_utf8_bytes": {
+          "first_line": 138,
+          "last_line": 155
+        },
+        "_decode": {
+          "first_line": 294,
+          "last_line": 335
+        },
+        "_edge": {
+          "first_line": 442,
+          "last_line": 446
+        },
+        "_edges": {
+          "first_line": 449,
+          "last_line": 468
+        },
+        "_function_interfaces": {
+          "first_line": 809,
+          "last_line": 817
+        },
+        "_function_shape": {
+          "first_line": 471,
+          "last_line": 558
+        },
+        "_ident": {
+          "first_line": 68,
+          "last_line": 72
+        },
+        "_json_string_bytes": {
+          "first_line": 106,
+          "last_line": 135
+        },
+        "_keys": {
+          "first_line": 63,
+          "last_line": 65
+        },
+        "_names": {
+          "first_line": 434,
+          "last_line": 439
+        },
+        "_parameters": {
+          "first_line": 420,
+          "last_line": 431
+        },
+        "_primitive_structure": {
+          "first_line": 774,
+          "last_line": 806
+        },
+        "_reject": {
+          "first_line": 59,
+          "last_line": 60
+        },
+        "_structure": {
+          "first_line": 158,
+          "last_line": 215
+        },
+        "_type": {
+          "first_line": 75,
+          "last_line": 78
+        },
+        "_unique_pairs": {
+          "first_line": 93,
+          "last_line": 99
+        },
+        "_verify_function": {
+          "first_line": 820,
+          "last_line": 854
+        },
+        "execute_program": {
+          "first_line": 890,
+          "last_line": 893
+        },
+        "integer_range": {
+          "first_line": 81,
+          "last_line": 86
+        },
+        "scalar_value_valid": {
+          "first_line": 89,
+          "last_line": 90
+        },
+        "verify_program": {
+          "first_line": 857,
+          "last_line": 887
+        }
+      },
+      "sha256": "a6918558fca70ce4be6ecaed22e39a347486856e7cc8527b8a2ef385bd72b258"
+    },
+    "hepta/hia_program_composite.py": {
+      "definitions": {
+        "_Elaborator": {
+          "first_line": 426,
+          "last_line": 1170
+        },
+        "_Elaborator.__init__": {
+          "first_line": 427,
+          "last_line": 474
+        },
+        "_Elaborator.check_task": {
+          "first_line": 593,
+          "last_line": 608
+        },
+        "_Elaborator.constant": {
+          "first_line": 562,
+          "last_line": 565
+        },
+        "_Elaborator.drop_padding": {
+          "first_line": 586,
+          "last_line": 591
+        },
+        "_Elaborator.flat_parameters": {
+          "first_line": 554,
+          "last_line": 560
+        },
+        "_Elaborator.fresh": {
+          "first_line": 524,
+          "last_line": 531
+        },
+        "_Elaborator.function": {
+          "first_line": 719,
+          "last_line": 1159
+        },
+        "_Elaborator.helper": {
+          "first_line": 610,
+          "last_line": 717
+        },
+        "_Elaborator.loan_origins": {
+          "first_line": 477,
+          "last_line": 522
+        },
+        "_Elaborator.lower": {
+          "first_line": 1161,
+          "last_line": 1170
+        },
+        "_Elaborator.parameters": {
+          "first_line": 541,
+          "last_line": 552
+        },
+        "_Elaborator.reserve_values": {
+          "first_line": 533,
+          "last_line": 539
+        },
+        "_Elaborator.zeros": {
+          "first_line": 567,
+          "last_line": 583
+        },
+        "_Type": {
+          "first_line": 48,
+          "last_line": 70
+        },
+        "_Type.has_loans": {
+          "first_line": 62,
+          "last_line": 63
+        },
+        "_Type.owns": {
+          "first_line": 66,
+          "last_line": 70
+        },
+        "_Types": {
+          "first_line": 73,
+          "last_line": 393
+        },
+        "_Types.__init__": {
+          "first_line": 74,
+          "last_line": 182
+        },
+        "_Types._fields": {
+          "first_line": 184,
+          "last_line": 194
+        },
+        "_Types._has_parameters": {
+          "first_line": 245,
+          "last_line": 251
+        },
+        "_Types._known_loans": {
+          "first_line": 261,
+          "last_line": 274
+        },
+        "_Types._known_loans_uncached": {
+          "first_line": 293,
+          "last_line": 313
+        },
+        "_Types._partial_declaration_step": {
+          "first_line": 253,
+          "last_line": 259
+        },
+        "_Types._reference": {
+          "first_line": 196,
+          "last_line": 243
+        },
+        "_Types._symbolic_reference": {
+          "first_line": 276,
+          "last_line": 291
+        },
+        "_Types.partial_record": {
+          "first_line": 373,
+          "last_line": 393
+        },
+        "_Types.resolve": {
+          "first_line": 315,
+          "last_line": 371
+        },
+        "_Value": {
+          "first_line": 397,
+          "last_line": 401
+        },
+        "_branch": {
+          "first_line": 416,
+          "last_line": 419
+        },
+        "_ins": {
+          "first_line": 408,
+          "last_line": 409
+        },
+        "_jump": {
+          "first_line": 412,
+          "last_line": 413
+        },
+        "_name": {
+          "first_line": 40,
+          "last_line": 44
+        },
+        "_param": {
+          "first_line": 404,
+          "last_line": 405
+        },
+        "_ret": {
+          "first_line": 422,
+          "last_line": 423
+        },
+        "elaborate_program": {
+          "first_line": 1173,
+          "last_line": 1180
+        }
+      },
+      "sha256": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11"
+    },
+    "hepta/hia_schema.py": {
+      "definitions": {
+        "composite_core_schema": {
+          "first_line": 85,
+          "last_line": 88
+        },
+        "profile_for_schema": {
+          "first_line": 78,
+          "last_line": 82
+        },
+        "schema_registry": {
+          "first_line": 96,
+          "last_line": 123
+        },
+        "supports_feature": {
+          "first_line": 91,
+          "last_line": 93
+        }
+      },
+      "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+    }
+  },
+  "status": "OPEN_HOST_AUTHORITY_NOT_REPLACED",
+  "terminator_exact_fields": {
+    "branch": [
+      "op",
+      "cond",
+      "then",
+      "else"
+    ],
+    "jump": [
+      "op",
+      "target",
+      "args"
+    ],
+    "ret": [
+      "op",
+      "values"
+    ],
+    "trap": [
+      "op",
+      "code"
+    ]
+  },
+  "traps": [
+    "allocation",
+    "bounds",
+    "division_by_zero",
+    "overflow",
+    "user"
+  ],
+  "types": [
+    "bool",
+    "buffer",
+    "chain",
+    "i16",
+    "i32",
+    "i64",
+    "i8",
+    "isize",
+    "mutbuf",
+    "readbuf",
+    "u16",
+    "u32",
+    "u64",
+    "u8",
+    "unit",
+    "usize"
+  ],
+  "unchanged_general_primitive_limits": {
+    "MAX_BLOCKS": 4096,
+    "MAX_BYTES": 8388608,
+    "MAX_DEPTH": 64,
+    "MAX_FUNCTIONS": 1024,
+    "MAX_NODES": 262144
+  },
+  "whole_native_delivery_qualified": false
+}
