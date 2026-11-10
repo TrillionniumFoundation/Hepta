@@ -39,6 +39,8 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",
+    "tests/test_hia_core_json_cli.py", "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
     "tests/test_hia_selfhost_word_io.py",
     "tools/generate_hia_sha256_stream.py", "tests/test_hia_sha256_stream_native.py",
     "examples/hia_bootstrap/sha256_stream.hiaasm",

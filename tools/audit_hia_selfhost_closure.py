@@ -38,7 +38,7 @@ COMPONENTS = (
     ("optimizer_and_proof_tools", ("hepta/hia_ndu_optimizer.py", "hepta/hia_translation_validation.py", "hepta/hia_scalar_proof_contract.py"), "open",
      "Planning/optimization/translation validation and proof construction are not rewritten; finite proof scopes do not establish whole compiler refinement."),
     ("cli_and_release", ("hepta/cli.py", "hepta/__main__.py", "tools/hia_release.py"), "open",
-     "A bounded Linux stdin/stdout compiler ET_EXEC entry is authored in HIA and requires current-source qualification; production CLI, installation/materialization/release tools and whole clean-machine toolchain remain open."),
+     "Bounded Linux syscall-only stdin/stdout entries exist for assembly and the two-stage JSON Core-to-machine pipeline. The HIA ELF packer writes headers, patches calls and copies pinned frontend/compiler images; runtime parsing/verification/codegen need no Python driver. Explicit native CLI builds still use a host filesystem/custody driver. Full production command surface, installation/materialization/release and whole clean-machine toolchain remain open."),
 )
 
 

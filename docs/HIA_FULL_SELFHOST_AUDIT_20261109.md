@@ -9,11 +9,13 @@ HIA. The qualified combined implementation contains a live `hepta/` package with
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **418 Python files /132664lines** under `tools/`,
+The streaming checkpoint inventories **418 Python files /132664lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-637Python files. Tests, historical evidence, experiments, examples, benchmarks
+637Python files. The subsequent standalone JSON CLI adds two host build/authoring
+tools, not two rewritten production authorities; its source-bound inventory is
+recorded separately. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -967,3 +969,28 @@ retirement occurs here. Final state remains HIA only after actual full closure.
 The unused raw outputs of the ended failed cold run were losslessly compressed
 with individual byte-for-byte roundtrip checks and a hash/restore manifest;
 source, native images, receipts and the failure result remain retained.
+
+## Native standalone JSON Core CLI continuation
+
+The HIA ELF packer now emits a syscall-only executable containing the HIA JSON
+Core representation frontend and the actual HIA semantic compiler. The executable
+consumes JSON stdin and produces flat code or explicitly built ELF-object output
+without a runtime Python driver, payload parser, interpreter, libc or external
+linker. Private mmap state accommodates existing JSON arena/key limits, and the
+reused compiler workspace is cleared. The production command surface and trusted
+build driver are still host-owned; no old authority is retired.
+
+Development conformance passes9tests including actual syscall tracing, byte-exact
+HIA packaging, real generated-program execution, original/modified compiler
+fixed points and resource/refusal/descriptor controls. The first modified-source
+fixed-point assertion failed because it compared the pre-convergence first
+generation; the corrected test requires later generations to agree. That failed
+attempt is retained. The first v13identity test also retained a four-byte JSON
+accounting discrepancy and a stale projection assertion; exact controls were
+corrected, not bypassed, and15source/provenance/budget tests now pass.
+
+Four reviewed CLI inputs extend the exact identity to373paths, retaining all
+219actual package modules and every historical projection. Exactly536identity
+bytes transfer from raw logs within the same aggregate envelope. These finite
+development checks do not substitute for fresh committed qualification. See
+`docs/HIA_CORE_JSON_CLI_NATIVE.md`; whole-stack rewrite/retirement remain OPEN.

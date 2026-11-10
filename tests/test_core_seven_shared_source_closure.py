@@ -82,7 +82,6 @@ SHA256_NATIVE_ADDITIONS = (
     'tools/generate_hia_sha256_stream.py',
 )
 
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS)
 PRIOR_COMMITMENT = '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0'
 ROUND4_COMMITMENT = 'ffc0f4bd9585328bb21e99d0fe3bac7717b65d823a72cb5de9987886018055db'
 ROUND5_COMMITMENT = 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55'
@@ -93,7 +92,15 @@ SAFE_CORE_COMMITMENT = '223c03fa82d871fee3d85d57bb1e254d658a9d85007ec11bea5bfbb1
 SCOPED_AGENT_NDU_COMMITMENT = '9a888e4dbfe883eb74fd8961a5fbc2b90b0cac7b9a6343ef5720145e23be72c7'
 PERSISTENT_NDU_COMMITMENT = '5a6311333c82ea95a464ff9257f190f5712b52e3da90c02169e063ca1698f8dc'
 JSON_NATIVE_COMMITMENT = '84f2d792e39d1f6a5b059026acc14edc321bbe8528c026caa2f06fba55977ad2'
-CURRENT_COMMITMENT = '307a88b0ddc4431692a9e41a6121e1eb4f2e69983dff72c7513e0606d2e5e19a'
+SHA256_NATIVE_COMMITMENT = '307a88b0ddc4431692a9e41a6121e1eb4f2e69983dff72c7513e0606d2e5e19a'
+CURRENT_COMMITMENT = '61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf73712f55'
+JSON_CLI_ADDITIONS = (
+    'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
+    'tests/test_hia_core_json_cli.py',
+    'tools/build_hia_core_json_cli.py',
+    'tools/generate_hia_core_json_cli.py',
+)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS)
 
 
 @contextmanager
@@ -112,7 +119,11 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 369)
+        self.assertEqual(len(actual), 373)
+        self.assertEqual(plan.JSON_CLI_ADDITIONS, JSON_CLI_ADDITIONS)
+        sha_native = tuple(name for name in actual if name not in JSON_CLI_ADDITIONS)
+        self.assertEqual(len(sha_native), 369)
+        self.assertEqual(plan.commitment(sha_native), SHA256_NATIVE_COMMITMENT)
         self.assertEqual(plan.NATIVE_AGENT_ADDITIONS, NATIVE_AGENT_INPUTS)
         self.assertEqual(plan.P0_P3_ADDITIONS, P0_P3_INPUTS)
         self.assertEqual(plan.SAFE_CORE_ADDITIONS, SAFE_CORE_INPUTS)
@@ -120,7 +131,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(plan.PERSISTENT_NDU_ADDITIONS, PERSISTENT_NDU_INPUTS)
         self.assertEqual(plan.JSON_NATIVE_ADDITIONS, JSON_NATIVE_ADDITIONS)
         self.assertEqual(plan.SHA256_NATIVE_ADDITIONS, SHA256_NATIVE_ADDITIONS)
-        json_native = tuple(name for name in actual if name not in SHA256_NATIVE_ADDITIONS)
+        json_native = tuple(name for name in sha_native if name not in SHA256_NATIVE_ADDITIONS)
         self.assertEqual(len(json_native), 360)
         self.assertEqual(plan.commitment(json_native), JSON_NATIVE_COMMITMENT)
         persistent_ndu = tuple(name for name in json_native if name not in JSON_NATIVE_ADDITIONS)
@@ -153,7 +164,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
@@ -184,6 +195,10 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
                 plan.source_paths()
         # Even a reviewed current tuple cannot silently reinterpret its frozen
         # historical projection by changing which names count as additions.
+        changed_additions = (*plan.JSON_CLI_ADDITIONS, SHA256_NATIVE_ADDITIONS[0])
+        with patch.object(plan, 'JSON_CLI_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical native SHA source identity projection'):
+                plan.source_paths()
         changed_additions = (*plan.SHA256_NATIVE_ADDITIONS, JSON_NATIVE_ADDITIONS[0])
         with patch.object(plan, 'SHA256_NATIVE_ADDITIONS', changed_additions):
             with self.assertRaisesRegex(ValueError, 'historical JSON native source identity projection'):

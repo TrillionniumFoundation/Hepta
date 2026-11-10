@@ -745,3 +745,16 @@ The aggregate evidence/container envelope, source/module/process caps and owner
 deadlines remain unchanged. Exact-boundary/one-byte-over tests remain in force.
 These are source-identity and accounting controls, not proof of the new hash
 algorithm or of whole-stack equivalence.
+
+## Reviewed native JSON CLI identity continuation (v13)
+
+Four explicitly reviewed native ELF packer, authoring, build and conformance
+paths extend the exact source set to373records; all219actual package modules
+and the frozen369-pathv12SHA projection remain independently pinned. No new
+package filename is inferred or admitted by discovery. The current commitment
+is `61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf73712f55`.
+
+The maximal identity is162581bytes. Its536additionalbytes transfer from raw
+logs to metadata:242457metadata/802023raw/4096display, preserving1048576total.
+Source/module/process/container limits and owner deadlines are unchanged.
+Protocolv13does not relabel any earlier receipt or extend proof authority.
