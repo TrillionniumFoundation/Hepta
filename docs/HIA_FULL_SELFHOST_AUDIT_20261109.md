@@ -1660,3 +1660,39 @@ lifecycle controls PASS, including five malformed transport byte variants from
 real harmless replacement supervisors. The180-second qualification deadline,
 separate3-second cleanup bound and every execution/physical cap remain fixed.
 A completely fresh current-source qualification is required after this fix.
+
+### Fresh corrected expression candidate qualification completed
+
+Exact clean executable subject **cee375ef5fc0dca7c045444f8f20b7d72b15b158**
+completed the entirely fresh pipeline in **499.161seconds**: source110PASS;
+cold11/11 +5049/5049native checksPASS in104.000seconds (outer104.488),
+unchanged180+separate3cleanup; language1242checks+10assertionsPASS;
+combined native components119PASS; shared source controls15PASS. All actual
+B3 application builds completed. Existing selected/default consumers83each,
+selected incremental55, lexer-selected/default parser/modules63each, and
+**type-only/expression-only/combined/default frontend callers98each** PASS.
+Actual installed flat/ELF standalone CLI composition16observations PASS,
+including typed C-linked exports, independent VM comparison and syscall traces.
+A supplemental clean-subject owner lifecycle run8PASS2.258s; an earlier
+supplementary invocation used the task parent instead of the project root and
+failed import (log retained, not counted as accepted tests).
+
+The actual HIA expression image is234927bytes, SHA256
+`46cfe1e5a881ef07c092038b5d3e39856bbe341d0b631b17f4ca3dc91e55abc6`.
+All56072regular raw archive members were compared byte-for-byte with retained
+originals (3377930256uncompressed bytes). The lossless archive is21272108bytes,
+SHA256`478594b61c24dccd6f4dd9e6ca7aaab776eeefffa0198014d59c06659d42cc8f`.
+Raw originals remain retained; private runtime placement is recorded explicitly.
+Public `source-expressions-native-summary.json` and its exact lossless static
+inventory delta bind the executable source, counts, builds, failures and archive.
+Snapshot remains222package Python/77483lines and432tool Python/135474lines,
+654Python files; these are inventory counts, not completion percentages.
+
+A fresh whole-repository run has started in a separate immutableCEE checkout
+with real locked prerequisites; no result is yet available. Current-source
+remote CI remains required. The evidence/CI-only follow-up adds the eight owner
+lifecycle controls to the actual native job; it changes no cold-exported source
+payload or implementation. Prior canceled, quota-failed and entire-repository
+failed attempts remain failures; neither component passes nor old remote
+receipts establish full-stack closure. Defaults/production/main/release locks
+stay unchanged and the ledger is still3partial/5open.
