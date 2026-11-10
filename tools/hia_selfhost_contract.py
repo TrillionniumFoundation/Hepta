@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v40-core-module-agent-installed"
+PROFILE = "selfhost-core-linux-x86_64-v41-core-agent-target-witnesses"
 SOURCE_FILES = (
+    'tools/qualify_hia_composite_bulk.py',
+    'tests/test_hia_composite_bulk_native.py',
+    'tests/test_hia_program_native.py',
+    'tests/test_hia_native_byte_abi.py',
+    'examples/hia_program/finite_aarch64_runtime.c',
+    'examples/hia_program/finite_aarch64_multi_runtime.c',
     'tools/generate_hia_core_module_graph.py',
     'examples/hia_bootstrap/core_module_graph.hiaasm',
     'tools/build_hia_core_module_graph.py',
