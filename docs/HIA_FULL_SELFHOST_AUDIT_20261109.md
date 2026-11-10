@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `16572b15` snapshot contains a live `hepta/` package with 221 Python
-files, 77,195 lines and 4,181,711 bytes. These are source inventory figures, not a
+HIA. The qualified `627b026b` snapshot contains a live `hepta/` package with 222 Python
+files, 77,341 lines and 4,189,588 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **429 Python files /136068lines** under `tools/`,
+The audit also inventories **431 Python files /136414lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-650Python files. Tests, historical evidence, experiments, examples, benchmarks
+653Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -24,7 +24,36 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current whole-source grammar checkpoint (2026-11-10):** exact clean
+**Current semantic-effect checkpoint (2026-11-10):** exact clean
+`627b026b63f1319c71ccc6a78b68580449df01c8` implements the entire resolved
+call-effect fixed point and final worker/declaration/resource-conflict decisions
+in HIA. Actual checker integration is explicitly selected; it is not the rest of
+the semantic checker. Declaration/type/lifetime/ownership/control-flow checking,
+foreign object transport, runtime, modules, optimizer, build and delivery remain.
+
+Clean source CI107PASS; cold11/11+5,049/5,049PASS124.127s under unchanged180+3;
+language1,242+10PASS; combined native libraries101PASS; shared15PASS; release18PASS;
+selected/default semantic168, parser/module63, JSON83 and incremental55eachPASS.
+An additional231real callers PASS with the original Python lexical recognizer,
+whole-source grammar and final effect phase simultaneously disabled. All5,049
+prior witnesses remain. Identityv17 binds385paths/222root modules, retains the
+complete380path v16 and older projections, and moves671bytes from raw logs to
+metadata inside unchanged aggregate budgets. Semantic checker is now an explicit
+separate partial component: the wider ledger is4partial/5open, not a percentage.
+
+Formal01 remainsFAIL at user quota exhaustion. Formal02 remainsFAIL at the
+unchanged publication identity guard on a task-private FUSE filesystem. Fresh
+formal03 ran on ordinary ext4 and passed all stages on the same627b source;
+no guard, compiler capacity or deadline was relaxed. CI01 and development recipe
+failures also remain in the verified evidence archive. Formal03's361.757s clock
+excludes the separately completed129.073s CI02, whose reuse is explicit.
+The prior type-parser666613 head completed7,770tests/742modules with no failures,
+errors or skips; it does not qualify this source. Parser a146 full regression is
+running; current-effect full regression and remote CI remain unqualified.
+See `source-effects-summary.json`, byte-equivalence list and the lossless static
+inventory delta. No default, production, release-lock or main-branch change.
+
+**Historical whole-source grammar checkpoint (2026-11-10):** exact clean
 `16572b158d0ba12a0f15117e55f000628bbef3af` adds the HIA whole-program task
 machine: declarations, statements, type and Pratt expression grammar, namespace
 checks and completed AST depth validation. Actual `Parser.parse` integration is
