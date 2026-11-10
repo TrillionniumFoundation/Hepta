@@ -1,0 +1,41 @@
+{
+  "script": "/workspace/scratch/7171658d1560/hia-validation-environment.sh",
+  "script_sha256": "49859c24ad2ef04ee9c85bd62f6770cd133f4822274d3224da6479c64227ecc7",
+  "runner": "/workspace/scratch/7171658d1560/hia-regression-runner.py",
+  "runner_sha256": "eb541d07ca7c420efbbd29a2b6b874a98672d29249d0afff7143fc5440099488",
+  "installed": {
+    "clang": "20.1.8",
+    "lld": "20.1.8",
+    "compiler_rt": "20.1.8",
+    "lean": "4.19.0",
+    "qemu_aarch64": "8.2.2",
+    "rust": "1.90.0",
+    "rust_cross_targets": [
+      "aarch64-unknown-linux-gnu",
+      "thumbv7em-none-eabi",
+      "x86_64-pc-windows-msvc"
+    ],
+    "gdb": "16.3-1",
+    "boost": "1.83.0-4.2",
+    "zstandard": "0.25.0",
+    "qemu_x86_64": "8.2.2",
+    "qemu_riscv64": "8.2.2"
+  },
+  "remaining": [
+    "qemu-system-arm (system emulation); no direct unittest execution selector found",
+    "NDU native bridge variants need their own separately pinned upstream adapter executables and identity manifests",
+    "LLVM FileCheck is absent from official LLVM bundle; no standalone FileCheck unittest executable selector found",
+    "GDB can start but cannot execute its inferior in this host; debugger tests remain enabled and may fail.",
+    "ASan library links; actual default ASan/LSan execution is blocked. No sanitizer option was changed.",
+    "This environment uses Python 3.12.14; CI declares Python 3.11, so local and CI interpreter identities differ."
+  ],
+  "suite_run": false,
+  "command_example": ". /workspace/scratch/7171658d1560/hia-validation-environment.sh\n/workspace/scratch/7171658d1560/hia-venv/bin/python -B /workspace/scratch/7171658d1560/hia-regression-runner.py --repo /workspace/scratch/7171658d1560/Hepta --commit 049afb8bf8191f0e90a1aa5f71b072cb1f9c3cfc --output /workspace/scratch/7171658d1560/validation/full-unittest-049afb8b --python /workspace/scratch/7171658d1560/hia-venv/bin/python",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "python_executable": "/workspace/scratch/7171658d1560/hia-venv/bin/python",
+  "python_packages": {
+    "jsonschema": "4.25.1",
+    "z3-solver": "4.15.4.0",
+    "zstandard": "0.25.0"
+  }
+}

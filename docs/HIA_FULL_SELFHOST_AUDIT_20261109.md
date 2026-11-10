@@ -1,5 +1,34 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09, continued 2026-11-10
 
+## Published continuation and exact local outcomes
+
+The continuation is published in [PR #851](https://github.com/TrillionniumFoundation/Hepta/pull/851).
+Published commit `f142ab4ef99cde30128bfced0f3d6299fc373b43` has the same tree
+as local frozen `049afb8bf8191f0e90a1aa5f71b072cb1f9c3cfc`:
+`e97eab65ab6dffba156a0340b691a8a993dbb728`. Its three original CI source-job
+shell blocks ran locally with successful history recovery, unchanged generated
+files and **121 tests passing**, with zero failures, errors or skips. The exact
+cold attempt nevertheless **failed at 180.204743498 seconds**, completing 28 of
+38 phases with no recorded phase exception and complete owned-child cleanup.
+
+The subsequent public source `637d34d9e8164b752f5b6b6fe2bad4802274abc6`
+reduces disposable loader startup and redundant reference construction while
+preserving the actual witness payloads and all intermediate verifier/renderer
+round trips. It also **failed cold replay**, at 180.248779364 seconds after
+26 of 38 phases, again with no recorded phase exception and complete cleanup.
+All seventeen reference payload hashes and all six generation image hashes
+match the earlier frozen attempt. Unchanged work exhibits substantial timing
+variation; that observation is diagnostic and does not convert a failure into
+a qualification.
+
+Complete scoped receipts, source-job logs, the full static inventory and exact
+source identities are preserved in the
+[continuation evidence](../review-evidence/hia-native-frontend-20261110/README.md).
+The full 7,860-test repository regression has been started on an isolated clone
+of public `637d34d9`; its result is pending. Complete program grammar and module
+semantics are still separate work in progress. No legacy production code or
+release lock is removed or switched by these source/evidence commits.
+
 ## Current audit and continuation: native source grammar bundle
 
 **Whole-stack replacement remains open; legacy retirement is not eligible.**
