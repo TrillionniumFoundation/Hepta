@@ -1,0 +1,189 @@
+{
+  "all_ten_obligations_open": true,
+  "base_commit": "cb7490c0ce9b25a48c1146a1c8d162fd5010159f",
+  "captured_utc": "2026-11-10T12:49:28.687668+00:00",
+  "component_acceptance": {
+    "full_product": "OPEN",
+    "source_commit": "cb7490c0ce9b25a48c1146a1c8d162fd5010159f",
+    "stages": 21,
+    "status": "PASS"
+  },
+  "evidence_scope": "Exact-source scoped component execution and current remaining authority; original scalar export spelling preserved, not a general native module/build/install closure",
+  "high_level_source_language": "removed per owner decision",
+  "obligation_count": 10,
+  "obligations": {
+    "agent_and_persistence": {
+      "authority_sha256": {
+        "examples/hia_bootstrap/agent_stdio_dispatch.hiaasm": "56b38f53b58a59bb9e35da2327350cb38f0f68d4c165bc10ef6dfb0d74437eae",
+        "hepta/hia_agent_service.py": "ab66a123324b74fecdf357f086ffd97fb80a655eb6d0000026bb29429a8f06c7",
+        "hepta/hia_agent_store.py": "f6246edd5fcbf730b945022a19a0a46d17129fcf6ee19ea4bb6ba5c7df427bfa"
+      },
+      "remaining": [
+        "Full Agent editing, authorization, hash computation and durable persistence native authority",
+        "Native lifecycle/diagnostics/protocol",
+        "Integrate native edit-slice component into same Core-only source"
+      ],
+      "sources": [
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py",
+        "examples/hia_bootstrap/agent_stdio_dispatch.hiaasm"
+      ],
+      "status": "OPEN"
+    },
+    "backend_and_linker": {
+      "authority_sha256": {
+        "examples/hia_bootstrap/elf_static_linker.hiaasm": "1bd8ac4d7f070ec188396465fb89c78072743ba5781f2e0822242720cc026a5a",
+        "hepta/hia_program_aarch64.py": "acf68a7164514dddc559830d15b27ced165ffc82820dcfa75599ebd0a2094192",
+        "hepta/hia_program_native.py": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c"
+      },
+      "remaining": [
+        "General live target backends",
+        "Resource-bearing exported ABI",
+        "General static/dynamic link graphs and all applicable targets"
+      ],
+      "sources": [
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_aarch64.py",
+        "examples/hia_bootstrap/elf_static_linker.hiaasm"
+      ],
+      "status": "OPEN"
+    },
+    "cli_build_install": {
+      "authority_sha256": {
+        "hepta/cli.py": "32bd495c8927286005fd6f2eeb224ea6df9752fe15e3ca8a18ce45836c2a0904",
+        "pyproject.toml": "97b48ef4d10f96bab48f1149d8f4093e4080c4bfb9cb361a9e4951bbbf54eb0e",
+        "tools/hia_release.py": "e17a6e52ec28a897d5dc981f86bcf942c35d87c6b4dbc125138df1052139a7ad"
+      },
+      "remaining": [
+        "Replace Python console/build/install/materialization",
+        "Default native commands without fallback",
+        "Artifact/package closure"
+      ],
+      "sources": [
+        "hepta/cli.py",
+        "tools/hia_release.py",
+        "pyproject.toml"
+      ],
+      "status": "OPEN"
+    },
+    "compiler_and_bootstrap": {
+      "authority_sha256": {
+        "examples/hia_bootstrap/selfhost.hiaasm": "89d0f0b6193ee47ec447ca669f786e8e46acbe26517a6874a441988ea0db94a4",
+        "tools/replay_hia_selfhost_cold.py": "732e93ce69fc997e9d9cb11aed89d015045f0a2f06c1962ea1134cc9359da38b"
+      },
+      "remaining": [
+        "Full toolchain bootstrap beyond current bounded compiler",
+        "Original/modified full product fixed points",
+        "Native-only source/build drivers"
+      ],
+      "sources": [
+        "examples/hia_bootstrap/selfhost.hiaasm",
+        "tools/replay_hia_selfhost_cold.py"
+      ],
+      "status": "OPEN"
+    },
+    "core_admission_and_resources": {
+      "authority_sha256": {
+        "hepta/hia_capability_flow.py": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530",
+        "hepta/hia_program.py": "a6918558fca70ce4be6ecaed22e39a347486856e7cc8527b8a2ef385bd72b258",
+        "hepta/hia_program_composite.py": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11"
+      },
+      "remaining": [
+        "Replace host general Core verifier/nominal elaboration",
+        "Retain all type/SSA/CFG/owner/loan rejection rules",
+        "Independent current native admission negatives"
+      ],
+      "sources": [
+        "hepta/hia_program.py",
+        "hepta/hia_capability_flow.py",
+        "hepta/hia_program_composite.py"
+      ],
+      "status": "OPEN"
+    },
+    "modules_packages_build": {
+      "authority_sha256": {
+        "examples/hia_bootstrap/core_module_graph.hiaasm": "c463f34436c3264d2f6154e0fada07d3246cfccd6ccce9e5f53ce9a034764026",
+        "hepta/hia_core_module_graph_native.py": "41ad4c38ae0067c5d03068a3fcc3648107ffb1a5cc66c13ec5035d2ca1483c4f",
+        "tools/compile_hia_core_workspace.py": "44ae41ad806e1f9585d75880d3a76a9db5ea0dd69bdce831f2f85c07fa975549"
+      },
+      "qualified_component": "Original entry-module scalar public names preserved through native Core JSON frontend and native ELF wrappers, including generated-name capture avoidance; host Core materialization remains",
+      "remaining": [
+        "Full module system beyond qualified bounded native graph",
+        "Nominal type linking",
+        "Filesystem/package locks/incremental build",
+        "Native Core verification and native-only workspace delivery"
+      ],
+      "sources": [
+        "examples/hia_bootstrap/core_module_graph.hiaasm",
+        "hepta/hia_core_module_graph_native.py",
+        "tools/compile_hia_core_workspace.py"
+      ],
+      "status": "OPEN"
+    },
+    "native_only_delivery_legacy_retirement": {
+      "authority_sha256": {
+        "docs/HIA_CORE_ONLY_SCOPE.json": "561b54509b8b7fd4b576e92bcf55e2777f6a97a4ac7256a0c0b3ff8fec6e64a7"
+      },
+      "remaining": [
+        "All prior authority gaps implemented and qualified",
+        "Native default switch with no legacy fallback",
+        "Only then remove remaining old production stack; history/evidence retained"
+      ],
+      "sources": [
+        "docs/HIA_CORE_ONLY_SCOPE.json"
+      ],
+      "status": "OPEN"
+    },
+    "optimizer_and_proof": {
+      "authority_sha256": {
+        "hepta/hia_ndu_optimizer.py": "f38d24cfa959d54acc0a220334de263ad840b72ffdae95050cbb9c1c2cbf38b7",
+        "hepta/hia_scalar_proof_contract.py": "67e11ffbe394a2cd6b2f5a30a7f3af5c5c694033fd0624d3f5e8be6d829781c7",
+        "hepta/hia_translation_validation.py": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb"
+      },
+      "remaining": [
+        "Native planning/optimization/proof construction",
+        "Whole-scope independent correctness rather than finite component witnesses"
+      ],
+      "sources": [
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_scalar_proof_contract.py"
+      ],
+      "status": "OPEN"
+    },
+    "regression_platform_clean_projects": {
+      "authority_sha256": {
+        ".github/workflows/hia-core.yml": "9500cdd75005280c6d8664b9afce0c9053815d7675589f1176f5d7dd034aaff7",
+        "tools/check_hia_core_only.py": "8d605caa041b4ef8b93109e2ab892adea440049660efeacd10369136f7ed1a6c"
+      },
+      "remaining": [
+        "Full actual current-source Core-only regressions",
+        "All applicable platform witnesses",
+        "Clean-machine install and original/modified real Agent project execution"
+      ],
+      "sources": [
+        ".github/workflows/hia-core.yml",
+        "tools/check_hia_core_only.py"
+      ],
+      "status": "OPEN"
+    },
+    "runtime_and_library": {
+      "authority_sha256": {
+        "hepta/hia_agent_exec.py": "05ff21ed82659d6830450e1d000dbbd7f72f5baf65b5d3b0725638fcb864b93b",
+        "hepta/hia_program_runtime.py": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+      },
+      "remaining": [
+        "General execution/resources/tasks/I/O/library",
+        "Host-independent custody/supervision where shipped"
+      ],
+      "sources": [
+        "hepta/hia_program_runtime.py",
+        "hepta/hia_agent_exec.py"
+      ],
+      "status": "OPEN"
+    }
+  },
+  "schema": "hepta.hia.whole-authority-core-only.v1",
+  "whole_goal_complete": false,
+  "working_tree_is_unqualified_candidate": false
+}
