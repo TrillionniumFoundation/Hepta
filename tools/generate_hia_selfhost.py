@@ -84,6 +84,9 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         next_token(s, w)
         expect(s, w, @hia-asm.v1@)
         expect(s, w, @hepta.hia.program.v8@)
+        if get(w, 32) != 0:
+            fail(w, 67)
+        identifier(s, w)
         if get(w, 8) == @selfhost_elf@:
             put(w, 232, 1)
             expect(s, w, @selfhost_elf@)
@@ -92,7 +95,10 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 put(w, 232, 2)
                 expect(s, w, @selfhost_exec@)
             else:
-                expect(s, w, @selfhost@)
+                # A module identifier is a Core label, not a source dispatch
+                # key. Only the two explicit historical output profiles above
+                # select a different ABI; all other admitted names emit flat.
+                next_token(s, w)
         expect(s, w, 10)
         if get(w, 232) == 1:
             elf_begin(o, w)

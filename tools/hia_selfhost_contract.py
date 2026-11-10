@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v28"
+PROFILE = "selfhost-core-linux-x86_64-v29"
 SOURCE_FILES = (
     "tools/hia_selfhost_names.py",
     "tests/test_hia_selfhost_names.py",
@@ -97,7 +97,8 @@ def support_contract(root=ROOT):
         "target": {"triple": "x86_64-unknown-linux-gnu", "system": "Linux",
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",
-                   "module": "selfhost", "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
+                   "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels select flat output",
+                   "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
                    "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
                    "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
                    "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",

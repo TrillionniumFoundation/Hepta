@@ -677,6 +677,19 @@ def qualify(directory, compiler, checks, reference, label):
         and receipt['returncode'] == 0 and receipt['cleanup']['complete']
         and not receipt['stderr_hex'] and output == executable.read_bytes())
     observations.append({'compiler': label, 'case': 'alpha-E2', 'native': receipt})
+    from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
+    canonical = COMPILER.read_bytes()
+    if label == 'modified':
+        canonical = mutate_compiler(canonical)
+    module_source = canonical.replace(b'v8 selfhost\n',
+        b'v8 ' + ('Compiler_' + label).encode() + b'\n', 1)
+    previous = compiler
+    for generation in (1, 2):
+        image, build = compile_stage(directory, label + '-module-R' + str(generation),
+                                     previous, module_source)
+        checks[label + '-module-R' + str(generation)] = image.read_bytes() == compiler.read_bytes()
+        observations.append(build)
+        previous = image
     return observations
 
 

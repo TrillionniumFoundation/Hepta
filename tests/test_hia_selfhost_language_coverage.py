@@ -515,6 +515,14 @@ def positive_fixtures():
     per_line, extra = divmod(remaining, len(lines))
     padded = b"".join(b" " * (per_line + int(i < extra)) + line for i, line in enumerate(lines))
     fixtures.append(boundary_fixture("source-bytes-1048576", padded))
+    # Preserve the exact former valid-Core/profile refusal, including its ID.
+    fixtures.append(boundary_fixture('unsupported-module-name',
+        simple_source().replace(b'v8 selfhost', b'v8 arbitrary')))
+    for index, name in enumerate(('_', 'entry', 'block', 'fn', 'end', 'calloc', 'malloc', 'free',
+            'aaB', 'aba', 'f18446744073709551615', 'm' * 128, '__hiA_open',
+            'selfhost_elf_suffix', 'selfhost_exec_suffix')):
+        fixtures.append(boundary_fixture('module-name-' + str(index),
+            simple_source().replace(b'v8 selfhost', b'v8 ' + name.encode())))
     return fixtures
 
 
@@ -608,7 +616,6 @@ def rejected_fixtures():
         ("functions-129", backward_chain_source() + scalar_function(128).encode(), "128 functions"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
         ("non-u32-public-entry-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "public entry remains u32 despite internal signed scalar support"),
-        ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
         ("tab-whitespace", seed.replace(b"  v3", b"\tv3"), "ASCII space and LF only"),
         ("crlf-whitespace", seed.replace(b"\n", b"\r\n"), "ASCII space and LF only"),
         ("unknown-cast-mode", parameter_source(1).replace(b'"mode":"wrap"', b'"mode":"truncate"'), "closed checked/wrap cast modes"),
@@ -695,6 +702,11 @@ def rejected_fixtures():
             source = valid.replace(b":u32 =", (":" + typ + " =").encode(), 3)
             source = source.replace(b'{"value":1}', ('{"value":' + str(1 << width) + '}').encode(), 1)
             add(op + "-" + typ + "-literal-overflow", source, "typed literal must fit the operand width", "rejected")
+    for index, name in enumerate(('', '9module', 'module-name', 'module.name',
+            '__hia_private', 'm' * 129, '"module"', 'é')):
+        add('invalid-module-name-' + str(index),
+            seed.replace(b'v8 selfhost', b'v8 ' + name.encode()),
+            'unquoted nonreserved ASCII module identifier of1..128bytes', 'rejected')
     return list(rows.values())
 
 
@@ -1295,13 +1307,33 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         reference = independent_references()
         rows = {row["id"]: row for row in reference["negative"]}
         for name in ("recursion-non-tail-direct-recursion", "recursion-mutual-recursion",
-                     "recursion-unreachable-cycle", "unsupported-module-name"):
+                     "recursion-unreachable-cycle"):
             self.assertEqual(rows[name]["reference_result"]["status"], "accepted")
+        former = next(row for row in positive_fixtures() if row['id'] == 'unsupported-module-name')
+        self.assertEqual(former['source'], simple_source().replace(b'v8 selfhost', b'v8 arbitrary'))
         for name in ("integer-op-arity", "unsigned-comparison-type-mismatch", "swap-readonly"):
             self.assertEqual(rows[name]["reference_result"]["status"], "rejected")
         for op in NEW_INTEGER:
             self.assertTrue(all(row["reference_result"]["status"] == "rejected"
                 for row in rows.values() if row["id"].startswith(op + "-")))
+
+    def test_module_names_keep_core_identity_and_output_profile_boundaries(self):
+        from hepta.hia_agent_assembly import assemble_program
+        cases = [row for row in positive_fixtures()
+                 if row['id'].startswith('module-name-') or row['id'] == 'unsupported-module-name']
+        self.assertEqual(len(cases), 16)
+        modules = {assemble_program(row['source']).as_dict()['module'] for row in cases}
+        self.assertTrue({'arbitrary', '_', 'fn', 'block', 'end', 'malloc', 'free'} <= modules)
+        self.assertIn('m' * 128, modules)
+        # Existing explicit ELF/ET_EXEC profile selectors are not reinterpreted
+        # as arbitrary flat-output module labels.
+        self.assertFalse({'selfhost_elf', 'selfhost_exec'} & modules)
+        invalid = [row for row in rejected_fixtures() if row['id'].startswith('invalid-module-name-')]
+        self.assertEqual(len(invalid), 8)
+        from hepta.hia_program import HIAProgramRejected
+        for row in invalid:
+            with self.subTest(name=row['id']), self.assertRaises(HIAProgramRejected):
+                assemble_program(row['source'])
 
     def test_checked_arithmetic_covers_width_boundaries_and_both_write_orders(self):
         rows = checked_arithmetic_trap_cases()

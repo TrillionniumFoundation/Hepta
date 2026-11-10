@@ -3255,7 +3255,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v28",
+  "profile": "selfhost-core-linux-x86_64-v29",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -4140,12 +4140,6 @@
       "source_sha256": "59d13e184cb3d26cf1542b255bd617695a0281b3d6bf822a7aac8280cc1ca456"
     },
     {
-      "boundary": "fixed input module",
-      "general_core_expected": null,
-      "id": "unsupported-module-name",
-      "source_sha256": "d2ef7ada1060611b7913eaeda56ae5e293153d5a44626dd5bfdf98b2c57f16b6"
-    },
-    {
       "boundary": "ASCII space and LF only",
       "general_core_expected": null,
       "id": "tab-whitespace",
@@ -4858,6 +4852,54 @@
       "general_core_expected": "rejected",
       "id": "int.neg.checked-usize-literal-overflow",
       "source_sha256": "1a4a8a40786e394fc8e390e62993f5ad6d4ea6182c5dcb4cad200bdcd18736ab"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-0",
+      "source_sha256": "3e1bdc850b989eeddb20c1739c12449dc52c1e708ce685c2c5fffab7d0e16b55"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-1",
+      "source_sha256": "6c756d87c0b6bf586ba262f3765da617fa0ff3b7c9661ed0b9b66a6eba2b405c"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-2",
+      "source_sha256": "3fe5fdf36f9616f17671f4318a98aecbbf5542d6c043cf9693930b30e83baf6f"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-3",
+      "source_sha256": "d1b15b8eadcf17858514fc430440b289f8929f04e3e64ed5b256a7dbe2429f15"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-4",
+      "source_sha256": "7fc6a956104d1c3e707eddd462ddd6a6ed5b53e7c3d970d8fb81df97423fc9bb"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-5",
+      "source_sha256": "0fc497e167bf66da1cc03b3280c6da2dd4e8f8dc2cf9e16832e2b356b95adbad"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-6",
+      "source_sha256": "b59e08ae0d0981bbdd89ad1c847a050581ca8a480cbd0e23c92e59a7c37e7bc7"
+    },
+    {
+      "boundary": "unquoted nonreserved ASCII module identifier of1..128bytes",
+      "general_core_expected": "rejected",
+      "id": "invalid-module-name-7",
+      "source_sha256": "3a4c85eec395e91bdadd80087db011469e3bf5d403b619475b1c3b886e667c35"
     }
   ],
   "run": {
@@ -5145,13 +5187,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "4f431d6a9d45ac35ac3dcee6c1d09128b28317a109c17dd7c1cf4a3f650b5c09"
+      "sha256": "0e14a3140d72b9de29fda380cd759eae912bf407fd73cb19fd679f7ae143e590"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "d9479416af5a49893557617f05083406900c57efe15da67323752919686b2ea4"
+      "sha256": "6a9809998d0ff4336f511b0b27b7a843190380948a16bedb772838f796cdb82f"
     },
-    "semantic_support_sha256": "846f517c4dd96ba28eefedbd670e314afebfd7cb71617ea49d6b8e66bb3aeb03",
+    "semantic_support_sha256": "681b94768fce5f3d875aad51bf74e67ac983dfced8209dd17ed6a1d44de50d53",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5166,7 +5208,7 @@
       "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",
       "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
-      "module": "selfhost",
+      "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels select flat output",
       "object_module": "selfhost_elf",
       "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
       "whitespace": "ASCII space and LF; shared assembly adjacency rules"
@@ -5223,7 +5265,6 @@
       "existing-effects-separation",
       "existing-entry-separation",
       "entry-signature-name",
-      "unsupported-module-name",
       "tab-whitespace",
       "crlf-whitespace"
     ],

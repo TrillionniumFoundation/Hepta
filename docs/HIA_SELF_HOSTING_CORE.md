@@ -1353,3 +1353,21 @@ all 64 bits. No hash shortcut, prefix acceptance, input rewrite, test removal,
 capacity increase or deadline increase is involved. Boundary mutation controls
 cover lengths 1/8/9/16/17/24/25/32, zero-padding aliases and nonzero source offsets;
 the existing independent Core/native exact-keyword observations remain required.
+
+## v29 ordinary module identifiers
+
+The native header parser accepts ordinary Core ASCII module identifiers,
+including contextual keywords, underscore,128-byte labels and names that are
+reserved only for functions. Labels must be unquoted and must not begin with
+Core's reserved `__hia_` prefix. A module label is not a source dispatch key.
+The two existing explicit `selfhost_elf`/`selfhost_exec` output profile selectors
+retain their object/executable ABIs; all other accepted labels select flat code.
+This is not a module/import/export graph or a general object linker.
+
+The exact former `unsupported-module-name` negative input remains unchanged and
+is now a positive witness. Fifteen further labels and eight invalid names cover
+length, grammar, prefix and quoting boundaries. Original and modified whole
+compiler sources with ordinary renamed module labels must each reproduce the
+matching compiler through two native generations, in addition to all existing
+spelling-only alpha and executable observations. Fresh current-source execution
+is required; v28 receipts do not qualify the changed v29 implementation.
