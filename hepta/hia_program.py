@@ -25,6 +25,7 @@ import re
 from .hia_json_preflight import preflight_hia_json
 from .hia_json_decode import decode_hia_json, decode_internal_canonical
 from .hia_json_canonical_native import selected_canonical_wire
+from .hia_sha256_native import payload_sha256
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
@@ -343,7 +344,7 @@ class VerifiedProgram:
 
     @property
     def sha256(self):
-        return sha256(self.canonical_bytes).hexdigest()
+        return payload_sha256(self.canonical_bytes).hex()
 
     @property
     def canonical_json(self):
@@ -351,8 +352,8 @@ class VerifiedProgram:
 
     @property
     def input_sha256(self):
-        return sha256(self.structured_bytes if self.structured_bytes is not None
-                      else self.canonical_bytes).hexdigest()
+        return payload_sha256(self.structured_bytes if self.structured_bytes is not None
+                              else self.canonical_bytes).hex()
 
     @property
     def scalar_entrypoints(self):

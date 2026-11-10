@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/hia-p2-selfhost-results.yml'
       - 'tools/generate_hia_selfhost.py'
+      - 'tools/generate_hia_sha256.py'
+      - 'tools/build_hia_sha256.py'
+      - 'hepta/hia_sha256_native.py'
+      - 'tests/test_hia_sha256_native.py'
+      - 'examples/hia_bootstrap/sha256.hiaasm'
       - 'tools/generate_hia_json_preflight.py'
       - 'tools/generate_hia_json_decode.py'
       - 'tools/generate_hia_json_canonical.py'
@@ -101,6 +106,7 @@ jobs:
           subprocess.run(["git", "diff", "--exit-code", original, recovered, "--", *manifest["recovered_changed_files"]], check=True)
           print(json.dumps({"status": "SOURCE_RECOVERY_VERIFIED", "changed_files": len(manifest["recovered_changed_files"]), "original_tree": manifest["original_source_tree"]}, sort_keys=True))
           PY
+          python -B -m tools.generate_hia_sha256 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-generator.log"
           python -B -m tools.generate_hia_json_preflight 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-generator.log"
           python -B -m tools.generate_hia_json_decode 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-decode-generator.log"
           python -B -m tools.generate_hia_json_canonical 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-canonical-generator.log"
@@ -116,6 +122,7 @@ jobs:
           import json, os, unittest
           from pathlib import Path
           names = (
+              "tests.test_hia_sha256_native.Sha256HiaSourceTests",
               "tests.test_hia_json_preflight",
               "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
               "tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests",
@@ -246,6 +253,7 @@ jobs:
           git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-p2-native/source.txt"
           python -m pip freeze > "$RUNNER_TEMP/hia-p2-native/dependencies.txt"
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-p2-native/qualification.json" 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/qualification.log"
+          python -B -m unittest -v tests.test_hia_sha256_native.Sha256HiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-tests.log"
           python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"
           python -B -m unittest -v tests.test_hia_json_decode_native.JsonDecodeHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-decode-tests.log"
           python -B -m unittest -v tests.test_hia_json_canonical_native.JsonCanonicalHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-canonical-tests.log"

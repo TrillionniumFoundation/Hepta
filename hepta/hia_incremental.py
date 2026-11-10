@@ -133,6 +133,7 @@ def _policy():
                                             core.decode_hia_json,
                                             core.decode_internal_canonical,
                                             core.selected_canonical_wire,
+                                            core.payload_sha256,
                                             core.opcode_spec, core.check_instruction,
                                             core._catalog_scalar_value_valid,
                                             core.rename_capabilities, core._Capability,
