@@ -4,12 +4,12 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `069087b0` snapshot contains a live `hepta/` package with 219 Python
-files, 76,788 lines and 4,158,056 bytes. These are source inventory figures, not a
+HIA. The qualified `c57fb17e` snapshot contains a live `hepta/` package with 219 Python
+files, 76,801 lines and 4,158,877 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **423 Python files /133556lines** under `tools/`,
+The audit also inventories **423 Python files /133629lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
@@ -24,7 +24,28 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation (2026-11-10):** high-level Hepta source token recognition
+**Current continuation (2026-11-10):** the selected source lexer now parses
+arbitrary-size integer magnitudes in HIA, not through a host literal parser.
+The v2 manifest declares command 0 for tokens and command 1 for integer
+magnitudes; Python only constructs integer objects from the native bytes.
+The 20-function image retains all earlier lexical checks and adds independent
+pre-seed integer VM controls, four-radix randomized/boundary tests, transactional
+refusals, guards and eight-way private concurrent calls with the host literal
+parser unavailable. Floating conversion and the full parser remain foreign.
+
+Exact clean c57fb17e passed104source tests,11/11cold+5,047/5,047native checks
+in163.463seconds under the unchanged180-second deadline,1,242language checks,
+66combined native-library tests,83selected and83default consumers,55incremental,
+15shared-closure and63selected+63default parser/module tests. The complete
+repository regression is running on a separate immutable c57fb17e checkout;
+it is not qualified by these finite local gates. See source-integer-summary.json,
+source-integer-source-equivalence.json and the lossless source-integer delta.
+
+The earlier exact70ee7cd remote cold replay FAILED at180seconds, after22phases,
+with cleanup confirmed. Its original artifact and failure summary are retained.
+The newer local pass does not promote that historical remote failure.
+
+**Prior lexical checkpoint (2026-11-10):** high-level Hepta source token recognition
 now executes in a19-function HIA application under explicit operator selection.
 The existing token API and real Python parser/module callers exercise that
 path; Python numeric values/AST parsing/type checking and the default reference
