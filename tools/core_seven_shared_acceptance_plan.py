@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v10'
-PROTOCOL = 'seven-shared-acceptance-v10'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v11'
+PROTOCOL = 'seven-shared-acceptance-v11'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -145,16 +145,39 @@ SCOPED_AGENT_NDU_ADDITIONS = (
 # Explicit bounded native-process owner. Keep the earlier 336-path checkpoint
 # independently reproducible when reviewing this additional compiler input.
 PERSISTENT_NDU_ADDITIONS = ('hepta/hia_ndu_persistent_ranker.py',)
-# The legacy identity cap describes 239 source records. The reviewed shared
-# closure has 337 source records and the same 780 support records: canonical
-# JSON with seven-/nineteen-digit byte counts and fixed hash widths is exactly
-# 157811 bytes. The historical 336-/331-/328-/323-path projections still occupy
-# 157680/157043/156678/156044 bytes; the persistent owner adds 131 bytes. Transfer
-# only the full 13098-byte
-# increase over the legacy identity from raw logs; keep the
-# legacy protocol and the aggregate evidence, source, module and time caps.
-IDENTITY_CAP = 157811
-IDENTITY_RESERVE_DELTA = 13098
+# Explicit reviewed HIA JSON source/image, host selection/build and conformance
+# inputs. Do not discover a permissive closure from the filesystem. The entire
+# prior 337-path checkpoint remains an independently pinned projection.
+JSON_NATIVE_ADDITIONS = (
+    'examples/hia_bootstrap/core_json_frontend.hiaasm',
+    'examples/hia_bootstrap/json_canonical.hiaasm',
+    'examples/hia_bootstrap/json_decode.hiaasm',
+    'examples/hia_bootstrap/json_preflight.hiaasm',
+    'hepta/hia_core_json_frontend_native.py',
+    'hepta/hia_json_canonical_native.py',
+    'hepta/hia_json_decode.py',
+    'hepta/hia_json_decode_native.py',
+    'hepta/hia_json_preflight_native.py',
+    'tests/test_hia_core_json_frontend_native.py',
+    'tests/test_hia_json_canonical_native.py',
+    'tests/test_hia_json_decode_native.py',
+    'tests/test_hia_json_preflight.py',
+    'tests/test_hia_json_preflight_native.py',
+    'tools/build_hia_core_json_frontend.py',
+    'tools/build_hia_json_canonical.py',
+    'tools/build_hia_json_decode.py',
+    'tools/build_hia_json_preflight.py',
+    'tools/compile_hia_core_json.py',
+    'tools/generate_hia_core_json_frontend.py',
+    'tools/generate_hia_json_canonical.py',
+    'tools/generate_hia_json_decode.py',
+    'tools/generate_hia_json_preflight.py',
+)
+# Identity records now need 160877 bytes. Transfer exactly 3066 bytes from raw
+# logs to identity metadata, retaining the aggregate evidence/container envelope,
+# all source/module/process caps and the historical protocol unchanged.
+IDENTITY_CAP = 160877
+IDENTITY_RESERVE_DELTA = 16164
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -243,16 +266,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
                                     *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
-                                    *PERSISTENT_NDU_ADDITIONS)))
+                                    *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 337 and commitment(paths) == '5a6311333c82ea95a464ff9257f190f5712b52e3da90c02169e063ca1698f8dc',
+    require(len(paths) == len(set(paths)) == 360 and commitment(paths) == '84f2d792e39d1f6a5b059026acc14edc321bbe8528c026caa2f06fba55977ad2',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in PERSISTENT_NDU_ADDITIONS)
+    previous = tuple(name for name in paths if name not in JSON_NATIVE_ADDITIONS)
+    require(len(previous) == 337 and commitment(previous) == '5a6311333c82ea95a464ff9257f190f5712b52e3da90c02169e063ca1698f8dc',
+            'historical persistent NDU source identity projection')
+    previous = tuple(name for name in previous if name not in PERSISTENT_NDU_ADDITIONS)
     require(len(previous) == 336 and commitment(previous) == '9a888e4dbfe883eb74fd8961a5fbc2b90b0cac7b9a6343ef5720145e23be72c7',
             'historical scoped Agent/NDU source identity projection')
     previous = tuple(name for name in previous if name not in SCOPED_AGENT_NDU_ADDITIONS)
