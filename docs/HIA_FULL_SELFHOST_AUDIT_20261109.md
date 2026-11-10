@@ -1,9 +1,9 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09
 
-> **Current product scope (2026-11-10): HIA Core + Agent.** High-level Hepta
-> syntax/AST/checker port expansion is frozen reference work, not a closure
-> prerequisite. Historical results below remain scoped evidence, not current
-> native-only delivery. All nine whole-product obligations remain OPEN.
+> **Current product scope (2026-11-10): HIA Core + Agent.** The owner now requires high-level Hepta removal from the active product.
+> This historical component branch still contains it and is not the post-removal
+> product. Historical results below remain scoped evidence, not current native-only
+> delivery. All nine whole-product obligations remain OPEN.
 
 ## Decision and source authority
 
@@ -2099,3 +2099,26 @@ not qualified. JSON/schema/correlation/auth, edit orchestration, SQLite and
 filesystem recovery, Core module/build/runtime and native-only release remain
 OPEN. Scope change and this component pass do not close any whole obligation.
 Default service/main/release locks and legacy implementations remain unchanged.
+
+
+## Installed Agent scalar identity resource acceptance — historical component
+
+Exact commit `e3e441dca3f1da5deaf655f4c63dbbc67c32cc84` passed a fresh 19-stage component
+qualification. The twelve real Agent resources are now carried by actual source
+distributions and wheels, bound into source/release/shared identities, and read
+only from the explicit checkout or installed package root. No cwd/HOME/foreign
+checkout fallback is used. Actual installed selected-native workers match source
+identities; missing/tampered native assets, discovery-pin drift and complete data
+root removal reject before persistent state creation. The real current B3 image
+is copied into independent installed artifact custody.
+
+See `../review-evidence/hia-whole-selfhost-20261109/agent-identity-installed-resources-summary.json`
+for exact source/cold/native/default/selected/installed controls and retained
+capacity-preflight failure. This branch still contains the historical high-level
+language; the owner's superseding removal is being handled in a separate active
+product tree. This is not that tree's qualification or a deliverable legacy
+package. Useful installation fixes require integration and exact requalification
+there. All nine Core/Agent whole obligations remain OPEN. Python build/worker,
+JSON/schema/auth/correlation, editing, SQLite and recovery remain host owned.
+No main/default service/release activation, native-only delivery or old production
+retirement is authorized by this component receipt.
