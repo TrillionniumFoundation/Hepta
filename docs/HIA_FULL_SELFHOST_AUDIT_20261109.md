@@ -1465,3 +1465,47 @@ unaligned word reads/all64bits and native partial-store traps, complete scalar
 exports, two actual linked HIA objects, refusal/no-output and poisoned scratch.
 The source/contract inventories were regenerated. This remains a development
 checkpoint until the following fresh exact-commit gates complete.
+
+### Exact scratch/header implementation accc4bd accepted locally
+
+Cleanaccc4bd6de0fe37c572780e1ed904a7f219c0e8c passed all20fresh qualification
+steps in489.136seconds: actualsource110tests; cold11/11plus5049/5049native
+checks/all38phases in110.888seconds underunchanged180+3; language1242checks
+plus10assertions;100nativecomponent tests;15shared-source tests; actualB3JSON/
+sha/frontend/lexer andall3CLIprofilebuilds;83selectedplus83defaultcallers;
+55incremental;63selectedplus63defaultparser/module tests;26installed observations
+plus4rawnative executable compiler-successor observations. B1=B2=B3 is662882bytes,
+SHA256a45a2a8c29ff320f5307bba00a4368facd15feb0aa300bca63af3457d5b30c0e.
+The changed-source chain is separately distinct and reaches its own fixed point.
+The compiler source457451bytes remains within all unchanged physical ceilings.
+This is fresh acceptance, not inherited float-composition test counts.
+
+Final raw archive21734562bytes, SHA25649b3afa9b95ebcfad471f790289f83694671178c70671182ab41309378c0c1b2:
+all56506members compared with retained originals. The first nonfinal archive
+included its own still-open journal, so the final archive excludes live archive/
+queued-full journals; both captures and the retention note remain. An external
+publication helper initially looked for manifest.json instead of the actual
+CLIbuild.json; it failed before publishing. The corrected receipt reader uses
+the same unchanged accepted source/artifacts; no test rerun or outcome relabeling.
+Public compiler-header-throughput summary and lossless inventory delta bind the
+fresh receipts, full source hashes, raw development observations and failures.
+
+Parent1afa unified remote42771662610/job129680646771 isFAIL595tests/1failure:
+actualcold180s/-9/34of38phases/0completed-phaseexceptions/cleanupconfirmed.
+Full185742byteZIP13742861147 retained with server-matchingSHA256
+b01e078c2484584d116ff098d1f9d4d06da0127a4203b34de80a1ffbc610192c.
+Older2d12212 P2 cold42769896908/job129679068592 also endedFAIL180s/-9/26of38,
+cleanupconfirmed; same-run source/native/language jobs separatelyPASS. Full
+39675844byteZIP13741394214 retained, SHA2566aeaaf213fe4f07369655627d6a87260979a58f8d98ba6917eb094a835347930.
+Neither remote failure is superseded by this local pass or by development timing.
+Older38eaobserver whole-repository run endedFAIL7766tests/1failure/1error/0skips,
+unchanged clean source: one temporary-project-marker error and one0.2s whole-child
+timeout versus expectedSIGSYS. Exact timeout stage remains unproved; no filter,
+timeout, assertion or legacy identity projection was weakened. Older exports/
+stream/full/remote failures remain retained. Current fullsuite is frozenaccc and
+QUEUED after the525float suite, additionally requiring the8GiB free-space reserve;
+no current full tests have started. Remote/current full/clean-machine gates OPEN.
+
+Inventory still220package Python modules/76887lines plus428hosttools/134701lines,
+ledger3partial/5open. No default/live/release/main switch, old-stack deletion,
+fullfrontend/module/link/runtime/build/service/proof or native-only closure claim.
