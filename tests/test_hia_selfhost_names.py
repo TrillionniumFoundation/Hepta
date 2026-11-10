@@ -6,7 +6,8 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_names import (cases, independent_reference, name_hash,
-    refusals, renamed_source, value_cases, value_refusals, renamed_values, block_cases, block_refusals, renamed_blocks)
+    refusals, renamed_source, value_cases, value_refusals, renamed_values, block_cases, block_refusals, renamed_blocks,
+    entry_order_cases, entry_order_refusals, reordered_blocks, nonfirst_entry_source)
 
 
 class SelfhostFunctionNameTests(unittest.TestCase):
@@ -24,8 +25,8 @@ class SelfhostFunctionNameTests(unittest.TestCase):
         self.assertTrue(report['before_B0'])
         self.assertFalse(report['all_input_correctness_proved'])
         self.assertFalse(report['whole_stack_rewrite_complete'])
-        self.assertEqual(len(report['cases']), 86)
-        self.assertEqual(len({r['program'] for r in report['cases']}), 36)
+        self.assertEqual(len(report['cases']), 106)
+        self.assertEqual(len({r['program'] for r in report['cases']}), 52)
         for row in report['cases']:
             self.assertEqual(row['reference']['values'], [row['expected_result']])
             self.assertEqual(row['reference']['resources']['live_owners'], 0)
@@ -93,6 +94,41 @@ class SelfhostFunctionNameTests(unittest.TestCase):
         doc = assemble_program(changed).as_dict()
         for fn in doc['functions']:
             self.assertEqual(fn['entry'], fn['blocks'][0]['id'])
+
+    def test_nonfirst_entries_keep_formals_tail_origins_and_complete_block_boundaries(self):
+        from hashlib import sha256
+        rows = entry_order_cases()
+        self.assertEqual(len(rows), 20)
+        self.assertEqual(len({r['program'] for r in rows}), 16)
+        retained = rows[0]
+        self.assertEqual(retained['source'], nonfirst_entry_source())
+        self.assertTrue(retained['retained_former_profile_refusal'])
+        # An independently retained v27 negative-control source is now positive.
+        self.assertEqual(sha256(retained['source'].encode()).hexdigest(),
+                         '84e2246c1c442d37c38ad441a4d8603de6ed817bcbe2f2fdc2540ff3a5828abd')
+        maximum = []
+        for row in rows:
+            doc = assemble_program(row['source']).as_dict()
+            for fn in doc['functions']:
+                entry = next(b for b in fn['blocks'] if b['id'] == fn['entry'])
+                at = len(fn['blocks']) // 2 if row['id'].startswith('entry-middle-') else len(fn['blocks']) - 1
+                self.assertEqual(fn['entry'], fn['blocks'][at]['id'])
+                self.assertEqual(fn['params'], entry['params'])
+                maximum.append(len(fn['blocks']))
+        self.assertIn(256, maximum)
+        for row in entry_order_refusals():
+            with self.subTest(row=row['id']):
+                with self.assertRaises(HIAProgramRejected) as refused:
+                    assemble_program(row['source'])
+                expected = 'E_HIA_LOAN' if row['id'].endswith(('return-origin', 'join-roots')) else 'E_HIA_CFG'
+                self.assertEqual(refused.exception.code, expected)
+        from tools.generate_hia_selfhost import document
+        from hepta.hia_agent_assembly import render_assembly
+        doc, _ = document()
+        changed = assemble_program(reordered_blocks(render_assembly(doc))).as_dict()
+        for before, after in zip(doc['functions'], changed['functions'], strict=True):
+            self.assertEqual(before['entry'], after['entry'])
+            self.assertEqual({b['id']: b for b in before['blocks']}, {b['id']: b for b in after['blocks']})
 
 
 if __name__ == '__main__':

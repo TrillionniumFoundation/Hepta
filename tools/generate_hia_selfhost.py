@@ -178,8 +178,12 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 40)
     adjacent(w)
     discover_blocks(s, w)
-    if expect(s, w, 258) != 0:
-        fail(w, 4)
+    entry_block = expect(s, w, 258)
+    if get(w, 48) == 0:
+        put(w, fb + 264, entry_block)
+    else:
+        if entry_block != get(w, fb + 264):
+            fail(w, 4)
     adjacent(w)
     expect(s, w, 41)
     read_return_loans(s, w)
@@ -227,7 +231,7 @@ def parse_params(s:readbuf, w:mutbuf, signature:u64) -> u64:
             if get(w, 48) == 0:
                 put(w, BBASE + get(w, 88) * BSTRIDE + 32 + count * 16, v)
                 put(w, BBASE + get(w, 88) * BSTRIDE + 40 + count * 16, t)
-            if get(w, 96) == 0:
+            if get(w, 96) == get(w, base + 264):
                 if v != count or t != get(w, base + 48 + count * 8):
                     fail(w, 9)
         count = count + 1
@@ -264,7 +268,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     account_nodes(w, 4 + count * 3)
     if get(w, 48) == 0:
         put(w, bb + 8, count)
-    if b == 0:
+    if b == get(w, FBASE + get(w, 72) * FSTRIDE + 264):
         if count != get(w, FBASE + get(w, 72) * FSTRIDE + 24):
             fail(w, 12)
     if get(w, 40) != 0:
@@ -340,7 +344,7 @@ def edge(s:readbuf, o:mutbuf, w:mutbuf, arm:u64) -> u64:
     adjacent(w)
     fbase = FBASE + get(w, 72) * FSTRIDE
     bid = get(w, fbase + 8) + b
-    if b == 0 or b >= 256 or bid >= 1536:
+    if b == get(w, fbase + 264) or b >= 256 or bid >= 1536:
         return fail(w, 18)
     bb = BBASE + bid * BSTRIDE
     n = args(s, w, 1)
@@ -469,7 +473,8 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 if x == get(w, 72):
                     # All arguments were staged before overwriting any entry
                     # parameter. Keep the frame and original result pointer;
-                    # b0 begins after the prologue, including stack probes.
+                    # The declared entry begins after the prologue, including
+                    # stack probes; it need not be the first source block.
                     i = 0
                     while i < n:
                         mem(o, w, 139, 0, 5, 0 - frame(w) + i * 16)
@@ -479,7 +484,7 @@ def instruction(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                             store_var(o, w, i, 1)
                         i = i + 1
                     emit(o, w, 233)
-                    relocation(o, w, 2, get(w, fb + 8))
+                    relocation(o, w, 2, get(w, fb + 8) + get(w, fb + 264))
                 else:
                     mem(o, w, 141, 7, 5, 0 - frame(w))
                     mem(o, w, 141, 6, 5, 0 - frame(w) + 512)
@@ -756,7 +761,7 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     while get(w, 392) < get(w, 384) and get(w, 40) == 0:
         bid = get(w, QBASE + get(w, 392) * 8)
         put(w, 392, get(w, 392) + 1)
-        if bid <= start or bid >= start + count:
+        if bid < start or bid >= start + count or bid == start + get(w, FBASE + get(w, 72) * FSTRIDE + 264):
             return fail(w, 42)
         if get(w, BBASE + bid * BSTRIDE + 24) == 0:
             # Initial parsing has already checked global SSA uniqueness.
@@ -886,6 +891,9 @@ def function_start(o:mutbuf, w:mutbuf) -> u64:
             mem(o, w, 139, 0, 7, i * 16 + 8)
             store_var(o, w, i, 1)
         i = i + 1
+    if get(w, fb + 264) != 0:
+        emit(o, w, 233)
+        relocation(o, w, 2, get(w, fb + 8) + get(w, fb + 264))
     return 0
 
 def frame(w:mutbuf) -> u64:
@@ -1525,7 +1533,7 @@ def loan_incoming(w:mutbuf, bb:u64, count:u64, block:u64) -> u64:
     root = 0
     parent = 0
     origin = 0
-    if block == 0:
+    if block == get(w, FBASE + get(w, 72) * FSTRIDE + 264):
         while i < 16:
             packed = 0
             if i < count and resource_type(get(w, bb + 40 + i * 16)) == 1:

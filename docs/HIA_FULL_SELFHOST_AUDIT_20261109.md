@@ -59,7 +59,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
-| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal/block names and exact lookup | Arbitrary entry declaration order, full module grammar and diagnostics |
+| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal/block names, exact lookup and arbitrary entry declaration order | Full module grammar and diagnostics |
 | Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |

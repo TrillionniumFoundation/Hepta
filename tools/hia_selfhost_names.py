@@ -292,6 +292,90 @@ def renamed_blocks(source, spellings=None):
     return result
 
 
+def reordered_blocks(source, position='last'):
+    """Preserve the graph and every operation, placing each entry last."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    for fn in doc['functions']:
+        remaining = [b for b in fn['blocks'] if b['id'] != fn['entry']]
+        entry = next(b for b in fn['blocks'] if b['id'] == fn['entry'])
+        if position == 'last':
+            at = len(remaining)
+        elif position == 'middle':
+            at = len(fn['blocks']) // 2
+        elif type(position) is int and 0 <= position <= len(remaining):
+            at = position
+        else:
+            raise ValueError('invalid entry declaration position')
+        fn['blocks'] = remaining[:at] + [entry] + remaining[at:]
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def nonfirst_entry_source():
+    # Exact retained valid-Core v27 exclusion; its bytes are not repaired.
+    return ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
+        'fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(later)\n'
+        'block earlier()\n  v3:u32 = const() {"value":7}\n  ret(v3)\n'
+        'block later(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump earlier()\nend\n')
+
+
+def entry_order_cases():
+    from tools.hia_selfhost_cfg_worklist import cases as cfg_cases
+    from tools.hia_selfhost_returned_loans import cases as loan_cases
+    from tools.hia_selfhost_tailcalls import scalar_tail_source, scalar_tail_expected
+    rows = [{'id': 'block-nonfirst-entry-remains-profile-boundary',
+        'program': 'retained-nonfirst-entry', 'source': nonfirst_entry_source(),
+        'source_hex': '', 'initial_hex': 'a5', 'expected_hex': 'a5', 'expected_result': 7,
+        'retained_former_profile_refusal': True}]
+    for row in cfg_cases():
+        if row['id'] not in {'queued-owner-and-local-loan', 'queued-chain-move-drop'}:
+            rows.append({**row, 'id': 'entry-last-' + row['id'], 'program': 'entry-last-' + row['id'],
+                         'source': reordered_blocks(row['source']).decode()})
+        if row['id'] in {'reverse-256-mut', 'reverse-1536-six-functions'}:
+            rows.append({**row, 'id': 'entry-middle-' + row['id'], 'program': 'entry-middle-' + row['id'],
+                         'source': reordered_blocks(row['source'], 'middle').decode()})
+    for row in loan_cases():
+        if row['program'] in {'loan-read-tail', 'loan-mut-tail'}:
+            rows.append({**row, 'id': 'entry-last-' + row['id'], 'program': 'entry-last-' + row['program'],
+                         'source': reordered_blocks(row['source']).decode()})
+    rows.append({'id': 'entry-last-parallel-scalar-tail', 'program': 'entry-last-parallel-scalar-tail',
+        'source': reordered_blocks(scalar_tail_source()).decode(), 'source_hex': '',
+        'initial_hex': 'a5', 'expected_hex': 'a5', 'expected_result': scalar_tail_expected(63)})
+    return rows
+
+
+def entry_order_refusals():
+    source = nonfirst_entry_source()
+    incoming = ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
+        'fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(later)\n'
+        'block earlier(v3:readbuf,v4:mutbuf,v5:mutbuf)\n  jump later(v3,v4,v5)\n'
+        'block later(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump earlier(v0,v1,v2)\nend\n')
+    wrong_origin = ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
+        'fn f0(s:readbuf,o:mutbuf,w:mutbuf) -> (u32) effects(read,write,trap) entry(start)\n'
+        'block start(s:readbuf,o:mutbuf,w:mutbuf)\n  view:readbuf = call(s,s) {"function":"helper"}\n'
+        '  _ = loan.end(view)\n  result:u32 = const() {"value":0}\n  ret(result)\nend\n'
+        'fn helper(first:readbuf,second:readbuf) -> (readbuf) effects() entry(later) return_loans(["first"])\n'
+        'block earlier(a:readbuf,b:readbuf)\n  ret(b)\n'
+        'block later(first:readbuf,second:readbuf)\n  jump earlier(first,second)\nend\n')
+    bad_join = ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
+        'fn f0(s:readbuf,o:mutbuf,w:mutbuf) -> (u32) effects(read,write,trap) entry(later)\n'
+        'block finish(a:mutbuf,b:mutbuf,c:readbuf)\n  _ = loan.end(c)\n'
+        '  result:u32 = const() {"value":0}\n  ret(result)\n'
+        'block left(a1:mutbuf,b1:mutbuf)\n  c1:readbuf = borrow.read(a1)\n  jump finish(a1,b1,c1)\n'
+        'block right(a2:mutbuf,b2:mutbuf)\n  c2:readbuf = borrow.read(b2)\n  jump finish(a2,b2,c2)\n'
+        'block later(s:readbuf,o:mutbuf,w:mutbuf)\n  at:usize = const() {"value":0}\n'
+        '  byte:u8 = buffer.load(s,at)\n  zero:u8 = const() {"value":0}\n'
+        '  choose:bool = compare.eq(byte,zero)\n  branch choose left(o,w) right(o,w)\nend\n')
+    return [{'id': 'entry-later-wrong-formal-name', 'source': source.replace('block later(v0:', 'block later(other:'), 'general_core_expected': 'rejected'},
+        {'id': 'entry-later-wrong-formal-type', 'source': source.replace('block later(v0:readbuf', 'block later(v0:u64'), 'general_core_expected': 'rejected'},
+        {'id': 'entry-later-wrong-arity', 'source': source.replace('block later(v0:readbuf,v1:mutbuf,v2:mutbuf)', 'block later(v0:readbuf,v1:mutbuf)'), 'general_core_expected': 'rejected'},
+        {'id': 'entry-later-incoming-edge', 'source': incoming, 'general_core_expected': 'rejected'},
+        {'id': 'entry-later-wrong-return-origin', 'source': wrong_origin, 'general_core_expected': 'rejected'},
+        {'id': 'entry-later-mismatched-join-roots', 'source': bad_join, 'general_core_expected': 'rejected'}]
+
+
 def block_cases():
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
@@ -344,12 +428,6 @@ def block_refusals():
     rows += [{'id': 'block-duplicate-name', 'source': source.replace('aaB', 'aba'), 'general_core_expected': 'rejected'},
         {'id': 'block-missing-target', 'source': source.replace(' aaB(', ' absent(', 1), 'general_core_expected': 'rejected'},
         {'id': 'block-incoming-entry', 'source': source.replace(' aaB(', ' entry(', 1), 'general_core_expected': 'rejected'}]
-    later = ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
-        'fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(later)\n'
-        'block earlier()\n  v3:u32 = const() {"value":7}\n  ret(v3)\n'
-        'block later(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump earlier()\nend\n')
-    rows.append({'id': 'block-nonfirst-entry-remains-profile-boundary', 'source': later,
-                 'general_core_expected': 'accepted'})
     return rows
 
 
@@ -506,7 +584,7 @@ def independent_reference():
     from tools.generate_hia_selfhost import document
     from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
     rows = []
-    for row in [*cases(), *value_cases(), *block_cases()]:
+    for row in [*cases(), *value_cases(), *block_cases(), *entry_order_cases()]:
         checked = assemble_program(row['source'].encode())
         machine = _Machine(checked, 1_000_000, 16 << 20, None, 256)
         roots = [_Owner(-1, bytearray.fromhex(row['source_hex'])),
@@ -520,7 +598,7 @@ def independent_reference():
             raise AssertionError({'case': row['id'], 'reference': result, 'output_hex': roots[1].data.hex()})
         rows.append({**row, 'core_sha256': checked.sha256, 'reference': result})
     rejected = []
-    for row in [*refusals(), *value_refusals(), *block_refusals()]:
+    for row in [*refusals(), *value_refusals(), *block_refusals(), *entry_order_refusals()]:
         try:
             assemble_program(row['source'].encode())
         except HIAProgramRejected as error:
@@ -600,3 +678,76 @@ def qualify(directory, compiler, checks, reference, label):
         and not receipt['stderr_hex'] and output == executable.read_bytes())
     observations.append({'compiler': label, 'case': 'alpha-E2', 'native': receipt})
     return observations
+
+
+def qualify_entry_layout(directory, compilers):
+    """Additional finite native gate; never replace the complete cold replay.
+
+    Declaration permutations can change machine layout and dense SSA numbering.
+    Compare generations of the SAME source, not a reordered image to a canonical
+    image. Separately require each successor to reproduce its canonical compiler.
+    The resource references and all permuted Core inputs are checked before any
+    native compilation in this gate; these are not all-input refinement proofs.
+    """
+    from pathlib import Path
+    from hepta.hia_agent_assembly import assemble_program
+    from hepta.hia_program import execute_program
+    from tools.hia_selfhost_capacity import count_nodes
+    from tools.hia_selfhost_cfg_worklist import cases as cfg_cases, qualify as qualify_cfg
+    from tools.hia_selfhost_loans import reference_source
+    from tools.qualify_hia_selfhost import SOURCE as COMPILER, compile_stage, mutate_compiler
+    from tools.qualify_hia_selfhost_cli import execute, inspect_executable
+    directory = Path(directory)
+    prepared = []
+    for label, compiler in compilers:
+        canonical = COMPILER.read_bytes()
+        if label == 'modified':
+            canonical = mutate_compiler(canonical)
+        elif label != 'original':
+            raise ValueError('unknown compiler identity')
+        for position in ('last', 'middle'):
+            source = reordered_blocks(canonical, position)
+            checked = assemble_program(source)
+            resources = []
+            for row in cfg_cases():
+                if row['id'] not in {'queued-owner-and-local-loan', 'queued-chain-move-drop'}:
+                    continue
+                row = {**row, 'source': reordered_blocks(row['source'], position).decode()}
+                program = assemble_program(row['source'])
+                reference = execute_program(assemble_program(reference_source(row)), 'reference_entry', [])
+                if (reference['status'] != 'returned'
+                        or reference['values'] != [row['expected_result'], *bytes.fromhex(row['expected_hex'])]
+                        or reference['resources']['live_owners']
+                        or reference['resources']['live_local_loans']):
+                    raise AssertionError(reference)
+                resources.append({**row, 'core_nodes': count_nodes(program.as_dict()),
+                                  'core_sha256': program.sha256, 'reference': reference})
+            prepared.append((label, compiler, position, canonical, source, checked.sha256, resources))
+    checks, observations, references = {}, [], []
+    for label, compiler, position, canonical, source, core_hash, resources in prepared:
+        name = label + '-entry-' + position
+        references.append({'compiler': label, 'position': position, 'core_sha256': core_hash,
+                           'source': source.decode(), 'resource_cases': resources})
+        first, receipt = compile_stage(directory, name + '-R1', compiler, source)
+        observations.append(receipt)
+        second, receipt = compile_stage(directory, name + '-R2', first, source)
+        observations.append(receipt)
+        checks[name + '-flat-fixed-point'] = first.read_bytes() == second.read_bytes()
+        restored, receipt = compile_stage(directory, name + '-canonical', second, canonical)
+        observations.append(receipt)
+        checks[name + '-canonical-reproduction'] = restored.read_bytes() == Path(compiler).read_bytes()
+        executable_source = source.replace(b'v8 selfhost\n', b'v8 selfhost_exec\n', 1)
+        executable, receipt = compile_stage(directory, name + '-E1', second,
+                                           executable_source, output_extension='.elf')
+        observations.append({**receipt, 'inspection': inspect_executable(executable.read_bytes())})
+        executable.chmod(0o700)
+        receipt, output = execute(directory, name + '-E2-run', executable, executable_source)
+        checks[name + '-executable-fixed-point'] = bool(receipt['status'] == 'OWNED_PROCESS_COMPLETED'
+            and receipt['returncode'] == 0 and receipt['cleanup']['complete']
+            and not receipt['stderr_hex'] and output == executable.read_bytes())
+        observations.append(receipt)
+        observations.extend(qualify_cfg(directory, [(name, second)], checks,
+            {'cases': resources, 'refusals': []}, prefix='resource'))
+    return {'checks': checks, 'observations': observations, 'references': references,
+            'references_completed_before_native_compilation': True,
+            'all_input_correctness_proved': False, 'whole_stack_rewrite_complete': False}

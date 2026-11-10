@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v27"
+PROFILE = "selfhost-core-linux-x86_64-v28"
 SOURCE_FILES = (
     "tools/hia_selfhost_names.py",
     "tests/test_hia_selfhost_names.py",
@@ -99,7 +99,7 @@ def support_contract(root=ROOT):
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",
                    "module": "selfhost", "object_module": "selfhost_elf", "executable_module": "selfhost_exec",
                    "function_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core reserved function names and __hia_ prefix rejected",
-                   "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; entry is first source block; Core __hia_ prefix rejected",
+                   "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
                    "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
                    "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
                    "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
@@ -167,14 +167,16 @@ def support_contract(root=ROOT):
             "block_name_workspace_bytes": [1004304, 1010448],
             "block_name_record_stride": 24, "block_name_count_offset": 488,
             "block_name_discovery": "source-order label discovery before full semantic parsing; forward/backward exact lookup",
-            "block_entry_must_be_first_in_source": True,
+            "block_entry_must_be_first_in_source": False,
+            "function_entry_block_index_record_offset": 264,
             "function_name_resolution": "bounded 128-entry hash filter plus mandatory length and every-source-byte equality",
             "semantic_call_graph_checked_after_all_names_and_signatures": True,
         },
         "capacity_derivation": {
             "relative_relocations_upper_bound": RELOCATION_UPPER_BOUND,
-            "relative_relocations_formula": "one wrapper call + instructions + two edges per block + two calls in the optional shared chain destructor",
+            "relative_relocations_formula": "one wrapper call + instructions + two edges per block + one entry jump per function + two calls in the optional shared chain destructor",
             "canonical_core_bytes_upper_bound": CORE_BYTES_UPPER_BOUND,
+            "canonical_core_bytes_formula": "1MiB complete assembly payload +1024 fixed header +1024 per function +1024 per block +512 per instruction; ASCII identifiers require no JSON escaping",
             "canonical_core_byte_budget": 8388608,
             "structural_node_counter_workspace_offset": 248,
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
@@ -253,7 +255,7 @@ def support_contract(root=ROOT):
                  "assumptions": ["ordinary libc allocator contract", "Linux SysV AMD64 linkage and loader"]}},
             {"area": "general_core_checker", "status": "not_implemented",
              "items": ["unbounded result arities and composite resource-bearing results", "module graph",
-                       "arbitrary entry declaration order", "general module grammar", "all resource combinations"]},
+                       "general module grammar", "all resource combinations"]},
             {"area": "successor_output", "status": "bounded_subset",
              "items": ["flat position-independent x86-64 image",
                        "HIA-written relative call and branch relocations"]},

@@ -286,7 +286,8 @@ extensions retain these capacity limits.
 The relocation table remains 12,000 records in the same workspace layout.
 An instruction contributes at most one call relocation, a block at most two
 edge relocations, and the wrapper one call. The optional shared chain destructor
-adds exactly two allocator calls: `1 + 8192 + 2*1536 + 2 = 11267`.
+adds exactly two allocator calls. Since v28, each function can add one initial
+entry jump: `1 + 8192 + 2*1536 + 128 + 2 = 11395` (formerly 11267).
 Each source chain drop calls that single helper; its two free sites are not
 duplicated per source instruction.
 Relocations are counted during preflight as well as emission. Every displacement
@@ -1307,3 +1308,48 @@ optimize user inputs, relax their validation, raise limits, or assert equal VM
 step costs. VM controls cover ordered byte effects, scalar permutations, loops,
 external/local loan graphs, returned origins, owner/chain cleanup and an unused
 checked division that must still trap on zero.
+
+## v28 declared entry at any block-source position
+
+The declaration-order block table is unchanged. Each function records the
+resolved entry index at record offset264. Entry parameter agreement, external
+capability/origin initialization, incoming-entry prohibition and CFG replay now
+use that exact index, not a hard-coded block zero. Function prologues copy ABI
+formals and then jump to a nonfirst entry; self-tail calls jump to that same
+entry after complete parallel argument staging, without a new frame/prologue.
+The worklist permits ordinary source-block zero and excludes exactly the entry.
+
+An additional possible jump per function raises the conservative relocation
+derivation to11395, still below the UNCHANGED12000record limit. The canonical
+Core byte bound now explicitly includes the complete1MiB source payload for
+arbitrary128byte ASCII identifiers, rather than assuming old numeric spellings:
+1MiB+1024+128*1024+1536*1024+8192*512=6947840bytes, below Core's8MiB limit.
+These are derived bounds, not increases to the source/output/workspace,
+instruction/SSA/CFG/node/relocation admission limits.
+
+The exact former later-entry exclusion is retained byte-for-byte as a positive
+input. Twenty observations of sixteen programs include entry-last and
+entry-middle 256/1536-block graphs, reverse capability joins, loop backedges,
+scalar parallel tail arguments and parameter-bound read/mutable loan tail
+returns. Six negative controls retain wrong entry names/types/arity, incoming
+edges, wrong returned-loan origins and conflicting branch-join roots.
+
+A separate native unittest gate also moves every entry in the whole original
+and modified compilers to the last or middle declaration position. Each must
+reproduce R1/R2 for its own source, reproduce its corresponding canonical
+compiler from canonical source, and reproduce a static ET_EXEC compiler through
+kernel execution. Reordered compiler images need not equal canonical image
+bytes: block layout and dense SSA numbering can change. Reordered owned-buffer
+and chain CFG witnesses execute through each new successor with independent VM
+references. This extra finite gate does not replace the complete cold replay or
+raise its deadline. Development implementation requires fresh current-source
+cold, language, native and clean-source execution before qualification is claimed.
+
+The packed keyword matcher retains its exact length and every occupied packed
+word comparison. It no longer compares wholly unoccupied trailing words against
+zero for each candidate: under the required length equality, the zero-initialized
+packing loop cannot have written those words. Partial final words still compare
+all 64 bits. No hash shortcut, prefix acceptance, input rewrite, test removal,
+capacity increase or deadline increase is involved. Boundary mutation controls
+cover lengths 1/8/9/16/17/24/25/32, zero-padding aliases and nonzero source offsets;
+the existing independent Core/native exact-keyword observations remain required.

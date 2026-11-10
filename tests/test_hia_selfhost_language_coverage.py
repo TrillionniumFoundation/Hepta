@@ -1375,7 +1375,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertFalse(manifest["owned_buffer_scope"]["general_multi_result_call_return_abi_supported"])
         self.assertFalse(manifest["owned_buffer_scope"]["finite_witnesses_are_all_input_correctness_proof"])
         self.assertEqual(manifest["limits"]["unreachable_relocation_ceiling"],
-                         {"configured": 12000, "derived_maximum_with_other_limits": 11267})
+                         {"configured": 12000, "derived_maximum_with_other_limits": 11395})
 
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")

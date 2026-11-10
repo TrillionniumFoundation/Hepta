@@ -2778,7 +2778,6 @@
       "items": [
         "unbounded result arities and composite resource-bearing results",
         "module graph",
-        "arbitrary entry declaration order",
         "general module grammar",
         "all resource combinations"
       ],
@@ -3133,7 +3132,7 @@
   "limits": {
     "contract": {
       "acyclic_call_depth_max": 128,
-      "block_entry_must_be_first_in_source": true,
+      "block_entry_must_be_first_in_source": false,
       "block_name_count_offset": 488,
       "block_name_discovery": "source-order label discovery before full semantic parsing; forward/backward exact lookup",
       "block_name_record_stride": 24,
@@ -3152,6 +3151,7 @@
         928528,
         930576
       ],
+      "function_entry_block_index_record_offset": 264,
       "function_name_bytes": 128,
       "function_name_record_offsets": {
         "bytes": 248,
@@ -3231,7 +3231,7 @@
     "transport_limit": "ordinary child rejects source/output sizes above 1 MiB before native entry; no larger native-call claim",
     "unreachable_relocation_ceiling": {
       "configured": 12000,
-      "derived_maximum_with_other_limits": 11267
+      "derived_maximum_with_other_limits": 11395
     }
   },
   "owned_buffer_scope": {
@@ -3255,7 +3255,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v27",
+  "profile": "selfhost-core-linux-x86_64-v28",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -5145,20 +5145,20 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "54abacdab9c8fafa9dc7a59e7c7b1b433a10fea1091cf964d5f692b76d340663"
+      "sha256": "4f431d6a9d45ac35ac3dcee6c1d09128b28317a109c17dd7c1cf4a3f650b5c09"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "de324e16c998477f2cc7cc856984696e65ef0962bee876075f73fe9bdc96662e"
+      "sha256": "d9479416af5a49893557617f05083406900c57efe15da67323752919686b2ea4"
     },
-    "semantic_support_sha256": "c90af89e08bdcbbfc972622897fc2690c57a08e56e2322105c18986557d100c2",
+    "semantic_support_sha256": "846f517c4dd96ba28eefedbd670e314afebfd7cb71617ea49d6b8e66bb3aeb03",
     "support_projection_omits": [
       "source_identity"
     ]
   },
   "syntax": {
     "contract": {
-      "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; entry is first source block; Core __hia_ prefix rejected",
+      "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; declared entry at any source position; Core __hia_ prefix rejected",
       "core": "hepta.hia.program.v8",
       "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
       "executable_module": "selfhost_exec",

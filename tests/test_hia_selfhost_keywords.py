@@ -7,6 +7,28 @@ from tools.hia_selfhost_limits import MAX_BLOCKS, MAX_INSTRUCTIONS
 
 
 class SelfhostKeywordTests(unittest.TestCase):
+    def test_length_guard_retains_every_occupied_byte_and_rejects_zero_padding_aliases(self):
+        # Independent table oracle across every packed-word boundary. This
+        # executes the authoring function, not a replacement native compiler;
+        # the retained Core/native lookup gates qualify the actual HIA body.
+        words = {'A' * (size - 1) + 'B': size for size in (1, 8, 9, 16, 17, 24, 25, 32)}
+        namespace = {'readbuf': bytes, 'u64': int, 'byte': lambda s, i: s[i],
+                     'choose': lambda condition, yes, no: yes if condition else no}
+        exec(keyword_source(words), namespace)
+        lookup = namespace['keyword']
+        expected = {word.encode(): token for word, token in words.items()}
+        values = {b'', b'\0', b'A' * 33}
+        for word in expected:
+            values.update((word, word + b'\0', word + b'X', word[:-1]))
+            for at in {0, len(word) // 2, len(word) - 1}:
+                for byte in range(256):
+                    values.add(word[:at] + bytes([byte]) + word[at + 1:])
+        for value in values:
+            for offset in (0, 3):
+                with self.subTest(value=value, offset=offset):
+                    self.assertEqual(lookup(b'?!?'[:offset] + value, offset, len(value)),
+                                     expected.get(value, 0))
+
     def test_known_unknown_long_nul_and_offset_inputs_match_the_independent_vm(self):
         reference = independent_reference()
         self.assertEqual(len(reference["keyword_cases"]), 2 * (3 * len(W) + 6))

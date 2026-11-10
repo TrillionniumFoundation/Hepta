@@ -740,6 +740,19 @@ class SelfhostNativeTests(unittest.TestCase):
         self.assertEqual(len(selected), 142)
         self.assertTrue(all(selected.values()), [name for name, value in selected.items() if not value])
 
+    def test_entry_last_and_middle_whole_compilers_self_reproduce_and_preserve_owned_flow(self):
+        from tools.hia_selfhost_names import qualify_entry_layout
+        directory = self.directory / 'entry-layout'
+        directory.mkdir()
+        report = qualify_entry_layout(directory, [('original', self.compiler),
+            ('modified', self.directory / 'M3.image.bin')])
+        (directory / 'report.json').write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+        self.assertTrue(report['references_completed_before_native_compilation'])
+        self.assertEqual(len(report['references']), 4)
+        self.assertEqual(len(report['checks']), 20)
+        self.assertTrue(all(report['checks'].values()), report['checks'])
+        self.assertFalse(report['whole_stack_rewrite_complete'])
+
     def test_cfg_worklist_checks_reverse_order_replays_and_refusals_with_both_compilers(self):
         selected = {name: value for name, value in self.report["checks"].items()
                     if name.startswith(("original-cfg-worklist-", "modified-cfg-worklist-"))}

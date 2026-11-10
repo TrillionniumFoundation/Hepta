@@ -10,7 +10,9 @@ import ast
 from collections import Counter
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +24,7 @@ from tools.hia_selfhost_contract import validate_contract
 
 COMPONENTS = (
     ("assembly_frontend", ("hepta/hia_agent_assembly.py",), "partial",
-     "HIA scanner/parser supports general ASCII function/SSA/formal/block identifiers in the bounded assembly profile; arbitrary entry layout, module syntax and full grammar remain open."),
+     "HIA scanner/parser supports general ASCII function/SSA/formal/block identifiers and arbitrary entry declaration order in the bounded assembly profile; module syntax and full grammar remain open."),
     ("core_verifier_and_resources", ("hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
      "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification."),
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py"), "open",
@@ -38,6 +40,63 @@ COMPONENTS = (
     ("cli_and_release", ("hepta/cli.py", "hepta/__main__.py", "tools/hia_release.py"), "open",
      "A bounded Linux stdin/stdout compiler ET_EXEC entry is authored in HIA and requires current-source qualification; production CLI, installation/materialization/release tools and whole clean-machine toolchain remain open."),
 )
+
+
+def tracked_tree_inventory(root):
+    """Account for every tracked path without treating research as live runtime.
+
+    This is a file-identity inventory, not semantic or execution qualification.
+    Symlinks hash their target spelling and never read an external target.
+    """
+    root = Path(root).resolve(strict=True)
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(root), *args])
+    if Path(os.fsdecode(git('rev-parse', '--show-toplevel')).strip()).resolve() != root:
+        raise ValueError('inventory requires the exact checkout root')
+    names = sorted(os.fsdecode(p) for p in git('ls-files', '-z').split(b'\0') if p)
+    roles = {'hepta': 'live_python_package', 'tools': 'host_authoring_build_qualification',
+             'rust': 'native_rust_bridges', 'formal': 'formal_support', 'tests': 'tests',
+             '.github': 'ci_workflows', 'docs': 'documentation', 'examples': 'examples',
+             'experiments': 'research_experiments', 'benchmarks': 'benchmarks',
+             'evidence': 'retained_evidence', 'artifacts': 'retained_evidence',
+             'reports': 'retained_evidence', 'review-evidence': 'retained_evidence'}
+    languages = {'.py': 'Python', '.rs': 'Rust', '.c': 'C', '.h': 'C-header',
+                 '.cpp': 'C++', '.hpp': 'C++-header', '.lean': 'Lean', '.sh': 'shell',
+                 '.hiaasm': 'HIA-assembly', '.hepta': 'Hepta-source', '.ll': 'LLVM-IR'}
+    rows, groups, live_non_python = [], {}, []
+    for name in names:
+        path = root / name
+        kind = 'symlink-target' if path.is_symlink() else 'file'
+        data = os.fsencode(os.readlink(path)) if kind == 'symlink-target' else path.read_bytes()
+        role = roles.get(name.split('/')[0], 'root_build_or_other')
+        language = languages.get(path.suffix, 'other')
+        row = {'path': name, 'kind': kind, 'bytes': len(data),
+               'sha256': sha256(data).hexdigest(), 'role': role, 'language': language}
+        rows.append(row)
+        key = role + ':' + language
+        group = groups.setdefault(key, {'role': role, 'language': language, 'files': 0, 'bytes': 0})
+        group['files'] += 1
+        group['bytes'] += len(data)
+        if (role in {'live_python_package', 'host_authoring_build_qualification',
+                      'native_rust_bridges', 'formal_support'}
+                and language not in {'Python', 'other'} and kind == 'file'):
+            live_non_python.append({**row, 'lines': len(data.splitlines()),
+                                    'rewritten_in_hia': False})
+    identity = json.dumps(rows, sort_keys=True, separators=(',', ':')).encode()
+    head = subprocess.run(['git', '-C', str(root), 'rev-parse', '--verify', '--quiet', 'HEAD'],
+                          capture_output=True, check=False)
+    return {'git_head_at_capture': os.fsdecode(head.stdout).strip() if head.returncode == 0 else None,
+            'working_tree_dirty_at_capture': bool(git('status', '--porcelain', '--untracked-files=all')),
+            'capture_is_checkout_state_not_commit_qualification': True,
+            'untracked_paths_included': False,
+            'tracked_paths': len(rows), 'tracked_bytes': sum(r['bytes'] for r in rows),
+            'file_identity_manifest_sha256': sha256(identity).hexdigest(),
+            'file_identity_manifest': rows,
+            'role_language_totals': sorted(groups.values(), key=lambda r: (r['role'], r['language'])),
+            'live_non_python_support_sources': live_non_python,
+            'all_tracked_paths_accounted_for': sum(r['files'] for r in groups.values()) == len(rows),
+            'research_is_not_live_runtime': True, 'file_inventory_is_semantic_audit': False,
+            'file_inventory_is_execution_evidence': False}
 
 
 def audit(root=ROOT):
@@ -74,6 +133,7 @@ def audit(root=ROOT):
     scalar_support = next(r["items"] for r in contract["support"] if r["area"] == "scalar_types")
     source = (root / "examples/hia_bootstrap/selfhost.hiaasm").read_bytes()
     return {"schema": "hepta.hia.whole-selfhost-static-audit.v1",
+        "tracked_tree": tracked_tree_inventory(root),
         "profile": contract["profile"], "live_python_package": records,
         "live_python_tools": tools,
         "inventory_scope": {"ast_and_hash_roots": ["hepta/", "tools/"],
