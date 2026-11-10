@@ -13,8 +13,13 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v48-main-consolidation"
+PROFILE = "selfhost-core-linux-x86_64-v49-workspace-native-pipeline"
 SOURCE_FILES = (
+    'tools/generate_hia_core_workspace_pipeline.py',
+    'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm',
+    'tools/build_hia_core_workspace_pipeline.py',
+    'tests/test_hia_core_workspace_pipeline.py',
+    'docs/HIA_CORE_WORKSPACE_PIPELINE.md',
     'tools/generate_hia_core_workspace_json_cli.py',
     'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
     'tools/build_hia_core_workspace_json_cli.py',
@@ -284,6 +289,23 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "core_workspace_pipeline_application": {
+            "source": "examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm",
+            "selection": "explicit standalone hia-workspace-compile or pipeline-manifest; defaults unchanged; no fallback",
+            "stages": ["current native workspace JSON policy/materialization", "native Core frontend", "mandatory native semantic compiler"],
+            "Core_profile": "primitive v8; older feature versions and nominal types refused, not erased/upgraded",
+            "wire_and_linked_JSON_bytes": 8388608,
+            "assembly_and_object_bytes": 1048576,
+            "trusted_application_bundle_bytes": 3149824,
+            "maximum_each_embedded_image_bytes": 1048576,
+            "existing_compiler_and_qualification_child_caps_changed": False,
+            "output": "ELF64 x86-64 relocatable only; linking remains a separate mandatory step",
+            "host_payload_JSON_decoder_materializer_renderer_and_semantic_checker": False,
+            "host_authoring_build_filesystem_install_custody": True,
+            "hosted_route_executes_sealed_exact_code_descriptor": True,
+            "atomic_stdout_publication": False,
+            "production_activated": False, "whole_native_delivery_qualified": False,
+        },
         "agent_snapshot_json_application": {
             "sources": ["examples/hia_bootstrap/agent_snapshot_json.hiaasm",
                         "examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm"],
