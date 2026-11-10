@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v38-core-only"
+PROFILE = "selfhost-core-linux-x86_64-v39-core-only"
 SOURCE_FILES = (
+    'tools/generate_hia_core_module_graph.py',
+    'examples/hia_bootstrap/core_module_graph.hiaasm',
+    'tools/build_hia_core_module_graph.py',
+    'tools/compile_hia_core_workspace.py',
+    'tests/test_hia_core_module_graph_native.py',
+    'docs/HIA_CORE_MODULE_GRAPH.md',
+
     'docs/HIA_AGENT_STDIO_NATIVE.md',
     'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm',
     'examples/hia_bootstrap/agent_stdio_packer.hiaasm',
@@ -162,6 +169,18 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "core_module_graph_application": {
+            "source": "examples/hia_bootstrap/core_module_graph.hiaasm",
+            "schema": "hepta.hia.core-workspace.v1",
+            "modules": 1024, "functions": 1024, "imports": 4096,
+            "calls": 16384, "exports": 1024, "input_bytes": 8388608,
+            "policy": "native names/privacy/import/call/entry/cycle/order; no host resolver fallback",
+            "host_boundaries": ["JSON framing", "Core materialization and verification",
+                                "filesystem/build/custody", "installation"],
+            "original_external_export_names_preserved": False,
+            "nominal_type_linking_complete": False,
+            "whole_module_build_install_complete": False,
+        },
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",
                         "examples/hia_bootstrap/agent_stdio_packer.hiaasm"],
