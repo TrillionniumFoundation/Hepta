@@ -1,0 +1,723 @@
+{
+  "application_profile": {
+    "argument_and_lifetime_edges": 32768,
+    "declaration_members": 8192,
+    "declaration_parameters": 4096,
+    "declarations": 512,
+    "input_bytes": 1048576,
+    "items": [
+      "complete nominal/generic capability queries with native contextual substitution",
+      "name-cycle traversal, duplicate parameter last binding and reference opacity",
+      "complete stored-borrow query preserving raw declaration payload semantics"
+    ],
+    "manifest_schema": "hepta.hia.type-graph-native.v1",
+    "query_names": 8192,
+    "seen_names": 8192,
+    "selection": "HEPTA_HIA_TYPE_GRAPH_MANIFEST; default reference unchanged",
+    "source": "examples/hia_bootstrap/type_graph.hiaasm",
+    "status": "bounded_subset",
+    "still_foreign": [
+      "AST/table transport, trusted-local selection and default reference",
+      "type validation, generic argument checking and ownership/control flow",
+      "modules, general runtime, optimizer, build and delivery"
+    ],
+    "symbols": 8192,
+    "type_nodes": 8192,
+    "workspace_bytes": 680256
+  },
+  "clock_note": "All qualification01 stages after source CI freshly executed on this exact clean source. The separately completed exact-source CI01 and127.580-second driver clock are explicitly reused; orchestration clock excludes that CI. Strict composition was a separate concurrent invocation with its own56.419-second clock.",
+  "cold": {
+    "checks": {
+      "export_manifest_matches_qualification": true,
+      "isolated_python_without_site": true,
+      "nested_full_qualification_pass": true,
+      "nested_process_exit_zero": true,
+      "no_ancestor_git_identity": true,
+      "no_bytecode_cache_created": true,
+      "no_inherited_home_or_python_cache": true,
+      "no_inherited_seed_or_successor_images": true,
+      "origin_hashes_preserved": true,
+      "owned_process_tree_cleanup_confirmed": true,
+      "source_export_hashes_preserved": true
+    },
+    "cleanup_wall_limit_seconds": 3,
+    "generation_sha256": [
+      "50014dc923f3aa3b84d977b6ff0c52779aa97fbefce8a5d7b452709cd5719aad",
+      "50014dc923f3aa3b84d977b6ff0c52779aa97fbefce8a5d7b452709cd5719aad",
+      "50014dc923f3aa3b84d977b6ff0c52779aa97fbefce8a5d7b452709cd5719aad"
+    ],
+    "modified_generation_sha256": [
+      "8f315ac9374a3d756b3d3bb48498f81e34f50eaa865b2aed0c02731371925d7c",
+      "f79266161d1b93420c19f82d1c4c1c6db4d9b9a00880111c7a7e945720b4be0d",
+      "f79266161d1b93420c19f82d1c4c1c6db4d9b9a00880111c7a7e945720b4be0d"
+    ],
+    "qualification_wall_limit_seconds": 180,
+    "schema": "hepta.hia.selfhost-cold-replay.v1",
+    "status": "COLD_SELFHOST_REPLAY_PASS"
+  },
+  "cold_nested_checks": {
+    "passed": 5049,
+    "total": 5049
+  },
+  "cold_receipt_sha256": "76f00b69e775c09fd3e2626489674bb1cd7ca7c4bfd63af26eaf5bac8fb90017",
+  "cold_seconds": 120.687152045,
+  "default_backend_switched": false,
+  "finite_observations_are_all_input_proof": false,
+  "full_repository_regression": {
+    "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+    "status": "NOT_STARTED_FOR_THIS_SOURCE_NOT_QUALIFIED"
+  },
+  "installed_manifest": {
+    "compiler_sha256": "50014dc923f3aa3b84d977b6ff0c52779aa97fbefce8a5d7b452709cd5719aad",
+    "image_path": "type-graph.image.bin",
+    "image_sha256": "6fd9729fcca36c9d23bc106215012a4fb073173415e4fdf166c7abe0f19debbc",
+    "schema": "hepta.hia.type-graph-native.v1",
+    "source_sha256": "70709ba9e988bb881bab62e308a58a05a132ef4d79c0b71fac751a2c4b28056f"
+  },
+  "inventory_totals": {
+    "component_statuses": {
+      "open": 5,
+      "partial": 4
+    },
+    "package_and_tool_python_files": 656,
+    "python_bytes": 4197685,
+    "python_files": 223,
+    "python_lines": 77492,
+    "python_tool_bytes": 7782203,
+    "python_tool_files": 433,
+    "python_tool_lines": 136809
+  },
+  "language_counts": {
+    "checked_arithmetic_traps_per_compiler": 150,
+    "checked_cast_traps_per_compiler": 36,
+    "checks_passed": 1242,
+    "checks_total": 1242,
+    "compilers": 2,
+    "positive_programs_per_compiler": 138,
+    "rejections_per_compiler": 274,
+    "scalar_witnesses": 1183,
+    "shift_traps_per_compiler": 20,
+    "traps_per_compiler": 206
+  },
+  "prior_witness_retention": {
+    "finite_observations_not_all_input_proof": true,
+    "new_checks": 5049,
+    "new_receipt": "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.json",
+    "new_sha256": "87ec1194fac568b8bdc77a4c360e13d95954e59d7143c553636901de0a781a2b",
+    "old_checks": 5049,
+    "old_receipt": "/var/tmp/hia-source-effects-cold-20261110-private/source-effects-cold-03.cold/qualification.json",
+    "old_sha256": "b93cbe61addc5b0995479abc30e8ca3eec215dda6a7dc550a57ddc93f14fbac0",
+    "prior_names_and_successes_preserved": true,
+    "schema": "hepta.local.prior-witness-preservation.v1",
+    "whole_stack_rewritten_in_hia": false
+  },
+  "production_activated": false,
+  "qualification": {
+    "git_clean_after": true,
+    "git_clean_before": true,
+    "resource_probes": [
+      {
+        "actual_write_bytes": 1048576,
+        "child_tempdir": "/var/tmp/hia-type-graph-cold-20261110-private",
+        "free_bytes": 53484032000,
+        "free_inodes": 52400259,
+        "path": "/var/tmp/hia-type-graph-cold-20261110-private"
+      },
+      {
+        "actual_write_bytes": 1048576,
+        "child_tempdir": "/var/tmp/hia-type-graph-qualification-20261110-native",
+        "free_bytes": 53484032000,
+        "free_inodes": 52400259,
+        "path": "/var/tmp/hia-type-graph-qualification-20261110-native"
+      }
+    ],
+    "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+    "status": "PASS",
+    "steps": [
+      {
+        "executed_in_this_run": false,
+        "name": "type-graph-source-ci-01",
+        "returncode": 0,
+        "reused_exact_commit_source_ci": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source-ci-01/result.json",
+        "reused_receipt_sha256": "576ea20ce592e3ffc486938f41f828c4d8bfb29b65c218c069f39453c2c3cf05",
+        "status": "PASS",
+        "wall_seconds": 127.57957166992128
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "tools/replay_hia_selfhost_cold.py",
+          "--output",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json"
+        ],
+        "name": "type-graph-cold-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 120.80644918000326
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "tests/test_hia_selfhost_language_coverage.py",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-language-01.json"
+        ],
+        "name": "type-graph-language-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 51.71621974604204
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_type_graph_native",
+          "tests.test_hia_source_effects_native",
+          "tests.test_hia_source_parser_native",
+          "tests.test_hia_type_parser_native",
+          "tests.test_hia_source_lexer_native",
+          "tests.test_hia_selfhost_native_observer",
+          "tests.test_hia_selfhost_exports",
+          "tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaNativeTests",
+          "tests.test_hia_sha256_native.Sha256HiaNativeTests",
+          "tests.test_hia_json_decode_native.JsonDecodeHiaNativeTests",
+          "tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests",
+          "tests.test_hia_json_canonical_native.JsonCanonicalHiaNativeTests"
+        ],
+        "name": "type-graph-native-libraries-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 115.59537591796834
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_core_seven_shared_source_closure",
+          "tests.test_core_seven_shared_acceptance"
+        ],
+        "name": "type-graph-shared-closure-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.33023142896126956
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_type_graph",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-type_graph-installed-01"
+        ],
+        "name": "type-graph-type_graph-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.13999640103429556
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_json_decode",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-json_decode-installed-01"
+        ],
+        "name": "type-graph-json_decode-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.1697449249913916
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_json_canonical",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-json_canonical-installed-01"
+        ],
+        "name": "type-graph-json_canonical-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.19127962598577142
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_sha256",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-sha256-installed-01"
+        ],
+        "name": "type-graph-sha256-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.09404558991082013
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_core_json_frontend",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-core_json_frontend-installed-01"
+        ],
+        "name": "type-graph-core_json_frontend-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.25380941899493337
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_source_lexer",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_lexer-installed-01"
+        ],
+        "name": "type-graph-source_lexer-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.2118728009518236
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_type_parser",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-type_parser-installed-01"
+        ],
+        "name": "type-graph-type_parser-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.13647878798656166
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_source_parser",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_parser-installed-01"
+        ],
+        "name": "type-graph-source_parser-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.3017008469905704
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.build_hia_source_effects",
+          "--compiler",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.cold/qualification.evidence/B3.image.bin",
+          "--cold-report",
+          "/var/tmp/hia-type-graph-cold-20261110-private/type-graph-cold-01.json",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_effects-installed-01"
+        ],
+        "name": "type-graph-source_effects-build-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.1535310969920829
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_checker",
+          "tests.test_borrowed_storage",
+          "tests.test_borrowed_returns",
+          "tests.test_resource_source",
+          "tests.test_semantic_ir",
+          "tests.test_resource_evaluation_order"
+        ],
+        "name": "type-graph-selected-semantic-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 55.53239470697008
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_parser",
+          "tests.test_modules"
+        ],
+        "name": "type-graph-selected-parser-modules-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 1.1755886119790375
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_program_tools",
+          "tests.test_hia_agent_assembly",
+          "tests.test_hia_durable_queue",
+          "tests.test_hia_rust_byte_dag",
+          "tests.test_hia_stateful_queue_capture",
+          "tests.test_hia_stateful_wire",
+          "tests.test_hia_full_cost_gate",
+          "tests.test_hia_native_paired_replay",
+          "tests.test_hia_evidence_json_structure"
+        ],
+        "name": "type-graph-selected-json-consumers-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 30.06898653099779
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_incremental",
+          "tests.test_hia_incremental_v8",
+          "tests.test_hia_incremental_capability_policy",
+          "tests.test_hia_incremental_independent",
+          "tests.test_hia_incremental_interface_policy"
+        ],
+        "name": "type-graph-selected-incremental-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 3.215521352016367
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_checker",
+          "tests.test_borrowed_storage",
+          "tests.test_borrowed_returns",
+          "tests.test_resource_source",
+          "tests.test_semantic_ir",
+          "tests.test_resource_evaluation_order"
+        ],
+        "name": "type-graph-default-semantic-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 6.690520953969099
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_parser",
+          "tests.test_modules"
+        ],
+        "name": "type-graph-default-parser-modules-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.6460144090233371
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_program_tools",
+          "tests.test_hia_agent_assembly",
+          "tests.test_hia_durable_queue",
+          "tests.test_hia_rust_byte_dag",
+          "tests.test_hia_stateful_queue_capture",
+          "tests.test_hia_stateful_wire",
+          "tests.test_hia_full_cost_gate",
+          "tests.test_hia_native_paired_replay",
+          "tests.test_hia_evidence_json_structure"
+        ],
+        "name": "type-graph-default-json-consumers-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 21.883965767920017
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_incremental",
+          "tests.test_hia_incremental_v8",
+          "tests.test_hia_incremental_capability_policy",
+          "tests.test_hia_incremental_independent",
+          "tests.test_hia_incremental_interface_policy"
+        ],
+        "name": "type-graph-default-incremental-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 1.1167442359728739
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "unittest",
+          "-v",
+          "tests.test_hia_release"
+        ],
+        "name": "type-graph-release-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 0.1963247200474143
+      },
+      {
+        "command": [
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+          "-B",
+          "-m",
+          "tools.audit_hia_selfhost_closure",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-implementation-boundary-01.json"
+        ],
+        "name": "type-graph-static-audit-01",
+        "returncode": 0,
+        "status": "PASS",
+        "wall_seconds": 4.360536083928309
+      }
+    ],
+    "wall_seconds": 415.43582325894386,
+    "whole_stack_rewritten_in_hia": false
+  },
+  "qualification_runner_sha256": "ecd68db85f52e017d6bcb7cf3d551499ac066a092d908d966453c37249ea4c58",
+  "qualification_sha256": "0c71ea32a6e56b7c9e14f2a0b793fc041023ba4bf6e2fed255f49745c908f6af",
+  "raw_evidence_archive": {
+    "active_files_modified": false,
+    "all_members_individually_verified": true,
+    "archive": "type-graph-qualification-01.tar.zst",
+    "bytes": 21744938,
+    "members": 56136,
+    "original_inputs_and_captures_retained": true,
+    "raw_mount": "/var/tmp/hia-type-graph-cold-20261110-private",
+    "schema": "hepta.local.verified-qualification-archive.v1",
+    "sha256": "d7b7fee3ed46d567dc5302e2b6c85e7509e92e3152f205804817ab56185282af",
+    "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+    "uncompressed_bytes": 3374890277,
+    "wall_seconds": 14.193942783982493,
+    "whole_stack_rewritten_in_hia": false
+  },
+  "remote_ci": {
+    "status": "NOT_DISPATCHED_AT_CAPTURE_NOT_QUALIFIED"
+  },
+  "retained_development_logs": [
+    "type-graph-development-01.log",
+    "type-graph-development-02.log",
+    "type-graph-development-03.log"
+  ],
+  "schema": "hepta.hia.type-graph-qualification.v1",
+  "source_ci": {
+    "git_clean_after": true,
+    "git_clean_before": true,
+    "passed": true,
+    "python": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+    "results": [
+      {
+        "name": "Verify original source recovery and unchanged generated files",
+        "returncode": 0
+      },
+      {
+        "name": "Run source, contract, short-circuit and tuple reference assertions",
+        "returncode": 0
+      }
+    ],
+    "security_sandbox": false,
+    "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+    "steps": [
+      "Verify original source recovery and unchanged generated files",
+      "Run source, contract, short-circuit and tuple reference assertions"
+    ],
+    "wall_seconds": 127.57957166992128,
+    "workflow_sha256": "2a1a3e147b9381777fe7e32f26f0b0a8c815fbd16f3f8a0a22298a17463e9c0f"
+  },
+  "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+  "still_foreign": [
+    "AST/table/Diagnostic object transport and default reference",
+    "type validation, generic argument validation and instantiated owned shape checks",
+    "declaration/expression/ownership/control-flow checking",
+    "module/package/general runtime/optimizer/agent tools",
+    "authoring,seed,build,process supervision,qualification and delivery tools"
+  ],
+  "strict_composition": {
+    "errors": 0,
+    "failures": 0,
+    "foreign_paths_disabled": [
+      "Lexer.tokenize",
+      "Parser._parse_reference",
+      "_Checker._finish_effects_reference",
+      "checker._contains_capability_reference",
+      "borrowed_storage._contains_storage_reference"
+    ],
+    "git_clean_after": true,
+    "manifests": {
+      "CORE_JSON_FRONTEND": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-core_json_frontend-installed-01/manifest.json",
+        "sha256": "64f7058e74b8e64e85be0629fa483f636f9fa8037931680bc8f1a82242a44a83"
+      },
+      "JSON_CANONICAL": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-json_canonical-installed-01/manifest.json",
+        "sha256": "4b8367ad3f8e4c7c0a95b2c8b8753ca9c1d1a5cc04904ce64a65a36a9bc4b679"
+      },
+      "JSON_DECODE": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-json_decode-installed-01/manifest.json",
+        "sha256": "af1f2d3ab498a4f456920d5a6d5949a4131a89bf87f1ecb4a644e0ab7fe027db"
+      },
+      "SHA256": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-sha256-installed-01/manifest.json",
+        "sha256": "4d4cfff9e3d6adfa4912a398b60b679f46ed2bf745b2b874da907ad08b4157bc"
+      },
+      "SOURCE_EFFECTS": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_effects-installed-01/manifest.json",
+        "sha256": "cb8093466539b1426edd3f235c26bb0515ec2a9f7aeef018255cfad5c61ee087"
+      },
+      "SOURCE_LEXER": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_lexer-installed-01/manifest.json",
+        "sha256": "770359546c8fc42afd5c0534f5fffe77909d11d5b9c01111cb0c8cfb79133228"
+      },
+      "SOURCE_PARSER": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-source_parser-installed-01/manifest.json",
+        "sha256": "6d2fc7c05339ba4ae43b5bba51880bcef8d26be3b60afa94db82014dd527a2a1"
+      },
+      "TYPE_GRAPH": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-type_graph-installed-01/manifest.json",
+        "sha256": "b437d850a14ae9afa78bc454ffc0a5c181889e5d6e5895034b2f0cd7efbc5667"
+      },
+      "TYPE_PARSER": {
+        "path": "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/evidence/type-graph-type_parser-installed-01/manifest.json",
+        "sha256": "c8168f4a3953ccb8f503fe92bb5c76bfe88b1e5d43983e9ff9cb3cdb176b2cdf"
+      }
+    },
+    "skipped": 0,
+    "source_commit": "1445050b714bfa784f5909301563894880cbc387",
+    "status": "PASS",
+    "tests_run": 231,
+    "wall_seconds": 56.41904395504389,
+    "whole_stack_rewritten_in_hia": false
+  },
+  "test_counts": {
+    "type-graph-default-incremental-01": {
+      "seconds": 0.95,
+      "tests": 55
+    },
+    "type-graph-default-json-consumers-01": {
+      "seconds": 21.52,
+      "tests": 83
+    },
+    "type-graph-default-parser-modules-01": {
+      "seconds": 0.562,
+      "tests": 63
+    },
+    "type-graph-default-semantic-01": {
+      "seconds": 6.54,
+      "tests": 168
+    },
+    "type-graph-language-01": {
+      "seconds": 0.002,
+      "tests": 10
+    },
+    "type-graph-native-libraries-01": {
+      "seconds": 115.316,
+      "tests": 108
+    },
+    "type-graph-release-01": {
+      "seconds": 0.137,
+      "tests": 18
+    },
+    "type-graph-selected-incremental-01": {
+      "seconds": 3.032,
+      "tests": 55
+    },
+    "type-graph-selected-json-consumers-01": {
+      "seconds": 29.671,
+      "tests": 83
+    },
+    "type-graph-selected-parser-modules-01": {
+      "seconds": 1.086,
+      "tests": 63
+    },
+    "type-graph-selected-semantic-01": {
+      "seconds": 55.389,
+      "tests": 168
+    },
+    "type-graph-shared-closure-01": {
+      "seconds": 0.191,
+      "tests": 15
+    },
+    "type-graph-strict-composition-01": {
+      "seconds": 56.41904395504389,
+      "tests": 231
+    }
+  },
+  "whole_stack_rewritten_in_hia": false
+}

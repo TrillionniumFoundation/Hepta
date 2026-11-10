@@ -2,28 +2,42 @@
 
 ## Decision and source authority
 
-**Next dependency under development (2026-11-10):** a separate explicitly
-selected HIA nominal/generic type-graph application now implements capability
-and stored-borrow queries. It preserves contextual substitution, recursive-name
-handling and reference opacity. Development VM/native/differential and actual
-caller tests pass; current-source cold and clean-source qualification are not
-yet claimed. Identity v18 accounts for390paths/223package modules, preserves all
-385v17 paths and transfers651bytes from logs to identity metadata without
-increasing aggregate budgets. This is not `valid_type`, instantiated owned-shape
-checking, or a complete semantic checker. See [the dependency boundary](HIA_TYPE_GRAPH_NATIVE.md).
+**Current type-graph dependency checkpoint (2026-11-10):** clean
+`1445050b714bfa784f5909301563894880cbc387` implements complete nominal/generic
+capability and stored-borrow graph queries in explicitly selected HIA, including
+contextual substitution, recursive-name handling and reference opacity. This
+is not `valid_type`, instantiated owned-shape checking or a completed checker.
+
+Clean source CI108PASS127.580s; cold11/11+5,049/5,049PASS120.806s under unchanged
+180+3-second limits; language1,242+10PASS; combined native108PASS; shared15PASS;
+release18PASS; selected/default semantic168, parser/modules63, JSON83 and
+incremental55eachPASS. Separately,231callers PASS56.419s with original Python
+lexical recognition, whole-source grammar, final effect inference, capability
+queries and stored-borrow queries simultaneously disabled. All5,049prior witness
+names/successes remain. Formal01 and CI01 clocks are explicitly separate.
+
+Identityv18 binds390paths/223root modules, preserving every385v17 path and all
+older projections;651bytes move from logs to metadata within unchanged total
+budgets. The ledger remains4partial/5open, not a completion percentage. Exact
+inputs, cold captures, test logs and drivers are individually hash-verified in
+`type-graph-qualification-01.tar.zst`, with originals retained. Current-source
+whole-repository and remote CI are unqualified at this checkpoint. No default,
+production, release-lock or main-branch change. See `type-graph-summary.json`,
+source-byte equivalence and lossless inventory delta, plus [the dependency
+boundary](HIA_TYPE_GRAPH_NATIVE.md).
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `627b026b` snapshot contains a live `hepta/` package with 222 Python
-files, 77,341 lines and 4,189,588 bytes. These are source inventory figures, not a
+HIA. The qualified `1445050` snapshot contains a live `hepta/` package with 223 Python
+files, 77,492 lines and 4,197,685 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **431 Python files /136414lines** under `tools/`,
+The audit also inventories **433 Python files /136809lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-653Python files. Tests, historical evidence, experiments, examples, benchmarks
+656Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -34,7 +48,7 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current semantic-effect checkpoint (2026-11-10):** exact clean
+**Historical semantic-effect checkpoint (2026-11-10):** exact clean
 `627b026b63f1319c71ccc6a78b68580449df01c8` implements the entire resolved
 call-effect fixed point and final worker/declaration/resource-conflict decisions
 in HIA. Actual checker integration is explicitly selected; it is not the rest of
