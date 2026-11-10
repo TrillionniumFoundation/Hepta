@@ -39,6 +39,10 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    'examples/hia_bootstrap/type_graph.hiaasm',
+    'tests/test_hia_type_graph_native.py',
+    'tools/build_hia_type_graph.py',
+    'tools/generate_hia_type_graph.py',
     'examples/hia_bootstrap/source_effects.hiaasm',
     'tests/test_hia_source_effects_native.py',
     'tools/build_hia_source_effects.py',

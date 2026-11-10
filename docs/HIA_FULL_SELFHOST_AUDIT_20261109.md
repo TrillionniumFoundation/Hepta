@@ -2,6 +2,16 @@
 
 ## Decision and source authority
 
+**Next dependency under development (2026-11-10):** a separate explicitly
+selected HIA nominal/generic type-graph application now implements capability
+and stored-borrow queries. It preserves contextual substitution, recursive-name
+handling and reference opacity. Development VM/native/differential and actual
+caller tests pass; current-source cold and clean-source qualification are not
+yet claimed. Identity v18 accounts for390paths/223package modules, preserves all
+385v17 paths and transfers651bytes from logs to identity metadata without
+increasing aggregate budgets. This is not `valid_type`, instantiated owned-shape
+checking, or a complete semantic checker. See [the dependency boundary](HIA_TYPE_GRAPH_NATIVE.md).
+
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
 HIA. The qualified `627b026b` snapshot contains a live `hepta/` package with 222 Python

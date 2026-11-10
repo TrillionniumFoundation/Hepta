@@ -13,8 +13,12 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v30"
+PROFILE = "selfhost-core-linux-x86_64-v31"
 SOURCE_FILES = (
+    'examples/hia_bootstrap/type_graph.hiaasm',
+    'tests/test_hia_type_graph_native.py',
+    'tools/build_hia_type_graph.py',
+    'tools/generate_hia_type_graph.py',
     'examples/hia_bootstrap/source_effects.hiaasm',
     'tests/test_hia_source_effects_native.py',
     'tools/build_hia_source_effects.py',
@@ -231,6 +235,20 @@ def support_contract(root=ROOT):
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
+        "type_graph_application": {"status": "bounded_subset",
+             "source": "examples/hia_bootstrap/type_graph.hiaasm",
+             "selection": "HEPTA_HIA_TYPE_GRAPH_MANIFEST; default reference unchanged",
+             "manifest_schema": "hepta.hia.type-graph-native.v1",
+             "input_bytes": 1048576, "type_nodes": 8192, "declarations": 512,
+             "symbols": 8192, "argument_and_lifetime_edges": 32768,
+             "declaration_parameters": 4096, "declaration_members": 8192,
+             "query_names": 8192, "seen_names": 8192, "workspace_bytes": 680256,
+             "items": ["complete nominal/generic capability queries with native contextual substitution",
+                       "name-cycle traversal, duplicate parameter last binding and reference opacity",
+                       "complete stored-borrow query preserving raw declaration payload semantics"],
+             "still_foreign": ["AST/table transport, trusted-local selection and default reference",
+                               "type validation, generic argument checking and ownership/control flow",
+                               "modules, general runtime, optimizer, build and delivery"]},
         "source_effects_application": {"status": "bounded_subset",
              "source": "examples/hia_bootstrap/source_effects.hiaasm",
              "selection": "HEPTA_HIA_SOURCE_EFFECTS_MANIFEST; default reference unchanged",

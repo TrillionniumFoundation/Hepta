@@ -27,6 +27,23 @@ def value_type(typ):
 
 
 def contains_storage(typ, structs, enums=None):
+    import os
+    manifest = os.environ.get('HEPTA_HIA_TYPE_GRAPH_MANIFEST')
+    if manifest:
+        from .hia_type_graph_native import GraphProfileLimit, packet, installed_type_graph
+        try:
+            graph = packet(typ, structs, enums, mode=2)
+        except (GraphProfileLimit, UnicodeEncodeError):
+            pass
+        else:
+            try:
+                return installed_type_graph(manifest).query(graph)
+            except GraphProfileLimit:
+                pass
+    return _contains_storage_reference(typ, structs, enums)
+
+
+def _contains_storage_reference(typ, structs, enums=None):
     pending, seen = [typ], set()
     while pending:
         current = pending.pop()

@@ -49,6 +49,26 @@ def substitute_type(typ: Type, mapping: dict[str, Type]) -> Type:
 
 def _contains_capability(typ: Type, names: set[str], structs: dict[str, Struct],
                          enums: dict[str, Enum], seen: frozenset[str] = frozenset()) -> bool:
+    import os
+    manifest = os.environ.get('HEPTA_HIA_TYPE_GRAPH_MANIFEST')
+    if manifest:
+        from .hia_type_graph_native import GraphProfileLimit, packet, installed_type_graph
+        try:
+            graph = packet(typ, structs, enums, names=names, seen=seen)
+        except (GraphProfileLimit, UnicodeEncodeError):
+            pass
+        else:
+            try:
+                return installed_type_graph(manifest).query(graph)
+            except GraphProfileLimit:
+                # Native contextual expansion has its own explicit scratch bound.
+                # Image identity, execution and result failures never fall back.
+                pass
+    return _contains_capability_reference(typ, names, structs, enums, seen)
+
+
+def _contains_capability_reference(typ: Type, names: set[str], structs: dict[str, Struct],
+                                   enums: dict[str, Enum], seen: frozenset[str] = frozenset()) -> bool:
     """Conservatively inspect concrete arguments and nominal payloads iteratively.
 
     Nominal names stop recursive declarations from exhausting Python's stack.
