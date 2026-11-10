@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `d5ac87bc` snapshot contains a live `hepta/` package with 219 Python
-files, 76,816 lines and 4,159,869 bytes. These are source inventory figures, not a
+HIA. The qualified `ff9446dc` snapshot contains a live `hepta/` package with 220 Python
+files, 76,954 lines and 4,167,089 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **425 Python files /134224lines** under `tools/`,
+The audit also inventories **427 Python files /134675lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-644Python files. Tests, historical evidence, experiments, examples, benchmarks
+647Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -24,7 +24,24 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current integrated checkpoint (2026-11-10):** exact clean d5ac87bc combines
+**Current type-grammar checkpoint (2026-11-10):** exact clean ff9446dc extends
+the previous integrated compiler/lexer/numeric/observer source with actual
+HIA `Parser._type` recognition and a host flat-object bridge. Its clean source
+workflow has105PASS; fresh cold11/11+5,049/5,049PASS; language1,242+10PASS;
+native libraries84PASS; selected/default consumers83each; incremental55;
+shared closure15; selected/default parser/module callers63each. The full
+orchestration is348.028seconds **excluding** its separately retained136.627s
+source-CI clock. The source contract includes323files. The shared closure is
+375paths /220root modules and retains all earlier370paths plus older projections.
+All5,049 previous cold witnesses and successful names remain, without omissions.
+See `source-type-parser-summary.json`, `source-type-parser-source-equivalence.json`
+and the lossless `implementation-boundary-type-parser-delta.json`. Current-source
+whole-repository regression and remote CI remain pending; this is not whole-stack
+closure, default activation or an all-input proof. The older remote c635 cold
+FAIL at180seconds/26phases is explicitly retained alongside its three successful
+jobs, not replaced by this newer local PASS.
+
+**Previous integrated checkpoint:** exact clean d5ac87bc combines
 the source lexer/integer/binary64 image, independent two-object C export audit,
 exact-length compiler keyword dispatch and HIA-emitted fresh native byte-ABI
 observation. Both parents' selected code bytes and full audit narratives are
