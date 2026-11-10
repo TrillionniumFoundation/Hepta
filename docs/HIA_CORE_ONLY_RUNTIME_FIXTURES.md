@@ -102,3 +102,25 @@ failures. Clang is an explicit dependency for their independent C fixtures.
 Host bridges and Python package files remain active dependencies. Whole native
 Core/Agent delivery, clean-machine/platform and real-project release acceptance
 remain OPEN; no default path or production release is activated by these repairs.
+# Native compiler private header words
+
+The compiler's private words at offsets0,8,24,40,56,80,88,96,104,112,120,
+136,224,240,248 use four-byte little-endian accesses in the authored HIA.
+Each is inside the256-byte header cleared in full at the beginning of every
+compiler pass; the upper four bytes therefore remain zero. Source cursors and
+saved block positions derive from the unchanged1MiB input; token kinds/errors
+are closed inventories. Block, value, argument, instruction, relocation and
+Core-node counters retain their original finite admission limits. Emitted
+positions count fixed instruction/edge/wrapper/runtime templates under the
+8192-instruction/1536-block/128-function caps, not user-sized repetition.
+The original output-capacity checks and real out-of-bounds traps remain.
+
+This is not a narrower Core integer ABI. Numeric token payload word16,
+arbitrary SSA values, full-width table entries and generic eight-byte get/put
+functions are unchanged. The new helpers are private compiler implementation,
+not newly admitted Core operations. Independent Core-VM controls compare150
+boundary-value/word-position cases, full reconstructed values, zero high bytes
+and complete resource release. Existing all-width arithmetic, malformed-source,
+capacity, names, exports and original/modified-source cold witnesses remain
+mandatory. Development fixed points and paired phase timing are diagnostics,
+not a replacement for fresh cold, exact-source, installation or repository gates.

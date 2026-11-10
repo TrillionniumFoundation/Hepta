@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v44-retained-core-controls"
+PROFILE = "selfhost-core-linux-x86_64-v46-native-scanner-words"
 SOURCE_FILES = (
     'tests/test_hia_agent_toolstudy_v11_failures.py',
     'tests/test_hia_original_reconcile.py',
