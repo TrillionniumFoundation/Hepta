@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v44-core-agent-workspace-public-abi"
 SOURCE_FILES = (
+    'docs/HIA_OPCODE_REFERENCE.md',
+    'docs/hia-opcode-catalog.v8.json',
+    'tests/test_hia_qualification_entrypoints.py',
     'docs/HIA_AGENT_SNAPSHOT_JSON_NATIVE.md',
     'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
     'examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm',
