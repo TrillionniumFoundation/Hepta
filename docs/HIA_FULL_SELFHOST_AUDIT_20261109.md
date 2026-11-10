@@ -9,15 +9,16 @@ files, 76,126 lines and 4,125,579 bytes. These are source inventory figures, not
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **406 Python files /130782lines** under `tools/`,
+The audit also inventories **406 Python files /130802lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
 618Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
-hashes/imports and these scope exclusions are in `implementation-boundary-v28.json`.
-That clean `d701f9a` snapshot additionally accounts for **all10,013 tracked paths**
+hashes/imports and these scope exclusions are reconstructable losslessly from
+`implementation-boundary-v28.json` plus `implementation-boundary-v29-delta.json`.
+The clean `f787ae4` snapshot accounts for **all10,016 tracked paths**
 by identity, role and language, distinguishing research/evidence from live code.
 Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
@@ -605,3 +606,46 @@ Receipts: `v28-entry-order-summary.json`, `v27-full-hia-test-run-summary.json` a
 General module grammar/diagnostics, composites, module/export/link graphs,
 production runtime/stdlib, build/install/release, Agent service/store/tools,
 optimizer/proof construction and applicable real-platform gates remain OPEN.
+
+
+## v29 ordinary module labels and exact committed qualification
+
+Ordinary Core module labels now select the flat ABI without spelling-based
+rejection. The original `unsupported-module-name` source and witness ID are
+unchanged but are now positive. Sixteen labels (including keywords, `_`, maximum
+length and nonreserved prefixes) execute; eight genuinely invalid labels remain
+negative. Explicit `selfhost_elf` and `selfhost_exec` ABI selectors are unchanged.
+Original and modified whole compilers with renamed module labels reproduce their
+matching images twice. Module imports, exports and general linking remain OPEN.
+
+Pinned implementation **`f787ae400a8677e28c37bcfbfc934b97ef9b6d9b`** passes:
+
+- Cold11/11 and native4351/4351,176.667seconds at the unchanged180second deadline.
+- Language1242/1242 plus10report assertions; source61tests passes.
+- Actual clean committed workflow recovery/regeneration and source steps:
+  **81tests**,84.921seconds for both steps, Git clean before and after.
+- Compiler118functions,1300blocks,7258operations,412076source bytes.
+
+The separate **exact `d701f9a` v28** HIA/shared-Core inventory has now completed:
+**4428tests/478modules,0failures,0errors,0skips**,1799.184seconds. Inventory is
+complete and source stayed unchanged. This is full-inventory evidence for the
+STB lazy-import repair, not a pass for later v29 or the non-HIA repository modules.
+The old `b048608` all-repository run remains separately in progress.
+
+Actual retained GitHub artifacts at old uploaded head `644e179` establish unified
+593tests/1failure and cold timeout180.143seconds with completed owner cleanup.
+The connector supplied those artifacts after local gh access failed. No new local
+pass replaces either old remote failure. See `v27-github-failure-artifacts-summary.json`.
+
+**Upload pending:** local v28/v29 commits are not on GitHub because the existing
+local gh credentials expired. Remote PR836 still has head `644e179`. No fabricated
+commit recreation, credential disclosure or protection change is used. The user
+has been asked to restore the local login; development continues independently.
+
+Receipts: `v29-module-identifiers-summary.json`, the lossless static inventory
+`implementation-boundary-v29-delta.json`, and `v28-full-hia-test-run-summary.json`.
+The audit's full record lists are path-indexed and reconstruct the retained full
+v29 report byte-for-byte; this avoids duplicating the unchanged10000path inventory.
+Finite native observations are not all-input proofs. Full JSON/Core frontend,
+module graphs, general runtime/library, Agent service/store, build/install/release
+and applicable physical-platform gates still prevent whole-stack closure.
