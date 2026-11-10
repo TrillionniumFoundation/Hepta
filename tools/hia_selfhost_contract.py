@@ -13,8 +13,17 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v44-core-agent-workspace-public-abi"
+PROFILE = "selfhost-core-linux-x86_64-v46-integrated-native-workspace-json"
 SOURCE_FILES = (
+    'tools/generate_hia_core_workspace_json_cli.py',
+    'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
+    'tools/build_hia_core_workspace_json_cli.py',
+    'tests/test_hia_core_workspace_json_cli.py',
+    'tools/generate_hia_core_workspace_json.py',
+    'examples/hia_bootstrap/core_workspace_json.hiaasm',
+    'tools/build_hia_core_workspace_json.py',
+    'tests/test_hia_core_workspace_json_native.py',
+    'docs/HIA_CORE_WORKSPACE_JSON.md',
     'docs/HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json',
     'docs/HIA_CORE_SAFETY_CONTROL_RESTORATION.md',
     'tests/hia_artifact_session_fixture.py',
@@ -23,7 +32,6 @@ SOURCE_FILES = (
     'tests/test_hia_artifact_session.py',
     'tests/test_hia_v6_differential.py',
     'tests/test_clang_capture_environment.py',
-
     'docs/HIA_OPCODE_REFERENCE.md',
     'docs/hia-opcode-catalog.v8.json',
     'tests/test_hia_qualification_entrypoints.py',
@@ -298,6 +306,32 @@ def support_contract(root=ROOT):
             "admission_and_materialization": "native field inventory, value tags, exact lowercase hex and fill range; no output on refusal",
             "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
             "whole_agent_editing_and_persistence_replaced": False,
+            "production_activated": False,
+        },
+        "core_workspace_json_standalone_application": {
+            "source": "examples/hia_bootstrap/core_workspace_json_packer.hiaasm",
+            "selection": "explicit standalone hia-workspace-json, default unchanged",
+            "wire_bytes": 8388608, "maximum_nodes": 1048576, "maximum_depth": 128,
+            "output_requires_general_Core_verification": True,
+            "native_general_Core_verifier": False,
+            "runtime_Python_payload_parser_or_host_materializer": False,
+            "atomic_filesystem_publication": False,
+            "host_build_and_custody_driver": True,
+            "whole_module_build_install_complete": False,
+            "production_activated": False,
+        },
+        "core_workspace_json_application": {
+            "source": "examples/hia_bootstrap/core_workspace_json.hiaasm",
+            "schema": "hepta.hia.core-workspace.v1",
+            "modules": 1024, "functions": 1024, "imports": 4096,
+            "calls": 16384, "exports": 1024, "input_bytes": 8388608,
+            "native": ["JSON syntax/framing", "fact encoding", "existing mandatory graph policy",
+                       "public ABI capture avoidance", "Core JSON materialization"],
+            "host_boundaries": ["general Core type/resource verification", "filesystem/build/install custody"],
+            "graph_relocation_mutable_buffer_parameters": 1,
+            "host_workspace_materialization_fallback": False,
+            "native_general_Core_verifier": False,
+            "whole_module_build_install_complete": False,
             "production_activated": False,
         },
         "core_module_graph_application": {

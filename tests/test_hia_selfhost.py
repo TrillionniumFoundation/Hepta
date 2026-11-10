@@ -907,6 +907,8 @@ class SelfhostNativeTests(unittest.TestCase):
             with zipfile.ZipFile(archive) as packed:
                 data = packed.read(path.name)
         self.assertEqual(sha256(data).hexdigest(), row["compilation"]["produced_sha256"])
+        self.assertEqual(len(data), row["compilation"]["produced_bytes"])
+        inspect_selfhost_object(data)
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),
