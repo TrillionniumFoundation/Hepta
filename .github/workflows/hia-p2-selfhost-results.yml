@@ -4,6 +4,12 @@ on:
   pull_request:
     branches: ['codex/hia-sixgap-source-5e6c-20261108', 'work/hia-**']
     paths:
+      - 'docs/HIA_AGENT_STDIO_NATIVE.md'
+      - 'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm'
+      - 'examples/hia_bootstrap/agent_stdio_packer.hiaasm'
+      - 'tests/test_hia_agent_stdio.py'
+      - 'tools/build_hia_agent_stdio.py'
+      - 'tools/generate_hia_agent_stdio.py'
       - 'docs/HIA_AGENT_ONLY_SCOPE.md'
       - 'docs/HIA_AGENT_ONLY_SCOPE.json'
       - 'tests/test_hia_agent_entry.py'
@@ -174,6 +180,7 @@ jobs:
           python -B -m tools.generate_hia_native_filter 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-filter-generator.log"
           python -B -m tools.generate_hia_source_lexer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-lexer-generator.log"
           python -B -m tools.generate_hia_core_json_cli 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/core-json-cli-generator.log"
+          python -B -m tools.generate_hia_agent_stdio 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/agent-stdio-generator.log"
           python -B -m tools.generate_hia_sha256_stream 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-stream-generator.log"
           python -B -m tools.generate_hia_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-observer-generator.log"
           python -B -m tools.generate_hia_source_expressions 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-expressions-generator.log"
@@ -197,6 +204,7 @@ jobs:
           import json, os, unittest
           from pathlib import Path
           names = (
+              "tests.test_hia_agent_stdio.AgentStdioSourceTests",
               "tests.test_hia_agent_entry",
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
               "tests.test_hia_source_parser_native.SourceParserSourceTests",
@@ -349,6 +357,7 @@ jobs:
           python -B -m unittest -v tests.test_hia_elf_linker.ElfLinkerNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/elf-linker-tests.log"
           python -B -m unittest -v tests.test_hia_source_lexer_native.SourceLexerNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-lexer-tests.log"
           python -B -m unittest -v tests.test_hia_core_json_cli.CoreJsonCliNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/core-json-cli-tests.log"
+          python -B -m unittest -v tests.test_hia_agent_stdio.AgentStdioNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/agent-stdio-tests.log"
           python -B -m unittest -v tests.test_hia_sha256_stream_native.Sha256StreamNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-stream-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/native-observer-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_process_owner 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/process-owner-tests.log"

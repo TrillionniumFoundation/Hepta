@@ -11,6 +11,11 @@ The development `hia` entry isolates Core verification and snapshot-bound edits
 from high-level source routes; it remains explicitly a Python host bridge.
 Whole native-only delivery is **OPEN**, not implied by this scope change.
 
+An explicitly built [HIA-native Agent stdio entry](docs/HIA_AGENT_STDIO_NATIVE.md)
+adds native `capabilities`, `verify` and `compile` without a host payload driver.
+Its build/custody driver and the broader editing/persistence surface are still
+host-owned; it does not activate a production route or close the whole product.
+
 The high-level language description below documents the retained implementation.
 
 Hepta is an experimental native systems language and compiler toolchain for

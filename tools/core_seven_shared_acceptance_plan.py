@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v21'
-PROTOCOL = 'seven-shared-acceptance-v21'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v22'
+PROTOCOL = 'seven-shared-acceptance-v22'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -255,8 +255,11 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
 TYPE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_type_parser.hiaasm', 'hepta/hia_type_parser_native.py', 'tests/test_hia_type_parser_native.py', 'tools/build_hia_type_parser.py', 'tools/generate_hia_type_parser.py')
 SOURCE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_parser.hiaasm', 'hepta/hia_source_parser_native.py', 'tests/test_hia_source_parser_native.py', 'tools/build_hia_source_parser.py', 'tools/generate_hia_source_parser.py')
 
-IDENTITY_CAP = 168329
-IDENTITY_RESERVE_DELTA = 23616
+AGENT_STDIO_ADDITIONS = ('docs/HIA_AGENT_STDIO_NATIVE.md', 'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm', 'examples/hia_bootstrap/agent_stdio_packer.hiaasm', 'tests/test_hia_agent_stdio.py', 'tools/build_hia_agent_stdio.py', 'tools/generate_hia_agent_stdio.py')
+
+# Transfer802additional identity bytes from raw captures; total envelope unchanged.
+IDENTITY_CAP = 169131
+IDENTITY_RESERVE_DELTA = 24418
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -348,13 +351,16 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
-                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS)))
+                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_STDIO_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     union_paths = SOURCE_IDENTITY_PATHS
+    require(len(union_paths) == len(set(union_paths)) == 422 and commitment(union_paths) == '4eb4f3971b09f3312f252123268bbcdcde1f36179df83765c9080bfa6d7dbf24',
+            'reviewed exact source identity closure (native Agent)')
+    union_paths = tuple(name for name in union_paths if name not in AGENT_STDIO_ADDITIONS)
     require(len(union_paths) == len(set(union_paths)) == 416 and commitment(union_paths) == '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933',
             'reviewed exact source identity closure')
     paths = tuple(name for name in union_paths if name not in (*TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS))
@@ -421,7 +427,7 @@ def source_paths():
             'historical type parser identity projection')
     require(tuple(name for name in type_parser_v15 if name not in TYPE_PARSER_ADDITIONS) == lexer_v14,
             'historical token parser lexer identity projection')
-    paths = union_paths
+    paths = SOURCE_IDENTITY_PATHS
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
     # Reject an extra or absent filename before an external identity is built.

@@ -39,6 +39,12 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    'docs/HIA_AGENT_STDIO_NATIVE.md',
+    'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm',
+    'examples/hia_bootstrap/agent_stdio_packer.hiaasm',
+    'tests/test_hia_agent_stdio.py',
+    'tools/build_hia_agent_stdio.py',
+    'tools/generate_hia_agent_stdio.py',
     'docs/HIA_AGENT_ONLY_SCOPE.md',
     'docs/HIA_AGENT_ONLY_SCOPE.json',
     'tests/test_hia_agent_entry.py',

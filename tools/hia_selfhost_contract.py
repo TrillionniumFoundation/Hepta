@@ -15,6 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v37"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_STDIO_NATIVE.md',
+    'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm',
+    'examples/hia_bootstrap/agent_stdio_packer.hiaasm',
+    'tests/test_hia_agent_stdio.py',
+    'tools/build_hia_agent_stdio.py',
+    'tools/generate_hia_agent_stdio.py',
     'docs/HIA_AGENT_ONLY_SCOPE.md',
     'docs/HIA_AGENT_ONLY_SCOPE.json',
     'tests/test_hia_agent_entry.py',
@@ -155,6 +161,17 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "agent_stdio_application": {
+            "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",
+                        "examples/hia_bootstrap/agent_stdio_packer.hiaasm"],
+            "commands": ["capabilities", "verify", "compile"],
+            "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hiaasm",
+            "output_profile_selection": "explicit build-time flat/elf/exec; never inferred from payload",
+            "native_runtime_python_required": False,
+            "host_build_and_custody_driver": True,
+            "whole_agent_editing_and_persistence_replaced": False,
+            "production_activated": False,
+        },
         "target": {"triple": "x86_64-unknown-linux-gnu", "system": "Linux",
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",

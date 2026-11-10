@@ -99,7 +99,7 @@ OBSERVER_V16_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9
 INTEGRATED_V17_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
 SOURCE_TYPES_V18_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
 SOURCE_EXPRESSIONS_V19_COMMITMENT = '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f'
-CURRENT_COMMITMENT = '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933'
+CURRENT_COMMITMENT = '4eb4f3971b09f3312f252123268bbcdcde1f36179df83765c9080bfa6d7dbf24'
 ELF_LINKER_ADDITIONS = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
@@ -160,7 +160,9 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
 TYPE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_type_parser.hiaasm', 'hepta/hia_type_parser_native.py', 'tests/test_hia_type_parser_native.py', 'tools/build_hia_type_parser.py', 'tools/generate_hia_type_parser.py')
 SOURCE_PARSER_ADDITIONS = ('examples/hia_bootstrap/source_parser.hiaasm', 'hepta/hia_source_parser_native.py', 'tests/test_hia_source_parser_native.py', 'tools/build_hia_source_parser.py', 'tools/generate_hia_source_parser.py')
 
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS)
+AGENT_STDIO_ADDITIONS = ('docs/HIA_AGENT_STDIO_NATIVE.md', 'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm', 'examples/hia_bootstrap/agent_stdio_packer.hiaasm', 'tests/test_hia_agent_stdio.py', 'tools/build_hia_agent_stdio.py', 'tools/generate_hia_agent_stdio.py')
+
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_STDIO_ADDITIONS)
 
 
 @contextmanager
@@ -179,8 +181,13 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         union = plan.source_paths()
+        latest_union = union
+        self.assertEqual(len(union), 422)
+        self.assertEqual(plan.commitment(latest_union), CURRENT_COMMITMENT)
+        self.assertEqual(plan.AGENT_STDIO_ADDITIONS, AGENT_STDIO_ADDITIONS)
+        union = tuple(name for name in union if name not in AGENT_STDIO_ADDITIONS)
         self.assertEqual(len(union), 416)
-        self.assertEqual(plan.commitment(union), CURRENT_COMMITMENT)
+        self.assertEqual(plan.commitment(union), '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933')
         self.assertEqual(plan.TYPE_PARSER_ADDITIONS, TYPE_PARSER_ADDITIONS)
         self.assertEqual(plan.SOURCE_PARSER_ADDITIONS, SOURCE_PARSER_ADDITIONS)
         self.assertEqual(sum(n.startswith('hepta/') and n.count('/') == 1 and n.endswith('.py') for n in union), 224)
@@ -262,8 +269,8 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         round4 = tuple(name for name in round5 if name not in ROUND5_VALIDATION_INPUTS)
         self.assertEqual(len(round4), 265)
         self.assertEqual(plan.commitment(round4), ROUND4_COMMITMENT)
-        self.assertEqual(plan.commitment(union), CURRENT_COMMITMENT)
-        self.assertTrue(set(NEW_INPUTS) <= set(union))
+        self.assertEqual(plan.commitment(latest_union), CURRENT_COMMITMENT)
+        self.assertTrue(set(NEW_INPUTS) <= set(latest_union))
         previous = tuple(name for name in actual if name not in NEW_INPUTS)
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
