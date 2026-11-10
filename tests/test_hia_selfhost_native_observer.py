@@ -70,8 +70,8 @@ class NativeObserverTests(unittest.TestCase):
         import tools.qualify_hia_selfhost as q
         result,output=self.call('actual-UD2',b'\x0f\x0b')
         self.assertEqual((result['status'],result['returncode'],output),('child_failed',-4,b''))
-        # A write before trapping must be observed by the original shared-file
-        # loader, not silently lost in the ordinary native stdout transport.
+        # A write before trapping is observed through actual parent-owned
+        # shared memory, not inferred from the native stdout protocol.
         image=self.root/'prior-store-UD2.bin';image.write_bytes(bytes.fromhex('c6 02 63 0f 0b'))
         prior=q.NATIVE_OBSERVER
         try:
@@ -83,6 +83,11 @@ class NativeObserverTests(unittest.TestCase):
         self.assertEqual(trapped['returncode'],-4)
         self.assertTrue(trapped['shared_output_observation']['available'])
         self.assertEqual(raw,b'c')
+        self.assertEqual(trapped['transport'],'HIA-emitted-static-ELF-observer-v2')
+        legacy,old=q.invoke(self.root,'legacy-shared-capture-control',image,b'',capacity=1,
+            workspace_size=0,observe_trap_writes=True)
+        self.assertEqual(old,raw)
+        self.assertEqual(legacy['returncode'],trapped['returncode'])
 
     def test_real_HIA_compiler_bytes_output_and_error_counters_equal_legacy(self):
         from tools.qualify_hia_selfhost import invoke, SAMPLE
@@ -108,6 +113,24 @@ class NativeObserverTests(unittest.TestCase):
         self.assertEqual(result['core_u32'],0)
         self.assertEqual(struct.unpack('<2Q',output),(10,10))
 
+    def test_custom_preimages_and_real_post_trap_writes_match_independent_legacy_capture(self):
+        from tools.qualify_hia_selfhost import invoke
+        codes=[bytes.fromhex('31 c0 c3'),bytes.fromhex('c6 02 63 31 c0 c3'),bytes.fromhex('c6 02 63 0f 0b')]
+        for index,code in enumerate(codes):
+            image=self.root/('custom-'+str(index)+'.bin');image.write_bytes(code)
+            for initial in (b'\0',b'Z\0\xff',b'\xff'*31):
+                name='custom-'+str(index)+'-'+str(len(initial))
+                actual,out=native_invoke(self.root,name,self.executable,image,b'input',capacity=len(initial),
+                    workspace_size=128,workspace_fill=255,output_initial=initial,observe_trap_writes=True)
+                old,raw=invoke(self.root,name+'-legacy',image,b'input',capacity=len(initial),workspace_size=128,
+                    workspace_fill=255,output_initial=initial,observe_trap_writes=True)
+                self.assertEqual(actual['status'],old['status'])
+                self.assertEqual(out,raw)
+                for key in ('available','initial_sha256','observed_sha256','observed_bytes','unchanged'):
+                    self.assertEqual(actual['shared_output_observation'][key],old['shared_output_observation'][key])
+                if index==2:self.assertEqual(actual['returncode'],-4)
+                else:self.assertEqual(actual['core_u32'],old['core_u32'])
+
     def test_unexpected_native_stdout_is_refused_and_exact_failure_bytes_retained(self):
         # Deliberate foreign image writes caller bytes to stdout before returning.
         code=bytes.fromhex('48 89 f2 48 89 fe bf 01 00 00 00 b8 01 00 00 00 0f 05 b8 2a 00 00 00 c3')
@@ -115,8 +138,31 @@ class NativeObserverTests(unittest.TestCase):
         self.assertEqual(result['status'],'protocol_failed')
         self.assertEqual(output,b'')
         raw=(self.root/'unexpected-stdout.failure-stdout.raw').read_bytes()
-        self.assertTrue(raw.startswith(b'injected-prefixHIAOBR01'))
+        self.assertTrue(raw.startswith(b'injected-prefixHIAOBR02'))
         self.assertEqual(len(raw),result['response_bytes'])
+
+    def test_shared_extent_seals_allow_real_writes_but_not_growth_or_shrink(self):
+        import fcntl,os
+        from tools.hia_selfhost_native_observer import shared_output,read_capture
+        with shared_output(b'ABC',True) as descriptor:
+            self.assertEqual(read_capture(descriptor,3),b'ABC')
+            self.assertEqual(fcntl.fcntl(descriptor,getattr(fcntl,'F_GET_SEALS',1034)) & 7,7)
+            for size in (0,2,4):
+                with self.assertRaises(OSError):os.ftruncate(descriptor,size)
+            os.pwrite(descriptor,b'Z',1)
+            self.assertEqual(read_capture(descriptor,3),b'AZC')
+        with self.assertRaises(OSError):fcntl.fcntl(descriptor,fcntl.F_GETFD)
+
+    def test_prelaunch_storage_failure_does_not_leak_shared_output_descriptor(self):
+        import errno
+        from unittest.mock import patch
+        before=len(list(Path('/proc/self/fd').iterdir()))
+        image=self.root/'storage-failure-image.bin';image.write_bytes(bytes.fromhex('31 c0 c3'))
+        with patch.object(Path,'write_text',side_effect=OSError(errno.ENOSPC,'injected retained storage failure')):
+            with self.assertRaises(OSError):
+                native_invoke(self.root,'storage-failure',self.executable,image,b'',capacity=1,
+                    workspace_size=0,workspace_fill=0,output_initial=b'X',observe_trap_writes=True)
+        self.assertEqual(len(list(Path('/proc/self/fd').iterdir())),before)
 
     def test_bad_frames_lengths_overflow_and_arguments_fail_without_output(self):
         image=self.executable.read_bytes()
@@ -124,6 +170,8 @@ class NativeObserverTests(unittest.TestCase):
         bad=[b'',good[:47],b'badMAGIC'+good[8:],good+b'\0',good[:-1]]
         for index in range(5):
             altered=bytearray(good);struct.pack_into('<Q',altered,8+index*8,2**64-1);bad.append(bytes(altered))
+        for value in (0,1,2,2147483648,2**64-2):
+            altered=bytearray(good);struct.pack_into('<Q',altered,48,value);bad.append(bytes(altered))
         for data in bad:
             result=execute(image,data,cwd=self.root)
             self.assertEqual((result.returncode,result.stdout,result.stderr),(2,b'',b''))
