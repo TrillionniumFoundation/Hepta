@@ -138,6 +138,30 @@ class ColdProcessOwnerTests(unittest.TestCase):
             # descendant is deliberately left behind by this negative control.
             self.assertFalse(Path("/proc/%d" % result["qualification_pid"]).exists())
 
+    def test_empty_truncated_and_nonobject_receipts_hold_without_cleanup_claim(self):
+        # Real harmless replacement supervisors model quota-interrupted writes.
+        # They launch no qualification child and exit7 after publishing exactly
+        # the selected malformed bytes. No cold success is synthesized.
+        actual_launch = owner.subprocess.Popen
+        script = ("import json,sys;from pathlib import Path;"
+                  "r=json.loads(Path(sys.argv[1]).read_bytes());"
+                  "Path(r['receipt_path']).write_bytes(bytes.fromhex(sys.argv[2]));"
+                  "sys.exit(7)")
+        for payload in (b'', b'{\"schema\":', b'[]', b'null', b'\xff'):
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory(prefix="hia-owner-invalid-receipt-") as folder:
+                def substituted(command, **kwargs):
+                    request_path = command[command.index('--request') + 1]
+                    return actual_launch([sys.executable, '-I', '-S', '-B', '-c', script,
+                                          request_path, payload.hex()], **kwargs)
+                with patch.object(owner.subprocess, 'Popen', side_effect=substituted):
+                    result = self.run_command(folder, [sys.executable, '-c', 'pass'])
+                self.assertEqual(result['status'], 'OWNER_RECEIPT_INVALID_HOLD')
+                self.assertEqual(result['supervisor_returncode'], 7)
+                self.assertIsNone(result['returncode'])
+                self.assertFalse(result['cleanup']['complete'])
+                self.assertEqual(result['receipt_bytes'], len(payload))
+                self.assertEqual((Path(folder) / 'owner.json').read_bytes(), payload)
+
     def test_platform_and_budget_refuse_before_launch(self):
         with tempfile.TemporaryDirectory(prefix="hia-owner-refuse-") as folder, \
                 patch.object(owner.subprocess, "Popen") as launch:

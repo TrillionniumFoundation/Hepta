@@ -1638,3 +1638,25 @@ It preserves exact v18/394, v17/389 and both prior fork projections. Additional
 limits are raised. Defaults/production/main/release locks remain unchanged;
 whole-stack ledger stays3partial/5open, no legacy retirement authorized by this
 component result.
+
+### Retained first clean expression attempt and receipt robustness
+
+Exact clean372446310c58b2d14b4858a8291980659c7fc92c passed the actual110
+source assertions with no failures/skips. Its first cold attempt FAILED: the
+owner receipt existed but was empty, and the parent raised JSONDecodeError;
+there was no completed cold report or authoritative cleanup receipt. All
+partial exports/logs remain retained and are not treated as accepted evidence.
+A separate harmless transport probe observed EDQUOT while flushing a request
+on the same `/dev/shm` usrquota filesystem despite globally free blocks.
+Another harmless probe under a private `/run/user/1000` directory completed
+normally with actual ECHILD cleanup. This does not retroactively prove cleanup
+of the original failed owner.
+
+The parent now handles empty/truncated/nonobject owner receipts as the explicit
+`OWNER_RECEIPT_INVALID_HOLD`, retaining receipt byte count/hash and the observed
+supervisor exit while leaving qualification returncode unset and cleanup
+unconfirmed. No output or nested success is admitted. Eight real-process
+lifecycle controls PASS, including five malformed transport byte variants from
+real harmless replacement supervisors. The180-second qualification deadline,
+separate3-second cleanup bound and every execution/physical cap remain fixed.
+A completely fresh current-source qualification is required after this fix.
