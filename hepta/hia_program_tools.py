@@ -141,7 +141,7 @@ def _bounded_json_string_size(value: str, maximum: int, ensure_ascii: bool) -> i
     return size
 
 
-def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
+def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):
     """Stream a bounded in-process JSON snapshot rather than materialize first.
 
     This is only an input-size gate. It never authenticates or verifies HIA.
@@ -211,7 +211,8 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
                             else:  # the only remaining admitted type is float
                                 if not math.isfinite(key):
                                     _reject("nonfinite JSON object key")
-                                wire_key = float.__repr__(key)
+                                wire_key = (float.__repr__(key) if float_renderer is None
+                                            else float_renderer(key))
                             if len(wire_key) + 2 > maximum:
                                 _reject("JSON key exceeds byte budget")
                         if wire_key in wire_keys:
@@ -233,7 +234,22 @@ def bounded_json_wire(value, maximum, *, ensure_ascii=True, sort_keys=True):
         count = 0
         encoder = json.JSONEncoder(ensure_ascii=ensure_ascii, sort_keys=sort_keys,
                                    separators=(",", ":"), allow_nan=False)
-        for fragment in encoder.iterencode(value):
+        if float_renderer is None:
+            fragments = encoder.iterencode(value)
+        else:
+            # Explicit Agent numeric kernel only: JSON structure, object
+            # traversal, integer conversion and string escaping remain hosted.
+            # Force the Python structural iterator so no C float printer can
+            # bypass the selected HIA callback (including numeric object keys).
+            from json.encoder import _make_iterencode, encode_basestring, encode_basestring_ascii
+            def render_float(number):
+                if not math.isfinite(number):
+                    _reject("nonfinite JSON number")
+                return float_renderer(number)
+            fragments = _make_iterencode({}, encoder.default,
+                encode_basestring_ascii if ensure_ascii else encode_basestring,
+                None, render_float, ":", ",", sort_keys, False, False)(value, 0)
+        for fragment in fragments:
             encoded = fragment.encode("utf-8")
             count += len(encoded)
             if count > maximum:

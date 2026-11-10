@@ -39,7 +39,7 @@ class PublicationRouteNativeTests(unittest.TestCase):
         # This path is mandatory under source-bound qualification; local source
         # development still tests the standalone real-kernel route separately.
         cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
-        from tools.build_hia_artifact_publication import build,current_sources,SOURCES
+        from tools.build_hia_artifact_publication import build,current_sources,SOURCES,OPERATIONS
         from tools.hia_selfhost_contract import PROFILE
         from hashlib import sha256
         import fcntl,subprocess
@@ -58,7 +58,7 @@ class PublicationRouteNativeTests(unittest.TestCase):
                 app=build_root/'hia-artifact';app.write_bytes(ArtifactPublicationKernelTests.app.read_bytes());app.chmod(0o700)
                 source_root=Path(__file__).resolve().parents[1]
                 development={'schema':'hepta.hia.artifact-publication-build.v1','status':'NATIVE_ARTIFACT_PUBLICATION_BUILT',
-                    'profile':PROFILE,'source_manifest':current_sources(),'operations':['publish','verify','withdraw'],
+                    'profile':PROFILE,'source_manifest':current_sources(),'operations':OPERATIONS,
                     'executable_path':'hia-artifact','executable_sha256':sha256(app.read_bytes()).hexdigest(),
                     'source_sha256':{name:sha256((source_root/name).read_bytes()).hexdigest() for name in SOURCES},
                     'development_only':True,'matching_source_cold_qualified':False}

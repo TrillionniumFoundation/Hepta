@@ -83,7 +83,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
         # These are the genuine B2-produced Core-policy images, not a fixture ABI.
         cls.core_manifests={}
         from importlib import import_module
-        for key in ('program_shape','instruction_policy'):
+        for key in ('program_shape','instruction_policy','core_admission'):
             module=import_module('hepta.hia_'+key+'_native')
             core_image,_=compile_stage(cls.native,key,second,module.SOURCE.read_bytes())
             core_manifest=cls.native/(key+'-manifest.json')
@@ -91,6 +91,12 @@ class AgentInstalledResourceTests(unittest.TestCase):
                 source_sha256=sha256(module.SOURCE.read_bytes()).hexdigest(),image_path=core_image.name,
                 image_sha256=sha256(core_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
             cls.core_manifests[key]=core_manifest
+        from hepta.hia_agent_binary64_format_native import SOURCE as PRINT_SOURCE, SCHEMA as PRINT_SCHEMA
+        print_image,_=compile_stage(cls.native,'agent-binary64-format',second,PRINT_SOURCE.read_bytes())
+        cls.print_manifest=cls.native/'binary64-format-manifest.json'
+        cls.print_manifest.write_text(json.dumps(dict(schema=PRINT_SCHEMA,
+            source_sha256=sha256(PRINT_SOURCE.read_bytes()).hexdigest(),image_path=print_image.name,
+            image_sha256=sha256(print_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
 from pathlib import Path
@@ -105,6 +111,12 @@ assert store.canonical_digest('a'*64)
 from hepta.hia_agent_contract import installation_manifest
 from hepta.hia_agent_worker import main
 if sys.argv[2]=='identity':print(__import__('json').dumps(installation_manifest()))
+elif sys.argv[2]=='printing':
+    from hepta.hia_agent_binary64_format_native import SOURCE as PRINT_SOURCE
+    assert Path(sys.argv[1]) in PRINT_SOURCE.parents,PRINT_SOURCE
+    import json
+    json.JSONEncoder.iterencode=absent
+    sys.stdout.buffer.write(store.wire({'zero':-0.0,'ratio':1.25,'tiny':5e-324,'large':1e16,'text':'中'}))
 elif sys.argv[2]=='data':
     from hepta.hia_agent_data_json_native import SOURCE as DATA_SOURCE
     assert Path(sys.argv[1]) in DATA_SOURCE.parents,DATA_SOURCE
@@ -125,7 +137,7 @@ elif sys.argv[2]=='source-bindings':
         assert module.SOURCE.is_file(),module.SOURCE
         observed[name]=str(module.SOURCE.relative_to(Path(sys.argv[1])/'hepta/_data'))
     print(__import__('json').dumps(observed,sort_keys=True))
-elif sys.argv[2]=='native-Core':
+elif sys.argv[2] in ('native-Core','native-Core-whole'):
     import os
     from hepta import hia_program as Core
     from hepta.hia_program_tools import decode_json
@@ -133,6 +145,9 @@ elif sys.argv[2]=='native-Core':
     os.environ['HEPTA_HIA_INSTRUCTION_POLICY_MANIFEST']=sys.argv[4]
     Core._reference_primitive_structure=absent;Core._reference_function_shape=absent
     Core.opcode_spec=absent;Core.check_instruction=absent
+    if sys.argv[2]=='native-Core-whole':
+        os.environ['HEPTA_HIA_CORE_ADMISSION_MANIFEST']=sys.argv[5]
+        Core._verify_function=absent
     checked=Core.verify_program(decode_json(sys.stdin.buffer.read()))
     print(__import__('json').dumps(Core.execute_program(checked,'answer',[])))
 elif sys.argv[2]=='slice':
@@ -159,7 +174,19 @@ assert not blocked.intersection(sys.modules)
         return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=15,cwd=cls.folder,
             env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest),
                  'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST':str(cls.data_manifest),
-                 'HEPTA_HIA_AGENT_BINARY64_MANIFEST':str(cls.float_manifest)})
+                 'HEPTA_HIA_AGENT_BINARY64_MANIFEST':str(cls.float_manifest),
+                 'HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST':str(cls.print_manifest)})
+
+    def test_installed_binary64_printing_has_no_host_printer_or_checkout_fallback(self):
+        result=self.invoke('printing',b'')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stdout,'{"large":1e+16,"ratio":1.25,"text":"中","tiny":5e-324,"zero":-0.0}'.encode())
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64_format.hiaasm'
+        held=source.with_suffix('.held');source.rename(held)
+        try:
+            result=self.invoke('printing',b'')
+            self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'')
+        finally:held.rename(source)
 
     def test_all_native_Source_bindings_are_actual_installed_package_bytes(self):
         result=self.invoke('source-bindings',b'')
@@ -189,6 +216,29 @@ assert not blocked.intersection(sys.modules)
         held=resource.with_suffix('.held');resource.rename(held)
         try:
             refused=self.invoke('native-Core',wire(doc),manifests)
+            self.assertNotEqual(refused.returncode,0)
+            self.assertEqual(refused.stdout,b'')
+        finally:held.rename(resource)
+
+    def test_actual_installed_whole_native_Core_preserves_body_guards_and_missing_source_refusal(self):
+        from tests.test_hia_program import b,c,f,m,ret
+        doc=m(f('answer',[],['u32'],[],[b('entry',[],[c('v','u32',42)],ret('v'))]))
+        doc['schema']='hepta.hia.program.v8'
+        manifests=tuple(str(self.core_manifests[key]) for key in ('program_shape','instruction_policy','core_admission'))
+        result=self.invoke('native-Core-whole',wire(doc),manifests)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(json.loads(result.stdout)['result'],42)
+        # Existing body type obligations remain mandatory inside the selected native whole-body kernel.
+        doc['functions'][0]['blocks'][0]['ops'][0]['out'][0]['type']='u64'
+        refused=self.invoke('native-Core-whole',wire(doc),manifests)
+        self.assertNotEqual(refused.returncode,0)
+        self.assertEqual(refused.stdout,b'')
+        self.assertIn(b'E_HIA_TYPE',refused.stderr)
+        doc['functions'][0]['blocks'][0]['ops'][0]['out'][0]['type']='u32'
+        resource=self.installed/'hepta/_data/examples/hia_bootstrap/core_admission.hiaasm'
+        held=resource.with_suffix('.held');resource.rename(held)
+        try:
+            refused=self.invoke('native-Core-whole',wire(doc),manifests)
             self.assertNotEqual(refused.returncode,0)
             self.assertEqual(refused.stdout,b'')
         finally:held.rename(resource)

@@ -47,6 +47,8 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/program_shape.hiaasm',
     'examples/hia_bootstrap/sha256.hiaasm',
     'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'examples/hia_bootstrap/agent_binary64_format.hiaasm',
+    'examples/hia_bootstrap/core_admission.hiaasm',
 )
 
 

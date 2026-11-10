@@ -914,6 +914,10 @@ def verify_program(program) -> VerifiedProgram:
         _reject("historical nominal v2 requires import_legacy_composite_v2; "
                 "the primitive v2 namespace cannot infer a producer profile",
                 "E_HIA_VERSION_COLLISION")
+    from .hia_core_admission_native import selected_core_structure
+    selected = selected_core_structure(data, raw)
+    if selected is not None:
+        return VerifiedProgram(raw)
     functions, block_maps = _primitive_structure(data)
     interfaces = _function_interfaces(functions)
     for fn in functions.values():

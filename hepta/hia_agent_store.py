@@ -33,7 +33,14 @@ class AgentRejected(ValueError):
 
 
 def wire(value):
-    return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False, sort_keys=True)
+    selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST')
+    renderer = None
+    if selected:
+        from .hia_agent_binary64_format_native import installed_agent_binary64_format
+        image = installed_agent_binary64_format(selected)
+        renderer = lambda number: image.render(number).decode('ascii')
+    return bounded_json_wire(value, MAX_INPUT_BYTES, ensure_ascii=False,
+                             sort_keys=True, float_renderer=renderer)
 
 
 def digest(value):
@@ -226,6 +233,22 @@ def capture_path(path, roots, limit):
             os.close(fd)
 
 
+def _native_artifact_file(operation,root,*,data=b'',content_hash='-'):
+    selected=os.environ.get('HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST')
+    if not selected:
+        return None
+    from .artifact_publication_native import invoke_artifact_store
+    from .artifact_publication import PublicationRejected
+    try:return invoke_artifact_store(selected,operation,root,data=data,digest=content_hash)
+    except PublicationRejected as exc:
+        text=str(exc)
+        if 'E_PUBLISH_LIMIT' in text:code='E_HIA_ARTIFACT_LIMIT'
+        elif 'E_PUBLISH_BYTES' in text or 'E_PUBLISH_RACE' in text:code='E_HIA_ARTIFACT_CORRUPT'
+        elif 'E_PUBLISH_NATIVE_CUSTODY' in text:code='E_HIA_ARTIFACT_NATIVE_CUSTODY'
+        else:code='E_HIA_ARTIFACT_FILE'
+        raise AgentRejected(code,'native artifact file operation refused; no request issuance or replay') from exc
+
+
 class AgentStore:
     def __init__(self, root):
         supplied = Path(root).absolute()
@@ -317,33 +340,39 @@ class AgentStore:
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
-        content_hash = sha256(data).hexdigest()
+        native_hash = _native_artifact_file('store-hash',self.artifacts,data=data)
+        content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
         content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
         previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
         if previous is not None:
             ref = self._ref(previous)
             self.get(ref, kind=kind)
             return ref
-        destination = self.artifacts / content_hash
-        temporary = self.artifacts / (".write-" + uuid.uuid4().hex)
-        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o400)
-        try:
-            with os.fdopen(descriptor, "wb") as stream:
-                stream.write(data)
-                stream.flush()
-                os.fsync(stream.fileno())
+        if native_hash is not None:
+            stored = _native_artifact_file('store-put',self.artifacts,data=data)
+            if stored != native_hash:
+                reject('E_HIA_ARTIFACT_CORRUPT','native artifact hash and durable file receipt differ')
+        else:
+            destination = self.artifacts / content_hash
+            temporary = self.artifacts / (".write-" + uuid.uuid4().hex)
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW, 0o400)
             try:
-                os.link(temporary, destination, follow_symlinks=False)
-            except FileExistsError:
-                if stable_read(destination, MAX_ARTIFACT_BYTES) != data:
-                    reject("E_HIA_ARTIFACT_CORRUPT", "stored content does not match its immutable identity")
-            directory_fd = os.open(self.artifacts, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
-            try:
-                os.fsync(directory_fd)
+                with os.fdopen(descriptor, "wb") as stream:
+                    stream.write(data)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                try:
+                    os.link(temporary, destination, follow_symlinks=False)
+                except FileExistsError:
+                    if stable_read(destination, MAX_ARTIFACT_BYTES) != data:
+                        reject("E_HIA_ARTIFACT_CORRUPT", "stored content does not match its immutable identity")
+                directory_fd = os.open(self.artifacts, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
             finally:
-                os.close(directory_fd)
-        finally:
-            temporary.unlink(missing_ok=True)
+                temporary.unlink(missing_ok=True)
         ref = {"id": "a-" + uuid.uuid4().hex, "sha256": content_hash,
                "uri": "hia://artifacts/" + uuid.uuid4().hex}
         self.db.execute("INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)",
@@ -365,9 +394,11 @@ class AgentStore:
             reject("E_HIA_ARTIFACT_IDENTITY", "artifact reference was not issued in this runtime namespace")
         if kind is not None and row["kind"] != kind:
             reject("E_HIA_ARTIFACT_AUTHORITY", "input bytes cannot impersonate a retained " + kind)
-        data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
-        if sha256(data).hexdigest() != row["sha256"]:
-            reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
+        data = _native_artifact_file('store-get',self.artifacts,content_hash=row['sha256'])
+        if data is None:
+            data = stable_read(self.artifacts / row["sha256"], MAX_ARTIFACT_BYTES)
+            if sha256(data).hexdigest() != row["sha256"]:
+                reject("E_HIA_ARTIFACT_CORRUPT", "artifact bytes no longer match their recorded digest")
         return data, decode_data(row["metadata"])
 
     def get_json(self, ref, *, kind=None):

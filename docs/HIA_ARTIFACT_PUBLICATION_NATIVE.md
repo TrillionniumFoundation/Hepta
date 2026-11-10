@@ -66,3 +66,41 @@ sandbox. Native no-replace refusal maps to `E_PUBLISH_LINK`, including an alread
 existing destination, rather than the reference's preliminary `EXISTS` category.
 That diagnostic distinction and Agent journal/recovery/default-install closure
 are not presented as replaced. Receipt I/O failure must not trigger replay.
+
+## Explicit Agent artifact byte store (not journal replacement)
+
+The same application additionally accepts:
+
+```
+hia-artifact store-hash ROOT - < BYTES
+hia-artifact store-put ROOT - < BYTES
+hia-artifact store-get ROOT LOWERCASE-SHA256
+```
+
+These three commands preserve the Agent's inclusive **64 MiB** quota and allow
+empty artifacts; generic publication remains unbounded by that quota. `store-hash`
+is pure HIA byte hashing, without filesystem effects. Put/get pin one owned,
+non-group/world-writable ordinary directory descriptor. Only exact 64-character
+lowercase hex content names are accepted. HIA generates UUID4 temporary names;
+the syscall adapter opens them exclusively with nofollow and mode 0400, writes
+all bytes and fsyncs the file before a no-replace link. Existing entries must
+match every input byte. The directory is fsynced before a success receipt.
+Owned temporary files are cleaned up, never a competitor's replacement inode.
+Get captures and authenticates all bytes, size and identity before any stdout.
+Symlinks/FIFOs, changed identities, corrupt bytes and over-quota files refuse.
+Status 17 is the original Agent quota refusal.
+
+`HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST=/absolute/build.json` selects this byte
+layer in actual `AgentStore.put/get`. A sealed executable is admitted using the
+current source contract; invalid selection never falls back. Payload hashing,
+file byte verification and file publication are native. Metadata/ref hashing,
+SQLite WAL authority, reference issuance, request intent, locks, recovery and
+JSON values remain hosted. Issued refs are still checked before file access;
+content digests do not grant namespace or kind authority. No default changes.
+
+File fsync failure yields no content link or success. Directory fsync failure
+can leave valid content, but no success or newly issued DB ref. Receipt or
+DB failure can likewise leave content: this is not a file/SQLite transaction,
+crash-recovery implementation or license to replay. Existing request-intent
+unknown/conflict behavior remains mandatory. Neither filesystem capture nor
+stdout grants immunity against a later writer or atomic stdout delivery.
