@@ -21,7 +21,7 @@ from tools.build_hia_agent_stdio import DISPATCH, PACKER, build
 
 EXPECTED_CAPABILITY = {
     'schema':'hepta.hia.agent-stdio.v1','implementation':'hia-native',
-    'operations':['capabilities','verify','compile'],'build_profile':0,
+    'operations':['capabilities','verify','compile','render-assembly'],'build_profile':0,
     'input':'primitive-v8-Core-JSON','input_bytes_max':8388608,
     'compiler_bytes_max':1048576,'program_nodes_max':1048576,'json_depth_max':128,
     'target':'linux-x86_64','runtime_python_required':False,
@@ -74,7 +74,7 @@ def dispatcher_reference():
             result,raw=vm_window(DISPATCH,b'capabilities',workspace=workspace,
                                  capacity=len(expected)+1,start=start,count=count)
             assert result==len(expected) and raw==(expected+b'\xa5')[start:start+count],(result,raw)
-        for command,mode in [(b'verify',1),(b'compile',2),(b'verifyx',0xffffffff),(b'',0xffffffff)]:
+        for command,mode in [(b'verify',1),(b'compile',2),(b'render-assembly',3),(b'render-assembla',0xffffffff),(b'render-assembl',0xffffffff),(b'render-assemblyx',0xffffffff),(b'verifyx',0xffffffff),(b'',0xffffffff)]:
             result,raw=vm_window(DISPATCH,command,workspace=workspace)
             assert result==mode and raw==b'\xa5',(command,result,raw)
         struct.pack_into('<Q',workspace,0,1)
@@ -173,7 +173,7 @@ class AgentStdioNativeTests(unittest.TestCase):
             p=self.invoke(['capabilities'],b'not JSON',profile)
             self.assertEqual((p.returncode,p.stderr),(0,b''))
             self.assertEqual(json.loads(p.stdout),{**EXPECTED_CAPABILITY,'build_profile':index})
-        for args in ([],['unknown'],['verifyx'],['capabilities','extra'],['x'*32],['']):
+        for args in ([],['unknown'],['verifyx'],['render-assembla'],['render-assembl'],['render-assemblyx'],['capabilities','extra'],['x'*32],['']):
             p=self.invoke(args)
             self.assertEqual((p.returncode,p.stdout),(64,b''))
             self.assertEqual(json.loads(p.stderr)['category'],'usage')
@@ -196,6 +196,46 @@ class AgentStdioNativeTests(unittest.TestCase):
         p=subprocess.run([str(copied),'verify'],input=wire,capture_output=True,env={'PATH':''},timeout=20)
         self.assertEqual((p.returncode,p.stdout,p.stderr),(0,EXPECTED_VERIFIED,b''))
 
+    def test_render_assembly_checks_native_semantics_and_survives_copied_empty_PATH(self):
+        from unittest.mock import patch
+        variants=[]
+        for increment in (1,7):
+            from tests.test_hia_program import b,c,f,ret
+            params=[('s','readbuf'),('o','mutbuf'),('w','mutbuf')]
+            doc={'schema':'hepta.hia.program.v8','module':'agent_render','functions':[
+                f('answer',params,['u32'],[],[b('entry',copy.deepcopy(params),[c('v','u32',41+increment)],ret('v'))])]}
+            variants.append((doc,render_assembly(doc).encode()))
+        variants.append((self.sample,render_assembly(self.sample).encode()))
+        copied=self.root/'copied-native-render';shutil.copyfile(self.executables['flat'],copied);copied.chmod(0o700)
+        trace=self.root/'native-render.trace'
+        with patch('json.loads',side_effect=AssertionError('host JSON payload decoder')), \
+             patch('hepta.hia_program.verify_program',side_effect=AssertionError('host Core checker')), \
+             patch('hepta.hia_agent_assembly.render_assembly',side_effect=AssertionError('host renderer')):
+            for doc,wanted in variants:
+                wire=json.dumps(doc).encode()
+                result=subprocess.run(['/usr/bin/strace','-f','-e','trace=execve,openat,clone,fork,vfork',
+                    '-o',str(trace),str(copied),'render-assembly'],input=wire,capture_output=True,
+                    env={'PATH':''},timeout=20)
+                self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted,b''))
+                text=trace.read_text();self.assertEqual(text.count('execve('),1)
+                for forbidden in ('openat(','clone(','fork(','vfork('):self.assertNotIn(forbidden,text)
+        # Unsupported old/nominal/private-invalid programs cannot obtain an
+        # apparently successful assembly view before mandatory native checking.
+        for label in ('old','nominal','invalid-unused'):
+            bad=copy.deepcopy(self.sample)
+            if label=='old':bad['schema']='hepta.hia.program.v7'
+            elif label=='nominal':bad['types']=[]
+            else:bad['functions'].append(f('unused',[],['u32'],[],[b('entry',[],[],ret('undefined'))]))
+            result=self.invoke(['render-assembly'],json.dumps(bad).encode())
+            self.assertEqual((result.returncode,result.stdout),(2,b''),label)
+        # A real interrupted write may not lose the start of the assembly.
+        wire=json.dumps(self.sample).encode();wanted=render_assembly(self.sample).encode()
+        result=subprocess.run(['/usr/bin/strace','-qq','-o',str(trace),
+            '-e','inject=read:error=EINTR:when=1','-e','inject=write:error=EINTR:when=1',
+            str(copied),'render-assembly'],input=wire,capture_output=True,env={'PATH':''},timeout=20)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted,b''))
+        self.assertEqual(trace.read_text().count('(INJECTED)'),2)
+
     def test_input_representation_semantics_and_ownership_refusals_publish_no_machine_bytes(self):
         malformed=[b'',b'{',b'{"a":1,"a":2}',b'NaN',b'\xff']
         bad=copy.deepcopy(self.sample);bad['functions'][0]['returns']=['bool']
@@ -206,7 +246,7 @@ class AgentStdioNativeTests(unittest.TestCase):
                 c('n','usize',1),i('buffer.new',['n'],[p('owner','buffer')]),c('ok','u32',0)],ret('ok'))])]}
         malformed.append(json.dumps(leaking).encode())
         for wire in malformed:
-            for action in ('verify','compile'):
+            for action in ('verify','compile','render-assembly'):
                 with self.subTest(action=action,wire=wire[:30]):
                     result=self.invoke([action],wire)
                     self.assertEqual((result.returncode,result.stdout),(2,b''))
@@ -234,9 +274,13 @@ class AgentStdioNativeTests(unittest.TestCase):
                                   capture_output=True,timeout=20,env={'PATH':''})
             self.assertEqual((actual.returncode,actual.stdout,actual.stderr),
                              (0,bytes.fromhex(row['output_hex']),b''))
+        rendered=self.invoke(['render-assembly'],wire,profile='exec')
+        self.assertEqual((rendered.returncode,rendered.stdout,rendered.stderr),(0,render_assembly(program).encode(),b''))
         for profile in ('flat','elf'):
             result=self.invoke(['compile'],wire,profile=profile)
             self.assertEqual((result.returncode,result.stdout),(2,b''))
+            rendered=self.invoke(['render-assembly'],wire,profile=profile)
+            self.assertEqual((rendered.returncode,rendered.stdout),(2,b''))
         value={**self.sample,'module':'selfhost_elf'}
         wire=json.dumps(value).encode()
         result=self.invoke(['compile'],wire,profile='elf')
@@ -244,6 +288,9 @@ class AgentStdioNativeTests(unittest.TestCase):
         self.assertEqual(result.stdout[:4],b'\x7fELF')
         self.assertEqual(struct.unpack_from('<H',result.stdout,16)[0],1)  # ET_REL, not exec
         self.assertEqual(self.invoke(['compile'],wire).returncode,2)
+        rendered=self.invoke(['render-assembly'],wire,profile='elf')
+        self.assertEqual((rendered.returncode,rendered.stdout,rendered.stderr),(0,render_assembly(value).encode(),b''))
+        self.assertEqual(self.invoke(['render-assembly'],wire).returncode,2)
 
     def test_original_modified_compiler_chains_are_genuine_and_separate(self):
         from tools.qualify_hia_selfhost import compile_stage,mutate_compiler
