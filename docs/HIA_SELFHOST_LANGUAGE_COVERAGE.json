@@ -2763,7 +2763,7 @@
         "empty-head-*",
         "parameter-*"
       ],
-      "output_format": "selfhost_elf only",
+      "output_format": "selfhost_elf or explicit scalar-export ELF only",
       "status": "bounded_subset"
     },
     {
@@ -2822,13 +2822,21 @@
         "elf_begin": "f38",
         "elf_finish": "f39",
         "elf_section": "f41",
+        "export_wrapper": "f120",
+        "exports_finish": "f121",
         "owned_elf_finish": "f77",
         "owned_elf_relocations": "f76",
-        "owned_import": "f71"
+        "owned_import": "f71",
+        "read_exports": "f118",
+        "validate_exports": "f119"
       },
       "items": [
         "HIA-written ELF64 ET_REL",
-        "one f0 SysV entry symbol",
+        "legacy borrowed f0 SysV entry symbol or explicit exports(name,...) scalar wrappers",
+        "explicit export list selects ELF independently of ordinary module name",
+        "exact-byte export resolution; private functions checked but not published",
+        "SysV register and stack arguments normalized to declared scalar widths",
+        "loader lifecycle-hook and reserved libc-import symbols refused; no empty or duplicate exports",
         "position-independent .text with resolved internal relocations",
         "nonexecuting stack note",
         "legacy object has no external symbols or relocations",
@@ -2852,7 +2860,7 @@
       },
       "items": [
         "arbitrary external symbols and relocations",
-        "multiple public functions",
+        "resource-bearing public signatures",
         "general linker",
         "additional ELF targets"
       ],
@@ -3143,6 +3151,13 @@
       "blocks_per_function": 256,
       "blocks_total": 1536,
       "core_structural_nodes": 262144,
+      "explicit_exports": 128,
+      "export_record_stride": 48,
+      "export_signature": "0..16 non-unit scalar parameters; zero or one scalar/unit result",
+      "export_workspace_bytes": [
+        1010448,
+        1016592
+      ],
       "formal_origin_block_bytes": [
         930576,
         955152
@@ -3231,7 +3246,7 @@
     "transport_limit": "ordinary child rejects source/output sizes above 1 MiB before native entry; no larger native-call claim",
     "unreachable_relocation_ceiling": {
       "configured": 12000,
-      "derived_maximum_with_other_limits": 11395
+      "derived_maximum_with_other_limits": 11522
     }
   },
   "owned_buffer_scope": {
@@ -3255,7 +3270,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v29",
+  "profile": "selfhost-core-linux-x86_64-v30",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -5187,13 +5202,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "0e14a3140d72b9de29fda380cd759eae912bf407fd73cb19fd679f7ae143e590"
+      "sha256": "2f77958ebbb271979e9ec3433a6817d20cd8d67710025e5ed9d3e89ee2aaee37"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "6a9809998d0ff4336f511b0b27b7a843190380948a16bedb772838f796cdb82f"
+      "sha256": "471dca6b7718407269c94d995ea6e02f3829b9cde0430ebbc48acb2c431e8a53"
     },
-    "semantic_support_sha256": "681b94768fce5f3d875aad51bf74e67ac983dfced8209dd17ed6a1d44de50d53",
+    "semantic_support_sha256": "83fb124b11bb3e2c9323a6d563414a2a1e1b06e34072ef97126eeb08b28178ee",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5208,7 +5223,7 @@
       "function_results": "zero to three scalar, owned buffer/chain or parameter-bound borrowed values internally; public f0 remains exactly u32",
       "header": "hia-asm.v1",
       "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
-      "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels select flat output",
+      "module": "ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; Core __hia_ prefix rejected; ordinary module labels without explicit exports select flat output",
       "object_module": "selfhost_elf",
       "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
       "whitespace": "ASCII space and LF; shared assembly adjacency rules"

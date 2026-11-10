@@ -180,6 +180,9 @@ def owned_instruction(o:mutbuf, w:mutbuf, op:u64, n:u64, a:u64, at:u64) -> u64:
 
 def owned_elf_relocations(o:mutbuf, w:mutbuf) -> u64:
     i = 0
+    symbol_base = 3
+    if get(w, 640) == 1:
+        symbol_base = get(w, 648) + 2
     if get(w, 48) == 1:
         while i < get(w, 344):
             emit8(o, w, 0)
@@ -190,7 +193,7 @@ def owned_elf_relocations(o:mutbuf, w:mutbuf) -> u64:
         while i < get(w, 224):
             if get(w, FIXBASE + i * 24 + 8) == 3:
                 emit8(o, w, get(w, FIXBASE + i * 24) - 64)
-                emit8(o, w, ((get(w, FIXBASE + i * 24 + 16) + 3) << 32) | 4)
+                emit8(o, w, ((get(w, FIXBASE + i * 24 + 16) + symbol_base) << 32) | 4)
                 emit8(o, w, 18446744073709551612)
             i = i + 1
     return 0

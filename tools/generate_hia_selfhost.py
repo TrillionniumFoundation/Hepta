@@ -23,6 +23,7 @@ from tools.hia_selfhost_traps import SOURCE as TRAP_SOURCE
 from tools.hia_selfhost_returned_loans import SOURCE as RETURNED_LOAN_SOURCE
 from tools.hia_selfhost_cli import SOURCE as CLI_SOURCE
 from tools.hia_selfhost_names import SOURCE as NAMES_SOURCE
+from tools.hia_selfhost_exports import SOURCE as EXPORTS_SOURCE
 
 TYPES = {"u64": 1, "usize": 2, "u32": 3, "u8": 4, "bool": 5, "readbuf": 6, "mutbuf": 7, "buffer": 8, "chain": 9, "u16": 10, "i64": 11, "isize": 12, "i32": 13, "i8": 14, "i16": 15, "unit": 16}
 WORDS = ["hia-asm.v1", "hepta.hia.program.v8", "selfhost", "fn", "effects", "read", "write", "trap", "entry", "block", "end", "ret", "jump", "branch", "value", "mode", "wrap", "function", "true", "false", *TYPES,
@@ -31,7 +32,7 @@ WORDS += ["alloc", "buffer.new", "buffer.try_new", "owner.move", "owner.drop"]
 WORDS += ["chain.empty", "chain.try_push", "chain.pop", "chain.is_empty", "chain.head_read", "chain.head_mut"]
 WORDS += ["checked", "null"]
 WORDS += ["allocation", "bounds", "division_by_zero", "overflow", "user"]
-WORDS += ["return_loans", "selfhost_exec"]
+WORDS += ["return_loans", "selfhost_exec", "exports"]
 W = {s: i + 300 for i,s in enumerate(WORDS)}
 # Scratch ABI: state 0..2047; function records; block records; local SSA types;
 # argument vector; relative relocation records; bounded call graph and marks.
@@ -100,11 +101,13 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 # select a different ABI; all other admitted names emit flat.
                 next_token(s, w)
         expect(s, w, 10)
+        read_exports(s, w)
         if get(w, 232) == 1:
             elf_begin(o, w)
         if get(w, 232) == 2:
             cli_begin(o, w)
-        wrapper(o, w)
+        if get(w, 640) == 0:
+            wrapper(o, w)
         put(w, 240, get(w, 56))
         while get(w, 8) == @fn@ and get(w, 40) == 0:
             parse_function(s, o, w)
@@ -119,9 +122,15 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 check_calls(w)
                 if get(w, 40) != 0:
                     return 4294967295
+        validate_exports(s, w)
+        if get(w, 40) != 0:
+            return 4294967295
         if get(w, 232) == 1:
             chain_drop_helper(o, w)
-            elf_finish(o, w)
+            if get(w, 640) == 1:
+                exports_finish(s, o, w)
+            else:
+                elf_finish(o, w)
         if get(w, 232) == 2:
             cli_finish(o, w)
         if phase == 1:
@@ -194,7 +203,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     expect(s, w, 41)
     read_return_loans(s, w)
     expect(s, w, 10)
-    if f == 0:
+    if f == 0 and get(w, 640) == 0:
         if count != 3 or rt != 3 or get(w, fb + 184) != 1:
             fail(w, 5)
         if get(w, fb + 48) != 6 or get(w, fb + 56) != 7 or get(w, fb + 64) != 7:
@@ -1148,19 +1157,26 @@ def fail(w:mutbuf, code:u64) -> u64:
     return 0
 
 def put(w:mutbuf, at:u64, value:u64) -> u64:
-    i = 0
-    while i < 8:
-        store(w, at + i, value & 255)
-        value = value >> 8
-        i = i + 1
+    store(w, at + 0, (value >> 0) & 255)
+    store(w, at + 1, (value >> 8) & 255)
+    store(w, at + 2, (value >> 16) & 255)
+    store(w, at + 3, (value >> 24) & 255)
+    store(w, at + 4, (value >> 32) & 255)
+    store(w, at + 5, (value >> 40) & 255)
+    store(w, at + 6, (value >> 48) & 255)
+    store(w, at + 7, (value >> 56) & 255)
     return 0
 
 def get(w:mutbuf, at:u64) -> u64:
-    i = 0
     value = 0
-    while i < 8:
-        value = value | (byte(w, at + i) << (i * 8))
-        i = i + 1
+    value = value | (byte(w, at + 0) << 0)
+    value = value | (byte(w, at + 1) << 8)
+    value = value | (byte(w, at + 2) << 16)
+    value = value | (byte(w, at + 3) << 24)
+    value = value | (byte(w, at + 4) << 32)
+    value = value | (byte(w, at + 5) << 40)
+    value = value | (byte(w, at + 6) << 48)
+    value = value | (byte(w, at + 7) << 56)
     return value
 
 def elf_begin(o:mutbuf, w:mutbuf) -> u64:
@@ -1735,6 +1751,7 @@ def guard_failure(condition:bool, w:mutbuf, code:u64) -> u64:
     return 0
 '''
 SOURCE += NAMES_SOURCE
+SOURCE += EXPORTS_SOURCE
 
 
 def source_program():

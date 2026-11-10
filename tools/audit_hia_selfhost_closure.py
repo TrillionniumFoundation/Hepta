@@ -30,7 +30,7 @@ COMPONENTS = (
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py", "hepta/hia_sha256_native.py"), "open",
      "A bounded one-shot SHA-256 algorithm is implemented in HIA and can be explicitly selected for Core content digests; host code-custody hashing remains. Core reference interpretation, general runtime/task/I/O and the complete production library remain open."),
     ("native_backend_and_linker", ("hepta/hia_program_native.py", "hepta/hia_program_aarch64.py", "hepta/hia_program_llvm.py"), "partial",
-     "HIA writes bounded Linux x86-64 flat/ELF images; general linking, multiple exports and other native targets remain Python/external tools."),
+     "HIA writes bounded Linux x86-64 flat/ELF images, including multiple exact-name scalar C exports and allocator relocations. General module/link graphs, resource-bearing public ABI, actual shared-object linking and other native targets remain Python/external tools."),
     ("modules_packages_build", ("hepta/modules.py", "hepta/packages.py", "hepta/pipeline.py"), "open",
      "Module graphs, package locks, build orchestration and the complete frontend pipeline remain Python."),
     ("agent_tools_and_persistence", ("hepta/hia_agent_worker.py", "hepta/hia_agent_service.py", "hepta/hia_agent_store.py"), "open",
