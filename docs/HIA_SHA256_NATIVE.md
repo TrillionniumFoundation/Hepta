@@ -38,3 +38,19 @@ HIA. Other source hashing, proof/receipt code, runtime/library functions, object
 bridges, CLI, build and installation tools are not replaced by this library.
 Finite FIPS/vector/random/boundary/bit-mutation/concurrency observations do not
 prove cryptographic security, all-input refinement or whole-stack closure.
+
+## Exact implementation qualification
+
+Implementation `d6e94a90a9312591db036a4245b7a4a4a1a32e67` passes actual clean committed source recovery and
+98 source tests, cold 11/11 plus 4,351 native compiler observations in
+170.913 seconds under the unchanged 180-second deadline, language 1,242/1,242
+and 10 report assertions, 33 native SHA/JSON tests, 83 explicitly installed
+consumer tests, 83 default consumer tests and 55 selected-backend incremental
+tests. All qualification steps preserve the clean source checkout.
+
+Finite receipts are retained in `sha256-native-library-summary.json`; the
+static whole-stack inventory reconstructs byte-for-byte from v28 plus
+`implementation-boundary-sha256-delta.json`. Current-source full-repository
+regression remains a separate requirement; the older v31 run cannot qualify
+this implementation. No release lock, main branch or production runtime is
+promoted by these library observations.
