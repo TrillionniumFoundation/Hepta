@@ -230,6 +230,14 @@ class _Checker:
 
     def generic_arguments(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False,
                           bounds: dict[str, str] | None = None) -> dict[str, Type]:
+        native = self._native_type_validation(Type('$generic-arguments', args), span, mode=5,
+            generic_params=params, bounds=bounds, allow_owned=allow_owned)
+        if native is not None:
+            return {name: ERROR if value is None else value for name, value in native[2]}
+        return self._generic_arguments_reference(params, args, span, allow_owned=allow_owned, bounds=bounds)
+
+    def _generic_arguments_reference(self, params: tuple[str, ...], args: tuple[Type, ...], span: Span, *, allow_owned: bool = False,
+                                     bounds: dict[str, str] | None = None) -> dict[str, Type]:
         if len(params) != len(args):
             self.error("E_GENERIC_ARITY", f"expected {len(params)} explicit type argument(s), found {len(args)}", span)
         for index, arg in enumerate(args):
@@ -305,6 +313,28 @@ class _Checker:
         return value_type(typ)
 
     def valid_owned_payload_shapes(self, typ: Type, span: Span) -> bool:
+        import os
+        manifest = os.environ.get('HEPTA_HIA_TYPE_GRAPH_MANIFEST')
+        if manifest:
+            from .hia_type_graph_native import GraphProfileLimit, packet, installed_type_graph
+            try:
+                graph = packet(typ, self.structs, self.enums,
+                    names=LINEAR | self.owned_type_params | {'ref_mut'}, mode=3)
+            except (GraphProfileLimit, UnicodeEncodeError):
+                pass
+            else:
+                try:
+                    diagnostics = installed_type_graph(manifest).owned_shapes(graph)
+                except GraphProfileLimit:
+                    pass
+                else:
+                    for current in diagnostics:
+                        self.error('E_NESTED_LINEAR',
+                            f'instantiated payload {current} hides resources in an unsupported container', span)
+                    return not diagnostics
+        return self._valid_owned_payload_shapes_reference(typ, span)
+
+    def _valid_owned_payload_shapes_reference(self, typ: Type, span: Span) -> bool:
         """Instantiation must not hide resources in unsupported containers.
 
         Declarations such as Box<T> { values: [T; 2] } are valid for Copy T,
@@ -335,6 +365,36 @@ class _Checker:
         return good
 
     def valid_type(self, typ: Type, span: Span, *, allow_slice: bool = False, allow_cancellation: bool = False, allow_sender: bool = False, allow_reference: bool = False) -> bool:
+        flags = int(allow_slice) | int(allow_cancellation) << 1 | int(allow_sender) << 2 | int(allow_reference) << 3
+        native = self._native_type_validation(typ, span, mode=4, flags=flags)
+        if native is not None:
+            return native[0]
+        return self._valid_type_reference(typ, span, allow_slice=allow_slice,
+            allow_cancellation=allow_cancellation, allow_sender=allow_sender, allow_reference=allow_reference)
+
+    def _native_type_validation(self, typ: Type, span: Span, **configuration):
+        import os
+        manifest = os.environ.get('HEPTA_HIA_TYPE_GRAPH_MANIFEST')
+        if not manifest:
+            return None
+        from .hia_type_graph_native import GraphProfileLimit, packet, installed_type_graph
+        try:
+            graph = packet(typ, self.structs, self.enums,
+                names=LINEAR | self.owned_type_params | {'ref_mut'}, type_params=self.type_params,
+                lifetime_params=self.lifetime_params, in_body=self.in_body, **configuration)
+        except (GraphProfileLimit, UnicodeEncodeError):
+            return None
+        try:
+            native = installed_type_graph(manifest).validate_type(graph)
+        except GraphProfileLimit:
+            return None
+        # The complete output is validated and materialized before any host
+        # diagnostics are appended. Artifact/result errors never fall back.
+        for code, message in native[1]:
+            self.error(code, message, span)
+        return native
+
+    def _valid_type_reference(self, typ: Type, span: Span, *, allow_slice: bool = False, allow_cancellation: bool = False, allow_sender: bool = False, allow_reference: bool = False) -> bool:
         name = typ.name
         declared_lifetimes = getattr(self.structs.get(name), "lifetime_params", ())
         expected_lifetimes = 1 if name in REFERENCE_TYPES else len(declared_lifetimes)

@@ -34,7 +34,7 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     image,receipt=compile_stage(output,'type-graph',compiler,source)
     if source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes:
         raise ValueError('native candidate build inputs changed')
-    manifest={'schema':'hepta.hia.type-graph-native.v1','source_sha256':sha256(source).hexdigest(),
+    manifest={'schema':'hepta.hia.type-graph-native.v3','source_sha256':sha256(source).hexdigest(),
         'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
         'compiler_sha256':compiler_sha}
     path=output/'manifest.json'

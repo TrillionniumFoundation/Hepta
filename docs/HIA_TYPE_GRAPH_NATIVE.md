@@ -1,5 +1,9 @@
 # Native nominal/generic type graph dependency
 
+For the newer, not-yet-qualified complete validity/generic/owned-shape candidate,
+see [HIA_TYPE_VALIDATION_NATIVE.md](HIA_TYPE_VALIDATION_NATIVE.md). The receipt
+below belongs only to its pinned type-graph dependency source.
+
 This is a dependency of the still-incomplete source semantic checker rewrite,
 not a complete type checker or whole-stack selfhost claim. The default paths
 remain unchanged; no release or production service is switched.

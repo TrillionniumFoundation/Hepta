@@ -45,11 +45,11 @@ class Type:
     def __str__(self) -> str:
         if self.name in ("ref_read", "ref_mut") and len(self.args) == len(self.lifetimes) == 1:
             return f"{self.name[4:]} '{self.lifetimes[0]} {self.args[0]}"
-        if self.name == "slice":
+        if self.name == "slice" and len(self.args) == 1:
             return f"[{self.args[0]}]"
-        if self.name == "array":
+        if self.name == "array" and len(self.args) == 1:
             return f"[{self.args[0]}; {self.length}]"
-        if self.name in ("raw_const", "raw_mut"):
+        if self.name in ("raw_const", "raw_mut") and len(self.args) == 1:
             return f"raw {'const' if self.name == 'raw_const' else 'mut'} {self.args[0]}"
         arguments = ["'" + name for name in self.lifetimes] + list(map(str, self.args))
         return self.name + ("<" + ", ".join(arguments) + ">" if arguments else "")

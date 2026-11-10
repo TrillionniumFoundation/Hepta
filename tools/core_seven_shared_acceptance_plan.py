@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v18'
-PROTOCOL = 'seven-shared-acceptance-v18'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v19'
+PROTOCOL = 'seven-shared-acceptance-v19'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -215,10 +215,13 @@ TYPE_GRAPH_ADDITIONS = (
     'tools/build_hia_type_graph.py',
     'tools/generate_hia_type_graph.py',
 )
-# Exact type-graph inputs transfer 651 bytes from logs to identity metadata.
+# Complete type-controller authoring adds 134 identity bytes, transferred from
+# logs to metadata inside the unchanged aggregate evidence envelope.
+TYPE_VALIDATION_ADDITIONS = ('tools/generate_hia_type_validation.py',)
+# The entire historical type-graph projection remains independently pinned.
 # All aggregate/source/module/process caps and prior projections are unchanged.
-IDENTITY_CAP = 164820
-IDENTITY_RESERVE_DELTA = 20107
+IDENTITY_CAP = 164954
+IDENTITY_RESERVE_DELTA = 20241
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -307,16 +310,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
                                     *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
-                                    *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS)))
+                                    *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS, *TYPE_VALIDATION_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 390 and commitment(paths) == '48c6bb782538d50e2c60d715c3f9fe92f2b0bf88db5df2b74c79c1dfea9ddfaf',
+    require(len(paths) == len(set(paths)) == 391 and commitment(paths) == 'b7fcd093ea305b86c4e39e56a9a79c65c0f0bc8b04921b5349058cfd31083dc6',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in TYPE_GRAPH_ADDITIONS)
+    previous = tuple(name for name in paths if name not in TYPE_VALIDATION_ADDITIONS)
+    require(len(previous) == 390 and commitment(previous) == '48c6bb782538d50e2c60d715c3f9fe92f2b0bf88db5df2b74c79c1dfea9ddfaf',
+            'historical type graph identity projection')
+    previous = tuple(name for name in previous if name not in TYPE_GRAPH_ADDITIONS)
     require(len(previous) == 385 and commitment(previous) == 'c40333f36ef9bec6ac55c15926370629ec701fe83aedea9c639412a66bd08c52',
             'historical source effects identity projection')
     previous = tuple(name for name in previous if name not in SOURCE_EFFECTS_ADDITIONS)

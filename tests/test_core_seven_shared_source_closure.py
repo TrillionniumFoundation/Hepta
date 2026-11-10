@@ -118,7 +118,9 @@ TYPE_GRAPH_ADDITIONS = (
     'tools/generate_hia_type_graph.py',
 )
 
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS)
+TYPE_VALIDATION_ADDITIONS = ('tools/generate_hia_type_validation.py',)
+
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS, *TYPE_VALIDATION_ADDITIONS)
 PRIOR_COMMITMENT = '36af03771b8b81803d90baafc92fd290d9e6cadbb03e7e135a99beae804bb0f0'
 ROUND4_COMMITMENT = 'ffc0f4bd9585328bb21e99d0fe3bac7717b65d823a72cb5de9987886018055db'
 ROUND5_COMMITMENT = 'd27b4d1edaa27950489d7b54fa6b8242b493883d0927933fa303e5b1203c9c55'
@@ -128,7 +130,7 @@ P0_P3_COMMITMENT = '77fb9af75d987acab91d224cf47c5e6734f8c6eb9c4fa895064fba306289
 SAFE_CORE_COMMITMENT = '223c03fa82d871fee3d85d57bb1e254d658a9d85007ec11bea5bfbb1fad5d1b5'
 SCOPED_AGENT_NDU_COMMITMENT = '9a888e4dbfe883eb74fd8961a5fbc2b90b0cac7b9a6343ef5720145e23be72c7'
 PERSISTENT_NDU_COMMITMENT = '5a6311333c82ea95a464ff9257f190f5712b52e3da90c02169e063ca1698f8dc'
-CURRENT_COMMITMENT = '48c6bb782538d50e2c60d715c3f9fe92f2b0bf88db5df2b74c79c1dfea9ddfaf'
+CURRENT_COMMITMENT = 'b7fcd093ea305b86c4e39e56a9a79c65c0f0bc8b04921b5349058cfd31083dc6'
 
 
 @contextmanager
@@ -147,7 +149,7 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 390)
+        self.assertEqual(len(actual), 391)
         self.assertEqual(plan.NATIVE_AGENT_ADDITIONS, NATIVE_AGENT_INPUTS)
         self.assertEqual(plan.P0_P3_ADDITIONS, P0_P3_INPUTS)
         self.assertEqual(plan.SAFE_CORE_ADDITIONS, SAFE_CORE_INPUTS)
@@ -160,7 +162,11 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(plan.SOURCE_PARSER_ADDITIONS,SOURCE_PARSER_ADDITIONS)
         self.assertEqual(plan.SOURCE_EFFECTS_ADDITIONS,SOURCE_EFFECTS_ADDITIONS)
         self.assertEqual(plan.TYPE_GRAPH_ADDITIONS,TYPE_GRAPH_ADDITIONS)
-        effects_native=tuple(name for name in actual if name not in TYPE_GRAPH_ADDITIONS)
+        self.assertEqual(plan.TYPE_VALIDATION_ADDITIONS,TYPE_VALIDATION_ADDITIONS)
+        graph_native=tuple(name for name in actual if name not in TYPE_VALIDATION_ADDITIONS)
+        self.assertEqual(len(graph_native),390)
+        self.assertEqual(plan.commitment(graph_native),'48c6bb782538d50e2c60d715c3f9fe92f2b0bf88db5df2b74c79c1dfea9ddfaf')
+        effects_native=tuple(name for name in graph_native if name not in TYPE_GRAPH_ADDITIONS)
         self.assertEqual(len(effects_native),385)
         self.assertEqual(plan.commitment(effects_native),'c40333f36ef9bec6ac55c15926370629ec701fe83aedea9c639412a66bd08c52')
         source_native=tuple(name for name in effects_native if name not in SOURCE_EFFECTS_ADDITIONS)
@@ -208,7 +214,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS, *TYPE_VALIDATION_ADDITIONS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
@@ -219,7 +225,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
 
     def test_each_new_compiler_module_is_required(self):
         with compiler_directory() as root, patch.object(plan, 'ROOT', root):
-            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS,*SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
+            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS,*SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *SOURCE_EFFECTS_ADDITIONS, *TYPE_GRAPH_ADDITIONS, *TYPE_VALIDATION_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
                 with self.subTest(name=name):
                     (root / name).unlink()
                     with self.assertRaisesRegex(ValueError, 'complete actual compiler_hash input set'):

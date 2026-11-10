@@ -1,5 +1,25 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09
 
+**Current type-validation candidate (2026-11-10; qualification pending):**
+HIA now implements the complete `valid_type`, explicit generic argument
+validation/mapping and instantiated owned-payload-shape phases in the optional
+candidate. Native development19PASS and shared closure15PASS do not qualify a
+clean commit or the whole repository. Exact-source cold/CI/composition evidence
+is still required. Declaration, expression, flow/ownership and the remaining
+runtime/tools/build/delivery stack stay foreign; the whole objective remains
+open. See `HIA_TYPE_VALIDATION_NATIVE.md`. Historical checkpoint receipts below
+refer only to their pinned sources, never to this newer candidate.
+
+**Full-regression failure retained:** published source-parser predecessor
+`a146e0aac16909241614d7093afbe5c04255e612` finished FAIL (7,737tests,
+4failures/108errors, source unchanged). The108errors identify three missing NDU
+prerequisites. Exact original compiled bytes were restored against unchanged
+receipts. A new83-test failing-class rerun passed, with20actual crossfile
+runs/1,248hidden cases. This does not promote the original full FAIL; its
+crossfile failure's original precise cause remains unestablished. The effects
+queue failed preflight before tests; a separately recorded recovery is waiting
+behind the currently live full run. Newer full regressions are not passed.
+
 ## Decision and source authority
 
 **Current type-graph dependency checkpoint (2026-11-10):** clean
