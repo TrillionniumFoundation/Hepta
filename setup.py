@@ -13,13 +13,21 @@ ROOT=Path(__file__).resolve().parent
 
 def agent_resources():
     tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
-    declarations=[node for node in tree.body if isinstance(node,ast.Assign)
-                  and any(isinstance(target,ast.Name) and target.id=='DISCOVERY_FILES' for target in node.targets)]
-    if len(declarations)!=1:raise ValueError('one explicit Agent discovery resource list required')
-    names=ast.literal_eval(declarations[0].value)
-    if type(names)is not tuple or any(type(n)is not str or Path(n).name!=n for n in names):
+    values={}
+    for symbol in ('DISCOVERY_FILES','NATIVE_SOURCE_FILES'):
+        declarations=[node for node in tree.body if isinstance(node,ast.Assign)
+                      and any(isinstance(target,ast.Name) and target.id==symbol for target in node.targets)]
+        if len(declarations)!=1:raise ValueError('one explicit Agent resource list required: '+symbol)
+        names=ast.literal_eval(declarations[0].value)
+        if type(names)is not tuple or any(type(n)is not str or not n for n in names):
+            raise ValueError('invalid Agent resource names')
+        values[symbol]=names
+    if any(Path(n).name!=n for n in values['DISCOVERY_FILES']):
         raise ValueError('invalid Agent discovery resource filenames')
-    return tuple('docs/'+n for n in names)+('examples/hia_bootstrap/agent_identity.hiaasm',)
+    names=tuple('docs/'+n for n in values['DISCOVERY_FILES'])+values['NATIVE_SOURCE_FILES']
+    if len(names)!=len(set(names)) or any(Path(n).is_absolute() or '..' in Path(n).parts for n in names):
+        raise ValueError('invalid or duplicate Agent resource paths')
+    return names
 
 class AgentResourceBuild(build_py):
     def run(self):

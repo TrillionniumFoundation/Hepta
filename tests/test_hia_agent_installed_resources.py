@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+('examples/hia_bootstrap/agent_identity.hiaasm',)
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
@@ -23,6 +23,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
     def setUpClass(cls):
         from tests.test_hia_agent_identity_native import witnesses
         witnesses() # Complete independent VM bytes precede native seed.
+        from tests.test_hia_agent_slice_native import references
+        references() # Complete independent graph result bytes also precede B0.
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         from hepta.hia_agent_identity_native import SOURCE,SCHEMA
         from tests.test_hia_agent_entry import CHILD
@@ -51,6 +53,10 @@ class AgentInstalledResourceTests(unittest.TestCase):
         second,_=compile_stage(cls.native,'B2',first,compiler);assert first.read_bytes()==second.read_bytes()
         image,_=compile_stage(cls.native,'identity',second,SOURCE.read_bytes())
         cls.manifest=cls.native/'manifest.json';cls.manifest.write_text(json.dumps(dict(schema=SCHEMA,source_sha256=sha256(SOURCE.read_bytes()).hexdigest(),image_path=image.name,image_sha256=sha256(image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from hepta.hia_agent_slice_native import SOURCE as SLICE_SOURCE, SCHEMA as SLICE_SCHEMA
+        graph,_=compile_stage(cls.native,'slice',second,SLICE_SOURCE.read_bytes())
+        cls.slice_manifest=cls.native/'slice-manifest.json'
+        cls.slice_manifest.write_text(json.dumps(dict(schema=SLICE_SCHEMA,source_sha256=sha256(SLICE_SOURCE.read_bytes()).hexdigest(),image_path=graph.name,image_sha256=sha256(graph.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
 from pathlib import Path
@@ -93,6 +99,45 @@ assert not blocked.intersection(sys.modules)
         state=self.folder/'valid';r=self.invoke(state,wire(self.request))
         self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'));self.assertEqual(r.stderr,b'')
         self.assertEqual(json.loads(r.stdout)['response']['status'],'completed');self.assertTrue(state.is_dir())
+
+    def test_real_installed_graph_queries_without_checkout_or_reference_slicers(self):
+        from tests.test_hia_agent_entry import CHILD,fixture
+        from hepta.hia_edit_query import prepare_edit
+        expected=prepare_edit(fixture(),function='calculate',block='entry',output='y',fields=['op'])
+        code='import sys\nsys.path.insert(0,sys.argv[1])\n'+CHILD.split('from hepta.cli import')[0]+"""
+import json
+from pathlib import Path
+from hepta.hia_agent_slice_native import SOURCE
+assert Path(sys.argv[1]) in SOURCE.parents,SOURCE
+from hepta import hia_edit_query as query
+def absent(*a,**kw):raise AssertionError('host graph algorithm reached installed native route')
+query._reference_edit_slice=absent
+query._cfg_downstream_slice=absent
+result=query.prepare_edit(json.loads(sys.stdin.buffer.read()),function='calculate',block='entry',output='y',fields=['op'])
+assert not blocked.intersection(sys.modules)
+print(json.dumps(result))
+"""
+        r=subprocess.run([sys.executable,'-I','-S','-B','-c',code,str(self.installed)],input=wire(fixture()),
+            capture_output=True,timeout=15,cwd=self.folder,env={'PATH':'','LANG':'C',
+            'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(self.slice_manifest)})
+        self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'))
+        self.assertEqual(r.stderr,b'')
+        self.assertEqual(json.loads(r.stdout),expected)
+
+    def test_missing_slice_source_refuses_worker_before_state_without_source_fallback(self):
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_slice.hiaasm';hold=p.with_suffix('.held');p.rename(hold)
+        try:
+            state=self.folder/'missing-slice';r=self.invoke(state,wire(self.request))
+            self.assertNotEqual(r.returncode,0);self.assertEqual(r.stdout,b'');self.assertFalse(state.exists())
+        finally:hold.rename(p)
+
+    def test_slice_source_drift_invalidates_worker_pin_before_state(self):
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_slice.hiaasm';raw=p.read_bytes();p.write_bytes(raw+b'\n')
+        try:
+            state=self.folder/'stale-slice';r=self.invoke(state,wire(self.request),('--expected-worker-sha256',self.identity['worker_sha256']))
+            self.assertEqual(r.returncode,2);self.assertEqual(r.stdout,b'');self.assertFalse(state.exists())
+            self.assertIn(b'administrator source pin differs',r.stderr)
+        finally:p.write_bytes(raw)
 
     def test_missing_native_source_fails_before_service_no_source_fallback(self):
         p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hiaasm';hold=p.with_suffix('.held');p.rename(hold)

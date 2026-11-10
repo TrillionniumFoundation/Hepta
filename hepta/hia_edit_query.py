@@ -198,30 +198,7 @@ def _cfg_downstream_slice(fn, source_block, affected, shown_count):
     return result
 
 
-def prepare_edit(document, *, function, block, output, fields):
-    """Select a value-producing instruction by its SSA output, not text offsets."""
-    original = verify_program(document)
-    if (type(fields) not in (list, tuple) or not fields or len(fields) > len(FIELDS)
-            or any(type(x) is not str or x not in FIELDS for x in fields)
-            or len(set(fields)) != len(fields)):
-        _reject("fields must be a unique nonempty subset of op, args, attrs")
-    if any(type(x) is not str for x in (function, block, output)):
-        _reject("function, block and output identities must be strings")
-    data = original.as_dict()
-    include_return_loans = data["schema"] == "hepta.hia.program.v8"
-    matches = [fn for fn in data["functions"] if fn["name"] == function]
-    if len(matches) != 1:
-        _reject("function not found")
-    fn = matches[0]
-    matches = [b for b in fn["blocks"] if b["id"] == block]
-    if len(matches) != 1:
-        _reject("block not found")
-    node = matches[0]
-    sites = [(index, op) for index, op in enumerate(node["ops"])
-             if any(value["name"] == output for value in op["out"])]
-    if len(sites) != 1:
-        _reject("SSA output does not identify one instruction")
-    index, operation = sites[0]
+def _reference_edit_slice(fn, node, index, operation):
     outputs = {value["name"] for value in operation["out"]}
     # Capture the transitive *same-block* SSA dataflow use chain. A direct
     # consumer may feed a second, third, or later instruction that actually
@@ -253,6 +230,41 @@ def prepare_edit(document, *, function, block, output, fields):
     if len(shown) + len(needed) > MAX_VISIBLE_OPERATIONS:
         _reject("transitive SSA view exceeds bounded operation budget")
     downstream = _cfg_downstream_slice(fn, node, affected, len(shown) + len(needed))
+    return needed, consumers, downstream
+
+
+def prepare_edit(document, *, function, block, output, fields):
+    """Select a value-producing instruction by its SSA output, not text offsets."""
+    original = verify_program(document)
+    if (type(fields) not in (list, tuple) or not fields or len(fields) > len(FIELDS)
+            or any(type(x) is not str or x not in FIELDS for x in fields)
+            or len(set(fields)) != len(fields)):
+        _reject("fields must be a unique nonempty subset of op, args, attrs")
+    if any(type(x) is not str for x in (function, block, output)):
+        _reject("function, block and output identities must be strings")
+    data = original.as_dict()
+    include_return_loans = data["schema"] == "hepta.hia.program.v8"
+    matches = [fn for fn in data["functions"] if fn["name"] == function]
+    if len(matches) != 1:
+        _reject("function not found")
+    fn = matches[0]
+    matches = [b for b in fn["blocks"] if b["id"] == block]
+    if len(matches) != 1:
+        _reject("block not found")
+    node = matches[0]
+    sites = [(index, op) for index, op in enumerate(node["ops"])
+             if any(value["name"] == output for value in op["out"])]
+    if len(sites) != 1:
+        _reject("SSA output does not identify one instruction")
+    index, operation = sites[0]
+    import os
+    selection = os.environ.get('HEPTA_HIA_AGENT_SLICE_MANIFEST')
+    if selection:
+        from .hia_agent_slice_native import installed_agent_slice, native_edit_slice
+        needed, consumers, downstream = native_edit_slice(
+            installed_agent_slice(selection), fn, node, index)
+    else:
+        needed, consumers, downstream = _reference_edit_slice(fn, node, index, operation)
     visible_ops = [operation, *(node["ops"][i] for i in needed),
                    *(item["operation"] for item in consumers)]
     for downstream_block in downstream:

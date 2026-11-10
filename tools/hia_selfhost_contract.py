@@ -13,8 +13,13 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v41-core-controls-custody"
+PROFILE = "selfhost-core-linux-x86_64-v42-core-agent-slice-installed"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_SLICE_NATIVE.md',
+    'examples/hia_bootstrap/agent_slice.hiaasm',
+    'tests/test_hia_agent_slice_native.py',
+    'tools/build_hia_agent_slice.py',
+    'tools/generate_hia_agent_slice.py',
     'tools/hia_core_source_identity.py',
     'tools/qualify_hia_guarded_opportunity.py',
     'tests/test_hia_source_head_identity.py',

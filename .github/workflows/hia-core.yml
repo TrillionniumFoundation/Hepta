@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in agent_identity elf_linker native_filter core_json_cli agent_stdio sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in agent_slice agent_identity elf_linker native_filter core_json_cli agent_stdio sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -26,6 +26,7 @@ jobs:
           names = (
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
               "tests.test_hia_source_head_identity", "tests.test_hia_integrated_workflow",
+              "tests.test_hia_agent_slice_native.AgentSliceSourceTests",
               "tests.test_hia_agent_identity_native.AgentIdentitySourceTests",
               "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
               "tests.test_hia_agent_stdio.AgentStdioSourceTests",
@@ -70,6 +71,7 @@ jobs:
           python -B - <<'PYTEST'
           import unittest
           names = (
+              'tests.test_hia_agent_slice_native',
               'tests.test_hia_agent_stdio',
               'tests.test_hia_core_json_cli',
               'tests.test_hia_elf_linker',
