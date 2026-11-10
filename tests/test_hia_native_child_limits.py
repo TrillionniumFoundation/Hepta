@@ -25,9 +25,14 @@ _CONTROL = r"""
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/prctl.h>
 
 int32_t healthy(void) { return 7; }
 int32_t force_abort(void) { abort(); return 7; }
+int32_t restore_core_dumping(void) {
+    (void)prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
+    return 7;
+}
 
 int32_t flood_stdout(void) {
     char bytes[512];
@@ -120,6 +125,11 @@ class NativeChildHardLimitTests(unittest.TestCase):
         # address space. This is an evaluator budget, not the language's
         # native heap bound or a general process security sandbox.
         self.assertEqual(self.observe("huge_virtual_allocation"), ("value", 7))
+
+    def test_foreign_code_cannot_restore_kernel_core_pipe_dumping(self):
+        with self.assertRaisesRegex(differential.HIADifferentialRejected,
+                                    "unexpected error/signal " + str(-signal.SIGSYS)):
+            self.observe("restore_core_dumping")
 
 
     def test_worker_timeout_and_normal_exit_both_reap_forked_descendants(self):

@@ -62,6 +62,8 @@ _rules = [(0x20, 0, 0, 4), (0x15, 1, 0, 0xC000003E),
 # hostile-code sandbox or a proof of zero external side effects.
 _FORBIDDEN_SYSCALLS = (
     56, 57, 58, 435, 59, 322, 109, 112, 272, 308, 101, 425,
+    # Native code must not undo the no-core-pipe setting established below.
+    157,  # prctl, including PR_SET_DUMPABLE
     # socket, connect, accept, send/recv, bind, listen, socketpair, options
     41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55,
     288, 299, 307,
@@ -88,6 +90,14 @@ for _nr in _FORBIDDEN_SYSCALLS:
 # exact original worker PID and native TID, with signal SIGABRT=6.
 # Kernel gettid() must be observed before installing seccomp.
 _libc = ctypes.CDLL(None, use_errno=True)
+# RLIMIT_CORE=0 does not suppress a pipe-based kernel core collector. A fatal
+# seccomp signal can otherwise wait for that external collector before waitid
+# observes termination, exhausting an unchanged short observation deadline.
+# Disable dumping per worker, not through host-global configuration. Native
+# constructors cannot restore it because prctl is denied by the filter.
+if (_libc.prctl(4, 0, 0, 0, 0) != 0  # PR_SET_DUMPABLE
+        or _libc.prctl(3, 0, 0, 0, 0) != 0):  # PR_GET_DUMPABLE
+    raise RuntimeError("native evaluator must disable kernel core dumping")
 _worker_pid = os.getpid()
 _worker_tid = _libc.syscall(186)
 if (not 0 < _worker_pid < (1 << 32)

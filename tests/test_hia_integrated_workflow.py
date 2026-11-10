@@ -84,6 +84,9 @@ class CoreWorkflowContractTests(unittest.TestCase):
         required = {'tests.test_hia_agent_slice_native', 'tests.test_hia_agent_stdio', 'tests.test_hia_core_json_cli', 'tests.test_hia_elf_linker',
                     'tests.test_hia_agent_identity_native', 'tests.test_hia_agent_installed_resources'}
         required.update('tests.' + p.stem for p in (ROOT / 'tests').glob('test_hia_host_region*.py'))
+        required.update('tests.test_hia_native_' + suffix for suffix in (
+            'child_limits', 'seccomp', 'side_effects', 'cleanup',
+            'mapping_identity', 'startup_isolation'))
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
 

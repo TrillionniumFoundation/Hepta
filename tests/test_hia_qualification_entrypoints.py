@@ -38,9 +38,9 @@ class QualificationEntrypointTests(unittest.TestCase):
 
 
 
-    def test_local_views_reaches_argparse_from_both_working_directories(self):
-        script = ROOT / "tools" / "qualify_llvm_local_views.py"
-        with tempfile.TemporaryDirectory(prefix="hepta local views CLI ") as directory:
+    def test_core_composite_reaches_argparse_from_both_working_directories(self):
+        script = ROOT / "tools" / "qualify_hia_composite_bulk.py"
+        with tempfile.TemporaryDirectory(prefix="hia core composite CLI ") as directory:
             for cwd in (ROOT, Path(directory)):
                 for pythonpath in (None, ""):
                     with self.subTest(cwd=str(cwd), pythonpath=pythonpath):
@@ -49,7 +49,7 @@ class QualificationEntrypointTests(unittest.TestCase):
                         missing = self.run_cli([script], cwd, pythonpath=pythonpath)
                         self.assertEqual(missing.returncode, 2, missing.stdout + missing.stderr)
                         self.assertIn("required", missing.stderr)
-                        self.assertIn("--output", missing.stderr)
+                        self.assertIn("--output-directory", missing.stderr)
                         self.assertNotIn("Traceback", missing.stdout + missing.stderr)
             self.assertEqual(list(Path(directory).iterdir()), [])
 

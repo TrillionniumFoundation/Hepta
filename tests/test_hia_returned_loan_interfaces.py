@@ -253,9 +253,20 @@ class ReturnedLoanInterfaceTests(unittest.TestCase):
 
     def test_routes_show_current_admission_and_distinct_proof_boundary(self):
         inventory = route_inventory()
-        self.assertIn("v1-v8", inventory["inputs"][0]["input"])
-        self.assertEqual(inventory["versions"]["latest_core_schema"], "hepta.hia.program.v8")
-        self.assertTrue(all("v1-v7" in entry["scope"] for entry in inventory["optimization_profiles"][:2]))
+        self.assertEqual(inventory["schema"], "hepta.hia.routes.v2")
+        self.assertEqual(inventory["inputs"], ["standalone-hia", "agent-assembly"])
+        self.assertEqual(inventory["authority"], "hepta.hia_program.verify_program")
+        self.assertFalse(inventory["implicit_fallback_allowed"])
+        # Core-only route discovery no longer embeds the old source adapter's
+        # duplicated grammar/proof tables. Inspect the actual owning contracts;
+        # v8 admission must not imply a v8 scalar equivalence proof.
+        from hepta.hia_schema import schema_registry
+        from hepta.hia_optimization import QUALIFIED_CORE_SCHEMAS as optimization
+        from hepta.hia_translation_validation import QUALIFIED_CORE_SCHEMAS as translation
+        self.assertEqual(schema_registry()["latest_core_schema"], "hepta.hia.program.v8")
+        for schemas in (optimization, translation):
+            self.assertEqual(schemas, {"hepta.hia.program.v" + str(v) for v in range(1, 8)})
+            self.assertNotIn("hepta.hia.program.v8", schemas)
 
 
 if __name__ == "__main__":

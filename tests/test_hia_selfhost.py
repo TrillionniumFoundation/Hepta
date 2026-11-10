@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 import json
 from pathlib import Path
 import platform
@@ -9,6 +10,7 @@ import shutil
 import struct
 import tempfile
 import unittest
+import zipfile
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import HIAProgramRejected
@@ -21,6 +23,41 @@ from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_so
                                      call_graph_invalid_sources, recursion_refusals)
 
 NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
+
+
+def retained_compilation_bytes(compilation):
+    """Read the exact observed output, including its sealed lossless stage.
+
+    Archive recovery does not rebuild, substitute a new compiler or admit an
+    artifact. The original produced digest remains the independent binding.
+    """
+    path = Path(compilation['produced_image'])
+    if path.exists():
+        data = path.read_bytes()
+    else:
+        from tools.hia_evidence_archive import verify_archive
+        receipt = json.loads((path.parent / 'ARCHIVED.json').read_bytes())
+        archive = path.parent.with_name(path.parent.name + '.zip')
+        if (receipt['schema'] != 'hepta.hia.archived-stage.v1'
+                or receipt['archive'] != str(archive)
+                or receipt['every_original_byte_verified_before_retirement'] is not True
+                or receipt['raw_paths_available'] is not False
+                or archive.is_symlink()
+                or archive.stat().st_size != receipt['packed_bytes']
+                or sha256(archive.read_bytes()).hexdigest() != receipt['archive_sha256']):
+            raise ValueError('retained compilation archive identity mismatch')
+        manifest = verify_archive(archive)
+        if (manifest['source_directory'] != str(path.parent)
+                or sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+                != receipt['manifest_sha256']
+                or manifest['files'][path.name]['sha256'] != compilation['produced_sha256']):
+            raise ValueError('retained compilation member identity mismatch')
+        with zipfile.ZipFile(archive) as packed:
+            data = packed.read(path.name)
+    if (len(data) != compilation['produced_bytes']
+            or sha256(data).hexdigest() != compilation['produced_sha256']):
+        raise ValueError('observed compilation output identity mismatch')
+    return data
 
 
 class SelfhostSourceTests(unittest.TestCase):
@@ -887,7 +924,7 @@ class SelfhostNativeTests(unittest.TestCase):
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         row = next(row for row in self.report["elf_object_observations"]
                    if row["case"] == "original-elf-bytesum")
-        data = Path(row["compilation"]["produced_image"]).read_bytes()
+        data = retained_compilation_bytes(row["compilation"])
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),

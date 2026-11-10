@@ -38,7 +38,9 @@ class StandaloneHIANativeTests(unittest.TestCase):
         cls.program = verify_program(cls.document)
         cls.ir = emit_program_llvm(cls.program)
         cls.library_path = cls.path / "program.so"
-        with patch("hepta.pipeline.analyze", side_effect=AssertionError("a source/Rust gate must not execute")):
+        # The source-language pipeline was removed. Refuse its import rather
+        # than importing that absent module merely to install a call mock.
+        with patch.dict("sys.modules", {"hepta.pipeline": None}):
             cls.receipt = compile_program_llvm(cls.ir, program=cls.program,
                                               output=cls.library_path, clang=CLANG)
         cls.library = ctypes.CDLL(str(cls.library_path))

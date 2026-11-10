@@ -28,3 +28,77 @@ The old mixed workflow test IDs are explicitly retired without pass credit;
 new Core workflow tests execute this product's actual source shell and reject
 failed, skipped and expected-failing native fixture outcomes. They are wiring
 controls, not substitutes for real native qualification.
+
+## Retained repository regression repairs
+
+The immutable `e2fd1c582d7967fb24dab55e6b1c2a2a835929a8` repository run
+finished **FAIL**: 3,566 executed tests, 148 failures and 99 errors, no skips;
+class-setup failures left the inventory incomplete. Those results are not
+changed by the repairs below. This source requires new fixed-source acceptance.
+
+- Restore the exact third-party model template, license and runtime provenance
+  bytes required by the unchanged v11 registration and v12/v13 consumers.
+- Restore original, hash-pinned persistent/prepared/scalar campaign archives and
+  the original negative terminal-reconciliation fixture. These are historical
+  evidence, not new timing or native execution claims.
+- Restore the exact 611-row evidence index without resealing it, changing its
+  denominator or claiming that all 611 historical payloads are present here.
+- Restore the pure Core AArch64 ELF reader, finite target harness and reviewed
+  one-allocation C runtime. The harness now hashes its actual extracted Core ELF
+  reader, not the removed source-language `owned_aarch64_link` module. The
+  eight-slot composite driver remains separately bound. QEMU observations are
+  not physical-device qualification or a general allocator.
+- The LLVM transport test forbids importing `hepta.pipeline`; it does not mock
+  or restore that removed frontend. Core-only CLI isolation exercises the
+  composite Core qualifier from both checkout and unrelated directories.
+- The independent ELF mutation test reads actual sealed phase bytes only after
+  full archive manifest, size, mode and digest verification. It retains all four
+  malformed class/flags/symbol/extent controls; it never recompiles a substitute
+  for missing evidence.
+- Generated opcode discovery is restored from the live Core catalog. Returned
+  loan controls read actual v1-v8 admission and the narrower v1-v7 optimization
+  and translation contracts, rather than the deleted source-route table.
+- Research feedback CI selects the current exact-source custody tests, never
+  the deleted shared source-language closure. Its original mechanism/native
+  tests, strict outcomes and source-head checks remain separate research gates.
+
+The removed source-only migration orphan, old local-view qualifier test ID and
+mixed-language safety protocol are explicitly inventoried as retired. They are
+not passing Core tests. Actual Core process, resource and borrow controls remain.
+
+### Correct native raw-model prerequisite
+
+The failed repository run supplied the generic value-role NDU adapter to the
+raw-model tests. That executable correctly refused requests without its required
+value role, and its build receipt correctly failed the raw-model source check.
+Do not loosen either protocol or admission rule. Build
+`tools/build_hia_raw_model_bridge.py` against its own
+`rust/hia-ndu-raw-model` source and unchanged pinned upstream. New qualification
+must verify the exact adapter-file inventory as well as binary digest before
+launching the existing one-shot/session controls. A generic binary with the
+same package filename is not interchangeable.
+
+### Worker-local no-core-pipe policy
+
+`RLIMIT_CORE=0` does not prevent Linux from invoking a pipe-based system core
+collector. Passive `/proc` observations on an actual seccomp-killed worker
+showed `CoreDumping=1`, delaying exit notification and occasionally exhausting
+the existing 0.2-second child witness. No timeout is raised to hide that failure.
+
+Before seccomp installation or foreign DSO constructors, the worker sets
+`PR_SET_DUMPABLE=0` and requires `PR_GET_DUMPABLE=0`. The seccomp policy also
+denies `prctl(157)`, so foreign code cannot restore dumping. An independent C
+control attempts that restoration and must receive SIGSYS. This is per-worker,
+not a change to the host core collector. Existing fresh isolated startup,
+process-group ownership, reservation, memory/CPU/file limits, timeout and
+quarantine/cleanup behavior remain. This does not make the evaluator a general
+hostile-code sandbox or prove zero external side effects.
+
+The actual native CI lane retains every earlier application and host-region
+module and additionally runs child limits, seccomp, side-effect, cleanup,
+mapping-identity and startup-isolation controls with zero skips or expected
+failures. Clang is an explicit dependency for their independent C fixtures.
+
+Host bridges and Python package files remain active dependencies. Whole native
+Core/Agent delivery, clean-machine/platform and real-project release acceptance
+remain OPEN; no default path or production release is activated by these repairs.
