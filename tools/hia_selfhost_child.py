@@ -13,7 +13,6 @@ from hashlib import sha256
 import json
 import mmap
 import os
-from pathlib import Path
 import resource
 import sys
 import time
@@ -21,8 +20,23 @@ import time
 MAX_BYTES = 1 << 20
 
 
+def read_bytes(path):
+    if not isinstance(path, str):
+        raise TypeError("expected a string path")
+    with open(path, 'rb') as stream:
+        return stream.read()
+
+
+def write_bytes(path, data):
+    if not isinstance(path, str):
+        raise TypeError("expected a string path")
+    with open(path, 'wb') as stream:
+        return stream.write(data)
+
+
 def main():
-    request = json.loads(Path(sys.argv[1]).read_text())
+    with open(sys.argv[1]) as stream:
+        request = json.load(stream)
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     # Linux may still invoke a piped system crash handler with RLIMIT_CORE=0.
     # Deliberate UD2 witnesses must remain real SIGILL failures without spawning
@@ -37,8 +51,8 @@ def main():
     resource.setrlimit(resource.RLIMIT_STACK, (8 << 20, 8 << 20))
     resource.setrlimit(resource.RLIMIT_FSIZE, (16 << 20, 16 << 20))
     resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
-    image = Path(request["image"]).read_bytes()
-    source = Path(request["source"]).read_bytes()
+    image = read_bytes(request["image"])
+    source = read_bytes(request["source"])
     assert sha256(image).hexdigest() == request["image_sha256"]
     assert sha256(source).hexdigest() == request["source_sha256"]
     assert 0 < len(image) <= 4 * MAX_BYTES and len(source) <= MAX_BYTES
@@ -98,10 +112,11 @@ def main():
     returned = entry(source_array, len(source), output, capacity, workspace, workspace_size)
     elapsed = time.monotonic_ns() - started
     output_bytes, workspace_bytes = output.raw[:capacity], workspace.raw[:workspace_size]
-    if request.get("observe_trap_writes", False):
-        shared_output.flush()
-    else:
-        Path(request["output"]).write_bytes(output_bytes)
+    # MAP_SHARED writes are already visible to the parent's file reads, even
+    # when UD2 ends the child before this point. This transport requires that
+    # visibility, not an additional synchronous msync to durable storage.
+    if not request.get("observe_trap_writes", False):
+        write_bytes(request["output"], output_bytes)
     fields = {str(i): int.from_bytes(workspace_bytes[i:i + 8], "little")
               for i in (0, 8, 16, 24, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 224, 248, 1024)
               if workspace_size >= i + 8}

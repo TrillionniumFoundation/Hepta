@@ -10,6 +10,107 @@ from tools.hia_selfhost_native_observer import frame, execute, invoke as native_
 
 
 @unittest.skipUnless(platform.system()=='Linux' and platform.machine().lower() in ('x86_64','amd64')
+    and shutil.which('as') and shutil.which('ld'), 'Linux x86-64 loader required')
+class PythonLoaderTests(unittest.TestCase):
+    """Small real foreign-ABI controls, without building a compiler seed."""
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix='hia-python-loader-')
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def image(self, name, code, image_format):
+        import subprocess
+        path = self.root / (name + '.bin')
+        path.write_bytes(code)
+        if image_format == 'linked-selfhost':
+            source, obj, linked = (self.root / (name + suffix) for suffix in ('.S', '.o', '.so'))
+            source.write_text('.text\n.globl f0\n.type f0,@function\nf0:\n.byte '
+                              + ','.join(str(value) for value in code) + '\n.size f0,.-f0\n')
+            subprocess.run(['as', '--64', '-o', str(obj), str(source)], check=True, capture_output=True)
+            subprocess.run(['ld', '-m', 'elf_x86_64', '-shared', '-z', 'defs', '-z', 'noexecstack',
+                            '-z', 'relro', '-z', 'now', '--build-id=none', str(obj), '-o', str(linked)],
+                           check=True, capture_output=True)
+            return linked
+        return path
+
+    def call(self, name, image, image_format, *, initial, capture):
+        from unittest.mock import patch
+        import tools.qualify_hia_selfhost as runtime
+        with patch.object(runtime, 'NATIVE_OBSERVER', None):
+            return runtime.invoke(self.root, name, image, b'XYZ\0\xff', image_format=image_format,
+                capacity=len(initial), workspace_size=1032, workspace_fill=255,
+                output_initial=initial, observe_trap_writes=capture)
+
+    def test_shared_visibility_and_real_traps_preserve_every_output_byte(self):
+        controls = (
+            ('return', '48b82a000000efbeaddec3', False, False, False),
+            ('store-return', 'c6026331c0c3', True, False, False),
+            ('source-return', 'c6076131c0c3', False, False, True),
+            ('trap-before-store', '0f0b', False, True, False),
+            ('trap-after-store', 'c602630f0b', True, True, False),
+        )
+        for image_format in ('flat-x86-64', 'linked-selfhost'):
+            for name, code, stores, traps, mutates_source in controls:
+                image = self.image(name + '-' + image_format, bytes.fromhex(code), image_format)
+                for initial in (b'\0', b'Z\0\xff', b'\xff' * 31):
+                    captures = (True,) if traps else (False, True)
+                    for capture in captures:
+                        case = name + '-' + image_format + '-' + str(len(initial)) + '-' + str(int(capture))
+                        with self.subTest(case=case):
+                            result, output = self.call(case, image, image_format, initial=initial, capture=capture)
+                            expected = b'c' + initial[1:] if stores else initial
+                            self.assertEqual(output, expected)
+                            if traps:
+                                self.assertEqual((result['status'], result['returncode']), ('child_failed', -4))
+                            else:
+                                self.assertEqual(result['status'], 'returned')
+                                self.assertEqual(result['result_u64'], 0xdeadbeef0000002a if name == 'return' else 0)
+                                self.assertEqual(result['source_unchanged'], not mutates_source)
+                                self.assertTrue(all(value == (1 << 64) - 1 for value in result['workspace_header'].values()))
+                                self.assertEqual(result['forbidden_compiler_modules_loaded'], [])
+                            if capture:
+                                self.assertTrue(result['shared_output_observation']['available'])
+                                self.assertEqual(result['shared_output_observation']['unchanged'], expected == initial)
+
+    def test_zero_capacity_and_fresh_process_identity_are_preserved(self):
+        image = self.image('getpid', bytes.fromhex('b8270000000f05c3'), 'flat-x86-64')
+        pids = []
+        for index in range(3):
+            result, output = self.call('fresh-' + str(index), image, 'flat-x86-64', initial=b'', capture=True)
+            self.assertEqual((result['status'], output), ('returned', b''))
+            self.assertGreater(result['core_u32'], 0)
+            pids.append(result['core_u32'])
+        self.assertEqual(len(set(pids)), len(pids))
+
+    def test_identity_and_capacity_refusals_happen_before_native_execution(self):
+        from hashlib import sha256
+        import json, subprocess, sys
+        from tools.qualify_hia_selfhost import CHILD
+        # This image would write before trapping if an invalid request reached
+        # the native call. Refusals must create neither output nor shared mmap.
+        image = self.image('never-called', bytes.fromhex('c602630f0b'), 'flat-x86-64')
+        source = self.root / 'source.bin'
+        source.write_bytes(b'input')
+        request = {'format': 'flat-x86-64', 'image': str(image),
+            'image_sha256': sha256(image.read_bytes()).hexdigest(), 'source': str(source),
+            'source_sha256': sha256(source.read_bytes()).hexdigest(), 'capacity': 1,
+            'workspace_size': 0, 'workspace_fill': 0, 'observe_trap_writes': True}
+        for index, (change, stdin) in enumerate((({'image_sha256': '0' * 64}, b''),
+                ({'source_sha256': '0' * 64}, b''), ({'capacity': (1 << 20) + 1}, b''),
+                ({'workspace_size': True}, b''), ({'image': 0}, image.read_bytes()),
+                ({'source': 0}, source.read_bytes()))):
+            output = self.root / ('refused-' + str(index) + '.output.bin')
+            path = self.root / ('refused-' + str(index) + '.request.json')
+            path.write_text(json.dumps({**request, **change, 'output': str(output)}))
+            result = subprocess.run([sys.executable, '-I', '-S', '-B', str(CHILD), str(path)],
+                cwd=self.root, input=stdin, capture_output=True, timeout=20)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotEqual(result.returncode, -4)
+            self.assertEqual(result.stdout, b'')
+            self.assertFalse(output.exists())
+
+
+@unittest.skipUnless(platform.system()=='Linux' and platform.machine().lower() in ('x86_64','amd64')
     and shutil.which('ld'), 'Linux x86-64 bootstrap required')
 class NativeObserverTests(unittest.TestCase):
     @classmethod

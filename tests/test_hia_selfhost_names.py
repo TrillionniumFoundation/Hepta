@@ -7,7 +7,117 @@ from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_names import (cases, independent_reference, name_hash,
     refusals, renamed_source, value_cases, value_refusals, renamed_values, block_cases, block_refusals, renamed_blocks,
-    entry_order_cases, entry_order_refusals, reordered_blocks, nonfirst_entry_source)
+    entry_order_cases, entry_order_refusals, reordered_blocks, nonfirst_entry_source,
+    renamed_compiler_source)
+
+
+class SelfhostComposedNameTests(unittest.TestCase):
+    @staticmethod
+    def serial(source, mapping):
+        return renamed_blocks(renamed_values(renamed_source(source, mapping)))
+
+    def test_composition_preserves_exact_serial_text_for_names_loans_and_cfgs(self):
+        wanted = {'equal-hash-distinct-functions-0', 'named-loan-mut-cfg-0',
+            'named-loan-mut-tail-0', 'named-128-functions-0', 'ssa-spellings-4-00',
+            'ssa-intern-table-full-2048', 'named-reverse-1536-six-functions',
+            'named-late-matching-parent-join', 'entry-last-loan-read-tail-0',
+            'entry-last-parallel-scalar-tail'}
+        rows = [r for r in [*cases(), *value_cases(), *block_cases(), *entry_order_cases()]
+                if r['id'] in wanted]
+        self.assertEqual({r['id'] for r in rows}, wanted)
+        for row in rows:
+            mapping = {fn['name']: 'function_' + str(i)
+                for i, fn in enumerate(assemble_program(row['source']).as_dict()['functions'])}
+            with self.subTest(case=row['id']):
+                self.assertEqual(renamed_compiler_source(row['source'], mapping),
+                                 self.serial(row['source'], mapping))
+
+    def test_every_intermediate_still_rejects_schema_cfg_and_loan_corruption(self):
+        from unittest.mock import patch
+        import tools.hia_selfhost_names as names
+        source = next(r['source'] for r in cases() if r['id'] == 'named-loan-mut-cfg-0')
+        mapping = {'lease_0': 'entry', 'lease_1': 'helper'}
+        mutations = (
+            ('_rename_functions', '_rename_values', 'E_HIA_SCHEMA',
+             lambda doc: doc.update(schema='unsupported')),
+            ('_rename_values', '_rename_blocks', 'E_HIA_CFG',
+             lambda doc: doc['functions'][1]['blocks'][0]['term'].update(target='missing')),
+            ('_rename_values', '_rename_blocks', 'E_HIA_LOAN',
+             lambda doc: doc['functions'][1].update(return_loans=[None])),
+        )
+        for stage, later, code, corrupt in mutations:
+            original = getattr(names, stage)
+            def transformed(doc, *args):
+                original(doc, *args)
+                corrupt(doc)
+            with self.subTest(stage=stage, code=code), \
+                    patch.object(names, stage, side_effect=transformed), \
+                    patch.object(names, later) as never_reached:
+                with self.assertRaises(HIAProgramRejected) as refused:
+                    renamed_compiler_source(source, mapping)
+                self.assertEqual(refused.exception.code, code)
+                never_reached.assert_not_called()
+
+    def test_intermediate_text_limit_cannot_be_hidden_by_later_shorter_ssa_names(self):
+        from unittest.mock import patch
+        import hepta.hia_agent_assembly as assembly
+        value = 'x' * 128
+        source = ('hia-asm.v1 hepta.hia.program.v8 unit\n'
+            + 'fn f0(' + value + ':u32) -> (u32) effects() entry(b0)\n'
+            + 'block b0(' + value + ':u32)\n  ret(' + value + ')\nend\n')
+        mapping = {'f0': 'f' * 128}
+        intermediate = renamed_source(source, mapping)
+        final = self.serial(source, mapping)
+        line_limit = max(len(line) for text in (source.encode(), final) for line in text.split(b'\n'))
+        self.assertGreater(max(map(len, intermediate.split(b'\n'))), line_limit)
+        with patch.object(assembly, 'MAX_LINE_BYTES', line_limit):
+            # Both endpoints fit. Only the first intermediate representation
+            # exceeds this budget, so skipping its round trip would admit it.
+            assemble_program(source)
+            assemble_program(final)
+            errors = []
+            for rename in (self.serial, renamed_compiler_source):
+                with self.assertRaises(assembly.HIAAssemblyRejected) as refused:
+                    rename(source, mapping)
+                errors.append((refused.exception.code, str(refused.exception), refused.exception.line))
+            self.assertEqual(errors[0], errors[1])
+            self.assertEqual(errors[1][0], 'E_HIA_ASSEMBLY_LIMIT')
+
+    def test_invalid_input_still_has_exact_schema_cfg_and_loan_refusals(self):
+        for row in entry_order_refusals():
+            errors = []
+            for rename in (self.serial, renamed_compiler_source):
+                with self.subTest(case=row['id'], rename=rename.__name__), \
+                        self.assertRaises(HIAProgramRejected) as refused:
+                    rename(row['source'], {})
+                errors.append((refused.exception.code, str(refused.exception)))
+            self.assertEqual(errors[0], errors[1])
+
+
+class SelfhostNameSeedTests(unittest.TestCase):
+    def test_refusal_sources_keep_preoptimization_bytes_without_unrelated_fixtures(self):
+        from hashlib import sha256
+        import json
+        from unittest.mock import patch
+        import tools.hia_selfhost_names as names
+        # Canonical digests of the complete existing negative fixture records,
+        # captured before extracting their seeds, including source text/order.
+        expected = (
+            (value_refusals, 10, '81618ca2cc4edb95ce7c597d3477e49eb6acc05fbfecd59667bc949bbbcc6160'),
+            (block_refusals, 9, '6740abddc19e0c970251d6cf04cf3b312edfb431095f6a1b376eed38742db828'),
+        )
+        with patch.object(names, 'cases', side_effect=AssertionError('unrelated function fixtures')), \
+                patch.object(names, 'value_cases', side_effect=AssertionError('unrelated SSA fixtures')), \
+                patch.object(names, 'block_cases', side_effect=AssertionError('unrelated CFG fixtures')):
+            for builder, count, digest in expected:
+                with self.subTest(builder=builder.__name__):
+                    rows = builder()
+                    self.assertEqual(len(rows), count)
+                    self.assertEqual(sha256(json.dumps(rows, sort_keys=True,
+                        separators=(',', ':')).encode()).hexdigest(), digest)
+                    rows[0]['source'] = 'caller mutation'
+                    self.assertEqual(sha256(json.dumps(builder(), sort_keys=True,
+                        separators=(',', ':')).encode()).hexdigest(), digest)
 
 
 class SelfhostFunctionNameTests(unittest.TestCase):

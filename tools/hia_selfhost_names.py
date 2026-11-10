@@ -220,25 +220,26 @@ def name_hash(name):
     return value
 
 
-def renamed_source(source, mapping):
-    """Author a name-only fixture, independently reverified as ordinary Core."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+def _rename_functions(doc, mapping):
     for fn in doc['functions']:
         fn['name'] = mapping[fn['name']]
         for block in fn['blocks']:
             for op in block['ops']:
                 if op['op'] == 'call':
                     op['attrs']['function'] = mapping[op['attrs']['function']]
+
+
+def renamed_source(source, mapping):
+    """Author a name-only fixture, independently reverified as ordinary Core."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    _rename_functions(doc, mapping)
     # Rendering already fully verifies the document and checks its exact
     # parsed canonical round trip. The independent VM still verifies its input.
     return render_assembly(doc).encode()
 
 
-def renamed_values(source, spellings=None):
-    """Rename every SSA definition/use/formal origin, then reverify real Core."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+def _rename_values(doc, spellings=None):
     for fi, fn in enumerate(doc['functions']):
         definitions = dict.fromkeys(p['name'] for b in fn['blocks']
             for p in [*b['params'], *[p for op in b['ops'] for p in op['out']]])
@@ -265,13 +266,17 @@ def renamed_values(source, spellings=None):
                 term['cond'] = mapping[term['cond']]
                 for arm in ('then', 'else'):
                     term[arm]['args'] = [mapping[x] for x in term[arm]['args']]
+
+
+def renamed_values(source, spellings=None):
+    """Rename every SSA definition/use/formal origin, then reverify real Core."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    _rename_values(doc, spellings)
     return render_assembly(doc).encode()
 
 
-def renamed_blocks(source, spellings=None):
-    """Reverify all label definitions, entry names and forward/backward edges."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+def _rename_blocks(doc, spellings=None):
     for fi, fn in enumerate(doc['functions']):
         mapping = {block['id']: (spellings[i] if spellings is not None and i < len(spellings)
                                 else 'node_' + str(fi) + '_' + str(i))
@@ -285,6 +290,31 @@ def renamed_blocks(source, spellings=None):
             elif term['op'] == 'branch':
                 for arm in ('then', 'else'):
                     term[arm]['target'] = mapping[term[arm]['target']]
+
+
+def renamed_blocks(source, spellings=None):
+    """Reverify all label definitions, entry names and forward/backward edges."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    _rename_blocks(doc, spellings)
+    return render_assembly(doc).encode()
+
+
+def renamed_compiler_source(source, mapping):
+    """Compose all three renamings with every intermediate round trip intact.
+
+    Each stage still runs the existing renderer's full Core verification,
+    bounded assembly parse and exact canonical-byte comparison. Reuse only
+    this call's mutable AST: parsing each just-checked intermediate text again
+    adds no check. No verified program is cached or reused for VM execution.
+    """
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    _rename_functions(doc, mapping)
+    render_assembly(doc)
+    _rename_values(doc)
+    render_assembly(doc)
+    _rename_blocks(doc)
     return render_assembly(doc).encode()
 
 
@@ -370,7 +400,7 @@ def entry_order_refusals():
         {'id': 'entry-later-mismatched-join-roots', 'source': bad_join, 'general_core_expected': 'rejected'}]
 
 
-def block_cases():
+def _block_spelling_source():
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
     b = Body()
@@ -388,7 +418,11 @@ def block_cases():
     source += 'end\n'
     # A typed end/block/ret name must not be a declaration or terminator during
     # discovery. The complete original parser still checks its real syntax.
-    source = renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+    return renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+
+
+def block_cases():
+    source = _block_spelling_source()
     rows = []
     for i, spellings in enumerate((['entry', 'aaB', 'aba'], ['block', 'end', 'ret'],
             ['_', 'b00', 'b18446744073709551615'], ['b', 'prefix', 'prefix_more'],
@@ -414,7 +448,9 @@ def block_cases():
 
 
 def block_refusals():
-    source = block_cases()[0]['source']
+    # Only this first spelling supplies these negatives. Building every other
+    # fixture here would discard them without adding any VM/refusal witness.
+    source = renamed_blocks(_block_spelling_source(), ['entry', 'aaB', 'aba']).decode()
     rows = []
     for name in ['n' * 129, '__hia_block', 'bad.name', 'bad-name', '1bad', '汉字']:
         rows.append({'id': 'block-invalid-' + str(len(rows)),
@@ -446,6 +482,12 @@ def core_observed_case(name, source):
             'retained_former_profile_refusal': True, 'core_sha256': checked.sha256}
 
 
+def _full_value_source():
+    from tools.hia_selfhost_cases import HEADER
+    return (HEADER + ''.join('  v' + str(i) + ':u32 = const() {"value":0}\n'
+                             for i in range(3, 2048)) + '  ret(v2047)\nend\n')
+
+
 def value_cases():
     base = [row for row in cases() if row['program'] == 'named-pair-0']
     spellings = [
@@ -466,9 +508,7 @@ def value_cases():
         if row['program'].startswith('named-loan-'):
             rows.append({**row, 'id': 'ssa-' + row['id'], 'program': 'ssa-' + row['program'],
                          'source': renamed_values(row['source'].encode()).decode()})
-    from tools.hia_selfhost_cases import HEADER
-    full = (HEADER + ''.join('  v' + str(i) + ':u32 = const() {"value":0}\n'
-                             for i in range(3, 2048)) + '  ret(v2047)\nend\n')
+    full = _full_value_source()
     rows.append({'id': 'ssa-intern-table-full-2048', 'program': 'ssa-intern-table-full-2048',
                  'source': full, 'source_hex': '', 'initial_hex': 'a5',
                  'expected_result': 0, 'expected_hex': 'a5'})
@@ -476,7 +516,9 @@ def value_cases():
 
 
 def value_refusals():
-    seed = value_cases()[-1]['source']
+    # The overflow seed is ordinary text, not a cached verified program. All
+    # actual positive and negative inputs are still checked in their old order.
+    seed = _full_value_source()
     overflow = seed.replace('  ret(v2047)', '  v2048:u32 = const() {"value":1}\n  ret(v2048)')
     rows = [{'id': 'ssa-intern-table-overfull-2049', 'source': overflow,
              'general_core_expected': 'accepted'}]
@@ -614,7 +656,7 @@ def independent_reference():
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):
-        renamed = renamed_blocks(renamed_values(renamed_source(source, mapping)))
+        renamed = renamed_compiler_source(source, mapping)
         alpha[label] = {'source': renamed.decode(), 'core_sha256': assemble_program(renamed).sha256,
             'canonical_core_sha256': assemble_program(source).sha256}
     return {'before_B0': True, 'cases': rows, 'refusals': rejected, 'alpha_compiler': alpha,
