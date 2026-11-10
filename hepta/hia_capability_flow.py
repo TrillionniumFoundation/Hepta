@@ -27,6 +27,16 @@ class CapabilityFlowRejected(ValueError):
 
 
 def rename_capabilities(capabilities, remap):
+    """Run the explicitly selected native edge policy, with no selected fallback."""
+    import os
+    path = os.environ.get('HEPTA_HIA_CAPABILITY_RENAMING_MANIFEST')
+    if path:
+        from .hia_capability_renaming_native import installed_capability_renaming
+        return installed_capability_renaming(path).rename(capabilities, remap)
+    return _reference_rename_capabilities(capabilities, remap)
+
+
+def _reference_rename_capabilities(capabilities, remap):
     """Carry the selected closed resource graph through an injective SSA map.
 
 All local owners/loans must survive.  Unselected *external* loans may be

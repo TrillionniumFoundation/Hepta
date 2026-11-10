@@ -15,6 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v48-main-consolidation"
 SOURCE_FILES = (
+    'tools/generate_hia_capability_renaming.py',
+    'examples/hia_bootstrap/capability_renaming.hiaasm',
+    'tools/build_hia_capability_renaming.py',
+    'tests/test_hia_capability_renaming_native.py',
+    'docs/HIA_CAPABILITY_RENAMING_NATIVE.md',
     'tools/generate_hia_core_workspace_json_cli.py',
     'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
     'tools/build_hia_core_workspace_json_cli.py',
@@ -310,6 +315,23 @@ def support_contract(root=ROOT):
             "admission_and_materialization": "native field inventory, value tags, exact lowercase hex and fill range; no output on refusal",
             "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
             "whole_agent_editing_and_persistence_replaced": False,
+            "production_activated": False,
+        },
+        "capability_renaming_application": {
+            "source": "examples/hia_bootstrap/capability_renaming.hiaasm",
+            "selection": "operator HEPTA_HIA_CAPABILITY_RENAMING_MANIFEST; default unchanged",
+            "maximum_capabilities": 262144,
+            "maximum_edges": 262144,
+            "maximum_symbols": 2097152,
+            "policy": ["injective targets", "present sources", "local capability survival",
+                       "root and parent closure", "exact type/external/original-parameter transport"],
+            "host_boundaries": ["verifier-owned object snapshot", "opaque string interning",
+                                "buffer allocation and object materialization", "remaining general Core verifier",
+                                "build, executable custody and installation"],
+            "output_on_policy_refusal": False,
+            "selected_reference_fallback": False,
+            "native_general_Core_verifier": False,
+            "all_input_refinement_proved": False,
             "production_activated": False,
         },
         "core_workspace_json_standalone_application": {
