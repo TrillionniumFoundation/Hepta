@@ -890,3 +890,20 @@ whole-repository and applicable platform/resource regressions must pass, and
 clean-machine installation plus real-project builds must execute without the
 legacy toolchain. Current gates are OPEN; no old authority is deleted here.
 Git history and non-shipped evidence retain recovery and audit custody.
+
+
+### Retained cold timeout and fixed-width native word I/O
+
+The first combined-source4660b8b cold attempt timed out at180.193seconds under
+the unchanged180-second owner deadline. Native child ownership cleanup completed;
+only6/11outer observations passed, and that attempt remains FAIL. Completed
+phase receipts showed names/whole-compiler recompile work remaining at cutoff.
+The candidate now expresses its fixed eight-byte workspace word reads/writes
+as eight ordered HIA byte operations, eliminating loop bookkeeping without
+changing endianness, per-byte bounds traps, prior-write visibility or access
+order. No unaligned host word dereference or foreign load/store primitive was
+introduced. Independent VM controls,320real-nativeunaligned/single-bit reads and
+realSIGILLshort writes0..7plus a short-read unchanged-output control passed.
+The compiler now has118functions/1294blocks/7352operations/414969sourcebytes,
+within all unchanged caps. Its new bytes require fresh qualification; the old
+4351-check receipts are not reused as new-source passes.

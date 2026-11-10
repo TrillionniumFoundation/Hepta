@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/hia-p2-selfhost-results.yml'
       - 'tools/generate_hia_selfhost.py'
+      - 'tests/test_hia_selfhost_word_io.py'
       - 'tools/generate_hia_sha256_stream.py'
       - 'hepta/hia_sha256_stream_native.py'
       - 'tests/test_hia_sha256_stream_native.py'
@@ -134,6 +135,7 @@ jobs:
           import json, os, unittest
           from pathlib import Path
           names = (
+              "tests.test_hia_selfhost_word_io.WordIOSourceTests",
               "tests.test_hia_sha256_stream_native.Sha256StreamSourceTests",
               "tests.test_hia_sha256_native.Sha256HiaSourceTests",
               "tests.test_hia_json_preflight",
@@ -267,6 +269,7 @@ jobs:
           git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-p2-native/source.txt"
           python -m pip freeze > "$RUNNER_TEMP/hia-p2-native/dependencies.txt"
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-p2-native/qualification.json" 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/qualification.log"
+          python -B -m unittest -v tests.test_hia_selfhost_word_io.WordIONativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/word-io-tests.log"
           python -B -m unittest -v tests.test_hia_sha256_stream_native.Sha256StreamNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-stream-tests.log"
           python -B -m unittest -v tests.test_hia_sha256_native.Sha256HiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-tests.log"
           python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"

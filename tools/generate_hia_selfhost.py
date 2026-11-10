@@ -1148,19 +1148,25 @@ def fail(w:mutbuf, code:u64) -> u64:
     return 0
 
 def put(w:mutbuf, at:u64, value:u64) -> u64:
-    i = 0
-    while i < 8:
-        store(w, at + i, value & 255)
-        value = value >> 8
-        i = i + 1
+    store(w, at, value & 255)
+    store(w, at + 1, (value >> 8) & 255)
+    store(w, at + 2, (value >> 16) & 255)
+    store(w, at + 3, (value >> 24) & 255)
+    store(w, at + 4, (value >> 32) & 255)
+    store(w, at + 5, (value >> 40) & 255)
+    store(w, at + 6, (value >> 48) & 255)
+    store(w, at + 7, (value >> 56) & 255)
     return 0
 
 def get(w:mutbuf, at:u64) -> u64:
-    i = 0
-    value = 0
-    while i < 8:
-        value = value | (byte(w, at + i) << (i * 8))
-        i = i + 1
+    value = byte(w, at)
+    value = value | (byte(w, at + 1) << 8)
+    value = value | (byte(w, at + 2) << 16)
+    value = value | (byte(w, at + 3) << 24)
+    value = value | (byte(w, at + 4) << 32)
+    value = value | (byte(w, at + 5) << 40)
+    value = value | (byte(w, at + 6) << 48)
+    value = value | (byte(w, at + 7) << 56)
     return value
 
 def elf_begin(o:mutbuf, w:mutbuf) -> u64:
