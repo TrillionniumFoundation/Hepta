@@ -1696,3 +1696,50 @@ payload or implementation. Prior canceled, quota-failed and entire-repository
 failed attempts remain failures; neither component passes nor old remote
 receipts establish full-stack closure. Defaults/production/main/release locks
 stay unchanged and the ledger is still3partial/5open.
+
+## Source block/statement continuation — candidate under qualification
+
+A new explicitly selected `HEPTA_HIA_SOURCE_STATEMENTS_MANIFEST` application
+implements the complete existing block/statement grammar in executable HIA,
+composing the actual previously accepted expression/type/scanner authoring
+definitions. It covers let/mut/type annotations, returns, half-open for ranges,
+while, if/else, unsafe, match arms with qualified patterns/payload bindings,
+assignments and expression statements. No language feature is added.
+
+The application uses512 explicit control frames of128bytes at25152,90688fixed
+workspace bytes plus ceil(input_bytes/8) split-trace bytes,8MiBinput/1Mnodes,
+standalone128-depth and the original remaining96-level caller budget. Frames
+represent statements/arms as well as blocks; they do not increase the accepted
+source nesting budget. AST publication is two-pass, complete graph ownership
+is checked before object creation, and failed parses use a distinctly tagged
+diagnostic-only replay, not an AST or success receipt.
+
+Host expression arena validation/cursor transport is shared, not duplicated
+foreign grammar. Declarations (including their types unless separately selected),
+semantic checks, tree-depth validation, module/package graphs, runtime, image
+loading, authoring/build/release and object allocation remain foreign. Default
+selection, production, release locks and main are unchanged. Whole-stack status
+remains3partial/5open, not closed; no legacy retirement is eligible.
+
+Development logs are retained outside the repo. First native/source controls8PASS;
+the expanded suite has9statement controls, independent VM complete-byte witnesses
+created before B0,160nested valid/invalid cases, full source examples, exact
+errors/cursors/splits/namespace observations and real concurrent callers with
+foreign grammar disabled. An expanded130-test invocation failed12caller tests
+because it used systemRust1.94instead of the pinned1.90.0. A metadata integration
+helper's first attempt imported a test-local function as a module function and
+failed; its partial-plan15-test failure is retained. Corrected v20closure15PASS.
+A subsequent113-test development invocation found a stale source contract after
+regenerating its language inventory; the source contract was regenerated and
+the unchanged113tests rerun. These failed invocations are not accepted evidence.
+
+Identity v20 contains404explicit paths/all223package modules, commitment
+`6956c3fdd4917164edaa9c3cec72769fc92caa36d08c6f6f040c23598e322ddd`,
+preserving exactv19/399,v18/394,v17/389and both older fork projections.686more
+identity bytes transfer from raw reserve:246633metadata+797847raw+4096display
+=1048576unchanged. Source-lock profilev33explicitly includes the new files and
+the release bootstrap inventory includes all four nonpackage additions. Every
+compiler/execution/worker/deadline limit is unchanged.
+
+This section is implementation scope and development history, not a completed
+clean-source qualification or a remote/full-repository success claim.

@@ -33,7 +33,7 @@ OPERATORS = {token_kind(s): s for s in ('-', '!', 'read', 'mut', 'move',
     '||', '&&', '|', '^', '&', '==', '!=', '<', '<=', '>', '>=', '<<', '>>', '+', '*', '/', '%')}
 
 
-def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
+def materialize(raw: bytes, wire: bytes, integer_value, literal_value, *, _extension=None):
     """Validate the complete ownership graph before creating any Expr/Type.
 
     This is a value/graph decoder, not a host expression or type recognizer.
@@ -42,7 +42,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
     if type(raw) is not bytes or type(wire) is not bytes or len(raw) < 64:
         raise ValueError('invalid HIA expression arena')
     magic, count, base, used, chars, consumed, version, root = struct.unpack_from('<8Q', raw)
-    if (magic != MAGIC or version != 1 or not 1 <= count <= MAX_NODES
+    if (magic != (MAGIC if _extension is None else _extension.MAGIC) or version != 1 or not 1 <= count <= MAX_NODES
             or base != 64 + count * 128 or not base <= used == len(raw)
             or not 0 <= root < count or not 0 < consumed <= len(wire)
             or not 0 < chars <= consumed):
@@ -58,6 +58,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
     payload_ranges = []
     text_values = {}
     kinds = set(range(1, 9)) | set(range(16, 31))
+    if _extension is not None: kinds |= _extension.KINDS
     for i, row in enumerate(rows):
         kind, parent, first, last, sibling, start, size, begin, length, tag, a, z, line, col, path_end, parts = row
         if kind not in kinds:
@@ -70,13 +71,13 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
                 raise ValueError('invalid HIA generic split record')
             splits.add(begin)
             continue
-        if kind in (1, 8, 23, 28, 29):
+        if kind in (1, 8, 23, 28, 29) or (_extension is not None and kind in _extension.TEXT):
             if size == 0 or not start <= start + size <= used - base:
                 raise ValueError('invalid HIA expression text range')
             payload_ranges.append((start, start + size))
             try: name = raw[base + start:base + start + size].decode('ascii')
             except UnicodeDecodeError as error: raise ValueError('invalid HIA expression identifier') from error
-            if not name or any(not part.isidentifier() for part in name.split('::')) or (kind != 1 and '::' in name):
+            if not name or any(not part.isidentifier() for part in name.split('::')) or (kind not in (1, 43) and '::' in name):
                 raise ValueError('invalid HIA expression identifier')
             text_values[i] = name
         elif start or size:
@@ -96,7 +97,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
                 raise ValueError('unexpected HIA qualified name metadata')
             if kind in (20, 21, 26) and not 0 < path_end <= chars:
                 raise ValueError('invalid HIA qualified name extent')
-            if kind not in (16, 17, 18, 19, 25) and tag:
+            if kind not in (16, 17, 18, 19, 25, *(() if _extension is None else _extension.TAGS)) and tag:
                 raise ValueError('unexpected HIA expression operator')
         cursor = first
         linked = set()
@@ -109,7 +110,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
             cursor = rows[cursor][4]
         if last != (children[i][-1] if children[i] else NONE):
             raise ValueError('invalid HIA expression last child')
-    if rows[root][1] != NONE or rows[root][4] != NONE or not 16 <= rows[root][0] <= 27:
+    if rows[root][1] != NONE or rows[root][4] != NONE or (not 16 <= rows[root][0] <= 27 if _extension is None else rows[root][0] not in _extension.ROOTS):
         raise ValueError('invalid HIA expression root ownership')
     seen = set()
     order = []
@@ -160,6 +161,10 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
             if kids: raise ValueError('HIA name part has children')
             values[i] = text_values[i]
             continue
+        if _extension is not None and kind in _extension.KINDS:
+            values[i] = _extension.decode(i, kind, rows[i], kids, rows, values, text_values)
+            continue
+        if any(rows[c][0] >= 32 for c in kids): raise ValueError('statement inside HIA expression')
         if lives: raise ValueError('expression has direct lifetime')
         names = [c for c in kids if rows[c][0] == 28]
         fields = [c for c in kids if rows[c][0] == 29]
@@ -214,7 +219,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value):
     return values[root], chars, consumed, [(name, span) for _, name, span in observations], splits
 
 
-def materialize_diagnostic_names(raw, wire):
+def materialize_diagnostic_names(raw, wire, *, _extension=None):
     """Decode only completed HIA namespace observations after a failed parse.
 
     Diagnostic mode is a distinct arena, never an AST and never execution
@@ -224,7 +229,7 @@ def materialize_diagnostic_names(raw, wire):
     if type(raw) is not bytes or len(raw) < 64:
         raise ValueError('invalid HIA expression diagnostic arena')
     magic,count,base,used,chars,consumed,version,code=struct.unpack_from('<8Q',raw)
-    if (magic != MAGIC ^ 1 or version != 2 or not 0 <= count <= MAX_NODES
+    if (magic != (MAGIC if _extension is None else _extension.MAGIC) ^ 1 or version != 2 or not 0 <= count <= MAX_NODES
             or base != 64 + count*128 or not base <= used == len(raw)
             or not 0 <= consumed <= len(wire) or len(wire[:consumed].decode('utf-8')) != chars
             or not code):
@@ -232,7 +237,7 @@ def materialize_diagnostic_names(raw, wire):
     rows=[struct.unpack_from('<16Q',raw,64+i*128) for i in range(count)]
     children=[[] for _ in rows];incoming=set()
     for i,row in enumerate(rows):
-        if row[0] not in (*range(1,9),*range(16,31)):
+        if row[0] not in (*range(1,9),*range(16,31),*(() if _extension is None else _extension.KINDS)):
             raise ValueError('invalid HIA diagnostic node kind')
         cursor=row[2];linked=set()
         while cursor != NONE:
@@ -319,15 +324,21 @@ def _error(state, wire, source, origin, nesting_limit, current_kind):
 
 
 def parse_expression(parser, native, lexer, max_depth, nesting_limit, minimum, allow_struct):
+    return _parse_application(parser, native, lexer, nesting_limit,
+        dict(max_depth=max_depth,minimum=minimum,allow_struct=allow_struct),
+        WORKSPACE, _error, None, lambda expr: expr.children)
+
+
+def _parse_application(parser, native, lexer, nesting_limit, options, workspace, error, extension, children):
     from .lexer import Token
     origin = parser.current.span
     source = parser.source[origin.start:]
     wire = source.encode('utf-8')
-    raw, state = native.run(wire,max_depth=max_depth,minimum=minimum,allow_struct=allow_struct,
+    raw, state = native.run(wire,**options,
         initial_kind=token_kind(parser.current.kind) if parser.current.kind in ('>','=') else 0)
     consumed = struct.unpack_from('<Q',state,184)[0]
     if not 0 <= consumed <= len(source): raise RuntimeError('invalid HIA expression cursor')
-    split_bytes = {index * 8 + bit for index, value in enumerate(state[WORKSPACE:])
+    split_bytes = {index * 8 + bit for index, value in enumerate(state[workspace:])
                    for bit in range(8) if value & (1 << bit)}
     split_chars = set(); previous_byte=0; previous_char=0
     for begin in sorted(split_bytes):
@@ -357,21 +368,21 @@ def parse_expression(parser, native, lexer, max_depth, nesting_limit, minimum, a
         if parser.current.span.end>boundary:raise RuntimeError('HIA expression cursor splits an unreported token')
         parser.position+=1
     if raw is None:
-        diagnostic,again=native.run(wire,max_depth=max_depth,minimum=minimum,allow_struct=allow_struct,
+        diagnostic,again=native.run(wire,**options,
             initial_kind=struct.unpack_from('<Q',state,8600)[0],diagnostic_trace=True)
         if diagnostic is None or again[48:56]!=state[48:56] or again[184:224]!=state[184:224] or again[8560:8600]!=state[8560:8600]:
             raise RuntimeError('HIA expression diagnostic replay disagrees')
-        observations=materialize_diagnostic_names(diagnostic,wire)
+        observations=materialize_diagnostic_names(diagnostic,wire,_extension=extension)
         for name,p in observations:
             parser.qualified_expressions.append((name,Span(origin.start+p.start,origin.start+p.end,origin.line+p.line-1,p.column+(origin.column-1 if p.line==1 else 0),origin.path)))
-        raise _error(state,wire,source,origin,nesting_limit,parser.current.kind)
-    expr,chars,_,observations,splits=materialize(raw,wire,lexer.integer_value,literal_value)
+        raise error(state,wire,source,origin,nesting_limit,parser.current.kind)
+    expr,chars,_,observations,splits=materialize(raw,wire,lexer.integer_value,literal_value,_extension=extension)
     if chars!=consumed or splits!=split_bytes:raise RuntimeError('HIA expression arena disagrees with cursor/trace')
     pending=[expr]
     while pending:
         current=pending.pop();p=current.span
         current.span=Span(origin.start+p.start,origin.start+p.end,origin.line+p.line-1,p.column+(origin.column-1 if p.line==1 else 0),origin.path)
-        pending.extend(current.children)
+        pending.extend(children(current))
     for name,p in observations:
         parser.qualified_expressions.append((name,Span(origin.start+p.start,origin.start+p.end,origin.line+p.line-1,p.column+(origin.column-1 if p.line==1 else 0),origin.path)))
     return expr

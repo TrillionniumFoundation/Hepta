@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v19'
-PROTOCOL = 'seven-shared-acceptance-v19'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v20'
+PROTOCOL = 'seven-shared-acceptance-v20'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -234,6 +234,13 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
     'tools/build_hia_source_expressions.py',
     'tools/generate_hia_source_expressions.py',
 )
+SOURCE_STATEMENTS_ADDITIONS = (
+    'examples/hia_bootstrap/source_statements.hiaasm',
+    'hepta/hia_source_statements_native.py',
+    'tests/test_hia_source_statements_native.py',
+    'tools/build_hia_source_statements.py',
+    'tools/generate_hia_source_statements.py',
+)
 # Observer inputs and the cold-exported protocol document add822 identity
 # bytes, transferred from raw logs within the same aggregate envelope. All
 # execution capacities and deadlines are unchanged. The integrated source lexer
@@ -242,8 +249,9 @@ SOURCE_EXPRESSIONS_ADDITIONS = (
 # the aggregate envelope and every execution/process/deadline limit stay fixed.
 # Expression grammar paths add691bytes, offset by691fewer raw bytes.
 # Total evidence envelope and every execution/deadline/worker bound stay fixed.
-IDENTITY_CAP = 166071
-IDENTITY_RESERVE_DELTA = 21358
+# Statement grammar paths add 686 metadata bytes; raw reserve shrinks equally.
+IDENTITY_CAP = 166757
+IDENTITY_RESERVE_DELTA = 22044
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -335,16 +343,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
-                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS)))
+                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *SOURCE_STATEMENTS_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 399 and commitment(paths) == '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f',
+    require(len(paths) == len(set(paths)) == 404 and commitment(paths) == '6956c3fdd4917164edaa9c3cec72769fc92caa36d08c6f6f040c23598e322ddd',
             'reviewed exact source identity closure')
-    source_types_v18 = tuple(name for name in paths if name not in SOURCE_EXPRESSIONS_ADDITIONS)
+    source_expressions_v19 = tuple(name for name in paths if name not in SOURCE_STATEMENTS_ADDITIONS)
+    require(len(source_expressions_v19) == 399 and commitment(source_expressions_v19) == '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f',
+            'historical source expression grammar identity projection')
+    source_types_v18 = tuple(name for name in source_expressions_v19 if name not in SOURCE_EXPRESSIONS_ADDITIONS)
     require(len(source_types_v18) == 394 and commitment(source_types_v18) == 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379',
             'historical source type grammar identity projection')
     integrated_v17 = tuple(name for name in source_types_v18 if name not in SOURCE_TYPES_ADDITIONS)

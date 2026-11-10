@@ -33,6 +33,11 @@ class Parser:
         self.source = source
         self.path = path
         import os
+        statement_selection = os.environ.get('HEPTA_HIA_SOURCE_STATEMENTS_MANIFEST')
+        self.native_statements = None
+        if statement_selection:
+            from .hia_source_statements_native import installed_source_statements
+            self.native_statements, self.native_statement_lexer = installed_source_statements(statement_selection)
         expression_selection = os.environ.get('HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST')
         self.native_expressions = None
         if expression_selection:
@@ -44,6 +49,8 @@ class Parser:
             from .hia_source_types_native import installed_source_types
             self.native_types, self.native_type_lexer = installed_source_types(selected)
             self.tokens = self.native_type_lexer.tokenize(source, path)
+        elif self.native_statements is not None:
+            self.tokens = self.native_statement_lexer.tokenize(source, path)
         elif self.native_expressions is not None:
             self.tokens = self.native_expression_lexer.tokenize(source, path)
         else:
@@ -401,6 +408,15 @@ class Parser:
             return Type(name, args, lifetimes=lifetimes)
 
     def _block(self) -> tuple[list[Stmt], Span]:
+        if self.native_statements is None:
+            return self._reference_block()
+        from .hia_source_statements_native import parse_statement
+        # _reference_block enters nesting before looking at its opening token.
+        with self._nested():
+            return parse_statement(self, self.native_statements, self.native_statement_lexer,
+                _MAX_NESTING - self.depth + 1, _MAX_NESTING, block=True)
+
+    def _reference_block(self) -> tuple[list[Stmt], Span]:
         with self._nested():
             start = self._expect("{").span
             statements: list[Stmt] = []
@@ -411,6 +427,13 @@ class Parser:
             return statements, _cover(start, self._expect("}").span)
 
     def _statement(self) -> Stmt:
+        if self.native_statements is None:
+            return self._reference_statement()
+        from .hia_source_statements_native import parse_statement
+        return parse_statement(self, self.native_statements, self.native_statement_lexer,
+            _MAX_NESTING - self.depth, _MAX_NESTING, block=False)
+
+    def _reference_statement(self) -> Stmt:
         start = self.current.span
         if self._take("let"):
             mutable = bool(self._take("mut"))
