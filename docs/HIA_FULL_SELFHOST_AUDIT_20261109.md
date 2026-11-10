@@ -1265,3 +1265,58 @@ support. Tools are not all production runtime. The component ledger remains
 platform and clean-machine real-project closure remain **OPEN**. Defaults,
 production activation and old-stack removal are unchanged. No required legacy
 source has been deleted; retirement follows complete qualified replacement.
+
+
+## Explicit JSON executable compiler chain: exact subject 289b951
+
+The executable subject `289b9518c7cf87366d3e0c1a6b3b77b26ec8e0a6` adds an
+operator-selected exec profile to the standalone HIA JSON Core filter and native
+representation driver. Only explicit `selfhost_exec` without exports is admitted
+in that profile; flat remains the default. Native semantic/resource validation
+still checks the entry ABI and every private body. Packer references for all
+three profiles and exec representation/echo VM references precede B0.
+
+The actual JSON filter emits original and genuinely changed standalone compiler
+ELFs. Those then compile assembly through real kernel exec, not a Python image
+loader: E1=E2=E3; changed M1 differs from M2, M2=M3, and the changed fixed point
+is distinct from original. Raw successor outputs and original/changed strace
+observations are retained. Only execve/mmap/read/write/exit occur in those child
+executables. An unrelated echo program agrees with the independent Core VM.
+This is not full JSON-to-JSON self-hosting, file/module/build orchestration,
+native linker replacement, production CLI closure or a security sandbox.
+
+Clean exact-source gates: actual source workflow108tests; cold11/11 plus
+5049/5049native checks/all38phases in120.213seconds; language1242checks plus10
+assertions; combined components81tests; all three completed-B3 filter builds;
+26installed/copy/filter observations and4raw native self-compilation successor
+observations; shared closure15tests. No compiler/source/module/process/deadline
+or aggregate evidence budget is enlarged. Source identity remains v16/384paths.
+The first external installed harness omitted a case.sample fixture field after
+the product suite had passed. Its invocation remains FAIL with all raw evidence;
+a separate corrected driver supplies the fixture and completes installed/closure/
+audit gates on the IDENTICAL committed source. Prior passed source/cold/language/
+component/build gates are explicitly reused, not called re-executions. The
+completion-only clock is14.160seconds; individual original clocks are retained.
+
+Public `json-exec-cli-native-summary.json` and its matching lossless inventory
+delta bind that source,323cold-input hashes, all runner hashes and raw archive
+SHA256 `073ad444757b4b9b6e0c429c36b2d6fd40bf8ec015d5b63ecb51ff0bd7d4e562`.
+Every archive member was compared with retained originals.
+
+Current parent bc6095f remote run42765698026 remains FAIL: actual cold owner
+QUALIFICATION_TIMEOUT180s,return-9,26/38phases completed,0reported exceptions in
+completed phases,cleanup confirmed. Artifact13740096090 is retained in full:
+37556154bytes/SHA256c382863b6730491294a2eaeffae135e2c187fbf8415c80fa44460cb88f9bcbf5.
+This supersedes no failure and does not qualify unfinished phases. Prior C8EB,
+4c0,bf336 and whole-repository failures stay retained. The older fixed bd3e9c2
+full repository run completed7734tests with1native-child signal-vs-timeout
+failure,0errors and0skips, unchanged clean source; its0.2s observation does not
+establish whether the timeout preceded filter installation. No timeout/filter/
+assertion was changed to erase it. Current full/remote gates remain separate.
+
+Static inventory:219production-package Python files/76738lines plus426host-tool
+Python files/133920lines and separate non-Python support. Ledger remains
+**3 partial /5 open**. General frontend/Core/composites/module/linker/runtime,
+build/install/release,Agent/store,optimizer/proof,cross-platform and clean-machine
+real-project closure remain OPEN. No production/default switch or legacy
+retirement has occurred. Old required implementation cannot be removed yet.
