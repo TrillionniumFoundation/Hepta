@@ -20,6 +20,11 @@ on:
       - 'hepta/hia_sha256_stream_native.py'
       - 'tests/test_hia_sha256_stream_native.py'
       - 'examples/hia_bootstrap/sha256_stream.hiaasm'
+      - 'tools/generate_hia_source_declarations.py'
+      - 'tools/build_hia_source_declarations.py'
+      - 'hepta/hia_source_declarations_native.py'
+      - 'tests/test_hia_source_declarations_native.py'
+      - 'examples/hia_bootstrap/source_declarations.hiaasm'
       - 'tools/generate_hia_source_statements.py'
       - 'tools/build_hia_source_statements.py'
       - 'hepta/hia_source_statements_native.py'
@@ -157,6 +162,7 @@ jobs:
           python -B -m tools.generate_hia_core_json_cli 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/core-json-cli-generator.log"
           python -B -m tools.generate_hia_sha256_stream 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-stream-generator.log"
           python -B -m tools.generate_hia_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-observer-generator.log"
+          python -B -m tools.generate_hia_source_declarations 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-declarations-generator.log"
           python -B -m tools.generate_hia_source_statements 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-statements-generator.log"
           python -B -m tools.generate_hia_source_expressions 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-expressions-generator.log"
           python -B -m tools.generate_hia_source_types 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-types-generator.log"
@@ -181,6 +187,7 @@ jobs:
               "tests.test_hia_core_json_cli.CoreJsonCliSourceTests",
               "tests.test_hia_selfhost_word_io.WordIOSourceTests",
               "tests.test_hia_sha256_stream_native.Sha256StreamSourceTests",
+              "tests.test_hia_source_declarations_native.SourceDeclarationsSourceTests",
               "tests.test_hia_source_statements_native.SourceStatementsSourceTests",
               "tests.test_hia_source_expressions_native.SourceExpressionsSourceTests",
               "tests.test_hia_source_types_native.SourceTypesSourceTests",
@@ -328,6 +335,7 @@ jobs:
           python -B -m unittest -v tests.test_hia_sha256_stream_native.Sha256StreamNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-stream-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/native-observer-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_process_owner 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/process-owner-tests.log"
+          python -B -m unittest -v tests.test_hia_source_declarations_native.SourceDeclarationsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-declarations-tests.log"
           python -B -m unittest -v tests.test_hia_source_statements_native.SourceStatementsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-statements-tests.log"
           python -B -m unittest -v tests.test_hia_source_expressions_native.SourceExpressionsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-expressions-tests.log"
           python -B -m unittest -v tests.test_hia_source_types_native.SourceTypesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-types-tests.log"

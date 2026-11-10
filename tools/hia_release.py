@@ -39,6 +39,8 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_source_declarations.py", "tools/build_hia_source_declarations.py",
+    "tests/test_hia_source_declarations_native.py", "examples/hia_bootstrap/source_declarations.hiaasm",
     "tools/generate_hia_source_statements.py", "tools/build_hia_source_statements.py",
     "tests/test_hia_source_statements_native.py", "examples/hia_bootstrap/source_statements.hiaasm",
     "tools/generate_hia_source_expressions.py", "tools/build_hia_source_expressions.py",

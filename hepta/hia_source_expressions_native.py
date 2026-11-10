@@ -42,10 +42,11 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value, *, _exten
     if type(raw) is not bytes or type(wire) is not bytes or len(raw) < 64:
         raise ValueError('invalid HIA expression arena')
     magic, count, base, used, chars, consumed, version, root = struct.unpack_from('<8Q', raw)
+    allow_empty = _extension is not None and getattr(_extension, 'ALLOW_EMPTY', False)
     if (magic != (MAGIC if _extension is None else _extension.MAGIC) or version != 1 or not 1 <= count <= MAX_NODES
             or base != 64 + count * 128 or not base <= used == len(raw)
-            or not 0 <= root < count or not 0 < consumed <= len(wire)
-            or not 0 < chars <= consumed):
+            or not 0 <= root < count or not (0 <= consumed <= len(wire) if allow_empty else 0 < consumed <= len(wire))
+            or not (0 <= chars <= consumed if allow_empty else 0 < chars <= consumed)):
         raise ValueError('invalid HIA expression header')
     try:
         if len(wire[:consumed].decode('utf-8')) != chars:
@@ -77,7 +78,7 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value, *, _exten
             payload_ranges.append((start, start + size))
             try: name = raw[base + start:base + start + size].decode('ascii')
             except UnicodeDecodeError as error: raise ValueError('invalid HIA expression identifier') from error
-            if not name or any(not part.isidentifier() for part in name.split('::')) or (kind not in (1, 43) and '::' in name):
+            if not name or any(not part.isidentifier() for part in name.split('::')) or (kind not in (1, 43, *(() if _extension is None else getattr(_extension, 'QUALIFIED', ()))) and '::' in name):
                 raise ValueError('invalid HIA expression identifier')
             text_values[i] = name
         elif start or size:
@@ -91,7 +92,8 @@ def materialize(raw: bytes, wire: bytes, integer_value, literal_value, *, _exten
             if any((tag, a, z, line, col, path_end, parts)):
                 raise ValueError('unexpected HIA type extension')
         else:
-            if not 0 <= a < z <= chars or line < 1 or col < 1:
+            empty_span = _extension is not None and kind in getattr(_extension, 'EMPTY_SPANS', ())
+            if not (0 <= a <= z <= chars if empty_span else 0 <= a < z <= chars) or line < 1 or col < 1:
                 raise ValueError('invalid HIA expression span')
             if kind not in (20, 21, 26) and (path_end or parts):
                 raise ValueError('unexpected HIA qualified name metadata')
@@ -382,6 +384,8 @@ def _parse_application(parser, native, lexer, nesting_limit, options, workspace,
     while pending:
         current=pending.pop();p=current.span
         current.span=Span(origin.start+p.start,origin.start+p.end,origin.line+p.line-1,p.column+(origin.column-1 if p.line==1 else 0),origin.path)
+        if extension is not None and hasattr(extension, 'translate_extra_spans'):
+            extension.translate_extra_spans(current, origin)
         pending.extend(children(current))
     for name,p in observations:
         parser.qualified_expressions.append((name,Span(origin.start+p.start,origin.start+p.end,origin.line+p.line-1,p.column+(origin.column-1 if p.line==1 else 0),origin.path)))

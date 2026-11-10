@@ -13,8 +13,10 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v33"
+PROFILE = "selfhost-core-linux-x86_64-v34"
 SOURCE_FILES = (
+    "tools/generate_hia_source_declarations.py", "tools/build_hia_source_declarations.py",
+    "tests/test_hia_source_declarations_native.py", "examples/hia_bootstrap/source_declarations.hiaasm",
     "tools/generate_hia_source_statements.py", "tools/build_hia_source_statements.py",
     "tests/test_hia_source_statements_native.py", "examples/hia_bootstrap/source_statements.hiaasm",
     "tools/generate_hia_source_expressions.py", "tools/build_hia_source_expressions.py",
@@ -230,6 +232,26 @@ def support_contract(root=ROOT):
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
+        "source_declarations_application": {"status": "bounded_subset",
+             "source": "examples/hia_bootstrap/source_declarations.hiaasm",
+             "selection": "HEPTA_HIA_SOURCE_DECLARATIONS_MANIFEST; default reference unchanged",
+             "manifest_schema": "hepta.hia.source-declarations-native.v1",
+             "input_bytes": 8388608, "maximum_nodes": 1048576,
+             "maximum_combined_syntax_depth": 128, "existing_parser_nesting_limit": 96,
+             "caller_remaining_depth_preserved": True, "workspace_fixed_bytes": 92416,
+             "workspace_trace_formula": "ceil(input_bytes/8) additional bytes; inherited explicit generic split trace",
+             "arena_header_bytes": 64, "arena_node_bytes": 128,
+             "passes": "validation/count before output publication; deterministic graph; separately marked diagnostic-only replay",
+             "items": ["complete existing program/module/import/struct/enum/function syntax; no new language syntax",
+                       "qualified module/import paths, aliases, public/repr(C), generic/lifetime/bound metadata",
+                       "parameter/return borrowing, contextual from, extern/export ABI, effects and resource literals",
+                       "actual HIA statement/expression/type/scanner composition; no host grammar fallback",
+                       "original duplicate-effect/resource checks and final struct-bound overwrite semantics",
+                       "exact diagnostics, first-error token state, generic splits and AST/body/source spans"],
+             "still_foreign": ["authoring generator, image loading/build and operator selection",
+                               "Token/Span/Diagnostic/AST object allocation and graph/cursor validation",
+                               "qualified namespace and AST-depth semantic guards, type/effect/ownership checker",
+                               "module/package resolution, general runtime, tooling and complete release chain"]},
         "source_statements_application": {"status": "bounded_subset",
              "source": "examples/hia_bootstrap/source_statements.hiaasm",
              "selection": "HEPTA_HIA_SOURCE_STATEMENTS_MANIFEST; default reference unchanged",

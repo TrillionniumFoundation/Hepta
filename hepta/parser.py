@@ -33,6 +33,11 @@ class Parser:
         self.source = source
         self.path = path
         import os
+        declaration_selection = os.environ.get('HEPTA_HIA_SOURCE_DECLARATIONS_MANIFEST')
+        self.native_declarations = None
+        if declaration_selection:
+            from .hia_source_declarations_native import installed_source_declarations
+            self.native_declarations, self.native_declaration_lexer = installed_source_declarations(declaration_selection)
         statement_selection = os.environ.get('HEPTA_HIA_SOURCE_STATEMENTS_MANIFEST')
         self.native_statements = None
         if statement_selection:
@@ -48,7 +53,9 @@ class Parser:
         if selected:
             from .hia_source_types_native import installed_source_types
             self.native_types, self.native_type_lexer = installed_source_types(selected)
-            self.tokens = self.native_type_lexer.tokenize(source, path)
+            self.tokens = (self.native_declaration_lexer if self.native_declarations is not None else self.native_type_lexer).tokenize(source, path)
+        elif self.native_declarations is not None:
+            self.tokens = self.native_declaration_lexer.tokenize(source, path)
         elif self.native_statements is not None:
             self.tokens = self.native_statement_lexer.tokenize(source, path)
         elif self.native_expressions is not None:
@@ -101,6 +108,10 @@ class Parser:
             self.depth -= 1
 
     def parse(self) -> Program:
+        if self.native_declarations is not None:
+            from .hia_source_declarations_native import parse_program
+            return self._finish_program(parse_program(self, self.native_declarations,
+                                                       self.native_declaration_lexer, _MAX_NESTING))
         name = "main"
         if self._take("module"):
             name = self._path()
@@ -125,13 +136,18 @@ class Parser:
                 functions.append(self._function())
             else:
                 self._error("Expected a struct, enum, or function declaration")
-        namespaces = {item.alias for item in imports} | {item.name for item in enums + structs} | {"Result"}
+        return self._finish_program(Program(name, structs, functions, self.source, self.path, enums, imports))
+
+    def _finish_program(self, program: Program) -> Program:
+        # Semantic namespace and AST-depth guards are still foreign. They are
+        # not silently claimed as native syntax recognition or removed.
+        namespaces = {item.alias for item in program.imports} | {item.name for item in program.enums + program.structs} | {"Result"}
         for path, span in self.qualified_expressions:
             if path.split("::")[0] not in namespaces:
                 self._error(f"Qualified name {path} requires a declared import or enum namespace",
                             Token("", None, span), "E_PARSE_NAMESPACE")
-        self._validate_tree_depth(functions)
-        return Program(name, structs, functions, self.source, self.path, enums, imports)
+        self._validate_tree_depth(program.functions)
+        return program
 
     def _path(self) -> str:
         parts = [self._expect("IDENT", "Expected a name").value]
