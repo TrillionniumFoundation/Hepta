@@ -1,5 +1,18 @@
 # Hepta
 
+## Active product direction — HIA Core + AI Agent
+
+As of the owner's 2026-11-10 decision, HIA Core and Agent interfaces are the
+active product. High-level Hepta language development and its native-port
+expansion are **frozen**, with existing code retained as reference/compatibility.
+They are not prerequisites for HIA-only closure. See the
+[active scope and qualification boundaries](docs/HIA_AGENT_ONLY_SCOPE.md).
+The development `hia` entry isolates Core verification and snapshot-bound edits
+from high-level source routes; it remains explicitly a Python host bridge.
+Whole native-only delivery is **OPEN**, not implied by this scope change.
+
+The high-level language description below documents the retained implementation.
+
 Hepta is an experimental native systems language and compiler toolchain for
 human and coding-agent collaboration. Its checked ownership model, explicit
 effects, source-bound interfaces, and transaction protocol make resource and
@@ -310,4 +323,3 @@ The [credential-free runtime audit](evidence/audits/provider-runtime-022ed82.jso
 loaded the system CA store inside the adapter capsule, but DNS resolution of
 the API host failed in both parent and capsule. TLS/HTTP access and actual
 provider accounting therefore remain unqualified in this environment.
-

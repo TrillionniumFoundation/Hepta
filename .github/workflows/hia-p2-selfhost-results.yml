@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: ['codex/hia-sixgap-source-5e6c-20261108', 'work/hia-**']
     paths:
+      - 'docs/HIA_AGENT_ONLY_SCOPE.md'
+      - 'docs/HIA_AGENT_ONLY_SCOPE.json'
+      - 'tests/test_hia_agent_entry.py'
+      - 'pyproject.toml'
       - 'examples/hia_bootstrap/source_parser.hiaasm'
       - 'hepta/hia_source_parser_native.py'
       - 'tests/test_hia_source_parser_native.py'
@@ -193,6 +197,7 @@ jobs:
           import json, os, unittest
           from pathlib import Path
           names = (
+              "tests.test_hia_agent_entry",
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
               "tests.test_hia_source_parser_native.SourceParserSourceTests",
               "tests.test_hia_type_parser_native.TypeParserSourceTests",

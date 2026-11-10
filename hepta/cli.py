@@ -11,9 +11,37 @@ import tempfile
 
 from . import __version__
 from .ast import HeptaError
-from .backend import compile_rust, emit_header, find_rustc, toolchain_info
-from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis, resource_ir_analysis, concurrent_ir_analysis
-from .protocol import apply_patch
+
+
+HIA_AGENT_ACTIONS = (
+    "capabilities", "catalog", "import-assembly", "render-assembly", "check-assembly",
+    "verify", "inspect", "normalize", "build", "patch", "impact",
+    "edit-query", "edit-apply", "edit-batch-query", "edit-batch-apply",
+)
+
+
+def agent_capabilities():
+    """Describe this entry, not the larger compatibility CLI or native closure."""
+    return {
+        "schema": "hepta.hia.agent-entry.v1",
+        "entry": "hia", "audience": "ai-agent", "language_core": "HIA",
+        "actions": list(HIA_AGENT_ACTIONS),
+        "high_level_hepta": "frozen_reference_not_an_input_to_this_entry",
+        "high_level_source_required": False,
+        "inputs": ["standalone-hia-json", "explicit-hia-assembly"],
+        "build": {"backend": "native", "kind": "object",
+                  "target": "x86_64-unknown-linux-gnu", "fallback": False},
+        "edits": {"snapshot_bound": True, "entire_module_reverified": True,
+                  "publication": "new_path_only"},
+        "implementation": "python_host_bridge",
+        "native_only_delivery_qualified": False,
+        "production_activated": False,
+    }
+
+
+def hia_main(argv=None) -> int:
+    """Agent-only compatibility bridge; never enter a high-level source route."""
+    return main(["hia", *(sys.argv[1:] if argv is None else argv)], _hia_agent=True)
 
 
 def output_json(value):
@@ -41,13 +69,20 @@ def publish_json_view(value, destination):
             "output": str(target), "view_schema": value["schema"], "publication": receipt}
 
 
-def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="hepta", description="Hepta native systems language")
+def main(argv=None, *, _hia_agent=False) -> int:
+    parser = argparse.ArgumentParser(prog="hia" if _hia_agent else "hepta",
+                                     description="HIA Agent interface" if _hia_agent else "Hepta native systems language")
     parser.add_argument("--version", action="version", version="hepta " + __version__)
     sub = parser.add_subparsers(dest="command", required=True)
-    hia = sub.add_parser("hia", help="Independent typed HIA program verification, execution and native compilation")
+    hia = sub.add_parser("hia", **({"prog": "hia"} if _hia_agent else {}),
+                        help="Independent typed HIA program verification, execution and native compilation")
+    if _hia_agent:
+        hia.add_argument("--version", action="version", version="hia " + __version__)
     hia_actions = hia.add_subparsers(dest="hia_action", required=True)
-    hia_actions.add_parser("routes", help="Exact source, historical IR and backend compatibility inventory")
+    if not _hia_agent:
+        hia_actions.add_parser("routes", help="Exact source, historical IR and backend compatibility inventory")
+    if _hia_agent:
+        hia_actions.add_parser("capabilities", help="Exact Agent entry scope and implementation boundaries")
     from .hia_schema import LATEST_CORE_SCHEMA, PRIMITIVE_PROFILES
     catalog_parser = hia_actions.add_parser("catalog", help="Complete generated instruction and resource contract for an exact Core version")
     catalog_parser.add_argument("--schema", choices=tuple(PRIMITIVE_PROFILES), default=LATEST_CORE_SCHEMA)
@@ -68,8 +103,11 @@ def main(argv=None) -> int:
                    "optimize-guarded", "verify-guarded", "build-guarded",
                    "optimize-narrowed", "verify-narrowed", "build-narrowed",
                    "optimize-guarded-narrowed", "verify-guarded-narrowed", "build-guarded-narrowed"):
+        if _hia_agent and action not in HIA_AGENT_ACTIONS:
+            continue
         h = hia_actions.add_parser(action)
-        h.add_argument("input", help="Standalone HIA JSON program; lower accepts Hepta source")
+        h.add_argument("input", help=("Standalone HIA JSON program" if _hia_agent else
+                                      "Standalone HIA JSON program; lower accepts Hepta source"))
         if action in {"verify-translation", "optimize"}:
             h.add_argument("--function", required=True, help="Exact public scalar function")
             h.add_argument("--timeout-ms", type=int, default=2000,
@@ -141,16 +179,24 @@ def main(argv=None) -> int:
             h.add_argument("--max-heap-bytes", type=int, default=1048576)
             h.add_argument("--allocation-fail-at", type=int)
         if action in {"build", "build-optimized", "build-guarded", "build-narrowed", "build-guarded-narrowed"}:
-            h.add_argument("--clang", default="clang")
-            h.add_argument("--kind", choices=["shared", "object"], default="shared")
+            if not _hia_agent:
+                h.add_argument("--clang", default="clang")
+            h.add_argument("--kind", choices=["object"] if _hia_agent else ["shared", "object"],
+                           default="object" if _hia_agent else "shared")
         if action == "build":
-            h.add_argument("--backend", choices=["llvm", "native"], default="llvm",
-                           help="native writes x86-64 instructions and ELF directly; llvm preserves the existing backend")
-            h.add_argument("--linker", default="cc",
-                           help="System linker (ld) or C driver for native shared libraries; unused for native objects")
+            h.add_argument("--backend", choices=["native"] if _hia_agent else ["llvm", "native"],
+                           default="native" if _hia_agent else "llvm",
+                           help=("Direct x86-64 ELF object generation" if _hia_agent else
+                                 "native writes x86-64 instructions and ELF directly; llvm preserves the existing backend"))
+            if _hia_agent:
+                h.set_defaults(linker="cc")  # unused for the object-only entry
+            else:
+                h.add_argument("--linker", default="cc",
+                               help="System linker (ld) or C driver for native shared libraries; unused for native objects")
         if action in {"emit", "build"}:
-            h.add_argument("--target", choices=["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
-                                               "riscv64-unknown-linux-gnu"],
+            h.add_argument("--target", choices=(["x86_64-unknown-linux-gnu"] if _hia_agent else
+                                               ["x86_64-unknown-linux-gnu", "aarch64-unknown-linux-gnu",
+                                                "riscv64-unknown-linux-gnu"]),
                            default="x86_64-unknown-linux-gnu")
         if action in {"lower", "import-executable", "import-scalar"}:
             h.add_argument("--module", default="migrated")
@@ -163,7 +209,7 @@ def main(argv=None) -> int:
             h.add_argument("--project-sha256", required=action == "import-scalar")
         if action in {"patch", "impact"}:
             h.add_argument("--request", required=True)
-        if action == "verify":
+        if action == "verify" and not _hia_agent:
             h.add_argument("--rust-shadow-bin",
                            help="opt-in exact-byte Rust shadow executable (not native admission)")
             h.add_argument("--rust-shadow-sha256",
@@ -317,6 +363,9 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.command == "hia":
+            if _hia_agent and args.hia_action == "capabilities":
+                output_json(agent_capabilities())
+                return 0
             from .hia_program import verify_program
             from .hia_routes import admit_route, admit_captured_cpp, route_inventory
             from .hia_program_tools import (read_bounded, decode_json, inspect_program,
@@ -569,8 +618,8 @@ def main(argv=None) -> int:
             if args.hia_action == "verify":
                 report = {**program.report(), "status": "standalone_core_checked",
                           "native_executed": False}
-                selected_shadow = any(value is not None for value in (
-                    args.rust_shadow_bin, args.rust_shadow_sha256, args.rust_shadow_profile))
+                selected_shadow = any(getattr(args, name, None) is not None for name in (
+                    "rust_shadow_bin", "rust_shadow_sha256", "rust_shadow_profile"))
                 if selected_shadow:
                     if not args.rust_shadow_bin or not args.rust_shadow_sha256:
                         raise ValueError("Rust shadow requires both --rust-shadow-bin and --rust-shadow-sha256")
@@ -642,6 +691,12 @@ def main(argv=None) -> int:
                     receipt["program"] = revised.as_dict()
                 output_json(receipt)
                 return 0
+            raise ValueError("unsupported HIA action")
+        # The retained high-level language is an explicit compatibility route,
+        # not an eager dependency of any HIA Agent/Core operation.
+        from .backend import compile_rust, emit_header, find_rustc, toolchain_info
+        from .pipeline import analyze, analyze_project, inspect_analysis, hsir_analysis, cfg_analysis, resource_ir_analysis, concurrent_ir_analysis
+        from .protocol import apply_patch
         if getattr(args, "debug", False) and args.c_opt != "default":
             raise ValueError("--debug disables optimization and cannot use --c-opt unroll")
         if args.command == "workspace":

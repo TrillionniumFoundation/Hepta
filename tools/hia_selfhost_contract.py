@@ -15,6 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v37"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_ONLY_SCOPE.md',
+    'docs/HIA_AGENT_ONLY_SCOPE.json',
+    'tests/test_hia_agent_entry.py',
+    'pyproject.toml',
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
     'examples/hia_bootstrap/native_filter_packer.hiaasm',
