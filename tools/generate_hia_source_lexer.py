@@ -2,8 +2,9 @@
 
 This is not the assembly compiler scanner. Native code recognizes source
 tokens, nested comments, UTF-8 code points, spans and numeric token grammar.
-The host token bridge still constructs Python values (notably arbitrary-size
-integers and finite binary64 values). Full parsing/type checking remain open.
+The HIA image also converts arbitrary-size source integers to little-endian
+magnitudes. The host constructs objects and finite binary64 values; full
+parsing/type checking remain open.
 """
 from __future__ import annotations
 import ast
@@ -18,6 +19,11 @@ PAIR_ORDER=('->','..','==','!=','<=','>=','&&','||','<<','>>','::','=>')
 SOURCE=r'''
 def lexer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 128 or length(s) > 8388608:
+        return 4294967293
+    mode = get(w, 120)
+    if mode == 1:
+        return integer(s, o, w)
+    if mode != 0:
         return 4294967293
     initialize(w, 0)
     scan(s, o, w)
@@ -321,6 +327,68 @@ def put(w:mutbuf, at:u64, value:u64) -> u64:
     store(w, at + 6, (value >> 48) & 255)
     store(w, at + 7, (value >> 56) & 255)
     return 0
+
+def integer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) > 8192 or length(w) < 2176:
+        return 4294967293
+    base = 10
+    begin = 0
+    if length(s) >= 2 and byte(s, 0) == 48:
+        marker = byte(s, 1)
+        if marker == 120 or marker == 88:
+            base = 16
+            begin = 2
+        if marker == 98 or marker == 66:
+            base = 2
+            begin = 2
+        if marker == 111 or marker == 79:
+            base = 8
+            begin = 2
+    if length(s) == begin:
+        return 4294967295
+    i = begin
+    count = begin
+    separator = False
+    while i < length(s):
+        ch = byte(s, i)
+        if ch == 95:
+            if i == begin or separator:
+                return 4294967295
+            separator = True
+        else:
+            if digit(ch) >= base:
+                return 4294967295
+            count = count + 1
+            separator = False
+        i = i + 1
+    if separator or count > 4096:
+        return 4294967295
+    used = 1
+    store(w, 128, 0)
+    i = begin
+    while i < length(s):
+        ch = byte(s, i)
+        if ch != 95:
+            carry = digit(ch)
+            j = 0
+            while j < used:
+                value = byte(w, 128 + j) * base + carry
+                store(w, 128 + j, value & 255)
+                carry = value >> 8
+                j = j + 1
+            if carry != 0:
+                if used >= 2048:
+                    return 4294967295
+                store(w, 128 + used, carry)
+                used = used + 1
+        i = i + 1
+    if length(o) < used:
+        return 4294967294
+    i = 0
+    while i < used:
+        store(o, i, byte(w, 128 + i))
+        i = i + 1
+    return used
 '''
 
 
