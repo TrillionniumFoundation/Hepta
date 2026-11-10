@@ -2,30 +2,63 @@
 
 ## Decision and source authority
 
-**Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
-is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified combined implementation contains a live `hepta/` package with
-219 Python files, 76,738 lines and 4,154,660 bytes. These are source inventory figures, not a
-percentage-completion estimate. Archived copies and example source files are
-not counted as production replacements.
+**Whole-stack rewrite is OPEN, not complete.** This continuation adds an
+operator-selected source type parser in HIA. It recognizes the complete existing
+type grammar with an explicit bounded stack: qualified paths, generic arguments
+and lifetimes, arrays/slices, read/mut references and raw const/mut pointers.
+It is not a declaration/expression parser or a semantic type checker. Default
+backends and old implementations remain unchanged, pending whole-stack closure.
+The new implementation completed its own fresh qualification atfc5540f as
+recorded below; baseline results are not substituted for changed-source evidence.
 
-The streaming checkpoint inventories **418 Python files /132664lines** under `tools/`,
-separately from the production package. These include host authoring, build,
-qualification and delivery authorities: they have not been rewritten merely
-because a generated compiler reproduces itself. Package plus tool roots total
-637Python files. The subsequent qualified standalone JSON CLI has420tools/
-132951lines and219package files:639Python files combined. Its two new host
-build/authoring tools are not rewritten production authorities. Tests, historical
-evidence, experiments, examples, benchmarks
-and formal-support scripts are explicitly outside those two AST-inventory roots;
-no claim that those excluded roots are HIA replacements is made. Current file
-hashes/imports and these scope exclusions are reconstructable losslessly from
-`implementation-boundary-v28.json` plus the versioned lossless inventory deltas.
-The prior clean `1b45c4e` snapshot accounts for **all10,027 tracked paths**
-by identity, role and language, distinguishing research/evidence from live code.
-Its live non-Python support inventory includes46Rust,8C and9Lean source files;
-none is silently counted as rewritten in HIA. Whole-tree file accounting is not
-a semantic review, execution qualification or completion percentage.
+### Latest qualified baseline (before source type parsing)
+
+The latest combined executable
+qualification subject is `4f95ee91fd3aac0513135e22512f310ed806267d`; current
+assembly-aware inventory subject is `115d042`, with all328qualified cold payloads
+preserved byte-for-byte through review head `d7d1a34` (draft PR #845).
+
+The qualified baseline `hepta/` package has **220 Python files /76,872lines /
+4,161,818bytes**. Separately, baseline `tools/` has **428 Python files /134,502lines /
+7,704,073bytes**. The648combined files include foreign authoring, build,
+qualification and delivery authorities; tools are not all production runtime.
+These inventories are neither a completion percentage nor proof of semantic
+replacement. Assembly `.S`/`.s` support files are now explicitly classified,
+not silently counted as HIA. Tests, historical evidence, experiments, examples,
+benchmarks and formal-support scripts are outside those two Python roots, but
+remain accounted for by tracked-file identity and role in the lossless audits.
+
+Current combined local evidence is108source tests, cold11/11+5,049native checks
+in101.204seconds under180+3seconds,1,242language checks+10assertions,96native
+component tests,15shared-identity controls,83selected+83default consumers,
+55selected incremental tests and63selected+63default parser/module callers.
+The audit ledger remains **3partial/5open**. A separately frozen full-repository
+run at4f95ee9 is pending. Remote CI atd7d1a34 has passed all four source, cold, native and language
+jobs (run42766783539). The cold native checks took174.082seconds under
+the unchanged180second deadline. No
+full-repository or whole-stack PASS is established. Earlier shared-observer remote b4b1e4c timed
+out at180seconds (28/38phases, cleanup complete), and remains FAIL despite local
+passes and an earlier a19b612 remote success.
+
+Exact current inventories reconstruct from `implementation-boundary-v28.json`
+plus `implementation-boundary-integrated-stack-delta.json` and the separately
+labelled `implementation-boundary-integrated-current-inventory-delta.json`.
+See `integrated-native-stack-summary.json` and
+`integrated-current-inventory-summary.json` for distinct executable/inventory
+subjects and source-equivalence evidence. Main/release locks, production and
+default backends have not been switched.
+
+### Historical qualified checkpoints (not current closure claims)
+
+The streaming bd3e9c2 snapshot had219package+418tool Python files; standalone
+CLI bc9aa4a had219+420; integrated CLI/exports5fb6357 had219+424; the separate
+source-integer c57fb17 snapshot had219+423. Their exact hashes, import inventories
+and receipts are retained in the corresponding public summaries/deltas. They
+are not substitutions for current combined-source qualification. The older
+clean1b45c4e inventory accounts for10,027tracked paths, including46Rust,8C and
+9Lean live support sources; whole-tree file accounting was not semantic or
+execution qualification. Historical full-suite failures retain their original
+status. The chronology below describes those checkpoints, not the current head.
 
 **Streaming qualification:** Native HIA Core JSON representation, one-shot SHA and
 incremental SHA are integrated in the current candidate. Exact implementation
@@ -70,6 +103,52 @@ the dedicated selfhost workflow had a stale PR-base filter and did not trigger
 for later stacked `work/hia-*` PRs. Its filter now includes that series without
 changing any compiler, witness, timeout, capacity or permissions. The new remote
 run must report its own outcome.
+**Current continuation (2026-11-10):** the selected source lexer now parses
+arbitrary-size integer magnitudes in HIA, not through a host literal parser.
+The v2 manifest declares command 0 for tokens and command 1 for integer
+magnitudes; Python only constructs integer objects from the native bytes.
+The 20-function image retains all earlier lexical checks and adds independent
+pre-seed integer VM controls, four-radix randomized/boundary tests, transactional
+refusals, guards and eight-way private concurrent calls with the host literal
+parser unavailable. Floating conversion and the full parser remain foreign.
+
+Exact clean c57fb17e passed104source tests,11/11cold+5,047/5,047native checks
+in163.463seconds under the unchanged180-second deadline,1,242language checks,
+66combined native-library tests,83selected and83default consumers,55incremental,
+15shared-closure and63selected+63default parser/module tests. The complete
+repository regression is running on a separate immutable c57fb17e checkout;
+it is not qualified by these finite local gates. See source-integer-summary.json,
+source-integer-source-equivalence.json and the lossless source-integer delta.
+
+The earlier exact70ee7cd remote cold replay FAILED at180seconds, after22phases,
+with cleanup confirmed. Its original artifact and failure summary are retained.
+The newer local pass does not promote that historical remote failure.
+
+**Prior lexical checkpoint (2026-11-10):** high-level Hepta source token recognition
+now executes in a19-function HIA application under explicit operator selection.
+The existing token API and real Python parser/module callers exercise that
+path; Python numeric values/AST parsing/type checking and the default reference
+remain. Exact069087b0 clean-source CI passed104tests; native cold replay passed
+11/11outer and5,047/5,047native checks in160.561seconds under the unchanged180
+second deadline. Language coverage passed1,242checks, combined native libraries
+62tests, existing selected/default consumers83each, incremental55, and actual
+selected/default parser/module tests63each. All are finite source-bound scopes.
+
+The exact source-CI receipt was reused with its original clock after a retained
+ENOSPC cold failure; that failure is not relabelled. A prior application/opcode
+coverage declaration error was also retained and fixed without dropping gates.
+The clean-snapshot inventory and full tracked-file identities reconstruct from
+`implementation-boundary-source-lexer-delta.json`; source and native manifest
+bindings are in `source-lexer-summary.json`. Metadata merging preserves all312
+qualified exported paths byte-for-byte, recorded separately rather than called
+a new cold run. No default/release lock/service/main activation has occurred.
+
+The latest observed open-PR inventory has470entries (459drafts), at2026-11-10
+05:14:45UTC; titles are not integration proof. The oldv30full-repository attempt
+remains incomplete. The later exact2484f5c full run completed7,697tests with
+six known exact-source-closure errors, no skips, and unchanged source; it is
+FAIL, not promoted by newer local gates. Other newer full-repository attempts
+remain independently pending. Whole-stack status is still3partial/5open.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -80,7 +159,7 @@ selfhost candidate. Development continues here from PR #834 source commit
 v17 internal scalar result work. Do not copy a full compiler into metadata-only
 `main`, silently advance release locks, or promote unrelated candidate branches.
 
-The open-PR inventory observed during this audit contains 465 entries. Many
+The earlier open-PR inventory observed during this audit contained 465 entries. Many
 are stacked historical/research branches; their titles or isolated success
 receipts do not establish integration into the selected source. Current adjacent
 work includes #829 information pricing, #830 copied-image proof/adoption, #831
@@ -1141,6 +1220,7 @@ Reviewable records:
 `review-evidence/hia-whole-selfhost-20261109/multiple-scalar-exports-summary.json`
 and `implementation-boundary-multiple-exports-delta.json` in that directory.
 
+
 ## Qualification transport continuation: exact native observer subject eebf5a7
 
 The multiple-export subject's real remote workflow
@@ -1227,6 +1307,144 @@ returned source/output/workspace frame. The first test expected an untouched
 workspace fill, but the reviewed bytesum program explicitly stores into both
 mutable buffers; the corrected independent expectation checks both bytes.
 The failed attempt remains evidence, not a product bug silently relabelled.
+## Shared-output observer continuation: exact subject 4d490d8
+
+The previous observer subject, published as `a19b612`, has now completed real
+remote workflow [42761679281](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42761679281)
+with all four jobs (source, cold, native and language) successful. Its cold
+artifact contains 11/11 isolation checks and 5,049/5,049 native checks, taking
+153.292 seconds under the unchanged 180-second limit. The compiler generation
+hashes match the locally observed generations. The older bf3360f timeout is
+still a failure; this success does not qualify subsequent source changes.
+
+Exact executable subject `4d490d821be7b12267ee43b1791932d40e660355` extends the
+HIA-emitted ELF observer to actual size-sealed shared output mappings. Custom
+preimages and post-trap output no longer require the legacy phase loader. True
+kernel SIGILL retains previously written bytes, independently read from the
+parent-owned memfd after child termination. Normal-return stdout must agree
+with those actual bytes. Extent sealing and prelaunch ENOSPC descriptor cleanup
+are exercised. Every flat invocation still execs fresh; original generation
+controls and seed/shared ELF still use the independent stdlib loader.
+
+Local exact-source evidence:
+
+- Source-only cold export: 11/11 checks and 5,049/5,049 native checks PASS in
+  113.306 seconds (113.846 seconds outer wall), retaining 180+3-second bounds.
+  The origin Git tree was dirty when this source-only cold export was created.
+  After freezing the implementation, all 314 export payloads were compared
+  byte-for-byte with the committed source. This is explicitly **not** labelled
+  Git-clean-before-cold and was not reexecuted just for Git metadata.
+- The remaining fixed-commit pipeline started and ended Git-clean: actual source
+  workflow 103 tests, language 1,242 checks plus 10 assertions, native component
+  suite 61 tests and shared closure 15 tests all PASS. The cold binding was
+  independently rechecked in that pipeline.
+- No compiler semantics, physical capacity, qualification witness, timeout,
+  worker count or OS resource limit was relaxed.
+
+Public `native-shared-byte-abi-observer-summary.json` and
+`implementation-boundary-native-shared-observer-delta.json` bind this exact
+subject; evidence-only metadata preserves all declared source bytes. The new
+subject requires its own remote run. The ISA adapter is still literally
+instruction-authored. Parent supervision, independent oracles, B0, linking,
+release, production/runtime and default retirement remain open. Static audit
+still records 218 package Python files and 423 tool Python files, with **3 partial
+/ 5 open** components. Neither full-repository acceptance nor whole-stack HIA
+closure is claimed.
+
+## Unified native component qualification: exact subject 4f95ee9
+
+The standalone JSON Core CLI/export compiler, incremental SHA library, native
+source lexer with arbitrary-size bounded integer magnitudes, exact keyword
+buckets and shared-output native observer are now integrated in one source
+subject: `4f95ee91fd3aac0513135e22512f310ed806267d`. The combined source is
+qualified afresh; individual fork receipts are not treated as combined evidence.
+
+Completed local pipeline, Git-clean before and after every step:
+
+- Actual recovery/regeneration workflow:108tests PASS.
+- Source-only cold replay:11/11 checks and5,049/5,049 native checks PASS in
+  101.204seconds nested, retaining the180-second gate and separate3-second
+  cleanup. All328 exported payloads match the committed source bytes.
+- Language:1,242checks plus10assertions PASS; combined native components:96tests
+  PASS; exact shared-source closure:15tests PASS.
+- Actual B3 builds decoder/canonicalizer/SHA/Core frontend/source lexer and both
+  flat/ELF standalone JSON CLI profiles. Selected/default existing consumers:
+  83tests each PASS; selected incremental policy:55PASS. Selected/default real
+  parser and module callers:63tests each PASS.
+- Actual installed CLI outputs execute through fresh HIA-emitted native observer
+  children without the legacy fallback, with syscall traces retained. Two
+  independently compiled export objects still link to a real typed C caller,
+  including16mixed scalar arguments and independent VM comparison. C/linking
+  remain explicitly foreign.
+
+The combined v17 source identity contains389explicit paths and all220actual
+root compiler modules. Both the separate370-path lexer fork and384-path observer
+fork, plus every older projection, remain exact. The new661metadata bytes are
+offset by661fewer raw-log bytes; aggregate evidence stays1048576bytes and all
+other physical capacities/deadlines/worker counts remain unchanged.
+
+Initial combined subject4a44a37 passed source108 and cold5049, but review found
+the CLI execution fixture still expected the old HIAOBR01 response marker. After
+the in-flight cold owner completed and confirmed cleanup, remaining orchestration
+was cancelled, not labelled an accepted pipeline. The fixture was corrected to
+the actual HIAOBR02 wire protocol and this fresh complete pipeline reran. An
+intermediate launcher incorrectly reused an existing source-CI output path and
+failed before test execution; that harness failure is also retained. Neither
+failure was hidden by reusing a receipt or deleting tests.
+
+Separately, shared-observer remote run
+[42764255774](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42764255774)
+onb4b1e4c failed cold qualification at unchanged180seconds:28/38phases completed,
+zero phase exceptions, owned cleanup complete. Its complete artifact and job
+logs are retained. The prior a19b612 remote success and this combined local PASS
+do not override that failure or qualify a new remote source. Combined-source
+remote CI and full-repository regression require their own fresh outcomes.
+
+Reviewable `integrated-native-stack-summary.json` and the lossless
+`implementation-boundary-integrated-stack-delta.json` bind this exact subject.
+Static inventory:220package Python files/76,872lines and428tool Python
+files/134,501lines. Tool counts include build/authoring/qualification machinery,
+not just production runtime. The ledger remains**3partial/5open**: literal ISA
+authoring, parent supervision/oracles, B0, host object construction, AST and type
+checking, module/runtime authorities and build/link/release still need work.
+No production/default switch, main merge, full-language/all-input equivalence,
+full-repository PASS or whole-stack HIA closure is claimed.
+This checks real multi-object linkage and typed C ABI calls. It is not a
+Hepta source-module graph resolver, a native linker implementation or a
+whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.
+
+
+### High-level Hepta source scanning in HIA (candidate, whole stack OPEN)
+
+Added a19-function HIA source lexical recognizer, distinct from the assembly
+compiler scanner. It performs UTF-8 scalar/code-point position tracking,
+nested comments, keywords/identifiers, lifetime/operator/string/numeric token
+grammar and lexical diagnostics in HIA. An explicit operator manifest routes
+the existing tokenize API and actual parser callers through native recognition.
+Default/reference behavior remains unchanged, including fallback for source
+representations outside this bounded candidate profile. Python numeric
+materialization and AST/parser/type/module/runtime paths remain live.
+
+The token ABI validates/counts before publishing any output and keeps the
+8MiB input,1M-token including EOF and128-byte workspace profile explicit.
+Compiler caps/deadlines do not change. Exact source closure v14 adds five
+reviewed source-lexer paths, retains the365-path SHA-256 and all older
+projections independently, and binds all219actual root Python modules.
+The661-byte identity increase is transferred from raw logs to metadata;
+aggregate evidence/container/source/module/process limits remain unchanged.
+See HIA_SOURCE_LEXER_NATIVE.md. Fresh source-bound execution receipts are
+required; the existing compiler fixed points are not whole-frontend closure.
+
+
+### Exact source-lexer delivery checkpoint
+
+The qualified source069087b0 remains the execution authority. Public records
+retain the native lexer manifest, cold/CI/language/library/caller clocks and
+identities, historical failures and losslessly reconstructable source inventory.
+The metadata-only merge incorporates the preceding scalar-export qualification
+without changing any of the312qualified compiler export paths. Native source
+lexing does not close numeric value construction, the full frontend/type/module
+graph, general runtime, agent services or build/release retirement.
 
 
 ## Combined CLI / native observer clean acceptance: exact subject 38ea1b2
@@ -1557,3 +1775,253 @@ BOOTSTRAP_FILES. The original failure and clean source report are retained;
 no cold or later joint steps were run by that failed driver. The correction adds
 those exact inputs to the frozen release closure, preserving the assertion.
 A fresh complete pipeline, not a relabeled partial rerun, is required afterward.
+
+
+## Source type parser continuation — explicit native grammar, not whole closure
+
+The standalone HIA application has a two-pass count/validate then emit arena ABI.
+It uses8512bytes of private workspace,128frames of64bytes starting at320, and
+80-byte nodes after a64-byte header. Its input is a type prefix and lookahead,
+not a whole compilation unit. Input is bounded to8MiB, nodes to1Mi; the existing
+parser's96nesting budget is preserved using its remaining depth, never raised.
+Arrays use the bundled real HIA lexer magnitude decoder, not a Python literal
+parser. Generic `>>` and `>=` split/cursor positions preserve existing callers.
+
+Explicit selection uses `HEPTA_HIA_SOURCE_TYPES_MANIFEST=/.../manifest.json`.
+`python -B -m tools.build_hia_source_types --compiler <completed-B3>
+--cold-report <matching-cold-report> --output <new-private-directory>` builds
+the image and its `source-lexer/manifest.json` child. Both are trusted local
+artifacts pinned to source/image identities. Missing or drifting selection
+fails closed; no automatic fallback to the old type grammar is admitted.
+
+Development first exposed an unsupported non-tail recursive authoring prototype;
+its native refusal and raw source remain in retained evidence. The implementation
+was rewritten with explicit frames without changing compiler recursion support
+or any qualification deadline. Two test-fixture syntax errors (missing effects,
+then wrong effects delimiters) were corrected; both failed logs are retained.
+The final development run passed27tests (11new application controls,
+15historical closure controls and1whole-tree audit control). A prior corrected
+25-test run is retained separately, before the explicit128frame boundary case. Independent VM byte witnesses precede a fresh native seed;
+real existing source corpus, diagnostics, partial operators,4096digit arrays,
+remaining caller depth, concurrent actual parser calls with old type grammar and
+old lexer patched to fail, and poisoned-workspace transactional refusals are
+covered. These are finite observations, not an all-input refinement proof.
+
+The reviewed shared source identity advances explicitly tov18:394paths,
+commitment`ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379`,
+including all221actual package modules. All389v17 paths and both older lexer
+and observer fork projections remain independently pinned. Identity bytes grow
+by661to165380, transferred exactly from raw logs: metadata245256+raw799224
++display4096=1048576, unchanged. No evidence gate is weakened.
+
+The static boundary stays3partial/5open. Python still owns authoring, image
+loading, object construction and arena/cursor validation, most frontend grammar
+and type checking, modules/builds, execution/runtime, tools and release. No main
+merge, production/default switch or legacy retirement is authorized by these
+local component observations alone.
+
+The first clean qualification at4f78442ran109source tests and failed one release
+closure control: four new bootstrap files were missing from the explicit release
+freeze inventory. No cold/native downstream gates ran in that failed pipeline.
+The four files are now explicitly included, without relaxing the exact-inventory
+assertion or modifying a release lock. The failed report and complete log remain
+retained; a corrected commit requires a completely fresh qualification.
+
+### Completed exact source-type candidate qualification
+
+Clean executable subject `fc5540f425663a71e6577c5075dfb5bbceead669` passed the
+entire fresh component pipeline in502.651seconds:109original source-recovery/
+regeneration controls, cold11/11isolation and5049/5049native checks in114.176s
+under180+3s,1242language checks+10assertions,107combined component tests and
+15exact shared-identity controls. Real currentB3built the type parser and its
+actual HIA lexer, plus all prior JSON/SHA/Core frontend and standalone CLI
+artifacts. Selected/default existing consumers83each,incremental55,
+lexer-selected/default parser/modules63each,and actual type-selected/default
+frontend/parser/module/owned-generic callers98each passed. Real installed CLI
+composition16observations and syscall traces also passed, not just in-memory
+fixtures. No old fallback was used for the explicitly selected type grammar.
+
+This exact snapshot has221package Python files/77091lines/4173435bytes and
+430host-tool Python files/134944lines/7722090bytes (651combined Python files).
+The explicit boundary stays3partial/5open, not a completion percentage. Exact
+static records reconstruct losslessly from `implementation-boundary-v28.json`
+plus `implementation-boundary-source-types-delta.json`; actual checks/builds
+and retained failures are bound by `source-types-native-summary.json`.
+
+Raw ended qualifier captures are archived in21071177bytes, SHA256
+`0a7f78e7745c650890dfe177fa15e7ff4f5c673dd36aa537696d9e9940b470bd`.
+All56049regular members (3374136311uncompressed bytes) were compared byte-for-
+byte with the retained originals; external source-CI/unittest logs also remain
+retained separately. The initial source-gate failure remains FAIL. New candidate
+remote CI and current entire-repository qualification are still required; the
+older PR845four-job success is not relabelled for this changed source.
+
+
+### Retained first remote source-type run and scoped checkout correction
+
+Remote run42772128006at295170dwas CANCELLED, not passed: GitHub's check annotation
+explicitly reports the10minute source-job limit. Checkout consumed5m44s, then
+recovery succeeded and assertions ran until cancellation. Cold/native/language
+were skipped, not completed. Its complete source log, annotations and7392byte
+ZIP (SHA256eaed84fe8c97e591e7a1db8aaf771b215b9d0ce50da430d3881be9b1a6a82ed0)
+remain retained. There is no evidence of a failing source assertion in that
+interrupted log, but incomplete tests are not a PASS.
+
+Checkout is now scoped to the exact immutable candidate (depth1). The source
+job explicitly restores only that candidate's complete ancestry with a single-
+reference,no-tags unshallow fetch, asserts that it is no longer shallow and
+that HEAD is unchanged, then runs every original bundle/tree/blob/ancestor
+recovery assertion unchanged. Other native/cold/language jobs need the exact
+HEAD tree rather than unrelated branch history; their source identity, cold
+isolation and all tests remain unchanged. No10minute job limit,180second cold
+limit, test inventory, compiler capability or process/evidence budget is raised.
+Fresh scoped-checkout source verification and current remote execution are
+required for this workflow-only correction; fc5540fcomponent evidence is not
+relabelled as a new whole-toolchain run.
+
+## Source expression grammar continuation (v32 candidate, NOT whole-stack closure)
+
+The operator-selected `HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST` application now
+implements the existing expression/prefix/argument grammar in executable HIA,
+composing the actual type grammar and source scanner helpers. It covers all
+binary precedences, unary operators, named calls, index/field postfixes, casts,
+arrays, struct values, qualified paths and turbofish type lists. Explicit
+128-byte frames preserve the existing caller's remaining combined 96-level
+syntax budget; standalone admission is bounded at128 frames. This is not an
+implementation of declaration/statement grammar, semantic checking or modules.
+
+The128-byte arena supports parents allocated after left children; the foreign
+bridge validates ownership/cycles/ranges then constructs objects iteratively.
+A separate bitset records actual generic `>>`/`>=` splits without modifying
+real binary operators, including error cursors and previously split initial
+operator tokens. Workspace is25024fixed bytes plus ceil(input-bytes/8) trace
+bytes, input8MiB and1Mnodes. Ordinary invalid/short-output calls leave output
+untouched. A separately tagged diagnostic-only replay preserves completed
+namespace observations on failure; it is rejected by the AST arena decoder.
+HIA lexer token values supply integer/float objects; host grammar fallback is
+not used. Host object construction, value bridging, manifests and authoring
+remain explicit foreign dependencies.
+
+Development controls execute four complete hand-specified arenas in the
+independent Core VM before B0, then compare every byte with actual B1/B2-built
+native code. Controls exercise all operator-pair precedences,300 composed
+expressions, real complete source examples, exact errors/token cursors/spans,
+qualified names after failures, nesting boundaries, long left chains,
+concurrent actual parsers with reference lexer/expression/type helpers patched
+to fail, poisoned output guards and malformed arenas. Latest development
+application/shared-closure/static-inventory tests:28PASS. This is development
+acceptance only: fresh clean-source cold/language/native/install, current-head
+remote and full-repository gates remain required.
+
+All failed development captures remain: initial namespace observations were
+lost on errors (fixed with the explicitly separate HIA diagnostic replay),
+string-error consumed bytes excluded the closing quote (fixed using the actual
+scanner cursor), one corpus fixture used a nonrecursive glob, one invocation
+named a nonexistent audit test module, and a new hand-written VM oracle omitted
+two token columns. A later run also hit actual `/tmp` inode exhaustion; its
+failures were retained and an independent private temporary root was selected,
+without deleting existing evidence or changing compiler/execution budgets.
+
+Shared identity v19 explicitly includes399paths/all222actual package modules,
+commitment`1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f`.
+It preserves exact v18/394, v17/389 and both prior fork projections. Additional
+691metadata bytes transfer from raw capture:245947metadata +798533raw
++4096display =1048576unchanged. No previous phase/worker/deadline/compiler
+limits are raised. Defaults/production/main/release locks remain unchanged;
+whole-stack ledger stays3partial/5open, no legacy retirement authorized by this
+component result.
+
+### Retained first clean expression attempt and receipt robustness
+
+Exact clean372446310c58b2d14b4858a8291980659c7fc92c passed the actual110
+source assertions with no failures/skips. Its first cold attempt FAILED: the
+owner receipt existed but was empty, and the parent raised JSONDecodeError;
+there was no completed cold report or authoritative cleanup receipt. All
+partial exports/logs remain retained and are not treated as accepted evidence.
+A separate harmless transport probe observed EDQUOT while flushing a request
+on the same `/dev/shm` usrquota filesystem despite globally free blocks.
+Another harmless probe under a private `/run/user/1000` directory completed
+normally with actual ECHILD cleanup. This does not retroactively prove cleanup
+of the original failed owner.
+
+The parent now handles empty/truncated/nonobject owner receipts as the explicit
+`OWNER_RECEIPT_INVALID_HOLD`, retaining receipt byte count/hash and the observed
+supervisor exit while leaving qualification returncode unset and cleanup
+unconfirmed. No output or nested success is admitted. Eight real-process
+lifecycle controls PASS, including five malformed transport byte variants from
+real harmless replacement supervisors. The180-second qualification deadline,
+separate3-second cleanup bound and every execution/physical cap remain fixed.
+A completely fresh current-source qualification is required after this fix.
+
+### Fresh corrected expression candidate qualification completed
+
+Exact clean executable subject **cee375ef5fc0dca7c045444f8f20b7d72b15b158**
+completed the entirely fresh pipeline in **499.161seconds**: source110PASS;
+cold11/11 +5049/5049native checksPASS in104.000seconds (outer104.488),
+unchanged180+separate3cleanup; language1242checks+10assertionsPASS;
+combined native components119PASS; shared source controls15PASS. All actual
+B3 application builds completed. Existing selected/default consumers83each,
+selected incremental55, lexer-selected/default parser/modules63each, and
+**type-only/expression-only/combined/default frontend callers98each** PASS.
+Actual installed flat/ELF standalone CLI composition16observations PASS,
+including typed C-linked exports, independent VM comparison and syscall traces.
+A supplemental clean-subject owner lifecycle run8PASS2.258s; an earlier
+supplementary invocation used the task parent instead of the project root and
+failed import (log retained, not counted as accepted tests).
+
+The actual HIA expression image is234927bytes, SHA256
+`46cfe1e5a881ef07c092038b5d3e39856bbe341d0b631b17f4ca3dc91e55abc6`.
+All56072regular raw archive members were compared byte-for-byte with retained
+originals (3377930256uncompressed bytes). The lossless archive is21272108bytes,
+SHA256`478594b61c24dccd6f4dd9e6ca7aaab776eeefffa0198014d59c06659d42cc8f`.
+Raw originals remain retained; private runtime placement is recorded explicitly.
+Public `source-expressions-native-summary.json` and its exact lossless static
+inventory delta bind the executable source, counts, builds, failures and archive.
+Snapshot remains222package Python/77483lines and432tool Python/135474lines,
+654Python files; these are inventory counts, not completion percentages.
+
+A fresh whole-repository run has started in a separate immutableCEE checkout
+with real locked prerequisites; no result is yet available. Current-source
+remote CI remains required. The evidence/CI-only follow-up adds the eight owner
+lifecycle controls to the actual native job; it changes no cold-exported source
+payload or implementation. Prior canceled, quota-failed and entire-repository
+failed attempts remain failures; neither component passes nor old remote
+receipts establish full-stack closure. Defaults/production/main/release locks
+stay unchanged and the ledger is still3partial/5open.
+
+
+## Native type/expression + v3 numeric lexer + static linker composition
+
+Development composition joins the independently accepted native ELF linker and
+source type/expression grammars. The selected source lexer remains v3: exact
+decimal-rational binary64 rounding is not reverted to a host float parser. The
+type/scanner authoring composition selects actual reachable scanner helpers;
+unused decimal limb code is not accidentally exposed under the smaller type
+workspace ABI. All lexical, numeric, type, expression and linker controls remain.
+New joint expression controls include binary64 tie/subnormal/maximal values
+with foreign decimal conversion and reference grammar explicitly disabled.
+
+Shared identity v20 binds406paths, commitment
+855761770d145406609a3b2daf764765305b101b0619c50315adee135846ae2a.
+Both accepted branch projections remain exact: native linker396paths and
+expression399paths, plus all prior type/lexer/observer/CLI identities.929bytes
+of raw-log allowance transfer to identity metadata for linker paths, within the
+unchanged1048576byte evidence envelope. No compiler input/output/workspace,
+module, process, execution or time ceiling increases. Profile v33 binds the
+combined source, not a claim that a larger language profile is implemented.
+
+Fresh clean-source, original/modified cold fixed points, language/component,
+selected/default callers, actual installed CLI/linker and full repository/remote
+gates are required. Parent passes are not combined execution evidence. The
+first development identity calculation omitted the canonical final newline;
+existing strict identity tests rejected it and raw failures remain retained.
+Its corrected literal uses the existing canonical commitment function, without
+relaxing any projection or aggregate-budget assertion. No default/live/release
+switch or deletion of still-required legacy production code occurs here.
+
+Development verification on the combined worktree:52actual source/native tests
+passed in51.892seconds (type, expression, v3numeric lexer and static ELF linker),
+including no-foreign-grammar and no-host-decimal controls.15shared identity and
+aggregate boundary tests passed separately. These are not clean-commit cold or
+whole-repository results. The boundary inventory still counts222production
+Python modules and435host Python tools, with3partial/5open components.

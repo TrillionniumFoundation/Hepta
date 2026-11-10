@@ -807,3 +807,40 @@ These822bytes transfer from raw logs to metadata:243934metadata,800546raw and
 4096display still sum to1048576. Source/module/container/process budgets and
 owner deadlines are unchanged. Identity registration neither proves arbitrary
 machine code safe nor establishes whole-stack HIA equivalence.
+
+### Source lexer identity extension (v14 candidate)
+
+The reviewed source identity now has370paths, commitment
+`414e724f72c675c8cf7139da0710af16ec4417b4926a334b3f5c3c171b3b44f4`,
+including all219actual root compiler modules and five exact native source
+lexer inputs. Removing precisely those five paths preserves the historical
+365-path SHA-256 commitment; every preceding projection remains independently
+checked. Maximum identity162169bytes transfers661bytes from raw logs to
+metadata (242045metadata +802435raw +4096display =1048576). No source, module,
+process, time, aggregate evidence/container or authority cap is expanded.
+
+## Unified native CLI, observer and source lexer identity (v17)
+
+The integrated tuple adds the five explicitly reviewed source lexer paths to
+the 384-path v16 observer/CLI/export identity. It now contains 389 paths and all
+220 actual top-level compiler package modules. Its exact path commitment is
+`16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c`.
+Removing exactly those five paths recovers the v16 commitment; independently
+removing the exact incremental-SHA, CLI, export and observer additions recovers
+the 370-path v14 lexer fork. The older 365-path SHA identity and every preceding
+linear projection remain pinned. Unexpected names, missing actual compiler
+inputs and changed addition classifications still refuse before admission.
+
+The maximum canonical identity is164719bytes, exactly661more than v16. Those661
+bytes transfer from raw logs to metadata:244595metadata +799885raw +4096display
+still equals1048576. All process, source, module, container, per-stage and time
+budgets are unchanged. Registering a combined identity does not qualify combined
+execution: the merged executable source needs a fresh complete qualification.
+
+### v20: native ELF linker plus source type/expression union
+
+The406-path union preserves independently the396-path native-linker and399-path
+expression projections and all older exact commitments. Maximal identity167000B,
+metadata246876B/raw797604B/display4096B sum to the unchanged1048576B envelope.
+Compiler/module/source/process/time budgets are unchanged. These identities bind
+sources and do not substitute for current combined execution qualification.

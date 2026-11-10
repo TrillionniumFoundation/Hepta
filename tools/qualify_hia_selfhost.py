@@ -132,11 +132,11 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
            capacity=CAPACITY, workspace_size=CAPACITY, workspace_fill=0,
            output_initial=None, observe_trap_writes=False):
     """Copy private inputs and run one pinned artifact under fixed limits."""
-    if (NATIVE_OBSERVER is not None and image_format == 'flat-x86-64'
-            and output_initial is None and not observe_trap_writes):
+    if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64':
         from tools.hia_selfhost_native_observer import invoke as observe_native
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
-            workspace_size=workspace_size,workspace_fill=workspace_fill)
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")
@@ -890,7 +890,7 @@ def qualify(output):
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
-            "shared_post_trap_captures_and_generation_controls": "retained independent stdlib loader",
+            "shared_ELF_and_generation_controls": "retained independent stdlib loader",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
@@ -912,7 +912,7 @@ def qualify(output):
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "fresh HIA-emitted static ELF observer and operating system for phase flat ABI calls",
-            "stdlib ctypes/mmap retained for generation controls, shared ELF and post-trap shared capture",
+            "stdlib ctypes/mmap retained for generation controls and shared ELF",
             "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
             "host C compiler and assembler compile the separate allocator qualification witness only",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],

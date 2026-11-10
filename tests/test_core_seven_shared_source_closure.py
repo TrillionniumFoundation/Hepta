@@ -95,9 +95,11 @@ JSON_NATIVE_COMMITMENT = '84f2d792e39d1f6a5b059026acc14edc321bbe8528c026caa2f06f
 SHA256_NATIVE_COMMITMENT = '307a88b0ddc4431692a9e41a6121e1eb4f2e69983dff72c7513e0606d2e5e19a'
 JSON_CLI_COMMITMENT = '61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf73712f55'
 EXPORT_CLI_COMMITMENT = '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535'
-OBSERVER_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7'
-SOURCE_LEXER_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
-CURRENT_COMMITMENT = '4997ea6d666023fd9888ede790a63fb3c978d40e32b8d4ba827b9f27cb9a62c4'
+OBSERVER_V16_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7'
+INTEGRATED_V17_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
+SOURCE_TYPES_V18_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
+SOURCE_EXPRESSIONS_V19_COMMITMENT = '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f'
+CURRENT_COMMITMENT = '855761770d145406609a3b2daf764765305b101b0619c50315adee135846ae2a'
 ELF_LINKER_ADDITIONS = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
@@ -135,7 +137,27 @@ SOURCE_LEXER_ADDITIONS = (
     'tools/build_hia_source_lexer.py',
     'tools/generate_hia_source_lexer.py',
 )
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *ELF_LINKER_ADDITIONS)
+SHA256_STREAM_ADDITIONS = (
+    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'hepta/hia_sha256_stream_native.py',
+    'tests/test_hia_sha256_stream_native.py',
+    'tools/generate_hia_sha256_stream.py',
+)
+SOURCE_TYPES_ADDITIONS = (
+    'examples/hia_bootstrap/source_types.hiaasm',
+    'hepta/hia_source_types_native.py',
+    'tests/test_hia_source_types_native.py',
+    'tools/build_hia_source_types.py',
+    'tools/generate_hia_source_types.py',
+)
+SOURCE_EXPRESSIONS_ADDITIONS = (
+    'examples/hia_bootstrap/source_expressions.hiaasm',
+    'hepta/hia_source_expressions_native.py',
+    'tests/test_hia_source_expressions_native.py',
+    'tools/build_hia_source_expressions.py',
+    'tools/generate_hia_source_expressions.py',
+)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS)
 
 
 @contextmanager
@@ -154,17 +176,32 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 396)
-        self.assertEqual(plan.SOURCE_LEXER_ADDITIONS, SOURCE_LEXER_ADDITIONS)
+        self.assertEqual(len(actual), 406)
         self.assertEqual(plan.ELF_LINKER_ADDITIONS, ELF_LINKER_ADDITIONS)
-        lexer_native = tuple(name for name in actual if name not in ELF_LINKER_ADDITIONS)
-        self.assertEqual(len(lexer_native),389)
-        self.assertEqual(plan.commitment(lexer_native),SOURCE_LEXER_COMMITMENT)
-        observer_native=tuple(name for name in lexer_native if name not in SOURCE_LEXER_ADDITIONS)
-        self.assertEqual(len(observer_native),384)
-        self.assertEqual(plan.commitment(observer_native),OBSERVER_COMMITMENT)
+        linker_v18 = tuple(n for n in actual if n not in (*SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS))
+        self.assertEqual(len(linker_v18), 396)
+        self.assertEqual(plan.commitment(linker_v18), '4997ea6d666023fd9888ede790a63fb3c978d40e32b8d4ba827b9f27cb9a62c4')
+        expressions_v19 = tuple(n for n in actual if n not in ELF_LINKER_ADDITIONS)
+        self.assertEqual(len(expressions_v19), 399)
+        self.assertEqual(plan.commitment(expressions_v19), SOURCE_EXPRESSIONS_V19_COMMITMENT)
+        self.assertEqual(plan.SOURCE_EXPRESSIONS_ADDITIONS, SOURCE_EXPRESSIONS_ADDITIONS)
+        source_types_v18 = tuple(n for n in expressions_v19 if n not in SOURCE_EXPRESSIONS_ADDITIONS)
+        self.assertEqual(len(source_types_v18), 394)
+        self.assertEqual(plan.commitment(source_types_v18), SOURCE_TYPES_V18_COMMITMENT)
+        self.assertEqual(plan.SOURCE_TYPES_ADDITIONS, SOURCE_TYPES_ADDITIONS)
+        integrated_v17 = tuple(n for n in source_types_v18 if n not in SOURCE_TYPES_ADDITIONS)
+        self.assertEqual(len(integrated_v17), 389)
+        self.assertEqual(plan.commitment(integrated_v17), INTEGRATED_V17_COMMITMENT)
+        self.assertEqual(plan.SOURCE_LEXER_ADDITIONS, SOURCE_LEXER_ADDITIONS)
+        self.assertEqual(plan.SHA256_STREAM_ADDITIONS, SHA256_STREAM_ADDITIONS)
+        lexer_v14 = tuple(n for n in integrated_v17 if n not in (*SHA256_STREAM_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS))
+        self.assertEqual(len(lexer_v14), 370)
+        self.assertEqual(plan.commitment(lexer_v14), '414e724f72c675c8cf7139da0710af16ec4417b4926a334b3f5c3c171b3b44f4')
+        observer_v16 = tuple(n for n in integrated_v17 if n not in SOURCE_LEXER_ADDITIONS)
+        self.assertEqual(len(observer_v16), 384)
+        self.assertEqual(plan.commitment(observer_v16), OBSERVER_V16_COMMITMENT)
         self.assertEqual(plan.NATIVE_OBSERVER_ADDITIONS, NATIVE_OBSERVER_ADDITIONS)
-        export_native = tuple(name for name in observer_native if name not in NATIVE_OBSERVER_ADDITIONS)
+        export_native = tuple(name for name in observer_v16 if name not in NATIVE_OBSERVER_ADDITIONS)
         self.assertEqual(len(export_native), 378)
         self.assertEqual(plan.commitment(export_native), EXPORT_CLI_COMMITMENT)
         self.assertEqual(plan.EXPORT_CLI_ADDITIONS, EXPORT_CLI_ADDITIONS)
@@ -215,18 +252,18 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *ELF_LINKER_ADDITIONS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
         self.assertEqual(sum(name.startswith('hepta/') and name.count('/') == 1
-                             and name.endswith('.py') for name in actual), 220)
+                             and name.endswith('.py') for name in actual), 222)
         for name in NEW_INPUTS:
             self.assertTrue((plan.ROOT / name).is_file(), name)
 
     def test_each_new_compiler_module_is_required(self):
         with compiler_directory() as root, patch.object(plan, 'ROOT', root):
-            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
+            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
                 with self.subTest(name=name):
                     (root / name).unlink()
                     with self.assertRaisesRegex(ValueError, 'complete actual compiler_hash input set'):
@@ -248,7 +285,23 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         # historical projection by changing which names count as additions.
         changed_additions = (*plan.ELF_LINKER_ADDITIONS, SOURCE_LEXER_ADDITIONS[0])
         with patch.object(plan, 'ELF_LINKER_ADDITIONS', changed_additions):
-            with self.assertRaisesRegex(ValueError, 'historical source-lexer composition source identity projection'):
+            with self.assertRaisesRegex(ValueError, 'historical source expression grammar identity projection'):
+                plan.source_paths()
+        changed_additions = (*plan.SOURCE_EXPRESSIONS_ADDITIONS, SOURCE_TYPES_ADDITIONS[0])
+        with patch.object(plan, 'SOURCE_EXPRESSIONS_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical source type grammar identity projection'):
+                plan.source_paths()
+        changed_additions = (*plan.SOURCE_TYPES_ADDITIONS, SOURCE_LEXER_ADDITIONS[0])
+        with patch.object(plan, 'SOURCE_TYPES_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical native ELF linker identity projection'):
+                plan.source_paths()
+        changed_additions = (*plan.SOURCE_LEXER_ADDITIONS, NATIVE_OBSERVER_ADDITIONS[0])
+        with patch.object(plan, 'SOURCE_LEXER_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical native observer source identity projection'):
+                plan.source_paths()
+        changed_additions = (*plan.SHA256_STREAM_ADDITIONS, JSON_NATIVE_ADDITIONS[0])
+        with patch.object(plan, 'SHA256_STREAM_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical source lexer fork identity projection'):
                 plan.source_paths()
         changed_additions = (*plan.NATIVE_OBSERVER_ADDITIONS, EXPORT_CLI_ADDITIONS[0])
         with patch.object(plan, 'NATIVE_OBSERVER_ADDITIONS', changed_additions):
@@ -260,7 +313,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
                 plan.source_paths()
         changed_additions = (*plan.JSON_CLI_ADDITIONS, SHA256_NATIVE_ADDITIONS[0])
         with patch.object(plan, 'JSON_CLI_ADDITIONS', changed_additions):
-            with self.assertRaisesRegex(ValueError, 'historical native SHA source identity projection'):
+            with self.assertRaisesRegex(ValueError, 'historical source lexer fork identity projection'):
                 plan.source_paths()
         changed_additions = (*plan.SHA256_NATIVE_ADDITIONS, JSON_NATIVE_ADDITIONS[0])
         with patch.object(plan, 'SHA256_NATIVE_ADDITIONS', changed_additions):

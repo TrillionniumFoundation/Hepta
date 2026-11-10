@@ -311,7 +311,19 @@ def run_owned(command, *, cwd, env, stdout_path, stderr_path, receipt_path,
                 "returncode": None, "cleanup": {"complete": False}}
     receipt_raw = Path(paths["receipt_path"]).read_bytes()
     require(len(receipt_raw) <= 4 * 1024 * 1024, "owner receipt exceeds its bound")
-    result = json.loads(receipt_raw)
+    try:
+        result = json.loads(receipt_raw)
+    except (ValueError, UnicodeError):
+        result = None
+    if type(result) is not dict:
+        # Quota/full-filesystem failures can create an empty/truncated receipt
+        # before the supervisor exits. Retain the observed owner exit without
+        # claiming a qualification result or confirmed descendant cleanup.
+        return {"schema": SCHEMA, "status": "OWNER_RECEIPT_INVALID_HOLD",
+                "supervisor_pid": owner.pid, "supervisor_returncode": owner.returncode,
+                "returncode": None, "cleanup": {"complete": False},
+                "receipt_bytes": len(receipt_raw), "receipt_sha256": sha256(receipt_raw).hexdigest(),
+                "receipt_failure": "invalid JSON object"}
     require(result["schema"] == SCHEMA and result["request_sha256"] == sha256(raw).hexdigest()
             and result["implementation_sha256"] == implementation_hash
             and result["supervisor_pid"] == owner.pid

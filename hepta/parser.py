@@ -32,7 +32,22 @@ class Parser:
     def __init__(self, source: str, path: str = "<input>") -> None:
         self.source = source
         self.path = path
-        self.tokens = tokenize(source, path)
+        import os
+        expression_selection = os.environ.get('HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST')
+        self.native_expressions = None
+        if expression_selection:
+            from .hia_source_expressions_native import installed_source_expressions
+            self.native_expressions, self.native_expression_lexer = installed_source_expressions(expression_selection)
+        selected = os.environ.get('HEPTA_HIA_SOURCE_TYPES_MANIFEST')
+        self.native_types = None
+        if selected:
+            from .hia_source_types_native import installed_source_types
+            self.native_types, self.native_type_lexer = installed_source_types(selected)
+            self.tokens = self.native_type_lexer.tokenize(source, path)
+        elif self.native_expressions is not None:
+            self.tokens = self.native_expression_lexer.tokenize(source, path)
+        else:
+            self.tokens = tokenize(source, path)
         self.position = 0
         self.depth = 0
         self.qualified_expressions: list[tuple[str, Span]] = []
@@ -353,6 +368,14 @@ class Parser:
         self._expect(">", "Expected '>' after a generic element type")
 
     def _type(self) -> Type:
+        if self.native_types is None:
+            return self._reference_type()
+        from .hia_source_types_native import parse_type
+        with self._nested():
+            return parse_type(self, self.native_types, self.native_type_lexer,
+                              _MAX_NESTING - self.depth + 1, _MAX_NESTING)
+
+    def _reference_type(self) -> Type:
         with self._nested():
             if self.current.kind in {"read", "mut"}:
                 mode = self._advance().value
@@ -462,6 +485,14 @@ class Parser:
         return Stmt("expr", {"expr": target}, _cover(start, end))
 
     def _expr(self, minimum: int = 0, allow_struct: bool = True) -> Expr:
+        if self.native_expressions is None:
+            return self._reference_expr(minimum, allow_struct)
+        from .hia_source_expressions_native import parse_expression
+        with self._nested():
+            return parse_expression(self, self.native_expressions, self.native_expression_lexer,
+                _MAX_NESTING - self.depth + 1, _MAX_NESTING, minimum, allow_struct)
+
+    def _reference_expr(self, minimum: int = 0, allow_struct: bool = True) -> Expr:
         with self._nested():
             left = self._prefix(allow_struct)
             while True:
