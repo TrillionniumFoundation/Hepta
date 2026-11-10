@@ -159,6 +159,25 @@ class LeafRegisterExecutionTests(unittest.TestCase):
                 fn=getattr(library,name);fn.argtypes=[ctypes.c_uint64]*len(args);fn.restype=ctypes.c_uint64
                 self.assertEqual(fn(*args),execute_program(checked,name,args)["result"],(name,args))
 
+    @unittest.skipUnless(shutil.which("cc"), "C/assembly ABI observer required")
+    def test_dirty_register_inputs_stack_arguments_page_probe_and_callee_saves(self):
+        from tests.test_hia_program_native_review import _abi_program, ABI_WITNESS
+        checked=verify_program(_abi_program())
+        plan=leaf_plan(checked,{"narrow_mix":{"a4":"r8","a5":"r9","a0":"r12"}},compact=True)
+        with tempfile.TemporaryDirectory(prefix="hia-leaf-abi-") as tmp:
+            root=Path(tmp); obj=root/'leaf.o'; witness=root/'witness.S'; driver=root/'driver.c'; exe=root/'observer'
+            machine=emit_program_machine(checked,machine_plan=plan)
+            receipt=compile_program_machine(machine,program=checked,output=obj,kind="object",machine_plan=plan)
+            self.assertGreater(receipt['function_frames']['narrow_mix'],4096)
+            witness.write_text(ABI_WITNESS)
+            driver.write_text('#include <stdint.h>\n#include <stdio.h>\nuint64_t abi_witness(void);\nint main(void){printf("%llu\\n",(unsigned long long)abi_witness());return 0;}\n')
+            p=subprocess.run(['cc','-O2',str(driver),str(witness),str(obj),'-o',str(exe)],capture_output=True,timeout=20)
+            self.assertEqual(p.returncode,0,p.stderr)
+            observed=subprocess.run([str(exe)],capture_output=True,timeout=10)
+            self.assertEqual(observed.returncode,0,observed.stderr)
+            args=[-128,250,-32767,0xfeed,-2147483647,0xdeadbeef,
+                0x8123456789abcdef-(1<<64),0xfedcba9876543210,True,0xa5]
+            self.assertEqual(int(observed.stdout),execute_program(checked,'narrow_mix',args)['result'])
 
     def test_borrowed_byte_addresses_lengths_returns_and_prewrite_traps(self):
         from hepta.hia_agent_assembly import assemble_program

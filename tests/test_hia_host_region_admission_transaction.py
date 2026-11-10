@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -88,6 +89,47 @@ print("PASS atomic admission, no unowned page and subsequent real C call", scena
 '''
 
 
+class NativePostGrantAdmissionTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("real Linux x86-64 host required, not a silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if compiler is None:
+            raise AssertionError("real Clang compiler required, not a silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.library_path, cls.digest = build_fixture(
+            Path(cls.temp.name), Path(compiler).resolve(), {}
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, scenario):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.library_path),
+             self.digest, scenario],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+        self.assertEqual(result.returncode, 0,
+                         f"scenario={scenario} stdout={result.stdout}\nstderr={result.stderr}")
+        self.assertIn("PASS atomic admission", result.stdout)
+
+    def test_external_registry_failure_reverts_page_permissions(self):
+        self._probe("external-registry")
+
+    def test_native_registry_failure_reverts_page_permissions(self):
+        self._probe("native-registry")
+
+    def test_external_event_failure_retires_unreturned_lease(self):
+        self._probe("external-event")
+
+    def test_native_event_failure_retires_unreturned_lease(self):
+        self._probe("native-event")
+
+    def test_shared_reader_event_failure_retains_only_original_read_grant(self):
+        self._probe("read-peer-event")
 
 
 if __name__ == "__main__":

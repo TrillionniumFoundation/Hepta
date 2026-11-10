@@ -1,39 +1,67 @@
-# HIA Core assembly for Agent tools
+# Compact HIA assembly for Core and Agent authoring
 
-HIA assembly is an explicit spelling of checked Core, not a separate high-level
-source language. `hia import-assembly input.hiaasm -o new.core.json` produces a
-new file only after whole-program verification; `hia check-assembly` checks
-without publishing, and `hia render-assembly` renders admitted primitive Core.
+`hepta.hia_agent_assembly` provides a deterministic spelling of primitive HIA
+Core. It changes representation, not arithmetic, ownership or execution rules.
+The complete translated document passes `verify_program`. No high-level source
+language or migration frontend is used or installed.
+
+## Explicit syntax
 
 ```text
-hia-asm.v1 hepta.hia.program.v8 sample
-fn calculate(x:u32) -> (u32) effects() entry(entry)
-block entry(x:u32)
-  one:u32 = const() {"value":1}
-  answer:u32 = int.add.wrap(x,one)
+hia-asm.v1 hepta.hia.program.v8 sum_core
+fn sum(a:u32,b:u32) -> (u32) effects() entry(entry)
+block entry(a:u32,b:u32)
+  answer:u32 = int.add.wrap(a,b)
   ret(answer)
 end
 ```
 
-The header names the exact Core schema and module. Optional `exports(name,...)`
-occurs once before any function. Every function explicitly declares parameters,
-result types, effects and entry block. Core v8 may also declare
-`return_loans(["formal",null,...])` for its exact parameter-bound borrowed result
-origins. Instructions use `name:type` outputs (or `_` for no output), an opcode,
-explicit arguments and an optional strict JSON attribute object. Multiple
-outputs are comma separated. There is no expression synthesis or inferred cast.
+Use `assemble_program` and `render_assembly` from the actual local module for the
+versioned grammar and complete roundtrip. Functions declare all parameters,
+results, effects and entry blocks. Blocks declare explicit typed parameters,
+ordered operations and a terminator. Operands, results, branch arguments and
+resource origins remain typed and named. Attributes, when required by an opcode,
+are explicit JSON objects. A syntax spelling is never a substitute for complete
+Core admission.
 
-Blocks declare their incoming typed values. Terminators are `ret(values)`,
-`jump target(values)`, `branch condition yes(values) no(values)` or `trap CODE`.
-Every block must terminate and every function ends with `end`. Forward labels
-are names, not source order assumptions. Identifiers are bounded ASCII names;
-LF and CRLF are accepted, not arbitrary Unicode line separators. `hia catalog`
-is the authoritative discoverable instruction/type/attribute inventory.
+Primitive v8 function headers may declare `return_loans(["input",null])` for
+borrowed results. Contracts identify original formals; absence and an explicit
+contract are different. Mutation, owner moves/drops, initialized byte ranges,
+loan endings and control-flow joins retain their Core rules. Unsupported types,
+operations or capacity must be rejected, not interpreted under a different
+schema or a producer-selected ABI.
 
-The hosted assembly parser accepts only the existing explicit v6/v7/v8 primitive
-profiles and always invokes the Core verifier. Native selfhost assembly has its
-separately pinned bounded profile in HIA_SELFHOST_CORE_SUPPORT.json; do not
-assume every hosted feature is available in the native compiler. Ownership,
-borrow lifetimes, effects, SSA, call signatures and CFG joins remain checked.
-There is no source-language fallback or automatic repair. Hosted import/render
-still needs Python and is not native-only Agent delivery.
+## Agent import and editing
+
+Discover current catalog/profile identities and references with `hia_describe`.
+Retain authored text with `hia_artifact` using the schema's UTF-8 source form.
+For `hia_candidate`, use the returned complete artifact reference with explicit
+`hia-asm.v1` import format. Artifact retention and verified Core admission are
+separate operations. Core JSON import likewise uses an artifact reference and
+its explicit format; an inline object is not a replacement for that contract.
+
+For local hosted use, the installed `hia` entry provides `import-assembly`,
+`render-assembly`, `verify`, `edit-query`, `edit-apply` and object `build` commands.
+Consult the actual command help for argument/field names. Edits bind the exact
+source snapshot and revision; stale or invalid candidates publish no changed
+program. Every accepted edit undergoes complete Core verification.
+
+A request key identifies an actual operation, not a retry counter. After a known
+rejection, changed arguments require their proper new identity. After acceptance
+or an unknown outcome, observe the original operation rather than inventing a
+new key to replay it. Profile, worker, source and catalog identities are distinct;
+copy their actual returned values and administrator pins.
+
+## Native and host boundaries
+
+The selfhosted compiler admits a documented bounded assembly profile. The native
+stdio application currently supports only capabilities, verification and compile
+with explicit flat/ELF/executable build profiles. That is not native Agent editing
+or persistence. Hosted authoring, artifact capture, JSON transport, hashing,
+authorization, SQLite and durable recovery remain host-owned until independently
+replaced and qualified.
+
+The installed package carries this actual discovery document as a source-bound
+resource. Missing resources or an altered administrator source identity must not
+fall back to cwd, HOME or a different checkout. A passing representation test or
+finite native witness is not general native-only delivery or production approval.

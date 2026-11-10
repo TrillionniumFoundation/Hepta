@@ -101,12 +101,48 @@ def keys(value, required, optional=(), label="object"):
         reject("E_HIA_FIELDS", label + " has missing or unknown fields")
 
 
-def uint64(value, label):
+def _agent_resource_path(name):
+    """Explicit source checkout or package-owned installed resource root.
+
+    An installed package never searches cwd, HOME, sys.prefix or another source
+    tree. Missing individual packaged resources do not fall back to sources.
+    """
+    root = Path(__file__).resolve().parent.parent
+    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
+    return resource_root / name
+
+
+def _reference_uint64(value):
     if (type(value) is not str or not value.isascii() or not value.isdecimal()
             or len(value) > 20 or (len(value) > 1 and value[0] == "0")
             or int(value) > (1 << 64) - 1):
-        reject("E_HIA_RANGE", label + " must be a canonical u64 decimal string")
+        return None
     return int(value)
+
+
+def _reference_digest(value):
+    return type(value) is str and re.fullmatch("[0-9a-f]{64}", value) is not None
+
+
+def _native_agent_identity():
+    selected = os.environ.get("HEPTA_HIA_AGENT_IDENTITY_MANIFEST")
+    if not selected:
+        return None
+    from .hia_agent_identity_native import installed_agent_identity
+    return installed_agent_identity(selected)
+
+
+def canonical_digest(value):
+    native = _native_agent_identity()
+    return native.digest(value) if native is not None else _reference_digest(value)
+
+
+def uint64(value, label):
+    native = _native_agent_identity()
+    number = native.uint64(value) if native is not None else _reference_uint64(value)
+    if number is None:
+        reject("E_HIA_RANGE", label + " must be a canonical u64 decimal string")
+    return number
 
 
 def stable_read(path, limit, *, dir_fd=None):

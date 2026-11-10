@@ -69,7 +69,7 @@ class Round4Routes(unittest.TestCase):
     def test_removed_assignment_routes_refuse_before_any_capture(self):
         for route in ("cpp-unique-assignment-project", "cpp-unique-assignment-matrix"):
             with self.subTest(route=route), self.assertRaises(RouteRejected):
-                admit_route(route, b"not an admitted HIA input")
+                admit_route(route,b"not an admitted HIA input")
 
 
 if __name__=="__main__":unittest.main()

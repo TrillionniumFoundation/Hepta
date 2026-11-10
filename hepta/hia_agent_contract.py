@@ -12,11 +12,11 @@ import math
 from pathlib import Path
 import re
 
-from .hia_agent_store import AgentRejected, reject, wire
+from .hia_agent_store import AgentRejected, reject, wire, _agent_resource_path
 
 VERSION = "hepta.hia.agent-native.v1"
 ROOT = Path(__file__).resolve().parent.parent
-CATALOG_PATH = ROOT / "docs" / "HIA_AGENT_NATIVE_TOOL_CATALOG.json"
+CATALOG_PATH = _agent_resource_path("docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json")
 DISCOVERY_FILES = (
     "HIA_AGENT_NATIVE_TOOL_CATALOG.json", "HIA_AGENT_ASSEMBLY.md", "HIA_PROGRAM.md",
     "HIA_AGENT_MACHINE_PLANS.md", "HIA_AGENT_MACRO_POLICY.md", "HIA_DIRECT_BYTE_BOOTSTRAP.md",
@@ -41,12 +41,14 @@ def installation_manifest():
     for path in sorted((ROOT / "hepta").rglob("*.py")):
         entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
     for filename in DISCOVERY_FILES:
-        path = ROOT / "docs" / filename
-        entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
+        path = _agent_resource_path("docs/" + filename)
+        entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
+    native_source = "examples/hia_bootstrap/agent_identity.hiaasm"
+    entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
             "backend_sha256": _implementation_hash(),
-            "catalog_sha256": entries[str(CATALOG_PATH.relative_to(ROOT))]}
+            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]}
 
 
 _KEYWORDS = frozenset({"$schema", "type", "properties", "required", "additionalProperties",

@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -74,6 +75,41 @@ print("PASS strict global owner registration, native C execution, complete relea
 '''
 
 
+class OwnerRegistryIdentityTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("real Linux x86-64 host required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("actual Clang required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(Path(cls.temp.name), Path(compiler).resolve(), {})
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, scenario):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, scenario],
+            capture_output=True, text=True, timeout=30, check=False
+        )
+        self.assertEqual(result.returncode, 0,
+                         f"scenario={scenario} stdout={result.stdout}\nstderr={result.stderr}")
+        self.assertIn("PASS strict global owner registration", result.stdout)
+
+    def test_duplicate_region_token_cannot_replace_retained_owner(self):
+        self._probe("region-duplicate")
+
+    def test_duplicate_library_token_cannot_replace_retained_code(self):
+        self._probe("library-duplicate")
+
+    def test_malformed_region_identity_rejected_before_memfd_alloc(self):
+        self._probe("region-malformed")
+
+    def test_malformed_library_identity_rejected_before_artifact_pin(self):
+        self._probe("library-malformed")
 
 
 if __name__ == "__main__":

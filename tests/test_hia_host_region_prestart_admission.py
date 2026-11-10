@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -72,6 +73,40 @@ print("PASS exact native C reuse after prestart failure", scenario)
 '''
 
 
+class PrestartAdmissionRecoveryTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("real native Linux x86-64 required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("real Clang binary required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.library_path, cls.digest = build_fixture(
+            Path(cls.temp.name), Path(compiler).resolve(), {}
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, scenario):
+        outcome = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.library_path),
+             self.digest, scenario],
+            capture_output=True, text=True, timeout=15, check=False
+        )
+        self.assertEqual(
+            outcome.returncode, 0,
+            f"scenario={scenario} stdout={outcome.stdout}\nstderr={outcome.stderr}"
+        )
+        self.assertIn("PASS exact native C reuse", outcome.stdout)
+
+    def test_prestart_thread_constructor_failure_retires_unstarted_grant(self):
+        self._probe("constructor")
+
+    def test_prestart_job_token_failure_retires_unstarted_grant(self):
+        self._probe("job-token")
 
 
 if __name__ == "__main__":

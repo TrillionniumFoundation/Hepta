@@ -301,4 +301,3 @@ print(json.dumps(result,sort_keys=True))
                 self.assertEqual(report["runtime"]["execution"]["error"],{"code":"user"})
                 self.assertEqual(report["cleanup"]["status"],"completed")
                 self.assertEqual(report["cleanup"]["after"]["live_bytes"],0)
-
