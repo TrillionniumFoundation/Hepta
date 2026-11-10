@@ -4,6 +4,13 @@ on:
   pull_request:
     branches: ['codex/hia-sixgap-source-5e6c-20261108', 'work/hia-**']
     paths:
+      - 'docs/HIA_AGENT_SLICE_NATIVE.md'
+      - 'examples/hia_bootstrap/agent_slice.hiaasm'
+      - 'hepta/hia_agent_slice_native.py'
+      - 'tests/test_hia_agent_slice_native.py'
+      - 'tools/build_hia_agent_slice.py'
+      - 'tools/generate_hia_agent_slice.py'
+      - 'hepta/hia_edit_query.py'
       - 'docs/HIA_AGENT_ONLY_SCOPE.md'
       - 'docs/HIA_AGENT_ONLY_SCOPE.json'
       - 'tests/test_hia_agent_entry.py'
@@ -173,6 +180,7 @@ jobs:
           python -B -m tools.generate_hia_elf_linker 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/elf-linker-generator.log"
           python -B -m tools.generate_hia_native_filter 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-filter-generator.log"
           python -B -m tools.generate_hia_source_lexer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-lexer-generator.log"
+          python -B -m tools.generate_hia_agent_slice 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/agent-slice-generator.log"
           python -B -m tools.generate_hia_core_json_cli 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/core-json-cli-generator.log"
           python -B -m tools.generate_hia_sha256_stream 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-stream-generator.log"
           python -B -m tools.generate_hia_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-observer-generator.log"
@@ -203,6 +211,7 @@ jobs:
               "tests.test_hia_type_parser_native.TypeParserSourceTests",
               "tests.test_hia_source_lexer_native.SourceLexerSourceTests",
               "tests.test_hia_core_json_cli.CoreJsonCliSourceTests",
+              "tests.test_hia_agent_slice_native.AgentSliceSourceTests",
               "tests.test_hia_selfhost_word_io.WordIOSourceTests",
               "tests.test_hia_sha256_stream_native.Sha256StreamSourceTests",
               "tests.test_hia_source_expressions_native.SourceExpressionsSourceTests",
@@ -343,6 +352,7 @@ jobs:
           git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-p2-native/source.txt"
           python -m pip freeze > "$RUNNER_TEMP/hia-p2-native/dependencies.txt"
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-p2-native/qualification.json" 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/qualification.log"
+          python -B -m unittest -v tests.test_hia_agent_slice_native.AgentSliceNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/agent-slice-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_word_io.WordIONativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/word-io-tests.log"
           python -B -m unittest -v tests.test_hia_selfhost_exports.ExportNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/exports-tests.log"
           command -v strace
