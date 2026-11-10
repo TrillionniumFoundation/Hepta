@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 217 Python
-files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not a
+HIA. The qualified combined implementation contains a live `hepta/` package with
+219 Python files, 76,738 lines and 4,154,660 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **415 Python files /132280lines** under `tools/`,
+The audit also inventories **418 Python files /132664lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-632Python files. Tests, historical evidence, experiments, examples, benchmarks
+637Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
