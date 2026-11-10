@@ -1,5 +1,8 @@
 # Reconcile the qualified semantic increment with the updated contract branch
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This integration preserves both the semantic increment at
 `395345b06cb18b6b24ea9f58229101fe429ed5c8` and the contract branch at
 `739e84a402a800d51abefc6007118c887db7d91a`. The branches share
@@ -60,7 +63,7 @@ requirement that real compilation and linking succeed.
 
 ## Fresh qualification
 
-`tools/qualify_hia_integrated.py` checks seven gates against one exact clean
+`retired harness qualify-hia-integrated` checks seven gates against one exact clean
 commit: actual tools/seals, the ranking bridge, the recursive bridge, the
 finite graph bridge, the Rust crate, one complete Python discovery and coverage
 of the critical modules in that same discovery. Critical groups are subsets,

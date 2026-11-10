@@ -15,6 +15,18 @@ from tools.replay_hia_selfhost_cold import cold_replay
 
 
 class SelfhostContractTests(unittest.TestCase):
+    def test_hosted_agent_discovery_resources_are_in_actual_source_identity(self):
+        from hepta.hia_agent_contract import DISCOVERY_FILES
+        declared = validate_contract()["source_identity"]["files"]
+        self.assertNotIn(CONTRACT_PATH, declared)  # generated identity cannot hash itself
+        for filename in DISCOVERY_FILES:
+            if "docs/" + filename == CONTRACT_PATH:
+                continue  # validate_contract checks the generated complete content above
+            path = ROOT / "docs" / filename
+            self.assertEqual(declared[path.relative_to(ROOT).as_posix()],
+                             sha256(path.read_bytes()).hexdigest())
+
+
     def test_release_freeze_inventory_covers_the_complete_selfhost_closure(self):
         from tools.hia_release import BOOTSTRAP_FILES
         declared = validate_contract()["source_identity"]["files"]

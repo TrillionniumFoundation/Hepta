@@ -1,5 +1,8 @@
 # Exact eleven-module research protocol
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 Implementation and local/mock tests are not Lean acceptance. This isolated
 protocol is UNCHECKED until the precise published head completes its locked
 kernel run. No production runtime, initialization, admission gate, performance
@@ -8,7 +11,7 @@ threshold, or global proof obligation changes.
 ## Source boundary
 
 The separately versioned source proposal and validator live in
-`tools/core_syntax_partition_sources.py`. They retain the independently validated
+`retired harness core-syntax-partition-sources`. They retain the independently validated
 original structured preparation and recover its complete declaration streams
 from six contiguous certificate partitions. Types, bodies and proof texts are
 unchanged. The fixed names, cuts, complete-input root ownership and exact target

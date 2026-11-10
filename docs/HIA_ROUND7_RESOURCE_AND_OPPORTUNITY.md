@@ -31,7 +31,7 @@ unsupported jumps and mutating conditions remain refusals. The retained
 application compares the translated implementation with original GCC/Clang
 builds, the interpreter and an independent checksum oracle; allocation refusal
 and cleanup have their own observations. See
-[the C migration contract](HIA_CAPTURED_C_DO_WHILE.md).
+the C migration contract (historical path `HIA_CAPTURED_C_DO_WHILE.md`; not shipped in this tree).
 
 ## Prospective opportunity protocol
 

@@ -42,13 +42,8 @@ source/Core/LLVM semantic verification. The committed
 `tests.test_hia_native_signal_guard` must execute on a full exact
 repository checkout and cannot inherit the standalone result.
 
-```sh
-python -m unittest tests.test_hia_native_signal_guard \
-    tests.test_hia_native_side_effects \
-    tests.test_hia_native_seccomp \
-    tests.test_hia_native_differential -v
-python tools/release_check.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 ## Still-open blockers
 

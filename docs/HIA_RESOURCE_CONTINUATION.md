@@ -1,5 +1,8 @@
 # Resource continuation on the converged HIA contracts
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This increment starts from the exact PR #329 source
 `817713b163b6812a6516179951412b4a6c93ae2b`. It preserves its distinct proof
 profiles and native NDU transports. Canonical `verify_core` remains the
@@ -42,7 +45,7 @@ test counts are not relabeled as qualification of the recovered code.
 ## Combined-source qualification
 
 Freeze the complete committed source before running
-`tools/qualify_hia_integrated.py`. It requires an exact clean HEAD, every
+`retired harness qualify-hia-integrated`. It requires an exact clean HEAD, every
 tracked file materialized, actual pinned tools and solver, Linux sealing,
 and both independently checked original NDU protocols/upstream identities.
 One full Python discovery is its denominator; critical module coverage is a

@@ -1,0 +1,75 @@
+--- a/docs/HIA_AGENT_NATIVE_MCP.md
++++ b/docs/HIA_AGENT_NATIVE_MCP.md
+@@ -13,7 +13,7 @@
+ 
+ ## Installation and authority
+ 
+-Install the Hepta direct-backend/tool-service candidate on an already configured
++Install the qualified Core-only `hia-core` direct-backend/tool-service candidate on an already configured
+ Linux execution host. The Python environment must include the dependencies of
+ that Hepta candidate. With that installation as the current directory, obtain
+ its actual pins:
+@@ -29,14 +29,27 @@
+ capture roots must fit that host's read policy. The private state root requires
+ read/write authorization and must be disjoint from the source installation.
+ 
+-The worker pin is SHA-256 of canonical compact UTF-8 JSON mapping each sorted
+-`hepta/**/*.py`, `docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json`,
+-`docs/HIA_AGENT_ASSEMBLY.md` and `docs/HIA_PROGRAM.md` relative path to the
+-SHA-256 of its bytes. The backend and catalog have separate identities. The
+-adapter passes all three expected pins on fixed argv; the worker checks them
+-before creating writable service state and reports actual installed hashes.
+-This binds the installed Python source. It does not attest the Python executable,
+-OS, linker, system libraries or hardware firmware.
++The worker pin is SHA-256 of canonical compact UTF-8 JSON mapping every
++installed `hepta/**/*.py` source, every file in the installed worker's
++`DISCOVERY_FILES`, and both packaged HIA app sources (`agent_identity.hiaasm`
++and `agent_slice.hiaasm`) to their actual SHA-256. The resource lookup uses
++package-owned `hepta/_data` in a wheel, not a caller cwd, HOME or an external
++checkout fallback. Use `--installation-manifest` on the actual new installation;
++do not compute the pin from this prose, reuse a prior commit's hashes or
++substitute a matching catalog for source identity.
++
++The backend and catalog have separate identities. The adapter passes all three
++expected pins on fixed argv; the worker checks them before creating writable
++service state and reports actual installed hashes. These pins do not attest
++the Python executable, OS, linker, system libraries or hardware firmware.
++
++The high-level language and old `hepta` CLI are removed from the Core-only
++candidate. Its hosted `hia` command and eleven-tool worker are still Python
++bridges. The separate native stdio capabilities/verify/compile binary does not
++implement the complete worker envelope; it cannot be substituted for
++`python_executable`. A native worker needs an explicit transport mode and full
++request/report, custody and recovery qualification. No execution fallback is
++implied by retaining the stable `hepta.hia.*` protocol names.
+ 
+ The state root belongs to the configured operator authority and persists across
+ its sessions. It is not per-ChatGPT-user isolation. HTTP credentials and native
+@@ -67,8 +80,8 @@
+ The worker captures a bounded stable regular-file snapshot. No caller path is
+ used as an executable or output location.
+ 
+-`hia_emit` specifically calls the direct backend. The legacy Hepta CLI `hia emit`
+-command is a different command and is not used by this integration. Object
++`hia_emit` specifically calls the direct backend. The Core-only installed CLI
++is `hia`; the removed high-level CLI is not a compatibility route. Object
+ emission, optional linking, native evaluation and adoption have distinct receipts.
+ Core admission, behavioral equivalence, lowering validation, encoding checks and
+ measured benefit remain separate claims. Unsupported proof domains stay explicit.
+--- a/config/hia-worker.example.json
++++ b/config/hia-worker.example.json
+@@ -4,10 +4,12 @@
+     "python_executable": "/opt/hepta-venv/bin/python3",
+     "working_directory": "/opt/hepta-source",
+     "state_root": "/var/lib/hepta-hia",
+-    "artifact_roots": ["/srv/hepta-inputs"],
++    "artifact_roots": [
++      "/srv/hepta-inputs"
++    ],
+     "worker_sha256": "REPLACE_WITH_INSTALLATION_MANIFEST_WORKER_SHA256",
+     "backend_sha256": "REPLACE_WITH_INSTALLATION_MANIFEST_BACKEND_SHA256",
+-    "catalog_sha256": "8b880cc02efc93e10d920bf812bccbb33197aa00f6b92282536a000238ba5e9e",
++    "catalog_sha256": "61325aadc2fa6740c84037227c9410f5e299267d908cfbbd0be6b05eedfbfbf8",
+     "timeout_seconds": 120,
+     "memory_max_bytes": 1073741824
+   }

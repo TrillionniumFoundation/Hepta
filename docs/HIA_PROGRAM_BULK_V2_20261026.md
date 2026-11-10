@@ -1,5 +1,8 @@
 # HIA program v2 — typed bulk byte memory ISA
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 **Status:** finite standalone verifier/interpreter/LLVM addition on the independently
 executable HIA branch. This does not close general source-to-Core refinement,
 Rust universal parity, C/C++ migration, GPU codegen, or physical hardware.
@@ -50,7 +53,7 @@ optimized Rust/C/C++ in real workloads.
 \`\`\`sh
 python -m unittest tests.test_hia_bulk_memory -v
 python -m unittest tests.test_hia_program tests.test_hia_program_llvm -v
-python tools/qualify_hia_unified.py --help
+python retired harness qualify-hia-unified --help
 \`\`\`
 
 Existing LLVM, interpretation and source qualification suites still need

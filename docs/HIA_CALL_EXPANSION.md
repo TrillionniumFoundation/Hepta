@@ -1,5 +1,8 @@
 # Checked resource-call expansion and guarded loop composition
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `hepta/hia_call_expansion.py` extends the verified transformation surface from
 fixed call skeletons to **resolved single-block leaf calls**. A caller may have
 loops, branches, multiple owners and loans. A callee must be a complete checked
@@ -79,7 +82,7 @@ children already; the forwarded-formal regression is separately exercised with
 standalone v8 Core. This distinction avoids attributing a Core forwarding bug
 to every source program with a borrowed return.
 
-`tools/qualify_hia_call_return_lifetimes.py` records original and expanded Core,
+`retired harness qualify-hia-call-return-lifetimes` records original and expanded Core,
 fresh expansion proofs, independent arithmetic answers, and complete VM
 observations. With `--rust-shadow`, the same Core also executes in the separate
 Rust interpreter, including the exact tick count for each version. The native
@@ -166,7 +169,7 @@ the complete resource ledgers. These are distinct observations: this tool does
 not label VM resource counters as native allocation telemetry.
 
 When `--component-core` names a Core produced by
-`tools/qualify_cpp_callback_project.py`, it also expands real resolved calls in
+`retired harness qualify-cpp-callback-project`, it also expands real resolved calls in
 that captured multi-file C++ component and compares original/expanded native
 execution over 864 registered cases, including the callback's error return.
 The separate component qualifier checks
@@ -175,20 +178,8 @@ this pass does not replace that source qualification with self-comparison.
 
 ## Reproduce
 
-```bash
-CLANG=/path/to/clang python -m unittest tests.test_hia_call_expansion -v
-
-python tools/qualify_hia_call_expansion.py \
-  --output /tmp/new-call-expansion-qualification \
-  --clang /path/to/clang \
-  --component-core /tmp/callback-qualification/three_weight/standalone.core.json
-
-python -m unittest tests.test_hia_call_return_lifetimes -v
-python tools/qualify_hia_call_return_lifetimes.py \
-  --output /tmp/new-return-lifetime-qualification \
-  --clang /path/to/clang \
-  --rust-shadow /path/to/hia-check
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Use the pinned Z3 dependency for the guarded stage. Native tests must actually
 run with Clang; skipped native or solver cases are not a complete qualification.

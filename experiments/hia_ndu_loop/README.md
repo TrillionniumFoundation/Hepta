@@ -7,7 +7,7 @@ soundness, machine-code refinement, or a general performance advantage.
 
 ## Final recorded qualification: 2026-10-27
 
-The corrected run is in [`run_20261027_corrected/RESULT.json`](run_20261027_corrected/RESULT.json).
+The corrected run is in `run_20261027_corrected/RESULT.json` (retired from this product).
 All 30 jobs completed, passed their 30-second admission budget, and returned the
 independently checked output. All 60 initial/final workload executions loaded a
 sealed memfd whose bytes matched the independently bound native receipt.
@@ -64,10 +64,10 @@ build manifests remain alongside the archives.
 
 | Archive | Members | Archive SHA-256 |
 | --- | ---: | --- |
-| [`run_20261027_corrected.tar.xz`](run_20261027_corrected.tar.xz) | 260 | `de21dc6aed851b8feca46341eb4c10866da76f6d1cb8de7ecfb99990b392c2ef` |
-| [`run_20261027.tar.xz`](run_20261027.tar.xz), superseded | 259 | `9e6d87233bea8d1581ff78d5f0cac38d59b9eb59aabd5283e51f3990318b77bc` |
+| `run_20261027_corrected.tar.xz` (retired from this product) | 260 | `de21dc6aed851b8feca46341eb4c10866da76f6d1cb8de7ecfb99990b392c2ef` |
+| `run_20261027.tar.xz` (retired from this product), superseded | 259 | `9e6d87233bea8d1581ff78d5f0cac38d59b9eb59aabd5283e51f3990318b77bc` |
 
-[`EVIDENCE_INDEX_20261027.json`](EVIDENCE_INDEX_20261027.json) preserves both
+`EVIDENCE_INDEX_20261027.json` (retired from this product) preserves both
 original full-tree identities. The corrected tree digest is
 `c4300cdc6c6c49cb4ef012f9f22f54175c50c2be818d3800031d69309aea1ab1`;
 the superseded digest is
@@ -90,7 +90,7 @@ directory. The retained archive is sufficient to recheck every file's identity.
 
 ## Preserved superseded attempt
 
-The first full run remains in [`run_20261027/RESULT.json`](run_20261027/RESULT.json),
+The first full run remains in `run_20261027/RESULT.json` (retired from this product),
 with [`SUPERSEDED.json`](run_20261027/SUPERSEDED.json) marking why it is not the
 final qualification. Independent review found that working paths included sunk
 costs while literal abstention did not, which could cancel an affordable

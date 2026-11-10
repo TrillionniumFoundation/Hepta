@@ -1,10 +1,11 @@
 """Real lossless-stage roundtrip and no-retirement failure controls."""
 from pathlib import Path
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
 import zipfile
-from tools.hia_evidence_archive import OWNER, archive_completed_stage,verify_archive
+from tools.hia_evidence_archive import OWNER, archive_completed_stage,verify_archive,read_retained_evidence
 
 class EvidenceArchiveTests(unittest.TestCase):
     def test_exact_binary_modes_and_nested_members_replay(self):
@@ -34,3 +35,28 @@ class EvidenceArchiveTests(unittest.TestCase):
             alias=root/'alias';alias.symlink_to(original)
             with self.assertRaises(ValueError):archive_completed_stage(root,'fresh')
             self.assertEqual(original.read_bytes(),b'original\x00')
+
+    def test_original_and_retired_nested_artifact_have_identical_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)/'stage';root.mkdir();(root/OWNER).write_text('owner')
+            path=root/'nested'/'object.o';path.parent.mkdir();payload=bytes(range(256))*17
+            path.write_bytes(payload)
+            self.assertEqual(read_retained_evidence(path),payload)
+            archive_completed_stage(root,'owner')
+            self.assertEqual(read_retained_evidence(path),payload)
+            self.assertFalse(path.exists())
+            with self.assertRaises(FileNotFoundError):read_retained_evidence(root/'not-in-inventory')
+
+    def test_wrong_receipt_or_changed_archive_cannot_substitute_retired_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)/'stage';root.mkdir();(root/OWNER).write_text('owner')
+            path=root/'object.o';path.write_bytes(b'actual original object bytes')
+            result=archive_completed_stage(root,'owner');receipt=root/'ARCHIVED.json'
+            for key,value in [('archive_sha256','0'*64),('manifest_sha256','0'*64),
+                    ('archive',str(root.parent/'unrelated.zip')),('raw_paths_available',True),
+                    ('every_original_byte_verified_before_retirement',False),('files',0)]:
+                changed={**result,key:value};receipt.write_text(json.dumps(changed))
+                with self.subTest(field=key),self.assertRaises(ValueError):read_retained_evidence(path)
+            receipt.write_text(json.dumps(result))
+            archive=Path(result['archive']);archive.write_bytes(archive.read_bytes()+b'changed')
+            with self.assertRaisesRegex(ValueError,'archive digest'):read_retained_evidence(path)

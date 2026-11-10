@@ -76,8 +76,8 @@ receipt, not a shape-only fixture. Original/modified compiler chains, real
 generated-program execution, installed copies, profile-switch refusals,
 ownership rejection, I/O failure and native syscall traces are separate controls.
 
-The host `hia` entry and frozen `hepta` compatibility entry are retained during
-replacement. Native command presence does not qualify complete Agent editing,
+The hosted `hia` bridge remains during replacement. The high-level language
+and old `hepta` CLI entry are removed; no compatibility entry is packaged. Native command presence does not qualify complete Agent editing,
 durable recovery, Core modules/build, production runtime/library, clean-machine
 native-only installation, final artifact lifecycle or whole-product retirement.
 No production/default/release lock or service is changed by this component.

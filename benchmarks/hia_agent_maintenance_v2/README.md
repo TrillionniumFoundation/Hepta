@@ -41,20 +41,8 @@ file identities, the task sources, shared runner, resource observer, compiler
 sources, catalogs and public prompts. A tool relocation/change requires a
 new pre-generation registration; it cannot silently reinterpret an old run.
 
-```sh
-python tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 \
-  controls --output /new/controls/directory
-
-# Commit all implementation/protocol sources before freezing.
-python tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 \
-  freeze --controls /new/controls/directory/RESULT.json
-
-# Commit the new FREEZE.json; obtain the existing independent exact-freeze
-# review receipt, then use that real registration commit.
-python tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 \
-  run --output /new/model-run/directory --review /path/to/review.json \
-  --registration-commit EXACT_REGISTRATION_COMMIT
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Author controls issue zero model requests. A successful control run proves
 only that the selected tasks, evaluator and reference controls execute on the
@@ -76,12 +64,8 @@ outside the source checkout and preserves any existing `FREEZE.json` bytes.
 Supply current tool paths explicitly; they never reinterpret paths in an old
 protocol or replace a prior failed cell.
 
-```sh
-python tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 \
-  preflight --output /new/outside-source/preflight \
-  --codex /absolute/current/codex \
-  --clang /absolute/current/clang --rustc /absolute/current/rustc
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 `--isolate-sqlite` records a per-invocation `sqlite_home` override below that
 output directory. Independently, `--isolate-logs` sets the documented `log_dir`

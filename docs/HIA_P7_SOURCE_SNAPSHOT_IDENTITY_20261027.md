@@ -34,12 +34,8 @@ sparse file refusal. This was **not** the exact committed `release_check`
 module nor a full native build; the committed test file contains six methods
 including a symlink-swap refusal.
 
-```sh
-python -m unittest tests.test_release_snapshot_identity \
-  tests.test_release_file_identity -v
-python -m unittest tests.test_release_evidence tests.test_release_collection -v
-python tools/release_check.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The complete checkout is unavailable in this container (GitHub DNS) and the
 pinned Rust/Cargo toolchain is unavailable, so these exact-head tests remain

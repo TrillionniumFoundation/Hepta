@@ -143,12 +143,8 @@ The two complete source fixtures are:
 
 Run the targeted regression tests and dedicated finite qualification:
 
-```sh
-python -m unittest tests.test_hia_recursive_chain
-python tools/qualify_hia_recursive_chain.py \
-  --output-directory /tmp/hepta-recursive-new \
-  --clang /absolute/path/to/clang
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The dedicated collector freezes a 324-case plan before execution. It compares
 actual native scalar results and separate header/payload allocation ledgers

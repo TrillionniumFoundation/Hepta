@@ -1,5 +1,8 @@
 # Historical upstream repair factorial
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This prospective study adapts two actual integer-overflow fixes from
 [stb's issue 741 fix](https://github.com/nothings/stb/commit/c38ec91d229cbe56167f8af865c05b3d92db705f)
 into HIA assembly and Rust maintenance tasks. It compares each language under
@@ -14,7 +17,7 @@ stable Agent productivity by themselves. Training exposure is unknown.
 The complete pinned upstream headers and license texts remain in
 `tests/fixtures/c_migration/stb_divide{,_v0_93}`. `UPSTREAM_FIX.json` retains the
 primary immutable commit/patch receipt. `UPSTREAM_TASKS.json` binds complete C
-capture, selected functions and HIA representations. `tools/capture_hia_upstream_tasks.py`
+capture, selected functions and HIA representations. `retired harness capture-hia-upstream-tasks`
 checks the original functions and updated remainder's Core call-graph inlining
 and primitive representation with the existing 10-second all-input validator;
 this does not prove C-to-Core refinement. The new floor function's complete

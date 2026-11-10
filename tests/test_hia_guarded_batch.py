@@ -192,65 +192,8 @@ class GuardedBatchTests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertFalse(rows[0]["native_release_succeeded"])
 
-    def test_qualification_requires_exact_clean_source_before_native_work(self):
-        from tools import qualify_hia_guarded_opportunity as tool
-        with tempfile.TemporaryDirectory() as temporary:
-            for label, source in (("wrong_head", {"head": "b" * 40, "status": ""}),
-                                  ("dirty", {"head": "a" * 40, "status": " M source.py\n"})):
-                with self.subTest(source=label), patch.object(tool, "_source_state", return_value=source):
-                    with patch.object(tool, "_run") as native:
-                        result = tool.qualify(clang="not-executed", workdir=Path(temporary) / label,
-                                              expected_source="a" * 40)
-                        native.assert_not_called()
-                        self.assertFalse(result["qualified"])
-                        self.assertEqual(result["status"], "failed")
-                        self.assertIn("clean source", result["error"]["message"])
 
-    def test_output_inside_source_and_short_expected_commit_refuse(self):
-        from tools import qualify_hia_guarded_opportunity as tool
-        with patch.object(tool, "_run") as native:
-            with self.assertRaisesRegex(gb.GuardedBatchRejected, "outside the source tree"):
-                tool.qualify(clang="not-executed", workdir=tool.ROOT / "forbidden-guarded-output",
-                             expected_source="a" * 40)
-            with self.assertRaisesRegex(gb.GuardedBatchRejected, "full lowercase commit SHA"):
-                tool.qualify(clang="not-executed", workdir="unused", expected_source="a" * 7)
-            native.assert_not_called()
 
-    def test_final_source_or_budget_failure_revokes_all_opportunity_eligibility(self):
-        from tools import qualify_hia_guarded_opportunity as tool
-        for failure in ("source", "budget"):
-            with self.subTest(failure=failure), tempfile.TemporaryDirectory() as temporary:
-                clock, reads = [0], [0]
-                state = {"head": "a" * 40, "tree": "b" * 40, "status": "", "files": {"core.py": "c" * 64}}
-                def source_state():
-                    reads[0] += 1
-                    if reads[0] == 2:
-                        if failure == "source":
-                            raise ValueError("raw HEAD blob changed")
-                        clock[0] = 60_000_000_001
-                    return copy.deepcopy(state)
-                def run(clang, directory, report, started):
-                    _, report["samples"], report["exported_code"] = observations()
-                    # Even after 60s of charged work this fabricated corpus
-                    # has +35s/module arithmetic value. Neither final source
-                    # drift nor deadline failure may leave an eligible flag.
-                    for row in report["samples"]:
-                        row["elapsed_ns"] = 10_000_000 if row["candidate"] == "baseline" else 1000
-                        row["outer_wall_ns"] = 200_000_000 if row["candidate"] == "baseline" else 10_000_000
-                with patch.object(tool, "_source_state", side_effect=source_state), \
-                     patch.object(tool, "_sources", return_value={"module": "fixed"}), \
-                     patch.object(tool, "_run", side_effect=run), \
-                     patch.object(tool.time, "monotonic_ns", side_effect=lambda: clock[0]):
-                    result = tool.qualify(clang="not-executed", workdir=Path(temporary) / "out",
-                                          expected_source="a" * 40)
-                self.assertEqual(result["status"], "failed")
-                self.assertFalse(result["qualified"])
-                self.assertFalse(result["economics"]["opportunity_gate_passed"])
-                self.assertFalse(result["economics"]["ndu_comparison_authorized_by_this_evidence"])
-                self.assertEqual(result["economics"]["status"], "invalid_qualification_evidence")
-                self.assertEqual(result["economics"]["qualification_denial"]["reason"], "complete_qualification_failed")
-                self.assertTrue(all(phase["net_savings_ns"] > 0
-                    for row in result["economics"]["module_opportunities"] for phase in row["phases"].values()))
 
     @unittest.skipUnless(importlib.util.find_spec("z3"), "actual Z3 required")
     def test_real_removed_guard_has_counterexample_and_cannot_compile(self):

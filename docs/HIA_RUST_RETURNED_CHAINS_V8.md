@@ -81,12 +81,8 @@ metadata and is not a whole-process RSS or native performance bound.
 
 ## Reproducible composition evidence
 
-```sh
-cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
-python -m unittest tests.test_hia_rust_returned_chains -v
-python tools/qualify_hia_rust_returned_chains.py --expected-head COMMIT --output /tmp/hia-returned-chains.json
-python tools/qualify_hia_rust_owned_memory.py --output /tmp/hia-owned-memory.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The returned-chain qualifier requires a clean unchanged source commit. It
 retains each complete canonical program, the exact Rust CLI process and

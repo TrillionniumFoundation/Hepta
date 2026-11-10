@@ -1,5 +1,8 @@
 # Guarded entry outlining: opt-in native layout
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 ## Problem and change
 
 The existing checked-reduction pipeline places the complete fast and checked
@@ -50,7 +53,7 @@ the empty edge cannot silently replace every function result with zero.
 ## Performance protocol
 
 `benchmarks/hia_outlined_aot/PROTOCOL.json` and
-`tools/qualify_hia_outlined_aot.py` freeze six arms:
+`retired harness qualify-hia-outlined-aot` freeze six arms:
 
 - canonical checked HIA;
 - canonical verified reduction HIA;
@@ -83,15 +86,8 @@ campaign result; this document does not pre-authorize performance adoption.
 
 ## Commands
 
-```sh
-PYTHONDONTWRITEBYTECODE=1 HIA_TEST_CLANG20=/absolute/clang-20 \
-  /absolute/python -m unittest tests.test_hia_entry_layout \
-  tests.test_hia_outlined_aot_protocol -v
-
-PYTHONDONTWRITEBYTECODE=1 /absolute/python tools/qualify_hia_outlined_aot.py \
-  --output /absolute/new-evidence-directory \
-  --clang /absolute/clang-20 --rustc /absolute/rustc-1.95.0 --cpu 0
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Use a CPU in the process's inherited affinity. Output must be a fresh directory
 outside the source checkout. Historical negative results and any new failures

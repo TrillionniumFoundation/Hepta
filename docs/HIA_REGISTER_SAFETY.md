@@ -1,5 +1,8 @@
 # Selected register Core: generic safety and an actual rewrite
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `formal/HiaRegisterSafety.lean` extends the exact executable model in
 `formal/HiaSelectedCore.lean`. The qualification tool concatenates both files
 into one pinned Lean kernel input, then adds the actual original and candidate
@@ -99,7 +102,7 @@ bytes or process RSS. Evidence replay checks retained observations and fresh
 Core mappings; it is not a cryptographic attestation of a hostile producer or
 host.
 
-The independent `tools/qualify_hia_catalog_compatibility.py` additionally
+The independent `retired harness qualify-hia-catalog-compatibility` additionally
 compares finite primitive-Core acceptance against the pinned #399 checker.
 That regression comparison helps detect semantic loss during catalog
 integration and retains a separate `verifier_semantic_equivalence_proved: false`

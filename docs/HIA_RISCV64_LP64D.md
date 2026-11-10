@@ -1,5 +1,8 @@
 # Standalone HIA on RV64GC / LP64D
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The existing verified Core → LLVM → object path now accepts
 `riscv64-unknown-linux-gnu` with explicit `-march=rv64gc -mabi=lp64d`.
 The object scanner requires ELF64, machine 243 and the exact reviewed RISC-V
@@ -48,7 +51,7 @@ The executable qualification covers:
   count and observed `free(NULL)` calls. Counters reset only after the preceding
   call has no outstanding allocations; the allocation-slot state is retained.
 
-`tools/qualify_hia_riscv64.py` retains each input, Core, LLVM IR, C/assembly
+`retired harness qualify-hia-riscv64` retains each input, Core, LLVM IR, C/assembly
 driver, object, linked executable, tool identity and command output. It uses a
 hash-bound LLVM reader to check the actual static executable's segments,
 entrypoint and complete external-function inventory. Dynamic-loader/TLS
@@ -78,16 +81,8 @@ The removed-free IR is never admitted through the verified compiler entry.
 These are finite detection controls, not a proof that every lowering error
 will be detected.
 
-```sh
-python tools/qualify_hia_riscv64.py \
-  --output-directory /tmp/hepta-riscv64-new \
-  --clang /usr/lib/llvm-20/bin/clang \
-  --linker /usr/lib/llvm-20/bin/ld.lld \
-  --readobj /usr/lib/llvm-20/bin/llvm-readobj \
-  --qemu-riscv64 /usr/bin/qemu-riscv64-static
-
-python -m unittest tests.test_hia_riscv64 tests.test_hia_program_llvm -v
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 ## Evidence boundary
 

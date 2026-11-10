@@ -125,15 +125,8 @@ these finite profiles. See [the v8 contract](../../docs/HIA_RUST_RETURNED_LOANS_
 
 ## Reproducible checks
 
-```sh
-cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
-python -m unittest tests.test_hia_rust_owned_vm tests.test_hia_rust_owned_cfg tests.test_hia_rust_bulk_vm -v
-python tools/qualify_hia_rust_owned_cfg.py --output /tmp/hia-owned-cfg.json
-python -m unittest tests.test_hia_rust_returned_loans tests.test_hia_rust_crosscheck -v
-python tools/qualify_hia_rust_owned_cfg.py --returned-loans --output /tmp/hia-returned-loans.json
-python tools/qualify_hia_rust_owned_memory.py --output /tmp/hia-owned-memory.json
-python tools/qualify_hia_rust_returned_chains.py --output /tmp/hia-returned-chains.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The differential corpus includes loop-carried owners/loans, fallible branches,
 owner-consuming/replacement calls, shared alias/reborrow behavior, recursion,
@@ -152,7 +145,7 @@ all six bulk operations, chain payload/node failures, and every executed step
 cut of selected source/aggregate/chain cleanup paths. Its collector retains
 raw process stdout/stderr, original inputs, canonical programs, both complete
 reports, rejected inputs, actual binary/toolchain identities and unchanged
-source inventories. See [the owned-memory scope](../../docs/HIA_RUST_OWNED_MEMORY_VM_20261028.md).
+source inventories. See the owned-memory scope (retired from this product).
 
 ## Logical roots and borrowed call scopes
 

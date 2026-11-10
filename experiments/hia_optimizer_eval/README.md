@@ -1,11 +1,14 @@
 # Fixed strong-baseline optimizer evaluation
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The completed frozen runs and their limitations are documented in
 [`results.md`](results.md). The benchmark fails its fixed noninferiority gate;
 the completed local-agent pilot has zero successful repairs in 16 cells.
 All earlier failed or incomplete attempts remain in the evidence catalog.
 
-`tools/qualify_hia_optimizer_bench.py` compares the same two allocation/byte-loop
+`retired harness qualify-hia-optimizer-bench` compares the same two allocation/byte-loop
 algorithms as standalone verified HIA, independent safe Rust, C, and C++. The
 fixtures include complete allocation, fill, transform, checksum and release paths.
 This is a finite buffer-kernel experiment, not an application benchmark suite or
@@ -18,10 +21,8 @@ training sizes/seeds, merge their real `.profraw` files, and rebuild with
 `-fprofile-instr-use`. Training and holdout size/seed sets are disjoint. The
 benchmark never chooses flags or repetition counts from holdout results.
 
-```sh
-python tools/qualify_hia_optimizer_bench.py --output-dir /tmp/new-bench-attempt
-python -m unittest tests.test_hia_optimizer_bench
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The native toolchain needs Clang/Clang++ 20+, LLD, Rust, `llvm-profdata`, and
 Clang's profiling runtime. On a minimal installation without compiler-rt, pass

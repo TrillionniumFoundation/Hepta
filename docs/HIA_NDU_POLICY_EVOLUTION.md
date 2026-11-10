@@ -153,15 +153,8 @@ modes require an adapter rebuilt from this source revision.
 Commit the intended source before freezing. Freeze and run are separate,
 exclusive-output operations; results never relax the source identity check.
 
-```sh
-python tools/qualify_hia_ndu_policy_evolution.py freeze \
-  --native-binary /absolute/path/to/fresh-native-build/target/release/hia-ndu-bridge \
-  --native-manifest /absolute/path/to/fresh-native-build/build-receipt.json \
-  --output /absolute/path/to/registration.json
-python tools/qualify_hia_ndu_policy_evolution.py run \
-  --registration /absolute/path/to/registration.json \
-  --output /absolute/path/to/new-campaign-directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Add `--module-report /absolute/path/to/service-study/report.json` to `freeze`
 for the actual module's measured-cost input. Register that campaign before

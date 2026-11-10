@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import re
 ROOT=Path(__file__).resolve().parents[1]
 FORBIDDEN_MODULES=frozenset({
     'ast','lexer','parser','checker','backend','pipeline','protocol','protocol_v3',
@@ -41,13 +42,33 @@ def check(root=ROOT):
                 names=[]
                 if isinstance(n,ast.Import):names=[a.name for a in n.names]
                 elif isinstance(n,ast.ImportFrom):
-                    if n.level and directory=='hepta':names=['hepta.'+(n.module or '')]
+                    if n.level and directory=='hepta':
+                        names=['hepta.'+(n.module or '')]
+                        if not n.module:names+=['hepta.'+a.name for a in n.names]
                     else:names=[n.module or '']
                     if n.module=='hepta':names+=['hepta.'+a.name for a in n.names]
                 for name in names:
                     parts=name.split('.')
                     if len(parts)>1 and parts[0]=='hepta' and parts[1] in FORBIDDEN_MODULES:
                         problems.append(f'{p.relative_to(root)}:{n.lineno}: deleted-language import {name}')
+                # Historical gate inventories used strings, not Python imports.
+                # Validate the authored selectors; never filter missing tests at run time.
+                if directory=='tools' and isinstance(n,ast.Constant) and type(n.value)is str:
+                    if re.fullmatch(r'tests\.test_\w+(?:\.\w+)*',n.value):
+                        target=root.joinpath(*n.value.split('.')[:2]).with_suffix('.py')
+                        if not target.is_file():problems.append(f'{p.relative_to(root)}:{n.lineno}: absent test selector {n.value}')
+    for directory in ['docs','examples']:
+        for p in (root/directory).rglob('*.md'):
+            text=p.read_text()
+            if re.search(r'\bhepta\s+(?:hia|check|build|run|lower)\b',text):
+                problems.append('removed CLI instruction: '+str(p.relative_to(root)))
+            for reference in re.findall(r'\b(?:tools|tests)/[\w/.-]+\.py\b',text):
+                if not (root/reference).is_file():
+                    problems.append(f'{p.relative_to(root)}: absent documented script {reference}')
+    for name in ['docs/HIA_SOURCE_SCALAR_EXPORTS_20261028.md',
+                 'docs/HIA_SCALAR_ORACLE_V0.md','examples/hia_migration/README.md',
+                 'tools/qualify_hia_linux_tests.py']:
+        if (root/name).exists():problems.append('removed source-only asset: '+name)
     import tomllib
     metadata=tomllib.loads((root/'pyproject.toml').read_text())
     if metadata['project']['scripts']!={'hia':'hepta.cli:hia_main'}:

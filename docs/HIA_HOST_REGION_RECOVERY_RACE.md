@@ -1,6 +1,9 @@
 # Native reader and recovery race qualification
 
-`tools/qualify_hia_host_region_race.py` extends the existing Linux x86_64 host
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
+`retired harness qualify-hia-host-region-race` extends the existing Linux x86_64 host
 region evidence with a controlled concurrent schedule. The same verified HIA
 scalar exports, actual C ABI, memfd mapping, kernel page protections, host
 ownership gates and native worker joins remain in the executed path.

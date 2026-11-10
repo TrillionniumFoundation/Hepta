@@ -1,6 +1,9 @@
 # Native NDU advice and a common first action
 
-`tools/qualify_hia_native_ndu.py` measures the existing four native implementations
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
+`retired harness qualify-hia-native-ndu` measures the existing four native implementations
 of the owned-byte fill/checksum workload and runs fixed, independent exact DP,
 light greedy and actual Rust NDU policies. Each policy sees frozen training
 observations, the current request size, the remaining horizon and work already
@@ -61,16 +64,8 @@ to beat each control in each episode before passing its service benefit gate;
 whole-lifecycle benefit, global optimality and whole-language safety remain
 unestablished. A negative result is retained.
 
-```sh
-python -m unittest tests.test_hia_native_ndu -v
-python tools/qualify_hia_native_ndu.py \
-  --clang /path/to/clang --rustc /path/to/rustc \
-  --bridge /path/to/hepta-hia-ndu-bridge \
-  --identity /path/to/identity.json \
-  --build-profile optimized-release-v1 \
-  --expected-source EXACT_CLEAN_HEPTA_COMMIT \
-  --output /new/evidence/directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The stream bridge has its own source identity and protocol; it cannot be
 substituted for the scalar candidate-ranking bridge used by the background

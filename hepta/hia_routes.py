@@ -35,7 +35,7 @@ def route_inventory():
             "authority":"hepta.hia_program.verify_program", "implicit_fallback_allowed":False,
             "backends":[
                 {"backend":"direct-machine","entry":"hepta.hia_program_native.build_program_machine",
-                 "same_standalone_core":True,"selection":"hia build --backend native; direct API",
+                 "same_standalone_core":True,"selection":"hia build; fixed native machine backend or direct API",
                  "llvm_ir_used":False,"assembler_used":False,"fallback_used":False},
                 {"backend":"direct-llvm","entry":"hepta.hia_program_llvm.build_program_native",
                  "same_standalone_core":True,"selection":"explicit reference/research tool only",

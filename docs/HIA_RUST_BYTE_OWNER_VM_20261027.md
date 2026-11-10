@@ -1,9 +1,12 @@
 # Executed Rust byte-owner shadow: finite profile
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This document records the byte-owner v3 and returned-loan v4 boundaries and
 historical evidence. The same Machine has a separately identified
 [v5 chain capability set](HIA_RUST_RETURNED_CHAINS_V8.md), including the
-[owned-memory corpus](HIA_RUST_OWNED_MEMORY_VM_20261028.md) for source/nominal
+owned-memory corpus (historical path `HIA_RUST_OWNED_MEMORY_VM_20261028.md`; not shipped in this tree) for source/nominal
 lowering, actual observations and negative controls. Modules without chains
 retain the v3/v4 profiles described below. Historical counts do not qualify
 the expanded implementation or a later integrated revision.
@@ -132,7 +135,7 @@ also executes through an internal borrowed helper with a mutable reborrow;
 each executed step boundary is compared. A loop-carried view and its fallible
 construction branch exercise composition with the existing CFG Machine.
 
-`tools/qualify_hia_rust_owned_cfg.py --output REPORT.json` retains the actual
+`retired harness qualify-hia-rust-owned-cfg --output REPORT.json` retains the actual
 programs, complete paired VM reports, source before/after hashes, binary and
 toolchain identity, and non-skipped test counts. A report qualifies its recorded
 source inventory only. The historical counts below do not qualify this expanded

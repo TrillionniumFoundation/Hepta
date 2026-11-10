@@ -1,5 +1,8 @@
 # Explicit HIA Agent macro policy
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 ## Implemented boundary
 
 `hepta.hia_agent_macro_policy.advise_macro` is an explicit **caller-side**
@@ -288,7 +291,7 @@ store at 256 MiB. This is an evidence-consistency check, not remote attestation.
 ### Remaining real-Agent gate
 
 The existing provider diagnostics remain separate:
-`tools/qualify_hia_agent_provider.py catalog` / `probe` require a real configured
+`retired harness qualify-hia-agent-provider catalog` / `probe` require a real configured
 `--codex` executable and explicit model selectors. An available catalog is not
 entitlement or a task success. A real campaign needs original provider event
 streams, provider-reported usage validated through

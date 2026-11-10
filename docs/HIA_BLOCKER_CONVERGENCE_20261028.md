@@ -1,5 +1,8 @@
 # Converging the current resource and migration blockers
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This increment combines the previously qualified local checkpoint
 `f882b4bb02d39bc1dbe0d2237aac69a51469ae0a` with the actual public PR #329 source
 `389f33b0dccec3fcbb0e2205b3cb1f07bd3ff9c4`. A historical test or native receipt
@@ -40,7 +43,7 @@ admitted only with a compatible bound original-type receipt and the required
 pointer contract. Runtime-sized parameter entry effects and forged/mismatched
 types refuse. Strict JSON contracts distinguish absent from empty input and
 reject duplicate keys and unsupported Python object hooks. See
-[C_ORIGINAL_PARAMETER_TYPES.md](C_ORIGINAL_PARAMETER_TYPES.md).
+C_ORIGINAL_PARAMETER_TYPES.md (historical path `C_ORIGINAL_PARAMETER_TYPES.md`; not shipped in this tree).
 
 Native scalar optimization keeps its v1–v7 boundary. A v8 Core that can be
 interpreted or directly compiled does not thereby enter a scalar proof or
@@ -61,7 +64,7 @@ partial output. A larger time budget is not a successful qualification.
 
 ## Same-source acceptance
 
-Use `tools/qualify_hia_integrated.py` with the exact clean `--expected-head`
+Use `retired harness qualify-hia-integrated` with the exact clean `--expected-head`
 and all required tool/bridge paths. It runs the Cargo crate and one complete
 verbose Python discovery; critical groups are subsets of that discovery.
 The original-type reader gate actually loads libclang and checks its reported

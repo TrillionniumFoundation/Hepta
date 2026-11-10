@@ -1,5 +1,8 @@
 # Checked abstract core and cross-execution tools
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 ## Common exit accounting model
 
 `hia_exit_accounting.py` independently models byte-allocation, empty-owner,
@@ -23,9 +26,8 @@ Its separate closed expression model proves canonical forms, small-step type
 preservation, progress, trace preservation and the absence of a stuck reachable
 well-typed expression.
 
-```sh
-python tools/verify_memory.py --output artifacts/memory-proofs.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 This checker verifies the pinned Lean executable SHA-256, inventories every
 theorem's standard axiom dependencies and requires five rejected mutations:
@@ -56,7 +58,7 @@ the Python frontend, IR or native backends to either definition is proved.
 3. A structural translation from wrapping-u64 expressions to a stack machine
    preserves the evaluated value for every expression and initial stack.
 
-`tools/verify_formal.py` checks every theorem's axiom dependencies and rejects
+`retired harness verify-formal` checks every theorem's axiom dependencies and rejects
 placeholder/custom axioms. The reported dependencies are standard `propext`
 and `Quot.sound`. Two negative mutations remove a resource guard and a task
 budget guard; Lean must reject the resulting broken proofs.
@@ -79,11 +81,8 @@ SHA-256, and selects the transitive modules listed in `proof-dependencies.txt`.
 It also installs the SHA-pinned Ubuntu AArch64 QEMU user emulator. It does not
 change system directories or shell configuration.
 
-```sh
-python tools/bootstrap_verification.py
-python tools/verify_formal.py
-python tools/validate_cross.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The Lean installer requires the optional Python `zstandard` package; extracting
 the QEMU package requires `dpkg-deb`. These are verification dependencies, not

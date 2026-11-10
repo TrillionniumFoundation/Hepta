@@ -1,5 +1,8 @@
 # Capability instruction lifecycle proofs
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `formal/HiaCapabilityLifecycle.lean` adds structural instruction semantics to
 the existing capability projection/renaming model. It proves preservation for
 allocation, local borrowing, ending a loan and dropping an owner. The previous
@@ -58,7 +61,7 @@ execution trace of an arbitrary Core program.
 
 ## Observations from the production checker
 
-`tools/verify_hia_capability_lifecycle.py` first verifies immutable canonical
+`retired harness verify-hia-capability-lifecycle` first verifies immutable canonical
 Core, inventories **every** static instruction independently, then observes a
 second verification of the same canonical bytes. A thread-local Python profile
 callback captures the real `_BlockCheck.instruction` input/output capability
@@ -120,12 +123,8 @@ remain unchanged.
 
 Use an absolute path to the SHA-pinned Lean 4.19.0 and a fresh output directory:
 
-```sh
-python -B -m unittest tests.test_hia_capability_lifecycle \
-  tests.test_hia_production_capability_witness tests.test_hia_capability_flow
-python -B tools/verify_hia_capability_lifecycle.py \
-  --lean /absolute/lean --output /outside/source/capability-lifecycle
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 `--program /absolute/program.hia` selects explicit primitive Core v1–v8 using
 the existing bounded regular-file reader. It still inventories all operations

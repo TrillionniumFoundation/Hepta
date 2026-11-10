@@ -31,25 +31,14 @@ an absolute safety claim about all native programs.
 ## One frozen integration run
 
 Commit the complete source before invoking the v3 collector (37 scoped gates;
-see [the current qualification plan](HIA_UNIFIED_QUALIFICATION_V3.md)). The collector writes
+see the current qualification plan (retired from this product)). The collector writes
 a command plan, executes all gates against that exact source, retains stdout,
 stderr and per-gate reports, rejects skipped test runs as complete passes and
 compares source snapshots before and after. Native and formal reports bind
 their own selected tools/artifacts. Performance is the last functional gate.
 
-```sh
-python tools/qualify_hia_unified.py \
-  --output-directory /tmp/hepta-seven-stage-new \
-  --clang /absolute/path/to/clang \
-  --cc /absolute/path/to/gcc \
-  --rustc /absolute/path/to/rustc \
-  --cargo /absolute/path/to/cargo \
-  --qemu-aarch64 /absolute/path/to/qemu-aarch64-static \
-  --qemu-riscv64 /absolute/path/to/qemu-riscv64-static \
-  --qemu-system-arm /absolute/path/to/qemu-system-arm \
-  --linker /absolute/path/to/rust-lld \
-  --lean /absolute/path/to/lean --cxx /absolute/path/to/g++
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Cargo 1.90.0 and its locked dependencies must be available for the Rust
 shadow tests. Fetch the locked dependencies before the frozen run. The
@@ -67,7 +56,7 @@ unused helpers and code hidden by small execution budgets. Nominal inputs
 first require normalization; Rust does not directly interpret a nominal
 schema. Python Core remains the standalone/native admission authority.
 See the [consumer support table](HIA_PROGRAM.md) and
-[current Rust memory execution profile](HIA_RUST_OWNED_MEMORY_VM_20261028.md).
+current Rust memory execution profile (historical path `HIA_RUST_OWNED_MEMORY_VM_20261028.md`; not shipped in this tree).
 The general static step/live-payload analyzers retain their declared schema
 and cycle restrictions. A partial-v3 call-depth result does not imply a static
 bound on chain destruction or live heap; unsupported analyses return unknown

@@ -34,3 +34,6 @@ Cold qualification preserves original and modified-source native fixed points,
 independent reference controls and resource refusal witnesses. Source contracts
 are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
+
+Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
+Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

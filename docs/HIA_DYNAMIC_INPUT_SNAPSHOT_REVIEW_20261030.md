@@ -115,7 +115,7 @@ regressions or from the concurrently executed qualification checks.
 
 All raw logs, exact original source files, source manifests, the full-package
 runner and the two native qualification reports are under
-[`reports/hia-six-track-convergence-20261030/safety-dynamic`](../reports/hia-six-track-convergence-20261030/safety-dynamic).
+`reports/hia-six-track-convergence-20261030/safety-dynamic` (historical path `../reports/hia-six-track-convergence-20261030/safety-dynamic`; not shipped in this tree).
 The earlier boundary-only AST-extraction experiment is retained separately and
 explicitly marks that it did not import the full package or execute native code.
 It is superseded for integration evidence by the full-package runs above.

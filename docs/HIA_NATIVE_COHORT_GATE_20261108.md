@@ -1,5 +1,8 @@
 # Native benchmark acceptance: complete cohorts and retained costs
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 ## Defect and scope
 
 The native benchmark assessor previously built a dictionary indexed by arm for
@@ -17,7 +20,7 @@ They do not show that an existing historical campaign exploited the defects.
 
 ## Change
 
-`tools/qualify_hia_native_ndu.py` now admits one complete matrix over the four
+`retired harness qualify-hia-native-ndu` now admits one complete matrix over the four
 registered controls and a nonempty registered episode list. Missing, duplicate,
 extra, failed, cancelled and unfinished observations refuse qualification. The
 same validator is used for the service comparison and prepared-owner cost
@@ -74,9 +77,9 @@ python -m unittest tests.test_hia_native_cohort_gate \
 
 Retained evidence:
 
-- [Original-assessor red test log](../review-evidence/hia-native-cohort-gate-20261108/reproduced-red-tests.log)
-- [Recovered candidate focused test log](../review-evidence/hia-native-cohort-gate-20261108/recovered-focused-tests.log)
-- [Source identities and result summary](../review-evidence/hia-native-cohort-gate-20261108/validation.json)
+- Original-assessor red test log (historical path `../review-evidence/hia-native-cohort-gate-20261108/reproduced-red-tests.log`; not shipped in this tree)
+- Recovered candidate focused test log (historical path `../review-evidence/hia-native-cohort-gate-20261108/recovered-focused-tests.log`; not shipped in this tree)
+- Source identities and result summary (historical path `../review-evidence/hia-native-cohort-gate-20261108/validation.json`; not shipped in this tree)
 
 Existing historical benchmark receipts were not rerun or rewritten; this patch
 does not establish their completeness under the stronger assessor until their

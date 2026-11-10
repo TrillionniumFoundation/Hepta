@@ -67,13 +67,8 @@ their own evidence.
 Use the recorded tools in a clean committed source tree, with external Cargo
 build targets and new absolute output directories:
 
-```sh
-python -B tools/qualify_hia_verified_increment.py --output /outside/source/regression
-python -B tools/qualify_hia_three_lane.py --suite trusted-core --output /outside/source/trusted-core.json
-python -B tools/qualify_hia_sequential_core.py --help
-python -B tools/qualify_hia_release_parity.py --help
-python -B tools/qualify_hia_agent_maintenance.py --campaign maintenance-v2 preflight --help
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Final observations must state the actual source commit, tools and each result;
 none of the implementation descriptions above substitutes for execution.

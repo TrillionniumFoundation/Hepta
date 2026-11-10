@@ -45,11 +45,8 @@ optimizer decisions or demonstrate general NDU value. A reduction relative to
 uncached NDU is reported separately from comparison with the strong controls.
 The historical 48-episode and finite-graph negative experiments remain unchanged.
 
-```sh
-python tools/qualify_hia_ndu_reuse.py \
-  --identity /absolute/path/to/finite-build/identity.json \
-  --output /absolute/path/to/new-evidence-directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The native tests in `tests/test_hia_ndu_cache.py` require
 `HEPTA_FINITE_NDU_IDENTITY` and `HEPTA_FINITE_NDU_BRIDGE`. Tests using the explicit

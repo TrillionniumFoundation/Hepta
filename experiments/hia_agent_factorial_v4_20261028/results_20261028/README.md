@@ -40,15 +40,15 @@
 
 这些是已经消耗的资源，包含失败的模型选择；校准期间其他开发构建可能共享
 CPU，因此这些耗时不构成语言效率对照。下载尝试、验证、参考控制和分词检查
-另见 [SUMMARY.json](SUMMARY.json) 与 [STOPPED.json](STOPPED.json)。人工开发、
+另见 SUMMARY.json (retired from this product) 与 [STOPPED.json](STOPPED.json)。人工开发、
 模型训练和上游集成成本未计量。主对照未运行，正确率、每个正确主任务的
 token / 时间、长期维护成本和 HIA 优势都不能据此计算或确认。
 
 ## 可直接审阅的证据
 
-- [OBSERVATIONS.jsonl](OBSERVATIONS.jsonl)：六次实际请求的原始提示、五份
+- OBSERVATIONS.jsonl (retired from this product)：六次实际请求的原始提示、五份
   完整模型输出、完整编译诊断、超时和原生结果。没有替换成参考答案。
-- [RAW_TRANSPORT.jsonl](RAW_TRANSPORT.jsonl)：六份原始 transport 请求及五份
+- RAW_TRANSPORT.jsonl (retired from this product)：六份原始 transport 请求及五份
   原始服务端回复，以原始 UTF-8 字符串保存，并附原文件的大小和 SHA-256。
   包含真实 token ID、生成参数和实际聊天模板；超时回复保持缺失。
 - [SOURCE_IDENTITIES.json](SOURCE_IDENTITIES.json)：模型版本、文件哈希、工具

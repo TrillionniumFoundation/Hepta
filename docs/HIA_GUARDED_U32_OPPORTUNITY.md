@@ -132,12 +132,8 @@ Equal choices to a complete finite optimum are not an incremental gain.
 
 ## Run
 
-```sh
-python tools/qualify_hia_guarded_opportunity.py \
-  --clang /path/to/clang-20 \
-  --expected-source FULL_40_CHARACTER_SOURCE_COMMIT \
-  --workdir /new/path/outside/the/source/tree
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The output directory retains the frozen protocol, Core/LLVM sources, compiled
 artifacts, driver and `RESULT.json` with raw records, proofs, source hashes,

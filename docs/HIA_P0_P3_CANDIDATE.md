@@ -107,17 +107,8 @@ smaller instruction sequence.
 
 ## Reproduce the finite gates
 
-```sh
-python -m pip install 'jsonschema==4.25.1'
-python -B tools/qualify_hia_candidate.py --output /absolute/new-tests.json
-python -B tools/qualify_hia_machine_choices.py --out /absolute/new-machine-observations
-python -B tools/qualify_hia_machine_registers.py --out /absolute/new-register-observations
-python -B tools/qualify_hia_selfhost.py --output /absolute/new-selfhost.json
-python -B tools/qualify_hia_macro_campaign.py run --output /absolute/new-macro-campaign \
-  --native-binary /absolute/hia-ndu-bridge --native-build-receipt /absolute/build-receipt.json
-python -B tools/qualify_hia_macro_campaign.py verify --bundle /absolute/new-macro-campaign
-python -B tests/hia_candidate_preflight_integration.py --runtime-checkout /absolute/pinned-runtime -v
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The unified workflow asserts the exact executing commit and preserves complete
 logs/results. All old direct-backend tests remain collected, with no skipped,

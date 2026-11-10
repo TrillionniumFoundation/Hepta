@@ -1,5 +1,8 @@
 # Proof-checked modular width narrowing
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `hepta.hia_narrowing` adds an independently checked optimizer proposal for
 unsigned wrapping arithmetic whose observable result is truncated to a smaller
 width. It executes through the existing standalone HIA Core and direct LLVM
@@ -92,7 +95,7 @@ solver identities before and after atomic publication. A failed identity check
 withdraws the output link owned by the build.
 
 Native execution still requires the existing sealed-image loader identity
-gate. `tools/qualify_hia_narrowing.py` exercises both branches around a small
+gate. `retired harness qualify-hia-narrowing` exercises both branches around a small
 guard, loads the sealed actual artifacts, verifies both exported function
 addresses and compares actual returns against a separate arithmetic oracle.
 It also saves full actual binary disassembly. The qualifier records proof and

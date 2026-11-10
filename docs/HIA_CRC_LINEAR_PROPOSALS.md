@@ -1,5 +1,8 @@
 # Fixed-polynomial parallel CRC byte proposals
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This separate lane targets `checksum_byte` in the existing Filecheck application.
 Filecheck is a small application written in this repository, not a migrated
 third-party CRC library. The original C body, legacy CRC proposals, historical
@@ -59,7 +62,7 @@ cannot improve that same model's exact optimum.
 
 ## Correctness qualification
 
-`tools/qualify_hia_crc_linear.py` accepts an exact clean source commit and a new
+`retired harness qualify-hia-crc-linear` accepts an exact clean source commit and a new
 external output directory. It captures the actual two C translation units,
 repeats the existing 48-case original-C/captured-VM/oracle comparison, and builds
 all six images through fresh translation, emitted-LLVM and native gates. Each
@@ -94,7 +97,7 @@ machine-code refinement is claimed by this proposal lane.
 ## Separate frozen economic comparison
 
 `experiments/hia_crc_linear_20261030/PROTOCOL.json` and
-`tools/qualify_hia_crc_linear_economics.py` retain the v3 input domain, seeds,
+`retired harness qualify-hia-crc-linear-economics` retain the v3 input domain, seeds,
 two phases, two trials, three polynomial workloads, 16 requests of 256 bytes,
 and 300-second budget. The eight arms are fresh-child baseline, all six
 coalesced fixed candidates, and fixed known-polynomial dispatch to the two

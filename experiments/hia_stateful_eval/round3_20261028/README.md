@@ -16,5 +16,5 @@ criteria.
 This file preserves an older experiment specification. It is not a new
 registration, execution, or result for the unified source. Historical source
 and working-tree identities remain in
-[`docs/HIA_INTEGRATION_SOURCES.json`](../../../docs/HIA_INTEGRATION_SOURCES.json).
+`docs/HIA_INTEGRATION_SOURCES.json` (retired from this product).
 No historical result is imported by this restoration.

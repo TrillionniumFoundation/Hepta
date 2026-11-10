@@ -84,11 +84,8 @@ current typed registration/cohort checker.
 `18291446e048f760f5519823e865727ef51db11a`. `MANIFEST.json` binds the archive,
 summary and source bundle. Re-run from the exact source with:
 
-```bash
-python3 tools/qualify_hia_empty_reduction.py --profile wrapper-v2 \
-  --output /absolute/new-directory --clang /absolute/clang20 \
-  --rustc /absolute/rustc-1.95.0
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The original Core candidate still adds three evaluator steps, so evaluator
 quota-stop behavior is excluded. Native compiler/linker/libc/hardware remain

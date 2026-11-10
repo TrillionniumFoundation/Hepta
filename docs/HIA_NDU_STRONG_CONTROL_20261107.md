@@ -55,16 +55,16 @@ sets, valid keep/stop/refusal outcomes, contradictory plans, incomplete costs,
 cancellation retention, repeated controller cost, campaign integration and
 bounded schema rejection. The suite also retains the existing adversarial
 original-receipt, provider-usage, budget and economic-acceptance checks.
-The retained [test log](../review-evidence/hia-ndu-strong-control-20261107/unit-tests.log)
+The retained test log (historical path `../review-evidence/hia-ndu-strong-control-20261107/unit-tests.log`; not shipped in this tree)
 contains the actual result.
 
 A fresh local campaign is recorded separately in
-[the local campaign summary](../review-evidence/hia-ndu-strong-control-20261107/local-campaign-summary.json). Its initial attempt ran in an environment missing
+the local campaign summary (historical path `../review-evidence/hia-ndu-strong-control-20261107/local-campaign-summary.json`; not shipped in this tree). Its initial attempt ran in an environment missing
 `jsonschema`: all 32 planned arms failed during discovery and all 32 failures
 and elapsed costs were retained. The subsequent run used an existing Python
 virtual environment and completed all 32 native task arms correctly. Its 440
 events and 1,457 original objects verified; all eight ordinary advice records
-passed exact-state decision replay. The [original archive](../review-evidence/hia-ndu-strong-control-20261107/local-native-originals.tar.gz)
+passed exact-state decision replay. The original archive (historical path `../review-evidence/hia-ndu-strong-control-20261107/local-native-originals.tar.gz`; not shipped in this tree)
 preserves both complete runs, including failed discovery and driver output.
 These runs exercise campaign mechanics, not a real Agent or NDU value comparison. No provider was invoked and no native NDU
 bridge was supplied to these local runs.
@@ -75,7 +75,7 @@ The original two native campaigns each contain eight deterministic wrapping-u8
 tasks and four policy arms. The original bytes and their causal/cost bindings
 were rechecked with `verify_campaign`. Each campaign retained 32 correct native
 task arms and eight original native NDU evaluations. See the
-[retained decision replay](../review-evidence/hia-ndu-strong-control-20261107/retained-native-replay.json)
+retained decision replay (historical path `../review-evidence/hia-ndu-strong-control-20261107/retained-native-replay.json`; not shipped in this tree)
 for original manifest, state and result digests.
 
 | Original campaign | Best ordinary control wall ns | NDU wall ns | NDU saving ns |
@@ -146,13 +146,13 @@ integrated source or of the reporting change below.
 | Ordinary | 8 | 6 | 6 | 151,383,646,332 |
 | NDU | 8 | 7 | 7 | 113,450,243,024 |
 
-Sources: [retained facts excerpt](../review-evidence/hia-ndu-completed-control-20261107/retained-provider-facts.json),
-[original cost and scope receipt](../review-evidence/hia-ndu-completed-control-20261107/original-cost-and-scope.json),
-and [original supervisor result](../review-evidence/hia-ndu-completed-control-20261107/original-execution-result.json).
+Sources: retained facts excerpt (historical path `../review-evidence/hia-ndu-completed-control-20261107/retained-provider-facts.json`; not shipped in this tree),
+original cost and scope receipt (historical path `../review-evidence/hia-ndu-completed-control-20261107/original-cost-and-scope.json`; not shipped in this tree),
+and original supervisor result (historical path `../review-evidence/hia-ndu-completed-control-20261107/original-execution-result.json`; not shipped in this tree).
 The facts excerpt carries the SHA-256 of its original full receipt. The cost,
 supervisor and comparison files are byte-for-byte copies. Original campaign
 identity, manifest, comparison and verdict digests are retained in
-[the reassessment receipt](../review-evidence/hia-ndu-completed-control-20261107/retained-provider-reassessment.json).
+the reassessment receipt (historical path `../review-evidence/hia-ndu-completed-control-20261107/retained-provider-reassessment.json`; not shipped in this tree).
 
 The original verifier retained 420 events, 1,441 original objects and 42 failed
 or rejected attempts. Ten task arms failed: five at final model JSON parsing
@@ -232,7 +232,7 @@ cover incomplete controls with all costs retained, refusal to skip an
 incomplete ordinary arm, unknown costs or missing evidence or downstream use
 or exceeded token budgets, and a complete synthetic comparison whose supplied
 arithmetic is available while economic acceptance remains HOLD. The
-[current test log](../review-evidence/hia-ndu-completed-control-20261107/unit-tests.log)
+current test log (historical path `../review-evidence/hia-ndu-completed-control-20261107/unit-tests.log`; not shipped in this tree)
 retains the actual 77-test result. Integration must freeze the changed source
 identity; neither the historical exact-v4 receipts nor an earlier integrated
 release lock attests these new bytes.

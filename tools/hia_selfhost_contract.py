@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v46-integrated-native-workspace-json"
+PROFILE = "selfhost-core-linux-x86_64-v48-main-consolidation"
 SOURCE_FILES = (
     'tools/generate_hia_core_workspace_json_cli.py',
     'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
@@ -194,7 +194,6 @@ SOURCE_FILES = (
     'tests/test_hia_source_head_identity.py',
     'tests/test_hia_host_region_lease_authority.py',
     'tests/test_hia_host_region_lease_token_revocation.py',
-    'docs/HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json',
     'docs/HIA_CORE_ONLY_RUNTIME_FIXTURES.md',
     'tests/fixtures/hia_host_region/scalars.hiaasm',
     'tests/hia_host_region_fixture.py',
@@ -263,6 +262,11 @@ SOURCE_FILES = (
     'tools/qualify_hia_composite_bulk.py',
     'examples/hia_program/finite_aarch64_runtime.c',
     'examples/hia_program/finite_aarch64_multi_runtime.c',
+    'docs/HIA_AGENT_SLICE_NATIVE.md',
+    'examples/hia_bootstrap/agent_slice.hiaasm',
+    'tests/test_hia_agent_slice_native.py',
+    'tools/build_hia_agent_slice.py',
+    'tools/generate_hia_agent_slice.py',
 )
 
 

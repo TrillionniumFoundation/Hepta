@@ -1,5 +1,8 @@
 # Guarded capability borrowing and suspended-parent access
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `formal/HiaCapabilityBorrow.lean` extends the structural lifecycle work with
 borrow-conflict exclusion and access suspension. Its new `Step` relation checks
 the **before state**. It never assumes compatibility of the resulting state.
@@ -82,7 +85,7 @@ acquire conflict exclusion merely by importing the new file.
 
 ## Finite observations from the actual checker
 
-`tools/verify_hia_capability_borrow.py` composes two observers in the current
+`retired harness verify-hia-capability-borrow` composes two observers in the current
 Python thread. The original lifecycle observer captures every actual
 `_verify_function -> _BlockCheck.instruction` occurrence. The new observer
 captures actual `instruction -> borrow/access` calls and the actual
@@ -166,13 +169,8 @@ projection. Projecting away an intermediate parent is rejected.
 
 ## Reproduce and inspect scope
 
-```sh
-python -B -m unittest tests.test_hia_capability_borrow tests.test_hia_capability_lifecycle \
-  tests.test_hia_capability_flow tests.test_hia_capability_identity \
-  tests.test_hia_production_capability_witness
-python -B tools/verify_hia_capability_borrow.py --lean /absolute/pinned/lean \
-  --output /outside/source/borrow-proof
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The runner checks the repository-pinned Lean 4.19.0 binary and support files,
 retains generated Lean, all kernel output, source hashes, original inputs,

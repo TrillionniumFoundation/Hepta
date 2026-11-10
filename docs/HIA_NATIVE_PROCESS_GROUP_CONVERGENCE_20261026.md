@@ -75,14 +75,8 @@ or arbitrary OS resource usage bounded.
 Run on the full exact commit and pinned toolchain before claiming an
 actual source-native pass:
 
-```sh
-python -m unittest tests.test_hia_native_child_limits \
-    tests.test_hia_native_pinning tests.test_hia_native_differential \
-    tests.test_hia_v6_differential -v
-python -m unittest tests.test_hia_budget_numeric_replay \
-    tests.test_hia_program tests.test_hia_program_llvm -v
-python tools/release_check.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 This change closes a narrow, concrete direct-worker-only timeout
 lifecycle defect. P0–P7 whole-project blockers remain open/partial.

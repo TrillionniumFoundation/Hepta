@@ -64,11 +64,8 @@ performance superiority and does not close P2 as a whole.
 
 ## Reproducible execution and retained evidence
 
-```sh
-cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
-python -m unittest tests.test_hia_rust_returned_loans tests.test_hia_rust_crosscheck -v
-python tools/qualify_hia_rust_owned_cfg.py --returned-loans --output /tmp/hia-returned-loans.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The v8 qualifier requires a clean unchanged Git commit and source inventory.
 It retains actual programs, each complete Python/Rust execution pair, binary
