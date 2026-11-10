@@ -31,7 +31,11 @@ def compile_core(wire: bytes, manifest: Path, compiler: Path, output: Path,
     rendered = frontend.render(wire, output_profile=output_profile)
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, 'core-json-program', compiler, rendered,
-        output_extension='.o' if output_profile == 'elf' else '.image.bin')
+        output_extension={'elf':'.o', 'exec':'.elf', 'flat':'.image.bin'}[output_profile])
+    if output_profile == 'exec':
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+        inspect_executable(image.read_bytes())
+        image.chmod(0o700)
     if compiler.read_bytes() != compiler_raw or manifest.read_bytes() != manifest_raw:
         raise ValueError('native JSON Core compilation inputs changed')
     (output/'frontend.receipt.json').write_text(json.dumps({
@@ -54,7 +58,7 @@ def main():
     parser.add_argument('--manifest', type=Path, required=True)
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--output-profile', choices=('flat', 'elf'), default='flat')
+    parser.add_argument('--output-profile', choices=('flat', 'elf', 'exec'), default='flat')
     args = parser.parse_args()
     with args.source.open('rb') as stream:
         wire = stream.read(MAX_BYTES + 1)

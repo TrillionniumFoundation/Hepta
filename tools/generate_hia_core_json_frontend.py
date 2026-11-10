@@ -40,14 +40,18 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     module = field(w, 0, K_module)
     # Require operator selection in addition to the legacy assembly label.
     # JSON module metadata cannot silently switch the artifact's output ABI.
-    if output_profile > 1 or text_is(w, module, L_selfhost_exec) == 1:
+    if output_profile > 2:
         return 4294967291
-    if exports != 18446744073709551615 or text_is(w, module, L_selfhost_elf) == 1:
-        if output_profile != 1:
+    if text_is(w, module, L_selfhost_exec) == 1:
+        if output_profile != 2 or exports != 18446744073709551615:
             return 4294967291
     else:
-        if output_profile != 0:
-            return 4294967291
+        if exports != 18446744073709551615 or text_is(w, module, L_selfhost_elf) == 1:
+            if output_profile != 1:
+                return 4294967291
+        else:
+            if output_profile != 0:
+                return 4294967291
     emit(o, w, L_header)
     emit(o, w, L_hepta_hia_program_v8)
     emit(o, w, L_space)

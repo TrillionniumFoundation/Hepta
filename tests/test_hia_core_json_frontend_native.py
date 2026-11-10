@@ -71,6 +71,16 @@ class CoreJsonFrontendHiaSourceTests(unittest.TestCase):
             with self.subTest(exports=exports):
                 self.assertEqual(vm_export_render({**value,'exports':exports})[0],0xfffffffb)
 
+    def test_exec_output_requires_both_operator_selection_and_explicit_module(self):
+        from tools.qualify_hia_selfhost_cli import echo_source
+        value=assemble_program(echo_source()).as_dict();value['module']='selfhost_exec'
+        expected=render_assembly(value).encode()
+        self.assertEqual(vm_export_render(value,2),(len(expected),expected))
+        for profile in (0,1,3):self.assertEqual(vm_export_render(value,profile)[0],0xfffffffb)
+        for candidate in ({**value,'module':'ordinary'}, {**value,'module':'selfhost_elf'},
+                          {**value,'exports':['f0']},export_document()):
+            self.assertEqual(vm_export_render(candidate,2)[0],0xfffffffb)
+
     def test_independent_VM_representation_and_refusals_before_B0(self):
         program = small_program()
         expected = render_assembly(program).encode()
@@ -163,6 +173,21 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
         bad['functions'].append(private)
         result,_=invoke(self.folder,'JSON-private-invalid',self.compiler,self.native.render(wire(bad),output_profile='elf'))
         self.assertEqual(result['core_u32'],0xffffffff);self.assertTrue(result['output_unchanged'])
+
+    def test_explicit_exec_driver_uses_native_representation_and_real_kernel_ELF(self):
+        from tools.qualify_hia_selfhost_cli import echo_source,inspect_executable
+        from tools.compile_hia_core_json import compile_core
+        value=assemble_program(echo_source()).as_dict();value['module']='selfhost_exec'
+        raw=wire(value);expected=render_assembly(value).encode()
+        with (patch('json.loads',side_effect=AssertionError('foreign payload parser')),
+              patch('json.dumps',side_effect=AssertionError('foreign payload serializer'))):
+            self.assertEqual(self.native.render(raw,output_profile='exec'),expected)
+        with self.assertRaises(ValueError):self.native.render(raw)
+        executable=compile_core(raw,self.manifest,self.compiler,self.folder/'exec-driver',output_profile='exec')
+        self.assertFalse(inspect_executable(executable.read_bytes())['dynamic_loader'])
+        process=subprocess.run([str(executable)],input=b'Q',capture_output=True,timeout=15,
+            env={'PATH':'/nonexistent','HOME':'/nonexistent'})
+        self.assertEqual((process.returncode,process.stdout,process.stderr),(0,b'Q',b''))
 
     def test_full_original_and_modified_compiler_JSON_have_exact_assembly_and_fixed_points(self):
         from tools.qualify_hia_selfhost import compile_stage

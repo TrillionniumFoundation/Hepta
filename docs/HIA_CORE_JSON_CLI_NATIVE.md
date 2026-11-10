@@ -34,6 +34,14 @@ a flat executable into ELF or executable output. Linking generated objects, fore
 and generic module resolution still require the existing external authorities.
 No default service or release lock is changed.
 
+`--output-profile exec` explicitly builds a filter for the compiler's existing
+syscall-only executable output. It accepts only the `selfhost_exec` module with
+no exports, then applies the full native semantic/resource checker, including
+the three-buffer entry signature. An ordinary/ELF/export module cannot silently
+select executable output, nor can an exec module switch a flat/ELF filter.
+The resulting program also reads stdin and writes its returned output prefix;
+it does not gain arbitrary filesystem/module/build orchestration.
+
 The program accepts no command-line arguments. Exit0means compiled;
 2means invalid JSON/representation/semantic input;3means wire/node/depth/
 assembly/native-output capacity;4means mapping or descriptor I/O failure;
@@ -138,3 +146,20 @@ code mapping and no interpreter/libc/file dependency in that child. Independent
 pre-B0 VM byte observations bind its HIA-emitted observer. This is a bounded
 execution adapter, not the complete task/I/O runtime or general CLI execution
 surface; fresh combined commit qualification remains required.
+
+## Explicit executable-output development continuation
+
+An operator-selected exec filter now turns JSON Core into a directly runnable
+standalone HIA compiler. Real kernel execution (not a host code loader) then
+compiles original and changed compiler assembly through separate three-image
+chains: original E1=E2=E3, changed M2=M3 and M1 differs, with changed fixed point
+distinct from original. Echo output is checked against independent pre-B0 Core
+VM observations. Separate traces of original/changed self-compilation and echo
+contain only execve/mmap/read/write/exit. Default-flat and ELF/export refusals
+are retained; submitted metadata never chooses an unselected ABI. Packer/exec
+representation references precede B0. This is a bounded native build-chain
+composition, not complete JSON-to-JSON self-hosting, a general file driver,
+module/linker/runtime replacement or whole-stack closure. Trusted initial
+packaging, source authoring, custody and test supervision remain host-owned.
+Development observations require new clean-source cold/language/installed gates;
+they do not inherit acceptance from an earlier implementation.

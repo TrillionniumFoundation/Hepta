@@ -113,7 +113,7 @@ def source_program():
     frontend = read_word(s, 8)
     compiler = read_word(s, 16)
     profile = read_word(s, 24)
-    if frontend == 0 or compiler == 0 or frontend > 1048576 or compiler > 1048576 or profile > 1:
+    if frontend == 0 or compiler == 0 or frontend > 1048576 or compiler > 1048576 or profile > 2:
         return 4294967295
     if length(s) != 32 + frontend + compiler:
         return 4294967295

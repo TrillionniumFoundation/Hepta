@@ -33,11 +33,11 @@ def expected_image(frontend, compiler, profile=0):
     return bytes(data)
 
 
-def independent_packer_reference():
+def independent_packer_reference(profile=1):
     from tools.hia_selfhost_bulk import Body
     from hepta.hia_program import execute_program
-    source = frame(b'\xc3', b'\xc3', 1)
-    expected = expected_image(b'\xc3', b'\xc3', 1)
+    source = frame(b'\xc3', b'\xc3', profile)
+    expected = expected_image(b'\xc3', b'\xc3', profile)
     # Observe all ELF headers, each dynamically patched word, both copied
     # payload bytes and the first untouched canary, within the VM result bound.
     _, holes = template()
@@ -102,7 +102,7 @@ class CoreJsonCliSourceTests(unittest.TestCase):
     def test_generated_packer_and_independent_VM_before_native_seed(self):
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
         self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']),4)
-        independent_packer_reference()
+        for profile in (0,1,2):independent_packer_reference(profile)
 
     def test_incomplete_or_wrong_cold_qualification_cannot_build_executable(self):
         with tempfile.TemporaryDirectory(prefix='hia-json-cli-refusal-') as tmp:
@@ -117,7 +117,7 @@ class CoreJsonCliSourceTests(unittest.TestCase):
 class CoreJsonCliNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        independent_packer_reference()  # reference BEFORE B0, not a native oracle
+        for profile in (0,1,2):independent_packer_reference(profile)  # BEFORE B0
         from tools.qualify_hia_selfhost import build_seed, compile_stage, mutate_compiler
         cls.original = (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
         cls.modified = mutate_compiler(cls.original)
@@ -129,6 +129,17 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         cls.observer_reference = independent_reference()  # every ELF byte BEFORE B0
         cls.export_documents,cls.export_reference=independent_export_pair()
         cls.export_wires=[json.dumps(value,separators=(',',':')).encode() for value in cls.export_documents]
+        from tools.qualify_hia_selfhost_cli import independent_reference as cli_reference
+        cls.exec_reference = cli_reference()  # unrelated Core echo oracle BEFORE B0
+        from tests.test_hia_core_json_frontend_native import vm_export_render
+        echo=assemble_program(cls.exec_reference['echo_source']).as_dict()
+        echo['module']='selfhost_exec'
+        echo_assembly=render_assembly(echo).encode()
+        assert vm_export_render(echo,2)==(len(echo_assembly),echo_assembly)
+        cls.exec_sources = [s.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
+                            for s in (cls.original,cls.modified)]
+        cls.exec_wires = [json.dumps(assemble_program(s).as_dict(),separators=(',',':')).encode()
+                          for s in cls.exec_sources]
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-cli-native-')
         cls.folder = Path(cls.temporary.name)
         seed,_ = build_seed(cls.folder)
@@ -141,7 +152,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         from tools.hia_selfhost_native_observer import build as build_observer
         cls.observer, _ = build_observer(cls.folder, cls.compiler, cls.observer_reference)
         cls.executables = []
-        for profile in (0,1):
+        for profile in (0,1,2):
             receipt,output = cls.pack(f'pack-{profile}',frame(cls.frontend.read_bytes(),cls.compiler.read_bytes(),profile))
             expected = expected_image(cls.frontend.read_bytes(),cls.compiler.read_bytes(),profile)
             assert receipt['core_u32'] == len(expected) and output[:len(expected)] == expected
@@ -168,7 +179,7 @@ class CoreJsonCliNativeTests(unittest.TestCase):
 
     def test_native_packer_exact_layout_and_atomic_frame_refusals(self):
         for i,data in enumerate((b'',bytes(32),frame(b'',b'\xc3'),frame(b'\xc3',b''),
-                frame(b'\xc3',b'\xc3',2),frame(b'\xc3',b'\xc3')+b'\0',
+                frame(b'\xc3',b'\xc3',3),frame(b'\xc3',b'\xc3')+b'\0',
                 struct.pack('<4Q',MAGIC,2**64-1,1,0)+b'\0')):
             receipt,_ = self.pack(f'bad-frame-{i}',data)
             self.assertEqual(receipt['core_u32'],0xffffffff)
@@ -263,6 +274,66 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         self.assertEqual(calls.count('mmap'),1)
         self.assertTrue({'read','write','exit'} <= set(calls))
         self.assertEqual(set(calls),{'execve','mmap','read','write','exit'})
+
+    def test_JSON_to_standalone_compiler_original_and_modified_native_exec_chains(self):
+        from tools.qualify_hia_selfhost import compile_stage
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+        stable = []
+        for index,(wire,source) in enumerate(zip(self.exec_wires,self.exec_sources)):
+            expected,_=compile_stage(self.folder,f'exec-reference-{index}',self.compiler,source)
+            with (patch('json.loads',side_effect=AssertionError('foreign payload parser')),
+                  patch('json.dumps',side_effect=AssertionError('foreign payload serializer')),
+                  patch('tools.qualify_hia_selfhost.compile_stage',side_effect=AssertionError('foreign build driver'))):
+                raw=self.run_cli(wire,profile=2)
+            self.assertEqual(raw,expected.read_bytes())
+            generations=[raw]
+            for generation in (1,2):
+                path=self.folder/f'JSON-native-exec-{index}-{generation}'
+                path.write_bytes(generations[-1]);path.chmod(0o700)
+                self.assertFalse(inspect_executable(path.read_bytes())['dynamic_loader'])
+                command=[str(path)]
+                trace=self.folder/f'JSON-native-exec-{index}-{generation}.strace'
+                if generation==2:command=['/usr/bin/strace','-qq','-o',str(trace),*command]
+                process=subprocess.run(command,input=source,capture_output=True,timeout=15,
+                    cwd=self.folder,env={'PATH':'/nonexistent','HOME':'/nonexistent','LANG':'C'})
+                self.assertEqual((process.returncode,process.stderr),(0,b''))
+                if generation==2:
+                    calls=re.findall(r'^([a-z0-9_]+)\(',trace.read_text(),re.MULTILINE)
+                    self.assertEqual(set(calls),{'execve','mmap','read','write','exit'})
+                    self.assertEqual(calls.count('execve'),1)
+                generations.append(process.stdout)
+            self.assertEqual(generations[1],generations[2])
+            if index==0:self.assertEqual(generations[0],generations[1])
+            else:self.assertNotEqual(generations[0],generations[1])
+            stable.append(generations[2])
+        self.assertNotEqual(stable[0],stable[1])
+
+    def test_exec_profile_runs_unrelated_VM_oracle_and_refuses_ABI_switches(self):
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+        source=self.exec_reference['echo_source'].encode().replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
+        value=assemble_program(source).as_dict()
+        raw=self.run_cli(json.dumps(value).encode(),profile=2)
+        self.assertFalse(inspect_executable(raw)['libc'])
+        executable=self.folder/'JSON-native-echo';executable.write_bytes(raw);executable.chmod(0o700)
+        for row in self.exec_reference['echo']:
+            process=subprocess.run([str(executable)],input=bytes.fromhex(row['input_hex']),
+                capture_output=True,timeout=15,env={'PATH':'/nonexistent','HOME':'/nonexistent'})
+            self.assertEqual((process.returncode,process.stdout,process.stderr),
+                             (0,bytes.fromhex(row['output_hex']),b''))
+        trace=self.folder/'JSON-native-echo.strace'
+        process=subprocess.run(['/usr/bin/strace','-qq','-o',str(trace),str(executable)],
+            input=b'Z',capture_output=True,timeout=15)
+        self.assertEqual((process.returncode,process.stdout,process.stderr),(0,b'Z',b''))
+        calls=re.findall(r'^([a-z0-9_]+)\(',trace.read_text(),re.MULTILINE)
+        self.assertEqual(set(calls),{'execve','mmap','read','write','exit'})
+        self.assertEqual(calls.count('execve'),1)
+        for profile in (0,1):self.run_cli(json.dumps(value).encode(),2,profile=profile)
+        for candidate in (self.sample,{**value,'module':'selfhost_elf'},
+                          {**value,'exports':[]},self.export_documents[0]):
+            self.run_cli(json.dumps(candidate).encode(),2,profile=2)
+        scalar=copy.deepcopy(self.export_documents[0]);scalar.pop('exports')
+        scalar['module']='selfhost_exec'
+        self.run_cli(json.dumps(scalar).encode(),2,profile=2)  # semantic byte-ABI refusal
 
     def test_semantic_refusals_wire_depth_limits_and_explicit_ELF_selection(self):
         bad = copy.deepcopy(self.sample)

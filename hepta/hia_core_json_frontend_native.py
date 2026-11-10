@@ -23,7 +23,7 @@ class NativeCoreJsonFrontend(NativeHiaJsonImage):
         if (type(wire) is not bytes or len(wire) > MAX_BYTES
                 or type(max_nodes) is not int or not 1 <= max_nodes <= MAX_NODES
                 or type(max_depth) is not int or not 0 <= max_depth <= MAX_DEPTH
-                or type(output_profile) is not str or output_profile not in ('flat', 'elf')):
+                or type(output_profile) is not str or output_profile not in ('flat', 'elf', 'exec')):
             raise ValueError('outside HIA JSON Core representation profile')
         workspace_size, key_size = arena_sizes(len(wire), max_nodes, max_depth)
         output_size = max(OUTPUT_LIMIT, key_size)
@@ -31,7 +31,7 @@ class NativeCoreJsonFrontend(NativeHiaJsonImage):
         output = ctypes.create_string_buffer(output_size)
         workspace = ctypes.create_string_buffer(workspace_size)
         struct.pack_into('<QQ', workspace, 48, max_nodes, max_depth)
-        struct.pack_into('<Q', workspace, 40, int(output_profile == 'elf'))
+        struct.pack_into('<Q', workspace, 40, ('flat', 'elf', 'exec').index(output_profile))
         result = self._entry(source, len(wire), output, output_size, workspace, workspace_size)
         if result == 0xfffffffe:
             raise OverflowError('HIA JSON Core node/depth budget exceeded')

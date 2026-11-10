@@ -51,8 +51,11 @@ with unchanged output. No semantic bypass or proof is conferred by JSON admissio
   still refuse; this is not full language grammar.
 - The legacy `selfhost_elf` assembly label additionally requires explicit
   `--output-profile elf`, as do explicit exports with an ordinary module label.
-  Flat output is the default. Mismatched selections and
-  `selfhost_exec` refuse. Neither a module label nor submitted JSON silently
+  Flat output is the default. The `selfhost_exec` module additionally requires
+  explicit `--output-profile exec`; it cannot contain exports. That profile
+  produces a syscall-only executable with the compiler's checked three-buffer
+  entry ABI, not arbitrary scalar entry signatures. Mismatched selections
+  refuse. Neither a module label nor submitted JSON silently
   selects a different output ABI. ELF linking and libc-backed owners still need
   the existing external tools/runtime; this frontend does not rewrite them.
 - Wire at most 8 MiB, at most 1,048,576 nodes, root depth at most 128. Output is

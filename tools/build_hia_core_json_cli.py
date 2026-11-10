@@ -22,7 +22,7 @@ SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm'
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='flat') -> Path:
-    if type(output_profile) is not str or output_profile not in ('flat','elf'):
+    if type(output_profile) is not str or output_profile not in ('flat','elf','exec'):
         raise ValueError('unknown native JSON CLI output profile')
     compiler_raw, cold_raw, packer_source = compiler.read_bytes(), cold_report.read_bytes(), SOURCE.read_bytes()
     frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes()
@@ -32,7 +32,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     frontend = frontend_manifest.parent/metadata['image_path']
     frontend_raw = frontend.read_bytes()
     packer, compile_receipt = compile_stage(output, 'native-packer', compiler, packer_source)
-    frame = struct.pack('<4Q', MAGIC, len(frontend_raw), len(compiler_raw), int(output_profile == 'elf'))
+    frame = struct.pack('<4Q', MAGIC, len(frontend_raw), len(compiler_raw),
+                        ('flat','elf','exec').index(output_profile))
     frame += frontend_raw + compiler_raw
     if len(frame) > LIMIT:
         raise ValueError('qualified images exceed unchanged packer source capacity')
@@ -72,7 +73,7 @@ def main():
     parser.add_argument('--compiler', type=Path, required=True)
     parser.add_argument('--cold-report', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--output-profile', choices=('flat','elf'), default='flat')
+    parser.add_argument('--output-profile', choices=('flat','elf','exec'), default='flat')
     args = parser.parse_args()
     print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve(),
                 output_profile=args.output_profile))
