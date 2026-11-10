@@ -27,7 +27,13 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return result
     put(w, 48, 0)
     put(w, 56, 0)
-    if shape(w, 0, K_schema | K_module | K_functions) == 0:
+    fields = K_schema | K_module | K_functions
+    exports = field(w, 0, K_exports)
+    if exports != 18446744073709551615:
+        fields = fields | K_exports
+        if kind(w, exports) != 5 or count(w, exports) == 0 or count(w, exports) > 128:
+            return 4294967291
+    if shape(w, 0, fields) == 0:
         return 4294967291
     if text_is(w, field(w, 0, K_schema), L_hepta_hia_program_v8) == 0:
         return 4294967291
@@ -36,7 +42,7 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     # JSON module metadata cannot silently switch the artifact's output ABI.
     if output_profile > 1 or text_is(w, module, L_selfhost_exec) == 1:
         return 4294967291
-    if text_is(w, module, L_selfhost_elf) == 1:
+    if exports != 18446744073709551615 or text_is(w, module, L_selfhost_elf) == 1:
         if output_profile != 1:
             return 4294967291
     else:
@@ -47,6 +53,10 @@ def render_core(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     emit(o, w, L_space)
     token(o, w, module, 0)
     emit(o, w, L_lf)
+    if exports != 18446744073709551615:
+        emit(o, w, L_exports_open)
+        tokens(o, w, exports, 0)
+        emit(o, w, L_close_lf)
     functions = field(w, 0, K_functions)
     if kind(w, functions) != 5 or count(w, functions) == 0:
         return 4294967291
@@ -305,7 +315,7 @@ def emit(o:mutbuf, w:mutbuf, n:u64, a:u64, b:u64, c:u64) -> u64:
 
 LITERALS = {'hepta_hia_program_v8':'hepta.hia.program.v8',
  'selfhost_elf':'selfhost_elf','selfhost_exec':'selfhost_exec',
- 'header':'hia-asm.v1 ','lf':'\n','fn':'fn ',
+ 'exports_open':'exports(', 'header':'hia-asm.v1 ','lf':'\n','fn':'fn ',
  'open':'(','returns':') -> (','effects':') effects(','entry':') entry(',
  'close':')','loans':' return_loans(','end':'end\n','block':'block ',
  'close_lf':')\n','indent':'  ','ret':'ret','ret_open':'ret(',

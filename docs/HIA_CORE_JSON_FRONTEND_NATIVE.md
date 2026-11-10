@@ -43,10 +43,15 @@ with unchanged output. No semantic bypass or proof is conferred by JSON admissio
   do not affect output. Attributes are emitted by the HIA subtree serializer,
   with canonical Unicode ordering and escaping; sibling objects cannot leak
   into fragments. The HIA semantic compiler decides op/type/effect/loan validity.
-- General exports, composite types and other Core schemas refuse; nothing is
-  silently discarded or elaborated by Python. This is not full language grammar.
+- Explicit nonempty exports of at most128 identifier spellings are rendered as
+  `exports(name,...)` only with operator-selected `--output-profile elf`. Exact
+  semantic name, signature, duplicate, private-body and reserved-symbol admission
+  remains the native HIA compiler's responsibility. Empty/malformed/oversized
+  lists refuse during representation. Composite types and other Core schemas
+  still refuse; this is not full language grammar.
 - The legacy `selfhost_elf` assembly label additionally requires explicit
-  `--output-profile elf`. Flat output is the default. Mismatched selections and
+  `--output-profile elf`, as do explicit exports with an ordinary module label.
+  Flat output is the default. Mismatched selections and
   `selfhost_exec` refuse. Neither a module label nor submitted JSON silently
   selects a different output ABI. ELF linking and libc-backed owners still need
   the existing external tools/runtime; this frontend does not rewrite them.
@@ -73,3 +78,12 @@ development observations are not clean-source or remote CI qualification.
 Full frontend/module graphs, composites/general signatures, foreign objects,
 production CLI/runtime/stdlib, Agent/store/build/install, optimizer/proof tooling
 and other native targets remain open. Whole-stack rewrite is **not complete**.
+
+
+The integrated export continuation also executes an independent HIA Core VM
+representation before B0, then compiles JSON through the actual native frontend
+and HIA semantic compiler, inspects the exact ELF public-symbol set, links and
+calls both exports. Default-flat ABI refusal, invalid public names/duplicates/
+loader hooks and an invalid unexported private body remain negative controls.
+Host JSON payload parsing/encoding is disabled during native representation;
+manifest/receipt metadata and linking remain explicit host responsibilities.
