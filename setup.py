@@ -19,7 +19,7 @@ def agent_resources():
     names=ast.literal_eval(declarations[0].value)
     if type(names)is not tuple or any(type(n)is not str or Path(n).name!=n for n in names):
         raise ValueError('invalid Agent discovery resource filenames')
-    return tuple('docs/'+n for n in names)+('examples/hia_bootstrap/agent_identity.hiaasm',)
+    return tuple('docs/'+n for n in names)+('examples/hia_bootstrap/agent_identity.hiaasm','examples/hia_bootstrap/agent_slice.hiaasm')
 
 class AgentResourceBuild(build_py):
     def run(self):

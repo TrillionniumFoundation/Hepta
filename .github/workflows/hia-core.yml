@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in elf_linker native_filter core_json_cli agent_stdio agent_identity sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in elf_linker native_filter core_json_cli agent_stdio agent_identity agent_slice sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -28,6 +28,7 @@ jobs:
               "tests.test_hia_agent_stdio.AgentStdioSourceTests",
               "tests.test_hia_agent_entry",
               "tests.test_hia_agent_identity_native.AgentIdentitySourceTests",
+              "tests.test_hia_agent_slice_native.AgentSliceSourceTests",
               "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
               "tests.test_hia_core_json_cli.CoreJsonCliSourceTests",
@@ -67,7 +68,7 @@ jobs:
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Selected native scalar identity and installed Agent resources
-        run: python -B -m unittest tests.test_hia_agent_identity_native tests.test_hia_agent_installed_resources -v
+        run: python -B -m unittest tests.test_hia_agent_identity_native tests.test_hia_agent_slice_native tests.test_hia_agent_installed_resources -v
       - name: Retain bounded-scope native failure diagnostics
         if: always()
         uses: actions/upload-artifact@v4

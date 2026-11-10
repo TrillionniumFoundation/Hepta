@@ -5,7 +5,7 @@ import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
 from hepta.hia_agent_contract import DISCOVERY_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+('examples/hia_bootstrap/agent_identity.hiaasm',)
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+('examples/hia_bootstrap/agent_identity.hiaasm','examples/hia_bootstrap/agent_slice.hiaasm')
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
@@ -23,6 +23,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
     def setUpClass(cls):
         from tests.test_hia_agent_identity_native import witnesses
         witnesses() # Complete independent VM bytes precede native seed.
+        from tests.test_hia_agent_slice_native import references
+        references() # Graph result bytes also precede native seed.
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         from hepta.hia_agent_identity_native import SOURCE,SCHEMA
         from tests.test_hia_agent_entry import CHILD
@@ -51,6 +53,12 @@ class AgentInstalledResourceTests(unittest.TestCase):
         second,_=compile_stage(cls.native,'B2',first,compiler);assert first.read_bytes()==second.read_bytes()
         image,_=compile_stage(cls.native,'identity',second,SOURCE.read_bytes())
         cls.manifest=cls.native/'manifest.json';cls.manifest.write_text(json.dumps(dict(schema=SCHEMA,source_sha256=sha256(SOURCE.read_bytes()).hexdigest(),image_path=image.name,image_sha256=sha256(image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from hepta.hia_agent_slice_native import SOURCE as SLICE_SOURCE,SCHEMA as SLICE_SCHEMA
+        slice_image,_=compile_stage(cls.native,'slice',second,SLICE_SOURCE.read_bytes())
+        cls.slice_manifest=cls.native/'slice-manifest.json'
+        cls.slice_manifest.write_text(json.dumps(dict(schema=SLICE_SCHEMA,
+            source_sha256=sha256(SLICE_SOURCE.read_bytes()).hexdigest(),image_path=slice_image.name,
+            image_sha256=sha256(slice_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
 from pathlib import Path
@@ -65,6 +73,13 @@ assert store.canonical_digest('a'*64)
 from hepta.hia_agent_contract import installation_manifest
 from hepta.hia_agent_worker import main
 if sys.argv[2]=='identity':print(__import__('json').dumps(installation_manifest()))
+elif sys.argv[2]=='slice':
+    from hepta import hia_edit_query as editing
+    from hepta.hia_agent_slice_native import SOURCE as SLICE_SOURCE
+    assert Path(sys.argv[1]) in SLICE_SOURCE.parents,SLICE_SOURCE
+    editing._reference_edit_slice=absent;editing._cfg_downstream_slice=absent
+    doc=__import__('json').loads(sys.stdin.buffer.read())
+    print(__import__('json').dumps(editing.prepare_edit(doc,function='calculate',block='entry',output='y',fields=['op'])))
 else:
     result=main(['--state-root',sys.argv[2],'--request-json-stdin',*sys.argv[3:]])
     assert not blocked.intersection(sys.modules)
@@ -80,7 +95,7 @@ assert not blocked.intersection(sys.modules)
     @classmethod
     def invoke(cls,state,request,extra=()):
         return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=15,cwd=cls.folder,
-            env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest)})
+            env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest)})
 
     def test_wheel_resources_are_exact_and_worker_identity_matches_source(self):
         with zipfile.ZipFile(self.wheel) as z:
@@ -93,6 +108,21 @@ assert not blocked.intersection(sys.modules)
         state=self.folder/'valid';r=self.invoke(state,wire(self.request))
         self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'));self.assertEqual(r.stderr,b'')
         self.assertEqual(json.loads(r.stdout)['response']['status'],'completed');self.assertTrue(state.is_dir())
+
+    def test_real_installed_edit_query_without_reference_graph_algorithms(self):
+        from tests.test_hia_edit_query import fixture
+        from hepta.hia_edit_query import prepare_edit
+        doc=fixture();expected=prepare_edit(doc,function='calculate',block='entry',output='y',fields=['op'])
+        result=self.invoke('slice',wire(doc))
+        self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
+        self.assertEqual(result.stderr,b'');self.assertEqual(json.loads(result.stdout),expected)
+
+    def test_missing_slice_source_refuses_before_state_without_checkout_fallback(self):
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_slice.hiaasm';hold=p.with_suffix('.held');p.rename(hold)
+        try:
+            state=self.folder/'missing-slice';result=self.invoke(state,wire(self.request))
+            self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'');self.assertFalse(state.exists())
+        finally:hold.rename(p)
 
     def test_missing_native_source_fails_before_service_no_source_fallback(self):
         p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hiaasm';hold=p.with_suffix('.held');p.rename(hold)

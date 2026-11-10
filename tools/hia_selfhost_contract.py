@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v42-core-only"
+PROFILE = "selfhost-core-linux-x86_64-v43-core-only"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_SLICE_NATIVE.md',
+    'examples/hia_bootstrap/agent_slice.hiaasm',
+    'tests/test_hia_agent_slice_native.py',
+    'tools/build_hia_agent_slice.py',
+    'tools/generate_hia_agent_slice.py',
+
     'setup.py',
     'MANIFEST.in',
     'tests/test_hia_agent_installed_resources.py',
@@ -197,6 +203,15 @@ def support_contract(root=ROOT):
             "host_build_and_custody_driver": True,
             "whole_agent_editing_and_persistence_replaced": False,
             "production_activated": False,
+        },
+        "agent_slice_application": {
+            "source": "examples/hia_bootstrap/agent_slice.hiaasm",
+            "selection": "HEPTA_HIA_AGENT_SLICE_MANIFEST; default reference unchanged",
+            "native": ["SSA consumers and producers", "FIFO CFG propagation", "affected branch regions", "view budgets"],
+            "maximum_visible_operations": 256, "maximum_visible_blocks": 64,
+            "maximum_fact_bytes": 8 << 20,
+            "foreign": ["whole Core verification", "fact encoding and named presentation", "snapshot hashing", "patch publication and persistence"],
+            "whole_agent_replaced": False, "production_activated": False,
         },
         "agent_identity_application": {'installed_resources': {'native_executable': 'separate operator-selected '
                                               'source/image/compiler-pinned artifact',
