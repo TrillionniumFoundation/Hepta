@@ -58,3 +58,13 @@ build/install succeeds without the legacy toolchain. The final deliverable must
 exclude old production implementations, not merely hide them behind flags.
 Git history and non-shipped review evidence preserve recovery/audit custody;
 no legacy code is deleted by installing this candidate.
+
+
+## Exact candidate observations
+
+Clean combined implementation bd3e9c2a9e61e7b6a540fee1c26d54d03003c313 passes
+102 source checks, cold11/11 plus4,351 compiler checks in150.394seconds, language
+1,242/1,242,47native component tests, selected83/default83 consumers,
+55incremental and15source-closure controls. Current-source whole-repository and
+new remote CI results remain separate; no full-stack or legacy-retirement pass
+is asserted. See sha256-stream-native-library-summary.json for exact receipts.

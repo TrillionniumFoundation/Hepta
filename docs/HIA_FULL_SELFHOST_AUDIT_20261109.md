@@ -9,7 +9,7 @@ files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **415 Python files /132254lines** under `tools/`,
+The audit also inventories **415 Python files /132280lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
@@ -24,14 +24,17 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation:** GitHub login is restored and original history through
-`27fa34413e09ff012d3d467b7ad3af8acff508e4` has been pushed and independently read
-back. Earlier upload-pending statements below are historical. Fresh source
-inventory includes the HIA JSON value-arena candidate and10036tracked paths;
-its clean committed finite qualification is recorded below, not full closure. The latest complete
-open-PR inventory has466entries (457drafts), not evidence that all are integrated.
-The subsequent v30 full-repository process ended without a final report or
-observed exit status; its retained partial log is **not** a completed pass.
+**Current continuation:** Native HIA Core JSON representation, one-shot SHA and
+incremental SHA are integrated in the current candidate. Exact implementation
+`bd3e9c2a9e61e7b6a540fee1c26d54d03003c313` passes 102 clean source tests,
+cold 11/11 with 4,351 native checks in150.394seconds, language1,242/1,242,
+47native component tests, selected/default83 consumers each,55 selected
+incremental tests and15 source-identity/accounting/provenance controls. Defaults
+are not switched; whole-stack retirement is not eligible. Fresh full-repository
+regression on this immutable implementation is running with no final result.
+Its receipts and exact static inventory are recorded in
+`sha256-stream-native-library-summary.json` and the lossless streaming delta.
+Historical local/remote failures below are retained, not promoted by these passes.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -907,3 +910,60 @@ realSIGILLshort writes0..7plus a short-read unchanged-output control passed.
 The compiler now has118functions/1294blocks/7352operations/414969sourcebytes,
 within all unchanged caps. Its new bytes require fresh qualification; the old
 4351-check receipts are not reused as new-source passes.
+## v33/v34 completed source-bound local qualification
+
+Native frontend implementation `3fb8601fb1c6384401998fe37536180d7b79f1a5`
+passes the actual source workflow: 99 tests, clean source before/after. Its cold
+report passes all 11 gates / 4,351 native compiler checks in 178.556889613 seconds
+within the unchanged 180-second deadline. Language coverage is 1,242/1,242 plus
+its separate assertion checks; 33 fresh native JSON/frontend tests pass, followed
+by 83 existing consumers with both JSON manifests selected and 83 default.
+The full sequential qualification is 440.407369086 seconds. Completed cold B3
+builds all three candidate images. This supersedes pending qualification above,
+not the stated whole-stack limitations or the historical failures.
+
+The ongoing frozen `2484f5c` full-repository run exposed six source-closure errors,
+independently reproduced as six errors in 15 tests: the fixed old compiler input
+inventory omitted the new native JSON modules. Follow-up
+`bfd3b4406805c6e7ea25089022183331034f838a` binds 23 explicit bridge/HIA source/
+build/driver/conformance additions, all 217 actual compiler Python modules and
+360 source paths. The exact prior 337-path commitment and all older projections
+remain checked; unknown/missing modules still refuse. Protocol v11 transfers
+3,066 bytes from raw logs into identity metadata, preserving the 1 MiB aggregate
+and all source/module/container/process/time caps. The initial development
+accounting assertion accidentally compared the new identity to an older
+projection; the original 131-byte historical comparison is now retained against
+its proper 337-path identity alongside the new exact 3,066-byte assertion.
+
+That clean committed follow-up passes 251 shared/legacy adversarial tests in
+480.615 seconds, then 99 actual workflow source tests and a clean static audit.
+All 298 exported native compiler source-manifest paths remain byte-identical to
+the native-qualified implementation; this equivalence is checked path by path.
+Native qualification is reused only for that identical source closure, not
+invented as a newly executed cold run on the follow-up commit. The older full
+repository run remains running with observed errors, not a completed or current
+pass; the repair does not relabel it. Remote CI remains separately unqualified.
+
+Public receipts: `v33-core-json-frontend-summary.json`,
+`v34-exact-source-closure-summary.json` and the losslessly reconstructable v33/v34
+inventory deltas under `review-evidence/hia-whole-selfhost-20261109/`.
+Component status remains 3 partial / 5 open. Whole-stack completion is false.
+
+
+## Combined streaming and compiler word-I/O exact qualification
+
+Exact clean implementation `bd3e9c2a9e61e7b6a540fee1c26d54d03003c313`
+passes the complete sequential continuation:102 source tests, cold11/11 and
+4,351 native compiler checks in150.393793910seconds under180;language1,242/1,242
+plus10assertions;47native word-I/O/SHA/JSON/frontend tests;83actual installed
+consumer tests and83default tests;55selected incremental tests;15exact-source/
+accounting/provenance controls. Fresh completed B3 builds JSON decode,
+canonicalization and streaming SHA manifests. Every stage leaves source clean.
+The earlier180.193-second4660timeout remains FAIL and is separately hashed.
+The current complete source manifests are not substituted with old compiler
+images or prior test results. The full-repository run is separate and unresolved.
+No default activation, live deployment, release-lock promotion or legacy-source
+retirement occurs here. Final state remains HIA only after actual full closure.
+The unused raw outputs of the ended failed cold run were losslessly compressed
+with individual byte-for-byte roundtrip checks and a hash/restore manifest;
+source, native images, receipts and the failure result remain retained.
