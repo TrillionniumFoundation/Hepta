@@ -13,8 +13,11 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v40-core-agent-controls"
+PROFILE = "selfhost-core-linux-x86_64-v41-core-controls-custody"
 SOURCE_FILES = (
+    'tools/hia_core_source_identity.py',
+    'tools/qualify_hia_guarded_opportunity.py',
+    'tests/test_hia_source_head_identity.py',
     'tests/test_hia_host_region_lease_authority.py',
     'tests/test_hia_host_region_lease_token_revocation.py',
     'docs/HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json',

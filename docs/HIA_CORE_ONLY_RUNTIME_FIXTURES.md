@@ -19,3 +19,12 @@ from the Core-only native qualification at
 closure additionally binds the restored controls and their fixtures; it requires
 its own fresh exact-source qualification. Prior execution receipts are not
 promoted to the enlarged source identity.
+
+
+The pure Core guarded-opportunity qualifier now imports an isolated raw Git
+source-custody checker, not the removed mixed-language qualification dispatcher.
+The same raw tree/blob/mode and hidden index-hint controls remain executable.
+The old mixed workflow test IDs are explicitly retired without pass credit;
+new Core workflow tests execute this product's actual source shell and reject
+failed, skipped and expected-failing native fixture outcomes. They are wiring
+controls, not substitutes for real native qualification.
