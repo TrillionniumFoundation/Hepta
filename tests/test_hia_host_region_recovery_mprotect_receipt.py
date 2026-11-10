@@ -17,6 +17,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -115,6 +116,45 @@ print("PASS real C worker and unreceipted recovery mprotect fail closed", stage)
 '''
 
 
+class RecoveryMprotectReceiptTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("actual Linux x86-64 host required; no skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("actual Clang required; no skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(
+            Path(cls.temp.name), Path(compiler).resolve(), {}
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, stage):
+        result = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
+            capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(
+            result.returncode, 0,
+            f"stage={stage} stdout={result.stdout}\nstderr={result.stderr}",
+        )
+        self.assertIn("PASS real C worker and unreceipted recovery mprotect", result.stdout)
+
+    def test_recovery_write_admission_receipt_lost_before_mprotect(self):
+        self._probe("write_before")
+
+    def test_recovery_write_admission_receipt_lost_after_mprotect(self):
+        self._probe("write_after")
+
+    def test_recovery_none_revocation_receipt_lost_before_mprotect(self):
+        self._probe("none_before")
+
+    def test_recovery_none_revocation_receipt_lost_after_mprotect(self):
+        self._probe("none_after")
 
 
 if __name__ == "__main__":

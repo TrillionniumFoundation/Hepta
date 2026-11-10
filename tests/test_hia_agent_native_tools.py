@@ -710,4 +710,3 @@ class AgentStoreDirectoryPermissionTests(unittest.TestCase):
             # state-root check. Store initialization must fail closed.
             with self.assertRaisesRegex(ValueError, "artifact directory"):
                 HIAAgentService(root)
-

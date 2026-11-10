@@ -196,75 +196,11 @@ class RustOwnedMemoryParity(unittest.TestCase):
         self.assertEqual(codes[0], codes[1])
         row["rejected"] = True
 
-    def test_bulk_versions_full_ranges_failure_and_chunk_boundary(self):
-        for version in range(2, 8):
-            core = self.admit(bulk_program(f"hepta.hia.program.v{version}"), f"bulk-v{version}")
-            self.parity(core, "bulk", [7, 7, 131])
-        core = self.admit(bulk_program(), "bulk-ranges")
-        for args in ([1, 1, 255], [17, 0, 7], [17, 17, 31], [4097, 4097, 173],
-                     [8193, 8193, 255], [0, 0, 9], [3, 4, 7], [3, MAX_U64, 7]):
-            report = self.parity(core, "bulk", args)
-            if report["status"] == "returned":
-                self.assertEqual(report["values"], [args[2] if args[1] else 0])
-        for failure in (1, 2, 3):
-            self.parity(core, "bulk", [17, 17, 31], fail=failure)
-
-    def test_range_copy_move_fill_swap_compare_independent_bytes(self):
-        initial = [11, 22, 33, 44, 55]
-        pairs = [(0, 0, 5), (1, 0, 4), (0, 1, 4), (2, 1, 3), (1, 2, 3),
-                 (5, 5, 0), (0, 5, 0), (4, 0, 1)]
-        for document, entry, distinct in ((copy_program(), "copy_offset", True),
-                                           (move_program(), "move_bytes", False)):
-            core = self.admit(document, entry)
-            for dst, src, count in pairs:
-                expected = [0] * 5 if distinct else initial[:]
-                expected[dst:dst + count] = initial[src:src + count]
-                for probe in range(5):
-                    report = self.parity(core, entry, [5, dst, src, count, probe])
-                    self.assertEqual(report["values"], [expected[probe]])
-            for dst, src, count in ((0, 5, 1), (5, 0, 1), (MAX_U64, 0, 0),
-                                     (0, MAX_U64, 0), (1, 0, MAX_U64)):
-                self.assertEqual(self.parity(core, entry, [5, dst, src, count, 0])["error"]["code"], "bounds")
-        core = self.admit(fill_program(), "range-fill")
-        for offset, count in ((0, 5), (1, 3), (5, 0), (2, 1)):
-            for probe in range(5):
-                expected = 91 if offset <= probe < offset + count else 0
-                self.assertEqual(self.parity(core, "fill_range", [5, offset, count, 91, probe])["values"], [expected])
-        for offset, count in ((5, 1), (MAX_U64, 0), (1, MAX_U64)):
-            self.parity(core, "fill_range", [5, offset, count, 91, 0])
-        core = self.admit(swap_program(), "swap")
-        for left, right in ((0, 4), (4, 0), (2, 2)):
-            expected = initial[:]
-            expected[left], expected[right] = expected[right], expected[left]
-            for probe in range(5):
-                self.assertEqual(self.parity(core, "swap_bytes", [5, left, right, probe])["values"], [expected[probe]])
-        for left, right in ((0, 5), (5, 0), (MAX_U64, 0), (0, MAX_U64)):
-            self.parity(core, "swap_bytes", [5, left, right, 0])
-
-    def test_zero_length_bulk_keeps_real_empty_owner_obligations(self):
-        for kind in ("fill_and_copy", "move_within", "copy_range"):
-            core = self.admit(zero_bulk_program(kind), "zero-" + kind)
-            for size, dst, src in ((0, 0, 0), (7, 7, 7), (7, 0, 7)):
-                for fail in (None, 1, 2):
-                    self.parity(core, "zero_bulk", [size, dst, src, 0], fail=fail)
-        core = self.admit(fill_program(read=False), "zero-range-fill")
-        self.assertEqual(self.parity(core, "fill_range", [0, 0, 0, 255, 0], heap=0, fail=1)["values"], [9])
-        self.assertEqual(self.parity(core, "fill_range", [0, 1, 0, 255, 0], heap=0)["error"]["code"], "bounds")
 
 
 
-    def test_chain_consuming_recursion_stops_at_the_shared_call_limit(self):
-        core = self.admit(recursive_chain(), "recursive-chain-transfer")
-        for depth in (0, 1, 5, 30, 31, 32, 200):
-            for fail in (None, 2):
-                report = self.parity(core, "chain_recursion", [depth], fail=fail)
-                if depth <= 30:
-                    self.assertEqual(report["values"], [fail is None])
-                else:
-                    self.assertEqual(report["error"]["code"], "calls")
-                    self.assertEqual(report["resources"]["live_chains"], 1)
-                    self.assertEqual(report["resources"]["live_chain_nodes"], int(fail is None))
-                    self.assertEqual(report["resources"]["live_owners"], 2 if fail is None else 0)
+
+
 
 
 

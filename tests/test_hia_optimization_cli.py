@@ -41,14 +41,14 @@ class CLIInputs(unittest.TestCase):
 class OptionalProofCLITests(CLIInputs):
     def test_existing_core_verification_does_not_require_z3(self):
         with patch.dict(sys.modules, {"z3": None}):
-            code, report = self.call(["hia", "verify", str(self.before)])
+            code, report = self.call([ "verify", str(self.before)])
         self.assertEqual(code, 0)
         self.assertEqual(report["status"], "standalone_core_checked")
 
     def test_missing_z3_returns_nonzero_unknown_translation(self):
         after = self.write("after.hia.json", scalar_program(None))
         with patch.dict(sys.modules, {"z3": None}):
-            code, report = self.call(["hia", "verify-translation", str(self.before), str(after),
+            code, report = self.call([ "verify-translation", str(self.before), str(after),
                                      "--function", "calculate", "--json"])
         self.assertNotEqual(code, 0)
         self.assertEqual(report["status"], "unknown")
@@ -58,7 +58,7 @@ class OptionalProofCLITests(CLIInputs):
         after = self.write("after.hia.json", scalar_program(None))
         alias = self.directory / "alias.json"
         alias.symlink_to(after)
-        code, report = self.call(["hia", "verify-translation", str(self.before), str(alias),
+        code, report = self.call([ "verify-translation", str(self.before), str(alias),
                                  "--function", "calculate"])
         self.assertNotEqual(code, 0)
         self.assertEqual(report["status"], "error")
@@ -68,7 +68,7 @@ class OptionalProofCLITests(CLIInputs):
 class TranslationCLITests(CLIInputs):
     def test_proved_equivalence_has_zero_exit_and_exact_input_identities(self):
         after = self.write("after.hia.json", scalar_program(None))
-        code, report = self.call(["hia", "verify-translation", str(self.before), str(after),
+        code, report = self.call([ "verify-translation", str(self.before), str(after),
                                  "--function", "calculate", "--timeout-ms", "2000", "--json"])
         self.assertEqual(code, 0)
         self.assertEqual(report["status"], "proved")
@@ -78,13 +78,13 @@ class TranslationCLITests(CLIInputs):
 
     def test_counterexample_and_unknown_are_both_nonzero(self):
         after = self.write("different.hia.json", scalar_program(value=1))
-        code, report = self.call(["hia", "verify-translation", str(self.before), str(after),
+        code, report = self.call([ "verify-translation", str(self.before), str(after),
                                  "--function", "calculate"])
         self.assertEqual(code, 1)
         self.assertEqual(report["status"], "disproved")
         self.assertIsNotNone(report["counterexample"])
         loop = self.write("loop.hia.json", cyclic_program())
-        code, report = self.call(["hia", "verify-translation", str(loop), str(loop),
+        code, report = self.call([ "verify-translation", str(loop), str(loop),
                                  "--function", "calculate"])
         self.assertEqual(code, 1)
         self.assertEqual(report["status"], "unknown")
@@ -109,7 +109,7 @@ class OptimizationCLITests(CLIInputs):
                      "target": "x86_64-unknown-linux-gnu", "measurement_profile": "cli-contract-test-synthetic-costs"}
         observed_file = self.write("observations.json", observations)
         objective_file = self.write("objective.json", objective)
-        arguments = ["hia", "optimize", str(self.before), "--function", "calculate",
+        arguments = [ "optimize", str(self.before), "--function", "calculate",
                      "--bridge", _BRIDGE, "--bridge-build-receipt", str(Path(_BUILD) / "build-receipt.json"),
                      "--observations", str(observed_file), "--objective", str(objective_file),
                      "--max-candidates", "8", "--timeout-ms", "2000", "--json"]

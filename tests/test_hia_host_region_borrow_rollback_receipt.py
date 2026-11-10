@@ -15,6 +15,7 @@ import sys
 import tempfile
 import unittest
 
+from tests.hia_host_region_fixture import build_fixture
 
 
 PROBE = r'''
@@ -98,6 +99,37 @@ print("PASS admission rollback page rights uncertainty permanently denied", stag
 '''
 
 
+class BorrowRollbackMprotectReceiptTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
+            raise AssertionError("real Linux x86-64 required; no silent skip")
+        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
+        if not compiler:
+            raise AssertionError("real Clang required; no silent skip")
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.path, cls.digest = build_fixture(Path(cls.temp.name), Path(compiler).resolve(), {})
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.temp.cleanup()
+
+    def _probe(self, stage):
+        process = subprocess.run(
+            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
+            capture_output=True, text=True, timeout=25, check=False,
+        )
+        self.assertEqual(
+            process.returncode, 0,
+            f"stage={stage} stdout={process.stdout}\nstderr={process.stderr}",
+        )
+        self.assertIn("PASS admission rollback page rights", process.stdout)
+
+    def test_failed_borrow_and_rollback_before_kernel_revoke(self):
+        self._probe("pre_revoke")
+
+    def test_failed_borrow_and_rollback_after_kernel_revoke(self):
+        self._probe("post_revoke")
 
 
 if __name__ == "__main__":
