@@ -16,7 +16,14 @@ def keyword_source(words):
             raise ValueError('keyword must be nonempty ASCII without NUL, at most 32 bytes')
         padded = raw.ljust(32, b'\0')
         chunks = [int.from_bytes(padded[i:i+8], 'little') for i in range(0, 32, 8)]
-        condition = ' and '.join([f'size == {len(raw)}', *[f'{name} == {value}' for name,value in zip('abcd',chunks)]])
+        # A successful length equality means the packing loop never wrote any
+        # chunk starting beyond that length. Those chunks are zero by their
+        # initialization, including for NUL-containing input. Comparing them
+        # again for every keyword adds no admission condition. All occupied
+        # chunks (including partial final chunks) still compare their full word.
+        occupied = (len(raw) + 7) // 8
+        condition = ' and '.join([f'size == {len(raw)}',
+            *[f'{name} == {value}' for name,value in zip('abcd'[:occupied],chunks[:occupied])]])
         lines.append(f'    result = choose({condition}, {token}, result)')
     lines.append('    return result')
     return '\n'.join(lines) + '\n'
