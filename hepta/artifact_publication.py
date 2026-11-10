@@ -56,6 +56,10 @@ def publish_verified(stage: str | Path, destination: str | Path, expected: bytes
     stage, destination = Path(stage), Path(destination)
     if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
         raise PublicationRejected("E_PUBLISH_INPUT: distinct file and nonempty exact bytes required")
+    selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected:
+        from .artifact_publication_native import invoke_native
+        return invoke_native(selected, "publish", stage, destination, expected)
     staged = _read_exact(stage, expected)
     if destination.exists() or destination.is_symlink() or not destination.parent.is_dir():
         raise PublicationRejected("E_PUBLISH_EXISTS: output must be a new file")
@@ -94,6 +98,10 @@ def verify_published(stage: str | Path, destination: str | Path, expected: bytes
     stage, destination = Path(stage), Path(destination)
     if type(expected) is not bytes or not expected or stage.absolute() == destination.absolute():
         raise PublicationRejected("E_PUBLISH_INPUT: exact nonempty bytes and distinct paths required")
+    selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected:
+        from .artifact_publication_native import invoke_native
+        return invoke_native(selected, "verify", stage, destination, expected)
     staged = _read_exact(stage, expected)
     _read_exact(destination, expected, identity=staged)
     return {"sha256": sha256(expected).hexdigest(), "bytes": len(expected)}
@@ -106,6 +114,10 @@ def withdraw_own_link(stage: str | Path, destination: str | Path) -> bool:
     inode may have changed in place; deleting only our destination pathname
     does not destroy another linked copy or a competitor's separate inode.
     """
+    selected = os.environ.get("HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST")
+    if selected:
+        from .artifact_publication_native import invoke_native
+        return invoke_native(selected, "withdraw", Path(stage), Path(destination))
     try:
         staged = Path(stage).lstat()
         published = Path(destination).lstat()

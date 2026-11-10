@@ -25,6 +25,7 @@ jobs:
           import unittest
           names = (
               "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests",
+              "tests.test_hia_artifact_publication_route.PublicationRouteSourceTests",
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
               "tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests",
               "tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests",
@@ -139,7 +140,7 @@ jobs:
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native exact-byte artifact publication and real kernel races
-        run: python -B -m unittest tests.test_hia_artifact_publication_native -v
+        run: python -B -m unittest tests.test_hia_artifact_publication_native tests.test_hia_artifact_publication_route -v
         env:
           HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects

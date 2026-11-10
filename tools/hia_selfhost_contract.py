@@ -13,8 +13,9 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v52-native-artifact-publication"
+PROFILE = "selfhost-core-linux-x86_64-v53-native-artifact-publication-route"
 SOURCE_FILES = (
+    'tests/test_hia_artifact_publication_route.py',
     'tools/generate_hia_artifact_publication.py',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/build_hia_artifact_publication.py',
@@ -393,6 +394,9 @@ def support_contract(root=ROOT):
             "consistency": "point-in-time only; no later-writer immunity",
             "directory_fsync_journal_and_crash_recovery": False,
             "host_boundaries": ["authoring with binutils", "build/code custody", "installation", "default Agent persistence"],
+            "hosted_public_API_selection": "HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST; exact code via sealed memfd; invalid selection has no fallback",
+            "hosted_route_requires_source_tree": True,
+            "native_link_diagnostic_differs_from_reference_EXISTS": True,
             "full_Agent_persistence_replaced": False,
             "default_changed": False, "whole_native_delivery_qualified": False,
         },

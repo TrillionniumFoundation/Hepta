@@ -50,3 +50,19 @@ cold report from different source or changed images, before creating output.
 Tests must retain independent Core-VM policy observations and real kernel
 publication, races, fault injection and copied/empty-PATH execution evidence;
 a byte-snapshot-only candidate does not qualify filesystem publication.
+
+## Explicit source-tree API selection (hosted custody)
+
+`HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST=/absolute/build.json` selects this
+application for the existing `publish_verified`, `verify_published` and
+`withdraw_own_link` APIs. No selection means the unchanged reference path.
+An invalid selection fails closed, not back to hosted filesystem verification.
+Code admission checks the current source manifest and exact executable hash,
+then executes a sealed memfd instead of re-opening a mutable executable path.
+Only receipt JSON is decoded by the host; payload verification/hash/filesystem
+publication execute in HIA. This route still requires Python and source-tree
+build/custody tools; it is not a native-only installation or an untrusted-code
+sandbox. Native no-replace refusal maps to `E_PUBLISH_LINK`, including an already
+existing destination, rather than the reference's preliminary `EXISTS` category.
+That diagnostic distinction and Agent journal/recovery/default-install closure
+are not presented as replaced. Receipt I/O failure must not trigger replay.
