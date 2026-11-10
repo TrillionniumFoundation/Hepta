@@ -1788,3 +1788,60 @@ authority map and all223package/434tool files are pinned, not silently retired.
 The ledger remains3partial/5open. The exact statement full-repository run is
 queued behind the previous immutable expression suite and8GiBpersistent free
 storage; it is NOT a full-repository PASS. This draft's remote CI is still pending.
+
+## Complete source program/declaration syntax — exact local acceptance
+
+Exact executable subject `4427eef793703e4a00484b9032e18faa42734a93`
+adds the opt-in `HEPTA_HIA_SOURCE_DECLARATIONS_MANIFEST` application. Existing
+module/import/alias, public/repr(C) struct, enum, generic/lifetime, function,
+borrowed return/from, extern/export ABI, effects and resources syntax now runs
+in HIA, composed with the actual native statement/expression/type/scanner.
+No new language syntax or default backend is introduced. This does not replace
+module resolution, object materialization, namespace/tree-depth semantic guards,
+checker, runtime, package/build orchestration or release authority.
+
+The clean unchanged subject passed all30steps of a fresh uninterrupted524.171s
+pipeline:112source recovery/regeneration tests; cold11checks plus5049native
+checks in105.093s under the original180+3second limits; language1242+10;
+136native components; shared15;83selected+83default consumers;55incremental;
+63selected+63default parser/modules;98each in type-only, expression-only,
+statement-only, declaration-only, all-four and default frontend modes; actual
+cold-B3 builds and16standalone flat/ELF CLI observations; owner8regressions;
+and the complete static boundary audit. Three hand-specified full-byte arenas
+are independently interpreted before B0; the development differential passed
+3649observations over81actual source fixtures plus prefixes/mutations.
+
+Earlier native diagnostic cursor errors, malformed-field extra consumption,
+wrong external helper location/missing manifest, and shared-/tmp errno28cold
+test failure remain recorded as failures. Corrected native first-error guards,
+the unchanged98selected callers and the identical26contract/release tests on
+private persistent storage passed. No failed receipt was promoted or execution
+limit widened. Public summary:
+`review-evidence/hia-whole-selfhost-20261109/source-declarations-native-summary.json`.
+The new lossless audit delta reconstructs the exact executable-subject report.
+
+Shared identityv21 includes409explicit paths/all224package modules and all
+prior statement/expression/type/older fork projections. Identity167453bytes,
+metadata247329/raw797151/display4096 preserve exactly1MiBaggregate. The separate
+application workspace is92416+ceil(input_bytes/8), with inherited512statement
+frames and the original96caller/128standalone budget unchanged. This application
+scratch is not a compiler capacity or deadline increase.
+
+The raw archive retains all56118regular files/3387196219uncompressed bytes,
+every member compared with the originals. Compressed31264591bytes, SHA256
+`4d5f2a44f1b9476f283fe831c1848d19ea25c0744464139b08caa80fad9d9345`.
+All originals and outside-archive logs remain retained.
+
+The earlier immutable expression whole-repository suite ended FAIL:7766tests,
+3failures/108errors/0skips, inventory incomplete, source unchanged. Every failure
+and error references missing actual recursive/finite/stream NDU prerequisites;
+the exact disappearance cause is unconfirmed. Its original failed report is
+retained and PR850updated. Identical compiler-output bytes and manifests are
+now independently copied/pinned for a new isolated retry, queued behind another
+active whole suite. The statement full run stopped before its test request on
+the same prerequisite admission failure; it is not an executed full-suite PASS.
+Current declaration entire-repository regression has not started. Remote CI is
+pending. The refreshed conservative authority audit maps27files/9obligations;
+static224package+436tool Python files is not a rewrite-completion percentage.
+Whole ledger remains3partial/5open. No production, main, live service, default
+selection, release lock or legacy retirement was changed.
