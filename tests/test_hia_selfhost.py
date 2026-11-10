@@ -887,7 +887,9 @@ class SelfhostNativeTests(unittest.TestCase):
     def test_independent_elf_inspector_refuses_changed_class_flags_symbols_and_extent(self):
         row = next(row for row in self.report["elf_object_observations"]
                    if row["case"] == "original-elf-bytesum")
-        data = Path(row["compilation"]["produced_image"]).read_bytes()
+        from tools.hia_evidence_archive import read_retained_evidence
+        data = read_retained_evidence(row["compilation"]["produced_image"])
+        self.assertEqual(sha256(data).hexdigest(), row["compilation"]["produced_sha256"])
         shoff = struct.unpack_from("<Q", data, 40)[0]
         symoff = struct.unpack_from("<Q", data, shoff + 2 * 64 + 24)[0]
         for label, offset, replacement in (("class", 4, b"\x01"),

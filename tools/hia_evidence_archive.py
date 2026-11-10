@@ -105,3 +105,65 @@ def archive_completed_stage(directory, token):
         finally:os.close(descriptor)
         return receipt
     finally:temporary.unlink(missing_ok=True)
+
+
+def _ordinary_bytes(path, maximum):
+    """Bounded same-owner regular bytes; never block on a substituted FIFO."""
+    path=Path(path).absolute()
+    if any(part.is_symlink() for part in (path,*path.parents)):
+        raise ValueError('retained evidence path symlink')
+    descriptor=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        before=os.fstat(descriptor)
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink!=1
+                or before.st_uid!=os.getuid() or before.st_size>maximum):
+            raise ValueError('retained evidence requires bounded owned ordinary bytes')
+        chunks=[];size=0
+        while True:
+            chunk=os.read(descriptor,min(65536,maximum+1-size))
+            if not chunk:break
+            chunks.append(chunk);size+=len(chunk)
+            if size>maximum:raise ValueError('retained evidence capacity')
+        if identity(before)!=identity(os.fstat(descriptor)) or identity(before)!=identity(path.lstat()):
+            raise ValueError('retained evidence changed while reading')
+        return b''.join(chunks)
+    finally:os.close(descriptor)
+
+
+def read_retained_evidence(path):
+    """Read an original artifact, or its explicitly receipted unchanged ZIP member.
+
+    No extraction, regeneration or implicit sibling substitution. A retired raw
+    path is recovered only through its own stage receipt and complete archive
+    replay. This is evidence access, not native/correctness admission authority.
+    """
+    path=Path(path).absolute()
+    try:return _ordinary_bytes(path,MAX_FILE_BYTES)
+    except FileNotFoundError:pass
+    for stage in path.parents:
+        receipt_path=stage/'ARCHIVED.json'
+        try:receipt=json.loads(_ordinary_bytes(receipt_path,65536))
+        except FileNotFoundError:continue
+        archive=stage.with_name(stage.name+'.zip')
+        if (receipt.get('schema')!='hepta.hia.archived-stage.v1'
+                or receipt.get('archive')!=str(archive)
+                or receipt.get('raw_paths_available') is not False
+                or receipt.get('every_original_byte_verified_before_retirement') is not True):
+            raise ValueError('retained stage receipt mismatch')
+        before=identity(archive.lstat())
+        if digest(_ordinary_bytes(archive,MAX_TOTAL_BYTES+64*1024*1024))!=receipt['archive_sha256']:
+            raise ValueError('retained archive digest mismatch')
+        manifest=verify_archive(archive)
+        encoded=json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()
+        if (digest(encoded)!=receipt['manifest_sha256']
+                or manifest['source_directory']!=str(stage)
+                or len(manifest['files'])!=receipt['files']
+                or manifest['unpacked_bytes']!=receipt['unpacked_bytes']):
+            raise ValueError('retained archive manifest mismatch')
+        member=path.relative_to(stage).as_posix()
+        if member not in manifest['files']:raise FileNotFoundError(str(path))
+        with zipfile.ZipFile(archive) as packed:data=packed.read(member)
+        if identity(archive.lstat())!=before or digest(data)!=manifest['files'][member]['sha256']:
+            raise ValueError('retained archive member changed')
+        return data
+    raise FileNotFoundError(str(path))
