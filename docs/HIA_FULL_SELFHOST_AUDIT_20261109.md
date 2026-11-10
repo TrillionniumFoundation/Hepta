@@ -48,6 +48,29 @@ or Python driver; the build driver and complete production CLI remain host-owned
 No current-source full-repository result, production activation or retirement is
 claimed. See `core-json-cli-native-summary.json` and its lossless inventory delta.
 
+**Current integrated JSON CLI / scalar exports:** Exact implementation
+`5fb6357a331d49916ad51c659b2ea58adf39fe7a` passes107clean source checks,
+cold11/11and5047/5047native in152.673seconds, language1242/1242plus10
+inventory assertions,69component tests and15source-closure/accounting controls.
+Actual completedB3flat/ELFCLI builds and15installed/copied observations pass,
+including two JSON-to-export-object compilations and a real typed C caller.
+All316qualified source files remain bound to that implementation; metadata-only
+publication is not substituted for their qualification. The static audit retains
+219package Python files and424host-tool Python files,3partial/5openboundaries.
+Full-repository execution on this immutable implementation is running, not passed.
+See `json-cli-exports-native-summary.json` and its lossless inventory delta.
+
+The previous4c0fb93remote unified gate is FAIL:595executed tests, one cold-replay
+failure, no skipped tests. Its original ZIP has SHA256
+`7b97a1330efa9562e09745c7a0b0d8807daeecca30f50a73c7c7cbf938cd6f60`.
+The generic unittest removed its temporary nested diagnosis; the observation
+cannot establish the precise child failure. The roughly182-second log interval
+is recorded, not recast as a pass or an established root cause. Separately,
+the dedicated selfhost workflow had a stale PR-base filter and did not trigger
+for later stacked `work/hia-*` PRs. Its filter now includes that series without
+changing any compiler, witness, timeout, capacity or permissions. The new remote
+run must report its own outcome.
+
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
 compiler source. The selected public v9 source lock is `2598f430`; the separately
@@ -1051,3 +1074,13 @@ The actual compiler stays within its existing1MiB source/image/workspace and
 or a linker, production tasks/I/O, the complete library/CLI/build/install/release
 chain, Agent/store or optimizer/proof authorities. Existing production sources
 are still needed and have not been deleted.
+
+
+The5fb6357combined continuation subsequently completed clean local qualification:
+107source checks,11cold checks with5047native observations,1242language checks
+plus10inventory assertions,69component tests,15source controls and15actual
+installed/copied CLI observations. Two native-produced ELF objects link and
+execute in one typed C caller; the external C/linker authority remains explicit.
+Ended raw cold/language evidence is losslessly archived and verified against
+every original member; temporary originals are also retained. Full-repository
+regression and fresh remote/platform gates are still separate and unresolved.

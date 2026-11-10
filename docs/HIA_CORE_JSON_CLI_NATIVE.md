@@ -117,3 +117,12 @@ and invalid private semantics refuse without output. The component development
 suite passes11tests. These observations do not yet constitute clean committed
 cold acceptance of this combination. The C compiler/linker is a test authority,
 not a rewritten linker. Whole-stack closure and production retirement stay OPEN.
+
+
+The exact combined implementation
+`5fb6357a331d49916ad51c659b2ea58adf39fe7a` subsequently passes clean107source,
+11cold/5047native,1242language plus10inventory,69combined component and15exact
+source controls. Actual completedB3flat and ELF builds pass15installed/copied
+observations, including the two-object typed caller and export refusal cases.
+All316qualified source files are explicitly pinned. This replaces the earlier
+development-only status for this exact commit, not the open whole-stack gates.
