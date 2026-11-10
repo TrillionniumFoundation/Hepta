@@ -233,20 +233,34 @@ def capture_path(path, roots, limit):
             os.close(fd)
 
 
-def _native_artifact_file(operation,root,*,data=b'',content_hash='-'):
+def _native_artifact_rejection(exc):
+    text=str(exc)
+    if 'E_PUBLISH_LIMIT' in text:code='E_HIA_ARTIFACT_LIMIT'
+    elif 'E_PUBLISH_BYTES' in text or 'E_PUBLISH_RACE' in text:code='E_HIA_ARTIFACT_CORRUPT'
+    elif 'E_PUBLISH_NATIVE_CUSTODY' in text:code='E_HIA_ARTIFACT_NATIVE_CUSTODY'
+    else:code='E_HIA_ARTIFACT_FILE'
+    raise AgentRejected(code,'native artifact file operation refused; no request issuance or replay') from exc
+
+
+def _native_artifact_admission():
+    selected=os.environ.get('HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST')
+    if not selected:return None
+    from .artifact_publication_native import admit_artifact_store
+    from .artifact_publication import PublicationRejected
+    try:return admit_artifact_store(selected)
+    except PublicationRejected as exc:_native_artifact_rejection(exc)
+
+
+def _native_artifact_file(operation,root,*,data=b'',content_hash='-',_admission=None):
     selected=os.environ.get('HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST')
     if not selected:
+        if _admission is not None:
+            reject('E_HIA_ARTIFACT_NATIVE_CUSTODY','explicit selection changed during artifact call')
         return None
     from .artifact_publication_native import invoke_artifact_store
     from .artifact_publication import PublicationRejected
-    try:return invoke_artifact_store(selected,operation,root,data=data,digest=content_hash)
-    except PublicationRejected as exc:
-        text=str(exc)
-        if 'E_PUBLISH_LIMIT' in text:code='E_HIA_ARTIFACT_LIMIT'
-        elif 'E_PUBLISH_BYTES' in text or 'E_PUBLISH_RACE' in text:code='E_HIA_ARTIFACT_CORRUPT'
-        elif 'E_PUBLISH_NATIVE_CUSTODY' in text:code='E_HIA_ARTIFACT_NATIVE_CUSTODY'
-        else:code='E_HIA_ARTIFACT_FILE'
-        raise AgentRejected(code,'native artifact file operation refused; no request issuance or replay') from exc
+    try:return invoke_artifact_store(selected,operation,root,data=data,digest=content_hash,_admission=_admission)
+    except PublicationRejected as exc:_native_artifact_rejection(exc)
 
 
 class AgentStore:
@@ -340,7 +354,9 @@ class AgentStore:
         if type(data) is not bytes or len(data) > MAX_ARTIFACT_BYTES:
             reject("E_HIA_ARTIFACT_LIMIT", "artifact exceeds the 64 MiB store limit")
         metadata = {} if metadata is None else metadata
-        native_hash = _native_artifact_file('store-hash',self.artifacts,data=data)
+        admission = _native_artifact_admission()
+        native_hash = (_native_artifact_file('store-hash',self.artifacts,data=data,_admission=admission)
+                       if admission is not None else None)
         content_hash = native_hash['sha256'] if native_hash is not None else sha256(data).hexdigest()
         content_key = digest({"sha256": content_hash, "kind": kind, "metadata": metadata})
         previous = self.db.execute("SELECT * FROM artifacts WHERE content_key=?", (content_key,)).fetchone()
@@ -349,7 +365,7 @@ class AgentStore:
             self.get(ref, kind=kind)
             return ref
         if native_hash is not None:
-            stored = _native_artifact_file('store-put',self.artifacts,data=data)
+            stored = _native_artifact_file('store-put',self.artifacts,data=data,_admission=admission)
             if stored != native_hash:
                 reject('E_HIA_ARTIFACT_CORRUPT','native artifact hash and durable file receipt differ')
         else:
