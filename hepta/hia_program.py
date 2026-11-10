@@ -476,6 +476,16 @@ def _edges(term):
 
 
 def _function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
+    from .hia_function_shape_native import selected_function_shape
+    selected=selected_function_shape(fn,recursive_chain=recursive_chain,
+                                     parameter_loan_returns=parameter_loan_returns)
+    if selected is not None:
+        return selected
+    return _reference_function_shape(fn,recursive_chain=recursive_chain,
+                                     parameter_loan_returns=parameter_loan_returns)
+
+
+def _reference_function_shape(fn, *, recursive_chain=False, parameter_loan_returns=False):
     fields = {"name", "params", "returns", "effects", "entry", "blocks"}
     if parameter_loan_returns and type(fn) is dict and "return_loans" in fn:
         fields.add("return_loans")
@@ -636,8 +646,17 @@ class _BlockCheck:
         actual = [self.value(a) for a in args]
         names, types = [o["name"] for o in out], [o["type"] for o in out]
         try:
-            spec = opcode_spec(op, self.schema)
-            self.required.update(check_instruction(spec, actual, types, attrs))
+            from .hia_instruction_policy_native import selected_instruction_policy
+            native_effects = selected_instruction_policy(op, self.schema, actual, types, attrs)
+            if native_effects is None:
+                spec = opcode_spec(op, self.schema)
+                self.required.update(check_instruction(spec, actual, types, attrs))
+            else:
+                # Read already-admitted resource guard/transition metadata;
+                # no old opcode/version/signature/attribute/effect decision.
+                from .hia_opcodes import OPCODES
+                spec = OPCODES[op]
+                self.required.update(native_effects)
         except OpcodeRejected as exc:
             _reject(str(exc), exc.code)
 
@@ -779,6 +798,14 @@ class _BlockCheck:
 
 
 def _primitive_structure(data):
+    from .hia_program_shape_native import selected_program_shape
+    selected=selected_program_shape(data)
+    if selected is not None:
+        return selected
+    return _reference_primitive_structure(data)
+
+
+def _reference_primitive_structure(data):
     """Check every declaration, shape, SSA identity, CFG edge and export.
 
     Incremental admission never caches this pass. It establishes every
