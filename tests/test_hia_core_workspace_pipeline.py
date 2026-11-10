@@ -1,0 +1,229 @@
+"""The current workspace JSON image must reach native semantic compilation."""
+import copy
+import ctypes
+from hashlib import sha256
+import json
+import os
+from pathlib import Path
+import shutil
+import struct
+import subprocess
+import tempfile
+import unittest
+from unittest.mock import patch
+from tools.generate_hia_core_workspace_pipeline import MAGIC,BUNDLE_LIMIT,template,document
+from hepta.hia_agent_assembly import assemble_program,render_assembly
+from tests.test_hia_core_module_graph_native import project
+from tests.test_hia_program import b,c,f,i,ret
+
+ROOT=Path(__file__).resolve().parents[1]
+SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm'
+
+
+def frame(workspace,frontend,compiler,profile=1):
+    return struct.pack('<5Q',MAGIC,len(workspace),len(frontend),len(compiler),profile)+workspace+frontend+compiler
+
+
+def expected_image(workspace,frontend,compiler):
+    prefix,holes=template();data=bytearray(prefix+workspace+frontend+compiler)
+    struct.pack_into('<QQ',data,96,len(data),len(data))
+    for name,start in [('workspace',len(prefix)),('frontend',len(prefix)+len(workspace)),
+                       ('compiler',len(prefix)+len(workspace)+len(frontend))]:
+        struct.pack_into('<i',data,holes[name],start-holes[name]-4)
+    return bytes(data)
+
+
+def vm_pack(wire,capacity):
+    from hepta.hia_program_runtime import _Machine,_Owner,_View
+    checked=assemble_program(SOURCE.read_bytes());machine=_Machine(checked,2000000,16<<20,None,256)
+    owners=[_Owner(-1,bytearray(wire)),_Owner(-2,bytearray(b'\xa5'*capacity)),_Owner(-3,bytearray())]
+    entry=next(fn for fn in checked.as_dict()['functions'] if fn['name']=='f0')
+    status=machine.invoke(entry,[_View(owners[0],False),_View(owners[1],True),_View(owners[2],True)])[0]
+    return status,bytes(owners[1].data[:status]) if status<=capacity else bytes(owners[1].data)
+
+
+class CoreWorkspacePipelineSourceTests(unittest.TestCase):
+    def test_incomplete_builder_refuses_before_output_creation_and_no_mixed_selection(self):
+        from tools.build_hia_core_workspace_pipeline import build
+        from tools.compile_hia_core_workspace import compile_workspace
+        with tempfile.TemporaryDirectory(prefix='hia-pipeline-cold-refusal-') as folder:
+            root=Path(folder);compiler=root/'compiler';cold=root/'cold.json';output=root/'output'
+            compiler.write_bytes(b'untrusted');cold.write_text('{}')
+            with self.assertRaisesRegex(ValueError,'completed matching-source cold'):
+                build(output,compiler,cold)
+            self.assertFalse(output.exists())
+            with self.assertRaisesRegex(ValueError,'no mixed image or fallback'):
+                compile_workspace(b'{}',root/'graph',None,None,output,pipeline_manifest=root/'manifest')
+            self.assertFalse(output.exists())
+
+    def test_independent_VM_complete_packer_bytes_before_new_native_seed(self):
+        self.assertEqual(SOURCE.read_text(),render_assembly(document()))
+        from tools.qualify_hia_selfhost_cli import inspect_executable
+        parts=(b'\xc3',b'\x31\xc0\xc3',b'\x90\x90\x31\xc0\xc3')
+        wire=frame(*parts);wanted=expected_image(*parts)
+        self.assertEqual(vm_pack(wire,len(wanted)+8),(len(wanted),wanted));inspect_executable(wanted)
+        for bad,capacity,status in [(wire,len(wanted)-1,0xfffffffe),(wire+b'x',4096,0xffffffff),
+            (frame(*parts,profile=0),4096,0xffffffff),(frame(*parts,profile=2),4096,0xffffffff),
+            (frame(b'',parts[1],parts[2]),4096,0xffffffff),(b'',4096,0xffffffff)]:
+            self.assertEqual(vm_pack(bad,capacity),(status,b'\xa5'*capacity))
+
+
+class CoreWorkspacePipelineNativeTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        CoreWorkspacePipelineSourceTests().test_independent_VM_complete_packer_bytes_before_new_native_seed()
+        from tests.test_hia_core_workspace_json_native import CoreWorkspaceJsonSourceTests
+        CoreWorkspaceJsonSourceTests().test_complete_independent_vm_before_any_native_image()
+        from tools.qualify_hia_selfhost import build_seed,compile_stage
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        root=os.environ.get('HEPTA_HIA_WORKSPACE_PIPELINE_EVIDENCE')
+        cls.temporary=None
+        if root:cls.folder=Path(root);cls.folder.mkdir(mode=0o700)
+        else:cls.temporary=tempfile.TemporaryDirectory(prefix='hia-workspace-pipeline-');cls.folder=Path(cls.temporary.name)
+        seed,_=build_seed(cls.folder);source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
+        compiler,_=compile_stage(cls.folder,'B2',first,source);assert first.read_bytes()==compiler.read_bytes()
+        def load(path):
+            raw=path.read_bytes();return NativeHiaJsonImage(raw,sha256(raw).hexdigest())
+        cls.compiler=load(compiler);images={}
+        for name,path in [('workspace','core_workspace_json'),('frontend','core_json_frontend'),
+                          ('packer','core_workspace_pipeline_packer'),('linker','elf_static_linker')]:
+            image,_=compile_stage(cls.folder,name,compiler,(ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes())
+            images[name]=image.read_bytes()
+        cls.packer=NativeHiaJsonImage(images['packer'],sha256(images['packer']).hexdigest())
+        cls.linker=NativeHiaJsonImage(images['linker'],sha256(images['linker']).hexdigest())
+        from hepta.hia_core_workspace_json_native import NativeCoreWorkspaceJson
+        cls.workspace=NativeCoreWorkspaceJson(images['workspace'],sha256(images['workspace']).hexdigest())
+        parts=(images['workspace'],images['frontend'],compiler.read_bytes());wanted=expected_image(*parts)
+        size,packed=cls.call(cls.packer,frame(*parts),BUNDLE_LIMIT,0)
+        assert size==len(wanted) and packed==wanted
+        cls.executable=cls.folder/'hia-workspace-compile';cls.executable.write_bytes(packed);cls.executable.chmod(0o700)
+        cls.source_pins={name:sha256((ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes()).hexdigest()
+            for name,path in [('workspace','core_workspace_json'),('frontend','core_json_frontend'),
+                              ('packer','core_workspace_pipeline_packer'),('compiler','selfhost')]}
+        (cls.folder/'development-build.json').write_text(json.dumps({'status':'DEVELOPMENT_NOT_COLD_QUALIFICATION',
+            'source_sha256':cls.source_pins,'image_sha256':{n:sha256(v).hexdigest() for n,v in images.items()},
+            'compiler_image_sha256':cls.compiler.image_sha256,'executable_sha256':sha256(packed).hexdigest(),
+            'bundle_limit':BUNDLE_LIMIT,'compiler_caps_unchanged':True,'whole_native_delivery_qualified':False},indent=2)+'\n')
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.temporary:cls.temporary.cleanup()
+
+    @staticmethod
+    def call(image,wire,capacity,scratch):
+        source=ctypes.create_string_buffer(wire,max(1,len(wire)))
+        output=ctypes.create_string_buffer(b'\xa5'*(capacity+64),capacity+64)
+        state=ctypes.create_string_buffer(scratch+64);ctypes.memset(ctypes.addressof(state)+scratch,0x5a,64)
+        status=image._entry(source,len(wire),output,capacity,state,scratch)
+        assert output.raw[capacity:]==b'\xa5'*64 and state.raw[scratch:]==b'\x5a'*64
+        return status,ctypes.string_at(output,status) if status<=capacity else output.raw[:capacity]
+
+    def run_cli(self,wire,*args,**kwargs):
+        return subprocess.run([str(self.executable),*args],input=wire,capture_output=True,env={'PATH':''},timeout=20,**kwargs)
+
+    def test_copied_native_pipeline_and_actual_original_modified_projects(self):
+        from hepta.hia_core_workspace_json_native import link_workspace
+        from hepta.hia_program import execute_program
+        from tools.generate_hia_elf_linker import MAGIC as LINK_MAGIC,WORKSPACE_BYTES as LINK_SCRATCH
+        cases=[]
+        for inc in (1,7):
+            doc=project(inc);doc['modules'][0]['core']['functions'].append(f('start',[],['u32'],[],[
+                b('entry',[],[c('a','u32',41),i('call',['a'],[('v','u32')],function='work')],ret('v'))]))
+            doc['modules'][0]['exports']=['start'];wire=json.dumps(doc).encode()
+            checked,_=link_workspace(wire,native=self.workspace);assembly=render_assembly(checked).encode()
+            oracle=execute_program(checked,'start',[])['result'];status,obj=self.call(self.compiler,assembly,1<<20,1<<20)
+            self.assertTrue(0<status<=1<<20);self.assertEqual(oracle,41+inc);cases.append((inc,wire,obj,oracle))
+        copied=self.folder/'copied';copied.mkdir();target=copied/'compile'
+        shutil.copyfile(self.executable,target);target.chmod(0o700);tracer=shutil.which('strace');self.assertIsNotNone(tracer)
+        rows=[]
+        with patch('json.loads',side_effect=AssertionError('host payload decoder')), \
+             patch('hepta.hia_core_workspace_json_native.link_workspace',side_effect=AssertionError('host Core verification bridge')), \
+             patch('hepta.hia_core_module_graph_native.link_workspace',side_effect=AssertionError('host materializer')), \
+             patch('hepta.hia_agent_assembly.render_assembly',side_effect=AssertionError('host renderer')), \
+             patch('hepta.hia_program.verify_program',side_effect=AssertionError('host semantic checker')):
+            for inc,wire,wanted,oracle in cases:
+                trace=copied/('project-'+str(inc)+'.trace')
+                result=subprocess.run([tracer,'-f','-e','trace=execve,openat,clone,fork,vfork','-o',str(trace),str(target)],
+                    input=wire,capture_output=True,env={'PATH':''},cwd=copied,timeout=20)
+                self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted,b''))
+                text=trace.read_text();self.assertEqual(text.count('execve('),1)
+                for forbidden in ('openat(','clone(','fork(','vfork('):self.assertNotIn(forbidden,text)
+                entry=b'start';link_frame=struct.pack('<4Q',LINK_MAGIC,1,len(entry),0)+entry+struct.pack('<Q',len(wanted))+wanted
+                size,elf=self.call(self.linker,link_frame,65536,LINK_SCRATCH);self.assertTrue(0<size<65536)
+                folder=copied/('project-'+str(inc));folder.mkdir()
+                payloads={'workspace.json':wire,'program.o':wanted,'linker.input':link_frame,'program.elf':elf}
+                for name,data in payloads.items():(folder/name).write_bytes(data)
+                executable=folder/'program.elf';executable.chmod(0o700)
+                actual=subprocess.run([str(executable)],capture_output=True,env={'PATH':''},cwd=folder,timeout=3)
+                self.assertEqual((actual.returncode,actual.stdout,actual.stderr),(oracle,b'',b''))
+                rows.append({'increment':inc,'actual_kernel_exit':actual.returncode,'independent_Core_VM_result':oracle,
+                    'empty_PATH_one_exec_no_open_or_child':True,'sha256':{n:sha256(v).hexdigest() for n,v in payloads.items()}})
+        (self.folder/'actual-projects.json').write_text(json.dumps(rows,indent=2)+'\n')
+
+    def test_semantic_policy_and_feature_refusals_keep_empty_stdout(self):
+        cases=[b'',b'null',b'{}',b'\xff',b'{"entry":1,"entry":2}']
+        for label in ('undefined','private','duplicate','empty-exports','old-version','nominal','invalid-private'):
+            doc=project()
+            if label=='undefined':doc['modules'][1]['core']['functions'][0]['blocks'][0]['ops'][1]['args'][0]='undefined_SSA'
+            if label=='private':doc['modules'][1]['exports']=[]
+            if label=='duplicate':doc['modules'].append(copy.deepcopy(doc['modules'][0]))
+            if label=='empty-exports':doc['modules'][0]['exports']=[]
+            if label=='old-version':
+                for module in doc['modules']:module['core']['schema']='hepta.hia.program.v7'
+            if label=='nominal':doc['modules'][0]['core']['types']=[]
+            if label=='invalid-private':doc['modules'][1]['core']['functions'].append(f('unused',[],['u32'],[],[b('entry',[],[],ret('undefined'))]))
+            cases.append(json.dumps(doc).encode())
+        loan=f('start',[],['u32'],['alloc','read','write','trap'],[b('entry',[],[
+            c('n','usize',1),i('buffer.new',['n'],[('owner','buffer')]),i('borrow.mut',['owner'],[('view','mutbuf')]),
+            i('owner.drop',['owner']),c('zero','u32',0)],ret('zero'))])
+        cases.append(json.dumps({'schema':'hepta.hia.core-workspace.v1','entry':'a','modules':[
+            {'core':{'schema':'hepta.hia.program.v8','module':'a','functions':[loan]},'exports':['start'],'imports':[]}]}).encode())
+        for wire in cases:
+            with self.subTest(wire=wire):
+                r=self.run_cli(wire);self.assertEqual((r.returncode,r.stdout,r.stderr),(2,b'',b''))
+
+    def test_actual_descriptor_memory_and_EINTR_controls(self):
+        wire=json.dumps(project()).encode();wanted=self.run_cli(wire);self.assertEqual(wanted.returncode,0)
+        tracer=shutil.which('strace');self.assertIsNotNone(tracer);trace=self.folder/'eintr.trace'
+        result=subprocess.run([tracer,'-qq','-o',str(trace),'-e','inject=read:error=EINTR:when=1',
+            '-e','inject=write:error=EINTR:when=1',str(self.executable)],input=wire,capture_output=True,env={'PATH':''},timeout=20)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,wanted.stdout,b''));self.assertEqual(trace.read_bytes().count(b'(INJECTED)'),2)
+        self.assertEqual(self.run_cli(wire,'unexpected').returncode,64)
+        r=self.run_cli(b' '*(8<<20)+b'0');self.assertEqual((r.returncode,r.stdout),(3,b''))
+        for descriptor in (0,1):
+            r=self.run_cli(wire,preexec_fn=lambda fd=descriptor:os.close(fd));self.assertEqual((r.returncode,r.stdout),(4,b''))
+        import resource
+        def insufficient():resource.setrlimit(resource.RLIMIT_AS,(64<<20,64<<20))
+        r=self.run_cli(wire,preexec_fn=insufficient);self.assertEqual((r.returncode,r.stdout),(4,b''))
+
+    def test_actual_128_function_partial_output_and_129_semantic_refusal(self):
+        doc=project()
+        for n in range(126):doc['modules'][1]['core']['functions'].append(f('unused_'+str(n),[],['u32'],[],[b('entry',[],[c('v','u32',n)],ret('v'))]))
+        wire=json.dumps(doc).encode();r=self.run_cli(wire);self.assertEqual(r.returncode,0);wanted=r.stdout;self.assertGreater(len(wanted),4096)
+        over=copy.deepcopy(doc);over['modules'][1]['core']['functions'].append(f('one_past',[],['u32'],[],[b('entry',[],[c('v','u32',0)],ret('v'))]))
+        r=self.run_cli(json.dumps(over).encode());self.assertEqual((r.returncode,r.stdout),(2,b''))
+        import fcntl
+        read_fd,write_fd=os.pipe()
+        try:
+            fcntl.fcntl(write_fd,fcntl.F_SETPIPE_SZ,4096)
+            fcntl.fcntl(write_fd,fcntl.F_SETFL,fcntl.fcntl(write_fd,fcntl.F_GETFL)|os.O_NONBLOCK)
+            result=subprocess.run([str(self.executable)],input=wire,stdout=write_fd,stderr=subprocess.PIPE,env={'PATH':''},timeout=20)
+            os.close(write_fd);write_fd=-1;prefix=b''
+            while chunk:=os.read(read_fd,65536):prefix+=chunk
+            self.assertEqual((result.returncode,result.stderr),(4,b''));self.assertGreater(len(prefix),0)
+            self.assertLess(len(prefix),len(wanted));self.assertEqual(prefix,wanted[:len(prefix)])
+        finally:
+            os.close(read_fd)
+            if write_fd!=-1:os.close(write_fd)
+
+    def test_native_packer_full_three_image_capacity_and_transactional_refusal(self):
+        parts=(b'\x01'*(1<<20),b'\x02'*(1<<20),b'\x03'*(1<<20));wanted=expected_image(*parts);wire=frame(*parts)
+        self.assertEqual(self.call(self.packer,wire,BUNDLE_LIMIT,0),(len(wanted),wanted))
+        for bad,capacity,status in [(wire,len(wanted)-1,0xfffffffe),(wire+b'x',BUNDLE_LIMIT,0xffffffff),
+            (frame(*parts,profile=0),BUNDLE_LIMIT,0xffffffff),
+            (frame(parts[0]+b'x',parts[1],parts[2]),BUNDLE_LIMIT,0xffffffff)]:
+            self.assertEqual(self.call(self.packer,bad,capacity,0),(status,b'\xa5'*capacity))
+
+
+if __name__=='__main__':unittest.main()
