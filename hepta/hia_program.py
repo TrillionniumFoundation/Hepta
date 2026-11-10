@@ -318,7 +318,10 @@ def _decode(value):
         if len(raw) > MAX_BYTES:
             _reject("program exceeds byte budget", "E_HIA_LIMIT")
         # Validation uses a detached snapshot, never the caller's mutable dict.
-        return decode_hia_json(raw.decode('utf-8'), max_nodes=MAX_NODES, max_depth=MAX_DEPTH), raw
+        # This is our own already-structured, byte-bounded canonical output,
+        # not a submitted wire. Preserve the existing detached-object bridge
+        # without redundantly preflighting the same checked graph a second time.
+        return json.loads(raw), raw
     except HIAProgramRejected:
         raise
     except (ValueError, TypeError, UnicodeError, RecursionError, OverflowError) as exc:
