@@ -727,3 +727,20 @@ raw global 803,727, display 4,096; their sum remains 1,048,576 bytes. Source,
 module, container, per-stage, process and time caps are unchanged. The v10
 identity remains 157,811 bytes in the historical projection. These accounting
 controls and finite tests do not grant broader proof or execution authority.
+
+## Reviewed native SHA-256 identity continuation (v12)
+
+The combined native JSON/SHA implementation binds exactly365 source records,
+including218 actual root-level Python compiler modules. Five explicitly named
+SHA-256 HIA source, loader, generator, builder and conformance inputs extend the
+unchanged360-path v11 checkpoint. All older independently committed projections
+remain exact; extra/missing compiler modules and reclassified historical
+additions are still rejected. This identity addition does not declare Python
+rewritten or make the optional SHA payload backend a default.
+
+Maximum identity encoding adds exactly631 bytes to161508. Those631 bytes move
+from raw logs to metadata: metadata241384, raw803096, display4096; the sum remains
+1048576. All source/module/container/process/time budgets are unchanged. The
+standalone selfhost export qualifier remains bound by its own complete support
+and release inventories; this shared proof profile does not silently acquire
+additional compiler or proof semantics.
