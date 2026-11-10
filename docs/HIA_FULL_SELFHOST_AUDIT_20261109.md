@@ -391,3 +391,39 @@ operations and 489,766 bytes. Capacities and cold deadlines were not increased.
 `v25-function-identifiers-summary.json` retains source and execution receipts.
 General SSA/block names, modules/exports, full runtime/build/release and the other
 open component authorities are not closed by this function-name extension.
+
+
+### First completed all-repository audit and fresh failure repairs
+
+The exact clean `f535528` full-repository run completed **7,642 tests from
+730 modules in 4,363.959 seconds**, with **5 failures and 14 errors**, no skips.
+Inventory completion is false because board class setup failed. Source bytes and
+Git status remained unchanged. This is a failed run, not a green audit. The
+separate complete summary lists all failure/error identities and receipt hashes.
+
+Several failures were real missing/mismatched toolchains (Boost, locked QEMU,
+LLVM profile runtime and the Rust thumb target). The raw-model errors were an
+invocation error in this audit's runner: its environment passed a directory
+instead of the required actual manifest file. All 21 affected module tests
+passed on unchanged source when corrected. Such isolated replay does not rewrite
+the original full-run result. A new clean full-repository invocation is running.
+
+Two actual code repairs followed: (1) HSIR wire input now enforces an explicit
+256-container lexical nesting limit before JSON decoding, independent of host
+Python recursion behavior, while string escapes and shallow diagnostic distinctions
+remain checked; (2) the IR-PGO resource observer no longer reconstructs
+`-march=native` after capturing a masked CPU policy. Its C harness and LTO link
+inherit the captured research flags and preserve target identities before/after.
+The old code produced a real SIGILL under the masked execution control once
+its runtime dependency was available. Fresh execution of all target-profile and
+HSIR-wire modules passes 34 tests, including both actual profile training/use
+and allocation-refusal observer cases. No test was skipped or softened.
+
+The missing board emulator was built from the official QEMU 8.2.2 source in a
+task-local directory, with a truthful local-build suffix (not a falsified version
+of the host's QEMU 10.2). All five board module tests then passed on unchanged
+source, including six actual emulator cold boots and negative controls. The
+physical-board and DMA qualification flags remain false. The LLVM profile
+runtime is the actual installed compiler-rt20 archive; an architecture-path alias
+resolves the installed compiler driver's packaging mismatch. Rust1.90's thumb
+core target is installed in the task-local toolchain, without changing defaults.

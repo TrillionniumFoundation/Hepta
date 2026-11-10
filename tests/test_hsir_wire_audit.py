@@ -185,6 +185,27 @@ class WireAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_JSON"):
                 module.load(str(path))
 
+    def test_depth_budget_precedes_decoder_and_counts_containers_not_string_data(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "depth.json"
+            levels = module.MAX_HSIR_JSON_DEPTH - 1  # root object is one level
+            path.write_text('{"x":' + "[" * levels + "0" + "]" * levels + "}")
+            self.assertIsInstance(module.load(path), dict)
+            path.write_text('{"x":' + "[" * (levels + 1) + "0" + "]" * (levels + 1) + "}")
+            with patch.object(module.json, "loads", side_effect=AssertionError("decoder ran")):
+                with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_JSON"):
+                    module.load(path)
+            value = ('[{' + '\\"' + '}]') * 20000
+            path.write_text(json.dumps({"x": value, "number": 1.25}))
+            self.assertEqual(module.load(path), {"x": value, "number": 1.25})
+
+    def test_shallow_nonobject_keeps_distinct_diagnostic(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = pathlib.Path(d) / "array.json"
+            path.write_text("[0]")
+            with self.assertRaisesRegex(module.HSIRWireRejected, "E_HSIR_NOT_OBJECT"):
+                module.load(path)
+
     def test_pr14_actual_cli_export_envelope(self):
         envelope = {"schema": "hepta.hsir.export.v0", "ok": True,
                     "status": "frontend_only", "hsir": source_bound(),

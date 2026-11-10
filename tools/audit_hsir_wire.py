@@ -19,6 +19,7 @@ from pathlib import Path
 SCHEMA = "hepta.hsir.v0"
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 MAX_HSIR_INPUT_BYTES = 8_000_000
+MAX_HSIR_JSON_DEPTH = 256
 PROFILES = {
     "source_bound_dict_v0": {
         "discriminator": ("profile", "checked_typed_ast_not_verified_mir"),
@@ -174,10 +175,38 @@ def _read_pinned_hsir(path: str | Path) -> bytes:
         os.close(fd)
 
 
+def _check_json_depth(text: str) -> None:
+    """Bound container nesting before the host JSON decoder allocates a tree.
+
+    Python's decoder recursion behavior differs across releases. This lexical
+    budget is independent of it; json.loads still validates all actual syntax,
+    duplicate keys and constants. Brackets inside escaped strings are data.
+    """
+    depth, quoted, escaped = 0, False, False
+    for char in text:
+        if quoted:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                quoted = False
+        elif char == '"':
+            quoted = True
+        elif char in "[{":
+            depth += 1
+            if depth > MAX_HSIR_JSON_DEPTH:
+                raise HSIRWireRejected("E_HSIR_JSON: nesting budget exceeded")
+        elif char in "]}":
+            depth -= 1
+
+
 def load(path: str) -> dict:
     raw = _read_pinned_hsir(path)
     try:
-        result = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_unique,
+        text = raw.decode("utf-8")
+        _check_json_depth(text)
+        result = json.loads(text, object_pairs_hook=pairs_unique,
                             parse_constant=lambda x: (_ for _ in ()).throw(
                                 HSIRWireRejected("E_HSIR_NONFINITE: " + x)))
     except (UnicodeError, json.JSONDecodeError, RecursionError) as exc:

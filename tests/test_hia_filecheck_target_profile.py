@@ -456,6 +456,16 @@ define i64 @public_entry(i64 %v) {
                 with patch.object(LegacyTrial, 'resources'):
                     trial.resources()
                 observations['resource_cases'] = trial.report['resource_cases']
+                observer = next(row['argv'] for row in trial.report['commands']
+                                if row['stage'] == 'ir_pgo_resource_link')
+                self.assertIn('-march=znver4', observer)
+                self.assertNotIn('-march=native', observer)
+                for flag in disabled:
+                    self.assertIn(flag, observer)
+                self.assertNotIn('-shared', observer)
+                scope = trial.report['irpgo_resource_scope']
+                self.assertEqual(scope['target_policy_before'], scope['target_policy_after'])
+                observations['resource_observer_scope'] = scope
                 self.assertEqual((trial.out / 'migration/program.ll').read_bytes(), original_ir)
                 builds = trial.report['research_ir_builds']
                 self.assertEqual([build['stage'] for build in builds], ['hia_research_native_build',

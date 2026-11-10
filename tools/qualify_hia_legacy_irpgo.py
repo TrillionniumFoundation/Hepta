@@ -152,10 +152,19 @@ class IRPGOTrial(LegacyTrial):
         generated = self.require_core_ir()
         self.build_native_ir(obj, profile["use_flags"], "ir_pgo_resource_object", object_file=True)
         exe = self.out / "resource_hia_irpgo"
-        self.command([self.tools["clang"], "-O3", "-march=native", "-flto=full", "-fuse-ld="+self.tools["linker"],
+        before = self.require_native_ir()
+        # The observer's C code and LTO link must retain the SAME CPU policy as
+        # the bound HIA object. Reconstructing -march=native here can re-enable
+        # masked instructions in the harness even when every HIA function is
+        # correctly bound. Remove only the shared-library presentation flags.
+        observer_flags = [flag for flag in self.flags
+                          if flag not in {"-shared", "-fPIC", "-Wl,-Bsymbolic-functions"}]
+        self.command([self.tools["clang"], *observer_flags,
                       "-std=c11", "-fno-builtin", "-DENTRY="+ENTRY,
                       self.out/"resource_harness.c", obj, "-Wl,--wrap=malloc",
                       "-Wl,--wrap=calloc", "-Wl,--wrap=free", "-o", exe], "ir_pgo_resource_link")
+        after = self.require_native_ir()
+        require(before == after, "native target policy changed during resource observer link")
         for case in self.report["resource_cases"]:
             observed = json.loads(self.command([exe, *case["arguments"], case["refuse_at"]],
                                               "ir_pgo_resource_execution")["stdout"])
@@ -166,7 +175,9 @@ class IRPGOTrial(LegacyTrial):
             require(observed == expected, "IR PGO changed allocation/refusal/cleanup semantics")
         self.report["irpgo_resource_artifacts"] = [identity(obj), identity(exe)]
         self.report["irpgo_resource_scope"] = {"generated_program": generated,
-            "optimization": "O3, full LTO, native CPU; same LLVM/profile, separate observer binary",
+            "optimization": "captured research CPU policy, O3, full LTO; same LLVM/profile, separate observer binary",
+            "observer_flags": observer_flags,
+            "target_policy_before": before, "target_policy_after": after,
             "performance_dso_injected": False}
 
     def verify_artifacts(self):
