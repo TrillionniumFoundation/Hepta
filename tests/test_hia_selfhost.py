@@ -24,6 +24,154 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_authoring_forwarders_preserve_parallel_values_and_ordered_effects(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder, compact_authoring_cfg
+        from tools.hia_selfhost_loans import reference_source
+        from hepta.hia_program import execute_program, verify_program
+        node = ast.parse('''def example(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    a = 17
+    b = 73
+    n = byte(s, 0)
+    while n > 0:
+        old = a
+        if n > 0:
+            a = b
+            b = old
+        store(o, 0, a)
+        store(o, 1, b)
+        n = n - 1
+    return a * 256 + b
+''').body[0]
+        builder = Builder(node, {'example': 'f0'}, {})
+        builder.statements(node.body)
+        original = {'schema': 'hepta.hia.program.v8', 'module': 'forwarding_values', 'functions': [{
+            'name': 'f0', 'params': [builder.param(v) for v in builder.params],
+            'returns': ['u32'], 'effects': ['read', 'write', 'trap'], 'entry': 'b0', 'blocks': builder.blocks}]}
+        frozen = deepcopy(original)
+        compacted = compact_authoring_cfg(original)
+        self.assertEqual(original, frozen)
+        self.assertLess(sum(len(f['blocks']) for f in compacted['functions']),
+                        sum(len(f['blocks']) for f in original['functions']))
+        self.assertEqual(compacted['functions'][0]['blocks'][0], original['functions'][0]['blocks'][0])
+        for n in (0, 1, 2, 3, 8):
+            a, b = (73, 17) if n % 2 else (17, 73)
+            expected = [a * 256 + b] + ([a, b] if n else [201, 202])
+            for doc in (original, compacted):
+                verify_program(doc)
+                case = {'source': render_assembly(doc), 'source_hex': bytes([n]).hex(), 'initial_hex': 'c9ca'}
+                result = execute_program(assemble_program(reference_source(case)), 'reference_entry', [])
+                self.assertEqual(result['values'], expected)
+                self.assertEqual(result['resources']['live_owners'], 0)
+                self.assertEqual(result['resources']['live_local_loans'], 0)
+
+    def test_authoring_forwarders_keep_resource_joins_return_origins_and_loops(self):
+        from tools.generate_hia_selfhost import compact_authoring_cfg
+        from tools.hia_selfhost_cfg_worklist import cases as cfg_cases
+        from tools.hia_selfhost_loans import loan_cases, reference_source
+        from tools.hia_selfhost_returned_loans import cases as returned_cases
+        from tools.hia_selfhost_owned_flow_cases import cases as owned_cases
+        from hepta.hia_program import execute_program
+        rows = [row for row in cfg_cases() if '256' not in row['id'] and '1536' not in row['id']]
+        rows += [row for row in loan_cases() if row['id'] in
+                 {'nested-mutable', 'call-shared-root-aliases', 'shared-siblings-under-mutable'}]
+        from tools.hia_selfhost_owned_flow_cases import INITIAL
+        rows += [{**row, 'source_hex': '', 'initial_hex': INITIAL.hex(),
+                  'expected_hex': row['expected_output_hex']} for row in owned_cases() if row['id'] in
+                 {'flow-owner-and-loan-loop', 'flow-chain-loop', 'flow-buffer-through-two-branches'}]
+        rows += returned_cases()[:4]
+        self.assertGreaterEqual(len(rows), 15)
+        for row in rows:
+            with self.subTest(row=row['id']):
+                original = assemble_program(row['source']).as_dict()
+                # Independently introduce two permuting transfers on every edge.
+                # Resource-bearing parameters and their parents move together.
+                routed = deepcopy(original)
+                for fn in routed['functions']:
+                    blocks = {b['id']: b for b in fn['blocks']}
+                    serial = 0
+                    for block in list(fn['blocks']):
+                        term = block['term']
+                        edges = ([term] if term['op'] == 'jump' else
+                                 [term['then'], term['else']] if term['op'] == 'branch' else [])
+                        for edge in edges:
+                            destination = blocks[edge['target']]
+                            for _ in range(2):
+                                name = 'relay_' + str(serial)
+                                serial += 1
+                                params = [{'name': name + '_p' + str(i), 'type': p['type']}
+                                          for i, p in enumerate(reversed(destination['params']))]
+                                relay = {'id': name, 'params': params, 'ops': [], 'term': {
+                                    'op': 'jump', 'target': edge['target'],
+                                    'args': [p['name'] for p in reversed(params)]}}
+                                edge['target'], edge['args'] = name, list(reversed(edge['args']))
+                                fn['blocks'].append(relay)
+                                destination = relay
+                compacted = compact_authoring_cfg(routed)
+                for doc in (original, routed, compacted):
+                    case = {**row, 'source': render_assembly(doc)}
+                    result = execute_program(assemble_program(reference_source(case)), 'reference_entry', [])
+                    self.assertEqual(result['values'], [row['expected_result'], *bytes.fromhex(row['expected_hex'])])
+                    self.assertEqual(result['resources']['live_owners'], 0)
+                    self.assertEqual(result['resources']['live_local_loans'], 0)
+
+    def test_authoring_forwarders_leave_entry_and_empty_cycles_intact(self):
+        from tools.generate_hia_selfhost import compact_authoring_cfg
+        from hepta.hia_program import execute_program
+        from hepta.hia_program_runtime import HIAProgramBudgetExceeded
+        source = '''hia-asm.v1 hepta.hia.program.v8 cycle
+fn f0(x:u64) -> (u64) effects(trap) entry(start)
+block start(x:u64)
+  jump left(x)
+block left(a:u64)
+  jump right(a)
+block right(b:u64)
+  jump left(b)
+end
+'''
+        doc = assemble_program(source).as_dict()
+        compact_cycle = compact_authoring_cfg(doc)
+        self.assertEqual([b['id'] for b in compact_cycle['functions'][0]['blocks']], ['start', 'left', 'right'])
+        self.assertEqual([b['term']['target'] for b in compact_cycle['functions'][0]['blocks']], ['left', 'right', 'left'])
+        self_loop = deepcopy(doc)
+        self_loop['functions'][0]['blocks'][2]['term']['target'] = 'right'
+        compacted = compact_authoring_cfg(self_loop)
+        self.assertEqual([b['id'] for b in compacted['functions'][0]['blocks']], ['start', 'right'])
+        for candidate in (doc, compact_cycle, self_loop, compacted):
+            with self.assertRaises(HIAProgramBudgetExceeded) as trapped:
+                execute_program(candidate, 'f0', [17], max_steps=20)
+            self.assertEqual(trapped.exception.code, 'steps')
+
+    def test_authoring_scalar_liveness_retains_unobserved_checked_operations(self):
+        from tools.generate_hia_selfhost import compact_authoring_cfg
+        from hepta.hia_program import execute_program
+        from hepta.hia_program_runtime import HIAProgramTrap
+        source = '''hia-asm.v1 hepta.hia.program.v8 scalar_liveness
+fn f0(x:u64) -> (u64) effects(trap) entry(start)
+block start(x:u64)
+  jump work(x,x)
+block work(dead:u64,live:u64)
+  one:u64 = const() {"value":1}
+  ignored:u64 = int.div.checked(one,live)
+  jump finish(dead)
+block finish(forwarded_dead:u64)
+  result:u64 = const() {"value":42}
+  ret(result)
+end
+'''
+        original = assemble_program(source).as_dict()
+        compacted = compact_authoring_cfg(original)
+        blocks = compacted['functions'][0]['blocks']
+        self.assertEqual([p['name'] for p in blocks[1]['params']], ['live'])
+        self.assertEqual(blocks[2]['params'], [])
+        self.assertEqual([b['ops'] for b in blocks], [b['ops'] for b in original['functions'][0]['blocks']])
+        self.assertEqual(compacted['functions'][0]['params'], original['functions'][0]['params'])
+        for doc in (original, compacted):
+            self.assertEqual(execute_program(doc, 'f0', [1])['values'], [42])
+            with self.assertRaises(HIAProgramTrap) as trapped:
+                execute_program(doc, 'f0', [0])
+            self.assertEqual(trapped.exception.code, 'division_by_zero')
+
     def test_shared_failure_guards_preserve_conditional_effects_and_argument_laziness(self):
         import ast
         from tools.generate_hia_selfhost import Builder, source_program

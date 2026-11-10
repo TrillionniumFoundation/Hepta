@@ -135,7 +135,8 @@ The flat-image input is ordinary HIA assembly with the fixed header
 `hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
 bounded ELF object profile described below. Function names are unique Core ASCII
 identifiers of at most 128 bytes; the first definition supplies the public ABI.
-Block names remain contiguous `b0`, `b1`, ... within each function.
+Block names are unique bounded ASCII identifiers within each function; the
+entry remains the first block in source, with at most256blocks per function.
 SSA and formal names use the same bounded ASCII identifier spelling, with at most
 2,048 distinct names per function. The entry block must exactly reproduce the
 signature names and types; each body definition is unique in its function.
@@ -1263,3 +1264,46 @@ regression and failed historical receipts remain retained. General function and
 SSA names do not implement block/module names, composite grammar or the full
 runtime/build/release toolchain. Current-source execution receipts must be
 obtained for this extension; historical v25 results do not qualify v26.
+
+
+## v27 exact-byte block names and bounded lexical discovery
+
+Block declarations, entry names and both forward/backward branch targets now
+resolve through an exact-byte256entry per-function table. It occupies workspace
+[1004304,1010448) with24byte(source offset,byte length,filter hash) records and
+count at488. It does not overlap the SSA/formal-origin/call-graph tables or grow
+the public1MiB scratch allocation. Shared exact identifier lookup returns its
+explicit count sentinel; function lookup still applies its own128function limit.
+
+A discovery pass saves/restores all six lexer state fields and visits the first
+word of each source line. It records only actual block headers, distinguishes
+typed contextual keyword names, and skips other line bodies without interpreting
+them. This is NOT admission: every byte, declaration, operation, resource edge
+and CFG is still checked by the complete original passes. No instruction or
+constant is accepted because discovery skipped its text. Duplicate, undefined,
+malformed, oversized and reserved labels are rejected transactionally. Source
+order assigns indices, preserving all existing CFG/capability/relocation checks.
+The entry must still be the first block; a valid-Core later-entry program is
+retained as an explicit unsupported-profile control, not silently accepted.
+
+The compiler's obsolete numeric-name reader is removed after every use migrated
+to exact identifiers. The current compiler fits118functions/1287blocks/7678ops.
+Independent controls include actual equal-hash aaB/aba branch targets with
+different results, contextual block/end/ret labels and typed keyword SSA names,
+128byte labels, complete256block and1536total-block graphs, forward-source
+capability joins, backedges and whole-compiler function/SSA/block alpha-renaming.
+Formal fresh source replay is required; the v26 receipts do not qualify v27.
+
+The development authoring aid also composes empty parameter-only forwarding
+blocks and removes unobserved scalar edge parameters by backwards liveness.
+All operation operands, returns and branch conditions are liveness roots;
+entry parameters and every resource parameter are always retained. No operation
+is removed, including checked operations whose result is unused. Edge arguments
+are substituted simultaneously, preserving permutations. Empty forwarding
+cycles retain their blocks and divergence. The ordinary Core verifier checks
+both input and result. This reduces the authored compiler from1502 to1287blocks
+and504741 to424706source bytes, with all7678operations retained. It does not
+optimize user inputs, relax their validation, raise limits, or assert equal VM
+step costs. VM controls cover ordered byte effects, scalar permutations, loops,
+external/local loan graphs, returned origins, owner/chain cleanup and an unused
+checked division that must still trap on zero.

@@ -22,7 +22,7 @@ from tools.hia_selfhost_contract import validate_contract
 
 COMPONENTS = (
     ("assembly_frontend", ("hepta/hia_agent_assembly.py",), "partial",
-     "HIA scanner/parser supports general ASCII function/SSA/formal identifiers in the bounded assembly profile; general block identifiers, module syntax and full grammar remain open."),
+     "HIA scanner/parser supports general ASCII function/SSA/formal/block identifiers in the bounded assembly profile; arbitrary entry layout, module syntax and full grammar remain open."),
     ("core_verifier_and_resources", ("hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
      "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification."),
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py"), "open",

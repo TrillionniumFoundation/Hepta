@@ -48,7 +48,8 @@ CAPBASE, KBASE, CAPTMP, QBASE = 875776, 924928, 926464, 926480
 # Separate from block identity and resource parent/root, including at CFG joins.
 ORIGINBASE, BLOCKORIGIN = 928528, 930576
 # BLOCKORIGIN ends at 955152; a per-function 2048-slot exact-name table
-# occupies [955152, 1004304), still within the unchanged 1 MiB workspace.
+# occupies [955152, 1004304); the 256-entry block-name map occupies
+# [1004304, 1010448), still within the unchanged 1 MiB workspace.
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
@@ -176,6 +177,7 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     adjacent(w)
     expect(s, w, 40)
     adjacent(w)
+    discover_blocks(s, w)
     if expect(s, w, 258) != 0:
         fail(w, 4)
     adjacent(w)
@@ -998,7 +1000,7 @@ def expect(s:readbuf, w:mutbuf, kind:u64) -> u64:
     if kind == 256 or kind == 260:
         return read_value_name(s, w, kind)
     if kind == 258:
-        return read_numbered(s, w, kind)
+        return read_block_name(s, w, 0)
     value = get(w, 16)
     if get(w, 8) != kind:
         fail(w, 45)
@@ -1976,7 +1978,89 @@ def total_scalar_functions(nodes):
             return frozenset(total)
 
 
-def document():
+def compact_authoring_cfg(document):
+    """Compose parameter-only forwarding edges in the authoring output.
+
+    This is not an optimization of programs supplied to the native compiler.
+    Both documents pass the ordinary Core verifier. Entry parameters, resource
+    parameters, operations, branch conditions and empty forwarding cycles are
+    retained. Unobserved scalar-only edge parameters are pruned by a backwards
+    fixed point; parallel arguments are substituted simultaneously, never as
+    sequential assignments. VM step counts are not an equivalence claim.
+    """
+    from copy import deepcopy
+    from hepta.hia_program import verify_program
+    verify_program(document)
+    result = deepcopy(document)
+    for function in result['functions']:
+        def edges(block):
+            term = block['term']
+            return ([term] if term['op'] == 'jump' else
+                    [term['then'], term['else']] if term['op'] == 'branch' else [])
+
+        blocks = {b['id']: b for b in function['blocks']}
+        # Operations are NOT dead-code eliminated: every argument of every
+        # operation is a root, including checked/trapping and effectful ops.
+        # Keep ALL resource and entry parameters, even if syntactically unused.
+        scalar = set(TYPES) - {'readbuf', 'mutbuf', 'buffer', 'chain'}
+        live = set()
+        for block in function['blocks']:
+            used = {arg for op in block['ops'] for arg in op['args']}
+            term = block['term']
+            used.update(term['values'] if term['op'] == 'ret' else
+                        [term['cond']] if term['op'] == 'branch' else [])
+            for param in block['params']:
+                typ = param['type']
+                if (block['id'] == function['entry'] or not isinstance(typ, str)
+                        or typ not in scalar or param['name'] in used):
+                    live.add((block['id'], param['name']))
+        while True:
+            previous = set(live)
+            for block in function['blocks']:
+                params = {p['name'] for p in block['params']}
+                for edge in edges(block):
+                    for actual, formal in zip(edge['args'], blocks[edge['target']]['params'], strict=True):
+                        if (edge['target'], formal['name']) in live and actual in params:
+                            live.add((block['id'], actual))
+            if live == previous:
+                break
+        keep = {b['id']: [i for i, p in enumerate(b['params']) if (b['id'], p['name']) in live]
+                for b in function['blocks']}
+        for block in function['blocks']:
+            for edge in edges(block):
+                edge['args'] = [edge['args'][i] for i in keep[edge['target']]]
+            block['params'] = [block['params'][i] for i in keep[block['id']]]
+        while True:
+            candidates = {block['id']: block for block in function['blocks']
+                if block['id'] != function['entry'] and not block['ops']
+                and block['term']['op'] == 'jump'
+                and block['term']['target'] != block['id']
+                and set(block['term']['args']) <= {p['name'] for p in block['params']}}
+            selected = None
+            for name, block in candidates.items():
+                seen = {name}
+                target = block['term']['target']
+                while target in candidates and target not in seen:
+                    seen.add(target)
+                    target = candidates[target]['term']['target']
+                if target not in seen:
+                    selected = block
+                    break
+            if selected is None:
+                break
+            names = [p['name'] for p in selected['params']]
+            for block in function['blocks']:
+                for edge in edges(block):
+                    if edge['target'] == selected['id']:
+                        actual = dict(zip(names, edge['args'], strict=True))
+                        edge['args'] = [actual[name] for name in selected['term']['args']]
+                        edge['target'] = selected['term']['target']
+            function['blocks'] = [b for b in function['blocks'] if b is not selected]
+    verify_program(result)
+    return result
+
+
+def document(*, compact=True):
     nodes=ast.parse(source_program()).body
     # Source order deliberately contains backward direct calls. The HIA
     # compiler's call-graph checker, not author-time topological numbering,
@@ -1992,7 +2076,8 @@ def document():
         b=Builder(n,names,sigs,total_calls)
         b.statements(n.body)
         functions.append({'name':names[n.name],'params':[b.param(x) for x in b.params],'returns':[b.returns], 'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    return {'schema':'hepta.hia.program.v8','module':'selfhost','functions':functions},names
+    doc = {'schema':'hepta.hia.program.v8','module':'selfhost','functions':functions}
+    return (compact_authoring_cfg(doc) if compact else doc), names
 
 
 def main():

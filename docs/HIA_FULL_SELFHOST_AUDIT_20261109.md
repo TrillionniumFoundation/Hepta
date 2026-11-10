@@ -50,7 +50,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
-| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal names and exact lookup | General block identifiers, full module grammar and diagnostics |
+| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal/block names and exact lookup | Arbitrary entry declaration order, full module grammar and diagnostics |
 | Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
@@ -467,3 +467,47 @@ The exact workflow source-test body was then executed on clean committed
 with Git clean before and after. A separate unchanged checkout of that commit
 is running the wider HIA/shared-Core inventory; that is not full-repository
 coverage. The older all-repository41a317a run is still separately in progress.
+
+### v27 block identifiers and retained compiler-generation operations
+
+Block definitions, entry references and forward/backward edges now resolve exact
+ASCII identifiers through a256-entry source-order discovery table, occupying
+workspace[1004304,1010448). Discovery skips non-header line bodies only to collect
+names; all original syntax, SSA, type, ownership and CFG checks still execute.
+The entry must still be the first declared block. Its valid-Core later-entry
+control remains an explicit profile refusal. Actual equal-hash labels, keyword
+labels,128byte names,256/1536block graphs, capability joins and backedges remain
+independent VM and original/modified native witnesses. Whole-compiler alpha
+renaming now covers all function, SSA/formal AND block labels.
+
+Two180second cold timeouts are retained as failures. Authoring-only CFG compaction
+removes215empty forwarding blocks and unobserved scalar edge parameters, retaining
+all7678operations, entry/resource parameters and all operation operands as
+liveness roots. Parallel substitutions preserve parameter permutations; empty
+cycles retain divergence, and unused checked results still trap. Both documents
+pass the ordinary Core verifier. This does not optimize accepted user programs
+or assert identical VM step cost. Four focused VM controls include ordered writes,
+loops, resources, returned origins and checked division. Source/reference tests
+pass66; no deadline/capacity or witness inventory was reduced.
+
+Final source-bound cold replay passes **11/11**, native **4257/4257** in
+**166.476seconds**; original B1/B2/B3 and modified M2/M3 fixed points are distinct
+and byte-identical within their own chains. Language regression passes
+**1196/1196** plus10native-report assertions. The compiler now has118functions,
+1287blocks,7678operations and424706source bytes. Exact source manifests and
+retained failures are in `v27-block-identifiers-summary.json`. These are local
+finite observations, not whole-stack or all-input qualification.
+
+GitHub checks on prior head`dbd98fd` still failed cold and the unified suite's
+cold test (589tests,1failure) at the unchanged180second deadline. Local passes
+do not replace remote failures. New source requires its own CI execution.
+
+The clean9663be1 HIA/shared-Core inventory has now completed **4409tests from
+477modules,0failures,2class-setup errors,0skips**. Source stayed unchanged and
+Git clean, but inventory execution is incomplete. Both errors are STB capture
+initializations. The unchanged exact-source captures pass in isolated execution
+and after importing all477test modules with the same environment; the run-order
+or process-state cause remains OPEN. `v26-full-hia-test-run-summary.json` retains
+the failed result. Neither isolated capture nor the separate current compiler
+checks relabel that full run successful. The older41a317a all-repository run
+continues separately and does not contain later fixes.

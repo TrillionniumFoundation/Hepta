@@ -58,14 +58,16 @@ def same_identifier(s:readbuf, w:mutbuf, base:u64) -> u64:
         i = i + 1
     return 1
 
-def lookup_function(s:readbuf, w:mutbuf, count:u64) -> u64:
+def lookup_identifier(s:readbuf, w:mutbuf, base:u64, stride:u64, count:u64) -> u64:
     i = 0
+    record = 0
     while i < count:
-        if get(w, FBASE + i * FSTRIDE + 256) == get(w, 472):
-            if same_identifier(s, w, FBASE + i * FSTRIDE + 240) == 1:
+        record = base + i * stride
+        if get(w, record + 16) == get(w, 472):
+            if same_identifier(s, w, record) == 1:
                 return i
         i = i + 1
-    return 128
+    return count
 
 def read_function_name(s:readbuf, w:mutbuf, definition:u64) -> u64:
     if get(w, 32) != 1 - definition:
@@ -83,7 +85,7 @@ def read_function_name(s:readbuf, w:mutbuf, definition:u64) -> u64:
             return fail(w, 2)
         base = FBASE + f * FSTRIDE
         if get(w, 48) == 0 and get(w, 432) == 1:
-            if lookup_function(s, w, f) != 128:
+            if lookup_identifier(s, w, FBASE + 240, FSTRIDE, f) != f:
                 return fail(w, 67)
             put(w, base + 240, get(w, 456))
             put(w, base + 248, get(w, 464))
@@ -95,33 +97,11 @@ def read_function_name(s:readbuf, w:mutbuf, definition:u64) -> u64:
         # All signatures and exact names are discovered before any semantic
         # admission. No placeholder call graph or self-tail identity is used.
         if get(w, 432) == 0:
-            f = lookup_function(s, w, get(w, 1024))
-            if f == 128:
+            f = lookup_identifier(s, w, FBASE + 240, FSTRIDE, get(w, 1024))
+            if f == get(w, 1024):
                 return fail(w, 23)
     next_token(s, w)
     return f
-
-def read_numbered(s:readbuf, w:mutbuf, kind:u64) -> u64:
-    quoted = get(w, 32)
-    prefix = 118
-    if kind == 258:
-        prefix = 98
-    expected_quote = 0
-    if kind == 260:
-        expected_quote = 1
-    begin = get(w, 24) + quoted
-    end = get(w, 0) - quoted
-    if quoted != expected_quote or end <= begin + 1:
-        return fail(w, 48)
-    if byte(s, begin) != prefix:
-        return fail(w, 48)
-    value = decimal(s, w, begin + 1)
-    if get(w, 0) != end:
-        return fail(w, 48)
-    put(w, 0, end + quoted)
-    if get(w, 40) == 0:
-        next_token(s, w)
-    return value
 ''' + _reserved_source() + r'''
 
 def read_value_name(s:readbuf, w:mutbuf, kind:u64) -> u64:
@@ -172,6 +152,65 @@ def instruction_ahead(s:readbuf, w:mutbuf) -> u64:
     return 0
 
 '''
+
+
+SOURCE += r"""
+def read_block_name(s:readbuf, w:mutbuf, definition:u64) -> u64:
+    if get(w, 32) != 0:
+        return fail(w, 48)
+    identifier(s, w)
+    if get(w, 40) != 0:
+        return 0
+    count = get(w, 488)
+    index = lookup_identifier(s, w, 1004304, 24, count)
+    if definition == 1:
+        if index != count or count >= 256:
+            return fail(w, 11)
+        put(w, 1004304 + count * 24, get(w, 456))
+        put(w, 1004304 + count * 24 + 8, get(w, 464))
+        put(w, 1004304 + count * 24 + 16, get(w, 472))
+        put(w, 488, count + 1)
+    else:
+        if index == count:
+            return fail(w, 19)
+    next_token(s, w)
+    return index
+
+def discover_blocks(s:readbuf, w:mutbuf) -> u64:
+    # Lexical name discovery only. Every declaration, instruction and edge is
+    # still admitted by the unchanged complete semantic passes afterwards.
+    pos = get(w, 0)
+    token = get(w, 8)
+    value = get(w, 16)
+    begin = get(w, 24)
+    quoted = get(w, 32)
+    previous = get(w, 120)
+    put(w, 488, 0)
+    # Opaque line skipping is discovery only, never language admission. The
+    # normal parser still validates every byte, opcode and edge afterwards.
+    # Avoid lexing all instruction operands an extra time just to find labels.
+    first_line = 1
+    scan = 0
+    while (first_line == 1 or get(w, 8) != @end@ or instruction_ahead(s, w) != 0) and get(w, 40) == 0:
+        if first_line == 0 and get(w, 8) == @block@ and instruction_ahead(s, w) == 0:
+            next_token(s, w)
+            read_block_name(s, w, 1)
+        first_line = 0
+        scan = get(w, 0)
+        while scan < length(s) and byte(s, scan) != 10:
+            scan = scan + 1
+        if scan == length(s):
+            return fail(w, 46)
+        put(w, 0, scan + 1)
+        next_token(s, w)
+    put(w, 0, pos)
+    put(w, 8, token)
+    put(w, 16, value)
+    put(w, 24, begin)
+    put(w, 32, quoted)
+    put(w, 120, previous)
+    return 0
+"""
 
 
 def name_hash(name):
@@ -229,6 +268,89 @@ def renamed_values(source, spellings=None):
     result = render_assembly(doc).encode()
     assemble_program(result)
     return result
+
+
+def renamed_blocks(source, spellings=None):
+    """Reverify all label definitions, entry names and forward/backward edges."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    for fi, fn in enumerate(doc['functions']):
+        mapping = {block['id']: (spellings[i] if spellings is not None and i < len(spellings)
+                                else 'node_' + str(fi) + '_' + str(i))
+                   for i, block in enumerate(fn['blocks'])}
+        fn['entry'] = mapping[fn['entry']]
+        for block in fn['blocks']:
+            block['id'] = mapping[block['id']]
+            term = block['term']
+            if term['op'] == 'jump':
+                term['target'] = mapping[term['target']]
+            elif term['op'] == 'branch':
+                for arm in ('then', 'else'):
+                    term[arm]['target'] = mapping[term[arm]['target']]
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def block_cases():
+    from tools.hia_selfhost_bulk import Body
+    from tools.hia_selfhost_cases import HEADER
+    b = Body()
+    index = b.const('usize', 0)
+    byte = b.value('u8', 'buffer.load', ['v0', index])
+    cond = b.value('bool', 'compare.eq', [byte, b.const('u8', 0)])
+    source = HEADER + b.text() + '  branch ' + cond + ' b1(v1) b2(v1)\n'
+    for i, amount in enumerate((17, 73)):
+        parent = 'v' + str(19 + i * 20)
+        b = Body(20 + i * 20)
+        value = b.const('u8', amount)
+        b.effect('buffer.store', [parent, b.const('usize', 0), value])
+        result = b.const('u32', amount)
+        source += 'block b' + str(i + 1) + '(' + parent + ':mutbuf)\n' + b.text() + '  ret(' + result + ')\n'
+    source += 'end\n'
+    # A typed end/block/ret name must not be a declaration or terminator during
+    # discovery. The complete original parser still checks its real syntax.
+    source = renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+    rows = []
+    for i, spellings in enumerate((['entry', 'aaB', 'aba'], ['block', 'end', 'ret'],
+            ['_', 'b00', 'b18446744073709551615'], ['b', 'prefix', 'prefix_more'],
+            ['n' * 128, 'N' * 128, 'tail_' + 'z' * 123])):
+        changed = renamed_blocks(source, spellings)
+        for data in (0, 73, 255):
+            result = 17 if data == 0 else 73
+            program = 'block-spellings-' + str(i)
+            rows.append({'id': program + '-' + str(data), 'program': program, 'source': changed.decode(),
+                'source_hex': bytes([data]).hex(), 'initial_hex': 'a5', 'expected_result': result,
+                'expected_hex': bytes([result]).hex()})
+    from tools.hia_selfhost_cfg_worklist import cases as cfg_cases
+    selected = {'reverse-256-scalar', 'reverse-256-read', 'reverse-256-mut',
+        'reverse-1536-six-functions', 'late-matching-root-join', 'late-matching-parent-join',
+        'reverse-loop-backedge', 'reverse-join-arm-0', 'reverse-join-arm-1'}
+    for row in cfg_cases():
+        if row['id'] in selected:
+            rows.append({**row, 'id': 'named-' + row['id'], 'program': 'named-' + row['id'],
+                'source': renamed_blocks(renamed_values(row['source'].encode())).decode()})
+    if len(rows) != 24:
+        raise AssertionError('block-name reference inventory changed')
+    return rows
+
+
+def block_refusals():
+    source = block_cases()[0]['source']
+    rows = []
+    for name in ['n' * 129, '__hia_block', 'bad.name', 'bad-name', '1bad', '汉字']:
+        rows.append({'id': 'block-invalid-' + str(len(rows)),
+            'source': source.replace('aaB', name), 'general_core_expected': 'rejected'})
+    rows += [{'id': 'block-duplicate-name', 'source': source.replace('aaB', 'aba'), 'general_core_expected': 'rejected'},
+        {'id': 'block-missing-target', 'source': source.replace(' aaB(', ' absent(', 1), 'general_core_expected': 'rejected'},
+        {'id': 'block-incoming-entry', 'source': source.replace(' aaB(', ' entry(', 1), 'general_core_expected': 'rejected'}]
+    later = ('hia-asm.v1 hepta.hia.program.v8 selfhost\n'
+        'fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(later)\n'
+        'block earlier()\n  v3:u32 = const() {"value":7}\n  ret(v3)\n'
+        'block later(v0:readbuf,v1:mutbuf,v2:mutbuf)\n  jump earlier()\nend\n')
+    rows.append({'id': 'block-nonfirst-entry-remains-profile-boundary', 'source': later,
+                 'general_core_expected': 'accepted'})
+    return rows
 
 
 def core_observed_case(name, source):
@@ -384,7 +506,7 @@ def independent_reference():
     from tools.generate_hia_selfhost import document
     from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
     rows = []
-    for row in [*cases(), *value_cases()]:
+    for row in [*cases(), *value_cases(), *block_cases()]:
         checked = assemble_program(row['source'].encode())
         machine = _Machine(checked, 1_000_000, 16 << 20, None, 256)
         roots = [_Owner(-1, bytearray.fromhex(row['source_hex'])),
@@ -398,10 +520,12 @@ def independent_reference():
             raise AssertionError({'case': row['id'], 'reference': result, 'output_hex': roots[1].data.hex()})
         rows.append({**row, 'core_sha256': checked.sha256, 'reference': result})
     rejected = []
-    for row in [*refusals(), *value_refusals()]:
+    for row in [*refusals(), *value_refusals(), *block_refusals()]:
         try:
             assemble_program(row['source'].encode())
         except HIAProgramRejected as error:
+            if row['general_core_expected'] != 'rejected':
+                raise AssertionError('valid profile exclusion became a Core error: ' + row['id']) from error
             rejected.append({**row, 'reference': {'status': 'rejected', 'code': error.code}})
         else:
             if row['general_core_expected'] != 'accepted':
@@ -411,7 +535,7 @@ def independent_reference():
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):
-        renamed = renamed_values(renamed_source(source, mapping))
+        renamed = renamed_blocks(renamed_values(renamed_source(source, mapping)))
         alpha[label] = {'source': renamed.decode(), 'core_sha256': assemble_program(renamed).sha256,
             'canonical_core_sha256': assemble_program(source).sha256}
     return {'before_B0': True, 'cases': rows, 'refusals': rejected, 'alpha_compiler': alpha,

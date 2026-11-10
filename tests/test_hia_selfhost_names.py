@@ -6,7 +6,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_names import (cases, independent_reference, name_hash,
-    refusals, renamed_source, value_cases, value_refusals, renamed_values)
+    refusals, renamed_source, value_cases, value_refusals, renamed_values, block_cases, block_refusals, renamed_blocks)
 
 
 class SelfhostFunctionNameTests(unittest.TestCase):
@@ -24,8 +24,8 @@ class SelfhostFunctionNameTests(unittest.TestCase):
         self.assertTrue(report['before_B0'])
         self.assertFalse(report['all_input_correctness_proved'])
         self.assertFalse(report['whole_stack_rewrite_complete'])
-        self.assertEqual(len(report['cases']), 62)
-        self.assertEqual(len({r['program'] for r in report['cases']}), 22)
+        self.assertEqual(len(report['cases']), 86)
+        self.assertEqual(len({r['program'] for r in report['cases']}), 36)
         for row in report['cases']:
             self.assertEqual(row['reference']['values'], [row['expected_result']])
             self.assertEqual(row['reference']['resources']['live_owners'], 0)
@@ -73,6 +73,26 @@ class SelfhostFunctionNameTests(unittest.TestCase):
         checked = assemble_program(changed).as_dict()
         self.assertEqual(sum(len(f['blocks']) for f in checked['functions']),
                          sum(len(f['blocks']) for f in doc['functions']))
+
+    def test_block_names_preserve_collisions_forward_cfg_full_tables_and_entry_boundary(self):
+        rows = block_cases()
+        self.assertEqual(len(rows), 24)
+        self.assertEqual(len({r['program'] for r in rows}), 14)
+        counts = [sum(len(fn['blocks']) for fn in assemble_program(r['source']).as_dict()['functions'])
+                  for r in rows]
+        self.assertIn(256, counts)
+        self.assertIn(1536, counts)
+        for row in block_refusals():
+            with self.subTest(case=row['id']):
+                if row['general_core_expected'] == 'accepted':
+                    assemble_program(row['source'])
+                else:
+                    with self.assertRaises(HIAProgramRejected):
+                        assemble_program(row['source'])
+        changed = renamed_blocks(rows[0]['source'].encode())
+        doc = assemble_program(changed).as_dict()
+        for fn in doc['functions']:
+            self.assertEqual(fn['entry'], fn['blocks'][0]['id'])
 
 
 if __name__ == '__main__':

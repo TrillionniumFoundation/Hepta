@@ -77,6 +77,14 @@
   },
   "limits": {
     "acyclic_call_depth_max": 128,
+    "block_entry_must_be_first_in_source": true,
+    "block_name_count_offset": 488,
+    "block_name_discovery": "source-order label discovery before full semantic parsing; forward/backward exact lookup",
+    "block_name_record_stride": 24,
+    "block_name_workspace_bytes": [
+      1004304,
+      1010448
+    ],
     "blocks_per_function": 256,
     "blocks_total": 1536,
     "core_structural_nodes": 262144,
@@ -146,7 +154,7 @@
     "tail_self_call_additional_frames": 0,
     "workspace_required_bytes": 1048576
   },
-  "profile": "selfhost-core-linux-x86_64-v26",
+  "profile": "selfhost-core-linux-x86_64-v27",
   "required_replay": {
     "cold_command": "python -B tools/replay_hia_selfhost_cold.py --output <new-report.json>",
     "fixed_point": "B1 == B2 == B3 bytes",
@@ -177,10 +185,10 @@
       "stdin/stdout descriptor contracts"
     ],
     "files": {
-      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "3bcab7c16e3062b8f0a431a60bd6a9fe5e1382483dd171dedd6759d01e0d4923",
-      "docs/HIA_SELF_HOSTING_CORE.md": "c09884417a6779962ccfa63a3bd80d4dfd2bf6200de2494d9f964b484e61aeb6",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "823202a50ca5272b81ace8398e3d29e87a91ba873753720dec2a2ace8187beee",
+      "docs/HIA_SELF_HOSTING_CORE.md": "8bb64afd47c9a8a6f968f9433deda5954aa26c686a1b078ca1f66ec6f993b512",
       "examples/hia_bootstrap/bytesum.hiaasm": "74bbcc3a6e0ac0962ec32017f4d8c971c91bca0f53c3de7846d65de6194ce4ae",
-      "examples/hia_bootstrap/selfhost.hiaasm": "91638a9bbe7f836b9993b2d295ed46c00fb329a4f4fcb59b1603691d8aa1c8d9",
+      "examples/hia_bootstrap/selfhost.hiaasm": "de324e16c998477f2cc7cc856984696e65ef0962bee876075f73fe9bdc96662e",
       "hepta/__init__.py": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2",
       "hepta/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
       "hepta/agent_contract_diff.py": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1",
@@ -393,20 +401,20 @@
       "hepta/static_resource_contracts.py": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01",
       "hepta/windows_capture.py": "0daadfd048cdf08d31344cd2485e78ef3efaac4055850f0ea13501e813414baa",
       "hepta/workspace.py": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef",
-      "tests/test_hia_selfhost.py": "f155904a54ef7a528af477faf03e9581d26cb53397a1722a9236bf66edb3e5f2",
+      "tests/test_hia_selfhost.py": "e08a03b0209f8b2545fa5a86dfb45fa51e02a89b6e42881aee97e7e4c0eecd9c",
       "tests/test_hia_selfhost_chain.py": "63ed06fa164d02f24c46c4cb1f3a4c7d0bbaeca514dadc941293d60e27a6d44b",
       "tests/test_hia_selfhost_cli.py": "6f6f32425f85293692d178f10553b958190455495ac3a2e82c35675e5c5741c0",
       "tests/test_hia_selfhost_contract.py": "910bf17db31f7b1023938f07e36973c7b3081154299662698ae498fe81ba9301",
       "tests/test_hia_selfhost_keywords.py": "0178813e27994ee304cef9ddacbe99269dedfb031e571e27ac03194fb7d7aa5f",
       "tests/test_hia_selfhost_language_coverage.py": "c69a93a48601b23e8ef312ac271c3a4cd3f59cdbb37872411efed73b75ea10d5",
       "tests/test_hia_selfhost_multi_results.py": "5ceeb6ce77b3e6340c273c0789dd4781b1dbc79e78a95b9f445cbbdda1ab1ff5",
-      "tests/test_hia_selfhost_names.py": "9ba5bbadb6a550b5550899a7b9e3bfd0576840772d2faab7bdb4b32408d2b917",
+      "tests/test_hia_selfhost_names.py": "d847b53e0fd91446b0753807341d189f6abdd0f713ebf7efd8b49aca53dbd42e",
       "tests/test_hia_selfhost_owned_flow.py": "e9da12c4fd2e40bbb7fd804986801002c4f2e8eecabc4634158064348aa0a520",
       "tests/test_hia_selfhost_process_owner.py": "888a3b0652aed4c8b724d99792bf02b4765a5340fb8b585cc557a1f86a571fab",
       "tests/test_hia_selfhost_returned_loans.py": "8987e10dd5cd14abd912926a555621acf9a0c4b4cf5c68ebca4f9b80827f7542",
       "tests/test_hia_selfhost_signed.py": "32c9687f838e1f9115a1ac75dfbd2ad4edf6d8c80c31369624c04a230546a0e0",
       "tests/test_hia_selfhost_traps.py": "54e68a4890cb238e154f1889033ee656a34a74059cb984d1406c23943e8175ce",
-      "tools/generate_hia_selfhost.py": "79781cf8d5031a8008447aef04a36083e28e52f593440d41d16a64bf03ce4dcf",
+      "tools/generate_hia_selfhost.py": "54abacdab9c8fafa9dc7a59e7c7b1b433a10fea1091cf964d5f692b76d340663",
       "tools/generate_hia_selfhost_contract.py": "fa752ad75b91575419f6a389049f17a171abbb3647e2a4a0ad0bd334dd7ba980",
       "tools/hia_selfhost_batch.py": "c245170ebfbc6591aaac16be662961861d353f11190fb4e73f386e4d80952928",
       "tools/hia_selfhost_bulk.py": "076a2cd18fe0594957523343ff862a2a355a32cc417958eedca4f964ea23b661",
@@ -421,13 +429,13 @@
       "tools/hia_selfhost_child.py": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
       "tools/hia_selfhost_cli.py": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f",
       "tools/hia_selfhost_cli_child.py": "46229de9524b795df54d2b4ba49789c4c0a2174ed25318d68d135427d6353289",
-      "tools/hia_selfhost_contract.py": "9341cf475af5efc32dc921f59be22c144c754495575a1d2e2837acb39ebc8fb1",
+      "tools/hia_selfhost_contract.py": "f704d825bb3730767528938988db6563f53e2b0f65463dc1fac7ae50c00fdcf6",
       "tools/hia_selfhost_effects.py": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf",
       "tools/hia_selfhost_keywords.py": "520ab33266a408a67135ec21390e0ad29534832ca973c3e088d4d1442e78b9cc",
       "tools/hia_selfhost_limits.py": "6bcf8c044b86a2a5a57c5b3b0f70d20b38882c3b9c29341d83e8f295efa0a783",
       "tools/hia_selfhost_loans.py": "29f76ed70b35131604719ad32f4ab582834472aea13fc042b917d9cf9a8c6829",
       "tools/hia_selfhost_multi_results.py": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f",
-      "tools/hia_selfhost_names.py": "d5a10c1853fc19cef4fcc684268c845f18463bbc05f4178a9b19eb38c167b352",
+      "tools/hia_selfhost_names.py": "d090b62af428d159d0e4504a0ef69c108c2faf53706a6ae3d0b7cfa5c23dc4ca",
       "tools/hia_selfhost_owned_elf.py": "182b95a4fab6bc9b1a7c2a13c89291f618e57b9179519eb855640e2e2d5f04de",
       "tools/hia_selfhost_owned_elf_cases.py": "9960b6af866464846a0db3703f0ff4bcb6dea87f123639a80a5ea0b7ef8e3467",
       "tools/hia_selfhost_owned_flow_cases.py": "1abe0bc7af741771dc49c4f629586b48d4096f1090daf4404edfc990273cbd98",
@@ -659,7 +667,8 @@
       "items": [
         "unbounded result arities and composite resource-bearing results",
         "module graph",
-        "general block/module identifiers",
+        "arbitrary entry declaration order",
+        "general module grammar",
         "all resource combinations"
       ],
       "status": "not_implemented"
@@ -698,7 +707,7 @@
     }
   ],
   "syntax": {
-    "block_names": "contiguous b0..b255 per function",
+    "block_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 256 declarations per function; entry is first source block; Core __hia_ prefix rejected",
     "core": "hepta.hia.program.v8",
     "effect_clauses": "any ordered duplicate-free subset of alloc,read,write,trap, including effects()",
     "executable_module": "selfhost_exec",
