@@ -13,8 +13,10 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v30"
+PROFILE = "selfhost-core-linux-x86_64-v31"
 SOURCE_FILES = (
+    "tools/generate_hia_source_types.py", "tools/build_hia_source_types.py",
+    "tests/test_hia_source_types_native.py", "examples/hia_bootstrap/source_types.hiaasm",
     "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",
     "tests/test_hia_core_json_cli.py", "examples/hia_bootstrap/core_json_cli_packer.hiaasm",
     "tests/test_hia_selfhost_word_io.py",
@@ -224,6 +226,26 @@ def support_contract(root=ROOT):
             "structural_node_gate": "exact Core JSON value/container nodes, checked in each full native source pass; queued block validation preserves the full-pass count",
             "capacity_growth_changes_source_output_workspace_bytes": False,
         },
+        "source_types_application": {"status": "bounded_subset",
+             "source": "examples/hia_bootstrap/source_types.hiaasm",
+             "selection": "HEPTA_HIA_SOURCE_TYPES_MANIFEST; default reference unchanged",
+             "manifest_schema": "hepta.hia.source-types-native.v1",
+             "input_bytes": 8388608, "maximum_nodes": 1048576,
+             "maximum_type_depth": 128, "existing_parser_nesting_limit": 96,
+             "caller_remaining_depth_preserved": True, "workspace_bytes": 8512,
+             "stack": {"offset": 320, "frame_bytes": 64, "maximum_frames": 128,
+                       "native_or_VM_recursion_required": False},
+             "arena_header_bytes": 64, "arena_node_bytes": 80,
+             "passes": "validation/count before output publication; deterministic arena emission",
+             "items": ["complete existing source type grammar, not declarations or expressions",
+                       "qualified paths, interspersed lifetime/type arguments and builtin arity",
+                       "arrays/slices, explicit-lifetime read/mut references, raw const/mut pointers",
+                       "exact consumed character/byte cursor; partial >> and >= generic closes",
+                       "array integer magnitudes decoded by the bundled actual HIA source lexer"],
+             "still_foreign": ["HIA authoring generator", "trusted image loader and selection/build",
+                               "Token/Span/Diagnostic/Type object allocation and arena/cursor validation",
+                               "declaration/statement/expression grammar", "semantic type checker",
+                               "module/package resolution", "runtime, tooling and complete release chain"]},
         "source_lexer_application": {"status": "bounded_subset",
              "source": "examples/hia_bootstrap/source_lexer.hiaasm",
              "selection": "HEPTA_HIA_SOURCE_LEXER_MANIFEST; default reference unchanged",

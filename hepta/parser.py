@@ -32,7 +32,15 @@ class Parser:
     def __init__(self, source: str, path: str = "<input>") -> None:
         self.source = source
         self.path = path
-        self.tokens = tokenize(source, path)
+        import os
+        selected = os.environ.get('HEPTA_HIA_SOURCE_TYPES_MANIFEST')
+        self.native_types = None
+        if selected:
+            from .hia_source_types_native import installed_source_types
+            self.native_types, self.native_type_lexer = installed_source_types(selected)
+            self.tokens = self.native_type_lexer.tokenize(source, path)
+        else:
+            self.tokens = tokenize(source, path)
         self.position = 0
         self.depth = 0
         self.qualified_expressions: list[tuple[str, Span]] = []
@@ -353,6 +361,14 @@ class Parser:
         self._expect(">", "Expected '>' after a generic element type")
 
     def _type(self) -> Type:
+        if self.native_types is None:
+            return self._reference_type()
+        from .hia_source_types_native import parse_type
+        with self._nested():
+            return parse_type(self, self.native_types, self.native_type_lexer,
+                              _MAX_NESTING - self.depth + 1, _MAX_NESTING)
+
+    def _reference_type(self) -> Type:
         with self._nested():
             if self.current.kind in {"read", "mut"}:
                 mode = self._advance().value

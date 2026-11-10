@@ -2,40 +2,63 @@
 
 ## Decision and source authority
 
-**Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
-is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified combined implementation contains a live `hepta/` package with
-219 Python files, 76,738 lines and 4,154,660 bytes. These are source inventory figures, not a
-percentage-completion estimate. Archived copies and example source files are
-not counted as production replacements.
+**Whole-stack rewrite is OPEN, not complete.** This continuation adds an
+operator-selected source type parser in HIA. It recognizes the complete existing
+type grammar with an explicit bounded stack: qualified paths, generic arguments
+and lifetimes, arrays/slices, read/mut references and raw const/mut pointers.
+It is not a declaration/expression parser or a semantic type checker. Default
+backends and old implementations remain unchanged, pending whole-stack closure.
+The new implementation requires its own fresh qualification; baseline results
+below are not automatically evidence for the changed source.
 
-The streaming checkpoint inventories **418 Python files /132664lines** under `tools/`,
-separately from the production package. These include host authoring, build,
-qualification and delivery authorities: they have not been rewritten merely
-because a generated compiler reproduces itself. Package plus tool roots total
-637Python files. The subsequent qualified standalone JSON CLI has420tools/
-132951lines and219package files:639Python files combined. Its two new host
-build/authoring tools are not rewritten production authorities. Tests, historical
-evidence, experiments, examples, benchmarks
-HIA. The qualified `c57fb17e` snapshot contains a live `hepta/` package with 219 Python
-files, 76,801 lines and 4,158,877 bytes. These are source inventory figures, not a
-percentage-completion estimate. Archived copies and example source files are
-not counted as production replacements.
+### Latest qualified baseline (before source type parsing)
 
-The audit also inventories **423 Python files /133629lines** under `tools/`,
-separately from the production package. These include host authoring, build,
-qualification and delivery authorities: they have not been rewritten merely
-because a generated compiler reproduces itself. Package plus tool roots total
-642Python files. Tests, historical evidence, experiments, examples, benchmarks
-and formal-support scripts are explicitly outside those two AST-inventory roots;
-no claim that those excluded roots are HIA replacements is made. Current file
-hashes/imports and these scope exclusions are reconstructable losslessly from
-`implementation-boundary-v28.json` plus the versioned lossless inventory deltas.
-The prior clean `1b45c4e` snapshot accounts for **all10,027 tracked paths**
-by identity, role and language, distinguishing research/evidence from live code.
-Its live non-Python support inventory includes46Rust,8C and9Lean source files;
-none is silently counted as rewritten in HIA. Whole-tree file accounting is not
-a semantic review, execution qualification or completion percentage.
+The latest combined executable
+qualification subject is `4f95ee91fd3aac0513135e22512f310ed806267d`; current
+assembly-aware inventory subject is `115d042`, with all328qualified cold payloads
+preserved byte-for-byte through review head `d7d1a34` (draft PR #845).
+
+The qualified baseline `hepta/` package has **220 Python files /76,872lines /
+4,161,818bytes**. Separately, baseline `tools/` has **428 Python files /134,502lines /
+7,704,073bytes**. The648combined files include foreign authoring, build,
+qualification and delivery authorities; tools are not all production runtime.
+These inventories are neither a completion percentage nor proof of semantic
+replacement. Assembly `.S`/`.s` support files are now explicitly classified,
+not silently counted as HIA. Tests, historical evidence, experiments, examples,
+benchmarks and formal-support scripts are outside those two Python roots, but
+remain accounted for by tracked-file identity and role in the lossless audits.
+
+Current combined local evidence is108source tests, cold11/11+5,049native checks
+in101.204seconds under180+3seconds,1,242language checks+10assertions,96native
+component tests,15shared-identity controls,83selected+83default consumers,
+55selected incremental tests and63selected+63default parser/module callers.
+The audit ledger remains **3partial/5open**. A separately frozen full-repository
+run at4f95ee9 is pending. Remote CI atd7d1a34 has passed all four source, cold, native and language
+jobs (run42766783539). The cold native checks took174.082seconds under
+the unchanged180second deadline. No
+full-repository or whole-stack PASS is established. Earlier shared-observer remote b4b1e4c timed
+out at180seconds (28/38phases, cleanup complete), and remains FAIL despite local
+passes and an earlier a19b612 remote success.
+
+Exact current inventories reconstruct from `implementation-boundary-v28.json`
+plus `implementation-boundary-integrated-stack-delta.json` and the separately
+labelled `implementation-boundary-integrated-current-inventory-delta.json`.
+See `integrated-native-stack-summary.json` and
+`integrated-current-inventory-summary.json` for distinct executable/inventory
+subjects and source-equivalence evidence. Main/release locks, production and
+default backends have not been switched.
+
+### Historical qualified checkpoints (not current closure claims)
+
+The streaming bd3e9c2 snapshot had219package+418tool Python files; standalone
+CLI bc9aa4a had219+420; integrated CLI/exports5fb6357 had219+424; the separate
+source-integer c57fb17 snapshot had219+423. Their exact hashes, import inventories
+and receipts are retained in the corresponding public summaries/deltas. They
+are not substitutions for current combined-source qualification. The older
+clean1b45c4e inventory accounts for10,027tracked paths, including46Rust,8C and
+9Lean live support sources; whole-tree file accounting was not semantic or
+execution qualification. Historical full-suite failures retain their original
+status. The chronology below describes those checkpoints, not the current head.
 
 **Streaming qualification:** Native HIA Core JSON representation, one-shot SHA and
 incremental SHA are integrated in the current candidate. Exact implementation
@@ -1460,3 +1483,47 @@ support. Tools are not all production runtime. The component ledger remains
 platform and clean-machine real-project closure remain **OPEN**. Defaults,
 production activation and old-stack removal are unchanged. No required legacy
 source has been deleted; retirement follows complete qualified replacement.
+
+
+## Source type parser continuation — explicit native grammar, not whole closure
+
+The standalone HIA application has a two-pass count/validate then emit arena ABI.
+It uses8512bytes of private workspace,128frames of64bytes starting at320, and
+80-byte nodes after a64-byte header. Its input is a type prefix and lookahead,
+not a whole compilation unit. Input is bounded to8MiB, nodes to1Mi; the existing
+parser's96nesting budget is preserved using its remaining depth, never raised.
+Arrays use the bundled real HIA lexer magnitude decoder, not a Python literal
+parser. Generic `>>` and `>=` split/cursor positions preserve existing callers.
+
+Explicit selection uses `HEPTA_HIA_SOURCE_TYPES_MANIFEST=/.../manifest.json`.
+`python -B -m tools.build_hia_source_types --compiler <completed-B3>
+--cold-report <matching-cold-report> --output <new-private-directory>` builds
+the image and its `source-lexer/manifest.json` child. Both are trusted local
+artifacts pinned to source/image identities. Missing or drifting selection
+fails closed; no automatic fallback to the old type grammar is admitted.
+
+Development first exposed an unsupported non-tail recursive authoring prototype;
+its native refusal and raw source remain in retained evidence. The implementation
+was rewritten with explicit frames without changing compiler recursion support
+or any qualification deadline. Two test-fixture syntax errors (missing effects,
+then wrong effects delimiters) were corrected; both failed logs are retained.
+The final development run passed27tests (11new application controls,
+15historical closure controls and1whole-tree audit control). A prior corrected
+25-test run is retained separately, before the explicit128frame boundary case. Independent VM byte witnesses precede a fresh native seed;
+real existing source corpus, diagnostics, partial operators,4096digit arrays,
+remaining caller depth, concurrent actual parser calls with old type grammar and
+old lexer patched to fail, and poisoned-workspace transactional refusals are
+covered. These are finite observations, not an all-input refinement proof.
+
+The reviewed shared source identity advances explicitly tov18:394paths,
+commitment`ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379`,
+including all221actual package modules. All389v17 paths and both older lexer
+and observer fork projections remain independently pinned. Identity bytes grow
+by661to165380, transferred exactly from raw logs: metadata245256+raw799224
++display4096=1048576, unchanged. No evidence gate is weakened.
+
+The static boundary stays3partial/5open. Python still owns authoring, image
+loading, object construction and arena/cursor validation, most frontend grammar
+and type checking, modules/builds, execution/runtime, tools and release. No main
+merge, production/default switch or legacy retirement is authorized by these
+local component observations alone.
