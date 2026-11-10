@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v50-main-native-workspace-word-emission"
+PROFILE = "selfhost-core-linux-x86_64-v51-module-alias-index"
 SOURCE_FILES = (
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
@@ -506,6 +506,7 @@ def support_contract(root=ROOT):
             "host_boundaries": ["JSON framing", "Core materialization and verification",
                                 "filesystem/build/custody", "installation"],
             "original_external_export_names_preserved": True,
+            "import_alias_index": "same admitted scratch; exact owner/name comparison; first duplicate precedence",
             "nominal_type_linking_complete": False,
             "whole_module_build_install_complete": False,
         },

@@ -21,6 +21,9 @@ def resolve(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     size = 64 + 8 * (nm + ni + nc + nx)
     if length(o) < size or length(w) < size + 8 * (nf + nm):
         return 4294967294
+    # Reuse the already admitted scratch before constructing any result state.
+    # Keep the first duplicate index so import error precedence stays unchanged.
+    duplicate = import_duplicate(s, w)
     i = 0
     while i < size + 8 * (nf + nm):
         store(w, i, 0)
@@ -48,7 +51,7 @@ def resolve(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         i = i + 1
     i = 0
     while i < ni:
-        status = resolve_import(s, w, i, size)
+        status = resolve_import(s, w, i, size, duplicate)
         if status != 0:
             return status
         i = i + 1
@@ -177,16 +180,65 @@ def declarations(s:readbuf) -> u64:
         i = i + 1
     return 0
 
-def resolve_import(s:readbuf, w:mutbuf, i:u64, size:u64) -> u64:
+def import_duplicate(s:readbuf, w:mutbuf) -> u64:
+    count = uint(s, 24)
+    if count == 0:
+        return NONE
+    slots = 2
+    while slots < count * 2:
+        slots = slots * 2
+    if slots > length(w) >> 3:
+        slots = length(w) >> 3
+    mask_size = 2
+    while mask_size < slots:
+        mask_size = mask_size * 2
+    # The unchanged workspace admission guarantees slots > count even when
+    # the caller supplies exactly the old minimum scratch size.
+    at = 0
+    while at < slots * 8:
+        put(w, at, 0)
+        at = at + 8
+    strings_at = strings(s)
+    i = 0
+    while i < count:
+        origin = row(s, 2, i, 0)
+        name_at = row(s, 2, i, 1)
+        name_size = row(s, 2, i, 2)
+        hash = 14695981039346656037 ^ origin
+        j = 0
+        while j < name_size:
+            hash = (hash ^ byte(s, strings_at + name_at + j)) * 1099511628211
+            j = j + 1
+        slot = hash & (mask_size - 1)
+        if slot >= slots:
+            slot = slot - slots
+        probes = 0
+        inserted = False
+        while probes < slots and inserted == False:
+            previous = get(w, slot * 8)
+            if previous == 0:
+                put(w, slot * 8, i + 1)
+                inserted = True
+            else:
+                other = previous - 1
+                if row(s, 2, other, 0) == origin:
+                    if equal(s, name_at, name_size, row(s, 2, other, 1), row(s, 2, other, 2)) != 0:
+                        return i
+                slot = slot + 1
+                if slot == slots:
+                    slot = 0
+                probes = probes + 1
+        if inserted == False:
+            return i
+        i = i + 1
+    return NONE
+
+def resolve_import(s:readbuf, w:mutbuf, i:u64, size:u64, duplicate:u64) -> u64:
     origin = row(s, 2, i, 0)
     if find_function(s, origin, row(s, 2, i, 1), row(s, 2, i, 2)) != NONE:
         return 4294967291
-    j = 0
-    while j < i:
-        if row(s, 2, j, 0) == origin:
-            if equal(s, row(s, 2, i, 1), row(s, 2, i, 2), row(s, 2, j, 1), row(s, 2, j, 2)) != 0:
-                return 4294967291
-        j = j + 1
+    if i == duplicate:
+        return 4294967291
     target_module = find_module(s, row(s, 2, i, 3), row(s, 2, i, 4))
     if target_module == NONE:
         return 4294967290

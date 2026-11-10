@@ -101,7 +101,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
         source = WORKFLOW.read_text()
         self.assertNotIn('continue-on-error', source)
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
-        for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json']:
+        for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
+                     'hia-module-graph-observations/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))

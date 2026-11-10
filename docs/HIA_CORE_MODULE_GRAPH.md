@@ -102,6 +102,22 @@ the full 1024-module reverse chain with both 1023 and 4096 imports, under the
 original ten-second child CPU limit, comparing every result byte. No timeout
 or admitted graph bound is increased to accommodate the algorithm.
 
+Import-alias duplicate detection now uses a transient open-addressed index in
+that same admitted scratch, before result construction. Its key is the owning
+module and exact alias bytes: hashes only choose probe locations and collisions
+still require byte equality. The first duplicate's import index is retained so
+an earlier import/export failure keeps its original diagnostic precedence.
+The unchanged exact-minimum scratch remains sufficient; no new allocation or
+larger CPU/input/output limit is introduced. Deliberate collision, minimum
+scratch and diagnostic-order witnesses accompany the full-profile cases.
+Worst-case colliding inputs and other name/dependency scans are still bounded
+by the existing profile; this is not an all-input linear-time claim.
+
+When explicitly configured, profile tests save actual child receipts, input,
+expected/actual output and image **before** asserting success. CI uploads these
+observations on failure as well as success, without retrying or changing the
+failed outcome.
+
 ## Qualification boundary
 
 Independent Core VM execution compares every byte of a hand-authored two-module

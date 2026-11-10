@@ -70,7 +70,19 @@ def project(increment=1):
         {'core':app,'exports':['work'],'imports':[{'alias':'use','module':'lib','symbol':'work'}]},
         {'core':lib,'exports':['work'],'imports':[]}]}
 
+def duplicate_precedence_cases():
+    value=project()
+    first=value['modules'][0]['imports'][0]
+    first['module']='missing'
+    value['modules'][0]['imports'].append(copy.deepcopy(first))
+    yield encode_workspace(value)[0],0xfffffffa
+    value['modules'][1]['exports']=['missing']
+    yield encode_workspace(value)[0],0xfffffff7
+
 class CoreModuleGraphSourceTests(unittest.TestCase):
+    def test_independent_VM_retains_earlier_import_and_export_refusal_before_late_duplicate(self):
+        for raw,status in duplicate_precedence_cases():
+            self.assertEqual(vm(raw,128),(status,bytes([90])*128))
     def test_generation_and_complete_independent_VM_result(self):
         from tools.generate_hia_core_module_graph import document
         from hepta.hia_agent_assembly import render_assembly
@@ -86,6 +98,8 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
         # Independent interpretation precedes every native seed/image build.
         raw,expected=independent_case()
         assert vm(raw,len(expected))==(len(expected),expected)
+        for packet,status in duplicate_precedence_cases():
+            assert vm(packet,128)==(status,bytes([90])*128)
         cls.temp=tempfile.TemporaryDirectory(prefix='hia-core-modules-')
         cls.folder=Path(cls.temp.name)
         from tools.qualify_hia_selfhost import compile_stage,build_seed
@@ -114,6 +128,29 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
         raw,expected=independent_case()
         self.assertEqual(self.native.run(raw),expected)
         self.assertEqual(self.receipt['forbidden_compiler_modules_loaded'],[])
+
+    def test_colliding_import_aliases_fit_unchanged_minimum_scratch_and_keep_namespace(self):
+        value=project()
+        # Thirty-two aliases in the old exact minimum scratch produce 49
+        # slots (one call is present). Force a shared folded hash bucket;
+        # equal hashes never grant alias equality.
+        aliases=[];i=0
+        while len(aliases)<32:
+            name='key'+str(i);h=14695981039346656037
+            for byte in name.encode():h=((h^byte)*1099511628211)&((1<<64)-1)
+            slot=h&63
+            if slot>=49:slot-=49
+            if slot==0:aliases.append(name)
+            i+=1
+        value['modules'][0]['core']['functions'][0]['blocks'][0]['ops'][0]['attrs']['function']=aliases[0]
+        value['modules'][0]['imports']=[{'alias':name,'module':'lib','symbol':'work'} for name in aliases]
+        raw,*_=encode_workspace(value)
+        actual=self.native.run(raw) # This adapter allocates the old exact minimum.
+        expected=struct.pack('<'+str(8+2+32+1+2)+'Q',RESULT,2,2,32,1,2,0,0,1,0,*([1]*32),1,0,NONE)
+        self.assertEqual(actual,expected)
+        value['modules'][0]['imports'][-1]['alias']=aliases[0]
+        with self.assertRaisesRegex(CoreModuleRejected,'alias collides'):
+            self.native.run(encode_workspace(value)[0])
 
     def test_actual_project_with_all_high_level_resolvers_forbidden_and_changed_source(self):
         from hepta.hia_program import execute_program
@@ -194,6 +231,14 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             bad=copy.deepcopy(p);bad['modules'][1]['core']['functions'][0]['return_loans']=['not_a_parameter']
             with self.assertRaises(HIAProgramRejected):link_workspace(bad,native=self.native)
 
+    def test_native_retains_earlier_failure_before_duplicate_and_output_canary(self):
+        for raw,status in duplicate_precedence_cases():
+            src=ctypes.create_string_buffer(raw,len(raw))
+            out=ctypes.create_string_buffer(bytes([90])*128)
+            scratch=ctypes.create_string_buffer(bytes([165])*8192)
+            self.assertEqual(self.native._entry(src,len(raw),out,128,scratch,8192),status)
+            self.assertEqual(out.raw[:128],bytes([90])*128)
+
     def test_identifier_frame_refusals_and_no_publication_on_semantic_policy_failure(self):
         for name in ('', 'bad-name', '0name', '__hia_private', 'é', 'x'*129):
             p=project();p['modules'][1]['core']['module']=name
@@ -254,10 +299,8 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             words=[RESULT,n,n,count,0,n,0,0,*range(n-1,-1,-1),*targets,0,*([NONE]*(n-1))]
             expected=struct.pack('<'+str(len(words))+'Q',*words)
             receipt,actual=invoke(self.folder,'module-profile-'+str(count),self.image,wire)
-            self.assertEqual(receipt['status'],'returned')
-            self.assertEqual(receipt['limits']['cpu_seconds'],10)
-            self.assertEqual(receipt['core_u32'],len(expected))
-            self.assertEqual(actual[:len(expected)],expected)
+            # Preserve the failing child's actual receipt before outcome assertions.
+            # In particular, child_failed must not discard its limit/exit evidence.
             evidence=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS')
             if evidence:
                 retained=Path(evidence)/('profile-'+str(count));retained.mkdir(parents=True)
@@ -266,6 +309,10 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                                    'module-graph.image.bin':self.image.read_bytes()}.items():
                     (retained/name).write_bytes(value)
                 (retained/'native-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+            self.assertEqual(receipt['status'],'returned',receipt)
+            self.assertEqual(receipt['limits']['cpu_seconds'],10)
+            self.assertEqual(receipt['core_u32'],len(expected))
+            self.assertEqual(actual[:len(expected)],expected)
 
     def test_mutated_packet_refusals_output_canary_short_buffers_and_concurrency(self):
         raw,expected=independent_case()
