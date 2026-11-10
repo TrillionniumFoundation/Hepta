@@ -488,10 +488,17 @@ def positive_fixtures():
             "input": bytes.fromhex(case["source_hex"]), "capacity": 8, "workspace_size": 0,
             "expected_result": case["expected_result"], "expected_output": expected,
             "case_ids": ["borrow.read", "borrow.mut", "loan.end"]})
+    for case in loans.values():
+        if case['id'].startswith('loan-profile-'):
+            fixtures.append({'id': case['id'], 'kind': 'buffer', 'source': case['source'].encode(),
+                'input': bytes.fromhex(case['source_hex']), 'capacity': 8, 'workspace_size': 0,
+                'expected_result': case['expected_result'], 'expected_output': bytes([0xa5]) * 8,
+                'case_ids': ['borrow.read', 'borrow.mut', 'loan.end']})
     fixtures += [buffer_fixture(), boundary_fixture("parameters-16", parameter_source(16), 120),
                  boundary_fixture("blocks-per-function-256", block_source([256])),
                  boundary_fixture("blocks-total-1536", block_source([256] * 6)),
-                 boundary_fixture("ssa-index-2047", simple_source(variable=2047))]
+                 boundary_fixture("ssa-index-2047", simple_source(variable=2047)),
+                 boundary_fixture("ssa-index-2048", simple_source(variable=2048))]
     # Preserve both original valid-Core/profile refusals as admitted witnesses.
     fixtures += [boundary_fixture("noncontiguous-function", simple_source().replace(b"fn f0(", b"fn f1(", 1)),
                  boundary_fixture("unsupported-arbitrary-function-name", simple_source().replace(b"f0(", b"named("))]
@@ -599,7 +606,6 @@ def rejected_fixtures():
         ("blocks-per-function-257", block_source([257]), "256 blocks per function"),
         ("blocks-total-1537", block_source([256] * 6 + [1]), "1536 total blocks"),
         ("functions-129", backward_chain_source() + scalar_function(128).encode(), "128 functions"),
-        ("ssa-index-2048", simple_source(variable=2048), "maximum SSA index 2047"),
         ("entry-signature-name", seed.replace(b"block b0(v0:", b"block b0(v3:", 1), "entry signature names/types"),
         ("non-u32-public-entry-i16", seed.replace(b"v3:u32", b"v3:i16").replace(b"-> (u32)", b"-> (i16)"), "public entry remains u32 despite internal signed scalar support"),
         ("unsupported-module-name", seed.replace(b"v8 selfhost", b"v8 arbitrary"), "fixed input module"),
@@ -988,7 +994,7 @@ def coverage_manifest():
             "runtime": "dynamic 24-byte nodes under the same closed calloc/free contract",
             "multi_result_operations": ["chain.try_push returns chain,buffer,bool", "chain.pop returns chain,buffer,bool"],
             "ownership": "closed chain roots and nested head-loan graphs; consuming operations require no live descendant loans",
-            "resource_parameter_boundaries": "v2047 block parameters accepted; function/block v2048, v8192 and UINT64_MAX refused before capability-table access",
+            "resource_parameter_boundaries": "2048 interned SSA names per function; numeric-looking v2048, v8192 and UINT64_MAX spellings retained as positive resource executions; 2049 distinct names reject before table access",
             "destruction": "one shared iterative helper, constant frame independent of node count",
             "qualification": "tools.qualify_hia_selfhost_chain_elf.qualify on original B3 and mutated M3",
             "allocator_qualification": "tools.qualify_hia_selfhost_chain_flow.qualify; explicit ordinary allocator NULL inputs and native event conservation",
@@ -1002,7 +1008,7 @@ def coverage_manifest():
                    "hia_functions": {name: names[name] for name in (
                        "compile", "parse_function", "parse_params", "parse_block", "define",
                        "variable", "next_token", "decimal", "adjacent", "separated", "expect")},
-                   "new_positive": ["optional-ascii-spaces", "ssa-index-2047", "noncontiguous-function",
+                   "new_positive": ["optional-ascii-spaces", "ssa-index-2047", "ssa-index-2048", "noncontiguous-function",
                                     "unsupported-arbitrary-function-name"],
                    "new_negative": [row["id"] for row in negative if row["id"].startswith(
                        ("existing-", "noncontiguous-", "entry-", "unsupported-", "tab-", "crlf-", "ssa-"))]},

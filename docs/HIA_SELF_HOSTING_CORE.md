@@ -135,10 +135,11 @@ The flat-image input is ordinary HIA assembly with the fixed header
 `hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
 bounded ELF object profile described below. Function names are unique Core ASCII
 identifiers of at most 128 bytes; the first definition supplies the public ABI.
-Block names remain contiguous `b0`, `b1`, ... within each function;
-and `vN` SSA values. Function signature variables are `v0`, `v1`, ... and the
-entry block must exactly reproduce their names and types. SSA numbers elsewhere
-need not be contiguous, but each definition must be unique in its function.
+Block names remain contiguous `b0`, `b1`, ... within each function.
+SSA and formal names use the same bounded ASCII identifier spelling, with at most
+2,048 distinct names per function. The entry block must exactly reproduce the
+signature names and types; each body definition is unique in its function.
+Names that look like numeric indices are names, not workspace addresses.
 Only ASCII spaces and LF separate tokens. Decimal integer magnitudes forbid
 leading zeroes and are checked for `u64` overflow; signed types additionally
 admit an adjacent minus sign and enforce their mathematical width bounds. The grammar recognizes the
@@ -1226,3 +1227,39 @@ canonical compiler bytes, and the named syscall-only compiler must reproduce
 its own executable directly through kernel exec. The two former numeric-name
 profile refusals retain their original case IDs as admitted language witnesses.
 These are finite gates, not an all-input compiler refinement or whole-stack claim.
+
+
+## v26 exact-byte general SSA and formal names
+
+The previous numeric-name restriction is replaced with source-byte interning.
+ASCII Core identifiers up to 128 bytes include contextual keyword names, typed
+underscore, leading-zero suffixes and arbitrary numeric-looking suffixes.
+The `__hia_` namespace remains reserved as in Core. Identifiers are never used
+as offsets derived from their spelling. The internal SSA index range remains
+0..2047, limiting the number of distinct names, not numeric suffix magnitudes.
+
+An open-addressing table occupies workspace [955152,1004304) with 2048 24-byte
+records (source offset, byte length, dense internal ID). Each function clears
+its slots before parsing its signature. Formal names and entry/body names share
+this map, preserving exact signature/entry names and quoted return-loan origins.
+At most 2048 probes are permitted, including a full-table hit and a new-name
+refusal. Hash collisions are resolved by mandatory full source-byte equality.
+A multiplicative 32-bit spread selects the initial slot; the full bounded probe
+and byte-comparison rules still decide identity. The count and identifier
+scratch fields are disjoint from graph/loan metadata.
+The public 1MiB workspace limit is unchanged.
+
+Typed-instruction lookahead distinguishes contextual keyword definitions from
+terminators without consuming the token; typed `_` remains distinct from an
+effect-only `_ = ...` result. Existing definition/type/dominance/resource checks
+still use the dense identity, so interning is not semantic admission. Undefined
+uses, duplicate definitions, mismatched entry names, malformed names, oversized
+identifiers and 2049 distinct values are negative controls.
+
+All 53 prior name-only resource exclusions retain their IDs and source bytes
+as positive VM/direct-native/linked-successor execution cases (24 parameter,
+2 allocation-result,6 owned-flow,15 chain-flow and6 borrowed-view). The original numeric boundary
+regression and failed historical receipts remain retained. General function and
+SSA names do not implement block/module names, composite grammar or the full
+runtime/build/release toolchain. Current-source execution receipts must be
+obtained for this extension; historical v25 results do not qualify v26.

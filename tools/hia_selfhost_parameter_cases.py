@@ -1,7 +1,7 @@
 """Resource parameter SSA boundaries, including a retained compiler-trap regression.
 
-Names above v2047 are valid in general Core but outside this bounded compiler.
-They must be refused before rejected identifiers reach capability-table access.
+Historical names above v2047 are now admitted by exact-name interning.
+The original fixture IDs remain in the positive execution inventory.
 """
 from __future__ import annotations
 
@@ -57,9 +57,19 @@ def cases():
             for typ in ("readbuf", "mutbuf", "buffer", "chain")]
 
 
-def refusals():
+def historical_refusals():
     return {"parameter-profile-" + ("function-" if signature else "block-") + typ + "-" + str(index):
             source(typ, index, signature=signature)
             for signature in (False, True)
             for typ in ("readbuf", "mutbuf", "buffer", "chain")
             for index in (2048, 8192, (1 << 64) - 1)}
+
+
+def expanded_name_cases():
+    from tools.hia_selfhost_names import core_observed_case
+    return [core_observed_case(name, source) for name, source in historical_refusals().items()]
+
+
+def refusals():
+    # Every former exclusion here was a spelling restriction, not a Core error.
+    return {}

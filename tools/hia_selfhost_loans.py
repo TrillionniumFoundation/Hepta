@@ -209,6 +209,8 @@ block b3(v18:mutbuf,v19:mutbuf)
                       '  v4:u8 = buffer.load(v2047,v3)\n  _ = loan.end(v2047)\n'
                       '  v5:u32 = int.cast(v4) {"mode":"wrap"}\n  ret(v5)\n')
     add("loan-result-ssa-2047", source, 103)
+    for name, source in historical_loan_profile_refusals().items():
+        add("loan-profile-" + name, source, 0)
     return rows
 
 
@@ -300,8 +302,8 @@ block b3(v10:mutbuf,v11:readbuf,v12:readbuf)
     return result
 
 
-def loan_profile_refusals():
-    """Valid general Core whose resource results exceed the native SSA ceiling."""
+def historical_loan_profile_refusals():
+    """Retained numeric spellings, now positive exact-name controls."""
     rows = {}
     for kind, typ, parent in (("read", "readbuf", "v0"), ("mut", "mutbuf", "v1")):
         for index in (2048, 8192, 2**64 - 1):
@@ -309,6 +311,11 @@ def loan_profile_refusals():
                 f"  v{index}:{typ} = borrow.{kind}({parent})\n  _ = loan.end(v{index})\n"
                 '  v3:u32 = const() {"value":0}\n  ret(v3)\n')
     return rows
+
+
+def loan_profile_refusals():
+    # All six historical name-only exclusions remain in loan_cases().
+    return {}
 
 
 def reference_source(case):

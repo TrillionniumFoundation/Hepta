@@ -1,0 +1,4274 @@
+{
+  "authorities_in_live_package": [
+    "hepta/__main__.py",
+    "hepta/cli.py",
+    "hepta/hia_agent_assembly.py",
+    "hepta/hia_agent_service.py",
+    "hepta/hia_agent_store.py",
+    "hepta/hia_agent_worker.py",
+    "hepta/hia_capability_flow.py",
+    "hepta/hia_ndu_optimizer.py",
+    "hepta/hia_program.py",
+    "hepta/hia_program_aarch64.py",
+    "hepta/hia_program_composite.py",
+    "hepta/hia_program_llvm.py",
+    "hepta/hia_program_native.py",
+    "hepta/hia_program_runtime.py",
+    "hepta/hia_scalar_proof_contract.py",
+    "hepta/hia_translation_validation.py",
+    "hepta/modules.py",
+    "hepta/packages.py",
+    "hepta/pipeline.py",
+    "hepta/runtime_io.py",
+    "hepta/runtime_task_tree.py"
+  ],
+  "closure_gates": [
+    "full language/Core conformance with independent negative controls",
+    "HIA implementations replace the live Python authorities rather than call through to them",
+    "arbitrary identifiers, module graph, linking and a real standalone CLI",
+    "source-only B0/B1/B2/B3 and modified-source fixed points for the full toolchain",
+    "fresh current-source regression, cross-target and resource failure qualification",
+    "clean-machine installation and real project build without a Python compiler dependency"
+  ],
+  "compiler_source": {
+    "bytes": 496797,
+    "functions": 117,
+    "path": "examples/hia_bootstrap/selfhost.hiaasm",
+    "sha256": "91638a9bbe7f836b9993b2d295ed46c00fb329a4f4fcb59b1603691d8aa1c8d9"
+  },
+  "components": [
+    {
+      "boundary": "HIA scanner/parser supports general ASCII function/SSA/formal identifiers in the bounded assembly profile; general block identifiers, module syntax and full grammar remain open.",
+      "component": "assembly_frontend",
+      "current_authorities": [
+        "hepta/hia_agent_assembly.py"
+      ],
+      "status": "partial",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification.",
+      "component": "core_verifier_and_resources",
+      "current_authorities": [
+        "hepta/hia_program.py",
+        "hepta/hia_capability_flow.py",
+        "hepta/hia_program_composite.py"
+      ],
+      "status": "partial",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "Core reference interpreter, general runtime/task/I/O and production library are not rewritten as HIA.",
+      "component": "execution_and_standard_library",
+      "current_authorities": [
+        "hepta/hia_program_runtime.py",
+        "hepta/runtime_io.py",
+        "hepta/runtime_task_tree.py"
+      ],
+      "status": "open",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "HIA writes bounded Linux x86-64 flat/ELF images; general linking, multiple exports and other native targets remain Python/external tools.",
+      "component": "native_backend_and_linker",
+      "current_authorities": [
+        "hepta/hia_program_native.py",
+        "hepta/hia_program_aarch64.py",
+        "hepta/hia_program_llvm.py"
+      ],
+      "status": "partial",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "Module graphs, package locks, build orchestration and the complete frontend pipeline remain Python.",
+      "component": "modules_packages_build",
+      "current_authorities": [
+        "hepta/modules.py",
+        "hepta/packages.py",
+        "hepta/pipeline.py"
+      ],
+      "status": "open",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "The real Agent worker/service, durable tools and protocol orchestration remain Python.",
+      "component": "agent_tools_and_persistence",
+      "current_authorities": [
+        "hepta/hia_agent_worker.py",
+        "hepta/hia_agent_service.py",
+        "hepta/hia_agent_store.py"
+      ],
+      "status": "open",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "Planning/optimization/translation validation and proof construction are not rewritten; finite proof scopes do not establish whole compiler refinement.",
+      "component": "optimizer_and_proof_tools",
+      "current_authorities": [
+        "hepta/hia_ndu_optimizer.py",
+        "hepta/hia_translation_validation.py",
+        "hepta/hia_scalar_proof_contract.py"
+      ],
+      "status": "open",
+      "whole_component_rewritten_in_hia": false
+    },
+    {
+      "boundary": "A bounded Linux stdin/stdout compiler ET_EXEC entry is authored in HIA and requires current-source qualification; production CLI, installation/materialization/release tools and whole clean-machine toolchain remain open.",
+      "component": "cli_and_release",
+      "current_authorities": [
+        "hepta/cli.py",
+        "hepta/__main__.py",
+        "tools/hia_release.py"
+      ],
+      "status": "open",
+      "whole_component_rewritten_in_hia": false
+    }
+  ],
+  "evidence_kind": "static inventory and explicit implementation boundary, not execution evidence",
+  "general_core_integer_types_not_in_native_selfhost": [],
+  "limits": [
+    "AST imports do not enumerate dynamic imports or prove dependency closure",
+    "line counts do not measure semantic completion",
+    "a byte fixed point proves only the declared compiler subset's observed self-reproduction",
+    "external OS, ABI, allocator and linker dependencies must stay explicit",
+    "historical or adjacent-branch CI does not qualify changed source bytes"
+  ],
+  "live_python_package": [
+    {
+      "bytes": 92,
+      "functions": 0,
+      "implementation_language": "Python",
+      "imports": [],
+      "lines": 2,
+      "path": "hepta/__init__.py",
+      "sha256": "8448813083e33f38f96474d5c3b3b690284fcf9c1ca939c33683618b419031b2"
+    },
+    {
+      "bytes": 48,
+      "functions": 0,
+      "implementation_language": "Python",
+      "imports": [
+        ".cli"
+      ],
+      "lines": 3,
+      "path": "hepta/__main__.py",
+      "sha256": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d"
+    },
+    {
+      "bytes": 9047,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".agent_semantics",
+        ".semantic_ir",
+        ".workspace",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "re",
+        "typing"
+      ],
+      "lines": 169,
+      "path": "hepta/agent_contract_diff.py",
+      "sha256": "4c418ca2649bdcb9a41c6825a22fa8b4ee3bf07caceaa479774215203882b9a1"
+    },
+    {
+      "bytes": 8790,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".checker",
+        ".modules",
+        ".pipeline",
+        ".semantic_ir",
+        ".workspace",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "re"
+      ],
+      "lines": 163,
+      "path": "hepta/agent_semantics.py",
+      "sha256": "8f28e59630f096e5591a2ab6028dbd08ff5625a0c64d9dd7d8f83987b0cfac3a"
+    },
+    {
+      "bytes": 5673,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "stat"
+      ],
+      "lines": 118,
+      "path": "hepta/artifact_publication.py",
+      "sha256": "44416fe2b5d3f3d29bbb006c592b34bf32ac59c249de995a31fe7976393ed915"
+    },
+    {
+      "bytes": 4427,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "lines": 165,
+      "path": "hepta/ast.py",
+      "sha256": "e69d7d8782a84d3998c747a61420b98fc7a321ec2617284ee3c2c1c66b807af3"
+    },
+    {
+      "bytes": 43122,
+      "functions": 23,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".borrowed_storage",
+        ".checker",
+        ".clang_capture",
+        ".debug_info",
+        ".native_tool_identity",
+        ".runtime_concurrency",
+        ".runtime_io",
+        ".runtime_task_io",
+        ".source_map",
+        "__future__",
+        "base64",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "shutil",
+        "subprocess",
+        "tempfile"
+      ],
+      "lines": 755,
+      "path": "hepta/backend.py",
+      "sha256": "5b24460db1943905487c56dbf010460733d1b6fa5eb83510d98a09fb41edfa99"
+    },
+    {
+      "bytes": 2401,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        "dataclasses"
+      ],
+      "lines": 65,
+      "path": "hepta/borrowed_storage.py",
+      "sha256": "6303b6734c0e35b6080fb696909babfb6866bdd6ce6706c636141cbe021d6b8c"
+    },
+    {
+      "bytes": 3143,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        "__future__",
+        "re"
+      ],
+      "lines": 57,
+      "path": "hepta/c_aliases.py",
+      "sha256": "bc6c0533fff674f20d64619c50afb81a07375c37f158bf17ea7034026e25baf9"
+    },
+    {
+      "bytes": 11740,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_translation",
+        "__future__"
+      ],
+      "lines": 181,
+      "path": "hepta/c_allocation.py",
+      "sha256": "e11ad48fa7e2af3fd9d0ec3932f002277bbdf44c0d164593432c5965bfd686d0"
+    },
+    {
+      "bytes": 41520,
+      "functions": 33,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".borrowed_storage",
+        ".checker",
+        ".debug_info",
+        ".native_local_views",
+        ".resource_ir",
+        ".resource_lowering",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "shutil",
+        "subprocess",
+        "tempfile"
+      ],
+      "lines": 755,
+      "path": "hepta/c_backend.py",
+      "sha256": "888c1e4cf747bb6ab0aee20c1d8caeb2ba22ce38ebcce8537fd423f98cf8ef09"
+    },
+    {
+      "bytes": 7931,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".hia_json_preflight",
+        ".hia_program_tools",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 161,
+      "path": "hepta/c_contracts.py",
+      "sha256": "96a990c3b11d6b94940445199dba257bd051e742e1b07856683d85e0c209b106"
+    },
+    {
+      "bytes": 8328,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 168,
+      "path": "hepta/c_definite_assignment.py",
+      "sha256": "274c193f6754b92f2cc4fa95d604b782306ba53b746c6b2edf811e5f3f9cc62c"
+    },
+    {
+      "bytes": 22739,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".checker",
+        ".clang_capture",
+        ".parser",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "struct",
+        "tempfile"
+      ],
+      "lines": 407,
+      "path": "hepta/c_import.py",
+      "sha256": "e5a311752896068f79df1932173b2c8f89ca8d35d3d2159d7c166e54044f0b33"
+    },
+    {
+      "bytes": 5056,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        "__future__"
+      ],
+      "lines": 114,
+      "path": "hepta/c_loop_control.py",
+      "sha256": "86d36f6acf2059568cbc16fa6fc5fd749114acdfca258688a2d2d33bf1535648"
+    },
+    {
+      "bytes": 46569,
+      "functions": 17,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migration_project",
+        ".checker",
+        ".clang_capture",
+        ".parser",
+        "__future__",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "re",
+        "tempfile"
+      ],
+      "lines": 796,
+      "path": "hepta/c_migrate.py",
+      "sha256": "89f2fb39c740d9bee3f4d332b59bb226427b1292c6d23f41b80fb48103b5e309"
+    },
+    {
+      "bytes": 9651,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".backend",
+        ".c_contracts",
+        ".c_migrate",
+        ".c_project",
+        ".c_record_views",
+        ".c_translation",
+        ".checker",
+        ".parser",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "tempfile",
+        "time"
+      ],
+      "lines": 154,
+      "path": "hepta/c_migration_project.py",
+      "sha256": "e2316b2830fc09aa0bc32dd9cf67ed6414c7aee176cb60fae95d8124ef5d8464"
+    },
+    {
+      "bytes": 39224,
+      "functions": 29,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_project",
+        ".clang_capture",
+        "__future__",
+        "ctypes",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "resource",
+        "shutil",
+        "subprocess",
+        "sys",
+        "tempfile"
+      ],
+      "lines": 737,
+      "path": "hepta/c_parameter_types.py",
+      "sha256": "5e3f736b9efda38cd45de7266fa00277668ae450b17159e413dca8cff1453896"
+    },
+    {
+      "bytes": 35081,
+      "functions": 21,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".clang_capture",
+        ".native_tool_identity",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "shlex",
+        "shutil"
+      ],
+      "lines": 640,
+      "path": "hepta/c_project.py",
+      "sha256": "e35322f0ec626a6e6618d8d24caf2bbc4f095d9fa0a518d250667ba9de654e7d"
+    },
+    {
+      "bytes": 8915,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_project",
+        ".hia_program_tools",
+        "__future__",
+        "json",
+        "pathlib",
+        "re",
+        "shlex"
+      ],
+      "lines": 167,
+      "path": "hepta/c_project_matrix.py",
+      "sha256": "15102f57605d0aa53545e54d2dd08a5dff5329eaab3a056ae58b18f243b5b99c"
+    },
+    {
+      "bytes": 37800,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_allocation",
+        ".c_contracts",
+        ".c_migrate",
+        ".c_translation",
+        "__future__",
+        "copy",
+        "json",
+        "re"
+      ],
+      "lines": 557,
+      "path": "hepta/c_record_views.py",
+      "sha256": "3c2eaa4545de466c283df840cd3d022e1353d74bf918f220bdcb54ff74a69cd9"
+    },
+    {
+      "bytes": 5905,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_project_matrix",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 103,
+      "path": "hepta/c_resource_matrix.py",
+      "sha256": "9c31d0dac213024b2d99c5cca10797630a97be8d2f640836e3a961ff187dd7a1"
+    },
+    {
+      "bytes": 5670,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_allocation",
+        ".c_migrate",
+        ".c_project_matrix",
+        ".c_translation",
+        ".hia_program",
+        ".hia_program_source",
+        "__future__"
+      ],
+      "lines": 94,
+      "path": "hepta/c_scalar_matrix.py",
+      "sha256": "c7419502d04595b13c16d537ed0b13f60a99ba3733bbc311beabbfac95ad1252"
+    },
+    {
+      "bytes": 65331,
+      "functions": 34,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_aliases",
+        ".c_allocation",
+        ".c_contracts",
+        ".c_definite_assignment",
+        ".c_loop_control",
+        ".c_migrate",
+        ".c_parameter_types",
+        ".c_project",
+        "__future__",
+        "dataclasses",
+        "json",
+        "pathlib",
+        "re"
+      ],
+      "lines": 1056,
+      "path": "hepta/c_translation.py",
+      "sha256": "3a163f28b00d8c3273493cea7c928e0682c307cc85377bf4b45dc29d29a4562e"
+    },
+    {
+      "bytes": 14255,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".hsir",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json"
+      ],
+      "lines": 271,
+      "path": "hepta/cfg.py",
+      "sha256": "e894c48e3244e1d6403e1adfe4e9872fb44cb469660eb52728c1247deecd05c1"
+    },
+    {
+      "bytes": 7974,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json"
+      ],
+      "lines": 181,
+      "path": "hepta/cfg_analysis.py",
+      "sha256": "f8eebfb37dda89a3c7eaf332183ccdbfe10033a9009bf4e9b392f09cf7073599"
+    },
+    {
+      "bytes": 113249,
+      "functions": 58,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".borrowed_storage",
+        ".runtime_concurrency",
+        ".runtime_io",
+        ".runtime_task_io",
+        "__future__",
+        "dataclasses",
+        "math",
+        "re",
+        "typing"
+      ],
+      "lines": 1781,
+      "path": "hepta/checker.py",
+      "sha256": "83fa87f5098f2bef27265e5d810a70d9cf4625b816b8550a6a7b6d713005240a"
+    },
+    {
+      "bytes": 17604,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".darwin_capture",
+        ".windows_capture",
+        "__future__",
+        "dataclasses",
+        "math",
+        "os",
+        "pathlib",
+        "signal",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "lines": 357,
+      "path": "hepta/clang_capture.py",
+      "sha256": "6934e8a2f2dc0c53c135f590dce48811d14482d4c1b9c30cd5083505bd93ea6a"
+    },
+    {
+      "bytes": 60596,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".agent_contract_diff",
+        ".agent_semantics",
+        ".artifact_publication",
+        ".ast",
+        ".backend",
+        ".c_backend",
+        ".c_contracts",
+        ".c_import",
+        ".c_migrate",
+        ".cpp2hepta",
+        ".cpp_bridge",
+        ".cpp_class_migrate",
+        ".cpp_composed_migrate",
+        ".cpp_contracts",
+        ".cpp_owned_migrate",
+        ".executable_core",
+        ".hia_agent_assembly",
+        ".hia_core_upgrade",
+        ".hia_edit_batch",
+        ".hia_edit_query",
+        ".hia_finite_actions",
+        ".hia_guarded_optimization",
+        ".hia_narrowing",
+        ".hia_ndu_optimizer",
+        ".hia_opcodes",
+        ".hia_optimization",
+        ".hia_patch_impact",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_native",
+        ".hia_program_runtime",
+        ".hia_program_tools",
+        ".hia_routes",
+        ".hia_rust_crosscheck",
+        ".hia_schema",
+        ".hia_translation_validation",
+        ".hmir",
+        ".llvm_owned_aarch64",
+        ".llvm_owned_pipeline",
+        ".llvm_ssa_pipeline",
+        ".packages",
+        ".parser",
+        ".pipeline",
+        ".protocol",
+        ".protocol_v3",
+        ".resource_source",
+        ".workspace",
+        "__future__",
+        "argparse",
+        "json",
+        "os",
+        "pathlib",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "lines": 932,
+      "path": "hepta/cli.py",
+      "sha256": "1548943e4e431c16c0e4b5474cc5479332b0c4e9197665dad9fa2344bacd3983"
+    },
+    {
+      "bytes": 18746,
+      "functions": 15,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 364,
+      "path": "hepta/concurrent_ir.py",
+      "sha256": "938ecc5d879b36e4c7190cd32a5be3a9105b5d954ccd622e83cbec667f474d3c"
+    },
+    {
+      "bytes": 15630,
+      "functions": 15,
+      "implementation_language": "Python",
+      "imports": [
+        ".borrowed_storage",
+        ".concurrent_ir",
+        ".runtime_io",
+        "__future__",
+        "hashlib"
+      ],
+      "lines": 344,
+      "path": "hepta/concurrent_lowering.py",
+      "sha256": "946dab7ade7f71464a86defcf3424060a0c9499526c452e994ef1ac0b847b25b"
+    },
+    {
+      "bytes": 9999,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".executable_core",
+        ".hia_core",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_native",
+        ".hia_program_runtime",
+        ".hia_program_source",
+        ".llvm_ssa_backend",
+        "__future__",
+        "json"
+      ],
+      "lines": 208,
+      "path": "hepta/core.py",
+      "sha256": "9d1a502fbd88e28034593b14036b0f2a9245a28f075b6eb7067fc3ada5713bd0"
+    },
+    {
+      "bytes": 11206,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".checker",
+        ".parser",
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 189,
+      "path": "hepta/cpp2hepta.py",
+      "sha256": "2402418e3a5e33f2d9b5b16289ec3fcd9c706bf492d034adfc701c0b94864ba1"
+    },
+    {
+      "bytes": 14127,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".checker",
+        ".cpp_contracts",
+        ".parser",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "subprocess",
+        "tempfile"
+      ],
+      "lines": 268,
+      "path": "hepta/cpp_bridge.py",
+      "sha256": "d6e60271306a37b74a231e9130660c5d2843b8f7b3cbcba26487fbb09b016dda"
+    },
+    {
+      "bytes": 25333,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_project",
+        ".c_project_matrix",
+        ".cpp_composed_migrate",
+        ".cpp_composed_project",
+        ".cpp_owned_migrate",
+        ".cpp_unique_project",
+        ".hia_program_source",
+        ".pipeline",
+        "__future__",
+        "collections",
+        "copy",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 415,
+      "path": "hepta/cpp_callback_project.py",
+      "sha256": "d0b537331b1bc9304807e7b16d77f159dc36f646276621250186d54edc437f98"
+    },
+    {
+      "bytes": 30353,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".cpp2hepta",
+        ".pipeline",
+        "__future__",
+        "argparse",
+        "copy",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 513,
+      "path": "hepta/cpp_class_migrate.py",
+      "sha256": "dc03c3994e2f65e7ffa5f862faaf0d86b4ba0d79fbd97ffb1355397d660b9bd2"
+    },
+    {
+      "bytes": 49736,
+      "functions": 29,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".c_migrate",
+        ".cpp2hepta",
+        ".cpp_owned_migrate",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        "__future__",
+        "argparse",
+        "copy",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 736,
+      "path": "hepta/cpp_composed_migrate.py",
+      "sha256": "eb6fe0092edd60cd33ed66cf7902362d850210551d72fe0df623d0beb534c83d"
+    },
+    {
+      "bytes": 19760,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_project",
+        ".c_project_matrix",
+        ".c_translation",
+        ".cpp_composed_migrate",
+        ".cpp_owned_migrate",
+        ".hia_program_source",
+        ".pipeline",
+        "__future__",
+        "copy",
+        "json",
+        "pathlib",
+        "re"
+      ],
+      "lines": 329,
+      "path": "hepta/cpp_composed_project.py",
+      "sha256": "b0d22ec5baeabb1576d0452e7b95fecbbc2a4695180bc2581428ad4af63c3295"
+    },
+    {
+      "bytes": 61850,
+      "functions": 39,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".clang_capture",
+        ".cpp_host_toolchain",
+        ".pipeline",
+        "__future__",
+        "argparse",
+        "base64",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 970,
+      "path": "hepta/cpp_contracts.py",
+      "sha256": "d4375d1b458a0755580e8e3a93ed466fc3a95400ce5b030ff19b5f749a67bda8"
+    },
+    {
+      "bytes": 44215,
+      "functions": 29,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        ".native_tool_identity",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "shlex",
+        "shutil",
+        "time"
+      ],
+      "lines": 765,
+      "path": "hepta/cpp_gsl_final_action.py",
+      "sha256": "67c56ebc695a9d411da8ed3fb44319b8a515c51e2e2de6904ff4bdc003923382"
+    },
+    {
+      "bytes": 6610,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 148,
+      "path": "hepta/cpp_host_toolchain.py",
+      "sha256": "6bafbf40f4759b9ad49057a70724b488dcab6050301578a5619cef87416017dd"
+    },
+    {
+      "bytes": 20318,
+      "functions": 32,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        "__future__",
+        "base64",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "platform",
+        "secrets",
+        "struct",
+        "sys",
+        "threading",
+        "time"
+      ],
+      "lines": 432,
+      "path": "hepta/cpp_json_checkpoint.py",
+      "sha256": "4632dfe96c920744121d2cf31880391dd5354053dea5a2d508d39b3a157fcb6e"
+    },
+    {
+      "bytes": 20318,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".c_migrate",
+        ".cpp2hepta",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 399,
+      "path": "hepta/cpp_owned_migrate.py",
+      "sha256": "293ebbce2f8d59ee6aa2217dd388b39faaaea51180300bd6fea860240f818b83"
+    },
+    {
+      "bytes": 28317,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".c_project",
+        ".c_project_matrix",
+        ".c_translation",
+        ".hia_program_source",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 467,
+      "path": "hepta/cpp_project_migrate.py",
+      "sha256": "02de410179773ff78aaebed2d3ba5df559a6f98e39dd083c2c0a59b41364cc71"
+    },
+    {
+      "bytes": 8395,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".backend",
+        ".cpp_contracts",
+        ".pipeline",
+        "__future__",
+        "argparse",
+        "dataclasses",
+        "datetime",
+        "hashlib",
+        "json",
+        "pathlib",
+        "shutil",
+        "statistics",
+        "tempfile"
+      ],
+      "lines": 146,
+      "path": "hepta/cpp_scoped.py",
+      "sha256": "385452e0139403c15c316b0f1b76a3ad63d79c82d86619ba61abed3ba5d7d104"
+    },
+    {
+      "bytes": 6279,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".cpp_composed_migrate",
+        ".cpp_composed_project",
+        "__future__"
+      ],
+      "lines": 102,
+      "path": "hepta/cpp_unique_assignment.py",
+      "sha256": "d3ade4d7c11f890612a8da7fbfa4f227221f6ab32269765f36d5034414918bf8"
+    },
+    {
+      "bytes": 14174,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".c_migrate",
+        ".clang_capture",
+        ".darwin_capture",
+        "__future__",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "re",
+        "selectors",
+        "subprocess",
+        "tempfile",
+        "time"
+      ],
+      "lines": 314,
+      "path": "hepta/cpp_unique_capture.py",
+      "sha256": "1952ec3867e23f5d63cbb5c85713e14ed8eb4d9de583be2cb017f87f40bb1e02"
+    },
+    {
+      "bytes": 26410,
+      "functions": 15,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_project",
+        ".c_project_matrix",
+        ".c_translation",
+        ".cpp_composed_migrate",
+        ".cpp_composed_project",
+        ".cpp_owned_migrate",
+        ".cpp_unique_assignment",
+        ".cpp_unique_capture",
+        ".hia_program_source",
+        ".pipeline",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re"
+      ],
+      "lines": 461,
+      "path": "hepta/cpp_unique_project.py",
+      "sha256": "340bf7cd37888ac1fee8af29e52248cd679ffa7f5ec24de298ef1b2ccc561048"
+    },
+    {
+      "bytes": 30874,
+      "functions": 20,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_project",
+        ".cpp_composed_migrate",
+        ".cpp_owned_migrate",
+        ".cpp_unique_project",
+        ".hia_program_source",
+        ".pipeline",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "time"
+      ],
+      "lines": 503,
+      "path": "hepta/cpp_unique_reset.py",
+      "sha256": "9ab066545e2d124e9d417e5aab5fa6e8fbf96d054d3319a0bbcc22c23ed2a990"
+    },
+    {
+      "bytes": 7394,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        "__future__",
+        "errno",
+        "os",
+        "pathlib",
+        "signal",
+        "struct",
+        "subprocess",
+        "sys"
+      ],
+      "lines": 171,
+      "path": "hepta/darwin_capture.py",
+      "sha256": "e7d081c40a9f85c7b77e7d46ed16177e82a05c424f15507f968238b0e250699c"
+    },
+    {
+      "bytes": 1912,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".source_map",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 34,
+      "path": "hepta/debug_info.py",
+      "sha256": "e30097582366ae3a5f4bae5e545b77046e0b4d8b4f2a2b34abc691de20c61d20"
+    },
+    {
+      "bytes": 11420,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "re"
+      ],
+      "lines": 217,
+      "path": "hepta/elf_shared_abi.py",
+      "sha256": "f9afbaa95a3aa5a9163546da42b601d3ac98648d8da68e6122008e381177ed02"
+    },
+    {
+      "bytes": 25498,
+      "functions": 24,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".ast",
+        ".checker",
+        ".executable_core_runtime",
+        ".llvm_owned_backend",
+        ".parser",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tempfile"
+      ],
+      "lines": 481,
+      "path": "hepta/executable_core.py",
+      "sha256": "bc26bc4a3f45664f07602ae4a78d30ef5cfaf710143d96a0a0de61f96b3df43e"
+    },
+    {
+      "bytes": 16773,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".backend",
+        ".c_backend",
+        ".executable_core",
+        ".pipeline",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "signal",
+        "subprocess",
+        "sys",
+        "tempfile"
+      ],
+      "lines": 330,
+      "path": "hepta/executable_core_qualify.py",
+      "sha256": "1189a814592b41d075fb7bee403986c332342676a32ccaecc8ae85af5f195b8f"
+    },
+    {
+      "bytes": 19766,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".executable_core",
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 453,
+      "path": "hepta/executable_core_runtime.py",
+      "sha256": "81b9cb0e50bfd66b034cdfff11ed3912e9d4d19e5a1da5c44d453871fe49aebb"
+    },
+    {
+      "bytes": 16315,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".checker",
+        ".hia_bounded_wire",
+        ".hia_program_tools",
+        ".parser",
+        ".semantic_ir",
+        "__future__",
+        "hashlib",
+        "typing"
+      ],
+      "lines": 345,
+      "path": "hepta/flow_ir.py",
+      "sha256": "98a286d903d7f59cc9a5d3781abb8efd4945dca9eb52971f16c0ec9edaba5944"
+    },
+    {
+      "bytes": 30777,
+      "functions": 28,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        ".hia_optimization",
+        ".hia_prepared",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".native_mapping_identity",
+        "__future__",
+        "_ctypes",
+        "collections",
+        "ctypes",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "secrets",
+        "threading",
+        "time"
+      ],
+      "lines": 611,
+      "path": "hepta/hia_adaptive.py",
+      "sha256": "e1c37cab4f525f4cbd974f0419c8abffa52de6709c37eb0c2f20e9ccb2672c52"
+    },
+    {
+      "bytes": 14027,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_json_preflight",
+        ".hia_program",
+        ".hia_program_tools",
+        ".hia_schema",
+        "__future__",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 295,
+      "path": "hepta/hia_agent_assembly.py",
+      "sha256": "0f50123394b1bd2d82f1a87657e66055443770361dade9c57329fa69336add27"
+    },
+    {
+      "bytes": 8206,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_store",
+        ".hia_native_byte_abi",
+        ".hia_program",
+        ".hia_program_runtime",
+        "__future__",
+        "hashlib",
+        "re"
+      ],
+      "lines": 163,
+      "path": "hepta/hia_agent_buffers.py",
+      "sha256": "52d33e7ae3cc441233e44f20f0330e8d502b1e1f5f59606a511689cd1dd79114"
+    },
+    {
+      "bytes": 15642,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_store",
+        ".hia_program_native",
+        "__future__",
+        "hashlib",
+        "json",
+        "math",
+        "pathlib",
+        "re"
+      ],
+      "lines": 308,
+      "path": "hepta/hia_agent_contract.py",
+      "sha256": "063c5fc8022fb3eabfb82967026a7fdcdc974af5ea0f7456e0e5709b2674731d"
+    },
+    {
+      "bytes": 909,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "ctypes",
+        "os",
+        "signal",
+        "sys"
+      ],
+      "lines": 33,
+      "path": "hepta/hia_agent_exec.py",
+      "sha256": "05ff21ed82659d6830450e1d000dbbd7f72f5baf65b5d3b0725638fcb864b93b"
+    },
+    {
+      "bytes": 4926,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_macro_policy",
+        "__future__",
+        "copy"
+      ],
+      "lines": 84,
+      "path": "hepta/hia_agent_macro_discovery.py",
+      "sha256": "3ee3f31f21719d0eee7414d8bee8ccb046d213ea44310764c21b727eac3c9951"
+    },
+    {
+      "bytes": 30156,
+      "functions": 16,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_bounded_wire",
+        ".hia_json_preflight",
+        ".hia_ndu_optimizer",
+        ".hia_ndu_scalar_selection",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "re",
+        "time"
+      ],
+      "lines": 547,
+      "path": "hepta/hia_agent_macro_policy.py",
+      "sha256": "acf1a58d2a8048656774dcebb3f5c785a9dcf82b4c8db5aa455058207ea2ba83"
+    },
+    {
+      "bytes": 16151,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_buffers",
+        ".hia_agent_service",
+        ".hia_agent_store",
+        ".hia_native_byte_abi",
+        ".hia_program",
+        ".hia_program_tools",
+        "__future__",
+        "ctypes",
+        "hashlib",
+        "json",
+        "math",
+        "mmap",
+        "os",
+        "pathlib",
+        "resource",
+        "signal",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "lines": 314,
+      "path": "hepta/hia_agent_runner.py",
+      "sha256": "85fd5cf6dd02e32a403ebf266d22fccf686717514280e5d05bd2e08e431a26fd"
+    },
+    {
+      "bytes": 99616,
+      "functions": 50,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_assembly",
+        ".hia_agent_buffers",
+        ".hia_agent_contract",
+        ".hia_agent_macro_discovery",
+        ".hia_agent_runner",
+        ".hia_agent_store",
+        ".hia_edit_query",
+        ".hia_machine_plan",
+        ".hia_native_byte_abi",
+        ".hia_opcodes",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_native",
+        ".hia_program_runtime",
+        ".hia_program_tools",
+        ".hia_proof_contract",
+        ".hia_safe_core",
+        ".hia_safe_core_elf",
+        ".hia_schema",
+        "__future__",
+        "base64",
+        "datetime",
+        "hashlib",
+        "itertools",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "signal",
+        "sqlite3",
+        "tempfile",
+        "time",
+        "uuid"
+      ],
+      "lines": 1419,
+      "path": "hepta/hia_agent_service.py",
+      "sha256": "75ade46caad218cddad843280da5d049c61b41793608011db829c738366eb592"
+    },
+    {
+      "bytes": 15310,
+      "functions": 21,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_json_preflight",
+        ".hia_program_tools",
+        "__future__",
+        "contextlib",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "re",
+        "sqlite3",
+        "stat",
+        "threading",
+        "uuid"
+      ],
+      "lines": 342,
+      "path": "hepta/hia_agent_store.py",
+      "sha256": "bd45b50d8564dfe877add4666a7714a07d93b878cca6196ba9cb45f119594eee"
+    },
+    {
+      "bytes": 5287,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_contract",
+        ".hia_agent_service",
+        ".hia_agent_store",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "re",
+        "sys",
+        "uuid"
+      ],
+      "lines": 93,
+      "path": "hepta/hia_agent_worker.py",
+      "sha256": "0f24552a961dd7a3eb3b27fe0fa76f5f52e16b9420d09ea89b58f6e4d1b3a6da"
+    },
+    {
+      "bytes": 29551,
+      "functions": 40,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_adaptive",
+        ".hia_guarded_optimization",
+        ".hia_multiversion",
+        ".hia_narrowing",
+        ".hia_native_differential",
+        ".hia_optimization",
+        ".hia_prepared",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_translation_validation",
+        ".native_tool_identity",
+        "__future__",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "secrets",
+        "shutil",
+        "stat",
+        "subprocess",
+        "threading",
+        "time",
+        "z3"
+      ],
+      "lines": 582,
+      "path": "hepta/hia_artifact_session.py",
+      "sha256": "6e7fa1c20b25da6f085b1c43603e66df758609399a580da8afa32583b5a67453"
+    },
+    {
+      "bytes": 29432,
+      "functions": 26,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_multiversion",
+        ".hia_ndu_optimizer",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "collections",
+        "concurrent.futures",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "threading",
+        "time"
+      ],
+      "lines": 559,
+      "path": "hepta/hia_background_optimizer.py",
+      "sha256": "d5a3c81eb0d7907fe872565b6ca6605708f8a6f13fd5a8d55788a9a13a095f7b"
+    },
+    {
+      "bytes": 2744,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__"
+      ],
+      "lines": 63,
+      "path": "hepta/hia_bounded_memory.py",
+      "sha256": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d"
+    },
+    {
+      "bytes": 14745,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_scalar_proof_contract",
+        ".hia_translation_validation",
+        "__future__",
+        "collections",
+        "copy",
+        "hashlib",
+        "pathlib"
+      ],
+      "lines": 289,
+      "path": "hepta/hia_bounded_unroll.py",
+      "sha256": "06268254148d1deea4966b4383ddcfe5ffdcb1855e7158be2120dd8922244032"
+    },
+    {
+      "bytes": 1252,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__"
+      ],
+      "lines": 28,
+      "path": "hepta/hia_bounded_wire.py",
+      "sha256": "653c896e3536a0c1be035144344e6d572ce25d8ea223105eecb3be0c21e82286"
+    },
+    {
+      "bytes": 8875,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "ctypes",
+        "errno",
+        "hashlib",
+        "os",
+        "pathlib",
+        "stat",
+        "sys",
+        "typing"
+      ],
+      "lines": 181,
+      "path": "hepta/hia_bundle_atomic.py",
+      "sha256": "38ba6928e122ae358b641275e1045c8916a05c2f242aab41ec5c5a91963b93c0"
+    },
+    {
+      "bytes": 11201,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__"
+      ],
+      "lines": 239,
+      "path": "hepta/hia_byte_sum.py",
+      "sha256": "a808103de7a3af495cd3fe14a271595a7e4f4ef2d1bb20cbebbd55c820161d7c"
+    },
+    {
+      "bytes": 22259,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_guarded_optimization",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "copy",
+        "hashlib",
+        "pathlib",
+        "tempfile",
+        "time",
+        "z3"
+      ],
+      "lines": 384,
+      "path": "hepta/hia_call_expansion.py",
+      "sha256": "7afea7ec08b47468ef7409a50c32e11d0baebc9302c04a51f4b7010d1202ca42"
+    },
+    {
+      "bytes": 2601,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 58,
+      "path": "hepta/hia_capability_flow.py",
+      "sha256": "95394f56ae64be96919f234142e96d7af9a8ec18524504b10cf8f7cea3b9b530"
+    },
+    {
+      "bytes": 6079,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_adaptive",
+        ".hia_stateful",
+        "__future__",
+        "dataclasses",
+        "secrets",
+        "time"
+      ],
+      "lines": 105,
+      "path": "hepta/hia_continuation.py",
+      "sha256": "6168a1cd0f828245c01a58a1fa507c24d608d7c2da3f81b17bce102a80ccd7c4"
+    },
+    {
+      "bytes": 12653,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".hsir",
+        ".native_resource_gate",
+        ".ssa",
+        ".ssa_verify",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 264,
+      "path": "hepta/hia_core.py",
+      "sha256": "dc9fbacdc8cef16be85397a1beade3a353b93d19cb37a95700a4327777d3dc03"
+    },
+    {
+      "bytes": 8607,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_composite",
+        ".hia_schema",
+        "__future__",
+        "hashlib"
+      ],
+      "lines": 179,
+      "path": "hepta/hia_core_upgrade.py",
+      "sha256": "550608c7b654c0af45cda8f122230188c1989069fda2dac4e05c285f7ce77570"
+    },
+    {
+      "bytes": 5641,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_bounded_unroll",
+        ".hia_program",
+        ".hia_specialization",
+        "__future__",
+        "copy"
+      ],
+      "lines": 108,
+      "path": "hepta/hia_crc_kernel.py",
+      "sha256": "5ee0c37280bf4bee6c8b6c3254220ba89c36d14ad8ca9e8c83b296d230a8468c"
+    },
+    {
+      "bytes": 6375,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_crc_kernel",
+        ".hia_finite_context",
+        ".hia_specialization",
+        "__future__",
+        "copy"
+      ],
+      "lines": 137,
+      "path": "hepta/hia_crc_linear.py",
+      "sha256": "33a838d0aa89cc845c4256f8b2183243c1de3dacda85fbaa918b54b0c648cccc"
+    },
+    {
+      "bytes": 25603,
+      "functions": 31,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_json_preflight",
+        ".hia_optimization",
+        ".hia_stateful",
+        "__future__",
+        "copy",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "secrets",
+        "stat",
+        "threading"
+      ],
+      "lines": 528,
+      "path": "hepta/hia_durable_queue.py",
+      "sha256": "6527ac9a014d9a42e120dd746af5a23c1ee1dad3400a0feb7311136cc5ce6486"
+    },
+    {
+      "bytes": 11634,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu",
+        "__future__",
+        "hashlib",
+        "json",
+        "re",
+        "time"
+      ],
+      "lines": 234,
+      "path": "hepta/hia_economic_search.py",
+      "sha256": "39bf5582cb348103c7d1b75ae7a24bd1688c27848a0a2d394e73f7c6adbd0be4"
+    },
+    {
+      "bytes": 14037,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_edit_query",
+        ".hia_program",
+        ".hia_program_tools",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json"
+      ],
+      "lines": 256,
+      "path": "hepta/hia_edit_batch.py",
+      "sha256": "7aedff21b35289f3bed175db833fb13a5947a0c1491a54ab318af1f89732b949"
+    },
+    {
+      "bytes": 24711,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_tools",
+        "__future__",
+        "collections",
+        "copy",
+        "hashlib",
+        "json"
+      ],
+      "lines": 478,
+      "path": "hepta/hia_edit_query.py",
+      "sha256": "191f29e6d3e0db7f298f5097ca213339593710f0e92c5b9add80edcc952137e2"
+    },
+    {
+      "bytes": 14743,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_guarded_optimization",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_reduction",
+        ".hia_specialization",
+        "__future__",
+        "copy",
+        "hashlib",
+        "pathlib",
+        "time",
+        "z3"
+      ],
+      "lines": 274,
+      "path": "hepta/hia_empty_reduction.py",
+      "sha256": "c0ce283fdd7573f4aa762821290acc6619244c43b3dd6c1a740d1c8903270d20"
+    },
+    {
+      "bytes": 6899,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_program",
+        "__future__",
+        "copy"
+      ],
+      "lines": 158,
+      "path": "hepta/hia_entry_layout.py",
+      "sha256": "cb7db6d76119d1dd3285caaaa14530b340ab3a23ab55d987153ba4caac0b6f88"
+    },
+    {
+      "bytes": 10587,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_translation_validation",
+        "__future__",
+        "copy"
+      ],
+      "lines": 227,
+      "path": "hepta/hia_finite_actions.py",
+      "sha256": "1a43781b3f5a24780f17867ec42b350b22266b26c2c3074ac0cc88789e9f1079"
+    },
+    {
+      "bytes": 56671,
+      "functions": 40,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        ".hia_adaptive",
+        ".hia_guarded_batch",
+        ".hia_native_differential",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_runtime",
+        ".hia_scalar_lowering_check",
+        ".hia_translation_validation",
+        ".native_tool_identity",
+        "__future__",
+        "base64",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "threading",
+        "time"
+      ],
+      "lines": 1018,
+      "path": "hepta/hia_finite_context.py",
+      "sha256": "ef4c98b53c67be1d1a0b5b897517099bc88fdcd88c32d4fee2c0f6c087eec18c"
+    },
+    {
+      "bytes": 10736,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_bounded_wire",
+        ".hia_json_preflight",
+        "__future__",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 226,
+      "path": "hepta/hia_full_cost_gate.py",
+      "sha256": "686ca4815052307921f46ebd2f022207c8bacf6189fa6c4d0edada00e82727cf"
+    },
+    {
+      "bytes": 24153,
+      "functions": 17,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        ".elf_shared_abi",
+        ".hia_adaptive",
+        ".hia_native_differential",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_runtime",
+        ".hia_scalar_lowering_check",
+        ".hia_specialization",
+        ".hia_translation_validation",
+        ".native_tool_identity",
+        "__future__",
+        "base64",
+        "contextlib",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "shutil",
+        "time"
+      ],
+      "lines": 450,
+      "path": "hepta/hia_guarded_batch.py",
+      "sha256": "03ddf6d99fab1decf12307d32ae10432874e9fc8460acbacca0db308e93ad90d"
+    },
+    {
+      "bytes": 25800,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_inductive",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tempfile",
+        "time",
+        "z3"
+      ],
+      "lines": 462,
+      "path": "hepta/hia_guarded_optimization.py",
+      "sha256": "22c975b02844137070d8682486f94cc36438c03567e6c83d4edb870632966b40"
+    },
+    {
+      "bytes": 79254,
+      "functions": 33,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_static_budget",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json"
+      ],
+      "lines": 1520,
+      "path": "hepta/hia_heap_bound.py",
+      "sha256": "62dbb3e9335350b415a2da8808b2b87048407343001ba6668ab2023f4ea0cce1"
+    },
+    {
+      "bytes": 42153,
+      "functions": 43,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_adaptive",
+        ".hia_native_differential",
+        ".native_mapping_identity",
+        "__future__",
+        "collections",
+        "copy",
+        "ctypes",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "mmap",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "secrets",
+        "threading",
+        "time"
+      ],
+      "lines": 769,
+      "path": "hepta/hia_host_region.py",
+      "sha256": "3c7abd2d020b8f72cbc905bf9de52af4b18e333d0f773b369bd4ce31b84b9945"
+    },
+    {
+      "bytes": 21042,
+      "functions": 22,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_program_tools",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "threading",
+        "types",
+        "weakref"
+      ],
+      "lines": 425,
+      "path": "hepta/hia_incremental.py",
+      "sha256": "6619e9ed501b8365bb7b6b460b128100df8ab034ffc861c60a7c44f5d42ec60c"
+    },
+    {
+      "bytes": 6862,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_optimization",
+        ".hia_program",
+        "__future__"
+      ],
+      "lines": 138,
+      "path": "hepta/hia_inductive.py",
+      "sha256": "66eb6077d727b15b7f206c9f87bb30b5fa50b7befa7757caca7f79ab1334f6ce"
+    },
+    {
+      "bytes": 11968,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_opcodes",
+        ".hia_program",
+        "__future__",
+        "collections",
+        "hashlib",
+        "pathlib"
+      ],
+      "lines": 223,
+      "path": "hepta/hia_initialization.py",
+      "sha256": "bba535d6f5d9439bf6a3968c08a1c582a629ab2eac0cacd548783b5b40e9db16"
+    },
+    {
+      "bytes": 11572,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_program_tools",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "threading",
+        "time",
+        "types",
+        "weakref"
+      ],
+      "lines": 210,
+      "path": "hepta/hia_invocation_bank.py",
+      "sha256": "8e65009da3e41bc1429504a530478416e366a53ed95ea96e54d5f6b5fc3849ff"
+    },
+    {
+      "bytes": 7563,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "json"
+      ],
+      "lines": 194,
+      "path": "hepta/hia_json_preflight.py",
+      "sha256": "53c6b189ed6210f7cf6fdb75c042ed6db7c10dba9254083270cd2903e3f7f4f2"
+    },
+    {
+      "bytes": 4443,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "re"
+      ],
+      "lines": 88,
+      "path": "hepta/hia_l1_receipt.py",
+      "sha256": "e7cdd8654d789ce6525390c7f8a813a394683aaff6569e633e0e422d4b501c6f"
+    },
+    {
+      "bytes": 23240,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".native_tool_identity",
+        ".object_symbols",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 375,
+      "path": "hepta/hia_linux_kernel.py",
+      "sha256": "3598b2cd68409e051283870b85f7c0528f9d293193da45f103cbf443e091f507"
+    },
+    {
+      "bytes": 7026,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "re",
+        "struct"
+      ],
+      "lines": 140,
+      "path": "hepta/hia_machine_elf.py",
+      "sha256": "c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101"
+    },
+    {
+      "bytes": 13270,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        "__future__"
+      ],
+      "lines": 224,
+      "path": "hepta/hia_machine_plan.py",
+      "sha256": "ae3e54c4dc3299ba9b6d0a9b4caec55e26f3233e5699d3a0cab7deb1337efb8a"
+    },
+    {
+      "bytes": 11057,
+      "functions": 54,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "re",
+        "struct"
+      ],
+      "lines": 259,
+      "path": "hepta/hia_machine_x64.py",
+      "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+    },
+    {
+      "bytes": 17076,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".cpp2hepta",
+        ".hia_bundle_atomic",
+        ".hia_l1_receipt",
+        ".hia_source_bridge",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 307,
+      "path": "hepta/hia_migrate.py",
+      "sha256": "62446f8c263dbe1b93a1767063c25e1998846eecfcaa680139ddf484a6d8ec42"
+    },
+    {
+      "bytes": 49827,
+      "functions": 50,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".elf_shared_abi",
+        ".hia_native_retirement",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_runtime",
+        ".hia_translation_validation",
+        ".native_mapping_identity",
+        "__future__",
+        "collections",
+        "ctypes",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "stat",
+        "statistics",
+        "tempfile",
+        "threading",
+        "time"
+      ],
+      "lines": 941,
+      "path": "hepta/hia_multiversion.py",
+      "sha256": "1f04d6f5e5db7ce56f155e9490061b436aa2d529fee54f1120c66a2e7ddf62ee"
+    },
+    {
+      "bytes": 24765,
+      "functions": 19,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_guarded_optimization",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tempfile",
+        "time",
+        "z3"
+      ],
+      "lines": 425,
+      "path": "hepta/hia_narrowing.py",
+      "sha256": "7f30ae46f04008913b349f7ca0c51453622e79882e2d01eb2add3c229ca501c6"
+    },
+    {
+      "bytes": 5825,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_native",
+        "__future__"
+      ],
+      "lines": 125,
+      "path": "hepta/hia_native_byte_abi.py",
+      "sha256": "0bb40a17f76c27146a48a6d3d229228c9a89bfd96d4b9d65b3b9c70215a3edd6"
+    },
+    {
+      "bytes": 12287,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        ".hia_agent_runner",
+        ".hia_native_byte_abi",
+        ".hia_program",
+        ".hia_program_native",
+        "__future__",
+        "base64",
+        "ctypes",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "signal",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "lines": 218,
+      "path": "hepta/hia_native_byte_runner.py",
+      "sha256": "f0f5f8752e19d15b31b0c56141169fcc7cc30c072ad696108c8dd3571702f71f"
+    },
+    {
+      "bytes": 55444,
+      "functions": 31,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".hia_core",
+        ".hia_oracle",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_runtime",
+        ".hia_source_bridge",
+        ".hsir",
+        ".llvm_ssa_pipeline",
+        ".native_resource_gate",
+        ".pipeline",
+        ".ssa",
+        ".ssa_verify",
+        "__future__",
+        "fcntl",
+        "hashlib",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "signal",
+        "stat",
+        "subprocess",
+        "sys",
+        "tempfile",
+        "threading",
+        "time"
+      ],
+      "lines": 1083,
+      "path": "hepta/hia_native_differential.py",
+      "sha256": "8c9729731def7d31e7950f186bde1aa065e16c389a0e364331700cb0d3bf652e"
+    },
+    {
+      "bytes": 9898,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_bounded_wire",
+        ".hia_json_preflight",
+        ".hia_paired_holdout",
+        "__future__",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 211,
+      "path": "hepta/hia_native_paired_replay.py",
+      "sha256": "3e01b10cce699acdd06899c005520380e5fff05805dcceb5b70faa7ce6e00a71"
+    },
+    {
+      "bytes": 11159,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "_ctypes",
+        "copy",
+        "ctypes",
+        "dataclasses",
+        "os",
+        "pathlib",
+        "stat",
+        "time"
+      ],
+      "lines": 252,
+      "path": "hepta/hia_native_retirement.py",
+      "sha256": "d88df71d8cded9a1bce2179773cdbf95620d5dc7994661e4ad801bd3e634275f"
+    },
+    {
+      "bytes": 22703,
+      "functions": 21,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_response",
+        ".hia_planning",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "subprocess",
+        "typing"
+      ],
+      "lines": 412,
+      "path": "hepta/hia_ndu.py",
+      "sha256": "affa916479adc7d9c232a24b247f10d6c52fe03363fbba4e13711726eb5b961d"
+    },
+    {
+      "bytes": 10543,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_ndu",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "stat",
+        "threading",
+        "time"
+      ],
+      "lines": 210,
+      "path": "hepta/hia_ndu_cache.py",
+      "sha256": "2d6865a449b6e448d8cc2731517bb0be94061aa4b8b9adb2874834703d60cc36"
+    },
+    {
+      "bytes": 33221,
+      "functions": 34,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu",
+        "__future__",
+        "hashlib",
+        "itertools",
+        "json",
+        "time"
+      ],
+      "lines": 625,
+      "path": "hepta/hia_ndu_cost.py",
+      "sha256": "f29ce1dd1355b461d8c58a70ae85cf1a93435090baeed2c0ea1b990dc8006882"
+    },
+    {
+      "bytes": 23776,
+      "functions": 23,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        ".hia_ndu",
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "selectors",
+        "subprocess",
+        "tempfile",
+        "time"
+      ],
+      "lines": 409,
+      "path": "hepta/hia_ndu_dynamic.py",
+      "sha256": "67d8384e886f8aae0b3253e6983143cb648be50d9df2fd7ec67b9e8f00c2c4be"
+    },
+    {
+      "bytes": 9451,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_dynamic",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tools.qualify_hia_stb_service"
+      ],
+      "lines": 165,
+      "path": "hepta/hia_ndu_module_costs.py",
+      "sha256": "dc8a7bff063d5464ba7afc73b5f36e099f0165078dab9d75a38264e39801022e"
+    },
+    {
+      "bytes": 28358,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_scalar_selection",
+        ".hia_program",
+        ".hia_rust_crosscheck",
+        ".hia_translation_validation",
+        "__future__",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "stat",
+        "sys",
+        "time"
+      ],
+      "lines": 526,
+      "path": "hepta/hia_ndu_optimizer.py",
+      "sha256": "5c88798e84c5cfb328750a3b0f34c07eb2f064496f8cb6f619015560e2ee16fe"
+    },
+    {
+      "bytes": 27424,
+      "functions": 20,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_optimizer",
+        ".hia_ndu_prepared_ranker",
+        ".hia_rust_crosscheck",
+        "__future__",
+        "copy",
+        "hashlib",
+        "os",
+        "secrets",
+        "selectors",
+        "signal",
+        "subprocess",
+        "threading",
+        "time"
+      ],
+      "lines": 527,
+      "path": "hepta/hia_ndu_persistent_ranker.py",
+      "sha256": "e7b5085df25af2c746a93748dfe794b739d76dcc738d3ff69a7bd1c12ea5504c"
+    },
+    {
+      "bytes": 12707,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_dynamic",
+        "__future__",
+        "copy",
+        "dataclasses",
+        "time"
+      ],
+      "lines": 257,
+      "path": "hepta/hia_ndu_policy.py",
+      "sha256": "3169839978df292b8972ec0d8b911b927b235599ba79610a6ca544ca0ed5a111"
+    },
+    {
+      "bytes": 13421,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_optimizer",
+        ".hia_rust_crosscheck",
+        "__future__",
+        "copy",
+        "fcntl",
+        "hashlib",
+        "os",
+        "stat",
+        "threading",
+        "time"
+      ],
+      "lines": 273,
+      "path": "hepta/hia_ndu_prepared_ranker.py",
+      "sha256": "e62f45d582013d23a78d60d441dad1f059330addf9412b7ed1439f33f9323b03"
+    },
+    {
+      "bytes": 11857,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        ".hia_ndu",
+        ".hia_ndu_cost",
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "subprocess",
+        "time"
+      ],
+      "lines": 187,
+      "path": "hepta/hia_ndu_raw_model.py",
+      "sha256": "8702aa1489345b23780e0ace0d815b542a93aeb058216f6d1c6ff983e1993491"
+    },
+    {
+      "bytes": 8355,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        ".hia_ndu",
+        ".hia_ndu_raw_model",
+        ".hia_ndu_session",
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "subprocess",
+        "threading",
+        "time"
+      ],
+      "lines": 171,
+      "path": "hepta/hia_ndu_raw_session.py",
+      "sha256": "b83099b55ddf0e8fc158e3a5d92e6dc33b643a6f77656afb39075b523ff735a2"
+    },
+    {
+      "bytes": 8829,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 140,
+      "path": "hepta/hia_ndu_response.py",
+      "sha256": "3c1951bbedc53940727660c683ddd2bba4fe1c6b5ea164f5ee5eca17a8d8a948"
+    },
+    {
+      "bytes": 7110,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 132,
+      "path": "hepta/hia_ndu_scalar_selection.py",
+      "sha256": "280e287cde21fec7e49f38c07ada2f9f15a9b3c7fd8038432951abbf4b95f101"
+    },
+    {
+      "bytes": 17575,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        ".hia_ndu",
+        "__future__",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "selectors",
+        "stat",
+        "subprocess",
+        "threading",
+        "time"
+      ],
+      "lines": 340,
+      "path": "hepta/hia_ndu_session.py",
+      "sha256": "78bb0ce6d745a75dd8c6c14d671f21217cae0c6ecaaddeb43bf49189b5d7fba0"
+    },
+    {
+      "bytes": 24271,
+      "functions": 15,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_json_preflight",
+        ".hia_ndu",
+        ".hia_program_tools",
+        "__future__",
+        "copy",
+        "hashlib",
+        "itertools",
+        "json",
+        "re"
+      ],
+      "lines": 423,
+      "path": "hepta/hia_ndu_stateful.py",
+      "sha256": "830b7dd13988d734f388d711ac25571693d073c2ec549d8f8ddea41b6949e107"
+    },
+    {
+      "bytes": 19819,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_schema",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "types"
+      ],
+      "lines": 277,
+      "path": "hepta/hia_opcodes.py",
+      "sha256": "114d68e72dfc3f5d8ae6dcfeb2a311be7ab1514437bd9b0be4a89bc4678e50ec"
+    },
+    {
+      "bytes": 25473,
+      "functions": 20,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_runtime",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tempfile",
+        "time",
+        "z3"
+      ],
+      "lines": 472,
+      "path": "hepta/hia_optimization.py",
+      "sha256": "ddda1bc33a4d99f07216b00f2d9f666314e41aa757cd88273b3b295e2d842267"
+    },
+    {
+      "bytes": 12329,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_call_expansion",
+        ".hia_heap_bound",
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_static_budget",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 237,
+      "path": "hepta/hia_optimization_contract.py",
+      "sha256": "e1dba71f07784fbeeb1539189046d2320e23eeee4f21ce4212524adf1ed82cdc"
+    },
+    {
+      "bytes": 13246,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_core",
+        ".llvm_ssa_backend",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 259,
+      "path": "hepta/hia_oracle.py",
+      "sha256": "3726e6a2bbfb0d54ff75cae1d162a36e49f4caa183f121927dc0b81c3c77622d"
+    },
+    {
+      "bytes": 5545,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_full_cost_gate",
+        "__future__",
+        "json",
+        "math"
+      ],
+      "lines": 126,
+      "path": "hepta/hia_paired_holdout.py",
+      "sha256": "ab330d1c80fb7b9828f68831e492fd9c113ec5e71b534d5a7e2a2d1587137f80"
+    },
+    {
+      "bytes": 8527,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_tools",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json"
+      ],
+      "lines": 185,
+      "path": "hepta/hia_patch_impact.py",
+      "sha256": "b61710dc320c4b65206a2e6efed67ac525e900a782886be6c289e8acc681e3a1"
+    },
+    {
+      "bytes": 12492,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu",
+        "__future__",
+        "dataclasses",
+        "functools",
+        "typing"
+      ],
+      "lines": 237,
+      "path": "hepta/hia_planning.py",
+      "sha256": "4eec407232fc664fe36612ea95ad42af74ef23f42205f6b02a0c81e1fbe80a0f"
+    },
+    {
+      "bytes": 4515,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json"
+      ],
+      "lines": 87,
+      "path": "hepta/hia_prepared.py",
+      "sha256": "bf0285705531f3950aaec6c2f31ac60fe13a354079a2218239676d7b619afe87"
+    },
+    {
+      "bytes": 40805,
+      "functions": 41,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_capability_flow",
+        ".hia_json_preflight",
+        ".hia_opcodes",
+        ".hia_program_composite",
+        ".hia_program_runtime",
+        ".hia_schema",
+        "__future__",
+        "collections",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 887,
+      "path": "hepta/hia_program.py",
+      "sha256": "7e4f3ba54e0862b42b053e765addfae6116469100245f4f16882d4a8f20049d5"
+    },
+    {
+      "bytes": 25590,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".clang_capture",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".native_tool_identity",
+        ".object_symbols",
+        ".owned_aarch64_link",
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "shutil",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 471,
+      "path": "hepta/hia_program_aarch64.py",
+      "sha256": "68ff037136360bd872ed1af4cd1b670c738c399b0987886ea92a0983c698201a"
+    },
+    {
+      "bytes": 65212,
+      "functions": 42,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_schema",
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 1180,
+      "path": "hepta/hia_program_composite.py",
+      "sha256": "ef86ca2ce6973c8ec2042b0853fbda5fca345e575c784cd751ca3670ea6e3a11"
+    },
+    {
+      "bytes": 59581,
+      "functions": 39,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".clang_capture",
+        ".elf_shared_abi",
+        ".hia_byte_sum",
+        ".hia_entry_layout",
+        ".hia_initialization",
+        ".hia_program",
+        ".hia_schema",
+        ".hia_static_budget",
+        ".native_tool_identity",
+        ".object_symbols",
+        "__future__",
+        "ctypes",
+        "dataclasses",
+        "hashlib",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "stat",
+        "sys",
+        "tempfile"
+      ],
+      "lines": 1090,
+      "path": "hepta/hia_program_llvm.py",
+      "sha256": "334776f8bf9623ffbb172393cda8a59d6950e66c9794f7c9d41d7f9bbd57667b"
+    },
+    {
+      "bytes": 46917,
+      "functions": 44,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".clang_capture",
+        ".elf_shared_abi",
+        ".hia_machine_elf",
+        ".hia_machine_plan",
+        ".hia_machine_x64",
+        ".hia_native_byte_abi",
+        ".hia_program",
+        ".hia_static_budget",
+        ".native_tool_identity",
+        ".object_symbols",
+        "__future__",
+        "ctypes",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "shutil",
+        "stat",
+        "sys",
+        "tempfile",
+        "time"
+      ],
+      "lines": 917,
+      "path": "hepta/hia_program_native.py",
+      "sha256": "bf953a8b85d1ebc6b9d7a90fbbcaa4137e40ed214c2ede2af1a13cfc01b1c07c"
+    },
+    {
+      "bytes": 29957,
+      "functions": 20,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_bounded_memory",
+        ".hia_opcodes",
+        ".hia_program",
+        ".hia_schema",
+        ".hia_static_budget",
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 598,
+      "path": "hepta/hia_program_runtime.py",
+      "sha256": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+    },
+    {
+      "bytes": 87373,
+      "functions": 65,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".borrowed_storage",
+        ".c_contracts",
+        ".c_migrate",
+        ".c_project",
+        ".c_record_views",
+        ".c_translation",
+        ".checker",
+        ".hia_program",
+        ".hia_program_composite",
+        ".hia_schema",
+        ".parser",
+        ".resource_ir",
+        ".resource_lowering",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "typing"
+      ],
+      "lines": 1564,
+      "path": "hepta/hia_program_source.py",
+      "sha256": "70c6a864d7bd69dc923a60903314614dadfb1bbafdb14491037a99c08fd2fa9b"
+    },
+    {
+      "bytes": 21038,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_json_preflight",
+        ".hia_program",
+        "__future__",
+        "copy",
+        "json",
+        "math",
+        "os",
+        "pathlib",
+        "re",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 443,
+      "path": "hepta/hia_program_tools.py",
+      "sha256": "d8b54aee8bb9f226fbcc0de61daa9bd70d29491c50f46242c3080b3a6ccfcd6d"
+    },
+    {
+      "bytes": 25467,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_agent_store",
+        ".hia_safe_core",
+        "__future__",
+        "copy",
+        "importlib",
+        "platform"
+      ],
+      "lines": 361,
+      "path": "hepta/hia_proof_contract.py",
+      "sha256": "f3f52f2b1e1195c26b442f33f17562cca1c2d49ed78ef981e78050fe336bc9ce"
+    },
+    {
+      "bytes": 11548,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_adaptive",
+        ".hia_stateful",
+        "__future__",
+        "json",
+        "time"
+      ],
+      "lines": 190,
+      "path": "hepta/hia_queue_commit.py",
+      "sha256": "fa27649b45d9175b7176c3566d6b59f3bf10472795825f6cdd0d8c70e391f08d"
+    },
+    {
+      "bytes": 12993,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_guarded_optimization",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "tempfile",
+        "time",
+        "z3"
+      ],
+      "lines": 243,
+      "path": "hepta/hia_reduction.py",
+      "sha256": "f91c44c6d810d344b23b9207436bc987fdd94dfae072eb409357d4df7e8318aa"
+    },
+    {
+      "bytes": 8375,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_native_differential",
+        "__future__",
+        "ctypes",
+        "hashlib",
+        "os",
+        "pathlib",
+        "struct",
+        "time"
+      ],
+      "lines": 196,
+      "path": "hepta/hia_result_cache.py",
+      "sha256": "2023525c1474f7c8f7f4c6b1fe95b13148ea63771c17a8e35fa40670d2bba65f"
+    },
+    {
+      "bytes": 2995,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_ndu_dynamic",
+        "__future__",
+        "time"
+      ],
+      "lines": 51,
+      "path": "hepta/hia_result_cache_audit.py",
+      "sha256": "320386e4e5ea689644ebe38621a927c461e290d9dd00170e76a1a11d3dd24e55"
+    },
+    {
+      "bytes": 23755,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".checker",
+        ".core",
+        ".cpp_composed_project",
+        ".cpp_project_migrate",
+        ".cpp_unique_project",
+        ".hia_agent_assembly",
+        ".hia_core",
+        ".hia_core_upgrade",
+        ".hia_program",
+        ".hia_program_source",
+        ".hia_program_tools",
+        ".hia_schema",
+        ".parser",
+        "__future__",
+        "hashlib",
+        "json"
+      ],
+      "lines": 330,
+      "path": "hepta/hia_routes.py",
+      "sha256": "54ee189b85273e77ebce4a2ee6ab34a0baaa45e712782042a78eaf42959437a4"
+    },
+    {
+      "bytes": 7293,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_rust_byte_dag"
+      ],
+      "lines": 126,
+      "path": "hepta/hia_rust_byte_cleanup.py",
+      "sha256": "8475962d02380e040c383105b77021bc420181d2ac599818a58a76c05b797e98"
+    },
+    {
+      "bytes": 23432,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_json_preflight",
+        ".hia_opcodes",
+        ".hia_rust_byte_cleanup",
+        "__future__",
+        "hashlib",
+        "json",
+        "pathlib",
+        "re"
+      ],
+      "lines": 413,
+      "path": "hepta/hia_rust_byte_dag.py",
+      "sha256": "8eb7897a3b44cd12cc70f40a4c1a1821d47c5556bb45942b78ad7bedfc7a3205"
+    },
+    {
+      "bytes": 37286,
+      "functions": 21,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_static_budget",
+        "__future__",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "selectors",
+        "signal",
+        "stat",
+        "subprocess",
+        "sys",
+        "time"
+      ],
+      "lines": 718,
+      "path": "hepta/hia_rust_crosscheck.py",
+      "sha256": "9125fe4136d9e4c3120f364e13e6a158661d8799a5107773e3a256f123c93884"
+    },
+    {
+      "bytes": 29611,
+      "functions": 21,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".hia_program",
+        ".hia_program_native",
+        ".hia_safe_core_elf",
+        ".hia_safe_core_x64",
+        "__future__",
+        "hashlib",
+        "importlib",
+        "json",
+        "os",
+        "pathlib",
+        "tempfile",
+        "time"
+      ],
+      "lines": 516,
+      "path": "hepta/hia_safe_core.py",
+      "sha256": "9d7f95fe06ec70ab984b24c750339b288e421ceb6849c4d2547501b213f8c79b"
+    },
+    {
+      "bytes": 22267,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".elf_shared_abi",
+        "__future__",
+        "hashlib",
+        "struct"
+      ],
+      "lines": 391,
+      "path": "hepta/hia_safe_core_elf.py",
+      "sha256": "2f6ef7c6ade26d54d3d02ba1f35e450086a4c1ea81b60dbeb3f1f0b30a07cb6f"
+    },
+    {
+      "bytes": 20925,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "struct"
+      ],
+      "lines": 407,
+      "path": "hepta/hia_safe_core_x64.py",
+      "sha256": "8a6e2248ecf57df25718b59e918cd6c0db1090ec1898a8d902e42efb75e762a7"
+    },
+    {
+      "bytes": 12129,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_scalar_proof_contract",
+        ".hia_specialization",
+        ".hia_translation_validation",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib",
+        "time"
+      ],
+      "lines": 236,
+      "path": "hepta/hia_scalar_call_validation.py",
+      "sha256": "76265b09c7819e29b8e6e5ff3df3e26abdb2d04cf2fd06d27b64d88cc59d9f04"
+    },
+    {
+      "bytes": 31375,
+      "functions": 16,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_llvm",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "re",
+        "time",
+        "z3"
+      ],
+      "lines": 567,
+      "path": "hepta/hia_scalar_lowering_check.py",
+      "sha256": "ce622a85751a8108babf2eda2286eb7ca5fb9ac3b3ebee06cd5552fea59e181b"
+    },
+    {
+      "bytes": 11184,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib",
+        "platform",
+        "time"
+      ],
+      "lines": 197,
+      "path": "hepta/hia_scalar_proof_contract.py",
+      "sha256": "67e11ffbe394a2cd6b2f5a30a7f3af5c5c694033fd0624d3f5e8be6d829781c7"
+    },
+    {
+      "bytes": 12171,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_multiversion",
+        ".hia_program",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json",
+        "secrets",
+        "threading"
+      ],
+      "lines": 258,
+      "path": "hepta/hia_scalar_state.py",
+      "sha256": "f8951828b9d12b1e9fa658dd06bd7dac61d7b20d5bc5e44c4f66f3a8ca484beb"
+    },
+    {
+      "bytes": 18328,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_scalar_proof_contract",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "time"
+      ],
+      "lines": 317,
+      "path": "hepta/hia_scalar_totality.py",
+      "sha256": "9a7d3523031d31101385c69d374ee3c533e730049047b2b9e09d2ccd8faa500f"
+    },
+    {
+      "bytes": 5652,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_opcodes",
+        "__future__",
+        "types"
+      ],
+      "lines": 123,
+      "path": "hepta/hia_schema.py",
+      "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+    },
+    {
+      "bytes": 32232,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".cfg",
+        ".core",
+        ".elf_shared_abi",
+        ".hia_core",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_program_source",
+        ".hia_static_budget",
+        ".hsir",
+        ".native_resource_gate",
+        ".object_symbols",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        ".ssa",
+        ".ssa_verify",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "tempfile"
+      ],
+      "lines": 572,
+      "path": "hepta/hia_source_bridge.py",
+      "sha256": "e7e47a7e8ae90135af0d2c52b6e16b73c5db0db76b6efaa69b7cee5fb18ab82e"
+    },
+    {
+      "bytes": 6736,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        ".hia_translation_validation",
+        "__future__",
+        "copy"
+      ],
+      "lines": 132,
+      "path": "hepta/hia_specialization.py",
+      "sha256": "3d87cd790dd41a8011c725de3cd0bb5e06be2492ba9aaa2a81c0d045ab704fbf"
+    },
+    {
+      "bytes": 44937,
+      "functions": 40,
+      "implementation_language": "Python",
+      "imports": [
+        ".elf_shared_abi",
+        ".hia_adaptive",
+        ".hia_continuation",
+        ".hia_json_preflight",
+        ".hia_native_differential",
+        ".hia_program",
+        ".hia_queue_commit",
+        ".native_mapping_identity",
+        ".native_tool_identity",
+        "__future__",
+        "ctypes",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "secrets",
+        "shutil",
+        "subprocess",
+        "tempfile",
+        "time"
+      ],
+      "lines": 835,
+      "path": "hepta/hia_stateful.py",
+      "sha256": "1edfe32c357c91b2d2d45cbe1f708a50b734eea5cbb830e0511c2bef1620de2a"
+    },
+    {
+      "bytes": 22227,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_heap_bound",
+        ".hia_program",
+        "__future__",
+        "collections",
+        "hashlib",
+        "json"
+      ],
+      "lines": 436,
+      "path": "hepta/hia_static_budget.py",
+      "sha256": "c26ec6ba5badc4c8c4863dbbfab9cfbe99e8167c8b674f216763694f1995b1d5"
+    },
+    {
+      "bytes": 11581,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        ".c_migrate",
+        ".hia_finite_context",
+        ".hia_program",
+        ".hia_program_source",
+        ".hia_scalar_call_validation",
+        ".hia_specialization",
+        ".hia_translation_validation",
+        "__future__",
+        "copy",
+        "hashlib",
+        "json",
+        "pathlib",
+        "tools.qualify_c_stb_divide"
+      ],
+      "lines": 201,
+      "path": "hepta/hia_stb_specialization.py",
+      "sha256": "98d17ea2c89324481192184a9ee7c800184fe74b4164fc109272f9a2a3ae2d59"
+    },
+    {
+      "bytes": 3869,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_program",
+        "__future__",
+        "collections",
+        "dataclasses"
+      ],
+      "lines": 103,
+      "path": "hepta/hia_swap_opt.py",
+      "sha256": "136c3c5f79921c65256da5ae74e48177ca7579268cb7bbd02648b3bae806dce1"
+    },
+    {
+      "bytes": 25421,
+      "functions": 18,
+      "implementation_language": "Python",
+      "imports": [
+        ".hia_optimization",
+        ".hia_program",
+        ".hia_program_runtime",
+        ".hia_scalar_proof_contract",
+        "__future__",
+        "collections",
+        "hashlib",
+        "importlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 506,
+      "path": "hepta/hia_translation_validation.py",
+      "sha256": "1b3bc18ad72609cf8f89ae9efe657e1e5f532d438120f8c5535e7cbb85619eeb"
+    },
+    {
+      "bytes": 29449,
+      "functions": 23,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".clang_capture",
+        ".elf_shared_abi",
+        ".hia_program",
+        ".hia_program_llvm",
+        ".hia_translation_validation",
+        ".native_tool_identity",
+        "__future__",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "struct",
+        "tempfile",
+        "time"
+      ],
+      "lines": 541,
+      "path": "hepta/hia_x86_search.py",
+      "sha256": "32faf9913b91e54b41979f5a6eda8d9da7069f353d528e8d454602c2115e9ff6"
+    },
+    {
+      "bytes": 14265,
+      "functions": 11,
+      "implementation_language": "Python",
+      "imports": [
+        ".borrowed_storage",
+        ".runtime_io",
+        "__future__",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "lines": 270,
+      "path": "hepta/hmir.py",
+      "sha256": "3b3146355a08dcde3a6959626d98d5c8d7813445ca4621d2b03fdfb11dcbc896"
+    },
+    {
+      "bytes": 22883,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".semantic_ir",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re",
+        "typing"
+      ],
+      "lines": 429,
+      "path": "hepta/hsir.py",
+      "sha256": "5b99d1f6dbb3e8658073457a0ace99898270be4aacccfa0cce4fbe09d14562dd"
+    },
+    {
+      "bytes": 9106,
+      "functions": 14,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        "__future__",
+        "dataclasses",
+        "math",
+        "typing"
+      ],
+      "lines": 225,
+      "path": "hepta/lexer.py",
+      "sha256": "8138278341afc789f744bf89a752723a96b530043a37596f943f3d4e464ff153"
+    },
+    {
+      "bytes": 6524,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "re"
+      ],
+      "lines": 134,
+      "path": "hepta/llvm_ir_profile.py",
+      "sha256": "732f8a337ab6f49724001f3ec218486f7146777350a6e778ed87e22a5a487bc5"
+    },
+    {
+      "bytes": 23234,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".llvm_owned_backend",
+        ".llvm_ssa_backend",
+        ".native_tool_identity",
+        ".object_structure",
+        ".object_symbols",
+        ".owned_aarch64_link",
+        ".owned_aarch64_runtime",
+        ".owned_target_layout",
+        ".pipeline",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 392,
+      "path": "hepta/llvm_owned_aarch64.py",
+      "sha256": "81c7d78c5a1a62b01abc5f7e6b6cf53425653f3ff967e08c4290c3f9bf88d008"
+    },
+    {
+      "bytes": 53547,
+      "functions": 50,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".ast",
+        ".checker",
+        ".elf_shared_abi",
+        ".llvm_ssa_backend",
+        ".llvm_ssa_target",
+        ".native_local_views",
+        ".native_tool_identity",
+        ".owned_drop_plan",
+        ".owned_target_layout",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        ".static_resource_contracts",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 1033,
+      "path": "hepta/llvm_owned_backend.py",
+      "sha256": "6df3e7cd9ce30fc99362b64c10be7a5767d7933d69dfee9509c7777d5cd4bfb8"
+    },
+    {
+      "bytes": 10395,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".elf_shared_abi",
+        ".llvm_owned_backend",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "tempfile"
+      ],
+      "lines": 154,
+      "path": "hepta/llvm_owned_pipeline.py",
+      "sha256": "23f92e9eb3f320a066d452921a94452c63e424a74c1988091ced03e9baf64140"
+    },
+    {
+      "bytes": 17906,
+      "functions": 13,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".clang_capture",
+        ".llvm_ir_profile",
+        ".native_tool_identity",
+        ".ssa",
+        ".ssa_verify",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 356,
+      "path": "hepta/llvm_ssa_backend.py",
+      "sha256": "7b1d7b4b6d7d0b79744846875d15d000f533fe87419838f584a7f147b252ad89"
+    },
+    {
+      "bytes": 17824,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".artifact_publication",
+        ".cfg",
+        ".elf_shared_abi",
+        ".hia_core",
+        ".hsir",
+        ".llvm_ssa_backend",
+        ".llvm_ssa_target",
+        ".native_resource_gate",
+        ".object_symbols",
+        ".pipeline",
+        ".scalar_host_abi",
+        ".ssa",
+        ".ssa_verify",
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "tempfile"
+      ],
+      "lines": 295,
+      "path": "hepta/llvm_ssa_pipeline.py",
+      "sha256": "b37ec82d74372227e649cb0dcd15b5ea39a5b732e9cb8cd34651d81a92f7bdad"
+    },
+    {
+      "bytes": 14022,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".llvm_ssa_backend",
+        ".native_tool_identity",
+        ".object_symbols",
+        ".ssa",
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "shutil",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 263,
+      "path": "hepta/llvm_ssa_target.py",
+      "sha256": "8172da1fd5cfcb4d5658de12f64acaf25cebebb8589e57a1579dffde4a773d1b"
+    },
+    {
+      "bytes": 11200,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".lexer",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 254,
+      "path": "hepta/migration_ir.py",
+      "sha256": "6320d124d4a16eab04ef96f8879111747a23c4fe77b4707fe2f28730784653bb"
+    },
+    {
+      "bytes": 13988,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".lexer",
+        ".packages",
+        ".parser",
+        "__future__",
+        "copy",
+        "dataclasses",
+        "json",
+        "os",
+        "pathlib",
+        "platform",
+        "re",
+        "struct"
+      ],
+      "lines": 261,
+      "path": "hepta/modules.py",
+      "sha256": "c933a5ab29a1a54b5b36e0e0b2554ce250db3303a559c742fddf2b65fcf0fcea"
+    },
+    {
+      "bytes": 1950,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast"
+      ],
+      "lines": 38,
+      "path": "hepta/native_local_views.py",
+      "sha256": "a5ff9e9e78684b979d341e751f0011b9c4e8d65f1ee72b290721ef86dbbcc54c"
+    },
+    {
+      "bytes": 5583,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "ctypes",
+        "fcntl",
+        "os",
+        "stat",
+        "sys"
+      ],
+      "lines": 104,
+      "path": "hepta/native_mapping_identity.py",
+      "sha256": "e85114ea20081dc97ccca299e80a954c3c2165de63d22b776948a1c4001ff010"
+    },
+    {
+      "bytes": 6540,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        "__future__",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 131,
+      "path": "hepta/native_resource_gate.py",
+      "sha256": "d6abcb7e7b1009aea8a8474388e80e1d9740957dfc2e242c4520260f23b93800"
+    },
+    {
+      "bytes": 3742,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "stat"
+      ],
+      "lines": 84,
+      "path": "hepta/native_tool_identity.py",
+      "sha256": "0a67117d44d32154c0743a7111fd96170891386d0bd0164ae2955cc793846810"
+    },
+    {
+      "bytes": 6155,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__"
+      ],
+      "lines": 137,
+      "path": "hepta/object_structure.py",
+      "sha256": "4fb0b3d962e4b7f6ba508257bf605f4403d402e4f3d7e05cffa084b91651f5a8"
+    },
+    {
+      "bytes": 14652,
+      "functions": 5,
+      "implementation_language": "Python",
+      "imports": [
+        ".object_structure",
+        "__future__"
+      ],
+      "lines": 261,
+      "path": "hepta/object_symbols.py",
+      "sha256": "aff81d724d08ed4a8c3189e3370f75e234daa010ec9e9855aedc1019d55a693f"
+    },
+    {
+      "bytes": 10962,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".llvm_owned_aarch64",
+        ".llvm_ssa_backend",
+        ".native_tool_identity",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile"
+      ],
+      "lines": 211,
+      "path": "hepta/owned_aarch64_link.py",
+      "sha256": "c1a6cc39d91805bcbbab841955455dd9db253cae29ae48c6e53a6b648ce3e193"
+    },
+    {
+      "bytes": 12095,
+      "functions": 7,
+      "implementation_language": "Python",
+      "imports": [
+        ".llvm_owned_aarch64",
+        ".llvm_ssa_backend",
+        ".native_tool_identity",
+        ".object_symbols",
+        ".owned_aarch64_link",
+        "__future__",
+        "hashlib",
+        "os",
+        "pathlib",
+        "shutil",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 238,
+      "path": "hepta/owned_aarch64_runtime.py",
+      "sha256": "15aaa76b5f11e9aba8d76b1154a7bb62bb9962942b708dc9698a72b640ac3322"
+    },
+    {
+      "bytes": 8769,
+      "functions": 3,
+      "implementation_language": "Python",
+      "imports": [
+        ".resource_ir",
+        "__future__",
+        "dataclasses"
+      ],
+      "lines": 175,
+      "path": "hepta/owned_drop_plan.py",
+      "sha256": "9519ec27c5e47baca77a68503bcd23e38c915f589257a8da7c733a5c6f6f7a25"
+    },
+    {
+      "bytes": 6415,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".llvm_ssa_backend",
+        ".native_tool_identity",
+        ".object_structure",
+        ".object_symbols",
+        "__future__",
+        "hashlib",
+        "pathlib",
+        "tempfile"
+      ],
+      "lines": 133,
+      "path": "hepta/owned_target_layout.py",
+      "sha256": "8045dcdcae41afe7f7e661cfd9844d12bf7cb4343361e0d10a56050544e5bbe4"
+    },
+    {
+      "bytes": 8316,
+      "functions": 9,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "tempfile",
+        "tomllib"
+      ],
+      "lines": 181,
+      "path": "hepta/packages.py",
+      "sha256": "5623c715a0aae116e6aae8211b7eef93cfc6058bf11d503b913389e322d38cc1"
+    },
+    {
+      "bytes": 26151,
+      "functions": 32,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".lexer",
+        "__future__",
+        "contextlib",
+        "typing"
+      ],
+      "lines": 565,
+      "path": "hepta/parser.py",
+      "sha256": "b3cc04259c953d112e1ffbf4482b380cbb15fdd994a5924507dd1d11d5c0c5cf"
+    },
+    {
+      "bytes": 15898,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".",
+        ".ast",
+        ".backend",
+        ".borrowed_storage",
+        ".c_backend",
+        ".checker",
+        ".concurrent_ir",
+        ".concurrent_lowering",
+        ".flow_ir",
+        ".modules",
+        ".native_tool_identity",
+        ".parser",
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 282,
+      "path": "hepta/pipeline.py",
+      "sha256": "9528ea5d7004c3e06fb005d1ef85741934fd1a7667787b166992499c3eaa6ef0"
+    },
+    {
+      "bytes": 11400,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".backend",
+        ".modules",
+        ".parser",
+        ".pipeline",
+        "__future__",
+        "json",
+        "os",
+        "pathlib",
+        "stat",
+        "tempfile"
+      ],
+      "lines": 194,
+      "path": "hepta/protocol.py",
+      "sha256": "7c4e9c6b71391f34662bd161864cdac63b90574f65dd77e9489a3820299c6972"
+    },
+    {
+      "bytes": 6687,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".backend",
+        ".modules",
+        ".parser",
+        ".pipeline",
+        "__future__",
+        "pathlib"
+      ],
+      "lines": 108,
+      "path": "hepta/protocol_v3.py",
+      "sha256": "ffcae884ccb4a0d32b1736bc272a92678ad8b37b7bc7c677107b84c693cbd903"
+    },
+    {
+      "bytes": 59831,
+      "functions": 43,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "argparse",
+        "collections",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "stat"
+      ],
+      "lines": 1093,
+      "path": "hepta/resource_ir.py",
+      "sha256": "7ee06325c766682542334c2c76e876a4d1d50a86c993f91378f36edfaf7ab146"
+    },
+    {
+      "bytes": 39535,
+      "functions": 26,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".borrowed_storage",
+        ".checker",
+        ".resource_ir",
+        ".runtime_io",
+        ".static_resource_contracts",
+        "__future__",
+        "dataclasses",
+        "hashlib"
+      ],
+      "lines": 731,
+      "path": "hepta/resource_lowering.py",
+      "sha256": "62d63f966b2f2e61540ae6719e8aeecefec9ee9dee65a920f6ba74dd370f3eb9"
+    },
+    {
+      "bytes": 9789,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".pipeline",
+        ".resource_ir",
+        ".resource_lowering",
+        ".semantic_ir",
+        "__future__",
+        "argparse",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "lines": 186,
+      "path": "hepta/resource_source.py",
+      "sha256": "f0a4abccfdee9be5f05d54932ba51e9cbd6f448c5c778b36a8e49f3dd61392ad"
+    },
+    {
+      "bytes": 25046,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".runtime_task_io",
+        ".runtime_task_tree"
+      ],
+      "lines": 506,
+      "path": "hepta/runtime_concurrency.py",
+      "sha256": "e264aab58d9c0d970e5e9bcb107883d7174957b19a2c87e685c79bbc54dc0287"
+    },
+    {
+      "bytes": 20394,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        "dataclasses"
+      ],
+      "lines": 410,
+      "path": "hepta/runtime_io.py",
+      "sha256": "ec87bedf99e209f6f7a5ae356457bd8f74a89bf92a9e6f2ce357c1619f33e8a4"
+    },
+    {
+      "bytes": 8871,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast"
+      ],
+      "lines": 175,
+      "path": "hepta/runtime_task_io.py",
+      "sha256": "cf82d44afb4926b080a4b39c5660d3ef49544936f22981ce0478e8f05cbe79ca"
+    },
+    {
+      "bytes": 12967,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast"
+      ],
+      "lines": 276,
+      "path": "hepta/runtime_task_tree.py",
+      "sha256": "5659b2484961124df1d38a528294f31f4540436d8f9a0c9b26e97d8b0cecbc27"
+    },
+    {
+      "bytes": 1196,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".elf_shared_abi",
+        "__future__"
+      ],
+      "lines": 31,
+      "path": "hepta/scalar_host_abi.py",
+      "sha256": "63952a33c26d97e1d918086f9cdb342d32af19cc57b0cd37aab431cff5f512e0"
+    },
+    {
+      "bytes": 9834,
+      "functions": 6,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "lines": 187,
+      "path": "hepta/semantic_ir.py",
+      "sha256": "040ecbe4715a4fa20edb719c987960bbff48b1ae59e82a23c08e78954bc389ef"
+    },
+    {
+      "bytes": 2885,
+      "functions": 2,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "json",
+        "pathlib"
+      ],
+      "lines": 67,
+      "path": "hepta/source_map.py",
+      "sha256": "7a602a7728da1729c0a625eac04acbb0cd47ccf17788c5a31f20f292e3b736f8"
+    },
+    {
+      "bytes": 19683,
+      "functions": 12,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".cfg_analysis",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "math"
+      ],
+      "lines": 402,
+      "path": "hepta/ssa.py",
+      "sha256": "78f39afff1b89b359c6ce8d824a938712f4f4fa5ab10046d468d637000d75c67"
+    },
+    {
+      "bytes": 7731,
+      "functions": 4,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "collections"
+      ],
+      "lines": 161,
+      "path": "hepta/ssa_reaching.py",
+      "sha256": "02a01024f3049c8d4cb40f191d2554f31ae1a971aef93cbdb786789431efbe34"
+    },
+    {
+      "bytes": 18695,
+      "functions": 10,
+      "implementation_language": "Python",
+      "imports": [
+        ".cfg",
+        ".cfg_analysis",
+        ".ssa",
+        ".ssa_reaching",
+        "__future__",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "re"
+      ],
+      "lines": 334,
+      "path": "hepta/ssa_verify.py",
+      "sha256": "fdf0272cacbe51819314af63defdd8b666e7aa93683cfd8df7ad7ec6b89ff510"
+    },
+    {
+      "bytes": 3119,
+      "functions": 1,
+      "implementation_language": "Python",
+      "imports": [
+        ".checker",
+        "__future__"
+      ],
+      "lines": 67,
+      "path": "hepta/static_resource_contracts.py",
+      "sha256": "fe16fb363b21cfc6f380f8e712ee6e087347fa36bbbeaba45d810c64b4c7ad01"
+    },
+    {
+      "bytes": 9497,
+      "functions": 8,
+      "implementation_language": "Python",
+      "imports": [
+        "__future__",
+        "ctypes",
+        "msvcrt",
+        "os",
+        "pathlib",
+        "subprocess",
+        "sys",
+        "threading",
+        "time"
+      ],
+      "lines": 231,
+      "path": "hepta/windows_capture.py",
+      "sha256": "0daadfd048cdf08d31344cd2485e78ef3efaac4055850f0ea13501e813414baa"
+    },
+    {
+      "bytes": 27103,
+      "functions": 25,
+      "implementation_language": "Python",
+      "imports": [
+        ".ast",
+        ".modules",
+        ".packages",
+        ".parser",
+        ".pipeline",
+        "__future__",
+        "contextlib",
+        "dataclasses",
+        "fcntl",
+        "hashlib",
+        "json",
+        "os",
+        "pathlib",
+        "re",
+        "shutil",
+        "tempfile",
+        "uuid"
+      ],
+      "lines": 532,
+      "path": "hepta/workspace.py",
+      "sha256": "68eb4d6d3aeb04e917b9e8f604f928c53420ee8070cd6d45987949e67a88d1ef"
+    }
+  ],
+  "profile": "selfhost-core-linux-x86_64-v26",
+  "schema": "hepta.hia.whole-selfhost-static-audit.v1",
+  "totals": {
+    "component_statuses": {
+      "open": 5,
+      "partial": 3
+    },
+    "python_bytes": 4125579,
+    "python_files": 212,
+    "python_lines": 76126
+  },
+  "whole_stack_rewritten_in_hia": false
+}

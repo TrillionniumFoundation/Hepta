@@ -6,9 +6,9 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_chain_cases import cases
-from tools.hia_selfhost_chain_flow_cases import cases as flow_cases, refusals, profile_refusal_ids
+from tools.hia_selfhost_chain_flow_cases import cases as flow_cases, refusals, profile_refusal_ids, expanded_name_cases as flow_name_cases, historical_refusals as historical_flow_refusals
 from tools.hia_selfhost_owned_elf_cases import reference
-from tools.hia_selfhost_parameter_cases import cases as parameter_cases, refusals as parameter_refusals
+from tools.hia_selfhost_parameter_cases import cases as parameter_cases, refusals as parameter_refusals, expanded_name_cases as parameter_name_cases, historical_refusals as historical_parameter_refusals
 
 
 class ChainSourceTests(unittest.TestCase):
@@ -58,8 +58,13 @@ class ChainSourceTests(unittest.TestCase):
 
     def test_invalid_core_stays_distinct_from_valid_profile_exclusions(self):
         rows, outside = refusals(), profile_refusal_ids()
-        self.assertEqual(len(rows), 74)
-        self.assertEqual(len(outside), 18)
+        self.assertEqual(len(rows), 59)
+        self.assertEqual(len(outside), 3)
+        expanded = flow_name_cases()
+        self.assertEqual(len(expanded), 15)
+        self.assertEqual(set(rows) | {r["id"] for r in expanded}, set(historical_flow_refusals()))
+        for case in expanded:
+            self.assertEqual(reference(case)["result"], case["expected_result"])
         for name, source in rows.items():
             with self.subTest(case=name):
                 if name in outside:
@@ -78,11 +83,13 @@ class ChainSourceTests(unittest.TestCase):
                 self.assertEqual(result["result"], case["expected_result"])
 
     def test_high_resource_parameter_names_are_valid_core_profile_exclusions(self):
-        rows = parameter_refusals()
+        rows = parameter_name_cases()
         self.assertEqual(len(rows), 24)
-        for name, source in rows.items():
-            with self.subTest(case=name):
-                assemble_program(source)
+        self.assertEqual({r["id"] for r in rows}, set(historical_parameter_refusals()))
+        self.assertEqual(parameter_refusals(), {})
+        for case in rows:
+            with self.subTest(case=case["id"]):
+                self.assertEqual(reference(case)["result"], case["expected_result"])
 
 
 if __name__ == "__main__":

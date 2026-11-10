@@ -47,7 +47,8 @@ CAPBASE, KBASE, CAPTMP, QBASE = 875776, 924928, 926464, 926480
 # One-byte original formal identities; 0 means no external borrowed origin.
 # Separate from block identity and resource parent/root, including at CFG joins.
 ORIGINBASE, BLOCKORIGIN = 928528, 930576
-# BLOCKORIGIN + 1536 * 16 == 955152 < the unchanged 1 MiB workspace.
+# BLOCKORIGIN ends at 955152; a per-function 2048-slot exact-name table
+# occupies [955152, 1004304), still within the unchanged 1 MiB workspace.
 SOURCE = r'''
 def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     phase = 0
@@ -145,8 +146,10 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if get(w, 48) == 0:
         put(w, fb + 8, get(w, 80))
         put(w, fb + 40, 0)
+    put(w, 480, 0)
     i = 0
     while i < 2048:
+        put(w, 955152 + i * 24 + 8, 0)
         put(w, VBASE + i * 16, 0)
         i = i + 1
     count = parse_params(s, w, 1)
@@ -267,7 +270,7 @@ def parse_block(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     loan_incoming(w, bb, count, b)
     put(w, 96, b + 1)
     expect(s, w, 10)
-    while (get(w, 8) == 261 or get(w, 8) == 95) and get(w, 40) == 0:
+    while get(w, 40) == 0 and instruction_ahead(s, w) != 0:
         instruction(s, o, w)
     if get(w, 8) == @ret@:
         next_token(s, w)
@@ -992,7 +995,9 @@ def write4(o:mutbuf, at:u64, x:u64) -> u64:
     return 0
 
 def expect(s:readbuf, w:mutbuf, kind:u64) -> u64:
-    if kind == 256 or kind == 258 or kind == 260:
+    if kind == 256 or kind == 260:
+        return read_value_name(s, w, kind)
+    if kind == 258:
         return read_numbered(s, w, kind)
     value = get(w, 16)
     if get(w, 8) != kind:

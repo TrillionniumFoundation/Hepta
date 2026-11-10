@@ -14,7 +14,7 @@ def owned_read_outputs(s:readbuf, w:mutbuf) -> u64:
     put(w, 288, 0)
     put(w, 296, 2048)
     put(w, 304, 0)
-    if get(w, 8) == 95:
+    if get(w, 8) == 95 and instruction_ahead(s, w) == 2:
         next_token(s, w)
         return 0
     count = 0

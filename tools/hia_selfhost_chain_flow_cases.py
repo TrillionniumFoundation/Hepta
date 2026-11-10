@@ -295,7 +295,7 @@ end
     return rows
 
 
-def refusals():
+def historical_refusals():
     rows = {}
     end = '  v100:u32 = const() {"value":0}\n  ret(v100)\n'
     seed = """  v3:usize = const() {"value":8}
@@ -536,3 +536,14 @@ def allocation_failure_cases():
             "expected_allocations": 0, "expected_frees": 0, "expected_failed_allocations": 1})
     return rows
 
+
+
+def expanded_name_cases():
+    from tools.hia_selfhost_names import core_observed_case
+    return [core_observed_case(name, source) for name, source in historical_refusals().items()
+            if name.startswith('chain-flow-profile-') and '-ssa-' in name]
+
+
+def refusals():
+    return {name: source for name, source in historical_refusals().items()
+            if not (name.startswith('chain-flow-profile-') and '-ssa-' in name)}

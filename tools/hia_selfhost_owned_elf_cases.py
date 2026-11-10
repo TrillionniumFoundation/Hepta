@@ -77,7 +77,7 @@ def cases():
     return rows
 
 
-def refusals():
+def historical_refusals():
     source = allocation_case(8, optional=True)
     return {
         "flat-allocator-imports-refused": source.replace(b"v8 selfhost_elf\n", b"v8 selfhost\n", 1),
@@ -122,3 +122,14 @@ def reference(case):
         assert report["status"] == "returned" and report["result"] == case["expected_result"], report
     assert report["external_output_hex"] == case["expected_output_hex"], report
     return report
+
+
+def expanded_name_cases():
+    from tools.hia_selfhost_names import core_observed_case
+    return [core_observed_case(name, source) for name, source in historical_refusals().items()
+            if name.startswith('out-of-profile-')]
+
+
+def refusals():
+    return {name: source for name, source in historical_refusals().items()
+            if not (name.startswith('out-of-profile-'))}

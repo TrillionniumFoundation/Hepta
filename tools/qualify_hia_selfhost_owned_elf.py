@@ -80,8 +80,8 @@ def qualify(directory, compiler):
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected
     from hepta.hia_program_native import emit_program_machine, compile_program_machine
-    from tools.hia_selfhost_owned_elf_cases import cases, refusals, reference
-    from tools.hia_selfhost_owned_flow_cases import cases as flow_cases, refusals as flow_refusals
+    from tools.hia_selfhost_owned_elf_cases import cases, refusals, reference, expanded_name_cases as owned_name_cases
+    from tools.hia_selfhost_owned_flow_cases import cases as flow_cases, refusals as flow_refusals, expanded_name_cases as flow_name_cases
     from tools.qualify_hia_selfhost import compile_stage, invoke, observe_native_tool, INVALID, NO_SPACE
     directory, compiler = Path(directory), Path(compiler)
     directory.mkdir(parents=True, exist_ok=False)
@@ -93,7 +93,7 @@ def qualify(directory, compiler):
         "general_multi_result_call_return_abi_supported": False, "chain_operations_qualified_by_this_suite": False,
         "cases": [], "refusals": []}
     try:
-        all_cases = [*cases(), *flow_cases()]
+        all_cases = [*cases(), *flow_cases(), *owned_name_cases(), *flow_name_cases()]
         if len({case["id"] for case in all_cases}) != len(all_cases):
             raise ValueError("owned fixture identifiers must be unique")
         for case in all_cases:

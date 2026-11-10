@@ -220,7 +220,7 @@ block b1(v7:buffer,v8:buffer)
     return rows
 
 
-def refusals():
+def historical_refusals():
     """Invalid ownership graphs plus separately named valid out-of-profile cases."""
     rows = {}
     tail = '  v90:u32 = const() {"value":0}\n  ret(v90)\n'
@@ -321,3 +321,14 @@ end
 
 def profile_refusal_ids():
     return {name for name in refusals() if name.startswith("flow-profile-")}
+
+
+def expanded_name_cases():
+    from tools.hia_selfhost_names import core_observed_case
+    return [core_observed_case(name, source) for name, source in historical_refusals().items()
+            if name.startswith('flow-profile-') and '-ssa-' in name]
+
+
+def refusals():
+    return {name: source for name, source in historical_refusals().items()
+            if not (name.startswith('flow-profile-') and '-ssa-' in name)}

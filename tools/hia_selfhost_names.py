@@ -45,13 +45,12 @@ def identifier(s:readbuf, w:mutbuf) -> u64:
     put(w, 472, h)
     return 0
 
-def same_function_name(s:readbuf, w:mutbuf, f:u64) -> u64:
-    base = FBASE + f * FSTRIDE
+def same_identifier(s:readbuf, w:mutbuf, base:u64) -> u64:
     size = get(w, 464)
-    if size != get(w, base + 248):
+    if size != get(w, base + 8):
         return 0
     begin = get(w, 456)
-    other = get(w, base + 240)
+    other = get(w, base)
     i = 0
     while i < size:
         if byte(s, begin + i) != byte(s, other + i):
@@ -63,7 +62,7 @@ def lookup_function(s:readbuf, w:mutbuf, count:u64) -> u64:
     i = 0
     while i < count:
         if get(w, FBASE + i * FSTRIDE + 256) == get(w, 472):
-            if same_function_name(s, w, i) == 1:
+            if same_identifier(s, w, FBASE + i * FSTRIDE + 240) == 1:
                 return i
         i = i + 1
     return 128
@@ -90,7 +89,7 @@ def read_function_name(s:readbuf, w:mutbuf, definition:u64) -> u64:
             put(w, base + 248, get(w, 464))
             put(w, base + 256, get(w, 472))
         else:
-            if same_function_name(s, w, f) != 1:
+            if same_identifier(s, w, base + 240) != 1:
                 return fail(w, 67)
     else:
         # All signatures and exact names are discovered before any semantic
@@ -123,7 +122,56 @@ def read_numbered(s:readbuf, w:mutbuf, kind:u64) -> u64:
     if get(w, 40) == 0:
         next_token(s, w)
     return value
-''' + _reserved_source()
+''' + _reserved_source() + r'''
+
+def read_value_name(s:readbuf, w:mutbuf, kind:u64) -> u64:
+    quoted = 0
+    if kind == 260:
+        quoted = 1
+    if get(w, 32) != quoted:
+        return fail(w, 48)
+    identifier(s, w)
+    if get(w, 40) != 0:
+        return 0
+    slot = ((get(w, 472) * 2654435761) & 4294967295) >> 21
+    probes = 0
+    base = 0
+    index = 0
+    while probes < 2048:
+        base = 955152 + slot * 24
+        if get(w, base + 8) == 0:
+            index = get(w, 480)
+            if index >= 2048:
+                return fail(w, 37)
+            put(w, base, get(w, 456))
+            put(w, base + 8, get(w, 464))
+            put(w, base + 16, index)
+            put(w, 480, index + 1)
+            next_token(s, w)
+            return index
+        if same_identifier(s, w, base) == 1:
+            index = get(w, base + 16)
+            next_token(s, w)
+            return index
+        slot = (slot + 1) & 2047
+        probes = probes + 1
+    return fail(w, 37)
+
+def instruction_ahead(s:readbuf, w:mutbuf) -> u64:
+    # Distinguish contextual keyword SSA names from terminators without
+    # consuming a token or speculatively reading past source length.
+    pos = get(w, 0)
+    while pos < length(s) and byte(s, pos) == 32:
+        pos = pos + 1
+    if pos < length(s):
+        c = byte(s, pos)
+        if c == 58 or c == 44:
+            return 1
+        if get(w, 8) == 95 and c == 61:
+            return 2
+    return 0
+
+'''
 
 
 def name_hash(name):
@@ -146,6 +194,110 @@ def renamed_source(source, mapping):
     result = render_assembly(doc).encode()
     assemble_program(result)
     return result
+
+
+def renamed_values(source, spellings=None):
+    """Rename every SSA definition/use/formal origin, then reverify real Core."""
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    for fi, fn in enumerate(doc['functions']):
+        definitions = dict.fromkeys(p['name'] for b in fn['blocks']
+            for p in [*b['params'], *[p for op in b['ops'] for p in op['out']]])
+        mapping = {old: (spellings[i] if spellings is not None and i < len(spellings)
+                         else 'local_' + str(fi) + '_' + str(i))
+                   for i, old in enumerate(definitions)}
+        for p in fn['params']:
+            p['name'] = mapping[p['name']]
+        if 'return_loans' in fn:
+            fn['return_loans'] = [None if x is None else mapping[x] for x in fn['return_loans']]
+        for block in fn['blocks']:
+            for p in block['params']:
+                p['name'] = mapping[p['name']]
+            for op in block['ops']:
+                op['args'] = [mapping[x] for x in op['args']]
+                for p in op['out']:
+                    p['name'] = mapping[p['name']]
+            term = block['term']
+            if term['op'] == 'ret':
+                term['values'] = [mapping[x] for x in term['values']]
+            elif term['op'] == 'jump':
+                term['args'] = [mapping[x] for x in term['args']]
+            elif term['op'] == 'branch':
+                term['cond'] = mapping[term['cond']]
+                for arm in ('then', 'else'):
+                    term[arm]['args'] = [mapping[x] for x in term[arm]['args']]
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def core_observed_case(name, source):
+    """An independent ordinary Core VM oracle for a retained historical case.
+
+    This never executes a successor or grants VerifiedProgram status itself.
+    The fixture's initial borrowed buffers are the existing owned/chain corpus
+    contract; zero owner/loan residue is mandatory, not inferred from success.
+    """
+    from hepta.hia_agent_assembly import assemble_program
+    from hepta.hia_program_runtime import _Machine, _Owner, _View
+    checked = assemble_program(source)
+    machine = _Machine(checked, 10_000_000, 16 << 20, None, 256)
+    roots = [_Owner(-1, bytearray()), _Owner(-2, bytearray(b'\xa5' * 8)), _Owner(-3, bytearray())]
+    values = machine.invoke(checked.as_dict()['functions'][0],
+                           [_View(roots[0], False), _View(roots[1], True), _View(roots[2], True)])
+    if len(values) != 1 or machine.owners or machine.chains or machine.loans_started != machine.loans_ended:
+        raise AssertionError('historical name control did not close its resources: ' + name)
+    return {'id': name, 'source': source.decode() if isinstance(source, bytes) else source,
+            'expected_result': values[0], 'expected_output_hex': roots[1].data.hex(),
+            'retained_former_profile_refusal': True, 'core_sha256': checked.sha256}
+
+
+def value_cases():
+    base = [row for row in cases() if row['program'] == 'named-pair-0']
+    spellings = [
+        ['source', 'output', 'workspace', 'zero', 'byteValue', 'result'],
+        ['fn', 'block', 'entry', 'ret', 'trap', 'end', 'branch', 'jump'],
+        ['_', 'f01', 'v2048', 'v8192', 'v18446744073709551615', 'value', 'mode', 'function'],
+        ['aaB', 'aba', 'collision_tail'],
+        ['n' * 128, 'N' * 128, 'tail_' + 'z' * 123],
+        ['prefix', 'prefix_more', '_prefix', '_prefix_more'],
+    ]
+    rows = []
+    for index, names in enumerate(spellings):
+        for row in base:
+            program = 'ssa-spellings-' + str(index)
+            rows.append({**row, 'id': program + '-' + row['source_hex'], 'program': program,
+                         'source': renamed_values(row['source'].encode(), names).decode()})
+    for row in cases():
+        if row['program'].startswith('named-loan-'):
+            rows.append({**row, 'id': 'ssa-' + row['id'], 'program': 'ssa-' + row['program'],
+                         'source': renamed_values(row['source'].encode()).decode()})
+    from tools.hia_selfhost_cases import HEADER
+    full = (HEADER + ''.join('  v' + str(i) + ':u32 = const() {"value":0}\n'
+                             for i in range(3, 2048)) + '  ret(v2047)\nend\n')
+    rows.append({'id': 'ssa-intern-table-full-2048', 'program': 'ssa-intern-table-full-2048',
+                 'source': full, 'source_hex': '', 'initial_hex': 'a5',
+                 'expected_result': 0, 'expected_hex': 'a5'})
+    return rows
+
+
+def value_refusals():
+    seed = value_cases()[-1]['source']
+    overflow = seed.replace('  ret(v2047)', '  v2048:u32 = const() {"value":1}\n  ret(v2048)')
+    rows = [{'id': 'ssa-intern-table-overfull-2049', 'source': overflow,
+             'general_core_expected': 'accepted'}]
+    from tools.hia_selfhost_cases import HEADER
+    ordinary = HEADER + '  v3:u32 = const() {"value":7}\n  ret(v3)\nend\n'
+    for name in ['n' * 129, '__hia_local', '汉字', 'bad.name', 'bad-name', '1bad']:
+        rows.append({'id': 'ssa-invalid-' + str(len(rows)),
+                     'source': ordinary.replace('v3', name), 'general_core_expected': 'rejected'})
+    rows += [{'id': 'ssa-undefined-name', 'source': ordinary.replace('ret(v3)', 'ret(missing)'),
+              'general_core_expected': 'rejected'},
+             {'id': 'ssa-entry-name-mismatch', 'source': ordinary.replace('block b0(v0:', 'block b0(other:', 1),
+              'general_core_expected': 'rejected'},
+             {'id': 'ssa-duplicate-definition', 'source': ordinary.replace('  ret(v3)',
+                '  v3:u32 = const() {"value":9}\n  ret(v3)'), 'general_core_expected': 'rejected'}]
+    return rows
 
 
 def cases():
@@ -232,7 +384,7 @@ def independent_reference():
     from tools.generate_hia_selfhost import document
     from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
     rows = []
-    for row in cases():
+    for row in [*cases(), *value_cases()]:
         checked = assemble_program(row['source'].encode())
         machine = _Machine(checked, 1_000_000, 16 << 20, None, 256)
         roots = [_Owner(-1, bytearray.fromhex(row['source_hex'])),
@@ -246,18 +398,20 @@ def independent_reference():
             raise AssertionError({'case': row['id'], 'reference': result, 'output_hex': roots[1].data.hex()})
         rows.append({**row, 'core_sha256': checked.sha256, 'reference': result})
     rejected = []
-    for row in refusals():
+    for row in [*refusals(), *value_refusals()]:
         try:
             assemble_program(row['source'].encode())
         except HIAProgramRejected as error:
             rejected.append({**row, 'reference': {'status': 'rejected', 'code': error.code}})
         else:
-            raise AssertionError('invalid name was accepted by Core: ' + row['id'])
+            if row['general_core_expected'] != 'accepted':
+                raise AssertionError('invalid name was accepted by Core: ' + row['id'])
+            rejected.append({**row, 'reference': {'status': 'accepted_general_core'}})
     _, names = document(); mapping = {number: name for name, number in names.items()}
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):
-        renamed = renamed_source(source, mapping)
+        renamed = renamed_values(renamed_source(source, mapping))
         alpha[label] = {'source': renamed.decode(), 'core_sha256': assemble_program(renamed).sha256,
             'canonical_core_sha256': assemble_program(source).sha256}
     return {'before_B0': True, 'cases': rows, 'refusals': rejected, 'alpha_compiler': alpha,

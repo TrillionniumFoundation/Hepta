@@ -6,7 +6,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_owned_elf_cases import reference
-from tools.hia_selfhost_owned_flow_cases import cases, refusals, profile_refusal_ids
+from tools.hia_selfhost_owned_flow_cases import cases, refusals, profile_refusal_ids, expanded_name_cases, historical_refusals
 
 
 class OwnedFlowSourceTests(unittest.TestCase):
@@ -27,8 +27,13 @@ class OwnedFlowSourceTests(unittest.TestCase):
 
     def test_core_rejections_and_valid_profile_exclusions_stay_distinct(self):
         rows, outside = refusals(), profile_refusal_ids()
-        self.assertEqual(len(rows), 34)
-        self.assertEqual(len(outside), 8)
+        self.assertEqual(len(rows), 28)
+        self.assertEqual(len(outside), 2)
+        expanded = expanded_name_cases()
+        self.assertEqual(len(expanded), 6)
+        self.assertEqual(set(rows) | {r["id"] for r in expanded}, set(historical_refusals()))
+        for case in expanded:
+            self.assertEqual(reference(case)["result"], case["expected_result"])
         for name, source in rows.items():
             with self.subTest(case=name):
                 if name in outside:

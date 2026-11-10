@@ -45,7 +45,7 @@
     "output_module": "selfhost_elf",
     "ownership": "closed chain roots and nested head-loan graphs; consuming operations require no live descendant loans",
     "qualification": "tools.qualify_hia_selfhost_chain_elf.qualify on original B3 and mutated M3",
-    "resource_parameter_boundaries": "v2047 block parameters accepted; function/block v2048, v8192 and UINT64_MAX refused before capability-table access",
+    "resource_parameter_boundaries": "2048 interned SSA names per function; numeric-looking v2048, v8192 and UINT64_MAX spellings retained as positive resource executions; 2049 distinct names reject before table access",
     "runtime": "dynamic 24-byte nodes under the same closed calloc/free contract"
   },
   "checked_arithmetic_traps": [
@@ -2778,7 +2778,7 @@
       "items": [
         "unbounded result arities and composite resource-bearing results",
         "module graph",
-        "arbitrary identifiers",
+        "general block/module identifiers",
         "all resource combinations"
       ],
       "new_witnesses": [
@@ -3188,6 +3188,16 @@
       "signature_prepasses": 1,
       "source_bytes": 1048576,
       "ssa_index_max": 2047,
+      "ssa_index_max_is_internal_only": true,
+      "ssa_name_count_offset": 480,
+      "ssa_name_lookup": "2048 bounded open-addressing slots; exact source-byte equality, no source-number addressing",
+      "ssa_name_record_stride": 24,
+      "ssa_name_workspace_bytes": [
+        955152,
+        1004304
+      ],
+      "ssa_names_per_function": 2048,
+      "ssa_signature_and_entry_names_match_by_identity": true,
       "tail_self_call_additional_frames": 0,
       "workspace_required_bytes": 1048576
     },
@@ -3236,7 +3246,7 @@
     "reference": "independent Core VM, direct native backend, linked successor ELF and byte/result observations",
     "runtime": "explicit calloc/free ELF imports under the existing Core allocator contract"
   },
-  "profile": "selfhost-core-linux-x86_64-v25",
+  "profile": "selfhost-core-linux-x86_64-v26",
   "rejected_inputs": [
     {
       "boundary": "grammar, types, SSA, control and resource admission",
@@ -3971,42 +3981,6 @@
       "source_sha256": "d5efc0431dc73e5fa3abdc1b4fdbda2292054dcd9825f62c97c2bbb38e5f38f3"
     },
     {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-read-ssa-2048",
-      "source_sha256": "7b54c2099592806df167e0f4cbde8388a0f097861568910f86201fa7087daa49"
-    },
-    {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-read-ssa-8192",
-      "source_sha256": "18901a7cb999c996afd9f1dc0ed488516f173e0db5ae0bf1a67613216736c570"
-    },
-    {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-read-ssa-18446744073709551615",
-      "source_sha256": "194a6066fbbf121e672a8677e22029ff24bb6c47c83510a3b20ac8f548ab23b2"
-    },
-    {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-mut-ssa-2048",
-      "source_sha256": "e9e4110cc6eaa07bc0c76abf6533796a1f598408841ac033070a2ac3367cec1a"
-    },
-    {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-mut-ssa-8192",
-      "source_sha256": "a2ef5277af1560033d65b2026ba5b23c7e0ffbf3ad1c0116e8972c4808214a97"
-    },
-    {
-      "boundary": "resource result SSA index at most 2047",
-      "general_core_expected": "accepted",
-      "id": "loan-profile-mut-ssa-18446744073709551615",
-      "source_sha256": "70eddb25919b92e10fd502ac62bc8176874be037e0fc87cbc74d637516d02d74"
-    },
-    {
       "boundary": "immediate exact tail return and mutable arguments",
       "general_core_expected": "accepted",
       "id": "tail-returned-other-value",
@@ -4143,12 +4117,6 @@
       "general_core_expected": null,
       "id": "functions-129",
       "source_sha256": "cc674effc2adcafeb556635fd927f3c0321d2ef6bccde8604260f8e219516063"
-    },
-    {
-      "boundary": "maximum SSA index 2047",
-      "general_core_expected": null,
-      "id": "ssa-index-2048",
-      "source_sha256": "6e4ac777255cc01eac57cbee01693d07d419f6ba1a6371507f00723ed74442f3"
     },
     {
       "boundary": "entry signature names/types",
@@ -5168,13 +5136,13 @@
   "source": {
     "authoring_map": {
       "path": "tools/generate_hia_selfhost.py",
-      "sha256": "97ed97a2556e83f1e905f2c116d3db50a27257f74063c89440b26d8d596b6c64"
+      "sha256": "79781cf8d5031a8008447aef04a36083e28e52f593440d41d16a64bf03ce4dcf"
     },
     "compiler": {
       "path": "examples/hia_bootstrap/selfhost.hiaasm",
-      "sha256": "fa3ce38becb83fdca7068c282d96184d3ba24a978902aa3627c61d51779ec671"
+      "sha256": "91638a9bbe7f836b9993b2d295ed46c00fb329a4f4fcb59b1603691d8aa1c8d9"
     },
-    "semantic_support_sha256": "1a1a681a328e976b943f355a04fb99726681f3814a4806838a7cae89a0d03223",
+    "semantic_support_sha256": "2be65f35a50c463ec5aa50db28daf42fa21a5b0479de4987e6eaee01cb68af50",
     "support_projection_omits": [
       "source_identity"
     ]
@@ -5191,7 +5159,7 @@
       "instruction_results": "zero or one; internal calls have zero to three scalar, owned or parameter-bound borrowed results; buffer.try_new has exactly (buffer,bool); chain.try_push/chain.pop have exactly (chain,buffer,bool)",
       "module": "selfhost",
       "object_module": "selfhost_elf",
-      "value_names": "unique per function v0..v2047",
+      "value_names": "unique ASCII [A-Za-z_][A-Za-z_0-9]{0,127}; 2048 distinct interned names per function including signature; Core __hia_ prefix rejected",
       "whitespace": "ASCII space and LF; shared assembly adjacency rules"
     },
     "hia_functions": {
@@ -5245,7 +5213,6 @@
       "existing-cast-attribute-separation",
       "existing-effects-separation",
       "existing-entry-separation",
-      "ssa-index-2048",
       "entry-signature-name",
       "unsupported-module-name",
       "tab-whitespace",
@@ -5254,6 +5221,7 @@
     "new_positive": [
       "optional-ascii-spaces",
       "ssa-index-2047",
+      "ssa-index-2048",
       "noncontiguous-function",
       "unsupported-arbitrary-function-name"
     ]

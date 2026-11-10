@@ -22,8 +22,8 @@ def qualify(directory, compiler):
     from hepta.hia_program import HIAProgramRejected
     from hepta.hia_program_native import emit_program_machine, compile_program_machine
     from tools.hia_selfhost_chain_cases import cases
-    from tools.hia_selfhost_chain_flow_cases import cases as flow_cases, refusals, profile_refusal_ids
-    from tools.hia_selfhost_parameter_cases import cases as parameter_cases, refusals as parameter_refusals
+    from tools.hia_selfhost_chain_flow_cases import cases as flow_cases, refusals, profile_refusal_ids, expanded_name_cases as flow_name_cases
+    from tools.hia_selfhost_parameter_cases import cases as parameter_cases, refusals as parameter_refusals, expanded_name_cases as parameter_name_cases
     from tools.hia_selfhost_owned_elf_cases import reference
     from tools.qualify_hia_selfhost_owned_elf import inspect_owned_object
     from tools.qualify_hia_selfhost import compile_stage, invoke, observe_native_tool, INVALID, NO_SPACE
@@ -36,7 +36,7 @@ def qualify(directory, compiler):
         "global_core_or_machine_refinement_proved": False,
         "general_multi_result_call_return_abi_supported": False, "cases": [], "refusals": []}
     try:
-        for case in [*cases(), *flow_cases(), *parameter_cases()]:
+        for case in [*cases(), *flow_cases(), *parameter_cases(), *flow_name_cases(), *parameter_name_cases()]:
             label, source = case["id"], case["source"].encode()
             (directory / (label + ".hiaasm")).write_bytes(source)
             ref = reference(case)

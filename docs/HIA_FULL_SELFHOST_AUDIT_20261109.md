@@ -50,7 +50,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 
 | Component | Implemented in HIA now | Still needed for whole-stack closure |
 | --- | --- | --- |
-| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function names and exact lookup | General SSA/block identifiers, full module grammar and diagnostics |
+| Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal names and exact lookup | General block identifiers, full module grammar and diagnostics |
 | Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
 | Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
@@ -427,3 +427,37 @@ physical-board and DMA qualification flags remain false. The LLVM profile
 runtime is the actual installed compiler-rt20 archive; an architecture-path alias
 resolves the installed compiler driver's packaging mismatch. Rust1.90's thumb
 core target is installed in the task-local toolchain, without changing defaults.
+
+
+### v26 SSA/formal identifiers — qualified with retained prior failures
+
+The HIA compiler now interns exact source-byte SSA/formal names into 2048
+per-function identities. Function signatures, entry names, all uses/definitions
+and quoted return-loan origins share this identity; numeric-looking suffixes
+are no longer workspace offsets. Typed keyword and underscore names, real hash
+collisions, shared prefixes,128byte identifiers and a full2048slot table have
+independent VM and actual successor executions. The 2049th distinct name,
+malformed/oversized/reserved names, duplicates, undefined uses and entry-name
+mismatches remain transactional refusals. Core resource/type/dominance checks
+are not replaced by interning.
+
+All **53** historical name-only resource exclusions retain their original IDs
+and source bytes as positive execution cases, including six initially missed
+borrowed-view cases. The first language run's12 stale refusal assertions and
+the first cold run's180second timeout remain failed evidence. A multiplicative
+slot spread avoids clustering while retaining the same2048bounded probes and
+mandatory full-byte equality. No deadline or capacity was raised.
+
+Fresh final cold replay passed **11/11**, native **4,141/4,141** in163.393seconds.
+The language run passed **1,196/1,196** (122positive/267negative programs per
+compiler), plus10native-report assertions; focused source/reference tests pass61.
+Both original and genuinely changed compiler chains reach their expected
+fixed points. Alpha-renaming **all** compiler functions and SSA/formal names
+also reproduces canonical images and direct-kernel executable compilation.
+The compiler is117functions/1476blocks/7594operations/496797sourcebytes,
+within unchanged limits. Exact source/receipt hashes and previous failures
+are retained in `v26-ssa-identifiers-summary.json`.
+
+General block/module syntax, multiple exports/linking, composite admission,
+the live Python production runtime/service/build/release authorities and all
+whole-stack installation/qualification gates remain OPEN.

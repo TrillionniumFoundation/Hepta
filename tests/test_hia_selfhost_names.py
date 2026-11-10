@@ -6,7 +6,7 @@ import unittest
 from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_program import HIAProgramRejected
 from tools.hia_selfhost_names import (cases, independent_reference, name_hash,
-    refusals, renamed_source)
+    refusals, renamed_source, value_cases, value_refusals, renamed_values)
 
 
 class SelfhostFunctionNameTests(unittest.TestCase):
@@ -24,8 +24,8 @@ class SelfhostFunctionNameTests(unittest.TestCase):
         self.assertTrue(report['before_B0'])
         self.assertFalse(report['all_input_correctness_proved'])
         self.assertFalse(report['whole_stack_rewrite_complete'])
-        self.assertEqual(len(report['cases']), 34)
-        self.assertEqual(len({r['program'] for r in report['cases']}), 12)
+        self.assertEqual(len(report['cases']), 62)
+        self.assertEqual(len({r['program'] for r in report['cases']}), 22)
         for row in report['cases']:
             self.assertEqual(row['reference']['values'], [row['expected_result']])
             self.assertEqual(row['reference']['resources']['live_owners'], 0)
@@ -50,6 +50,29 @@ class SelfhostFunctionNameTests(unittest.TestCase):
             self.assertNotEqual(renamed, canonical)
             self.assertEqual(assemble_program(restored).sha256, original.sha256)
             self.assertEqual(assemble_program(renamed).as_dict()['functions'][0]['name'], 'compile')
+
+    def test_ssa_contextual_names_full_intern_table_and_capacity_refusal_stay_distinct(self):
+        rows = value_cases()
+        self.assertEqual(len(rows), 28)
+        self.assertEqual(len({r['program'] for r in rows}), 10)
+        maximum = assemble_program(rows[-1]['source']).as_dict()['functions'][0]
+        self.assertEqual(sum(len(b['params']) + sum(len(o['out']) for o in b['ops'])
+                             for b in maximum['blocks']), 2048)
+        for row in value_refusals():
+            with self.subTest(case=row['id']):
+                if row['general_core_expected'] == 'accepted':
+                    assemble_program(row['source'])
+                else:
+                    with self.assertRaises(HIAProgramRejected):
+                        assemble_program(row['source'])
+        from tools.generate_hia_selfhost import document
+        doc, _ = document()
+        source = __import__('hepta.hia_agent_assembly', fromlist=['render_assembly']).render_assembly(doc).encode()
+        changed = renamed_values(source)
+        self.assertNotEqual(changed, source)
+        checked = assemble_program(changed).as_dict()
+        self.assertEqual(sum(len(f['blocks']) for f in checked['functions']),
+                         sum(len(f['blocks']) for f in doc['functions']))
 
 
 if __name__ == '__main__':

@@ -485,9 +485,12 @@ def disguised(x:u64) -> u64:
     def test_loan_reference_covers_live_capability_graphs_and_lifecycle_refusals(self):
         from tools.hia_selfhost_loans import independent_loan_reference
         result = independent_loan_reference()
-        self.assertEqual(len(result["cases"]), 23)
+        self.assertEqual(len(result["cases"]), 29)
         self.assertEqual(len(result["rejected"]), 39)
-        self.assertEqual(len(result["outside_profile"]), 6)
+        self.assertEqual(len(result["outside_profile"]), 0)
+        from tools.hia_selfhost_loans import historical_loan_profile_refusals
+        self.assertEqual({r["id"] for r in result["cases"] if r["id"].startswith("loan-profile-")},
+                         {"loan-profile-" + x for x in historical_loan_profile_refusals()})
         names = {row["id"] for row in result["cases"]}
         self.assertTrue({"loan-through-loop-backedge", "incoming-from-later-source-block",
                          "root-parent-index-fifteen", "nested-graph-through-permuted-edge"} <= names)
