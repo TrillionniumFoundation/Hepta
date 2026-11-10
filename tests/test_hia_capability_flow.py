@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from itertools import permutations
+import os
 import unittest
 from unittest.mock import patch
 
@@ -13,9 +14,21 @@ from tests.test_hia_program import joined_loan_program
 
 class CapabilityFlowTests(unittest.TestCase):
     def test_actual_cfg_uses_the_independently_specified_boundary(self):
-        with patch('hepta.hia_program.rename_capabilities', wraps=rename_capabilities) as boundary:
-            module = verify_program(joined_loan_program())
-            self.assertGreaterEqual(boundary.call_count, 2)
+        from hepta.hia_core_admission_native import SELECTOR, installed_core_admission
+        selected = os.environ.get(SELECTOR)
+        if selected:
+            # The whole native checker embeds the edge policy. Prove actual
+            # image admission rather than demanding obsolete host invocations.
+            image = installed_core_admission(selected)
+            with (patch.object(image, 'status', wraps=image.status) as boundary,
+                  patch('hepta.hia_program.rename_capabilities',
+                        side_effect=AssertionError('host edge policy reached'))):
+                module = verify_program(joined_loan_program())
+                self.assertGreaterEqual(boundary.call_count, 1)
+        else:
+            with patch('hepta.hia_program.rename_capabilities', wraps=rename_capabilities) as boundary:
+                module = verify_program(joined_loan_program())
+                self.assertGreaterEqual(boundary.call_count, 2)
         for cond in (False, True):
             result = execute_program(module, 'join', [cond])
             self.assertEqual(result['result'], 0)

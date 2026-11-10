@@ -386,6 +386,23 @@ class IncrementalVerifier:
             return self._full(raw, report, "module_envelope_changed")
 
         report["mode"] = "incremental"
+        from .hia_core_admission_native import selected_core_structure
+        selected = selected_core_structure(data, raw)
+        if selected is not None:
+            # Native whole admission intentionally rechecks all bodies, even
+            # when this host cache could reuse one. Never label that as reuse.
+            functions, blocks = selected
+            report.update(mode="native_whole", native_whole_body_checked=True,
+                          global_structure_checked=True,
+                          function_shapes_checked=len(functions),
+                          operation_shapes_checked=sum(len(b["ops"]) for fn in functions.values()
+                                                       for b in fn["blocks"]))
+            for name, fn in functions.items():
+                report["functions_body_attempted"].append(name)
+                report["functions_body_completed"].append(name)
+                report["blocks_in_completed_bodies"] += len(fn["blocks"])
+                report["operations_in_completed_bodies"] += sum(len(b["ops"]) for b in fn["blocks"])
+            return core.VerifiedProgram(raw)
         functions, blocks = core._primitive_structure(data)
         interfaces = core._function_interfaces(functions)
         report["global_structure_checked"] = True

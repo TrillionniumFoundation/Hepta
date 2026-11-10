@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v52-main-native-instruction-policy"
+PROFILE = "selfhost-core-linux-x86_64-v53-native-whole-core-admission"
 SOURCE_FILES = (
+    'tools/generate_hia_core_admission.py',
+    'examples/hia_bootstrap/core_admission.hiaasm',
+    'tools/build_hia_core_admission.py',
+    'tests/test_hia_core_admission_native.py',
+    'tests/test_hia_capability_flow.py',
+    'docs/HIA_CORE_ADMISSION_NATIVE.md',
     'tools/generate_hia_instruction_policy.py',
     'examples/hia_bootstrap/instruction_policy.hiaasm',
     'tools/build_hia_instruction_policy.py',
@@ -468,6 +474,23 @@ def support_contract(root=ROOT):
             "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
             "whole_agent_editing_and_persistence_replaced": False,
             "production_activated": False,
+        },
+        "core_admission_application": {
+            "source": "examples/hia_bootstrap/core_admission.hiaasm",
+            "selection": "operator HEPTA_HIA_CORE_ADMISSION_MANIFEST; default unchanged",
+            "input": "complete raw primitive Core JSON v1-v8",
+            "maximum_bytes": 8388608, "maximum_nodes": 262144,
+            "maximum_depth": 64, "maximum_functions": 1024, "maximum_blocks_per_function": 4096,
+            "policy": ["complete native declarations/SSA/CFG/exports", "all 50 local opcode contracts",
+                       "callee signatures and effects", "owner/loan liveness and guards",
+                       "branch and loop capability graph agreement", "original-formal returned-loan origins",
+                       "linear return/edge consumption and function effects"],
+            "host_boundaries": ["strict bounded snapshot/JSON decoding and canonical transport", "composite normalization",
+                                "object and executable custody", "incremental cache and metadata", "allocation"],
+            "selected_reference_fallback": False,
+            "incremental_policy": "whole native body recheck, no claimed body reuse",
+            "all_input_refinement_proved": False, "production_activated": False,
+            "whole_native_delivery_qualified": False,
         },
         "program_shape_application": {
             "source": "examples/hia_bootstrap/program_shape.hiaasm",
