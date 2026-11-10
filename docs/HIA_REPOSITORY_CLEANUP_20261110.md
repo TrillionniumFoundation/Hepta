@@ -38,5 +38,8 @@ Source `90d8f94515ee9dacf535b26029ce18210df74ed9` passed 137 source controls,
 All 38 cold and two language evidence archives were independently replayed.
 Actual wheel installation, isolated hosted entry calls and copied native
 capabilities/verify/compile profiles passed. This does not make the hosted
-Agent or Runtime native-only. The complete retained regression remains pending
-at publication; consult the current scoped review receipt for its actual state.
+Agent or Runtime native-only. The complete retained regression on that exact pin finished with 3,547 tests,
+zero failures/errors and 125 environment skip records. Skips are not native
+qualification. The remote source gate passed, but the unchanged 180-second cold
+budget still timed out after 37/38 phases; `exports-modified` was pending.
+Remote native closure remains open.
