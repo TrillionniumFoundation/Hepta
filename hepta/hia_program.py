@@ -40,6 +40,7 @@ from .hia_opcodes import (
 )
 WORD_BITS = 64
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,127}\Z")
+_JSON_ESCAPE = re.compile(r'[\x00-\x1f"\\]')
 _RESERVED_FUNCTIONS = frozenset({"abort", "calloc", "malloc", "free", "memcpy", "memmove", "memset"})
 MAX_BYTES = 8 * 1024 * 1024
 MAX_NODES = 262144
@@ -112,6 +113,12 @@ def _json_string_bytes(value, remaining):
     """
     if len(value) + 2 > remaining:
         _reject("program exceeds byte budget before encoding", "E_HIA_LIMIT")
+    # The common identifier/opcode/key case needs no per-code-point Python loop.
+    # The lower-bound budget check above remains first; no encoded copy or
+    # verified-object cache is introduced, and every unsafe/non-ASCII string
+    # still follows the complete original escape/surrogate/UTF-8 accounting.
+    if value.isascii() and _JSON_ESCAPE.search(value) is None:
+        return len(value) + 2
     size = 2  # opening and closing JSON quotes
     for char in value:
         point = ord(char)
