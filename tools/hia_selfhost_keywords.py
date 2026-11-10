@@ -10,6 +10,7 @@ def keyword_source(words):
              '            else:', '                if i < 24:', '                    c = c | (value << ((i - 16) * 8))',
              '                else:', '                    d = d | (value << ((i - 24) * 8))',
              '        i = i + 1', '    result = 0']
+    buckets = {}
     for word, token in words.items():
         raw = word.encode('ascii')
         if not 0 < len(raw) <= 32 or b'\0' in raw:
@@ -22,9 +23,15 @@ def keyword_source(words):
         # again for every keyword adds no admission condition. All occupied
         # chunks (including partial final chunks) still compare their full word.
         occupied = (len(raw) + 7) // 8
-        condition = ' and '.join([f'size == {len(raw)}',
-            *[f'{name} == {value}' for name,value in zip('abcd'[:occupied],chunks[:occupied])]])
-        lines.append(f'    result = choose({condition}, {token}, result)')
+        condition = ' and '.join(f'{name} == {value}' for name,value in zip('abcd'[:occupied],chunks[:occupied]))
+        buckets.setdefault(len(raw), []).append((condition, token))
+    # One length branch per bucket, not per keyword. Full occupied packed
+    # words still compare; no hash, prefix, padding or source dispatch.
+    for size, entries in sorted(buckets.items()):
+        lines.append(f'    if size == {size}:')
+        for condition, token in entries:
+            lines.append(f'        result = choose({condition}, {token}, result)')
+        lines.append('        return result')
     lines.append('    return result')
     return '\n'.join(lines) + '\n'
 
