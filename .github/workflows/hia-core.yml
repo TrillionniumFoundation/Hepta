@@ -141,6 +141,7 @@ jobs:
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:
           HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS: ${{ runner.temp }}/hia-module-projects
       - name: Native Core workspace JSON materialization and actual ABI
         run: python -B -m unittest tests.test_hia_core_workspace_json_native tests.test_hia_core_workspace_json_cli tests.test_hia_core_workspace_pipeline -v
         env:
@@ -166,3 +167,4 @@ jobs:
             ${{ runner.temp }}/hia-cold.cold/
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-module-projects/

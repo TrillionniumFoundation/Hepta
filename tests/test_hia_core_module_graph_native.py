@@ -80,6 +80,34 @@ class CoreModuleGraphSourceTests(unittest.TestCase):
         self.assertEqual(vm(raw+b'!',32),(0xffffffff,bytes([90])*32))
         self.assertEqual(vm(raw,32),(0xfffffffe,bytes([90])*32))
 
+    def test_failed_full_profile_retains_original_child_evidence_before_assertion(self):
+        # Explicit non-native failure fixture drives the actual full-profile
+        # test method. The original failure MUST still propagate unchanged.
+        with tempfile.TemporaryDirectory(prefix='hia-module-failure-custody-') as d:
+            root=Path(d);folder=root/'child';folder.mkdir();image=folder/'image.bin'
+            image.write_bytes(b'explicit-non-native-evidence-fixture')
+            case=CoreModuleGraphNativeTests('test_entire_module_and_import_bounds_in_reverse_order_under_original_process_limits')
+            case.folder=folder;case.image=image
+            receipt={'status':'child_failed','returncode':-9,'limits':{'cpu_seconds':10},'fixture_not_native_execution':True}
+            raw=json.dumps(receipt).encode()
+            for suffix,data in (('.request.json',b'{"fixture":true}'),('.receipt.json',raw),
+                                ('.stdout.log',b'fixture stdout'),('.stderr.log',b'fixture stderr')):
+                (folder/('module-profile-1023'+suffix)).write_bytes(data)
+            retained=root/'retained'
+            with patch.dict(os.environ,{'HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS':str(retained)}), \
+                    patch('tools.qualify_hia_selfhost.invoke',return_value=(receipt,b'partial-native-output-fixture')):
+                with self.assertRaises(AssertionError):
+                    case.test_entire_module_and_import_bounds_in_reverse_order_under_original_process_limits()
+            profile=retained/'profile-1023'
+            self.assertEqual(json.loads((profile/'native-receipt.json').read_bytes()),receipt)
+            self.assertEqual((profile/'module-graph.image.bin').read_bytes(),image.read_bytes())
+            self.assertEqual((profile/'actual.bin').read_bytes(),b'partial-native-output-fixture')
+            self.assertGreater((profile/'input.bin').stat().st_size,0)
+            self.assertGreater((profile/'expected.bin').stat().st_size,0)
+            for suffix in ('.request.json','.receipt.json','.stdout.log','.stderr.log'):
+                self.assertEqual((profile/('original-child'+suffix)).read_bytes(),
+                                 (folder/('module-profile-1023'+suffix)).read_bytes())
+
 class CoreModuleGraphNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -254,10 +282,9 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             words=[RESULT,n,n,count,0,n,0,0,*range(n-1,-1,-1),*targets,0,*([NONE]*(n-1))]
             expected=struct.pack('<'+str(len(words))+'Q',*words)
             receipt,actual=invoke(self.folder,'module-profile-'+str(count),self.image,wire)
-            self.assertEqual(receipt['status'],'returned')
-            self.assertEqual(receipt['limits']['cpu_seconds'],10)
-            self.assertEqual(receipt['core_u32'],len(expected))
-            self.assertEqual(actual[:len(expected)],expected)
+            # Retain failed child status/signal/logs BEFORE assertions and the
+            # class temporary-directory cleanup. A child_failed label alone is
+            # insufficient to distinguish CPU, mapping and execution failures.
             evidence=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS')
             if evidence:
                 retained=Path(evidence)/('profile-'+str(count));retained.mkdir(parents=True)
@@ -266,6 +293,14 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                                    'module-graph.image.bin':self.image.read_bytes()}.items():
                     (retained/name).write_bytes(value)
                 (retained/'native-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+                for suffix in ('.request.json','.receipt.json','.stdout.log','.stderr.log'):
+                    original=self.folder/('module-profile-'+str(count)+suffix)
+                    if original.is_file():
+                        (retained/('original-child'+suffix)).write_bytes(original.read_bytes())
+            self.assertEqual(receipt['status'],'returned')
+            self.assertEqual(receipt['limits']['cpu_seconds'],10)
+            self.assertEqual(receipt['core_u32'],len(expected))
+            self.assertEqual(actual[:len(expected)],expected)
 
     def test_mutated_packet_refusals_output_canary_short_buffers_and_concurrency(self):
         raw,expected=independent_case()
