@@ -1422,3 +1422,41 @@ The metadata-only merge incorporates the preceding scalar-export qualification
 without changing any of the312qualified compiler export paths. Native source
 lexing does not close numeric value construction, the full frontend/type/module
 graph, general runtime, agent services or build/release retirement.
+
+
+## Combined CLI / native observer clean acceptance: exact subject 38ea1b2
+
+The committed executable subject is `38ea1b2f580a0c62ba5373c5e8729c14158109f3`.
+Clean local acceptance completed in407.223seconds: actual source workflow107tests;
+source-only cold11/11isolation/ownership checks and5049/5049native checks across
+all38phases in119.043seconds; language1242checks plus10assertions; combined
+components78tests; exact shared closure15tests. The actual B3 builds both flat
+and ELF standalone JSON CLIs. Sixteen installed/copied execution observations
+include the typed C export caller and actual CLI-produced code executed in the
+fresh HIA observer, with legacy child fallback forbidden and syscall-only
+execution independently traced. All declared ceilings and deadlines remain.
+
+The public `json-cli-observer-native-summary.json` binds this exact subject,
+all323cold-input hashes, runner hashes, installed observations and the verified
+lossless raw-evidence archive. Its matching static-audit delta reconstructs the
+entire inventory byte-for-byte. A later auditor-only continuation explicitly
+classifies both `.S` and `.s` references as assembly; its independent inventory
+fixture passes. That static commit is identified separately from the executable
+qualification, and every323cold-input hash is unchanged. The observer assembly
+reference remains an explicit foreign-authoring boundary, not a hidden HIA claim.
+
+The prior PR842C8EB remote cold failure is preserved: run42762528831,
+job129653296438, actual owner `QUALIFICATION_TIMEOUT` at the unchanged180second
+qualification deadline, return-9,34/38completed phases and confirmed cleanup.
+Zero reported exceptions in completed phases do not qualify unfinished phases.
+The119second local pass does not reclassify that remote failure or guarantee
+future remote timing. Fresh current-source full-repository and remote gates
+remain required; historical/adjacent-source passes do not substitute.
+
+Static scope still contains219production-package Python files /76738lines and
+426host-tool Python files /133911lines, plus explicitly inventoried non-Python
+support. Tools are not all production runtime. The component ledger remains
+**3 partial /5 open**. Full language, module/linker/runtime/build/install/CLI,
+platform and clean-machine real-project closure remain **OPEN**. Defaults,
+production activation and old-stack removal are unchanged. No required legacy
+source has been deleted; retirement follows complete qualified replacement.

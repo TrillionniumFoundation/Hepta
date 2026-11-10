@@ -62,7 +62,8 @@ def tracked_tree_inventory(root):
              'reports': 'retained_evidence', 'review-evidence': 'retained_evidence'}
     languages = {'.py': 'Python', '.rs': 'Rust', '.c': 'C', '.h': 'C-header',
                  '.cpp': 'C++', '.hpp': 'C++-header', '.lean': 'Lean', '.sh': 'shell',
-                 '.hiaasm': 'HIA-assembly', '.hepta': 'Hepta-source', '.ll': 'LLVM-IR'}
+                 '.hiaasm': 'HIA-assembly', '.hepta': 'Hepta-source', '.ll': 'LLVM-IR',
+                 '.S': 'assembly', '.s': 'assembly'}
     rows, groups, live_non_python = [], {}, []
     for name in names:
         path = root / name
