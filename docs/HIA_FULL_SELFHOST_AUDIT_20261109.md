@@ -1563,3 +1563,26 @@ byte with the retained originals; external source-CI/unittest logs also remain
 retained separately. The initial source-gate failure remains FAIL. New candidate
 remote CI and current entire-repository qualification are still required; the
 older PR845four-job success is not relabelled for this changed source.
+
+
+### Retained first remote source-type run and scoped checkout correction
+
+Remote run42772128006at295170dwas CANCELLED, not passed: GitHub's check annotation
+explicitly reports the10minute source-job limit. Checkout consumed5m44s, then
+recovery succeeded and assertions ran until cancellation. Cold/native/language
+were skipped, not completed. Its complete source log, annotations and7392byte
+ZIP (SHA256eaed84fe8c97e591e7a1db8aaf771b215b9d0ce50da430d3881be9b1a6a82ed0)
+remain retained. There is no evidence of a failing source assertion in that
+interrupted log, but incomplete tests are not a PASS.
+
+Checkout is now scoped to the exact immutable candidate (depth1). The source
+job explicitly restores only that candidate's complete ancestry with a single-
+reference,no-tags unshallow fetch, asserts that it is no longer shallow and
+that HEAD is unchanged, then runs every original bundle/tree/blob/ancestor
+recovery assertion unchanged. Other native/cold/language jobs need the exact
+HEAD tree rather than unrelated branch history; their source identity, cold
+isolation and all tests remain unchanged. No10minute job limit,180second cold
+limit, test inventory, compiler capability or process/evidence budget is raised.
+Fresh scoped-checkout source verification and current remote execution are
+required for this workflow-only correction; fc5540fcomponent evidence is not
+relabelled as a new whole-toolchain run.
