@@ -87,6 +87,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         required.update('tests.test_hia_native_' + suffix for suffix in (
             'child_limits', 'seccomp', 'side_effects', 'cleanup',
             'mapping_identity', 'startup_isolation'))
+        required.add('tests.test_hia_selfhost_emitter_words')
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
 
