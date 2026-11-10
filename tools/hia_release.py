@@ -39,6 +39,9 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_json_preflight.py", "tools/build_hia_json_preflight.py",
+    "tests/test_hia_json_preflight.py", "tests/test_hia_json_preflight_native.py",
+    "examples/hia_bootstrap/json_preflight.hiaasm",
     "tools/hia_selfhost_names.py", "tests/test_hia_selfhost_names.py",
     "tools/hia_selfhost_cli.py", "tools/hia_selfhost_cli_child.py",
     "tools/qualify_hia_selfhost_cli.py", "tests/test_hia_selfhost_cli.py",
