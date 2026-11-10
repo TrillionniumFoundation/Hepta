@@ -23,6 +23,7 @@ from .hia_adaptive import (AdaptiveRejected, AdaptiveRuntime, _digest, _identity
                            _TOTAL, _NativeRelease, _version_token, _selection_mode)
 from .hia_program import verify_program
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 from .hia_native_differential import _pin_native_artifact
 from .native_tool_identity import digest_executable
 from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
@@ -558,8 +559,7 @@ class OwnedAdaptiveRuntime(AdaptiveRuntime):
 
         try:
             text = wire.decode("utf-8")
-            preflight_hia_json(text, max_nodes=1024, max_depth=4)
-            data = json.loads(text, object_pairs_hook=unique_pairs)
+            data = decode_hia_json(text, max_nodes=1024, max_depth=4, object_pairs_hook=unique_pairs)
             canonical = json.dumps(data, sort_keys=True, separators=(",", ":"),
                                    ensure_ascii=False, allow_nan=False).encode("utf-8")
         except AdaptiveRejected:

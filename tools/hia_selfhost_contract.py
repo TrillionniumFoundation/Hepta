@@ -15,6 +15,10 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v29"
 SOURCE_FILES = (
+    "tools/generate_hia_json_decode.py",
+    "tools/build_hia_json_decode.py",
+    "tests/test_hia_json_decode_native.py",
+    "examples/hia_bootstrap/json_decode.hiaasm",
     "tools/generate_hia_json_preflight.py",
     "tools/build_hia_json_preflight.py",
     "tests/test_hia_json_preflight.py",

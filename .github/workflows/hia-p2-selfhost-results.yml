@@ -7,6 +7,11 @@ on:
       - '.github/workflows/hia-p2-selfhost-results.yml'
       - 'tools/generate_hia_selfhost.py'
       - 'tools/generate_hia_json_preflight.py'
+      - 'tools/generate_hia_json_decode.py'
+      - 'tools/build_hia_json_decode.py'
+      - 'hepta/hia_json_decode*.py'
+      - 'tests/test_hia_json_decode*.py'
+      - 'examples/hia_bootstrap/json_decode.hiaasm'
       - 'tools/build_hia_json_preflight.py'
       - 'hepta/hia_json_preflight*.py'
       - 'tests/test_hia_json_preflight*.py'
@@ -92,6 +97,7 @@ jobs:
           print(json.dumps({"status": "SOURCE_RECOVERY_VERIFIED", "changed_files": len(manifest["recovered_changed_files"]), "original_tree": manifest["original_source_tree"]}, sort_keys=True))
           PY
           python -B -m tools.generate_hia_json_preflight 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-generator.log"
+          python -B -m tools.generate_hia_json_decode 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-decode-generator.log"
           python -B tools/generate_hia_selfhost.py 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/generator.log"
           python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/inventory.log"
           python -B tools/generate_hia_selfhost_contract.py --check 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/contract.log"
@@ -106,6 +112,7 @@ jobs:
           names = (
               "tests.test_hia_json_preflight",
               "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
+              "tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests",
               "tests.test_hia_selfhost.SelfhostSourceTests",
               "tests.test_hia_selfhost_contract.SelfhostContractTests",
               "tests.test_hia_selfhost_cli",
@@ -233,6 +240,7 @@ jobs:
           python -m pip freeze > "$RUNNER_TEMP/hia-p2-native/dependencies.txt"
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-p2-native/qualification.json" 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/qualification.log"
           python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"
+          python -B -m unittest -v tests.test_hia_json_decode_native.JsonDecodeHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-decode-tests.log"
           python -B - <<'PY'
           import json, os
           from pathlib import Path
@@ -304,4 +312,3 @@ jobs:
           include-hidden-files: true
           retention-days: 14
           compression-level: 9
-

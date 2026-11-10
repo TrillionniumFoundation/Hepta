@@ -15,6 +15,7 @@ import re
 
 from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 
 SCHEMA = "hepta.hia.full-cost-comparison.v1"
 MAX_INPUT_BYTES = 262_144
@@ -93,9 +94,8 @@ def _wire(raw):
         _fail("input must be immutable JSON bytes or string, not mutable objects")
     try:
         # Reject hostile node fanout/depth before constructing a full Python graph.
-        preflight_hia_json(source, max_nodes=65536, max_depth=64)
-        parsed = json.loads(source, object_pairs_hook=_no_duplicates,
-                            parse_constant=_invalid_constant)
+        parsed = decode_hia_json(source, max_nodes=65536, max_depth=64,
+                                 object_pairs_hook=_no_duplicates, parse_constant=_invalid_constant)
     except FullCostRejected:
         raise
     except (ValueError, TypeError, RecursionError, OverflowError) as error:

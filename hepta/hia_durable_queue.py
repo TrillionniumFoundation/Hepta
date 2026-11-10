@@ -24,6 +24,7 @@ import stat
 import threading
 
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 from .hia_optimization import _policy
 from .hia_stateful import (OwnedAdaptiveRuntime, _adapter_identity,
                           _snapshot_queue_work_item, _u64)
@@ -239,8 +240,7 @@ class DurableOwnedQueue:
             os.close(fd)
         try:
             text = raw.decode("utf-8")
-            preflight_hia_json(text, max_nodes=250000, max_depth=12)
-            envelope = json.loads(text)
+            envelope = decode_hia_json(text, max_nodes=250000, max_depth=12)
             if (type(envelope) is not dict or set(envelope) != {"payload", "sha256"}
                     or _wire(envelope) != raw or envelope["sha256"] != _digest(envelope["payload"])):
                 _reject("journal envelope or integrity digest differs")

@@ -16,6 +16,7 @@ import tempfile
 
 from .artifact_publication import publish_verified
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 
 MAX_INPUT_BYTES = 8 * 1024 * 1024
 MAX_EDITS = 64
@@ -69,15 +70,15 @@ def decode_json(payload):
         size = len(payload.encode("utf-8")) if type(payload) is str else len(payload)
         if size > MAX_INPUT_BYTES:
             _reject("JSON input exceeds byte limit")
-        # The old byte-only gate could materialize hundreds of thousands
-        # of JSON nodes (or hundreds of nested containers) before applying
-        # any structural limits. Run the EXISTING source-free HIA JSON
-        # syntax preflight before the stdlib decoder; all edit/publish logic
-        # and whole-program verification remain unchanged.
+        # Bound allocation before value construction, using the independent
+        # reference or an explicitly selected HIA value arena. Edit/publication
+        # logic and whole-program semantic verification remain unchanged.
         source = payload.decode("utf-8") if type(payload) is bytes else payload
         try:
-            preflight_hia_json(source, max_nodes=MAX_AGENT_JSON_NODES,
-                              max_depth=MAX_AGENT_JSON_DEPTH)
+            decoded = decode_hia_json(source, max_nodes=MAX_AGENT_JSON_NODES,
+                                      max_depth=MAX_AGENT_JSON_DEPTH,
+                                      object_pairs_hook=_pairs,
+                                      parse_constant=lambda value: _reject("nonfinite JSON number"))
         except OverflowError as exc:
             raise HIAEditRejected(
                 "E_HIA_EDIT: JSON node/depth budget exceeded before decoding"
@@ -87,8 +88,7 @@ def decode_json(payload):
             # when the early gate rejects before the object-pairs hook.
             # Never retry the full decoder merely to obtain its diagnostic.
             raise HIAEditRejected("E_HIA_EDIT: invalid JSON: " + str(exc)) from exc
-        return json.loads(source, object_pairs_hook=_pairs,
-                          parse_constant=lambda value: _reject("nonfinite JSON number"))
+        return decoded
     except HIAEditRejected:
         raise
     except (ValueError, UnicodeError, RecursionError) as exc:

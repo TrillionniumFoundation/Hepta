@@ -31,7 +31,7 @@ def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:
     return slots * 8, 128 + (depth + 1) * 32
 
 
-class NativeJsonPreflight:
+class NativeHiaJsonImage:
     """Pinned immutable code, private per-call scratch; concurrent calls allowed."""
     def __init__(self, image: bytes, expected_sha256: str):
         if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
@@ -53,6 +53,10 @@ class NativeJsonPreflight:
             raise OSError(code, 'mprotect native HIA JSON preflight')
         self._mapping = mapped
         self._entry = ctypes.CFUNCTYPE(ctypes.c_uint64, *([ctypes.c_void_p, ctypes.c_uint64] * 3))(address)
+
+
+class NativeJsonPreflight(NativeHiaJsonImage):
+    """Syntax-only result protocol, separate from the JSON value-arena ABI."""
 
     def status(self, wire: bytes, *, max_nodes: int, max_depth: int) -> int:
         """Return the actual HIA status; reject unsupported host ABI inputs first."""

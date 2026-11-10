@@ -4,25 +4,34 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 213 Python
-files, 76,265 lines and 4,132,463 bytes. These are source inventory figures, not a
+HIA. The current implementation contains a live `hepta/` package with 215 Python
+files, 76,481 lines and 4,142,351 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **408 Python files /131262lines** under `tools/`,
+The audit also inventories **410 Python files /131514lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-621Python files. Tests, historical evidence, experiments, examples, benchmarks
+625Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
-`implementation-boundary-v28.json` plus `implementation-boundary-v30-delta.json`.
-The clean `1b45c4e` snapshot accounts for **all10,027 tracked paths**
+`implementation-boundary-v28.json` plus the versioned lossless inventory deltas.
+The prior clean `1b45c4e` snapshot accounts for **all10,027 tracked paths**
 by identity, role and language, distinguishing research/evidence from live code.
 Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
+
+**Current continuation:** GitHub login is restored and original history through
+`27fa34413e09ff012d3d467b7ad3af8acff508e4` has been pushed and independently read
+back. Earlier upload-pending statements below are historical. Fresh source
+inventory includes the HIA JSON value-arena candidate and10036tracked paths;
+clean committed qualification is still separately required. The latest complete
+open-PR inventory has466entries (457drafts), not evidence that all are integrated.
+The subsequent v30 full-repository process ended without a final report or
+observed exit status; its retained partial log is **not** a completed pass.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full

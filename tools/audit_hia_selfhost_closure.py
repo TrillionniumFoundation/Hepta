@@ -23,8 +23,8 @@ from hepta.hia_opcodes import WIDTHS
 from tools.hia_selfhost_contract import validate_contract
 
 COMPONENTS = (
-    ("assembly_frontend", ("hepta/hia_agent_assembly.py", "hepta/hia_json_preflight.py", "hepta/hia_json_preflight_native.py"), "partial",
-     "HIA scanner/parser supports general ASCII module/function/SSA/formal/block identifiers and arbitrary entry declaration order in the bounded assembly profile. An explicitly selected HIA JSON syntax/budget/duplicate-key preflight candidate is integrated; the default Python reference, full JSON value decoder, module graphs and full grammar remain open."),
+    ("assembly_frontend", ("hepta/hia_agent_assembly.py", "hepta/hia_json_preflight.py", "hepta/hia_json_preflight_native.py", "hepta/hia_json_decode.py", "hepta/hia_json_decode_native.py"), "partial",
+     "HIA scanner/parser supports general ASCII module/function/SSA/formal/block identifiers and arbitrary entry declaration order in the bounded assembly profile. Explicitly selected HIA syntax preflight and JSON value-arena decoding are integrated into existing inputs; foreign-object bridging and the default reference remain Python. Module graphs, full frontend grammar and whole-runtime replacement remain open."),
     ("core_verifier_and_resources", ("hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
      "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification."),
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py"), "open",

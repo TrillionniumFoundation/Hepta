@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 from .hia_opcodes import (EXECUTION_RESOURCE_FIELDS as _RESOURCE_FIELDS,
     EXECUTION_CHAIN_FIELDS as _CHAIN_FIELDS, ExecutionObservationRejected,
     validate_execution_observation)
@@ -112,8 +113,7 @@ def _raw_snapshot(raw_core):
         _reject("raw Core must be bounded immutable bytes")
     try:
         text = raw_core.decode("utf-8")
-        preflight_hia_json(text, max_nodes=262144, max_depth=64)
-        body = json.loads(text, parse_int=_wire_integer)
+        body = decode_hia_json(text, max_nodes=262144, max_depth=64, parse_int=_wire_integer)
         canonical = _canonical(body)
     except (ValueError, UnicodeError, RecursionError, OverflowError) as exc:
         raise HIARustByteDagRejected("E_HIA_RUST_BYTE_DAG: malformed bounded raw JSON") from exc

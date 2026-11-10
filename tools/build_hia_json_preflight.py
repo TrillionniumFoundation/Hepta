@@ -16,8 +16,10 @@ if __package__ in {None, ''}:
     sys.path.insert(0, str(ROOT))
 
 
-def build(output: Path, compiler: Path, cold_report: Path) -> Path:
+def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
+    if candidate not in ('preflight', 'decode'):
+        raise ValueError('unknown HIA JSON candidate')
     raw = cold_report.read_bytes()
     qualification = json.loads(raw)
     compiler_bytes = compiler.read_bytes()
@@ -40,22 +42,24 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
             or len(qualification['generation_sha256']) != 3
             or any(value != compiler_sha for value in qualification['generation_sha256'])):
         raise ValueError('a completed matching native cold qualification is required')
-    source_path = ROOT / 'examples/hia_bootstrap/json_preflight.hiaasm'
+    source_path = ROOT / ('examples/hia_bootstrap/json_' + candidate + '.hiaasm')
     source = source_path.read_bytes()
     output.mkdir(mode=0o700)
-    image, receipt = compile_stage(output, 'json-preflight', compiler, source)
+    image, receipt = compile_stage(output, 'json-' + candidate, compiler, source)
     if source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes:
         raise ValueError('native candidate build inputs changed')
-    manifest = {'schema': 'hepta.hia.json-preflight-native.v1',
+    manifest = {'schema': 'hepta.hia.json-' + candidate + '-native.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({
-        'schema': 'hepta.hia.json-preflight-build.v1', 'status': 'NATIVE_CANDIDATE_BUILT',
+        'schema': 'hepta.hia.json-' + candidate + '-build.v1', 'status': 'NATIVE_CANDIDATE_BUILT',
         'manifest': manifest, 'cold_report_sha256': sha256(raw).hexdigest(),
         'native_compile_receipt': receipt, 'production_activated': False,
         'all_input_equivalence_proved': False, 'full_json_value_decoder_implemented': False,
+        'hia_json_value_arena_implemented': candidate == 'decode',
+        'foreign_object_bridge_is_python': candidate == 'decode',
         'whole_stack_rewritten_in_hia': False}, indent=2, sort_keys=True) + '\n')
     return path
 

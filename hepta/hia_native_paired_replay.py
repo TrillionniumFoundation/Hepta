@@ -12,6 +12,7 @@ import re
 
 from .hia_bounded_wire import WireBudgetExceeded, checked_utf8_wire
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 from .hia_paired_holdout import assess_paired_holdout
 
 SCHEMA = "hepta.hia.native-paired-replay.v1"
@@ -68,9 +69,8 @@ def _read(raw):
     try:
         source = wire.decode("utf-8")
         # Same immutable evidence wire is preflighted before full JSON decode.
-        preflight_hia_json(source, max_nodes=262144, max_depth=64)
-        return json.loads(source, object_pairs_hook=_pairs,
-                          parse_constant=lambda _: _fail("nonfinite JSON"))
+        return decode_hia_json(source, max_nodes=262144, max_depth=64,
+                               object_pairs_hook=_pairs, parse_constant=lambda _: _fail("nonfinite JSON"))
     except NativePairedReplayRejected:
         raise
     except (ValueError, UnicodeError, TypeError, RecursionError, OverflowError) as exc:

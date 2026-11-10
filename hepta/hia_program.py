@@ -23,6 +23,7 @@ import json
 import re
 
 from .hia_json_preflight import preflight_hia_json
+from .hia_json_decode import decode_hia_json
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
@@ -299,17 +300,16 @@ def _decode(value):
             value = value.decode("utf-8")
         if type(value) is str:
             _bounded_input_utf8_bytes(value)
-            # Enforce structural limits before json.loads allocates a complete
-            # object graph. This is a syntax preflight, not a second parser or
-            # a shortcut around the canonical v7/composite Core verifier.
+            # Bound value allocation before either selected decoder builds a
+            # graph. An optional HIA value arena does not bypass the canonical
+            # v7/composite Core verifier or rewrite its semantic checks.
             try:
-                preflight_hia_json(value, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
+                value = decode_hia_json(value, max_nodes=MAX_NODES, max_depth=MAX_DEPTH,
+                                        object_pairs_hook=_unique_pairs, parse_constant=_bad_constant)
             except OverflowError as exc:
                 raise HIAProgramRejected(
                     "program exceeds structural budget before JSON allocation",
                     "E_HIA_LIMIT") from exc
-            value = json.loads(value, object_pairs_hook=_unique_pairs,
-                               parse_constant=_bad_constant)
         if caller_owned:
             value = _bounded_detached_snapshot(value)
         _structure(value)
@@ -318,7 +318,7 @@ def _decode(value):
         if len(raw) > MAX_BYTES:
             _reject("program exceeds byte budget", "E_HIA_LIMIT")
         # Validation uses a detached snapshot, never the caller's mutable dict.
-        return json.loads(raw), raw
+        return decode_hia_json(raw.decode('utf-8'), max_nodes=MAX_NODES, max_depth=MAX_DEPTH), raw
     except HIAProgramRejected:
         raise
     except (ValueError, TypeError, UnicodeError, RecursionError, OverflowError) as exc:
