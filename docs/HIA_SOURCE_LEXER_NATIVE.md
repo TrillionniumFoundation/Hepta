@@ -10,6 +10,11 @@ The same image parses nonnegative source integers in decimal, hexadecimal,
 octal and binary, including strict prefix and separator validation. It emits
 a minimal little-endian magnitude; Python only constructs the integer object
 from those bytes, without calling a host literal parser.
+Decimal floating-point literals are converted to binary64 bits using only HIA
+integer arithmetic: exact numerator/denominator accumulation, binary scaling,
+quotient/remainder comparison and nearest ties-to-even rounding. Normal,
+subnormal, underflow-to-zero and nonfinite-overflow handling execute in HIA.
+Python only constructs a float object from the eight returned bytes.
 
 The first pass validates and counts tokens. Only a successful first pass with
 enough output capacity permits the second pass to emit the token table.
@@ -20,14 +25,19 @@ partially publish token rows. Workspaces and outputs are private per call.
 
 - Linux x86-64 LP64, immutable source/hash-bound local executable image.
 - At most 8 MiB scalar UTF-8 source and 1,048,576 tokens **including EOF**.
-- Manifest schema `hepta.hia.source-lexer-native.v2` declares a little-endian
+- Manifest schema `hepta.hia.source-lexer-native.v3` declares a little-endian
   u64 command at workspace offset 120. Command 0 uses 128 workspace bytes;
   each token row is seven little-endian u64 fields:
   kind, code-point start/end, line, column, UTF-8 value start/end.
 - Command 1 parses one integer using 2,176 workspace bytes, at most 8,192
   input bytes and a 2,048-byte output magnitude. The unchanged 4,096
   non-separator-character limit includes a radix prefix. Zero emits one zero
-  byte. Unknown commands and the old v1 manifest refuse explicitly.
+  byte.
+- Command 2 parses one decimal floating literal using 6,272 workspace bytes,
+  at most 8,192 wire bytes /4,096 non-separator characters and exactly eight
+  output bytes. Three 2,048-byte private integer arenas hold the rational and
+  temporary scaling values. Nonfinite overflow returns a distinct refusal;
+  unknown commands and old v1/v2 manifests refuse explicitly.
 - Numeric lexical length limit remains 4,096 non-separator characters.
 - Limits of the selfhost compiler are unchanged. Application token buffers do
   not expand compiler source/output/workspace or process deadlines.
@@ -50,7 +60,7 @@ refuses; it does not silently fall back to the reference scanner.
 ## Remaining boundaries
 
 The Python bridge still allocates buffers, constructs Token/Span/Diagnostic
-and integer objects, converts finite binary64 values, and
+and numeric objects from native bytes, and
 maps paths/errors into the existing API. Python also authors the checked-in
 HIA source and builds the B0 seed. The source parser, AST/type checker,
 composites, module/package resolution, general linking, standalone toolchain
@@ -59,31 +69,16 @@ image is trusted local executable code, not a sandbox or an all-input proof.
 No default, production deployment or release lock is activated.
 
 
-## JSON CLI and native observer composition checkpoint
+## Executable JSON compiler composition continuation
 
-This continuation imports the bounded v2 lexer/integer application from exact
-source `c57fb17e83e776eb805fe6511a8aeee123277a93` into the executable-JSON-CLI
-lineage `841fce792b3ed75ca52ddc0b99188756062156f5`. Parent acceptance is not
-combined acceptance. The composition testcase builds an actual standalone JSON
-compiler CLI, uses it to compile the lexer Core payload, compares that image
-with the independent actual HIA compiler result, then executes the emitted
-lexer in a fresh HIA-native observer with the old child-loader API forbidden.
-Host payload JSON parsing/serialization and the host compile driver are also
-forbidden during the standalone CLI invocation. Every observer packed-byte
-reference is evaluated in the independent VM before B0.
-
-Token/Span materialization and Python supervision remain explicit foreign
-boundaries. Default tokenization remains unchanged; floats are still converted
-by the documented host bridge. This checkpoint does not merge the separate
-native-float candidate, change compiler/deadline/resource limits, or establish
-whole-stack closure. Development16tests and shared-identity15tests passed;
-fresh clean-source qualification is required before publication as accepted.
-
-
-The fresh clean-source continuation f063abb subsequently passed the109source,
-5049native/all38cold phases,1242language,97combined components and all installed/
-default caller gates described in the whole-selfhost ledger and public
-`source-lexer-cli-composition-native-summary.json`. This supersedes only the
-pending status of this local checkpoint, not any remote/full-source failure or
-whole-stack boundary above. Parent841fce7 remote cold failed180s/26of38phases;
-the new candidate still requires its own remote and full-repository outcomes.
+This branch composes the exact float application from implementation
+6933f8c88376410d2900e34d79054919de45f814 with the accepted standalone JSON
+compiler/native observer lineage2d12212. Parent acceptance is not combined
+acceptance. The actual standalone JSON CLI generates the lexer image; a fresh
+HIA observer executes it with the old child loader forbidden, and token values
+are materialized through the native integer/float commands. The independent
+observer packed-byte VM reference is evaluated before B0. Existing lexical,
+integer and float random/boundary/transactional controls are retained.
+No compiler caps, process limits, deadlines, source-identity membership, default
+routes, release lock or production implementation is changed by this import.
+Fresh clean-source combined qualification is still required.

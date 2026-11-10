@@ -1374,3 +1374,25 @@ are separate. Older exact4c0fb93 whole-repository run finished7743tests/741modul
 with0failures/errors/skips and unchanged source, but does not qualify newer
 commits. Older bd3full failure and previous remote failures remain retained.
 Whole-stack rewrite and old-production retirement remain OPEN.
+
+
+## Source float plus executable compiler composition development
+
+Next candidate imports accepted6933f8c native exact decimal-rational to binary64
+conversion into the2d12212 standalone JSON/lexer/observer lineage. Source lexer
+v3 adds command2 with6272private workspace bytes and8output bytes; integer/
+token/compiler input and resource limits remain unchanged. Host numeric
+literal conversion is removed from the selected bridge; Python still constructs
+objects from native bytes. The actual standalone JSON CLI->lexer->fresh HIA
+observer testcase is retained and includes floating literals. All older lexical/
+integer controls remain. Parent acceptance does not qualify the combined source;
+new development and exact clean-source gates are required. No default or old
+production implementation is removed. The unbound static auditor now explicitly
+accounts for the high-level source lexer/API and its remaining object/parser
+boundaries instead of silently omitting that application.
+
+Development result: all19source/native lexer tests (including actual standalone
+JSON/nativeobserver composition with a floating literal) and the unbound
+assembly-inventory boundary fixture passed20tests/17.664seconds. The earlier
+34test development run also passed19lexer plus15unchanged shared-source tests.
+These are development observations, not final exact-source/remote/full acceptance.
