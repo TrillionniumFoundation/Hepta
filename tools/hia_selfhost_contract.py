@@ -13,8 +13,18 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v50-main-native-workspace-word-emission"
+PROFILE = "selfhost-core-linux-x86_64-v52-main-Agent-data-binary64"
 SOURCE_FILES = (
+    'tools/generate_hia_agent_binary64.py',
+    'examples/hia_bootstrap/agent_binary64.hiaasm',
+    'tools/build_hia_agent_binary64.py',
+    'tests/test_hia_agent_binary64_native.py',
+    'docs/HIA_AGENT_BINARY64_NATIVE.md',
+    'tools/generate_hia_agent_data_json.py',
+    'examples/hia_bootstrap/agent_data_json.hiaasm',
+    'tools/build_hia_agent_data_json.py',
+    'tests/test_hia_agent_data_json_native.py',
+    'docs/HIA_AGENT_DATA_JSON_NATIVE.md',
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
     'tools/build_hia_capability_renaming.py',
@@ -373,6 +383,29 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        "agent_binary64_application": {
+            "source": "examples/hia_bootstrap/agent_binary64.hiaasm",
+            "selection": "explicit HEPTA_HIA_AGENT_BINARY64_MANIFEST; default unchanged; no fallback",
+            "native_decimal_conversion_and_ties_even_rounding": True,
+            "significant_digits_retained": 800, "discarded_nonzero_sticky_bit": True,
+            "private_big_integers": "three 128-limb base-2^32 values; 4096-byte private workspace",
+            "wire_bytes": 8388608,
+            "foreign_float_boxing_is_hosted": True,
+            "native_float_printing": False,
+            "whole_native_delivery_qualified": False,
+        },
+        "agent_data_json_application": {
+            "source": "examples/hia_bootstrap/agent_data_json.hiaasm",
+            "selection": "explicit HEPTA_HIA_AGENT_DATA_JSON_MANIFEST; default unchanged; no fallback",
+            "native": ["ordinary JSON grammar including fraction/exponent lexemes", "UTF-8 and escaped Unicode", "duplicate object keys", "hierarchy and structural budgets"],
+            "wire_bytes": 8388608, "Agent_nodes": 262144, "Agent_depth": 128,
+            "arena": "HIADATA1; original integer lexemes and distinct fractional/exponent tag 7",
+            "finite_binary64_conversion_and_foreign_objects_are_hosted": True,
+            "native_floating_conversion_or_canonical_printing": False,
+            "Core_integer_JSON_protocol_changed": False,
+            "whole_native_Agent_persistence": False,
+            "whole_native_delivery_qualified": False,
+        },
         "core_workspace_materialization_application": {
             "sources": ["examples/hia_bootstrap/core_workspace_materialize.hiaasm",
                         "examples/hia_bootstrap/core_workspace_cli_packer.hiaasm"],

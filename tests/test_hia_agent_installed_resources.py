@@ -68,6 +68,18 @@ class AgentInstalledResourceTests(unittest.TestCase):
         cls.slice_manifest.write_text(json.dumps(dict(schema=SLICE_SCHEMA,
             source_sha256=sha256(SLICE_SOURCE.read_bytes()).hexdigest(),image_path=slice_image.name,
             image_sha256=sha256(slice_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from hepta.hia_agent_data_json_native import SOURCE as DATA_SOURCE, SCHEMA as DATA_SCHEMA
+        data_image,_=compile_stage(cls.native,'agent-data-json',second,DATA_SOURCE.read_bytes())
+        cls.data_manifest=cls.native/'data-manifest.json'
+        cls.data_manifest.write_text(json.dumps(dict(schema=DATA_SCHEMA,
+            source_sha256=sha256(DATA_SOURCE.read_bytes()).hexdigest(),image_path=data_image.name,
+            image_sha256=sha256(data_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from hepta.hia_agent_binary64_native import SOURCE as FLOAT_SOURCE, SCHEMA as FLOAT_SCHEMA
+        float_image,_=compile_stage(cls.native,'agent-binary64',second,FLOAT_SOURCE.read_bytes())
+        cls.float_manifest=cls.native/'binary64-manifest.json'
+        cls.float_manifest.write_text(json.dumps(dict(schema=FLOAT_SCHEMA,
+            source_sha256=sha256(FLOAT_SOURCE.read_bytes()).hexdigest(),image_path=float_image.name,
+            image_sha256=sha256(float_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
 from pathlib import Path
@@ -82,6 +94,15 @@ assert store.canonical_digest('a'*64)
 from hepta.hia_agent_contract import installation_manifest
 from hepta.hia_agent_worker import main
 if sys.argv[2]=='identity':print(__import__('json').dumps(installation_manifest()))
+elif sys.argv[2]=='data':
+    from hepta.hia_agent_data_json_native import SOURCE as DATA_SOURCE
+    assert Path(sys.argv[1]) in DATA_SOURCE.parents,DATA_SOURCE
+    import json
+    json.loads=absent;store.re.compile=absent;store.preflight_hia_json=absent
+    store.float=absent
+    from hepta.hia_agent_binary64_native import SOURCE as FLOAT_SOURCE
+    assert Path(sys.argv[1]) in FLOAT_SOURCE.parents,FLOAT_SOURCE
+    print(json.dumps(store.decode_data(sys.stdin.buffer.read()),ensure_ascii=False,sort_keys=True))
 elif sys.argv[2]=='slice':
     from hepta import hia_edit_query as editing
     from hepta.hia_agent_slice_native import SOURCE as SLICE_SOURCE
@@ -104,7 +125,33 @@ assert not blocked.intersection(sys.modules)
     @classmethod
     def invoke(cls,state,request,extra=()):
         return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=15,cwd=cls.folder,
-            env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest)})
+            env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest),
+                 'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST':str(cls.data_manifest),
+                 'HEPTA_HIA_AGENT_BINARY64_MANIFEST':str(cls.float_manifest)})
+
+    def test_installed_binary64_source_has_no_decimal_converter_or_checkout_fallback(self):
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64.hiaasm'
+        held=source.with_suffix('.held');source.rename(held)
+        try:
+            result=self.invoke('data',b'1.25e-3')
+            self.assertNotEqual(result.returncode,0)
+            self.assertEqual(result.stdout,b'')
+        finally:held.rename(source)
+
+    def test_installed_data_decoder_has_no_payload_parser_or_source_fallback(self):
+        wire=b'{"ratio":1.25e-3,"negative_zero":-0.0,"n":18446744073709551616}'
+        result=self.invoke('data',wire)
+        self.assertEqual(result.returncode,0,result.stderr)
+        value=json.loads(result.stdout)
+        self.assertEqual(value['ratio'],0.00125)
+        self.assertEqual(value['negative_zero'].hex(),'-0x0.0p+0')
+        self.assertEqual(value['n'],18446744073709551616)
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_data_json.hiaasm'
+        held=source.with_suffix('.held');source.rename(held)
+        try:
+            rejected=self.invoke('data',wire)
+            self.assertNotEqual(rejected.returncode,0)
+        finally:held.rename(source)
 
     def test_wheel_resources_are_exact_and_worker_identity_matches_source(self):
         with zipfile.ZipFile(self.wheel) as z:
