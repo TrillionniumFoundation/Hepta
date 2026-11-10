@@ -91,7 +91,7 @@ Hardware-required GPU/MCU claims cannot be closed by host emulation or renaming.
 | --- | --- | --- |
 | Scanner / assembly parser | Bounded `hia-asm.v1`, general ASCII function/SSA/formal/block names, exact lookup and arbitrary entry declaration order | Full module grammar and diagnostics |
 | Core validation / ownership | Fixed scalar/resource profile, CFG/call checks and parameter-bound returned loans | Composites, general signatures and full language admission |
-| Code generator / ELF writer | Linux x86-64 flat and bounded ELF | General linker, multiple exports, other targets |
+| Code generator / ELF writer | Linux x86-64 flat and bounded ELF with explicit multiple scalar exports | General linker, module graph and other targets |
 | Execution / standard library | Explicit bounded compiled primitives | General runtime, tasks/I/O, production library |
 | Modules / packages / build | No full HIA replacement | Module graph, package/build/install orchestration |
 | Agent tools / persistence | Compiled leaf programs, not service rewrite | Worker/service/store/protocol implementations |
@@ -1011,3 +1011,43 @@ installed/copied execution all pass with clean source. Actual first-read/write
 EINTRretry and a real nonblocking partial-output failure are retained. Those
 finite receipts do not establish the whole production command surface or close
 full-repository/platform/native-only retirement gates.
+### Independent cross-object scalar export audit
+
+Two independently compiled HIA ELF objects are linked into one actual C
+executable with `-z defs`, immediate binding and a non-executable stack. Both
+source modules deliberately contain `private_value` with different results;
+only public identifiers are prefixed. The independent Core VM evaluates all
+10 public observations before the first seed/successor is built. The real
+C caller uses declared `int8_t`, `bool`, `uintptr_t` and sixteen mixed scalar
+arguments (including stack arguments), and exercises allocator imports in both
+objects. Exact per-object symbols exclude private helpers and include only
+the selected exports plus the closed allocator imports.
+
+This checks real multi-object linkage and typed C ABI calls. It is not a
+Hepta source-module graph resolver, a native linker implementation or a
+whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.
+
+## Integrated standalone JSON CLI and multiple exports
+
+The development continuation combines the independently implemented bounded
+multiple-export compiler with the standalone HIA JSON CLI, rather than
+substituting one branch's qualification for the other's. The11CLI tests include
+two actual JSON-to-object compilations and a typed ten-observation C executable
+linking both objects, with intentionally identical private helper spellings.
+The combined development suites also pass33component checks and15exact-source
+identity/accounting controls. Fresh committed source/cold/language acceptance
+for this combination is still required; no such result is claimed here.
+
+The exact identity is v15 with378explicit paths and all219package modules.
+The five export implementation/qualifier/conformance paths extend the373-path
+v13identity by655encoded bytes, transferred from raw logs to metadata within
+the unchanged one-MiB evidence envelope. v14was independently used on another
+source fork and is not relabelled here. The historical365-path SHA-only v12
+projection below is from the export fork; the current SHA-stream v12projection
+remains369paths. Neither historical receipt is promoted to this combined source.
+
+The actual compiler stays within its existing1MiB source/image/workspace and
+180-second cold limits. It does not implement general module graph resolution
+or a linker, production tasks/I/O, the complete library/CLI/build/install/release
+chain, Agent/store or optimizer/proof authorities. Existing production sources
+are still needed and have not been deleted.

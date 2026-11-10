@@ -68,6 +68,36 @@ def independent_packer_reference():
     return actual
 
 
+def independent_export_pair():
+    """Two source modules retain different, identically named private helpers."""
+    from hepta.hia_program import execute_program
+    from tools.hia_selfhost_exports_cases import document,allocated_document
+    arguments=[250,65000,4000000000,2**64-10,17,-120,-32000,-2000000000,
+               -(2**63)+7,-9,True,3,4,5,6,7]
+    documents,expected=[],{}
+    for prefix,private in (('cli_left_',41),('cli_right_',59)):
+        value=document()
+        wanted={'private_value','via_private','identity_i8','identity_bool','mixed'}
+        value['functions']=[f for f in value['functions'] if f['name'] in wanted]
+        value['functions'].extend(allocated_document()['functions'])
+        names={f['name']:prefix+f['name'] for f in value['functions'] if f['name']!='private_value'}
+        for function in value['functions']:
+            if function['name']=='private_value':function['blocks'][0]['ops'][0]['attrs']['value']=private
+            function['name']=names.get(function['name'],function['name'])
+            for block in function['blocks']:
+                for op in block['ops']:
+                    if op['op']=='call':op['attrs']['function']=names.get(op['attrs']['function'],op['attrs']['function'])
+        value['exports']=list(names.values());value['module']=prefix+'source_module'
+        checked=assemble_program(render_assembly(value))
+        for name,args in (('mixed',arguments),('via_private',[]),('allocated_size',[37]),
+                          ('identity_i8',[-120]),('identity_bool',[True])):
+            result=execute_program(checked,prefix+name,args)
+            assert result['status']=='returned' and result['resources']['live_owners']==0,result
+            expected[prefix+name]=int(result['values'][0])
+        documents.append(value)
+    return documents,expected
+
+
 class CoreJsonCliSourceTests(unittest.TestCase):
     def test_generated_packer_and_independent_VM_before_native_seed(self):
         self.assertEqual(SOURCE.read_text(),render_assembly(document()))
@@ -95,6 +125,8 @@ class CoreJsonCliNativeTests(unittest.TestCase):
                      for s in (cls.original,cls.modified)]
         cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()).as_dict()
         cls.wire = json.dumps(cls.sample,separators=(',',':')).encode()
+        cls.export_documents,cls.export_reference=independent_export_pair()
+        cls.export_wires=[json.dumps(value,separators=(',',':')).encode() for value in cls.export_documents]
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-cli-native-')
         cls.folder = Path(cls.temporary.name)
         seed,_ = build_seed(cls.folder)
@@ -224,6 +256,55 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         from tools.qualify_hia_selfhost_cli import output_capacity_source
         value = assemble_program(output_capacity_source()).as_dict()
         self.run_cli(json.dumps(value,separators=(',',':')).encode(),3)
+
+    def test_standalone_JSON_to_two_export_objects_to_real_typed_C_executable(self):
+        from hepta.object_symbols import inspect_object_symbols
+        objects=[];defined=set()
+        # No host payload parser/renderer/verifier/code generator may produce
+        # either object. The actual standalone ELF executes both HIA stages.
+        with (patch('json.loads',side_effect=AssertionError('foreign payload parser')),
+              patch('json.dumps',side_effect=AssertionError('foreign payload serializer')),
+              patch('tools.qualify_hia_selfhost.compile_stage',side_effect=AssertionError('foreign compiler driver'))):
+            raw_objects=[self.run_cli(wire,profile=1) for wire in self.export_wires]
+        for index,(raw,value) in enumerate(zip(raw_objects,self.export_documents)):
+            symbols=inspect_object_symbols(raw,'ELF64',62)
+            self.assertEqual(symbols['defined'],frozenset(value['exports']))
+            self.assertEqual(symbols['undefined'],frozenset({'calloc','free'}))
+            self.assertTrue(defined.isdisjoint(symbols['defined']))
+            self.assertNotIn('private_value',symbols['defined'])
+            defined.update(symbols['defined'])
+            path=self.folder/f'CLI-export-{index}.o';path.write_bytes(raw);objects.append(path)
+        types='uint8_t,uint16_t,uint32_t,uint64_t,uintptr_t,int8_t,int16_t,int32_t,int64_t,intptr_t,bool,uint8_t,uint16_t,uint32_t,uint64_t,uintptr_t'
+        arguments='UINT8_C(250),UINT16_C(65000),UINT32_C(4000000000),UINT64_MAX-9,17,-120,-32000,-INT32_C(2000000000),INT64_MIN+7,-9,true,3,4,5,6,7'
+        declarations=[];checks=[]
+        for prefix in ('cli_left_','cli_right_'):
+            declarations.extend((f'extern uint64_t {prefix}mixed({types});',
+                f'extern uint64_t {prefix}via_private(void);',f'extern uintptr_t {prefix}allocated_size(uintptr_t);',
+                f'extern int8_t {prefix}identity_i8(int8_t);',f'extern bool {prefix}identity_bool(bool);'))
+            for name,argv in (('mixed',arguments),('via_private',''),('allocated_size','37'),
+                              ('identity_i8','-120'),('identity_bool','true')):
+                expected=self.export_reference[prefix+name]
+                literal=f'UINT64_C({expected})' if expected>=0 else str(expected)
+                checks.append(f'  if ({prefix}{name}({argv}) != {literal}) return {len(checks)+1};')
+        driver=self.folder/'CLI-two-object-caller.c'
+        driver.write_text('#include <stdint.h>\n#include <stdbool.h>\n'+'\n'.join(declarations)
+            +'\nint main(void) {\n'+'\n'.join(checks)+'\n  return 0;\n}\n')
+        executable=self.folder/'CLI-two-object-caller'
+        subprocess.run(['cc','-std=c11','-Werror','-Wl,-z,defs,-z,noexecstack',str(driver),
+            *map(str,objects),'-o',str(executable)],check=True,capture_output=True)
+        result=subprocess.run([str(executable)],capture_output=True,timeout=15)
+        self.assertEqual((result.returncode,result.stdout,result.stderr),(0,b'',b''))
+
+    def test_explicit_exports_cannot_switch_ABI_or_hide_invalid_private_semantics(self):
+        self.run_cli(self.export_wires[0],2)  # nonempty metadata never chooses ELF
+        value=copy.deepcopy(self.export_documents[0])
+        bad=[]
+        for exports in ([],[value['exports'][0]]*2,['missing_export'],['malloc']):
+            bad.append({**value,'exports':exports})
+        private=copy.deepcopy(value)
+        next(f for f in private['functions'] if f['name']=='private_value')['blocks'][0]['term']['values']=['undefined']
+        bad.append(private)
+        for candidate in bad:self.run_cli(json.dumps(candidate).encode(),2,profile=1)
 
     def test_actual_descriptor_usage_and_memory_failures(self):
         from tools.qualify_hia_selfhost_cli import execute

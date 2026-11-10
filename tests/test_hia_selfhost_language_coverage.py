@@ -918,7 +918,8 @@ def coverage_manifest():
         "general_core_checker": (["compile", "read_type", "next_token", "instruction"], ["unsupported-*"]),
         "successor_output": (["wrapper", "operation", "relocation", "fix_all"], ["B1", "B2", "B3", "M1", "M2", "M3"]),
         "successor_object_output": (["elf_begin", "elf_finish", "elf_section", "align8",
-            "owned_import", "owned_elf_relocations", "owned_elf_finish"], ["new-*", "try-*", "flow-*"]),
+            "owned_import", "owned_elf_relocations", "owned_elf_finish",
+            "read_exports", "validate_exports", "export_wrapper", "exports_finish"], ["new-*", "try-*", "flow-*"]),
         "general_object_linking": (["compile", "elf_finish"], []),
     }
     existing = {
@@ -1407,7 +1408,7 @@ class SelfhostLanguageSourceTests(unittest.TestCase):
         self.assertFalse(manifest["owned_buffer_scope"]["general_multi_result_call_return_abi_supported"])
         self.assertFalse(manifest["owned_buffer_scope"]["finite_witnesses_are_all_input_correctness_proof"])
         self.assertEqual(manifest["limits"]["unreachable_relocation_ceiling"],
-                         {"configured": 12000, "derived_maximum_with_other_limits": 11395})
+                         {"configured": 12000, "derived_maximum_with_other_limits": 11522})
 
 
 @unittest.skipUnless(NATIVE, "Linux x86-64 and GNU ld seed linker required")

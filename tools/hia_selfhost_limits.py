@@ -8,14 +8,14 @@ MAX_INSTRUCTIONS = 8192
 MAX_CORE_NODES = 262144
 
 # An instruction creates at most one relative call; each block creates at most
-# two relative edge records. The public wrapper adds one call; the single
+# two relative edge records. Each public scalar wrapper adds one call; the single
 # optional shared chain destructor adds exactly two allocator calls. A nonfirst
 # entry adds at most one prologue jump per function. This bound is
 # independent of whether a particular maximum-sized module fits its output.
 MAX_FUNCTIONS = 128
 MAX_BLOCKS = 1536
 MAX_RELOCATIONS = 12000
-RELOCATION_UPPER_BOUND = 1 + MAX_INSTRUCTIONS + 2 * MAX_BLOCKS + MAX_FUNCTIONS + 2
+RELOCATION_UPPER_BOUND = MAX_FUNCTIONS + MAX_INSTRUCTIONS + 2 * MAX_BLOCKS + MAX_FUNCTIONS + 2
 
 # Conservative canonical JSON byte bounds for the fixed grammar. Reserve the
 # entire 1MiB assembly input for identifier/literal payload bytes, rather than

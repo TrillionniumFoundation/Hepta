@@ -1371,3 +1371,45 @@ compiler sources with ordinary renamed module labels must each reproduce the
 matching compiler through two native generations, in addition to all existing
 spelling-only alpha and executable observations. Fresh current-source execution
 is required; v28 receipts do not qualify the changed v29 implementation.
+
+## v30 explicit multiple scalar exports
+
+An optional `exports(name,...)` line after the header selects a HIA-written
+ELF64 object, independent of the ordinary module label. The list resolves exact
+source names after full function/signature discovery. All private bodies still
+undergo ordinary validation; only listed functions are published. The legacy
+borrowed `f0` flat/object ABI remains when this line is absent. An explicit list
+with `selfhost_exec` is rejected rather than selecting an ambiguous stdin ABI.
+
+Up to128 exports fit the unchanged128-function limit. Public signatures admit
+0..16 non-unit scalar parameters and zero or one scalar/unit result. SysV AMD64
+wrappers normalize register and stack arguments, including dirty upper bits and
+signed values; unit results use zero. Resource-bearing public parameters and
+multiple results still lack this reviewed C ABI. Private resource and tuple
+functions retain their existing semantics. Loader lifecycle-hook and reserved libc-import symbols are
+refused, including allocator names even when the current body has no imports. Empty, duplicate, undefined, oversized and malformed lists are rejected
+before any output publication.
+
+Exact names and wrapper extents occupy48-byte records in workspace
+[1010448,1016592), within the unchanged1MiB workspace. The ELF writer builds real
+variable-length string and symbol tables, hides internal functions, and adjusts
+calloc/free relocation indices to the explicit symbol count. The conservative
+relative-call bound is now11522 (128wrappers+8192instructions+2*1536blocks+
+128entryjumps+2destructorcalls), below the unchanged12000 relocation limit. The
+existing6947840 canonical-Core byte bound includes the complete assembly payload
+and fixed header; export-name bytes are part of that payload, not a new budget.
+
+Word helper byte accesses are unrolled in their original low-to-high order;
+failed accesses retain prior byte stores rather than acquiring a new all-eight
+precheck. Independent VM and native controls cover little-endian high bits,
+misalignment, zero/short/full buffers, final valid positions, partial writes and
+maximum-u64 invalid offsets. This change reduces compiler execution work without
+raising source/output/workspace/operation limits or the180-second cold deadline.
+
+Finite export witnesses compare independent Core VM results with actual
+HIA-generated objects linked by the host C linker and invoked by a disposable
+stdlib-only process. The cold runner repeats them for original and modified
+successors, after independent references complete before B0. These are finite
+execution checks, not an all-input proof. The host linker, Python authoring,
+reference verifier, release and wider runtime authorities remain; a general
+module graph/linker and whole-stack rewrite are still open.

@@ -40,10 +40,36 @@ def vm_render(value):
                     sizes=(max(OUTPUT_LIMIT, keys), arena))
 
 
+def export_document():
+    from tools.hia_selfhost_exports_cases import constant
+    return {'schema':'hepta.hia.program.v8','module':'JSON_scalar_library',
+        'exports':['second','first'], 'functions':[constant('first',17),constant('second',29)]}
+
+
+def vm_export_render(value,profile=1):
+    from hepta.hia_program_runtime import _Machine,_Owner,_View
+    raw=wire(value);arena,keys=arena_sizes(len(raw),4096,128)
+    state=bytearray(arena);struct.pack_into('<QQQ',state,40,profile,4096,128)
+    checked=assemble_program(SOURCE.read_bytes());machine=_Machine(checked,2000000,16<<20,None,256)
+    roots=[_Owner(-1,bytearray(raw)),_Owner(-2,bytearray(max(OUTPUT_LIMIT,keys))),_Owner(-3,state)]
+    entry=next(f for f in checked.as_dict()['functions'] if f['name']=='f0')
+    values=machine.invoke(entry,[_View(roots[0],False),_View(roots[1],True),_View(roots[2],True)])
+    code=values[0]
+    return code,bytes(roots[1].data[:code]) if code<0xfffffffb else None
+
+
 class CoreJsonFrontendHiaSourceTests(unittest.TestCase):
     def test_generated_HIA_source_is_exact_and_independently_accepted(self):
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
         self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']), 40)
+
+    def test_explicit_exports_require_operator_ELF_selection_in_independent_VM(self):
+        value=export_document();expected=render_assembly(value).encode()
+        self.assertEqual(vm_export_render(value),(len(expected),expected))
+        self.assertEqual(vm_export_render(value,0)[0],0xfffffffb)
+        for exports in ([],None,False,{'first':1},[None],[1],['bad-name'],['x']*129):
+            with self.subTest(exports=exports):
+                self.assertEqual(vm_export_render({**value,'exports':exports})[0],0xfffffffb)
 
     def test_independent_VM_representation_and_refusals_before_B0(self):
         program = small_program()
@@ -65,6 +91,8 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
     def setUpClass(cls):
         # Independent reference and original/modified JSON source exist BEFORE
         # any seed is built; native successors never import their translator.
+        exported=export_document();export_code,export_wire=vm_export_render(exported)
+        assert export_wire==render_assembly(exported).encode() and export_code==len(export_wire)
         program = small_program()
         code, output = vm_render(program)
         assert output == render_assembly(program).encode() and code == len(output)
@@ -102,6 +130,39 @@ class CoreJsonFrontendHiaNativeTests(unittest.TestCase):
               patch.object(json.JSONDecoder, 'decode', side_effect=AssertionError('host JSON decoder'))):
             self.assertEqual(self.native.render(raw), expected)
         self.assertEqual(self.receipt['forbidden_compiler_modules_loaded'], [])
+
+    def test_native_JSON_exports_compile_link_and_call_with_private_refusals(self):
+        import ctypes
+        from hepta.hia_program import execute_program
+        from tools.compile_hia_core_json import compile_core
+        from tools.qualify_hia_selfhost import invoke
+        from hepta.hia_program_native import _inspect_object
+        value=export_document();expected=render_assembly(value).encode();raw=wire(value)
+        with self.assertRaises(ValueError):self.native.render(raw)
+        with patch('json.loads',side_effect=AssertionError('host payload parser')),patch('json.dumps',side_effect=AssertionError('host payload encoder')):
+            self.assertEqual(self.native.render(raw,output_profile='elf'),expected)
+        obj=compile_core(raw,self.manifest,self.compiler,self.folder/'exports-driver',output_profile='elf')
+        inventory=_inspect_object(obj.read_bytes(),tuple(value['exports']))
+        self.assertEqual(set(inventory['defined']),set(value['exports']))
+        library=self.folder/'JSON-exports.so'
+        subprocess.run(['cc','-nostartfiles','-shared','-Wl,-z,defs,-z,noexecstack',str(obj),'-o',str(library)],check=True,capture_output=True)
+        loaded=ctypes.CDLL(str(library));checked=assemble_program(expected)
+        for name in value['exports']:
+            function=getattr(loaded,name);function.argtypes=[];function.restype=ctypes.c_uint64
+            self.assertEqual(function(),execute_program(checked,name,[])['values'][0])
+        # Representation does not admit names, duplicate exports, loader hooks
+        # or a bad private body: the semantic successor must still refuse.
+        from tools.hia_selfhost_exports_cases import constant
+        for index,changed in enumerate((['missing'],['first','first'],['_init'])):
+            bad=copy.deepcopy(value);bad['exports']=changed
+            if changed==['_init']:bad['functions'].append(constant('_init',0))
+            rendered=self.native.render(wire(bad),output_profile='elf')
+            result,_=invoke(self.folder,'JSON-export-refusal-'+str(index),self.compiler,rendered)
+            self.assertEqual(result['core_u32'],0xffffffff);self.assertTrue(result['output_unchanged'])
+        bad=copy.deepcopy(value);private=constant('private',1);private['blocks'][0]['term']['values']=['missing']
+        bad['functions'].append(private)
+        result,_=invoke(self.folder,'JSON-private-invalid',self.compiler,self.native.render(wire(bad),output_profile='elf'))
+        self.assertEqual(result['core_u32'],0xffffffff);self.assertTrue(result['output_unchanged'])
 
     def test_full_original_and_modified_compiler_JSON_have_exact_assembly_and_fixed_points(self):
         from tools.qualify_hia_selfhost import compile_stage

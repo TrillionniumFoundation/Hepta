@@ -758,3 +758,35 @@ The maximal identity is162581bytes. Its536additionalbytes transfer from raw
 logs to metadata:242457metadata/802023raw/4096display, preserving1048576total.
 Source/module/process/container limits and owner deadlines are unchanged.
 Protocolv13does not relabel any earlier receipt or extend proof authority.
+## Historical export-fork SHA-256 identity continuation (v12)
+
+The combined native JSON/SHA implementation binds exactly365 source records,
+including218 actual root-level Python compiler modules. Five explicitly named
+SHA-256 HIA source, loader, generator, builder and conformance inputs extend the
+unchanged360-path v11 checkpoint. All older independently committed projections
+remain exact; extra/missing compiler modules and reclassified historical
+additions are still rejected. This identity addition does not declare Python
+rewritten or make the optional SHA payload backend a default.
+
+Maximum identity encoding adds exactly631 bytes to161508. Those631 bytes move
+from raw logs to metadata: metadata241384, raw803096, display4096; the sum remains
+1048576. All source/module/container/process/time budgets are unchanged. The
+standalone selfhost export qualifier remains bound by its own complete support
+and release inventories; this shared proof profile does not silently acquire
+additional compiler or proof semantics.
+
+## Combined native JSON CLI / export identity continuation (v15)
+
+Five explicitly reviewed export implementation, case, child, qualifier and
+conformance paths extend the373-path v13identity to378paths, still including
+all219package modules. The independent historical projections remain exact.
+The current commitment is
+`33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535`.
+v14names a separate source fork; no receipt is relabelled to this combined v15.
+
+The maximal identity is163236bytes. Its655-byte increase transfers from raw
+logs to metadata:243112metadata/801368raw/4096display, still1048576total.
+Source/module/container/process caps and owner deadlines are unchanged.
+Omissions, discovery mismatches, reclassified additions and one excess byte
+continue to refuse. This registers actual source and accounting, not general
+proof authority or whole-stack implementation equivalence.

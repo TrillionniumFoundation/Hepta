@@ -27,9 +27,10 @@ python -B -m tools.build_hia_core_json_cli \
 ```
 
 `--output-profile elf` at **build time** instead selects the existing
-`selfhost_elf` relocatable-object profile. Its inputs must use that explicit
-module label. A submitted JSON module cannot switch a flat executable into ELF
-or executable output. Linking generated objects, foreign allocator ownership
+relocatable-object profile. Inputs may use the explicit `selfhost_elf`
+module label or an ordinary module label with a nonempty explicit `exports`
+list. Export metadata is admitted only by the ELF-built filter; it cannot switch
+a flat executable into ELF or executable output. Linking generated objects, foreign allocator ownership
 and generic module resolution still require the existing external authorities.
 No default service or release lock is changed.
 
@@ -96,3 +97,23 @@ General language/composites/modules, runtime/task/I/O/library, full command
 surface, build/install/release, Agent/store and optimizer/proof tooling remain
 open. The old production authorities remain required. Whole-stack HIA-only
 retirement is not yet eligible.
+
+
+## Combined multiple-export development continuation
+
+The integrated candidate composes the standalone JSON filter with the bounded
+multiple-export compiler. Two ordinary JSON Core modules deliberately share a
+private helper spelling but return different values. The independent Core VM
+evaluates ten observations before B0 is built. The actual standalone ELF filter
+then emits both objects; a real typed C caller links them together and checks
+narrow signed values, booleans, sixteen mixed scalar arguments including stack
+arguments, distinct private calls and allocation in both objects. Exact symbols
+expose only selected public functions and the closed calloc/free imports.
+Payload JSON decoding and the host compile-stage helper are disabled during
+standalone execution.
+
+Flat filters refuse export metadata; empty/duplicate/missing/reserved exports
+and invalid private semantics refuse without output. The component development
+suite passes11tests. These observations do not yet constitute clean committed
+cold acceptance of this combination. The C compiler/linker is a test authority,
+not a rewritten linker. Whole-stack closure and production retirement stay OPEN.
