@@ -1722,6 +1722,22 @@ class _Checker:
         return _Flow(live)
 
     def finish_effects(self) -> None:
+        import os
+        manifest = os.environ.get('HEPTA_HIA_SOURCE_EFFECTS_MANIFEST')
+        if manifest:
+            from .hia_source_effects_native import packet, installed_source_effects
+            try:
+                graph = packet(self)
+            except (ValueError, UnicodeEncodeError):
+                # Unsupported graphs keep the reference phase. A broken selected
+                # artifact inside the declared profile must not silently fall back.
+                pass
+            else:
+                installed_source_effects(manifest).finish(self, graph)
+                return
+        self._finish_effects_reference()
+
+    def _finish_effects_reference(self) -> None:
         inferred = {name: set(effects) for name, effects in self.local_effects.items()}
         changed = True
         while changed:
