@@ -40,6 +40,11 @@ class SourceLexerSourceTests(unittest.TestCase):
         self.assertEqual(render_assembly(document()),SOURCE.read_text())
         self.assertEqual(frozenset(KEYWORD_ORDER),KEYWORDS)
         self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']),19)
+        from tools.hia_selfhost_contract import support_contract
+        profile=support_contract()
+        self.assertEqual(profile['source_lexer_application']['maximum_tokens_including_EOF'],1<<20)
+        self.assertEqual(profile['source_lexer_application']['workspace_bytes'],128)
+        self.assertNotIn('high_level_source_lexing',[row['area'] for row in profile['support']])
 
 
 class SourceLexerNativeTests(unittest.TestCase):
@@ -143,7 +148,8 @@ class SourceLexerNativeTests(unittest.TestCase):
                 self.assertEqual(outcome(tokenize,'/* π */\r\n0b102'),error)
         # No global/default switch; scalar-Unicode is an explicit bounded
         # candidate profile, while the existing reference still accepts this.
-        self.assertEqual(tokenize('/*\ud800*/')[-1].kind,'EOF')
+        with patch.dict('os.environ',{'HEPTA_HIA_SOURCE_LEXER_MANIFEST':str(self.manifest)}):
+            self.assertEqual(tokenize('/*\ud800*/')[-1].kind,'EOF')
 
     def test_exact_native_input_and_token_budgets(self):
         # A two-pass validation still admits the entire 8MiB comment. Only an
