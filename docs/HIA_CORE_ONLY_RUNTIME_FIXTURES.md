@@ -124,3 +124,25 @@ and complete resource release. Existing all-width arithmetic, malformed-source,
 capacity, names, exports and original/modified-source cold witnesses remain
 mandatory. Development fixed points and paired phase timing are diagnostics,
 not a replacement for fresh cold, exact-source, installation or repository gates.
+
+## Native word emission with exact short-capacity fallback
+
+The private4/8-byte emitter bypasses byte-at-a-time recursion in phase0,
+counts the same total once in phase1, and batches writes only when the complete
+word fits the phase2 destination. It first guards position against buffer length
+and then compares remaining bytes with length-position, preserving short-circuit
+evaluation. Real insufficient capacity takes the original recursive emit path;
+every successful prefix byte and private counter update precedes the same real
+buffer.store bounds trap. Output and workspace remain disjoint private ABI
+buffers; no caller-observable concurrent or aliased-buffer behavior is promised.
+
+The checked-in controls compare the exact previous finite Core emitter with the
+new checked HIA function across256 phase/count/position/capacity/full-width-value
+cases. The independent privileged byte-ABI VM observes complete source, output
+and256 workspace bytes, including counter state after traps; public VM wrappers
+also check normal owner/loan cleanup. A separate actual native run after those
+VM observations performs512 calls, compares every output byte, observes genuine
+SIGILL bounds traps and reads actual returned counters. Source and native CI
+both retain these controls. Private helper correctness or measured phase savings
+does not establish a universal compiler proof, a remote deadline guarantee or
+whole-native product acceptance.
