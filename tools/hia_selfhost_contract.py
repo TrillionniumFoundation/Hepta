@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v29"
 SOURCE_FILES = (
+    "tools/generate_hia_sha256_stream.py", "tests/test_hia_sha256_stream_native.py",
+    "examples/hia_bootstrap/sha256_stream.hiaasm",
     "tools/generate_hia_sha256.py", "tools/build_hia_sha256.py",
     "tests/test_hia_sha256_native.py", "examples/hia_bootstrap/sha256.hiaasm",
     "tools/generate_hia_json_canonical.py",

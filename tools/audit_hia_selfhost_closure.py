@@ -153,6 +153,18 @@ def audit(root=ROOT):
         "components": components,
         "authorities_in_live_package": sorted(paths.intersection(p for _, a, _, _ in COMPONENTS for p in a)),
         "whole_stack_rewritten_in_hia": False,
+        "legacy_retirement": {
+            "status": "BLOCKED_BY_OPEN_IMPLEMENTATION_AND_QUALIFICATION_GATES",
+            "eligible_now": False,
+            "final_distribution_requires_no_legacy_production_implementation": True,
+            "optional_native_backends_are_not_retirement": True,
+            "git_history_and_nonshipped_review_evidence_are_not_live_providers": True,
+            "required_before_removal": [
+                "complete HIA implementation of every live authority",
+                "default native routes with no legacy fallback",
+                "whole-toolchain source-only and changed-source bootstrap",
+                "fresh complete regressions and all applicable platform gates",
+                "clean-machine install and real project builds without legacy toolchain"]},
         "evidence_kind": "static inventory and explicit implementation boundary, not execution evidence",
         "limits": ["AST imports do not enumerate dynamic imports or prove dependency closure",
                    "line counts do not measure semantic completion",

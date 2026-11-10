@@ -8,8 +8,10 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 
-def build(output: Path, compiler: Path, cold_report: Path) -> Path:
+def build(output: Path, compiler: Path, cold_report: Path, *, candidate='sha256') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
+    if candidate not in ('sha256', 'sha256_stream'):
+        raise ValueError('unknown HIA SHA-256 candidate')
     raw=cold_report.read_bytes()
     qualification=json.loads(raw)
     compiler_bytes=compiler.read_bytes()
@@ -28,18 +30,19 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
             or len(qualification['generation_sha256'])!=3
             or any(value!=compiler_sha for value in qualification['generation_sha256'])):
         raise ValueError('a completed matching native cold qualification is required')
-    source_path=ROOT/'examples/hia_bootstrap/sha256.hiaasm'
+    source_path=ROOT/('examples/hia_bootstrap/'+candidate+'.hiaasm')
     source=source_path.read_bytes()
     output.mkdir(mode=0o700)
-    image,receipt=compile_stage(output,'sha256',compiler,source)
+    image,receipt=compile_stage(output,candidate,compiler,source)
     if source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes:
         raise ValueError('native candidate build inputs changed')
-    manifest={'schema':'hepta.hia.sha256-native.v1','source_sha256':sha256(source).hexdigest(),
+    kind=candidate.replace('_','-')
+    manifest={'schema':'hepta.hia.'+kind+'-native.v1','source_sha256':sha256(source).hexdigest(),
         'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
         'compiler_sha256':compiler_sha}
     path=output/'manifest.json'
     path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
-    (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.sha256-build.v1',
+    (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.'+kind+'-build.v1',
         'status':'NATIVE_CANDIDATE_BUILT','manifest':manifest,
         'cold_report_sha256':sha256(raw).hexdigest(),'native_compile_receipt':receipt,
         'production_activated':False,'all_input_equivalence_proved':False,
@@ -52,8 +55,9 @@ def main():
     parser.add_argument('--compiler',type=Path,required=True)
     parser.add_argument('--cold-report',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--candidate',choices=('sha256','sha256_stream'),default='sha256')
     args=parser.parse_args()
-    print(build(args.output.resolve(),args.compiler.resolve(),args.cold_report.resolve()))
+    print(build(args.output.resolve(),args.compiler.resolve(),args.cold_report.resolve(),candidate=args.candidate))
 
 
 if __name__=='__main__':

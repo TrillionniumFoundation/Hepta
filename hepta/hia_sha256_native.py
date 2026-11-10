@@ -41,6 +41,10 @@ def payload_sha256(wire) -> bytes:
     artifacts fail closed; unsupported inputs retain the existing foreign API.
     No service, installation or compiler trust root is changed by selection.
     """
+    stream_manifest=os.environ.get('HEPTA_HIA_SHA256_STREAM_MANIFEST')
+    if stream_manifest and type(wire) is bytes:
+        from .hia_sha256_stream_native import installed_stream_hasher
+        return installed_stream_hasher(stream_manifest).digest(wire)
     manifest=os.environ.get('HEPTA_HIA_SHA256_MANIFEST')
     if manifest and type(wire) is bytes and len(wire)<=MAX_BYTES:
         return installed_hasher(manifest).digest(wire)
