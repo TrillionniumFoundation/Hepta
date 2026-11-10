@@ -165,3 +165,19 @@ class AgentIdentityNativeTests(unittest.TestCase):
             code,report,state=run('real-worker-invalid','hia_describe','F'*64)
             self.assertEqual(code,0);self.assertEqual(report['response']['error']['code'],'E_HIA_WORKER_IDENTITY')
             self.assertFalse(state.exists())
+
+            # A fresh real worker must not acquire the frozen language or
+            # foreign comparison backend merely to describe HIA capabilities.
+            import subprocess,sys
+            from tests.test_hia_agent_entry import CHILD
+            prefix=CHILD.split('from hepta.cli import')[0]
+            child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+"from hepta.hia_agent_worker import main\nresult=main(['--state-root',sys.argv[2],'--request-json-stdin'])\nassert not blocked.intersection(sys.modules)\nraise SystemExit(result)\n"
+            req={'schema':'hia-agent-worker-request-v1','tool':'hia_describe',
+                 'arguments':{'section':'language'},'profile_sha256':'a'*64,
+                 'catalog_sha256':identities['catalog_sha256']}
+            req['request_sha256']=sha256(store.wire(req)).hexdigest()
+            result=subprocess.run([sys.executable,'-I','-S','-B','-c',child,str(ROOT),str(self.folder/'fresh-worker')],input=store.wire(req),capture_output=True,timeout=15,cwd=self.folder,
+                env={'PATH':'','LANG':'C','LC_ALL':'C',SELECTOR:str(self.manifest)})
+            self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
+            self.assertEqual(result.stderr,b'')
+            self.assertEqual(json.loads(result.stdout)['response']['status'],'completed')

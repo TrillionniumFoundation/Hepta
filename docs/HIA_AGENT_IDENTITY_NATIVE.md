@@ -7,7 +7,10 @@ a digest or grant authorization. High-level Hepta language expansion is frozen.
 `HEPTA_HIA_AGENT_IDENTITY_MANIFEST` selects a pinned Linux x86-64 native image.
 The existing store sequence decoder and worker digest-format validator then
 invoke HIA without reference numeric/regex fallback. A bad manifest or native
-result fails closed. No selection leaves the existing reference route intact.
+result fails closed. Ordinary worker discovery no longer eagerly imports the
+foreign Rust-comparison module via macro advice; explicit native NDU calls
+still reuse its unchanged bounded process pump and charge first-import time to
+the original deadline. No selection leaves the existing reference route intact.
 
 The host retains JSON/value-kind/ASCII transport checks and the 64-character
 transport bound. Every in-profile digit, leading-zero, overflow and lowercase
