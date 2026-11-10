@@ -461,3 +461,9 @@ are retained in `v26-ssa-identifiers-summary.json`.
 General block/module syntax, multiple exports/linking, composite admission,
 the live Python production runtime/service/build/release authorities and all
 whole-stack installation/qualification gates remain OPEN.
+
+The exact workflow source-test body was then executed on clean committed
+`9663be13c15b4af300a14f602f4e146d754eab1c`: **73 tests pass in71.719seconds**,
+with Git clean before and after. A separate unchanged checkout of that commit
+is running the wider HIA/shared-Core inventory; that is not full-repository
+coverage. The older all-repository41a317a run is still separately in progress.
