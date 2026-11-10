@@ -989,3 +989,47 @@ tools are not all production runtime. The ledger remains **3 partial / 5 open**.
 Production activation/default switching, whole-repository completion, full
 language correctness and native-only retirement are **not** claimed. A fresh
 remote run is required; the historical timeout remains FAIL.
+
+## Shared-output observer continuation: exact subject 4d490d8
+
+The previous observer subject, published as `a19b612`, has now completed real
+remote workflow [42761679281](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42761679281)
+with all four jobs (source, cold, native and language) successful. Its cold
+artifact contains 11/11 isolation checks and 5,049/5,049 native checks, taking
+153.292 seconds under the unchanged 180-second limit. The compiler generation
+hashes match the locally observed generations. The older bf3360f timeout is
+still a failure; this success does not qualify subsequent source changes.
+
+Exact executable subject `4d490d821be7b12267ee43b1791932d40e660355` extends the
+HIA-emitted ELF observer to actual size-sealed shared output mappings. Custom
+preimages and post-trap output no longer require the legacy phase loader. True
+kernel SIGILL retains previously written bytes, independently read from the
+parent-owned memfd after child termination. Normal-return stdout must agree
+with those actual bytes. Extent sealing and prelaunch ENOSPC descriptor cleanup
+are exercised. Every flat invocation still execs fresh; original generation
+controls and seed/shared ELF still use the independent stdlib loader.
+
+Local exact-source evidence:
+
+- Source-only cold export: 11/11 checks and 5,049/5,049 native checks PASS in
+  113.306 seconds (113.846 seconds outer wall), retaining 180+3-second bounds.
+  The origin Git tree was dirty when this source-only cold export was created.
+  After freezing the implementation, all 314 export payloads were compared
+  byte-for-byte with the committed source. This is explicitly **not** labelled
+  Git-clean-before-cold and was not reexecuted just for Git metadata.
+- The remaining fixed-commit pipeline started and ended Git-clean: actual source
+  workflow 103 tests, language 1,242 checks plus 10 assertions, native component
+  suite 61 tests and shared closure 15 tests all PASS. The cold binding was
+  independently rechecked in that pipeline.
+- No compiler semantics, physical capacity, qualification witness, timeout,
+  worker count or OS resource limit was relaxed.
+
+Public `native-shared-byte-abi-observer-summary.json` and
+`implementation-boundary-native-shared-observer-delta.json` bind this exact
+subject; evidence-only metadata preserves all declared source bytes. The new
+subject requires its own remote run. The ISA adapter is still literally
+instruction-authored. Parent supervision, independent oracles, B0, linking,
+release, production/runtime and default retirement remain open. Static audit
+still records 218 package Python files and 423 tool Python files, with **3 partial
+/ 5 open** components. Neither full-repository acceptance nor whole-stack HIA
+closure is claimed.
