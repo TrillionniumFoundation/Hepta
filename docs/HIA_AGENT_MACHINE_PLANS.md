@@ -1,5 +1,8 @@
 # Explicit HIA machine plans
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The Agent selects a plan. The direct backend validates and realizes it without
 running a profitability search. Core remains the immutable semantic anchor;
 an accepted plan cannot change ownership, ordered effects, traps or the public
@@ -168,7 +171,7 @@ is a finite preservation check relative to the
 canonical lowering and encoder. The receipt explicitly keeps universal
 Core-to-machine refinement unproved.
 
-`tools/qualify_hia_machine_choices.py --out /absolute/new-directory` emits five
+`retired harness qualify-hia-machine-choices --out /absolute/new-directory` emits five
 arms: canonical, scratch registers, instruction selection, function layout and
 their combination. Each arm retains complete objects/images, exact build
 receipts, all correctness cases, emission/rederivation/link/publication costs,

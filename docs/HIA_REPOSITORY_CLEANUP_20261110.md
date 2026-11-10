@@ -3,6 +3,7 @@
 This follow-up audits the active Core-only candidate, not Git history, immutable
 qualification snapshots or a running worker installation.
 
+- Retire remaining obsolete mixed-source campaign manuals and runnable recipes.
 - Remove remaining source-adapter/scalar-oracle/migration-only documentation,
   unused source Resource-IR fixtures and the orphan Linux source-campaign runner.
 - Replace the remaining generated obsolete multi-word CLI instructions with the
@@ -21,7 +22,7 @@ qualification snapshots or a running worker installation.
 
 Original removed-file bytes and selector inventories are retained outside the
 active source tree. Historical test and native reports remain bound to their
-actual source commits. New acceptance must bind the v44 Core-only contract;
+actual source commits. New acceptance must bind the v45 Core-only contract;
 the prior v43 receipt does not qualify changed source.
 
 See [the separate Runtime upgrade audit](HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

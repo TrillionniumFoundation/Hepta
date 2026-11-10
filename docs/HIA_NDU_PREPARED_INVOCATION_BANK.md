@@ -103,15 +103,8 @@ continue to imply that incremental NDU benefit is unestablished.
 
 After committing the implementation and protocol, use one clean frozen source:
 
-```sh
-python -B -m unittest tests.test_hia_invocation_bank tests.test_hia_prepared_gate_profile -v
-python tools/qualify_hia_native_ndu.py \
-  --controller-profile prepared-bank-v1 \
-  --build-profile verified-reduction-narrowed-release-v1 \
-  --clang /qualified/clang --rustc /qualified/rustc \
-  --bridge /qualified/original-stream-bridge --identity /qualified/identity.json \
-  --expected-source EXACT_CLEAN_COMMIT --output /new/evidence/directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Do not replace the historical campaign with this result or retry after seeing
 an unfavorable native outcome. Natural-workload value and complete economics

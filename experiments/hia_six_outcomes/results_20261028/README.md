@@ -6,9 +6,9 @@
 
 ## 阅读入口
 
-- [SUMMARY.json](SUMMARY.json)：从原报告提取的计数、原性能汇总、验收状态、资源缺陷及声明边界。
+- SUMMARY.json (retired from this product)：从原报告提取的计数、原性能汇总、验收状态、资源缺陷及声明边界。
 - [INDEX.json](INDEX.json)：各数据集、原始文件身份和小文件索引。
-- [SOURCE_BINDING.json](SOURCE_BINDING.json)：filecheck 的 149 项、C++ 的 7 项以及安全报告的 858 项源文件核对；C++ 编译器集合哈希单独核对。
+- SOURCE_BINDING.json (retired from this product)：filecheck 的 149 项、C++ 的 7 项以及安全报告的 858 项源文件核对；C++ 编译器集合哈希单独核对。
 - [FORMAT.md](FORMAT.md)：JSONL 分片的格式、重组和校验规则。
 - [inspect_evidence.py](inspect_evidence.py)：只读验证分片、索引及规范化 JSON 哈希，不调用编译器或运行实验。
 
@@ -27,7 +27,7 @@
 
 补充证据位于 [RSS 诊断](../../hia_filecheck/rss_diagnostic_20261028/README.md)，目标仍是原 96bc 二进制；协议提交 c4efc29610fab58f495e38e22c7cb10b0d63c876，结果提交 b96cae073f0b1c955d7600eb6e923b4a0b269cc3。本目录 SUMMARY.json 同时绑定原 qualification.json 和该补充证据文件哈希。补充资源观察不替换原 112 样本，其 incidental timing 不用于性能排名。
 
-原性能汇总在 [filecheck/summary-001.jsonl](filecheck/summary-001.jsonl) 和 SUMMARY.json 原样保留。协议的 P95/P99 是每个至多 4096 字节 batch 的延迟，包括读、打包和组件计算；不是面向用户的请求延迟或跨平台承诺。测试是新的小型 C 组件与共同 C 宿主构成的文件校验 CLI，并非大型历史应用完成迁移。
+原性能汇总在 filecheck/summary-001.jsonl (retired from this product) 和 SUMMARY.json 原样保留。协议的 P95/P99 是每个至多 4096 字节 batch 的延迟，包括读、打包和组件计算；不是面向用户的请求延迟或跨平台承诺。测试是新的小型 C 组件与共同 C 宿主构成的文件校验 CLI，并非大型历史应用完成迁移。
 
 ### C/C++ 迁移量、成本与假设
 

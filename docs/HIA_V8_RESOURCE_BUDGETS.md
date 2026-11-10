@@ -1,5 +1,8 @@
 # Returned-loan resource analyses on primitive v8
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 These profiles analyze the already executable `hepta.hia.program.v8`. Every
 entry re-runs canonical `verify_program`; no displayed contract, producer
 claim, prior receipt or successful sample can grant Core admission. They
@@ -112,7 +115,7 @@ It also checks recursive/chain/owned-boundary refusal, malformed origins,
 exclusive aliases, uncalled future operations, exact-byte receipt replay and
 the unchanged old native consumer boundary.
 
-Run `tools/qualify_hia_returned_loan_budgets.py --expected-head <clean-commit>
+Run `retired harness qualify-hia-returned-loan-budgets --expected-head <clean-commit>
 --output <external-path>` to retain the actual tests, positive analysis
 receipts, diagnostics, executed VM ledgers and canonical program bytes under
 an unchanged complete source inventory. These observations are a separately

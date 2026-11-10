@@ -1,5 +1,8 @@
 # HIA P2 — Numeric static-budget receipt replay (2026-10-26)
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This candidate is stacked on P1 borrowed-byte-interval PR #215, exact commit
 `f066048b2a361272d02eafcd1bcebc3b2737fe10`. It strengthens the
 **existing** source-native final-use resource gate; it creates no new ISA,
@@ -40,7 +43,7 @@ been made. Failure rejects **before LLVM emission and publication**.
 
 ## Regression inputs
 
-`tests/test_hia_budget_numeric_replay.py` contains:
+`retired harness test-hia-budget-numeric-replay` contains:
 
 1. Genuine complete budget receipt accepted on exact canonical HIA.
 2. Correctly rehashed, type-correct but numerically fabricated
@@ -50,12 +53,8 @@ been made. Failure rejects **before LLVM emission and publication**.
 
 Reproduction:
 
-```bash
-python -m unittest tests.test_hia_budget_numeric_replay \
-  tests.test_hia_budget_receipt_guard tests.test_hia_heap_borrowed \
-  tests.test_hia_static_budget tests.test_hia_heap_intervals -v
-python tools/release_check.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 These are **new committed tests, not executed results**. Exact checkout and
 pinned native Rust/Clang are not present here. Missing compiler tools do not

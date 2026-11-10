@@ -1,5 +1,8 @@
 # Proposed bounded declaration-position diagnostic
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 Design only at repository head `14802588c6328fd534499c26c75c7bec15ec319f`.
 Independent review and separate implementation authorization are required. No
 Lean invocation, implementation, publication, or proof acceptance accompanies
@@ -320,7 +323,7 @@ implementation review must precede one explicitly authorized diagnostic run.
 
 ## Isolated implementation boundary
 
-The implementation uses `tools/diagnose_core_syntax_declarations.py`, separate
+The implementation uses `retired harness diagnose-core-syntax-declarations`, separate
 from the unchanged acceptance runner. `core_syntax_declaration_diagnostic_sources`
 validates and derives the marker source; `core_syntax_diagnostic_capture` owns
 platform checks and bounded PTY collection. The original first two sources are

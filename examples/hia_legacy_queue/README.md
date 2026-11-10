@@ -1,5 +1,8 @@
 # Upstream record/view code through independent HIA
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This application composes all nine function bodies from the pinned
 `tests/fixtures/c_migration/ring_buffer` component with both generic comparison
 bodies from pinned musl 1.2.5. The original C and header files are copied without
@@ -35,7 +38,7 @@ must still obey the mathematical `0 <= offset + index < length` rule.
 
 The prospective protocol is
 `experiments/hia_legacy_queue/PROTOCOL_20261028.json`. Run
-`tools/qualify_hia_legacy_queue.py --output NEW_DIRECTORY` with the pinned native
+`retired harness qualify-hia-legacy-queue --output NEW_DIRECTORY` with the pinned native
 toolchain. The runner captures all inputs and ASTs, builds actual C/C++/Rust
 LTO/PGO arms, runs scalar ABI and resource differentials (including each of the
 three allocation failures), migrates a fifth-unit API addition, then records

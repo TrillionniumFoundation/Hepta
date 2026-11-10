@@ -1,5 +1,8 @@
 # Capability projection and finite edge traces
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The separate [instruction lifecycle model](HIA_CAPABILITY_LIFECYCLE.md) now
 proves structural preservation for allocation, local borrowing, loan ending
 and owner dropping, with finite witnesses from actual instruction checks.
@@ -48,7 +51,7 @@ resources with the same kind/origin pair have the same identity.
 
 ## Actual production witnesses
 
-`tools/verify_hia_capabilities.py` now encodes **all** capabilities supplied to the
+`retired harness verify-hia-capabilities` now encodes **all** capabilities supplied to the
 production helper, including external values that are later forgotten. The
 full input, selected name predicate and observed output use separate before
 and after SSA namespaces. The name map is derived from the observed remap and
@@ -95,13 +98,8 @@ release certificate is created by these results.
 
 Use the repository's SHA-pinned Lean 4.19.0 and a fresh output outside the source:
 
-```sh
-python -B -m unittest tests.test_hia_production_capability_witness tests.test_hia_capability_flow tests.test_hia_capability_identity
-python -B tools/verify_hia_capabilities.py --lean /absolute/lean --output /outside/source/capability-model.json
-python -B tools/verify_hia_capabilities.py --lean /absolute/lean \
-  --production-output-directory /outside/source/capability-production \
-  --rust-shadow /absolute/hia-core-shadow --rust-shadow-sha256 ACTUAL_SHA256
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Production qualification additionally requires a clean committed source and
 the independently checked Rust verifier/VM built from that combination. The

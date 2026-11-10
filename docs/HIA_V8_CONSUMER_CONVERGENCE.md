@@ -1,5 +1,8 @@
 # Converging the existing v8 resource consumers
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This document records the scope of checkpoint
 `f882b4bb02d39bc1dbe0d2237aac69a51469ae0a`. Its tests and limitations belong to
 that source identity. The subsequent chain/original-type/native lifecycle
@@ -81,7 +84,7 @@ source identity that produced them.
 
 ## Combined qualification and remaining work
 
-Freeze a clean combined commit before invoking `tools/qualify_hia_integrated.py`.
+Freeze a clean combined commit before invoking `retired harness qualify-hia-integrated`.
 The new mandatory coverage groups must occur in its one complete Python run;
 do not add selected suites, qualifier replays or auditor checks to that test
 denominator. Cargo has a separate denominator. Re-run the v8 Rust, budget and

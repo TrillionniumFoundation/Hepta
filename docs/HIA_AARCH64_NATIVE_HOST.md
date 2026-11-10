@@ -35,11 +35,8 @@ nonzero exits, rather than obtaining acceptance from structural verification.
 
 ## Run only on the intended host
 
-```sh
-python -B tools/qualify_hia_program_aarch64.py --execution native \
-  --clang /absolute/native/clang-20 --linker /absolute/native/ld.lld-20 \
-  --output /outside/source/native-aarch64.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The native qualifier requires a clean Git checkout and records its commit,
 tree, compiler source hash, qualifier and fixture-producer hashes before and

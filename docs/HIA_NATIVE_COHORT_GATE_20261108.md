@@ -1,5 +1,8 @@
 # Native benchmark acceptance: complete cohorts and retained costs
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 ## Defect and scope
 
 The native benchmark assessor previously built a dictionary indexed by arm for
@@ -17,7 +20,7 @@ They do not show that an existing historical campaign exploited the defects.
 
 ## Change
 
-`tools/qualify_hia_native_ndu.py` now admits one complete matrix over the four
+`retired harness qualify-hia-native-ndu` now admits one complete matrix over the four
 registered controls and a nonempty registered episode list. Missing, duplicate,
 extra, failed, cancelled and unfinished observations refuse qualification. The
 same validator is used for the service comparison and prepared-owner cost

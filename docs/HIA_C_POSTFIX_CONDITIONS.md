@@ -1,5 +1,8 @@
 # Captured C postfix conditions and unmodified musl `strncmp`
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The C migration frontend now accepts an integer local or parameter's postfix
 `++` or `--` as the complete controlling expression of an `if`. Parentheses,
 logical `!`, and Clang's implicit integer-to-Boolean conversion may enclose it.
@@ -57,12 +60,8 @@ path for libclang as well as the compiler executable. The qualification records
 the selected loader path and LLVM/libclang library digests. It does not attest
 all operating-system dependencies.
 
-```bash
-python -m unittest tests.test_c_postfix_if -v
-python tools/qualify_hia_musl_strncmp.py \
-  --clang "$CLANG" --source-sha "$(git rev-parse HEAD)" \
-  --output /absolute/new/evidence/directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The qualification requires clean committed implementation inputs. Its fixed
 386 input cases cover byte boundaries, each first-difference position, zero
@@ -90,7 +89,7 @@ commit. The tag commit is explicitly mirror-derived because the official cgit
 request returned HTTP 503. HTTPS download and byte identity are recorded; no
 PGP signature verification is claimed.
 
-`tools/qualify_hia_musl_strncmp_update.py` fixes an **unchanged-body release
+`retired harness qualify-hia-musl-strncmp-update` fixes an **unchanged-body release
 maintenance** profile before the new qualification runs. The previous receipt
 must be complete and all of its retained files, input cells, native process
 outputs and resource results must revalidate. The successor archive, both
@@ -106,14 +105,8 @@ whole-qualification wall time. Previous results are only the maintenance
 baseline; they are not copied into the new observations. This is a regression
 matrix reused intentionally across releases, not a fresh holdout experiment.
 
-```bash
-python tools/qualify_hia_musl_strncmp_update.py \
-  --baseline /absolute/musl-1.2.5/qualification-directory \
-  --release-archive /absolute/musl-1.2.6.tar.gz \
-  --acquisition-receipt /absolute/acquisition.json \
-  --clang "$CLANG" --source-sha "$(git rev-parse HEAD)" \
-  --output /absolute/new/maintenance-directory
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The acquisition receipt records the official archive URL/hash, the mirror
 commit, timed download processes and whether signature verification occurred.

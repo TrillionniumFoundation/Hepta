@@ -53,12 +53,8 @@ exact-head Python/native and LLVM tests remain unexecuted.
 
 Reproduction on the exact checkout:
 
-```bash
-python -m unittest tests.test_hia_heap_borrowed tests.test_hia_heap_bound \
-  tests.test_hia_heap_intervals tests.test_hia_static_budget -v
-python -m unittest tests.test_hia_program tests.test_hia_program_llvm -v
-python tools/release_check.py
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 **P0–P7 all-blocker closure remains false.** General Memory/Provenance SSA,
 C/C++ L2/L3 equivalence, Rust compiler proof, real Agent A/B, GPU/NPU and

@@ -83,15 +83,8 @@ Offline reconstruction is a separate sidecar, never a change to the failed
 run's qualification. Any subsequent formal run is an explicitly identified
 software-defect revalidation with the same inputs, candidate set and protocol.
 
-```sh
-python tools/qualify_hia_stb_ndu.py --stage qualification \
-  --output /absolute/new-qualification --expected-head FULL_COMMIT \
-  --clang /absolute/clang20 --identity /absolute/stream/identity.json
-
-python tools/qualify_hia_stb_ndu.py --stage study \
-  --output /absolute/new-study --expected-head FULL_COMMIT \
-  --clang /absolute/clang20 --identity /absolute/stream/identity.json
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Run the study only in the coordinated heavy-task window, with the actual Linux
 PID/proc namespace required by sealed execution. Capture the whole outer

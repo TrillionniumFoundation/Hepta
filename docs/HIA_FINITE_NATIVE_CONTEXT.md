@@ -1,5 +1,8 @@
 # Finite, proof-gated native u32 trace contexts
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `hepta/hia_finite_context.py` adds a separate, bounded execution-context profile.
 It addresses a narrower gap than general hot replacement: several predeclared
 requests can execute inside one owned child, using already admitted immutable
@@ -229,7 +232,7 @@ real partial load cleanup, a real bounded-output refusal, and a real native trap
 after an already completed request. Counterexamples cover forged output,
 unknown proofs, one-shot consumption, input mutation, cancellation, pending-byte
 exhaustion, uncertain descriptor close and uncertain child cleanup.
-`tests/test_clang_capture_environment.py` separately tests environment rejection,
+`retired harness test-clang-capture-environment` separately tests environment rejection,
 snapshotting and preservation of default inheritance. These are short
 correctness runs, not a preregistered performance campaign.
 

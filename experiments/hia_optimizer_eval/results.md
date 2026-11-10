@@ -48,7 +48,7 @@ The separate NDU loop tool also changed, outside these two experiments' bound
 execution paths; these inventories are not a claim that no other repository
 file changed.
 
-[`rebind.json`](rebind.json) records a separate source/artifact check after the
+`rebind.json` (retired from this product) records a separate source/artifact check after the
 NDU measurements ended. It performed exactly one native rebuild of the original
 two-kernel HIA library through the final source's lower/verify/emit/compile path,
 with the original compiler identity and flags. The rebuilt Core, emitted LLVM
@@ -209,19 +209,8 @@ whole attempt. Do not run benchmark and inference concurrently. A future
 independent benchmark should additionally use a quiet dedicated host while
 retaining these original shared-host samples.
 
-```sh
-python tools/qualify_hia_optimizer_bench.py \
-  --output-dir /tmp/hepta-bench-new-attempt \
-  --profile-runtime /tmp/hepta-clang-profile-runtime/extracted/usr/lib/llvm-20/lib/clang/20/lib/linux/libclang_rt.profile-x86_64.a
-
-python tools/qualify_hia_agent_holdout.py \
-  --output-dir /tmp/hepta-agent-new-attempt \
-  --binary /tmp/hepta-llama-b11669/llama-b11669/llama-server \
-  --model /tmp/hepta-seven-stage-models/qwen2.5-coder-0.5b-instruct-q8_0.gguf \
-  --model-sha256 e1a77721fa97d412f121878223eec81fb4ae6f271e18f922d746711f67b344d1
-
-python -m unittest tests.test_hia_optimizer_bench tests.test_hia_agent_holdout
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The nine evaluator unit tests passed after implementation. The local agent
 server needs permission to bind its private Unix socket; it does not use an

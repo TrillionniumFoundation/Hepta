@@ -184,7 +184,7 @@ over Rust, C or C++.
 
 ## Inspect retained evidence
 
-[`SUMMARY.json`](results_20261029/SUMMARY.json) contains the compact totals and
+`SUMMARY.json` (retired from this product) contains the compact totals and
 gate inventory. [`INDEX.json`](results_20261029/INDEX.json) indexes lossless JSON
 fragments for the full result, calibration bank and raw-file inventory. The
 full raw outputs remain separately archived, including native artifacts and

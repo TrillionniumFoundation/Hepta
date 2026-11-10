@@ -1,5 +1,8 @@
 # Bounded x86_64 byte-sum lowering
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This native lowering recognizes one complete loop shape after immutable Core
 verification. It does not add a Core opcode or change the checked reduction
 proof. The original source, Core, allocation attempts, refusal values and owner
@@ -93,7 +96,7 @@ Rust counterpart. There is no additional memory allowance. Actual
 frontend/proof/build wall and median loader wall must be no greater than each
 Rust arm. Every matched first-library-call latency must be within 1.20.
 Every original warm-median cost horizon must be no greater than each Rust arm.
-The read-only assessor tools/assess_hia_byte_sum_resources.py recomputes the
+The read-only assessor retired harness assess-hia-byte-sum-resources recomputes the
 old assessment and cost ledger, checks complete inventories, and preserves
 negative gates. It never reruns a native program.
 Historical load rows omit the seed. The assessor uses the fixed registered
@@ -120,13 +123,7 @@ universal Rust parity or full lifecycle superiority.
 Use a clean committed checkout, actual Clang 20 and Rust1.95.0, and the
 registered single CPU. Set HIA_TEST_CLANG20 for the native test suite.
 
-    python -m unittest tests.test_hia_byte_sum tests.test_hia_byte_sum_resources \
-      tests.test_hia_entry_layout tests.test_hia_program_llvm -v
-    python tools/qualify_hia_outlined_aot.py --output /absolute/new-campaign \
-      --clang /absolute/clang-20 --rustc /absolute/rustc --cpu 0
-    python tools/assess_hia_byte_sum_resources.py \
-      --result /absolute/new-campaign/RESULT.json \
-      --output /absolute/new-resource-assessment.json
+> Removed reproduction recipe for a retired campaign; not a current CLI.
 
 Replace --cpu0 above with the actual CLI spelling --cpu 0.
 The measurement host is shared and nonexclusive even with CPU affinity.

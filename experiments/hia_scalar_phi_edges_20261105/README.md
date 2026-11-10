@@ -5,7 +5,7 @@ It preserves both observer revisions and both source revisions; a later run
 does not overwrite the earlier observation. The runtime change and its bounds
 are described in [HIA_SCALAR_PHI_EDGES.md](../../docs/HIA_SCALAR_PHI_EDGES.md).
 The broader proof matrix is in
-[HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md](../../docs/HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md).
+HIA_SEQUENTIAL_CORE_PROOF_CHAIN.md (retired from this product).
 
 ## Fixed identities
 
@@ -68,7 +68,7 @@ performance experiment. Test IDs and their digest are retained per run.
 
 ## Bundle and verification
 
-[evidence-a3d7a12.tar.gz](evidence-a3d7a12.tar.gz) is **170,683 bytes** with SHA-256:
+evidence-a3d7a12.tar.gz (retired from this product) is **170,683 bytes** with SHA-256:
 
 ```text
 faa65bdde2cb88b1510b3bee6736be0d30c3acbc7011b97de53c305898b0a0f5

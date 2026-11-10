@@ -1,5 +1,8 @@
 # Checked byte reduction: proof chain and release qualification
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This profile connects the existing inductive checked-reduction pass to a new,
 independently verified low-byte arithmetic pass and a strong native comparison.
 It does not change the Core opcode semantics, the LLVM backend, resource
@@ -81,7 +84,7 @@ does not assert they are unchanged.
 
 ## Registered native comparison
 
-`tools/qualify_hia_reduction_release.py` freezes its protocol and source hashes
+`retired harness qualify-hia-reduction-release` freezes its protocol and source hashes
 in a new output directory before compiling or timing. It builds four arms:
 
 | Arm | Implementation |
@@ -174,13 +177,8 @@ Performance failure alone does not invalidate faithfully collected evidence.
 
 With the registered Clang, Rust and pinned Z3 4.15.4 available:
 
-```bash
-python -m unittest tests.test_hia_reduction_pipeline tests.test_hia_reduction_release -v
-python tools/qualify_hia_reduction_release.py --output /absolute/new/evidence/directory --clang /absolute/clang --rustc /absolute/rustc
-# Separate counted-step / multi-load observation:
-python -m unittest tests.test_hia_reduction_induction tests.test_hia_reduction_multiload -v
-python tools/qualify_hia_reduction_release.py --profile induction-multiload-v2 --output /absolute/new/v2-evidence/directory --clang /absolute/clang --rustc /absolute/rustc
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Run qualification from one frozen source combination. `REGISTRATION.json`
 defines the cohort before native measurements; `RESULT.json` carries the

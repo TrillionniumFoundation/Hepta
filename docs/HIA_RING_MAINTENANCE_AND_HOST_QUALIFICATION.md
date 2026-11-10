@@ -279,23 +279,8 @@ observed inputs. It is not another unseen-load experiment and must not be
 pooled with the registered single formal attempt. A genuinely new experiment
 requires a separately registered protocol and unused inputs.
 
-```sh
-python3 -m unittest tests.test_ring_maintenance_qualification tests.test_ring_optimization_qualification -v
-
-python3 tools/qualify_ring_maintenance.py \
-  --output /tmp/ring-maintenance-new-run/qualification.json \
-  --clang /usr/lib/llvm-20/bin/clang \
-  --rustc /path/to/rust-1.90.0/bin/rustc \
-  --source-sha COMMITTED_SOURCE_SHA
-
-python3 tools/qualify_ring_optimization.py \
-  --output /tmp/ring-optimization-new-run/qualification.json \
-  --clang /usr/lib/llvm-20/bin/clang \
-  --rustc /path/to/rust-1.90.0/bin/rustc \
-  --profdata /usr/lib/llvm-20/bin/llvm-profdata \
-  --linker /usr/lib/llvm-20/bin/ld.lld \
-  --source-sha COMMITTED_SOURCE_SHA
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The Unix LLD invocation basename is retained: `ld.lld` is a flavor-selecting
 driver, so replacing its invocation path with the resolved `lld` filename changes

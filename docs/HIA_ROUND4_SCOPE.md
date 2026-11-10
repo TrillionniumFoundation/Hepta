@@ -1,5 +1,8 @@
 # Round 4: one frozen implementation and explicit research boundaries
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This round integrates concrete correctness fixes and one real HIA dynamic
 workload. A source commit is frozen before qualification. Later evidence
 packaging is a separate commit and never substitutes its identity for the
@@ -8,7 +11,7 @@ experiments; they cannot complete a missing gate on the integrated commit.
 
 ## Fixed composition
 
-The existing composition qualifier (historical path `../tools/qualify_hia_composition.py`; not shipped in this tree)
+The existing composition qualifier (historical path `../retired harness qualify-hia-composition`; not shipped in this tree)
 retains its 36 commands and 34 qualification flags. Its source identity checks
 the committed tree, complete Git status, and every materialized active source
 against its Git blob. Tool identities include Clang 20, Rust 1.95.0, the separate

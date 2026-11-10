@@ -87,9 +87,9 @@ RSS 包含运行时、动态加载器、共享页面和剩余的小启动基线�
 
 - [REGISTRATION.json](REGISTRATION.json)：执行前登记的协议、源码和目标身份。
 - [DIAGNOSTIC.json](DIAGNOSTIC.json)：完整资源汇总、控制、来源与有限解释。
-- [OBSERVATIONS.jsonl](OBSERVATIONS.jsonl)：60 次开始到完成的实际 argv、stdout、
+- OBSERVATIONS.jsonl (retired from this product)：60 次开始到完成的实际 argv、stdout、
   stderr、父进程状态、原程序数值和 supervisor 观察。
-- [SUPERVISOR_RECEIPTS.jsonl](SUPERVISOR_RECEIPTS.jsonl)：54 份 supervisor 原始
+- SUPERVISOR_RECEIPTS.jsonl (retired from this product)：54 份 supervisor 原始
   UTF-8 receipt 及其大小和哈希。
 - [SUPERVISOR_BUILD.json](SUPERVISOR_BUILD.json) 与
   [ARTIFACT_MANIFEST.json](ARTIFACT_MANIFEST.json)：实际构建命令、诊断文件身份

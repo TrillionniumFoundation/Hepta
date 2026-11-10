@@ -1,5 +1,8 @@
 # Projected scalar kernel runner and validation history
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 Proof status is tied to an exact input and repository-pinned Lean run. The
 successful narrow result is recorded below; local mocked tests alone are never
 proof evidence.
@@ -25,7 +28,7 @@ including after a successful narrow kernel result.
 
 ## Actual-Core binding and nonvacuity
 
-`tools/check_guarded_slice_lean.py` reconstructs each descriptor from reverified
+`retired harness check-guarded-slice-lean` reconstructs each descriptor from reverified
 Core using a hint only as a locator. The actual comparison, branch condition,
 ordered true-edge operands, target parameter slots, selected add, actual literal
 and ordinals are read from Core again. Unsupported enums are encoded explicitly

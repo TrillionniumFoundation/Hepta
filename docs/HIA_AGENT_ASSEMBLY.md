@@ -133,11 +133,8 @@ ownership moves, overlapping loans, missing cleanup, cross-block loan provenance
 v7 recursive chains and allocation refusal, export preservation, cross-function
 interface upgrades, duplicate keys, unsupported profiles, and bounded input.
 
-```bash
-python -B -m unittest tests.test_hia_agent_assembly -v
-python -B tools/qualify_hia_agent_assembly.py --out /tmp/new-assembly-qualification \
-  --clang /absolute/path/to/clang
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The qualification tool keeps original Core, rendered text, reassembled Core,
 emitted LLVM equality, actual VM values/resource observations, and optional

@@ -9,6 +9,16 @@ import shutil
 from tools.check_hia_core_only import check, ROOT
 
 class CoreOnlyTests(unittest.TestCase):
+    def test_deleted_harness_cannot_be_advertised_as_a_current_command(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            (root/'docs/START.md').write_text('```sh\npython tools/deleted_source_driver.py\n```\n')
+            with self.assertRaisesRegex(ValueError,'absent documented script'):
+                check(root)
+
     def test_stale_string_selector_refuses_instead_of_disappearing(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

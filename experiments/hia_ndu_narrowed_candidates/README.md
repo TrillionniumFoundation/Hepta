@@ -77,13 +77,8 @@ feed the policies. Their actual costs remain in the study total and are
 reported separately from deployment cost. No failed, refused or slow sample is
 removed. Earlier negative experiments retain their identities and scores.
 
-```sh
-python tools/qualify_hia_ndu_narrowed_candidates.py \
-  --output /absolute/external/new-run \
-  --identity /absolute/native-build/identity.json \
-  --build-envelope /absolute/native-build/BUILD_ENVELOPE.json \
-  --clang /absolute/clang --objcopy /absolute/objcopy
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The runner requires a clean committed checkout and the original pinned native
 NDU bridge. It records its own source/tool identities before observations and

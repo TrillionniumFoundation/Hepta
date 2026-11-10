@@ -1,5 +1,8 @@
 # Initialization coverage across deferred CFG frontiers
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 This is isolated proof research on the exact candidate Core from draft #592,
 source 954ee966547a233c691c27bde7d0a3b44d38edf8. It does not modify production
 initialization checking or LLVM emission and does not disable zero initialization.
@@ -68,7 +71,7 @@ written prefix [0,k). The useful invariant is not just that a loop exists:
 
 ## Real finite positive and negative controls
 
-`tools/research_initialization_writes.py` observes the ordinary VM without
+`retired harness research-initialization-writes` observes the ordinary VM without
 changing its zero-initializing allocator or load/store implementation. It tracks
 successful program stores by dynamic owner identity and index, and records
 whether each successful load has such a prior store. Missing program writes
@@ -76,7 +79,7 @@ are counterexamples to a complete-overwrite claim, not unsafe Core reads.
 The observer is a single-process research instrument, not a concurrent runtime
 feature, a universal proof or an admission path.
 
-`tests/test_initialization_write_observer.py` regenerates the actual deferred
+`retired harness test-initialization-write-observer` regenerates the actual deferred
 Core from the repository fixtures and asserts both hashes equal the real CI
 inputs. Thirty positive cases cover both workloads, n=0/1/2/4/17, and three
 seeds including uint32 max. Every observed read follows an explicit store. These bounded positive cases

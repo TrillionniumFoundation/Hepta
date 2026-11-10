@@ -46,25 +46,20 @@ The adversarial vector counts come from per-test completed-case counters in
 other tests. Actual execution covers narrow and 64-bit integer semantics,
 complete internal-call results, cyclic block-argument copies, stack-passed
 arguments, stack probes, all versioned byte operations, recursive chains,
-returned loans, and existing source-to-Core fixtures.
+returned loans and direct Core fixtures.
 
 ## Reproduction and evidence
 
-```sh
-python -B tools/qualify_hia_direct_native.py --output /tmp/hia-direct-result.json
-hia build examples/hia_program/parameter_loan_return_v8.hia \
-  --backend native --kind object -o /tmp/hia-direct-v8.o
-hia build examples/hia_program/parameter_loan_return_v8.hia \
-  --backend native --kind shared --linker ld -o /tmp/hia-direct-v8.so
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
-- [Complete result and source hashes](qualification.json)
-- [Raw test transcript](tests.log)
+- Complete result and source hashes (retired from this product)
+- Raw test transcript (retired from this product)
 - [Original source-tree publication binding](source-binding.json)
 - [v8 build commands, artifacts hashes and native/VM results](demonstration.json)
 - [Direct object disassembly](object-disassembly.txt)
 - [Linked shared-library disassembly](shared-disassembly.txt)
-- [Implementation and ABI documentation](../../docs/HIA_DIRECT_NATIVE.md)
+- Implementation and ABI documentation (retired from this product)
 
 The standalone demonstration exercised `entry_mut_recursive` at lengths
 1, 7, and 64 with byte values 0, 1, 250, and 255. Its object SHA-256 is

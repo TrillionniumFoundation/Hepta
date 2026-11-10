@@ -77,11 +77,8 @@ production admission or deployment authority.
 
 ## Qualification
 
-```sh
-cargo test --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
-python -m unittest tests.test_hia_rust_bound_depth tests.test_hia_rust_execution_crosscheck -v
-python tools/qualify_hia_rust_bound_depth.py --expected-head COMMIT --output-directory /tmp/hia-bound-depth
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The output directory must be new and outside the frozen source checkout. The
 collector requires the exact clean commit, preserves the real Cargo build and

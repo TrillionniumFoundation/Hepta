@@ -1,4 +1,7 @@
 > Historical Core implementation observations, not a current release plan.
+
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
 > High-level/source migration components and their gates have been removed.
 > Current scope: [Core-only product](HIA_CORE_ONLY_SCOPE.md).
 
@@ -63,7 +66,7 @@ See [raw Rust admission](HIA_RUST_RAW_INTEGER_ADMISSION.md),
 
 ## Qualification and remaining P0–P7 obligations
 
-Freeze a clean combined commit before running `tools/qualify_hia_integrated.py`.
+Freeze a clean combined commit before running `retired harness qualify-hia-integrated`.
 Its complete Python discovery is one test denominator; critical groups are
 subsets of that run. Cargo results are counted separately. The 37-gate unified
 plan adds actual partial-record and constexpr producers with retained-evidence

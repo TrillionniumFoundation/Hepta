@@ -1,12 +1,15 @@
 # Native release comparison and inference failure observations
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 The seven-track increment adds implementation and measurement coverage. It
 does not establish Rust performance parity, AI coding productivity, universal
 resource safety, or whole-program optimality.
 
 ## Strong release baseline
 
-`tools/qualify_hia_release_parity.py` freezes the source, input protocol and
+`retired harness qualify-hia-release-parity` freezes the source, input protocol and
 tool identities before any native measurements. It executes the existing
 fallible owned-byte allocation/fill/checksum/release kernel through C, C++,
 safe Rust, and the production Hepta Core-to-LLVM object path.

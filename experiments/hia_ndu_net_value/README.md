@@ -47,21 +47,8 @@ Use a pinned Rust 1.90.0 installation for the c4 stream source and a new empty
 Cargo target. The separate finite profile retains its original 4b source and
 Rust 1.95.0 requirement. Do not substitute either identity for the other.
 
-```sh
-python tools/measure_hia_ndu_build.py \
-  --ndu-source /path/to/c4-source \
-  --expected-source c4a1bbed3a39beba43a6abf1a18b6f75c5725c21 \
-  --output /tmp/ndu-complete-build \
-  --target-dir /tmp/ndu-empty-target \
-  --cargo /path/to/rust-1.90.0/bin/cargo \
-  --rustc /path/to/rust-1.90.0/bin/rustc \
-  --cargo-home /path/to/dependency-cache
-python tools/qualify_hia_ndu_net_value.py \
-  --identity /tmp/ndu-complete-build/build/identity.json \
-  --build-envelope /tmp/ndu-complete-build/BUILD_ENVELOPE.json \
-  --clang /path/to/clang \
-  --output /tmp/ndu-net-value
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Both tools write exclusively outside the source checkout. Raw native stdin,
 stdout and stderr are retained; failed episodes retain their incurred cost.

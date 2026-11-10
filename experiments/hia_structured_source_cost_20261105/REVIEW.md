@@ -1,10 +1,13 @@
 # Independent review: local structured-source parsing cost, r2
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 **Recommendation: accept r2 for the next complete source validation and qualification.** The reviewed change preserves the current parser/validator boundary under the conditions below. This review and its two controls are not a qualification, Lean acceptance, or evidence that the final replay now fits its 600-second budget.
 
 Reviewed source: `08402fc66f092ebe65adbb9d257cabeecf17eddf`.
 Tree: `c970788b9d774a1ece75fbd50c662e2bca273df7`.
-`tools/core_syntax_structured_sources.py` SHA-256: `ee1b584163fb94e6f24e843ee5f4711a228af14abe1dfef306cd87ad6cbe7a3a`.
+`retired harness core-syntax-structured-sources` SHA-256: `ee1b584163fb94e6f24e843ee5f4711a228af14abe1dfef306cd87ad6cbe7a3a`.
 
 ## Two rejected r1 behaviors and r2 repairs
 

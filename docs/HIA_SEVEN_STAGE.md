@@ -31,25 +31,14 @@ an absolute safety claim about all native programs.
 ## One frozen integration run
 
 Commit the complete source before invoking the v3 collector (37 scoped gates;
-see [the current qualification plan](HIA_UNIFIED_QUALIFICATION_V3.md)). The collector writes
+see the current qualification plan (retired from this product)). The collector writes
 a command plan, executes all gates against that exact source, retains stdout,
 stderr and per-gate reports, rejects skipped test runs as complete passes and
 compares source snapshots before and after. Native and formal reports bind
 their own selected tools/artifacts. Performance is the last functional gate.
 
-```sh
-python tools/qualify_hia_unified.py \
-  --output-directory /tmp/hepta-seven-stage-new \
-  --clang /absolute/path/to/clang \
-  --cc /absolute/path/to/gcc \
-  --rustc /absolute/path/to/rustc \
-  --cargo /absolute/path/to/cargo \
-  --qemu-aarch64 /absolute/path/to/qemu-aarch64-static \
-  --qemu-riscv64 /absolute/path/to/qemu-riscv64-static \
-  --qemu-system-arm /absolute/path/to/qemu-system-arm \
-  --linker /absolute/path/to/rust-lld \
-  --lean /absolute/path/to/lean --cxx /absolute/path/to/g++
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Cargo 1.90.0 and its locked dependencies must be available for the Rust
 shadow tests. Fetch the locked dependencies before the frozen run. The

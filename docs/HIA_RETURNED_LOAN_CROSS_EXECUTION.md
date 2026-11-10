@@ -1,6 +1,9 @@
 # Finite v8 returned-loan execution on AArch64 and RV64
 
-`tools/qualify_hia_returned_loans_cross.py` extends execution evidence for the
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
+`retired harness qualify-hia-returned-loans-cross` extends execution evidence for the
 existing parameter-bound internal loan contract. It uses the current canonical
 Core verifier and direct LLVM object compiler, the existing finite RV64
 allocator, the established AArch64 ELF inspector and RV64 LLVM ELF reader.
@@ -70,15 +73,8 @@ stack unwinding or cleanup after a trap.
 
 ## Reproduction and evidence
 
-```sh
-python tools/qualify_hia_returned_loans_cross.py \
-  --output-directory /new/empty/path \
-  --clang /absolute/path/to/clang \
-  --linker /absolute/path/to/ld.lld \
-  --readobj /absolute/path/to/llvm-readobj \
-  --qemu-aarch64 /absolute/path/to/qemu-aarch64 \
-  --qemu-riscv64 /absolute/path/to/qemu-riscv64
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 The output directory must not already exist. It retains original/Core inputs,
 LLVM, canonical objects, compiler replay objects, C drivers, linked ELFs,

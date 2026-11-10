@@ -70,17 +70,8 @@ envelopes. This increment does not assert that those economic gates passed.
 
 Use a clean committed source and distinct evidence directories:
 
-```sh
-python -B -m unittest tests.test_hia_ndu_lazy_witness tests.test_hia_ndu_cost \
-  tests.test_hia_ndu_model_snapshot tests.test_hia_ndu_current_profile
-python -B tools/qualify_hia_ndu_lazy_witness.py \
-  --expected-source EXACT_HEPTA_COMMIT --bridge /absolute/native/bridge \
-  --identity /absolute/native/identity.json --output /absolute/new-evidence
-python -B tools/qualify_hia_ndu_cost.py --stream-profile zero-abstain-v1 \
-  --clang /absolute/clang-20 --rustc /absolute/rustc-1.95.0 \
-  --bridge /absolute/native/bridge --identity /absolute/native/identity.json \
-  --output /absolute/new-full-cost-evidence
-```
+> Removed source/mixed-campaign reproduction command; its harness is not
+> delivered. No historical result is promoted to current qualification.
 
 Keep both positive and negative timing samples. Source drift, missing native
 identity, altered registrations and incomplete native comparisons fail.

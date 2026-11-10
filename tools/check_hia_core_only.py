@@ -53,6 +53,9 @@ def check(root=ROOT):
             text=p.read_text()
             if re.search(r'\bhepta\s+(?:hia|check|build|run|lower)\b',text):
                 problems.append('removed CLI instruction: '+str(p.relative_to(root)))
+            for reference in re.findall(r'\b(?:tools|tests)/[\w/.-]+\.py\b',text):
+                if not (root/reference).is_file():
+                    problems.append(f'{p.relative_to(root)}: absent documented script {reference}')
     for name in ['docs/HIA_SOURCE_SCALAR_EXPORTS_20261028.md',
                  'docs/HIA_SCALAR_ORACLE_V0.md','examples/hia_migration/README.md',
                  'tools/qualify_hia_linux_tests.py']:

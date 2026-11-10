@@ -1,5 +1,8 @@
 # Bounded deterministic reference reuse for finite contexts
 
+> Historical finite Core/native observations; removed harnesses are not
+> delivered product entry points or current-source qualification.
+
 `build_bank(..., reuse_oracle=True)` explicitly opts one finite native bank into
 reusing trusted deterministic oracle results. The default remains `False`.
 The original `protocol_v1.json`, its 120-second limit and incomplete studies
@@ -45,7 +48,7 @@ an uncertain descriptor or restart an uncertain child.
 ## Separate frozen-before-run experiment
 
 `experiments/hia_crc_context/protocol_v2.json` and
-`tools/qualify_hia_crc_context_reuse.py` define a new 60-observation matrix:
+`retired harness qualify-hia-crc-context-reuse` define a new 60-observation matrix:
 two fixed synthetic input phases, two repeats, three polynomial workloads and
 five original policies. A trace contains sixteen 256-byte requests. Every arm
 uses the same cache policy, and all 240 child contexts actually execute.
