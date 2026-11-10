@@ -55,7 +55,8 @@ def require(ok, message):
 
 def source_identity():
     names = set(SOURCES)
-    names.update(str(p.relative_to(ROOT)) for p in (ROOT / 'hepta').rglob('*.py'))
+    names.update(str(p.relative_to(ROOT)) for p in (ROOT / 'hepta').rglob('*')
+                 if p.suffix in {'.py', '.hiaasm'})
     return {name: sha256(_read_regular(ROOT / name)).hexdigest() for name in sorted(names)}
 
 

@@ -1,6 +1,37 @@
 # Whole-stack HIA selfhosting audit — 2026-11-09, continued 2026-11-10
 
-## Published continuation and exact local outcomes
+## Current continuation: native semantic pass and ELF linker (v33)
+
+The [2026-11-10 repository audit](HIA_NATIVE_STACK_AUDIT_20261110.md) records
+separate public entry, source, runtime, development branches and failed CI
+observations. Whole-stack replacement remains open and legacy retirement is
+not eligible. These facts remain unchanged by adding two bounded authorities.
+
+The default source checker now invokes the checked-in HIA effect/resource
+closure algorithm. The old Python fixed point and conflict decisions are
+removed. [The pass contract](HIA_EFFECTS_NATIVE.md) records its native and
+same-HIA VM execution routes, bootstrap dependencies and compatibility limits.
+An [HIA ELF linker](HIA_ELF_LINKER_NATIVE.md) now implements canonical selfhost
+ET_REL to loadable ET_DYN, including closed libc allocator relocations. Existing
+export and owned-buffer qualifications can select it explicitly while retaining
+independent reference oracles and refusing fallback after native failure.
+
+The v33 source contract and v20 shared identity bind the new HIA package source,
+installation rules, native linker, build custody and identity controls. The
+reviewed closure has 440 paths; the v19 412-path tuple and every earlier
+projection remain independently fixed. Exactly 3,563 identity bytes move from
+raw logs to metadata within the unchanged one-MiB aggregate. CPU, process,
+capacity, worker and deadline limits are not enlarged.
+
+Compiler/worker hashing, release inventories and cold export now include both
+`.py` and `.hiaasm` package bytes. Builder admission binds actual compiler,
+source, packed input and complete output bytes through invocation receipts;
+temporary path replacement followed by restoration cannot substitute identity.
+Fresh frozen-source results are retained separately from this source declaration.
+The remaining sections preserve earlier checkpoints, not current qualification.
+
+
+## Previous frontend continuation: published outcomes
 
 The continuation is published in [PR #851](https://github.com/TrillionniumFoundation/Hepta/pull/851).
 Published commit `f142ab4ef99cde30128bfced0f3d6299fc373b43` has the same tree
@@ -29,7 +60,7 @@ of public `637d34d9`; its result is pending. Complete program grammar and module
 semantics are still separate work in progress. No legacy production code or
 release lock is removed or switched by these source/evidence commits.
 
-## Current audit and continuation: native source grammar bundle
+## Earlier continuation: native source grammar bundle (v32)
 
 **Whole-stack replacement remains open; legacy retirement is not eligible.**
 The current continuation starts from source-type branch commit

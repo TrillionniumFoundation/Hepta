@@ -8,6 +8,44 @@ It accepts that entire source file as ordinary input bytes and produces the next
 compiler as executable machine bytes. The old `compile_constant` component and
 its explicitly open qualification remain separate.
 
+## Current contract and evidence boundary — v33
+
+The current declared profile is **`selfhost-core-linux-x86_64-v33`**, for Linux
+x86-64. The [support contract](HIA_SELFHOST_CORE_SUPPORT.json) and
+[language inventory](HIA_SELFHOST_LANGUAGE_COVERAGE.json) describe the exact
+source closure and admitted input shapes. A profile declaration is not an
+execution receipt. The current source, the public metadata entry, its separately
+pinned v9/v16 source selections, the external runtime source and a loaded service
+are distinct subjects. Their results must not be combined into one release.
+The [2026-11-10 native-stack audit](HIA_NATIVE_STACK_AUDIT_20261110.md) records
+those identities, failed and pending gates, and the remaining replacement work.
+
+The v33 compiler accepts all fifty general Core opcode names in the union of
+its output profiles, but only their declared scalar/resource shapes. Internal
+calls may return zero to three scalar, owned-buffer/chain or parameter-bound
+borrowed values. General ASCII identifiers, declared entry blocks at any source
+position, explicit scalar exports and a syscall-only compiler filter are
+implemented. Composite Core elaboration, general module/link graphs, additional
+targets and the complete production toolchain remain outside this compiler.
+The separately selected source-grammar bundle is not a complete source parser
+or semantic checker. `whole_HIA_language_self_hosted` and
+`compiler_correctness_formally_proved` remain false.
+
+The v33 closure also binds the default [HIA effect/resource pass](HIA_EFFECTS_NATIVE.md)
+and the explicitly selected [native ELF linker](HIA_ELF_LINKER_NATIVE.md). The
+former removes the source checker's Python closure algorithm; its first native
+load still uses the host bootstrap. The latter links canonical selfhost objects
+into loadable shared images and offers a syscall-only standalone filter. General
+linking, full semantic checking and production orchestration remain outside
+these implementations. All package `.py` and `.hiaasm` bytes now participate in
+compiler, worker, release and cold source identities.
+
+The current overview below supersedes the older version-specific descriptions.
+The later **Historical implementation checkpoints** section preserves their
+original semantics and evidence. Counts, exclusions and the word "current" in
+those dated/versioned checkpoints refer to that checkpoint, not today's v33
+contract or a newly qualified deployment.
+
 Run the source-bound qualification on Linux x86-64:
 
 ```sh
@@ -24,10 +62,10 @@ requires every check to pass.
 ## Fixed version and support identity
 
 The machine-readable [support contract](HIA_SELFHOST_CORE_SUPPORT.json) names
-`selfhost-core-linux-x86_64-v22`, the sole target, the seed and successor ABIs,
+`selfhost-core-linux-x86_64-v33`, the sole target, the seed and successor ABIs,
 resource limits, supported and excluded features, and SHA-256 identities for
 the compiler assembly, authoring aid, loader, qualification, test fixtures and
-complete Python seed package. It is checked before B0. A stale source file,
+complete Python seed package and packaged HIA passes. It is checked before B0. A stale source file,
 changed loader, or broadened support declaration fails that check. To review
 and regenerate the contract after an intentional source change, run:
 
@@ -58,10 +96,14 @@ Python processes at a time, with separate output directories for each family
 and compiler. Each worker verifies the same pinned source manifest and inputs;
 the parent requires every original/modified family result, rejects duplicate
 checks, and retains each request, process receipt, output and error log. No
-native successor process is reused: every individual compile or execution still
-starts its disposable stdlib-only child with its existing limits. This is a
-qualification-harness scheduling change, not a compiler speedup or a cached
-qualification. All cases and the cold runner's 180-second computation deadline
+native successor process is reused. Generation controls and shared-ELF loading
+retain the disposable stdlib-only child. After its independent reference and
+actual HIA build, the selected syscall-only native observer handles ordinary
+flat-image qualification calls, including shared-output trap observations. Each
+call remains in a fresh bounded child; the parent supervisor and independent
+host oracles remain foreign implementations. These scheduling/transport changes
+do not establish a cached qualification. All cases and the cold runner's
+180-second computation deadline
 remain required. The real worker intervals are recorded in the final report.
 The coordinator observes every scheduled future and updates a retained phase
 index as results arrive. It records every exception, including failures before
@@ -134,9 +176,10 @@ successor compiler or the production runtime.
 The flat-image input is ordinary HIA assembly with the fixed header
 `hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
 bounded ELF object profile described below. Function names are unique Core ASCII
-identifiers of at most 128 bytes; the first definition supplies the public ABI.
-Block names are unique bounded ASCII identifiers within each function; the
-entry remains the first block in source, with at most256blocks per function.
+identifiers of at most 128 bytes. Without an explicit export list, the first
+definition supplies the borrowed `f0` public ABI. Block names are unique bounded
+ASCII identifiers within each function; the declared entry may occur at any
+source position, with at most 256 blocks per function.
 SSA and formal names use the same bounded ASCII identifier spelling, with at most
 2,048 distinct names per function. The entry block must exactly reproduce the
 signature names and types; each body definition is unique in its function.
@@ -153,7 +196,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in the allocator-linked ELF output profiles |
 | Constants | Typed signed/unsigned integer literals, `true` / `false` booleans and `null` for `unit` |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Signed/unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
@@ -163,36 +206,28 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
 | Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
-| Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
-| Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
+| Calls | Direct `call` with zero to three scalar, owned or parameter-bound borrowed results; exact signatures, an acyclic non-self call graph and immediate ordered self-tail returns |
+| Control flow | `ret`, `jump`, `branch` with explicit typed block arguments; `trap` with one of the five Core terminal error codes |
 | Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
+| Public exports | Up to 128 exact-name scalar exports in ELF objects; each has 0–16 non-unit scalar parameters and zero or one scalar/unit result |
+| Executable filter | `selfhost_exec` emits a static Linux x86-64 stdin/stdout compiler filter; it does not replace the full production CLI |
 
 Integer operations use all ten Core integer types; booleans and `unit` remain
 separate. `bit.not` complements exactly the declared width. Checked addition
-traps when the mathematical sum leaves the declared type's range, and
-checked subtraction traps when the left operand is smaller than the right.
+traps when the mathematical sum leaves the declared type's range. Checked
+unsigned subtraction traps on underflow; signed subtraction traps when the
+mathematical difference leaves its signed range. Signed division and remainder
+reject both zero divisors and the minimum-value divided by minus one case.
 An arithmetic trap uses `UD2`, as do bounds and shift traps. A trap occurs
 before later effects; stores completed before it remain observable. Arbitrary
 program execution has no rollback guarantee.
 
-The v15 profile adds checked unsigned casts and boolean equality. Checked casts
-preserve the mathematical value when it fits the target width, including
-same-width `u64` / `usize` and all widening casts. A narrowing cast traps on any
-lost high bit before subsequent effects; earlier stores remain observable.
-Boolean equality accepts matching `bool` operands and returns `bool`.
-Ordering comparisons still require integers, and casts still exclude booleans
-and resources. Both cast modes require the existing quoted JSON attribute.
-The extension keeps every source, output, workspace, instruction, block and SSA
-limit unchanged. It does not add signed integers, `unit`, general result shapes,
-arbitrary identifiers, modules or new foreign interfaces.
-
-Language qualification compares the independent Core VM and mathematical
-results for all 25 unsigned checked-cast pairs. Each pair also has a native
-input-dependent fixture, and every narrowing pair includes overflow just above
-the target limit and at the source maximum, with and without a prior store.
-The same boolean equality programs read all four truth-table inputs. Original
-B3 and mutated M3 compile and execute these witnesses. These are finite source
-and behavior observations, not a proof of complete Core correctness.
+Checked casts preserve the mathematical integer value only when it fits the
+target signed or unsigned range; wrapping casts use the target width. Both
+modes require the existing quoted JSON attribute. Boolean equality accepts
+matching `bool` operands; ordering and casts retain their integer-only scopes.
+The signed, unsigned, cast, trap and Boolean qualification families remain
+finite independent observations, not a proof of all admitted inputs.
 
 The compiler returns the generated image size on success, `0xffffffff` for
 invalid/unsupported input, and `0xfffffffe` for insufficient output or workspace
@@ -202,19 +237,26 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Internal functions return zero to three scalars or owned buffer/chain values; returned loans are excluded.
-The flat profile has no owned types or allocator imports. The explicit ELF
-profile adds the four owned-buffer and six chain operations described below, using the closed
+Internal functions return zero to three scalars, owned buffer/chain values or
+parameter-bound `readbuf`/`mutbuf` loans. Returned loans require the exact
+`return_loans` origin contract, sufficient permissions and valid external or
+direct-child provenance; arbitrary escaping local loans remain rejected.
+The flat profile has no owned types or allocator imports. The `selfhost_elf`
+and explicit scalar-export ELF profiles add the four owned-buffer and six chain
+operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
 recursion, exceptions, indirect branches and arbitrary host imports remain
-excluded. The fixed exported function `f0` accepts exactly three buffers
-`(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
-scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers and chains.
+excluded. With no explicit exports, `f0` accepts exactly three buffers
+`(readbuf, mutbuf, mutbuf)` and returns `u32`. An explicit `exports(name,...)`
+line selects the separate scalar ELF ABI independently of the ordinary module
+label; resource-bearing public signatures remain unsupported. Private helpers
+can have scalar and borrowed-buffer parameters, and ELF helpers can consume
+owned buffers and chains.
 
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
 edge signatures, existing targets and graph reachability. Inbound edges to
-`b0` are forbidden. The native HIA checker records the complete directed call
+the declared entry are forbidden. The native HIA checker records the complete directed call
 graph, rejects missing targets, and marks functions whose non-self callees are
 already acyclic. After at most one pass per function, every function must be
 marked. Backward calls are admitted when they do not create a cycle. A direct
@@ -237,8 +279,10 @@ The bounds are part of the compiler profile:
 | Functions | 128 |
 | Blocks per function / all functions | 256 / 1,536 |
 | Function or block parameters / call or edge arguments | 16 |
-| SSA variable index per function | 2,047 |
-| Instruction results / function results | 3 / 1; two for `buffer.try_new`, three for `chain.try_push` and `chain.pop` |
+| Distinct SSA/formal names per function | 2,048; internal indices 0–2,047 are not source-name numeric limits |
+| Instruction results / internal function results | 3 / 3; zero-result calls are supported, and each tuple retains its exact typed shape |
+| Explicit public scalar exports | 128 |
+| Public scalar export parameters / results | 16 / 1; unit is permitted only as a result |
 | Instructions across the module | 8,192 |
 | Core JSON structural nodes | 262,144 |
 | Relative relocations | 12,000 |
@@ -258,17 +302,62 @@ the root object, schema, module and function-list nodes. More than 262,144 nodes
 is rejected before any output write. The maximum instruction count does not
 bypass the general Core's structural budget.
 
-The unchanged grammar also bounds canonical Core JSON bytes. Conservative
-budgets of 1,024 bytes for the root and each function's own fields, 2,048 bytes
-per block excluding its operations, and 512 bytes per operation give at most
-7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
-fixed identifier lengths, 16-argument/parameter limit, single optional attribute
-and unsigned 64-bit literal limit. `buffer.try_new` has two results and one
-argument; `chain.try_push` and `chain.pop` have three results and at most two
-arguments. None has attributes, and all remain within the same conservative
-512-byte per-operation bound; other instructions have at most one result.
-The text frontend's separate general-purpose presentation limits are not
-reimplemented as a dependency of the native compiler.
+Canonical Core JSON bytes are bounded by the current contract's conservative
+formula: the complete 1 MiB assembly payload, 1,024 fixed bytes, 1,024 bytes per
+function, 1,024 per block and 512 per instruction. With the existing capacities
+this is **6,947,840 bytes**, below the general Core's 8 MiB limit. The complete
+payload covers arbitrary ASCII identifier/export spellings. The existing
+typed result/argument limits and exact structural-node accounting still apply.
+Relative relocations are bounded by **11,522** derived records (128 public
+wrapper calls + 8,192 instructions + twice 1,536 blocks + 128 entry jumps + two
+shared-destructor calls), below the unchanged 12,000-record allocation.
+
+Current compilation performs one signature/name/origin prepass, then the three
+full semantic/size/emission passes described in the historical algorithm
+record. Discovery does not admit a body: ordinary type, effect, SSA, CFG and
+capability validation still occurs before output publication. Invalid source
+or insufficient capacity leaves output unchanged; workspace may change.
+
+## Selected source-grammar applications
+
+The v33 support document separately binds the lexer and source-type/name/
+clause/expression applications. Their `.hiaasm` programs make their declared
+grammar decisions, including exact integer magnitudes and decimal-to-binary64
+rounding. `HEPTA_HIA_SOURCE_FRONTEND_MANIFEST` selects the unified bundle with
+seven exact component manifests, common compiler/lexer identities, confined
+paths and captured manifest/image bytes used for mapping. Builders require a
+completed matching cold compiler and check actual invocation identities before
+publishing the root manifest. Conflicting or broken selections are refused.
+
+These applications retain host authoring, AST/value construction, arena/cursor
+validation, code custody, declarations/statements, semantic checking and the
+production runtime/build/release authorities. Their default reference route is
+unchanged. Application-specific bounds are distinct from the fixed compiler's
+1 MiB source/output/workspace limits. See
+[the source frontend contract](HIA_SOURCE_FRONTEND_NATIVE.md) and each
+application's machine-readable support entry for the exact scope.
+
+## Historical implementation checkpoints
+
+The following records preserve how earlier profiles were implemented and
+qualified. Version-specific support exclusions, capacities in use, function
+numbers and measured test counts describe those original checkpoints. They
+are not current v33 support or qualification claims. Later extensions can
+supersede an earlier exclusion without changing the earlier receipt's outcome.
+Use the current overview and machine-readable contracts above for today's
+declaration; use an exact-source execution receipt for a pass/fail decision.
+
+### v15 checked unsigned casts and Boolean equality
+
+The v15 profile added checked unsigned casts and Boolean equality without
+adding signed integers, unit, general result shapes, arbitrary identifiers,
+modules or foreign interfaces at that checkpoint. Independent Core VM and
+mathematical observations covered all 25 unsigned checked-cast pairs, with
+input-dependent fixtures, narrowing overflows and both prior-store/no-store
+trap cases. Boolean fixtures covered all four truth-table inputs. Original
+B3 and mutated M3 compiled and executed those finite witnesses. The later v20
+scalar extension and v23–v30 changes supersede those earlier support exclusions;
+the old observations remain evidence only for their original source.
 
 ### v5 capacity qualification
 

@@ -178,7 +178,7 @@ def worker_inventory(root):
     for path in sorted((root / "hepta").rglob("*")):
         if path.is_symlink():
             raise ValueError("worker source cannot contain symbolic links")
-        if path.suffix == ".py":
+        if path.suffix in {".py", ".hiaasm"}:
             raw, _ = snapshot(path, "worker source", 16 * 1024 * 1024)
             entries[path.relative_to(root).as_posix()] = sha256(raw)
     contract, _ = snapshot(root / "hepta/hia_agent_contract.py", "worker identity contract")
@@ -222,7 +222,7 @@ def worker_matches_commit(root, revision, entries):
             continue
         metadata, path = row.split("\t", 1)
         mode, kind, value = metadata.split()
-        if path.startswith("hepta/") and not path.endswith(".py"):
+        if path.startswith("hepta/") and not path.endswith((".py", ".hiaasm")):
             continue
         if kind != "blob" or mode not in ("100644", "100755"):
             return False

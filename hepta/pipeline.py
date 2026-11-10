@@ -12,7 +12,7 @@ from .backend import compile_rust, emit_rust, emit_header, sha256
 from .parser import parse
 from .checker import check
 from .borrowed_storage import has_borrowed_storage
-from .native_tool_identity import update_stable_regular_hash
+from .native_tool_identity import ToolIdentityRejected, update_stable_regular_hash
 
 
 def interface(program: Program) -> dict:
@@ -41,10 +41,19 @@ def interface_hash(program: Program) -> str:
 
 
 def compiler_hash() -> str:
-    """Bind exact, original name/NUL/source-bytes/NUL with stable file handles."""
+    """Bind original package-relative name/NUL/source/NUL, including HIA passes.
+
+    Top-level Python files retain their original framing. Packaged HIA source
+    is executable compiler authority and must participate in the same identity.
+    """
     h = hashlib.sha256()
-    for p in sorted(Path(__file__).parent.glob("*.py")):
-        h.update(p.name.encode() + b"\0")
+    root = Path(__file__).parent
+    for p in sorted(root.rglob("*")):
+        if p.is_symlink():
+            raise ToolIdentityRejected("compiler source cannot contain symbolic links")
+        if p.suffix not in {".py", ".hiaasm"}:
+            continue
+        h.update(p.relative_to(root).as_posix().encode() + b"\0")
         update_stable_regular_hash(h, p, max_bytes=64 * 1024 * 1024,
                                    allow_empty=True)
         h.update(b"\0")

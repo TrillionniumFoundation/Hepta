@@ -23,6 +23,13 @@ if __package__ in {None, ""}:
 from tools.qualify_hia_direct_native import SUITES as ORIGINAL_DIRECT_SUITES, Result, _ids
 
 NEW_SUITES = (
+    'tests.test_hia_effects',
+    'tests.test_hia_elf_linker',
+    'tests.test_hia_native_build_custody',
+    'tests.test_hia_program_bounded_decode_perf',
+    'tests.test_hia_tool_source_identity',
+    'tests.test_compiler_hash_identity',
+    'tests.test_source_checkout_identity',
     "tests.test_core_seven_shared_acceptance",
     "tests.test_core_seven_shared_source_closure",
     "tests.test_hia_agent_native_tools",
@@ -61,8 +68,9 @@ NEW_SUITES = (
 def sources():
     entries = {}
     for folder in ("hepta", "tests", "tools"):
-        for path in sorted((ROOT / folder).rglob("*.py")):
-            entries[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
+        for path in sorted((ROOT / folder).rglob("*")):
+            if path.suffix == ".py" or folder == "hepta" and path.suffix == ".hiaasm":
+                entries[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
     for folder in ("hia_program", "hia_recursive_chain", "hia_bootstrap"):
         for path in sorted((ROOT / "examples" / folder).rglob("*")):
             if path.is_file():

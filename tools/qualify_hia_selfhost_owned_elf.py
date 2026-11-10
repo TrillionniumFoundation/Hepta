@@ -1,7 +1,9 @@
 """Qualify actual owned-buffer source admission in the libc-bound ELF profile.
 
 The native selfhost compiler creates all object bytes and relocations. The
-inspector only reads them; ordinary ld binds the two closed allocator imports.
+inspector only reads them; ordinary ld or an explicitly selected native HIA
+linker binds the two closed allocator imports. The independent host oracle
+retains ld. A selected native linker failure never falls back to ld.
 The existing child loads the linked artifact without importing HIA modules.
 """
 from __future__ import annotations
@@ -76,7 +78,7 @@ def inspect_owned_object(data):
         "object_sha256": digest(data), "object_bytes": len(data), "inspection_only": True}
 
 
-def qualify(directory, compiler):
+def qualify(directory, compiler, *, linker_manifest=None):
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected
     from hepta.hia_program_native import emit_program_machine, compile_program_machine
@@ -87,6 +89,7 @@ def qualify(directory, compiler):
     directory.mkdir(parents=True, exist_ok=False)
     report = {"schema": "hepta.hia.selfhost-owned-elf-qualification.v1", "status": "started",
         "compiler_sha256": digest(compiler.read_bytes()),
+        "selected_linker": "external-ld" if linker_manifest is None else "explicit-native-HIA",
         "scope": "four owned-buffer operations in explicit linked ELF output; flat allocator calls remain refused",
         "allocator_contract": "ordinary calloc/free: fresh zeroed nonaliasing allocations or null; free releases valid live storage",
         "global_core_or_machine_refinement_proved": False,
@@ -105,8 +108,15 @@ def qualify(directory, compiler):
             inventory = inspect_owned_object(obj.read_bytes())
             tool_rows = [observe_native_tool(directory, label + "-readelf", "readelf", ["-W", "-h", "-S", "-s", "-r", obj])]
             linked = directory / (label + ".so")
-            tool_rows.append(observe_native_tool(directory, label + "-link", "ld", ["-m", "elf_x86_64", "-shared",
-                "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", obj, "-lc", "-o", linked]))
+            if linker_manifest is None:
+                tool_rows.append(observe_native_tool(directory, label + "-link", "ld", ["-m", "elf_x86_64", "-shared",
+                    "-z", "defs", "-z", "noexecstack", "-z", "relro", "-z", "now", "--build-id=none", obj, "-lc", "-o", linked]))
+            else:
+                from tools.link_hia_elf import link as native_link
+                link_receipt = native_link([obj], Path(linker_manifest), linked,
+                    expected_compiler_sha256=report["compiler_sha256"])
+                tool_rows.append(link_receipt)
+                (directory / (label + "-native-link.json")).write_text(json.dumps(link_receipt, indent=2, sort_keys=True) + "\n")
             if not all(row["returncode"] == 0 for row in tool_rows):
                 raise AssertionError(tool_rows)
             observed, output = invoke(directory, label + "-run", linked, b"", image_format="linked-selfhost",
@@ -165,8 +175,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compiler", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--linker-manifest", type=Path)
     args = parser.parse_args()
-    report = qualify(args.output, args.compiler)
+    report = qualify(args.output, args.compiler, linker_manifest=args.linker_manifest)
     print(json.dumps({"status": report["status"], "cases": len(report["cases"]), "refusals": len(report["refusals"])}))
 
 

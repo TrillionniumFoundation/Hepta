@@ -40,6 +40,7 @@ from .hia_opcodes import (
 )
 WORD_BITS = 64
 _IDENT = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,127}\Z")
+_JSON_ASCII_ESCAPE = re.compile(r'[\x00-\x1f"\\]')
 _RESERVED_FUNCTIONS = frozenset({"abort", "calloc", "malloc", "free", "memcpy", "memmove", "memset"})
 MAX_BYTES = 8 * 1024 * 1024
 MAX_NODES = 262144
@@ -112,6 +113,12 @@ def _json_string_bytes(value, remaining):
     """
     if len(value) + 2 > remaining:
         _reject("program exceeds byte budget before encoding", "E_HIA_LIMIT")
+    # Most Core keys, identifiers and opcode/type names are plain ASCII. Both
+    # predicates scan in C without producing an escaped/encoded copy. The
+    # lower bound above is exact on this branch; all Unicode, controls, quotes
+    # and backslashes retain the byte-by-byte admission below.
+    if value.isascii() and _JSON_ASCII_ESCAPE.search(value) is None:
+        return len(value) + 2
     size = 2  # opening and closing JSON quotes
     for char in value:
         point = ord(char)

@@ -69,19 +69,28 @@ def independent_reference():
 
 def build(directory, compiler, reference):
     from tools.qualify_hia_selfhost import compile_stage, invoke
+    from tools.build_hia_source_lexer import _checked_compile_receipt, _checked_native_emission
     directory = Path(directory)
-    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, PACKER.read_bytes())
+    compiler_bytes, source = Path(compiler).read_bytes(), PACKER.read_bytes()
+    if (reference.get('before_B0') is not True
+            or reference.get('packer_source_sha256') != digest(source)):
+        raise ValueError('native observer reference source identity mismatch')
+    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, source)
+    packer_bytes = packer.read_bytes()
+    _checked_compile_receipt(compilation, compiler_bytes, source, packer_bytes)
     execution, output = invoke(directory, 'native-observer-emit', packer, b'')
+    emitted = _checked_native_emission(execution, packer_bytes, b'', output)
     size = reference['expected_image_bytes']
-    if (execution.get('status') != 'returned' or execution.get('abi_status') != 0
-            or execution.get('core_u32') != size or not execution.get('source_unchanged')
-            or digest(output[:size]) != reference['expected_image_sha256']):
+    if (len(emitted) != size or digest(emitted) != reference['expected_image_sha256']):
         raise AssertionError('HIA packer output differs from independent VM')
+    if (Path(compiler).read_bytes() != compiler_bytes or PACKER.read_bytes() != source
+            or packer.read_bytes() != packer_bytes):
+        raise ValueError('native observer build inputs changed')
     executable = directory/'native-observer.elf'
-    executable.write_bytes(output[:size])
+    executable.write_bytes(emitted)
     executable.chmod(0o700)
-    receipt = {'compiler_sha256':digest(Path(compiler).read_bytes()),
-        'source_sha256':digest(PACKER.read_bytes()), 'executable_sha256':digest(output[:size]),
+    receipt = {'compiler_sha256':digest(compiler_bytes),
+        'source_sha256':digest(source), 'executable_sha256':digest(emitted),
         'independent_reference_before_B0':reference['before_B0'],
         'native_compilation':compilation, 'native_emission':execution,
         'production_activated':False, 'whole_stack_rewritten_in_hia':False}

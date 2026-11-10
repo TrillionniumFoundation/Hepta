@@ -49,7 +49,8 @@ def digest(path: Path) -> str:
 
 def compiler_identity() -> dict[str, str]:
     return {str(path.relative_to(ROOT)): digest(path)
-            for path in sorted((ROOT / "hepta").glob("*.py"))}
+            for path in sorted((ROOT / "hepta").rglob("*"))
+            if path.suffix in {".py", ".hiaasm"}}
 
 
 class Runner:

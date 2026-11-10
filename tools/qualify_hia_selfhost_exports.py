@@ -66,7 +66,7 @@ def independent_reference():
         'all_input_correctness_proved':False,'whole_stack_rewrite_complete':False}
 
 
-def qualify(directory,compiler,checks,reference,label):
+def qualify(directory,compiler,checks,reference,label,*,linker_manifest=None):
     from tools.qualify_hia_selfhost import compile_stage,invoke,observe_native_tool,INVALID,NO_SPACE
     from tools.hia_selfhost_process_owner import run_owned
     from hepta.hia_program_native import _inspect_object
@@ -78,7 +78,13 @@ def qualify(directory,compiler,checks,reference,label):
         inventory=_inspect_object(obj.read_bytes(),tuple(row['exports']))
         checks[name+'-symbol-inventory']=set(inventory['defined'])==set(row['exports'])
         linked=directory/(name+'.so')
-        link=observe_native_tool(directory,name+'-link','cc',['-nostartfiles','-shared','-Wl,-z,defs,-z,noexecstack,-z,relro,-z,now,--build-id=none',obj,'-o',linked])
+        if linker_manifest is None:
+            link=observe_native_tool(directory,name+'-link','cc',['-nostartfiles','-shared','-Wl,-z,defs,-z,noexecstack,-z,relro,-z,now,--build-id=none',obj,'-o',linked])
+        else:
+            from tools.link_hia_elf import link as native_link
+            link=native_link([obj],Path(linker_manifest),linked,
+                expected_compiler_sha256=sha256(Path(compiler).read_bytes()).hexdigest())
+            (directory/(name+'-native-link.json')).write_text(json.dumps(link,sort_keys=True,indent=2)+'\n')
         job=directory/(name+'-observations');job.mkdir()
         request={'schema':'hepta.hia.scalar-export-observation.v1','image':str(linked.resolve()),
             'image_sha256':sha256(linked.read_bytes()).hexdigest(),

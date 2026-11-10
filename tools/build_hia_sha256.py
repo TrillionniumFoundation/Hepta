@@ -10,6 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='sha256') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
+    from tools.build_hia_source_lexer import _checked_compile_receipt
     if candidate not in ('sha256', 'sha256_stream'):
         raise ValueError('unknown HIA SHA-256 candidate')
     raw=cold_report.read_bytes()
@@ -34,12 +35,12 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='sha256'
     source=source_path.read_bytes()
     output.mkdir(mode=0o700)
     image,receipt=compile_stage(output,candidate,compiler,source)
-    if source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes:
+    if (source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes
+            or cold_report.read_bytes()!=raw):
         raise ValueError('native candidate build inputs changed')
     kind=candidate.replace('_','-')
-    manifest={'schema':'hepta.hia.'+kind+'-native.v1','source_sha256':sha256(source).hexdigest(),
-        'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
-        'compiler_sha256':compiler_sha}
+    identity=_checked_compile_receipt(receipt,compiler_bytes,source,image.read_bytes())
+    manifest={'schema':'hepta.hia.'+kind+'-native.v1',**identity,'image_path':image.name}
     path=output/'manifest.json'
     path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
     (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.'+kind+'-build.v1',

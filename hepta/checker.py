@@ -1722,30 +1722,19 @@ class _Checker:
         return _Flow(live)
 
     def finish_effects(self) -> None:
-        inferred = {name: set(effects) for name, effects in self.local_effects.items()}
-        changed = True
-        while changed:
-            changed = False
-            for name, callees in self.calls.items():
-                before = len(inferred[name])
-                for callee in callees:
-                    inferred[name].update(inferred[callee])
-                    # Callers rely on declared upper bounds, including external assumptions.
-                    inferred[name].update(self.functions[callee].effects & EFFECTS)
-                changed = changed or len(inferred[name]) != before
-        self.result.effects = inferred
+        from .hia_effects import analyze_effects, effect_names, RESOURCE_ORDER
+        decisions = analyze_effects(self.functions, self.local_effects, self.calls)
+        self.result.effects = {name: effect_names(row.inferred) for name, row in decisions.items()}
         for worker, span in self.worker_sites:
-            forbidden = (inferred[worker] | self.functions[worker].effects) & {"spawn", "unsafe", "ffi"}
+            forbidden = effect_names(decisions[worker].worker_forbidden)
             if forbidden:
                 self.error("E_TASK_WORKER_EFFECT", f"worker {worker} has unsupported transitive effect(s): {', '.join(sorted(forbidden))}", span, "bootstrap workers cannot spawn nested tasks or perform unchecked unsafe/foreign operations; cancellation is cooperative and termination is not proved")
         for name, fn in self.functions.items():
-            missing = inferred[name] - fn.effects
+            missing = effect_names(decisions[name].missing)
             if missing:
                 self.error("E_EFFECT", f"function {name} does not declare inferred effect(s): {', '.join(sorted(missing))}", fn.span)
-            upper = inferred[name] | (fn.effects & EFFECTS)
-            forbidden = {"heap_allocations": "alloc", "may_block": "block", "may_spawn": "spawn"}
-            for clause, effect in forbidden.items():
-                if clause in fn.resources and effect in upper:
+            for index, (clause, effect) in enumerate(RESOURCE_ORDER):
+                if decisions[name].resource_conflicts & (1 << index):
                     self.error("E_RESOURCE", f"resource clause {clause} conflicts with {effect} effect in {name}", fn.span)
 
     def run(self) -> CheckResult:

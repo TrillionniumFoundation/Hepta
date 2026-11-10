@@ -6,6 +6,15 @@ on:
   pull_request:
     paths:
       - 'hepta/**'
+      - 'pyproject.toml'
+      - '.gitattributes'
+      - 'tests/test_hia_effects.py'
+      - 'tests/test_hia_elf_linker.py'
+      - 'tests/test_hia_native_build_custody.py'
+      - 'tests/test_hia_program_bounded_decode_perf.py'
+      - 'tests/test_hia_tool_source_identity.py'
+      - 'tests/test_compiler_hash_identity.py'
+      - 'tests/test_source_checkout_identity.py'
       - 'tests/test_core_seven_shared_acceptance.py'
       - 'tests/test_core_seven_shared_source_closure.py'
       - 'tools/core_seven_shared_acceptance_plan.py'
@@ -103,7 +112,7 @@ jobs:
           set -eu
           test "$(git rev-parse HEAD)" = "$HEPTA_SOURCE_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
-          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0' 'setuptools==84.2.1' 'wheel==0.48.0'
           command -v cc
           command -v ld
           command -v objdump

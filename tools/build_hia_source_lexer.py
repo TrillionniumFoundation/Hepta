@@ -27,6 +27,28 @@ def _checked_compile_receipt(receipt, compiler_bytes: bytes, source: bytes, imag
     return identity
 
 
+def _checked_native_emission(receipt, image: bytes, source: bytes, output: bytes) -> bytes:
+    """Admit emitted bytes only from the captured native invocation.
+
+    The output digest covers the complete returned buffer, including the unused
+    suffix. The native length selects the published prefix only after status,
+    source preservation and all invocation identities have been checked.
+    """
+    size = receipt.get('core_u32') if type(receipt) is dict else None
+    if (type(receipt) is not dict or receipt.get('status') != 'returned'
+            or type(receipt.get('abi_status')) is not int or receipt['abi_status'] != 0
+            or type(size) is not int or not 0 < size <= len(output)
+            or receipt.get('source_unchanged') is not True
+            or receipt.get('forbidden_compiler_modules_loaded') != []
+            or receipt.get('artifact_sha256') != sha256(image).hexdigest()
+            or receipt.get('image_sha256') != sha256(image).hexdigest()
+            or receipt.get('input_sha256') != sha256(source).hexdigest()
+            or receipt.get('source_sha256') != sha256(source).hexdigest()
+            or receipt.get('output_sha256') != sha256(output).hexdigest()):
+        raise ValueError('HIA native emission receipt identity mismatch')
+    return output[:size]
+
+
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     raw=cold_report.read_bytes()

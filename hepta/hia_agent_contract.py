@@ -38,8 +38,11 @@ def catalog():
 def installation_manifest():
     """Hash actual installed source bytes, never infer a clean Git commit."""
     entries = {}
-    for path in sorted((ROOT / "hepta").rglob("*.py")):
-        entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
+    for path in sorted((ROOT / "hepta").rglob("*")):
+        if path.is_symlink():
+            raise ValueError("worker source cannot contain symbolic links")
+        if path.suffix in {".py", ".hiaasm"}:
+            entries[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
     for filename in DISCOVERY_FILES:
         path = ROOT / "docs" / filename
         entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()

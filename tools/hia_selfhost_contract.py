@@ -13,8 +13,26 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v32"
+PROFILE = "selfhost-core-linux-x86_64-v33"
 SOURCE_FILES = (
+    'tests/test_hia_program.py',
+    'tests/test_hia_tool_source_identity.py',
+    'tools/qualify_hia_direct_native.py',
+    'tools/qualify_hia_candidate.py',
+    'tools/validate.py',
+    'tools/qualify_hia_macro_campaign.py',
+    'tools/qualify_hia_macro_multistep.py',
+    "pyproject.toml", ".gitattributes",
+    "tools/generate_hia_elf_linker.py", "tools/build_hia_elf_linker.py",
+    "tools/link_hia_elf.py", "examples/hia_bootstrap/elf_linker.hiaasm",
+    "tests/test_hia_elf_linker.py", "docs/HIA_ELF_LINKER_NATIVE.md",
+    "tests/test_hia_effects.py", "docs/HIA_EFFECTS_NATIVE.md",
+    "tests/test_hia_native_build_custody.py",
+    "tests/test_hia_program_bounded_decode_perf.py",
+    "tests/test_compiler_hash_identity.py", "tests/test_source_checkout_identity.py",
+    "tests/test_hia_candidate_preflight.py", "tools/hia_candidate_preflight.py",
+    "tools/hia_release.py", "tools/audit_hia_selfhost_closure.py",
+    "docs/HIA_NATIVE_STACK_AUDIT_20261110.md",
     "tools/generate_hia_source_names.py", "tools/build_hia_source_names.py",
     "tests/test_hia_source_names_native.py", "examples/hia_bootstrap/source_names.hiaasm",
     "tools/generate_hia_source_clauses.py", "tools/build_hia_source_clauses.py",
@@ -130,10 +148,11 @@ SOURCE_FILES = (
 
 def file_digests(root=ROOT):
     root = Path(root)
-    # Include the complete Python seed package, not a hand-maintained subset
-    # that can omit a transitively imported checker or native ABI dependency.
+    # Include the complete seed package and packaged HIA compiler passes.
+    # A new semantic authority must not escape the cold source identity.
     paths = sorted(set(SOURCE_FILES) | {
-        p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*.py")
+        p.relative_to(root).as_posix() for p in (root / "hepta").rglob("*")
+        if p.suffix in {".py", ".hiaasm"}
     })
     return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
 
@@ -424,6 +443,27 @@ def support_contract(root=ROOT):
              "items": ["arbitrary external symbols and relocations", "resource-bearing public signatures",
                        "general linker", "additional ELF targets"]},
         ],
+        # Separately qualified HIA applications consume the compiler's existing
+        # language profile; they do not broaden its accepted source/Core shapes.
+        "native_applications": [
+            {"area": "canonical_selfhost_object_linking", "status": "bounded_subset",
+             "source": "examples/hia_bootstrap/elf_linker.hiaasm",
+             "input": "Linux x86-64 canonical selfhost ET_REL, six or seven sections",
+             "output": "loadable ELF64 ET_DYN with NOW, RELRO and nonexecuting stack",
+             "objects_max": 16, "exports_max": 128,
+             "input_bytes_max": 1048576, "output_bytes_max": 1048576,
+             "imports": ["libc.so.6:calloc", "libc.so.6:free"],
+             "standalone_runtime_requires_python_or_ld": False,
+             "host_build_and_custody_driver": True, "default_linker_replaced": False},
+            {"area": "source_effect_resource_closure", "status": "implemented_algorithm",
+             "source": "hepta/native/effect_closure.hiaasm",
+             "default_source_checker_route": True,
+             "decisions": ["call graph effect closure", "missing declarations",
+                           "worker-forbidden effects", "resource presence conflicts"],
+             "bootstrap": "Python Core/direct emitter and GNU ld for first native load",
+             "other_hosts_or_large_graphs": "same HIA source interpreted by existing Core VM",
+             "native_failure_fallback": False, "general_semantic_checker_replaced": False},
+        ],
         "required_replay": {
             "generation_order": ["B0", "B1", "B2", "B3"],
             "fixed_point": "B1 == B2 == B3 bytes",
@@ -438,7 +478,7 @@ def support_contract(root=ROOT):
                 "authoring_aid": "tools/generate_hia_selfhost.py",
                 "seed_entry": "tools/qualify_hia_selfhost.py:build_seed",
                 "successor_loader": "tools/hia_selfhost_child.py",
-                "seed_package": "hepta/**/*.py",
+                "seed_package": ["hepta/**/*.py", "hepta/**/*.hiaasm"],
                 "qualification": "tools/qualify_hia_selfhost.py",
                 "cold_replay": "tools/replay_hia_selfhost_cold.py",
             },

@@ -288,6 +288,51 @@ class SourceBoundary(unittest.TestCase):
         expected = self.git("rev-parse", self.revision + ":source.py").strip()
         self.assertEqual(preflight.blob_sha(raw), expected)
 
+    def test_packaged_HIA_is_bound_by_worker_manifest_and_committed_inventory(self):
+        from hepta import hia_agent_contract as contract
+        from hepta.hia_agent_store import wire
+        package = self.root / "hepta"
+        (package / "native").mkdir(parents=True)
+        (self.root / "docs").mkdir()
+        (package / "hia_agent_contract.py").write_bytes(Path(contract.__file__).read_bytes())
+        for name in ("hia_agent_worker.py", "hia_agent_store.py"):
+            (package / name).write_bytes(b"# fixture source\n")
+        native = package / "native/effect_closure.hiaasm"
+        native.write_bytes(b"captured HIA source\n")
+        for name in contract.DISCOVERY_FILES:
+            (self.root / "docs" / name).write_bytes(b"discovery fixture\n")
+        self.git("add", "hepta", "docs")
+        self.git("-c", "user.name=Test fixture", "-c", "user.email=fixture@example.invalid",
+                 "commit", "--quiet", "-m", "HIA source identity fixture")
+        revision = self.git("rev-parse", "HEAD").strip()
+
+        def snapshot(path, _label, limit=preflight.MAX_JSON_BYTES):
+            # This unit exercises the inventory, using the real bounded reader
+            # instead of requiring an external runtime installation.
+            return preflight.bootstrap_read(path, limit), None
+
+        with mock.patch.object(preflight, "snapshot", side_effect=snapshot), mock.patch.object(
+                contract, "ROOT", self.root), mock.patch.object(
+                contract, "CATALOG_PATH", self.root / "docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"), mock.patch(
+                "hepta.hia_program_native._implementation_hash", return_value="a" * 64):
+            entries = preflight.worker_inventory(self.root)
+            self.assertEqual(entries["hepta/native/effect_closure.hiaasm"],
+                             preflight.sha256(native.read_bytes()))
+            self.assertTrue(preflight.worker_matches_commit(self.root, revision, entries))
+            self.assertEqual(contract.installation_manifest()["worker_sha256"],
+                             preflight.sha256(wire(entries)))
+            omitted = {name: value for name, value in entries.items() if not name.endswith(".hiaasm")}
+            self.assertFalse(preflight.worker_matches_commit(self.root, revision, omitted))
+            self.git("update-index", "--assume-unchanged", "hepta/native/effect_closure.hiaasm")
+            native.write_bytes(b"substituted HIA source\n")
+            self.assertEqual(self.git("status", "--porcelain"), "")
+            self.assertFalse(preflight.worker_matches_commit(self.root, revision, entries))
+            changed = preflight.worker_inventory(self.root)
+            self.assertNotEqual(contract.installation_manifest()["worker_sha256"],
+                                preflight.sha256(wire(entries)))
+            self.assertEqual(contract.installation_manifest()["worker_sha256"],
+                             preflight.sha256(wire(changed)))
+
 
 if __name__ == "__main__":
     unittest.main()

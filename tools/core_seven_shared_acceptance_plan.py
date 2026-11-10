@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v19'
-PROTOCOL = 'seven-shared-acceptance-v19'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v20'
+PROTOCOL = 'seven-shared-acceptance-v20'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -250,6 +250,39 @@ SOURCE_FRONTEND_ADDITIONS = (
     'tools/generate_hia_source_expressions.py',
     'tools/generate_hia_source_names.py',
 )
+# Packaged HIA semantic passes, the native linker, build custody and their
+# exact installation/identity controls extend the closure without reinterpreting
+# any earlier filename set.
+NATIVE_STACK_ADDITIONS = (
+    '.gitattributes',
+    'docs/HIA_EFFECTS_NATIVE.md',
+    'docs/HIA_ELF_LINKER_NATIVE.md',
+    'docs/HIA_NATIVE_STACK_AUDIT_20261110.md',
+    'examples/hia_bootstrap/elf_linker.hiaasm',
+    'hepta/hia_effects.py',
+    'hepta/native/effect_closure.hiaasm',
+    'pyproject.toml',
+    'tests/test_compiler_hash_identity.py',
+    'tests/test_hia_candidate_preflight.py',
+    'tests/test_hia_effects.py',
+    'tests/test_hia_elf_linker.py',
+    'tests/test_hia_native_build_custody.py',
+    'tests/test_hia_program_bounded_decode_perf.py',
+    'tests/test_source_checkout_identity.py',
+    'tools/audit_hia_selfhost_closure.py',
+    'tools/build_hia_elf_linker.py',
+    'tools/generate_hia_elf_linker.py',
+    'tools/hia_candidate_preflight.py',
+    'tools/hia_release.py',
+    'tools/link_hia_elf.py',
+    'tests/test_hia_program.py',
+    'tests/test_hia_tool_source_identity.py',
+    'tools/qualify_hia_direct_native.py',
+    'tools/qualify_hia_candidate.py',
+    'tools/validate.py',
+    'tools/qualify_hia_macro_campaign.py',
+    'tools/qualify_hia_macro_multistep.py',
+)
 # Observer inputs and the cold-exported protocol document add822 identity
 # bytes, transferred from raw logs within the same aggregate envelope. All
 # execution capacities and deadlines are unchanged. The integrated source lexer
@@ -258,8 +291,9 @@ SOURCE_FRONTEND_ADDITIONS = (
 # the aggregate envelope and every execution/process/deadline limit stay fixed.
 # The eighteen explicit frontend inputs add exactly2423 metadata bytes, taken
 # from the raw log allocation within the unchanged one-MiB evidence envelope.
-IDENTITY_CAP = 167803
-IDENTITY_RESERVE_DELTA = 23090
+# The native stack additions transfer exactly 3563 bytes from raw logs.
+IDENTITY_CAP = 171366
+IDENTITY_RESERVE_DELTA = 26653
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -352,16 +386,20 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
                                     *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS,
-                                    *SOURCE_FRONTEND_ADDITIONS)))
+                                    *SOURCE_FRONTEND_ADDITIONS, *NATIVE_STACK_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 412 and commitment(paths) == 'af317b47191d0c1f0a68aab03fd3991e5501fa673dbb2814d3f3553a455ae6a5',
+    require(len(paths) == len(set(paths)) == 440 and commitment(paths) == 'b8c8cc65b59ed5934b8d01a366642feb060f7c759f81576c1885df3311f8af31',
             'reviewed exact source identity closure')
-    types_v18 = tuple(name for name in paths if name not in SOURCE_FRONTEND_ADDITIONS)
+    frontend_v19 = tuple(name for name in paths if name not in NATIVE_STACK_ADDITIONS)
+    require(len(NATIVE_STACK_ADDITIONS) == len(set(NATIVE_STACK_ADDITIONS)) == 28
+            and len(frontend_v19) == 412 and commitment(frontend_v19) == 'af317b47191d0c1f0a68aab03fd3991e5501fa673dbb2814d3f3553a455ae6a5',
+            'historical source frontend identity projection')
+    types_v18 = tuple(name for name in frontend_v19 if name not in SOURCE_FRONTEND_ADDITIONS)
     require(len(SOURCE_FRONTEND_ADDITIONS) == len(set(SOURCE_FRONTEND_ADDITIONS)) == 18
             and len(types_v18) == 394 and commitment(types_v18) == 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379',
             'historical source type grammar identity projection')
@@ -406,13 +444,14 @@ def source_paths():
     previous = tuple(name for name in previous if name not in P0_P3_ADDITIONS)
     require(len(previous) == 323 and commitment(previous) == 'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0',
             'historical native-Agent source identity projection')
-    # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
+    # pipeline.compiler_hash reads every Python and HIA package source byte,
     # including modules that are not imported by this selected proof profile.
     # Reject an extra or absent filename before an external identity is built.
     actual_compiler_paths = tuple(sorted(p.relative_to(ROOT).as_posix()
-                                        for p in (ROOT / 'hepta').glob('*.py')))
+                                        for p in (ROOT / 'hepta').rglob('*')
+                                        if p.suffix in {'.py', '.hiaasm'}))
     bound_compiler_paths = tuple(n for n in paths if n.startswith('hepta/') and
-                                n.count('/') == 1 and n.endswith('.py'))
+                                n.endswith(('.py', '.hiaasm')))
     require(actual_compiler_paths == bound_compiler_paths,
             'complete actual compiler_hash input set')
     return paths

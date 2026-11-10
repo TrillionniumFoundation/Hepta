@@ -128,8 +128,8 @@ class GitSourceProvenanceTests(unittest.TestCase):
 class SharedAcceptanceContractTests(unittest.TestCase):
     def test_every_existing_hard_budget_unchanged(self):
         self.assertEqual(p.BUDGETS, old.BUDGETS)
-        self.assertEqual(p.SCHEMA, 'hepta.hia.seven-shared-acceptance.v19')
-        self.assertEqual(p.PROTOCOL, 'seven-shared-acceptance-v19')
+        self.assertEqual(p.SCHEMA, 'hepta.hia.seven-shared-acceptance.v20')
+        self.assertEqual(p.PROTOCOL, 'seven-shared-acceptance-v20')
         # Keep the historical envelope and path projection independently fixed.
         self.assertEqual(old.RAW_GLOBAL, 819891)
         self.assertEqual(old.METADATA_RESERVE, 224589)
@@ -155,9 +155,17 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(len(old.encode(historical)), 144713)
         self.assertEqual({n: identity['sources'][n] for n in old.source_paths()},
                          historical['sources'])
-        types_v18 = {**identity, 'schema': 'hepta.hia.seven-shared-acceptance.v18',
-            'protocol': 'seven-shared-acceptance-v18', 'sources': {
+        frontend_v19 = {**identity, 'schema': 'hepta.hia.seven-shared-acceptance.v19',
+            'protocol': 'seven-shared-acceptance-v19', 'sources': {
             n: record for n, record in identity['sources'].items()
+            if n not in p.NATIVE_STACK_ADDITIONS}}
+        self.assertEqual(len(frontend_v19['sources']), 412)
+        self.assertEqual(p.commitment(tuple(sorted(frontend_v19['sources']))),
+                         'af317b47191d0c1f0a68aab03fd3991e5501fa673dbb2814d3f3553a455ae6a5')
+        self.assertEqual(len(p.encode(frontend_v19)), 167803)
+        types_v18 = {**frontend_v19, 'schema': 'hepta.hia.seven-shared-acceptance.v18',
+            'protocol': 'seven-shared-acceptance-v18', 'sources': {
+            n: record for n, record in frontend_v19['sources'].items()
             if n not in p.SOURCE_FRONTEND_ADDITIONS}}
         self.assertEqual(len(types_v18['sources']), 394)
         self.assertEqual(p.commitment(tuple(sorted(types_v18['sources']))),
@@ -248,7 +256,8 @@ class SharedAcceptanceContractTests(unittest.TestCase):
                          'd999ff7dc718330771ddb745dbed6a5a7ecdcdea8f9011e35f0a07417f09b9c0')
         self.assertEqual(len(p.encode(previous)), 156044)
         raw_identity = p.encode(identity)
-        self.assertEqual(len(raw_identity), 167803)
+        self.assertEqual(len(raw_identity), 171366)
+        self.assertEqual(len(raw_identity) - len(p.encode(frontend_v19)), 3563)
         self.assertEqual(len(p.encode(p0_p3)) - len(p.encode(previous)), 634)
         self.assertEqual(len(p.encode(safe_core)) - len(p.encode(p0_p3)), 365)
         self.assertEqual(len(p.encode(scoped_agent_ndu)) - len(p.encode(safe_core)), 637)
@@ -260,22 +269,24 @@ class SharedAcceptanceContractTests(unittest.TestCase):
         self.assertEqual(len(p.encode(observer_v16)) - len(p.encode(export_native)), 822)
         self.assertEqual(len(p.encode(integrated_v17)) - len(p.encode(observer_v16)), 661)
         self.assertEqual(len(p.encode(types_v18)) - len(p.encode(integrated_v17)), 661)
-        self.assertEqual(len(raw_identity) - len(p.encode(types_v18)), 2423)
+        self.assertEqual(len(p.encode(frontend_v19)) - len(p.encode(types_v18)), 2423)
         self.assertEqual(p.cap('IDENTITY.json'), len(raw_identity))
         self.assertEqual(p.IDENTITY_RESERVE_DELTA,
                          len(raw_identity) - len(old.encode(historical)))
-        self.assertEqual(p.METADATA_RESERVE, 247679)
-        self.assertEqual(p.RAW_GLOBAL, 796801)
-        self.assertEqual(p.METADATA_RESERVE - 245256, 2423)
-        self.assertEqual(799224 - p.RAW_GLOBAL, 2423)
-        self.assertEqual(p.METADATA_RESERVE - 237556, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(806924 - p.RAW_GLOBAL, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(p.METADATA_RESERVE - 236919, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(807561 - p.RAW_GLOBAL, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(p.METADATA_RESERVE - 236554, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(807926 - p.RAW_GLOBAL, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(p.METADATA_RESERVE - 235920, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
-        self.assertEqual(808560 - p.RAW_GLOBAL, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423)
+        self.assertEqual(p.METADATA_RESERVE, 251242)
+        self.assertEqual(p.METADATA_RESERVE - 247679, 3563)
+        self.assertEqual(p.RAW_GLOBAL, 793238)
+        self.assertEqual(796801 - p.RAW_GLOBAL, 3563)
+        self.assertEqual(p.METADATA_RESERVE - 245256, 2423 + 3563)
+        self.assertEqual(799224 - p.RAW_GLOBAL, 2423 + 3563)
+        self.assertEqual(p.METADATA_RESERVE - 237556, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(806924 - p.RAW_GLOBAL, 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(p.METADATA_RESERVE - 236919, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(807561 - p.RAW_GLOBAL, 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(p.METADATA_RESERVE - 236554, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(807926 - p.RAW_GLOBAL, 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(p.METADATA_RESERVE - 235920, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
+        self.assertEqual(808560 - p.RAW_GLOBAL, 634 + 365 + 637 + 131 + 3066 + 1168 + 536 + 655 + 822 + 661 + 661 + 2423 + 3563)
         self.assertEqual(p.METADATA_RESERVE - old.METADATA_RESERVE,
                          old.RAW_GLOBAL - p.RAW_GLOBAL)
         self.assertEqual(p.METADATA_RESERVE + p.RAW_GLOBAL + p.BUDGETS['display'],
@@ -303,9 +314,9 @@ class SharedAcceptanceContractTests(unittest.TestCase):
 
     def test_source_identity_includes_every_new_trust_dependency(self):
         paths = p.source_paths()
-        self.assertEqual(len(paths), 412)
+        self.assertEqual(len(paths), 440)
         self.assertTrue(set(old.source_paths()) < set(paths))
-        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS, *p.SAFE_CORE_ADDITIONS, *p.SCOPED_AGENT_NDU_ADDITIONS, *p.PERSISTENT_NDU_ADDITIONS, *p.JSON_NATIVE_ADDITIONS, *p.SHA256_NATIVE_ADDITIONS, *p.JSON_CLI_ADDITIONS, *p.EXPORT_CLI_ADDITIONS, *p.NATIVE_OBSERVER_ADDITIONS, *p.SOURCE_LEXER_ADDITIONS, *p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_FRONTEND_ADDITIONS):
+        for name in (*p.ADDITIONS, *p.ROUND6_ADDITIONS, *p.LINUX_ADDITIONS, *p.NATIVE_AGENT_ADDITIONS, *p.P0_P3_ADDITIONS, *p.SAFE_CORE_ADDITIONS, *p.SCOPED_AGENT_NDU_ADDITIONS, *p.PERSISTENT_NDU_ADDITIONS, *p.JSON_NATIVE_ADDITIONS, *p.SHA256_NATIVE_ADDITIONS, *p.JSON_CLI_ADDITIONS, *p.EXPORT_CLI_ADDITIONS, *p.NATIVE_OBSERVER_ADDITIONS, *p.SOURCE_LEXER_ADDITIONS, *p.SOURCE_TYPES_ADDITIONS, *p.SOURCE_FRONTEND_ADDITIONS, *p.NATIVE_STACK_ADDITIONS):
             self.assertIn(name, paths)
             self.assertTrue((p.ROOT / name).is_file(), name)
         self.assertIn(p.shared.HELPER_PATH, paths)
@@ -316,14 +327,16 @@ class SharedAcceptanceContractTests(unittest.TestCase):
     def test_actual_compiler_hash_reads_cannot_escape_source_identity(self):
         registered = p.source_paths()
         expected = tuple(n for n in registered if n.startswith('hepta/') and
-                         n.count('/') == 1 and n.endswith('.py'))
-        self.assertEqual(len(expected), 225)
+                         n.endswith(('.py', '.hiaasm')))
+        self.assertEqual(len(expected), 227)
         self.assertEqual(expected, tuple(sorted(x.relative_to(p.ROOT).as_posix()
-                         for x in (p.ROOT / 'hepta').glob('*.py'))))
+                         for x in (p.ROOT / 'hepta').rglob('*')
+                         if x.suffix in {'.py', '.hiaasm'})))
         with tempfile.TemporaryDirectory(prefix='hia-compiler-inputs-') as directory:
             root = Path(directory)
             (root / 'hepta').mkdir()
             for name in expected:
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
                 (root / name).write_bytes(b'')
             with patch.object(p, 'ROOT', root):
                 self.assertEqual(p.source_paths(), registered)

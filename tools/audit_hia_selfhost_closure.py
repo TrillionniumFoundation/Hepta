@@ -25,12 +25,12 @@ from tools.hia_selfhost_contract import validate_contract
 COMPONENTS = (
     ("assembly_frontend", ("hepta/hia_agent_assembly.py", "hepta/lexer.py", "hepta/hia_source_lexer_native.py", "hepta/hia_source_types_native.py", "hepta/hia_source_names_native.py", "hepta/hia_source_clauses_native.py", "hepta/hia_source_expressions_native.py", "hepta/hia_source_frontend_native.py", "hepta/parser.py", "hepta/hia_json_preflight.py", "hepta/hia_json_preflight_native.py", "hepta/hia_json_decode.py", "hepta/hia_json_decode_native.py", "hepta/hia_json_canonical_native.py", "hepta/hia_core_json_frontend_native.py"), "partial",
      "HIA scanner/parser supports general ASCII module/function/SSA/formal/block identifiers and arbitrary entry declaration order in the bounded assembly profile. Explicitly selected HIA source components handle high-level token grammar, UTF-8 positions, diagnostics, arbitrary-size integer magnitudes and exact decimal-to-binary64 conversion. Native type, qualified-name, declaration-parameter, effects/resources and complete existing expression grammars preserve exact prefix consumption, diagnostic priority, generic token splits and the remaining caller nesting budget. One frontend bundle binds all component manifests and compiler/lexer identities, and refuses conflicting or broken selections without fallback. Python object construction, arena/image custody, declaration/statement grammar, semantic type checking and the default reference remain. Explicitly selected HIA JSON decoding/canonicalization are integrated into existing inputs. A separate HIA primitive v8 JSON Core representation frontend emits assembly for real native semantic compilation; host drivers still handle manifests, allocation, files and child receipts. Foreign-object bridging and caller-owned serialization remain Python. Explicit scalar-export JSON representation requires operator ELF selection; general module graphs, composites/full frontend grammar and whole-runtime replacement remain open."),
-    ("core_verifier_and_resources", ("hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
-     "Native fixed-profile checks exist; composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples are implemented and require current-source qualification."),
+    ("core_verifier_and_resources", ("hepta/checker.py", "hepta/hia_effects.py", "hepta/native/effect_closure.hiaasm", "hepta/hia_program.py", "hepta/hia_capability_flow.py", "hepta/hia_program_composite.py"), "partial",
+     "The default source checker delegates effect closure, worker-forbidden masks and resource conflicts to a single HIA program; the previous Python fixed-point and conflict algorithm is removed. Linux x86-64 normally runs native code, with Python/direct-emitter/GNU-ld bootstrap; other hosts or out-of-native-profile graphs execute the same HIA source in the VM, never retrying native failures. General semantic checking, composite elaboration and general result signatures remain open; bounded scalar/owner/parameter-bound loan tuples require current-source qualification."),
     ("execution_and_standard_library", ("hepta/hia_program_runtime.py", "hepta/runtime_io.py", "hepta/runtime_task_tree.py", "hepta/hia_sha256_native.py", "hepta/hia_sha256_stream_native.py"), "open",
      "One-shot and incremental SHA-256 state/padding/compression algorithms are implemented in HIA and can be explicitly selected for Core content digests, with bounded chunks rather than an 8-MiB total-input limit; host code-custody hashing remains. A HIA-emitted syscall-only observer executes ordinary flat-ABI qualification calls in fresh sealed native children; the host supervisor and independent generation/shared/trap loader remain. Core reference interpretation, general production runtime/task/I/O and the complete production library remain open."),
-    ("native_backend_and_linker", ("hepta/hia_program_native.py", "hepta/hia_program_aarch64.py", "hepta/hia_program_llvm.py"), "partial",
-     "HIA writes bounded Linux x86-64 flat/ELF images, including multiple exact-name scalar C exports and allocator relocations. General module/link graphs, resource-bearing public ABI, actual shared-object linking and other native targets remain Python/external tools."),
+    ("native_backend_and_linker", ("hepta/hia_program_native.py", "hepta/hia_program_aarch64.py", "hepta/hia_program_llvm.py", "examples/hia_bootstrap/elf_linker.hiaasm", "tools/build_hia_elf_linker.py", "tools/link_hia_elf.py"), "partial",
+     "HIA writes bounded Linux x86-64 flat/ELF images, including multiple exact-name scalar C exports and allocator relocations. An explicitly selected HIA linker writes loadable ELF64 ET_DYN from up to sixteen canonical selfhost ET_REL objects and 128 scalar exports, including closed calloc/free PLT/GOT/relocations. Its syscall-only standalone entry executes without Python or GNU ld; host build/custody and libc allocator/dynamic loader remain dependencies. General external symbols/module/link graphs, arbitrary ELF input, resource-bearing public ABI and other targets remain open."),
     ("modules_packages_build", ("hepta/modules.py", "hepta/packages.py", "hepta/pipeline.py"), "open",
      "Module graphs, package locks, build orchestration and the complete frontend pipeline remain Python."),
     ("agent_tools_and_persistence", ("hepta/hia_agent_worker.py", "hepta/hia_agent_service.py", "hepta/hia_agent_store.py"), "open",
@@ -54,7 +54,7 @@ def tracked_tree_inventory(root):
     if Path(os.fsdecode(git('rev-parse', '--show-toplevel')).strip()).resolve() != root:
         raise ValueError('inventory requires the exact checkout root')
     names = sorted(os.fsdecode(p) for p in git('ls-files', '-z').split(b'\0') if p)
-    roles = {'hepta': 'live_python_package', 'tools': 'host_authoring_build_qualification',
+    roles = {'hepta': 'live_compiler_package', 'tools': 'host_authoring_build_qualification',
              'rust': 'native_rust_bridges', 'formal': 'formal_support', 'tests': 'tests',
              '.github': 'ci_workflows', 'docs': 'documentation', 'examples': 'examples',
              'experiments': 'research_experiments', 'benchmarks': 'benchmarks',
@@ -78,11 +78,11 @@ def tracked_tree_inventory(root):
         group = groups.setdefault(key, {'role': role, 'language': language, 'files': 0, 'bytes': 0})
         group['files'] += 1
         group['bytes'] += len(data)
-        if (role in {'live_python_package', 'host_authoring_build_qualification',
+        if (role in {'live_compiler_package', 'host_authoring_build_qualification',
                       'native_rust_bridges', 'formal_support'}
                 and language not in {'Python', 'other'} and kind == 'file'):
             live_non_python.append({**row, 'lines': len(data.splitlines()),
-                                    'rewritten_in_hia': False})
+                                    'rewritten_in_hia': language == 'HIA-assembly'})
     identity = json.dumps(rows, sort_keys=True, separators=(',', ':')).encode()
     head = subprocess.run(['git', '-C', str(root), 'rev-parse', '--verify', '--quiet', 'HEAD'],
                           capture_output=True, check=False)
@@ -123,6 +123,12 @@ def audit(root=ROOT):
     # Host-side authoring/build/qualification tools are not HIA replacements.
     # Keep them distinct from the production package, not absent from the audit.
     tools = python_inventory("tools")
+    hia_package = []
+    for path in sorted((root / "hepta").rglob("*.hiaasm")):
+        data = path.read_bytes()
+        hia_package.append({"path": path.relative_to(root).as_posix(),
+            "implementation_language": "HIA-assembly", "bytes": len(data),
+            "lines": len(data.splitlines()), "sha256": sha256(data).hexdigest()})
     paths = {row["path"] for row in records}
     components = []
     for name, authority, status, boundary in COMPONENTS:
@@ -136,7 +142,7 @@ def audit(root=ROOT):
     return {"schema": "hepta.hia.whole-selfhost-static-audit.v1",
         "tracked_tree": tracked_tree_inventory(root),
         "profile": contract["profile"], "live_python_package": records,
-        "live_python_tools": tools,
+        "live_python_tools": tools, "packaged_hia_sources": hia_package,
         "inventory_scope": {"ast_and_hash_roots": ["hepta/", "tools/"],
             "tools_are_not_all_production_runtime": True,
             "unlisted_roots_qualified": False,
@@ -147,6 +153,8 @@ def audit(root=ROOT):
                    "python_tool_files": len(tools), "python_tool_lines": sum(r["lines"] for r in tools),
                    "python_tool_bytes": sum(r["bytes"] for r in tools),
                    "package_and_tool_python_files": len(records) + len(tools),
+                   "packaged_hia_files": len(hia_package),
+                   "packaged_hia_bytes": sum(r["bytes"] for r in hia_package),
                    "component_statuses": dict(Counter(r["status"] for r in components))},
         "compiler_source": {"path": "examples/hia_bootstrap/selfhost.hiaasm", "sha256": sha256(source).hexdigest(),
                             "bytes": len(source), "functions": sum(line.startswith(b"fn ") for line in source.splitlines())},

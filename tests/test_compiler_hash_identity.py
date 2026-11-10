@@ -41,6 +41,29 @@ class CompilerSourceHashTests(unittest.TestCase):
             with self.assertRaises(ToolIdentityRejected):
                 self.hash_sources()
 
+    def test_packaged_HIA_bytes_and_relative_names_change_identity(self):
+        (self.root / "a.py").write_bytes(b"seed")
+        native = self.root / "native"
+        native.mkdir()
+        source = native / "pass.hiaasm"
+        source.write_bytes(b"HIA authority\n")
+        expected = hashlib.sha256(b"a.py\0seed\0native/pass.hiaasm\0HIA authority\n\0")
+        before = self.hash_sources()
+        self.assertEqual(before, expected.hexdigest())
+        source.write_bytes(b"changed HIA authority\n")
+        self.assertNotEqual(self.hash_sources(), before)
+        source.write_bytes(b"HIA authority\n")
+        source.rename(native / "renamed.hiaasm")
+        self.assertNotEqual(self.hash_sources(), before)
+
+    def test_native_directory_alias_cannot_hide_unhashed_authority(self):
+        native = self.root / "native"
+        native.mkdir()
+        (native / "pass.hiaasm").write_bytes(b"source")
+        (self.root / "alias").symlink_to(native, target_is_directory=True)
+        with self.assertRaises(ToolIdentityRejected):
+            self.hash_sources()
+
     @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"),
                          "POSIX FIFO required")
     def test_regular_to_fifo_race_is_bounded(self):

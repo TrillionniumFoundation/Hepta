@@ -16,6 +16,7 @@ from tools.generate_hia_core_json_cli import MAGIC, LIMIT
 from tools.build_hia_json_preflight import build as build_frontend
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
+from tools.build_hia_source_lexer import _checked_compile_receipt, _checked_native_emission
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm'
@@ -29,20 +30,32 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')
     metadata = json.loads(frontend_manifest.read_bytes())
+    frontend_build = json.loads((frontend_manifest.parent/'build.json').read_bytes())
     frontend = frontend_manifest.parent/metadata['image_path']
     frontend_raw = frontend.read_bytes()
+    if (type(frontend_build) is not dict
+            or frontend_build.get('status') != 'NATIVE_CANDIDATE_BUILT'
+            or frontend_build.get('manifest') != metadata
+            or frontend_build.get('cold_report_sha256') != sha256(cold_raw).hexdigest()
+            or metadata.get('compiler_sha256') != sha256(compiler_raw).hexdigest()
+            or metadata.get('source_sha256') != sha256(frontend_source).hexdigest()
+            or metadata.get('image_sha256') != sha256(frontend_raw).hexdigest()):
+        raise ValueError('native JSON CLI frontend identity mismatch')
     packer, compile_receipt = compile_stage(output, 'native-packer', compiler, packer_source)
+    packer_raw = packer.read_bytes()
+    _checked_compile_receipt(compile_receipt, compiler_raw, packer_source, packer_raw)
     frame = struct.pack('<4Q', MAGIC, len(frontend_raw), len(compiler_raw), int(output_profile == 'elf'))
     frame += frontend_raw + compiler_raw
     if len(frame) > LIMIT:
         raise ValueError('qualified images exceed unchanged packer source capacity')
     result, packed = invoke(output, 'native-pack', packer, frame)
-    if not 0 < result['core_u32'] <= LIMIT or result['core_u32'] != len(packed[:result['core_u32']]):
+    executable_bytes = _checked_native_emission(result, packer_raw, frame, packed)
+    if len(executable_bytes) > LIMIT:
         raise ValueError('native HIA packer rejected image frame')
-    executable_bytes = packed[:result['core_u32']]
     inspection = inspect_executable(executable_bytes)
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
             or SOURCE.read_bytes() != packer_source or frontend.read_bytes() != frontend_raw
+            or packer.read_bytes() != packer_raw
             or (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes() != frontend_source
             or sha256(frontend_raw).hexdigest() != metadata['image_sha256']):
         raise ValueError('native JSON CLI build inputs changed')
@@ -55,7 +68,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         'frontend_sha256':sha256(frontend_raw).hexdigest(),
         'frontend_source_sha256':sha256(frontend_source).hexdigest(),
         'packer_source_sha256':sha256(packer_source).hexdigest(),
-        'packer_sha256':sha256(packer.read_bytes()).hexdigest(),
+        'packer_sha256':sha256(packer_raw).hexdigest(),
         'cold_report_sha256':sha256(cold_raw).hexdigest(),
         'frame_sha256':sha256(frame).hexdigest(),
         'native_compile_receipt':compile_receipt, 'native_pack_receipt':result,

@@ -1,4 +1,4 @@
-"""Real autocrlf checkouts must preserve the compiler's exact Python bytes."""
+"""Real autocrlf checkouts must preserve exact Python and packaged HIA bytes."""
 from hashlib import sha256
 import os
 from pathlib import Path
@@ -16,9 +16,14 @@ class PythonCheckoutIdentityTests(unittest.TestCase):
         attributes = (ROOT / '.gitattributes').read_text()
         rule = '*.py text eol=lf'
         self.assertEqual(attributes.splitlines().count(rule), 1)
+        hia_rule = '*.hiaasm text eol=lf'
+        self.assertEqual(attributes.splitlines().count(hia_rule), 1)
         self.assertIn('experiments/hia_optimizer_eval/rebind/source_changes.diff -whitespace', attributes)
-        sources = {path.name: path.read_bytes() for path in sorted((ROOT / 'hepta').glob('*.py'))}
+        sources = {path.relative_to(ROOT / 'hepta').as_posix(): path.read_bytes()
+                   for path in sorted((ROOT / 'hepta').rglob('*'))
+                   if path.suffix in {'.py', '.hiaasm'}}
         self.assertTrue(sources)
+        self.assertIn('native/effect_closure.hiaasm', sources)
 
         def git(directory, *arguments):
             result = subprocess.run(['git', *arguments], cwd=directory, capture_output=True, timeout=30)
@@ -30,9 +35,11 @@ class PythonCheckoutIdentityTests(unittest.TestCase):
                 base = Path(temporary)
                 seed, checkout = base / 'seed', base / 'windows-style-checkout'
                 (seed / 'hepta').mkdir(parents=True)
-                selected = attributes if with_lf_rule else attributes.replace(rule + '\n', '')
+                selected = (attributes if with_lf_rule else
+                            attributes.replace(rule + '\n', '').replace(hia_rule + '\n', ''))
                 (seed / '.gitattributes').write_text(selected)
                 for name, data in sources.items():
+                    (seed / 'hepta' / name).parent.mkdir(parents=True, exist_ok=True)
                     (seed / 'hepta' / name).write_bytes(data)
                 git(seed, 'init', '--quiet')
                 git(seed, '-c', 'core.autocrlf=false', '-c', 'core.safecrlf=false',
@@ -67,6 +74,7 @@ class PythonCheckoutIdentityTests(unittest.TestCase):
                     self.assertEqual(observed.stdout.strip(), expected_hash.hexdigest())
                 else:
                     self.assertTrue(changed, 'negative control must actually convert source bytes')
+                    self.assertIn('native/effect_closure.hiaasm', changed)
                     self.assertNotEqual(observed.stdout.strip(), expected_hash.hexdigest())
                 self.assertEqual(git(checkout, 'status', '--porcelain'), b'')
 

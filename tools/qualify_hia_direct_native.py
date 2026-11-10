@@ -43,8 +43,9 @@ SUITES = (
 def source_identity():
     files = {}
     for folder in ("hepta", "tests", "tools"):
-        for path in sorted((ROOT / folder).rglob("*.py")):
-            files[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
+        for path in sorted((ROOT / folder).rglob("*")):
+            if path.suffix == ".py" or folder == "hepta" and path.suffix == ".hiaasm":
+                files[path.relative_to(ROOT).as_posix()] = sha256(path.read_bytes()).hexdigest()
     for folder in ("hia_program", "hia_recursive_chain"):
         for path in sorted((ROOT / "examples" / folder).rglob("*")):
             if path.is_file() and path.suffix in {".hia", ".json", ".hepta", ".c"}:

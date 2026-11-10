@@ -242,7 +242,8 @@ def _source_inventory(evidence):
 
 def _worker_sources(evidence):
     from hepta.hia_agent_contract import DISCOVERY_FILES
-    paths = sorted((ROOT / "hepta").rglob("*.py"))
+    paths = sorted(path for path in (ROOT / "hepta").rglob("*")
+                   if path.suffix in {".py", ".hiaasm"})
     paths += [ROOT / "docs" / name for name in DISCOVERY_FILES]
     return {str(path.relative_to(ROOT)): evidence.put(_read_regular(path), binary=True) for path in paths}
 
