@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `ff9446dc` snapshot contains a live `hepta/` package with 220 Python
-files, 76,954 lines and 4,167,089 bytes. These are source inventory figures, not a
+HIA. The qualified `16572b15` snapshot contains a live `hepta/` package with 221 Python
+files, 77,195 lines and 4,181,711 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **427 Python files /134675lines** under `tools/`,
+The audit also inventories **429 Python files /136068lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-647Python files. Tests, historical evidence, experiments, examples, benchmarks
+650Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -24,7 +24,49 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current type-grammar checkpoint (2026-11-10):** exact clean ff9446dc extends
+**Current whole-source grammar checkpoint (2026-11-10):** exact clean
+`16572b158d0ba12a0f15117e55f000628bbef3af` adds the HIA whole-program task
+machine: declarations, statements, type and Pratt expression grammar, namespace
+checks and completed AST depth validation. Actual `Parser.parse` integration is
+explicitly selected; default/reference behavior and foreign object materialization
+remain. The profile is validated lexical tokens, 4,096 tokens including EOF,
+1 MiB packet, original96nesting and 3,158,016 private workspace bytes. This does
+not replace semantic checking, modules/packages, runtime, optimizer or delivery.
+
+Actual clean source workflow106PASS (122.089s driver/115.993s tests); fresh cold
+11/11+5,049/5,049PASS (110.0015s, unchanged180deadline); language1,242+10PASS;
+native libraries93PASS; selected/default consumers83each; incremental55;
+shared15; selected/default parser/module63each; semantic/lifetime/resource/IR
+callers168each; unchanged contract/release25PASS. All5,049 prior witness names
+and successes remain. Source contract328payloads; exact shared closure380paths/
+221root modules preserves all prior375paths and older projections. Independent
+VM controls precede the seed; tests include300repository sources,1,500mutations,
+exact boundaries/canaries/concurrency and ALL Python grammar methods disabled,
+separately with reference and HIA lexical recognition.
+
+The first formal run remains **FAIL** at its final25-test stage: temporary
+mount per-user quota exhaustion caused Python to fall back to inode-exhausted
+`/tmp`. Failed logs/receipt remain, not relabeled. Stage qualification02 explicitly
+reuses only identical-clean-source successful stages, records their original
+clocks and failed parent receipt, and binds a full unchanged25-test rerun on a
+verified writable `/var/tmp` directory, including captured38/38cold phases and
+owned completion. It is not a fresh all-stage execution or zero-second run.
+The raw21,524,002-byte archive has56,133 individually hash-verified members,
+SHA256 `858d027eab072127dfb7081a0a2d75e195e4405bb1f8d1dc8cf58d05a915974f`;
+original captures are retained. See `source-parser-summary.json`,
+`source-parser-source-equivalence.json`, `implementation-boundary-source-parser-delta.json`
+and `docs/HIA_SOURCE_PARSER_NATIVE.md`.
+
+Current-source full-repository regression and remote CI are **not qualified**.
+The older c57 integer full run is actually PASS7752tests/740modules/no failures,
+errors or skips; it does not qualify this grammar. The immediate type-parser
+published666 parent remote cold is actually PASS11+5049 in159.4937s, artifact
+digest verified; source/native also passed, language remained queued at the
+last observation. Its separate frozen full run remains pending. All earlier
+remote failures remain failures. Whole-stack3partial/5open; no default,
+production, main, release-lock activation or old-implementation retirement.
+
+**Previous type-grammar checkpoint (2026-11-10):** exact clean ff9446dc extends
 the previous integrated compiler/lexer/numeric/observer source with actual
 HIA `Parser._type` recognition and a host flat-object bridge. Its clean source
 workflow has105PASS; fresh cold11/11+5,049/5,049PASS; language1,242+10PASS;
