@@ -352,7 +352,6 @@ SOURCE_FILES = (
     'tools/generate_hia_core_workspace_facts_cli.py',
     'tools/build_hia_core_workspace_facts.py',
     'tests/test_hia_core_workspace_facts_native.py',
-    'hepta/hia_core_workspace_facts_native.py',
 )
 
 
