@@ -52,6 +52,16 @@ NATIVE_SOURCE_FILES = (
 )
 
 
+# Build-input custody assets, not loadable native image adapters. The streaming
+# SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
+PUBLICATION_BUILD_FILES = (
+    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
+    'tools/hia_artifact_publication_syscalls.S',
+    'tools/generate_hia_artifact_publication.py',
+)
+
+
 def catalog():
     data = CATALOG_PATH.read_bytes()
     value = json.loads(data)
@@ -65,11 +75,13 @@ def installation_manifest():
     """Hash actual installed source bytes, never infer a clean Git commit."""
     entries = {}
     for path in sorted((ROOT / "hepta").rglob("*.py")):
+        if path.relative_to(ROOT / "hepta").parts[0] == "_data":
+            continue  # Explicit build assets below are data, never Python modules.
         entries[str(path.relative_to(ROOT))] = sha256(path.read_bytes()).hexdigest()
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in NATIVE_SOURCE_FILES:
+    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),

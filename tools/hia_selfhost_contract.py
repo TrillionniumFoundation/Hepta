@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v56-native-Core-format-store-main-union'
+PROFILE = 'selfhost-core-linux-x86_64-v57-installed-native-publication-custody'
 SOURCE_FILES = (
     'docs/HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md',
     'tools/generate_hia_capability_renaming.py',
@@ -480,7 +480,10 @@ def support_contract(root=ROOT):
             "directory_fsync_journal_and_crash_recovery": False,
             "host_boundaries": ["authoring with binutils", "build/code custody", "installation", "default Agent persistence"],
             "hosted_public_API_selection": "HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST; exact code via sealed memfd; invalid selection has no fallback",
-            "hosted_route_requires_source_tree": True,
+            "hosted_route_requires_source_tree": False,
+            "hosted_route_custody_modes": "checkout validates complete actual build source; installed package validates exact owned production modules and explicit build-input assets plus the unchanged full source contract; no checkout/tools fallback",
+            "installed_publisher_build_input_assets": "four additional explicit package assets; streaming SHA already enrolled; build tools are data only, never imported as installed runtime modules",
+            "native_only_installed_Agent_qualified": False,
             "native_link_diagnostic_differs_from_reference_EXISTS": True,
             "Agent_artifact_file_selection": "HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST; sealed current-source executable; no fallback",
             "Agent_put_code_admission": "one full source-byte/code-hash admission per public put; hash and durable put use the same immutable bytes; no cross-call code or metadata-only source cache; selection changes refuse",

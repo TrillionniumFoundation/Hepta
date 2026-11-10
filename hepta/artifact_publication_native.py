@@ -1,4 +1,4 @@
-"""Explicit native publisher custody; not a native-only installed Agent store.
+"""Explicit native publisher custody for source trees and installed packages.
 
 Only operator-selected code is executed, via a sealed descriptor. Filesystem
 payload bytes are passed to HIA, never re-read or hashed by a hosted verifier.
@@ -9,27 +9,76 @@ import fcntl,json,os,re,struct,subprocess
 from pathlib import Path
 
 
+NATIVE_PUBLICATION_OPERATIONS = ('publish','verify','withdraw','store-put','store-get','store-hash')
+NATIVE_PUBLICATION_SOURCES = (
+    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
+    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'tools/hia_artifact_publication_syscalls.S',
+    'tools/generate_hia_artifact_publication.py',
+)
+
+
+def _installed_source_custody(root):
+    """Bind installed production bytes/assets to their owned full build contract.
+
+    Absent build tools are not imported, inferred as present, or searched in a
+    different checkout. The full build-source manifest remains bound through
+    the exact package-owned contract; it is not a claim those tools are installed.
+    """
+    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES
+    from .hia_json_preflight_native import _source_resource_path
+    contract_name='docs/HIA_SELFHOST_CORE_SUPPORT.json'
+    contract_path=_source_resource_path(contract_name);raw=contract_path.read_bytes()
+    contract=json.loads(raw)
+    if type(contract) is not dict or contract.get('schema')!='hepta.hia.selfhost-core-support.v1':
+        _reject('E_PUBLISH_NATIVE_CUSTODY','installed source contract unavailable')
+    files=contract['source_identity']['files']
+    if type(files) is not dict or any(type(n) is not str or type(d) is not str or re.fullmatch('[0-9a-f]{64}',d) is None for n,d in files.items()):
+        _reject('E_PUBLISH_NATIVE_CUSTODY','installed source contract inventory invalid')
+    actual_python={p.relative_to(root).as_posix() for p in (root/'hepta').rglob('*.py') if p.relative_to(root/'hepta').parts[0]!='_data'}
+    expected_python={n for n in files if n.startswith('hepta/') and n.endswith('.py')}
+    if actual_python!=expected_python:
+        _reject('E_PUBLISH_NATIVE_CUSTODY','installed production module inventory changed')
+    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+    for name in (*sorted(actual_python),*assets):
+        if name==contract_name:continue  # The outer manifest binds this exact JSON.
+        path=root/name if name in actual_python else _source_resource_path(name)
+        if name not in files or sha256(path.read_bytes()).hexdigest()!=files[name]:
+            _reject('E_PUBLISH_NATIVE_CUSTODY','installed production or build-input bytes changed')
+    if contract_path.read_bytes()!=raw:
+        _reject('E_PUBLISH_NATIVE_CUSTODY','installed source contract changed during admission')
+    return contract['profile'],{**files,contract_name:sha256(raw).hexdigest()}
+
+
 def _reject(code,message):
     from .artifact_publication import PublicationRejected
     raise PublicationRejected(code+': '+message)
 
 
 def _admitted_code(manifest):
-    # This explicit development/source-tree route retains hosted code custody.
-    # Do not advertise it as a clean-machine or native-only installation path.
-    from tools.build_hia_artifact_publication import current_sources,SOURCES,OPERATIONS
-    from tools.hia_selfhost_contract import PROFILE
+    # Build-source admission remains unchanged in a checkout. An installed
+    # package binds its actual owned bytes/assets plus the exact build contract,
+    # without importing or falling back to an external source tree.
+    root=Path(__file__).resolve().parents[1]
+    if (root/'pyproject.toml').is_file():
+        from tools.build_hia_artifact_publication import current_sources
+        from tools.hia_selfhost_contract import PROFILE
+        sources=current_sources()
+    else:
+        PROFILE,sources=_installed_source_custody(root)
+    SOURCES=NATIVE_PUBLICATION_SOURCES;OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
+    from .hia_json_preflight_native import _source_resource_path
     path=Path(manifest);raw=path.read_bytes();record=json.loads(raw)
     if (type(record) is not dict or record.get('schema')!='hepta.hia.artifact-publication-build.v1'
             or record.get('status')!='NATIVE_ARTIFACT_PUBLICATION_BUILT'
-            or record.get('profile')!=PROFILE or record.get('source_manifest')!=current_sources()
+            or record.get('profile')!=PROFILE or record.get('source_manifest')!=sources
             or record.get('operations')!=OPERATIONS
             or record.get('executable_path')!='hia-artifact'
             or type(record.get('source_sha256')) is not dict
             or set(record['source_sha256'])!=set(SOURCES)):
         _reject('E_PUBLISH_NATIVE_CUSTODY','selected manifest is not the current explicit native application')
-    root=Path(__file__).resolve().parents[1]
-    if any(sha256((root/name).read_bytes()).hexdigest()!=digest for name,digest in record['source_sha256'].items()):
+    if any(sha256(_source_resource_path(name).read_bytes()).hexdigest()!=digest for name,digest in record['source_sha256'].items()):
         _reject('E_PUBLISH_NATIVE_CUSTODY','native application source identity changed')
     with (path.parent/'hia-artifact').open('rb') as stream:code=stream.read((1<<20)+1)
     if (not 176<=len(code)<=1<<20 or code[:7]!=b'\x7fELF\x02\x01\x01'

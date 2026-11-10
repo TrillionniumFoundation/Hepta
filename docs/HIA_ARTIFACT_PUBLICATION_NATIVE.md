@@ -113,3 +113,20 @@ public put/get again performs full source-byte and executable hash admission.
 Selection changes between the pair refuse without file publication or DB
 issuance. This bounded code view reduces redundant custody scans; it does not
 change the original Agent context deadline or artifact quotas.
+
+## Installed-package custody
+
+Explicitly selected publisher/store code can now be admitted in the installed
+wheel without importing checkout `tools`. Full checkout admission remains
+unchanged. The wheel includes four additional build inputs; its existing SHA
+source completes the exact five-input publisher custody set. Installed admission
+checks all actual production modules and explicit resources against the owned
+full build-source contract, then checks the selected manifest and executable.
+Build-only source files remain declared by that exact contract, not falsely
+reported as installed runtime modules. The contract itself must match the build
+manifest's exact digest. There is no alternate-checkout fallback.
+
+The Python custody bridge and SQLite request/ref authority remain dependencies.
+The standalone HIA executable is still the only filesystem payload hash/read/
+write implementation on the selected route. This does not select a live default,
+qualify a native-only installed worker, or replace its journal.

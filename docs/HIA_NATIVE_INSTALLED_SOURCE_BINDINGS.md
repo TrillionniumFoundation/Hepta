@@ -19,6 +19,20 @@ Existing runtime installation hashes must be deliberately rebound when deployed;
 this change does not update or restart any live Runtime, select defaults or
 remove the previous implementation.
 
-The optional artifact publisher/store route still requires source-tree custody
-from build tools; these source assets do not claim installed native publisher or
-SQLite closure. The default Core path remains hosted unless explicitly selected.
+The optional artifact publisher/store additionally packages four explicit build
+inputs (policy/packer HIA, syscall adapter assembly and generator source). The
+streaming SHA HIA source is already in the twenty-two adapter resources. These
+four files are custody data, not installed/importable build-tool modules.
+
+Checkout admission still validates the complete actual source tree. Installed
+admission validates every actual production Python module, all discovery/native
+resources and the exact five publisher inputs against its package-owned source
+contract. The selected executable manifest must match that full build contract
+and each input digest, and the executable still runs only from a sealed memfd.
+Missing or changed assets, extra production modules, contract/manifest drift and
+changed executable bytes refuse without host payload fallback or replay.
+
+Actual isolated wheel tests block all `tools` imports, use empty PATH, exercise
+native publish/verify/withdraw and put/get/dedup/restart, and retain body/source
+refusals. Python custody, object encoding, SQLite and the journal remain hosted;
+this is not native-only installation or default activation.

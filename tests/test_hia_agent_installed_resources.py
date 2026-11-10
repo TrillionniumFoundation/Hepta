@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
 
 class AgentInstalledResourceSourceTests(unittest.TestCase):
     def test_actual_build_hook_uses_distinct_discovery_and_native_resource_paths(self):
@@ -37,6 +37,9 @@ class AgentInstalledResourceTests(unittest.TestCase):
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         from hepta.hia_agent_identity_native import SOURCE,SCHEMA
         from tests.test_hia_agent_entry import CHILD
+        from tests.test_hia_artifact_publication_native import observe,fields,vm_pack
+        observe(b'abc',b'abc',fields(p0=3,p16=3,p24=3))
+        vm_pack(b'\xc3',b'\xc3')  # Publication policy/packer VM before native seed.
         cls.temp=tempfile.TemporaryDirectory(prefix='hia-installed-resources-');cls.folder=Path(cls.temp.name)
         source=cls.folder/'source';source.mkdir();cls.source=source
         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
@@ -97,6 +100,32 @@ class AgentInstalledResourceTests(unittest.TestCase):
         cls.print_manifest.write_text(json.dumps(dict(schema=PRINT_SCHEMA,
             source_sha256=sha256(PRINT_SOURCE.read_bytes()).hexdigest(),image_path=print_image.name,
             image_sha256=sha256(print_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from tools.build_hia_artifact_publication import build,current_sources,SOURCES,OPERATIONS
+        from tools.hia_selfhost_contract import PROFILE
+        cls.publication=cls.native/'publication';cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
+        if cold_path:
+            cold=json.loads(Path(cold_path).read_bytes());nested=json.loads(Path(cold['nested_report']).read_bytes())
+            qualified=Path(nested['generations'][-1]['produced_image'])
+            assert qualified.read_bytes()==second.read_bytes()
+            build(cls.publication,qualified,Path(cold_path))
+        else:
+            # Honest actual B2 development build; never invent a cold PASS.
+            from tools.qualify_hia_selfhost import invoke
+            from tools.generate_hia_artifact_publication import MAGIC
+            from tools.qualify_hia_selfhost_cli import inspect_executable
+            import struct
+            cls.publication.mkdir();images={}
+            for label,name in zip(('policy','packer','sha256'),SOURCES[:3]):
+                images[label],_=compile_stage(cls.publication,label,second,(ROOT/name).read_bytes())
+            policy=images['policy'].read_bytes();sha=images['sha256'].read_bytes()
+            result,raw=invoke(cls.publication,'pack',images['packer'],struct.pack('<3Q',MAGIC,len(policy),len(sha))+policy+sha)
+            assert result['status']=='returned' and 0<result['core_u32']<=len(raw)
+            code=raw[:result['core_u32']];inspect_executable(code)
+            app=cls.publication/'hia-artifact';app.write_bytes(code);app.chmod(0o700)
+            (cls.publication/'build.json').write_text(json.dumps(dict(schema='hepta.hia.artifact-publication-build.v1',
+                status='NATIVE_ARTIFACT_PUBLICATION_BUILT',profile=PROFILE,source_manifest=current_sources(),operations=OPERATIONS,
+                executable_path='hia-artifact',executable_sha256=sha256(code).hexdigest(),
+                source_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in SOURCES},development_only=True)))
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'''
 from pathlib import Path
@@ -117,6 +146,45 @@ elif sys.argv[2]=='printing':
     import json
     json.JSONEncoder.iterencode=absent
     sys.stdout.buffer.write(store.wire({'zero':-0.0,'ratio':1.25,'tiny':5e-324,'large':1e16,'text':'中'}))
+elif sys.argv[2] in ('publication','artifact-store'):
+    import importlib.abc,os,inspect
+    class NoBuildTools(importlib.abc.MetaPathFinder):
+        def find_spec(self,fullname,path=None,target=None):
+            if fullname=='tools' or fullname.startswith('tools.'):
+                raise AssertionError('installed runtime tried to import checkout build tools')
+    sys.meta_path.insert(0,NoBuildTools())
+    manifest=sys.argv[3];case=Path(sys.argv[4]);payload=b'installed\\x00native\\xff'
+    if sys.argv[2]=='publication':
+        from hepta import artifact_publication as publication
+        os.environ['HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST']=manifest
+        publication._read_exact=absent;publication.sha256=absent
+        stage=case/'stage';dest=case/'published'
+        receipt=publication.publish_verified(stage,dest,payload)
+        assert publication.verify_published(stage,dest,payload)==receipt
+        assert stage.stat().st_ino==dest.stat().st_ino
+        assert publication.withdraw_own_link(stage,dest) and not dest.exists()
+        print(json.dumps(receipt,sort_keys=True))
+    else:
+        os.environ['HEPTA_HIA_AGENT_ARTIFACT_STORE_MANIFEST']=manifest
+        original_hash=store.sha256;original_read=store.stable_read
+        def guard_hash(data):
+            if inspect.currentframe().f_back.f_code.co_name in ('put','get'):absent()
+            return original_hash(data)
+        def guard_read(*args,**kwargs):
+            if inspect.currentframe().f_back.f_code.co_name in ('put','get'):absent()
+            return original_read(*args,**kwargs)
+        store.sha256=guard_hash;store.stable_read=guard_read
+        state=store.AgentStore(case/'state')
+        try:
+            ref=state.put(payload,'input',{'installed':True})
+            assert state.get(ref)==(payload,{'installed':True})
+            assert state.put(payload,'input',{'installed':True})==ref
+        finally:state.close()
+        state=store.AgentStore(case/'state')
+        try:assert state.get(ref)==(payload,{'installed':True})
+        finally:state.close()
+        print(json.dumps(ref,sort_keys=True))
+    assert not any(n=='tools' or n.startswith('tools.') for n in sys.modules)
 elif sys.argv[2]=='data':
     from hepta.hia_agent_data_json_native import SOURCE as DATA_SOURCE
     assert Path(sys.argv[1]) in DATA_SOURCE.parents,DATA_SOURCE
@@ -176,6 +244,61 @@ assert not blocked.intersection(sys.modules)
                  'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST':str(cls.data_manifest),
                  'HEPTA_HIA_AGENT_BINARY64_MANIFEST':str(cls.float_manifest),
                  'HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST':str(cls.print_manifest)})
+
+    def publication_case(self,label):
+        case=self.folder/label;case.mkdir()
+        (case/'stage').write_bytes(b'installed\x00native\xff')
+        return case
+
+    def test_actual_installed_native_publication_and_store_without_tools_or_host_payload_fallback(self):
+        for mode in ('publication','artifact-store'):
+            case=self.publication_case('installed-'+mode)
+            result=self.invoke(mode,b'',(str(self.publication/'build.json'),str(case)))
+            self.assertEqual(result.returncode,0,result.stderr)
+            value=json.loads(result.stdout)
+            self.assertEqual(value['sha256'],sha256(b'installed\x00native\xff').hexdigest())
+            self.assertFalse((case/'published').exists())
+
+    def test_installed_publication_missing_build_assets_refuse_before_filesystem_effects(self):
+        for index,name in enumerate(PUBLICATION_BUILD_FILES):
+            source=self.installed/'hepta/_data'/name;held=source.with_suffix(source.suffix+'.held')
+            source.rename(held)
+            try:
+                case=self.publication_case('missing-publication-input-'+str(index))
+                result=self.invoke('publication',b'',(str(self.publication/'build.json'),str(case)))
+                self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'')
+                self.assertFalse((case/'published').exists())
+                self.assertEqual((case/'stage').read_bytes(),b'installed\x00native\xff')
+            finally:held.rename(source)
+
+    def test_installed_publication_rejects_tampered_package_contract_code_and_inventory(self):
+        manifest=self.publication/'build.json';original_manifest=manifest.read_bytes()
+        targets=[self.installed/'hepta/artifact_publication_native.py',
+                 self.installed/'hepta/_data/docs/HIA_SELFHOST_CORE_SUPPORT.json',
+                 self.publication/'hia-artifact']
+        for index,target in enumerate(targets):
+            original=target.read_bytes();target.write_bytes(original+b'\n')
+            try:
+                case=self.publication_case('tampered-publication-'+str(index))
+                result=self.invoke('publication',b'',(str(manifest),str(case)))
+                self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'')
+                self.assertFalse((case/'published').exists())
+            finally:target.write_bytes(original)
+        extra=self.installed/'hepta/unexpected_installed_module.py';extra.write_text('# unbound production module\n')
+        try:
+            case=self.publication_case('extra-publication-module')
+            result=self.invoke('publication',b'',(str(manifest),str(case)))
+            self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'')
+            self.assertFalse((case/'published').exists())
+        finally:extra.unlink()
+        record=json.loads(original_manifest);record['source_sha256']['tools/hia_artifact_publication_syscalls.S']='0'*64
+        manifest.write_text(json.dumps(record))
+        try:
+            case=self.publication_case('mismatched-publication-source')
+            result=self.invoke('publication',b'',(str(manifest),str(case)))
+            self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'')
+            self.assertFalse((case/'published').exists())
+        finally:manifest.write_bytes(original_manifest)
 
     def test_installed_binary64_printing_has_no_host_printer_or_checkout_fallback(self):
         result=self.invoke('printing',b'')

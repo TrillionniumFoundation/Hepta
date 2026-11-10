@@ -15,12 +15,9 @@ from tools.qualify_hia_selfhost import compile_stage,invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.generate_hia_artifact_publication import MAGIC
 ROOT=Path(__file__).resolve().parents[1]
-OPERATIONS=['publish','verify','withdraw','store-put','store-get','store-hash']
-SOURCES=('examples/hia_bootstrap/artifact_publication_policy.hiaasm',
-         'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
-         'examples/hia_bootstrap/sha256_stream.hiaasm',
-         'tools/hia_artifact_publication_syscalls.S',
-         'tools/generate_hia_artifact_publication.py')
+from hepta.artifact_publication_native import NATIVE_PUBLICATION_OPERATIONS,NATIVE_PUBLICATION_SOURCES
+OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
+SOURCES=NATIVE_PUBLICATION_SOURCES
 
 
 def current_sources():
