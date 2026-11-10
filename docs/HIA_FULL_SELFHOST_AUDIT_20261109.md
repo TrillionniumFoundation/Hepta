@@ -758,7 +758,7 @@ Remote qualification of the new source must execute separately. Whole-stack
 closure and all-input refinement/worst-case-cost claims remain false.
 
 
-## v32 native canonical wire continuation (exact qualification pending)
+## v32 native canonical wire continuation (source-bound local qualification)
 
 The22function HIA canonical-wire library decodes an arena, performs iterative
 object-child linked-list merge sort in Unicode-codepoint order, emits compact
@@ -792,3 +792,20 @@ files and412host tools remain non-HIA authorities where described. All8component
 boundaries still3partial/5open. Existing frozen v31 full-repository run remains
 independent and running; no newer global pass is asserted. See
 `docs/HIA_JSON_CANONICAL_NATIVE.md` for the actual ABI, integration and boundaries.
+
+Exact committed implementation `23d461a4e714b6ef9fe44af9c8b6d3fb161e3bac`
+now passes the actual clean-source workflow: 97 tests, 91.244668275 seconds
+including regeneration, with a clean worktree before and after. Its cold replay
+passes all 11 gates and 4,351 native checks in 173.628063743 seconds; language
+coverage passes 1,242/1,242 plus the separate assertion checks. The existing
+180-second cold deadline and compiler capacities remain unchanged.
+
+The same frozen source passes 26 native JSON tests, then builds both application
+images with its completed B3 compiler and cold receipt. Existing consumers pass
+83 tests with both manifests selected and 83 with the default reference. The
+complete sequential qualification takes 407.422016382 seconds. The first
+orchestration attempt failed before running tests because its external helper
+file did not exist; that setup failure is retained separately from the successful
+source-bound run. See `review-evidence/hia-whole-selfhost-20261109/v32-json-canonical-summary.json`
+and its losslessly reconstructable static-audit delta. Remote CI and current
+whole-repository qualification are not promoted to passes by these local results.
