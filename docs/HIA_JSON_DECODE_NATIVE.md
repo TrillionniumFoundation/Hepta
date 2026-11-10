@@ -65,6 +65,10 @@ qualification. Building never activates a production backend.
 
 The selected route serves the existing Core and Agent JSON APIs and bounded
 queue journal, state wire, full-cost, paired-replay and Rust byte-DAG inputs.
-Canonical encoding and other internal/report JSON operations remain Python.
+The separately selected candidate documented in `HIA_JSON_CANONICAL_NATIVE.md`
+handles canonical wire output. With the value backend selected, internal checked
+canonical snapshots and `VerifiedProgram.as_dict()` also use HIA payload decoding.
+Default encoding, caller-owned object serialization and other report JSON
+operations remain Python.
 Finite VM/native/random/boundary observations are not an all-input correctness
 or worst-case-cost proof, cross-platform qualification or whole-stack closure.

@@ -8,13 +8,10 @@ an executable sandbox, a release promotion or an all-input refinement proof.
 from __future__ import annotations
 
 import ctypes
-from functools import lru_cache
-from hashlib import sha256
-import json
 from pathlib import Path
 import struct
 
-from .hia_json_preflight_native import NativeHiaJsonImage, scratch_sizes, MAX_BYTES, MAX_NODES, MAX_DEPTH, MAX_IMAGE_BYTES
+from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, scratch_sizes, MAX_BYTES, MAX_NODES, MAX_DEPTH
 
 SOURCE = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/json_decode.hiaasm'
 SCHEMA = 'hepta.hia.json-decode-native.v1'
@@ -150,27 +147,5 @@ def materialize(arena: bytes, wire: bytes, *, object_pairs_hook=None, parse_int=
     return values[0]
 
 
-@lru_cache(maxsize=1)
-def _load_manifest(path: str, raw: bytes) -> NativeJsonDecoder:
-    value = json.JSONDecoder().decode(raw.decode('utf-8'))
-    if (type(value) is not dict or set(value) != {
-            'schema', 'source_sha256', 'image_path', 'image_sha256', 'compiler_sha256'}
-            or value['schema'] != SCHEMA or type(value['image_path']) is not str
-            or any(type(value[k]) is not str or len(value[k]) != 64
-                   or any(c not in '0123456789abcdef' for c in value[k])
-                   for k in ('source_sha256', 'image_sha256', 'compiler_sha256'))):
-        raise ValueError('invalid native HIA JSON decoder manifest')
-    if sha256(SOURCE.read_bytes()).hexdigest() != value['source_sha256']:
-        raise ValueError('native HIA JSON decoder source identity mismatch')
-    with (Path(path).parent / value['image_path']).open('rb') as handle:
-        image = handle.read(MAX_IMAGE_BYTES + 1)
-    return NativeJsonDecoder(image, value['image_sha256'])
-
-
 def installed_decoder(manifest_path: str) -> NativeJsonDecoder:
-    path = Path(manifest_path).resolve(strict=True)
-    with path.open('rb') as handle:
-        raw = handle.read(16385)
-    if len(raw) > 16384:
-        raise ValueError('native HIA JSON decoder manifest exceeds size limit')
-    return _load_manifest(str(path), raw)
+    return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeJsonDecoder)

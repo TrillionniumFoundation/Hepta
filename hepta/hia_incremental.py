@@ -131,6 +131,8 @@ def _policy():
     imported_helpers = tuple(_callable_policy(helper)
                              for helper in (core.supports_feature, core.preflight_hia_json,
                                             core.decode_hia_json,
+                                            core.decode_internal_canonical,
+                                            core.selected_canonical_wire,
                                             core.opcode_spec, core.check_instruction,
                                             core._catalog_scalar_value_valid,
                                             core.rename_capabilities, core._Capability,

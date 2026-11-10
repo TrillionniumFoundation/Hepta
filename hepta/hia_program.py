@@ -23,7 +23,8 @@ import json
 import re
 
 from .hia_json_preflight import preflight_hia_json
-from .hia_json_decode import decode_hia_json
+from .hia_json_decode import decode_hia_json, decode_internal_canonical
+from .hia_json_canonical_native import selected_canonical_wire
 from .hia_capability_flow import (Capability as _Capability,
                                   CapabilityFlowRejected, rename_capabilities)
 from .hia_schema import (
@@ -294,12 +295,14 @@ def _decode(value):
         value = value.canonical_bytes
     try:
         caller_owned = type(value) in (dict, list)
+        submitted_text = None
         if type(value) is bytes:
             if len(value) > MAX_BYTES:
                 _reject("program exceeds byte budget", "E_HIA_LIMIT")
             value = value.decode("utf-8")
         if type(value) is str:
             _bounded_input_utf8_bytes(value)
+            submitted_text = value
             # Bound value allocation before either selected decoder builds a
             # graph. An optional HIA value arena does not bypass the canonical
             # v7/composite Core verifier or rewrite its semantic checks.
@@ -313,15 +316,18 @@ def _decode(value):
         if caller_owned:
             value = _bounded_detached_snapshot(value)
         _structure(value)
-        raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
-                         ensure_ascii=False, allow_nan=False).encode("utf-8")
+        raw = (selected_canonical_wire(submitted_text, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
+               if submitted_text is not None else None)
+        if raw is None:
+            raw = json.dumps(value, sort_keys=True, separators=(",", ":"),
+                             ensure_ascii=False, allow_nan=False).encode("utf-8")
         if len(raw) > MAX_BYTES:
             _reject("program exceeds byte budget", "E_HIA_LIMIT")
         # Validation uses a detached snapshot, never the caller's mutable dict.
         # This is our own already-structured, byte-bounded canonical output,
         # not a submitted wire. Preserve the existing detached-object bridge
         # without redundantly preflighting the same checked graph a second time.
-        return json.loads(raw), raw
+        return decode_internal_canonical(raw, max_nodes=MAX_NODES, max_depth=MAX_DEPTH), raw
     except HIAProgramRejected:
         raise
     except (ValueError, TypeError, UnicodeError, RecursionError, OverflowError) as exc:
@@ -363,7 +369,7 @@ class VerifiedProgram:
     def normalization_report(self):
         checked = verify_program(self)
         core = checked.as_dict()
-        original = (json.loads(checked.structured_bytes)
+        original = (decode_internal_canonical(checked.structured_bytes, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
                     if checked.structured_bytes is not None else core)
         return {"input_sha256": checked.input_sha256,
                 "core_sha256": checked.sha256,
@@ -377,7 +383,7 @@ class VerifiedProgram:
                 "public_scalar_entrypoints": sorted(checked.scalar_entrypoints)}
 
     def as_dict(self):
-        return json.loads(self.canonical_bytes)
+        return decode_internal_canonical(self.canonical_bytes, max_nodes=MAX_NODES, max_depth=MAX_DEPTH)
 
     def report(self):
         # This public constructor is intentionally not an authority. Even a

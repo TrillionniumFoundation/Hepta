@@ -33,3 +33,17 @@ def decode_hia_json(text: str, *, max_nodes: int, max_depth: int,
         if value is not None:
             options[name] = value
     return json.loads(text, **options)
+
+
+def decode_internal_canonical(wire: bytes, *, max_nodes: int, max_depth: int):
+    """Detach our own already checked canonical output, without a second scan
+    on the default path. A selected HIA decoder also handles this foreign-object
+    bridge; no Python JSON parser is then used for the canonical payload.
+
+    This is not an untrusted-input entry or permission to omit structure checks.
+    """
+    manifest = os.environ.get('HEPTA_HIA_JSON_DECODE_MANIFEST')
+    if (manifest and max_nodes <= 1048576 and max_depth <= 128 and len(wire) <= 8388608):
+        from .hia_json_decode_native import installed_decoder
+        return installed_decoder(manifest).decode(wire, max_nodes=max_nodes, max_depth=max_depth)
+    return json.loads(wire)

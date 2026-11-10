@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 215 Python
-files, 76,484 lines and 4,142,523 bytes. These are source inventory figures, not a
+HIA. The current implementation contains a live `hepta/` package with 216 Python
+files, 76,568 lines and 4,146,940 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **410 Python files /131514lines** under `tools/`,
+The audit also inventories **412 Python files /131754lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-625Python files. Tests, historical evidence, experiments, examples, benchmarks
+628Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -756,3 +756,39 @@ inventory is running on immutable2484f5c with the actual pinned prerequisites.
 It remains separate from all finite passes above and from old7666/4428passes.
 Remote qualification of the new source must execute separately. Whole-stack
 closure and all-input refinement/worst-case-cost claims remain false.
+
+
+## v32 native canonical wire continuation (exact qualification pending)
+
+The22function HIA canonical-wire library decodes an arena, performs iterative
+object-child linked-list merge sort in Unicode-codepoint order, emits compact
+UTF-8 JSON with exact control escaping and normalizes -0. The existing Core
+serialized-input path can explicitly select it after the unchanged structural
+checks. With the value decoder also selected, canonical snapshots/as_dict
+use HIA payload decoding. A real primitive Core input and its immutable snapshot
+execute with Python json.loads/json.dumps/JSONDecoder.decode disabled in the
+application conformance test. Semantic verification, foreign objects, caller-owned
+object serialization, composites, other encoders, runtime and services remain
+Python; this is not full frontend/runtime replacement or default activation.
+
+The shared trusted-image manifest loader now refuses duplicate fields and binds
+current source bytes as part of its cache key. An actual warm-cache source-drift
+regression covers all3native JSON protocols, while mapped code stays immutable.
+The low-level canonicalizer can preserve very long integer lexemes without
+host integer construction; foreign decoder digit policies still apply to Core
+admission, and no unrestricted Python-decoder equivalence is claimed.
+
+Development observations:7VM/source checksPASS5.269s,26fresh native JSON tests
+PASS28.359s,77default/source/release/cache regressionsPASS1.966s and83existing
+consumers with both native manifests selectedPASS25.335s. The initial VM fixture
+read240observation bytes from a valid224byte output at depth1; it correctly
+trapped. The fixture now observes min(240, actual output capacity), preserving
+every original input and refusal. That failed log is retained; no production
+capacity or bounds check was changed to make it pass. These development logs
+are not substitutes for exact committed cold/language/source qualification.
+
+The staged whole-tree inventory has10044tracked paths; its216Python package
+files and412host tools remain non-HIA authorities where described. All8component
+boundaries still3partial/5open. Existing frozen v31 full-repository run remains
+independent and running; no newer global pass is asserted. See
+`docs/HIA_JSON_CANONICAL_NATIVE.md` for the actual ABI, integration and boundaries.

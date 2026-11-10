@@ -19,12 +19,12 @@ from tools.generate_hia_json_decode import document
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def vm_arena(wire, nodes=32, depth=4):
+def vm_arena(wire, nodes=32, depth=4, *, source_path=SOURCE, sizes=None):
     from tools.hia_selfhost_bulk import Body
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import execute_program
     body = Body(0)
-    output_size, workspace_size = arena_sizes(len(wire), nodes, depth)
+    output_size, workspace_size = arena_sizes(len(wire), nodes, depth) if sizes is None else sizes
     state = bytearray(workspace_size)
     struct.pack_into('<QQ', state, 48, nodes, depth)
     owners, views = [], []
@@ -39,21 +39,22 @@ def vm_arena(wire, nodes=32, depth=4):
     body.effect('loan.end', [views[0]])
     views[0] = body.value('readbuf', 'borrow.read', [owners[0]])
     result = body.value('u32', 'call', views, {'function': 'f0'})
-    observed = [body.value('u8', 'buffer.load', [views[1], body.const('usize', i)]) for i in range(240)]
+    observation_size = min(240, output_size)
+    observed = [body.value('u8', 'buffer.load', [views[1], body.const('usize', i)]) for i in range(observation_size)]
     for view in views:
         body.effect('loan.end', [view])
     for owner in owners:
         body.effect('owner.drop', [owner])
     source = ('hia-asm.v1 hepta.hia.program.v8 json_arena_reference\n'
-              'fn observe() -> (u32,' + ','.join(['u8'] * 240) + ') '
+              'fn observe() -> (u32,' + ','.join(['u8'] * observation_size) + ') '
               'effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'
               + body.text() + '  ret(' + ','.join([result, *observed]) + ')\nend\n'
-              + SOURCE.read_text().split('\n', 1)[1])
+              + source_path.read_text().split('\n', 1)[1])
     actual = execute_program(assemble_program(source), 'observe', [], max_steps=2000000)
     if actual['status'] != 'returned':
         raise AssertionError(actual)
     code, *raw = actual['values']
-    return code, bytes(raw[:code]) if code <= 240 else None
+    return code, bytes(raw[:code]) if code <= observation_size else None
 
 
 class JsonDecodeHiaSourceTests(unittest.TestCase):

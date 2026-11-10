@@ -39,6 +39,8 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_json_canonical.py", "tools/build_hia_json_canonical.py",
+    "tests/test_hia_json_canonical_native.py", "examples/hia_bootstrap/json_canonical.hiaasm",
     "tools/generate_hia_json_decode.py", "tools/build_hia_json_decode.py",
     "tests/test_hia_json_decode_native.py", "examples/hia_bootstrap/json_decode.hiaasm",
     "tools/generate_hia_json_preflight.py", "tools/build_hia_json_preflight.py",

@@ -18,7 +18,7 @@ if __package__ in {None, ''}:
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
-    if candidate not in ('preflight', 'decode'):
+    if candidate not in ('preflight', 'decode', 'canonical'):
         raise ValueError('unknown HIA JSON candidate')
     raw = cold_report.read_bytes()
     qualification = json.loads(raw)
@@ -58,7 +58,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         'manifest': manifest, 'cold_report_sha256': sha256(raw).hexdigest(),
         'native_compile_receipt': receipt, 'production_activated': False,
         'all_input_equivalence_proved': False, 'full_json_value_decoder_implemented': False,
-        'hia_json_value_arena_implemented': candidate == 'decode',
+        'hia_json_value_arena_implemented': candidate in ('decode', 'canonical'),
+        'hia_json_canonical_wire_implemented': candidate == 'canonical',
         'foreign_object_bridge_is_python': candidate == 'decode',
         'whole_stack_rewritten_in_hia': False}, indent=2, sort_keys=True) + '\n')
     return path

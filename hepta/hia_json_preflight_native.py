@@ -36,10 +36,10 @@ class NativeHiaJsonImage:
     def __init__(self, image: bytes, expected_sha256: str):
         if (platform.system() != 'Linux' or platform.machine() != 'x86_64'
                 or ctypes.sizeof(ctypes.c_void_p) != 8):
-            raise ValueError('native HIA JSON preflight requires Linux x86-64 LP64')
+            raise ValueError('native HIA JSON image requires Linux x86-64 LP64')
         if (type(image) is not bytes or not 0 < len(image) <= MAX_IMAGE_BYTES
                 or sha256(image).hexdigest() != expected_sha256):
-            raise ValueError('native HIA JSON preflight executable identity mismatch')
+            raise ValueError('native HIA JSON executable identity mismatch')
         self.image_sha256 = expected_sha256
         mapped = mmap.mmap(-1, len(image), prot=mmap.PROT_READ | mmap.PROT_WRITE)
         mapped.write(image)
@@ -86,30 +86,49 @@ class NativeJsonPreflight(NativeHiaJsonImage):
             raise ValueError('HIA JSON preflight: invalid JSON syntax or Unicode')
 
 
-@lru_cache(maxsize=1)
-def _load_manifest(path: str, raw: bytes) -> NativeJsonPreflight:
-    value = json.JSONDecoder().decode(raw.decode('utf-8'))
+def _unique_manifest_pairs(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError('duplicate native HIA JSON manifest field')
+        value[key] = item
+    return value
+
+
+@lru_cache(maxsize=3)
+def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory):
+    value = json.JSONDecoder(object_pairs_hook=_unique_manifest_pairs).decode(raw.decode('utf-8'))
     if (type(value) is not dict or set(value) != {
             'schema', 'source_sha256', 'image_path', 'image_sha256', 'compiler_sha256'}
-            or value['schema'] != SCHEMA
+            or value['schema'] != schema
             or any(type(value[k]) is not str or len(value[k]) != 64
                    or any(c not in '0123456789abcdef' for c in value[k])
                    for k in ('source_sha256', 'image_sha256', 'compiler_sha256'))
             or type(value['image_path']) is not str):
-        raise ValueError('invalid native HIA JSON preflight manifest')
-    if sha256(SOURCE.read_bytes()).hexdigest() != value['source_sha256']:
-        raise ValueError('native HIA JSON preflight source identity mismatch')
+        raise ValueError('invalid native HIA JSON manifest')
+    if source_sha != value['source_sha256']:
+        raise ValueError('native HIA JSON source identity mismatch')
     image_path = Path(path).parent / value['image_path']
     with image_path.open('rb') as handle:
         image = handle.read(MAX_IMAGE_BYTES + 1)
-    return NativeJsonPreflight(image, value['image_sha256'])
+    return factory(image, value['image_sha256'])
 
 
-def installed_preflight(manifest_path: str) -> NativeJsonPreflight:
-    """Only an operator-selected local artifact; never selected by JSON payload."""
+def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):
+    """Cache immutable code, but rebind source bytes on every selection.
+
+    Source identity is part of the cache key: a warm cached image must not
+    hide drift of the source it claims to implement. Loaded code stays pinned;
+    changing its disk file does not replace an already immutable mapping.
+    """
     path = Path(manifest_path).resolve(strict=True)
     with path.open('rb') as handle:
         raw = handle.read(16385)
     if len(raw) > 16384:
-        raise ValueError('native HIA JSON preflight manifest exceeds size limit')
-    return _load_manifest(str(path), raw)
+        raise ValueError('native HIA JSON manifest exceeds size limit')
+    return _load_manifest(str(path), raw, sha256(source.read_bytes()).hexdigest(), schema, factory)
+
+
+def installed_preflight(manifest_path: str) -> NativeJsonPreflight:
+    """Only an operator-selected local artifact; never selected by JSON payload."""
+    return _installed_json_image(manifest_path, SOURCE, SCHEMA, NativeJsonPreflight)
