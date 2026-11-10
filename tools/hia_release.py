@@ -39,6 +39,17 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    "setup.py", "MANIFEST.in", "tests/test_hia_agent_installed_resources.py",
+    "docs/HIA_AGENT_INSTALLED_RESOURCES.md",
     'tools/generate_hia_agent_identity.py', 'tools/build_hia_agent_identity.py',
     'tests/test_hia_agent_identity_native.py', 'examples/hia_bootstrap/agent_identity.hiaasm',
     'docs/HIA_AGENT_IDENTITY_NATIVE.md',

@@ -6,10 +6,10 @@ correlation/digest computation, authorization, persistence and I/O remain host.
 from __future__ import annotations
 import ctypes
 import struct
-from pathlib import Path
+from .hia_agent_store import _agent_resource_path
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
-SOURCE=Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/agent_identity.hiaasm'
+SOURCE=_agent_resource_path('examples/hia_bootstrap/agent_identity.hiaasm')
 SCHEMA='hepta.hia.agent-identity-native.v1'
 MAGIC=int.from_bytes(b'HIAIDP01','little')
 RESULT_MAGIC=int.from_bytes(b'HIAIDR01','little')

@@ -23,7 +23,7 @@ import uuid
 from .hia_agent_contract import (VERSION, ROOT, COST_POLICY_SCHEMA, OBJECTIVE_SCHEMA,
     PLAN_SCHEMA, WORKLOAD_SCHEMA, catalog, installation_manifest, validate)
 from .hia_agent_store import (AgentRejected, AgentStore, capture_path, digest, keys,
-    reject, uint64, wire, decode_data)
+    reject, uint64, wire, decode_data, _agent_resource_path)
 from .hia_program import verify_program
 from .hia_program_tools import decode_json
 from .hia_proof_contract import (PROOF_SCHEMA, PROVED_MEANING, proof_subject, proof_result,
@@ -169,7 +169,7 @@ class HIAAgentService:
                                ("byte_bootstrap_guide", "HIA_DIRECT_BYTE_BOOTSTRAP.md"),
                                ("self_hosting_core_guide", "HIA_SELF_HOSTING_CORE.md"),
                                ("self_hosting_core_support", "HIA_SELFHOST_CORE_SUPPORT.json")):
-            self.resources[name] = self.store.put((ROOT / "docs" / filename).read_bytes(), "discovery")
+            self.resources[name] = self.store.put(_agent_resource_path("docs/" + filename).read_bytes(), "discovery")
         from .hia_agent_macro_discovery import macro_policy_guidance
         self.resources["macro_policy"] = self.store.json(macro_policy_guidance(self.identities), "discovery")
         self.resources["examples"] = self.store.json(self._examples(), "discovery")

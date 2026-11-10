@@ -13,8 +13,19 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v38"
+PROFILE = "selfhost-core-linux-x86_64-v39"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    "setup.py", "MANIFEST.in", "tests/test_hia_agent_installed_resources.py",
+    "docs/HIA_AGENT_INSTALLED_RESOURCES.md",
     "tools/generate_hia_agent_identity.py", "tools/build_hia_agent_identity.py",
     "tests/test_hia_agent_identity_native.py", "examples/hia_bootstrap/agent_identity.hiaasm",
     "docs/HIA_AGENT_IDENTITY_NATIVE.md",
@@ -303,6 +314,11 @@ def support_contract(root=ROOT):
                        "exact lowercase ASCII SHA-256 digest grammar",
                        "owned byte packet validation; short output publishes nothing",
                        "selected store sequence and worker digest-format callers have no reference fallback"],
+             "installed_resources": {"source_distribution_and_wheel": "explicit packaged discovery documents and HIA app source",
+                 "package_root": "hepta/_data; no cwd/HOME/external checkout per-file fallback",
+                 "worker_identity": "includes actual native HIA app source and every discovery document",
+                 "native_executable": "separate operator-selected source/image/compiler-pinned artifact",
+                 "native_only_delivery": False},
              "still_foreign": ["JSON decoding and object/value bridge",
                                "SHA-256 computation and worker correlation/authorization",
                                "durable journal, artifact I/O and complete Agent protocol"]},

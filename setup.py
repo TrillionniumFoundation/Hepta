@@ -1,0 +1,39 @@
+"""Package the pinned Agent discovery and native-app source resources.
+
+This is a development Python wheel build hook, not native build orchestration.
+It copies only explicit source-owned resources; it imports no product modules.
+"""
+from pathlib import Path
+import ast
+import shutil
+from setuptools import setup
+from setuptools.command.build_py import build_py
+
+ROOT=Path(__file__).resolve().parent
+
+def agent_resources():
+    tree=ast.parse((ROOT/'hepta/hia_agent_contract.py').read_text())
+    declarations=[node for node in tree.body if isinstance(node,ast.Assign)
+                  and any(isinstance(target,ast.Name) and target.id=='DISCOVERY_FILES' for target in node.targets)]
+    if len(declarations)!=1:raise ValueError('one explicit Agent discovery resource list required')
+    names=ast.literal_eval(declarations[0].value)
+    if type(names)is not tuple or any(type(n)is not str or Path(n).name!=n for n in names):
+        raise ValueError('invalid Agent discovery resource filenames')
+    return tuple('docs/'+n for n in names)+('examples/hia_bootstrap/agent_identity.hiaasm',)
+
+class AgentResourceBuild(build_py):
+    def run(self):
+        super().run()
+        self._agent_outputs=[]
+        for name in agent_resources():
+            source=ROOT/name
+            if not source.is_file():raise ValueError('missing Agent package resource: '+name)
+            target=Path(self.build_lib)/'hepta/_data'/name
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(source,target)
+            self._agent_outputs.append(str(target))
+
+    def get_outputs(self,include_bytecode=True):
+        return super().get_outputs(include_bytecode)+getattr(self,'_agent_outputs',[])
+
+setup(cmdclass={'build_py':AgentResourceBuild})

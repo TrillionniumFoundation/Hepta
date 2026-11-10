@@ -100,7 +100,8 @@ INTEGRATED_V17_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd28
 SOURCE_TYPES_V18_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
 SOURCE_EXPRESSIONS_V19_COMMITMENT = '1b2ca83b05da13e0e7f655ddbd41f3979ff6b95696a0037f7ad33f5f0ef5130f'
 PRIOR_WHOLE_PARSER_COMMITMENT = '6c12f6dd1318b6eee2914d88379051087ef837d6c21d58a5b4d82bf0633bc933'
-CURRENT_COMMITMENT = 'ec78dce15177423d55341072c713977bfc4f76471df0861bd273a1329fc157dd'
+AGENT_IDENTITY_V22_COMMITMENT = 'ec78dce15177423d55341072c713977bfc4f76471df0861bd273a1329fc157dd'
+CURRENT_COMMITMENT = '0a3a0da4ef8995b466093b774c493dcb01633c9fa7ac2300bce4e2deff6bb998'
 ELF_LINKER_ADDITIONS = (
     'docs/HIA_NATIVE_ELF_LINKER.md',
     'examples/hia_bootstrap/elf_static_linker.hiaasm',
@@ -168,7 +169,24 @@ AGENT_IDENTITY_ADDITIONS = (
     'tools/build_hia_agent_identity.py',
     'tools/generate_hia_agent_identity.py',
 )
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_IDENTITY_ADDITIONS)
+AGENT_INSTALL_ADDITIONS = (
+    'MANIFEST.in',
+    'setup.py',
+    'tests/test_hia_agent_installed_resources.py',
+    'docs/HIA_AGENT_INSTALLED_RESOURCES.md',
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_SELF_HOSTING_CORE.md',
+    'docs/HIA_SELFHOST_CORE_SUPPORT.json',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_IDENTITY_ADDITIONS, *AGENT_INSTALL_ADDITIONS)
 
 
 @contextmanager
@@ -186,10 +204,14 @@ def compiler_directory():
 
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
-        union = plan.source_paths()
+        installed = plan.source_paths()
+        self.assertEqual(len(installed), 436)
+        self.assertEqual(plan.commitment(installed), CURRENT_COMMITMENT)
+        self.assertEqual(plan.AGENT_INSTALL_ADDITIONS, AGENT_INSTALL_ADDITIONS)
+        union = tuple(n for n in installed if n not in AGENT_INSTALL_ADDITIONS)
         self.assertEqual(len(union), 421)
         self.assertEqual(plan.AGENT_IDENTITY_ADDITIONS, AGENT_IDENTITY_ADDITIONS)
-        self.assertEqual(plan.commitment(union), CURRENT_COMMITMENT)
+        self.assertEqual(plan.commitment(union), AGENT_IDENTITY_V22_COMMITMENT)
         self.assertEqual(plan.TYPE_PARSER_ADDITIONS, TYPE_PARSER_ADDITIONS)
         self.assertEqual(plan.SOURCE_PARSER_ADDITIONS, SOURCE_PARSER_ADDITIONS)
         self.assertEqual(sum(n.startswith('hepta/') and n.count('/') == 1 and n.endswith('.py') for n in union), 225)

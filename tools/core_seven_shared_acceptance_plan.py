@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v22'
-PROTOCOL = 'seven-shared-acceptance-v22'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v23'
+PROTOCOL = 'seven-shared-acceptance-v23'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -262,8 +262,25 @@ AGENT_IDENTITY_ADDITIONS = (
     'tools/build_hia_agent_identity.py',
     'tools/generate_hia_agent_identity.py',
 )
-IDENTITY_CAP = 169000
-IDENTITY_RESERVE_DELTA = 24287
+AGENT_INSTALL_ADDITIONS = (
+    'MANIFEST.in',
+    'setup.py',
+    'tests/test_hia_agent_installed_resources.py',
+    'docs/HIA_AGENT_INSTALLED_RESOURCES.md',
+    'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
+    'docs/HIA_AGENT_ASSEMBLY.md',
+    'docs/HIA_PROGRAM.md',
+    'docs/HIA_AGENT_MACHINE_PLANS.md',
+    'docs/HIA_AGENT_MACRO_POLICY.md',
+    'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md',
+    'docs/HIA_SELF_HOSTING_CORE.md',
+    'docs/HIA_SELFHOST_CORE_SUPPORT.json',
+    'docs/HIA_AGENT_PROOF_RESULTS.md',
+    'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md',
+    'docs/HIA_AGENT_BUFFER_LIFECYCLE.md',
+)
+IDENTITY_CAP = 170901
+IDENTITY_RESERVE_DELTA = 26188
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -355,13 +372,16 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
-                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_IDENTITY_ADDITIONS)))
+                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_EXPRESSIONS_ADDITIONS, *ELF_LINKER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS, *AGENT_IDENTITY_ADDITIONS, *AGENT_INSTALL_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
-    current_paths = SOURCE_IDENTITY_PATHS
+    installed_paths = SOURCE_IDENTITY_PATHS
+    require(len(installed_paths) == len(set(installed_paths)) == 436 and commitment(installed_paths) == '0a3a0da4ef8995b466093b774c493dcb01633c9fa7ac2300bce4e2deff6bb998',
+            'reviewed exact source identity closure')
+    current_paths = tuple(n for n in installed_paths if n not in AGENT_INSTALL_ADDITIONS)
     require(len(current_paths) == len(set(current_paths)) == 421 and commitment(current_paths) == 'ec78dce15177423d55341072c713977bfc4f76471df0861bd273a1329fc157dd',
             'reviewed exact source identity closure')
     union_paths = tuple(n for n in current_paths if n not in AGENT_IDENTITY_ADDITIONS)
@@ -431,7 +451,7 @@ def source_paths():
             'historical type parser identity projection')
     require(tuple(name for name in type_parser_v15 if name not in TYPE_PARSER_ADDITIONS) == lexer_v14,
             'historical token parser lexer identity projection')
-    paths = current_paths
+    paths = installed_paths
     # pipeline.compiler_hash reads every actual top-level hepta/*.py byte,
     # including modules that are not imported by this selected proof profile.
     # Reject an extra or absent filename before an external identity is built.

@@ -4,6 +4,20 @@ on:
   pull_request:
     branches: ['codex/hia-sixgap-source-5e6c-20261108', 'work/hia-**']
     paths:
+      - 'docs/HIA_AGENT_ASSEMBLY.md'
+      - 'docs/HIA_AGENT_BUFFER_LIFECYCLE.md'
+      - 'docs/HIA_AGENT_MACHINE_PLANS.md'
+      - 'docs/HIA_AGENT_MACRO_POLICY.md'
+      - 'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json'
+      - 'docs/HIA_AGENT_PROOF_RESULTS.md'
+      - 'docs/HIA_DIRECT_BYTE_BOOTSTRAP.md'
+      - 'docs/HIA_PROGRAM.md'
+      - 'docs/HIA_SAFE_CORE_MACHINE_VALIDATION.md'
+      - 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+      - 'setup.py'
+      - 'MANIFEST.in'
+      - 'tests/test_hia_agent_installed_resources.py'
+      - 'docs/HIA_AGENT_INSTALLED_RESOURCES.md'
       - 'docs/HIA_AGENT_ONLY_SCOPE.md'
       - 'docs/HIA_AGENT_ONLY_SCOPE.json'
       - 'tests/test_hia_agent_entry.py'
@@ -206,6 +220,7 @@ jobs:
           names = (
               "tests.test_hia_agent_entry",
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
+              "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
               "tests.test_hia_agent_identity_native.AgentIdentitySourceTests",
               "tests.test_hia_source_parser_native.SourceParserSourceTests",
               "tests.test_hia_type_parser_native.TypeParserSourceTests",
@@ -337,7 +352,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$HIA_P2_SOURCE_SHA"
           test -z "$(git status --porcelain --untracked-files=all)"
-          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0'
+          python -m pip install 'jsonschema==4.25.1' 'z3-solver==4.15.4.0' 'setuptools==78.1.1' 'wheel==0.46.3'
 
       - name: Install syscall observation dependency
         run: sudo apt-get update && sudo apt-get install -y strace
@@ -362,6 +377,7 @@ jobs:
           python -B -m unittest -v tests.test_hia_selfhost_process_owner 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/process-owner-tests.log"
           python -B -m unittest -v tests.test_hia_source_expressions_native.SourceExpressionsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-expressions-tests.log"
           python -B -m unittest -v tests.test_hia_source_types_native.SourceTypesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-types-tests.log"
+          python -B -m unittest -v tests.test_hia_agent_installed_resources.AgentInstalledResourceTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/agent-installed-resources-tests.log"
           python -B -m unittest -v tests.test_hia_agent_identity_native.AgentIdentityNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/agent-identity-tests.log"
           python -B -m unittest -v tests.test_hia_source_parser_native.SourceParserNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-parser-tests.log"
           python -B -m unittest -v tests.test_hia_type_parser_native.TypeParserNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/type-parser-tests.log"

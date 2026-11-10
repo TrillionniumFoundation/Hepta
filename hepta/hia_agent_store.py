@@ -101,6 +101,17 @@ def keys(value, required, optional=(), label="object"):
         reject("E_HIA_FIELDS", label + " has missing or unknown fields")
 
 
+def _agent_resource_path(name):
+    """Explicit source checkout or package-owned installed resource root.
+
+    An installed package never searches cwd, HOME, sys.prefix or another source
+    tree. Missing individual packaged resources do not fall back to sources.
+    """
+    root = Path(__file__).resolve().parent.parent
+    resource_root = root if (root / "pyproject.toml").is_file() else root / "hepta" / "_data"
+    return resource_root / name
+
+
 def _reference_uint64(value):
     if (type(value) is not str or not value.isascii() or not value.isdecimal()
             or len(value) > 20 or (len(value) > 1 and value[0] == "0")
