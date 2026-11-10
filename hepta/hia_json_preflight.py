@@ -10,9 +10,37 @@ fractional and nonfinite numbers were already rejected by HIA's _structure.
 from __future__ import annotations
 
 import json
+import os
 
 
 def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
+    """Use an explicitly installed HIA candidate inside its declared profile.
+
+    Without the operator-selected manifest, retain the independent Python path.
+    Inputs outside the native profile retain the old API; a broken selected
+    artifact fails closed, never silently falls back after a native error.
+    No JSON payload can select executable code or change the manifest.
+    """
+    if (type(text) is not str or type(max_nodes) is not int or max_nodes < 1
+            or type(max_depth) is not int or max_depth < 0):
+        raise ValueError("invalid HIA JSON preflight input/budgets")
+    manifest = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+    if manifest and max_nodes <= 1048576 and max_depth <= 128:
+        try:
+            wire = text.encode('utf-8')
+        except UnicodeEncodeError:
+            # Python str may contain isolated surrogates. Those are not UTF-8
+            # wire inputs; keep the reference's grammar/budget error ordering.
+            pass
+        else:
+            if len(wire) <= 8388608:
+                from .hia_json_preflight_native import installed_preflight
+                installed_preflight(manifest).admit(wire, max_nodes=max_nodes, max_depth=max_depth)
+                return
+    _preflight_hia_json_reference(text, max_nodes=max_nodes, max_depth=max_depth)
+
+
+def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) -> None:
     """Enforce the same root-at-depth-zero value budget as HIA _structure.
 
     Keys are not structural nodes; array elements and object *values* are.

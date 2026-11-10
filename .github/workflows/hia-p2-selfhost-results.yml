@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/hia-p2-selfhost-results.yml'
       - 'tools/generate_hia_selfhost.py'
+      - 'tools/generate_hia_json_preflight.py'
+      - 'tools/build_hia_json_preflight.py'
+      - 'hepta/hia_json_preflight*.py'
+      - 'tests/test_hia_json_preflight*.py'
+      - 'examples/hia_bootstrap/json_preflight.hiaasm'
       - 'tools/hia_selfhost*.py'
       - 'tools/qualify_hia_selfhost*.py'
       - 'tools/replay_hia_selfhost*.py'
@@ -86,6 +91,7 @@ jobs:
           subprocess.run(["git", "diff", "--exit-code", original, recovered, "--", *manifest["recovered_changed_files"]], check=True)
           print(json.dumps({"status": "SOURCE_RECOVERY_VERIFIED", "changed_files": len(manifest["recovered_changed_files"]), "original_tree": manifest["original_source_tree"]}, sort_keys=True))
           PY
+          python -B -m tools.generate_hia_json_preflight 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-generator.log"
           python -B tools/generate_hia_selfhost.py 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/generator.log"
           python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/inventory.log"
           python -B tools/generate_hia_selfhost_contract.py --check 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/contract.log"
@@ -98,6 +104,8 @@ jobs:
           import json, os, unittest
           from pathlib import Path
           names = (
+              "tests.test_hia_json_preflight",
+              "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
               "tests.test_hia_selfhost.SelfhostSourceTests",
               "tests.test_hia_selfhost_contract.SelfhostContractTests",
               "tests.test_hia_selfhost_cli",
@@ -224,6 +232,7 @@ jobs:
           git rev-parse HEAD 'HEAD^{tree}' > "$RUNNER_TEMP/hia-p2-native/source.txt"
           python -m pip freeze > "$RUNNER_TEMP/hia-p2-native/dependencies.txt"
           python -B tools/qualify_hia_selfhost.py --output "$RUNNER_TEMP/hia-p2-native/qualification.json" 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/qualification.log"
+          python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"
           python -B - <<'PY'
           import json, os
           from pathlib import Path
