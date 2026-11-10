@@ -79,6 +79,19 @@ class Parser:
             self.depth -= 1
 
     def parse(self) -> Program:
+        import os
+        manifest = os.environ.get("HEPTA_HIA_SOURCE_PARSER_MANIFEST", "")
+        if manifest:
+            from .hia_source_parser_native import packet, installed_source_parser
+            try:
+                wire = packet(self)
+            except ValueError:
+                # Explicit candidate profile only. No default grammar switch.
+                return self._parse_reference()
+            return installed_source_parser(manifest).parse(self, wire)
+        return self._parse_reference()
+
+    def _parse_reference(self) -> Program:
         name = "main"
         if self._take("module"):
             name = self._path()

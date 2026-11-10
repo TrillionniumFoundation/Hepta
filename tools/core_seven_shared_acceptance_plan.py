@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v15'
-PROTOCOL = 'seven-shared-acceptance-v15'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v16'
+PROTOCOL = 'seven-shared-acceptance-v16'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -194,10 +194,17 @@ TYPE_PARSER_ADDITIONS = (
     'tools/build_hia_type_parser.py',
     'tools/generate_hia_type_parser.py',
 )
-# Exact type-parser inputs transfer another 663 bytes from logs to identity metadata.
+SOURCE_PARSER_ADDITIONS = (
+    'examples/hia_bootstrap/source_parser.hiaasm',
+    'hepta/hia_source_parser_native.py',
+    'tests/test_hia_source_parser_native.py',
+    'tools/build_hia_source_parser.py',
+    'tools/generate_hia_source_parser.py',
+)
+# Exact whole-parser inputs transfer 666 bytes from logs to identity metadata.
 # All aggregate/source/module/process caps and prior projections are unchanged.
-IDENTITY_CAP = 162832
-IDENTITY_RESERVE_DELTA = 18119
+IDENTITY_CAP = 163498
+IDENTITY_RESERVE_DELTA = 18785
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -286,16 +293,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *ROUND6_ADDITIONS, *LINUX_ADDITIONS,
                                     *NATIVE_AGENT_ADDITIONS, *P0_P3_ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
-                                    *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS)))
+                                    *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *TYPE_PARSER_ADDITIONS, *SOURCE_PARSER_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 375 and commitment(paths) == '49a2a910de52a02227d9d96fcf488df753362970ea79e92521d6e3efc984481e',
+    require(len(paths) == len(set(paths)) == 380 and commitment(paths) == 'b70e5910a8cad3f61d16343c0795cb0a8ae2b89406f5b8fdc91ebdbcd88f4a14',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in TYPE_PARSER_ADDITIONS)
+    previous = tuple(name for name in paths if name not in SOURCE_PARSER_ADDITIONS)
+    require(len(previous) == 375 and commitment(previous) == '49a2a910de52a02227d9d96fcf488df753362970ea79e92521d6e3efc984481e',
+            'historical type parser identity projection')
+    previous = tuple(name for name in previous if name not in TYPE_PARSER_ADDITIONS)
     require(len(previous) == 370 and commitment(previous) == '414e724f72c675c8cf7139da0710af16ec4417b4926a334b3f5c3c171b3b44f4',
             'historical source lexer identity projection')
     previous = tuple(name for name in previous if name not in SOURCE_LEXER_ADDITIONS)
