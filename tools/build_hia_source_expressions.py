@@ -1,0 +1,42 @@
+"""Build the explicitly selected native HIA expression/type/lexer composition."""
+from __future__ import annotations
+import argparse
+from hashlib import sha256
+import json
+from pathlib import Path
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def build(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.build_hia_source_types import build as build_types
+    from tools.build_hia_source_lexer import _checked_compile_receipt
+    from tools.qualify_hia_selfhost import compile_stage
+    source_path = ROOT / 'examples/hia_bootstrap/source_expressions.hiaasm'
+    source = source_path.read_bytes(); compiler_bytes = compiler.read_bytes(); cold_bytes = cold_report.read_bytes()
+    output.mkdir(mode=0o700)
+    child = build_types(output / 'source-types', compiler, cold_report)
+    image, receipt = compile_stage(output, 'source-expressions', compiler, source)
+    if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
+            or cold_report.read_bytes() != cold_bytes):
+        raise ValueError('HIA expression build inputs changed')
+    identity = _checked_compile_receipt(receipt, compiler_bytes, source, image.read_bytes())
+    manifest = {'schema':'hepta.hia.source-expressions-native.v1', **identity, 'image_path':image.name}
+    path = output / 'manifest.json'; path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
+    (output / 'build.json').write_text(json.dumps({'schema':'hepta.hia.source-expressions-build.v1',
+        'status':'NATIVE_CANDIDATE_BUILT', 'manifest':manifest,
+        'source_types_manifest':str(child.relative_to(output)), 'cold_report_sha256':sha256(cold_bytes).hexdigest(),
+        'native_compile_receipt':receipt, 'production_activated':False,
+        'all_input_equivalence_proved':False, 'declarations_and_statements_rewritten':False,
+        'whole_stack_rewritten_in_hia':False}, indent=2, sort_keys=True) + '\n')
+    return path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--compiler', required=True, type=Path)
+    parser.add_argument('--cold-report', required=True, type=Path)
+    parser.add_argument('--output', required=True, type=Path)
+    args = parser.parse_args(); print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()))
+
+
+if __name__ == '__main__': main()

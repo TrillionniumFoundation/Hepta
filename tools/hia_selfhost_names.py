@@ -230,9 +230,9 @@ def renamed_source(source, mapping):
             for op in block['ops']:
                 if op['op'] == 'call':
                     op['attrs']['function'] = mapping[op['attrs']['function']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    # Rendering already fully verifies the document and checks its exact
+    # parsed canonical round trip. The independent VM still verifies its input.
+    return render_assembly(doc).encode()
 
 
 def renamed_values(source, spellings=None):
@@ -265,9 +265,7 @@ def renamed_values(source, spellings=None):
                 term['cond'] = mapping[term['cond']]
                 for arm in ('then', 'else'):
                     term[arm]['args'] = [mapping[x] for x in term[arm]['args']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return render_assembly(doc).encode()
 
 
 def renamed_blocks(source, spellings=None):
@@ -287,9 +285,7 @@ def renamed_blocks(source, spellings=None):
             elif term['op'] == 'branch':
                 for arm in ('then', 'else'):
                     term[arm]['target'] = mapping[term[arm]['target']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return render_assembly(doc).encode()
 
 
 def reordered_blocks(source, position='last'):
@@ -308,9 +304,7 @@ def reordered_blocks(source, position='last'):
         else:
             raise ValueError('invalid entry declaration position')
         fn['blocks'] = remaining[:at] + [entry] + remaining[at:]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return render_assembly(doc).encode()
 
 
 def nonfirst_entry_source():
@@ -578,10 +572,11 @@ def refusals():
 
 
 def independent_reference():
+    import ast
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected
     from hepta.hia_program_runtime import _Machine, _Owner, _View
-    from tools.generate_hia_selfhost import document
+    from tools.generate_hia_selfhost import source_program
     from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
     rows = []
     for row in [*cases(), *value_cases(), *block_cases(), *entry_order_cases()]:
@@ -609,7 +604,13 @@ def independent_reference():
             if row['general_core_expected'] != 'accepted':
                 raise AssertionError('invalid name was accepted by Core: ' + row['id'])
             rejected.append({**row, 'reference': {'status': 'accepted_general_core'}})
-    _, names = document(); mapping = {number: name for name, number in names.items()}
+    # The authoring function order assigns f0, f1, ... before any lowering.
+    # Obtain only these spellings here; constructing an unused Core document
+    # would repeat the whole compiler lowering without adding an observation.
+    # Every actual canonical and alpha source below is still independently
+    # parsed and fully verified, including all call-target identities.
+    nodes = ast.parse(source_program()).body
+    mapping = {'f' + str(i): node.name for i, node in enumerate(nodes)}
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):

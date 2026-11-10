@@ -1,6 +1,104 @@
-# Whole-stack HIA selfhosting audit — 2026-11-09
+# Whole-stack HIA selfhosting audit — 2026-11-09, continued 2026-11-10
 
-## Decision and source authority
+## Current audit and continuation: native source grammar bundle
+
+**Whole-stack replacement remains open; legacy retirement is not eligible.**
+The current continuation starts from source-type branch commit
+`295170dfb9c37bd30a1fb41f2d5567a706c6c746` (PR #848), preserving its complete
+existing type grammar, signed integer support, bounded owner/loan results,
+identifier support and scalar-export ELF backend. The public `main` entry and
+release locks are different authorities; they do not contain or activate this
+entire development stack. No production switch is inferred from a source PR.
+The continuation also retains upstream `b65a42b8cea1cb7c44df5e58a79b9a2cc98db45c`,
+whose changes scope CI checkout while preserving original recovery gates. Its
+new P2 run `42775627170` was still queued at the latest audit observation; the
+older failed run is not used to predict that new run's outcome.
+
+### Findings that change the qualification decision
+
+The latest remote unified source run
+[42772128064](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42772128064)
+failed on the exact #848 source: 595 tests, one cold-replay failure. The owned
+qualification reached its unchanged 180-second deadline at approximately
+180.166 seconds, after 28 of 38 native phases, with no recorded phase exception;
+cleanup completed. The corresponding P2 run was cancelled and is not a pass.
+An exact local baseline replay also timed out at 180.127 seconds. Historical
+local passes and the parent #845 P2 success cannot qualify this failed run.
+All raw failure receipts remain evidence, including intermediate B3 bytes that
+are explicitly ineligible for completed-cold builder admission.
+
+The #848 lexer still converted float text in Python. This continuation ports
+the exact decimal-to-binary64 implementation from sibling source commit
+`666613f3ab674b96d8fc669f720492d4501955de` without replacing #848's type grammar.
+The v3 lexical image now performs exact rational scaling and ties-to-even
+rounding, including subnormals and overflow refusal, in HIA. Python constructs
+the numeric value from native bits.
+
+### Implemented continuation
+
+Three additional checked-in HIA programs now decide the complete existing
+qualified-name/declaration-parameter, effects/resources and expression
+subgrammars. They use exact source-prefix cursors, preserve native type/lexer
+behavior and diagnostic priority, and publish arenas only after native
+validation. Expression parsing uses bounded explicit Pratt frames; it does not
+call the Python expression or type grammar. A single frontend manifest binds
+seven component manifests and common compiler/lexer identities. Broken or
+conflicting selection fails closed.
+
+Independent development tests use VM observations before B0, actual B1/B2
+native successors, exact diagnostics, malformed/truncated inputs, poisoned
+buffers and concurrent calls. Integration exercises sixteen selector
+combinations across twenty-one cases and the unified bundle with all eight
+reference grammar methods plus the old lexer disabled. These component results
+remain distinct from fresh completed cold replay and whole-repository gates.
+The actual repository corpus is 81 `.hepta` files at the parent snapshot;
+`[:300]` was only a cap and never evidence of 300 available source files.
+
+Review found and repaired three additional current-candidate defects before
+freezing source: nonfinite float diagnostics could lose priority to a later
+lexical error; bundle image paths were not confined and temporary manifest
+replacement could evade a before/after check; component builders could bind a
+compiler path restored after temporary replacement instead of the compiler
+identity in the actual invocation receipt. Native prefix replay, captured
+manifest/image bytes, path bounds and receipt identity checks now cover these
+boundaries with explicit regression controls.
+
+The native compiler's scratch-table clears now use its existing bulk-fill
+operation. Five capability/reset loops visit the actual dense interned-name
+count while retaining the 2,048-name admission cap. Independent review and
+last-index/poison diagnostics cover the change. Redundant host verification in
+name reference construction is removed; every independent reference family
+still runs before B0 and every native phase remains required. Qualification
+budgets, worker count and witnesses have not been relaxed.
+
+The support contract advances to v32. Shared source identity advances explicitly
+to v19 with 412 reviewed paths and all 225 package modules; the exact v18 and
+all earlier historical projections remain enforced. The additional 2,423
+identity bytes are transferred from raw-log reserve to metadata inside the
+same 1-MiB aggregate envelope. No execution capacity or deadline changes.
+
+### Remaining replacement boundary
+
+The static ledger remains **3 partial / 5 open**. Python still owns declaration
+and statement grammar, AST/value construction, semantic analysis, composite
+Core elaboration, modules/packages, build orchestration, the production Agent
+worker/service/store, optimizer/proof orchestration and the complete release
+entry. The separate production runtime also retains Rust control-plane code.
+Native x86-64 fixed-profile reproduction does not replace general linking,
+other targets, the standard library or clean-machine whole-toolchain bootstrap.
+
+Deleting those implementations now would remove working functionality. Removal
+requires actual HIA replacements, default native routes without old fallback,
+complete independent conformance and resource-failure checks, source-only and
+changed-source bootstrap of the full toolchain, platform gates and installation
+and project builds without the old compiler/runtime. Neither generated-source
+counts nor optional native routes establish that condition.
+
+The remaining sections record earlier checkpoints and their original outcomes;
+they are not current-head qualification claims. Current continuation receipts
+will name their exact source identity separately.
+
+## Prior source-type checkpoint and source authority
 
 **Whole-stack rewrite is OPEN, not complete.** This continuation adds an
 operator-selected source type parser in HIA. It recognizes the complete existing

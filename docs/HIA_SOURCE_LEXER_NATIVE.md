@@ -10,6 +10,9 @@ The same image parses nonnegative source integers in decimal, hexadecimal,
 octal and binary, including strict prefix and separator validation. It emits
 a minimal little-endian magnitude; Python only constructs the integer object
 from those bytes, without calling a host literal parser.
+Decimal binary64 conversion also executes in HIA: exact rational scaling,
+nearest/ties-to-even rounding, subnormals and overflow refusal. The bridge
+constructs the floating-point object from native bits without `float(text)`.
 
 The first pass validates and counts tokens. Only a successful first pass with
 enough output capacity permits the second pass to emit the token table.
@@ -20,14 +23,22 @@ partially publish token rows. Workspaces and outputs are private per call.
 
 - Linux x86-64 LP64, immutable source/hash-bound local executable image.
 - At most 8 MiB scalar UTF-8 source and 1,048,576 tokens **including EOF**.
-- Manifest schema `hepta.hia.source-lexer-native.v2` declares a little-endian
+- Manifest schema `hepta.hia.source-lexer-native.v3` declares a little-endian
   u64 command at workspace offset 120. Command 0 uses 128 workspace bytes;
   each token row is seven little-endian u64 fields:
   kind, code-point start/end, line, column, UTF-8 value start/end.
 - Command 1 parses one integer using 2,176 workspace bytes, at most 8,192
   input bytes and a 2,048-byte output magnitude. The unchanged 4,096
   non-separator-character limit includes a radix prefix. Zero emits one zero
-  byte. Unknown commands and the old v1 manifest refuse explicitly.
+  byte. Unknown commands and older manifest versions refuse explicitly.
+- Command 2 parses a decimal floating-point literal with 6,272 workspace bytes,
+  at most 8,192 input bytes and an exact eight-byte binary64 result.
+- Scanner scratch offsets 88 and 96 retain the last completed float's byte
+  range. On a later lexical refusal, at most one native prefix replay checks
+  earlier numeric values before exposing that later diagnostic. Nonfinite
+  `1e9999` therefore keeps priority over a subsequent illegal `@`, including
+  when another finite float occurs between them. The refused scan still
+  publishes no token rows.
 - Numeric lexical length limit remains 4,096 non-separator characters.
 - Limits of the selfhost compiler are unchanged. Application token buffers do
   not expand compiler source/output/workspace or process deadlines.
@@ -40,17 +51,20 @@ python -B -m tools.build_hia_source_lexer \
   --cold-report <completed-cold-report.json> --output <new-private-directory>
 ```
 
-Only explicit operator selection via `HEPTA_HIA_SOURCE_LEXER_MANIFEST` routes
+Explicit operator selection via `HEPTA_HIA_SOURCE_LEXER_MANIFEST` routes
 the existing `hepta.lexer.tokenize` API and its real parser callers through
 this image. Default behavior is unchanged. Source outside the bounded scalar
 Unicode representation, including Python strings containing lone surrogates,
 retains the reference API. A broken selected artifact inside the profile
 refuses; it does not silently fall back to the reference scanner.
+The selected native grammar components and unified frontend bundle also bind
+this actual lexer. Their strict scalar-input profile and selection conflicts
+are documented with the corresponding grammar components.
 
 ## Remaining boundaries
 
 The Python bridge still allocates buffers, constructs Token/Span/Diagnostic
-and integer objects, converts finite binary64 values, and
+and integer/binary64 objects from native numeric bytes, and
 maps paths/errors into the existing API. Python also authors the checked-in
 HIA source and builds the B0 seed. The source parser, AST/type checker,
 composites, module/package resolution, general linking, standalone toolchain

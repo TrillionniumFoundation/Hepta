@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
-    from tools.build_hia_source_lexer import build as build_lexer
+    from tools.build_hia_source_lexer import build as build_lexer, _checked_compile_receipt
     from tools.qualify_hia_selfhost import compile_stage
     source_path = ROOT / 'examples/hia_bootstrap/source_types.hiaasm'
     source = source_path.read_bytes()
@@ -27,10 +27,8 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != cold_bytes):
         raise ValueError('HIA source type build inputs changed')
-    manifest = {'schema': 'hepta.hia.source-types-native.v1',
-        'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
-        'image_sha256': sha256(image.read_bytes()).hexdigest(),
-        'compiler_sha256': sha256(compiler_bytes).hexdigest()}
+    identity = _checked_compile_receipt(receipt, compiler_bytes, source, image.read_bytes())
+    manifest = {'schema': 'hepta.hia.source-types-native.v1', **identity, 'image_path': image.name}
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({

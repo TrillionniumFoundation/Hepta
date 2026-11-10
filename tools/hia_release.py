@@ -39,6 +39,15 @@ HIA_TOOLS = tuple("hia_" + name for name in (
     "describe", "read", "artifact", "context", "inspect", "candidate",
     "verify", "emit", "evaluate", "adopt", "rollback"))
 BOOTSTRAP_FILES = (
+    "tools/generate_hia_source_names.py", "tools/build_hia_source_names.py",
+    "tests/test_hia_source_names_native.py", "examples/hia_bootstrap/source_names.hiaasm",
+    "tools/generate_hia_source_clauses.py", "tools/build_hia_source_clauses.py",
+    "tests/test_hia_source_clauses_native.py", "examples/hia_bootstrap/source_clauses.hiaasm",
+    "tools/generate_hia_source_expressions.py", "tools/build_hia_source_expressions.py",
+    "tests/test_hia_source_expressions_native.py", "examples/hia_bootstrap/source_expressions.hiaasm",
+    "tools/build_hia_source_frontend.py", "tests/test_hia_source_frontend_native.py",
+    "docs/HIA_SOURCE_NAMES_NATIVE.md", "docs/HIA_SOURCE_CLAUSES_NATIVE.md",
+    "docs/HIA_SOURCE_EXPRESSIONS_NATIVE.md", "docs/HIA_SOURCE_FRONTEND_NATIVE.md",
     "tools/generate_hia_source_types.py", "tools/build_hia_source_types.py",
     "tests/test_hia_source_types_native.py", "examples/hia_bootstrap/source_types.hiaasm",
     "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",

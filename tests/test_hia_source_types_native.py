@@ -14,9 +14,13 @@ from unittest.mock import patch
 from hepta.ast import HeptaError, Type
 from hepta.hia_source_types_native import (SOURCE, SCHEMA, WORKSPACE, NativeSourceTypes,
                                          materialize, installed_source_types)
-from hepta.hia_source_lexer_native import NativeSourceLexer
+from hepta.hia_source_lexer_native import NativeSourceLexer, SCHEMA as LEXER_SCHEMA
 from hepta.parser import Parser, parse, _MAX_NESTING
 ROOT = Path(__file__).resolve().parents[1]
+SELECTORS = {name: '' for name in (
+    'HEPTA_HIA_SOURCE_FRONTEND_MANIFEST', 'HEPTA_HIA_SOURCE_NAMES_MANIFEST',
+    'HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST', 'HEPTA_HIA_SOURCE_TYPES_MANIFEST',
+    'HEPTA_HIA_SOURCE_CLAUSES_MANIFEST', 'HEPTA_HIA_SOURCE_LEXER_MANIFEST')}
 
 
 def vm_window(wire, begin=0, count=128, capacity=1024, depth=128):
@@ -75,7 +79,7 @@ def references():
 
 
 def type_outcome(source, selected=None, depth=0):
-    with patch.dict('os.environ', {'HEPTA_HIA_SOURCE_TYPES_MANIFEST': selected or '',
+    with patch.dict('os.environ', {**SELECTORS, 'HEPTA_HIA_SOURCE_TYPES_MANIFEST': selected or '',
                                  'HEPTA_HIA_SOURCE_LEXER_MANIFEST': ''}):
         try:
             parser = Parser(source, 'types.hepta'); parser.depth = depth
@@ -114,7 +118,7 @@ class SourceTypesNativeTests(unittest.TestCase):
         lexer_image, _ = compile_stage(cls.folder, 'lexer', second, lexer_source.read_bytes())
         cls.lexer = NativeSourceLexer(lexer_image.read_bytes(), sha256(lexer_image.read_bytes()).hexdigest())
         folder = cls.folder / 'source-lexer'; folder.mkdir()
-        (folder / 'manifest.json').write_text(json.dumps({'schema': 'hepta.hia.source-lexer-native.v2',
+        (folder / 'manifest.json').write_text(json.dumps({'schema': LEXER_SCHEMA,
             'source_sha256': sha256(lexer_source.read_bytes()).hexdigest(), 'image_path': '../' + lexer_image.name,
             'image_sha256': sha256(lexer_image.read_bytes()).hexdigest(),
             'compiler_sha256': sha256(second.read_bytes()).hexdigest()}))
@@ -180,10 +184,12 @@ class SourceTypesNativeTests(unittest.TestCase):
 
     def test_all_actual_repository_sources_and_default_parser_have_equal_AST(self):
         paths = sorted((ROOT / 'tests').rglob('*.hepta')) + sorted((ROOT / 'examples').rglob('*.hepta'))
-        for path in paths[:300]:
+        self.assertGreater(len(paths), 0)
+        print(f'native types corpus files: {len(paths)}')
+        for path in paths:
             source = path.read_text()
             def call(manifest):
-                with patch.dict('os.environ', {'HEPTA_HIA_SOURCE_TYPES_MANIFEST': manifest,
+                with patch.dict('os.environ', {**SELECTORS, 'HEPTA_HIA_SOURCE_TYPES_MANIFEST': manifest,
                                              'HEPTA_HIA_SOURCE_LEXER_MANIFEST': ''}):
                     try: return ('tree', parse(source, str(path)))
                     except HeptaError as error: return ('error', error.diagnostic.to_dict())
@@ -191,8 +197,8 @@ class SourceTypesNativeTests(unittest.TestCase):
 
     def test_real_declaration_expression_cast_and_concurrent_callers_no_host_grammar(self):
         source = "module demo; struct Pair<'a,T> { x: read 'a T, y: [u64;0xff] } fn f(x: u64) -> u64 effects{} { let y: u64 = x as u64; return y; }"
-        with patch.dict('os.environ', {'HEPTA_HIA_SOURCE_TYPES_MANIFEST': ''}): expected = parse(source)
-        with patch.dict('os.environ', {'HEPTA_HIA_SOURCE_TYPES_MANIFEST': str(self.manifest)}), \
+        with patch.dict('os.environ', {**SELECTORS, 'HEPTA_HIA_SOURCE_TYPES_MANIFEST': ''}): expected = parse(source)
+        with patch.dict('os.environ', {**SELECTORS, 'HEPTA_HIA_SOURCE_TYPES_MANIFEST': str(self.manifest)}), \
              patch.object(Parser, '_reference_type', side_effect=AssertionError('foreign type grammar')), \
              patch('hepta.lexer.Lexer.tokenize', side_effect=AssertionError('foreign lexer')):
             with ThreadPoolExecutor(max_workers=8) as pool:

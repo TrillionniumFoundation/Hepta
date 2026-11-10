@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v18'
-PROTOCOL = 'seven-shared-acceptance-v18'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v19'
+PROTOCOL = 'seven-shared-acceptance-v19'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -227,14 +227,39 @@ SOURCE_TYPES_ADDITIONS = (
     'tools/build_hia_source_types.py',
     'tools/generate_hia_source_types.py',
 )
+# Reviewed native names, effects/resources, expression grammar and common
+# frontend selection/build/test inputs. Keep the v18 type grammar closure
+# independently pinned; a future filename still requires an explicit review.
+SOURCE_FRONTEND_ADDITIONS = (
+    'examples/hia_bootstrap/source_clauses.hiaasm',
+    'examples/hia_bootstrap/source_expressions.hiaasm',
+    'examples/hia_bootstrap/source_names.hiaasm',
+    'hepta/hia_source_clauses_native.py',
+    'hepta/hia_source_expressions_native.py',
+    'hepta/hia_source_frontend_native.py',
+    'hepta/hia_source_names_native.py',
+    'tests/test_hia_source_clauses_native.py',
+    'tests/test_hia_source_expressions_native.py',
+    'tests/test_hia_source_frontend_native.py',
+    'tests/test_hia_source_names_native.py',
+    'tools/build_hia_source_clauses.py',
+    'tools/build_hia_source_expressions.py',
+    'tools/build_hia_source_frontend.py',
+    'tools/build_hia_source_names.py',
+    'tools/generate_hia_source_clauses.py',
+    'tools/generate_hia_source_expressions.py',
+    'tools/generate_hia_source_names.py',
+)
 # Observer inputs and the cold-exported protocol document add822 identity
 # bytes, transferred from raw logs within the same aggregate envelope. All
 # execution capacities and deadlines are unchanged. The integrated source lexer
 # adds661more metadata bytes, offset by exactly661fewer raw log bytes.
 # Explicit type grammar inputs add another661 bytes with the same transfer;
 # the aggregate envelope and every execution/process/deadline limit stay fixed.
-IDENTITY_CAP = 165380
-IDENTITY_RESERVE_DELTA = 20667
+# The eighteen explicit frontend inputs add exactly2423 metadata bytes, taken
+# from the raw log allocation within the unchanged one-MiB evidence envelope.
+IDENTITY_CAP = 167803
+IDENTITY_RESERVE_DELTA = 23090
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -326,16 +351,21 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
                                     *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
-                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS)))
+                                    *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS,
+                                    *SOURCE_FRONTEND_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 394 and commitment(paths) == 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379',
+    require(len(paths) == len(set(paths)) == 412 and commitment(paths) == 'af317b47191d0c1f0a68aab03fd3991e5501fa673dbb2814d3f3553a455ae6a5',
             'reviewed exact source identity closure')
-    integrated_v17 = tuple(name for name in paths if name not in SOURCE_TYPES_ADDITIONS)
+    types_v18 = tuple(name for name in paths if name not in SOURCE_FRONTEND_ADDITIONS)
+    require(len(SOURCE_FRONTEND_ADDITIONS) == len(set(SOURCE_FRONTEND_ADDITIONS)) == 18
+            and len(types_v18) == 394 and commitment(types_v18) == 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379',
+            'historical source type grammar identity projection')
+    integrated_v17 = tuple(name for name in types_v18 if name not in SOURCE_TYPES_ADDITIONS)
     require(len(integrated_v17) == 389 and commitment(integrated_v17) == '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c',
             'historical integrated native stack identity projection')
     # Preserve both separately reviewed branches, not just a new union count.

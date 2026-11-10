@@ -116,7 +116,8 @@ def build_references(directory, manifest, filenames, workers):
     identity = digest(manifest)
     # Start expensive families first. A thread only owns a fresh subprocess;
     # VM globals and verified values are never shared between workers.
-    order = ("signed", "scalar-casts", "keyword", *[f for f in BUILDERS if f not in {"signed", "scalar-casts", "keyword"}])
+    expensive = ("names", "signed", "scalar-casts", "keyword", "exports", "capacity")
+    order = (*expensive, *[f for f in BUILDERS if f not in expensive])
     with ThreadPoolExecutor(max_workers=workers) as pool:
         scheduled = [pool.submit(_run, directory, family, identity) for family in order]
         observations = [future.result() for future in scheduled]

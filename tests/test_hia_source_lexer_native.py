@@ -30,7 +30,7 @@ def vm_references():
     for source in ('','fn x','/* π */\r\nfn','0x3f','"🙂"',"'a"):
         wire=source.encode();code,raw=vm_arena(wire,source_path=SOURCE,sizes=(224,128))
         assert code<=224,(source,code)
-        assert materialize(source,'<input>',wire,raw,lambda literal:{b'0x3f':63}[literal])==tokenize(source),source
+        assert materialize(source,'<input>',wire,raw,lambda literal:{b'0x3f':63}[literal],lambda literal:{}[literal])==tokenize(source),source
     code,_=vm_arena(b'1__2',source_path=SOURCE,sizes=(224,128))
     assert code==0xffffffff
     # Exercise command mode 1 in the independent VM before any native seed.
@@ -40,15 +40,23 @@ def vm_references():
         code,raw=vm_integer(wire)
         if expected is None:assert code==0xffffffff
         else:assert code==len(expected) and raw==expected,(wire,code,raw)
+    # Binary64 bits are independent literal expectations, not a host parser.
+    for wire,wanted in ((b'0.0',bytes(8)),(b'0.5',bytes.fromhex('000000000000e03f')),
+                        (b'1.25',bytes.fromhex('000000000000f43f')),
+                        (b'1.00000000000000011102230246251565404236316680908203125',bytes.fromhex('000000000000f03f'))):
+        code,raw=vm_integer(wire,mode=2,workspace=6272)
+        assert code==8 and raw==wanted,(wire,code,raw)
+    assert vm_integer(b'1e999',mode=2,workspace=6272)[0]==0xfffffffc
+    assert vm_integer(b'1.0_',mode=2,workspace=6272)[0]==0xffffffff
 
 
-def vm_integer(wire):
+def vm_integer(wire,mode=1,workspace=2176):
     from tools.hia_selfhost_bulk import Body
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import execute_program
     body=Body(0);owners=[];views=[]
-    state=bytearray(2176);struct.pack_into('<Q',state,120,1)
-    for size,initial in ((len(wire),wire),(8,b''),(2176,state)):
+    state=bytearray(workspace);struct.pack_into('<Q',state,120,mode)
+    for size,initial in ((len(wire),wire),(8,b''),(workspace,state)):
         owner=body.value('buffer','buffer.new',[body.const('usize',size)])
         view=body.value('mutbuf','borrow.mut',[owner])
         for i,value in enumerate(initial):
@@ -75,13 +83,14 @@ class SourceLexerSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly,assemble_program
         self.assertEqual(render_assembly(document()),SOURCE.read_text())
         self.assertEqual(frozenset(KEYWORD_ORDER),KEYWORDS)
-        self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']),20)
+        self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']),30)
         from tools.hia_selfhost_contract import support_contract
         profile=support_contract()
         self.assertEqual(profile['source_lexer_application']['maximum_tokens_including_EOF'],1<<20)
         self.assertEqual(profile['source_lexer_application']['workspace_bytes'],128)
         self.assertEqual(profile['source_lexer_application']['integer_workspace_bytes'],2176)
         self.assertEqual(profile['source_lexer_application']['integer_magnitude_capacity_bytes'],2048)
+        self.assertEqual(profile['source_lexer_application']['float_workspace_bytes'],6272)
         self.assertNotIn('high_level_source_lexing',[row['area'] for row in profile['support']])
 
 
@@ -100,7 +109,7 @@ class SourceLexerNativeTests(unittest.TestCase):
         image,cls.receipt=compile_stage(cls.folder,'source-lexer',second,SOURCE.read_bytes())
         raw=image.read_bytes();cls.native=NativeSourceLexer(raw,sha256(raw).hexdigest())
         cls.manifest=cls.folder/'manifest.json'
-        cls.manifest.write_text(json.dumps({'schema':'hepta.hia.source-lexer-native.v2',
+        cls.manifest.write_text(json.dumps({'schema':'hepta.hia.source-lexer-native.v3',
             'source_sha256':sha256(SOURCE.read_bytes()).hexdigest(),'image_path':image.name,
             'image_sha256':sha256(raw).hexdigest(),
             'compiler_sha256':sha256(second.read_bytes()).hexdigest()}))
@@ -127,6 +136,75 @@ class SourceLexerNativeTests(unittest.TestCase):
                 '"C\x00"','/* x /* nested */','1._0','0x1g',"'🙂",'"a\x1f"'):
             with self.subTest(source=source[:80]):
                 self.compare(source);self.compare(' /* π🙂 */\r\n  '+source)
+
+    def test_earlier_float_errors_precede_later_lexical_errors_without_host_parsing(self):
+        from hepta.lexer import Lexer
+        from types import SimpleNamespace
+        suffixes=(' @',' /* unclosed',' 1__2',' "C\\x00"',' "C\n"',
+                  " '",' π',' 0x',' "unfinished')
+        literals=('1e9999','1.7976931348623159e308','1e9999 0.5',
+                  '0.5 1e9999','1e-9999 0e99999','1e9999x')
+        sources=[prefix+literal+suffix
+                 for prefix in ('','/* π🙂 */\r\n\t','fn f() -> u32 effects {} { return ')
+                 for literal in literals for suffix in suffixes]
+        sources += ['@ 1e9999','1__2 1e9999','"\\n" 1e9999',
+                    '1e9999_ @','1e9999x @','9'*4096+'.0 @']
+        expected=[outcome(lambda source,path:Lexer(source,path).tokenize(),source)
+                  for source in sources]
+        with patch('hepta.hia_source_lexer_native.int',SimpleNamespace(from_bytes=int.from_bytes),create=True):
+            with patch('hepta.hia_source_lexer_native.float',SimpleNamespace(),create=True):
+                with patch('hepta.lexer.Lexer.tokenize',side_effect=AssertionError('foreign tokenizer')):
+                    for source,wanted in zip(sources,expected):
+                        with self.subTest(source=source[:96]):
+                            self.assertEqual(outcome(self.native.tokenize,source),wanted)
+                    with ThreadPoolExecutor(max_workers=8) as pool:
+                        actual=list(pool.map(lambda source:outcome(self.native.tokenize,source),sources))
+                    self.assertEqual(actual,expected)
+
+    def test_float_error_replay_is_bounded_at_the_exact_token_cap(self):
+        count=(1<<20)-1
+        cases=(('!'*count+'1e9999 @','E_LEX_NUMBER',count,count+6),
+               ('!'*count+'0.5 @','E_LEX_CHARACTER',count+4,count+5),
+               ('1e9999 '+'!'*(count+1),'E_LEX_NUMBER',0,6))
+        for source,code,start,end in cases:
+            with self.subTest(code=code,start=start):
+                with patch.object(self.native,'_tokenize',wraps=self.native._tokenize) as replay:
+                    actual=outcome(self.native.tokenize,source)
+                self.assertEqual(actual[0],'diagnostic')
+                self.assertEqual(actual[1]['code'],code)
+                self.assertEqual(actual[1]['span'],{'path':'lexical-input.hepta',
+                    'start':start,'end':end,'line':1,'column':start+1})
+                self.assertEqual(replay.call_count,2)
+                self.assertEqual([call.kwargs['check_earlier_float'] for call in replay.call_args_list],
+                                 [True,False])
+        # Even inconsistent image metadata cannot trigger a recursive replay.
+        def bad_prefix(source,size,output,capacity,state,workspace):
+            struct.pack_into('<Q',state,48,10)
+            struct.pack_into('<Q',state,56,7)
+            struct.pack_into('<2Q',state,88,0,6)
+            return 0xffffffff
+        with patch.object(self.native,'_entry',side_effect=bad_prefix) as calls:
+            with self.assertRaisesRegex(RuntimeError,'float replay prefix was not admitted'):
+                self.native.tokenize('1e9999 @')
+        self.assertEqual(calls.call_count,2)
+
+    def test_failed_scan_preserves_native_float_range_without_publishing_output(self):
+        cases=((b'@',(0,0)),(b'1e9999 @',(0,6)),
+               (b'1e9999 0.5 /* unfinished',(7,10)),
+               (b'1.0 "C\\x00"',(0,3)),(b'1.0 "C\n"',(0,3)),
+               (b'1.0 1__2',(0,3)),('1.0 π'.encode(),(0,3)),
+               ('/* π🙂 */\r\n1e9999 "unfinished'.encode(),(14,20)))
+        for wire,wanted in cases:
+            with self.subTest(wire=wire):
+                source=ctypes.create_string_buffer(wire,len(wire))
+                output=ctypes.create_string_buffer(b'\xa5'*232,232)
+                state=ctypes.create_string_buffer(b'\x5a'*136,136)
+                struct.pack_into('<Q',state,120,0)
+                self.assertEqual(self.native._entry(source,len(wire),output,224,state,128),0xffffffff)
+                self.assertEqual(struct.unpack_from('<2Q',state,88),wanted)
+                self.assertEqual(output.raw,b'\xa5'*232)
+                self.assertEqual(state.raw[128:],b'\x5a'*8)
+                self.assertEqual(source.raw,wire)
 
     def test_two_thousand_deterministic_random_token_and_comment_compositions(self):
         rng=random.Random(0x1e7e2026)
@@ -252,7 +330,7 @@ class SourceLexerNativeTests(unittest.TestCase):
                 b'1e2',b'9'*4097,b'\xff',b'123\x00',b' 1')]
         cases += [(b'256',1,2176,1,0xfffffffe),(b'1',0,2176,1,0xfffffffe),
                   (b'1',2048,2175,1,0xfffffffd),(b'1'*8193,2048,2176,1,0xfffffffd),
-                  (b'fn',224,128,2,0xfffffffd)]
+                  (b'fn',224,128,3,0xfffffffd)]
         for wire,capacity,state_size,mode,wanted in cases:
             with self.subTest(wire=wire[:20],mode=mode,capacity=capacity,state_size=state_size):
                 source=ctypes.create_string_buffer(wire,max(1,len(wire)))
@@ -279,9 +357,62 @@ class SourceLexerNativeTests(unittest.TestCase):
                 with ThreadPoolExecutor(max_workers=8) as pool:
                     self.assertEqual(list(pool.map(self.native.tokenize,[source]*16)),[expected]*16)
 
-    def test_v1_manifest_is_not_accepted_for_changed_workspace_command_protocol(self):
+    def test_old_manifests_are_not_accepted_for_changed_workspace_command_protocol(self):
         from hepta.hia_source_lexer_native import installed_source_lexer
         old=self.folder/'old-manifest.json'
-        manifest=json.loads(self.manifest.read_text());manifest['schema']='hepta.hia.source-lexer-native.v1'
-        old.write_text(json.dumps(manifest))
-        with self.assertRaises(ValueError):installed_source_lexer(str(old))
+        manifest=json.loads(self.manifest.read_text())
+        for version in (1,2):
+            manifest['schema']='hepta.hia.source-lexer-native.v'+str(version)
+            old.write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError):installed_source_lexer(str(old))
+
+    def test_binary64_rounding_normal_subnormal_halfway_and_overflow_boundaries(self):
+        import math
+        cases=['0.0','1.0','0.1','0.5','1.25','2e308','1.7976931348623157e308',
+            '1.7976931348623158e308','1.7976931348623159e308','2.2250738585072014e-308',
+            '2.225073858507201e-308','5e-324','4.9406564584124654e-324','2.4703282292062327e-324',
+            '2.4703282292062328e-324','1e-324','0e99999','0.0e-99999','1e99999','1e-99999',
+            '1.00000000000000011102230246251565404236316680908203125',
+            '1.00000000000000033306690738754696212708950042724609375',
+            '9'*4000+'.0e-3999','0.'+'0'*4000+'1e4000','0.'+'9'*4000+'e-308',
+            '1_234.5_6e-0_1','0.'+'0'*4092+'1']
+        rng=random.Random(0xf1064)
+        for _ in range(1500):
+            digits=str(rng.randrange(1,10))+''.join(str(rng.randrange(10)) for _ in range(rng.randrange(0,140)))
+            middle=rng.randrange(1,len(digits)+1)
+            cases.append(digits[:middle]+'.'+(digits[middle:] or '0')+'e'+str(rng.randrange(-500,400)))
+        for literal in cases:
+            with self.subTest(source=literal[:80]):
+                expected=float(literal.replace('_',''))
+                if math.isfinite(expected):
+                    self.assertEqual(struct.pack('<d',self.native.float_value(literal.encode())),struct.pack('<d',expected))
+                else:
+                    with self.assertRaises(OverflowError):self.native.float_value(literal.encode())
+                self.compare(literal)
+
+    def test_float_command_refusals_are_transactional_with_exact_guards(self):
+        cases=[(s,8,6272,0xffffffff) for s in
+               (b'',b'1',b'1.',b'.1',b'1e',b'1e+',b'0x1.2',b'1__2.0',b'1._0',b'1.0_',
+                b'NaN',b'inf',b'-1.0',b'1.0x',b'9'*4096+b'.0',b'1.0\x00')]
+        cases += [(b'2e308',8,6272,0xfffffffc),(b'1.0',7,6272,0xfffffffe),
+                  (b'1.0',8,6271,0xfffffffd),(b'1.'+b'0'*8191,8,6272,0xfffffffd)]
+        for wire,capacity,state_size,wanted in cases:
+            with self.subTest(wire=wire[:20],capacity=capacity,state_size=state_size):
+                source=ctypes.create_string_buffer(wire,max(1,len(wire)))
+                output=ctypes.create_string_buffer(b'\xa5'*(capacity+8),capacity+8)
+                state=ctypes.create_string_buffer(b'\x5a'*(state_size+8),state_size+8)
+                struct.pack_into('<Q',state,120,2)
+                self.assertEqual(self.native._entry(source,len(wire),output,capacity,state,state_size),wanted)
+                self.assertEqual(output.raw,b'\xa5'*(capacity+8))
+                self.assertEqual(state.raw[state_size:],b'\x5a'*8)
+                self.assertEqual(source.raw[:len(wire)],wire)
+
+    def test_all_numeric_values_without_host_literal_parsers_and_private_concurrency(self):
+        from types import SimpleNamespace
+        source='0x10000000000000000 1.25 0.1 5e-324 1e-9999 1_024.5_0'
+        expected=tokenize(source)
+        with patch('hepta.hia_source_lexer_native.int',SimpleNamespace(from_bytes=int.from_bytes),create=True):
+            with patch('hepta.hia_source_lexer_native.float',SimpleNamespace(),create=True):
+                with patch('hepta.lexer.Lexer.tokenize',side_effect=AssertionError('foreign tokenizer')):
+                    with ThreadPoolExecutor(max_workers=8) as pool:
+                        self.assertEqual(list(pool.map(self.native.tokenize,[source]*32)),[expected]*32)

@@ -97,7 +97,8 @@ JSON_CLI_COMMITMENT = '61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf7
 EXPORT_CLI_COMMITMENT = '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535'
 OBSERVER_V16_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7'
 INTEGRATED_V17_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
-CURRENT_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
+TYPES_V18_COMMITMENT = 'ba4fcb100a6f27c75e1eb195a32c5c61096b23e02d8de2c2a8c17888574a0379'
+CURRENT_COMMITMENT = 'af317b47191d0c1f0a68aab03fd3991e5501fa673dbb2814d3f3553a455ae6a5'
 JSON_CLI_ADDITIONS = (
     'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
     'tests/test_hia_core_json_cli.py',
@@ -139,7 +140,27 @@ SOURCE_TYPES_ADDITIONS = (
     'tools/build_hia_source_types.py',
     'tools/generate_hia_source_types.py',
 )
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS)
+SOURCE_FRONTEND_ADDITIONS = (
+    'examples/hia_bootstrap/source_clauses.hiaasm',
+    'examples/hia_bootstrap/source_expressions.hiaasm',
+    'examples/hia_bootstrap/source_names.hiaasm',
+    'hepta/hia_source_clauses_native.py',
+    'hepta/hia_source_expressions_native.py',
+    'hepta/hia_source_frontend_native.py',
+    'hepta/hia_source_names_native.py',
+    'tests/test_hia_source_clauses_native.py',
+    'tests/test_hia_source_expressions_native.py',
+    'tests/test_hia_source_frontend_native.py',
+    'tests/test_hia_source_names_native.py',
+    'tools/build_hia_source_clauses.py',
+    'tools/build_hia_source_expressions.py',
+    'tools/build_hia_source_frontend.py',
+    'tools/build_hia_source_names.py',
+    'tools/generate_hia_source_clauses.py',
+    'tools/generate_hia_source_expressions.py',
+    'tools/generate_hia_source_names.py',
+)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_FRONTEND_ADDITIONS)
 
 
 @contextmanager
@@ -158,9 +179,14 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 394)
+        self.assertEqual(len(actual), 412)
+        self.assertEqual(plan.SOURCE_FRONTEND_ADDITIONS, SOURCE_FRONTEND_ADDITIONS)
+        self.assertEqual(len(SOURCE_FRONTEND_ADDITIONS), 18)
+        types_v18 = tuple(n for n in actual if n not in SOURCE_FRONTEND_ADDITIONS)
+        self.assertEqual(len(types_v18), 394)
+        self.assertEqual(plan.commitment(types_v18), TYPES_V18_COMMITMENT)
         self.assertEqual(plan.SOURCE_TYPES_ADDITIONS, SOURCE_TYPES_ADDITIONS)
-        integrated_v17 = tuple(n for n in actual if n not in SOURCE_TYPES_ADDITIONS)
+        integrated_v17 = tuple(n for n in types_v18 if n not in SOURCE_TYPES_ADDITIONS)
         self.assertEqual(len(integrated_v17), 389)
         self.assertEqual(plan.commitment(integrated_v17), INTEGRATED_V17_COMMITMENT)
         self.assertEqual(plan.SOURCE_LEXER_ADDITIONS, SOURCE_LEXER_ADDITIONS)
@@ -223,18 +249,18 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_FRONTEND_ADDITIONS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
         self.assertEqual(sum(name.startswith('hepta/') and name.count('/') == 1
-                             and name.endswith('.py') for name in actual), 221)
+                             and name.endswith('.py') for name in actual), 225)
         for name in NEW_INPUTS:
             self.assertTrue((plan.ROOT / name).is_file(), name)
 
     def test_each_new_compiler_module_is_required(self):
         with compiler_directory() as root, patch.object(plan, 'ROOT', root):
-            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
+            for name in (*(n for n in (*JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *SOURCE_TYPES_ADDITIONS, *SOURCE_FRONTEND_ADDITIONS) if n.startswith('hepta/')), *CACHE_INPUTS, *ROUND6_COMPILER_INPUTS, *LINUX_COMPILER_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS):
                 with self.subTest(name=name):
                     (root / name).unlink()
                     with self.assertRaisesRegex(ValueError, 'complete actual compiler_hash input set'):
@@ -308,6 +334,19 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         with patch.object(plan, 'SOURCE_IDENTITY_PATHS', changed):
             with self.assertRaisesRegex(ValueError, 'reviewed exact source identity closure'):
                 plan.source_paths()
+
+    def test_source_frontend_additions_cannot_reinterpret_v18(self):
+        changed = {
+            'omitted': SOURCE_FRONTEND_ADDITIONS[1:],
+            'historical-added': (*SOURCE_FRONTEND_ADDITIONS, SOURCE_TYPES_ADDITIONS[0]),
+            'same-count-swap': (*SOURCE_FRONTEND_ADDITIONS[1:], SOURCE_TYPES_ADDITIONS[0]),
+            'duplicate': (*SOURCE_FRONTEND_ADDITIONS, SOURCE_FRONTEND_ADDITIONS[0]),
+            'unknown-added': (*SOURCE_FRONTEND_ADDITIONS, 'hepta/unreviewed.py'),
+        }
+        for label, additions in changed.items():
+            with self.subTest(change=label), patch.object(plan, 'SOURCE_FRONTEND_ADDITIONS', additions):
+                with self.assertRaisesRegex(ValueError, 'historical source type grammar identity projection'):
+                    plan.source_paths()
 
 
 if __name__ == '__main__':

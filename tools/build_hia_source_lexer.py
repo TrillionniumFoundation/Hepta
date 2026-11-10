@@ -8,6 +8,25 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def _checked_compile_receipt(receipt, compiler_bytes: bytes, source: bytes, image: bytes):
+    """Bind publication to the bytes the compiler invocation actually used.
+
+    Comparing input files before and after a build does not detect a temporary
+    replacement followed by restoration. The invocation receipt must identify
+    the captured compiler/source and the exact image bytes being published.
+    """
+    identity = {'compiler_sha256': sha256(compiler_bytes).hexdigest(),
+                'source_sha256': sha256(source).hexdigest(),
+                'image_sha256': sha256(image).hexdigest()}
+    if (type(receipt) is not dict or not image
+            or receipt.get('artifact_sha256') != identity['compiler_sha256']
+            or receipt.get('input_sha256') != identity['source_sha256']
+            or receipt.get('source_sha256', identity['source_sha256']) != identity['source_sha256']
+            or receipt.get('produced_sha256') != identity['image_sha256']):
+        raise ValueError('HIA source build receipt identity mismatch')
+    return identity
+
+
 def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     raw=cold_report.read_bytes()
@@ -32,14 +51,14 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     source=source_path.read_bytes()
     output.mkdir(mode=0o700)
     image,receipt=compile_stage(output,'source-lexer',compiler,source)
-    if source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes:
+    if (source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes
+            or cold_report.read_bytes()!=raw):
         raise ValueError('native candidate build inputs changed')
-    manifest={'schema':'hepta.hia.source-lexer-native.v2','source_sha256':sha256(source).hexdigest(),
-        'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
-        'compiler_sha256':compiler_sha}
+    identity = _checked_compile_receipt(receipt, compiler_bytes, source, image.read_bytes())
+    manifest={'schema':'hepta.hia.source-lexer-native.v3', **identity, 'image_path':image.name}
     path=output/'manifest.json'
     path.write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
-    (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.source-lexer-build.v2',
+    (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.source-lexer-build.v3',
         'status':'NATIVE_CANDIDATE_BUILT','manifest':manifest,
         'cold_report_sha256':sha256(raw).hexdigest(),'native_compile_receipt':receipt,
         'production_activated':False,'all_input_equivalence_proved':False,

@@ -25,6 +25,27 @@ on:
       - 'hepta/hia_source_types_native.py'
       - 'tests/test_hia_source_types_native.py'
       - 'examples/hia_bootstrap/source_types.hiaasm'
+      - 'tools/generate_hia_source_names.py'
+      - 'tools/build_hia_source_names.py'
+      - 'hepta/hia_source_names_native.py'
+      - 'tests/test_hia_source_names_native.py'
+      - 'examples/hia_bootstrap/source_names.hiaasm'
+      - 'tools/generate_hia_source_clauses.py'
+      - 'tools/build_hia_source_clauses.py'
+      - 'hepta/hia_source_clauses_native.py'
+      - 'tests/test_hia_source_clauses_native.py'
+      - 'examples/hia_bootstrap/source_clauses.hiaasm'
+      - 'tools/generate_hia_source_expressions.py'
+      - 'tools/build_hia_source_expressions.py'
+      - 'hepta/hia_source_expressions_native.py'
+      - 'tests/test_hia_source_expressions_native.py'
+      - 'examples/hia_bootstrap/source_expressions.hiaasm'
+      - 'tools/build_hia_source_frontend.py'
+      - 'hepta/hia_source_frontend_native.py'
+      - 'tests/test_hia_source_frontend_native.py'
+      - 'hepta/parser.py'
+      - 'hepta/ast.py'
+      - 'docs/HIA_SOURCE_*_NATIVE.md'
       - 'tools/generate_hia_source_lexer.py'
       - 'tools/build_hia_source_lexer.py'
       - 'hepta/lexer.py'
@@ -149,6 +170,9 @@ jobs:
           python -B -m tools.generate_hia_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/native-observer-generator.log"
           python -B -m tools.generate_hia_source_types 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-types-generator.log"
           python -B -m tools.generate_hia_source_lexer 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-lexer-generator.log"
+          python -B -m tools.generate_hia_source_names 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-names-generator.log"
+          python -B -m tools.generate_hia_source_clauses 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-clauses-generator.log"
+          python -B -m tools.generate_hia_source_expressions 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/source-expressions-generator.log"
           python -B -m tools.generate_hia_sha256 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/sha256-generator.log"
           python -B -m tools.generate_hia_json_preflight 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-generator.log"
           python -B -m tools.generate_hia_json_decode 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-decode-generator.log"
@@ -171,6 +195,10 @@ jobs:
               "tests.test_hia_sha256_stream_native.Sha256StreamSourceTests",
               "tests.test_hia_source_types_native.SourceTypesSourceTests",
               "tests.test_hia_source_lexer_native.SourceLexerSourceTests",
+              "tests.test_hia_source_names_native.SourceNamesSourceTests",
+              "tests.test_hia_source_clauses_native.SourceClausesSourceTests",
+              "tests.test_hia_source_expressions_native.SourceExpressionsSourceTests",
+              "tests.test_hia_source_frontend_native.SourceFrontendCustodyTests",
               "tests.test_hia_sha256_native.Sha256HiaSourceTests",
               "tests.test_hia_json_preflight",
               "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
@@ -315,6 +343,10 @@ jobs:
           python -B -m unittest -v tests.test_hia_selfhost_native_observer 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/native-observer-tests.log"
           python -B -m unittest -v tests.test_hia_source_types_native.SourceTypesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-types-tests.log"
           python -B -m unittest -v tests.test_hia_source_lexer_native.SourceLexerNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-lexer-tests.log"
+          python -B -m unittest -v tests.test_hia_source_names_native.SourceNamesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-names-tests.log"
+          python -B -m unittest -v tests.test_hia_source_clauses_native.SourceClausesNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-clauses-tests.log"
+          python -B -m unittest -v tests.test_hia_source_expressions_native.SourceExpressionsNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-expressions-tests.log"
+          python -B -m unittest -v tests.test_hia_source_frontend_native.SourceFrontendNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/source-frontend-tests.log"
           python -B -m unittest -v tests.test_hia_sha256_native.Sha256HiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/sha256-tests.log"
           python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"
           python -B -m unittest -v tests.test_hia_json_decode_native.JsonDecodeHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-decode-tests.log"

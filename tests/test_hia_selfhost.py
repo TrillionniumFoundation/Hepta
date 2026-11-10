@@ -24,6 +24,61 @@ NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64
 
 
 class SelfhostSourceTests(unittest.TestCase):
+    def test_word_byte_classification_preserves_exact_ascii_and_wide_refusals(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, source_program
+        from hepta.hia_program_runtime import _Machine
+        node = next(n for n in ast.parse(source_program()).body if n.name == 'is_word')
+        builder = Builder(node, {'is_word': 'entry'}, {})
+        builder.statements(node.body)
+        document = compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'word_bytes',
+            'functions': [{'name': 'entry', 'params': [builder.param(v) for v in builder.params],
+                'returns': ['u64'], 'effects': [], 'entry': 'b0', 'blocks': builder.blocks}]})
+        checked = assemble_program(render_assembly(document))
+        machine = _Machine(checked, 100000, 1 << 20, None, 256)
+        entry = checked.as_dict()['functions'][0]
+        for value in [*range(256), 256, 511, 65535, (1 << 32) - 1,
+                      1 << 63, (1 << 64) - 1]:
+            with self.subTest(value=value):
+                expected = int(65 <= value <= 90 or 97 <= value <= 122
+                               or 48 <= value <= 57 or value in (46, 45, 95))
+                self.assertEqual(machine.invoke(entry, [value]), [expected])
+
+    def test_authoring_bulk_scratch_fill_preserves_guards_and_transactional_refusals(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder, compact_authoring_cfg
+        from hepta.hia_program_runtime import _Machine, _Owner, _View, HIAProgramTrap
+        node = ast.parse('''def example(o:mutbuf, start:u64, count:u64, value:u64) -> u64:
+    fill_range(o, start, count, value)
+    return 0
+''').body[0]
+        builder = Builder(node, {'example': 'entry'}, {})
+        builder.statements(node.body)
+        document = compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': 'scratch_fill',
+            'functions': [{'name': 'entry', 'params': [builder.param(v) for v in builder.params],
+                'returns': ['u64'], 'effects': ['write', 'trap'], 'entry': 'b0', 'blocks': builder.blocks}]})
+        checked = assemble_program(render_assembly(document))
+        # Exact guard bytes include both sides of an interior range. Empty
+        # ranges still validate their offset, and overflowing lengths reject
+        # before any store; this is the existing Core operation's contract.
+        initial = bytes(range(32))
+        for start, count, value in ((0, 32, 0), (7, 17, 255), (32, 0, 91),
+                (0, 0, 42), (33, 0, 0), (31, 2, 0), (1, (1 << 64) - 1, 0)):
+            with self.subTest(start=start, count=count):
+                owner = _Owner(-1, bytearray(initial))
+                machine = _Machine(checked, 100000, 1 << 20, None, 256)
+                expected = bytearray(initial)
+                if start <= len(initial) and count <= len(initial) - start:
+                    expected[start:start + count] = bytes([value]) * count
+                    self.assertEqual(machine.invoke(checked.as_dict()['functions'][0],
+                        [_View(owner, True), start, count, value]), [0])
+                else:
+                    with self.assertRaises(HIAProgramTrap) as trapped:
+                        machine.invoke(checked.as_dict()['functions'][0],
+                            [_View(owner, True), start, count, value])
+                    self.assertEqual(trapped.exception.code, 'bounds')
+                self.assertEqual(bytes(owner.data), bytes(expected))
+
     def test_authoring_forwarders_preserve_parallel_values_and_ordered_effects(self):
         import ast
         from tools.generate_hia_selfhost import Builder, compact_authoring_cfg

@@ -61,20 +61,11 @@ def compile(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967295
     if length(o) > 1048576:
         return 4294967294
-    i = 0
-    while i < 17408:
-        put(w, CBASE + i, 0)
-        i = i + 8
-    i = 0
-    while i < 1536:
-        store(w, KBASE + i, 0)
-        i = i + 1
+    fill_range(w, CBASE, 17408, 0)
+    fill_range(w, KBASE, 1536, 0)
     put(w, 432, 1)
     while phase < 3:
-        i = 0
-        while i < 256:
-            put(w, i, 0)
-            i = i + 8
+        fill_range(w, 0, 256, 0)
         put(w, 248, 4)
         put(w, 264, 0)
         put(w, 272, 0)
@@ -163,11 +154,11 @@ def parse_function(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         put(w, fb + 8, get(w, 80))
         put(w, fb + 40, 0)
     put(w, 480, 0)
-    i = 0
-    while i < 2048:
-        put(w, 955152 + i * 24 + 8, 0)
-        put(w, VBASE + i * 16, 0)
-        i = i + 1
+    # These two complete scratch tables belong exclusively to this function.
+    # No slot may retain a prior function's name, type or block identity. Use
+    # the existing checked Core bulk operation instead of 4096 word calls.
+    fill_range(w, 955152, 2048 * 24, 0)
+    fill_range(w, VBASE, 2048 * 16, 0)
     count = parse_params(s, w, 1)
     if get(w, 40) != 0:
         return 0
@@ -784,7 +775,10 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             # variable() nor loan_live() can observe a future instruction's
             # stale capability. define() keeps its ordinary strict check.
             i = 0
-            while i < 2048:
+            # read_value_name assigns dense indices below the current
+            # function's intern count. No definition or capability can exist
+            # beyond that count; the full 2048-slot boundary is unchanged.
+            while i < get(w, 480):
                 if get(w, VBASE + i * 16 + 8) == bid + 1:
                     put(w, VBASE + i * 16, 0)
                 i = i + 1
@@ -1052,8 +1046,9 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
     val = 0
     while pos < n and byte(s, pos) == 32:
         pos = pos + 1
-    put(w, 16, 0)
-    put(w, 32, 0)
+    # compile() has already required the complete workspace. The value,
+    # begin and quoted fields are contiguous; begin is immediately replaced.
+    fill_range(w, 16, 24, 0)
     put(w, 24, pos)
     if pos == n:
         put(w, 8, 0)
@@ -1121,7 +1116,8 @@ def decimal(s:readbuf, w:mutbuf, pos:u64) -> u64:
     return value
 
 def is_word(c:u64) -> u64:
-    if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) or (c >= 48 and c <= 57) or c == 46 or c == 45 or c == 95:
+    lower = c | 32
+    if (lower >= 97 and lower <= 122) or (c >= 48 and c <= 57) or c == 46 or c == 45 or c == 95:
         return 1
     return 0
 
@@ -1454,7 +1450,7 @@ def loan_access(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
     i = 0
-    while i < 2048:
+    while i < get(w, 480):
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24 + 8) == v + 1:
             return fail(w, 62)
         i = i + 1
@@ -1505,7 +1501,7 @@ def loan_borrow(w:mutbuf, a:u64, t:u64) -> u64:
         return 0
     i = 0
     root = get(w, CAPBASE + a * 24)
-    while i < 2048:
+    while i < get(w, 480):
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == root:
             if loan_ancestor(w, i, a) == 0:
                 if t == 7 or get(w, VBASE + i * 16) == 7:
@@ -1618,7 +1614,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     parent = 0
     packed = 0
     origin = 0
-    while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
+    while i < get(w, 480) and (get(w, 280) != 0 or get(w, 352) != 0):
         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
         i = i + 1
@@ -1666,7 +1662,7 @@ def owner_free(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0:
         return 0
     i = 0
-    while i < 2048:
+    while i < get(w, 480):
         if i != v and loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == v:
             return fail(w, 62)
         i = i + 1
@@ -1861,6 +1857,10 @@ class Builder:
             if name=='length': return self.cast(self.op('buffer.len',args,'usize'),'u64')
             if name=='byte': return self.cast(self.op('buffer.load',[args[0],self.cast(args[1],'usize')],'u8'),'u64')
             if name=='store': return self.op('buffer.store',[args[0],self.cast(args[1],'usize'),self.cast(args[2],'u8')])
+            if name=='fill_range':
+                assert len(args)==4 and args[0][1]=='mutbuf'
+                return self.op('buffer.fill_range', [args[0], self.cast(args[1],'usize'),
+                    self.cast(args[2],'usize'), self.cast(args[3],'u8')])
             if name=='choose':
                 assert len(args)==3 and args[0][1]=='bool' and args[1][1]==args[2][1]
                 return self.op('select',args,args[1][1])

@@ -323,7 +323,21 @@ def source_program():
             text = text.replace('if get(w, 48) == 0:\n        mark(w)\n        token(o, w, 0,',
                                 'if get(w, 48) == 0 and get(w, 40) == 0:\n        mark(w)\n        token(o, w, 0,', 1)
         source += '\n' + text + '\n'
-    return source
+    # Keep only definitions reachable from this application's entry. Numeric
+    # conversion belongs to the separately bundled lexer; importing unrelated
+    # decimal helpers would bloat every grammar application without executing it.
+    nodes = ast.parse(source).body
+    definitions = {node.name: node for node in nodes}
+    required, pending = set(), ['type_main']
+    while pending:
+        name = pending.pop()
+        if name in required:
+            continue
+        required.add(name)
+        for node in ast.walk(definitions[name]):
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in definitions:
+                pending.append(node.func.id)
+    return '\n\n'.join(ast.get_source_segment(source, node) for node in nodes if node.name in required) + '\n'
 
 
 def document():

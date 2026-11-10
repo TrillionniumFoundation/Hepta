@@ -35,10 +35,53 @@ class Parser:
         import os
         selected = os.environ.get('HEPTA_HIA_SOURCE_TYPES_MANIFEST')
         self.native_types = None
+        self.native_names = None
+        self.native_clauses = None
+        self.native_expressions = None
+        native_lexer = None
+        selected_lexers = []
+        frontend = os.environ.get('HEPTA_HIA_SOURCE_FRONTEND_MANIFEST')
+        if frontend:
+            from .hia_source_frontend_native import installed_source_frontend, INDIVIDUAL_SELECTORS
+            if any(os.environ.get(name) for name in INDIVIDUAL_SELECTORS):
+                raise ValueError('Select one HIA frontend bundle or individual components, not both')
+            (self.native_names, self.native_clauses, self.native_expressions,
+             self.native_types, native_lexer) = installed_source_frontend(frontend)
+            self.native_type_lexer = self.native_clause_lexer = self.native_expression_lexer = native_lexer
+            self.native_expression_types = self.native_types
+            selected_lexers.append(native_lexer)
+        names = os.environ.get('HEPTA_HIA_SOURCE_NAMES_MANIFEST')
+        if names:
+            from .hia_source_names_native import installed_source_names
+            self.native_names, native_lexer = installed_source_names(names)
+            selected_lexers.append(native_lexer)
+        clauses = os.environ.get('HEPTA_HIA_SOURCE_CLAUSES_MANIFEST')
+        if clauses:
+            from .hia_source_clauses_native import installed_source_clauses
+            self.native_clauses, self.native_clause_lexer = installed_source_clauses(clauses)
+            native_lexer = self.native_clause_lexer
+            selected_lexers.append(native_lexer)
+        expressions = os.environ.get('HEPTA_HIA_SOURCE_EXPRESSIONS_MANIFEST')
+        if expressions:
+            from .hia_source_expressions_native import installed_source_expressions
+            (self.native_expressions, self.native_expression_types,
+             self.native_expression_lexer) = installed_source_expressions(expressions)
+            self.native_types = self.native_expression_types
+            self.native_type_lexer = self.native_expression_lexer
+            native_lexer = self.native_expression_lexer
+            selected_lexers.append(native_lexer)
         if selected:
             from .hia_source_types_native import installed_source_types
             self.native_types, self.native_type_lexer = installed_source_types(selected)
-            self.tokens = self.native_type_lexer.tokenize(source, path)
+            native_lexer = self.native_type_lexer
+            selected_lexers.append(native_lexer)
+        if native_lexer is not None and os.environ.get('HEPTA_HIA_SOURCE_LEXER_MANIFEST'):
+            from .hia_source_lexer_native import installed_source_lexer
+            selected_lexers.append(installed_source_lexer(os.environ['HEPTA_HIA_SOURCE_LEXER_MANIFEST']))
+        if len({item.image_sha256 for item in selected_lexers}) > 1:
+            raise ValueError('Selected HIA grammar components require the same native lexer image')
+        if native_lexer is not None:
+            self.tokens = native_lexer.tokenize(source, path)
         else:
             self.tokens = tokenize(source, path)
         self.position = 0
@@ -120,6 +163,12 @@ class Parser:
         return Program(name, structs, functions, self.source, self.path, enums, imports)
 
     def _path(self) -> str:
+        if self.native_names is not None:
+            from .hia_source_names_native import parse_names
+            return parse_names(self, self.native_names, 1)
+        return self._reference_path()
+
+    def _reference_path(self) -> str:
         parts = [self._expect("IDENT", "Expected a name").value]
         while self._take("::"):
             parts.append(self._expect("IDENT", "Expected a name after '::'").value)
@@ -132,6 +181,12 @@ class Parser:
         return self._expect("IDENT", "Expected a field name")
 
     def _type_params(self) -> tuple[str, ...]:
+        if self.native_names is not None:
+            from .hia_source_names_native import parse_names
+            return parse_names(self, self.native_names, 2)
+        return self._reference_type_params()
+
+    def _reference_type_params(self) -> tuple[str, ...]:
         if not self._take("<"):
             return ()
         params = [self._expect("IDENT", "Expected a generic parameter").value]
@@ -141,6 +196,12 @@ class Parser:
         return tuple(params)
 
     def _function_type_params(self) -> tuple[tuple[str, ...], dict[str, str], tuple[str, ...]]:
+        if self.native_names is not None:
+            from .hia_source_names_native import parse_names
+            return parse_names(self, self.native_names, 3)
+        return self._reference_function_type_params()
+
+    def _reference_function_type_params(self) -> tuple[tuple[str, ...], dict[str, str], tuple[str, ...]]:
         if not self._take("<"):
             return (), {}, ()
         params, bounds, lifetimes = [], {}, []
@@ -312,6 +373,12 @@ class Parser:
                         lifetime_params, return_lifetime)
 
     def _effects(self) -> set[str]:
+        if self.native_clauses is not None:
+            from .hia_source_clauses_native import parse_clause
+            return parse_clause(self, self.native_clauses, self.native_clause_lexer, 1)
+        return self._reference_effects()
+
+    def _reference_effects(self) -> set[str]:
         self._expect("effects", "Every function requires an explicit effects clause")
         self._expect("{")
         effects: set[str] = set()
@@ -328,6 +395,12 @@ class Parser:
         return effects
 
     def _resources(self) -> dict:
+        if self.native_clauses is not None:
+            from .hia_source_clauses_native import parse_clause
+            return parse_clause(self, self.native_clauses, self.native_clause_lexer, 2)
+        return self._reference_resources()
+
+    def _reference_resources(self) -> dict:
         self._expect("resources")
         self._expect("{")
         resources: dict = {}
@@ -478,6 +551,16 @@ class Parser:
         return Stmt("expr", {"expr": target}, _cover(start, end))
 
     def _expr(self, minimum: int = 0, allow_struct: bool = True) -> Expr:
+        if self.native_expressions is None:
+            return self._reference_expr(minimum, allow_struct)
+        from .hia_source_expressions_native import parse_expression
+        with self._nested():
+            return parse_expression(self, self.native_expressions,
+                self.native_expression_types, self.native_expression_lexer,
+                minimum=minimum, allow_struct=allow_struct,
+                max_depth=_MAX_NESTING - self.depth + 1, nesting_limit=_MAX_NESTING)
+
+    def _reference_expr(self, minimum: int = 0, allow_struct: bool = True) -> Expr:
         with self._nested():
             left = self._prefix(allow_struct)
             while True:
