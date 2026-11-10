@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v45-core-workspace-json"
+PROFILE = "selfhost-core-linux-x86_64-v46-core-workspace-materialize"
 SOURCE_FILES = (
+    'docs/HIA_CORE_WORKSPACE_MATERIALIZE_NATIVE.md',
+    'examples/hia_bootstrap/core_workspace_materialize.hiaasm',
+    'examples/hia_bootstrap/core_workspace_cli_packer.hiaasm',
+    'tools/generate_hia_core_workspace_materialize.py',
+    'tools/generate_hia_core_workspace_cli.py',
+    'tools/build_hia_core_workspace_cli.py',
+    'tests/test_hia_core_workspace_materialize_native.py',
     'docs/HIA_CORE_WORKSPACE_JSON_NATIVE.md',
     'examples/hia_bootstrap/core_workspace_json.hiaasm',
     'examples/hia_bootstrap/core_workspace_json_packer.hiaasm',
@@ -279,6 +286,24 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "core_workspace_materialization_application": {
+            "sources": ["examples/hia_bootstrap/core_workspace_materialize.hiaasm",
+                        "examples/hia_bootstrap/core_workspace_cli_packer.hiaasm"],
+            "interface": "explicit hia-workspace-elf; workspace JSON through native policy/materialization and mandatory native semantic compiler to ELF object",
+            "Core_schema": "primitive hepta.hia.program.v8 only; no nominal erasure or older-schema upgrade",
+            "maximum_wire_bytes": 8388608, "maximum_assembly_bytes": 1048576,
+            "private_arena_bytes": 92274688, "private_scratch_bytes": 16785408,
+            "trusted_application_bundle_profile_bytes": 2097152,
+            "maximum_each_embedded_image_bytes": 1048576,
+            "compiler_and_qualification_child_caps_changed": False,
+            "public_names": "original bytes; private capture avoidance and call rewrites in HIA",
+            "representation_grants_semantic_admission": False,
+            "refusal": "private buffers may change; no stdout before successful native semantic compilation",
+            "atomic_output_publication": False,
+            "native_runtime_foreign_payload_driver_or_second_executable_required": False,
+            "host_boundaries": ["authoring/build/custody", "default workspace loader", "general Core/nominal support", "installation"],
+            "default_changed": False, "whole_native_workspace_qualified": False,
+        },
         "core_workspace_json_application": {
             "sources": ["examples/hia_bootstrap/core_workspace_json.hiaasm",
                         "examples/hia_bootstrap/core_workspace_json_packer.hiaasm"],

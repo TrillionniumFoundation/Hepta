@@ -24,12 +24,15 @@ ARENA_BYTES = (64 << 20) + 4096
 MAPPING_BYTES = ARENA_OFFSET + ARENA_BYTES
 
 
-def template():
+def template(*, output_bytes=OUTPUT_BYTES, arena_bytes=ARENA_BYTES, require_elf=False,
+             legacy_frontend_errors=True):
     """Fixed x86 syscall entry; relative labels resolved only while authoring.
 
     The two image-call displacements and selected frontend profile are holes
     patched by the HIA packer at execution, never a host runtime linker.
     """
+    arena_offset=OUTPUT_OFFSET+output_bytes
+    mapping_bytes=arena_offset+arena_bytes
     code, labels, branches, holes = bytearray(), {}, [], {}
     def emit(hexadecimal): code.extend(bytes.fromhex(hexadecimal))
     def word(value): code.extend(struct.pack('<I', value))
@@ -40,7 +43,7 @@ def template():
 
     emit('48 83 3c 24 01')                         # argc == 1
     branch('0f 85', 'usage')
-    emit('31 ff be'); word(MAPPING_BYTES)
+    emit('31 ff be'); word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff'
          ' 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff')
     branch('0f 83', 'io')                         # mmap failure
@@ -57,31 +60,37 @@ def template():
     branch('e9', 'read')
     label('frontend')
     emit('4c 89 e7 4c 89 ee 49 8d 94 24'); word(OUTPUT_OFFSET)
-    emit('b9'); word(OUTPUT_BYTES)
-    emit('4d 8d 84 24'); word(ARENA_OFFSET)
-    emit('41 b9'); word(ARENA_BYTES)
+    emit('b9'); word(output_bytes)
+    emit('4d 8d 84 24'); word(arena_offset)
+    emit('41 b9'); word(arena_bytes)
     emit('49 c7 40 30'); word(1 << 20)             # maximum nodes
     emit('49 c7 40 38'); word(128)                 # maximum depth
     emit('41 c7 40 28'); hole('profile')
     emit('e8'); hole('frontend')
     emit('83 f8 fe'); branch('0f 84', 'space')
-    emit('83 f8 fa'); branch('0f 84', 'space')
-    emit('83 f8 fd'); branch('0f 84', 'io')
+    if legacy_frontend_errors:
+        emit('83 f8 fa'); branch('0f 84', 'space')
+        emit('83 f8 fd'); branch('0f 84', 'io')
     emit('85 c0'); branch('0f 84', 'invalid')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
     emit('41 89 c5')                              # preserve assembly length
     # Decoder arena is not fresh compiler scratch. Explicitly clear exactly
     # its 1-MiB view before reuse, preserving the compiler's initialization ABI.
-    emit('49 8d bc 24'); word(ARENA_OFFSET)
+    emit('49 8d bc 24'); word(arena_offset)
     emit('31 c0 b9'); word(LIMIT)
     emit('fc f3 aa')                              # cld; rep stosb
     emit('49 8d bc 24'); word(OUTPUT_OFFSET)
     emit('4c 89 ee 4c 89 e2 b9'); word(LIMIT)
-    emit('4d 8d 84 24'); word(ARENA_OFFSET)
+    emit('4d 8d 84 24'); word(arena_offset)
     emit('41 b9'); word(LIMIT)
     emit('e8'); hole('compiler')
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
+    if require_elf:
+        emit('83 f8 40'); branch('0f 82','invalid')
+        emit('41 81 3c 24 7f 45 4c 46'); branch('0f 85','invalid')
+        emit('66 41 83 7c 24 10 01'); branch('0f 85','invalid')
+        emit('66 41 83 7c 24 12 3e'); branch('0f 85','invalid')
     emit('41 89 c6 4d 89 e7')                     # length, output pointer
     label('write')
     emit('4d 85 f6'); branch('0f 84', 'success')

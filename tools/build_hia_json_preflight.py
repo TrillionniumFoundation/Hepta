@@ -18,7 +18,8 @@ if __package__ in {None, ''}:
 
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
-    candidates = {'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),'core-module-graph': ('core_module_graph', 'core-module-graph'),
+    candidates = {'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
+                  'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),'core-module-graph': ('core_module_graph', 'core-module-graph'),
                   'preflight': ('json_preflight', 'json-preflight'),
                   'decode': ('json_decode', 'json-decode'),
                   'canonical': ('json_canonical', 'json-canonical'),
@@ -54,9 +55,19 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         raise ValueError('a completed matching native cold qualification is required')
     source_path = ROOT / ('examples/hia_bootstrap/' + source_name + '.hiaasm')
     source = source_path.read_bytes()
+    if candidate == 'core-workspace-materialize':
+        from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
+        contract = validate_contract()
+        expected = {**contract['source_identity']['files'],
+                    CONTRACT_PATH: sha256((ROOT / CONTRACT_PATH).read_bytes()).hexdigest()}
+        if qualification.get('profile') != PROFILE or qualification.get('source_manifest') != expected:
+            raise ValueError('completed matching-source cold qualification required for native workspace')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, protocol, compiler, source)
-    if source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes:
+    if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
+            or (candidate == 'core-workspace-materialize' and
+                (cold_report.read_bytes() != raw or
+                 validate_contract()['source_identity']['files'] != contract['source_identity']['files']))):
         raise ValueError('native candidate build inputs changed')
     manifest = {'schema': 'hepta.hia.' + protocol + '-native.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
