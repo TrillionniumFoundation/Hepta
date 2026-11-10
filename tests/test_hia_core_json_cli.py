@@ -125,6 +125,8 @@ class CoreJsonCliNativeTests(unittest.TestCase):
                      for s in (cls.original,cls.modified)]
         cls.sample = assemble_program((ROOT/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()).as_dict()
         cls.wire = json.dumps(cls.sample,separators=(',',':')).encode()
+        from tools.hia_selfhost_native_observer import independent_reference
+        cls.observer_reference = independent_reference()  # every ELF byte BEFORE B0
         cls.export_documents,cls.export_reference=independent_export_pair()
         cls.export_wires=[json.dumps(value,separators=(',',':')).encode() for value in cls.export_documents]
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-cli-native-')
@@ -136,6 +138,8 @@ class CoreJsonCliNativeTests(unittest.TestCase):
         cls.frontend,_ = compile_stage(cls.folder,'frontend',cls.compiler,
             (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
         cls.packer,_ = compile_stage(cls.folder,'packer',cls.compiler,SOURCE.read_bytes())
+        from tools.hia_selfhost_native_observer import build as build_observer
+        cls.observer, _ = build_observer(cls.folder, cls.compiler, cls.observer_reference)
         cls.executables = []
         for profile in (0,1):
             receipt,output = cls.pack(f'pack-{profile}',frame(cls.frontend.read_bytes(),cls.compiler.read_bytes(),profile))
@@ -191,6 +195,42 @@ class CoreJsonCliNativeTests(unittest.TestCase):
             receipt,value = invoke(self.folder,f'execute-{i}',image,data,capacity=1,workspace_size=1)
             self.assertEqual(receipt['core_u32'],hash_reference(data))
             self.assertEqual(value,bytes([hash_reference(data)&255]))
+
+    def test_native_CLI_output_executes_in_fresh_HIA_observer_without_legacy_child(self):
+        from tools.hia_selfhost_native_observer import invoke as native_invoke, frame as observer_frame
+        from tools.qualify_hia_selfhost import hash_reference
+        with (patch('json.loads',side_effect=AssertionError('foreign payload parser')),
+              patch('json.dumps',side_effect=AssertionError('foreign payload encoder'))):
+            code = self.run_cli(self.wire)
+        image = self.folder/'CLI-to-native-observer.image.bin'
+        image.write_bytes(code)
+        for index,source in enumerate((b'',b'HIA JSON to execution',bytes(range(256))*4)):
+            with patch('tools.qualify_hia_selfhost.invoke',side_effect=AssertionError('legacy child fallback')):
+                receipt,output=native_invoke(self.folder,'CLI-native-observer-'+str(index),
+                    self.observer,image,source,capacity=1,workspace_size=1,workspace_fill=90)
+            self.assertEqual(receipt['core_u32'],hash_reference(source))
+            self.assertEqual(output,bytes([hash_reference(source)&255]))
+            self.assertTrue(receipt['source_unchanged'])
+            self.assertTrue(receipt['fresh_native_exec'])
+            self.assertFalse(receipt['successor_process_reuse'])
+        trace=self.folder/'native-observer-composition.strace'
+        source=b'actual standalone native execution'
+        process=subprocess.run(['/usr/bin/strace','-qq','-o',str(trace),str(self.observer)],
+            input=observer_frame(code,source,1,1,90),capture_output=True,timeout=15,
+            cwd=self.folder,env={'PATH':'/nonexistent','HOME':'/nonexistent','LANG':'C'})
+        self.assertEqual((process.returncode,process.stderr),(0,b''))
+        self.assertEqual(process.stdout[:8],b'HIAOBR01')
+        self.assertEqual(struct.unpack_from('<Q',process.stdout,8)[0],hash_reference(source))
+        # bytesum.hiaasm deliberately stores the checksum into BOTH output
+        # and workspace. Verify both actual stores, not an assumed untouched
+        # workspace fill byte.
+        self.assertEqual(process.stdout[24:],source+bytes([hash_reference(source)&255])*2)
+        calls=re.findall(r'^([a-z0-9_]+)\(',trace.read_text(),re.MULTILINE)
+        self.assertEqual(set(calls),{'execve','prctl','prlimit64','mmap','mprotect',
+                                    'clock_gettime','read','write','exit'})
+        self.assertEqual(calls.count('execve'),1)
+        self.assertEqual(calls.count('mprotect'),1)
+        self.assertIn('PROT_READ|PROT_EXEC',trace.read_text())
 
     def test_whole_original_and_modified_compilers_have_separate_fixed_points(self):
         from tools.qualify_hia_selfhost import compile_stage

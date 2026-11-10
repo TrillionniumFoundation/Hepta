@@ -1084,3 +1084,146 @@ execute in one typed C caller; the external C/linker authority remains explicit.
 Ended raw cold/language evidence is losslessly archived and verified against
 every original member; temporary originals are also retained. Full-repository
 regression and fresh remote/platform gates are still separate and unresolved.
+## Integrated multiple scalar exports / JSON-to-ELF continuation
+
+Exact executable source subject: `df52f8faa69b3dd93cd3838ec30fc843ce610c7e`.
+This isolated continuation incorporates the original Core JSON frontend commit
+`6a89994` and the SHA-256 branch rather than discarding either implementation.
+Its own implementation/merge commits are `07b3fdd`, `5f0fc60`, `dce2e3f` and
+`df52f8f`. Later evidence-only metadata is not presented as a separately executed
+compiler. The declared source closure must remain byte-identical to this subject.
+
+Actual HIA now parses a nonempty exact-name export list, emits multiple SysV
+scalar wrappers, ELF symbol/string tables and allocator relocations. All private
+functions remain checked. The JSON Core frontend renders the same explicit
+export list only with operator ELF selection; real native semantic compilation,
+independent object inspection, host linking and native function calls then run.
+This is not a Python payload translator. Manifest/loading/allocation/filesystem,
+receipt driving and the linker still are host responsibilities. Public resources
+or multiresults, general module graphs/linking and production activation remain
+outside this reviewed profile. Runtime-reserved and loader hook names refuse.
+
+The compiler word-access optimization keeps little-endian byte order and prior
+partial stores on a bounds trap. Twenty-eight independent VM/native cases cover
+those boundaries. The compiler is123functions,1418blocks,8002operations and
+453793source bytes, within the UNCHANGED128/1536/8192 and1MiB limits. The derived
+relative-call upper bound11522 remains below12000. The cold deadline remains180s.
+
+Fixed clean-source execution completed all13 selected steps in467.747seconds:
+
+- Actual source-recovery/generation workflow and103source assertions: PASS.
+- Source-only cold ownership/isolation11/11 and native5047/5047: PASS in163.885s.
+- Language1242/1242, with10report assertions and no skips: PASS.
+- Combined native export/JSON frontend/JSON/SHA library50tests: PASS.
+- Exact shared acceptance closure15tests: PASS. v12 binds365paths and218actual
+  root compiler modules, independently preserving every old commitment; the631
+  extra identity bytes are transferred from raw logs, not a larger total budget.
+- Current-source decoder/canonicalizer/SHA/Core-frontend native builds: PASS.
+- Explicit installed and default consumers83tests each, selected incremental
+  policy55tests: PASS.
+- Additional exported-public/private-chain composition returns44561/91 under
+  independent VM and actual native execution, including iterative destruction.
+
+The current exact-source full repository regression has started from a separate
+immutable `df52f8f` checkout with real pinned prerequisites. It is **NOT completed
+by this report**. Older runs and remote CI are independent observations, not a
+substitute for this result. Initial malformed fixture and stale exact-closure
+failures remain recorded as failures in the public summary.
+
+The lossless audit delta accounts for10070tracked paths at this implementation
+subject:218package Python files/76667lines and421tool Python files/133115lines.
+Tool files include authoring/qualification and are not all production runtime.
+Static counts are not semantic closure evidence. The component ledger remains
+**3 partial /5 open**, with no live authority silently retired. Whole-stack HIA
+rewrite remains **OPEN**, defaults and production unchanged.
+
+Reviewable records:
+`review-evidence/hia-whole-selfhost-20261109/multiple-scalar-exports-summary.json`
+and `implementation-boundary-multiple-exports-delta.json` in that directory.
+
+## Qualification transport continuation: exact native observer subject eebf5a7
+
+The multiple-export subject's real remote workflow
+[42756927029](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42756927029)
+completed **FAIL** on bf3360f: source/native/language passed, but source-only cold
+replay exceeded its unchanged 180-second deadline. Twenty-six of 38 phases had
+completed, with no reported phase exception, and owned-process cleanup was
+confirmed. Full logs and the cold artifact remain retained. The earlier local
+5,047-check pass does not replace that failure.
+
+The exact executable subject `eebf5a7b04c5408924882936548168bf6886a34a`
+adds exact-length keyword buckets and a HIA-emitted native byte-ABI observer for
+ordinary qualification phase calls. The observer is emitted by an actual HIA
+packer compiled by B3, compared with independent pre-B0 VM observations of every
+ELF byte, and execs afresh from sealed bytes. Its supplied image is mapped RW then
+RX. It has no Python runtime/libc/interpreter/linker in that child. The fixed ISA
+syscall bridge still has explicit literal-instruction authoring; this is **not**
+a high-level runtime/whole-stack retirement claim. Original B/M generations,
+shared-library calls, custom preimages and post-UD2 shared captures retain the
+independent stdlib loader. Host supervision, oracles, B0, linking and release
+remain foreign authorities. See [the protocol and exact boundary](HIA_NATIVE_BYTE_ABI_OBSERVER.md).
+
+Clean-commit local acceptance (not a remote performance guarantee):
+
+- Actual recovery/regeneration workflow: 103 source tests pass.
+- Source-only cold: 11/11 isolation/ownership checks and 5,049/5,049 native checks
+  pass in 127.155 seconds, keeping 180 seconds plus separate 3-second cleanup.
+- Language: 1,242 checks and 10 assertions pass.
+- Native observer/export/JSON/SHA regressions: 58 tests pass; shared closure: 15
+  tests pass. No witness, compiler ceiling or host worker is removed/increased.
+- Separate real-kernel observations agree with the legacy loader for all six
+  hard/soft resource limits and non-dumpability, inclusive maximum image/source/
+  output/workspace sizes, and maximum-frame-plus-one refusal. These are separate
+  observations, not relabelled cold pre-B0 references.
+- An earlier keyword-only language run failed with ENOSPC; an initial VM fixture
+  exceeded the unchanged return-list bound. Both failures are retained, rather
+  than reclassified as passes.
+
+Public `native-byte-abi-observer-summary.json` and its lossless static-audit delta
+bind the exact executable subject. Later evidence-only metadata must preserve
+all 313 declared source files byte-for-byte. This branch's source inventory is
+218 package Python files / 76,667 lines and 423 tool Python files / 133,444 lines;
+tools are not all production runtime. The ledger remains **3 partial / 5 open**.
+Production activation/default switching, whole-repository completion, full
+language correctness and native-only retirement are **not** claimed. A fresh
+remote run is required; the historical timeout remains FAIL.
+
+
+## Combined CLI / native observer development continuation
+
+The candidate integrates the HIA-emitted byte-ABI observer into the already
+qualified standalone JSON CLI / scalar-export source. Ordinary phase calls exec
+a fresh content-bound HIA-produced static ELF; no Python child runtime remains
+on that path. Seed/B1..B3/M1..M3 controls, shared object loading, custom preimages
+and prior writes after traps retain the separate independent loader. Host
+supervision, source authoring, OS boundaries and the general production runtime
+remain explicit; this is not a security sandbox or whole-stack retirement.
+
+Development checks pass36CLI/observer/keyword/export/word-I/O tests plus15exact
+source identity/accounting tests. The real native JSON CLI still generates both
+export objects for the typed C caller. These are development observations, not
+clean-source acceptance of the combined candidate; fresh committed cold,
+language, source and installed gates remain required.
+
+The v16closed identity explicitly registers all five observer source/reference/
+conformance files and its cold-exported protocol document:384paths with an822byte
+transfer within the same aggregate evidence envelope. Every historical path
+commitment and execution limit is retained. The compiler now occupies123functions,
+1454blocks,7830operations and451924source bytes, still inside the same declared
+128/1536/8192 and1MiB ceilings. No compiler witness or owner deadline was removed.
+
+The generic cold unittest now includes the actual process-owner receipt, bounded
+raw stdout/stderr tails and observed phase counts in its assertion failure,
+before temporary cleanup. This does not make a late/nonzero/missing result pass.
+Prior4c0andbf336remote failures remain failures. The older d6e94whole-repository
+result includes one cold failure AND seven errors (six exact-source closure
+errors and one native-class setup error); it was not a one-failure-only pass.
+
+
+A subsequent12-test standalone CLI development suite also executes actual
+CLI-produced flat code through the newly built HIA observer, forbids legacy
+child fallback and observes the syscall-only runtime. It validates the complete
+returned source/output/workspace frame. The first test expected an untouched
+workspace fill, but the reviewed bytesum program explicitly stores into both
+mutable buffers; the corrected independent expectation checks both bytes.
+The failed attempt remains evidence, not a product bug silently relabelled.

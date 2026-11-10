@@ -790,3 +790,20 @@ Source/module/container/process caps and owner deadlines are unchanged.
 Omissions, discovery mismatches, reclassified additions and one excess byte
 continue to refuse. This registers actual source and accounting, not general
 proof authority or whole-stack implementation equivalence.
+
+
+## Integrated native observer identity continuation (v16)
+
+Five actual observer implementation/reference/conformance inputs and its
+cold-exported protocol document extend the378-path v15identity to384paths;
+all219package modules and every prior independent projection remain pinned.
+The current exact path commitment is
+`5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7`.
+Removing exactly these six reviewed paths recovers the unchanged378-path v15
+commitment; altered classifications, omissions and unreviewed names refuse.
+
+The maximal canonical identity is164058bytes,822more than the v15maximum.
+These822bytes transfer from raw logs to metadata:243934metadata,800546raw and
+4096display still sum to1048576. Source/module/container/process budgets and
+owner deadlines are unchanged. Identity registration neither proves arbitrary
+machine code safe nor establishes whole-stack HIA equivalence.

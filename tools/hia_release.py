@@ -88,6 +88,13 @@ BOOTSTRAP_FILES = (
     "tools/hia_selfhost_owner_results.py",
     "tools/hia_selfhost_returned_loans.py",
     "tools/hia_selfhost_keywords.py",
+    'docs/HIA_NATIVE_BYTE_ABI_OBSERVER.md',
+    'tools/generate_hia_native_observer.py',
+    'tools/hia_selfhost_native_observer.py',
+    'tools/hia_native_observer_template.S',
+    'tests/test_hia_selfhost_native_observer.py',
+    'examples/hia_bootstrap/native_observer_packer.hiaasm',
+
     "tools/hia_selfhost_signed.py",
     "tools/hia_selfhost_signed_cases.py",
     "tools/hia_selfhost_scalar_casts.py",

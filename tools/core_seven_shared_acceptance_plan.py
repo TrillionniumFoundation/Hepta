@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v15'
-PROTOCOL = 'seven-shared-acceptance-v15'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v16'
+PROTOCOL = 'seven-shared-acceptance-v16'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -199,10 +199,19 @@ EXPORT_CLI_ADDITIONS = (
     'tools/qualify_hia_selfhost_exports.py',
     'tests/test_hia_selfhost_exports.py',
 )
-# Explicit combined export inputs add655 identity bytes, transferred from raw
-# logs within the same aggregate envelope; all execution caps are unchanged.
-IDENTITY_CAP = 163236
-IDENTITY_RESERVE_DELTA = 18523
+NATIVE_OBSERVER_ADDITIONS = (
+    'docs/HIA_NATIVE_BYTE_ABI_OBSERVER.md',
+    'tools/generate_hia_native_observer.py',
+    'tools/hia_selfhost_native_observer.py',
+    'tools/hia_native_observer_template.S',
+    'tests/test_hia_selfhost_native_observer.py',
+    'examples/hia_bootstrap/native_observer_packer.hiaasm',
+)
+# Observer inputs and the cold-exported protocol document add822 identity
+# bytes, transferred from raw logs within the same aggregate envelope. All
+# execution capacities and deadlines are unchanged.
+IDENTITY_CAP = 164058
+IDENTITY_RESERVE_DELTA = 19345
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -293,16 +302,19 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
-                                    *EXPORT_CLI_ADDITIONS)))
+                                    *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 378 and commitment(paths) == '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535',
+    require(len(paths) == len(set(paths)) == 384 and commitment(paths) == '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in EXPORT_CLI_ADDITIONS)
+    previous = tuple(name for name in paths if name not in NATIVE_OBSERVER_ADDITIONS)
+    require(len(previous) == 378 and commitment(previous) == '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535',
+            'historical combined JSON CLI/export source identity projection')
+    previous = tuple(name for name in previous if name not in EXPORT_CLI_ADDITIONS)
     require(len(previous) == 373 and commitment(previous) == '61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf73712f55',
             'historical native JSON CLI source identity projection')
     previous = tuple(name for name in previous if name not in JSON_CLI_ADDITIONS)

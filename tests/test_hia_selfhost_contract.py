@@ -138,6 +138,41 @@ class SelfhostContractTests(unittest.TestCase):
             self.assertFalse((root / "missing").exists())
 
 
+def cold_failure_diagnostic(output, result):
+    """Retain actual bounded child diagnosis before temporary cleanup."""
+    if result.get("status") == "COLD_SELFHOST_REPLAY_PASS":
+        return result["checks"]
+    diagnostic = {key: result.get(key) for key in
+        ("status", "checks", "returncode", "wall_elapsed_ns", "process_owner")}
+    directory = Path(output).with_suffix(".cold")
+    for name in ("stdout.log", "stderr.log", "qualification.evidence/phase-index.json"):
+        path = directory / name
+        if not path.is_file():
+            continue
+        # The diagnostic cannot consume an unbounded log or replace the
+        # original failed assertion with a secondary parser exception.
+        try:
+            size = path.stat().st_size
+            with path.open("rb") as stream:
+                stream.seek(max(0, size - 4096))
+                tail = stream.read(4096)
+                stream.seek(0)
+                phase_bytes = stream.read(65537) if name.endswith("phase-index.json") else None
+        except OSError as exc:
+            diagnostic[name] = {"diagnostic_read_error": str(exc)}
+            continue
+        diagnostic[name] = {"bytes": size, "tail_sha256": sha256(tail).hexdigest(),
+                            "actual_tail": tail.decode("utf-8", "replace")}
+        if phase_bytes is not None and len(phase_bytes) <= 65536:
+            try:
+                phase = json.loads(phase_bytes)
+                if isinstance(phase, dict):
+                    diagnostic[name].update({k: phase.get(k) for k in ("completed", "exceptions")})
+            except (ValueError, UnicodeError):
+                diagnostic[name]["phase_json_malformed"] = True
+    return diagnostic
+
+
 @unittest.skipUnless(platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
                      and shutil.which("ld"), "Linux x86-64 and GNU ld required")
 class SelfhostColdReplayTests(unittest.TestCase):
@@ -145,7 +180,7 @@ class SelfhostColdReplayTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="hia-cold-replay-test-") as temporary:
             output = Path(temporary) / "cold.json"
             result = cold_replay(output)
-            self.assertEqual(result["status"], "COLD_SELFHOST_REPLAY_PASS", result["checks"])
+            self.assertEqual(result["status"], "COLD_SELFHOST_REPLAY_PASS", cold_failure_diagnostic(output, result))
             self.assertEqual(len(result["checks"]), 11)
             self.assertTrue(result["checks"]["owned_process_tree_cleanup_confirmed"])
             self.assertEqual(result["qualification_wall_limit_seconds"], 180)
