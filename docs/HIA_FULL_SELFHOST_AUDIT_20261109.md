@@ -731,10 +731,10 @@ Exact final implementation **`2484f5c4107203dbac1b3154f95f6a8c21df0b8e`** passes
 - Source-only cold11/11 plus native4351/4351,166.202seconds at the unchanged
   180second deadline; original and changed-source fixed points retained.
 - Language1242/1242 and10report assertions.
-- Fresh native JSON18tests,18.106seconds, including actual independent VM
+- Fresh native JSON18tests,18.011seconds, including actual independent VM
   observations before freshB0/B1/B2 and compiled value decoding.
-- Explicitly installed HIA value backend83existing consumer tests,26.463seconds;
-  separately default-reference83tests,22.315seconds. No skipped case is a pass.
+- Explicitly installed HIA value backend83existing consumer tests,26.098seconds;
+  separately default-reference83tests,21.952seconds. No skipped case is a pass.
 
 Earlier implementation51d56f6 also passed its actual94source tests, cold11/11
 plus4351native checks in177.203seconds, language1242 and native JSON18tests.
