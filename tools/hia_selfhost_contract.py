@@ -13,8 +13,18 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v39-core-only"
+PROFILE = "selfhost-core-linux-x86_64-v40-core-only"
 SOURCE_FILES = (
+    'setup.py',
+    'MANIFEST.in',
+    'tests/test_hia_agent_installed_resources.py',
+    'docs/HIA_AGENT_INSTALLED_RESOURCES.md',
+    'tools/generate_hia_agent_identity.py',
+    'tools/build_hia_agent_identity.py',
+    'tests/test_hia_agent_identity_native.py',
+    'examples/hia_bootstrap/agent_identity.hiaasm',
+    'docs/HIA_AGENT_IDENTITY_NATIVE.md',
+
     'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
     'docs/HIA_AGENT_ASSEMBLY.md',
     'docs/HIA_PROGRAM.md',
@@ -188,6 +198,30 @@ def support_contract(root=ROOT):
             "whole_agent_editing_and_persistence_replaced": False,
             "production_activated": False,
         },
+        "agent_identity_application": {'installed_resources': {'native_executable': 'separate operator-selected '
+                                              'source/image/compiler-pinned artifact',
+                         'native_only_delivery': False,
+                         'package_root': 'hepta/_data; no cwd/HOME/external checkout per-file '
+                                         'fallback',
+                         'source_distribution_and_wheel': 'explicit packaged discovery documents '
+                                                          'and HIA app source',
+                         'worker_identity': 'includes actual native HIA app source and every '
+                                            'discovery document'},
+ 'items': ['canonical decimal u64 with pre-multiply overflow refusal',
+           'exact lowercase ASCII SHA-256 digest grammar',
+           'owned byte packet validation; short output publishes nothing',
+           'selected store sequence and worker digest-format callers have no reference fallback'],
+ 'manifest_schema': 'hepta.hia.agent-identity-native.v1',
+ 'maximum_packet_bytes': 80,
+ 'packet_header_bytes': 16,
+ 'result_bytes': 24,
+ 'selection': 'HEPTA_HIA_AGENT_IDENTITY_MANIFEST; default reference unchanged',
+ 'source': 'examples/hia_bootstrap/agent_identity.hiaasm',
+ 'status': 'bounded_subset',
+ 'still_foreign': ['JSON decoding and object/value bridge',
+                   'SHA-256 computation and worker correlation/authorization',
+                   'durable journal, artifact I/O and complete Agent protocol'],
+ 'workspace_bytes': 0},
         "target": {"triple": "x86_64-unknown-linux-gnu", "system": "Linux",
                    "isa": "x86-64", "endianness": "little", "pointer_bits": 64},
         "syntax": {"header": "hia-asm.v1", "core": "hepta.hia.program.v8",

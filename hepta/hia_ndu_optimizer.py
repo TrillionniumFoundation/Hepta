@@ -23,7 +23,6 @@ import time
 
 from .hia_ndu_scalar_selection import ScalarSelectionRejected, resolve_scalar_selection
 from .hia_program import verify_program
-from .hia_rust_crosscheck import HIARustCrosscheckRejected, _run_bounded_shadow
 from .hia_translation_validation import PROFILE as PROOF_PROFILE, SCHEMA as PROOF_SCHEMA, validate_translation
 
 SCHEMA = "hepta.hia.ndu-optimization.v1"
@@ -227,6 +226,13 @@ def _native_rank(bridge, request, *, timeout_s, observer=None):
         observer(observation)
 
 
+def _run_bounded_shadow(*args, **kwargs):
+    # Preserve the same bounded pump for explicit native NDU execution without
+    # importing the foreign Rust-comparison module during Agent discovery.
+    from .hia_rust_crosscheck import _run_bounded_shadow as run
+    return run(*args, **kwargs)
+
+
 def _native_rank_impl(bridge, request, *, timeout_s, observation=None):
     # Identity admission and sealing belong to this call's budget too. Starting
     # a fresh subprocess timeout after those operations would renew spent time.
@@ -234,6 +240,7 @@ def _native_rank_impl(bridge, request, *, timeout_s, observation=None):
     # startup and scheduling are not preemptible here. All observed time still
     # reaches the final search-cost gate; this is not a hard wall-clock quota.
     deadline = time.perf_counter_ns() + int(timeout_s * 1_000_000_000)
+    from .hia_rust_crosscheck import HIARustCrosscheckRejected
 
     def remaining_seconds():
         remaining = deadline - time.perf_counter_ns()
