@@ -9,7 +9,7 @@ files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **415 Python files /132254lines** under `tools/`,
+The audit also inventories **415 Python files /132280lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
@@ -845,3 +845,43 @@ source workflow, language or whole-repository result. The next source-bound
 qualification binds the full 297-file compiler source closure. Component status
 remains 3 partial / 5 open; whole-stack completion and all-input correctness
 remain false. See `docs/HIA_CORE_JSON_FRONTEND_NATIVE.md`.
+
+
+## v33/v34 completed source-bound local qualification
+
+Native frontend implementation `3fb8601fb1c6384401998fe37536180d7b79f1a5`
+passes the actual source workflow: 99 tests, clean source before/after. Its cold
+report passes all 11 gates / 4,351 native compiler checks in 178.556889613 seconds
+within the unchanged 180-second deadline. Language coverage is 1,242/1,242 plus
+its separate assertion checks; 33 fresh native JSON/frontend tests pass, followed
+by 83 existing consumers with both JSON manifests selected and 83 default.
+The full sequential qualification is 440.407369086 seconds. Completed cold B3
+builds all three candidate images. This supersedes pending qualification above,
+not the stated whole-stack limitations or the historical failures.
+
+The ongoing frozen `2484f5c` full-repository run exposed six source-closure errors,
+independently reproduced as six errors in 15 tests: the fixed old compiler input
+inventory omitted the new native JSON modules. Follow-up
+`bfd3b4406805c6e7ea25089022183331034f838a` binds 23 explicit bridge/HIA source/
+build/driver/conformance additions, all 217 actual compiler Python modules and
+360 source paths. The exact prior 337-path commitment and all older projections
+remain checked; unknown/missing modules still refuse. Protocol v11 transfers
+3,066 bytes from raw logs into identity metadata, preserving the 1 MiB aggregate
+and all source/module/container/process/time caps. The initial development
+accounting assertion accidentally compared the new identity to an older
+projection; the original 131-byte historical comparison is now retained against
+its proper 337-path identity alongside the new exact 3,066-byte assertion.
+
+That clean committed follow-up passes 251 shared/legacy adversarial tests in
+480.615 seconds, then 99 actual workflow source tests and a clean static audit.
+All 298 exported native compiler source-manifest paths remain byte-identical to
+the native-qualified implementation; this equivalence is checked path by path.
+Native qualification is reused only for that identical source closure, not
+invented as a newly executed cold run on the follow-up commit. The older full
+repository run remains running with observed errors, not a completed or current
+pass; the repair does not relabel it. Remote CI remains separately unqualified.
+
+Public receipts: `v33-core-json-frontend-summary.json`,
+`v34-exact-source-closure-summary.json` and the losslessly reconstructable v33/v34
+inventory deltas under `review-evidence/hia-whole-selfhost-20261109/`.
+Component status remains 3 partial / 5 open. Whole-stack completion is false.
