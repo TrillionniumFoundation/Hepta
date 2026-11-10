@@ -12,20 +12,11 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_unified import qualification_plan
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def planned_producers(output):
-    tools = {name: "/unused-entrypoint-probe/" + name for name in (
-        "clang", "cc", "rustc", "cargo", "qemu_aarch64", "qemu_riscv64",
-        "qemu_system_arm", "linker", "lean", "cxx",
-    )}
-    return [list(map(str, argv)) for _, argv, evidence in
-            qualification_plan(output, python=sys.executable, **tools)
-            if evidence is not None]
 
 
 class QualificationEntrypointTests(unittest.TestCase):
@@ -45,24 +36,7 @@ class QualificationEntrypointTests(unittest.TestCase):
         self.assertIn("usage:", run.stdout)
         self.assertNotIn("Traceback", run.stdout + run.stderr)
 
-    def test_every_direct_producer_starts_outside_checkout_without_pythonpath(self):
-        with tempfile.TemporaryDirectory(prefix="hepta CLI outside checkout ") as directory:
-            producers = planned_producers(Path(directory) / "unused-output")
-            scripts = sorted({argv[1] for argv in producers if argv[1] != "-m"})
-            self.assertTrue(scripts)
-            for script in scripts:
-                with self.subTest(script=script):
-                    self.assert_help(self.run_cli([ROOT / script, "--help"], directory))
-            self.assertEqual(list(Path(directory).iterdir()), [])
 
-    def test_module_producers_start_from_checkout_without_pythonpath(self):
-        with tempfile.TemporaryDirectory() as directory:
-            producers = planned_producers(Path(directory) / "unused-output")
-            modules = sorted({argv[2] for argv in producers if argv[1] == "-m"})
-            self.assertTrue(modules)
-            for module in modules:
-                with self.subTest(module=module):
-                    self.assert_help(self.run_cli(["-m", module, "--help"], ROOT))
 
     def test_local_views_reaches_argparse_from_both_working_directories(self):
         script = ROOT / "tools" / "qualify_llvm_local_views.py"

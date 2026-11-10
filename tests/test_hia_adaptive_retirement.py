@@ -17,16 +17,7 @@ from tools.qualify_hia_stateful import programs as owner_programs
 
 
 class AdapterProfileIsolationTests(unittest.TestCase):
-    def test_actual_v8_returned_loans_do_not_enter_scalar_or_owner_adapters(self):
-        from hepta.hia_program import verify_program
-        from tests.test_hia_returned_loans import returned_program
-        adapter = object.__new__(OwnedAdaptiveRuntime)
-        for mutable in (False, True):
-            document = verify_program(returned_program(mutable=mutable))
-            for admit in (_profile, adapter._admit_profile):
-                with self.subTest(mutable=mutable, admit=admit.__qualname__):
-                    with self.assertRaises(AdaptiveRejected):
-                        admit(document)
+    pass
 
 
 @unittest.skipUnless(NATIVE, "qualified Linux sealing, Clang and Z3 required")

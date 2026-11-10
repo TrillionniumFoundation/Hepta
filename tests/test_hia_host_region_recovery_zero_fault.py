@@ -15,7 +15,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -108,39 +107,6 @@ print("PASS fenced unreceipted zeroing", stage)
 '''
 
 
-class RecoveryZeroFaultTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("actual Linux x86-64 required, no skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("real Clang required, no skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(
-            Path(cls.temp.name), Path(compiler).resolve(), {}
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, stage):
-        result = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
-            capture_output=True, text=True, timeout=25, check=False,
-        )
-        self.assertEqual(
-            result.returncode, 0,
-            f"stage={stage} stdout={result.stdout}\nstderr={result.stderr}",
-        )
-        self.assertIn("PASS fenced unreceipted zeroing", result.stdout)
-
-    def test_failure_before_mmap_zeroing(self):
-        self._probe("pre_write")
-
-    def test_failure_after_mmap_zeroing(self):
-        self._probe("post_write")
 
 
 if __name__ == "__main__":

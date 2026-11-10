@@ -16,7 +16,6 @@ import unittest
 
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_runtime import HIAProgramBudgetExceeded, HIAProgramTrap, execute_program
-from hepta.hia_program_source import HIAProgramSourceRejected, lower_source, source_report
 from tests.test_hia_program import b, branch, c, f, i, m, ret
 from tests.test_hia_bulk_memory import bulk_program
 from tests.test_hia_offset_copy_v5 import copy_program
@@ -29,7 +28,7 @@ from tests.test_hia_program_composite import (
     scalar_task_program, owned_result_task_program,
 )
 from tests.test_hia_composite_v6_resources import composite_bulk_program, composite_range_task_program
-from tests.test_hia_recursive_chain import doc as chain_document, one_function
+from tests.test_hia_recursive_chain import one_function
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "rust/hia-core-shadow/Cargo.toml"
@@ -123,21 +122,6 @@ class RustOwnedMemoryParity(unittest.TestCase):
         item.update({"kind": kind, "name": name, "utf8": raw.decode()})
         return key
 
-    def admit(self, value, name="fixture"):
-        source = isinstance(value, str)
-        kind = "hepta-source" if source else (
-            "nominal-hia" if "composite" in value["schema"] else "primitive-hia")
-        key = self.remember(value, name, kind)
-        core = lower_source(value, path=name) if source else verify_program(value)
-        item = type(self).inputs[key]
-        item["program_sha256"] = core.sha256
-        item["normalization"] = core.normalization_report
-        if source:
-            report = source_report(value, path=name)
-            self.assertEqual(report["program_sha256"], core.sha256)
-            item["frontend_report"] = report
-        type(self).programs[core.sha256] = core.as_dict()
-        return core
 
     def raw_run(self, raw, entry, arguments, *, steps=10000, heap=32768, fail=None):
         argv = [self.executable, "--owned-run", entry, json.dumps(arguments, separators=(",", ":")),
@@ -267,38 +251,7 @@ class RustOwnedMemoryParity(unittest.TestCase):
         self.assertEqual(self.parity(core, "fill_range", [0, 0, 0, 255, 0], heap=0, fail=1)["values"], [9])
         self.assertEqual(self.parity(core, "fill_range", [0, 1, 0, 255, 0], heap=0)["error"]["code"], "bounds")
 
-    def test_chain_calls_reborrows_allocation_recovery_and_exact_extents(self):
-        core = self.admit(chain_document(), "examples/hia_recursive_chain/core_v7.json")
-        for entry in ("chain_checksum", "chain_cancel", "chain_head_update", "chain_empty_payloads", "chain_recover"):
-            for count in (0, 1, 3, 17):
-                self.parity(core, entry, [count])
-            for failure in range(1, 8):
-                self.parity(core, entry, [3], fail=failure)
-        for entry in ("chain_empty_pop", "chain_empty_head"):
-            self.parity(core, entry, [])
-        core = self.admit(chain_extent(), "chain-move-and-payload-extent")
-        for size in (0, 1, 7, 24, 1025, MAX_U64):
-            for fail in (None, 1, 2, 3):
-                report = self.parity(core, "extent", [size], fail=fail)
-                expected = 0 if size == MAX_U64 or (size > 0 and fail == 1) else size
-                self.assertEqual(report["values"], [expected])
 
-    def test_chain_heap_boundary_and_all_destructor_step_cuts(self):
-        core = self.admit(chain_document(), "examples/hia_recursive_chain/core_v7.json")
-        for heap in (0, 1, 24, 25, 49, 50, 74, 75):
-            for fail in (None, 1, 2, 3):
-                self.parity(core, "chain_cancel", [3], heap=heap, fail=fail)
-        done = self.parity(core, "chain_cancel", [3])
-        partial_drop = False
-        for limit in range(1, done["steps"] + 1):
-            report = self.parity(core, "chain_cancel", [3], steps=limit)
-            resources = report["resources"]
-            partial_drop |= (resources["chain_nodes_dropped"] > 0 and resources["live_chain_nodes"] > 0)
-        self.assertTrue(partial_drop, "must actually stop inside iterative node destruction")
-        # A long live chain is represented flat in Rust, so evaluator stop and
-        # host destruction cannot recursively traverse its ownership structure.
-        report = self.parity(core, "chain_cancel", [512], steps=100000, heap=32768)
-        self.assertEqual(report["resources"]["chain_nodes_dropped"], 512)
 
     def test_chain_consuming_recursion_stops_at_the_shared_call_limit(self):
         core = self.admit(recursive_chain(), "recursive-chain-transfer")
@@ -313,64 +266,8 @@ class RustOwnedMemoryParity(unittest.TestCase):
                     self.assertEqual(report["resources"]["live_chain_nodes"], int(fail is None))
                     self.assertEqual(report["resources"]["live_owners"], 2 if fail is None else 0)
 
-    def test_nominal_records_enums_and_tasks_use_existing_lowering(self):
-        fixtures = [
-            (stored_loan_program(), "stored", [[False], [True]]),
-            (enum_owner_program(), "choose", [[flag, size] for flag in (False, True) for size in (0, 7, MAX_U64)]),
-            (task_program(), "task_case", [[0], [1], [2], [255]]),
-            (scalar_task_program(), "scalar_task", [[]]),
-            (owned_result_task_program(), "owned_result", [[0], [9]]),
-            (composite_bulk_program(), "record_bulk", [[index] for index in range(7)]),
-            (composite_range_task_program(), "task_case", [[0], [1], [2]]),
-            (chain_document("composite_v2"), "chain_task", [[3, 0], [3, 1], [3, 2]]),
-            (chain_document("composite_v2"), "chain_stored_loan", [[0], [3]]),
-        ]
-        for source, entry, cases in fixtures:
-            core = self.admit(source, "nominal-" + entry)
-            self.assertNotEqual(source["schema"], core.as_dict()["schema"])
-            for arguments in cases:
-                for fail in (None, 1, 2):
-                    self.parity(core, entry, arguments, fail=fail)
 
-    def test_cancel_and_stored_reborrow_budget_stops_retain_live_state(self):
-        fixtures = ((stored_loan_program(), "stored", [True]),
-                    (composite_range_task_program(), "task_case", [1]),
-                    (owned_result_task_program(), "owned_result", [9]),
-                    (chain_document("composite_v2"), "chain_task", [2, 1]))
-        for source, entry, arguments in fixtures:
-            core = self.admit(source, "step-cut-" + entry)
-            done = self.parity(core, entry, arguments)
-            for limit in range(1, done["steps"] + 1):
-                self.parity(core, entry, arguments, steps=limit)
 
-    def test_real_source_projection_return_and_generic_owner_results(self):
-        path = "examples/hia_resource_core/borrowed_projection.hepta"
-        core = self.admit((ROOT / path).read_text(), path)
-        self.assertTrue(all(ty not in {"readbuf", "mutbuf"}
-                            for fn in core.as_dict()["functions"] for ty in fn["returns"]))
-        for size in (0, 1, 7):
-            for value in (0, 127, 255):
-                for fail in (None, 1):
-                    report = self.parity(core, "projection_probe", [size, value], fail=fail)
-                    if report["status"] == "returned":
-                        self.assertEqual(report["values"], [value ^ 90])
-                        self.assertGreaterEqual(report["resources"]["loans_started"], 6)
-        done = self.parity(core, "projection_probe", [3, 42])
-        for cut in range(1, done["steps"] + 1):
-            self.parity(core, "projection_probe", [3, 42], steps=cut)
-        path = "examples/hia_migration/generic_owners.hepta"
-        generic = self.admit((ROOT / path).read_text(), path)
-        for size in (0, 7, MAX_U64):
-            for ok in (False, True):
-                for fail in (None, 1):
-                    self.parity(generic, "probe", [size, ok], fail=fail)
-        path = "examples/cpp/owned_migration/expected.hepta"
-        owned = self.admit((ROOT / path).read_text(), path)
-        for args in ([0, 7, 0, False, False], [4, 5, 0, False, False],
-                     [4, 5, 1, False, False], [4, 5, 9, False, False],
-                     [4, 5, 0, True, False], [4, 5, 0, False, True]):
-            for fail in (None, 1):
-                self.parity(owned, "run_owned", args, fail=fail)
 
     def test_illegal_chain_and_bulk_lifecycles_reject_before_execution(self):
         for operation in (i("owner.drop", ["owned"]),
@@ -398,85 +295,7 @@ class RustOwnedMemoryParity(unittest.TestCase):
                             operation["args"][1] = operation["args"][0]
             self.reject(source, "mutable-copy-alias-" + opcode)
 
-    def test_primitive_loan_returns_and_unknown_hidden_ops_remain_closed(self):
-        source = m(f("escape", [("view", "readbuf")], ["readbuf"], [], [
-            b("entry", [("view", "readbuf")], [], ret("view"))]),
-            f("entrypoint", [], [], [], [b("entry", [], [], ret())]))
-        source["exports"] = ["entrypoint"]
-        self.reject(source, "cross-call-returned-loan")
-        source = chain_document()
-        helper = f("hidden", [], [], [], [b("entry", [], [i("resource.future")], ret())])
-        source["functions"].append(helper)
-        self.reject(source, "unknown-uncalled-helper", "chain_cancel", [3])
-        # Removal of canonical task-token consumption is an illegal resource
-        # program even though the nominal task has only scalar application data.
-        core = self.admit(scalar_task_program(), "scalar-task-token")
-        source = core.as_dict()
-        removed = False
-        for fn in source["functions"]:
-            if fn["name"].startswith("h2internal_"):
-                for block in fn["blocks"]:
-                    for index, operation in enumerate(block["ops"]):
-                        if operation["op"] == "owner.drop":
-                            block["ops"].pop(index)
-                            removed = True
-                            break
-                    if removed:
-                        break
-            if removed:
-                break
-        self.assertTrue(removed)
-        self.reject(source, "removed-task-token-consumer", "scalar_task")
 
-    def test_raw_nominal_and_unmodeled_source_do_not_silently_fall_back(self):
-        nominal = task_program()
-        # Exercise the repeated-input path in isolation, without depending on
-        # the earlier nominal parity test to have populated the collector.
-        core = self.admit(nominal, "nominal-boundary-positive")
-        key = self.remember(nominal, "raw-nominal-boundary", "nominal-boundary-negative")
-        retained = type(self).inputs[key]
-        self.assertEqual(retained.get("program_sha256"), core.sha256)
-        self.assertEqual(retained.get("normalization"), core.normalization_report)
-        self.assertEqual(retained["kind"], "nominal-boundary-negative")
-        self.assertEqual(retained["name"], "raw-nominal-boundary")
-        raw = self.raw_run(json.dumps(nominal).encode(), "task_case", [0])
-        type(self).admissions.append({"input_sha256": key, "rust_attempts": [raw],
-                                      "rejected": raw["returncode"] != 0})
-        self.assertNotEqual(raw["returncode"], 0)
-        self.assertTrue(raw["stderr"].startswith("E_HIA_FORMAT:"), raw)
-        self.assertEqual(raw["stdout"], "")
-        original = (ROOT / "examples/hia_resource_core/borrowed_projection.hepta").read_text()
-        invalid = {
-            "stored-returned-loan": original.replace("let answer = view(read packet)[0];",
-                "let escaped = view(read packet); let answer = escaped[0];"),
-            "nonprojection-helper": original.replace("return read packet.data;",
-                "let n = len(packet.data); return read packet.data;"),
-            "local-owner-return": "fn bad()->read [u8] effects{alloc,block,panic}{let local=buffer(1);return read local;}",
-            "foreign-call": 'extern "C" fn old(x:u64)->u64 effects{ffi};',
-            "returned-temporary-as-mutable-place": original.replace(
-                "pub fn projection_probe", "fn write_view(v:mut [u8],n:u8)->Unit effects{panic,write}{v[0]=n;}\npub fn projection_probe"
-            ).replace("let observed = edit_view(mut packet)[0];",
-                      "write_view(mut edit_view(mut packet), value); let observed = edit_view(mut packet)[0];"),
-        }
-        for name, source in invalid.items():
-            key = self.remember(source, name, "hepta-source-negative")
-            with self.assertRaises((HIAProgramRejected, HIAProgramSourceRejected)) as caught:
-                lower_source(source, path=name)
-            type(self).admissions.append({"input_sha256": key, "frontend_error": str(caught.exception),
-                                          "rust_attempts": [], "rejected": True})
-        stored = stored_loan_program()
-        stored["functions"][0]["blocks"][1]["ops"].insert(3, i("owner.drop", ["moved"]))
-        duplicate_cancel = task_program()
-        pending = next(block for block in duplicate_cancel["functions"][2]["blocks"]
-                       if block["id"] == "pending_cancel")
-        pending["ops"][1]["args"] = ["pending_task"]
-        for name, document in (("stored-child-outlives-owner", stored),
-                               ("reused-cancelled-task", duplicate_cancel)):
-            key = self.remember(document, name, "nominal-negative")
-            with self.assertRaises(HIAProgramRejected) as caught:
-                verify_program(document)
-            type(self).admissions.append({"input_sha256": key, "frontend_error": str(caught.exception),
-                                          "rust_attempts": [], "rejected": True})
 
 
 if __name__ == "__main__":

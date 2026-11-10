@@ -606,6 +606,12 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
     stem = "phase-" + family + "-" + label
     phase_directory = directory / "phase-runs" / (family + "-" + label)
     phase_directory.mkdir(parents=True, exist_ok=False, mode=0o700)
+    # Only this newly constructed stage may be losslessly packed after its
+    # direct worker exits. Existing/frozen evidence is never swept or mutated.
+    import secrets
+    from tools.hia_evidence_archive import OWNER, archive_completed_stage
+    archive_token = secrets.token_hex(32)
+    (phase_directory / OWNER).write_text(archive_token)
     request = {"schema": "hepta.hia.selfhost-phase-request.v1", "family": family,
                "compiler_label": label, "directory": str(phase_directory),
                "inputs": _phase_inputs(directory, family, compiler, label),
@@ -643,6 +649,9 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
             or report.get("fresh_host_oracle_process") is not True
             or report.get("successor_process_reuse") is not False):
         raise AssertionError("qualification phase receipt identity differs: " + stem)
+    archive = archive_completed_stage(phase_directory, archive_token)
+    receipt["raw_artifacts"] = archive
+    (directory / (stem + ".process.json")).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
     return report, receipt
 
 

@@ -19,9 +19,6 @@ from tests import test_hia_rust_owned_cfg as cfg
 from tests import test_hia_rust_returned_loans as v8_tests
 from tests.test_hia_rust_owned_memory import recursive_chain
 from tests.test_hia_program import b, c, f, i, ret, jump, branch
-from tools.qualify_hia_returned_loans_cross import (
-    corpus_document, case_plan, trap_plan, independent_spec, vm_projection,
-)
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE = "bounded-cfg-owned-memory-v5"
@@ -216,18 +213,6 @@ class RustReturnedChainsParity(unittest.TestCase):
         row["matched"] = True
         return rust
 
-    def test_exact_cross_target_corpus_and_independent_allocator_oracles(self):
-        source = corpus_document()
-        for case in case_plan():
-            report = self.parity(source, case["function"], case["arguments"], fail=case["failure"] or None)
-            expected = independent_spec(case)
-            self.assertEqual(report["values"], [expected["result"]])
-            projected = vm_projection({**report, "result": report["values"][0]})
-            self.assertEqual(projected, {key: expected[key] for key in projected})
-        for case in trap_plan():
-            report = self.parity(source, case["function"], case["arguments"], fail=case["failure"] or None)
-            self.assertEqual(report["status"], "trapped")
-            self.assertEqual(report["error"]["code"], case["trap_code"])
 
     def test_chain_storage_id_collision_bulk_return_and_readonly_alias_scope(self):
         for version in (7, 8):

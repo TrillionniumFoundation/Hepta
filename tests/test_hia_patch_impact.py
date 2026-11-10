@@ -164,7 +164,7 @@ class HIAPatchImpactTests(unittest.TestCase):
         import json
         from pathlib import Path
         import tempfile
-        from hepta.cli import main
+        from tools.hia_core_reference import main
 
         original = move_program()
         request = patch_packet(original, patch_initial_byte(original))
@@ -174,7 +174,7 @@ class HIAPatchImpactTests(unittest.TestCase):
             source.write_text(json.dumps(original), encoding="utf-8")
             request_path.write_text(json.dumps(request), encoding="utf-8")
             with io.StringIO() as stream, redirect_stdout(stream):
-                rc = main(["hia", "impact", str(source), "--request", str(request_path)])
+                rc = main([ "impact", str(source), "--request", str(request_path)])
                 output = json.loads(stream.getvalue())
             self.assertEqual(rc, 0, output)
             self.assertEqual(output["schema"], "hepta.hia.impact-query.v1")

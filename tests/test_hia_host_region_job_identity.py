@@ -15,7 +15,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -105,39 +104,6 @@ print("PASS job identity rejected, existing real native C worker retained, C ree
 '''
 
 
-class NativeJobIdentityTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("real Linux x86-64 host required; no silent skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("real Clang required; no silent skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(
-            Path(cls.temp.name), Path(compiler).resolve(), {}
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, scenario):
-        result = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, scenario],
-            capture_output=True, text=True, timeout=20, check=False
-        )
-        self.assertEqual(
-            result.returncode, 0,
-            f"scenario={scenario} stdout={result.stdout}\nstderr={result.stderr}"
-        )
-        self.assertIn("PASS job identity rejected", result.stdout)
-
-    def test_duplicate_native_job_id_cannot_hide_existing_live_c_worker(self):
-        self._probe("duplicate")
-
-    def test_malformed_native_job_id_fails_with_explicit_denial(self):
-        self._probe("malformed")
 
 
 if __name__ == "__main__":

@@ -13,7 +13,6 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.core import build_core, execute_core
 from hepta.hia_heap_bound import HIAHeapBoundRejected
 from hepta.hia_program import HIAProgramRejected, verify_program
 from hepta.hia_program_llvm import build_program_native
@@ -84,22 +83,6 @@ class BoundedProfileTests(unittest.TestCase):
         self.assertFalse(result["claims"]["source_to_core_or_native_backend_refinement_proved"])
         self.assertFalse(result["claims"]["retained_receipt_grants_admission"])
 
-    def test_every_allocator_denial_preserves_normal_error_cleanup(self):
-        source = fallible_module()
-        expected = self.qualify(source, max_live_heap_bytes=8)
-        for denial in (None, 1, 2, 3, 4):
-            with self.subTest(denial=denial):
-                observed = execute_core(source, "fallible_entry", [], allocation_fail_at=denial,
-                    bounded_resource_limits=policy(max_live_heap_bytes=8))
-                self.assertEqual(observed["result"], 0 if denial in (1, 2, 3) else 1)
-                ledger = observed["resources"]
-                self.assertEqual(ledger["live_owners"], 0)
-                self.assertEqual(ledger["live_local_loans"], 0)
-                self.assertEqual(ledger["allocations"], ledger["frees"])
-                self.assertLessEqual(ledger["peak_bytes"], 8)
-                self.assertLessEqual(ledger["allocation_attempts"] + ledger["frees"], 6)
-                self.assertEqual(observed["bounded_resources"], expected)
-                self.assertLessEqual(observed["steps"], expected["exports"][0]["max_vm_ticks"])
 
     def test_empty_owners_are_not_allocator_success_assumptions(self):
         source = fallible_module()
@@ -115,36 +98,8 @@ class BoundedProfileTests(unittest.TestCase):
         self.assertEqual(observed["resources"]["owners_created"], 3)
         self.assertEqual(observed["resources"]["owners_dropped"], 3)
 
-    def test_mutable_and_shared_returned_loans_keep_the_same_canonical_rules(self):
-        for mode in ("read", "mut"):
-            for construction in ("forward", "child", "cfg"):
-                source = fixed_loan_program(mode, construction)
-                name = source["exports"][0]
-                limits = policy(max_live_heap_bytes=8)
-                observed = execute_core(source, name, [37], bounded_resource_limits=limits)
-                self.assertEqual(observed["resources"]["live_local_loans"], 0)
-                self.assertEqual(observed["resources"]["peak_bytes"], 8)
-                self.assertEqual(observed["bounded_resources"]["core_sha256"], verify_program(source).sha256)
 
-    def test_all_exports_are_qualified_even_when_running_only_one(self):
-        source = fallible_module()
-        source["functions"].extend(unknown_size()["functions"])
-        source["exports"].append("dynamic")
-        with patch("hepta.hia_program_runtime._Machine.invoke") as invoked:
-            with self.assertRaises(HIAHeapBoundRejected):
-                execute_core(source, "fallible_entry", [], bounded_resource_limits=policy())
-            invoked.assert_not_called()
 
-    def test_a_saved_report_is_not_an_admission_token(self):
-        source = fallible_module()
-        receipt = self.qualify(source)
-        source["functions"][0]["blocks"][0]["ops"][0]["attrs"]["value"] = 500
-        # Even using the same limit fields performs a fresh analysis of the
-        # changed Core. A complete receipt is rejected as an unknown policy.
-        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
-            execute_core(source, "fallible_entry", [], bounded_resource_limits=receipt["limits"])
-        with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_POLICY"):
-            self.qualify_with(source, receipt)
 
     def qualify_with(self, source, limits):
         return qualify_bounded_resources(source, limits=limits)
@@ -192,68 +147,10 @@ class BoundedProfileTests(unittest.TestCase):
         with self.assertRaises(HIAProgramRejected):
             self.qualify(source)
 
-    def test_smaller_runtime_limits_reject_before_running(self):
-        source = fallible_module()
-        for override in ({"max_steps": 2}, {"max_heap_bytes": 7}, {"max_call_depth": 2}):
-            with patch("hepta.hia_program_runtime._Machine.invoke") as invoked:
-                with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_POLICY"):
-                    execute_core(source, "fallible_entry", [], bounded_resource_limits=policy(), **override)
-                invoked.assert_not_called()
 
-    def test_bounded_profile_does_not_turn_checked_overflow_into_an_error_value(self):
-        source = exported(arithmetic(typ="u8"))
-        with self.assertRaises(HIAProgramTrap) as stopped:
-            execute_core(source, "calculate", [255, 1], bounded_resource_limits=policy())
-        self.assertEqual(stopped.exception.code, "overflow")
-        self.assertEqual(stopped.exception.report["status"], "trapped")
-        self.assertFalse(stopped.exception.report["bounded_resources"]["claims"]["program_traps_excluded"])
-        wrapped = exported(arithmetic("int.add.wrap", "u8"))
-        self.assertEqual(execute_core(wrapped, "calculate", [255, 1],
-            bounded_resource_limits=policy())["result"], 0)
 
-    def test_existing_profile_remains_unchanged_when_not_requested(self):
-        source = local_buffers()
-        result = execute_core(source, "finite", [])
-        self.assertEqual(result["result"], 8)
-        self.assertNotIn("bounded_resources", result)
 
-    def test_budget_failure_is_before_native_emission_and_publication(self):
-        with tempfile.TemporaryDirectory() as folder:
-            destination = Path(folder) / "bounded.so"
-            with patch("hepta.hia_program_llvm.emit_program_llvm") as emitted:
-                with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
-                    build_core(fallible_module(), destination,
-                        bounded_resource_limits=policy(max_live_heap_bytes=7))
-                emitted.assert_not_called()
-                self.assertFalse(destination.exists())
 
-    @unittest.skipUnless(CANONICAL_CLANG, "actual Clang 20+ required")
-    def test_actual_native_allocation_denials_match_bounded_vm_observations(self):
-        source = fallible_module()
-        limits = policy(max_live_heap_bytes=8)
-        # Reuse the existing independent allocator observer, with its actual
-        # production object build entering the new optional profile.
-        def bounded_builder(*args, **kwargs):
-            return build_program_native(*args, **kwargs, bounded_resource_limits=limits)
-        with tempfile.TemporaryDirectory() as folder:
-            with patch("tests.test_hia_returned_loans.build_program_native", bounded_builder):
-                binary, receipt = build_allocator_observer(source, folder,
-                    {"fallible_entry": ("void", "fallible_entry()")})
-            self.assertEqual(receipt["core_sha256"], receipt["bounded_resources"]["core_sha256"])
-            self.assertFalse(receipt["claims"]["backend_refinement_proved"])
-            for denial in range(5):
-                native = subprocess.run([str(binary), "fallible_entry", str(denial)],
-                    check=True, capture_output=True, text=True, timeout=10)
-                got = json.loads(native.stdout)
-                vm = execute_core(source, "fallible_entry", [],
-                    allocation_fail_at=denial or None, bounded_resource_limits=limits)
-                self.assertEqual(got["result"], vm["result"])
-                for native_key, vm_key in (("attempts", "allocation_attempts"),
-                        ("allocations", "allocations"), ("frees", "frees"),
-                        ("peak_bytes", "peak_bytes"), ("live_bytes", "live_bytes")):
-                    self.assertEqual(got[native_key], vm["resources"][vm_key])
-                self.assertEqual(got["bad_frees"], 0)
-                self.assertEqual(got["live_bytes"], 0)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,66 @@
+name: HIA Core-only
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Regenerate actual HIA sources
+        run: |
+          set -eu
+          for component in elf_linker native_filter core_json_cli agent_stdio sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+            python -B -m "tools.generate_hia_$component"
+          done
+          git diff --exit-code
+      - run: python -B tools/check_hia_core_only.py
+      - run: python -B tools/generate_hia_selfhost_contract.py --check
+      - run: python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory
+      - run: git diff --exit-code
+      - name: Core source and independent reference controls
+        run: |
+          python -B - <<'PY'
+          import unittest
+          names = (
+              "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
+              "tests.test_hia_agent_stdio.AgentStdioSourceTests",
+              "tests.test_hia_agent_entry",
+              "tests.test_hia_elf_linker.ElfLinkerSourceTests",
+              "tests.test_hia_core_json_cli.CoreJsonCliSourceTests",
+              "tests.test_hia_selfhost_word_io.WordIOSourceTests",
+              "tests.test_hia_sha256_stream_native.Sha256StreamSourceTests",
+              "tests.test_hia_sha256_native.Sha256HiaSourceTests",
+              "tests.test_hia_json_preflight",
+              "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
+              "tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests",
+              "tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests",
+              "tests.test_hia_selfhost_exports.ExportSourceTests",
+              "tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests",
+              "tests.test_hia_selfhost.SelfhostSourceTests",
+              "tests.test_hia_selfhost_contract.SelfhostContractTests",
+              "tests.test_hia_selfhost_cli", "tests.test_hia_selfhost_names",
+              "tests.test_hia_selfhost_returned_loans",
+              "tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests",
+              "tests.test_hia_selfhost_keywords.SelfhostKeywordTests",
+              "tests.test_hia_selfhost_signed.SelfhostSignedTests",
+              "tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests",
+              "tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests",
+          )
+          result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
+          raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
+          PY
+  native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: sudo apt-get update && sudo apt-get install -y binutils gcc strace
+      - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
+      - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
+      - run: python -B -m unittest tests.test_hia_agent_stdio tests.test_hia_core_json_cli tests.test_hia_elf_linker -v
+        env:
+          HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json

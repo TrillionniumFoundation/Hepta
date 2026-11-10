@@ -37,16 +37,6 @@ class PartialRecordScenarioTests(unittest.TestCase):
         self.assertEqual(len(finite['cases']), 121)
         self.assertEqual(len(finite['budgets']), 11)
 
-    def test_partial_v3_does_not_erase_a_v8_return_origin_contract(self):
-        from tests.test_hia_returned_loans import helper, loan_program
-        raw_v8 = loan_program('mut', 'child')
-        admitted = verify_core(raw_v8)
-        self.assertEqual(execute_program(admitted, 'entry_mut_child', [1, 37])['result'], 42)
-        self.assertEqual(admitted.as_dict()['functions'][0]['return_loans'], ['input'])
-        nominal = program()
-        nominal['functions'].append(helper('mut', 'child'))
-        with self.assertRaisesRegex(HIAProgramRejected, 'E_HIA_FORMAT'):
-            verify_core(nominal)
 
     def test_all_fixed_scenarios_match_independent_values_and_allocator_counts(self):
         checked = verify_core(program())

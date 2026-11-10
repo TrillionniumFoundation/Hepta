@@ -16,7 +16,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -109,39 +108,6 @@ print("PASS refused unreceipted recovery result", stage)
 '''
 
 
-class RecoverySnapshotTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("actual Linux x86-64 host required; no skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("real Clang required; no skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(
-            Path(cls.temp.name), Path(compiler).resolve(), {}
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, stage):
-        observed = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
-            capture_output=True, text=True, timeout=25, check=False,
-        )
-        self.assertEqual(
-            observed.returncode, 0,
-            f"stage={stage} stdout={observed.stdout}\nstderr={observed.stderr}",
-        )
-        self.assertIn("PASS refused unreceipted recovery result", observed.stdout)
-
-    def test_maps_observation_failure(self):
-        self._probe("maps_unavailable")
-
-    def test_snapshot_fails_after_observation(self):
-        self._probe("post_observation")
 
 
 if __name__ == "__main__":

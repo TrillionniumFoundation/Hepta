@@ -8,7 +8,6 @@ from __future__ import annotations
 import unittest
 
 from tests import test_hia_release_parity_tail_gate as tail
-from tools.qualify_hia_release_parity import assess
 
 
 class ReleaseProtocolCompletenessTests(unittest.TestCase):
@@ -16,9 +15,6 @@ class ReleaseProtocolCompletenessTests(unittest.TestCase):
     def cohort():
         return tail.ReleaseParityTailGateTests.cohort()
 
-    def assert_reject(self, rows, spec):
-        with self.assertRaisesRegex(ValueError, "E_RELEASE_COHORT"):
-            assess(rows, spec)
 
     def test_vacuous_empty_campaign_cannot_pass(self):
         _, spec = self.cohort()

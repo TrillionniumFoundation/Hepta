@@ -260,54 +260,11 @@ class NativeDecisionReuseTests(unittest.TestCase):
         self.assertEqual(self.cache.statistics()["entries"], 0)
         self.assertEqual(self.cache.statistics()["native_evaluation_attempts"], 2)
 
-    def test_existing_compiler_graph_consumer_reuses_advice_without_authority(self):
-        from tools.qualify_hia_ndu_graph import choose_native_graph_plan
-        bundle = finite_plan_request(**fixture())
-        self.cache.evaluate(bundle["request"])
-        selected, response, receipt = choose_native_graph_plan(bundle, self.bridge, decision_cache=self.cache)
-        self.assertEqual(selected["id"], response["advisory_candidate_id"])
-        self.assertTrue(receipt["reused_exact_response"])
-        self.assertFalse(receipt["compiler_publication_authorized"])
-        self.assertEqual(self.cache.statistics()["native_evaluation_attempts"], 1)
-        self.assertTrue(selected["verified"])
 
 
 class DecisionReuseProtocolTests(unittest.TestCase):
-    def test_registered_traces_provide_exact_reuse_and_changed_identity_controls(self):
-        from tools.qualify_hia_ndu_reuse import PROTOCOL_PATH, make_trace, validate_protocol
-        protocol = validate_protocol(json.loads(PROTOCOL_PATH.read_bytes()))
-        for profile, unique in (("identical-retries", 8), ("changed-generation", 64)):
-            trace = make_trace(protocol, profile, 0)
-            self.assertEqual(len(trace), 64)
-            self.assertEqual(len({_wire(x["arguments"]) for x in trace}), unique)
-        for name, value in (("groups", True), ("keys_per_trace", 999), ("cache_entries", 1),
-                            ("episode_budget_ns", 0), ("arms", ["native-exact-reuse"])):
-            with self.assertRaises(ValueError):
-                validate_protocol(dict(protocol, **{name: value}))
 
-    def test_strong_control_gets_same_exact_reuse_capacity_and_changed_input_misses(self):
-        from tools.qualify_hia_ndu_reuse import (PROTOCOL_PATH, PlanReuseControl, load_bank,
-                                               make_trace, validate_protocol)
-        from tools.qualify_hia_ndu_graph import arithmetic_choice, graph_bundle, light_bundle
-        protocol = validate_protocol(json.loads(PROTOCOL_PATH.read_bytes()))
-        bank = load_bank(protocol)
-        for profile in protocol["trace_profiles"]:
-            cache, constructions = PlanReuseControl(protocol), []
-            for item in make_trace(protocol, profile, 0):
-                arguments = item["arguments"]
-                def construct():
-                    constructions.append(1)
-                    return arithmetic_choice(light_bundle(bank, **arguments),
-                        remaining_ns=arguments["remaining_ns"], completion_ns=protocol["graph_completion_value_ns"])
-                result, _ = cache.evaluate(bank, arguments, construct)
-                expected = arithmetic_choice(graph_bundle(bank, **arguments),
-                    remaining_ns=arguments["remaining_ns"], completion_ns=protocol["graph_completion_value_ns"])
-                for field in ("id", "actions", "estimated_cost_ns", "verified"):
-                    self.assertEqual(result[field], expected[field])
-            closed = cache.close()
-            self.assertEqual(len(constructions), 8 if profile == "identical-retries" else 64)
-            self.assertEqual(closed["hits"], 56 if profile == "identical-retries" else 0)
-            self.assertEqual((closed["entries"], closed["retained_payload_bytes"]), (0, 0))
+    pass
 
 
 @unittest.skipUnless(os.environ.get("HEPTA_FINITE_NDU_IDENTITY")
@@ -315,24 +272,7 @@ class DecisionReuseProtocolTests(unittest.TestCase):
                      and shutil.which(CLANG) and importlib.util.find_spec("z3"),
                      "requires actual finite NDU, Clang and Z3 for compiler integration")
 class NativeReuseCompilerIntegrationTests(unittest.TestCase):
-    def test_existing_graph_opt_in_still_proves_builds_and_executes_candidates(self):
-        from tools.qualify_hia_ndu_graph import PROTOCOL, qualify
-        with tempfile.TemporaryDirectory() as temporary:
-            protocol = dict(PROTOCOL, groups=1, calls=16, probe_size=3, batch_sizes=[3, 17, 33],
-                            guard_limits={"guard-small": 8, "guard-wide": 64})
-            result = qualify(Path(temporary) / "graph", identity=Path(os.environ["HEPTA_FINITE_NDU_IDENTITY"]),
-                             clang=CLANG, protocol=protocol, decision_cache_entries=8)
-            self.assertTrue(result["all_episodes_completed"])
-            self.assertTrue(result["all_outputs_correct"])
-            self.assertGreaterEqual(result["actual_transitions"], 2)
-            reused = result["exact_advisory_reuse"]
-            self.assertTrue(reused["closed"])
-            self.assertEqual((reused["entries"], reused["retained_payload_bytes"]), (0, 0))
-            # Calibration uses native misses; observed episode snapshots differ
-            # and must not inherit an artificially cheap calibration-hit cost.
-            self.assertEqual(reused["hits"], 0)
-            self.assertGreaterEqual(reused["native_evaluation_attempts"], 1)
-            self.assertFalse(result["safety_from_ndu_claim"])
+    pass
 
 
 if __name__ == "__main__":

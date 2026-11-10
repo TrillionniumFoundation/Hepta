@@ -1,2 +1,2 @@
-"""Hepta: an experimental ownership-and-contract systems language."""
-__version__ = "0.2.0"
+"""HIA typed Core and Agent tooling; no high-level source language."""
+__version__ = "0.3.0"

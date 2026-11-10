@@ -1,1 +1,0 @@
-pub fn utility(x:u32)->u32 { x & 255 }

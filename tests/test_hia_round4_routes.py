@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.cli import main
+from tools.hia_core_reference import main
 from hepta.hia_agent_assembly import render_assembly
 from hepta.hia_program import verify_program
 from hepta.hia_routes import admit_route, RouteRejected, execute_route
@@ -40,7 +40,7 @@ class Round4Routes(unittest.TestCase):
                          ["check-assembly",str(assembly)],
                          ["import-assembly",str(assembly),"-o",str(back)]):
                 output=io.StringIO()
-                with contextlib.redirect_stdout(output):self.assertEqual(main(["hia",*argv]),0)
+                with contextlib.redirect_stdout(output):self.assertEqual(main([*argv]),0)
                 result=json.loads(output.getvalue())
                 if argv[0]=="check-assembly":
                     self.assertTrue(result["accepted"])
@@ -48,7 +48,7 @@ class Round4Routes(unittest.TestCase):
             self.assertEqual(verify_program(back.read_bytes()),self.program())
             before=assembly.read_bytes()
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertNotEqual(main(["hia","render-assembly",str(source),"-o",str(assembly)]),0)
+                self.assertNotEqual(main(["render-assembly",str(source),"-o",str(assembly)]),0)
             self.assertEqual(assembly.read_bytes(),before)
 
     def test_bad_assembly_diagnostic_does_not_publish_core(self):
@@ -57,31 +57,19 @@ class Round4Routes(unittest.TestCase):
             source.write_text("hia-asm.v1 unregistered_schema malicious\n")
             output=io.StringIO()
             with contextlib.redirect_stdout(output):
-                self.assertEqual(main(["hia","check-assembly",str(source)]),1)
+                self.assertEqual(main(["check-assembly",str(source)]),1)
             result=json.loads(output.getvalue())
             self.assertFalse(result["accepted"])
             self.assertFalse(result["native_artifact_created"])
             target=Path(td)/"core.json"
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertNotEqual(main(["hia","import-assembly",str(source),"-o",str(target)]),0)
+                self.assertNotEqual(main(["import-assembly",str(source),"-o",str(target)]),0)
             self.assertFalse(target.exists())
 
-    def test_assignment_routes_validate_all_variants_before_selection(self):
-        for route,function in (("cpp-unique-assignment-project","lower_unique_assignment_project"),
-                               ("cpp-unique-assignment-matrix","lower_unique_assignment_matrix")):
-            matrix=route.endswith("matrix")
-            captured=({"variants":[{"name":"selected","program":constant_program()}]} if matrix
-                      else {"program":constant_program()})
-            argv=["hia","import-"+route,"capture.json"]+(["--variant","selected"] if matrix else [])
-            output=io.StringIO()
-            with patch("hepta.cpp_unique_project."+function,return_value=captured),contextlib.redirect_stdout(output):
-                self.assertEqual(main(argv),0)
-            self.assertEqual(verify_program(json.loads(output.getvalue())),verify_program(constant_program()))
-        captured={"variants":[{"name":"selected","program":constant_program()},
-                              {"name":"other","program":{"schema":"forged-receipt"}}]}
-        with patch("hepta.cpp_unique_project.lower_unique_assignment_matrix",return_value=captured):
-            with self.assertRaises(ValueError):
-                admit_route("cpp-unique-assignment-matrix","capture.json",variant="selected")
+    def test_removed_assignment_routes_refuse_before_any_capture(self):
+        for route in ("cpp-unique-assignment-project", "cpp-unique-assignment-matrix"):
+            with self.subTest(route=route), self.assertRaises(RouteRejected):
+                admit_route(route, b"not an admitted HIA input")
 
 
 if __name__=="__main__":unittest.main()

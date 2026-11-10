@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.cli import main
+from tools.hia_core_reference import main
 from tests.test_hia_rust_crosscheck import scalar_program
 
 
@@ -21,7 +21,7 @@ class HIARustCrosscheckCliTests(unittest.TestCase):
                                      "status": "shadow_corroborated_not_authority"}) as checked:
                 output = io.StringIO()
                 with redirect_stdout(output):
-                    code = main(["hia", "verify", str(path),
+                    code = main([ "verify", str(path),
                                  "--rust-shadow-bin", "/usr/bin/rust-shadow",
                                  "--rust-shadow-sha256", "f" * 64,
                                  "--rust-shadow-profile", "scalar"])
@@ -41,7 +41,7 @@ class HIARustCrosscheckCliTests(unittest.TestCase):
                           ["--rust-shadow-sha256", "a" * 64],
                           ["--rust-shadow-profile", "owned"]):
                 with self.subTest(extra=extra), redirect_stdout(io.StringIO()) as output:
-                    self.assertEqual(main(["hia", "verify", str(path), *extra]), 2)
+                    self.assertEqual(main([ "verify", str(path), *extra]), 2)
                     self.assertEqual(json.loads(output.getvalue())["status"], "error")
 
     def test_baseline_verification_remains_rust_independent(self):
@@ -50,7 +50,7 @@ class HIARustCrosscheckCliTests(unittest.TestCase):
             path.write_text(json.dumps(scalar_program()), encoding="utf-8")
             with patch("hepta.hia_rust_crosscheck.crosscheck_rust_shadow") as shadow:
                 with redirect_stdout(io.StringIO()) as output:
-                    self.assertEqual(main(["hia", "verify", str(path)]), 0)
+                    self.assertEqual(main([ "verify", str(path)]), 0)
                 self.assertEqual(json.loads(output.getvalue())["status"],
                                  "standalone_core_checked")
                 shadow.assert_not_called()

@@ -1,1 +1,0 @@
-use crate::api; pub fn provider_probe(a:u32,b:u32,c:u32)->u64 { let _=c; api::span(a,b) as u64 }

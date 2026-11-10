@@ -73,7 +73,7 @@ class OpcodeCatalogTests(unittest.TestCase):
         self.assertEqual((ROOT / "docs/HIA_OPCODE_REFERENCE.md").read_text(), render_opcode_reference())
         self.assertEqual(json.loads((ROOT / "docs/hia-opcode-catalog.v8.json").read_text()),
                          json.loads(json.dumps(opcode_catalog())))
-        run = subprocess.run([sys.executable, "-B", "-m", "hepta", "hia", "catalog", "--schema", SCHEMA_V8],
+        run = subprocess.run([sys.executable, "-B", "-m", "tools.hia_core_reference", "catalog", "--schema", SCHEMA_V8],
                              cwd=ROOT, text=True, capture_output=True, timeout=20)
         self.assertEqual(run.returncode, 0, run.stderr)
         self.assertEqual(json.loads(run.stdout), json.loads(json.dumps(opcode_catalog())))

@@ -10,7 +10,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.cli import main
+from tools.hia_core_reference import main
 from hepta.hia_program import verify_program
 from tests.test_hia_multiversion import cyclic_program, scalar_program
 

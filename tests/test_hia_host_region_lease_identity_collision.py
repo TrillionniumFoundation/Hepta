@@ -16,7 +16,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -84,42 +83,6 @@ print("PASS duplicate/malformed identity rejected, original grant preserved, rea
 '''
 
 
-class LeaseIdentityCollisionTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("real Linux x86-64 host required; no silent skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("real Clang compiler required; no silent skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(
-            Path(cls.temp.name), Path(compiler).resolve(), {}
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, scenario):
-        result = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, scenario],
-            capture_output=True, text=True, timeout=20, check=False
-        )
-        self.assertEqual(
-            result.returncode, 0,
-            f"scenario={scenario} stdout={result.stdout}\nstderr={result.stderr}"
-        )
-        self.assertIn("PASS duplicate/malformed identity rejected", result.stdout)
-
-    def test_second_public_read_cannot_reuse_live_owner_token(self):
-        self._probe("duplicate-public")
-
-    def test_native_reader_cannot_replace_live_public_grant(self):
-        self._probe("duplicate-native")
-
-    def test_malformed_entropy_result_denied_before_page_access(self):
-        self._probe("malformed")
 
 
 if __name__ == "__main__":

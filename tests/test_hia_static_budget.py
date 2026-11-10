@@ -14,7 +14,6 @@ from unittest.mock import patch
 from hepta.hia_program import verify_program
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_static_budget import HIAStaticBudgetRejected, analyze_static_budget
-from hepta.hia_source_bridge import build_checked_hepta_hia_native
 from tests.test_hia_program import b, branch, c, f, i, jump, m, resource_program, ret
 
 
@@ -132,27 +131,6 @@ class HIAStaticBudgetTests(unittest.TestCase):
         with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_EXCEEDED"):
             analyze_static_budget(core, max_allocator_interactions=1)
 
-    def test_source_native_rejects_before_any_llvm_on_budget_failure(self):
-        with tempfile.TemporaryDirectory() as root:
-            src, dst = Path(root) / "program.hepta", Path(root) / "result.so"
-            src.write_text("module budget;", encoding="utf-8")
-            project = SimpleNamespace(identity="a" * 64,
-                                      sources={str(src): "pinned"}, unchanged=lambda: True)
-            analysis = SimpleNamespace(program=object(), checked=object(), project=project,
-                                       report={"ok": True,
-                                               "checks": {"rust_borrows_types": "rustc_checked"},
-                                               "compiler_sha256": "b" * 64})
-            derived = SimpleNamespace(program=verify_program(resource_program()))
-            with (patch("hepta.pipeline.analyze_project", return_value=analysis),
-                  patch("hepta.pipeline.compiler_hash", return_value="b" * 64),
-                  patch("hepta.hia_source_bridge.lower_checked_scalar_hia", return_value=derived),
-                  patch("hepta.hia_program_llvm.emit_program_llvm") as native):
-                report = build_checked_hepta_hia_native(src, dst,
-                    static_resource_limits={"max_allocator_interactions": 1})
-            self.assertFalse(report["ok"], report)
-            self.assertEqual(report["diagnostics"][0]["code"], "E_HIA_BUDGET_EXCEEDED")
-            native.assert_not_called()
-            self.assertFalse(dst.exists())
 
 
 if __name__ == "__main__":

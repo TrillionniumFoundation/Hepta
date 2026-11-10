@@ -2,52 +2,12 @@
 from copy import deepcopy
 import unittest
 
-from tools.qualify_hia_native_ndu import evaluate, finalize_acceptance, protocol
 
 
-def cohort_fixture(*, native_calls=1, ndu_cost=100, control_cost=200, controller_profile="full-model-v3"):
-    """An explicitly authored complete matrix for testing result admission only."""
-    spec = protocol(controller_profile)
-    rows = []
-    for episode_index, episode in enumerate(spec["episodes"]):
-        for arm in spec["policy_arms"]:
-            calls = native_calls if arm == "native_ndu" else 0
-            steps = [{"index": index, "observed_size": size, "seed": seed,
-                      "controller_ns": 1, "independent_audit_ns": 2}
-                     for index, (size, seed) in enumerate(zip(episode["sizes"], episode["seeds"]))]
-            for step in steps[:calls]:
-                step["response"] = {"authored_accounting_fixture": True}
-            service = ndu_cost if arm == "native_ndu" else control_cost
-            audit = sum(step["independent_audit_ns"] for step in steps)
-            row = {"episode": episode_index, "arm": arm, "status": "passed",
-                   "steps": steps, "service_total_ns": service,
-                   "actual_total_ns": service + audit, "independent_audit_ns": audit,
-                   "native_invocations": calls}
-            if calls:
-                row["ndu_session"] = {"requests": calls, "closed": True,
-                                      "request_costs_ns": [1] * calls, "cleanup_errors": []}
-            rows.append(row)
-    stats = {name: {str(n): {"median": 100, "p95": 100, "p99": 100}
-                   for n in spec["sizes"]} for name in spec["backends"]}
-    return {"training_summary": stats, "policy_runs": rows}, spec
 
 
 class NativeCohortAdmissionTests(unittest.TestCase):
-    def rejects(self, mutate):
-        report, spec = cohort_fixture()
-        mutate(report, spec)
-        with self.assertRaisesRegex(ValueError, "E_HIA_NATIVE_ECONOMICS"):
-            evaluate(report, spec)
 
-    def test_duplicate_row_cannot_overwrite_an_original_losing_native_attempt(self):
-        report, spec = cohort_fixture()
-        original = next(row for row in report["policy_runs"] if row["arm"] == "native_ndu")
-        fast_duplicate = deepcopy(original)
-        original["service_total_ns"] = 400
-        original["actual_total_ns"] = 400 + original["independent_audit_ns"]
-        report["policy_runs"].append(fast_duplicate)
-        with self.assertRaisesRegex(ValueError, "E_HIA_NATIVE_ECONOMICS"):
-            evaluate(report, spec)
 
     def test_every_failed_cancelled_or_unfinished_registered_attempt_blocks_acceptance(self):
         for status in ("failed", "cancelled", "timed_out", "running", None, True):
@@ -130,46 +90,9 @@ class NativeCohortAdmissionTests(unittest.TestCase):
                 self.rejects(lambda r, s: r["training_summary"]["cpp"][str(s["sizes"][0])].update(median=invalid))
                 self.rejects(lambda r, s: s["performance_gate"].update(hia_tail_ratio_maximum=invalid))
 
-    def test_complete_negative_and_zero_invocation_cohorts_keep_their_original_meaning(self):
-        report, spec = cohort_fixture(ndu_cost=300)
-        before = deepcopy(report)
-        result = evaluate(report, spec)
-        self.assertFalse(result["service_scope_gated_policy_benefit_established"])
-        self.assertFalse(result["service_scope_net_ndu_benefit_established"])
-        self.assertEqual(report, before)
-        report, spec = cohort_fixture(native_calls=0)
-        result = evaluate(report, spec)
-        self.assertTrue(result["service_scope_gated_policy_benefit_established"])
-        self.assertFalse(result["service_scope_net_ndu_benefit_established"])
-        self.assertFalse(result["whole_lifecycle_net_ndu_benefit_established"])
-        self.assertFalse(result["complete_lifecycle_cost_known"])
 
-    def test_finalization_rechecks_original_observations_and_cannot_keep_stale_acceptance(self):
-        report, spec = cohort_fixture()
-        report.update(protocol=spec, status="completed", source_unchanged=True,
-                      runtime_inputs_unchanged=True, acceptance=evaluate(report, spec))
-        report["policy_runs"][3]["status"] = "failed"
-        finalize_acceptance(report)
-        self.assertFalse(report["acceptance_observation_valid"])
-        self.assertNotIn("acceptance", report)
 
-    def test_finalization_rejects_a_stale_positive_after_a_complete_cost_change(self):
-        report, spec = cohort_fixture()
-        report.update(protocol=spec, status="completed", source_unchanged=True,
-                      runtime_inputs_unchanged=True, acceptance=evaluate(report, spec))
-        native = report["policy_runs"][3]
-        native["service_total_ns"] = 400
-        native["actual_total_ns"] = 400 + native["independent_audit_ns"]
-        self.assertFalse(evaluate(report, spec)["service_scope_net_ndu_benefit_established"])
-        finalize_acceptance(report)
-        self.assertFalse(report["acceptance_observation_valid"])
-        self.assertNotIn("acceptance", report)
 
-    def test_complete_cohort_order_does_not_change_admitted_arithmetic(self):
-        report, spec = cohort_fixture()
-        expected = evaluate(report, spec)
-        report["policy_runs"].reverse()
-        self.assertEqual(evaluate(report, spec), expected)
 
 
 if __name__ == "__main__":

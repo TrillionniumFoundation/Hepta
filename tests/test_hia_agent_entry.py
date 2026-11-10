@@ -1,4 +1,4 @@
-"""Real Agent roundtrips with the frozen frontend and foreign backends absent."""
+"""Real Agent roundtrips with the removed frontend and foreign backends absent."""
 from __future__ import annotations
 
 import json
@@ -21,12 +21,12 @@ blocked = {
 class NoFrozenFrontend(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if fullname in blocked:
-            raise AssertionError('frozen or foreign dependency: ' + fullname)
+            raise AssertionError('removed or foreign dependency: ' + fullname)
 sys.meta_path.insert(0, NoFrozenFrontend())
-from hepta.cli import hia_main, main
+from hepta.cli import hia_main
 args = json.loads(sys.argv[1])
 try:
-    result = (main(['hia', *args]) if sys.argv[2] == 'compat' else hia_main(args))
+    result = hia_main(args)
 finally:
     assert not blocked.intersection(sys.modules), blocked.intersection(sys.modules)
 raise SystemExit(result)

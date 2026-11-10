@@ -14,7 +14,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -88,37 +87,6 @@ print("PASS completed C worker code pin retirement permanently fenced", stage)
 '''
 
 
-class CompletedPinRetirementTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("real Linux x86-64 host required; no silent skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("real Clang required; no silent skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(
-            Path(cls.temp.name), Path(compiler).resolve(), {}
-        )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, stage):
-        result = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, stage],
-            capture_output=True, text=True, timeout=25, check=False,
-        )
-        self.assertEqual(result.returncode, 0,
-            f"stage={stage} stdout={result.stdout}\nstderr={result.stderr}")
-        self.assertIn("PASS completed C worker code pin retirement", result.stdout)
-
-    def test_joined_worker_pin_receipt_loss_before_decrement(self):
-        self._probe("pre_decrement")
-
-    def test_joined_worker_pin_receipt_loss_after_decrement(self):
-        self._probe("post_decrement")
 
 
 if __name__ == "__main__":

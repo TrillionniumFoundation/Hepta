@@ -12,7 +12,6 @@ import unittest
 from unittest.mock import patch
 
 from hepta.hia_program import verify_program
-from hepta.hia_program_source import lower_source
 from hepta.hia_program_runtime import execute_program, HIAProgramTrap
 from hepta.hia_optimization import DEFAULT_POLICY, OptimizationRejected, _digest
 from hepta.hia_narrowing import (propose_modular_narrowing, verify_modular_narrowing,
@@ -25,7 +24,6 @@ try:
 except ImportError:
     z3 = None
 
-SOURCE = Path(__file__).resolve().parents[1] / "experiments/hia_optimizer_eval/kernels.hepta"
 
 
 def expression(wide="u32", narrow="u8", op="int.add.wrap"):
@@ -161,82 +159,12 @@ class NarrowingProofTests(unittest.TestCase):
                     build_narrowed_native(base, proposal, destination)
             self.assertFalse(destination.exists())
 
-    def test_guard_chain_binds_every_intermediate_and_preserves_fallback_resources(self):
-        base = lower_source(SOURCE.read_text())
-        proposal = propose_guarded_narrowing(base, maximum=16)
-        report = verify_guarded_narrowing(base, proposal)
-        self.assertEqual(report["status"], "verified", report["reason"])
-        first, second = [s["proof"] for s in report["stages"]]
-        self.assertEqual(first["candidate_sha256"], second["base_sha256"])
-        self.assertEqual(second["candidate_sha256"], report["candidate_sha256"])
-        candidate = verify_program(proposal["narrowing"]["candidate_core"])
-        for name in ("full_lifecycle", "packet_xor"):
-            for n in (0, 1, 16, 17, 33):
-                for fail_at in (None, 1, 2):
-                    a = execute_program(base, name, [n, 2**32 - 1], allocation_fail_at=fail_at)
-                    other = execute_program(candidate, name, [n, 2**32 - 1], allocation_fail_at=fail_at)
-                    self.assertEqual(a["result"], other["result"])
-                    self.assertEqual(a["resources"], other["resources"])
-        proposal["narrowing"]["base_sha256"] = base.sha256
-        rejected = verify_guarded_narrowing(base, proposal)
-        self.assertEqual(rejected["status"], "rejected")
-        self.assertNotIn("stages", rejected)
 
-    def test_guard_chain_uses_shared_not_per_stage_operation_and_obligation_budgets(self):
-        base = lower_source(SOURCE.read_text())
-        proposal = propose_guarded_narrowing(base, maximum=16)
-        for limit in ("max_obligations", "max_scalar_operations"):
-            report = verify_guarded_narrowing(base, proposal, {**DEFAULT_POLICY, "timeout_ms": 30000, limit: 0})
-            self.assertEqual(report["status"], "unknown")
-        with tempfile.TemporaryDirectory() as tmp:
-            destination = Path(tmp) / "never.so"
-            with patch("hepta.hia_program_llvm.build_program_native", side_effect=AssertionError("compiled")):
-                with self.assertRaises(OptimizationRejected):
-                    build_guarded_narrowed_native(base, proposal, destination,
-                                                  policy={**DEFAULT_POLICY, "timeout_ms": 0})
-            self.assertFalse(destination.exists())
 
 
 @unittest.skipUnless(z3 is not None and shutil.which(os.environ.get("CLANG", "clang")),
                      "pinned Z3 and native Clang required")
 class NarrowingNativeTests(unittest.TestCase):
-    def test_actual_guard_chain_bytes_mapping_and_mutable_producer_are_bound(self):
-        from hepta.hia_program_llvm import build_program_native
-        from hepta.hia_native_differential import _pin_native_artifact
-        from hepta.native_mapping_identity import verify_loaded_symbols
-        base = lower_source(SOURCE.read_text())
-        proposal = propose_guarded_narrowing(base, maximum=32)
-        before = _digest(proposal)
-
-        def compile_frozen(program, output, **kwargs):
-            proposal["narrowing"]["candidate_core"]["functions"] = []
-            return build_program_native(program, output, **kwargs)
-
-        with tempfile.TemporaryDirectory() as tmp:
-            destination = Path(tmp) / "bound.so"
-            with patch("hepta.hia_program_llvm.build_program_native", side_effect=compile_frozen):
-                report = build_guarded_narrowed_native(base, proposal, destination,
-                                                       clang=os.environ.get("CLANG", "clang"))
-            self.assertEqual(report["verification"]["proposal_sha256"], before)
-            self.assertEqual(report["verification"]["candidate_sha256"], report["native"]["core_sha256"])
-            self.assertEqual(report["native"]["artifact_sha256"], hashlib.sha256(destination.read_bytes()).hexdigest())
-            _, _, descriptor = _pin_native_artifact(destination)
-            library = None
-            try:
-                library = ctypes.CDLL(f"/proc/self/fd/{descriptor}", mode=os.RTLD_NOW | os.RTLD_LOCAL)
-                exports = {n: getattr(library, n) for n in ("full_lifecycle", "packet_xor")}
-                identity = verify_loaded_symbols(descriptor, exports)
-                self.assertTrue(identity)
-                for name, call in exports.items():
-                    call.argtypes, call.restype = [ctypes.c_uint64, ctypes.c_uint32], ctypes.c_uint64
-                    for n in (0, 1, 31, 32, 33, 127):
-                        for seed in (0, 255, 2**32 - 1):
-                            self.assertEqual(call(n, seed), execute_program(base, name, [n, seed])["result"])
-            finally:
-                if library is not None:
-                    import _ctypes
-                    _ctypes.dlclose(library._handle)
-                os.close(descriptor)
 
     def test_proof_source_drift_during_native_build_withdraws_publication(self):
         import hepta.hia_narrowing as narrowing

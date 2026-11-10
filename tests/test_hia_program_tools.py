@@ -121,7 +121,7 @@ class HIAProgramToolsTests(unittest.TestCase):
                         ["patch", str(source), "--request", str(request), "-o", str(output)]]
             for command in commands:
                 with self.subTest(command=command[0]):
-                    result = subprocess.run([sys.executable, "-m", "hepta", "hia", *command],
+                    result = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", *command],
                                             env=env, capture_output=True, text=True, timeout=20)
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                     json.loads(result.stdout)
@@ -134,7 +134,7 @@ class HIAProgramToolsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             source = Path(folder) / "bad.hia"
             source.write_text(json.dumps(document))
-            result = subprocess.run([sys.executable, "-m", "hepta", "hia", "verify", str(source)],
+            result = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", "verify", str(source)],
                                     capture_output=True, text=True, timeout=20)
             self.assertNotEqual(result.returncode, 0)
             self.assertFalse(json.loads(result.stdout)["ok"])
@@ -145,7 +145,7 @@ class HIAProgramToolsTests(unittest.TestCase):
             source.write_text(json.dumps(scalar_program()))
             for arguments, extra, expected in (("[4294967295]", [], "trapped"),
                     ("[0]", ["--max-steps", "1"], "budget_exceeded")):
-                result = subprocess.run([sys.executable, "-m", "hepta", "hia", "run", str(source),
+                result = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", "run", str(source),
                     "--function", "increment", "--arguments", arguments, *extra],
                     capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 1, result.stdout + result.stderr)

@@ -11,46 +11,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_source_bridge import build_checked_hepta_hia_native
 
 _COMPILER = "a" * 64
 _PROJECT = "e" * 64
 
 
 class SourceCompilerIdentityTests(unittest.TestCase):
-    def execute_case(self, identity, current, *, profile="scalar", second=None):
-        with tempfile.TemporaryDirectory(prefix="hia-identity-") as temporary:
-            source = Path(temporary) / "program.hepta"
-            target = Path(temporary) / "not-published.so"
-            source.write_text("module identity;\n", encoding="utf-8")
-            project = SimpleNamespace(identity=_PROJECT,
-                                      sources={str(source): "fixed"},
-                                      unchanged=lambda: True)
-            report = {"ok": True,
-                      "checks": {"rust_borrows_types": "rustc_checked"},
-                      "compiler_sha256": identity}
-            analyzed = SimpleNamespace(
-                report=report, checked=object(), program=object(), project=project)
-            selected = ("lower_checked_owned_hia" if profile == "owned"
-                        else "lower_checked_scalar_hia")
-            with (patch("hepta.pipeline.analyze_project", return_value=analyzed),
-                  patch("hepta.pipeline.compiler_hash",
-                        side_effect=[current, second] if second is not None else None,
-                        return_value=current) as hash_source,
-                  patch("hepta.hia_source_bridge." + selected,
-                        return_value=SimpleNamespace()) as source_lower,
-                  patch("hepta.hia_program_llvm.emit_program_llvm") as native):
-                result = build_checked_hepta_hia_native(
-                    source, target, profile=profile)
-            self.assertFalse(result["ok"], result)
-            self.assertFalse(target.exists())
-            self.assertFalse(result["claims"]["native_codegen_consumed_verified_hia_core"])
-            native.assert_not_called()
-            if second is None or current != identity:
-                source_lower.assert_not_called()
-            else:
-                source_lower.assert_called_once()
-            return result
 
     def test_compiler_drift_before_lowering_refuses_scalar_and_owned(self):
         for profile in ("scalar", "owned"):

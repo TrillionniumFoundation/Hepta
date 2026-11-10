@@ -137,16 +137,6 @@ class InitializationCoverageTests(unittest.TestCase):
             b("entry", [("input", "u8")], [], ret("input"))]))
         self.assertFalse(self.report(program)["eligible"])
 
-    def test_existing_guarded_and_narrowed_source_retains_both_complete_fill_witnesses(self):
-        from hepta.hia_program_source import lower_source
-        from hepta.hia_narrowing import propose_guarded_narrowing
-        root = Path(__file__).resolve().parents[1]
-        base = lower_source((root / "benchmarks/hia_native_ndu/kernel.hepta").read_text())
-        proposal = propose_guarded_narrowing(base, maximum=65536, include_induction=True)
-        candidate = verify_program(proposal["narrowing"]["candidate_core"])
-        result = verify_initialization_coverage(candidate)["functions"][0]
-        self.assertTrue(result["eligible"], result)
-        self.assertEqual(len(result["witnesses"]), 2)
 
 
 DRIVER = r'''

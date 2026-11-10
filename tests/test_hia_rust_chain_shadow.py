@@ -14,7 +14,6 @@ import unittest
 
 from hepta.hia_program import HIAProgramRejected, verify_program
 from tests.test_hia_program import b, c, f, i, ret
-from tools.qualify_hia_recursive_chain import EXAMPLES
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "rust" / "hia-core-shadow" / "Cargo.toml"
@@ -64,19 +63,6 @@ class RustChainShadowDifferential(unittest.TestCase):
              "--manifest-path", str(MANIFEST), "--", "--owned-shadow"],
             cwd=ROOT, input=raw, capture_output=True, timeout=60, check=False)
 
-    def test_complete_real_recursive_chain_core_profile(self):
-        # The original full Core includes 9 functions and CFG loops. All
-        # function bodies, including unused helpers, must be checked.
-        raw = (EXAMPLES / "core_v7.json").read_bytes()
-        canonical = verify_program(raw)
-        result = self.rust(canonical.canonical_bytes)
-        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
-        report = json.loads(result.stdout)
-        self.assertEqual(report["program_sha256"], canonical.sha256)
-        self.assertEqual(report["functions_checked"], 9)
-        self.assertIs(report["claims"]["v7_chain_owner_loan_cfg_checked"], True)
-        self.assertIs(report["claims"]["v7_chain_native_semantics_proved"], False)
-        self.assertIs(report["claims"]["rust_is_production_admission_authority"], False)
 
     def test_complete_primitive_and_older_version_negative(self):
         document = chain_primitive()

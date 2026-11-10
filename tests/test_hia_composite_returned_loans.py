@@ -251,7 +251,7 @@ class CompositeReturnedLoans(unittest.TestCase):
         # Keep a regression failure bounded if the recursive walk reappears.
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "dag.json"; path.write_text(json.dumps(v4(types, reader)))
-            completed = subprocess.run([sys.executable, "-m", "hepta", "hia", "normalize", str(path)],
+            completed = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", "normalize", str(path)],
                                        cwd=ROOT, capture_output=True, text=True, timeout=10)
             self.assertEqual(completed.returncode, 0, completed.stderr)
             fn = json.loads(completed.stdout)["functions"][0]
@@ -361,7 +361,7 @@ class CompositeReturnedLoans(unittest.TestCase):
                             ["normalize", str(path), "-o", str(normalized)],
                             ["run", str(path), "--function", "probe", "--arguments", "[3,37,true]"],
                             ["run", str(normalized), "--function", "probe", "--arguments", "[3,37,true]"]):
-                completed = subprocess.run([sys.executable, "-m", "hepta", "hia", *command],
+                completed = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", *command],
                                            cwd=ROOT, capture_output=True, text=True, timeout=30)
                 self.assertEqual(completed.returncode, 0, completed.stderr)
                 result = json.loads(completed.stdout)

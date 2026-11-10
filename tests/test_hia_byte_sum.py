@@ -15,7 +15,6 @@ from unittest.mock import patch
 from hepta.hia_byte_sum import INTRINSIC, byte_sum_plans
 from hepta.hia_program import execute_program, verify_program
 from hepta.hia_program_runtime import HIAProgramTrap
-from hepta.hia_program_source import lower_source
 from hepta.hia_program_llvm import (
     HIAProgramLLVMRejected, TARGET, TARGET_AARCH64, TARGET_RISCV64,
     build_program_native, compile_program_llvm, emit_program_llvm,
@@ -412,31 +411,6 @@ class ByteSumNativeTests(unittest.TestCase):
                                          text=True, timeout=10)
                 self.assertEqual(trapped.returncode, -6, trapped.stdout + trapped.stderr)
 
-    def test_both_registered_workloads_match_independent_arithmetic(self):
-        functions = []
-        for workload in ("linear", "affine"):
-            source = lower_source((ROOT / ("benchmarks/hia_reduction_release/" + workload + ".hepta")).read_text())
-            optimized = reduction_program(source, propose_reduction_pipeline(source, include_induction=True))
-            function = optimized.as_dict()["functions"][0]
-            function["name"] = "calculate_" + workload
-            self.assertEqual(len(byte_sum_plans(function)), 1)
-            functions.append(function)
-        core = verify_program({"schema": "hepta.hia.program.v1", "module": "both_byte_sum_workloads",
-                               "functions": functions})
-        path = self.folder / "workloads.so"
-        receipt = build_program_native(core, path, clang=CLANG, layout="guarded-outline-v1")
-        self.assertEqual(receipt["entry_layout"], "guarded-outline-v1")
-        library = ctypes.CDLL(str(path))
-        for workload in ("linear", "affine"):
-            entry = getattr(library, "calculate_" + workload)
-            entry.argtypes = [ctypes.c_size_t, ctypes.c_uint32]
-            entry.restype = ctypes.c_uint64
-            for n in (0,1,7,15,16,17,19,29,30,31,32,33,63,64,65,95,96,97,255,256,257,4095,4096,4097,8193):
-                for seed in (0,1,2,17,255,256,2**31,2**32-1):
-                    expected = sum(((i + seed) if workload == "linear" else (i * seed + 17)) & 255
-                                   for i in range(n))
-                    with self.subTest(workload=workload,n=n,seed=seed):
-                        self.assertEqual(entry(n,seed), expected)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,3 @@
-from .cli import main
+from .cli import hia_main
 
-raise SystemExit(main())
+raise SystemExit(hia_main())

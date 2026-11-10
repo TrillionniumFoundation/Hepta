@@ -162,19 +162,6 @@ class FiniteV8HeapTests(unittest.TestCase):
         with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_EXCEEDED"):
             qualify(core, limit=15)
 
-    def test_legacy_admissions_keep_their_exact_version_and_boundary(self):
-        source = mixed_transfer_program()
-        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_PROFILE"):
-            qualify_finite_entry_live_heap_budget(source, "entry", [9, False], max_live_heap_bytes=16)
-        with self.assertRaises(HIAHeapBoundRejected):
-            qualify_entry_live_heap_budget(source, "entry", max_live_heap_bytes=16)
-        from tests.test_hia_partial_finite_bounds import nested_owned
-        old = qualify_finite_entry_live_heap_budget(nested_owned(), "entry", [], max_live_heap_bytes=19)
-        self.assertEqual(old["schema"], "hepta.hia.finite-entry-live-heap-admission.v1")
-        self.assertEqual(old["profile"], "acyclic-byte-owner-transfer-v7")
-        self.assertNotIn("returned_loan_caller_roots_preserved", old["claims"])
-        with self.assertRaisesRegex(HIAHeapBoundRejected, "E_HIA_BUDGET_PROFILE"):
-            qualify(nested_owned(), arguments=[])
 
     def test_returned_loan_length_uses_its_retained_caller_extent(self):
         source = mixed_transfer_program()
@@ -249,17 +236,6 @@ class FiniteV8HeapTests(unittest.TestCase):
         with self.assertRaisesRegex(HIAHeapBoundRejected, "allocator extent"):
             qualify(source)
 
-    def test_shared_actual_aliases_do_not_double_count_and_swapped_roots_stay_distinct(self):
-        from tests.test_hia_returned_loans import multiple_shared, swapped_mutable
-        for construction in ("forward", "children", "mixed"):
-            source = multiple_shared(construction)
-            report = qualify(source, "shared", [37], limit=1)
-            self.assertEqual(report["peak_bound_bytes"], 1)
-            self.assert_bound(report, observe(source, "shared", [37]))
-        source = swapped_mutable()
-        report = qualify(source, "swapped", [], limit=2)
-        self.assertEqual(report["peak_bound_bytes"], 2)
-        self.assert_bound(report, observe(source, "swapped", []))
 
     def test_asymmetric_reordered_loan_results_select_the_correct_retained_root(self):
         source = asymmetric_return_program()

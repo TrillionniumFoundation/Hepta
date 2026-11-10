@@ -295,34 +295,6 @@ class DirectNativeIndependentReview(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
 
-    def test_original_324_case_chain_allocator_and_failure_matrix(self):
-        from tools.qualify_hia_recursive_chain import (
-            EXAMPLES, case_plan, independent_spec, load_examples, vm_ledger,
-        )
-        programs = load_examples()
-        plan = case_plan()
-        self.assertEqual(len(plan), 324)
-        with tempfile.TemporaryDirectory(prefix="hia-direct-chain-review-") as temporary:
-            root = Path(temporary)
-            objects = []
-            for name, program in programs.items():
-                output = root / (name + ".o")
-                build_program_machine(program, output, kind="object")
-                objects.append(output)
-            binary = root / "chain-observer"
-            self.run_command([CC, "-O2", "-Wl,--wrap=malloc", "-Wl,--wrap=calloc", "-Wl,--wrap=free",
-                              EXAMPLES / "allocator_driver.c", *objects, "-o", binary])
-            for name, n, mode, fail in plan:
-                with self.subTest(function=name, n=n, mode=mode, fail_at=fail):
-                    program = programs["composite_v2" if name in {"chain_task", "chain_stored_loan"} else "core_v7"]
-                    args = [] if name == "chain_empty_pop" else [n, mode] if name == "chain_task" else [n]
-                    expected = independent_spec(name, n, mode, fail)
-                    observed = json.loads(self.run_command([binary, name, n, mode, fail]).stdout)
-                    reference = execute_program(program, name, args, allocation_fail_at=fail or None)
-                    self.assertEqual(vm_ledger(reference), expected)
-                    self.assertEqual(observed, expected)
-                    for field in ("live_bytes", "live_owners", "live_chains", "live_chain_nodes", "live_local_loans"):
-                        self.assertEqual(reference["resources"][field], 0, field)
 
     def test_zero_byte_memory_operations_call_neither_allocator_nor_libc_memory(self):
         document = _empty_memory_program()

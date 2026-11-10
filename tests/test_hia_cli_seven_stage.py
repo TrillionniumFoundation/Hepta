@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hepta.cli import main
+from tools.hia_core_reference import main
 from hepta.hia_program import verify_program
 from hepta.hia_program_runtime import execute_program
 from hepta.hia_program_tools import apply_program_patch
@@ -26,7 +26,7 @@ class SevenStageCLIIntegrationTests(unittest.TestCase):
     def run_cli(self, *args):
         out, err = io.StringIO(), io.StringIO()
         with redirect_stdout(out), redirect_stderr(err):
-            code = main(["hia", *map(str, args)])
+            code = main([ *map(str, args)])
         return code, out.getvalue(), err.getvalue()
 
     def test_atomic_batch_cli_publishes_only_the_combined_valid_borrow_change(self):

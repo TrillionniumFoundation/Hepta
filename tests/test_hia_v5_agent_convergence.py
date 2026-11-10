@@ -62,7 +62,7 @@ class V5AgentConvergenceTests(unittest.TestCase):
             analyze_patch_impact(source, patch_request(source, invalid=True))
 
     def test_read_only_cli_does_not_publish_v5_candidate(self):
-        from hepta.cli import main
+        from tools.hia_core_reference import main
         source = copy_program()
         request = patch_request(source)
         with tempfile.TemporaryDirectory(prefix="hia-v5-impact-") as folder:
@@ -72,7 +72,7 @@ class V5AgentConvergenceTests(unittest.TestCase):
             program.write_text(json.dumps(source), encoding="utf-8")
             packet.write_text(json.dumps(request), encoding="utf-8")
             with io.StringIO() as output, redirect_stdout(output):
-                rc = main(["hia", "impact", str(program), "--request", str(packet)])
+                rc = main([ "impact", str(program), "--request", str(packet)])
                 response = json.loads(output.getvalue())
             self.assertEqual(rc, 0, response)
             self.assertEqual(response["schema"], "hepta.hia.impact-query.v1")

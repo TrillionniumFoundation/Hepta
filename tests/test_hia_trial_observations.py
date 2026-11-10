@@ -14,8 +14,6 @@ import unittest
 
 from tests.test_hia_agent_gguf import offline_engine, response
 from tools.provider_adapter.llama_cpp_engine import LlamaCppEngine
-from tools.qualify_hia_release_parity import assess, specification
-from tools.qualify_hia_native_ndu import run_command
 
 
 class TrialObservationTests(unittest.TestCase):
@@ -102,15 +100,6 @@ class TrialObservationTests(unittest.TestCase):
                 worker.join(timeout=1)
             self.assertFalse(worker.is_alive())
 
-    def test_timed_out_native_command_preserves_printed_failure_evidence(self):
-        with tempfile.TemporaryDirectory() as folder:
-            ledger = []
-            with self.assertRaises(subprocess.TimeoutExpired):
-                run_command([sys.executable, "-u", "-c", "import time; print('before timeout', flush=True); time.sleep(10)"],
-                            Path(folder), ledger, timeout=.15)
-            self.assertEqual(ledger[0]["status"], "timeout")
-            self.assertIn(b"before timeout", Path(ledger[0]["stdout"]["path"]).read_bytes())
-            self.assertGreater(ledger[0]["wall_ns"], 0)
 
     def test_template_and_tokenize_consume_one_generation_deadline(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -179,28 +168,6 @@ class TrialObservationTests(unittest.TestCase):
                     engine.generate([], wall_seconds=value)
             engine.request.assert_not_called()
 
-    def test_release_assessment_rejects_missing_duplicate_or_padded_samples(self):
-        spec = specification()
-        rows = [{"phase": phase, "backend": backend, "n": n, "seed": seed,
-                 "calls": spec["batch_calls"], "samples": spec["samples"],
-                 "times_ns": [100]*spec["samples"]}
-                for phase in ("training", "holdout") for backend in spec["backends"]
-                for n in spec[phase+"_sizes"] for seed in spec[phase+"_seeds"]]
-        self.assertTrue(assess(rows, spec)["performance_gate_passed"])
-        padded = deepcopy(rows)
-        padded[0]["times_ns"].append(1)
-        for invalid in (rows[1:], rows+[rows[0]], padded):
-            with self.assertRaisesRegex(ValueError, "E_RELEASE_COHORT"):
-                assess(invalid, spec)
-        # A real slowdown cannot disappear behind complete positive controls.
-        slower = deepcopy(rows)
-        for row in slower:
-            if row["backend"] == "hia" and row["phase"] == "holdout":
-                row["times_ns"] = [1000]*spec["samples"]
-        actual = assess(slower, spec)
-        self.assertFalse(actual["performance_gate_passed"])
-        self.assertFalse(actual["holdout_gate_passed"])
-        self.assertFalse(actual["broad_rust_performance_parity_established"])
 
 
 if __name__ == "__main__":

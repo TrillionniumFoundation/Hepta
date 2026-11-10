@@ -1,9 +1,7 @@
-"""Finite native differential qualification for source-replayed HIA scalar SSA.
+"""Bounded standalone HIA Core/native differential and artifact custody.
 
-One module, two boundaries: compare_oracle_with_native checks finite behavior
-only; qualify_scalar_source additionally compiles through the existing Hepta
-Rust-reference/Resource-IR/HIA/LLVM publisher, then replays the exact source.
-Neither is a proof of whole-language soundness or arbitrary C ABI behavior.
+Finite observations are not a backend refinement proof. No source-language
+parser, source qualification pipeline or Rust validation is accepted here.
 """
 from __future__ import annotations
 
@@ -154,79 +152,8 @@ class HIADifferentialRejected(ValueError):
         return json.loads(payload) if payload is not None else None
 
 
-def _bounded_build_diagnostics(report):
-    """Copy ordinary bounded JSON without invoking arbitrary object hooks.
-
-    A rejected compiler report is explanatory data. Keeping it must not create
-    unbounded traversal, retain mutable caller aliases or replace the original
-    qualification refusal when a malformed report cannot be copied.
-    """
-    nodes, characters, active = 0, 0, set()
-
-    def copy(value, depth=0):
-        nonlocal nodes, characters
-        nodes += 1
-        if nodes > 1024 or depth > 12:
-            raise ValueError("diagnostic structure exceeds limit")
-        if value is None or type(value) is bool:
-            return value
-        if type(value) is int and value.bit_length() <= 128:
-            return value
-        if type(value) is float and math.isfinite(value):
-            return value
-        if type(value) is str:
-            characters += len(value)
-            if len(value) > 16384 or characters > 32768:
-                raise ValueError("diagnostic text exceeds limit")
-            return value
-        if type(value) not in {dict, list} or len(value) > 128 or id(value) in active:
-            raise ValueError("diagnostic value is not bounded ordinary JSON")
-        active.add(id(value))
-        try:
-            if type(value) is list:
-                return [copy(item, depth + 1) for item in value]
-            result = {}
-            for key, item in value.items():
-                if type(key) is not str or len(key) > 256:
-                    raise ValueError("diagnostic keys must be bounded strings")
-                result[copy(key, depth + 1)] = copy(item, depth + 1)
-            return result
-        finally:
-            active.remove(id(value))
-
-    detached = copy(report)
-    envelope = {"schema": "hepta.hia.rejected-source-build-diagnostics.v1",
-                "diagnostic_only": True, "authorizes_execution": False,
-                "snapshot_status": "retained", "builder_report": detached}
-    payload = json.dumps(envelope, sort_keys=True, separators=(",", ":"),
-                         ensure_ascii=True, allow_nan=False).encode("ascii")
-    if len(payload) > 65536:
-        raise ValueError("encoded diagnostic report exceeds limit")
-    return payload
 
 
-def _reject_checked_source_build(report):
-    message = "E_HIA_DIFFERENTIAL: checked source->Core native qualification rejected"
-    error = HIADifferentialRejected(message)
-    # Construct the refusal first. Diagnostic allocation/decoding failure must
-    # never replace it, and an unavailable snapshot is explicit to callers.
-    error._build_diagnostics_json = (
-        b'{"schema":"hepta.hia.rejected-source-build-diagnostics.v1",'
-        b'"diagnostic_only":true,"authorizes_execution":false,'
-        b'"snapshot_status":"unavailable","builder_report":null}')
-    try:
-        payload = _bounded_build_diagnostics(report)
-        detached = json.loads(payload)["builder_report"]
-        details = detached.get("diagnostics") if type(detached) is dict else None
-        if type(details) is list and details and type(details[0]) is dict:
-            detail = details[0].get("message")
-            if type(detail) is str:
-                error.args = (message + ": " + detail[:600],)
-        error._build_diagnostics_json = payload
-    except (ValueError, TypeError, OverflowError, RecursionError, MemoryError,
-            RuntimeError, UnicodeError):
-        pass
-    raise error
 
 
 _MAX_NATIVE_CHILDREN = 32
@@ -756,7 +683,7 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
                                max_steps: int = 20000, timeout: float = 3.0) -> dict:
     """Compare all exports; trap/budget/crash are deliberately distinct.
 
-    This helper is NOT source binding. Use qualify_scalar_source for that.
+    This helper compares finite observations; it grants no source binding.
     """
     from .hia_oracle import HIAOracleBudgetExceeded, HIAOracleRejected, HIAOracleTrap
 
@@ -823,75 +750,6 @@ def compare_oracle_with_native(oracle, library: str | Path, cases: dict, *,
     }
 
 
-def qualify_scalar_source(source: str | Path, cases: dict, *, rustc=None,
-                          clang="clang", locked=False, max_steps=20000) -> dict:
-    """Actual Hepta source -> pinned Rust -> HIA/SSA -> LLVM -> child oracle.
-
-    Separate source replay prevents a modified file with unchanged export names
-    or rehashed data-only core from qualifying the published binary.
-    """
-    from .pipeline import analyze_project
-    from .hsir import lower_checked_program
-    from .cfg import lower_hsir_cfg
-    from .ssa import lower_cfg_scalar_ssa
-    from .ssa_verify import verify_scalar_ssa
-    from .native_resource_gate import qualify_native_resource_source
-    from .hia_core import seal_hia_scalar_core
-    from .hia_oracle import prepare_scalar_oracle
-    from .llvm_ssa_pipeline import build_llvm_ssa_source
-
-    if platform.system() != "Linux":
-        _reject("source qualification currently requires Linux host")
-    with tempfile.TemporaryDirectory(prefix="hia-native-diff-") as directory:
-        shared = Path(directory) / "source.so"
-        compiled = build_llvm_ssa_source(source, shared, rustc=rustc,
-                                         clang=clang, locked=locked)
-        if compiled.get("ok") is not True:
-            _reject("source LLVM qualification failed: " + str(compiled.get("diagnostics", []))[:600])
-        analyzed = analyze_project(Path(source), backend="rust", native=False,
-                                   crate_type="rlib", locked=locked)
-        if (analyzed.report.get("ok") is not True or analyzed.program is None
-                or analyzed.checked is None or analyzed.project is None
-                or not analyzed.project.unchanged()):
-            _reject("current source could not be independently replayed")
-        h = lower_checked_program(analyzed.program, analyzed.checked)
-        cfg = lower_hsir_cfg(h)
-        ssa = lower_cfg_scalar_ssa(cfg)
-        verified = verify_scalar_ssa(ssa, cfg)
-        project_sha = analyzed.project.identity
-        gate = qualify_native_resource_source(
-            analyzed.program, analyzed.checked,
-            canonical_hsir_sha256=h.as_dict()["source_semantic_sha256"],
-            project_sha256=project_sha)
-        core = seal_hia_scalar_core(h, cfg, ssa, verified, gate,
-                                    project_sha256=project_sha)
-        oracle = prepare_scalar_oracle(core, analyzed.program, analyzed.checked,
-                                       project_sha256=project_sha)
-        scalar_fns = json.loads(ssa.canonical_json).get("functions")
-        if (type(scalar_fns) is not list
-                or any(type(fn) is not dict or type(fn.get("name")) is not str
-                       or type(fn.get("parameters")) is not list for fn in scalar_fns)):
-            _reject("missing source-derived scalar parameter inventory")
-        _require_exact_argument_arities(
-            cases, tuple((fn["name"], len(fn["parameters"])) for fn in scalar_fns))
-        record = compiled.get("identities", {})
-        native = compiled.get("native_backend", {})
-        if (record.get("hia_scalar_core_sha256") != core.sha256
-                or record.get("canonical_ssa_sha256") != ssa.sha256
-                or record.get("resource_ir_sha256") != gate["resource_ir_sha256"]
-                or compiled.get("resource_verification", {}).get("project_sha256") != project_sha
-                or native.get("artifact_sha256") != sha256(shared.read_bytes()).hexdigest()):
-            _reject("HIA source/project, Resource IR or native artifact identity drift")
-        result = compare_oracle_with_native(oracle, shared, cases, max_steps=max_steps)
-        if not analyzed.project.unchanged():
-            _reject("source graph changed while differential corpus ran")
-        result["source_project_sha256"] = project_sha
-        result["hia_core_sha256"] = core.sha256
-        result["ssa_sha256"] = ssa.sha256
-        result["compiler_sha256"] = record.get("compiler_sha256")
-        result["claims"]["checked_hepta_source_replayed"] = True
-        result["claims"]["core_corpus_argument_arity_checked"] = True
-        return result
 
 
 def compare_verified_hia_program(program, library: str | Path, cases: dict, *,
@@ -994,90 +852,3 @@ def qualify_executable_hia_program(program, cases: dict, *, clang="clang") -> di
         compared["claims"]["native_compiled_from_program_verified"] = True
         compared["native_toolchain_sha256"] = native.get("toolchain", {}).get("sha256")
         return compared
-
-
-def qualify_checked_hia_source(source: str | Path, cases: dict, *, profile="owned",
-                               rustc=None, clang="clang", locked=False,
-                               static_resource_limits=None) -> dict:
-    """Pinned Hepta source -> single executable HIA v1-v6 -> native LLVM -> VM.
-
-    Unlike the historical scalar-only route, this uses hia_source_bridge's
-    canonical verified Program producer and hia_program_llvm exclusively.
-    """
-    from .pipeline import analyze_project, compiler_hash
-    from .hia_source_bridge import (HIAHeptaBridgeRejected,
-                                    _validate_static_budget_receipt,
-                                    build_checked_hepta_hia_native,
-                                    lower_checked_scalar_hia,
-                                    lower_checked_owned_hia)
-
-    if profile not in {"scalar", "owned"} or platform.system() != "Linux":
-        _reject("verified Core differential requires supported source profile and Linux")
-    if static_resource_limits is not None and (
-            type(static_resource_limits) is not dict or not static_resource_limits
-            or not set(static_resource_limits) <= {
-                "max_allocator_interactions", "max_vm_ticks",
-                "max_call_depth", "max_live_heap_bytes"}
-            or any(type(v) is not int or v < 0
-                   for v in static_resource_limits.values())):
-        _reject("invalid typed opt-in static resource policy")
-    with tempfile.TemporaryDirectory(prefix="hia-checked-native-diff-") as temp:
-        shared = Path(temp) / "checked.so"
-        native = build_checked_hepta_hia_native(source, shared, rustc=rustc,
-                                                clang=clang, locked=locked,
-                                                profile=profile, kind="shared",
-                                                static_resource_limits=static_resource_limits)
-        if (type(native) is not dict or native.get("ok") is not True
-                or type(native.get("claims")) is not dict
-                or native["claims"].get("native_codegen_consumed_verified_hia_core") is not True):
-            _reject_checked_source_build(native)
-        analyzed = analyze_project(Path(source), backend="rust", native=False,
-                                   crate_type="rlib", locked=locked)
-        if (analyzed.report.get("ok") is not True or analyzed.program is None
-                or analyzed.checked is None or analyzed.project is None
-                or not analyzed.project.unchanged()):
-            _reject("checked source cannot be independently replayed")
-        project = analyzed.project
-        lowered = (lower_checked_owned_hia(analyzed.program, analyzed.checked,
-                                           project_sha256=project.identity)
-                   if profile == "owned" else
-                   lower_checked_scalar_hia(analyzed.program, analyzed.checked,
-                                            project_sha256=project.identity))
-        # Replay the optional *numeric* resource budget against independently
-        # re-derived checked-source HIA Core, before any native/VM child.
-        # The established source bridge validator re-runs its original
-        # analyzer; a rehashed synthetic receipt cannot justify a limit.
-        qualified_budget = None
-        if static_resource_limits is not None:
-            qualified_budget = native.get("static_resource_budget")
-            try:
-                _validate_static_budget_receipt(
-                    lowered.program, static_resource_limits, qualified_budget)
-            except (HIAHeptaBridgeRejected, ValueError, TypeError,
-                    KeyError, OverflowError, RecursionError) as exc:
-                raise HIADifferentialRejected(
-                    "E_HIA_DIFFERENTIAL: source static resource budget replay rejected") from exc
-        elif "static_resource_budget" in native:
-            _reject("unexpected unrequested static resource budget receipt")
-        ids = native.get("identities", {})
-        artifact = native.get("native_backend", {})
-        if (ids.get("hia_program_sha256") != lowered.program.sha256
-                or ids.get("project_sha256") != project.identity
-                or ids.get("resource_ir_sha256") != lowered.resource_ir_sha256
-                or ids.get("compiler_sha256") != compiler_hash()
-                or artifact.get("artifact_sha256") != sha256(shared.read_bytes()).hexdigest()):
-            _reject("source/Core/Resource IR/LLVM receipt fails exact replay")
-        result = compare_verified_hia_program(lowered.program, shared, cases)
-        if (result["executable_hia_program_sha256"] != ids["hia_program_sha256"]
-                or result["artifact_sha256"] != artifact["artifact_sha256"]
-                or not project.unchanged() or ids["compiler_sha256"] != compiler_hash()):
-            _reject("source, compiler or native bytes changed during differential execution")
-        result["claims"]["native_compiled_from_program_verified"] = True
-        result["claims"]["checked_hepta_source_replayed"] = True
-        result["claims"]["source_static_resource_budget_replayed"] = qualified_budget is not None
-        if qualified_budget is not None:
-            result["static_resource_budget_sha256"] = qualified_budget["sha256"]
-            result["static_resource_limits"] = dict(static_resource_limits)
-        result["source_project_sha256"] = project.identity
-        result["source_compiler_sha256"] = ids["compiler_sha256"]
-        return result

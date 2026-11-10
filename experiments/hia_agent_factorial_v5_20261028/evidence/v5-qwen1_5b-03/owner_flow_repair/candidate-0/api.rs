@@ -1,1 +1,0 @@
-pub fn touch(mut buf:Vec<u8>,x:u8)->Vec<u8> { buf[0]=x; buf }

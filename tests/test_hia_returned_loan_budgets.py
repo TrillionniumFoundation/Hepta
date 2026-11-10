@@ -236,22 +236,6 @@ class ReturnedLoanBudgetTests(unittest.TestCase):
             with self.assertRaisesRegex(HIAStaticBudgetRejected, "E_HIA_BUDGET_PROFILE"):
                 self.entry_heap(source, 100)
 
-    def test_old_receipts_and_old_native_consumer_do_not_acquire_v8_authority(self):
-        from hepta.hia_source_bridge import _validate_static_budget_receipt
-        old = analyze_static_budget(resource_program())
-        self.assertEqual(old["schema"], "hepta.hia.static-budget.v1")
-        self.assertNotIn("profile", old)
-        self.assertEqual(qualify_vm_call_depth(resource_program(), max_call_depth=1)["schema"],
-                         "hepta.hia.vm-call-depth-budget.v1")
-        source = fixed_loan_program()
-        core = verify_program(source)
-        current = analyze_static_budget(core, max_vm_ticks=100)
-        with self.assertRaisesRegex(ValueError, "schema, claims or source identity"):
-            _validate_static_budget_receipt(core, {"max_vm_ticks": 100}, current)
-        with self.assertRaises(HIAHeapBoundRejected):
-            analyze_constant_live_heap(core)
-        with self.assertRaises(HIAHeapBoundRejected):
-            analyze_static_budget(core, max_live_heap_bytes=8)
 
     def test_scalar_entry_total_adds_callee_local_peak_without_duplicate_borrow_payload(self):
         for source, expected in ((fixed_loan_program(), 8), (multiple_shared(), 1),

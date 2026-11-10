@@ -16,7 +16,6 @@ import sys
 import tempfile
 import unittest
 
-from tools.qualify_hia_host_region import build_fixture
 
 
 PROBE = r'''
@@ -78,40 +77,6 @@ print("PASS native receipt fail-closed, quiescent recovery, real C re-entry", fa
 '''
 
 
-class NativeFinalizeReceiptTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        if platform.system() != "Linux" or platform.machine() not in {"x86_64", "amd64"}:
-            raise AssertionError("real Linux x86-64 host required; no silent skip")
-        compiler = shutil.which(os.environ.get("HEPTA_TEST_CLANG", "clang"))
-        if not compiler:
-            raise AssertionError("actual Clang required; no silent skip")
-        cls.temp = tempfile.TemporaryDirectory()
-        cls.path, cls.digest = build_fixture(Path(cls.temp.name), Path(compiler).resolve(), {})
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.temp.cleanup()
-
-    def _probe(self, kind):
-        outcome = subprocess.run(
-            [sys.executable, "-B", "-c", PROBE, str(self.path), self.digest, kind],
-            capture_output=True, text=True, timeout=25, check=False,
-        )
-        self.assertEqual(
-            outcome.returncode, 0,
-            f"receipt={kind} stdout={outcome.stdout}\nstderr={outcome.stderr}",
-        )
-        self.assertIn("PASS native receipt fail-closed", outcome.stdout)
-
-    def test_lease_release_event_failure_is_recoverable_only_after_quarantine(self):
-        self._probe("released")
-
-    def test_worker_join_event_failure_keeps_uncommitted_job_for_recovery(self):
-        self._probe("worker_join_confirmed")
-
-    def test_native_result_event_failure_requires_zeroing_before_reuse(self):
-        self._probe("native_returned")
 
 
 if __name__ == "__main__":

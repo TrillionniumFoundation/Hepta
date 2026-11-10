@@ -1,1 +1,0 @@
-pub fn audit_tag(c:u32)->u32 { c & 7 }
