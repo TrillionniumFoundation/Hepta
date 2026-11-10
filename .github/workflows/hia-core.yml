@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in artifact_publication core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -24,6 +24,7 @@ jobs:
           python -B - <<'PY'
           import unittest
           names = (
+              "tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests",
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
               "tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests",
               "tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests",
@@ -137,6 +138,10 @@ jobs:
           PYTEST
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native exact-byte artifact publication and real kernel races
+        run: python -B -m unittest tests.test_hia_artifact_publication_native -v
+        env:
+          HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:

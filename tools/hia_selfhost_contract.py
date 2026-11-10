@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v51-main-native-Agent-render"
+PROFILE = "selfhost-core-linux-x86_64-v52-native-artifact-publication"
 SOURCE_FILES = (
+    'tools/generate_hia_artifact_publication.py',
+    'tools/hia_artifact_publication_syscalls.S',
+    'tools/build_hia_artifact_publication.py',
+    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
+    'tests/test_hia_artifact_publication_native.py',
+    'docs/HIA_ARTIFACT_PUBLICATION_NATIVE.md',
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
     'tools/build_hia_capability_renaming.py',
@@ -373,6 +380,22 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        "artifact_publication_application": {
+            "sources": ["examples/hia_bootstrap/artifact_publication_policy.hiaasm", "examples/hia_bootstrap/artifact_publication_packer.hiaasm", "examples/hia_bootstrap/sha256_stream.hiaasm"],
+            "selection": "explicit standalone hia-artifact; defaults unchanged",
+            "operations": ["publish", "verify", "withdraw"],
+            "authority": "nonempty exact expected bytes and same ordinary inode; never prior digest/receipt",
+            "publication": "no-replace hard link; post-link full byte and identity recheck; cleanup only original owned inode",
+            "native_runtime_Python_libc_or_child_required": False,
+            "artifact_payload_fixed_size_limit": None,
+            "file_read_chunk_bytes": 65536,
+            "expected_storage": "anonymous mmap/mremap growth until OS resource failure",
+            "consistency": "point-in-time only; no later-writer immunity",
+            "directory_fsync_journal_and_crash_recovery": False,
+            "host_boundaries": ["authoring with binutils", "build/code custody", "installation", "default Agent persistence"],
+            "full_Agent_persistence_replaced": False,
+            "default_changed": False, "whole_native_delivery_qualified": False,
+        },
         "core_workspace_materialization_application": {
             "sources": ["examples/hia_bootstrap/core_workspace_materialize.hiaasm",
                         "examples/hia_bootstrap/core_workspace_cli_packer.hiaasm"],
