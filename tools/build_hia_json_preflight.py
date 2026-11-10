@@ -24,7 +24,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'core-frontend': ('core_json_frontend', 'core-json-frontend'),
                   'elf-linker': ('elf_static_linker', 'elf-linker'),
                   'native-filter': ('native_filter_packer', 'native-filter'),
-                  'agent-snapshot': ('agent_snapshot', 'agent-snapshot')}
+                  'agent-snapshot': ('agent_snapshot', 'agent-snapshot'),
+                  'agent-snapshot-json': ('agent_snapshot_json', 'agent-snapshot-json')}
     if candidate not in candidates:
         raise ValueError('unknown HIA JSON candidate')
     source_name, protocol = candidates[candidate]

@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v39-core-agent-snapshot"
+PROFILE = "selfhost-core-linux-x86_64-v40-core-agent-snapshot-json"
 SOURCE_FILES = (
+    'docs/HIA_AGENT_SNAPSHOT_JSON_NATIVE.md',
+    'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
+    'examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm',
+    'tools/generate_hia_agent_snapshot_json.py',
+    'tools/generate_hia_agent_snapshot_json_cli.py',
+    'tools/build_hia_agent_snapshot_json.py',
+    'tests/test_hia_agent_snapshot_json_native.py',
     'docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json',
     'docs/HIA_AGENT_ASSEMBLY.md',
     'docs/HIA_PROGRAM.md',
@@ -179,6 +186,22 @@ def support_contract(root=ROOT):
     return {
         "schema": "hepta.hia.selfhost-core-support.v1",
         "profile": PROFILE,
+        "agent_snapshot_json_application": {
+            "sources": ["examples/hia_bootstrap/agent_snapshot_json.hiaasm",
+                        "examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm"],
+            "interface": "explicit standalone hia-snapshot-json; stdin JSON to admitted stdout bytes",
+            "maximum_wire_bytes": 8388608,
+            "maximum_nodes": 1048576,
+            "maximum_depth": 128,
+            "maximum_snapshot_bytes": 1048576,
+            "anonymous_rw_mapping_bytes": 92282880,
+            "refusal": "private decoded arena may change; standalone stdout remains empty before admission",
+            "atomic_output_publication": False,
+            "native_runtime_foreign_decoder_or_second_executable_required": False,
+            "host_build_and_custody_driver": True,
+            "whole_agent_editing_and_persistence_replaced": False,
+            "production_activated": False,
+        },
         "agent_snapshot_application": {
             "source": "examples/hia_bootstrap/agent_snapshot.hiaasm",
             "selection": "operator HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST; hosted default unchanged",

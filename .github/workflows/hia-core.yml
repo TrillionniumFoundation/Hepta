@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in elf_linker native_filter core_json_cli agent_stdio agent_snapshot sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -27,6 +27,7 @@ jobs:
               "tests.test_hia_core_only", "tests.test_hia_evidence_archive",
               "tests.test_hia_agent_stdio.AgentStdioSourceTests",
               "tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests",
+              "tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests",
               "tests.test_hia_agent_entry",
               "tests.test_hia_elf_linker.ElfLinkerSourceTests",
               "tests.test_hia_core_json_cli.CoreJsonCliSourceTests",
@@ -62,6 +63,6 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y binutils gcc strace
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
-      - run: python -B -m unittest tests.test_hia_agent_stdio tests.test_hia_agent_snapshot_native tests.test_hia_core_json_cli tests.test_hia_elf_linker -v
+      - run: python -B -m unittest tests.test_hia_agent_stdio tests.test_hia_agent_snapshot_native tests.test_hia_agent_snapshot_json_native tests.test_hia_core_json_cli tests.test_hia_elf_linker -v
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json

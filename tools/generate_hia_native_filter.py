@@ -19,14 +19,16 @@ WORKSPACE_BYTES=16<<20
 MAPPING_BYTES=WORKSPACE_OFFSET+WORKSPACE_BYTES
 
 
-def template():
+def template(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES):
+    workspace_offset=OUTPUT_OFFSET+output_bytes
+    mapping_bytes=workspace_offset+workspace_bytes
     code=bytearray();labels={};branches=[]
     def emit(value):code.extend(bytes.fromhex(value))
     def word(value):code.extend(struct.pack('<I',value))
     def label(name):labels[name]=len(code)
     def branch(op,name):emit(op);branches.append((len(code),name));word(0)
     emit('48 83 3c 24 01');branch('0f 85','usage')
-    emit('31 ff be');word(MAPPING_BYTES)
+    emit('31 ff be');word(mapping_bytes)
     emit('ba 03 00 00 00 41 ba 22 00 00 00 49 c7 c0 ff ff ff ff 45 31 c9 b8 09 00 00 00 0f 05 48 3d 01 f0 ff ff');branch('0f 83','io')
     emit('49 89 c4 45 31 ed');label('read')
     emit('31 c0 31 ff 4b 8d 34 2c ba');word(WIRE_BYTES+1)
@@ -35,12 +37,12 @@ def template():
     emit('49 01 c5 49 81 fd');word(WIRE_BYTES);branch('0f 87','space');branch('e9','read')
     label('invoke')
     emit('4c 89 e7 4c 89 ee 49 8d 94 24');word(OUTPUT_OFFSET)
-    emit('b9');word(OUTPUT_BYTES)
-    emit('4d 8d 84 24');word(WORKSPACE_OFFSET)
-    emit('41 b9');word(WORKSPACE_BYTES)
+    emit('b9');word(output_bytes)
+    emit('4d 8d 84 24');word(workspace_offset)
+    emit('41 b9');word(workspace_bytes)
     emit('e8');hole=len(code);word(0)
     emit('83 f8 fe');branch('0f 84','space')
-    emit('3d');word(OUTPUT_BYTES);branch('0f 87','invalid')
+    emit('3d');word(output_bytes);branch('0f 87','invalid')
     emit('41 89 c6 4d 8d bc 24');word(OUTPUT_OFFSET)
     label('write');emit('4d 85 f6');branch('0f 84','success')
     emit('b8 01 00 00 00 bf 01 00 00 00 4c 89 fe 4c 89 f2 0f 05 48 83 f8 fc');branch('0f 84','write')
@@ -57,12 +59,12 @@ def template():
     return head+code,176+hole
 
 
-def source_program():
-    prefix,hole=template()
+def source_program(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC):
+    prefix,hole=template(output_bytes=output_bytes,workspace_bytes=workspace_bytes)
     text=f'''def pack(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 17 or length(s) > 1048576:
         return 4294967295
-    if uint(s, 0, 8) != {MAGIC}:
+    if uint(s, 0, 8) != {magic}:
         return 4294967295
     image = uint(s, 8, 8)
     if image != length(s) - 16:
@@ -84,8 +86,8 @@ def source_program():
     return text
 
 
-def document():
-    nodes=ast.parse(source_program()).body
+def document(*, output_bytes=OUTPUT_BYTES, workspace_bytes=WORKSPACE_BYTES, magic=MAGIC, module='native_filter_packer'):
+    nodes=ast.parse(source_program(output_bytes=output_bytes,workspace_bytes=workspace_bytes,magic=magic)).body
     names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
     fns=[]
@@ -93,7 +95,7 @@ def document():
         b=Builder(n,names,sigs,total_scalar_functions(nodes));b.statements(n.body)
         fns.append({'name':names[n.name],'params':[b.param(p) for p in b.params],'returns':[b.returns],
                     'effects':['read','write','trap'],'entry':'b0','blocks':b.blocks})
-    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'native_filter_packer','functions':fns})
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':module,'functions':fns})
 
 
 def main():
