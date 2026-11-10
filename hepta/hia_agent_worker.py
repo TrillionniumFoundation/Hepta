@@ -9,12 +9,11 @@ from __future__ import annotations
 import argparse
 from hashlib import sha256
 import json
-import re
 import sys
 import uuid
 
 from .hia_agent_contract import VERSION, installation_manifest
-from .hia_agent_store import AgentRejected, decode_data, keys, wire
+from .hia_agent_store import AgentRejected, canonical_digest, decode_data, keys, wire
 
 
 def main(argv=None):
@@ -48,7 +47,7 @@ def main(argv=None):
         if request["schema"] != "hia-agent-worker-request-v1":
             raise AgentRejected("E_HIA_WORKER_SCHEMA", "unknown worker envelope")
         for name in ("request_sha256", "profile_sha256", "catalog_sha256"):
-            if type(request[name]) is not str or re.fullmatch("[0-9a-f]{64}", request[name]) is None:
+            if not canonical_digest(request[name]):
                 raise AgentRejected("E_HIA_WORKER_IDENTITY", "invalid worker digest field")
         digest_input = {key: value for key, value in request.items() if key != "request_sha256"}
         if sha256(wire(digest_input)).hexdigest() != request["request_sha256"]:
