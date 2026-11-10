@@ -116,7 +116,11 @@ def build_references(directory, manifest, filenames, workers):
     identity = digest(manifest)
     # Start expensive families first. A thread only owns a fresh subprocess;
     # VM globals and verified values are never shared between workers.
-    order = ("signed", "scalar-casts", "keyword", *[f for f in BUILDERS if f not in {"signed", "scalar-casts", "keyword"}])
+    # Retained remote artifact 13762513077 identifies names as the longest
+    # fresh oracle, followed by signed/casts. Schedule long work first while
+    # retaining every fresh worker, every VM check, and exactly two slots.
+    priority = ("names", "signed", "scalar-casts", "keyword", "exports", "capacity")
+    order = (*priority, *[f for f in BUILDERS if f not in priority])
     with ThreadPoolExecutor(max_workers=workers) as pool:
         scheduled = [pool.submit(_run, directory, family, identity) for family in order]
         observations = [future.result() for future in scheduled]

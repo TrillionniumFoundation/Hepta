@@ -26,6 +26,12 @@ DISCOVERY_FILES = (
 )
 
 
+NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/agent_identity.hiaasm',
+    'examples/hia_bootstrap/agent_slice.hiaasm',
+)
+
+
 def catalog():
     data = CATALOG_PATH.read_bytes()
     value = json.loads(data)

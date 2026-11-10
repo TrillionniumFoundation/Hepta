@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from hashlib import sha256
 import json
 from pathlib import Path
 import platform
@@ -9,6 +10,7 @@ import shutil
 import struct
 import tempfile
 import unittest
+import zipfile
 
 from hepta.hia_agent_assembly import assemble_program, render_assembly
 from hepta.hia_program import HIAProgramRejected
@@ -23,7 +25,95 @@ from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_so
 NATIVE = platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"} and shutil.which("ld")
 
 
+def retained_compilation_bytes(compilation):
+    """Read the exact observed output, including its sealed lossless stage.
+
+    Archive recovery does not rebuild, substitute a new compiler or admit an
+    artifact. The original produced digest remains the independent binding.
+    """
+    path = Path(compilation['produced_image'])
+    if path.exists():
+        data = path.read_bytes()
+    else:
+        from tools.hia_evidence_archive import verify_archive
+        receipt = json.loads((path.parent / 'ARCHIVED.json').read_bytes())
+        archive = path.parent.with_name(path.parent.name + '.zip')
+        if (receipt['schema'] != 'hepta.hia.archived-stage.v1'
+                or receipt['archive'] != str(archive)
+                or receipt['every_original_byte_verified_before_retirement'] is not True
+                or receipt['raw_paths_available'] is not False
+                or archive.is_symlink()
+                or archive.stat().st_size != receipt['packed_bytes']
+                or sha256(archive.read_bytes()).hexdigest() != receipt['archive_sha256']):
+            raise ValueError('retained compilation archive identity mismatch')
+        manifest = verify_archive(archive)
+        if (manifest['source_directory'] != str(path.parent)
+                or sha256(json.dumps(manifest, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+                != receipt['manifest_sha256']
+                or manifest['files'][path.name]['sha256'] != compilation['produced_sha256']):
+            raise ValueError('retained compilation member identity mismatch')
+        with zipfile.ZipFile(archive) as packed:
+            data = packed.read(path.name)
+    if (len(data) != compilation['produced_bytes']
+            or sha256(data).hexdigest() != compilation['produced_sha256']):
+        raise ValueError('observed compilation output identity mismatch')
+    return data
+
+
 class SelfhostSourceTests(unittest.TestCase):
+    def test_private_scanner_words_preserve_full_value_and_zero_high_bytes_in_Core_VM(self):
+        import ast
+        from tools.generate_hia_selfhost import Builder, source_program
+        from tools.hia_selfhost_bulk import Body
+        from hepta.hia_program import execute_program
+        nodes=[n for n in ast.parse(source_program()).body
+               if isinstance(n,ast.FunctionDef) and n.name in {'get','put','state_get32','state_put32'}]
+        names={n.name:'f'+str(i) for i,n in enumerate(nodes)}
+        signatures={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in nodes}
+        functions=[]
+        for n in nodes:
+            b=Builder(n,names,signatures);b.statements(n.body)
+            functions.append(dict(name=names[n.name],params=[b.param(v) for v in b.params],
+                returns=[b.returns],effects=['read','write','trap'],entry='b0',blocks=b.blocks))
+        tail=render_assembly(dict(schema='hepta.hia.program.v8',module='scanner_words',functions=functions)).split('\n',1)[1]
+        values=(0,1,255,256,65535,65536,(1<<20)-1,1<<20,1<<24,(1<<32)-1)
+        for at in (0,8,24,40,56,80,88,96,104,112,120,136,224,240,248):
+            for value in values:
+                b=Body(0)
+                owner=b.value('buffer','buffer.new',[b.const('usize',256)])
+                view=b.value('mutbuf','borrow.mut',[owner])
+                b.effect('buffer.fill',[view,b.const('u8',0)])
+                b.value('u64','call',[view,b.const('u64',at),b.const('u64',value)],{'function':names['state_put32']})
+                narrow=b.value('u64','call',[view,b.const('u64',at)],{'function':names['state_get32']})
+                wide=b.value('u64','call',[view,b.const('u64',at)],{'function':names['get']})
+                high=[b.value('u8','buffer.load',[view,b.const('usize',at+i)]) for i in range(4,8)]
+                b.effect('loan.end',[view]);b.effect('owner.drop',[owner])
+                source=('hia-asm.v1 hepta.hia.program.v8 scanner_words\n'
+                    'fn reference_entry() -> (u64,u64,u8,u8,u8,u8) effects(alloc,read,write,trap) entry(b0)\n'
+                    'block b0()\n'+b.text()+'  ret('+','.join([narrow,wide,*high])+')\nend\n'+tail)
+                result=execute_program(assemble_program(source),'reference_entry',[])
+                self.assertEqual(result['values'],[value,value,0,0,0,0],(at,value))
+                self.assertEqual(result['resources']['live_owners'],0)
+                self.assertEqual(result['resources']['live_local_loans'],0)
+
+    def test_private_scanner_narrowing_does_not_touch_numeric_payload_or_generic_word_ABI(self):
+        import ast,re
+        from tools.generate_hia_selfhost import source_program,SOURCE as authored,WORDS
+        nodes={n.name:n for n in ast.parse(source_program()).body}
+        for name in ('get','put'):
+            fragment=re.search(r'\ndef '+name+r'\(.*?(?=\ndef |\Z)',authored,re.S).group()
+            self.assertEqual(ast.dump(nodes[name]),ast.dump(ast.parse(fragment).body[0]))
+        self.assertLess(len(WORDS)+300,1<<32)
+        allowed={0,8,24,40,56,80,88,96,104,112,120,136,224,240,248};reads=0;writes=0
+        for node in ast.walk(ast.Module(body=list(nodes.values()),type_ignores=[])):
+            if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id in {'state_get32','state_put32'}:
+                self.assertIsInstance(node.args[1],ast.Constant)
+                self.assertIn(node.args[1].value,allowed)
+                reads+=node.func.id=='state_get32';writes+=node.func.id=='state_put32'
+        self.assertGreater(reads,40);self.assertGreater(writes,10)
+        # Numeric tokens retain the ordinary full-width word at offset16.
+        self.assertIn('put(w, 16, value)',source_program())
+
     def test_authoring_forwarders_preserve_parallel_values_and_ordered_effects(self):
         import ast
         from tools.generate_hia_selfhost import Builder, compact_authoring_cfg

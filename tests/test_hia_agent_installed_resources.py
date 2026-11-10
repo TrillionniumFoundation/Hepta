@@ -2,7 +2,7 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+('examples/hia_bootstrap/agent_identity.hiaasm','examples/hia_bootstrap/agent_slice.hiaasm')

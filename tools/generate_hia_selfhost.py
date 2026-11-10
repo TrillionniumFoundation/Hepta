@@ -1169,6 +1169,20 @@ def get(w:mutbuf, at:u64) -> u64:
     value = value | (byte(w, at + 7) << 56)
     return value
 
+def state_put32(w:mutbuf, at:u64, value:u64) -> u64:
+    store(w, at, value & 255)
+    store(w, at + 1, (value >> 8) & 255)
+    store(w, at + 2, (value >> 16) & 255)
+    store(w, at + 3, (value >> 24) & 255)
+    return 0
+
+def state_get32(w:mutbuf, at:u64) -> u64:
+    value = byte(w, at)
+    value = value | (byte(w, at + 1) << 8)
+    value = value | (byte(w, at + 2) << 16)
+    value = value | (byte(w, at + 3) << 24)
+    return value
+
 def elf_begin(o:mutbuf, w:mutbuf) -> u64:
     emit8(o, w, 282584257676671)
     emit8(o, w, 0)
@@ -1758,6 +1772,17 @@ def source_program():
     for at in (32, 48, 64, 72, 232):
         text = text.replace(f'get(w, {at})', f'byte(w, {at})')
         text = text.replace(f'put(w, {at},', f'store(w, {at},')
+    # Private cursors/kinds/errors, output offsets and bounded Core counters.
+    # Source positions are bounded by the <=1MiB input; token kinds/errors are
+    # a closed inventory, blocks/SSA/arguments/relocations/nodes have the above
+    # fixed admission limits. Output positions count only fixed templates for
+    # <=8192 instructions/1536 blocks/128 functions, never user-sized emission.
+    # Full header clearing leaves these words' high four bytes zero every pass.
+    # Do not narrow numeric token payloads (word16), arbitrary SSA constants,
+    # table entries, public values or the generic get/put helper semantics.
+    for at in (0, 8, 24, 40, 56, 80, 88, 96, 104, 112, 120, 136, 224, 240, 248):
+        text = text.replace(f'get(w, {at})', f'state_get32(w, {at})')
+        text = text.replace(f'put(w, {at},', f'state_put32(w, {at},')
     return text
 
 
