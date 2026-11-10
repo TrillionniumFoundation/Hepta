@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_admission instruction_policy program_shape function_shape core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
+          for component in core_admission_cli core_admission instruction_policy program_shape function_shape core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -29,6 +29,7 @@ jobs:
               "tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests",
               "tests.test_hia_core_string_accounting",
               "tests.test_hia_core_admission_native.CoreAdmissionSourceTests",
+              "tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests",
               "tests.test_hia_instruction_policy_native.InstructionPolicySourceTests",
               "tests.test_hia_program_shape_native.ProgramShapeSourceTests",
               "tests.test_hia_function_shape_native.FunctionShapeSourceTests",
@@ -173,6 +174,10 @@ jobs:
         run: python -B -m unittest tests.test_hia_core_admission_native -v
         env:
           HEPTA_HIA_CORE_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Standalone native complete Core admission CLI
+        run: python -B -m unittest tests.test_hia_core_admission_cli -v
+        env:
+          HEPTA_HIA_CORE_ADMISSION_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4

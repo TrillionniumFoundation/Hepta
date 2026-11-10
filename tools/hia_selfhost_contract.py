@@ -13,8 +13,13 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v53-native-whole-core-admission"
+PROFILE = "selfhost-core-linux-x86_64-v54-native-Core-admission-cli"
 SOURCE_FILES = (
+    'tools/generate_hia_core_admission_cli.py',
+    'examples/hia_bootstrap/core_admission_cli_packer.hiaasm',
+    'tools/build_hia_core_admission_cli.py',
+    'tests/test_hia_core_admission_cli.py',
+    'docs/HIA_CORE_ADMISSION_CLI.md',
     'tools/generate_hia_core_admission.py',
     'examples/hia_bootstrap/core_admission.hiaasm',
     'tools/build_hia_core_admission.py',
@@ -474,6 +479,20 @@ def support_contract(root=ROOT):
             "host_transport": "decoded Python objects and exact type/field tags, bounded UTF-8 representation",
             "whole_agent_editing_and_persistence_replaced": False,
             "production_activated": False,
+        },
+        "core_admission_cli": {
+            "source": "examples/hia_bootstrap/core_admission_cli_packer.hiaasm",
+            "kernel_source": "examples/hia_bootstrap/core_admission.hiaasm",
+            "command": "hia-verify-core < primitive-core.json",
+            "input_bytes": 8388608, "state_bytes": 67108864, "arena_bytes": 33554432,
+            "profile": "unchanged full primitive v1-v8 admission, not compiler profile",
+            "exit_codes": {"0": "admitted", "2": "semantic or malformed refusal",
+                           "3": "decoder/input budget", "4": "descriptor I/O", "64": "usage"},
+            "stdout_stderr": "empty",
+            "runtime_host_payload_parser_or_interpreter": False,
+            "host_build_driver": True,
+            "all_CLI_commands_replaced": False,
+            "default_changed": False, "whole_native_delivery_qualified": False,
         },
         "core_admission_application": {
             "source": "examples/hia_bootstrap/core_admission.hiaasm",
