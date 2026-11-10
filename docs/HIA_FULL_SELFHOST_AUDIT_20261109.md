@@ -17,6 +17,16 @@ because a generated compiler reproduces itself. Package plus tool roots total
 132951lines and219package files:639Python files combined. Its two new host
 build/authoring tools are not rewritten production authorities. Tests, historical
 evidence, experiments, examples, benchmarks
+HIA. The qualified `c57fb17e` snapshot contains a live `hepta/` package with 219 Python
+files, 76,801 lines and 4,158,877 bytes. These are source inventory figures, not a
+percentage-completion estimate. Archived copies and example source files are
+not counted as production replacements.
+
+The audit also inventories **423 Python files /133629lines** under `tools/`,
+separately from the production package. These include host authoring, build,
+qualification and delivery authorities: they have not been rewritten merely
+because a generated compiler reproduces itself. Package plus tool roots total
+642Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -70,6 +80,52 @@ the dedicated selfhost workflow had a stale PR-base filter and did not trigger
 for later stacked `work/hia-*` PRs. Its filter now includes that series without
 changing any compiler, witness, timeout, capacity or permissions. The new remote
 run must report its own outcome.
+**Current continuation (2026-11-10):** the selected source lexer now parses
+arbitrary-size integer magnitudes in HIA, not through a host literal parser.
+The v2 manifest declares command 0 for tokens and command 1 for integer
+magnitudes; Python only constructs integer objects from the native bytes.
+The 20-function image retains all earlier lexical checks and adds independent
+pre-seed integer VM controls, four-radix randomized/boundary tests, transactional
+refusals, guards and eight-way private concurrent calls with the host literal
+parser unavailable. Floating conversion and the full parser remain foreign.
+
+Exact clean c57fb17e passed104source tests,11/11cold+5,047/5,047native checks
+in163.463seconds under the unchanged180-second deadline,1,242language checks,
+66combined native-library tests,83selected and83default consumers,55incremental,
+15shared-closure and63selected+63default parser/module tests. The complete
+repository regression is running on a separate immutable c57fb17e checkout;
+it is not qualified by these finite local gates. See source-integer-summary.json,
+source-integer-source-equivalence.json and the lossless source-integer delta.
+
+The earlier exact70ee7cd remote cold replay FAILED at180seconds, after22phases,
+with cleanup confirmed. Its original artifact and failure summary are retained.
+The newer local pass does not promote that historical remote failure.
+
+**Prior lexical checkpoint (2026-11-10):** high-level Hepta source token recognition
+now executes in a19-function HIA application under explicit operator selection.
+The existing token API and real Python parser/module callers exercise that
+path; Python numeric values/AST parsing/type checking and the default reference
+remain. Exact069087b0 clean-source CI passed104tests; native cold replay passed
+11/11outer and5,047/5,047native checks in160.561seconds under the unchanged180
+second deadline. Language coverage passed1,242checks, combined native libraries
+62tests, existing selected/default consumers83each, incremental55, and actual
+selected/default parser/module tests63each. All are finite source-bound scopes.
+
+The exact source-CI receipt was reused with its original clock after a retained
+ENOSPC cold failure; that failure is not relabelled. A prior application/opcode
+coverage declaration error was also retained and fixed without dropping gates.
+The clean-snapshot inventory and full tracked-file identities reconstruct from
+`implementation-boundary-source-lexer-delta.json`; source and native manifest
+bindings are in `source-lexer-summary.json`. Metadata merging preserves all312
+qualified exported paths byte-for-byte, recorded separately rather than called
+a new cold run. No default/release lock/service/main activation has occurred.
+
+The latest observed open-PR inventory has470entries (459drafts), at2026-11-10
+05:14:45UTC; titles are not integration proof. The oldv30full-repository attempt
+remains incomplete. The later exact2484f5c full run completed7,697tests with
+six known exact-source-closure errors, no skips, and unchanged source; it is
+FAIL, not promoted by newer local gates. Other newer full-repository attempts
+remain independently pending. Whole-stack status is still3partial/5open.
 
 The project is `TrillionniumFoundation/Hepta`; there is no separate organization
 repository named `HIA`. `main` is the public metadata/entry branch, not the full
@@ -80,7 +136,7 @@ selfhost candidate. Development continues here from PR #834 source commit
 v17 internal scalar result work. Do not copy a full compiler into metadata-only
 `main`, silently advance release locks, or promote unrelated candidate branches.
 
-The open-PR inventory observed during this audit contains 465 entries. Many
+The earlier open-PR inventory observed during this audit contained 465 entries. Many
 are stacked historical/research branches; their titles or isolated success
 receipts do not establish integration into the selected source. Current adjacent
 work includes #829 information pricing, #830 copied-image proof/adoption, #831
@@ -1141,6 +1197,7 @@ Reviewable records:
 `review-evidence/hia-whole-selfhost-20261109/multiple-scalar-exports-summary.json`
 and `implementation-boundary-multiple-exports-delta.json` in that directory.
 
+
 ## Qualification transport continuation: exact native observer subject eebf5a7
 
 The multiple-export subject's real remote workflow
@@ -1270,3 +1327,39 @@ release, production/runtime and default retirement remain open. Static audit
 still records 218 package Python files and 423 tool Python files, with **3 partial
 / 5 open** components. Neither full-repository acceptance nor whole-stack HIA
 closure is claimed.
+This checks real multi-object linkage and typed C ABI calls. It is not a
+Hepta source-module graph resolver, a native linker implementation or a
+whole-language/runtime closure claim. Compiler HIA source bytes are unchanged.
+
+
+### High-level Hepta source scanning in HIA (candidate, whole stack OPEN)
+
+Added a19-function HIA source lexical recognizer, distinct from the assembly
+compiler scanner. It performs UTF-8 scalar/code-point position tracking,
+nested comments, keywords/identifiers, lifetime/operator/string/numeric token
+grammar and lexical diagnostics in HIA. An explicit operator manifest routes
+the existing tokenize API and actual parser callers through native recognition.
+Default/reference behavior remains unchanged, including fallback for source
+representations outside this bounded candidate profile. Python numeric
+materialization and AST/parser/type/module/runtime paths remain live.
+
+The token ABI validates/counts before publishing any output and keeps the
+8MiB input,1M-token including EOF and128-byte workspace profile explicit.
+Compiler caps/deadlines do not change. Exact source closure v14 adds five
+reviewed source-lexer paths, retains the365-path SHA-256 and all older
+projections independently, and binds all219actual root Python modules.
+The661-byte identity increase is transferred from raw logs to metadata;
+aggregate evidence/container/source/module/process limits remain unchanged.
+See HIA_SOURCE_LEXER_NATIVE.md. Fresh source-bound execution receipts are
+required; the existing compiler fixed points are not whole-frontend closure.
+
+
+### Exact source-lexer delivery checkpoint
+
+The qualified source069087b0 remains the execution authority. Public records
+retain the native lexer manifest, cold/CI/language/library/caller clocks and
+identities, historical failures and losslessly reconstructable source inventory.
+The metadata-only merge incorporates the preceding scalar-export qualification
+without changing any of the312qualified compiler export paths. Native source
+lexing does not close numeric value construction, the full frontend/type/module
+graph, general runtime, agent services or build/release retirement.

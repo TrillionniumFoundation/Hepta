@@ -20,8 +20,8 @@ from tools import diagnose_core_seven_certificate as diagnostic
 from tools.check_guarded_slice_lean import require
 
 ROOT = base.ROOT
-SCHEMA = 'hepta.hia.seven-shared-acceptance.v16'
-PROTOCOL = 'seven-shared-acceptance-v16'
+SCHEMA = 'hepta.hia.seven-shared-acceptance.v17'
+PROTOCOL = 'seven-shared-acceptance-v17'
 ADDITIONS = (
     'experiments/hia_initialization_frontiers_20261103/CORE_MODEL_CONNECTION.md',
     'experiments/hia_initialization_frontiers_20261103/UNSIGNED_STEP_CONNECTION.md',
@@ -207,11 +207,25 @@ NATIVE_OBSERVER_ADDITIONS = (
     'tests/test_hia_selfhost_native_observer.py',
     'examples/hia_bootstrap/native_observer_packer.hiaasm',
 )
+SOURCE_LEXER_ADDITIONS = (
+    'examples/hia_bootstrap/source_lexer.hiaasm',
+    'hepta/hia_source_lexer_native.py',
+    'tests/test_hia_source_lexer_native.py',
+    'tools/build_hia_source_lexer.py',
+    'tools/generate_hia_source_lexer.py',
+)
+SHA256_STREAM_ADDITIONS = (
+    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'hepta/hia_sha256_stream_native.py',
+    'tests/test_hia_sha256_stream_native.py',
+    'tools/generate_hia_sha256_stream.py',
+)
 # Observer inputs and the cold-exported protocol document add822 identity
 # bytes, transferred from raw logs within the same aggregate envelope. All
-# execution capacities and deadlines are unchanged.
-IDENTITY_CAP = 164058
-IDENTITY_RESERVE_DELTA = 19345
+# execution capacities and deadlines are unchanged. The integrated source lexer
+# adds661more metadata bytes, offset by exactly661fewer raw log bytes.
+IDENTITY_CAP = 164719
+IDENTITY_RESERVE_DELTA = 20006
 METADATA_RESERVE = 224589 + IDENTITY_RESERVE_DELTA
 RAW_GLOBAL = 819891 - IDENTITY_RESERVE_DELTA
 BUDGETS = dict(source=2097152, sources=8388608, module=33554432, modules=134217728,
@@ -302,16 +316,28 @@ SOURCE_IDENTITY_PATHS = tuple(sorted((*legacy.SOURCE_IDENTITY_PATHS, *ADDITIONS,
                                     *SAFE_CORE_ADDITIONS, *SCOPED_AGENT_NDU_ADDITIONS,
                                     *PERSISTENT_NDU_ADDITIONS, *JSON_NATIVE_ADDITIONS,
                                     *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS,
-                                    *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS)))
+                                    *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS,
+                                    *SOURCE_LEXER_ADDITIONS)))
 SUPPORT_IDENTITY_PATHS = legacy.SUPPORT_IDENTITY_PATHS
 
 
 def source_paths():
     legacy.source_paths()  # retain the exact earlier source identity closure
     paths = SOURCE_IDENTITY_PATHS
-    require(len(paths) == len(set(paths)) == 384 and commitment(paths) == '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7',
+    require(len(paths) == len(set(paths)) == 389 and commitment(paths) == '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c',
             'reviewed exact source identity closure')
-    previous = tuple(name for name in paths if name not in NATIVE_OBSERVER_ADDITIONS)
+    # Preserve both separately reviewed branches, not just a new union count.
+    lexer_v14 = tuple(name for name in paths if name not in (
+        *SHA256_STREAM_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS))
+    require(len(lexer_v14) == 370 and commitment(lexer_v14) == '414e724f72c675c8cf7139da0710af16ec4417b4926a334b3f5c3c171b3b44f4',
+            'historical source lexer fork identity projection')
+    sha_v12 = tuple(name for name in lexer_v14 if name not in SOURCE_LEXER_ADDITIONS)
+    require(len(sha_v12) == 365 and commitment(sha_v12) == '82ab8f945ba088e88eb2ad47f51fbf3cc46d8f249d7f3d3e7ed08554229421ec',
+            'historical one-shot SHA source identity projection')
+    observer_v16 = tuple(name for name in paths if name not in SOURCE_LEXER_ADDITIONS)
+    require(len(observer_v16) == 384 and commitment(observer_v16) == '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7',
+            'historical native observer source identity projection')
+    previous = tuple(name for name in observer_v16 if name not in NATIVE_OBSERVER_ADDITIONS)
     require(len(previous) == 378 and commitment(previous) == '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535',
             'historical combined JSON CLI/export source identity projection')
     previous = tuple(name for name in previous if name not in EXPORT_CLI_ADDITIONS)
