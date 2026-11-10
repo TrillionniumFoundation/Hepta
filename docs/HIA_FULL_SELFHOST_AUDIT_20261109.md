@@ -4,16 +4,16 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The current implementation contains a live `hepta/` package with 216 Python
-files, 76,568 lines and 4,146,940 bytes. These are source inventory figures, not a
+HIA. The current implementation contains a live `hepta/` package with 217 Python
+files, 76,618 lines and 4,149,592 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **412 Python files /131754lines** under `tools/`,
+The audit also inventories **415 Python files /132254lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
-628Python files. Tests, historical evidence, experiments, examples, benchmarks
+632Python files. Tests, historical evidence, experiments, examples, benchmarks
 and formal-support scripts are explicitly outside those two AST-inventory roots;
 no claim that those excluded roots are HIA replacements is made. Current file
 hashes/imports and these scope exclusions are reconstructable losslessly from
@@ -809,3 +809,39 @@ file did not exist; that setup failure is retained separately from the successfu
 source-bound run. See `review-evidence/hia-whole-selfhost-20261109/v32-json-canonical-summary.json`
 and its losslessly reconstructable static-audit delta. Remote CI and current
 whole-repository qualification are not promoted to passes by these local results.
+
+## v33 primitive JSON Core native frontend (exact qualification pending)
+
+The 40-function HIA frontend now decodes serialized primitive v8 Core, checks
+closed representation shapes, preserves identifiers/declaration order/returned
+loan metadata and emits bounded assembly for the real native HIA semantic
+compiler. Its runtime path does not call the Python JSON parser, Core verifier
+or renderer. A separate host driver still handles pinned manifests, allocation,
+filesystem, subprocesses and trusted receipt metadata. General exports/composites
+and the production CLI/service/runtime/build pipeline remain open.
+
+Independent VM observations and the original/genuinely modified compiler JSON
+inputs precede B0. Fresh B0/B1/B2 builds the frontend; both full compiler inputs
+render exact source bytes and produce three generations with the required fixed
+points. Native byte programs execute, including 24 distinct returned-loan/general
+name programs and the caller-owned-parent case through explicit ELF selection
+and actual external linking. Default flat mode refuses ELF/executable label
+selection; an operator must explicitly select ELF in addition to its module
+label. This does not rewrite the external linker/libc allocation runtime.
+
+The development class passes 9 tests in 22.647 seconds, including randomized
+field ordering, Unicode fragments/subtree boundaries, source drift, concurrency,
+exact/over output capacity, shape confusion, injection and real native semantic
+refusal. The first class run correctly refused the caller-owned-parent ELF label
+under default flat selection; explicit ELF profile support and actual linking
+were added without dropping that witness. The source/default regression replay
+passes 70 tests in 13.817 seconds. Its initial uncommitted run used a stale source
+contract and group-writable temporary files, which the existing strict boundary
+correctly refused. The contract was regenerated and private fixture permissions
+restored; no check or production limit was weakened. Both failed logs remain.
+
+These development observations are not substitutes for a clean committed cold,
+source workflow, language or whole-repository result. The next source-bound
+qualification binds the full 297-file compiler source closure. Component status
+remains 3 partial / 5 open; whole-stack completion and all-input correctness
+remain false. See `docs/HIA_CORE_JSON_FRONTEND_NATIVE.md`.

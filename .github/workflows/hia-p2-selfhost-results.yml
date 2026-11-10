@@ -6,6 +6,12 @@ on:
     paths:
       - '.github/workflows/hia-p2-selfhost-results.yml'
       - 'tools/generate_hia_selfhost.py'
+      - 'tools/generate_hia_core_json_frontend.py'
+      - 'tools/build_hia_core_json_frontend.py'
+      - 'tools/compile_hia_core_json.py'
+      - 'hepta/hia_core_json_frontend_native.py'
+      - 'tests/test_hia_core_json_frontend_native.py'
+      - 'examples/hia_bootstrap/core_json_frontend.hiaasm'
       - 'tools/generate_hia_json_preflight.py'
       - 'tools/generate_hia_json_decode.py'
       - 'tools/generate_hia_json_canonical.py'
@@ -104,6 +110,7 @@ jobs:
           python -B -m tools.generate_hia_json_preflight 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-generator.log"
           python -B -m tools.generate_hia_json_decode 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-decode-generator.log"
           python -B -m tools.generate_hia_json_canonical 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/json-canonical-generator.log"
+          python -B -m tools.generate_hia_core_json_frontend 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/core-json-frontend-generator.log"
           python -B tools/generate_hia_selfhost.py 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/generator.log"
           python -B tests/test_hia_selfhost_language_coverage.py --generate-inventory 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/inventory.log"
           python -B tools/generate_hia_selfhost_contract.py --check 2>&1 | tee "$RUNNER_TEMP/hia-p2-source/contract.log"
@@ -120,6 +127,7 @@ jobs:
               "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
               "tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests",
               "tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests",
+              "tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests",
               "tests.test_hia_selfhost.SelfhostSourceTests",
               "tests.test_hia_selfhost_contract.SelfhostContractTests",
               "tests.test_hia_selfhost_cli",
@@ -249,6 +257,7 @@ jobs:
           python -B -m unittest -v tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-preflight-tests.log"
           python -B -m unittest -v tests.test_hia_json_decode_native.JsonDecodeHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-decode-tests.log"
           python -B -m unittest -v tests.test_hia_json_canonical_native.JsonCanonicalHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/json-canonical-tests.log"
+          python -B -m unittest -v tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaNativeTests 2>&1 | tee "$RUNNER_TEMP/hia-p2-native/core-json-frontend-tests.log"
           python -B - <<'PY'
           import json, os
           from pathlib import Path
