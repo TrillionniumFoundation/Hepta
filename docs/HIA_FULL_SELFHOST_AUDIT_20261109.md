@@ -885,3 +885,60 @@ Public receipts: `v33-core-json-frontend-summary.json`,
 `v34-exact-source-closure-summary.json` and the losslessly reconstructable v33/v34
 inventory deltas under `review-evidence/hia-whole-selfhost-20261109/`.
 Component status remains 3 partial / 5 open. Whole-stack completion is false.
+
+## Integrated multiple scalar exports / JSON-to-ELF continuation
+
+Exact executable source subject: `df52f8faa69b3dd93cd3838ec30fc843ce610c7e`.
+This isolated continuation incorporates the original Core JSON frontend commit
+`6a89994` and the SHA-256 branch rather than discarding either implementation.
+Its own implementation/merge commits are `07b3fdd`, `5f0fc60`, `dce2e3f` and
+`df52f8f`. Later evidence-only metadata is not presented as a separately executed
+compiler. The declared source closure must remain byte-identical to this subject.
+
+Actual HIA now parses a nonempty exact-name export list, emits multiple SysV
+scalar wrappers, ELF symbol/string tables and allocator relocations. All private
+functions remain checked. The JSON Core frontend renders the same explicit
+export list only with operator ELF selection; real native semantic compilation,
+independent object inspection, host linking and native function calls then run.
+This is not a Python payload translator. Manifest/loading/allocation/filesystem,
+receipt driving and the linker still are host responsibilities. Public resources
+or multiresults, general module graphs/linking and production activation remain
+outside this reviewed profile. Runtime-reserved and loader hook names refuse.
+
+The compiler word-access optimization keeps little-endian byte order and prior
+partial stores on a bounds trap. Twenty-eight independent VM/native cases cover
+those boundaries. The compiler is123functions,1418blocks,8002operations and
+453793source bytes, within the UNCHANGED128/1536/8192 and1MiB limits. The derived
+relative-call upper bound11522 remains below12000. The cold deadline remains180s.
+
+Fixed clean-source execution completed all13 selected steps in467.747seconds:
+
+- Actual source-recovery/generation workflow and103source assertions: PASS.
+- Source-only cold ownership/isolation11/11 and native5047/5047: PASS in163.885s.
+- Language1242/1242, with10report assertions and no skips: PASS.
+- Combined native export/JSON frontend/JSON/SHA library50tests: PASS.
+- Exact shared acceptance closure15tests: PASS. v12 binds365paths and218actual
+  root compiler modules, independently preserving every old commitment; the631
+  extra identity bytes are transferred from raw logs, not a larger total budget.
+- Current-source decoder/canonicalizer/SHA/Core-frontend native builds: PASS.
+- Explicit installed and default consumers83tests each, selected incremental
+  policy55tests: PASS.
+- Additional exported-public/private-chain composition returns44561/91 under
+  independent VM and actual native execution, including iterative destruction.
+
+The current exact-source full repository regression has started from a separate
+immutable `df52f8f` checkout with real pinned prerequisites. It is **NOT completed
+by this report**. Older runs and remote CI are independent observations, not a
+substitute for this result. Initial malformed fixture and stale exact-closure
+failures remain recorded as failures in the public summary.
+
+The lossless audit delta accounts for10070tracked paths at this implementation
+subject:218package Python files/76667lines and421tool Python files/133115lines.
+Tool files include authoring/qualification and are not all production runtime.
+Static counts are not semantic closure evidence. The component ledger remains
+**3 partial /5 open**, with no live authority silently retired. Whole-stack HIA
+rewrite remains **OPEN**, defaults and production unchanged.
+
+Reviewable records:
+`review-evidence/hia-whole-selfhost-20261109/multiple-scalar-exports-summary.json`
+and `implementation-boundary-multiple-exports-delta.json` in that directory.
