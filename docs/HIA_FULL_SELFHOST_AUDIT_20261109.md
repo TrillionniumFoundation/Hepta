@@ -4,12 +4,12 @@
 
 **Whole-stack rewrite is OPEN, not complete.** The successful native fixed point
 is real, but does not establish that the rest of the project is implemented in
-HIA. The qualified `c57fb17e` snapshot contains a live `hepta/` package with 219 Python
-files, 76,801 lines and 4,158,877 bytes. These are source inventory figures, not a
+HIA. The qualified `6933f8c8` snapshot contains a live `hepta/` package with 219 Python
+files, 76,816 lines and 4,159,869 bytes. These are source inventory figures, not a
 percentage-completion estimate. Archived copies and example source files are
 not counted as production replacements.
 
-The audit also inventories **423 Python files /133629lines** under `tools/`,
+The audit also inventories **423 Python files /133895lines** under `tools/`,
 separately from the production package. These include host authoring, build,
 qualification and delivery authorities: they have not been rewritten merely
 because a generated compiler reproduces itself. Package plus tool roots total
@@ -24,7 +24,33 @@ Its live non-Python support inventory includes46Rust,8C and9Lean source files;
 none is silently counted as rewritten in HIA. Whole-tree file accounting is not
 a semantic review, execution qualification or completion percentage.
 
-**Current continuation (2026-11-10):** the selected source lexer now parses
+**Current continuation (2026-11-10):** the selected 30-function HIA source image
+also converts decimal floating literals to binary64 using exact rational integer
+arithmetic, quotient/remainder comparison and nearest ties-to-even rounding.
+Normal, subnormal, zero-underflow and nonfinite-overflow handling execute in HIA.
+Neither integer nor float literal parsing uses the host parser in this selected
+path; Python constructs numeric objects from native bytes. AST parsing and the
+default reference remain foreign/live. The v3 manifest declares command 2 and
+the explicit6,272-byte float workspace; compiler caps/deadlines are unchanged.
+
+Exact clean6933f8c8 passed104source tests,11/11cold+5,047/5,047native checks in
+164.838seconds,1,242language checks,69native libraries,83selected+83default
+consumers,55incremental,15shared closure and63selected+63default parser/module
+tests. Independent pre-seed VM controls include six floating cases. An additional
+780exact-rational midpoint/adjacent controls and three overflow thresholds use
+no host decimal parser as oracle; their source and native image hashes exactly
+match the final installed candidate. These are finite observations, not an
+all-input proof. See source-float-summary.json and source equivalence/delta.
+
+The parent integer delivery7e7dc36 also FAILED remote cold at180seconds after
+22phases, with cleanup confirmed. Both parent remote failures remain retained.
+The old6a89994 whole-repository run ended7,709tests with3failures/15errors and
+incomplete inventory; all15error traces and one failure explicitly contain
+ENOSPC, while other failure causes remain open. It is FAIL, not acceptance.
+The separate immutable c57fb17e integer full run is still pending; a full run
+for6933f8c8 has not been completed. No default/production/main/release change.
+
+**Prior integer checkpoint (2026-11-10):** the selected source lexer parses
 arbitrary-size integer magnitudes in HIA, not through a host literal parser.
 The v2 manifest declares command 0 for tokens and command 1 for integer
 magnitudes; Python only constructs integer objects from the native bytes.
