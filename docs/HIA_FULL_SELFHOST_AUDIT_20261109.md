@@ -1509,3 +1509,43 @@ no current full tests have started. Remote/current full/clean-machine gates OPEN
 Inventory still220package Python modules/76887lines plus428hosttools/134701lines,
 ledger3partial/5open. No default/live/release/main switch, old-stack deletion,
 fullfrontend/module/link/runtime/build/service/proof or native-only closure claim.
+
+
+## Native static ELF linker/filter continuation (candidate; full closure OPEN)
+
+The new checked-in HIA ELF linker performs real object table/name resolution,
+RX/RW/BSS layout and admitted RELA fixups, then writes an ET_EXEC. A separate HIA
+filter packer emits the syscall-only linker CLI. No Python or external linker is
+needed when that CLI links objects. The Python build/custody driver remains;
+this is not a default production linker or complete module/runtime replacement.
+See HIA_NATIVE_ELF_LINKER.md for the explicit application profile and exclusions.
+
+Development controls include independent Core and foreign ld before native B0,
+actual separately emitted HIA objects and typed C calls, weak/strong and absolute
+relocations, data/BSS, full output equality, unchanged-output refusals, real
+syscall traces, injected EINTR and an actual short-write pipe. Authoring Mod and
+17-block-parameter failures remain in external logs: app-specific lowering and
+helper extraction fixed these without changing the compiler's original ceilings.
+The initial GNU CET note refusal remains recorded; the candidate implements the
+understood FEATURE_1_AND intersection, not silent dropping of needed properties.
+Clean exact-source combined qualification is recorded separately when completed.
+
+The explicit shared closure now has396 paths with commitment
+4997ea6d666023fd9888ede790a63fb3c978d40e32b8d4ba827b9f27cb9a62c4;
+the original389-path v17 projection and every older projection remain pinned.
+Seven actual new inputs add929 maximum identity serialization bytes, transferred
+from raw-log allocation within the SAME1MiB aggregate envelope. Compiler and
+execution/test deadlines, capacities and witnesses are unchanged.
+
+Older289 exec fullsuite ended PASS7770tests/743modules,0failures/errors/skips,
+clean source unchanged and complete inventory. This is OLD-source evidence only.
+Olderf063 lexer fullsuite ended FAIL7757tests,2failures/3errors,0skips with
+incomplete inventory; all five report ENOSPC while retaining clean source.
+Original reports/logs and condensed final observations remain external evidence.
+No rerun or environment repair turns that failure into a pass. The frozen525
+float fullsuite started after that terminal, and the frozenaccc throughput suite
+remains queued. Current full/remote/platform/clean-machine gates remain OPEN.
+
+The package still has220 Python modules. No old production implementation,
+default/live/release/main route or general frontend/runtime/build/service/proof
+closure was removed or promoted by this native-linker candidate.

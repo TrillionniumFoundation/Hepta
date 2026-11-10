@@ -96,7 +96,17 @@ SHA256_NATIVE_COMMITMENT = '307a88b0ddc4431692a9e41a6121e1eb4f2e69983dff72c7513e
 JSON_CLI_COMMITMENT = '61cbcf8e3082972e390ce512d12abd141c17b5262f324dacb80791bf73712f55'
 EXPORT_CLI_COMMITMENT = '33d85f096323946e67ae7f9bc7006d1c5996a16234f689c8be83eac33ff2c535'
 OBSERVER_COMMITMENT = '5f77c57c507313d1e48179bbcd096dee04e481f071f530f2d8dc9d9cba89acc7'
-CURRENT_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
+SOURCE_LEXER_COMMITMENT = '16c29da84032d30fea440763f05f27eebc2e3327f5db9eabd2871d34cd96770c'
+CURRENT_COMMITMENT = '4997ea6d666023fd9888ede790a63fb3c978d40e32b8d4ba827b9f27cb9a62c4'
+ELF_LINKER_ADDITIONS = (
+    'docs/HIA_NATIVE_ELF_LINKER.md',
+    'examples/hia_bootstrap/elf_static_linker.hiaasm',
+    'examples/hia_bootstrap/native_filter_packer.hiaasm',
+    'tests/test_hia_elf_linker.py',
+    'tools/build_hia_elf_linker.py',
+    'tools/generate_hia_elf_linker.py',
+    'tools/generate_hia_native_filter.py',
+)
 JSON_CLI_ADDITIONS = (
     'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
     'tests/test_hia_core_json_cli.py',
@@ -125,7 +135,7 @@ SOURCE_LEXER_ADDITIONS = (
     'tools/build_hia_source_lexer.py',
     'tools/generate_hia_source_lexer.py',
 )
-NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS)
+NEW_INPUTS = (*CACHE_INPUTS, 'tests/test_core_seven_shared_source_closure.py', *VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *ELF_LINKER_ADDITIONS)
 
 
 @contextmanager
@@ -144,9 +154,13 @@ def compiler_directory():
 class FixedCompilerSourceClosureTests(unittest.TestCase):
     def test_complete_reviewed_closure_retains_every_prior_path(self):
         actual = plan.source_paths()
-        self.assertEqual(len(actual), 389)
+        self.assertEqual(len(actual), 396)
         self.assertEqual(plan.SOURCE_LEXER_ADDITIONS, SOURCE_LEXER_ADDITIONS)
-        observer_native=tuple(name for name in actual if name not in SOURCE_LEXER_ADDITIONS)
+        self.assertEqual(plan.ELF_LINKER_ADDITIONS, ELF_LINKER_ADDITIONS)
+        lexer_native = tuple(name for name in actual if name not in ELF_LINKER_ADDITIONS)
+        self.assertEqual(len(lexer_native),389)
+        self.assertEqual(plan.commitment(lexer_native),SOURCE_LEXER_COMMITMENT)
+        observer_native=tuple(name for name in lexer_native if name not in SOURCE_LEXER_ADDITIONS)
         self.assertEqual(len(observer_native),384)
         self.assertEqual(plan.commitment(observer_native),OBSERVER_COMMITMENT)
         self.assertEqual(plan.NATIVE_OBSERVER_ADDITIONS, NATIVE_OBSERVER_ADDITIONS)
@@ -201,7 +215,7 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
         self.assertEqual(len(previous), 258)
         self.assertEqual(plan.commitment(previous), PRIOR_COMMITMENT)
         before_new_controls = tuple(name for name in actual
-                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS))
+                                      if name not in (*VALIDATION_INPUTS, *ROUND5_VALIDATION_INPUTS, *ROUND6_INPUTS, *LINUX_INPUTS, *NATIVE_AGENT_INPUTS, *P0_P3_INPUTS, *SAFE_CORE_INPUTS, *SCOPED_AGENT_NDU_INPUTS, *PERSISTENT_NDU_INPUTS, *JSON_NATIVE_ADDITIONS, *SHA256_NATIVE_ADDITIONS, *JSON_CLI_ADDITIONS, *EXPORT_CLI_ADDITIONS, *NATIVE_OBSERVER_ADDITIONS, *SOURCE_LEXER_ADDITIONS, *ELF_LINKER_ADDITIONS))
         self.assertEqual(len(before_new_controls), 261)
         self.assertEqual(plan.commitment(before_new_controls),
                          '5758e93bc7e92d4b10370593c3f20b713741b7530d977507a1430c6eb9cfb0eb')
@@ -232,6 +246,10 @@ class FixedCompilerSourceClosureTests(unittest.TestCase):
                 plan.source_paths()
         # Even a reviewed current tuple cannot silently reinterpret its frozen
         # historical projection by changing which names count as additions.
+        changed_additions = (*plan.ELF_LINKER_ADDITIONS, SOURCE_LEXER_ADDITIONS[0])
+        with patch.object(plan, 'ELF_LINKER_ADDITIONS', changed_additions):
+            with self.assertRaisesRegex(ValueError, 'historical source-lexer composition source identity projection'):
+                plan.source_paths()
         changed_additions = (*plan.NATIVE_OBSERVER_ADDITIONS, EXPORT_CLI_ADDITIONS[0])
         with patch.object(plan, 'NATIVE_OBSERVER_ADDITIONS', changed_additions):
             with self.assertRaisesRegex(ValueError, 'historical combined JSON CLI/export source identity projection'):

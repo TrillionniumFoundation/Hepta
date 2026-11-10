@@ -15,6 +15,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = "selfhost-core-linux-x86_64-v30"
 SOURCE_FILES = (
+    'docs/HIA_NATIVE_ELF_LINKER.md',
+    'examples/hia_bootstrap/elf_static_linker.hiaasm',
+    'examples/hia_bootstrap/native_filter_packer.hiaasm',
+    'tests/test_hia_elf_linker.py',
+    'tools/build_hia_elf_linker.py',
+    'tools/generate_hia_elf_linker.py',
+    'tools/generate_hia_native_filter.py',
+
     "tools/generate_hia_source_lexer.py", "tools/build_hia_source_lexer.py",
     "tests/test_hia_source_lexer_native.py", "examples/hia_bootstrap/source_lexer.hiaasm",
     "tools/generate_hia_core_json_cli.py", "tools/build_hia_core_json_cli.py",
