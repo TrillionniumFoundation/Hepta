@@ -8,8 +8,8 @@ type grammar with an explicit bounded stack: qualified paths, generic arguments
 and lifetimes, arrays/slices, read/mut references and raw const/mut pointers.
 It is not a declaration/expression parser or a semantic type checker. Default
 backends and old implementations remain unchanged, pending whole-stack closure.
-The new implementation requires its own fresh qualification; baseline results
-below are not automatically evidence for the changed source.
+The new implementation completed its own fresh qualification atfc5540f as
+recorded below; baseline results are not substituted for changed-source evidence.
 
 ### Latest qualified baseline (before source type parsing)
 
@@ -1534,3 +1534,32 @@ freeze inventory. No cold/native downstream gates ran in that failed pipeline.
 The four files are now explicitly included, without relaxing the exact-inventory
 assertion or modifying a release lock. The failed report and complete log remain
 retained; a corrected commit requires a completely fresh qualification.
+
+### Completed exact source-type candidate qualification
+
+Clean executable subject `fc5540f425663a71e6577c5075dfb5bbceead669` passed the
+entire fresh component pipeline in502.651seconds:109original source-recovery/
+regeneration controls, cold11/11isolation and5049/5049native checks in114.176s
+under180+3s,1242language checks+10assertions,107combined component tests and
+15exact shared-identity controls. Real currentB3built the type parser and its
+actual HIA lexer, plus all prior JSON/SHA/Core frontend and standalone CLI
+artifacts. Selected/default existing consumers83each,incremental55,
+lexer-selected/default parser/modules63each,and actual type-selected/default
+frontend/parser/module/owned-generic callers98each passed. Real installed CLI
+composition16observations and syscall traces also passed, not just in-memory
+fixtures. No old fallback was used for the explicitly selected type grammar.
+
+This exact snapshot has221package Python files/77091lines/4173435bytes and
+430host-tool Python files/134944lines/7722090bytes (651combined Python files).
+The explicit boundary stays3partial/5open, not a completion percentage. Exact
+static records reconstruct losslessly from `implementation-boundary-v28.json`
+plus `implementation-boundary-source-types-delta.json`; actual checks/builds
+and retained failures are bound by `source-types-native-summary.json`.
+
+Raw ended qualifier captures are archived in21071177bytes, SHA256
+`0a7f78e7745c650890dfe177fa15e7ff4f5c673dd36aa537696d9e9940b470bd`.
+All56049regular members (3374136311uncompressed bytes) were compared byte-for-
+byte with the retained originals; external source-CI/unittest logs also remain
+retained separately. The initial source-gate failure remains FAIL. New candidate
+remote CI and current entire-repository qualification are still required; the
+older PR845four-job success is not relabelled for this changed source.
