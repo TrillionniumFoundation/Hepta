@@ -41,7 +41,7 @@ class StandaloneHIANativeTests(unittest.TestCase):
         import builtins
         original_import = builtins.__import__
         def core_only_import(name, globals=None, locals=None, fromlist=(), level=0):
-            forbidden = ("pipeline", "parser", "frontend", "ast")
+            forbidden = ("pipeline", "backend", "lexer", "checker", "parser", "frontend", "ast")
             if (any(name == "hepta." + part or name.startswith("hepta." + part + ".") for part in forbidden)
                     or name == "hepta" and any(part in forbidden for part in (fromlist or ()))):
                 raise AssertionError("a removed high-level source gate must not execute")

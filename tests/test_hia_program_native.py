@@ -433,6 +433,21 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
         self.assertEqual(run.returncode,0,run.stdout+run.stderr)
         self.assertEqual(run.stdout.strip(),"7 7 0 1")
 
+
+    def test_recursive_chain_and_composite_v7_have_real_dynamic_execution(self):
+        for basename in ("core_v7","composite_v2"):
+            document=(ROOT/"examples/hia_recursive_chain"/(basename+".json")).read_bytes()
+            program,library,_=self.build_fixture(document,basename)
+            names={fn["name"]:fn for fn in program.as_dict()["functions"]}
+            for name in ("chain_checksum","chain_cancel","chain_head_update","chain_stored_loan","chain_recover","chain_empty_payloads"):
+                if name not in names: continue
+                for n in (0,1,2,17,129):
+                    with self.subTest(program=basename,name=name,n=n): self.assert_vm(name,[n],library,program)
+            if "chain_task" in names:
+                for n in (0,1,17):
+                    for mode in (0,1,2): self.assert_vm("chain_task",[n,mode],library,program)
+            if "chain_empty_pop" in names: self.assert_vm("chain_empty_pop",[],library,program)
+
     def test_bulk_operations_v2_through_v6_match_vm(self):
         from tests.test_hia_bulk_memory import bulk_program
         from tests.test_hia_overlap_move import move_program, empty_program
@@ -453,19 +468,6 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
             for arguments in cases:
                 with self.subTest(fixture=basename,arguments=arguments): self.assert_vm(name,arguments,library,program)
 
-    def test_recursive_chain_and_composite_v7_have_real_dynamic_execution(self):
-        for basename in ("core_v7","composite_v2"):
-            document=(ROOT/"examples/hia_recursive_chain"/(basename+".json")).read_bytes()
-            program,library,_=self.build_fixture(document,basename)
-            names={fn["name"]:fn for fn in program.as_dict()["functions"]}
-            for name in ("chain_checksum","chain_cancel","chain_head_update","chain_stored_loan","chain_recover","chain_empty_payloads"):
-                if name not in names: continue
-                for n in (0,1,2,17,129):
-                    with self.subTest(program=basename,name=name,n=n): self.assert_vm(name,[n],library,program)
-            if "chain_task" in names:
-                for n in (0,1,17):
-                    for mode in (0,1,2): self.assert_vm("chain_task",[n,mode],library,program)
-            if "chain_empty_pop" in names: self.assert_vm("chain_empty_pop",[],library,program)
 
     def test_v8_parameter_loans_calls_cfg_recursion_and_aliases(self):
         from tests.test_hia_returned_loans import document, loan_program, multiple_shared, swapped_mutable, fallible_return_program
@@ -484,12 +486,16 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
         program,library,_=self.build_fixture(fallible_return_program(),"v8fallible")
         self.assert_vm("fallible_entry",[],library,program)
 
+
     def test_v8_chain_head_returned_loans_and_pop(self):
         from tests.test_hia_returned_chain_loans import chain_program
         for mode in ("read","mut"):
             for form in ("forward","child"):
                 document=chain_program(mode,form); program,library,_=self.build_fixture(document,"v8chain_"+mode+"_"+form)
                 for byte in (0,37,250,255): self.assert_vm(document["exports"][0],[byte],library,program)
+
+
+
 
 
 

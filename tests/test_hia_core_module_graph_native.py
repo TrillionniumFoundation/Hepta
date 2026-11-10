@@ -126,8 +126,8 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             with patch('builtins.__import__',side_effect=guarded):
                 verified,receipt=link_workspace(project(increment),native=self.native)
             self.assertEqual(receipt['module_order'],[1,0])
-            self.assertEqual(verified.as_dict()['exports'],['f0'])
-            self.assertEqual(execute_program(verified,'f0',[41])['result'],41+increment)
+            self.assertEqual(verified.as_dict()['exports'],['work'])
+            self.assertEqual(execute_program(verified,'work',[41])['result'],41+increment)
             self.assertEqual(verified.as_dict()['functions'][0]['blocks'][0]['ops'][0]['attrs']['function'],'f1')
 
     def test_core_resource_and_returned_loan_obligations_not_removed(self):
@@ -144,7 +144,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                 i('loan.end',['r']),i('owner.drop',['owned'])],ret('v'))]))
         p['modules'][0]['core']['module']='app'
         verified,_=link_workspace(p,native=self.native)
-        actual=execute_program(verified,'f0',[])
+        actual=execute_program(verified,'work',[])
         self.assertEqual(actual['result'],0)
         self.assertEqual(actual['resources']['live_owners'],0)
         bad=copy.deepcopy(p);bad['modules'][0]['core']['functions'][0]['blocks'][0]['ops'].pop()
@@ -188,7 +188,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                 {'core':a,'imports':[{'alias':'returned','module':'lib','symbol':'identity'}],'exports':['main']},
                 {'core':lib,'imports':[],'exports':['identity']}]}
             verified,_=link_workspace(p,native=self.native)
-            actual=execute_program(verified,'f0',[])
+            actual=execute_program(verified,'main',[])
             self.assertEqual(actual['result'],0)
             self.assertEqual(actual['resources']['live_owners'],0)
             bad=copy.deepcopy(p);bad['modules'][1]['core']['functions'][0]['return_loans']=['not_a_parameter']
@@ -308,11 +308,11 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             workspace['modules'][0]['exports']=['start']
             verified,_=link_workspace(workspace,native=self.native)
             from hepta.hia_program import execute_program
-            oracle=execute_program(verified,'f1',[])
+            oracle=execute_program(verified,'start',[])
             self.assertEqual(oracle['result'],41+increment)
             rendered=frontend.render(verified.canonical_bytes,output_profile='elf')
             image,_=compile_stage(self.folder,'module-project-'+str(increment),self.compiler,rendered)
-            obj=image.read_bytes();entry=b'f1'
+            obj=image.read_bytes();entry=b'start'
             frame=struct.pack('<4Q',LINK_MAGIC,1,len(entry),0)+entry+struct.pack('<Q',len(obj))+obj
             src=ctypes.create_string_buffer(frame,len(frame));out=ctypes.create_string_buffer(65536)
             scratch=ctypes.create_string_buffer(WORKSPACE_BYTES)
@@ -335,6 +335,71 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                     'native_module_policy_compiler_frontend_and_linker':True,
                     'host_JSON_Core_verification_and_build_custody':True,
                     'sha256':{n:sha256(v).hexdigest() for n,v in payloads.items()}},indent=2)+'\n')
+
+    def test_original_public_names_survive_native_ELF_ABI_and_internal_capture(self):
+        import subprocess
+        from tests.test_hia_program import b,c,f,ret
+        from tools.qualify_hia_selfhost import compile_stage
+        from hepta.hia_core_json_frontend_native import NativeCoreJsonFrontend
+        from hepta.object_symbols import inspect_object_symbols
+        from hepta.hia_program import execute_program
+        frontend_image,_=compile_stage(self.folder,'public-abi-frontend',self.compiler,
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+        frontend=NativeCoreJsonFrontend(frontend_image.read_bytes(),sha256(frontend_image.read_bytes()).hexdigest())
+        longest='public_'+('x'*121)
+        self.assertEqual(len(longest),128)
+        expected_names=['f6','work','f1','f0',longest,longest[:-1]+'y']
+        for increment in (1,7):
+            for reversed_modules in (False,True):
+                workspace=project(increment)
+                app=workspace['modules'][0]
+                constants={name:100+index+increment for index,name in enumerate(expected_names) if name!='work'}
+                for name,value in constants.items():
+                    app['core']['functions'].append(f(name,[],['u32'],[],[
+                        b('entry',[],[c('value','u32',value)],ret('value'))]))
+                app['exports']=expected_names[:]
+                if reversed_modules:workspace['modules'].reverse()
+                verified,record=link_workspace(workspace,native=self.native)
+                linked=verified.as_dict()
+                self.assertEqual(linked['exports'],expected_names)
+                self.assertEqual(record['public_export_names'],expected_names)
+                self.assertTrue(record['original_external_export_names_preserved'])
+                self.assertEqual(len({fn['name'] for fn in linked['functions']}),7)
+                internal=next(row['linked_name'] for row in record['function_names']
+                    if row['module_index']!=record['entry_module_index'])
+                self.assertNotIn(internal,expected_names)
+                self.assertEqual(execute_program(verified,'work',[41])['result'],41+increment)
+                label='public-abi-'+str(increment)+'-'+str(int(reversed_modules))
+                rendered=frontend.render(verified.canonical_bytes,output_profile='elf')
+                obj,receipt=compile_stage(self.folder,label,self.compiler,rendered)
+                self.assertEqual(receipt['forbidden_compiler_modules_loaded'],[])
+                inventory=inspect_object_symbols(obj.read_bytes(),'ELF64',62)
+                self.assertEqual(inventory['defined'],frozenset(expected_names))
+                library=self.folder/(label+'.so')
+                subprocess.run(['cc','-shared','-Wl,-z,defs,-z,noexecstack,-z,relro,-z,now',
+                    str(obj),'-o',str(library)],check=True,capture_output=True)
+                loaded=ctypes.CDLL(str(library))
+                work=loaded.work;work.argtypes=[ctypes.c_uint32];work.restype=ctypes.c_uint32
+                for value in (0,1,41,255,65535,0xffffffff):
+                    self.assertEqual(work(value),(value+increment)&0xffffffff)
+                for name,value in constants.items():
+                    function=getattr(loaded,name);function.argtypes=[];function.restype=ctypes.c_uint32
+                    self.assertEqual(function(),value)
+                with self.assertRaises(AttributeError):getattr(loaded,internal)
+                retained=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS')
+                if retained:
+                    folder=Path(retained)/label;folder.mkdir(parents=True)
+                    payloads={'workspace.json':json.dumps(workspace,sort_keys=True).encode(),
+                        'linked-core.json':verified.canonical_bytes,'program.hiaasm':rendered,
+                        'program.o':obj.read_bytes(),'library.so':library.read_bytes()}
+                    for name,data in payloads.items():(folder/name).write_bytes(data)
+                    (folder/'public-abi.json').write_text(json.dumps({
+                        'defined_symbols':sorted(inventory['defined']),
+                        'expected_public_symbols':expected_names,'internal_symbol':internal,
+                        'actual_abi_calls':6+len(constants),'increment':increment,
+                        'reversed_modules':reversed_modules,
+                        'host_shared_linker_used':True,'whole_native_delivery_qualified':False,
+                        'sha256':{name:sha256(data).hexdigest() for name,data in payloads.items()}},indent=2)+'\n')
 
     def test_explicit_workspace_build_driver_uses_admitted_compiler_and_preserves_exports(self):
         cold=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT')

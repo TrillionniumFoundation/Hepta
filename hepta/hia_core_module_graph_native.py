@@ -159,19 +159,39 @@ def link_workspace(document, *, native):
     if (sorted(order) != list(range(nm)) or any(t >= nf for t in targets)
             or any(t != NONE and t >= nf for t in public_targets)):
         raise CoreModuleRejected('invalid Core module result indexes')
+    # HIA selected the entry-module public targets using exact source names.
+    # Copy those declarations verbatim through Core and the native ELF emitter;
+    # do not turn a source ABI into a caller-visible generated fN ABI. Internal
+    # names are only capture-avoiding materialization, never a second resolver.
+    public_indexes = [t for t in public_targets if t != NONE]
+    public_names = {t: definitions[t]['name'] for t in public_indexes}
+    used_names = set(public_names.values())
+    linked_names = []
+    for fi in range(nf):
+        if fi in public_names:
+            linked_names.append(public_names[fi])
+            continue
+        suffix = fi
+        while 'f' + str(suffix) in used_names:
+            suffix += 1
+        name = 'f' + str(suffix)
+        used_names.add(name)
+        linked_names.append(name)
     linked = copy.deepcopy(definitions)
-    for fi, fn in enumerate(linked): fn['name'] = 'f' + str(fi)
+    for fi, fn in enumerate(linked): fn['name'] = linked_names[fi]
     for (fi, bi, oi), target in zip(callsites, targets[ni:]):
-        linked[fi]['blocks'][bi]['ops'][oi]['attrs']['function'] = 'f' + str(target)
-    public = ['f' + str(t) for t in public_targets if t != NONE]
+        linked[fi]['blocks'][bi]['ops'][oi]['attrs']['function'] = linked_names[target]
+    public = [linked_names[t] for t in public_indexes]
     candidate = {'schema': doc['modules'][0]['core']['schema'], 'module': 'core_workspace', 'functions': linked, 'exports': public}
     verified = verify_program(candidate)
     return verified, {
         'schema': 'hepta.hia.core-workspace-link.v1', 'status': 'VERIFIED_UNPUBLISHED',
         'workspace_sha256': sha256(source_raw).hexdigest(), 'linked_core_sha256': verified.sha256,
         'module_order': list(order), 'entry_module_index': entry, 'native_image_sha256': native.image_sha256,
-        'function_names': [{'module_index': row[0], 'source_name': fn['name'], 'linked_name': 'f' + str(i)}
+        'function_names': [{'module_index': row[0], 'source_name': fn['name'], 'linked_name': linked_names[i]}
                            for i, (row, fn) in enumerate(zip(struct.iter_unpack('<4Q', wire[80 + nm * 32:80 + (nm + nf) * 32]), definitions))],
+        'public_export_names': public,
+        'original_external_export_names_preserved': True,
         'host_JSON_Core_materialization_verification_and_build_bridge': True,
         'high_level_Hepta_resolver_used': False, 'reference_module_policy_fallback': False,
         'nominal_type_linking_package_filesystem_locks_native_install': 'OPEN',

@@ -1,22 +1,38 @@
 """Explicit standalone HIA input routes, with no source or migration adapter."""
 from .hia_program import verify_program
+from .hia_schema import schema_registry
 
 class RouteRejected(ValueError):
     pass
 
 def route_inventory():
-    return {"schema":"hepta.hia.routes.v2", "inputs":["standalone-hia", "agent-assembly"],
+    # Discovery is a detached description, never admission or a proof receipt.
+    # Core schema support and proof support have different domains. Removing a
+    # source frontend must not erase the v8 admission / v1-v7 proof boundary.
+    versions = schema_registry()
+    versions.pop("legacy_nominal", None)
+    versions["admitted_primitive_schemas"] = ["hepta.hia.program.v" + str(v) for v in range(1, 9)]
+    latest = versions["latest_core_schema"].rsplit(".", 1)[-1]
+    return {"schema":"hepta.hia.routes.v2", "inputs":[
+                {"route":"standalone-hia", "input":"primitive v1-" + latest + " / composite v1-v4",
+                 "adapter":"hepta.hia_program.verify_program", "admission":"supported",
+                 "origin_required":False},
+                {"route":"agent-assembly", "input":"hia-asm.v1 explicit primitive v6/v7/v8",
+                 "adapter":"hepta.hia_agent_assembly.assemble_program", "admission":"supported",
+                 "origin_required":False, "implicit_schema_guessing":False}],
+            "versions":versions,
+            "optimization_profiles":[
+                {"checker":"hepta.hia_translation_validation.validate_translation",
+                 "scope":"primitive v1-v7; selected public scalar function; acyclic values and first traps",
+                 "selection":"explicit hosted API, not an installed CLI action",
+                 "success":"proved", "other_outcomes":["disproved","unknown"],
+                 "resource_or_call_rewrites":False, "receipt_grants_admission":False, "v8_qualified":False},
+                {"checker":"hepta.hia_optimization.verify_optimization",
+                 "scope":"primitive v1-v7; whole module; unchanged CFG, interfaces and ordered resource/call skeleton",
+                 "selection":"explicit hosted API, not an installed CLI action",
+                 "success":"verified", "other_outcomes":["rejected","unknown","timeout"],
+                 "resource_or_call_rewrites":False, "receipt_grants_admission":False, "v8_qualified":False}],
             "authority":"hepta.hia_program.verify_program", "implicit_fallback_allowed":False,
-            "versions": {
-                "latest_core_schema": "hepta.hia.program.v8",
-                "admitted_primitive_schemas": ["hepta.hia.program.v" + str(v) for v in range(1, 9)]},
-            "optimization_profiles": [
-                {"entry": "hepta.hia_optimization.verify_optimization",
-                 "scope": "primitive v1-v7; compositional scalar rewrites with unchanged resource/CFG interfaces",
-                 "v8_qualified": False},
-                {"entry": "hepta.hia_translation_validation.validate_translation",
-                 "scope": "primitive v1-v7; selected public scalar function, acyclic bit-vector/trap profile",
-                 "v8_qualified": False}],
             "backends":[
                 {"backend":"direct-machine","entry":"hepta.hia_program_native.build_program_machine",
                  "same_standalone_core":True,"selection":"hia build --backend native; direct API",

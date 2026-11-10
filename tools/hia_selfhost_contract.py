@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = "selfhost-core-linux-x86_64-v43-core-agent-workspace-snapshots"
+PROFILE = "selfhost-core-linux-x86_64-v44-core-agent-workspace-public-abi"
 SOURCE_FILES = (
     'docs/HIA_AGENT_SNAPSHOT_JSON_NATIVE.md',
     'examples/hia_bootstrap/agent_snapshot_json.hiaasm',
@@ -240,6 +240,9 @@ SOURCE_FILES = (
     'tools/compile_hia_core_workspace.py',
     'tests/test_hia_core_module_graph_native.py',
     'docs/HIA_CORE_MODULE_GRAPH.md',
+    'tools/qualify_hia_composite_bulk.py',
+    'examples/hia_program/finite_aarch64_runtime.c',
+    'examples/hia_program/finite_aarch64_multi_runtime.c',
 )
 
 
@@ -293,7 +296,7 @@ def support_contract(root=ROOT):
             "policy": "native names/privacy/import/call/entry/cycle/order; no host resolver fallback",
             "host_boundaries": ["JSON framing", "Core materialization and verification",
                                 "filesystem/build/custody", "installation"],
-            "original_external_export_names_preserved": False,
+            "original_external_export_names_preserved": True,
             "nominal_type_linking_complete": False,
             "whole_module_build_install_complete": False,
         },

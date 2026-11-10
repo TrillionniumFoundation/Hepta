@@ -253,7 +253,8 @@ class ReturnedLoanInterfaceTests(unittest.TestCase):
 
     def test_routes_show_current_admission_and_distinct_proof_boundary(self):
         inventory = route_inventory()
-        self.assertEqual(inventory["inputs"], ["standalone-hia", "agent-assembly"])
+        self.assertEqual([row["route"] for row in inventory["inputs"]], ["standalone-hia", "agent-assembly"])
+        self.assertIn("v1-v8", inventory["inputs"][0]["input"])
         self.assertEqual(inventory["versions"]["admitted_primitive_schemas"],
                          ["hepta.hia.program.v" + str(v) for v in range(1, 9)])
         self.assertEqual(inventory["versions"]["latest_core_schema"], "hepta.hia.program.v8")
