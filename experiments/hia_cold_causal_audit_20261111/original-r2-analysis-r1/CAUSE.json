@@ -1,0 +1,633 @@
+{
+  "schema": "hia.selfhost.cold-causal-readonly-audit.v1",
+  "status": "PARTIAL_ORIGINAL_TIMING_EVIDENCE_NOT_NEW_QUALIFICATION",
+  "analysis_date": "2026-11-11",
+  "source": {
+    "commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+    "tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+    "regular_leaves": 3925,
+    "profile": "selfhost-core-linux-x86_64-v67-cli-machine-bytes-cached-wire"
+  },
+  "original_scope": {
+    "kind": "desktop formal full qualification r2",
+    "root": "/home/qian-qi/he26v67r2",
+    "status": "HOLD",
+    "cold_status": "QUALIFICATION_TIMEOUT",
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "workers": 2,
+    "scheduled_phases": 38,
+    "completed_sealed_phases": 26,
+    "pending_index_entries": 12,
+    "product_rerun": false,
+    "remote_calls_during_this_analysis": false,
+    "raw_archives_replayed_by_this_analysis": false,
+    "source_tests": {
+      "loaded": 354,
+      "executed": 354,
+      "seconds": 701.068121757,
+      "status": "PASS"
+    },
+    "downstream_full_retained_executed": false,
+    "cold_outer_wall_ns": 180594321347
+  },
+  "inputs": [
+    {
+      "commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "path": "experiments/hia_v67_full_remote_controller_r2_20261111/terminal-complete-connector-r4/QUALIFICATION.original.json",
+      "bytes": 661286,
+      "sha256": "1e90dde0691bf343e74d5ce01bd910ea5ddd65af8a24911217d2d9cf804ec159",
+      "git_blob_sha1": "5e71fbe725ae6e05ec2ec4a7cfbfbe1cdc5aa554"
+    },
+    {
+      "commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "path": "experiments/hia_v67_full_remote_controller_r2_20261111/cold-terminal-connector-r2/cold.original.json",
+      "bytes": 82357,
+      "sha256": "c64d3b4a7f46233e593e8bd5b6f87c18ebffb4b9ca9e02e0f3cd1070a5339628",
+      "git_blob_sha1": "0450c8fdd35e41c897b33c59fbe917eab339e26e"
+    },
+    {
+      "commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "path": "experiments/hia_v67_full_remote_controller_r2_20261111/cold-terminal-connector-r2/phase-index.original.json",
+      "bytes": 17740,
+      "sha256": "446b2b2021edcca8e98685d080dacc33157c4d8a8e36e6046020b5bbe8dbfe5f",
+      "git_blob_sha1": "b1d0754cd9a9591f4425834b9a50e6a54ed05480"
+    },
+    {
+      "commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "path": "experiments/hia_v67_full_remote_controller_r2_20261111/terminal-readback-connector-r3/phase-timing-readback-audit.json",
+      "bytes": 74294,
+      "sha256": "2d58f28d545e42f2d239e27d78ef903b42e12ec735c5f296a42f2526cf232d05",
+      "git_blob_sha1": "e39fdb2ddaa75203d5cf453a7b15038bb7d90753"
+    }
+  ],
+  "source_files": [
+    {
+      "path": "tools/qualify_hia_selfhost.py",
+      "mode": "100644",
+      "bytes": 63917,
+      "git_blob_sha1": "15ecc77385f30efa1de547d972c7617df9932d0a",
+      "sha256": "95e2990be07949b2bbf506a8d3bbb10f8a2b5e418369736a964d89420f2a0363"
+    },
+    {
+      "path": "tools/hia_selfhost_references.py",
+      "mode": "100644",
+      "bytes": 7232,
+      "git_blob_sha1": "ac3f55b00be573fed7f5f4311874699bbd05b94a",
+      "sha256": "e08102dcf84deb5fb4f4c6c196e785a5286c671031c59db2128bd04ef9cd06dd"
+    },
+    {
+      "path": "tools/hia_selfhost_native_observer.py",
+      "mode": "100644",
+      "bytes": 14484,
+      "git_blob_sha1": "a9dd79cef715ce2455358849bf350ea3de944a8c",
+      "sha256": "087d513e387bcafacbc5d47b6b2d2a55ed28e4340e10394ed3501bb32c405f43"
+    },
+    {
+      "path": "tools/hia_selfhost_linked_observer.py",
+      "mode": "100644",
+      "bytes": 7735,
+      "git_blob_sha1": "b3b89be6a1e55e9f9c3193c6c23913ab0c36a509",
+      "sha256": "39f2566b891a39797559e91a909e9330e8243a2f96c3f560c99fb3ba4e545c47"
+    },
+    {
+      "path": "tools/hia_evidence_archive.py",
+      "mode": "100644",
+      "bytes": 13942,
+      "git_blob_sha1": "1cbde89979552622d839504f61575aca6aa9dacf",
+      "sha256": "f76cdeebb7dd7b4f4c49442e6c56631d9c99372715bd583b5df00952e80f1ebe"
+    },
+    {
+      "path": "tools/replay_hia_selfhost_cold.py",
+      "mode": "100644",
+      "bytes": 7322,
+      "git_blob_sha1": "0d53ccbd2e56240280938ab829fe9c9798f02075",
+      "sha256": "732e93ce69fc997e9d9cb11aed89d015045f0a2f06c1962ea1134cc9359da38b"
+    },
+    {
+      "path": "tools/qualify_hia_selfhost_chain_elf.py",
+      "mode": "100644",
+      "bytes": 7591,
+      "git_blob_sha1": "4427499d8f17614eadd67b87d988e60231f501be",
+      "sha256": "640cb4eddadf7cc10525825aa890511927a4df5f721ae7ed55a112476b4bd136"
+    },
+    {
+      "path": "tools/qualify_hia_selfhost_chain_flow.py",
+      "mode": "100644",
+      "bytes": 16915,
+      "git_blob_sha1": "f37213fad23a5fda718e2214c9654d3b1eda6985",
+      "sha256": "b24a1a840812bf5725572a92c0328a85855a7a8b2ab6649e8baf094a51fa0610"
+    },
+    {
+      "path": "tools/qualify_hia_selfhost_owned_elf.py",
+      "mode": "100644",
+      "bytes": 11173,
+      "git_blob_sha1": "79a0fd82d21b2123c0057d743b04784eff632066",
+      "sha256": "49f2bfb8f803dd3774b42a8cae59e4c6ece554afc4840c361c9b90d14185dce9"
+    },
+    {
+      "path": "tools/hia_selfhost_signed_cases.py",
+      "mode": "100644",
+      "bytes": 10724,
+      "git_blob_sha1": "c403178a044ec304a34c08c4983b62fe2ee0cdc4",
+      "sha256": "3f9648dc7242620597264842e08c9410920a6aa4d33b1fe16917907e19e40dbf"
+    },
+    {
+      "path": "tools/hia_selfhost_chain_cases.py",
+      "mode": "100644",
+      "bytes": 5171,
+      "git_blob_sha1": "93e8927c4f12bea15637a93fed61beea68691d8a",
+      "sha256": "aff3fdfb756bd5d340ad3363b0a0e59ec1280be0fd8aa6557a34d9f192b1fe6a"
+    },
+    {
+      "path": "tools/hia_selfhost_chain_flow_cases.py",
+      "mode": "100644",
+      "bytes": 25845,
+      "git_blob_sha1": "ec7226698903ab7f2f04bbeb6d081cbc2d11ac0f",
+      "sha256": "0ed415974f7fad2fab7012454a68ae5a1ef191ed0800fcceb63681fcf333a43b"
+    },
+    {
+      "path": "tools/hia_selfhost_parameter_cases.py",
+      "mode": "100644",
+      "bytes": 3155,
+      "git_blob_sha1": "e245ebdd6592defef717c0cd6879eb8260713cea",
+      "sha256": "c649d4893df199160eb06db8c3f6c839d8fa4027074b82756456c7bcc277f27b"
+    },
+    {
+      "path": "tools/hia_selfhost_owned_elf_cases.py",
+      "mode": "100644",
+      "bytes": 7397,
+      "git_blob_sha1": "410ea1301a4ed89c504d49761967c985c9409ec0",
+      "sha256": "9960b6af866464846a0db3703f0ff4bcb6dea87f123639a80a5ea0b7ef8e3467"
+    },
+    {
+      "path": "tests/test_hia_selfhost_native_observer.py",
+      "mode": "100644",
+      "bytes": 11041,
+      "git_blob_sha1": "bf2f68d081d31c2b9ccfe59e5ff1cb748aaa4a38",
+      "sha256": "d88346f9278cb38efe42c96db83ac1d088c62c59c2a0d0ccda093956b8f1d49a"
+    }
+  ],
+  "preparation": {
+    "first_phase_start_seconds": 73.137309847,
+    "stage_order": [
+      "initial contract and complete source snapshot",
+      "17 fresh independent reference workers, at most two concurrently",
+      "independent native-observer and linked-observer Core VM references",
+      "B0 host seed",
+      "sequential B1/B2/B3 and M1/M2/M3",
+      "native and linked observer build",
+      "ordinary flat prefix (75 invocations)",
+      "manifest digest and 38 fresh family workers"
+    ],
+    "generation_receipts": [
+      {
+        "case": "B1",
+        "blob": "90cf1b812a66327bda22c5a853f472dcb640f9cc",
+        "raw_bytes": 1683,
+        "raw_sha256": "71fcc2ac1ea862e174e350ff5eb2514b94ef381da7175a408ec25f8c8b821f50",
+        "native_s": 1.264373854,
+        "wall_s": 1.340567699,
+        "loader_difference_s": 0.076193845,
+        "produced_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+      },
+      {
+        "case": "B2",
+        "blob": "8b499b8b4fb51d1f2ba27a8c39db0386f482c5af",
+        "raw_bytes": 1675,
+        "raw_sha256": "0e47895dcad42229b66e44457786c82862dbace24a4ee012f49f88636b9280fd",
+        "native_s": 1.283593186,
+        "wall_s": 1.352764233,
+        "loader_difference_s": 0.069171047,
+        "produced_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+      },
+      {
+        "case": "B3",
+        "blob": "7d7969bd92d37df37557a6a9c71df2aa35248b9d",
+        "raw_bytes": 1675,
+        "raw_sha256": "6871654c1d2a67ff9773f83560971cd1c4a789674af22c2cf980097eab7fbed5",
+        "native_s": 1.271770153,
+        "wall_s": 1.346962443,
+        "loader_difference_s": 0.07519229,
+        "produced_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+      },
+      {
+        "case": "M1",
+        "blob": "e70c7d8152a366fd01b245a39a7236e30855f4e9",
+        "raw_bytes": 1675,
+        "raw_sha256": "be3cd381ec924ca90e4ae25ba6f5cb9e84fb2a940da944c5c6021a6595714991",
+        "native_s": 1.275676492,
+        "wall_s": 1.354055006,
+        "loader_difference_s": 0.078378514,
+        "produced_sha256": "931b7441f3d04e1ad73d3201da8febdd83b0815c3c08dd665f99ec95be04d718"
+      },
+      {
+        "case": "M2",
+        "blob": "33ff50b55892f0d7f4e45a4d55a5fdefd9b2e4cb",
+        "raw_bytes": 1675,
+        "raw_sha256": "bab4a8e045eab95dd0eedbb8ed34f0a786cfede2830905282f41cda7dcc89c03",
+        "native_s": 1.286488251,
+        "wall_s": 1.362650188,
+        "loader_difference_s": 0.076161937,
+        "produced_sha256": "d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2"
+      },
+      {
+        "case": "M3",
+        "blob": "f32afb42a75f15420f8f68e79d28e3f1ca64a252",
+        "raw_bytes": 1675,
+        "raw_sha256": "962d7b4e604f59206d8b7c7560a80af6dc3dfe645438d1e14a55eacf59c20d2b",
+        "native_s": 1.294291685,
+        "wall_s": 1.370982661,
+        "loader_difference_s": 0.076690976,
+        "produced_sha256": "d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2"
+      }
+    ],
+    "generation_wall_seconds": 8.12798223,
+    "generation_native_seconds": 7.676193621,
+    "unknown": [
+      "17 original reference worker wall_elapsed_ns not yet independently recovered for this run",
+      "reference parent process start/end receipts were returned only in the uncompleted final report; no separate per-reference parent receipt was written",
+      "B0 original receipt and host-seed outer wall duration not yet read; original code does not save a dedicated B0 elapsed interval",
+      "two independent observer VM reference timings and actual native build receipts not yet read",
+      "the original75 prefix per-call receipts from this failed run not yet recovered; separate later A/B is not its original timing",
+      "initial launch/import/contract/source-manifest and input publication overhead not separately timed in these recovered records"
+    ],
+    "prohibited_inference": "73.137 seconds minus six-call wall totals is not a measured B0/reference/observer duration; their sum and parent overhead remain unpartitioned."
+  },
+  "phases": {
+    "relative_clock_origin_monotonic_ns": 1498182306078015,
+    "first_start_seconds": 73.137309847,
+    "last_completed_worker_end_seconds": 153.752231962,
+    "last_sealed_archive_end_seconds": 155.768825958,
+    "regular_artifact_bytes": 1233294661,
+    "archive_bytes": 26241542,
+    "regular_files": 22318,
+    "families": [
+      {
+        "family": "capacity",
+        "start": 73.137309847,
+        "last_worker": 83.964550452,
+        "archive_done": 84.340073121,
+        "workers": [
+          10.661510499,
+          10.827065739
+        ],
+        "archive_post": [
+          0.280453637,
+          0.375522669
+        ],
+        "raw_bytes": 22198508,
+        "files": 166
+      },
+      {
+        "family": "cfg",
+        "start": 83.830903263,
+        "last_worker": 88.993790975,
+        "archive_done": 89.568668121,
+        "workers": [
+          5.013336381,
+          4.999222616
+        ],
+        "archive_post": [
+          0.388579467,
+          0.574877146
+        ],
+        "raw_bytes": 26347608,
+        "files": 498
+      },
+      {
+        "family": "elf",
+        "start": 88.886196334,
+        "last_worker": 93.404218797,
+        "archive_done": 93.743771517,
+        "workers": [
+          4.333555509,
+          4.376703318
+        ],
+        "archive_post": [
+          0.270972773,
+          0.33955272
+        ],
+        "raw_bytes": 18775892,
+        "files": 158
+      },
+      {
+        "family": "chain",
+        "start": 93.24810896,
+        "last_worker": 118.344019743,
+        "archive_done": 125.106379603,
+        "workers": [
+          24.79939996,
+          24.911511095
+        ],
+        "archive_post": [
+          3.637735914,
+          6.76235986
+        ],
+        "raw_bytes": 353687822,
+        "files": 5126
+      },
+      {
+        "family": "owned",
+        "start": 118.24116172,
+        "last_worker": 129.528644075,
+        "archive_done": 132.439423119,
+        "workers": [
+          10.967183774,
+          10.989865729
+        ],
+        "archive_post": [
+          1.653224855,
+          2.910779044
+        ],
+        "raw_bytes": 164836761,
+        "files": 2656
+      },
+      {
+        "family": "bulk",
+        "start": 129.245404269,
+        "last_worker": 132.648825072,
+        "archive_done": 135.04712046,
+        "workers": [
+          3.115764126,
+          3.094542605
+        ],
+        "archive_post": [
+          1.370149965,
+          2.398295388
+        ],
+        "raw_bytes": 144046276,
+        "files": 2058
+      },
+      {
+        "family": "loan",
+        "start": 132.40740583,
+        "last_worker": 135.102456849,
+        "archive_done": 137.302419513,
+        "workers": [
+          2.495313824,
+          2.415363282
+        ],
+        "archive_post": [
+          1.209953693,
+          2.199962664
+        ],
+        "raw_bytes": 74413328,
+        "files": 1308
+      },
+      {
+        "family": "resource",
+        "start": 134.936006437,
+        "last_worker": 136.207133392,
+        "archive_done": 138.776117475,
+        "workers": [
+          1.019728695,
+          1.072052337
+        ],
+        "archive_post": [
+          2.142852231,
+          2.568984083
+        ],
+        "raw_bytes": 35881988,
+        "files": 350
+      },
+      {
+        "family": "tail",
+        "start": 136.164448379,
+        "last_worker": 138.279015571,
+        "archive_done": 140.090717334,
+        "workers": [
+          0.933141144,
+          0.955375638
+        ],
+        "archive_post": [
+          2.424138711,
+          1.811701763
+        ],
+        "raw_bytes": 29593032,
+        "files": 306
+      },
+      {
+        "family": "select",
+        "start": 138.122003061,
+        "last_worker": 141.160718883,
+        "archive_done": 143.238209112,
+        "workers": [
+          2.529204372,
+          2.355656684
+        ],
+        "archive_post": [
+          1.366955497,
+          2.077490229
+        ],
+        "raw_bytes": 89663678,
+        "files": 1954
+      },
+      {
+        "family": "effects",
+        "start": 140.680553147,
+        "last_worker": 144.933388048,
+        "archive_done": 146.718523291,
+        "workers": [
+          3.685558681,
+          3.73124961
+        ],
+        "archive_post": [
+          1.251909741,
+          1.785135243
+        ],
+        "raw_bytes": 110924538,
+        "files": 2178
+      },
+      {
+        "family": "multi",
+        "start": 144.425062938,
+        "last_worker": 152.317456225,
+        "archive_done": 155.369663498,
+        "workers": [
+          7.170621495,
+          7.328619801
+        ],
+        "archive_post": [
+          1.964985602,
+          3.052207273
+        ],
+        "raw_bytes": 153145392,
+        "files": 4982
+      },
+      {
+        "family": "keyword",
+        "start": 151.701295118,
+        "last_worker": 153.752231962,
+        "archive_done": 155.768825958,
+        "workers": [
+          1.363257976,
+          1.364050993
+        ],
+        "archive_post": [
+          2.518127556,
+          2.016593996
+        ],
+        "raw_bytes": 9779838,
+        "files": 578
+      }
+    ],
+    "observed_complete_schedule_interval": {
+      "from_seconds": 73.137309847,
+      "to_seconds": 151.701295118,
+      "phase_children_0_seconds": 0.226052116,
+      "phase_children_1_seconds": 3.510506628,
+      "phase_children_2_seconds": 74.827426527,
+      "capacity_not_occupied_by_phase_children_worker_seconds": 3.96261086,
+      "scope": "Exact interval before any unresolved signed phase can start under the original scheduler. Includes all parent validation/submission/process transition time; not CPU-idle or archive-only. Calculated from original nanosecond records using integer arithmetic.",
+      "from_ns_since_origin": 73137309847,
+      "to_ns_since_origin": 151701295118,
+      "phase_children_0_ns": 226052116,
+      "phase_children_1_ns": 3510506628,
+      "phase_children_2_ns": 74827426527,
+      "capacity_not_occupied_by_phase_children_worker_ns": 3962610860
+    },
+    "archive_overlap_example": {
+      "chain_original_worker_end": 118.04750755,
+      "chain_modified_worker_end": 118.344019743,
+      "owned_original_start": 118.24116172,
+      "owned_modified_start": 118.538779418,
+      "chain_original_archive_end": 121.685243464,
+      "chain_modified_archive_end": 125.106379603,
+      "inference": "Both next-family workers started before chain archives ended. Post-worker archive delay must not be added to worker duration as serial critical path."
+    },
+    "archive_design": {
+      "function": "_PhaseArchivePool",
+      "archive_threads": 1,
+      "pending_archive_slots": 2,
+      "oracle_workers": 2,
+      "already_in_exact608": true,
+      "every_stage_index_waits_for_archive": true,
+      "removed_or_skipped_archives": false
+    },
+    "terminal_scope": "The index has26 completed and12 pending entries. Pending is not evidence of12 unstarted workers; owner killed two adopted descendants at deadline. These recovered owner records alone do not bind those two PIDs to phase argv. The last26 process rows do not provide full38 cost."
+  },
+  "known_correction": {
+    "commit": "448e06ef8a90b284d98631ba0e09512ec91445a8",
+    "source_candidate": "c1d5569ff6d7de6ace669b929e02e3e7aac10eac",
+    "scope": "Separate original75 flat-prefix A/B, fresh sealed native observer; not original failed-run timings or complete cold.",
+    "legacy_seconds": 7.765729965,
+    "native_seconds": 3.34443436,
+    "difference_seconds": 4.421295605,
+    "invocations_per_arm": 75,
+    "paired_checks": 68,
+    "raw_pairs": 157,
+    "whole_cold_measured": false
+  },
+  "ci_context": {
+    "records_commit": "60aeeff4c56b4827ce36ffa4b31ea91fc5345c4d",
+    "primary": {
+      "run": 43055732930,
+      "wall_seconds": 99.255905195,
+      "phases": 38,
+      "nested_checks": 5051,
+      "event": "push",
+      "checked_out_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+      "source_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+      "evidence": {
+        "commit": "60aeeff4c56b4827ce36ffa4b31ea91fc5345c4d",
+        "path": "experiments/hia_v67_ci_originals_20261111/primary-43055732930/OBSERVATION.json",
+        "bytes": 3298,
+        "sha256": "4662a29c6d0e045637e81bc9730e7a46d540f69c2849a6fc8f4899d379ae97e5",
+        "git_blob_sha1": "1f9bc84a819cf81a97794452462c735777e5eec4"
+      },
+      "artifact": {
+        "artifact_id": 13872014360,
+        "bytes": 138488201,
+        "path": "/workspace/scratch/hia-v67-ci-originals-20261111/primary-43055732930/hia-core-608157e5-primary-43055732930-1.zip",
+        "run_id": 43055732930,
+        "sha256": "471bd77b07d2b3e992f5a3eca2b7f3ac8fcba530e90bc0f8d708f200847a6477",
+        "workflow_status": "SUCCESS"
+      }
+    },
+    "pull_request": {
+      "run": 43055748691,
+      "wall_seconds": 130.805543727,
+      "phases": 38,
+      "nested_checks": 5051,
+      "event": "pull_request",
+      "checked_out_commit": "d1a26b4a63f93ec6f54805da75f960226ac5d0eb",
+      "source_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+      "evidence": {
+        "commit": "60aeeff4c56b4827ce36ffa4b31ea91fc5345c4d",
+        "path": "experiments/hia_v67_ci_originals_20261111/pr-43055748691/OBSERVATION.json",
+        "bytes": 3296,
+        "sha256": "ce77f14033e2fcbe5f3fda39388b31923f4c9dd9cbd0b02a4a5a97227719a502",
+        "git_blob_sha1": "12051d6cab3aeff948b715051976313c02af74d8"
+      },
+      "artifact": {
+        "artifact_id": 13872969519,
+        "bytes": 138501387,
+        "path": "/workspace/scratch/hia-v67-ci-originals-20261111/pr-43055748691/hia-core-608157e5-pr-43055748691-1.zip",
+        "run_id": 43055748691,
+        "sha256": "f6b0ed41f41736ecdd307337bc93a83df7866eb20641cea627c21d30a0b5bd1e",
+        "workflow_status": "SUCCESS"
+      }
+    },
+    "scope": "Primary checks out608; PR checks out distinct synthetic merge d1a26b4a with the same e7c29a source tree. Both success summaries remain separate from the failed desktop run. Their original per-phase timing files are inside retained binary archives; no CPU/hardware cause is inferred.",
+    "export_branch_failure": {
+      "run": 43055736686,
+      "commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+      "tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+      "cold_status": "FAIL",
+      "original_elapsed_ns": 180178098861,
+      "completed_phases": 34,
+      "denominator": 38,
+      "cleanup_complete": true,
+      "unfinished": [
+        {
+          "compiler_label": "original",
+          "family": "names"
+        },
+        {
+          "compiler_label": "modified",
+          "family": "names"
+        },
+        {
+          "compiler_label": "original",
+          "family": "exports"
+        },
+        {
+          "compiler_label": "modified",
+          "family": "exports"
+        }
+      ],
+      "evidence": {
+        "commit": "60aeeff4c56b4827ce36ffa4b31ea91fc5345c4d",
+        "path": "experiments/hia_v67_ci_originals_20261111/export-branch-43055736686/AUDIT.json",
+        "bytes": 7099,
+        "sha256": "2651f48305968f244419243e3336e4bab33845c19f0b8847ab1025b49ebef522",
+        "git_blob_sha1": "4cb6d4448d8ead655055b44000d319ab8f48a182"
+      },
+      "note": "Original same-head failure retained; not replaced by either successful run."
+    }
+  },
+  "next_changes_considered": [
+    {
+      "candidate": "No archive queue change",
+      "decision": "No evidence-backed reason from these26 rows to change the already-overlapping bounded archive lane; preserve all evidence and existing bounds."
+    },
+    {
+      "candidate": "Split pure frame validation from discarded serialization",
+      "location": "tools/hia_selfhost_native_observer.py:invoke -> frame -> frame",
+      "observed_source_fact": "invoke constructs and discards one complete frame before constructing the transported frame; first call validates before shared-output descriptor creation.",
+      "measured_cost_seconds": null,
+      "decision": "Investigate as separate small candidate only. Preserve early validation, complete transmitted frame and original hashes, foreign bytes subclass behavior, every fresh child and all resource/trap/capture semantics. Existing11 observer tests include frame refusal, kernel limits, descriptor cleanup, full output/source/workspace, and trap captures. No code or tests executed by this audit."
+    },
+    {
+      "candidate": "Pre-reference and B0 cost attribution",
+      "decision": "Recover exact existing17 reference worker reports, B0/observer receipts and original prefix records before proposing substantive construction optimizations; do not remove public reference assembly, VM execution, either compiler or any effective check."
+    }
+  ],
+  "limitations": [
+    "Only read-only source and original receipt analysis was performed.",
+    "No new source/native/cold qualification is claimed.",
+    "No inference about hardware, CPU throttling, OOM, compression-only cause or host load is made.",
+    "No budget, worker count, phase denominator, native invocation or raw-evidence requirement changed."
+  ]
+}

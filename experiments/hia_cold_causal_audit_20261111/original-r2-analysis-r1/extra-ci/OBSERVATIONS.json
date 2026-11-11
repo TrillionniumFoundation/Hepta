@@ -1,0 +1,656 @@
+{
+  "schema": "hia.extra-evidence-branch-ci-terminal-audit.v1",
+  "scope": "No reruns, no exact608-head substitution, no artifact payload replay.",
+  "observations": [
+    {
+      "run_id": 43083500067,
+      "run_attempt": 1,
+      "event": "push",
+      "head_branch": "codex/hia-v67-full-controller-20261111-e26e",
+      "head_commit": "f53540a5798d1e15d510678706b462f3e202b186",
+      "tree": "1c6eddc08a0b5fb4f417331d4cf9a1dc172f9cfd",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-11T19:02:55Z",
+      "updated_at": "2026-11-11T19:11:25Z",
+      "source_job": 130741828589,
+      "native_job": 130741828826,
+      "cold_summary_original_log": "2026-11-11T19:06:44.9516824Z {\"checks_passed\": 6, \"checks_total\": 11, \"generation_sha256\": [], \"modified_generation_sha256\": [], \"output\": \"/home/runner/work/_temp/hia-cold.json\", \"status\": \"FAIL\"}",
+      "cold_summary": {
+        "checks_passed": 6,
+        "checks_total": 11,
+        "generation_sha256": [],
+        "modified_generation_sha256": [],
+        "output": "/home/runner/work/_temp/hia-cold.json",
+        "status": "FAIL"
+      },
+      "source_leaf_comparison": {
+        "head": "f535",
+        "total_leaves": 4175,
+        "original608_leaves": 3925,
+        "changed_original608_leaves": [],
+        "all_original608_leaves_unchanged": true
+      },
+      "artifacts": [
+        {
+          "id": 13884334777,
+          "node_id": "MDg6QXJ0aWZhY3QxMzg4NDMzNDc3Nw==",
+          "name": "hia-core-native-f53540a5798d1e15d510678706b462f3e202b186-1",
+          "size_in_bytes": 53299072,
+          "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13884334777",
+          "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13884334777/zip",
+          "expired": false,
+          "digest": "sha256:ce74a9125af112854cc14f5b543487865ede337f214dbc72f10b6526db8000f6",
+          "created_at": "2026-11-11T19:06:54Z",
+          "updated_at": "2026-11-11T19:06:54Z",
+          "expires_at": "2026-11-18T19:06:46Z",
+          "workflow_run": {
+            "id": 43083500067,
+            "repository_id": 1432132756,
+            "head_repository_id": 1432132756,
+            "head_branch": "codex/hia-v67-full-controller-20261111-e26e",
+            "head_sha": "f53540a5798d1e15d510678706b462f3e202b186"
+          }
+        }
+      ],
+      "artifact_bytes_downloaded_here": false,
+      "phase_archive_replay_performed_here": false,
+      "native_step_summaries": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-11T19:02:59Z",
+          "completed_at": "2026-11-11T19:03:00Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-11T19:03:00Z",
+          "completed_at": "2026-11-11T19:03:26Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-11T19:03:26Z",
+          "completed_at": "2026-11-11T19:03:26Z"
+        },
+        {
+          "name": "Install qualified Clang 20 native execution prerequisites",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-11T19:03:26Z",
+          "completed_at": "2026-11-11T19:03:40Z"
+        },
+        {
+          "name": "Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-11T19:03:40Z",
+          "completed_at": "2026-11-11T19:03:44Z"
+        },
+        {
+          "name": "Run python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-11T19:03:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native applications and actual Core memory controls",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native Core module graph and actual workspace projects",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native Core workspace JSON materialization and actual ABI",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native Core capability edge policy and actual CFG",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native explicit workspace facts and semantic ELF materialization",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native full Core function declarations SSA and CFG",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native whole primitive Core declaration SSA CFG and export admission",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 14,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native complete local instruction policy",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native exact-byte artifact publication and real kernel races",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 16,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native whole primitive Core admission and body resource flow",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Standalone native complete Core admission CLI",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 18,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native snapshot-bound edits and complete Core patch CLI",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 20,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native complete nominal types helpers constructor functions and outer lowering",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 21,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native worker request admission and ordinary request continuity",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 22,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native request journal decisions and actual SQL crash controls",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 23,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Ordinary Agent callers with native journal and retained owner forbidden",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 24,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native immutable release installation and recovery observations",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 25,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Native graph wire worker machine-plan and linked observer",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 26,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Ordinary machine-plan and Agent callers with retained plan owners forbidden",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 27,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Ordinary instruction-byte callers with retained encoders forbidden",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 28,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Ordinary wire and Agent callers with retained serialization forbidden",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 29,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:44Z"
+        },
+        {
+          "name": "Preserve actual cold failure and stage evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-11T19:06:44Z",
+          "completed_at": "2026-11-11T19:06:55Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 59,
+          "started_at": "2026-11-11T19:06:55Z",
+          "completed_at": "2026-11-11T19:06:55Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 60,
+          "started_at": "2026-11-11T19:06:55Z",
+          "completed_at": "2026-11-11T19:06:55Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 61,
+          "started_at": "2026-11-11T19:06:55Z",
+          "completed_at": "2026-11-11T19:06:55Z"
+        }
+      ],
+      "scope": "An automatic evidence-branch push run, actual different commit/tree. It is not the original608 head or the original desktop r2 attempt. No rerun requested."
+    },
+    {
+      "run_id": 43084835552,
+      "run_attempt": 1,
+      "event": "push",
+      "head_branch": "codex/hia-v67-full-controller-20261111-e26e",
+      "head_commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "tree": "cd4efae11dd0e80e3ea317b5a5546c5725f25291",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-11-11T19:11:18Z",
+      "updated_at": "2026-11-11T19:50:15Z",
+      "source_job": 130746391687,
+      "native_job": 130746392193,
+      "cold_summary_original_log": "2026-11-11T19:14:21.4042226Z {\"checks_passed\": 11, \"checks_total\": 11, \"generation_sha256\": [\"0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8\", \"0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8\", \"0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8\"], \"modified_generation_sha256\": [\"931b7441f3d04e1ad73d3201da8febdd83b0815c3c08dd665f99ec95be04d718\", \"d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2\", \"d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2\"], \"output\": \"/home/runner/work/_temp/hia-cold.json\", \"status\": \"COLD_SELFHOST_REPLAY_PASS\"}",
+      "cold_summary": {
+        "checks_passed": 11,
+        "checks_total": 11,
+        "generation_sha256": [
+          "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+          "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+          "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+        ],
+        "modified_generation_sha256": [
+          "931b7441f3d04e1ad73d3201da8febdd83b0815c3c08dd665f99ec95be04d718",
+          "d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2",
+          "d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2"
+        ],
+        "output": "/home/runner/work/_temp/hia-cold.json",
+        "status": "COLD_SELFHOST_REPLAY_PASS"
+      },
+      "source_leaf_comparison": {
+        "head": "6156",
+        "total_leaves": 4188,
+        "original608_leaves": 3925,
+        "changed_original608_leaves": [],
+        "all_original608_leaves_unchanged": true
+      },
+      "artifacts": [
+        {
+          "id": 13887578695,
+          "node_id": "MDg6QXJ0aWZhY3QxMzg4NzU3ODY5NQ==",
+          "name": "hia-core-native-6156635db138a571d57feaedd4bcc3e19bf89eea-1",
+          "size_in_bytes": 138498309,
+          "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13887578695",
+          "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13887578695/zip",
+          "expired": false,
+          "digest": "sha256:1be86cbab177f5c455fedbf1c12bace53beafbcd7985378b18ac33495a8dbc44",
+          "created_at": "2026-11-11T19:50:12Z",
+          "updated_at": "2026-11-11T19:50:12Z",
+          "expires_at": "2026-11-18T19:49:58Z",
+          "workflow_run": {
+            "id": 43084835552,
+            "repository_id": 1432132756,
+            "head_repository_id": 1432132756,
+            "head_branch": "codex/hia-v67-full-controller-20261111-e26e",
+            "head_sha": "6156635db138a571d57feaedd4bcc3e19bf89eea"
+          }
+        }
+      ],
+      "artifact_bytes_downloaded_here": false,
+      "phase_archive_replay_performed_here": false,
+      "native_step_summaries": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-11T19:11:22Z",
+          "completed_at": "2026-11-11T19:11:23Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-11T19:11:23Z",
+          "completed_at": "2026-11-11T19:11:46Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-11T19:11:46Z",
+          "completed_at": "2026-11-11T19:11:46Z"
+        },
+        {
+          "name": "Install qualified Clang 20 native execution prerequisites",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-11T19:11:46Z",
+          "completed_at": "2026-11-11T19:12:02Z"
+        },
+        {
+          "name": "Run python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-11T19:12:02Z",
+          "completed_at": "2026-11-11T19:12:09Z"
+        },
+        {
+          "name": "Run python -B tools/replay_hia_selfhost_cold.py --output \"$RUNNER_TEMP/hia-cold.json\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-11T19:12:09Z",
+          "completed_at": "2026-11-11T19:14:21Z"
+        },
+        {
+          "name": "Run python -B tests/test_hia_selfhost_language_coverage.py --output \"$RUNNER_TEMP/hia-language.json\"",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-11T19:14:21Z",
+          "completed_at": "2026-11-11T19:15:48Z"
+        },
+        {
+          "name": "Native applications and actual Core memory controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-11T19:15:48Z",
+          "completed_at": "2026-11-11T19:20:19Z"
+        },
+        {
+          "name": "Native Core module graph and actual workspace projects",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-11T19:20:19Z",
+          "completed_at": "2026-11-11T19:20:29Z"
+        },
+        {
+          "name": "Native Core workspace JSON materialization and actual ABI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-11T19:20:29Z",
+          "completed_at": "2026-11-11T19:21:20Z"
+        },
+        {
+          "name": "Native Core capability edge policy and actual CFG",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-11T19:21:20Z",
+          "completed_at": "2026-11-11T19:21:23Z"
+        },
+        {
+          "name": "Native explicit workspace facts and semantic ELF materialization",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-11T19:21:23Z",
+          "completed_at": "2026-11-11T19:22:02Z"
+        },
+        {
+          "name": "Native full Core function declarations SSA and CFG",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-11T19:22:02Z",
+          "completed_at": "2026-11-11T19:22:14Z"
+        },
+        {
+          "name": "Native whole primitive Core declaration SSA CFG and export admission",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-11T19:22:14Z",
+          "completed_at": "2026-11-11T19:22:26Z"
+        },
+        {
+          "name": "Native complete local instruction policy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-11T19:22:26Z",
+          "completed_at": "2026-11-11T19:22:30Z"
+        },
+        {
+          "name": "Native exact-byte artifact publication and real kernel races",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-11T19:22:30Z",
+          "completed_at": "2026-11-11T19:24:27Z"
+        },
+        {
+          "name": "Native whole primitive Core admission and body resource flow",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-11T19:24:27Z",
+          "completed_at": "2026-11-11T19:24:58Z"
+        },
+        {
+          "name": "Standalone native complete Core admission CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-11T19:24:58Z",
+          "completed_at": "2026-11-11T19:25:24Z"
+        },
+        {
+          "name": "Native snapshot-bound edits and complete Core patch CLI",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-11T19:25:24Z",
+          "completed_at": "2026-11-11T19:26:43Z"
+        },
+        {
+          "name": "Native ordinary Agent candidate bytes diagnostics and real crash cuts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-11-11T19:26:43Z",
+          "completed_at": "2026-11-11T19:27:27Z"
+        },
+        {
+          "name": "Native complete nominal types helpers constructor functions and outer lowering",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-11-11T19:27:27Z",
+          "completed_at": "2026-11-11T19:36:47Z"
+        },
+        {
+          "name": "Native worker request admission and ordinary request continuity",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-11-11T19:36:47Z",
+          "completed_at": "2026-11-11T19:37:16Z"
+        },
+        {
+          "name": "Native request journal decisions and actual SQL crash controls",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-11-11T19:37:16Z",
+          "completed_at": "2026-11-11T19:38:51Z"
+        },
+        {
+          "name": "Ordinary Agent callers with native journal and retained owner forbidden",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-11-11T19:38:51Z",
+          "completed_at": "2026-11-11T19:44:09Z"
+        },
+        {
+          "name": "Native immutable release installation and recovery observations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-11-11T19:44:09Z",
+          "completed_at": "2026-11-11T19:44:16Z"
+        },
+        {
+          "name": "Native graph wire worker machine-plan and linked observer",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-11-11T19:44:16Z",
+          "completed_at": "2026-11-11T19:45:37Z"
+        },
+        {
+          "name": "Ordinary machine-plan and Agent callers with retained plan owners forbidden",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-11-11T19:45:37Z",
+          "completed_at": "2026-11-11T19:45:55Z"
+        },
+        {
+          "name": "Ordinary instruction-byte callers with retained encoders forbidden",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-11-11T19:45:55Z",
+          "completed_at": "2026-11-11T19:46:15Z"
+        },
+        {
+          "name": "Ordinary wire and Agent callers with retained serialization forbidden",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-11-11T19:46:15Z",
+          "completed_at": "2026-11-11T19:49:57Z"
+        },
+        {
+          "name": "Preserve actual cold failure and stage evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-11T19:49:57Z",
+          "completed_at": "2026-11-11T19:50:12Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 59,
+          "started_at": "2026-11-11T19:50:12Z",
+          "completed_at": "2026-11-11T19:50:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 60,
+          "started_at": "2026-11-11T19:50:12Z",
+          "completed_at": "2026-11-11T19:50:12Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 61,
+          "started_at": "2026-11-11T19:50:12Z",
+          "completed_at": "2026-11-11T19:50:12Z"
+        }
+      ],
+      "scope": "An automatic evidence-branch push run, actual different commit/tree. It is not the original608 head or the original desktop r2 attempt. No rerun requested."
+    }
+  ]
+}
