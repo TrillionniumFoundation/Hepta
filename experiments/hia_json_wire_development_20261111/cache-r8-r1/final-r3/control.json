@@ -1,0 +1,77 @@
+{
+  "compiler_stable": true,
+  "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+  "finished_utc": "2026-11-11T14:25:17.077820+00:00",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "schema": "hepta.hia.json-wire-cache-lifecycle-control.v1",
+  "scope": "DEVELOPMENT_COMBINED_SOURCE_NOT_COLD_OR_FULL",
+  "source_checkpoint": "f6a79203c4c6b9fcb1f3e39ebc827f022c9c14f4",
+  "source_stable": true,
+  "started_utc": "2026-11-11T14:24:13.860971+00:00",
+  "status": "PASS_LIMITED_COMBINED_DEVELOPMENT_CONTROLS",
+  "steps": [
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "tools.build_hia_worker_report",
+        "--development",
+        "--compiler",
+        "/tmp/hia-e26e-desktop-b3-input/B3.image.bin",
+        "--output",
+        "/tmp/hia-wire-e26e-r8-cache-r1/worker-r3"
+      ],
+      "name": "worker-bundle-development",
+      "returncode": 0,
+      "timeout_seconds": 120,
+      "wall_seconds": 1.2195639029996528
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/tmp/hia-wire-e26e-r8-cache-r1/combined-r3/lifecycle-five.py",
+        "--source-root",
+        "/tmp/hia-wire-e26e-r8-cache-r1/source",
+        "--manifest",
+        "/tmp/hia-wire-e26e-r8-cache-r1/wire-r2/manifest.json",
+        "--output",
+        "/tmp/hia-wire-e26e-r8-cache-r1/combined-r3/lifecycle-five.json"
+      ],
+      "name": "lifecycle-five",
+      "returncode": 0,
+      "timeout_seconds": 30,
+      "wall_seconds": 0.1162813710016053
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/tmp/hia-wire-e26e-r8-cache-r1/combined-r3/packet-comparison.py"
+      ],
+      "name": "packet-comparison",
+      "returncode": 0,
+      "timeout_seconds": 90,
+      "wall_seconds": 0.11592155800099135
+    },
+    {
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "/tmp/hia-wire-e26e-r8-cache-r1/combined-r3/components.py"
+      ],
+      "name": "components",
+      "returncode": 0,
+      "timeout_seconds": 360,
+      "wall_seconds": 61.557992503001515
+    }
+  ],
+  "wire_manifest": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "json-wire.image.bin",
+    "image_sha256": "5eba1c2bc33693692f038bdea7f775f1d49b8203aa22d15bb2a981531baa62dc",
+    "schema": "hepta.hia.json-wire-native.v1",
+    "source_sha256": "898bab701879950055bed4d377ca0fd334ba2e313537b3a27945eebd029a1fe5"
+  }
+}
