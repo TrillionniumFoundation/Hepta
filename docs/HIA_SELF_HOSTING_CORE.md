@@ -129,14 +129,27 @@ B0. Reports therefore record `external_assembler_after_B0: true` and
 only into explicitly named qualification artifacts; it is not part of the
 successor compiler or the production runtime.
 
-## The chosen Core subset
+## Current bounded compiler profile
+
+This section describes the current machine-readable compiler contract. The
+versioned sections below retain the scope and evidence of their named versions;
+statements that an earlier version did not yet implement a feature are historical.
+The [execution support matrix](HIA_EXECUTION_SUPPORT_DOMAINS.md) distinguishes this
+bounded compiler from the complete Core checker, the direct emitter and each
+standalone command. In particular, `hia-native verify` and `hia-verify-core` have
+different admitted domains.
 
 The flat-image input is ordinary HIA assembly with the fixed header
-`hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
-bounded ELF object profile described below. Function names are unique Core ASCII
-identifiers of at most 128 bytes; the first definition supplies the public ABI.
-Block names are unique bounded ASCII identifiers within each function; the
-entry remains the first block in source, with at most256blocks per function.
+`hia-asm.v1 hepta.hia.program.v8 selfhost` in the legacy compiler-entry example.
+Ordinary module labels without explicit exports also select flat output. Explicit
+`selfhost_elf` selects the bounded ELF object profile described below, while an
+explicit scalar export list selects ELF independently of the ordinary module name.
+Function names are unique Core ASCII identifiers of at most 128 bytes; the first
+definition supplies the legacy entry ABI, and explicit exports select their named
+scalar wrappers.
+Block names are unique bounded ASCII identifiers within each function. The
+declared entry may appear at any source position, as introduced in v28, with
+at most 256 blocks per function.
 SSA and formal names use the same bounded ASCII identifier spelling, with at most
 2,048 distinct names per function. The entry block must exactly reproduce the
 signature names and types; each body definition is unique in its function.
@@ -153,7 +166,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
 | Area | Accepted constructs |
 |---|---|
-| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` or explicit scalar-export ELF |
 | Constants | Typed signed/unsigned integer literals, `true` / `false` booleans and `null` for `unit` |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Signed/unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
@@ -163,7 +176,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
 | Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
-| Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
+| Calls | Direct `call` with zero to three scalar, owned or parameter-bound borrowed results, exact signatures and an acyclic non-self call graph; direct self calls in the checked tail form below |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
 
@@ -202,19 +215,23 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Internal functions return zero to three scalars or owned buffer/chain values; returned loans are excluded.
+Internal functions return zero to three scalar, owned buffer/chain or
+parameter-bound borrowed values. Returned loans require the explicit formal-origin
+contract introduced in v23; the complete result tuple must match each call and
+return. More than three internal results remains outside this compiler profile.
 The flat profile has no owned types or allocator imports. The explicit ELF
 profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
 recursion, exceptions, indirect branches and arbitrary host imports remain
-excluded. The fixed exported function `f0` accepts exactly three buffers
+excluded. The legacy compiler entrypoint `f0` accepts exactly three buffers
 `(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
 scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers and chains.
 
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
 edge signatures, existing targets and graph reachability. Inbound edges to
-`b0` are forbidden. The native HIA checker records the complete directed call
+the declared entry block are forbidden. The native HIA checker records the
+complete directed call
 graph, rejects missing targets, and marks functions whose non-self callees are
 already acyclic. After at most one pass per function, every function must be
 marked. Backward calls are admitted when they do not create a cycle. A direct
@@ -1284,8 +1301,10 @@ and CFG is still checked by the complete original passes. No instruction or
 constant is accepted because discovery skipped its text. Duplicate, undefined,
 malformed, oversized and reserved labels are rejected transactionally. Source
 order assigns indices, preserving all existing CFG/capability/relocation checks.
-The entry must still be the first block; a valid-Core later-entry program is
-retained as an explicit unsupported-profile control, not silently accepted.
+In the v27 profile, the entry still had to be the first block; a valid-Core
+later-entry program was retained as an explicit unsupported-profile control.
+The v28 extension below removes that restriction and retains the same program
+as a positive control.
 
 The compiler's obsolete numeric-name reader is removed after every use migrated
 to exact identifiers. The current compiler fits118functions/1287blocks/7678ops.
