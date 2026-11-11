@@ -1,0 +1,185 @@
+{
+  "all_other_PageSession_methods_AST_unchanged": true,
+  "candidate_adapter_sha256": "91baeeb4f63c5cf4d223730bb3c16687127357f99076a4157c9a0df9c8355758",
+  "conclusion": "PRIVATE_PENDING_SQL_AFTER_NATIVE_RETURN_EXCEPTION_WINDOW_CLOSED_IN_EXAMINED_PATCH_AND_REPORTED_CONTROLS",
+  "handler_closes_then_bare_rethrows_without_helper_frame": true,
+  "prior_review_sha256": "bae73239f0676ebeeba3be5aeda1ee0ce143085094503ee1be3b8ceb44048882",
+  "public_read_ran_through_existing_finally": true,
+  "reports": [
+    {
+      "all_controls": 6,
+      "passed": 5,
+      "path": "/tmp/hia-artifact-page-draft/lifecycle-controls-r3/protocol-original.json",
+      "sha256": "33564f59cf2cbc8109906c7a99be33e723fbb156648374867bf244448cfdd17f",
+      "source_preserved": true,
+      "specific_control": {
+        "ambient_context_preserved": true,
+        "case": "native_entry_after_return_base_exception_closes_pending_sql",
+        "closed_before_stale": false,
+        "cursor_rows": [
+          [
+            "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a",
+            "a-lifecycle",
+            "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+            2
+          ]
+        ],
+        "entry_saw_existing_handled_exception": true,
+        "final_traceback": [
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 253
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_step_close.py",
+            "function": "step",
+            "line": 151
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "after_native",
+            "line": 244
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 234
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "foreign_origin",
+            "line": 46
+          }
+        ],
+        "first_traceback": [
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 253
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_step_close.py",
+            "function": "step",
+            "line": 151
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "after_native",
+            "line": 244
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 234
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "foreign_origin",
+            "line": 46
+          }
+        ],
+        "insert_calls": 1,
+        "observe_after_exception": {
+          "returned_packet_bytes": 64
+        },
+        "original_traceback_tail_present": true,
+        "passed": false,
+        "real_native_return": 199,
+        "same_exception": true,
+        "step_after_exception": {
+          "returned_code": 2
+        },
+        "traceback_preserved_after_refusal": true
+      },
+      "status": "DEVELOPMENT_PROTOCOL_BOUNDARY_FAILURES_OBSERVED"
+    },
+    {
+      "all_controls": 6,
+      "passed": 6,
+      "path": "/tmp/hia-artifact-page-draft/lifecycle-controls-r3/protocol-candidate.json",
+      "sha256": "2e8e2efb57b4ab39168bb8ae5e3cacd5c2ef3e5401cffba1ce14ef0497f1f6a5",
+      "source_preserved": true,
+      "specific_control": {
+        "ambient_context_preserved": true,
+        "case": "native_entry_after_return_base_exception_closes_pending_sql",
+        "closed_before_stale": true,
+        "cursor_rows": [],
+        "entry_saw_existing_handled_exception": true,
+        "final_traceback": [
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 253
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native.py",
+            "function": "step",
+            "line": 152
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "after_native",
+            "line": 244
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 234
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "foreign_origin",
+            "line": 46
+          }
+        ],
+        "first_traceback": [
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 253
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native.py",
+            "function": "step",
+            "line": 152
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "after_native",
+            "line": 244
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "main",
+            "line": 234
+          },
+          {
+            "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+            "function": "foreign_origin",
+            "line": 46
+          }
+        ],
+        "insert_calls": 0,
+        "observe_after_exception": {
+          "exception_type": "RuntimeError",
+          "message": "native artifact-page continuation is terminal"
+        },
+        "original_traceback_tail_present": true,
+        "passed": true,
+        "real_native_return": 199,
+        "same_exception": true,
+        "step_after_exception": {
+          "exception_type": "RuntimeError",
+          "message": "native artifact-page continuation is terminal"
+        },
+        "traceback_preserved_after_refusal": true
+      },
+      "status": "DEVELOPMENT_PROTOCOL_CONTROLS_PASS"
+    }
+  ],
+  "schema": "hia.artifact-page-step-close-independent-review.v1",
+  "scope": "STATIC_PATCH_AND_ORIGINAL_RAW_REPORT_READBACK_NOT_INDEPENDENT_EXECUTION",
+  "step_body_original_AST_unchanged_inside_try": true,
+  "whole_native_delivery_qualified": false
+}

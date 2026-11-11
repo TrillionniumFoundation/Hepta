@@ -1,0 +1,11 @@
+# Ordinary native wire performance WIP: r2 through r5
+
+This checkpoint preserves the actual source and original observations while the existing five-second native lifecycle assertion still fails. It is development work, not matching-source cold qualification or a completed replacement of the Python call domain.
+
+The unmodified three-test budget group returned two passes and one failure at each recorded stage. The remaining native-timeout evaluation was 6.472657s, 6.395923s, 6.731548s and 6.227012s in r2 through r5 respectively. No threshold was relaxed and no failing result was replaced by a faster repeat. The r5 diagnostic adds per-phase timing overhead and separately fails at 7.269624s.
+
+The native word helpers preserve low-to-high byte reads and partial stores. Four immutable reply counts are read once at their original loop entry. The current authoring transform expands fixed-address reads only in the continuation receive/dispatch paths. Whole-program expansion was rejected by the existing assembly line budget; whole-entry expansion was rejected by the original native compiler value-slot budget. Both rejected candidates and the actual failed compiler receipt/output are retained. The compiler limits remain unchanged.
+
+Actual 19-case / 228-step comparisons for each recorded candidate compare the complete workspace, output and observation packets. The later three-way controls also preserve raw input bytes and compare current exact-bytes/UTF-32 window transport with the former copied-packet/indexed-codepoint bridge. Four actual source, Core VM, canary and mapping-lifetime controls passed against r2 before the later HIA changes. The full current component suites have not yet been rerun.
+
+The archive contains the original build inputs, compiler receipts and complete outputs, actual images when produced, rejected generator drafts, differential scripts/reports, budget failures and current-phase profile. Every one of its 80 members was read back and checked for byte count, SHA-256, mode, UID and GID. The receipt records each member and the archive identity. The compiler reused for development remains the recorded 0e09ccca image; this does not admit any candidate as a new qualified cold source. Parent checkpoint fc94 preserves the original full 89-test run, including its three failures, missing-workflow error and absent-Z3 skip.

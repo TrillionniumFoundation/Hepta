@@ -32,6 +32,15 @@ host JSON encoding, sorting, decimal integer conversion, recursion over the
 graph, or table of precomputed replay results. SQLite/service/report policy is
 outside this component.
 
+The bridge reserves the complete output and workspace extents in fresh private
+anonymous mappings. Their zero-filled pages are materialized only when used;
+small ordinary calls no longer clear roughly 54 MiB on every invocation. The
+ctypes export retains its mapping, including across callback exceptions and
+reentrant calls, and no explicit close runs while exports remain live. The
+bridge copies only the HIA-returned output length after checking that length
+against the declared capacity. These changes leave all HIA graph, ordering and
+budget decisions and the protocol's buffer capacities unchanged.
+
 ## Ordinary entry contract and remaining parameter domain
 
 The source-defined `ORDINARY_PROFILE` is also recorded in each new build

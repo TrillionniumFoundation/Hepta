@@ -7,6 +7,8 @@ observations. It never serializes or recursively expands the input graph.
 from __future__ import annotations
 
 import ctypes
+import errno
+import mmap
 import struct
 import sys
 from typing import Protocol
@@ -146,6 +148,14 @@ class ForeignGraphObserver:
 
     def points(self, handle, start, count):
         value = self.value(handle)
+        if (type(value) is str and type(start) is int and type(count) is int
+                and 0 <= start <= len(value) and 0 <= count <= len(value) - start):
+            # Convert only the window already requested by HIA. UTF-32LE with
+            # surrogatepass is a mechanical codepoint representation, not JSON
+            # admission or escaping. Keep the original indexing path for
+            # subtypes and out-of-range direct observer calls.
+            raw = value[start:start + count].encode('utf-32-le', 'surrogatepass')
+            return struct.unpack('<' + 'I' * count, raw)
         return tuple(ord(value[index]) for index in range(start, start + count))
 
     def limbs(self, handle, start, count):
@@ -188,6 +198,26 @@ def _flag_fact(value):
     return 5, 0
 
 
+def _private_zeroed_buffer(size):
+    """Keep the complete ABI extent without eagerly touching unused pages.
+
+    The ctypes view retains an exported memoryview of the private mapping.
+    That reference owns the mapping for the full buffer lifetime, including
+    observers that raise and callers that retain a buffer after its session.
+    No explicit close may run while such an export is still alive.
+    """
+    try:
+        mapped = mmap.mmap(-1, size, flags=mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS,
+                           prot=mmap.PROT_READ | mmap.PROT_WRITE)
+    except OSError as exc:
+        if exc.errno == errno.ENOMEM:
+            # Preserve the allocation-failure category of the old zeroed
+            # ctypes allocation; it must not become an ordinary I/O rejection.
+            raise MemoryError from None
+        raise
+    return (ctypes.c_char * size).from_buffer(mapped)
+
+
 class WireSession:
     """Opaque HIA continuation plus protocol transport, independently testable."""
     def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
@@ -196,8 +226,8 @@ class WireSession:
         self.float_renderer = float_renderer
         output_size, workspace_size = buffer_sizes(maximum)
         self.output_size = output_size
-        self.output = ctypes.create_string_buffer(max(1, output_size))
-        self.workspace = ctypes.create_string_buffer(workspace_size)
+        self.output = _private_zeroed_buffer(max(1, output_size))
+        self.workspace = _private_zeroed_buffer(workspace_size)
         if type(maximum) is int:
             kind, sign, bits = INT, int(maximum < 0), maximum.bit_length()
             low = abs(maximum) & ((1 << 64) - 1)
@@ -216,7 +246,12 @@ class WireSession:
         if self.finished:
             raise RuntimeError('native JSON wire session is terminal')
         raw = self.packet if packet is None else packet
-        source = ctypes.create_string_buffer(raw, max(1, len(raw)))
+        # Exact bytes remain strongly referenced throughout this synchronous
+        # call and ctypes transports their address as c_void_p. The verified
+        # HIA parameter is readbuf; no input copy or writable view is needed.
+        # Preserve the original conversion/length observations for other
+        # explicitly supplied packet types, including bytes subclasses.
+        source = raw if type(raw) is bytes else ctypes.create_string_buffer(raw, max(1, len(raw)))
         status = self.image._entry(source, len(raw), self.output, self.output_size,
                                    self.workspace, len(self.workspace))
         if status != 1:
@@ -262,7 +297,7 @@ class WireSession:
                     count, = struct.unpack_from('<Q', self.workspace, 112)
                     if count > self.output_size:
                         raise RuntimeError('native JSON wire returned an invalid extent')
-                    return self.output.raw[:count]
+                    return ctypes.string_at(self.output, count)
                 if status in REASONS:
                     raise HIAEditRejected('E_HIA_EDIT: ' + REASONS[status])
                 raise RuntimeError('native JSON wire continuation profile refused')

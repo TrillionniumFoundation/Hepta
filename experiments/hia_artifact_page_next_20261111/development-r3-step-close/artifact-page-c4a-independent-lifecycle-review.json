@@ -1,0 +1,100 @@
+{
+  "commit": "c4a21f0bef4413e001c80911e54e65fac4319920",
+  "confirmed": [
+    "observe consumes one permission before foreign effects",
+    "observe bare BaseException rethrow closes without replacing exception",
+    "run finally closes public path on any exit",
+    "controls count SQL INSERT attempts even when INSERT OR IGNORE keeps one row"
+  ],
+  "finding": {
+    "actual_execution_in_this_review": false,
+    "counterexample": "Reach pending opcode13, wrap actual policy._entry to run the malformed ACK and then raise ForeignStop; step exits before assigning finished/_observation_pending, allowing observe to execute the retained SQL request.",
+    "location": "PageSession.step",
+    "proposed_fix": "Close finished/pending on all BaseException paths in step and bare rethrow; preserve raw controls and add real native-return-before-exception counterexample.",
+    "scope_limit": "Public NativeArtifactPage.read calls run, whose finally closes the same exception. This is not a demonstrated public-read false success.",
+    "severity": "private continuation correctness gap"
+  },
+  "schema": "hia.artifact-page-lifecycle-independent-static-review.v1",
+  "scope": "READ_ONLY_STATIC_REVIEW_NO_INDEPENDENT_CONTROL_EXECUTION",
+  "source_and_report_records": [
+    {
+      "bytes": 13773,
+      "path": "experiments/hia_artifact_page_next_20261111/lifecycle-r2-draft/hia_artifact_page_native.py",
+      "sha256": "ff49d9779e532f91a4d8e4f1341b0b729dd1392416d3520fe18990854902db50"
+    },
+    {
+      "bytes": 12300,
+      "path": "experiments/hia_artifact_page_next_20261111/lifecycle-r2-draft/protocol_boundary_controls.py",
+      "sha256": "44a7f9bef28898bf3a2443235d6d8b41fe08bcf33e5fe312a44c27e90624eb1a"
+    },
+    {
+      "bytes": 9284,
+      "path": "experiments/hia_artifact_page_next_20261111/development-r2-lifecycle/protocol-original.json",
+      "reported_controls": [
+        {
+          "case": "normal_single_sql_effect",
+          "insert_calls": 1,
+          "passed": true
+        },
+        {
+          "case": "malformed_ack_then_stale_sql_observe",
+          "insert_calls": 2,
+          "passed": false
+        },
+        {
+          "case": "duplicate_observe_before_ack",
+          "insert_calls": 2,
+          "passed": false
+        },
+        {
+          "case": "successful_terminal_refuses_observe",
+          "insert_calls": 1,
+          "passed": true
+        },
+        {
+          "case": "foreign_base_exception_closes_without_replay_or_traceback_change",
+          "insert_calls": 2,
+          "passed": false
+        }
+      ],
+      "reported_source_preserved": true,
+      "reported_status": "DEVELOPMENT_PROTOCOL_BOUNDARY_FAILURES_OBSERVED",
+      "sha256": "ff0b62c99cc2027f7584456b25eda448a5271676962f36c5175f7f03ff47eb64"
+    },
+    {
+      "bytes": 8726,
+      "path": "experiments/hia_artifact_page_next_20261111/development-r2-lifecycle/protocol-candidate.json",
+      "reported_controls": [
+        {
+          "case": "normal_single_sql_effect",
+          "insert_calls": 1,
+          "passed": true
+        },
+        {
+          "case": "malformed_ack_then_stale_sql_observe",
+          "insert_calls": 0,
+          "passed": true
+        },
+        {
+          "case": "duplicate_observe_before_ack",
+          "insert_calls": 1,
+          "passed": true
+        },
+        {
+          "case": "successful_terminal_refuses_observe",
+          "insert_calls": 1,
+          "passed": true
+        },
+        {
+          "case": "foreign_base_exception_closes_without_replay_or_traceback_change",
+          "insert_calls": 1,
+          "passed": true
+        }
+      ],
+      "reported_source_preserved": true,
+      "reported_status": "DEVELOPMENT_PROTOCOL_CONTROLS_PASS",
+      "sha256": "f1c6aa86c1de8dfdb6533d93949434f3e7dc74b1d3283a61bab5d973be52e929"
+    }
+  ],
+  "whole_native_delivery_qualified": false
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import ctypes
+import gc
 from hashlib import sha256
 import json
 import math
@@ -16,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import weakref
 import zipfile
 
 from hepta.hia_json_wire_native import (
@@ -55,6 +57,56 @@ class WireSourceTests(unittest.TestCase):
         child = observer.child(root, 0, 0)
         self.assertEqual(observer.summary(child), (8, 0, 0, 0))
         self.assertEqual(observer.register(observer.value(child)), child)
+        text = observer.register('雪\ud800🧪')
+        self.assertEqual(observer.points(text, 0, 3), (38634, 55296, 129514))
+        with self.assertRaises(IndexError):
+            observer.points(text, 2, 2)
+        reads = []
+        class TextSubtype(str):
+            def __getitem__(self, index):
+                reads.append(index)
+                return super().__getitem__(index)
+        text = observer.register(TextSubtype('abc'))
+        self.assertEqual(observer.points(text, 1, 2), (98, 99))
+        self.assertEqual(reads, [1, 2])
+
+    def test_word_helpers_preserve_bounds_and_partial_byte_stores(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import HIAProgramTrap, _Machine, _Owner, _View
+        from tools.generate_hia_json_wire import source_program
+        program = assemble_program(SOURCE.read_bytes())
+        names = {node.name: 'f' + str(index)
+                 for index, node in enumerate(ast.parse(source_program()).body)}
+        functions = {fn['name']: fn for fn in program.as_dict()['functions']}
+        for name, width in (('read64', 8), ('read32', 4), ('get', 8),
+                            ('put', 8), ('get32', 4), ('put32', 4)):
+            writing = name.startswith('put')
+            for length in (0, 1, 3, 4, 7, 8, 9, 16):
+                before = bytes((index * 31 + 9) & 255 for index in range(length))
+                offsets = {0, 1, max(0, length - width), max(0, length - width + 1),
+                           length, length + 1, (1 << 64) - 1}
+                for offset in sorted(offsets):
+                    with self.subTest(helper=name, length=length, offset=offset):
+                        owner = _Owner(-1, bytearray(before))
+                        arguments = [_View(owner, not name.startswith('read')), offset]
+                        value = 0x8877665544332211
+                        if writing:
+                            arguments.append(value)
+                        machine = _Machine(program, 100000, 64 << 20, None, 128)
+                        complete = offset <= length and width <= length - offset
+                        if complete:
+                            result = machine.invoke(functions[names[name]], arguments)
+                            expected = 0 if writing else int.from_bytes(before[offset:offset + width], 'little')
+                            self.assertEqual(result, [expected])
+                        else:
+                            with self.assertRaises(HIAProgramTrap) as caught:
+                                machine.invoke(functions[names[name]], arguments)
+                            self.assertEqual(caught.exception.code, 'bounds')
+                        expected_bytes = bytearray(before)
+                        if writing and offset < length:
+                            available = min(width, length - offset)
+                            expected_bytes[offset:offset + available] = value.to_bytes(8, 'little')[:available]
+                        self.assertEqual(owner.data, expected_bytes)
 
     def test_independent_core_vm_drives_foreign_observations(self):
         # The same authoring is executed by the independent Core interpreter;
@@ -304,6 +356,53 @@ class WireNativeTests(unittest.TestCase):
             self.assertEqual(raw.raw[-16:], b'\xa5' * 16)
         for maximum in (True, None, -1, MAXIMUM + 1, 1 << 100):
             self.assert_same(None, maximum)
+
+    def test_private_buffer_lifetime_after_observer_exceptions_and_reentry(self):
+        # The foreign callback can retain an exception traceback, and callers
+        # can retain exported buffers after dropping the session. Neither
+        # lifetime may trigger an early unmap or corrupt a separate session.
+        for failure, expected in ((ValueError, HIAEditRejected),
+                                  (RuntimeError, RuntimeError),
+                                  (KeyboardInterrupt, KeyboardInterrupt),
+                                  (MemoryError, MemoryError)):
+            class FailingObserver(ForeignGraphObserver):
+                def points(self, *args):
+                    raise failure('observer failure')
+            observer = FailingObserver()
+            session = WireSession(self.image, observer, observer.register('outer'), MAXIMUM,
+                                  ensure_ascii=False, sort_keys=True)
+            output, workspace = session.output, session.workspace
+            for buffer in (output, workspace):
+                self.assertEqual(buffer[0], b'\0')
+                self.assertEqual(buffer[-1], b'\0')
+            with self.assertRaises(expected) as caught:
+                session.run()
+            before = (ctypes.string_at(output, 16), ctypes.string_at(workspace, 16))
+            reference = weakref.ref(session)
+            del session
+            gc.collect()
+            self.assertEqual((ctypes.string_at(output, 16), ctypes.string_at(workspace, 16)), before)
+            del caught
+            gc.collect()
+            self.assertIsNone(reference())
+            self.assertEqual(self.image.encode({'fresh': 'call'}, MAXIMUM), b'{"fresh":"call"}')
+            self.assertEqual((ctypes.string_at(output, 16), ctypes.string_at(workspace, 16)), before)
+            del output, workspace
+            gc.collect()
+
+        image, nested = self.image, []
+        class ReentrantObserver(ForeignGraphObserver):
+            entered = False
+            def points(self, *args):
+                if not self.entered:
+                    self.entered = True
+                    nested.append(image.encode({'inner': [1, '雪']}, MAXIMUM))
+                return super().points(*args)
+        observer = ReentrantObserver()
+        root = observer.register({'z': [True, 5], 'a': 'outer'})
+        self.assertEqual(image.encode_observed(observer, root, MAXIMUM),
+                         b'{"a":"outer","z":[true,5]}')
+        self.assertEqual(nested, [b'{"inner":[1,"\xe9\x9b\xaa"]}'])
 
     def test_virtual_parent_nodes_share_foreign_graph_depth_and_node_budgets(self):
         class Virtual:

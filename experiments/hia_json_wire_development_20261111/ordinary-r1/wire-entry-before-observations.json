@@ -1,0 +1,156 @@
+{
+  "schema": "hia.ordinary-wire-preintegration-observation.v1",
+  "source_commit": "6f92eca18aa4447d2f7eb920d680adcc546c41f8",
+  "source_sha256": "822116698d2626000806e64e9478846853e51f640fc0ef78a99c1c482f7db30c",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+  "scope": "DEVELOPMENT_PROFILE_BOUNDARIES_NOT_FULL_API_EQUIVALENCE",
+  "cases": [
+    {
+      "case": "invalid-maximum-ascii",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "error",
+          "type": "HIAEditRejected",
+          "message": "E_HIA_EDIT: invalid JSON output byte budget"
+        },
+        "events": []
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "RuntimeError",
+          "message": "foreign flag observed"
+        },
+        "events": [
+          "flag-truthiness"
+        ]
+      }
+    },
+    {
+      "case": "invalid-maximum-sort",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "error",
+          "type": "HIAEditRejected",
+          "message": "E_HIA_EDIT: invalid JSON output byte budget"
+        },
+        "events": []
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "RuntimeError",
+          "message": "foreign flag observed"
+        },
+        "events": [
+          "flag-truthiness"
+        ]
+      }
+    },
+    {
+      "case": "zero-budget-before-flags",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "error",
+          "type": "HIAEditRejected",
+          "message": "E_HIA_EDIT: JSON input exceeds node/byte budget"
+        },
+        "events": []
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "RuntimeError",
+          "message": "foreign flag observed"
+        },
+        "events": [
+          "flag-truthiness"
+        ]
+      }
+    },
+    {
+      "case": "invalid-graph-before-flags",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "error",
+          "type": "HIAEditRejected",
+          "message": "E_HIA_EDIT: non-JSON in-process value"
+        },
+        "events": []
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "RuntimeError",
+          "message": "foreign flag observed"
+        },
+        "events": [
+          "flag-truthiness"
+        ]
+      }
+    },
+    {
+      "case": "arbitrary-renderer-wide",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "ok",
+          "wire_hex": "787878787878787878787878787878787878787878787878787878787878787878"
+        },
+        "events": [
+          [
+            "render",
+            1.25
+          ]
+        ]
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "RuntimeError",
+          "message": "native JSON wire continuation profile refused"
+        },
+        "events": [
+          [
+            "render",
+            1.25
+          ]
+        ]
+      }
+    },
+    {
+      "case": "arbitrary-renderer-unicode",
+      "same": false,
+      "retained": {
+        "result": {
+          "status": "ok",
+          "wire_hex": "e99baa"
+        },
+        "events": [
+          [
+            "render",
+            1.25
+          ]
+        ]
+      },
+      "native": {
+        "result": {
+          "status": "error",
+          "type": "HIAEditRejected",
+          "message": "E_HIA_EDIT: invalid bounded JSON"
+        },
+        "events": [
+          [
+            "render",
+            1.25
+          ]
+        ]
+      }
+    }
+  ]
+}

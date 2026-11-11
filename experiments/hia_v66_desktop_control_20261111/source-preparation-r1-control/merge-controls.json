@@ -1,0 +1,49 @@
+{
+  "cases": [
+    {
+      "accepted": true,
+      "calls": [
+        "conflict-paths-1",
+        "stage-reviewed-conflict-1"
+      ],
+      "case": "exact_resource_union",
+      "error": null,
+      "expected": true,
+      "source_preserved_on_refusal": true
+    },
+    {
+      "accepted": false,
+      "calls": [
+        "conflict-paths-1"
+      ],
+      "case": "unreviewed_code",
+      "error": "conflict contains more than the three reviewed resource literals",
+      "expected": false,
+      "source_preserved_on_refusal": true
+    },
+    {
+      "accepted": false,
+      "calls": [
+        "conflict-paths-1"
+      ],
+      "case": "other_conflict_path",
+      "error": "unreviewed merge conflict",
+      "expected": false,
+      "source_preserved_on_refusal": true
+    },
+    {
+      "accepted": false,
+      "calls": [
+        "conflict-paths-1"
+      ],
+      "case": "missing_resource",
+      "error": "resolved NATIVE_SOURCE_FILES is incomplete or duplicated",
+      "expected": false,
+      "source_preserved_on_refusal": true
+    }
+  ],
+  "driver_sha256": "4c380898d0ed9979d3bddaf52e71a5cb06e38ea870517e848e1d499d63760b31",
+  "function_ast_sha256": "97d46ad397182b7a32ed26be84d0ff8ce69421037bde2e14ec95a6457f516080",
+  "schema": "hia.source-merge-control-observations.v1",
+  "status": "CONTROL_PASS_NOT_PRODUCT_QUALIFICATION"
+}
