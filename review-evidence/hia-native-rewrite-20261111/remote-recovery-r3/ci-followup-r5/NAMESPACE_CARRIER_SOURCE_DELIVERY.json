@@ -1,0 +1,154 @@
+{
+  "schema": "hia.namespace-fixed-carrier-source-handoff.v2",
+  "status": "NEW_AUTHORING_ONLY_ZERO_AST_AS_VM_NATIVE",
+  "owner": "audit_runtime",
+  "files": [
+    {
+      "path": "namespace-filesystem-executor.S",
+      "git_blob": "2c12d781ef6d3948d3d4a0ccfb863388b1142cf0",
+      "sha256": "fb28a7a44448c06fb12654ae8bf6b06fb19be30a4fb7556cf0a7c038b522b90e",
+      "bytes": 20200,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-packer.py",
+      "git_blob": "dfe670251cbd2aacd3ead14ea215ce51aee8c806",
+      "sha256": "f3c1d1208f59bdecd97075c339fbb3093bc01940d639d3ecde2bea9ab397b0bb",
+      "bytes": 4507,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-carrier-build.py",
+      "git_blob": "62610ead5d17aec50b19866cdecc45fc44e11bdb",
+      "sha256": "512589f00c0c9bcdc95b06001ec87c350d3d3a5949ea6efbece9af6254fa520e",
+      "bytes": 17349,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-carrier-client.py",
+      "git_blob": "e2ad618d57469727d46d04dbdba7c8f85b4f973c",
+      "sha256": "00981a3f7bbd195dd5522858d6c032e19a4789900317ff8637be1d811a77893d",
+      "bytes": 11458,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-carrier-replay.py",
+      "git_blob": "de55990f1f5837c7ab5b9a85c4cfed5b9e30dde3",
+      "sha256": "d81356c9bdee5889f562720048b1ac654cfd74f02cb16bb61ff55f1e675c3881",
+      "bytes": 7961,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-carrier-native.py",
+      "git_blob": "c598b4b4b10b16a2b3bfd218b95006e4857522ca",
+      "sha256": "791b61c98d2a7e365cf681b3e3837786dd8e808ba31fef6e33aced23b980399c",
+      "bytes": 27798,
+      "mode": "100644"
+    },
+    {
+      "path": "namespace-filesystem-carrier-ci.py",
+      "git_blob": "a0e652a78250d823f0d965f7b9cf3ef569d4086b",
+      "sha256": "8500fd4bf35e6e99cb1cf924613c3c2cfab6e7577ba660153d78ee3ad30bac15",
+      "bytes": 28511,
+      "mode": "100644"
+    }
+  ],
+  "total_bytes": 117784,
+  "all_selected_remote_text_readback_exact": true,
+  "install_directory": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci",
+  "existing_required_inputs": [
+    {
+      "path": "namespace-filesystem-r3-input.json",
+      "git_blob": "4a9ac654e496f2bbe2e4067cbec5129ee81b45dc",
+      "sha256": "2a5010afba63239e641af4ddad21cb8799baba857131e443f1aa48901808275d"
+    },
+    {
+      "path": "namespace-filesystem-r3-validate.py",
+      "git_blob": "546fd4a8418e50b8f2a3ecb619d90013ff232276",
+      "sha256": "d88e50137c509ad9290e016271d669b1dd04f95b12a29d55520f0387fedfd4c5",
+      "use": "Read and provenance-bind only; its 14+14 groups are not rerun."
+    }
+  ],
+  "common_git_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+  "command": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-ci.py",
+  "predecessor_download": {
+    "action": "actions/download-artifact@v4",
+    "artifact_ids": "13893575504",
+    "run_id": 43103197988,
+    "github_token": "Use the workflow's read-only GitHub token; never save it or URLs in evidence.",
+    "path_env": "HIA_NAMESPACE_PREDECESSOR_DIR",
+    "supported_layouts": [
+      "DIR/ hia-namespace-recovery/ (usual single-artifact direct extraction; no extra artifact-name directory)",
+      "DIR/ hia-namespace-recovery-43103197988-1/ hia-namespace-recovery/ (one literal wrapper)",
+      "DIR itself is named hia-namespace-recovery/"
+    ],
+    "resolution": "Exactly one of these fixed literal layouts must contain evidence.tar.xz. No arbitrary recursive or other-user directory search.",
+    "inner_archive": {
+      "bytes": 5824848,
+      "sha256": "cc7b386d09e17ef4b11f486642394b8aab50346bd2586f72fae1260d553eb728"
+    },
+    "member_index": {
+      "bytes": 46391,
+      "sha256": "e91720af6af64293f32e1e289898479c1621a4f538a50d8417c3ed69e5280e31"
+    },
+    "members": 145,
+    "raw_bytes": 43466360,
+    "compressed_zip": {
+      "bytes": 49378081,
+      "sha256": "48e38fb3c2a57b586a77b132ebe17f1dcd72307f4514cb07e33bcc5de9da52a2",
+      "scope": "GitHub upload declaration only; the directory-based script does not claim compressed ZIP/CRC verification."
+    },
+    "independent_gate": "Entire inner tar bytes/SHA and pinned complete member index; every 145 regular member bytes/SHA/tar mode plus matching downloaded outer raw bytes; restored mode from inner, not download's normalized mode. Original raw reports remain unchanged."
+  },
+  "execution_plan": [
+    "Fresh common baseline/reference/archive custody, no namespace kernel generation or old14 VM/native test dispatch.",
+    "Verify and read original597 result/source/image/compile receipt/ledger with exact source and image provenance; count them only as predecessor observations.",
+    "GNU as/readelf/nm/objcopy new fixed S; original zero-relocation gate and exact layout preserved.",
+    "Original B3 newly compiles the HIA packer under 10 CPU /20 wall /256 MiB /1 MiB output/workspace; 8 actual new packer return/full-byte controls.",
+    "Ten new actual fixed-ELF groups cover all22 primitives, raw FD0, errno then usable context, dynamic descriptors, permanent refusal, truncated-transport lock cleanup, current-CI SQLite WAL byte120 both directions, inode alias-close behavior, symlink path semantics, parent-death termination, and final close state.",
+    "Every complete new actual HIA entry is replayed against retained CoreVM with exact whole return/output/workspace/real syscall ACK bytes; no masks. New VM/native counts separately reported."
+  ],
+  "actual_current_execution": {
+    "namespace_kernel_597": "Actual prior GitHub PASS; report46927a03fe56bb57201d8634b835255823c17e53, full decodedlog39123038a8e275836b10cae0efe488494ffdaff4. Exact raw entry counts await new independent artifact readback.",
+    "selected_seven_carrier_files": "0 AST, 0 assembler, 0 B3, 0 VM, 0 native; none executed yet."
+  },
+  "unchanged_limits": {
+    "parent_address_bytes": 1073741824,
+    "parent_cpu_affinity_count": 1,
+    "compiler_cpu_seconds": 10,
+    "compiler_wall_seconds": 20,
+    "compiler_address_bytes": 268435456,
+    "compiler_output_workspace_bytes": 1048576,
+    "cold_180seconds_2workers": true
+  },
+  "new_development_bounds": {
+    "per_carrier_call_wall_seconds": 30,
+    "whole_new_carrier_corpus_wall_seconds": 600,
+    "fixture_capture_guard_bytes": 16777216,
+    "note": "Finite test harness bounds; no new namespace data/descriptor quotas."
+  },
+  "source_changes_since_handoff1": {
+    "previous_index": "1b28d253e02ca065bc624cc578c52b679aab2df3",
+    "template_r4": "Same-address local image-table alias used by internal RIP reference; exported image_table/layout and zero-relocation gate remain. This prevents dependence on a globally bound symbol relocation in an unlinked flat template; source-only, not an observed native failure.",
+    "packer": "Only fixed S source digest changed.",
+    "builder": "Optional explicitly verified predecessor result/image path binding; original raw result is never rewritten. Original live-result mode remains. Fixed S/packer digests updated.",
+    "launcher": "Carrier-only predecessor readback; old14 groups not rerun. New counts separate.",
+    "client_replay_harness": "Unchanged from first seven-file handoff."
+  },
+  "static_review": {
+    "old_template_r1": "9d46979dea1b6623211d057d8d4df63ae6fbd176",
+    "template_r3_fix": "38fffff2a1c8ba6feec0ec5c4b520d08cee5f7ef",
+    "r4_local_alias": "Author static change only; not included in earlier peer review.",
+    "new_client_replay_harness": "Independent peer explicitly has no review window yet; not claimed reviewed."
+  },
+  "intermediate_source_only": {
+    "builder_r3": "6c281e75118160bc8c7c5675c275eef004cae36f",
+    "launcher_directory_r2": "11791db12cd95222f2ca4923dc65fdabd4bbe033"
+  },
+  "open_scope": [
+    "No ordinary AgentStore or persistent namespace closure.",
+    "HIA UID/root policy, inode registry, exact old3.46.1 migration/draining, immutable views/commit/log integration remain open.",
+    "No full qualification result inherited; original0ef ROG remains FAIL/HOLD; all new H calls remain paused.",
+    "No old implementation is removed by this delivery."
+  ]
+}

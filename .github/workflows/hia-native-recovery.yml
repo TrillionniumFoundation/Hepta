@@ -210,13 +210,72 @@ jobs:
           retention-days: 90
           compression-level: 0
 
+  namespace_carrier:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-carrier]')
+    name: New filesystem syscall carrier and physical kernel controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Download exact passed predecessor namespace evidence
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893575504'
+          run-id: '43103197988'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-namespace-597
+      - name: Build and execute only the new filesystem carrier gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-carrier-recovery
+          HIA_NAMESPACE_PREDECESSOR_DIR: ${{ runner.temp }}/hia-namespace-597
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-carrier-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-carrier-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-carrier-recovery
+            ${{ runner.temp }}/hia-namespace-carrier-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
   worker:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       !contains(github.event.head_commit.message, '[hia-ci:') ||
       contains(github.event.head_commit.message, '[hia-ci:all]') ||
       contains(github.event.head_commit.message, '[hia-ci:worker]')
-    name: Worker records and actual journal bridge
+    name: Remaining worker journal boundary and protocol gates
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -245,7 +304,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-ci/worker_records_journal_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-ci/worker_journal_remaining_ci_r5.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -295,6 +354,40 @@ jobs:
           path: |
             ${{ runner.temp }}/cli-original-failure
             ${{ runner.temp }}/cli-original-failure-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  contract_audit:
+    name: Read-only current Selfhost-Core source contract diagnosis
+    if: contains(github.event.head_commit.message, '[hia-ci:contract]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out exact submitted source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Match the Python version of the observed original failure
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.10'
+      - name: Capture exact contract and source differences
+        shell: bash
+        run: >-
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/audit_selfhost_contract_r1.py
+          --output "$RUNNER_TEMP/hia-contract-audit"
+          2>&1 | tee "$RUNNER_TEMP/hia-contract-audit-driver.log"
+      - name: Preserve complete read-only contract diagnosis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-source-contract-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-contract-audit
+            ${{ runner.temp }}/hia-contract-audit-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

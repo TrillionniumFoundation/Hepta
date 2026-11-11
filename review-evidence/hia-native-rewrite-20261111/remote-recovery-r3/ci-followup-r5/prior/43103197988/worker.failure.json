@@ -1,0 +1,113 @@
+{
+  "schema": "hia-worker-ci-failure-observation-v1",
+  "head": "597f5b2f3772d0b4b85cec86492643f71a60966f",
+  "run_id": 43103197988,
+  "job_id": 130799678437,
+  "status": "FAIL",
+  "scope": "FRESH_SOURCE_BOUND_COMPONENT_RESULTS_NOT_WHOLE_WORKER",
+  "environment": {
+    "python": "3.12.14",
+    "compiler": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "common_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e"
+  },
+  "completed": {
+    "exact_restore": true,
+    "compiler_invocations": 5,
+    "compiled_roles": [
+      "graph-scan",
+      "graph-emit",
+      "service-records",
+      "journal-bridge-r4",
+      "actual-journal"
+    ],
+    "records": {
+      "cases": 228,
+      "entries": {
+        "records": 466,
+        "scan": 240,
+        "emit": 348
+      },
+      "total_entries": 1054,
+      "source": "exact run reached passed driver count assertion"
+    },
+    "journal_groups": [
+      "smoke",
+      "semantic",
+      "diagnostics",
+      "faults"
+    ],
+    "journal_group_detail_counts": "Not independently extracted from artifact yet; actual groups each exit0."
+  },
+  "first_failure": {
+    "label": "worker-journal-foreign-boundary",
+    "returncode": 1,
+    "timed_out": false,
+    "error": "AssertionError",
+    "location": "journal_bridge_ci_harness_r1.py:207",
+    "condition": "at <= workspace extent for empty cost view",
+    "production_cause": "Early refusal before GROW publishes cost offset OUTPUT+8MiB despite a fresh 4096-byte workspace and zero cost bytes.",
+    "original_error_not_rewritten": true
+  },
+  "not_executed": [
+    "journal boundary-exact",
+    "journal boundary-plusone",
+    "journal protocol"
+  ],
+  "log": {
+    "path": "worker-597f5b2-attempt1.github-job.log",
+    "bytes": 55022,
+    "sha256": "0dbbf103901eefec64ab7a2d1eb44326ddc910c5994aa34a19f0b4d5fe90d620",
+    "gitsha": "50170df873a8a3371f4981b0b06f9dedd342d3fc"
+  },
+  "artifact": {
+    "id": 13891719461,
+    "name": "hia-worker-recovery-43103197988-1",
+    "zip_bytes": 51039884,
+    "zip_sha256": "c3424e26dd3562795da4dc1e89d140ee06fd46e1c31b8d25b778b906dbfcd42b",
+    "tar_bytes": 8963604,
+    "tar_sha256": "e8d010fd57a149ae7551e9c5d3dd9cd86e5df8a3de99ed2ea4bc54be1150c77b",
+    "members": 5794,
+    "index_bytes": 2768461,
+    "index_sha256": "fd43c6af4d695cde87e2f52e8bef399caf03185a00b72e9298bc71ad2721e9af",
+    "independent_zip_readback": false,
+    "source": "actual GitHub upload and finish custody logs"
+  },
+  "fix": {
+    "body": {
+      "path": "tools/service_journal_bridge.py",
+      "bytes": 18781,
+      "sha256": "c1e4322a7ffbb37179b9b38d369b1842c64431df4bc658afcaaac157e30c54a9",
+      "gitsha": "97beeaf5d8cf10ee9b92dacc8f22c3af6acea4fd",
+      "status": "NEW_UNEXECUTED_FIX_FOR_597_EARLY_REFUSAL_EMPTY_VIEW",
+      "baseline": "e3b01ccff4302da2cbb5fbf0b18a52fdc3733f31"
+    },
+    "scope": "Only empty result-view offsets exceeding actual workspace extent become zero. Nonempty views, in-bounds empty views, all computation/limits/status/text/partial-state remain unchanged.",
+    "strict_harness_relaxed": false,
+    "executed": false
+  },
+  "next_run": {
+    "driver": {
+      "path": "worker_journal_remaining_ci_r5.py",
+      "bytes": 10980,
+      "sha256": "89fa717fe82a2af3e09a1cf15a947f2d495bf73d0b3d5c588554b5ae1a3cd818",
+      "gitsha": "a5575ee5dd7a69f4f50fd1a33fc6bb75449f977e",
+      "default_groups": [
+        "foreign-boundary",
+        "boundary-exact",
+        "boundary-plusone",
+        "protocol"
+      ],
+      "records_rerun": false,
+      "test_harness_unchanged": true,
+      "limits_changed": false
+    },
+    "repeat_records": false,
+    "prior_cases_inherited": false,
+    "default_groups": [
+      "foreign-boundary",
+      "boundary-exact",
+      "boundary-plusone",
+      "protocol"
+    ]
+  }
+}
