@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ctypes
 import json
+import os
 import struct
 import sys
 import unittest
@@ -17,6 +18,7 @@ from hepta import hia_program_tools as program_tools
 from tests import test_hia_json_wire_native as base_tests
 
 outcome = base_tests.outcome
+FIXTURE_EVIDENCE = 'HEPTA_HIA_JSON_WIRE_CACHE_FIXTURE_EVIDENCE'
 
 
 def run_observed(image, value, maximum=4096, *, cache, ensure_ascii=False,
@@ -46,7 +48,9 @@ class WireCacheNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Preserve the normal source-admitted cold/development fixture split.
-        base_tests.WireNativeTests.setUpClass.__func__(cls)
+        evidence = os.environ.get(FIXTURE_EVIDENCE, '')
+        with patch.dict(os.environ, {base_tests.FIXTURE_EVIDENCE: evidence}):
+            base_tests.WireNativeTests.setUpClass.__func__(cls)
 
     @classmethod
     def tearDownClass(cls):
