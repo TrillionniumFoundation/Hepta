@@ -13,8 +13,16 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v68-agent-store-authority-development'
+PROFILE = 'selfhost-core-linux-x86_64-v69-artifact-read-development'
 SOURCE_FILES = (
+    'tools/generate_hia_artifact_page.py',
+    'tools/build_hia_artifact_page.py',
+    'tools/qualify_hia_artifact_read_callers.py',
+    'examples/hia_bootstrap/artifact_page.hiaasm',
+    'tests/test_hia_artifact_read_native.py',
+    'tests/hia_artifact_read_cases.py',
+    'tests/fixtures/hia_agent_service_5810.py.txt',
+    'docs/HIA_ARTIFACT_READ_NATIVE.md',
     'tools/generate_hia_agent_store_authority.py',
     'tools/build_hia_agent_store_authority.py',
     'tools/qualify_hia_agent_store_authority_callers.py',
@@ -557,6 +565,39 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'ordinary_artifact_read': {
+            'source': 'examples/hia_bootstrap/artifact_page.hiaasm',
+            'manifest_schema': 'hepta.hia.artifact-page-bundle.v2',
+            'protocol_magic': 'HIAAPG02',
+            'selection': 'explicit HEPTA_HIA_ARTIFACT_PAGE_MANIFEST at HIAAgentService._hia_read; selected failures do not fall back',
+            'maximum_artifact_bytes': 67108864,
+            'public_page_bytes': [512, 65536],
+            'combined_wire_byte_limit': 230000,
+            'wire_calls_per_budget_attempt': 3,
+            'native_owners': ['cursor binding and original SQL method/argument order',
+                'complete-artifact UTF-8 classification', 'page trimming and base64',
+                'ordered wire observations and combined byte budget',
+                'cursor canonical digest, insertion instruction and result graph'],
+            'hosted_owners': ['AgentStore reference/file/metadata owners and their independent selectors',
+                'actual SQLite binding, transactions, locks and durability',
+                'interpreter object observations and exception construction',
+                'installation resources and executable custody'],
+            'signed_SQLite_integer_offsets_supported': True,
+            'noninteger_SQLite_offsets_preserve_original_arithmetic_exceptions': True,
+            'foreign_requests_consumed_before_effects': True,
+            'terminal_or_failed_continuations_can_repeat_effects': False,
+            'foreign_extension_limits': ['arbitrary replacement Store objects',
+                'oversized or negative private-method page limits outside the public catalog',
+                'interpreter resource exhaustion, finalizer timing and adversarial private-state mutation'],
+            'original_page_method_AST_preserved': True,
+            'old_42_case_run_claimed_complete': False,
+            'default_ordinary_entry_changed': False,
+            'whole_AgentStore_replaced': False,
+            'native_durability_implemented': False,
+            'all_Python_extension_inputs_equivalent': False,
+            'matching_source_cold_qualified': False,
+            'whole_native_delivery_qualified': False,
+        },
         'agent_store_reference_and_profile_authority': {
             'source': 'examples/hia_bootstrap/agent_store_authority.hiaasm',
             'manifest_schema': 'hepta.hia.agent-store-authority-native.v2',
