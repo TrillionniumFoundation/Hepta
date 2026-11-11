@@ -141,6 +141,7 @@ class PageSession:
         self.observer = PageGraphObserver(self)
         self.packet = struct.pack('<4Q', MAGIC, 0, 0, self.observer.register(arguments))
         self.finished = False
+        self._observation_pending = False
 
     def step(self, packet=None):
         if self.finished:
@@ -149,6 +150,7 @@ class PageSession:
         source = ctypes.create_string_buffer(raw, max(1, len(raw)))
         code = self.owner.policy._entry(source, len(raw), self.output, len(self.output),
                                         self.workspace, len(self.workspace))
+        self._observation_pending = code == 1
         if code != 1:
             self.finished = True
         return code
@@ -167,51 +169,63 @@ class PageSession:
                                      ensure_ascii=False, sort_keys=True, float_renderer=renderer)
 
     def observe(self):
-        opcode, sequence = struct.unpack_from('<2Q', self.workspace, 8)
-        a, b, c, d = struct.unpack_from('<4Q', self.workspace, 200)
-        reg, value = self.observer.register, self.observer.value
-        x = y = z = t = 0
-        payload = b''
-        if opcode == 1:
-            x = reg(value(a)[value(b)])
-        elif opcode == 2:
-            data, _ = self.service.store.get(value(a))
-            x = reg(data)
-        elif opcode == 3:
-            x = int(value(b) in value(a))
-        elif opcode == 4:
-            x = reg(self.service.store.db.execute('SELECT * FROM cursors WHERE id=?', (value(a),)).fetchone())
-        elif opcode == 5:
-            x = reg(value(a).get(value(b), c))
-        elif opcode == 6:
-            x = reg(int(value(a)))
-        elif opcode == 7:
-            x, y, z, t = self.observer.summary(a)
-        elif opcode in (8, 15):
-            method = self.observer.points if opcode == 8 else self.observer.limbs
-            words = method(a, b, c)
-            x = len(words)
-            payload = struct.pack('<' + 'I' * x, *words)
-        elif opcode == 9:
-            x = int(bool(value(a) != value(b)))
-        elif opcode == 10:
-            payload = value(a)[b:b + c]
-            x = len(payload)
-        elif opcode == 11:
-            raw = self._wire(a)
-            x, y = reg(raw), len(raw)
-        elif opcode == 12:
-            x = reg(value(a).decode('utf-8'))
-        elif opcode == 13:
-            self.service.store.db.execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
-                                          (value(a), value(b), value(c), value(d)))
-        elif opcode == 14:
-            payload = self._wire(a)
-            x = len(payload)
-        else:
-            raise RuntimeError('native artifact-page requested an unknown effect')
-        self.packet = struct.pack('<8Q', MAGIC, sequence, opcode, x, y, z, t, 0) + payload
-        return self.packet
+        if self.finished:
+            raise RuntimeError('native artifact-page continuation is terminal')
+        if not self._observation_pending:
+            raise RuntimeError('native artifact-page observation was already consumed')
+        # Consume permission before invoking the foreign effect. An exception
+        # closes the continuation; it cannot authorize a second SQL operation.
+        self._observation_pending = False
+        try:
+            opcode, sequence = struct.unpack_from('<2Q', self.workspace, 8)
+            a, b, c, d = struct.unpack_from('<4Q', self.workspace, 200)
+            reg, value = self.observer.register, self.observer.value
+            x = y = z = t = 0
+            payload = b''
+            if opcode == 1:
+                x = reg(value(a)[value(b)])
+            elif opcode == 2:
+                data, _ = self.service.store.get(value(a))
+                x = reg(data)
+            elif opcode == 3:
+                x = int(value(b) in value(a))
+            elif opcode == 4:
+                x = reg(self.service.store.db.execute('SELECT * FROM cursors WHERE id=?', (value(a),)).fetchone())
+            elif opcode == 5:
+                x = reg(value(a).get(value(b), c))
+            elif opcode == 6:
+                x = reg(int(value(a)))
+            elif opcode == 7:
+                x, y, z, t = self.observer.summary(a)
+            elif opcode in (8, 15):
+                method = self.observer.points if opcode == 8 else self.observer.limbs
+                words = method(a, b, c)
+                x = len(words)
+                payload = struct.pack('<' + 'I' * x, *words)
+            elif opcode == 9:
+                x = int(bool(value(a) != value(b)))
+            elif opcode == 10:
+                payload = value(a)[b:b + c]
+                x = len(payload)
+            elif opcode == 11:
+                raw = self._wire(a)
+                x, y = reg(raw), len(raw)
+            elif opcode == 12:
+                x = reg(value(a).decode('utf-8'))
+            elif opcode == 13:
+                self.service.store.db.execute('INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)',
+                                              (value(a), value(b), value(c), value(d)))
+            elif opcode == 14:
+                payload = self._wire(a)
+                x = len(payload)
+            else:
+                raise RuntimeError('native artifact-page requested an unknown effect')
+            self.packet = struct.pack('<8Q', MAGIC, sequence, opcode, x, y, z, t, 0) + payload
+            return self.packet
+
+        except BaseException:
+            self.finished = True
+            raise
 
     def run(self):
         try:
@@ -232,6 +246,7 @@ class PageSession:
             # Preserve the actual exception/handled-context chain. A failed
             # foreign effect closes this continuation without replay or ACK.
             self.finished = True
+            self._observation_pending = False
 
 
 class NativeArtifactPage:

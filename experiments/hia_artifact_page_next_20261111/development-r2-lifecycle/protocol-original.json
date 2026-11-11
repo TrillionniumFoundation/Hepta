@@ -1,0 +1,272 @@
+{
+  "schema": "hia.artifact-page-private-lifecycle-controls.v1",
+  "scope": "DEVELOPMENT_REAL_PAGE_AND_WIRE_IMAGES_PRIVATE_CONTINUATION_ONLY",
+  "whole_native_delivery_qualified": false,
+  "expect": "observe",
+  "policy_image_sha256": "f2aaee2be275fb3f8831ae994e4c03f0ec6a12c53892fe8840eb4a4fa8270d3d",
+  "wire_image_sha256": "249f133cd5429956c549917932b8b66ade8431bf47862a4b76e98fb4ea486e31",
+  "source_before": [
+    {
+      "path": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+      "bytes": 12300,
+      "sha256": "44a7f9bef28898bf3a2443235d6d8b41fe08bcf33e5fe312a44c27e90624eb1a"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_lifecycle.py",
+      "bytes": 12929,
+      "sha256": "d54b0999af3829d865e362d593ad6d0dfc06670e316005bd0a863a573324cab5"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/artifact_page.hiaasm",
+      "bytes": 122983,
+      "sha256": "4cedc0e1442d6f2cb479e194cb1d5c14898055651ccaaa0afb3b907a91dea0b6"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/development-r1/manifest.json",
+      "bytes": 357,
+      "sha256": "b6cc9bdfed7e2b6b16b33e8ff199aa67b568b6383f14909c9732c3af6215fb92"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/development-r1/artifact-page.image.bin",
+      "bytes": 164601,
+      "sha256": "f2aaee2be275fb3f8831ae994e4c03f0ec6a12c53892fe8840eb4a4fa8270d3d"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/wire-entry-development-r1/manifest.json",
+      "bytes": 349,
+      "sha256": "f35a0f582a8892299b98840a8d8e09cfd38059f7cc398092165e16c33ba457f5"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/examples/hia_bootstrap/json_wire.hiaasm",
+      "bytes": 225184,
+      "sha256": "f800c70356ef33fb986d510853b6594bcd28dde49365752ecf547251b4f881ab"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/hepta/hia_json_wire_native.py",
+      "bytes": 14262,
+      "sha256": "641c43bb8fc18361ff9ae9b5fc605bfdacf3f6aa656b9c1a1dd4a67ad392aad0"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/hepta/hia_agent_service.py",
+      "bytes": 100742,
+      "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330"
+    }
+  ],
+  "observations": [
+    {
+      "case": "normal_single_sql_effect",
+      "passed": true,
+      "insert_calls": 1,
+      "cursor_rows": [
+        [
+          "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a",
+          "a-lifecycle",
+          "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+          2
+        ]
+      ],
+      "finished": true,
+      "result": {
+        "artifact": {
+          "id": "a-lifecycle",
+          "sha256": "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+          "uri": "hia://lifecycle"
+        },
+        "encoding": "utf8",
+        "content": "ab",
+        "next_cursor": "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a"
+      }
+    },
+    {
+      "case": "malformed_ack_then_stale_sql_observe",
+      "passed": false,
+      "terminal_code": 199,
+      "finished": true,
+      "observe_after_terminal": {
+        "returned_packet_bytes": 64
+      },
+      "observe_again": {
+        "returned_packet_bytes": 64
+      },
+      "insert_calls": 2,
+      "cursor_rows": [
+        [
+          "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a",
+          "a-lifecycle",
+          "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+          2
+        ]
+      ]
+    },
+    {
+      "case": "duplicate_observe_before_ack",
+      "passed": false,
+      "repeated": {
+        "returned_packet_bytes": 64
+      },
+      "insert_calls": 2,
+      "cursor_rows": [
+        [
+          "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a",
+          "a-lifecycle",
+          "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+          2
+        ]
+      ]
+    },
+    {
+      "case": "successful_terminal_refuses_observe",
+      "passed": true,
+      "terminal_code": 2,
+      "finished": true,
+      "stale": {
+        "exception_type": "RuntimeError",
+        "message": "native artifact-page requested an unknown effect"
+      },
+      "insert_calls": 1,
+      "cursor_rows": [
+        [
+          "page-f71af21348052a51f1b51920a342d54a29d30876dca1d5b1f941312c42e3a65a",
+          "a-lifecycle",
+          "bef57ec7f53a6d40beb640a780a639c83bc29ac8a9816f1fc6c5c6dcd93c4721",
+          2
+        ]
+      ]
+    },
+    {
+      "case": "foreign_base_exception_closes_without_replay_or_traceback_change",
+      "passed": false,
+      "same_exception": true,
+      "finished": false,
+      "repeated": {
+        "exception_type": "ForeignStop",
+        "message": "page foreign effect sentinel"
+      },
+      "insert_calls": 2,
+      "traceback_preserved_after_refusal": false,
+      "original_traceback_tail_present": true,
+      "ambient_context_preserved": true,
+      "first_traceback": [
+        {
+          "function": "main",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 205
+        },
+        {
+          "function": "observe",
+          "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_lifecycle.py",
+          "line": 206
+        },
+        {
+          "function": "execute",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 64
+        },
+        {
+          "function": "main",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 194
+        },
+        {
+          "function": "foreign_origin",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 46
+        }
+      ],
+      "final_traceback": [
+        {
+          "function": "observe_call",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 140
+        },
+        {
+          "function": "observe",
+          "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_lifecycle.py",
+          "line": 206
+        },
+        {
+          "function": "execute",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 64
+        },
+        {
+          "function": "main",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 205
+        },
+        {
+          "function": "observe",
+          "file": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_lifecycle.py",
+          "line": 206
+        },
+        {
+          "function": "execute",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 64
+        },
+        {
+          "function": "main",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 194
+        },
+        {
+          "function": "foreign_origin",
+          "file": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+          "line": 46
+        }
+      ],
+      "cursor_rows": []
+    }
+  ],
+  "sqlite_scope": "independent in-memory databases; no disk durability claim",
+  "status": "DEVELOPMENT_PROTOCOL_BOUNDARY_FAILURES_OBSERVED",
+  "source_after": [
+    {
+      "path": "/tmp/hia-artifact-page-draft/protocol_boundary_controls.py",
+      "bytes": 12300,
+      "sha256": "44a7f9bef28898bf3a2443235d6d8b41fe08bcf33e5fe312a44c27e90624eb1a"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/hia_artifact_page_native_before_lifecycle.py",
+      "bytes": 12929,
+      "sha256": "d54b0999af3829d865e362d593ad6d0dfc06670e316005bd0a863a573324cab5"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/artifact_page.hiaasm",
+      "bytes": 122983,
+      "sha256": "4cedc0e1442d6f2cb479e194cb1d5c14898055651ccaaa0afb3b907a91dea0b6"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/development-r1/manifest.json",
+      "bytes": 357,
+      "sha256": "b6cc9bdfed7e2b6b16b33e8ff199aa67b568b6383f14909c9732c3af6215fb92"
+    },
+    {
+      "path": "/tmp/hia-artifact-page-draft/development-r1/artifact-page.image.bin",
+      "bytes": 164601,
+      "sha256": "f2aaee2be275fb3f8831ae994e4c03f0ec6a12c53892fe8840eb4a4fa8270d3d"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/wire-entry-development-r1/manifest.json",
+      "bytes": 349,
+      "sha256": "f35a0f582a8892299b98840a8d8e09cfd38059f7cc398092165e16c33ba457f5"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/examples/hia_bootstrap/json_wire.hiaasm",
+      "bytes": 225184,
+      "sha256": "f800c70356ef33fb986d510853b6594bcd28dde49365752ecf547251b4f881ab"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/hepta/hia_json_wire_native.py",
+      "bytes": 14262,
+      "sha256": "641c43bb8fc18361ff9ae9b5fc605bfdacf3f6aa656b9c1a1dd4a67ad392aad0"
+    },
+    {
+      "path": "/workspace/scratch/e26ed3e2edcf/hia-native-machine-plan/hepta/hia_agent_service.py",
+      "bytes": 100742,
+      "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330"
+    }
+  ],
+  "source_preserved": true,
+  "elapsed_ns": 13312895
+}
