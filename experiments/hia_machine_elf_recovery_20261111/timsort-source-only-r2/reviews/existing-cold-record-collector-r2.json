@@ -1,0 +1,64 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "date": "2026-11-11",
+  "reviewer": "native_install_owner",
+  "status": "CLEAR_FOR_EXAMINED_READ_ONLY_COLLECTION_WIRING",
+  "source_commit": "1455525da79b4e161c92464d8f22277ad68f4cef",
+  "scope": "Exact existing-record collector, launch and request; no Python parse or execution",
+  "files": [
+    {
+      "name": "collector",
+      "path": "existing-record-read-control-r2/read_existing_cold_records.py",
+      "size": 13053,
+      "sha256": "00fdf9a3d02e3d64ce08102c7348e147e6806c5eded36fdb1c76f1a501aae06a",
+      "git_blob_sha1": "0a5036ac7831915b546cfedd129c7621ce06ea54"
+    },
+    {
+      "name": "launch",
+      "path": "existing-record-read-control-r2/LAUNCH.json",
+      "size": 14191,
+      "sha256": "6910012c35f518b3e68da59c59c04f2850ed183bccd0da8dec84459941eed319",
+      "git_blob_sha1": "114dd0b0bdd994913e555d0d109584db02d96456"
+    },
+    {
+      "name": "request",
+      "path": "existing-record-read-control-r2/REQUEST.json",
+      "size": 1965,
+      "sha256": "4fcbffa7aaefa1762cea277f1f99b3dca23e2ba56808cb281e87d679b0aaa1b3",
+      "git_blob_sha1": "21253f560779c70c4c83333e06712bc668e92b15"
+    }
+  ],
+  "launch_checks": {
+    "stdin_exact": true,
+    "collector_sha256": "3d5f1603837c3be8534f73f15c99baeebb85dfac52128af6b468574a0833e239",
+    "command_exact": true,
+    "key_exact": true,
+    "cwd_exact": true,
+    "timeout_exact": true
+  },
+  "observations": [
+    "Only standard-library imports, read-only file opens and stdout are present; no project module, child process, network request or filesystem write is invoked.",
+    "Exact original cold SHA is admitted before the 17 reference records, five existing ancillary reports and complete 75 prefix receipts. The original 682-source manifest digest and each embedded reference payload digest are checked.",
+    "Every collected record is read a second time and must preserve SHA, size and observed non-atime file metadata. Raw-capture ceilings are explicit and omitted raw bytes are marked; current observations are not relabeled previous snapshots.",
+    "The original cold FAIL and missing elapsed fields remain unchanged. Collector CPU30/address512MiB/h60 are separate from the unchanged product180 gate."
+  ],
+  "limitations": [
+    "No collector operation was parsed, dispatched or run by this reviewer.",
+    "The two descriptor opens now use O_NONBLOCK before fstat; special-file refusal cannot wait for FIFO data during open.",
+    "Interpreter content is pinned separately; no whole runtime-tree immutability is claimed."
+  ],
+  "revision": "r2-exact-two-nonblocking-open-flags",
+  "previous_review_source_commit": "3eba430bcf7e884588cb0974b08aa03df8a112a2",
+  "delta": {
+    "only_two_open_flags": true,
+    "stdin_exact": true,
+    "command": true,
+    "key": true,
+    "cwd": true,
+    "timeout": true
+  },
+  "initial_text_check": {
+    "equal": false,
+    "explanation": "The first expected-string construction placed O_NONBLOCK in a different flags order. The final exact check removes exactly two added ' | os.O_NONBLOCK' tokens and reproduces the entire original source byte-for-byte."
+  }
+}
