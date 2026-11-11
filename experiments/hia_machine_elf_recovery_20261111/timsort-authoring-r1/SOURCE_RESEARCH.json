@@ -1,0 +1,48 @@
+{
+  "schema": "hepta.hia.machine-elf-timsort-source-research.v1",
+  "status": "READ_ONLY_PRIMARY_SOURCE_RESEARCH_NOT_EXECUTED",
+  "sources": [
+    {
+      "version": "3.11.14",
+      "url": "https://github.com/python/cpython/blob/v3.11.14/Objects/listobject.c",
+      "path": "reference/listobject-v3.11.14.c",
+      "size": 104095,
+      "sha256": "0caba42f3ffbd1fb452e0c548fb466ba6a0b5c35ec672e8e8208656671960333",
+      "git_blob_sha1": "395a4c3b88b82b14f5ef7ebd1698752934c08d0b"
+    },
+    {
+      "version": "3.12.14",
+      "url": "https://github.com/python/cpython/blob/v3.12.14/Objects/listobject.c",
+      "path": "reference/listobject-v3.12.14.c",
+      "size": 105241,
+      "sha256": "5f33dd1d97bfcc33e60495011fad7d9d02587a966999f28c159971f31aa91531",
+      "git_blob_sha1": "d017f34b94f0dfd2c28c283db58f64d763170bf4"
+    },
+    {
+      "version": "3.13.10",
+      "url": "https://github.com/python/cpython/blob/v3.13.10/Objects/listobject.c",
+      "path": "reference/listobject-v3.13.10.c",
+      "size": 126949,
+      "sha256": "fe0a926ac4f1ea51b818b7401696ac23df38569b75216e69084cc8991baaa6c2",
+      "git_blob_sha1": "8af6964189ec3edec37f9469b81edf0157c4ef0a"
+    },
+    {
+      "version": "3.14.4",
+      "url": "https://github.com/python/cpython/blob/v3.14.4/Objects/listobject.c",
+      "path": "reference/listobject-v3.14.4.c",
+      "size": 128723,
+      "sha256": "ae99faca56ecd038b314e847255fc548b6b7e6dd8060d2f5aaed94792d50298c",
+      "git_blob_sha1": "6407d0ac5833fe01433b5b9e3f2199d2df0e6bf9"
+    }
+  ],
+  "license": {
+    "url": "https://github.com/python/cpython/blob/v3.14.4/LICENSE",
+    "sha256": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231"
+  },
+  "observations": {
+    "run_detection": "3.11/3.12 and 3.13/3.14 have distinct descending/equal-run observation schedules",
+    "merge_control": "power sort, binary insertion, galloping and merge comparisons must be implemented by HIA",
+    "foreign_comparison": "optimized comparator selection and NotImplemented/reflected/equality observation order remain open; no Python sort fallback is permitted"
+  },
+  "target_qualification": "No interpreter target, native image or complete comparison trace has been qualified for the new algorithm."
+}
