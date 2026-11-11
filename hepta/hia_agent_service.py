@@ -81,17 +81,29 @@ def _value_observation(observation):
 
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
+        from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
+        candidate_budget_image = selected_candidate_budget()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root)
+        try:
+            self._candidate_budget = (NativeCandidateBudgetStore(self.store, candidate_budget_image)
+                                      if candidate_budget_image is not None else None)
+        except BaseException:
+            self.store.close()
+            raise
         self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
         if any(not root.is_dir() for root in self.artifact_roots):
             reject("E_HIA_PROFILE", "configured artifact roots must be directories")
         self._profiles()
 
     def close(self):
-        self.store.close()
+        try:
+            if self._candidate_budget is not None:
+                self._candidate_budget.close()
+        finally:
+            self.store.close()
 
     def _profiles(self):
         from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
@@ -346,10 +358,18 @@ class HIAAgentService:
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
             reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
         if candidate:
-            changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
-                (context["ref"]["id"], limits["max_candidates"])).rowcount
-            if changed != 1:
-                reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
+            self._consume_attempt(context)
+
+    def _consume_attempt(self, context):
+        if self._candidate_budget is not None:
+            return self._candidate_budget.consume(context['ref']['id'], context['budget']['max_candidates'])
+        return self._reference_consume_attempt(context)
+
+    def _reference_consume_attempt(self, context):
+        changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
+            (context["ref"]["id"], context['budget']['max_candidates'])).rowcount
+        if changed != 1:
+            reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()

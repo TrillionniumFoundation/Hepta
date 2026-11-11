@@ -192,7 +192,7 @@ class BudgetState:
 
 class NativeExecutionBudgetStore:
     """Fixed SQLite effects on a dedicated connection to the original WAL."""
-    def __init__(self, store, image):
+    def __init__(self, store, image, *, sidecars=None):
         self.store, self.image = store, image
         self.official = store.db
         self.path = Path(store.database)
@@ -203,7 +203,7 @@ class NativeExecutionBudgetStore:
         self._db = None
         self.closed = False
         self.poisoned = None
-        self.sidecars = dict(store.database_sidecars)
+        self.sidecars = dict(store.database_sidecars if sidecars is None else sidecars)
         self.check()
         main = [row for row in self.official.execute('PRAGMA database_list') if row['name'] == 'main']
         if len(main) != 1 or main[0]['file'] != str(self.path):

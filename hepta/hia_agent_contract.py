@@ -27,6 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/candidate_budget.hepta',
     'examples/hia_bootstrap/nominal_json.hepta',
     'examples/hia_bootstrap/agent_journal.hepta',
     'examples/hia_bootstrap/execution_budget.hepta',
