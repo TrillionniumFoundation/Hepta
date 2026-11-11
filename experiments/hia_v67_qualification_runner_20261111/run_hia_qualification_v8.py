@@ -769,7 +769,8 @@ mandatory_v8_gates = {
     **mandatory_gates,
     'json_wire_cache_complete_module': suite_outcomes.get('json-wire-cache', {}).get('passed') is True,
     'cli_complete_module_and_retained_cold_bundle':
-        suite_outcomes.get('cli', {}).get('passed') is True and cli_fixture_outcome['passed'] is True,
+        suite_outcomes.get('cli', {}).get('passed') is True
+        and suite_outcomes.get('cli', {}).get('tests_run') == 17 and cli_fixture_outcome['passed'] is True,
     'machine_encoding_complete_component_and_original_callers': machine_encoding_caller_outcome['passed'] is True,
     'original_selected_caller_denominators_preserved':
         caller_outcome.get('tests_run') == 94

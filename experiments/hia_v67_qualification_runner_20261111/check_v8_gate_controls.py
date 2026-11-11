@@ -9,7 +9,10 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 from pathlib import Path
+import shutil
+import sys
 from types import SimpleNamespace
+import zipfile
 
 import native_owner_gates as gates
 
@@ -110,7 +113,64 @@ def fixture(root):
         'loaded_test_ids': loaded, 'executed_test_ids': loaded[:], 'tests_run': 6,
         'selected_child_argv': [['verify', 'fixture']], **dict.fromkeys(
             ('failures', 'errors', 'skipped', 'expected_failures', 'unexpected_successes'), [])})
+    installed_fixture(cli, sources, bundle)
     return sources
+
+
+def installed_fixture(cli, sources, bundle):
+    case = cli / 'installed-control'; case.mkdir()
+    shutil.copytree(cli / 'qualified', case / 'bundle')
+    installed = case / 'installed'; installed.mkdir()
+    paths = {name: installed / 'hepta/_data' / source for name, source in gates.CLI_SOURCES.items()}
+    resources = {'hepta/_data/' + source: source.encode() for source in gates.CLI_SOURCES.values()}
+    python = {name: name.encode() for name in sources if name.startswith('hepta/') and name.endswith('.py')}
+    for name, raw in {**resources, **python}.items():
+        path = installed / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(raw)
+    wheels = case / 'wheels'; wheels.mkdir(); wheel = wheels / 'controller-fixture.whl'
+    with zipfile.ZipFile(wheel, 'x') as archive:
+        for name, raw in {**resources, **python}.items():
+            archive.writestr(name, raw)
+    (case / 'installed-control.py').write_text('# Synthetic receipt controller; no product code executed.\n')
+    (case / 'input.hia').write_bytes(b'controller fixture')
+    observed = {
+        'schema': 'hepta.hia.cli-installed-execution.v1', 'status': 'PASS_INSTALLED_NATIVE_CLI_CONTROL',
+        'python': sys.version, 'installed_source_paths': {name: str(path) for name, path in paths.items()},
+        'source_sha256': {name: sources[source] for name, source in gates.CLI_SOURCES.items()},
+        'bundle_sha256': gates.record(case / 'bundle/manifest.json')['sha256'],
+        'native_returns': {'control': [0], 'format': [0]}, 'console_entry_point': 'hepta.cli:hia_main',
+        'isolated_without_site': True, 'empty_PATH': True,
+        'forbidden_entries': {'tools': [], 'retained_cli': [], 'retained_parser': []},
+        'calls': [{'argv': [name], 'code': code} for name, code in zip(
+            ['--version', '--help', 'verify', 'capabilities', 'verify', 'verify', '--version', '--version'],
+            [0, 0, 0, 0, 2, 2, 0, 0])],
+        'refusals': [{'case': name, 'type': 'ValueError'} for name in sorted(gates.CLI_INSTALLED_REFUSALS)],
+        'sources_and_bundle_restored': True, 'whole_native_delivery_qualified': False,
+    }
+    write(case / 'installed-execution.json', observed)
+    write(case / 'installed-execution.stdout', observed)
+    records = []
+    for label, arguments in [
+        ('wheel-build', [sys.executable, '-B', '-m', 'pip', 'wheel']),
+        ('wheel-install', [sys.executable, '-B', '-m', 'pip', 'install']),
+        ('installed-execution', [sys.executable, '-I', '-S', '-B', str(case / 'installed-control.py'),
+                                 str(installed), str(case / 'bundle/manifest.json'), str(case / 'input.hia')]),
+    ]:
+        if label != 'installed-execution':
+            (case / (label + '.stdout')).write_bytes(b'synthetic controller fixture; no process executed\n')
+        (case / (label + '.stderr')).write_bytes(b'')
+        records.append({'label': label, 'argv': arguments, 'returncode': 0,
+            'stdout_sha256': gates.record(case / (label + '.stdout'))['sha256'],
+            'stderr_sha256': gates.record(case / (label + '.stderr'))['sha256']})
+    write(case / 'report.json', {
+        'schema': 'hepta.hia.cli-installed-control.v1', 'status': 'PASS_INSTALLED_NATIVE_CLI_CONTROL',
+        'scope': 'MATCHING_SOURCE_COLD_BUILD', 'whole_native_delivery_qualified': False,
+        'source_sha256_before': observed['source_sha256'], 'source_sha256_after': observed['source_sha256'],
+        'original_sources_preserved': True, 'packaging_uses_declared_resources_only': True,
+        'original_manifest': str((cli / 'qualified/manifest.json').resolve()),
+        'manifest': str((case / 'bundle/manifest.json').resolve()),
+        'processes': records, 'installed_execution': observed,
+        'wheel': {'path': str(wheel), 'bytes': wheel.stat().st_size, 'sha256': gates.record(wheel)['sha256']},
+    })
 
 
 def mutate(kind, directory, case):
@@ -177,8 +237,40 @@ def mutate(kind, directory, case):
             'original-count': ('original-agent-entry/report.json', ['tests_run'], 5),
             'missing-selection': ('original-agent-entry/report.json', ['selected_child_argv'], []),
             'original-failed': ('original-agent-entry/report.json', ['status'], 'FAIL'),
+            'installed-development': ('installed-control/report.json', ['scope'], 'EXPLICIT_DEVELOPMENT_ONLY'),
+            'installed-source-after': ('installed-control/report.json', ['source_sha256_after'], {}),
+            'installed-missing-wheel': ('installed-control/report.json', ['wheel'], {}),
+            'installed-foreign-bundle': ('installed-control/report.json', ['manifest'], '/unrelated/bundle.json'),
+            'installed-process-failed': ('installed-control/report.json', ['processes', 2, 'returncode'], 1),
+            'installed-process-not-isolated': ('installed-control/report.json', ['processes', 2, 'argv'], ['python', 'script']),
         }
-        if case.startswith('anomaly-'):
+        if case == 'installed-missing-report':
+            (directory / kind / 'installed-control/report.json').unlink()
+        elif case == 'installed-drifted-wheel':
+            (directory / kind / 'installed-control/wheels/controller-fixture.whl').write_bytes(b'changed')
+        elif case == 'installed-drifted-python':
+            (directory / kind / 'installed-control/installed/hepta/cli.py').write_bytes(b'changed')
+        elif case == 'installed-drifted-resource':
+            (directory / kind / 'installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_control.hiaasm').write_bytes(b'changed')
+        elif case == 'installed-drifted-log':
+            (directory / kind / 'installed-control/wheel-install.stdout').write_bytes(b'changed')
+        elif case.startswith('installed-observation-'):
+            name = case.removeprefix('installed-observation-')
+            path = directory / kind / 'installed-control'
+            value = gates.json_file(path / 'report.json')
+            observed = value['installed_execution']
+            if name == 'missing-native-return': observed['native_returns']['format'] = []
+            elif name == 'old-parser-entered': observed['forbidden_entries']['retained_parser'] = [True]
+            elif name == 'missing-refusal': observed['refusals'].pop()
+            elif name == 'missing-call': observed['calls'].pop()
+            elif name == 'not-isolated': observed['isolated_without_site'] = False
+            elif name == 'wrong-bundle': observed['bundle_sha256'] = '7' * 64
+            else: raise AssertionError(name)
+            write(path / 'installed-execution.json', observed)
+            write(path / 'installed-execution.stdout', observed)
+            value['processes'][2]['stdout_sha256'] = gates.record(path / 'installed-execution.stdout')['sha256']
+            write(path / 'report.json', value)
+        elif case.startswith('anomaly-'):
             edit('original-agent-entry/report.json', [case.removeprefix('anomaly-')], ['controller anomaly'])
         else:
             name, keys, value = changes[case]; edit(name, keys, value)
@@ -218,7 +310,8 @@ def static_and_conjunction_controls(directory):
              'plan-denominator', 'wire-denominator', 'full-retained-regression', 'prerequisite', 'source', 'harness']
     rows = []
     for case in cases:
-        outcomes = {name: {'passed': name != case} for name in (*new_groups, 'full-retained-regression')}
+        outcomes = {name: {'passed': name != case, 'tests_run': 17 if name == 'cli' else 1}
+                    for name in (*new_groups, 'full-retained-regression')}
         environment = {'prerequisite_admission': {'status': 'CURRENT_SOURCE_PREREQUISITES_ADMITTED_NOT_TEST_PASS'},
             'prerequisites_preserved': case != 'prerequisite', 'suite_outcomes': outcomes,
             'caller_outcome': {'passed': True, 'tests_run': 93 if case == 'journal-denominator' else 94},
@@ -248,7 +341,13 @@ def main():
             + ['anomaly-' + name for name in ('failures', 'errors', 'skipped', 'expectedFailures', 'unexpectedSuccesses')],
         'cli': common + ['development', 'observed-development', 'owner-source', 'build-cold', 'expanded-profile',
             'whole-claim', 'missing-child', 'bundle-path', 'missing-actions', 'missing-cases', 'different-case',
-            'original-count', 'missing-selection', 'original-failed']
+            'original-count', 'missing-selection', 'original-failed',
+            'installed-development', 'installed-source-after', 'installed-missing-wheel', 'installed-foreign-bundle',
+            'installed-process-failed', 'installed-process-not-isolated', 'installed-missing-report',
+            'installed-drifted-wheel', 'installed-drifted-python', 'installed-drifted-resource', 'installed-drifted-log',
+            'installed-observation-missing-native-return', 'installed-observation-old-parser-entered',
+            'installed-observation-missing-refusal', 'installed-observation-missing-call',
+            'installed-observation-not-isolated', 'installed-observation-wrong-bundle']
             + ['anomaly-' + name for name in ('failures', 'errors', 'skipped', 'expected_failures', 'unexpected_successes')],
     }
     rows = []
