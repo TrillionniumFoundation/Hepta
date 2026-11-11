@@ -1,0 +1,78 @@
+{
+  "findings": [
+    {
+      "detail": "json_event validates exact event sequence, payload extent and cumulative byte count before storing state. Every nonempty event, regardless of action, takes 32200 through hash update then exact append ACK before length commit and dispatch. Zero payload bypasses both. A failed hash or IO cannot reach completion.",
+      "topic": "one drain per event"
+    },
+    {
+      "detail": "JSON GROW and OPAQUE paths stay in 32000/32400 continuations, retaining the same actual producer output; Core GROW and OPAQUE use Core continuation only. The next producer is invoked only after both consumers have consumed the same sequence and JSON/Core nonfinal actions match.",
+      "topic": "producer suspension"
+    },
+    {
+      "detail": "Function/helper object rows are committed only after a completed mode-1 JSON+Core pass and exact native outer handle. The row holds spool offset/length/hash and Core summary. Mode-2 registration consults only these local committed rows, not host-supplied descriptor callbacks. Opaque requests bind handle/query/chunk/remaining extent and read the same sealed spool bytes.",
+      "topic": "opaque issuance"
+    },
+    {
+      "detail": "ObjectJSON and Core receive the same producer buffer and exact L_PRODUCER_BYTES; no intervening render call occurs between consumers. Source packet versus indexed source remains separate explicitly selected slots; growth/opaque reply buffers do not overwrite the producer.",
+      "topic": "two consumers"
+    },
+    {
+      "detail": "All function/helper records are complete before outer rendering; original spool is sealed before the final mode-2 stream. Final JSON is fully hashed and sealed, then the same Core state receives ADMIT. Existing snapshot depth/node errors keep priority over final byte admission; root schema/key checks precede ADMIT. The retained finite input packet bound is not applied to aggregate generated JSON.",
+      "topic": "late gates"
+    },
+    {
+      "detail": "Header echoes are correlation, not external authentication. Safety depends on fixed executor applying actual issued calls, truthful zero/status ACKs, exact copy/append extents and readonly producer/source ownership. This review does not substitute for executable executor fault tests or integrated public corpus.",
+      "topic": "lease limitation"
+    }
+  ],
+  "native_entries_executed_by_review": 0,
+  "remaining_validation": [
+    "Actual all-event drain/append ledger including GROW, OPAQUE and final partial payload",
+    "Injected mechanical call/append failure and immutable input custody",
+    "Complete public-corpus/Core result and error-order equivalence"
+  ],
+  "result": "NO_CONFIRMED_BLOCKING_ISSUE_IN_REVIEWED_SCOPE",
+  "reviewer": "audit_runtime",
+  "schema": "hia.independent-stream-controller-static-review.v1",
+  "scope": "Read-only frozen stream-r1 controller/common/main/helper plus actual frozen ObjectJSON r2 and Core visitor protocol; no native calls, no mechanical executor or complete driver qualification",
+  "source_files_rechecked": [
+    {
+      "bytes": 4202,
+      "mode": 420,
+      "path": "tools/generate_hia_composite_lowering_driver.py",
+      "sha256": "b465896e683bd465d3bde21554fb55ba85ec9ab0a1ced4677861dd4db307509d"
+    },
+    {
+      "bytes": 17485,
+      "mode": 420,
+      "path": "tools/hia_composite_lowering_driver_common.py",
+      "sha256": "3127f827538582b58929041d74c744d6932780fdf99c9d638c9c0ca2c650b63e"
+    },
+    {
+      "bytes": 19407,
+      "mode": 420,
+      "path": "tools/hia_composite_lowering_driver_main.py",
+      "sha256": "120675ee8bdb22e756277574146fb9319aa2d5009727fc22a49355afa4357824"
+    },
+    {
+      "bytes": 26880,
+      "mode": 420,
+      "path": "tools/hia_composite_lowering_driver_stream.py",
+      "sha256": "3264e2091c5cc10567f102be54a5bde7d17860e7dc4185257934dc407d5bb2d8"
+    },
+    {
+      "bytes": 15204,
+      "mode": 420,
+      "path": "tools/hia_composite_lowering_driver_helper.py",
+      "sha256": "cde689d9124829553f4fa38be768c1f6a487522d9107c4168131128516cc3cd2"
+    },
+    {
+      "bytes": 172984,
+      "mode": 420,
+      "path": "examples/hia_bootstrap/composite_lowering_driver_stream.hiaasm",
+      "sha256": "93479dda9ce35e918dcfa46784f2fa90521205dbe54a1f41599212c82cc3722e"
+    }
+  ],
+  "source_manifest_sha256": "f0ced8e051012a09a10826341a1f59a5ffd14ffb15d90aa3fa1fc0b577de9359",
+  "source_unchanged_after_review": true
+}
