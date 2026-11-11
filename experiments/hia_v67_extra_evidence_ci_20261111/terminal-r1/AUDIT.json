@@ -1,0 +1,130 @@
+{
+  "schema": "hia.extra-evidence-push-ci-terminal-observations.v1",
+  "status": "BOTH_TERMINAL_PRESERVED_DIFFERENT_HEADS",
+  "scope": "These two push runs were inadvertently triggered by evidence commits without skip markers. They are not the exact608 original remote qualification, whose cold timeout HOLD remains unchanged. No rerun or new attempt was requested. Future evidence commits include [skip ci]. Raw job logs are preserved fully. Artifact metadata is observed from GitHub; original ZIP bytes were not downloaded or independently replayed in this audit.",
+  "runs": [
+    {
+      "id": 43083500067,
+      "event": "push",
+      "run_attempt": 1,
+      "head": "f53540a5798d1e15d510678706b462f3e202b186",
+      "tree": "1c6eddc08a0b5fb4f417331d4cf9a1dc172f9cfd",
+      "conclusion": "failure",
+      "source_job": 130741828589,
+      "native_job": 130741828826,
+      "created_at": "2026-11-11T19:02:55Z",
+      "updated_at": "2026-11-11T19:11:25Z",
+      "source_conclusion": "success",
+      "native_conclusion": "failure",
+      "cold_step": "failure",
+      "subsequent_native_steps": "skipped",
+      "artifact": {
+        "id": 13884334777,
+        "bytes": 53299072,
+        "sha256": "ce74a9125af112854cc14f5b543487865ede337f214dbc72f10b6526db8000f6"
+      },
+      "api_blobs": {
+        "run": "b7f2d3fddff6fa03f4558ade1feba63bd8818143",
+        "jobs": "ef5bc89970e0ead62bb01e4f49dfddd5f1f39895",
+        "artifacts": "327a3d777f7f195d1a876fae6a39b0ba15e4269c"
+      }
+    },
+    {
+      "id": 43084835552,
+      "event": "push",
+      "run_attempt": 1,
+      "head": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "tree": "cd4efae11dd0e80e3ea317b5a5546c5725f25291",
+      "conclusion": "success",
+      "source_job": 130746391687,
+      "native_job": 130746392193,
+      "created_at": "2026-11-11T19:11:18Z",
+      "updated_at": "2026-11-11T19:50:15Z",
+      "source_conclusion": "success",
+      "native_conclusion": "success",
+      "cold_step": "success",
+      "artifact": {
+        "id": 13887578695,
+        "bytes": 138498309,
+        "sha256": "1be86cbab177f5c455fedbf1c12bace53beafbcd7985378b18ac33495a8dbc44"
+      },
+      "api_blobs": {
+        "run": "d00553ccbd44cb39faa1aed2867c417c5882aaa8",
+        "jobs": "e027b7e162978ba04f1ed0002bfda74504911fc1",
+        "artifacts": "46a40a9b4076d96397a61bf3d85856f1e23698de"
+      }
+    }
+  ],
+  "logs": [
+    {
+      "label": "f535_source",
+      "raw_blob": "a9e4ab32045e208ef499cbeffbe5a742bc7c414e",
+      "bytes": 113515,
+      "sha256": "ae90baf319978a203d320e395db49077be1628aa03f472916a0b454894d89ab4",
+      "evidence_excerpts": [
+        "2026-11-11T19:03:24.2154409Z [command]/usr/bin/git log -1 --format=%H",
+        "2026-11-11T19:03:24.2187545Z f53540a5798d1e15d510678706b462f3e202b186",
+        "2026-11-11T19:03:24.2440263Z ##[group]Run actions/setup-python@v5",
+        "2026-11-11T19:05:31.2093531Z test_independent_Core_interfaces_values_and_complete_private_checks (tests.test_hia_selfhost_exports.ExportSourceTests.test_independent_Core_interfaces_values_and_complete_private_checks) ... ok",
+        "2026-11-11T19:11:20.9583576Z Ran 354 tests in 419.252s"
+      ]
+    },
+    {
+      "label": "f535_native",
+      "raw_blob": "dd63859ac0dddb8a3e04d3a4213f6d866d5bc272",
+      "bytes": 39590,
+      "sha256": "3c3f4aade021f844da2bc921fc2020d2b4dc5996ff945e01505970bb775ca0e6",
+      "evidence_excerpts": [
+        "2026-11-11T19:03:26.0715833Z [command]/usr/bin/git log -1 --format=%H",
+        "2026-11-11T19:03:26.0749432Z f53540a5798d1e15d510678706b462f3e202b186",
+        "2026-11-11T19:03:26.1048248Z ##[group]Run actions/setup-python@v5"
+      ]
+    },
+    {
+      "label": "6156_source",
+      "raw_blob": "c77aad179b44fde7f5d6aa70c61c3e5e5c030651",
+      "bytes": 115141,
+      "sha256": "763410b1121c1d0216525909b966cdc707b41e348ca1921e3bce3c7c7ae7d73b",
+      "evidence_excerpts": [
+        "2026-11-11T19:11:44.9186736Z [command]/usr/bin/git log -1 --format=%H",
+        "2026-11-11T19:11:44.9233079Z 6156635db138a571d57feaedd4bcc3e19bf89eea",
+        "2026-11-11T19:11:44.9524847Z ##[group]Run actions/setup-python@v5",
+        "2026-11-11T19:14:30.1866958Z test_independent_Core_interfaces_values_and_complete_private_checks (tests.test_hia_selfhost_exports.ExportSourceTests.test_independent_Core_interfaces_values_and_complete_private_checks) ... ok",
+        "2026-11-11T19:21:49.1812861Z Ran 354 tests in 525.157s"
+      ]
+    },
+    {
+      "label": "6156_native",
+      "raw_blob": "1a8f45943a0d214b7abbe82dfbcbe9b1f6da6e73",
+      "bytes": 311040,
+      "sha256": "89c20d8b9639c5170579c937e656e5a5c394d4946db9919916c9072cc5484a4e",
+      "evidence_excerpts": [
+        "2026-11-11T19:11:46.0076939Z [command]/usr/bin/git log -1 --format=%H",
+        "2026-11-11T19:11:46.0109474Z 6156635db138a571d57feaedd4bcc3e19bf89eea",
+        "2026-11-11T19:11:46.0344448Z ##[group]Run actions/setup-python@v5",
+        "2026-11-11T19:15:48.4222452Z Ran 10 tests in 0.003s",
+        "2026-11-11T19:20:19.7002492Z Ran 245 tests in 270.417s",
+        "2026-11-11T19:20:29.7457663Z Ran 17 tests in 9.901s",
+        "2026-11-11T19:21:20.4732490Z Ran 32 tests in 50.520s",
+        "2026-11-11T19:21:23.4236524Z Ran 10 tests in 2.831s",
+        "2026-11-11T19:22:02.6690888Z Ran 21 tests in 39.047s",
+        "2026-11-11T19:22:14.4456808Z Ran 10 tests in 11.660s",
+        "2026-11-11T19:22:26.8452829Z Ran 12 tests in 12.286s",
+        "2026-11-11T19:22:30.3159565Z Ran 10 tests in 3.357s",
+        "2026-11-11T19:24:27.4991910Z Ran 39 tests in 117.011s",
+        "2026-11-11T19:24:58.4273553Z Ran 11 tests in 30.818s",
+        "2026-11-11T19:25:24.1273230Z Ran 7 tests in 25.470s",
+        "2026-11-11T19:26:43.9690620Z Ran 27 tests in 79.600s",
+        "2026-11-11T19:27:27.0136612Z Ran 25 tests in 42.754s",
+        "2026-11-11T19:36:47.6285696Z Ran 122 tests in 560.270s",
+        "2026-11-11T19:37:16.3255167Z Ran 18 tests in 28.450s",
+        "2026-11-11T19:38:51.5267833Z Ran 21 tests in 95.025s",
+        "2026-11-11T19:44:09.1810049Z Ran 94 tests in 316.146s",
+        "2026-11-11T19:44:16.1089455Z Ran 19 tests in 6.677s",
+        "2026-11-11T19:45:37.2217802Z Ran 93 tests in 80.874s",
+        "2026-11-11T19:45:55.2144526Z Ran 44 tests in 17.003s",
+        "2026-11-11T19:49:56.9541833Z Ran 89 tests in 220.815s"
+      ]
+    }
+  ]
+}
