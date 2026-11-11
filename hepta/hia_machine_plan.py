@@ -6,6 +6,12 @@ preservation claim is conditional on the canonical lowering and encoder.
 """
 from __future__ import annotations
 
+from contextvars import ContextVar
+import os
+
+_NATIVE_OWNER = ContextVar('hia_machine_plan_native_owner', default=None)
+_NATIVE_SELECTOR = 'HEPTA_HIA_MACHINE_PLAN_MANIFEST'
+
 LAYOUT_V1 = "hepta.hia.agent.block-layout.v1"
 MACHINE_V2 = "hepta.hia.agent.machine-plan.v2"
 MACHINE_V3 = "hepta.hia.agent.machine-plan.v3"
@@ -58,7 +64,7 @@ def _terminal_arguments(term):
     return []
 
 
-def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+def _reference_register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
     """Independently check caller-supplied scalar register lifetimes.
 
     Verified Core blocks are closed: every incoming value is an explicit block
@@ -130,7 +136,7 @@ def register_assignment_witness(checked, assignments, *, allow_leaf_registers=Fa
             "functions": witnesses}
 
 
-def validate_plan(checked, plan):
+def _reference_validate_plan(checked, plan):
     """Freeze a plan against an already reverified immutable Core document."""
     _require(type(plan) is dict, "plan must be an object")
     # Capture exact built-in JSON data before inspecting any plan field. The
@@ -183,6 +189,48 @@ def validate_plan(checked, plan):
             else:
                 register_assignment_witness(checked, plan["value_registers"])
     return plan  # This exact detached snapshot was checked and is emitted.
+
+
+def _selected_owner():
+    owner = _NATIVE_OWNER.get()
+    if owner is not None:
+        return owner
+    path = os.environ.get(_NATIVE_SELECTOR)
+    if not path:
+        return None
+    from .hia_machine_plan_native import installed_machine_plan
+    return installed_machine_plan(path)
+
+
+def register_assignment_witness(checked, assignments, *, allow_leaf_registers=False):
+    """Check closed-block scalar lifetimes with the explicitly selected owner."""
+    owner = _selected_owner()
+    if owner is None:
+        return _reference_register_assignment_witness(
+            checked, assignments, allow_leaf_registers=allow_leaf_registers)
+    return owner.witness(checked, assignments, allow_leaf_registers=allow_leaf_registers)
+
+
+def validate_plan(checked, plan):
+    """Capture the plan and one native owner before the public witness hook."""
+    owner = _selected_owner()
+    if owner is None:
+        return _reference_validate_plan(checked, plan)
+    token = _NATIVE_OWNER.set(owner)
+    try:
+        return owner.validate(checked, plan, register_assignment_witness)
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+def native_implementation_identity():
+    """Bind selected code and source in the emitting backend's custody hash."""
+    owner = _selected_owner()
+    if owner is None:
+        return b''
+    from hashlib import sha256
+    from .hia_machine_plan_native import SOURCE
+    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' + owner.image_sha256).encode('ascii')
 
 
 def code_options(plan):
