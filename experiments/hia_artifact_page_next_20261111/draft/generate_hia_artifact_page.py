@@ -329,7 +329,7 @@ def make_content(o:mutbuf, w:mutbuf) -> u64:
         last = 0
         need = 0
         invalid = False
-        while at < size:
+        while at < size and invalid == False:
             value = byte(w, PAGE_BASE + at)
             if need == 0:
                 if value < 128:
@@ -339,11 +339,9 @@ def make_content(o:mutbuf, w:mutbuf) -> u64:
                     need = choose(value < 224, 1, choose(value < 240, 2, 3))
                 else:
                     invalid = True
-                    break
             else:
                 if value < 128 or value > 191:
                     invalid = True
-                    break
                 need = need - 1
                 if need == 0:
                     last = at + 1
@@ -395,7 +393,8 @@ def next_offset(w:mutbuf) -> u64:
         value = offset - count
     put(w, NEXT_MAG, value)
     put(w, NEXT_SIGN, sign)
-    put(w, HAS_NEXT, choose(sign != 0 or value < get(w, DATA_SIZE), 1, 0))
+    more = sign != 0 or value < get(w, DATA_SIZE)
+    put(w, HAS_NEXT, choose(more, 1, 0))
     return 0
 
 def seed(w:mutbuf) -> u64:

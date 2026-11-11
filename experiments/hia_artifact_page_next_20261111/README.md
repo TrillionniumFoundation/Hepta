@@ -1,9 +1,25 @@
 # Artifact-page owner: source draft checkpoint
 
-This checkpoint preserves authored source. It is **not** generated HIA, an
-executable build, a development test pass, cold qualification, or a completed
-native AgentStore. The two Python files in `draft/` have only been parsed as
-Python syntax. No product source, selector, contract, inventory or CI was changed.
+This checkpoint preserves authored source and a small development slice. It is
+**not** cold qualification, ordinary-service qualification, or a completed native
+AgentStore. No product source, selector, contract, inventory or CI was changed.
+
+The initial draft used authoring constructs the generator does not support;
+the original draft remains in Git history. After using the supported form,
+generation produced 30 HIA functions and 122,983 bytes. A pinned existing
+development compiler actually emitted the page image. The independent Core VM
+passed two small protocol/result controls, and the actual page and wire images
+passed eight small retained-method comparisons, including second pages, cursor
+hash/SQL rows, cross-digest rejection, UTF-8 boundaries, binary data and the
+original artifact-reference alias. The retained page/digest/base64/wire entry
+points were forbidden during the first native call in each case. These are
+development observations, not a proof over all inputs or a complete test suite.
+
+`development-r1/` retains the original reports, scripts, authoring refusal
+records, and every raw compile file in a hash-verified archive. The original
+`native-r1.json` binds the examined source before/after, both native images and
+the per-case result/row observations. It uses an in-memory SQLite fixture and
+makes no disk durability claim.
 
 The proposed HIA continuation owns the original `_hia_read` sequence, cursor
 binding and short-circuit comparisons, full artifact UTF-8 classification,
@@ -21,13 +37,12 @@ the unrestricted private Python method domain: arbitrary replacement Store
 objects, non-integer cursor rows, negative limits and larger private-method page
 limits still need a separately justified semantic boundary or implementation.
 
-Further required work includes generated assembly, native/compiler and Core VM
-execution, independent retained-method comparison, every UTF-8 invalid class and
-page boundary, a 64 MiB artifact, late invalid bytes, exact double-escape halving,
-cursor replay/cross-artifact rejection, SQL and metadata exceptions in their
-original order, protocol corruption with no INSERT, resource/source pin tests,
-installed resources, and ordinary service caller composition. Until those are
-implemented and observed, this draft must not enter a qualification claim.
+Further required work includes all UTF-8 invalid classes and page boundaries,
+a 64 MiB artifact, exact double-escape halving, complete cursor replay checks,
+SQL and metadata exceptions in their original order, protocol corruption with
+no INSERT, resource/source pin tests, installed resources, and ordinary service
+caller composition. Until those are implemented and observed, this draft must
+not enter a qualification claim.
 
 The original `_hia_read` still owns production behavior. Store persistence,
 artifact namespace authority, metadata decoding and other Agent methods remain
