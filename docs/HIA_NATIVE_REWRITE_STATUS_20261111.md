@@ -1,5 +1,12 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
+The subsequent v62 integration combines the v61 returned-loan origin work with
+native worker-request admission, immutable release publication and bounded
+cold-evidence scheduling. Its audited baseline,
+new source-bound observations and remaining delivery owners are recorded in
+[the continuation audit](HIA_NATIVE_CLOSURE_20261111.md). The earlier experiments
+and failures below retain their original source identities.
+
 Baseline audited on 2026-11-10 America/New_York:
 `c2d937e5eec734af5c1d5d0519afc7e3a91df58a`.
 The repository is `TrillionniumFoundation/Hepta`; product development continues

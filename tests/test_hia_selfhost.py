@@ -578,6 +578,105 @@ def disguised(x:u64) -> u64:
             self.assertEqual([row["exception_message"] for row in index["phases"][:2]],
                              ["first phase failed", "second phase failed before launch"])
 
+    def test_archive_queue_bounds_pending_work_and_uses_one_thread(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event, get_ident
+        from tools.qualify_hia_selfhost import _PhaseArchivePool
+        started = [Event() for _ in range(3)]
+        release = [Event() for _ in range(3)]
+        threads = set()
+
+        def seal(index):
+            threads.add(get_ident())
+            started[index].set()
+            if not release[index].wait(5):
+                raise RuntimeError("test did not release archive barrier")
+            return index
+
+        with _PhaseArchivePool() as archives, ThreadPoolExecutor(max_workers=1) as submitter:
+            first = archives.submit(seal, 0)
+            self.assertTrue(started[0].wait(5))
+            second = archives.submit(seal, 1)
+            attempted, accepted = Event(), Event()
+
+            def third():
+                attempted.set()
+                result = archives.submit(seal, 2)
+                accepted.set()
+                return result
+
+            submission = submitter.submit(third)
+            try:
+                self.assertTrue(attempted.wait(5))
+                self.assertFalse(accepted.wait(.05))
+                self.assertFalse(started[1].is_set())
+                release[0].set()
+                self.assertTrue(accepted.wait(5))
+                self.assertTrue(started[1].wait(5))
+                self.assertFalse(started[2].is_set())
+            finally:
+                for event in release:
+                    event.set()
+            third_result = submission.result(timeout=5)
+            self.assertEqual([future.future.result(timeout=5) for future in (first, second, third_result)],
+                             [0, 1, 2])
+        self.assertEqual(len(threads), 1)
+
+    def test_unsealed_phase_stays_pending_until_archive_completion(self):
+        from concurrent.futures import Future, ThreadPoolExecutor
+        from threading import Event
+        from unittest.mock import patch
+        from tools.qualify_hia_selfhost import _PendingPhaseArchive, _collect_qualification_phases
+        with tempfile.TemporaryDirectory(prefix="hia-seal-index-") as temporary:
+            root = Path(temporary)
+            worker, seal = Future(), Future()
+            worker.set_result(_PendingPhaseArchive(seal))
+            written = Event()
+            real_replace = Path.replace
+
+            def observe_index(path, destination):
+                result = real_replace(path, destination)
+                if Path(destination) == root / "phase-index.json":
+                    written.set()
+                return result
+
+            with patch.object(Path, 'replace', observe_index), ThreadPoolExecutor(max_workers=1) as pool:
+                collected = pool.submit(_collect_qualification_phases, root, [("names", "original", worker)])
+                try:
+                    self.assertTrue(written.wait(5))
+                    index = json.loads((root / "phase-index.json").read_text())
+                    self.assertEqual(index['completed'], 0)
+                    self.assertEqual(index['phases'][0]['state'], 'pending')
+                    self.assertFalse(collected.done())
+                finally:
+                    seal.set_result(({'status': 'PASS'}, {'unit_control_only': True}))
+                self.assertEqual(len(collected.result(timeout=5)), 1)
+            index = json.loads((root / "phase-index.json").read_text())
+            self.assertEqual(index['completed'], 1)
+            self.assertEqual(index['phases'][0]['state'], 'completed')
+
+    def test_archive_failure_is_retained_while_other_completions_are_observed(self):
+        from concurrent.futures import Future
+        from tools.qualify_hia_selfhost import _PendingPhaseArchive, _collect_qualification_phases
+        with tempfile.TemporaryDirectory(prefix="hia-seal-fail-") as temporary:
+            root = Path(temporary)
+            scheduled = []
+            for family, failed in (('names', True), ('exports', False)):
+                worker, seal = Future(), Future()
+                worker.set_result(_PendingPhaseArchive(seal))
+                if failed:
+                    seal.set_exception(ValueError('actual archive replay refused'))
+                else:
+                    seal.set_result(({'status': 'PASS'}, {'unit_control_only': True}))
+                scheduled.append((family, 'original', worker))
+            with self.assertRaisesRegex(AssertionError, 'qualification_phase_exceptions'):
+                _collect_qualification_phases(root, scheduled)
+            index = json.loads((root / 'phase-index.json').read_text())
+            self.assertEqual(index['completed'], 2)
+            self.assertEqual(index['exceptions'], 1)
+            self.assertEqual([row['state'] for row in index['phases']], ['exception', 'completed'])
+            self.assertEqual(index['phases'][0]['exception_message'], 'actual archive replay refused')
+
     def test_complete_compiler_is_valid_core_and_reproducible_source(self):
         from tools.generate_hia_selfhost import document
         source = SOURCE.read_bytes()

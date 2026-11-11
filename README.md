@@ -31,6 +31,12 @@ parameter admission and task-protocol checks. A separately selected
 complete start, poll, cancel, join and close Core functions. The ordinary
 elaborator consumes their results; remaining operation lowering and the durable
 Agent remain hosted owners.
+An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
+owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
+admission while preserving the existing service's durable request identity.
+The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
+checks and publishes a bounded immutable release from an operator-pinned bundle.
+It does not select the active worker or replace the service journal.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

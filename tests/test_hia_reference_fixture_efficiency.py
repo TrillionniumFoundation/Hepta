@@ -57,6 +57,40 @@ class SourceControlEquivalenceTests(unittest.TestCase):
 
 
 class ReferenceFixturePreservationTests(unittest.TestCase):
+    def test_complete_compiler_renames_keep_original_and_modified_bytes(self):
+        # Captured from the original c80eb2e three-pass transformation, before
+        # composing its fixture edits. These identities include all functions,
+        # SSA uses, formal return origins, blocks, entries and explicit edges.
+        from tools.generate_hia_selfhost import document
+        from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
+        _, table = document()
+        mapping = {number: name for name, number in table.items()}
+        source = SOURCE.read_bytes()
+        cases = (
+            (source, 'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
+             'bbd534f4799bc2fc76e787e21ba7a8cab79b4d3e38e2b41bbd22a1decb316063'),
+            (mutate_compiler(source), '25dd7b4753da78c3ee0f04a8f98e87e04859f2d67d9255c562e17a7ef406cb96',
+             'b99ab525232bc54a6919ae057ae0da8745ab47f576e3d9435c6b98b4dfb59d6d'),
+        )
+        for actual, source_hash, core_hash in cases:
+            with self.subTest(source=source_hash):
+                rendered = names.renamed_compiler(actual, mapping)
+                self.assertEqual(len(rendered), 769584)
+                self.assertEqual(sha256(rendered).hexdigest(), source_hash)
+                self.assertEqual(assembly.assemble_program(rendered).sha256, core_hash)
+
+    def test_composed_renames_cannot_admit_an_invalid_final_program(self):
+        source = (b'hia-asm.v1 hepta.hia.program.v8 fixture\n'
+                  b'fn first() -> (u32) effects() entry(start)\nblock start()\n'
+                  b'  result:u32 = call() {"function":"second"}\n  ret(result)\nend\n'
+                  b'fn second() -> (u32) effects() entry(start)\nblock start()\n'
+                  b'  result:u32 = const() {"value":7}\n  ret(result)\nend\n')
+        for mapping in ({'first': 'same', 'second': 'same'},
+                        {'first': 'valid', 'second': '__hia_reserved'},
+                        {'first': 'valid', 'second': 'invalid-name'}):
+            with self.subTest(mapping=mapping), self.assertRaises(assembly.HIAProgramRejected):
+                names.renamed_compiler(source, mapping)
+
     def test_complete_changed_fixture_outputs_match_prior_reference_bytes(self):
         # Captured from bfea47b before changing construction. The SHA covers
         # every source, input, output, case name, refusal expectation and order;
@@ -158,22 +192,53 @@ class AssemblyConstructionBoundaryTests(unittest.TestCase):
         with patch.object(assembly, '_render_assembly_document', side_effect=mutate_caller):
             self.assertEqual(assembly.render_assembly(document), SOURCE)
 
-    def test_fixture_transformations_do_not_issue_verified_authority(self):
+    def test_private_fixture_transformations_do_not_issue_verified_authority(self):
         from tests.test_hia_agent_assembly import SOURCE
         source = SOURCE.replace('exports(total)\n', '').encode()
         original = bytes(source)
         mapping = {'total': 'renamed'}
         spellings = ['left', 'right', 'wide_left', 'wide_right', 'answer']
         with patch.object(assembly, 'verify_program', side_effect=AssertionError('fixture admitted Core')):
-            function = names.renamed_source(source, mapping)
-            values = names.renamed_values(source, spellings)
-            blocks = names.renamed_blocks(source, ['start'])
-            reordered = names.reordered_blocks(source)
+            function = names._construct_renamed_source(source, mapping)
+            values = names._construct_renamed_values(source, spellings)
+            blocks = names._construct_renamed_blocks(source, ['start'])
+            reordered = names._construct_reordered_blocks(source)
         self.assertEqual((source, mapping, spellings),
             (original, {'total': 'renamed'}, ['left', 'right', 'wide_left', 'wide_right', 'answer']))
         for result in (function, values, blocks, reordered):
             self.assertIs(type(result), bytes)
             assembly.assemble_program(result)
+
+    def test_public_fixture_transformations_still_reject_invalid_input_Core(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        source = SOURCE.replace('exports(total)\n', '').encode()
+        invalid = source.replace(b'ret(answer)', b'ret(missing)')
+        transforms = (
+            (names.renamed_source, names._construct_renamed_source, ({'total': 'renamed'},)),
+            (names.renamed_values, names._construct_renamed_values,
+             (['left', 'right', 'wide_left', 'wide_right', 'answer'],)),
+            (names.renamed_blocks, names._construct_renamed_blocks, (['start'],)),
+            (names.reordered_blocks, names._construct_reordered_blocks, ()),
+        )
+        for transform, construct, arguments in transforms:
+            with self.subTest(transform=transform.__name__):
+                self.assertEqual(transform(source, *arguments), construct(source, *arguments))
+                with self.assertRaises(assembly.HIAAssemblyRejected) as caught:
+                    transform(invalid, *arguments)
+                self.assertEqual((caught.exception.code, caught.exception.phase),
+                                 ('E_HIA_SSA', 'core_verification'))
+        with self.assertRaises(assembly.HIAAssemblyRejected):
+            names.renamed_compiler(invalid, {'total': 'renamed'})
+
+    def test_public_fixture_transformations_still_reject_invalid_final_Core(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        source = SOURCE.replace('exports(total)\n', '').encode()
+        for transform, arguments in (
+                (names.renamed_source, ({'total': '__hia_reserved'},)),
+                (names.renamed_values, (['same', 'same'],)),
+                (names.renamed_blocks, (['invalid-name'],))):
+            with self.subTest(transform=transform.__name__), self.assertRaises(assembly.HIAProgramRejected):
+                transform(source, *arguments)
 
 
 if __name__ == '__main__':

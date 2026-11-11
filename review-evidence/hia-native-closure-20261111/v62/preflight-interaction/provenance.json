@@ -1,0 +1,91 @@
+{
+  "schema": "hia.preflight-interaction-audit.v1",
+  "status": "PASS",
+  "old_ref": "c80eb2ecc5d08421a3d124c879edb33cefff2267",
+  "new_ref": "647885c5c3ff067b6477011123335ad5a1aef78e",
+  "execution_cwd": "/workspace/scratch/e26ed3e2edcf/Hepta",
+  "executed_command": "python - (heredoc containing compare_frozen_refs.py)",
+  "interpreter": {
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "implementation": "cpython",
+    "version_capture": "same python command resolved immediately during evidence preservation; no test rerun"
+  },
+  "workspace_commit_at_evidence_save": "a3c053a427bdf052e4aaaf733a236f4cdd0c71e9",
+  "original_execution": {
+    "exit_code": 0,
+    "observed_elapsed_seconds": 0.11357028399834235,
+    "stdout_file": "observed-stdout.json",
+    "stderr": "",
+    "random_seed": 647885,
+    "equal_outcome_pairs": 1536,
+    "preflight": 512,
+    "ordinary_data_masked_preflight": 512,
+    "structure": 256,
+    "bounded_detached_snapshot": 256
+  },
+  "method": [
+    "Load both hepta/hia_json_preflight.py files from the named git objects into independent in-memory namespaces.",
+    "Extract _structure and _bounded_detached_snapshot AST bodies from both hepta/hia_program.py git objects; bind both to identical current module helper/error globals.",
+    "Bind the unchanged current hia_agent_store.decode_data function separately to each reference preflight function; native data/float/preflight selectors are disabled within the audit process.",
+    "Use small patched Core node/depth/byte budgets and deterministic graph/text generation; no project file is modified."
+  ],
+  "exact_comparison": {
+    "successful_values": "Exact built-in type and value; float64 little-endian packed bytes; recursive list order; recursive dict insertion order; structure byte-count results.",
+    "exceptions": "Exception class __name__, optional code attribute, str(exception), and immediate __cause__ class __name__ plus message. This is not an arbitrary-length cause-chain comparison.",
+    "preflight_budgets": {
+      "nodes": [
+        1,
+        2,
+        8,
+        64
+      ],
+      "depth": [
+        0,
+        1,
+        3,
+        128
+      ]
+    },
+    "structure_snapshot_budgets": {
+      "nodes": [
+        1,
+        2,
+        8,
+        32,
+        128
+      ],
+      "depth": [
+        0,
+        1,
+        3,
+        8
+      ],
+      "bytes": [
+        0,
+        1,
+        7,
+        32,
+        127,
+        1024
+      ]
+    }
+  },
+  "limits": [
+    "Targeted old/new host-function differential sample, not an all-input proof.",
+    "No native worker image was built or rerun in this audit.",
+    "No full maximum-node allocation, thread-mutation stress, cold qualification, or deployment validation is claimed.",
+    "The raw observed stdout was retained from the original successful execution; saving this evidence did not rerun it.",
+    "Evidence preservation initially failed because the workspace filesystem had zero free blocks, then succeeded after free space returned; no existing files were deleted by this audit."
+  ],
+  "files": {
+    "compare_frozen_refs.py": {
+      "bytes": 3628,
+      "sha256": "4d2adf9cdf6b1b44233c3f3206a80ba62e80e1cf71fe5a7d5c419ca86b3e020a"
+    },
+    "observed-stdout.json": {
+      "bytes": 391,
+      "sha256": "49d868678185f60edac56a4fc0595b9b5834686572296841a4e1a478e8dfe22b"
+    }
+  }
+}
