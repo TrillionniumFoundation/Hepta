@@ -1,0 +1,31 @@
+{"old_sha256": "004c71bc1c56b62aa2cdbfd2fd9908204ea1cb93a578380d6a2148c45cbe0a71", "new_sha256": "b9f0fa53be3d7c9c10a71a8eecc538a27c32fbe7abe337818d0d36e138bfc5c5"}
+--- 3.14.4
++++ 3.14.10
+@@ -1827,10 +1827,13 @@
+         # no good answer here, so fall back to the default
+         modspec = None
+     if modspec is None:
+         # simple script
+         return _os.path.basename(arg0)
++    if modspec.name != '__main__' and arg0 != modspec.origin:
++        # named module executed as main without altering sys.argv[0]
++        return _os.path.basename(arg0)
+     py = _os.path.basename(_sys.executable)
+     if modspec.name != '__main__':
+         # imported module or package
+         modname = modspec.name.removesuffix('.__main__')
+         return f'{py} -m {modname}'
+@@ -2676,11 +2679,11 @@
+         if isinstance(choices, str):
+             choices = iter(choices)
+ 
+         if value not in choices:
+             args = {'value': str(value),
+-                    'choices': ', '.join(map(str, action.choices))}
++                    'choices': ', '.join(repr(str(choice)) for choice in action.choices)}
+             msg = _('invalid choice: %(value)r (choose from %(choices)s)')
+ 
+             if self.suggest_on_error and isinstance(value, str):
+                 if all(isinstance(choice, str) for choice in action.choices):
+                     import difflib
+

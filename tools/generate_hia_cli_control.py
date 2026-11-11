@@ -71,7 +71,7 @@ def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     argc = read64(s, 16)
     profile = read64(s, 24)
-    if profile != 312 and profile != 314:
+    if profile != 312 and profile != 314 and profile != 31410:
         return control_refuse(w)
     if argc > (length(s) - 192) >> 4:
         return control_refuse(w)

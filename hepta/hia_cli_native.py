@@ -6,7 +6,7 @@ adapter transports strings/handles and performs requested effects. Existing
 semantic bodies, read_bounded policy, publication and successful pretty JSON
 remain named foreign owners; this is not a whole-native CLI delivery claim.
 
-The presentation profiles are ordinary English CPython 3.12.14 and 3.14.4,
+The presentation profiles are ordinary English CPython 3.12.14, 3.14.4 and 3.14.10,
 with the default 3.14 color theme. Arbitrary Python argument objects, custom
 argparse subclasses/themes, and concurrent mutation of environment or streams
 during parser construction are outside this explicit selected profile.
@@ -94,18 +94,19 @@ def _frame(arguments, version, environment, profile, columns, color_terminal, ig
 
 def _runtime_profile():
     observed = tuple(sys.version_info[:3])
-    if sys.implementation.name != "cpython" or observed not in ((3, 12, 14), (3, 14, 4)):
-        raise RuntimeError("selected native CLI requires its observed CPython 3.12.14 or 3.14.4 profile")
-    return observed[0] * 100 + observed[1]
+    profiles = {(3, 12, 14): 312, (3, 14, 4): 314, (3, 14, 10): 31410}
+    if sys.implementation.name != "cpython" or observed not in profiles:
+        raise RuntimeError("selected native CLI requires its pinned CPython 3.12.14, 3.14.4 or 3.14.10 profile")
+    return profiles[observed]
 
 
 def _terminal_columns():
     # Raw OS observation only. Native code parses COLUMNS and chooses fallback.
     try:
         value = os.get_terminal_size(sys.__stdout__.fileno()).columns
-        return value if value > 0 else 80
+        return value
     except (AttributeError, OSError, ValueError):
-        return 80
+        return 0
 
 
 def _color_terminal():
@@ -122,6 +123,7 @@ def _color_terminal():
 def _print_parser_message(message, stream):
     # Exact ordinary argparse._print_message write/refusal behavior.
     if message:
+        stream = stream or sys.stderr
         try:
             stream.write(message)
         except (AttributeError, OSError):

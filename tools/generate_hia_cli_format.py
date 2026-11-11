@@ -2,9 +2,10 @@
 
 Grammar-derived pieces are constants. HIA owns line wrapping, repr escaping,
 Unicode classes, color/column decisions and complete output construction.
-The reference presentation profiles are CPython 3.12 and 3.14 with English
-messages and the default 3.14 theme; private formatter/theme overrides are
-not installation policy.
+The reference presentation profiles are CPython 3.12.14, 3.14.4 and 3.14.10
+with English messages and the default 3.14 theme. The 3.14.10 choice-list
+quoting difference is explicit; private formatter/theme overrides are not
+installation policy.
 """
 from __future__ import annotations
 import ast
@@ -52,7 +53,7 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 199
     if get(w, 0) != RESULT_MAGIC or get(w, 88) != argc or get(w, 104) != length(s):
         return 199
-    if read64(s, 24) != get(w, 128) or (get(w, 128) != 312 and get(w, 128) != 314):
+    if read64(s, 24) != get(w, 128) or (get(w, 128) != 312 and get(w, 128) != 314 and get(w, 128) != 31410):
         return 199
     if get(w, 24) > 15 or get(w, 8) < 1 or get(w, 8) > 3 or get(w, 80) > argc:
         return 199
@@ -229,7 +230,7 @@ def columns(s:readbuf, w:mutbuf) -> u64:
     return value
 
 def color_choice(s:readbuf, w:mutbuf) -> u64:
-    if get(w, 128) != 314:
+    if get(w, 128) == 312:
         return 0
     if read64(s, 40) == 0 and env_equal(s, w, 1, L_ZERO):
         return 0
@@ -247,7 +248,7 @@ def observation_request(s:readbuf, w:mutbuf) -> u32:
     if length(s) < 192 or read64(s, 8) != 4:
         return 199
     profile = read64(s, 24)
-    if profile != 312 and profile != 314:
+    if profile != 312 and profile != 314 and profile != 31410:
         return 199
     if read64(s, 40) > 1 or read64(s, 48) > 1 or read64(s, 72) > 63:
         return 199
@@ -699,7 +700,11 @@ def error_message(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         while index < count:
             if index != 0:
                 literal(o, w, L_COMMA_SPACE)
+            if get(w, 128) == 31410:
+                point(o, w, 39)
             literal(o, w, choice_literal(field, index))
+            if get(w, 128) == 31410:
+                point(o, w, 39)
             index = index + 1
         point(o, w, 41)
         return 0
