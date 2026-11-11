@@ -1,7 +1,7 @@
 # Native ObjectToken renderer
 
-This component implements streamed ObjectToken-to-canonical-JSON conversion in
-HIA. It is an explicit native candidate, with no public default switch and no
+This component implements streamed ObjectToken-to-canonical-JSON and typed-wire
+conversion in HIA. It is an explicit native candidate, with no public default switch and no
 whole-stack qualification claim. Its source is developed in a separate v68
 worktree; the v67 qualification checkout is immutable.
 
@@ -21,7 +21,8 @@ produced only by the final native serializer.
 the source packet and starts its first stream. `feed(frame)` accepts a complete
 64-byte identity header followed by its declared payload and returns whether
 that stream is final. `canonical()` returns HIA-produced UTF-8 JSON with sorted
-keys and compact separators. `restart(stream_magic, action, serial=0, slots=0,
+keys and compact separators. `packet()` returns the exact typed transport of
+the same graph, preserving dictionary insertion order. `restart(stream_magic, action, serial=0, slots=0,
 request=0)` starts another stream over the same admitted source. A successful
 `seal(handle)` retains a final dictionary under a unique handle at least 2**63.
 Closing a session releases its private mappings.
@@ -80,14 +81,25 @@ native traversal stack and cached complete sizes over a typed acyclic graph.
 It reuses the existing HIA JSON escaping functions, and sorts string keys by
 UTF-8 byte order, which agrees with Unicode scalar order in this input domain.
 
+Typed export traverses that graph directly. It does not parse canonical JSON,
+call the raw JSON codec, or impose its public 8 MiB input limit. Dictionary
+records retain their original key chain separately from the sorted canonical
+chain, so `canonical()` and `packet()` can be called in either order repeatedly
+without changing typed output. References expand to their actual wire node
+kinds; generated u64 integers become canonical decimal kind-2 values. Sizes
+include all node headers, container count words, keys and repeated references.
+Typed-size overflow is kept as a private sentinel during graph construction,
+so it cannot reject an otherwise admissible canonical graph. Requesting an
+unaddressable typed result refuses before output allocation or publication.
+
 The native request is `<8Q>(HIANTK01, operation, identity0, identity1, identity2,
 identity3, identity4, payload_bytes)`. Operations are begin 1, feed 2,
-canonical 3, restart 4, and seal 5. Begin and restart carry the five stream
+canonical 3, restart 4, seal 5, and typed packet 6. Begin and restart carry the five stream
 identity words; seal carries only its handle. Other reserved fields are zero.
 The reply is `<8Q>(HIANTR01, status, final, next_sequence, required_workspace,
 required_output, token_count, root_kind)`. Status 0 succeeds, 1 requests more
-workspace, 2 requests more canonical output, and 3 permanently refuses. The
-Core return is always exactly 64 for a framed response. Canonical output
+workspace, 2 requests more serialized output, and 3 permanently refuses. The
+Core return is always exactly 64 for a framed response. Serialized output
 follows that header; its complete extent is the u64 required-output word,
 not a truncated Core return. Sizes are checked against the addressable buffer
 range. Progress counters use their separate u64 overflow rule.
@@ -124,12 +136,19 @@ They compare completed bytes with the retained decoder only in the test oracle.
 They cover first type requests and early final refusal states; they do not count
 as complete constructor initialization.
 
+The typed-output controls reuse the random-tree oracle to compare complete
+transport bytes, including dictionary insertion order. Independent VM execution
+also checks typed export. Additional controls interleave both serializers before
+and after sealing/restarting, export an actual result above 8 MiB with host
+payload code and raw JSON reentry blocked, and reject a small retained graph's
+unaddressable expanded typed output without attempting that allocation.
+
 The constructor integration supplies already checked canonical input
 and uses this renderer for commands and final state bytes. This file does not
 claim complete constructor initialization, function lowering, outer lowering,
 or retirement of the existing Python semantic stack.
 
-The current output API is canonical JSON only. It does not yet export the typed
-transport needed for direct function/outer startup composition. That follow-up
-must preserve typed reference semantics and dictionary insertion order, and
-must not route expanded results through the public 8 MiB raw JSON codec.
+Typed export supplies one representation boundary needed for future native
+function/outer startup composition. This component does not itself drive those
+owners, issue their type-service continuations, or qualify the complete
+normalizer.

@@ -27,8 +27,9 @@ CONSTANTS = {'MAGIC': MAGIC, 'REPLY': REPLY, 'STATE': STATE,
 # root/current/done/final/token count/active at 200..240;
 # required workspace/output at 248/256; source parsing flag/cursor at 264/272;
 # serialization stack at 288; decimal powers at 320..479.
-# Nodes are 128 bytes: kind/data/length/head/tail/next/parent/remaining-or-value,
-# pending-key/canonical-size/wire-end/hash-next/hash/global-key-next/depth/role.
+# Nodes are 128 bytes: kind/data-or-wire-size/length/head/tail/next/parent,
+# remaining-or-value/pending-key-or-original-head/canonical-size/wire-end,
+# hash-next/hash/global-key-next/depth/sorted-or-original-key-next.
 # Kind 7 is a typed reference, resolved only to an admitted immutable node.
 
 SOURCE = r'''
@@ -65,6 +66,8 @@ def nominal_tokens(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return feed_frame(s, o, w)
     if operation == 3 and length(s) == 64:
         return canonical(o, w)
+    if operation == 6 and length(s) == 64:
+        return typed_packet(o, w)
     return reject(o, w)
 
 def poison(w:mutbuf) -> u64:
@@ -103,6 +106,26 @@ def increment(w:mutbuf, value:u64) -> u64:
         poison(w)
         return 0
     return value + 1
+
+def wire_add(a:u64, b:u64) -> u64:
+    # Keep a typed-output overflow separate from canonical-output admission.
+    # The opaque sentinel is refused only if typed serialization is requested.
+    if a > LIMIT or b > LIMIT - a:
+        return N
+    return a + b
+
+def wire_size(w:mutbuf, node:u64) -> u64:
+    node = resolve(w, node)
+    kind = get(w, node)
+    if kind == 5 or kind == 6:
+        return get(w, node + 8)
+    if kind == 0:
+        return 16
+    if kind == 1:
+        return 17
+    if kind == 3:
+        return 16 + unsigned_size(w, get(w, node + 8))
+    return wire_add(16, get(w, node + 16))
 
 def allocate(w:mutbuf, size:u64) -> u64:
     at = get(w, 16)
@@ -213,6 +236,8 @@ def link_child(w:mutbuf, parent:u64, node:u64) -> u64:
         put(w, parent + 24, node)
     else:
         put(w, previous + 40, node)
+        if get(w, parent) == 6:
+            put(w, previous + 120, node)
     put(w, parent + 32, node)
     return 0
 
@@ -244,7 +269,6 @@ def attach(w:mutbuf, node:u64) -> u64:
                 put(w, parent + 72, plus(w, get(w, parent + 72), 1))
             put(w, parent + 72, plus(w, get(w, parent + 72), 1))
             put(w, parent + 64, node)
-            put(w, node + 120, 1)
             link_child(w, parent, node)
         else:
             put(w, get(w, parent + 64) + 56, node)
@@ -260,6 +284,8 @@ def finish(w:mutbuf, node:u64) -> u64:
             if get(w, node + 80) != get(w, 272):
                 poison(w)
                 return 0
+        if kind == 6:
+            put(w, node + 64, get(w, node + 24))
         parent = get(w, node + 48)
         if parent == 0:
             put(w, 208, 0)
@@ -267,6 +293,7 @@ def finish(w:mutbuf, node:u64) -> u64:
             going = False
         else:
             put(w, parent + 72, plus(w, get(w, parent + 72), get(w, node + 72)))
+            put(w, parent + 8, wire_add(get(w, parent + 8), wire_size(w, node)))
             depth = plus(w, get(w, node + 112), 1)
             if depth > get(w, parent + 112):
                 put(w, parent + 112, depth)
@@ -426,6 +453,7 @@ def source_node(w:mutbuf, at:u64) -> u64:
             poison(w)
             return end
         put(w, node + 16, count)
+        put(w, node + 8, 24)
         put(w, node + 56, count)
         put(w, node + 72, 2)
         put(w, node + 80, end)
@@ -584,6 +612,7 @@ def token_node(s:readbuf, w:mutbuf, at:u64) -> u64:
         put(w, node, 0)
         put(w, node + 72, 4)
     elif kind == 5 or kind == 6:
+        put(w, node + 8, 24)
         put(w, node + 16, value)
         put(w, node + 56, value)
         put(w, node + 72, 2)
@@ -810,6 +839,77 @@ def canonical(o:mutbuf, w:mutbuf) -> u32:
     depth = render_push(w, 0, root)
     while depth != 0 and get(w, 8) == 0:
         depth = render_step(o, w, depth)
+    if get(w, 8) != 0 or get(w, 56) != size:
+        return reject(o, w)
+    return reply(o, w, 0)
+
+def append_word(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    at = get(w, 56)
+    put(o, at, value)
+    put(w, 56, at + 8)
+    return 0
+
+def wire_scalar(o:mutbuf, w:mutbuf, node:u64) -> u64:
+    kind = get(w, node)
+    if kind == 1:
+        append_byte(o, w, get(w, node + 8))
+    elif kind == 3:
+        append_unsigned(o, w, get(w, node + 8))
+    elif kind == 2 or kind == 4:
+        i = 0
+        while i < get(w, node + 16):
+            append_byte(o, w, byte(w, get(w, node + 8) + i))
+            i = i + 1
+    return 0
+
+def wire_step(o:mutbuf, w:mutbuf, depth:u64) -> u64:
+    frame = get(w, 288) + (depth - 1) * 32
+    node = get(w, frame)
+    kind = get(w, node)
+    if get(w, frame + 8) == 0:
+        append_word(o, w, choose(kind == 3, 2, kind))
+        append_word(o, w, wire_size(w, node) - 16)
+        if kind < 5:
+            wire_scalar(o, w, node)
+            return depth - 1
+        append_word(o, w, get(w, node + 16))
+        put(w, frame + 8, 1)
+        if kind == 6:
+            put(w, frame + 16, get(w, node + 64))
+        else:
+            put(w, frame + 16, get(w, node + 24))
+    item = get(w, frame + 16)
+    if item == 0:
+        return depth - 1
+    if kind == 6:
+        if get(w, frame + 8) == 1:
+            put(w, frame + 8, 2)
+        else:
+            put(w, frame + 8, 1)
+            put(w, frame + 16, get(w, item + 120))
+            item = get(w, item + 56)
+    else:
+        put(w, frame + 16, get(w, item + 40))
+    return render_push(w, depth, item)
+
+def typed_packet(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 224) != 1 or get(w, 216) != 1:
+        return reject(o, w)
+    root = resolve(w, get(w, 200))
+    size = wire_add(wire_size(w, root), 64)
+    if size == N or get(w, root + 112) > 288230376151711743:
+        return reject(o, w)
+    result = reserve(w, get(w, root + 112) * 32, get(w, 96))
+    if result != 0:
+        return reply(o, w, result)
+    put(w, 256, size)
+    if length(o) < size:
+        return reply(o, w, 2)
+    put(w, 288, get(w, 16))
+    put(w, 56, 64)
+    depth = render_push(w, 0, root)
+    while depth != 0 and get(w, 8) == 0:
+        depth = wire_step(o, w, depth)
     if get(w, 8) != 0 or get(w, 56) != size:
         return reject(o, w)
     return reply(o, w, 0)

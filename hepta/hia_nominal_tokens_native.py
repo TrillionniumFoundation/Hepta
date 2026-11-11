@@ -127,7 +127,7 @@ class NominalTokensSession:
                     self._grow('_workspace', workspace)
                     continue
                 if status == 2:
-                    if operation != 3:
+                    if operation not in (3, 6):
                         self._refuse('output capacity request came from a non-serialization operation')
                     self._grow('_output', output)
                     continue
@@ -136,9 +136,9 @@ class NominalTokensSession:
                 self.sequence, self.token_count = sequence, tokens
                 self.final = bool(final)
                 self.root_kind = None if kind == (1 << 64) - 1 else kind
-                if operation == 3:
+                if operation in (3, 6):
                     if final != 1 or not HEADER.size < output <= len(self._output):
-                        self._refuse('native canonical result has an invalid publication extent')
+                        self._refuse('native serialized result has an invalid publication extent')
                     return self._output[HEADER.size:output]
                 return self.final
         except BaseException:
@@ -160,6 +160,10 @@ class NominalTokensSession:
 
     def canonical(self):
         return self._invoke(3)
+
+    def packet(self):
+        """Return exact typed transport bytes, preserving dictionary insertion order."""
+        return self._invoke(6)
 
     def restart(self, stream_magic, action, *, serial=0, slots=0, request=0):
         self._invoke(4, identity=(stream_magic, action, serial, slots, request))

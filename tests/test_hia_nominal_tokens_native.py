@@ -64,7 +64,7 @@ def canonical(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
 
 
-def vm_observe(source_wire, payload, *, final=True, observed=240):
+def vm_observe(source_wire, payload, *, final=True, observed=240, operation=3):
     """The checked interpreter runs begin/feed/canonical against one arena."""
     from tools.hia_selfhost_bulk import Body
     from hepta.hia_agent_assembly import assemble_program
@@ -76,7 +76,7 @@ def vm_observe(source_wire, payload, *, final=True, observed=240):
     output = body.value('mutbuf', 'borrow.mut', [owner_o])
     requests = [HEADER.pack(REQUEST_MAGIC, 1, STREAM_MAGIC, 0, 0, 0, 0, len(source_wire)) + source_wire,
                 HEADER.pack(REQUEST_MAGIC, 2, 0, 0, 0, 0, 0, 64 + len(payload)) + frame(payload, final=final),
-                HEADER.pack(REQUEST_MAGIC, 3, 0, 0, 0, 0, 0, 0)]
+                HEADER.pack(REQUEST_MAGIC, operation, 0, 0, 0, 0, 0, 0)]
     results = []
     for wire in requests:
         owner = body.value('buffer', 'buffer.new', [body.const('usize', len(wire))])
@@ -121,6 +121,14 @@ class NominalTokensSourceTests(unittest.TestCase):
         self.assertEqual(codes, [64, 64, 64])
         self.assertEqual(HEADER.unpack_from(raw)[:3], (REPLY_MAGIC, 0, 1))
         self.assertEqual(raw[64:], expected)
+        # Keep this VM observer's explicit return list within the existing
+        # assembly item budget; native controls cover the larger value below.
+        expected_packet = transport({'z': [True, -9], 'a': 'é'})
+        codes, raw = vm_observe(expected_packet, token(0, 0), operation=6,
+                                observed=64 + len(expected_packet))
+        self.assertEqual(codes, [64, 64, 64])
+        self.assertEqual(HEADER.unpack_from(raw)[:3], (REPLY_MAGIC, 0, 1))
+        self.assertEqual(raw[64:], expected_packet)
         codes, raw = vm_observe(transport(value), token(0, 17), observed=64)
         self.assertEqual(codes, [64, 64, 64])
         self.assertEqual(HEADER.unpack_from(raw)[1], 3)
@@ -213,6 +221,7 @@ class NominalTokensNativeTests(unittest.TestCase):
             actual = session.canonical()
             expected = canonical(reference.root)
             self.assertEqual(actual, expected)
+            self.assertEqual(session.packet(), transport(reference.root))
             self.assertEqual(session.canonical(), actual)
             self.observations.append({'source_sha256': sha256(wire).hexdigest(),
                 'tokens_sha256': sha256(b''.join(chunks)).hexdigest(), 'chunks': len(chunks),
@@ -235,6 +244,7 @@ class NominalTokensNativeTests(unittest.TestCase):
             session.begin(wire, STREAM_MAGIC, 0)
             session.feed(frame(token(0, 0)))
             self.assertEqual(session.canonical(), raw)
+            self.assertEqual(session.packet(), wire)
 
     def test_every_actual_source_node_and_key_boundary(self):
         value = {'z': [None, False, -17, {'é': 'payload with fake header\x00'}], 'a': [1, 2]}
@@ -381,6 +391,13 @@ class NominalTokensNativeTests(unittest.TestCase):
             actual = session.canonical()
             self.assertGreater(len(actual), 8 << 20)
             self.assertEqual(actual, canonical([value]*16))
+            expected_packet = transport([value]*16)
+            with (patch('hepta.hia_nominal_json_native.NativeNominalJSON.packet', side_effect=AssertionError('public raw JSON reentry')),
+                  patch('json.loads', side_effect=AssertionError('host payload decoder')),
+                  patch('json.dumps', side_effect=AssertionError('host payload encoder')),
+                  patch('hepta.hia_instruction_policy_native.transport', side_effect=AssertionError('host typed encoder'))):
+                self.assertEqual(session.packet(), expected_packet)
+            self.assertGreater(len(expected_packet), 8 << 20)
             retained = struct.unpack_from('<Q', session._workspace, 112)[0]
             for request in range(1, 17):
                 session.restart(STREAM_MAGIC, 0, request=request)
@@ -405,14 +422,15 @@ class NominalTokensNativeTests(unittest.TestCase):
         with self.native.session() as session:
             session.begin(wire, STREAM_MAGIC, 0)
             session.feed(frame(token(0, 0)))
-            request = HEADER.pack(REQUEST_MAGIC, 3, 0, 0, 0, 0, 0, 0)
-            source = ctypes.create_string_buffer(request)
             address = ctypes.addressof(ctypes.c_char.from_buffer(session._workspace))
-            self.assertEqual(self.native._entry(source, 64, output, 64, address, len(session._workspace)), 64)
-            reply = HEADER.unpack_from(output)
-            self.assertEqual(reply[1], 2)
-            self.assertEqual(reply[3], 1)
-            self.assertEqual(output.raw[64:512], before)
+            for operation in (3, 6):
+                request = HEADER.pack(REQUEST_MAGIC, operation, 0, 0, 0, 0, 0, 0)
+                source = ctypes.create_string_buffer(request)
+                self.assertEqual(self.native._entry(source, 64, output, 64, address, len(session._workspace)), 64)
+                reply = HEADER.unpack_from(output)
+                self.assertEqual(reply[1], 2)
+                self.assertEqual(reply[3], 1)
+                self.assertEqual(output.raw[64:512], before)
             self.assertEqual(session.canonical(), canonical({'key': 'v'*100}))
         with self.native.session() as session:
             session.begin(transport(None), STREAM_MAGIC, 0)
@@ -447,6 +465,47 @@ class NominalTokensNativeTests(unittest.TestCase):
                 if initial == (1 << 64)-2:
                     with self.assertRaises(NominalTokensProtocolError):
                         session.feed(frame(b'', sequence=initial+1, final=True))
+
+    def test_typed_packet_interleaving_keeps_insertion_order_and_retained_graphs(self):
+        value = {'z': {'y': 9, 'b': [True, False, None]}, 'a': 'é😀'}
+        source = transport(value)
+        handle = 1 << 63
+        for source_reference in (True, False):
+            with self.native.session() as session:
+                session.begin(source, STREAM_MAGIC, 0)
+                session.feed(frame(token(0, 0) if source_reference else b''.join(tokens(value))))
+                self.assertEqual(session.packet(), source)
+                self.assertEqual(session.canonical(), canonical(value))
+                self.assertEqual(session.packet(), source)
+                session.seal(handle)
+                session.restart(STREAM_MAGIC, 0, request=1)
+                session.feed(frame(token(6, 2)+text_token('second')+token(0, handle)
+                                   +text_token('first')+token(0, 0), request=1))
+                expected = {'second': value, 'first': value}
+                self.assertEqual(session.canonical(), canonical(expected))
+                self.assertEqual(session.packet(), transport(expected))
+                self.assertEqual(session.canonical(), canonical(expected))
+                self.assertEqual(session.packet(), transport(expected))
+
+    def test_typed_size_overflow_does_not_narrow_canonical_graph_admission(self):
+        # A small acyclic retained graph can describe exponentially expanded
+        # output. Do not allocate that output: typed-size overflow is detected
+        # natively before any output mapping is requested.
+        handle = 1 << 63
+        with self.native.session() as session:
+            session.begin(transport({}), STREAM_MAGIC, 0)
+            session.feed(frame(token(0, 0)))
+            session.seal(handle)
+            for request in range(1, 59):
+                session.restart(STREAM_MAGIC, 0, request=request)
+                session.feed(frame(token(6, 2)+text_token('a')+token(0, handle+request-1)
+                                   +text_token('b')+token(0, handle+request-1), request=request))
+                session.seal(handle+request)
+            self.assertTrue(session.final)
+            self.assertEqual(session.root_kind, 6)
+            with patch.object(session, '_grow', side_effect=AssertionError('unbounded output allocation')):
+                with self.assertRaises(NominalTokensProtocolError):
+                    session.packet()
 
     def test_actual_constructor_owner_and_render_frames_without_host_payload_decoding(self):
         from hepta.hia_composite_constructor_native import SOURCES, CTOR_MAGIC, WORKSPACE_BYTES, OUTPUT_BYTES
