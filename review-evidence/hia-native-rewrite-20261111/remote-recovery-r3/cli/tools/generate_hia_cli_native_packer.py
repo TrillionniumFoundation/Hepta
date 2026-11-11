@@ -47,6 +47,28 @@ def template():
         (audit/'symbols.json').write_text(json.dumps(syms,sort_keys=True,indent=2)+'\n')
         reloc=actual_tool('objdump',['objdump','-r',str(obj)]).decode('utf-8')
         (audit/'relocations.txt').write_text(reloc)
+        # Exact prior source is a negative authoring control, never a runtime fallback.
+        previous=assembly.replace(b'.global executor_start\n',
+            b'.global executor_start,image_table,executor_end\n',1)
+        assert sha256(previous).hexdigest()=='717f23a65686cabc8a2599e28079fa37645393eaa31e5e30cdc0cad6aef86c26'
+        previous_source=directory/'previous-global.S';previous_obj=directory/'previous-global.o'
+        previous_source.write_bytes(previous);(audit/'previous-global.S').write_bytes(previous)
+        actual_tool('previous-global-as',['as','--64',str(previous_source),'-o',str(previous_obj)])
+        (audit/'previous-global.o').write_bytes(previous_obj.read_bytes())
+        previous_reloc=actual_tool('previous-global-objdump',
+            ['objdump','-r',str(previous_obj)]).decode('utf-8')
+        previous_symbols=actual_tool('previous-global-nm',
+            ['nm','-n',str(previous_obj)]).decode('utf-8')
+        previous_syms={name:int(at,16) for at,_,name in
+            (line.split() for line in previous_symbols.splitlines())}
+        print('HIA_CLI_PREVIOUS_GLOBAL_RELOCATIONS_BEGIN',flush=True)
+        print(previous_reloc,end='',flush=True)
+        print('HIA_CLI_PREVIOUS_GLOBAL_RELOCATIONS_END',flush=True)
+        print('HIA_CLI_LOCAL_SYMBOL_RELOCATIONS_BEGIN',flush=True)
+        print(reloc,end='',flush=True)
+        print('HIA_CLI_LOCAL_SYMBOL_RELOCATIONS_END',flush=True)
+        assert 'R_X86_64_PC32' in previous_reloc and 'image_table' in previous_reloc
+        assert previous_syms==syms
         assert 'R_X86_64' not in reloc
         assert (ROOT/'tools/cli_native_executor.S').read_bytes()==assembly
     header=(b'\x7fELF\x02\x01\x01'+bytes(9)+

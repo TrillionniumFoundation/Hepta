@@ -20,19 +20,6 @@ try:
     context=common.prepare()
     base=Path(context["base"])
     workspace=Path(context["workspace"])
-    dependency=workspace/"native-edit-json-next/development/main-compile-r3/source/8/hia_composite_lowering_driver_common.py"
-    dependency_raw=dependency.read_bytes()
-    assert (len(dependency_raw),sha256(dependency_raw).hexdigest())==(17781,"fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1")
-    restored=workspace/"native-composite-driver-reconstructed/tools/hia_composite_lowering_driver_common.py"
-    assert not restored.exists(),"Do not replace an existing original"
-    restored.parent.mkdir(parents=True,exist_ok=True)
-    restored.write_bytes(dependency_raw)
-    assert restored.read_bytes()==dependency_raw
-    common.PINS[restored]=dependency_raw
-    common.save(common.OUTPUT/"private-common-dependency.json",dict(
-        schema="hia-exact-original-helper-relocation-v1",source=str(dependency),restored=str(restored),
-        bytes=len(dependency_raw),sha256=sha256(dependency_raw).hexdigest(),
-        frozen_original_not_modified=True,semantics_changed=False))
     programs=[
         ("restore-retained-fixtures",R3+"candidate/restore_application_retained_r1.py",
          "14248c3662c53e1e9499339c2723d1307907e148",base/"restore_application_retained_r1.py",300),
@@ -42,8 +29,8 @@ try:
          "0a08bc8e9de12a7efbacaacb7c80967b740376f3",base/"compile_candidate_snapshot_r1.py",180),
         ("build-complete-native-elf",R2+"build_candidate_snapshot_r2.py",
          "03a1d6b7439d45d176bf39c69121b912a4ad168f",base/"build_candidate_snapshot_r2.py",180),
-        ("private-44-witness-cases",R3+"candidate/test_snapshot_limit_protocol_r1.py",
-         "80533550364d339c9eccc0db1035df0a3de215c9",root/"development/test_snapshot_limit_protocol_r1.py",600),
+        ("private-44-witness-cases",R3+"candidate/test_snapshot_limit_protocol_r2.py",
+         "58f7afcfd900346344ee9dbaf08ebd00904dd2f5",root/"development/test_snapshot_limit_protocol_r2.py",600),
         ("whole-8MiB-and-plus-one",R3+"candidate/test_snapshot_whole_boundary_r1.py",
          "1d634d00b005145980308089c57bb23a3eddf2d2",root/"development/test_snapshot_whole_boundary_r1.py",600),
     ]
@@ -62,6 +49,7 @@ try:
     private=report("snapshot-limit-protocol-r1")
     assert private["status"]=="PASS" and private["cases"]==44 and private["actual_entries"]==82
     assert private["production_source_and_image_unchanged"] and private["captured_original_metadata_unchanged"]
+    assert private["original_constant_sources_unchanged"]
     boundary=report("snapshot-whole-boundary-r1")
     assert boundary["status"]=="PASS" and boundary["case_count"]==2 and boundary["source_before_after_equal"]
     assert all(row["status"]=="PASS" and row["cpu_s"]<=90 for row in boundary["results"])
@@ -77,7 +65,7 @@ try:
         CPU_seconds_per_public_native_child=90,wall_seconds_per_public_native_child=180,
         address_space_bytes_per_native_child=1<<30,
         image_build_matches_prior_component_hashes=True,
-        exact_missing_private_helper_restored=True,
+        original_constant_prefixes_used_without_unrelated_authoring_imports=True,
         sqlite_not_used_as_a_namespace_oracle=True)
     status="PASS"
 except BaseException as exc:
@@ -88,6 +76,5 @@ except BaseException as exc:
 finally:
     common.finish("candidate",status,details,{
         "candidate":root,
-        "restored-original-lowering-helper":common.BASE/"root-recovery/workspace/native-composite-driver-reconstructed/tools/hia_composite_lowering_driver_common.py",
         "prior-application-fixtures":common.BASE/"root-recovery/application-reference-r1"})
 if status!="PASS":raise SystemExit(1)

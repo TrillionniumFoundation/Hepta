@@ -21,7 +21,7 @@ EXPECTED = {
   "development/test_wire_pretty_reconstructed_r1.py": "9e142b2341cf0afcb15c32af2a1ac25509a82695dd26134704827fece1f0e406",
   "docs/RECONSTRUCTED_COMPONENTS_R1_HANDOFF.md": "e23bdd15175c846ef5cc3fb99bf3fc1df5164e10920c8e8715ffff73d6d217e0",
   "tools/generate_hia_cli_entry.py": "d3c0be75cfb3ef160adcc5a1c8e606ee61d204048318a23cfc7167c12a0d83e9",
-  "tools/cli_native_executor.S": "717f23a65686cabc8a2599e28079fa37645393eaa31e5e30cdc0cad6aef86c26",
+  "tools/cli_native_executor.S": "d44539b7bba266622d870c6065484e05030b7cce477ffb287d2ab0fd8c5d82c9",
   "development/original-rogrun-capture-compile-r1.py": "db0b3bb1e62e8911c5002d0871fa5272f51e57f3093ee63b27513fc2c1bfbc46",
   "development/original-rogrun-wire-compile-r1.py": "4c2582f362068775c225c7a71cb7df30d47f3a64f051de17b1fc9778bcfcb7e3",
   "development/original-rogrun-pretty-compile-r1.py": "1432f0af6ff1bfe9fc92dc5d1dc1dc1f6804c470b6d2788b3d5097bb26848a7a",
@@ -31,7 +31,7 @@ EXPECTED = {
   "tools/generate_hia_cli_file.py": "ebfac56dc0fe4cf225665efe4658743569f53de63df7999bd871391286203bdf",
   "development/test_file_reconstructed_r2.py": "b2cdc98a446ff52be32fbca0198d17dd20706bea00b7459655901c885f3b7186",
   "tools/cli_entry_owner.py": "d47f72eccb763bd4cc7ffb2a92aac7e96e3178c9f4df3c1bb60b9ccd68f0221c",
-  "tools/generate_hia_cli_native_packer.py": "0c3c3ef2e70ec4de523af08660a6ebfdec8960952933ad58119fd1f602cb8376",
+  "tools/generate_hia_cli_native_packer.py": "720e86506f7702cd9864a0273f5d652e860f565d1165b8903d79d68442856bdc",
   "development/build_cli_entry_reconstructed_r3.py": "fa2ec6c9a4ba819358d63226cbc14ed932ed0a3cc604d9da892ae086f6f79140",
   "docs/HIA_CLI_BUSINESS_HANDOFF_FIELDS.json": "4a67da8afe6d25b7765d67ea88fcf446dd5ea0fe82016ef2ab6695320c99d46b"
 }
@@ -138,6 +138,25 @@ def recover_inputs(context, mine):
     result6 = unpack_verified(archive6, rows, mine / "r6-exact-original", 823, 70930366)
     result6["archive_sha256"] = digest(raw)
     save(mine / "r6-ci-restoration.json", result6)
+    # Exact archived peer source export, independent of the entry's later outcome.
+    peer_exports = [
+        ("tools/generate_hia_graph_wire_common.py", 13815,
+         "32ceeceb285f9d3d3250a920c40ebd7bac8e1a44460c5321d714f6f5a0da2b3c"),
+        ("development/graph_harness_r3.py", 9783,
+         "75fe54554a93e19e30251073ac225deff944d6673d87ccc2b597e47a19e8be7c"),
+    ]
+    exported = []
+    for relative, size, expected in peer_exports:
+        path = mine / "r6-exact-original" / relative
+        original = path.read_bytes()
+        assert (len(original), digest(original)) == (size, expected)
+        row = dict(path=relative, bytes=size, sha256=expected,
+                   git_blob=git_sha(original), content=original.decode("utf-8"))
+        assert row["content"].encode("utf-8") == original
+        exported.append(row)
+        print("HIA_SOURCE_EXPORT " + json.dumps(row, ensure_ascii=True,
+                                                sort_keys=True), flush=True)
+    save(mine / "r6-peer-exact-source-exports.json", exported)
     return result14, result6
 
 def populate(context, mine, project, common):
@@ -410,7 +429,7 @@ def main():
             else:
                 caught.add_note("CLI portable raw export failed: " + repr(error))
         try:
-            common.finish("cli-independent-entry-continuation-r2", status, details, roots=roots)
+            common.finish("cli-independent-entry-continuation-r3", status, details, roots=roots)
         except BaseException as error:
             if caught is None:
                 raise

@@ -19,28 +19,35 @@ details=dict(scope="NEW_PRIVATE_REPORT_INSPECT_NORMALIZE_GRAPH_PROJECTION",
 try:
     context=common.prepare()
     workspace=Path(context["workspace"])
-    for relative in (
-      "native-edit-candidate-next/development/build-r1/source/156/generate_hia_edit_json_main.py",
-      "native-edit-candidate-next/development/build-r1/source/161/main_r4.py",
-      "native-edit-json-next/development/main-compile-r3/source/8/hia_composite_lowering_driver_common.py",
-      "native-edit-controller-next/tools/hia_edit_controller_common.py"):
-        path=workspace/relative
+    frozen=workspace/"native-edit-json-next/development/main-compile-r3/source"
+    requested={"generate_hia_legacy_import_driver.py","hia_composite_lowering_driver_services.py","edit_authoring.py","generate_hia_edit_service.py"}
+    inventory=[]
+    for path in sorted(frozen.rglob("*.py")):
         raw=path.read_bytes()
-        print("HIA_PROGRAM_INTEGRATION_SOURCE "+json.dumps(dict(
-            relative=relative,bytes=len(raw),sha256=sha256(raw).hexdigest(),
-            git_sha=sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest(),
-            text=raw.decode("utf-8")),sort_keys=True),flush=True)
+        row=dict(relative=path.relative_to(workspace).as_posix(),bytes=len(raw),
+            sha256=sha256(raw).hexdigest(),git_sha=sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest())
+        inventory.append(row)
+        if path.name in requested:
+            print("HIA_PROGRAM_INTEGRATION_SOURCE "+json.dumps(dict(**row,text=raw.decode("utf-8")),sort_keys=True),flush=True)
+    print("HIA_PROGRAM_AUTHORING_SOURCE_INDEX "+json.dumps(inventory,sort_keys=True),flush=True)
     programs=[
       ("generate-program-projector",R3+"program/generate_program_inspection_r1.py",
        "e46461267b7e0ee3e8173d4713e19d14f559c876",common.BASE/"generate_program_inspection_r1.py",300),
       ("compile-program-projector",R3+"program/compile_program_inspection_r1.py",
-       "9435a47a932061882b7940bff0baffdfe8b7ec28",common.BASE/"compile_program_inspection_r1.py",120),
+       "974d1ec32b22143270319c0fb46c8a5ebdd9304b",common.BASE/"compile_program_inspection_r1.py",120),
       ("actual-native-program-projection",R3+"program/test_program_inspection_r1.py",
        "931645f910ffa029f587390d3bc0a681175d65e3",root/"development/test_program_inspection_r1.py",180),
     ]
     for label,relative,expected,destination,timeout in programs:
         script=common.materialize(relative,expected,destination)
         common.run(label,[sys.executable,"-B",script],timeout=timeout)
+        report_path={
+            "generate-program-projector":root/"development/source-r1.json",
+            "compile-program-projector":root/"development/compile-r1/summary.json",
+            "actual-native-program-projection":root/"development/native-projection-r1/summary.json"}[label]
+        report=json.loads(report_path.read_bytes())
+        print("HIA_PROGRAM_STAGE "+json.dumps(dict(label=label,report={
+            k:v for k,v in report.items() if k not in ("case_results","protocol_results")}),sort_keys=True),flush=True)
     build=json.loads((root/"development/compile-r1/summary.json").read_bytes())
     native=json.loads((root/"development/native-projection-r1/summary.json").read_bytes())
     assert build["status"]==native["status"]=="PASS"

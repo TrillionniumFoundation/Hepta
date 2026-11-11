@@ -1,0 +1,78 @@
+{
+  "schema": "hia-worker-ci-first-failure-v1",
+  "head": "408c130d129992b7d1ef31d3e1e625b1c56af422",
+  "run_id": 43105934854,
+  "job_id": 130809129202,
+  "status": "FAIL",
+  "stage": "AUTHORING_CFG_VERIFY_BEFORE_B3",
+  "original_limits_unchanged": true,
+  "passed_restore_labels": [
+    "checkout-pinned-baseline",
+    "restore-exact-published-root-archives",
+    "import-exact-reference-objects",
+    "restore-exact-reference",
+    "worker-exact-dependency-restore"
+  ],
+  "new_b3_compiles": 0,
+  "new_records_cases": 0,
+  "new_journal_native_entries": 0,
+  "error_class": "hepta.hia_program.HIAProgramRejected",
+  "error": "E_HIA_SSA: f19/b4: undefined/nonlocal value v8",
+  "original_log": {
+    "path": "worker-408-original-job.log",
+    "bytes": 51667,
+    "sha256": "88f6b049d72782a10d4079d792bcd3fb03843306fefdeb1a6c17f00059dc8b2c",
+    "gitsha": "a66f3807a903395de939056d37d45d61a1d83dc4"
+  },
+  "failing_source": {
+    "path": "tools/service_journal_bridge.py",
+    "bytes": 18781,
+    "sha256": "c1e4322a7ffbb37179b9b38d369b1842c64431df4bc658afcaaac157e30c54a9",
+    "gitsha": "97beeaf5d8cf10ee9b92dacc8f22c3af6acea4fd",
+    "status": "NEW_UNEXECUTED_FIX_FOR_597_EARLY_REFUSAL_EMPTY_VIEW",
+    "baseline": "e3b01ccff4302da2cbb5fbf0b18a52fdc3733f31"
+  },
+  "observed_command": {
+    "label": "worker-journal-bridge-fresh-compiles",
+    "returncode": 1,
+    "timed_out": false,
+    "elapsed_ns": 566356140,
+    "child_cpu_seconds": 0.50862699999999,
+    "stdout_bytes": 453,
+    "stdout_sha256": "62579529f36531e22ddb9ddc011a4cb59ca846092fd33a26f61c411f7501af58",
+    "stderr_bytes": 4044,
+    "stderr_sha256": "39aa443cbd3f6cc6ad7259f95d1944f3f214f1cdf31c40b868e549905a7b2269"
+  },
+  "diagnosis": "The new event fields use nested choose(short-circuit-and) inside put arguments; f19 is event. The authoring Builder carries an earlier call operand across the generated short-circuit branch, rejected by unchanged SSA validation. This is a source-generation failure, not an observed native semantic result.",
+  "fix": {
+    "scope": "NEW_UNEXECUTED_R6",
+    "source": {
+      "path": "tools/service_journal_bridge.py",
+      "bytes": 18860,
+      "sha256": "7097c244df5c8225d5a8c984a47bc3df5822f3c7e97f9968a6802cbff9e059bf",
+      "gitsha": "67bbe545e377755dbdd913a62397dbb4584d5dd1"
+    },
+    "description": "Move the same out-of-bounds empty-view condition into a pure scalar helper. All nonempty and in-bounds empty offsets stay unchanged. No compiler/verifier changes, no error or budget weakening."
+  },
+  "not_run": [
+    "foreign-boundary",
+    "boundary-exact",
+    "boundary-plusone",
+    "protocol"
+  ],
+  "prior_597_results_not_inherited_as_this_run": true,
+  "artifact": {
+    "id": 13893668309,
+    "name": "hia-worker-recovery-43105934854-1",
+    "zip_bytes": 44616976,
+    "zip_sha256": "4619dadff6a0f48b9ec38780aa5c8f3ac77ed0ad6177856d9fa6c2c7ba206f78",
+    "tar_bytes": 5396304,
+    "tar_sha256": "b7ae9550a9b2cf2652ba2b351b29e1e6f2c2f1d1d35b7f0c25038c31f5a3c281",
+    "members": 78,
+    "original_bytes": 40812533,
+    "member_index_bytes": 24918,
+    "member_index_sha256": "8277f3667f29f929b353491356ee4e91b8b52f55a77665a3f0d8b8cc011bf820",
+    "provenance": "Numbers observed from original CI logs; no independent ZIP-byte readback claimed."
+  },
+  "whole_worker_closed": false
+}

@@ -491,6 +491,12 @@ def refuse(w:mutbuf, reason:u64) -> u32:
     event(w, 4)
     return BAD
 
+def bounded_empty_view(w:mutbuf, at:u64, size:u64) -> u64:
+    if size == 0:
+        if at > length(w):
+            return 0
+    return at
+
 def event(w:mutbuf, action:u64) -> u32:
     if get(w, 32) == MAX:
         put(w, 8, 5)
@@ -514,11 +520,11 @@ def event(w:mutbuf, action:u64) -> u32:
     put(w, 376, 512)
     put(w, 384, get(w, 128))
     put(w, 392, get(w, 136))
-    put(w, 400, choose(get(w, 144) == 0 and OUTPUT > length(w), 0, OUTPUT))
+    put(w, 400, bounded_empty_view(w, OUTPUT, get(w, 144)))
     put(w, 408, get(w, 144))
-    put(w, 416, choose(get(w, 152) == 0 and OUTPUT + LIMIT > length(w), 0, OUTPUT + LIMIT))
+    put(w, 416, bounded_empty_view(w, OUTPUT + LIMIT, get(w, 152)))
     put(w, 424, get(w, 152))
-    put(w, 432, choose(get(w, 160) == 0 and get(w, 112) > length(w), 0, get(w, 112)))
+    put(w, 432, bounded_empty_view(w, get(w, 112), get(w, 160)))
     put(w, 440, get(w, 160))
     put(w, 448, get(w, 168))
     put(w, 456, 2048)

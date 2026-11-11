@@ -26,7 +26,7 @@ try:
     pin(__file__)
     sys.path.insert(0,str(REF));sys.dont_write_bytecode=True
     from tools.qualify_hia_selfhost import compile_stage
-    assert sha256(pin(REF/"tools/qualify_hia_selfhost.py")).hexdigest()=="f4bcf8c4c3ee9554c8d9fc442ebaf82113fff81bc88a693b7b4e001c8a8f0567"
+    assert sha256(pin(REF/"tools/qualify_hia_selfhost.py")).hexdigest()=="2674bbc29a67214c16595a226a0dfb28d3dcf56e238058d45e618dd42925cb76"
     assert sha256(pin(REF/"tools/hia_selfhost_child.py")).hexdigest()=="1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29"
     assert len(pin(COMPILER))==669556
     assert sha256(pin(COMPILER)).hexdigest()=="35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
@@ -65,7 +65,7 @@ except BaseException as exc:
         if path.is_file():
             print("EXACT_NESTED_COMPILE_EVIDENCE "+json.dumps(dict(
                 name=filename,bytes=path.stat().st_size,sha256=sha256(path.read_bytes()).hexdigest(),
-                text=path.read_text())),flush=True)
+                text=path.read_text())),file=sys.stderr,flush=True)
 finally:
     equal=all(path.read_bytes()==raw for path,raw in PINS.items())
     summary.update(source_and_image_before_after_equal=equal,wall_elapsed_ns=time.monotonic_ns()-start)

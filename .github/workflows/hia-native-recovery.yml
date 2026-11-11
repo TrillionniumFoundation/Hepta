@@ -304,7 +304,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-ci/worker_journal_remaining_ci_r5.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-ci/worker_journal_remaining_ci_r6.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -388,6 +388,52 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-contract-audit
             ${{ runner.temp }}/hia-contract-audit-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  namespace_readback:
+    name: Read exact completed filesystem carrier evidence
+    if: contains(github.event.head_commit.message, '[hia-ci:namespace-readback]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted readback source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install exact CPython for the evidence reader
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact completed filesystem carrier artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893997012'
+          run-id: '43105934854'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-carrier-408
+      - name: Verify full original artifact and read the two exact summaries
+        shell: bash
+        env:
+          HIA_NAMESPACE_CARRIER_READBACK_DIR: ${{ runner.temp }}/hia-carrier-408
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-carrier-408-readback
+        run: >-
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-carrier-readback-r1.py
+          2>&1 | tee "$RUNNER_TEMP/hia-carrier-408-readback-driver.log"
+      - name: Preserve complete independent artifact readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-carrier-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-carrier-408-readback
+            ${{ runner.temp }}/hia-carrier-408-readback-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

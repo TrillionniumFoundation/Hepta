@@ -8,7 +8,7 @@
  */
 .intel_syntax noprefix
 .section .text
-.global executor_start,image_table,executor_end
+.global executor_start
 .equ LEASE,2056
 .equ SEQ,2064
 .equ CMDLEN,2072
