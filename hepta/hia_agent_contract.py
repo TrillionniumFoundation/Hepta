@@ -32,6 +32,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/retirement_state.hiaasm',
     'examples/hia_bootstrap/execution_budget.hiaasm',
     'examples/hia_bootstrap/request_journal.hiaasm',
+    'examples/hia_bootstrap/artifact_namespace.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
@@ -56,6 +57,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/core_patch.hiaasm',
     'examples/hia_bootstrap/composite_types.hiaasm',
     'examples/hia_bootstrap/task_helpers.hiaasm',
+    'examples/hia_bootstrap/task_helper_cache.hiaasm',
     'examples/hia_bootstrap/enum_match.hiaasm',
     'examples/hia_bootstrap/enum_operations.hiaasm',
     'examples/hia_bootstrap/record_operations.hiaasm',
@@ -66,6 +68,15 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/task_operations.hiaasm',
     'examples/hia_bootstrap/nominal_module.hiaasm',
     'examples/hia_bootstrap/nominal_admission.hiaasm',
+    'examples/hia_bootstrap/composite_function_admit.hiaasm',
+    'examples/hia_bootstrap/composite_function_records.hiaasm',
+    'examples/hia_bootstrap/composite_function_advanced.hiaasm',
+    'examples/hia_bootstrap/composite_function_terms.hiaasm',
+    'examples/hia_bootstrap/composite_function_render.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_owner.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_render.hiaasm',
+    'examples/hia_bootstrap/composite_outer_owner.hiaasm',
+    'examples/hia_bootstrap/composite_outer_render.hiaasm',
 )
 
 

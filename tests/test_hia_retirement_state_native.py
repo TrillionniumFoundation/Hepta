@@ -232,10 +232,48 @@ class RetirementStateSourceTests(unittest.TestCase):
                     build(root / 'output', root / 'compiler', root / 'cold')
             self.assertFalse((root / 'output').exists())
 
+    def test_native_fixture_rejects_unqualified_cold_without_bootstrap_fallback(self):
+        class UnqualifiedFixture(RetirementStateNativeTests):
+            pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            compiler = root / 'compiler'; compiler.write_bytes(b'not-qualified')
+            nested = root / 'nested.json'
+            nested.write_text(json.dumps({'generations': [{'produced_image': str(compiler)}]}))
+            cold = root / 'cold.json'; cold.write_text(json.dumps({'nested_report': str(nested)}))
+            environment = {'HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT': str(cold),
+                'HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER': '',
+                'HEPTA_HIA_RETIREMENT_STATE_EVIDENCE': str(root / 'evidence')}
+            with patch.dict(os.environ, environment), \
+                    patch(__name__ + '.VM', return_value=object()), \
+                    patch(__name__ + '.witnesses', return_value=[]), \
+                    patch('tools.qualify_hia_selfhost.build_seed', side_effect=AssertionError('bootstrap entered')), \
+                    patch('tools.qualify_hia_selfhost.compile_stage', side_effect=AssertionError('compiler entered')):
+                try:
+                    with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
+                        UnqualifiedFixture.setUpClass()
+                finally:
+                    UnqualifiedFixture.doClassCleanups()
+            self.assertFalse((root / 'evidence/UnqualifiedFixture/qualified').exists())
+
+    def test_native_fixture_refuses_conflicting_cold_and_development_selection(self):
+        class ConflictingFixture(RetirementStateNativeTests):
+            pass
+        with patch.dict(os.environ, {
+                'HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT': '/absent-cold',
+                'HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER': '/absent-development'}), \
+                patch(__name__ + '.VM', side_effect=AssertionError('VM entered')):
+            with self.assertRaisesRegex(AssertionError, 'development fixture cannot override cold'):
+                ConflictingFixture.setUpClass()
+
 
 class RetirementStateNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        development = os.environ.get('HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER')
+        cold = os.environ.get('HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT')
+        if development and cold:
+            raise AssertionError('development fixture cannot override cold source custody')
         cls.vm_rows = witnesses(VM())
         from tools.qualify_hia_selfhost import build_seed, compile_stage
         cls.temporary = None
@@ -248,7 +286,28 @@ class RetirementStateNativeTests(unittest.TestCase):
         else:
             cls.temporary = tempfile.TemporaryDirectory(prefix='hia-retirement-state-')
             cls.folder = Path(cls.temporary.name)
-        development = os.environ.get('HEPTA_HIA_RETIREMENT_DEVELOPMENT_COMPILER')
+            cls.addClassCleanup(cls.temporary.cleanup)
+        if cold:
+            from tools.build_hia_retirement_state import build
+            report_path = Path(cold)
+            report_bytes = report_path.read_bytes()
+            report = json.loads(report_bytes)
+            nested = json.loads(Path(report['nested_report']).read_bytes())
+            compiler = Path(nested['generations'][-1]['produced_image'])
+            cls.manifest = build(cls.folder / 'qualified', compiler, report_path)
+            if report_path.read_bytes() != report_bytes:
+                raise ValueError('retirement cold fixture report changed during admission')
+            cls.image = installed_retirement_state(str(cls.manifest))
+            manifest = json.loads(cls.manifest.read_bytes())
+            (cls.folder / 'fixture.json').write_text(json.dumps({
+                'mode': 'MATCHING_SOURCE_COLD_BUILD',
+                'compiler_sha256': manifest['compiler_sha256'],
+                'source_sha256': manifest['source_sha256'],
+                'image_sha256': manifest['image_sha256'],
+                'cold_report_sha256': sha256(report_bytes).hexdigest(),
+                'manifest': str(cls.manifest),
+                'matching_current_source_cold_qualified': True}, indent=2) + '\n')
+            return
         if development:
             compiler = Path(development)
             identity = {'mode': 'DEVELOPMENT_REUSED_COMPILER', 'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}

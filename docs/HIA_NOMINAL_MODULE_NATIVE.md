@@ -1,5 +1,29 @@
 # Native nominal module producer
 
+## Temporary arenas and continuation permission
+
+The bridge initializes both arena references before allocation and releases
+partial allocations on every `BaseException`. Public `lower` always releases
+both arenas in `finally`, including success, late HIA inventory refusal and a
+foreign callback interruption. A retained exception traceback cannot keep the
+8 MiB output and 8 MiB workspace alive through the closed context. Private
+step callers retain completed frames until their explicit `close()`.
+
+Only the exact result object issued by the latest native step can authorize a
+continuation. A copied or invented result, a completed request, or a closed
+context refuses before a foreign call. The bridge consumes that permission
+before invoking the callback, requires the completed acknowledgement before
+the next native step, and closes on interruption. The original callback
+exception and already visible function/helper prefix are preserved.
+
+The recovery audit previously observed unissued callbacks, replay after a
+callback interruption, and arenas retained by original exception tracebacks.
+Those observations concern the old adapter. The local reset removed the last
+module repair's full source and raw report; its retained tool observation is
+explicitly historical. This repair and its reconstructed regression controls
+are a new revision and require evidence tied to their current bytes. No old
+pass, cold result or deletion permission is transferred to this revision.
+
 `nominal_module.hiaasm` owns the complete module-production policy formerly
 in `_Elaborator.lower`: original function order, helper suffix placement,
 late whole-module inventory admission, scalar export eligibility, ASCII name

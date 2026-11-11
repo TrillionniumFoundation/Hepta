@@ -28,15 +28,21 @@ owns declaration checks, generic binding, finite layouts and partial-record
 obligations for all four composite versions, source-level returned-loan origins,
 parameter admission and task-protocol checks. A separately selected
 [native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The ordinary
-elaborator consumes their results; remaining operation lowering and the durable
-Agent remain hosted owners.
+complete start, poll, cancel, join and close Core functions. Two explicit
+native nominal routes are retained during integration: the
+[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) and
+the [individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md).
+The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
+moves constructor admission, ordered signatures, complete function/helper
+aggregation, late limits, exports and primitive schema selection into HIA.
 An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
 owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission while preserving the existing service's durable request identity.
-The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
-checks and publishes a bounded immutable release from an operator-pinned bundle.
-It does not select the active worker or replace the service journal.
+admission. Separate native request journal and execution budget owners retain
+the existing service's transaction and foreign-resource boundaries.
+The [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) checks and
+publishes a bounded immutable release from an operator-pinned bundle.
+Default selection and whole-stack delivery remain unqualified; the old owners
+are retained until the corresponding complete replacement is qualified.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

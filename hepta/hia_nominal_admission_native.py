@@ -58,25 +58,66 @@ class AdmissionResult:
             raise HIAProgramRejected(message, code)
 
 
+def _result_wire(result):
+    return transport([result.error, result.request, result.index, result.item,
+                      result.sequence, result.value])
+
+
 class AdmissionContext:
     """Retained original object custody and fixed native dependency calls."""
     def __init__(self, owner, document, legacy=False):
         self.owner, self.document = owner, document
         self.legacy = legacy
-        self.wire = transport([None, secrets.token_hex(16), document])
-        self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        self.sequence = self.executed = 0
+        self.output = self.workspace = None
+        self._created_types = None
+        self._pending = None
+        self._pending_wire = None
+        self.sequence = self.executed = self.completed = 0
         self.closed = False
-        self.acknowledge(0, 0)
+        try:
+            self.wire = transport([None, secrets.token_hex(16), document])
+            self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+            self.acknowledge(0, 0)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        self.closed = True
+        self.output = self.workspace = None
+        self._pending = None
+        self._pending_wire = None
+        created, self._created_types = self._created_types, None
+        # Only publication of this exact object transfers its custody. A
+        # partially initialized private owner retains its original prefix.
+        if created is not None and getattr(self.owner, 'native_types', None) is not created:
+            created.close()
 
     def acknowledge(self, sequence, action, index=0, item=0):
         ctypes.memmove(self.output, struct.pack('<8Q', MAGIC, sequence, action, index, item, 0, 0, 0), 64)
 
     def invoke(self, result):
-        if self.closed or result.sequence != self.sequence or result.sequence <= self.executed:
+        if (self.closed or self._pending is None or result is not self._pending
+                or result.sequence != self.sequence or result.sequence <= self.executed):
             rejected('callback is not the current unexecuted continuation')
+        try:
+            unchanged = _result_wire(result) == self._pending_wire
+        except (TypeError, ValueError, UnicodeError, KeyError, RecursionError, OverflowError) as exc:
+            rejected('issued continuation representation changed: ' + str(exc))
+        if not unchanged:
+            rejected('issued continuation representation changed')
         self.executed = result.sequence
+        try:
+            self._invoke(result)
+            self.completed = result.sequence
+            self._pending = None
+            self._pending_wire = None
+        except BaseException:
+            self.closed = True
+            raise
+
+    def _invoke(self, result):
         owner, document = self.owner, self.document
         action, index, item, value = result.request, result.index, result.item, result.value
         self.wire = transport(None)
@@ -87,12 +128,12 @@ class AdmissionContext:
             owner.serial = value['serial']; owner.value_slots = value['value_slots']
         elif action == 12:
             from .hia_composite_types_native import selected_composite_types
-            selected = selected_composite_types(document['types'],
+            self._created_types = selected_composite_types(document['types'],
                 recursive_chain=value['recursive_chain'], partial_records=value['partial_records'])
-            if selected is None:
+            if self._created_types is None:
                 rejected('selected admission requires the selected native type owner')
-            owner.native_types = selected
-            owner.types = selected
+            owner.native_types = self._created_types
+            owner.types = self._created_types
         elif action == 2:
             owner.parameter_loan_returns = value
         elif action == 3:
@@ -136,6 +177,15 @@ class NativeNominalAdmission(NativeHiaJsonImage):
     def step(self, context):
         if context.closed:
             rejected('closed admission context cannot resume')
+        if context._pending is not None or context.completed != context.sequence:
+            rejected('previous declaration continuation has not completed')
+        try:
+            return self._step(context)
+        except BaseException:
+            context.closed = True
+            raise
+
+    def _step(self, context):
         wire = context.wire
         if type(wire) is not bytes or len(wire) > INPUT_BYTES:
             rejected('invalid source extent')
@@ -182,9 +232,13 @@ class NativeNominalAdmission(NativeHiaJsonImage):
         except (TypeError, ValueError, UnicodeError, KeyError, RecursionError, OverflowError) as exc:
             rejected('invalid complete declaration graph: ' + str(exc))
         context.sequence = sequence
+        result = AdmissionResult(error, request, index, item, sequence, value)
         if request == 0:
             context.closed = True
-        return AdmissionResult(error, request, index, item, sequence, value)
+        else:
+            context._pending_wire = _result_wire(result)
+            context._pending = result
+        return result
 
     def initialize(self, owner, document, *, legacy=False):
         context = AdmissionContext(owner, document, legacy)
@@ -195,9 +249,8 @@ class NativeNominalAdmission(NativeHiaJsonImage):
                 if not result.request:
                     return
                 context.invoke(result)
-        except BaseException:
-            context.closed = True
-            raise
+        finally:
+            context.close()
 
 
 def installed_nominal_admission(manifest):

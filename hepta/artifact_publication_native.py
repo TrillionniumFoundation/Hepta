@@ -8,6 +8,20 @@ from hashlib import sha256
 import fcntl,json,os,re,struct,subprocess
 from pathlib import Path
 
+from .artifact_publication import PublicationRejected
+
+
+class NativePublicationRefusal(PublicationRejected):
+    """An actual returned process result; this never authorizes effect replay.
+
+    A caller may distinguish a confirmed read-only refusal from a lost process
+    or receipt handoff. The original exception superclass and text are retained.
+    No such distinction proves that a mutating publication had no effects.
+    """
+    def __init__(self, message, operation, returncode):
+        super().__init__(message)
+        self.operation, self.returncode = operation, returncode
+
 
 NATIVE_PUBLICATION_OPERATIONS = ('publish','verify','withdraw','store-put','store-get','store-hash')
 NATIVE_PUBLICATION_SOURCES = (
@@ -142,8 +156,9 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
     codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
            14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
     if result.returncode or result.stderr:
-        _reject(codes.get(result.returncode,'E_PUBLISH_IO'),
-                'native '+operation+' refused or I/O failed; no automatic replay')
+        raise NativePublicationRefusal(codes.get(result.returncode,'E_PUBLISH_IO')+': '+
+            'native '+operation+' refused or I/O failed; no automatic replay',
+            operation, result.returncode)
     return result.stdout
 
 

@@ -136,7 +136,71 @@ def _index(raw, *, references=False):
     return nodes
 
 
-def decode_native_graph(encoded, original, external=()):
+class NativeGraphBinding:
+    """Bind decoder-owned structure while retaining opaque external identity.
+
+    Shallow snapshots store references rather than copying values.
+    Concatenations retain their pieces instead of duplicating expanded arrays.
+    External contents keep the existing pool-custody contract.
+    """
+    __slots__ = ('_root', '_records')
+
+    def __init__(self):
+        self._records = []
+
+    def _array(self, value):
+        self._records.append(('array', value, tuple(value)))
+
+    def _mapping(self, value):
+        self._records.append(('mapping', value, tuple(value), tuple(value.values())))
+
+    def _concatenation(self, value, pieces):
+        self._records.append(('concatenation', value, tuple(pieces),
+                              tuple(len(piece) for piece in pieces), len(value)))
+
+    def _seal(self, root):
+        self._root = root
+        self._records = tuple(self._records)
+
+    def validate(self, root):
+        if root is not self._root:
+            raise ValueError('native graph root is not the issued object')
+        for record in self._records:
+            kind, value = record[:2]
+            if kind == 'array':
+                expected = record[2]
+                if (type(value) is not list or len(value) != len(expected)
+                        or any(actual is not held for actual, held in zip(value, expected))):
+                    raise ValueError('native graph array changed after issue')
+            elif kind == 'mapping':
+                keys, values = record[2:]
+                if (type(value) is not dict or len(value) != len(keys)
+                        or any(actual is not held for actual, held in zip(value, keys))
+                        or any(actual is not held for actual, held in zip(value.values(), values))):
+                    raise ValueError('native graph mapping changed after issue')
+            else:
+                pieces, lengths, total = record[2:]
+                if type(value) is not list or len(value) != total:
+                    raise ValueError('native graph concatenation extent changed after issue')
+                index = 0
+                for piece, count in zip(pieces, lengths):
+                    if len(piece) != count:
+                        raise ValueError('held native array extent changed after issue')
+                    for held in piece:
+                        if value[index] is not held:
+                            raise ValueError('native graph concatenation changed after issue')
+                        index += 1
+
+
+def decode_bound_native_graph(encoded, original, external=()):
+    """Decode a value and retain its exact issued structural binding."""
+    binding = NativeGraphBinding()
+    value = decode_native_graph(encoded, original, external, _binding=binding)
+    binding._seal(value)
+    return value, binding
+
+
+def decode_native_graph(encoded, original, external=(), *, _binding=None):
     """Decode a complete native-produced object; original bytes are immutable.
 
     Tag 8 contains one u64 original-node offset. Tag 9 contains a u64 count
@@ -215,6 +279,7 @@ def decode_native_graph(encoded, original, external=()):
         if kind == 9:
             count, = struct.unpack_from('<Q', payload)
             result = []
+            pieces = [] if _binding is not None else None
             for index in range(count):
                 target, = struct.unpack_from('<Q', payload, 8 + index * 8)
                 if target not in source_nodes or source_nodes[target][0] != 5:
@@ -222,16 +287,24 @@ def decode_native_graph(encoded, original, external=()):
                 values = source(target)
                 charge(len(values))
                 result.extend(values)
+                if pieces is not None:
+                    pieces.append(values)
+            if _binding is not None:
+                _binding._concatenation(result, pieces)
             return result
         if kind == 10:
             value = pooled(struct.unpack('<Q', payload)[0], depth)
             if type(value) is tuple:
                 charge(len(value))
-                return list(value)
+                result = list(value)
+                if _binding is not None:
+                    _binding._concatenation(result, (value,))
+                return result
             return value
         if kind == 11:
             count, = struct.unpack_from('<Q', payload)
             result = []
+            pieces = [] if _binding is not None else None
             for index in range(count):
                 identifier, = struct.unpack_from('<Q', payload, 8 + index * 8)
                 values = pooled(identifier, depth)
@@ -239,6 +312,10 @@ def decode_native_graph(encoded, original, external=()):
                     raise ValueError('native external concatenation needs held arrays')
                 charge(len(values))
                 result.extend(values)
+                if pieces is not None:
+                    pieces.append(values)
+            if _binding is not None:
+                _binding._concatenation(result, pieces)
             return result
         if kind not in (5, 6):
             raise ValueError('native object contains an opaque host value')
@@ -250,6 +327,8 @@ def decode_native_graph(encoded, original, external=()):
             for _ in range(count):
                 result.append(decode(raw, nodes, cursor, output, depth + 1))
                 cursor = nodes[cursor][2]
+            if _binding is not None:
+                _binding._array(result)
             return result
         result = {}
         for _ in range(count):
@@ -259,6 +338,8 @@ def decode_native_graph(encoded, original, external=()):
                 raise ValueError('native object has a duplicate/non-string key')
             result[key] = decode(raw, nodes, cursor, output, depth + 1)
             cursor = nodes[cursor][2]
+        if _binding is not None:
+            _binding._mapping(result)
         return result
 
     return decode(encoded, output_nodes, 0, True)

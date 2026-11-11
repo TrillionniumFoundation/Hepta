@@ -1,7 +1,10 @@
 """Original declaration refusal order and partial owner state under native control."""
 from __future__ import annotations
+from contextlib import contextmanager
 from copy import deepcopy
 import ctypes
+from dataclasses import replace
+import dis
 from hashlib import sha256
 import io
 import json
@@ -14,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import weakref
 
 from hepta import hia_program_composite as composite
 from hepta import hia_composite_types_native as native_types
@@ -32,6 +36,44 @@ ROOT = Path(__file__).resolve().parents[1]
 COLD_REPORT = 'HEPTA_HIA_NOMINAL_ADMISSION_COLD_REPORT'
 DEVELOPMENT_MANIFEST = 'HEPTA_HIA_NOMINAL_ADMISSION_DEVELOPMENT_MANIFEST'
 TYPES_DEVELOPMENT_MANIFEST = 'HEPTA_HIA_NOMINAL_ADMISSION_TYPES_DEVELOPMENT_MANIFEST'
+
+
+@contextmanager
+def observed_contexts():
+    """Keep contexts alive while observing their actual arena ownership."""
+    original, contexts, buffers = AdmissionContext.__init__, [], []
+    def initialize(context, *args, **kwargs):
+        original(context, *args, **kwargs)
+        contexts.append(context)
+        buffers.extend(weakref.ref(value) for value in (context.output, context.workspace))
+    with patch.object(AdmissionContext, '__init__', new=initialize):
+        yield contexts, buffers
+
+
+@contextmanager
+def interrupt_store(code, attribute, error):
+    """Inject at a positively observed real STORE_ATTR, before its write."""
+    offsets = [item.offset for item in dis.get_instructions(code)
+               if item.opname == 'STORE_ATTR' and item.argval == attribute]
+    if len(offsets) != 1:
+        raise AssertionError((attribute, offsets))
+    injections, previous = [], sys.gettrace()
+    def trace(frame, event, arg):
+        if frame.f_code is code:
+            frame.f_trace_opcodes = True
+            if event == 'opcode' and frame.f_lasti == offsets[0]:
+                injections.append(frame.f_lasti)
+                raise error
+        return trace
+    trace_frame = sys._getframe()
+    previous_opcode_flag = trace_frame.f_trace_opcodes
+    trace_frame.f_trace_opcodes = True
+    try:
+        sys.settrace(trace)
+        yield injections
+    finally:
+        sys.settrace(previous)
+        trace_frame.f_trace_opcodes = previous_opcode_flag
 
 
 def outcome(call):
@@ -124,7 +166,9 @@ class NominalAdmissionAdapterTests(unittest.TestCase):
         request = AdmissionResult(0, 3, 0, 0, 1, None)
         with self.assertRaises(HIAProgramRejected):
             context.invoke(request)
-        context.sequence = 1
+        with self.assertRaises(HIAProgramRejected):
+            context.invoke(None)
+        request = self.image(self.frame(request=3)).step(context)
         context.invoke(request)
         context.owner.functions['retained'] = {}
         with self.assertRaises(HIAProgramRejected):
@@ -133,6 +177,37 @@ class NominalAdmissionAdapterTests(unittest.TestCase):
         context.closed = True
         with self.assertRaises(HIAProgramRejected):
             self.image(0).step(context)
+        context.close()
+
+    def test_partial_real_allocations_release_with_original_exception_held(self):
+        allocate = ctypes.create_string_buffer
+        for failure in (1, 2):
+            for exception in (MemoryError, KeyboardInterrupt):
+                with self.subTest(allocation=failure, exception=exception.__name__):
+                    error = exception('original allocation interruption')
+                    calls, buffers = [], []
+                    context = AdmissionContext.__new__(AdmissionContext)
+                    def measured(*args, **kwargs):
+                        calls.append(args)
+                        if len(calls) == failure:
+                            raise error
+                        value = allocate(*args, **kwargs)
+                        self.assertEqual(ctypes.sizeof(value), OUTPUT_BYTES)
+                        buffers.append(weakref.ref(value))
+                        return value
+                    with patch.object(ctypes, 'create_string_buffer', new=measured):
+                        try:
+                            context.__init__(object.__new__(composite._Elaborator), scalar_edges())
+                        except BaseException as caught:
+                            self.assertIs(caught, error)
+                            self.assertIsNotNone(caught.__traceback__)
+                            self.assertTrue(context.closed)
+                            self.assertIsNone(context.output)
+                            self.assertIsNone(context.workspace)
+                            self.assertTrue(all(reference() is None for reference in buffers))
+                        else:
+                            self.fail('allocation fault was not injected')
+                    self.assertEqual(len(calls), failure)
 
 
 class NominalAdmissionNativeTests(unittest.TestCase):
@@ -525,6 +600,295 @@ int main(void){
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
         ran = subprocess.run([str(executable)], capture_output=True, timeout=30)
         self.assertEqual((ran.returncode, ran.stdout, ran.stderr), (0, b'1 1 1\n', b''))
+
+    def test_initialize_releases_real_arenas_on_success_and_original_refusals(self):
+        class Legacy:
+            def __init__(self, fail, error):
+                self.calls, self.fail, self.error = 0, fail, error
+            def __bool__(self):
+                self.calls += 1
+                if self.calls == self.fail:
+                    raise self.error
+                return False
+        for mode in ('success', 'schema', 'first-truth', 'second-truth', 'inventory', 'effects'):
+            with self.subTest(mode=mode):
+                document, owner = scalar_edges(), object.__new__(composite._Elaborator)
+                interruption = KeyboardInterrupt(mode)
+                legacy = Legacy(1 if mode == 'first-truth' else 2, interruption) if 'truth' in mode else False
+                if mode == 'schema': document['schema'] = 'unknown'
+                if mode == 'inventory': document['functions'] = []
+                if mode == 'effects': document['functions'][0]['effects'] = ['unknown']
+                entered, original_entry = [], self.native._entry
+                def measured(*args):
+                    entered.append(True)
+                    return original_entry(*args)
+                try:
+                    with self.selected_types(), observed_contexts() as (contexts, buffers), \
+                            patch.object(self.native, '_entry', new=measured):
+                        held = None
+                        try:
+                            self.native.initialize(owner, document, legacy=legacy)
+                        except BaseException as error:
+                            held = error
+                        if mode == 'success':
+                            self.assertIsNone(held)
+                        elif 'truth' in mode:
+                            self.assertIs(held, interruption)
+                            self.assertEqual(legacy.calls, 1 if mode == 'first-truth' else 2)
+                            self.assertEqual(set(vars(owner)), set() if mode == 'first-truth' else
+                                             {'document', 'serial', 'value_slots'})
+                        else:
+                            self.assertIsInstance(held, HIAProgramRejected)
+                        if held is not None:
+                            self.assertIsNotNone(held.__traceback__)
+                        self.assertTrue(entered)
+                        self.assertEqual(len(contexts), 1)
+                        self.assertTrue(contexts[0].closed)
+                        self.assertIsNone(contexts[0]._created_types)
+                        self.assertTrue(all(reference() is None for reference in buffers))
+                        if getattr(owner, 'native_types', None) is not None:
+                            self.assertFalse(owner.native_types._closed)
+                            self.assertIs(owner.types, owner.native_types)
+                finally:
+                    if getattr(owner, 'native_types', None) is not None:
+                        owner.native_types.close()
+
+    def test_unpublished_and_transferred_type_sessions_follow_exact_identity(self):
+        original_factory = native_types.selected_composite_types
+        original_ack = AdmissionContext.acknowledge
+        for mode in ('unpublished', 'unrelated', 'half-published', 'before-ack'):
+            with self.subTest(mode=mode):
+                error, created, unrelated_closed = KeyboardInterrupt(mode), [], []
+                stop = 'native_types' if mode in ('unpublished', 'unrelated') else 'types'
+                if mode == 'before-ack': stop = None
+                class Owner(composite._Elaborator):
+                    def __setattr__(self, name, value):
+                        if name == stop:
+                            raise error
+                        object.__setattr__(self, name, value)
+                class Unrelated:
+                    def close(self): unrelated_closed.append(True)
+                owner = object.__new__(Owner)
+                unrelated = Unrelated()
+                if mode == 'unrelated': object.__setattr__(owner, 'native_types', unrelated)
+                def selected(*args, **kwargs):
+                    value = original_factory(*args, **kwargs)
+                    created.append(value)
+                    return value
+                def acknowledge(context, sequence, action, index=0, item=0):
+                    if mode == 'before-ack' and action == 12:
+                        raise error
+                    return original_ack(context, sequence, action, index, item)
+                try:
+                    with self.selected_types(), observed_contexts() as (contexts, buffers), \
+                            patch.object(native_types, 'selected_composite_types', new=selected), \
+                            patch.object(AdmissionContext, 'acknowledge', new=acknowledge):
+                        try:
+                            self.native.initialize(owner, scalar_edges())
+                        except BaseException as held:
+                            self.assertIs(held, error)
+                            self.assertIsNotNone(held.__traceback__)
+                            self.assertEqual(len(created), 1)
+                            self.assertTrue(all(reference() is None for reference in buffers))
+                            self.assertIsNone(contexts[0]._created_types)
+                            transferred = mode in ('half-published', 'before-ack')
+                            self.assertEqual(created[0]._closed, not transferred)
+                            if transferred:
+                                self.assertIs(owner.native_types, created[0])
+                                self.assertIsNotNone(created[0]._state)
+                            else:
+                                self.assertIsNone(created[0]._state)
+                            if mode == 'unrelated': self.assertIs(owner.native_types, unrelated)
+                            self.assertEqual('types' in vars(owner), mode == 'before-ack')
+                            self.assertEqual(unrelated_closed, [])
+                            contexts[0].close()
+                            self.assertEqual(unrelated_closed, [])
+                        else:
+                            self.fail('type handoff interruption was not injected')
+                finally:
+                    for value in created: value.close()
+
+    def test_actual_type_return_store_opcodes_keep_custody_and_partial_prefix(self):
+        original_factory = native_types.selected_composite_types
+        for attribute in ('_created_types', 'native_types', 'types'):
+            with self.subTest(attribute=attribute):
+                owner, sessions, type_buffers = object.__new__(composite._Elaborator), [], []
+                error = KeyboardInterrupt('type handoff ' + attribute)
+                def selected(*args, **kwargs):
+                    value = original_factory(*args, **kwargs)
+                    sessions.append(weakref.ref(value))
+                    type_buffers.extend((weakref.ref(value._state), weakref.ref(value._output)))
+                    return value
+                try:
+                    with self.selected_types(), observed_contexts() as (contexts, buffers), \
+                            patch.object(native_types, 'selected_composite_types', new=selected):
+                        try:
+                            with interrupt_store(AdmissionContext._invoke.__code__, attribute, error) as injections:
+                                self.native.initialize(owner, scalar_edges())
+                        except BaseException as held:
+                            self.assertIs(held, error)
+                            self.assertIsNotNone(held.__traceback__)
+                            self.assertEqual(len(injections), 1)
+                            self.assertEqual(len(sessions), 1)
+                            self.assertTrue(all(reference() is None for reference in buffers))
+                            self.assertTrue(contexts[0].closed)
+                            self.assertIsNone(contexts[0]._created_types)
+                            fields = {'document', 'serial', 'value_slots', 'nominal_operations'}
+                            if attribute == 'types':
+                                fields.add('native_types')
+                                self.assertIs(owner.native_types, sessions[0]())
+                                self.assertFalse(owner.native_types._closed)
+                                self.assertTrue(all(reference() is not None for reference in type_buffers))
+                            else:
+                                self.assertIsNone(sessions[0]())
+                                self.assertTrue(all(reference() is None for reference in type_buffers))
+                            self.assertEqual(set(vars(owner)), fields)
+                        else:
+                            self.fail('actual STORE_ATTR was not interrupted')
+                finally:
+                    if getattr(owner, 'native_types', None) is not None:
+                        owner.native_types.close()
+
+    def test_only_the_exact_issued_native_result_can_request_a_callback(self):
+        calls = []
+        class Legacy:
+            def __bool__(self): calls.append(True); return False
+        context = AdmissionContext(object.__new__(composite._Elaborator), scalar_edges(), Legacy())
+        other = AdmissionContext(object.__new__(composite._Elaborator), scalar_edges())
+        entered, original_entry = [], self.native._entry
+        def measured(*args):
+            entered.append(True)
+            return original_entry(*args)
+        try:
+            with patch.object(self.native, '_entry', new=measured):
+                result, crossed = self.native.step(context), self.native.step(other)
+                self.assertEqual((result.request, result.sequence), (9, 1))
+                forged = replace(result, request=12,
+                    value={'recursive_chain': False, 'partial_records': False})
+                with patch.object(native_types, 'selected_composite_types',
+                                  side_effect=AssertionError('unissued type effect')) as types:
+                    for candidate in (forged, replace(result), crossed):
+                        with self.assertRaisesRegex(HIAProgramRejected, 'current unexecuted'):
+                            context.invoke(candidate)
+                    with self.assertRaisesRegex(HIAProgramRejected, 'has not completed'):
+                        self.native.step(context)
+                    types.assert_not_called()
+                self.assertEqual(len(entered), 2)
+                self.assertEqual(calls, [])
+                self.assertEqual(vars(context.owner), {})
+                self.assertEqual(context.executed, 0)
+                context.invoke(result)
+                self.assertEqual(calls, [True])
+                with self.assertRaises(HIAProgramRejected): context.invoke(result)
+                counters = self.native.step(context)
+                self.assertEqual(counters.request, 10)
+                counters.value['serial'] = True
+                with self.assertRaisesRegex(HIAProgramRejected, 'representation changed'):
+                    context.invoke(counters)
+                self.assertEqual(vars(context.owner), {})
+                counters.value['serial'] = 0
+                context.invoke(counters)
+                self.assertEqual(calls, [True])
+                second_truth = self.native.step(context)
+                self.assertEqual(second_truth.request, 11)
+                context.invoke(second_truth)
+                operations = self.native.step(context)
+                self.assertEqual(operations.request, 1)
+                original_operations = list(operations.value)
+                operations.value[:] = ['not_an_hia_operation']
+                with self.assertRaisesRegex(HIAProgramRejected, 'representation changed'):
+                    context.invoke(operations)
+                self.assertNotIn('nominal_operations', vars(context.owner))
+                operations.value[:] = original_operations
+                context.invoke(operations)
+                self.assertEqual(context.owner.nominal_operations, frozenset(original_operations))
+                self.assertEqual(calls, [True, True])
+        finally:
+            context.close(); other.close()
+
+    def test_callback_result_and_ack_interruptions_fence_without_reexecution(self):
+        original_ack = AdmissionContext.acknowledge
+        modes = ('callback', 'before-ack', 'after-ack', 'completed-store', 'pending-store', 'result-store')
+        for mode in modes:
+            with self.subTest(mode=mode):
+                error, effects, entered = KeyboardInterrupt(mode), [], []
+                class Legacy:
+                    def __bool__(self):
+                        effects.append(True)
+                        if mode == 'callback': raise error
+                        return False
+                context = AdmissionContext(object.__new__(composite._Elaborator), scalar_edges(), Legacy())
+                buffers = [weakref.ref(context.output), weakref.ref(context.workspace)]
+                original_entry = self.native._entry
+                def measured(*args): entered.append(True); return original_entry(*args)
+                def acknowledge(*args, **kwargs):
+                    if mode == 'before-ack': raise error
+                    result = original_ack(*args, **kwargs)
+                    if mode == 'after-ack': raise error
+                    return result
+                try:
+                    with patch.object(self.native, '_entry', new=measured):
+                        held, injections, result = None, None, None
+                        try:
+                            if mode == 'result-store':
+                                with interrupt_store(NativeNominalAdmission._step.__code__, '_pending', error) as injections:
+                                    self.native.step(context)
+                            else:
+                                result = self.native.step(context)
+                                with patch.object(AdmissionContext, 'acknowledge', new=acknowledge):
+                                    if mode in ('completed-store', 'pending-store'):
+                                        attribute = 'completed' if mode == 'completed-store' else '_pending'
+                                        with interrupt_store(AdmissionContext.invoke.__code__, attribute, error) as injections:
+                                            context.invoke(result)
+                                    else:
+                                        context.invoke(result)
+                        except BaseException as caught:
+                            held = caught
+                        self.assertIs(held, error)
+                        self.assertIsNotNone(held.__traceback__)
+                        if injections is not None: self.assertEqual(len(injections), 1)
+                        self.assertTrue(context.closed)
+                        self.assertEqual(effects, [] if mode == 'result-store' else [True])
+                        before = list(effects)
+                        with self.assertRaises(HIAProgramRejected): self.native.step(context)
+                        candidate = result or AdmissionResult(0, 9, 0, 0, context.sequence, None)
+                        with self.assertRaises(HIAProgramRejected): context.invoke(candidate)
+                        self.assertEqual(effects, before)
+                        self.assertEqual(len(entered), 1)
+                        context.close()
+                        self.assertTrue(all(reference() is None for reference in buffers))
+                finally:
+                    context.close()
+
+    def test_public_facade_releases_actual_transferred_types_with_error_held(self):
+        original_factory = native_types.selected_composite_types
+        for refuse in (False, True):
+            with self.subTest(constructor_refusal=refuse):
+                document, created, type_buffers = scalar_edges(), [], []
+                if refuse: document['functions'] = []
+                def selected(*args, **kwargs):
+                    value = original_factory(*args, **kwargs)
+                    created.append(value)
+                    type_buffers.extend((weakref.ref(value._state), weakref.ref(value._output)))
+                    return value
+                with self.selected(), observed_contexts() as (contexts, buffers), \
+                        patch.object(native_types, 'selected_composite_types', new=selected):
+                    held = None
+                    try:
+                        result = composite.elaborate_program(document)
+                    except HIAProgramRejected as error:
+                        held = error
+                    if refuse:
+                        self.assertIsNotNone(held)
+                        self.assertIsNotNone(held.__traceback__)
+                        self.assertEqual(held.code, 'E_HIA_FORMAT')
+                    else:
+                        self.assertIsNone(held)
+                        self.assertEqual(result['module'], document['module'])
+                    self.assertEqual(len(created), 1)
+                    self.assertTrue(created[0]._closed)
+                    self.assertTrue(all(reference() is None for reference in (*buffers, *type_buffers)))
+                    self.assertIs(contexts[0].owner.native_types, created[0])
 
     def test_selected_manifest_image_and_source_hash_fail_closed(self):
         loaded = installed_nominal_admission(str(self.manifest))

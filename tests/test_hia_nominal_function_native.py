@@ -9,6 +9,7 @@ import ast
 from contextlib import ExitStack
 from copy import deepcopy
 import ctypes
+from dataclasses import replace
 from hashlib import sha256
 import inspect
 import io
@@ -22,6 +23,7 @@ import sys
 import tempfile
 import textwrap
 import unittest
+import weakref
 from unittest.mock import patch
 
 from hepta import hia_program_composite as composite
@@ -41,9 +43,10 @@ ROOT = Path(__file__).resolve().parents[1]
 COLD_REPORT = 'HEPTA_HIA_NOMINAL_FUNCTION_COLD_REPORT'
 DEVELOPMENT_MANIFEST = 'HEPTA_HIA_NOMINAL_FUNCTION_DEVELOPMENT_MANIFEST'
 REFERENCE_AST_SHA256 = 'c4725d8619bcb0ad80b34878ed64d327c58a054f90a088e9cfa9357ebb006075'
-HOST_REFERENCES = ('_reference_function', '_reference_parameters', '_reference_record_transition',
+HOST_REFERENCES = ('_reference_function', '_reference_main_function', '_reference_parameters', '_reference_record_transition',
     '_reference_record_operation', '_reference_enum_operation', '_reference_task_operation',
-    '_reference_call_primitive', '_reference_nominal_terminator', '_reference_match', '_reference_helper')
+    '_reference_call_primitive', '_reference_nominal_terminator', '_reference_match',
+    '_reference_helper', '_reference_helper_cache')
 
 
 def wire(value):
@@ -156,6 +159,32 @@ class NominalFunctionSourceTests(unittest.TestCase):
 
 
 class NominalFunctionAdapterTests(unittest.TestCase):
+    def test_exact_frame_permission_precedes_counter_prefix_and_terminal_return(self):
+        context = self.context()
+        result = self.image(self.frame(serial=7, slots=9, request=3, value={})).step(context)
+        with self.assertRaisesRegex(HIAProgramRejected, 'unconsumed'):
+            context.accept(replace(result, serial=8))
+        self.assertEqual((context.owner.serial, context.owner.value_slots), (0, 0))
+        context.accept(result)
+        self.assertEqual((context.owner.serial, context.owner.value_slots), (7, 9))
+        with self.assertRaisesRegex(HIAProgramRejected, 'unconsumed'):
+            context.accept(result)
+        context.service(result.request, result.value)
+        context = self.context()
+        result = self.image(self.frame(serial=7, slots=9, request=0,
+                                      value={'name': 'issued'})).step(context)
+        result.value['name'] = 'changed'
+        with self.assertRaisesRegex(HIAProgramRejected, 'issued graph changed'):
+            context.accept(result)
+        self.assertEqual((context.owner.serial, context.owner.value_slots), (0, 0))
+        self.assertTrue(context.closed)
+        self.assertIsNone(context._binding)
+        context = self.context()
+        result = self.image(self.frame(error=1, serial=8192, slots=9, request=0)).step(context)
+        with self.assertRaisesRegex(HIAProgramRejected, 'expansion budget'):
+            context.accept(result)
+        self.assertEqual((context.owner.serial, context.owner.value_slots), (8192, 9))
+
     def context(self):
         owner = composite._Elaborator(constant_program())
         context = FunctionContext(owner, owner.document['functions'][0])
@@ -236,8 +265,106 @@ class NominalFunctionAdapterTests(unittest.TestCase):
         self.assertIsNone(context.workspace)
         self.assertIsNone(context.output)
 
+    def test_constructor_allocation_refusal_releases_partial_arenas_with_traceback_held(self):
+        # This is actual ctypes allocation with a controlled allocation fault,
+        # before any native entry. Keeping the original traceback exercises the
+        # partial constructor; detaching it or invoking GC is not the fix.
+        real_allocate = ctypes.create_string_buffer
+        for ordinal in (1, 2):
+            for exception_type in (MemoryError, KeyboardInterrupt):
+                with self.subTest(ordinal=ordinal, exception_type=exception_type.__name__):
+                    fault = exception_type('controlled context allocation refusal')
+                    requests, allocated, entered = [], [], []
+                    def allocate(size, *args):
+                        requests.append(size)
+                        if len(requests) == ordinal:
+                            raise fault
+                        value = real_allocate(size, *args)
+                        allocated.append((ctypes.sizeof(value), weakref.ref(value)))
+                        return value
+                    image = object.__new__(NativeNominalFunction)
+                    image._entry = lambda *args: entered.append(args)
+                    held_error = None
+                    with patch('hepta.hia_nominal_function_native.ctypes.create_string_buffer', allocate):
+                        try:
+                            image.lower(object(), {'name': 'allocation_probe'})
+                        except BaseException as error:
+                            held_error = error
+                    self.assertIs(held_error, fault)
+                    self.assertEqual(requests, [OUTPUT_BYTES, WORKSPACE_BYTES][:ordinal])
+                    self.assertEqual(entered, [])
+                    traceback = held_error.__traceback__
+                    while traceback is not None and traceback.tb_frame.f_code is not FunctionContext.__init__.__code__:
+                        traceback = traceback.tb_next
+                    self.assertIsNotNone(traceback)
+                    context = traceback.tb_frame.f_locals['self']
+                    self.assertTrue(context.closed)
+                    self.assertIsNone(context.output)
+                    self.assertIsNone(context.workspace)
+                    self.assertEqual([size for size, _ in allocated], [OUTPUT_BYTES] * (ordinal - 1))
+                    self.assertTrue(all(reference() is None for _, reference in allocated))
+                    self.assertIsNotNone(held_error.__traceback__)
+                    with self.assertRaisesRegex(HIAProgramRejected, 'closed'):
+                        context.data()
+
 
 class NominalFunctionNativeTests(unittest.TestCase):
+    def test_actual_issued_payload_and_result_replacement_refuse_before_effects(self):
+        with self.selected():
+            owner = composite._Elaborator(constant_program())
+            context = FunctionContext(owner, owner.document['functions'][0])
+            try:
+                result = self.native.step(context)
+                self.assertEqual((result.request, result.value), (1, {'path': ['blocks', 0, 'params']}))
+                result.value['path'][:] = ['blocks', 0, 'ops', 0, 'out']
+                with patch.object(owner, 'parameters',
+                        side_effect=AssertionError('changed path reached native parameter parsing')):
+                    with self.assertRaisesRegex(HIAProgramRejected, 'issued graph changed'):
+                        context.service(result.request, result.value)
+                self.assertEqual((owner.serial, owner.value_slots), (0, 0))
+                self.assertTrue(context.closed)
+                self.assertIsNone(context._binding)
+            finally:
+                context.close()
+                owner.native_types.close()
+            document = fixtures.module([], f('return_guard', [('x', 'u32')], [], [], [
+                b('entry', [('x', 'u32')], [], fixtures.ret())]))
+            reference = composite._Elaborator(deepcopy(document))
+            try:
+                expected = reference._reference_function(reference.document['functions'][0])
+            finally:
+                reference.native_types.close()
+            owner = composite._Elaborator(deepcopy(document))
+            try:
+                self.assertEqual(self.native.lower(owner, owner.document['functions'][0]), expected)
+            finally:
+                owner.native_types.close()
+            for mode in ('terminal_graph', 'copied_counter_frame'):
+                owner = composite._Elaborator(deepcopy(document))
+                real_step, captured, prefixes = self.native.step, [], []
+                def changed(context):
+                    result = real_step(context)
+                    captured.append(context)
+                    if mode == 'copied_counter_frame':
+                        prefixes.append((owner.serial, owner.value_slots))
+                        return replace(result, serial=result.serial + 1)
+                    if not result.request:
+                        prefixes.append((owner.serial, owner.value_slots))
+                        result.value['name'] = 'unissued_name'
+                    return result
+                try:
+                    with patch.object(self.native, 'step', side_effect=changed):
+                        with self.assertRaises(HIAProgramRejected):
+                            self.native.lower(owner, owner.document['functions'][0])
+                    self.assertEqual(len(prefixes), 1)
+                    self.assertEqual((owner.serial, owner.value_slots), prefixes[0])
+                    self.assertTrue(captured[-1].closed)
+                    self.assertIsNone(captured[-1]._binding)
+                    self.assertIsNone(captured[-1].output)
+                    self.assertIsNone(captured[-1].workspace)
+                finally:
+                    owner.native_types.close()
+
     @classmethod
     def setUpClass(cls):
         development, cold = os.environ.get(DEVELOPMENT_MANIFEST), os.environ.get(COLD_REPORT)
@@ -285,6 +412,7 @@ class NominalFunctionNativeTests(unittest.TestCase):
         from tests import test_hia_record_transitions_native as transitions
         from tests import test_hia_task_operations_native as tasks
         from tests import test_hia_task_helpers_native as helpers
+        from tests import test_hia_task_helper_cache_native as helper_cache
         from tests import test_hia_call_primitive_native as calls
         from tests import test_hia_nominal_terminators_native as terms
         cls.support = {}
@@ -292,6 +420,7 @@ class NominalFunctionNativeTests(unittest.TestCase):
                 (matches, matches.EnumMatchNativeTests), (enums, enums.EnumOperationsNativeTests),
                 (records, records.RecordOperationsNativeTests), (transitions, transitions.RecordTransitionsNativeTests),
                 (tasks, tasks.TaskOperationsNativeTests), (helpers, helpers.TaskHelpersNativeTests),
+                (helper_cache, helper_cache.TaskHelperCacheNativeTests),
                 (calls, calls.CallPrimitiveNativeTests), (terms, terms.NominalTerminatorsNativeTests)):
             fixture = type('SupportingFixture', (unittest.TestCase,), {})
             cls.addClassCleanup(fixture.doClassCleanups)
@@ -608,6 +737,7 @@ class NominalFunctionNativeTests(unittest.TestCase):
     def test_selected_dependencies_refuse_only_at_original_continuation(self):
         from hepta.hia_call_primitive_native import SELECTOR as CALL_SELECTOR
         from hepta.hia_task_helpers_native import SELECTOR as HELPER_SELECTOR
+        from hepta.hia_task_helper_cache_native import SELECTOR as CACHE_SELECTOR
         with self.selected():
             owner = composite._Elaborator(constant_program())
             try:
@@ -624,6 +754,11 @@ class NominalFunctionNativeTests(unittest.TestCase):
                 typ = owner.types.resolve('Work')
                 name = owner.helper(typ, 'start', require_native=True)
                 prefix = (owner.serial, deepcopy(owner.helpers), tuple(owner.helper_names.values()))
+                with patch.dict(os.environ, {CACHE_SELECTOR: ''}), patch.object(owner, '_reference_helper_cache',
+                        side_effect=AssertionError('native function used hosted cache lookup')):
+                    with self.assertRaisesRegex(HIAProgramRejected, 'requires native task helper cache'):
+                        owner.helper(typ, 'start', require_native=True)
+                self.assertEqual(prefix, (owner.serial, owner.helpers, tuple(owner.helper_names.values())))
                 with patch.dict(os.environ, {HELPER_SELECTOR: '/invalid-generator'}), \
                         patch.object(owner, 'check_task', side_effect=AssertionError('cached helper checked task')):
                     self.assertEqual(owner.helper(typ, 'start', require_native=True), name)
@@ -636,6 +771,75 @@ class NominalFunctionNativeTests(unittest.TestCase):
                 self.assertEqual(prefix, (owner.serial, owner.helpers, tuple(owner.helper_names.values())))
             finally:
                 owner.types.close()
+
+    def test_eight_downstream_images_are_pinned_after_actual_admission(self):
+        from hepta import hia_record_transitions_native as transitions
+        from hepta import hia_record_operations_native as records
+        from hepta import hia_enum_operations_native as enums
+        from hepta import hia_task_operations_native as tasks
+        from hepta import hia_call_primitive_native as calls
+        from hepta import hia_enum_match_native as matches
+        from hepta import hia_nominal_terminators_native as terms
+        from hepta import hia_task_helper_cache_native as cache
+        cases = (
+            (transitions, 'selected_record_transitions', partials.roundtrip_program(), 0),
+            (records, 'selected_record_operations', fixtures.task_program(), 0),
+            (enums, 'selected_enum_operations', fixtures.enum_owner_program(), 0),
+            (tasks, 'selected_task_operations', fixtures.task_program(), 2),
+            (calls, 'selected_call_primitive', constant_program(), 0),
+            (matches, 'selected_enum_match', choice_program(), 0),
+            (terms, 'selected_nominal_terminators', constant_program(), 0),
+            (cache, 'selected_task_helper_cache', fixtures.task_program(), 2),
+        )
+        observations = []
+        for module, selector_name, document, index in cases:
+            with self.subTest(owner=selector_name), self.selected():
+                old = composite._Elaborator(deepcopy(document))
+                try:
+                    expected = old._reference_function(old.document['functions'][index])
+                    expected_state = (old.serial, old.value_slots, deepcopy(old.helpers),
+                                      tuple(old.helper_names.values()), old.types.observations)
+                finally:
+                    old.types.close()
+                owner = composite._Elaborator(deepcopy(document))
+                original_selector = getattr(module, selector_name)
+                image = original_selector()
+                self.assertIsNotNone(image)
+                original_lower = type(image).lower
+                manifest = self.support[module.SELECTOR]
+                counts = {'selector_reads': 0, 'native_invocations': 0}
+                def select():
+                    counts['selector_reads'] += 1
+                    admitted = original_selector()
+                    self.assertIsNotNone(admitted, 'admitted dependency was selected a second time')
+                    os.environ[module.SELECTOR] = ''
+                    return admitted
+                def invoke(selected_image, *args, **kwargs):
+                    self.assertEqual(os.environ[module.SELECTOR], '')
+                    counts['native_invocations'] += 1
+                    try:
+                        return original_lower(selected_image, *args, **kwargs)
+                    finally:
+                        os.environ[module.SELECTOR] = manifest
+                try:
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(module, selector_name, side_effect=select))
+                        stack.enter_context(patch.object(type(image), 'lower', invoke))
+                        for name in HOST_REFERENCES:
+                            stack.enter_context(patch.object(composite._Elaborator, name,
+                                side_effect=AssertionError('host owner used after native admission: ' + name)))
+                        actual = self.native.lower(owner, owner.document['functions'][index])
+                    self.assertEqual(actual, expected)
+                    self.assertEqual((owner.serial, owner.value_slots, owner.helpers,
+                        tuple(owner.helper_names.values()), owner.types.observations), expected_state)
+                    self.assertGreater(counts['native_invocations'], 0)
+                    self.assertEqual(counts['selector_reads'], counts['native_invocations'])
+                    observations.append({'owner': selector_name, **counts})
+                finally:
+                    os.environ[module.SELECTOR] = manifest
+                    owner.types.close()
+        self.assertEqual(len(observations), 8)
+        self.pinning_observations = observations
 
     def test_existing_large_call_core_is_reused_and_later_callee_limit_is_unchanged(self):
         count = 8193
@@ -771,9 +975,9 @@ from hepta.hia_nominal_function_native import SOURCE
 assert Path(sys.argv[1]) in SOURCE.parents
 def absent(*args,**kwargs):raise AssertionError('host function called')
 composite._Types=absent
-for name in ('_reference_function','_reference_parameters','_reference_record_transition','_reference_record_operation',
+for name in ('_reference_function','_reference_main_function','_reference_parameters','_reference_record_transition','_reference_record_operation',
              '_reference_enum_operation','_reference_task_operation','_reference_call_primitive',
-             '_reference_nominal_terminator','_reference_match','_reference_helper'):
+             '_reference_nominal_terminator','_reference_match','_reference_helper','_reference_helper_cache'):
     setattr(composite._Elaborator,name,absent)
 try: result=verify_core(Path(sys.argv[2]).read_bytes())
 except HIAProgramRejected:

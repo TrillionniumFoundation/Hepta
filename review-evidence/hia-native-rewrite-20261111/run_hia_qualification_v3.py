@@ -66,16 +66,27 @@ environment['PYTHONDONTWRITEBYTECODE'] = '1'
 environment['PYTHONUNBUFFERED'] = '1'
 development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST',
-                         'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST')
+                         'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_COMPOSITE_CONSTRUCTOR_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
     environment.pop(development_selector, None)
+production_selectors = ('HEPTA_HIA_COMPOSITE_TYPES_MANIFEST',
+                        'HEPTA_HIA_TASK_HELPERS_MANIFEST',
+                        'HEPTA_HIA_COMPOSITE_FUNCTIONS_MANIFEST',
+                        'HEPTA_HIA_COMPOSITE_CONSTRUCTOR_MANIFEST',
+                        'HEPTA_HIA_COMPOSITE_OUTER_MANIFEST')
+discarded_production_selectors = [name for name in production_selectors if name in environment]
+for production_selector in production_selectors:
+    environment.pop(production_selector, None)
 cold = out / 'cold.json'
 for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'FUNCTION_SHAPE', 'PROGRAM_SHAPE', 'INSTRUCTION_POLICY',
              'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
-             'TASK_HELPERS'):
+             'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -89,6 +100,7 @@ def run(name, args, *, timeout=1800):
     print(json.dumps({'starting': name}), flush=True)
     step_environment = dict(environment)
     step_environment['HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS'] = str(out / (name + '-module-projects'))
+    step_environment['HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE'] = str(out / (name + '-nominal-fixture'))
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
                       stdout_path=stdout, stderr_path=stderr,
                       receipt_path=out / (name + '.owner.json'),
@@ -236,6 +248,17 @@ if cold_ok:
                             'tests.test_hia_composite_origins_native',
                             'tests.test_hia_composite_signatures_native',
                             'tests.test_hia_task_helpers_native'],
+        'composite-functions': ['tests.test_hia_composite_function_tokens',
+                                'tests.test_hia_composite_function_admission',
+                                'tests.test_hia_composite_function_protocol_audit',
+                                'tests.test_hia_composite_function_terms_native',
+                                'tests.test_hia_composite_functions_native',
+                                'tests.test_hia_composite_public_lifecycle',
+                                'tests.test_hia_composite_constructor_native',
+                                'tests.test_hia_composite_constructor_integration',
+                                'tests.test_hia_composite_outer_native',
+                                'tests.test_hia_composite_outer_integration',
+                                'tests.test_hia_composite_nominal_lifecycle'],
     }
     for name, names in groups.items():
         ok = suite(name, names) and ok
@@ -275,6 +298,7 @@ result = {'schema': 'hepta.hia.native-rewrite-qualification.v3',
           'harness_identity_before': harness_before, 'harness_identity_after': harness_after,
           'harness_preserved': harness_preserved,
           'discarded_development_selectors': discarded_development_selectors,
+          'discarded_production_selectors': discarded_production_selectors,
           'whole_native_delivery_qualified': False,
           'full_retained_regression_requested': a.full,
           'full_retained_regression_executed': full_outcome is not None,

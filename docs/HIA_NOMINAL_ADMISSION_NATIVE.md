@@ -33,6 +33,37 @@ acknowledges it once. Native and foreign callback errors propagate at their
 original points. A failure closes the private context, so its outstanding
 action cannot be replayed after an uncertain or interrupted return.
 
+## Context lifetime and issued continuations
+
+The transport initializes all owned references before capturing source bytes or
+allocating either arena. If construction fails, it releases the allocated prefix
+and re-raises the original exception. `initialize()` releases both temporary
+arenas in a `finally` block on success, semantic refusal and foreign interruption.
+A retained exception traceback therefore does not retain those abandoned arenas.
+Direct `step()`/`invoke()` callers may inspect their retained context until they
+explicitly call `close()`; a fenced context has no resumption permission.
+
+The type factory's returned session is first retained by the context. Only
+`owner.native_types is created_session` transfers that session to the owner.
+Closing the context releases an unpublished session, including when the owner
+already holds an unrelated object. It does not close an unrelated object or a
+session transferred before a later assignment or acknowledgement failed. That
+half-published owner keeps its original observable prefix. The public elaboration
+facade closes its own transferred type session on every exit.
+
+Each continuation also has an exact issued Python result object. A copied,
+cross-context or same-sequence result with a changed action has no callback
+permission. Its complete decoded frame and value graph are captured once as
+transport bytes. Changing a list or dictionary inside the frozen result object
+therefore also refuses before any callback or owner write. This byte comparison
+does not repeat declaration policy. The context consumes the issued permission
+before executing the
+fixed callback, records completion only after its acknowledgement, and refuses
+a new native step while the previous result is pending or incompletely
+acknowledged. A callback, result-publication or acknowledgement interruption
+fences the context even if some assignments or the acknowledgement already
+occurred. No new HIA opcode, state layout, source limit or policy branch is used.
+
 ## Original foreign legacy control
 
 The existing Python API applies truth conversion to `legacy` twice. The first
@@ -159,3 +190,22 @@ It was compiled by retained predecessor
 This is development evidence. Fresh integrated cold qualification, complete
 native-owner composition and full retained regression remain required. No
 whole-product native default, live migration or old-stack deletion is claimed.
+
+## Recovery revision and fresh validation boundary
+
+The earlier `cf1c4fa4ae742af587a15ea0f5a86a68421efcdb` lifecycle revision and its
+raw local evidence were lost in a workspace reset before durable archival.
+Its file hashes and observed historical result remain recorded separately.
+This revision reconstructs the required behavior on the recovered `b99ff213`
+baseline; it does not claim the old patch's bytes or inherit its qualification.
+
+The new gate contains 27 admission controls plus the 15 unchanged generic graph
+controls. The original 75-case nominal regression remains nested and unfiltered.
+Added controls use actual arena allocations, returned native type sessions,
+positively observed STORE_ATTR interruptions and real native declaration frames.
+They check allocation failure, retained-traceback cleanup, exact type ownership,
+issued-result identity, pending/ACK ordering and public cleanup. Actual VM/frame
+comparison, installed-wheel execution and allocator/refusal controls remain in
+the gate. Development images are freshly compiled from the unchanged HIA sources
+using the explicitly identified retained predecessor; this is not a fresh cold
+qualification. New run logs and source hashes determine this revision's result.

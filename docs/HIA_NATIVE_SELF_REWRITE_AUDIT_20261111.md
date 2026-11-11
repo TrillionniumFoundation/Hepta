@@ -22,6 +22,71 @@ been removed from the active product tree before this work.
 
 ## Audit coverage
 
+### Current v67 integration boundary
+
+Main `5831f52fada45e076f8f68f198a15c0585e6104f` and the recovered
+`b99ff2134b7f526f6795ced78d03465177c889cd` history share the actual common
+base `f50b37543d1a379353267ce0ab7111242806b8b4`. Their full Git merge is
+`93128c470663bf9afe981b9bd4227c62c67b7f6e`. Both histories and their original
+review evidence remain present. The recovered b99 checkout contained all
+2,801 tracked files; it was not a partial source materialization.
+
+The integrated source keeps both explicit nominal owner families. Main's
+five-owner, eleven-image route and the individual admission/function/module
+route have distinct function-session ABIs. Selecting two owners for the same
+layer refuses; a main function session remains pinned after construction and
+cannot be replaced through a later selector change. Both original function
+oracles retain their independent recorded hashes. The new route controls are
+Python transport tests and do not stand in for native composition tests.
+
+The individual route now includes HIA call/primitive and terminator lowering,
+complete function construction, ordered module aggregation, constructor
+admission and task-helper cache policy. Its bridge fixes cover partial arena
+allocation, exact issued continuation identity and content, acknowledgement
+ordering, held downstream images and terminal commit ownership. Native
+execution budgets, request journal authority and the seven artifact namespace
+APIs are also integrated without replacing the original SQLite tables or
+resetting live rows. Their selected byte effects still require the admitted
+native publisher.
+
+Actual private-bridge controls reproduced three mutable-receipt defects:
+changing the issued cache serial list, the helper-generator serial and the
+function parameter path changed subsequent effects despite retaining the
+same outer result object. The repair captures decoder-owned graph structure
+while decoding and validates it before callbacks, counter admission and
+terminal writes. It preserves aliases and opaque external identities under
+the original stable-pool contract; it does not copy or traverse external
+object interiors or add a source/wire limit. The original failing machine
+observations remain separate from the eight targeted repair controls and
+sixteen independent review controls. Neither development panel is the fresh
+combined regression of this integrated tree.
+
+Two executor resets interrupted local work. Exact recovered bytes, new
+reconstructions, original failures and unavailable raw reports are explicitly
+distinguished in the recovery records. In particular, historical passes do
+not qualify reconstructed admission/module/cache source. A retirement fixture
+also previously ignored its configured cold report and built a development
+compiler; the corrected fixture uses the strict current-source builder and
+rejects conflicting development selection. Earlier retirement execution
+must retain its actual development scope.
+
+The common integration profile is now
+`selfhost-core-linux-x86_64-v67-native-unified-nominal-journal`. Source
+registration, development passes and complete Git recovery are separate from
+the required fresh combined cold and retained regression. The remaining
+production owners below still prevent default cutover and deletion.
+
+The subsequent read-only branch audit also found the worker/helper interface
+candidate `8dae9d0b74f8520d1522548e0a04c0c077b3f074`, based on main `5831f52f`.
+Its matching `hepta-runtime` candidate `9a43021137b72316f5345ce660c7f3d00ea93c02`
+adds an explicit native-helper bundle pair and required checker-selection
+digest. These are not the current v67 worker/catalog interfaces, and that
+candidate pair's successful CI is not evidence for v67 compatibility or live
+deployment. Integration is being developed separately. The remaining
+slot/version/lease ledger is also being implemented separately against the
+existing request and namespace transaction capabilities; its in-progress
+source has no inherited qualification.
+
 The main tree was read through GitHub's complete recursive tree response
 (`truncated: false`): 2,628 blobs, 1,079 Python files, 148 production Python
 modules, 51 HIA assembly files and 12 Core JSON sources. These counts describe
@@ -91,8 +156,10 @@ consumption even when an operation fails. Selected failures do not retry the
 hosted reference. Type, enum, record and match owners have composed execution
 controls with their reference branches disabled.
 
-This does not complete nominal function orchestration,
+That operation-family checkpoint did not complete nominal function orchestration,
 ordinary calls, primitive lowering, edges/returns or whole-program aggregation.
+Those later selected producers are recorded in the current v67 integration
+boundary above; the checkpoint's evidence remains attached to its own source.
 The retained four public composite schemas and public input/expansion limits
 remain unchanged. Larger private transport buffers preserve the original
 accepted argument and descriptor inventories; each owner documents its bound.
@@ -168,10 +235,10 @@ failure, with actual syscall fault controls required on a capable host.
 
 | Owner | Current responsibility | Requirement before retirement |
 | --- | --- | --- |
-| Nominal elaborator | Nominal SSA, ordinary calls/primitive operations, edges/returns, final origin binding and exports; explicit native record/enum/task owners now available | Complete HIA producer with retained four-schema meaning, result, refusal, resource and state controls |
+| Nominal elaborator | Two explicit complete native producer families; hosted input capture, foreign-object bridges and default reference route remain | Fresh integrated four-schema, result, refusal, resource and installed-caller qualification; deliberate default selection and removal of replaced production dispatch |
 | General compiler/backend | Retained profiles beyond the selfhost compiler's bounded arguments/results/functions/blocks, target and object/linking support | Native producers for every retained profile and independent target execution |
 | `HIAAgentService` | Eleven-tool authority, contexts, verification, emission/evaluation, adoption and rollback | Complete ordinary native request/report/service behavior and installed identity |
-| `AgentStore` | SQLite/WAL, namespaces/refs, intent/completion, costs, slots, versions, leases and uncertain operations | Native transaction/state owner with same-key conflict, crash/restart and original-operation continuity |
+| `AgentStore` | Selected HIA execution budgets, request intent/completion and artifact/profile namespace; contexts, slots, versions, leases and remaining service policy still hosted | Complete retained transaction/state ownership, crash/restart and original-operation continuity, with the same authoritative database |
 | Worker and object bridge | Installation admission, foreign object custody, service dispatch and report serialization | Native complete worker protocol with actual code/profile pins |
 | Default CLI/project build | Fifteen installed CLI actions, module/library orchestration and Python package hooks | Equivalent ordinary native entry and clean-machine build/install/recovery |
 | Bootstrap/authoring | Hosted seed generation, application builders and source generators | Explicit bootstrap trust root and reproducible native successor build ownership |
@@ -200,8 +267,9 @@ service was used to turn that failure into a successful observation.
 
 ## Qualification and retirement rule
 
-The common profile for these changes is
-`selfhost-core-linux-x86_64-v65-native-records-retirement`.
+The earlier record/retirement checkpoint used
+`selfhost-core-linux-x86_64-v65-native-records-retirement`; the current combined
+candidate uses `selfhost-core-linux-x86_64-v67-native-unified-nominal-journal`.
 Its generated source closure must be frozen before cold replay, language and
 native applications run. A previous compiler hash, green older workflow or
 development image does not qualify this combined source.

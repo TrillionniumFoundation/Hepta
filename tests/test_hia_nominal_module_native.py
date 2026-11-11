@@ -2,6 +2,7 @@
 from __future__ import annotations
 from copy import deepcopy
 import ctypes
+from dataclasses import replace
 from hashlib import sha256
 import io
 import json
@@ -14,6 +15,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import weakref
 
 from hepta import hia_program_composite as composite
 from hepta.hia_instruction_policy_native import transport
@@ -91,6 +93,76 @@ class NominalModuleSourceTests(unittest.TestCase):
 
 
 class NominalModuleAdapterTests(unittest.TestCase):
+    def test_constructor_allocation_failure_releases_arenas_with_original_traceback_held(self):
+        from hepta import hia_nominal_module_native as module
+        allocate = ctypes.create_string_buffer
+        for position in (1, 2):
+            for kind in (MemoryError, KeyboardInterrupt):
+                error = kind('original allocation failure')
+                references = []
+                calls = 0
+                def fail_at_position(*args, **kwargs):
+                    nonlocal calls
+                    calls += 1
+                    if calls == position:
+                        raise error
+                    arena = allocate(*args, **kwargs)
+                    references.append(weakref.ref(arena))
+                    return arena
+                with self.subTest(position=position, exception=kind.__name__), \
+                        patch.object(module.ctypes, 'create_string_buffer', side_effect=fail_at_position):
+                    try:
+                        ModuleContext(HeldOwner())
+                    except BaseException as actual:
+                        held = (actual, actual.__traceback__)
+                    else:
+                        self.fail('allocation failure was hidden')
+                    self.assertIs(held[0], error)
+                    self.assertIsNotNone(held[1])
+                    self.assertEqual(len(references), position - 1)
+                    self.assertTrue(all(reference() is None for reference in references))
+
+    def test_only_current_issued_request_executes_once_and_ack_precedes_resume(self):
+        owner = HeldOwner()
+        context = ModuleContext(owner)
+        self.addCleanup(context.close)
+        with self.assertRaisesRegex(HIAProgramRejected, 'current unexecuted native request'):
+            context.invoke(ModuleResult(0, 1, 0, 1, 3, None))
+        self.assertEqual(owner.events, [])
+        image = self.image(self.frame())
+        result = image.step(context)
+        with self.assertRaisesRegex(HIAProgramRejected, 'not been acknowledged'):
+            image.step(context)
+        with self.assertRaisesRegex(HIAProgramRejected, 'current unexecuted native request'):
+            context.invoke(replace(result))
+        self.assertEqual(owner.events, [])
+        context.invoke(result)
+        with self.assertRaisesRegex(HIAProgramRejected, 'current unexecuted native request'):
+            context.invoke(result)
+        self.assertEqual(owner.events, [0])
+        self.assertEqual((context.executed, context.completed, context.sequence), (1, 1, 1))
+        error = KeyboardInterrupt('original callback interruption')
+        def interrupted(raw):
+            owner.events.append('interrupted')
+            raise error
+        owner.function = interrupted
+        result = self.image(self.frame(index=1, sequence=2)).step(context)
+        references = [weakref.ref(context.output), weakref.ref(context.workspace)]
+        try:
+            context.invoke(result)
+        except BaseException as actual:
+            held = (actual, actual.__traceback__)
+        else:
+            self.fail('callback interruption was hidden')
+        self.assertIs(held[0], error)
+        self.assertTrue(context.closed)
+        self.assertIsNone(context.pending)
+        self.assertTrue(all(reference() is None for reference in references))
+        with self.assertRaisesRegex(HIAProgramRejected, 'current unexecuted native request'):
+            context.invoke(result)
+        self.assertEqual(owner.events, [0, 'interrupted'])
+        self.assertEqual((context.executed, context.completed), (2, 1))
+
     def image(self, frame, *, mutate=False):
         image = object.__new__(NativeNominalModule)
         def entry(source, size, output, capacity, workspace, workspace_size):
@@ -173,6 +245,47 @@ class NominalModuleNativeTests(unittest.TestCase):
 
     def selected(self):
         return patch.dict(os.environ, {SELECTOR: str(self.manifest)})
+
+    def test_actual_native_success_refusal_and_interruption_release_both_arenas(self):
+        from hepta import hia_nominal_module_native as module
+        error = KeyboardInterrupt('original second function interruption')
+        class InterruptedOwner(HeldOwner):
+            def function(self, raw):
+                if raw['index'] == 1:
+                    self.events.append('interrupted')
+                    raise error
+                return super().function(raw)
+        for owner, expected in ((HeldOwner(), None),
+                                (HeldOwner(block_count=4097), HIAProgramRejected),
+                                (InterruptedOwner(), KeyboardInterrupt)):
+            contexts, references = [], []
+            class ObservedContext(ModuleContext):
+                def __init__(self, owner):
+                    super().__init__(owner)
+                    contexts.append(self)
+                    references.extend((weakref.ref(self.output), weakref.ref(self.workspace)))
+            with self.subTest(expected=expected), patch.object(module, 'ModuleContext', ObservedContext):
+                try:
+                    value = self.native.lower(owner)
+                except BaseException as actual:
+                    held = (actual, actual.__traceback__)
+                    self.assertIsNotNone(expected)
+                    self.assertIsInstance(actual, expected)
+                    if expected is KeyboardInterrupt:
+                        self.assertIs(actual, error)
+                else:
+                    held = None
+                    self.assertIsNone(expected)
+                    self.assertIs(value['functions'][0], owner.produced[0])
+                self.assertEqual(len(contexts), 1)
+                context = contexts[0]
+                self.assertTrue(context.closed)
+                self.assertIsNone(context.pending)
+                self.assertIsNone(context.output)
+                self.assertIsNone(context.workspace)
+                self.assertTrue(all(reference() is None for reference in references))
+                if held is not None:
+                    self.assertIsNotNone(held[1])
 
     def test_complete_original_modules_and_public_programs(self):
         makers = (scalar_edges, fixtures.stored_loan_program, partials.roundtrip_program, loans.pair_program)

@@ -46,11 +46,23 @@ class ModuleContext:
                          len(owner.document['functions']), secrets.token_hex(16)]
         self.wire = transport(self.metadata)
         self.pool = []
-        self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
-        self.acknowledge(0, 0)
+        self.output = self.workspace = None
         self.sequence = 0
         self.closed = False
+        self.pending = None
+        self.executed = self.completed = 0
+        try:
+            self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+            self.acknowledge(0, 0)
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        self.closed = True
+        self.pending = None
+        self.output = self.workspace = None
 
     def acknowledge(self, sequence, action, index=0, pool_id=0, count=0, blocks=()):
         payload = b''.join(struct.pack('<Q', value) for value in blocks)
@@ -71,6 +83,19 @@ class ModuleContext:
         self.wire = transport([*self.metadata, descriptors, rows])
 
     def invoke(self, result):
+        if (self.closed or result is not self.pending
+                or result.sequence != self.sequence or self.executed == self.sequence):
+            rejected('continuation is not the current unexecuted native request')
+        self.executed = self.sequence
+        self.pending = None
+        try:
+            self._invoke(result)
+            self.completed = self.sequence
+        except BaseException:
+            self.close()
+            raise
+
+    def _invoke(self, result):
         # The image selects each continuation. The fixed adapter executes it
         # once and retains the exact produced object, without rebuilding Core.
         if result.request == 1:
@@ -100,6 +125,15 @@ class NativeNominalModule(NativeHiaJsonImage):
     def step(self, context):
         if context.closed:
             rejected('closed module context cannot resume')
+        if context.completed != context.sequence:
+            rejected('native continuation has not been acknowledged')
+        try:
+            return self._step(context)
+        except BaseException:
+            context.close()
+            raise
+
+    def _step(self, context):
         wire = context.wire
         if type(wire) is not bytes or len(wire) > INPUT_BYTES:
             rejected('invalid source extent')
@@ -127,9 +161,11 @@ class NativeNominalModule(NativeHiaJsonImage):
         except (TypeError, ValueError, UnicodeError, KeyError, RecursionError, OverflowError) as exc:
             rejected('invalid complete object graph: ' + str(exc))
         context.sequence = sequence
+        result = ModuleResult(error, request, index, sequence, pool, value)
+        context.pending = result if request else None
         if request == 0:
             context.closed = True
-        return ModuleResult(error, request, index, sequence, pool, value)
+        return result
 
     def lower(self, owner):
         context = ModuleContext(owner)
@@ -140,9 +176,8 @@ class NativeNominalModule(NativeHiaJsonImage):
                 if result.request == 0:
                     return result.value
                 context.invoke(result)
-        except BaseException:
-            context.closed = True
-            raise
+        finally:
+            context.close()
 
 
 def installed_nominal_module(manifest):

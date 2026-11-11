@@ -120,6 +120,30 @@ def witnesses(engine):
 
 
 class ExecutionBudgetSourceTests(unittest.TestCase):
+    def test_fixture_cold_admission_precedes_evidence_seed_and_compilation(self):
+        class ColdFixture(ExecutionBudgetNativeTests):
+            pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / 'cold.json'
+            report.write_text('{}')
+            evidence = root / 'must-not-exist'
+            selected = {'HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT': str(report),
+                        'HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE': str(evidence)}
+            with patch.dict(os.environ, selected), patch.dict(os.environ, {
+                    'HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER': ''}), patch(
+                    'tools.qualify_hia_selfhost.build_seed', side_effect=AssertionError('seed entered')), patch(
+                    'tools.qualify_hia_selfhost.compile_stage', side_effect=AssertionError('compile entered')):
+                with self.assertRaisesRegex(ValueError, 'cold report lacks a compiler'):
+                    ColdFixture.setUpClass()
+            self.assertFalse(evidence.exists())
+            with patch.dict(os.environ, selected | {
+                    'HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER': '/unread-development-compiler'}), patch.object(
+                    Path, 'read_bytes', side_effect=AssertionError('artifact read')):
+                with self.assertRaisesRegex(ValueError, 'development compiler cannot be combined'):
+                    ColdFixture.setUpClass()
+            self.assertFalse(evidence.exists())
+
     def test_generated_source_and_independent_vm_full_claim_run_completion(self):
         from tools.generate_hia_execution_budget import document
         from hepta.hia_agent_assembly import render_assembly
@@ -142,6 +166,22 @@ class ExecutionBudgetNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from tools.qualify_hia_selfhost import compile_stage, build_seed
+        cold = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT')
+        development = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER')
+        if cold and development:
+            raise ValueError('development compiler cannot be combined with an execution budget cold report')
+        if cold:
+            from tools.build_hia_execution_budget import admit_cold_build
+            cold = Path(cold)
+            cold_bytes = cold.read_bytes()
+            report = json.loads(cold_bytes)
+            try:
+                nested = json.loads(Path(report['nested_report']).read_bytes())
+                compiler = Path(nested['generations'][-1]['produced_image'])
+            except (KeyError, IndexError, TypeError) as error:
+                raise ValueError('execution budget cold report lacks a compiler') from error
+            compiler_bytes = compiler.read_bytes()
+            admit_cold_build(compiler_bytes, cold_bytes)
         cls.temporary = None
         evidence = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE')
         if evidence:
@@ -150,7 +190,22 @@ class ExecutionBudgetNativeTests(unittest.TestCase):
         else:
             cls.temporary = tempfile.TemporaryDirectory(prefix='hia-execution-budget-')
             cls.folder = Path(cls.temporary.name)
-        development = os.environ.get('HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER')
+        if cold:
+            from tools.build_hia_execution_budget import build
+            cls.manifest = build(cls.folder / 'qualified-execution-budget', compiler, cold)
+            manifest = json.loads(cls.manifest.read_bytes())
+            image = cls.manifest.parent / manifest['image_path']
+            cls.image = NativeExecutionBudgetImage(image.read_bytes(), manifest['image_sha256'])
+            if cold.read_bytes() != cold_bytes or compiler.read_bytes() != compiler_bytes:
+                raise AssertionError('qualified execution budget fixture inputs changed')
+            (cls.folder / 'qualified-build.json').write_text(json.dumps({
+                'mode': 'MATCHING_CURRENT_SOURCE_COLD_BUILD',
+                'manifest_path': str(cls.manifest),
+                'cold_report_sha256': sha256(cold_bytes).hexdigest(),
+                'compiler_sha256': sha256(compiler_bytes).hexdigest(),
+                'matching_current_source_cold_qualified': True,
+            }, indent=2) + '\n')
+            return
         if development:
             compiler = Path(development)
             mode = 'DEVELOPMENT_REUSED_COMPILER'

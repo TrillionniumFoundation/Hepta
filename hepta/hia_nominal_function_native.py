@@ -13,7 +13,7 @@ import struct
 
 from .hia_instruction_policy_native import transport
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
-from .hia_native_value_graph import decode_native_graph
+from .hia_native_value_graph import decode_bound_native_graph
 from .hia_program import HIAProgramRejected
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/nominal_function.hiaasm')
@@ -77,15 +77,51 @@ class FunctionContext:
         self.reply, self.sequence = None, 0
         self.executed = self.completed = 0
         self.pending = None
-        self.closed = False
-        self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+        self._issued = self._binding = self._issued_fields = None
+        self._accepted = False
+        self.closed = self.released = False
+        self.output = self.workspace = None
+        try:
+            self.output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self.workspace = ctypes.create_string_buffer(WORKSPACE_BYTES)
+        except BaseException:
+            # The public lower() has not received this context yet. Its
+            # finally block cannot release an arena retained by this
+            # constructor's traceback when a later allocation interrupts.
+            self.close()
+            raise
 
     def close(self):
-        self.closed = True
+        self.closed = self.released = True
+        self._binding = None
         # A completed/aborted public invocation cannot use its native arena
         # again. Release it even when a callback traceback retains this object.
         self.output = self.workspace = None
+
+    def _validate(self, result):
+        if (self.released or result is not self._issued or self._binding is None
+                or any(type(value) is not int for value in
+                       (result.serial, result.value_slots, result.error, result.request))
+                or (result.serial, result.value_slots, result.error, result.request) != self._issued_fields):
+            _reject('result is not the current issued native frame')
+        try:
+            self._binding.validate(result.value)
+        except ValueError as error:
+            _reject('issued graph changed: ' + str(error))
+
+    def accept(self, result):
+        if self._accepted or self._issued is None or result is not self._issued or self.released:
+            _reject('native frame has no unconsumed counter/admission permission')
+        # Counters remain an observable prefix on semantic refusal. Consume
+        # transport permission first, then retain that original update order.
+        try:
+            self._validate(result)
+            self._accepted = True
+            self.owner.serial, self.owner.value_slots = result.serial, result.value_slots
+            result.admit()
+        except BaseException:
+            self.close()
+            raise
 
     def hold(self, value):
         identifier = len(self.pool)
@@ -151,13 +187,14 @@ class FunctionContext:
         # Consume the permission before invoking any callback. A callback may
         # mutate the type/helper state and then interrupt before its reply is
         # assigned; that request must never become eligible for replay.
-        self.executed = self.sequence
         try:
+            self._validate(self._issued)
+            self.executed = self.sequence
             self._service(request, query)
             self.completed = self.sequence
             self.pending = None
         except BaseException:
-            self.closed = True
+            self.close()
             raise
 
     def _service(self, request, query):
@@ -244,9 +281,9 @@ class FunctionContext:
             self.reply = None
         elif request == 9:
             from .hia_enum_match_native import selected_enum_match
-            _required(selected_enum_match)
+            selected = _required(selected_enum_match)
             self.owner.lower_enum_match(self.source(query['path']), self.environment,
-                self.signatures, self.current, self.result, _unavailable, _unavailable)
+                self.signatures, self.current, self.result, _unavailable, _unavailable, _native=selected)
             self.reply = None
         elif request == 10:
             self.reply = [self.hold(self.result), self.hold(self.source(query['path']))]
@@ -276,11 +313,11 @@ class FunctionContext:
         selected = _required(selectors[kind])
         arguments = (instruction, actual, declared, self.environment, self.ops, _unavailable, _unavailable)
         if kind == 1:
-            self.owner.lower_record_transition(*arguments, _unavailable, _unavailable)
+            self.owner.lower_record_transition(*arguments, _unavailable, _unavailable, _native=selected)
         elif kind == 2:
-            self.owner.lower_record_operation(*arguments, _unavailable)
+            self.owner.lower_record_operation(*arguments, _unavailable, _native=selected)
         elif kind == 3:
-            self.owner.lower_enum_operation(*arguments)
+            self.owner.lower_enum_operation(*arguments, _native=selected)
         elif kind == 4:
             def apply(result):
                 self.owner.serial = result.serial
@@ -289,14 +326,16 @@ class FunctionContext:
                     value.consumed = consumed
                 self.environment.update(result.bindings)
             def helper(typ, operation):
-                name = self.owner.helper(typ, operation, require_native=True)
+                from .hia_task_helper_cache_native import selected_task_helper_cache
+                cache = _required(selected_task_helper_cache)
+                name = self.owner.helper(typ, operation, require_native=True, _native_cache=cache)
                 return name, self.owner.serial
             selected.lower(instruction['op'], instruction['args'], instruction['attrs'], actual,
                 declared, self.owner.serial, apply=apply, check_task=self.owner.check_task,
                 resolve_type=self.owner.types.resolve,
                 reparse_outputs=lambda: self.owner.parameters(instruction['out']), helper=helper)
         else:
-            self.owner.lower_call_primitive(*arguments)
+            self.owner.lower_call_primitive(*arguments, _native=selected)
 
 
 @dataclass(frozen=True)
@@ -319,8 +358,7 @@ class NativeNominalFunction(NativeHiaJsonImage):
         try:
             for _ in range(8 * 262144 + 32):
                 result = self.step(context)
-                owner.serial, owner.value_slots = result.serial, result.value_slots
-                result.admit()
+                context.accept(result)
                 if not result.request:
                     return result.value
                 context.service(result.request, result.value)
@@ -360,7 +398,7 @@ class NativeNominalFunction(NativeHiaJsonImage):
             _reject('invalid controller frame/counter correlation')
         try:
             encoded = ctypes.string_at(ctypes.addressof(context.output) + 64, size)
-            value = decode_native_graph(encoded, wire, external=context.pool)
+            value, binding = decode_bound_native_graph(encoded, wire, external=context.pool)
             if error and value is not None or not error and type(value) is not dict:
                 raise ValueError('invalid complete result/continuation shape')
         except (ValueError, TypeError, KeyError, UnicodeError, RecursionError, OverflowError) as exc:
@@ -369,9 +407,14 @@ class NativeNominalFunction(NativeHiaJsonImage):
         context.sent_types = len(context.types)
         context.environment_snapshot = context.pending_environment
         context.pending = (request, value) if request else None
+        result = FunctionResult(final, values, error, request, value)
+        context._issued = result
+        context._binding = binding
+        context._issued_fields = (final, values, error, request)
+        context._accepted = False
         if not request:
             context.closed = True
-        return FunctionResult(final, values, error, request, value)
+        return result
 
 
 def installed_nominal_function(manifest):

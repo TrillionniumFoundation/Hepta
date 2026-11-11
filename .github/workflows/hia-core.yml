@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -87,6 +87,13 @@ jobs:
               'tests.test_hia_task_helpers_native.TaskHelpersSourceTests',
               'tests.test_hia_task_helpers_native.TaskHelpersAdapterTests',
               'tests.test_hia_composite_native_composition.SourceTests',
+              'tests.test_hia_composite_functions_native.FunctionSourceTests',
+              'tests.test_hia_composite_function_tokens.TokenCodecTests',
+              'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',
+              'tests.test_hia_composite_constructor_source.ConstructorSourceTests',
+              'tests.test_hia_composite_constructor_native.ConstructorFrameTests',
+              'tests.test_hia_composite_outer_source.OuterSourceTests',
+              'tests.test_hia_composite_outer_native.OuterFrameTests',
               'tests.test_hia_native_builder_source_binding',
               'tests.test_hia_standalone_builder_source_binding',
               'tests.test_hia_enum_match_native.EnumMatchSourceTests',
@@ -105,6 +112,23 @@ jobs:
               'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
               'tests.test_hia_release_install.ReleaseInstallerSourceTests',
               'tests.test_hia_release_selection.ReleaseSelectionSourceTests',
+              'tests.test_hia_native_value_graph',
+              'tests.test_hia_nominal_owner_routes',
+              'tests.test_hia_call_primitive_native.CallPrimitiveSourceTests',
+              'tests.test_hia_call_primitive_native.CallPrimitiveAdapterTests',
+              'tests.test_hia_nominal_terminators_native.NominalTerminatorsSourceTests',
+              'tests.test_hia_nominal_terminators_native.NominalTerminatorsAdapterTests',
+              'tests.test_hia_nominal_module_native.NominalModuleSourceTests',
+              'tests.test_hia_nominal_module_native.NominalModuleAdapterTests',
+              'tests.test_hia_nominal_admission_native.NominalAdmissionSourceTests',
+              'tests.test_hia_nominal_admission_native.NominalAdmissionAdapterTests',
+              'tests.test_hia_nominal_function_native.NominalFunctionSourceTests',
+              'tests.test_hia_nominal_function_native.NominalFunctionAdapterTests',
+              'tests.test_hia_task_helper_cache_native.TaskHelperCacheSourceTests',
+              'tests.test_hia_task_helper_cache_native.TaskHelperCacheAdapterTests',
+              'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
+              'tests.test_hia_request_journal_native.RequestJournalSourceTests',
+              'tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -235,7 +259,7 @@ jobs:
         env:
           HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
-      - name: Native composite types signatures origins and complete task helpers
+      - name: Native complete nominal types helpers constructor functions and outer lowering
         run: |
           python -B - <<'PYTYPES'
           import unittest
@@ -249,7 +273,27 @@ jobs:
               'tests.test_hia_enum_operations_native',
               'tests.test_hia_record_operations_native',
               'tests.test_hia_record_transitions_native',
-              'tests.test_hia_task_operations_native'))
+              'tests.test_hia_task_operations_native',
+              'tests.test_hia_composite_function_tokens',
+              'tests.test_hia_composite_function_admission',
+              'tests.test_hia_composite_function_protocol_audit',
+              'tests.test_hia_composite_function_terms_native',
+              'tests.test_hia_composite_functions_native',
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle',
+              'tests.test_hia_native_value_graph',
+              'tests.test_hia_nominal_owner_routes',
+              'tests.test_hia_call_primitive_native',
+              'tests.test_hia_nominal_terminators_native',
+              'tests.test_hia_nominal_module_native',
+              'tests.test_hia_nominal_admission_native',
+              'tests.test_hia_nominal_function_native',
+              'tests.test_hia_task_helper_cache_native',
+          ))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYTYPES
@@ -261,6 +305,32 @@ jobs:
           HEPTA_HIA_RECORD_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_RECORD_TRANSITIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_TASK_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture
+          HEPTA_HIA_CALL_PRIMITIVE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_TERMINATORS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_MODULE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_ADMISSION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_FUNCTION_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_HELPER_CACHE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native durable execution budgets request journal and artifact namespace
+        run: |
+          python -B - <<'PYJOURNAL'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_execution_budget_native',
+              'tests.test_hia_request_journal_native',
+              'tests.test_hia_artifact_namespace_native',
+          ))
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
+          PYJOURNAL
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_REQUEST_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ARTIFACT_NAMESPACE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native retained retirement state and actual resource custody
         run: |
           python -B - <<'PYRETIRE'
@@ -322,6 +392,8 @@ jobs:
             ${{ runner.temp }}/hia-cold.cold/
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
+            ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-release-selection/

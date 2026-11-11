@@ -59,8 +59,11 @@ def admitted_request_journal():
             if selected else None)
 
 
-def request_journal_store(store, admission):
-    return None if admission is None else NativeRequestJournalStore(store, admission)
+def request_journal_store(store, admission, *, shared_lock=None):
+    if admission is None:
+        return None
+    return (NativeRequestJournalStore(store, admission) if shared_lock is None else
+            NativeRequestJournalStore(store, admission, shared_lock=shared_lock))
 
 
 @dataclass(frozen=True)
@@ -267,6 +270,12 @@ _EFFECT_SQL = {
     'INSERT OR IGNORE INTO artifacts VALUES (?,?,?,?,?,?)': 'INSERT OR IGNORE INTO main.artifacts VALUES (?,?,?,?,?,?)',
     'SELECT * FROM artifacts WHERE id=?': 'SELECT * FROM main.artifacts WHERE id=?',
     'SELECT artifact FROM profiles WHERE id=? AND sha256=?': 'SELECT artifact FROM main.profiles WHERE id=? AND sha256=?',
+    # The namespace owner emits the same four fixed statements already
+    # qualified with main. These aliases add no new SQL effect authority.
+    'SELECT * FROM main.artifacts WHERE content_key=?': 'SELECT * FROM main.artifacts WHERE content_key=?',
+    'INSERT OR IGNORE INTO main.artifacts VALUES (?,?,?,?,?,?)': 'INSERT OR IGNORE INTO main.artifacts VALUES (?,?,?,?,?,?)',
+    'SELECT * FROM main.artifacts WHERE id=?': 'SELECT * FROM main.artifacts WHERE id=?',
+    'SELECT artifact FROM main.profiles WHERE id=? AND sha256=?': 'SELECT artifact FROM main.profiles WHERE id=? AND sha256=?',
 }
 
 
@@ -322,7 +331,7 @@ class _SemanticRefusal(Exception):
 
 class NativeRequestJournalStore:
     """Fixed SQLite effect transport to the same retained main database."""
-    def __init__(self, store, image):
+    def __init__(self, store, image, *, shared_lock=None):
         self.store, self.image = store, image
         self.official = store.db
         self.path = Path(store.database)
@@ -330,7 +339,10 @@ class NativeRequestJournalStore:
         self.sidecars = dict(store.database_sidecars)
         self.creator = os.getpid()
         self.connection_identity = struct.unpack('<2Q', os.urandom(16))
-        self.lock = threading.RLock()
+        # A selected namespace uses the same lock before both the original
+        # and private SQLite transaction. This fixes lock order without
+        # borrowing, replacing or committing the other connection's scope.
+        self.lock = threading.RLock() if shared_lock is None else shared_lock
         self._db = None
         self._transaction_owner = None
         self.closed = False

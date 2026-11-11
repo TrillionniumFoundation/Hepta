@@ -2,9 +2,10 @@
 import math
 import struct
 import unittest
+from unittest.mock import patch
 
 from hepta.hia_instruction_policy_native import transport
-from hepta.hia_native_value_graph import NativeValuePool, decode_native_graph
+from hepta.hia_native_value_graph import NativeValuePool, decode_native_graph, decode_bound_native_graph
 
 
 def reference(offset):
@@ -26,6 +27,71 @@ def external_concatenate(identifiers):
 
 
 class NativeValueGraphTests(unittest.TestCase):
+    def test_bound_owned_graph_rejects_typed_edges_keys_and_new_cycles(self):
+        raw = transport({'path': ['blocks', 0, 'params'], 'bool': True,
+                         'zero': -0.0, 'nested': {'items': [1]}})
+        def changes(value):
+            return (
+                lambda: value['path'].__setitem__(1, 1),
+                lambda: value.__setitem__('bool', 1),
+                lambda: value.__setitem__('zero', 0.0),
+                lambda: value['nested']['items'].append(value),
+                lambda: value.__setitem__('extra', None),
+                lambda: value.__setitem__('path', list(value['path'])),
+            )
+        for index in range(6):
+            value, binding = decode_bound_native_graph(raw, raw)
+            binding.validate(value)
+            changes(value)[index]()
+            with self.subTest(index=index), self.assertRaises(ValueError):
+                binding.validate(value)
+        value, binding = decode_bound_native_graph(raw, raw)
+        value['path'] = value.pop('path')
+        with self.assertRaises(ValueError):
+            binding.validate(value)
+
+    def test_bound_source_concatenation_has_no_expanded_shadow_array(self):
+        import sys
+        import tracemalloc
+        raw = transport(['name_' + str(i) for i in range(512)])
+        encoded = concatenate([0] * 8193)
+        tracemalloc.start()
+        try:
+            value, binding = decode_bound_native_graph(encoded, raw)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(len(value), 8193 * 512)
+        self.assertLess(peak - sys.getsizeof(value), 2 << 20)
+        binding.validate(value)
+        value[8192 * 512 + 7] = object()
+        with self.assertRaises(ValueError):
+            binding.validate(value)
+        raw = transport([{'held': [1]}])
+        value, binding = decode_bound_native_graph(concatenate([0, 0]), raw)
+        self.assertIs(value[0], value[1])
+        value[1]['held'][0] = 2
+        with self.assertRaises(ValueError):
+            binding.validate(value)
+
+    def test_bound_external_values_preserve_opaque_identity_and_tuple_spines(self):
+        helper = {'blocks': [{'args': ['held'] * (8193 * 512)}]}
+        pool = NativeValuePool()
+        direct = pool.add(helper)
+        array = pool.add((helper, helper))
+        with patch('hepta.hia_native_value_graph._external_height',
+                   side_effect=AssertionError('stable opaque value was traversed again')):
+            value, binding = decode_bound_native_graph(external_reference(direct), transport(None), pool)
+            self.assertIs(value, helper)
+            binding.validate(value)
+            for encoded in (external_reference(array), external_concatenate([array, array])):
+                value, binding = decode_bound_native_graph(encoded, transport(None), pool)
+                self.assertTrue(all(item is helper for item in value))
+                binding.validate(value)
+                value[0] = dict(helper)
+                with self.assertRaises(ValueError):
+                    binding.validate(value)
+
     def test_exact_types_unicode_signed_zero_and_nested_source_values(self):
         original = {'null': None, 'bool': [True, False], 'integer': [-2**63, 2**64-1],
                     'float': [-0.0, 1.25, 5e-324], 'text': 'x\x00汉\ud800',

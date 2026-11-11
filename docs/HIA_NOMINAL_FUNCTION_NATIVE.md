@@ -47,18 +47,66 @@ fresh allocation, operation construction or CFG construction is repeated in
 the Python function controller. The bridge stores opaque descriptors, values,
 environments and completed Core objects, and services native-selected requests.
 
-Task-helper cache policy is a distinct boundary. Existing cache hits precede
-generator selection. An uncached helper requested by the native function uses
-`require_native=True`, so a missing generator refuses before the hosted helper
-fallback. This guard preserves cache-hit order; it does not transfer the cache
-policy itself to this function controller.
+Task-helper cache policy is a separately selected HIA owner. At the original
+helper continuation, the function bridge admits that native cache image and
+passes the exact object through the private `_native_cache` argument with
+`require_native=True`. Missing cache selection refuses even if a hosted cache
+already contains a name. The admitted HIA cache performs the lookup; a hit
+still precedes generator selection and protocol checking. A miss requires the
+native generator at its original point. The function path contains no hosted
+cache decision or hosted generator fallback.
 
-The original recovered bridge selects several downstream owners twice through
-existing wrappers. A source review identified that a configuration change
-between those reads could reach a retained branch. That finding requires a
-separate image-pinning correction and actual image controls before a final
-native-only composition claim. The recovery inventory distinguishes that future
-change from the byte-exact recovered bridge.
+The original recovered bridge selected several downstream owners twice through
+existing wrappers. A later actual-image observation confirmed that clearing the
+call selector between those reads invoked the hosted primitive branch and still
+produced a complete constant function. That completed observation is distinct
+from an earlier witness attempt which was terminated without a result.
+
+The corrected native function path passes the exact image admitted at each
+continuation into the record, enum, call and match bridge. These private image
+arguments are not public source fields. Task and terminator continuations
+already invoke their admitted object directly. Ordinary wrapper calls preserve
+their existing selection behavior. The original seven owner-kind controls clear the selector
+after actual image admission, forbid every hosted reference, execute the held
+image, and compare complete output and state with the reference function. This
+pinning change is separately committed from the byte-exact bridge recovery.
+The later cache integration adds an eighth owner-kind control with the same
+actual-image admission, selector-clearing and complete-state comparison. The
+hosted cache wrapper is disabled alongside the other retained references in
+the complete selected-function controls and installed-wheel execution. Those
+controls also disable the upstream inline oracle retained as
+`_reference_main_function`, so integration cannot hide a different hosted
+function implementation behind the original reference name.
+
+## Issued result and graph integrity
+
+An actual-image recovery control found that the original bridge accepted an
+in-place change to a native parameter-path list. The altered path reached the
+real native type owner even though HIA had requested a different source
+location. The original failure is retained separately from the correction.
+
+The bridge now captures the decoder-owned list/dictionary edges as the graph
+is produced. Before a callback it checks the exact pending object, the issued
+header and those immutable shallow edges. Public `lower` additionally consumes
+an exact issued-result permission before materializing counters, propagating
+semantic admission or returning a terminal function. Counter writes still
+precede an original semantic refusal, but altered transport cannot introduce
+new counter writes. Interrupted calls release the binding and both arenas.
+
+Private step/VM drivers retain their existing responsibility to apply the
+returned counters and semantic admission themselves. `service` checks the
+native graph independently; it does not require the public materialization
+method to have been used. Public `lower` always uses that method.
+
+Binding metadata follows newly decoded wire edges and concatenation pieces.
+It does not recreate a second expanded flat argument/origin array or impose a
+new public width, node or wire quota. Source references have bound owned
+structure. External tag-10/tag-11 objects retain exact identity and the
+existing stable-pool contract: opaque interiors are not recursively frozen,
+and changing an external list together with its concatenated output is outside
+this guarantee. Tuple references bind their newly created outer list while
+keeping child identities. This is private protocol integrity, not a security
+boundary against arbitrary same-process code.
 
 ## Original semantic order
 
@@ -229,6 +277,57 @@ development-only fixture; setting both refuses. Default bootstrap fixtures are
 also development-only. A previously qualified compiler does not qualify a new
 source tree. The interrupted full runs and reconstructed test/doc source must
 be followed by new complete qualification; partial passes are not a substitute.
+
+### Recovered-source development checkpoint
+
+At commit `9a2a7f90f393042e4da3e0f8a26710e193b6e067`, the complete reconstructed
+function and generic graph gate passed **36/36** tests in 636.468840607 seconds:
+21 function controls and 15 graph controls, including all 75 original nominal,
+resource and returned-loan tests inside the regression control. There were no
+failures, errors, skips, expected failures or unexpected successes. All 2,801
+Git-visible input files had identical before/after SHA-256 values; the retained
+reference-function AST also remained exact. Ordinary Python collection was
+used, without per-test or per-subtest collection overrides.
+
+This is a development checkpoint using the separately identified retained
+compiler and images. It does not qualify the current whole source tree or
+replace the original cold gate. The earlier interrupted runs, the original
+callback-replay observation, the completed selector-reselection observation,
+and the test-runner failure remain separate evidence. A subsequent independent
+allocation-fault injection found that refusing the second 64 MiB context arena
+could leave the first arena retained by the constructor traceback. That
+observation has no native entry and is not an explanation for earlier exit 137.
+It requires its own correction and new verification after this checkpoint.
+
+The complete evidence is retained in `function-recovery-development-r1` next
+to the checkout. The following hashes identify its immutable files:
+
+| Evidence | SHA-256 |
+| --- | --- |
+| `full-function-r1.json` | `356b42677f727fc52a81580101c96f07bbc21940c646dedff75793dc6f323e8c` |
+| `full-function-r1-frozen.json` | `da25d3a61bd6d2c6052be5e41a3f9a5e98c5304eb8a4025a6213b9a5dc726465` |
+| `full-function-r1.log` | `0fe2159b49dc1ad9c8bb26254826029c3097677606cfa356dd70980d3eda0376` |
+| `full-function-r1-events.jsonl` | `20780cfb8731163a3ac3eaed7db0a1ea635cfcc7610668c24974659a109cf9a3` |
+| `run-full-function-r1.py` | `3591e41a7e1d31ee17ed50687a9eac2b0707354cd3f0a7928bf3fb75a93cfcb5` |
+
+### Partial-constructor allocation cleanup
+
+The subsequent correction initializes both context arena references to null
+and releases them inside the constructor if either allocation raises any
+`BaseException`. `NativeNominalFunction.lower` cannot perform that cleanup
+because construction has not yet returned its context. The original exception
+is re-raised unchanged, and a traceback-retained context is already closed.
+No HIA entry, semantic callback, counter or ownership mutation is involved.
+
+The allocation control uses the real first 64 MiB ctypes allocation and
+injects refusal at the first or second allocation, separately with `MemoryError`
+and `KeyboardInterrupt`. It retains the original exception and constructor
+traceback while asserting that both arena references are null and any actually
+allocated arena has already died, without explicit garbage collection or
+traceback removal. The original 9a observation remains independently retained
+in `function-independent-review-r1/context-second-allocation-9a2a-r1.{py,json}`.
+This bridge correction requires its own evidence; the preceding 36/36 result
+continues to identify the earlier, exact 9a source.
 
 No retention cycle follows merely from `_NativeTypeIdentity.session`: that
 field holds a nonce object, not the type-session object. Exit status 137 alone
