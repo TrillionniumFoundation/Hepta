@@ -11,7 +11,7 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 SOURCE_PATH = 'examples/hia_bootstrap/worker_report.hiaasm'
-MAGIC = int.from_bytes(b'HIAWKR01', 'little')
+MAGIC = int.from_bytes(b'HIAWKR02', 'little')
 HIGH = 1 << 63
 LITERALS = {
     'SCHEMA_KEY': 'schema', 'REPORT_SCHEMA': 'hia-agent-worker-report-v1',
@@ -49,6 +49,7 @@ FIELDS = {
     'ERROR_ID': 344, 'ERROR_CODE': 352, 'ERROR_MESSAGE': 360, 'ERROR_RETRY': 368,
     'TEMP': 376, 'REPORT': 384, 'REPORT_INDEX': 392, 'WIRE_ROOT': 400,
     'FORMAT_IMAGE': 408,
+    'HANDLED_EXC': 416, 'REQ_CONTEXT': 424,
     'EQ_LEFT': 512, 'EQ_RIGHT': 520, 'EQ_NEXT': 528, 'EQ_RESULT': 536,
     'EQ_DEPTH': 544, 'EQ_LIMIT': 552, 'EQ_CHILD': 560,
     'EL_KIND': 568, 'EL_SIZE': 576, 'EL_A': 584, 'EL_B': 592,
@@ -71,7 +72,7 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if get(w, 0) == 0:
         if length(s) != 112 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
-        if read64(s, 24) > 1 or read64(s, 32) > 1:
+        if read64(s, 24) > 1 or read64(s, 32) > 1 or read64(s, 104) != 0:
             return 199
         put(w, 0, MAGIC)
         put(w, MANIFEST_MODE, read64(s, 24))
@@ -142,6 +143,10 @@ def worker_report(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     return 199
 
 def ask(w:mutbuf, opcode:u64, a:u64, b:u64, c:u64, d:u64, phase:u64) -> u64:
+    active = get(w, HANDLED_EXC)
+    if get(w, CLOSE_REGION) != 0 and get(w, PENDING_EXC) != 0:
+        active = get(w, PENDING_EXC)
+    put(w, REQ_CONTEXT, active)
     put(w, AWAIT, opcode)
     put(w, SEQ, get(w, SEQ) + 1)
     put(w, REQ_A, a)
@@ -156,6 +161,7 @@ def caught(w:mutbuf, exception:u64, domain:u64) -> u64:
     put(w, EXC_DOMAIN, domain)
     if get(w, CATCH) == 0 or domain == 0:
         return 3
+    put(w, HANDLED_EXC, exception)
     put(w, CATCH, 0)
     put(w, PHASE, 50)
     return 0
@@ -369,6 +375,7 @@ def reporting(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return 0
     if phase == 80:
         put(w, CATCH, 0)
+        put(w, HANDLED_EXC, 0)
         report = object(w, 9)
         put(w, REPORT, report)
         pair(w, report, 0, L_SCHEMA_KEY, L_REPORT_SCHEMA)

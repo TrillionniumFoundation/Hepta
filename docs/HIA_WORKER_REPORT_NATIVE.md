@@ -34,13 +34,23 @@ continuations are outside the native ABI trust boundary.
 
 ## Protocol and preserved order
 
-The policy entry uses `HIAWKR01`, a 112-byte initialization packet and sequenced
+The policy entry uses `HIAWKR02`, a 112-byte initialization packet and sequenced
 continuation replies. Replies have eight unsigned 64-bit header slots, followed
 only by the requested codepoint/magnitude chunk or stored dictionary hash. The
 program checks opcode, sequence, error tag and exact packet extent before
 consumption. Each string/magnitude observation is at most 1024 words. The
 workspace is private and initialized by the adapter; arbitrary corrupted
 continuations and fabricated object facts are not an untrusted-input sandbox.
+
+HIA also chooses the active handled-exception handle for every foreign effect.
+The adapter temporarily activates exactly that object, restores the raw
+traceback/context fields altered by activation, and restores the caller's prior
+handled-exception context after the effect. This keeps `sys.exception()` and
+the actual exception chain visible during close and error callbacks. An UNKNOWN
+replacement changes the reported exception value, while the original handled
+exception remains active until the handler ends. Final report construction and
+wire encoding run after that interval. Version 1 lacked this preservation; its
+eight original context counterexamples remain evidence, not passing controls.
 
 Native virtual handles occupy the high half of the unsigned 64-bit namespace.
 HIA owns their kind, pair table, UTF-32 literals, slices and concatenations.

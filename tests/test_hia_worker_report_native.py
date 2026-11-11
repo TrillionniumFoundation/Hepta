@@ -57,6 +57,7 @@ class Fixture:
         self.initial_error = self.construct_error = self.call_error = self.close_error = self.after_error = None
         self.on_construct = self.on_call = self.on_close = self.on_after = None
         self.on_read = None
+        self.on_output = None
         self.decoded = None
         self.extra_patches = []
 
@@ -72,6 +73,8 @@ class Fixture:
         class Output:
             def write(self, value):
                 fixture.events.append(('stdout', len(value)))
+                if fixture.on_output:
+                    fixture.on_output()
                 return output.write(value)
         class Service:
             def __init__(self, state, *, artifact_roots):
@@ -467,6 +470,96 @@ class WorkerReportNativeTests(unittest.TestCase):
         def cycle(f):
             f.response = []; f.response.append(f.response)
         self.same(cycle)
+
+    def test_active_exception_intervals_chains_and_same_object_reraise(self):
+        def observe(native, case, ambient):
+            f = Fixture()
+            observations = []
+            tracked = None
+            original = None
+            def tag(exc):
+                return None if exc is None else (type(exc).__name__, exc.args)
+            def mark(name):
+                observations.append((name, tag(sys.exception())))
+            f.on_output = lambda: mark('output-outside-handler')
+            if case in ('close-chain', 'close-getter', 'close-same'):
+                original = KeyboardInterrupt('original-call')
+                tracked = original if case == 'close-same' else SystemExit('close-replacement')
+                if case != 'close-same':
+                    tracked.__cause__ = ValueError('deliberate-cause')
+                f.call_error, f.close_error = original, tracked
+                f.on_close = lambda: mark('close-call')
+                if case == 'close-getter':
+                    class Service:
+                        def __init__(self, *args, **kwargs): pass
+                        def call(self, *args): raise original
+                        @property
+                        def close(self):
+                            mark('close-getter')
+                            raise tracked
+                    f.extra_patches.append(patch('hepta.hia_agent_service.HIAAgentService', Service))
+            else:
+                replacement = OSError('callback-replacement')
+                class Error(ValueError):
+                    @property
+                    def code(self):
+                        mark('code')
+                        if case == 'callback-chain': raise replacement
+                        if case == 'callback-same': raise self
+                        return 'OBSERVED'
+                    def __str__(self):
+                        mark('message'); return 'observed-message'
+                    @property
+                    def retry_action(self):
+                        mark('retry'); return 'stop'
+                original = Error('original-error')
+                tracked = replacement if case == 'callback-chain' else original
+                if case == 'entered-handler':
+                    f.call_error = original
+                    parent = worker.AgentRejected
+                    class ReportedUnknown(parent):
+                        def __getattribute__(self, name):
+                            if name in ('code', 'retry_action'):
+                                mark('unknown-' + name)
+                            return super().__getattribute__(name)
+                        def __str__(self):
+                            mark('unknown-message'); return super().__str__()
+                    f.extra_patches.append(patch.object(worker, 'AgentRejected', ReportedUnknown))
+                elif case == 'uncorrelated-handler':
+                    f.extra_patches.append(patch.object(worker, 'decode_data', side_effect=original))
+                else:
+                    f.construct_error = original
+                def identifier():
+                    mark('uuid'); return uuid.UUID(int=1)
+                f.extra_patches.append(patch.object(worker.uuid, 'uuid4', identifier))
+            def invoke():
+                result = f.run(self.manifest if native else None)
+                mark('returned-to-caller')
+                return result
+            if ambient:
+                try:
+                    raise OSError('ambient-caller')
+                except OSError:
+                    result = invoke()
+            else:
+                result = invoke()
+            frames = []
+            traceback = BaseException.__dict__['__traceback__'].__get__(tracked, BaseException)
+            while traceback is not None:
+                frames.append(traceback.tb_frame.f_code.co_name)
+                traceback = traceback.tb_next
+            # Activating a saved exception may only remove its synthetic frame;
+            # a real callback raising the same object must retain its new frame.
+            if case == 'callback-same': self.assertIn('code', frames)
+            if case == 'close-same': self.assertIn('close', frames)
+            return (result, observations, tag(tracked.__context__), tag(tracked.__cause__),
+                    tracked.__suppress_context__, tracked.__context__ is original)
+        cases = ('close-chain', 'close-getter', 'close-same', 'constructor-handler',
+                 'entered-handler', 'uncorrelated-handler', 'callback-chain', 'callback-same')
+        for case in cases:
+            for ambient in (False, True):
+                with self.subTest(case=case, ambient=ambient):
+                    self.assertEqual(observe(True, case, ambient), observe(False, case, ambient))
 
     def test_parent_graph_byte_depth_and_node_budgets(self):
         # The response alone fits; including the report's nine fields crosses

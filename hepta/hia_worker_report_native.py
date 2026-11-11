@@ -25,9 +25,44 @@ SOURCE = _source_resource_path('examples/hia_bootstrap/worker_report.hiaasm')
 POLICY_SCHEMA = 'hepta.hia.worker-report-native.v1'
 SCHEMA = 'hepta.hia.worker-report-bundle.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REPORT_MANIFEST'
-MAGIC = int.from_bytes(b'HIAWKR01', 'little')
+MAGIC = int.from_bytes(b'HIAWKR02', 'little')
 HIGH = 1 << 63
 NODE_BASE = 32768
+
+# Raw exception descriptors avoid invoking user-defined __getattribute__ or
+# __setattr__ while transporting the runtime's existing exception metadata.
+_TRACEBACK = BaseException.__dict__['__traceback__']
+_CONTEXT = BaseException.__dict__['__context__']
+
+
+def _with_foreign_exception(exception, operation):
+    """Execute one HIA-requested effect with its requested handled exception.
+
+    Raising an existing object activates sys.exception() but would append an
+    artificial traceback frame and may replace its existing context. Restore
+    those raw fields before the actual effect. Leaving this except scope
+    restores whatever handled exception the caller already had.
+    """
+    traceback = _TRACEBACK.__get__(exception, BaseException)
+    context = _CONTEXT.__get__(exception, BaseException)
+    try:
+        raise exception
+    except BaseException:
+        _TRACEBACK.__set__(exception, traceback)
+        _CONTEXT.__set__(exception, context)
+        return operation()
+
+
+def _reraise_foreign(exception):
+    """Propagate the observed foreign chain without replacing its context."""
+    traceback = _TRACEBACK.__get__(exception, BaseException)
+    context = _CONTEXT.__get__(exception, BaseException)
+    try:
+        raise exception
+    except BaseException:
+        _TRACEBACK.__set__(exception, traceback)
+        _CONTEXT.__set__(exception, context)
+        raise
 
 
 class WorkerGraphObserver:
@@ -176,6 +211,12 @@ class WorkerSession:
         return code
 
     def observe(self):
+        handled, = struct.unpack_from('<Q', self.workspace, 424)
+        if handled:
+            return _with_foreign_exception(self.observer.value(handled), self._observe)
+        return self._observe()
+
+    def _observe(self):
         opcode, sequence = struct.unpack_from('<2Q', self.workspace, 8)
         a, b, c, d = struct.unpack_from('<4Q', self.workspace, 200)
         reg, value = self.observer.register, self.observer.value
@@ -318,7 +359,7 @@ class WorkerSession:
                 return result
             elif code == 3:
                 handle, = struct.unpack_from('<Q', self.workspace, 32)
-                raise self.observer.value(handle)
+                _reraise_foreign(self.observer.value(handle))
             else:
                 raise RuntimeError('native worker continuation profile refused')
 
