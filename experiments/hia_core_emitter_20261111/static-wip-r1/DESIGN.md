@@ -1,0 +1,17 @@
+# Complete Emitter control: independent unexecuted protocol revision
+
+This is a static authoring draft based on the existing Function owner. It does not replace the actual 32 HIALOW01 source originals or inherit their authoring result. No Python parsing, source generation, native compilation, ABI execution or product test has run for this HIALOW02 draft.
+
+The six original methods are __init__, ordered_blocks, label, function_symbol, wrapper and render. Their source is appended literally from the complete 608 oracle; a future source gate must independently verify their AST and every signature. Existing Function22/helper5 controls remain in the authoring policy. The ordinary selector/loader/build/test integration for this revision is still to be written.
+
+The original Emitter constructor has six bound arguments and a four-target unpacking assignment. HIALOW02 retains the128-byte packet, expands initial bound arguments to six and effect returns to four, and moves the private handoff destination to workspace offset96. It does not change any compiler limit, policy data limit or3/5-second caller budget.
+
+The original render method contains two lazy generator expressions passed to the already-bound types.extend method. Their first iterable is observed immediately, while NEXT, ITEM, yield and termination remain HIA-selected. The new GENERATOR primitive creates a real Python generator transport whose body calls the HIA continuation. This preserves suspension, throw/close and the ordinary Python StopIteration-to-RuntimeError boundary for the new lazy generators. It is still hosted object transport. Existing specialized sum/max/any authoring loops retain the earlier explicitly unclosed foreign StopIteration and global-monkeypatch boundaries.
+
+A CALL packet with raw keyword-handle0 requests one original **mapping expansion. The bridge invokes the chosen target with that actual mapping; it does not copy or inspect keys before CPython's normal keyword protocol. All other call/attribute/item ordering remains selected by the HIA policy. The explicit original imports VALUE_REGISTERS, code_options and emit_wrapper are observations, with their owning modules still distinct.
+
+The19 hosted primitive kinds are global lookup, attribute read/write, item read/write, Python call (including mapping expansion), collection construction, iterator creation, next, truth, arithmetic/in-place arithmetic, unary arithmetic, rich comparison/membership, unpack, slice, list append, explicit import, raise, and lazy-generator transport. Code state/encoding/instruction control, ELF packing and native byte-wrapper policy are separate owners. This draft does not internalize the Python object runtime, system calls, allocation/finalizers or arbitrary recursion-resource behavior.
+
+Required actual controls include six-argument admission; four-result ACK framing; full constructor assignment/callback order; Code binding before code_options/mapping expansion; complete-filter and lazy generator observations; source-prefix preservation; generator StopIteration/throw/close; single-use yield/resume/handoff and post-entry BaseException terminal guards; original22+6+5 oracle checks; all original12+51+50 denominators; complete installed resources and fresh strict-cold builder admission. New generated unit counts and maxima must come from actual generation, never from estimates.
+
+This private experiment prefix has no ordinary runtime effect. The unchanged v1 candidate remains028058563592a853c7b4eeea145b35f5545aaa94.
