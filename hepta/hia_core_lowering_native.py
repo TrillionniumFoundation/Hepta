@@ -3,7 +3,7 @@
 This development module contains no Function lowering decisions. HIA chooses
 each primitive, operand handle, continuation and branch. Authoring policy and IR
 modules are never imported here. Source-bound bundle admission and the ordinary
-entry selector are still pending in this static draft.
+entry selector are implemented in hia_core_lowering_selection.
 """
 from __future__ import annotations
 
@@ -329,7 +329,7 @@ class LoweringSession:
 
 
 class NativeCoreLowering:
-    """Development composition of admitted images; production loader pending."""
+    """Composition of admitted images and explicitly hosted object primitives."""
 
     def __init__(self, images, pool, abi, namespace):
         if type(abi) is not dict or abi.get('schema') != 'hepta.hia.core-lowering-abi.v1':

@@ -127,5 +127,57 @@ literal-pool entries still return `u32`. Every defined internal status remains
 one of 0, 1, 2, 4 or the unchanged ABI refusal value; the final entry conversion
 does not add an admitted status. This is an authoring type correction, not a
 change to the verifier, compiler caps, packet, phase sequence or policy IR.
-The correction has not been generated or executed. The original failing source
-and the first unknown local write remain preserved.
+The corrected ca871 source was generated once on the pinned desktop CPython 3.14.4:
+all 32 public Core roundtrips and all original caps passed in 65.0857341099 seconds.
+The original 3,925-leaf base and 3,937-leaf candidate stayed byte/mode identical.
+The guardian naturally reaped the process and observed ECHILD; it did not time out
+or kill a live child. Compact raw results are preserved in 9efc2fb. No native
+compiler, VM or product test ran in that source-only request. The original failing
+source and the first unknown local write remain preserved.
+
+
+## Ordinary entry integration draft
+
+The new integration source is a separate, unexecuted revision. It does not
+inherit a native or product pass from the source-only r3 run. The explicit
+environment selector is HEPTA_HIA_CORE_LOWERING_MANIFEST. The ordinary backend
+entry captures either its admitted 32-image bundle or the absence of a selection
+for the entire emit, including reentrant emission. Subclasses of the retained
+private Function class keep their existing behavior.
+
+The five shared helpers use the selected HIA owner within that captured scope.
+Outside it their earlier public-admission and target-error behavior remains
+hosted. Direct selected Function invocations resolve their five helpers through
+the HIA owner. The original 22 method bodies and five helper bodies remain
+separately available for AST and semantic comparison; a selected load failure
+does not call them.
+
+The loader reads the installed ABI, every HIA unit source and every unit manifest
+on selection. It binds one compiler identity across all 32 images and caches
+immutable mappings as a complete bundle. The backend implementation identity
+also binds both new Python bridge modules, the ABI, all 32 source hashes, the
+bundle hash and all actual image hashes. A changed unit-manifest key requires
+fresh image admission. An unchanged warm key retains its already immutable
+mapping; changing a disk image alone does not rewrite that mapping.
+
+The strict builder requires a successful matching-source cold report before
+creating its output directory. Development use of the old 0e09 compiler is
+separate and cannot authorize that production builder. The new component gate
+declares four source methods and eight native methods. The caller gate keeps the
+original five machine modules and their 51 identifiers, plus the four existing
+general Core modules and their 50 identifiers. All loaded and executed
+identifiers must match, with zero errors, failures, skips, expected failures or
+unexpected successes. No existing test or original time limit is changed.
+
+The installed control builds a real wheel, compares every installed Python file
+and declared resource, and invokes ordinary emission in an isolated child with
+no site initialization, empty PATH and an authoring-import refusal. These are
+unexecuted controls until a new result explicitly records their actual execution.
+
+The 18 primitive kinds remain hosted observations, including object allocation
+and storage, arbitrary precision arithmetic, interpreter builtins and actual Code
+methods. Python generator objects are not created for HIA reductions; arbitrary
+foreign StopIteration/PEP479 behavior and monkeypatching reducer builtins are not
+included in the ordinary verified-builtin claim. The existing arbitrary
+recursion/resource, finalizer and introspection limitations also remain.
+No retained implementation is removed and no default selection is enabled.
