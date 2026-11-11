@@ -1,0 +1,18 @@
+# HIA native rewrite: component checkpoint r2
+
+This is a recoverable development checkpoint. It does not activate production, change `main`, qualify the complete stack, or authorize deletion of the old implementation. The source candidate is still being qualified independently.
+
+## Complete retained work
+
+- Composite driver stage 9 joint evidence executes all six type-service operations through actual HIA components. Stage 10 converts actual type replies into constructor, admission, and lowering continuations. Stage 11 constructs complete function/outer owner packets while retaining source-reference aliases without expanding large source documents. The complete eleven-owner coordinator remains unfinished.
+- Type transport r2 retains the full r1 history and frozen r2 sources. It includes real native six-operation transactions, 280 malformed cases, 38 protocol cases, 92 encoding/BOM/surrogate cases, original command-boundary cases, and the actual 21,160,521-byte type response. These are development tests against the retained semantic reference; private JSON diagnostic prose and public coordinator integration are outside the qualification claim.
+- Linked observer stage 2 retains the compact 2,256-byte ELF and its original tests. Independent review then demonstrated a real source/compiler identity race and a mixed-source VM-reference race in the linked observer and the existing flat observer. Stage 3 and the independent review preserve both original counterexamples and the fixes. Actual system `dlopen`/`dlsym`, constructors, relocations, seals, memory protections, and original child limits remain tested.
+- The isolated v66 integration retains all 38 complete linked/flat observer tests and their actual raw evidence. Its first complete source run executed all 329 tests in 402.181158139 seconds with one failure and no skipped or expected-failure outcomes: the workflow's exact required-module set omitted the newly added linked-observer module. That failure remains recorded. Frozen source r3 adds that module to the exact required set and regenerates source identities; the new complete source run is a separate attempt and is not represented by this checkpoint as a pass.
+- Namespace value framing r2 retains the original corrupt-cursor counterexample and the first compile postprocessor error. Seven native test groups executed 512 real entries and compared full result/output/workspace bytes with the independent VM. This is the value-framing foundation, not a qualified namespace database, transaction engine, or SQLite migration.
+- The old d684 failed GitHub artifact was copied without byte changes to persistent file storage, with a separately verified RAM copy. Its local duplicate removal receipt affects only that task-created evidence copy, not repository or product sources. This preserves a historical failure; it is not a new qualification.
+
+## Custody and limits
+
+`prepare.py` reads every listed archive member and verifies exact bytes, SHA-256, size, and mode against its manifest before preparing publication. `independent-readback.json` records this archive audit; archive reads are not native test reruns. The frozen v66 source capsules identify their d5 base and complete 642-file source closures. All development, failed, historical, and pending qualification scopes remain separate.
+
+The cold gate remains 180 seconds, two oracle workers, all 38 phases, full required suites, and zero skips/xfail/xpass. A candidate must satisfy its own source-bound qualification before activation. The whole-stack rewrite remains open; Python authoring/reference/host owners and unfinished native application owners are explicitly retained.
