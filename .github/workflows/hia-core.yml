@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -100,6 +100,10 @@ jobs:
               'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
               'tests.test_hia_release_install.ReleaseInstallerSourceTests',
               'tests.test_hia_agent_journal_native.JournalSourceTests',
+              'tests.test_hia_json_wire_native.WireSourceTests',
+              'tests.test_hia_worker_report_native.WorkerReportSourceTests',
+              'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
+              'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -320,6 +324,66 @@ jobs:
         env:
           HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS: ${{ runner.temp }}/hia-release-install
+      - name: Native graph wire worker machine-plan and linked observer
+        run: |
+          python -B - <<'PYNATIVEOWNERS'
+          import json, os, unittest
+          from pathlib import Path
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_json_wire_native',
+              'tests.test_hia_json_wire_entry',
+              'tests.test_hia_worker_report_native',
+              'tests.test_hia_machine_plan_native',
+              'tests.test_hia_selfhost_linked_observer',
+          ))
+          def flatten(suite):
+              for item in suite:
+                  if isinstance(item, unittest.TestSuite):
+                      yield from flatten(item)
+                  else:
+                      yield item
+          loaded = [test.id() for test in flatten(suite)]
+          executed = []
+          class Result(unittest.TextTestResult):
+              def startTest(self, test):
+                  executed.append(test.id())
+                  super().startTest(test)
+          result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(suite)
+          anomalies = {name: [str(item) for item in getattr(result, name)] for name in (
+              'errors', 'failures', 'skipped', 'expectedFailures', 'unexpectedSuccesses')}
+          passed = (bool(loaded) and loaded == executed and result.testsRun == len(loaded)
+                    and not any(anomalies.values()) and result.wasSuccessful())
+          report = {'schema': 'hepta.hia.native-component-tests.v1',
+              'scope': 'CURRENT_SOURCE_COLD_SELECTED_COMPONENTS',
+              'status': 'PASS' if passed else 'FAIL_OR_INCOMPLETE',
+              'loaded_test_ids': loaded, 'executed_test_ids': executed,
+              'tests_run': result.testsRun, 'anomalies': anomalies,
+              'default_activation_or_whole_stack_claimed': False}
+          Path(os.environ['HEPTA_HIA_NATIVE_COMPONENT_REPORT']).write_text(
+              json.dumps(report, indent=2, sort_keys=True) + '\n')
+          raise SystemExit(0 if passed else 1)
+          PYNATIVEOWNERS
+        env:
+          HEPTA_HIA_JSON_WIRE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REPORT_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_MACHINE_PLAN_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NATIVE_COMPONENT_REPORT: ${{ runner.temp }}/hia-native-components.json
+          HEPTA_HIA_JSON_WIRE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-json-wire-fixture
+          HEPTA_HIA_JSON_WIRE_ENTRY_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-json-wire-entry-fixture
+          HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-worker-report-fixture
+          HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-plan-fixture
+      - name: Ordinary machine-plan and Agent callers with retained plan owners forbidden
+        run: |
+          python -B tools/qualify_hia_machine_plan_native_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-machine-plan-callers.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-machine-plan-callers-evidence"
+      - name: Ordinary wire and Agent callers with retained serialization forbidden
+        run: |
+          python -B tools/qualify_hia_json_wire_native_callers.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-json-wire-callers.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers-evidence"
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -338,3 +402,12 @@ jobs:
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-journal-callers.json
+            ${{ runner.temp }}/hia-native-components.json
+            ${{ runner.temp }}/hia-json-wire-fixture/
+            ${{ runner.temp }}/hia-json-wire-entry-fixture/
+            ${{ runner.temp }}/hia-worker-report-fixture/
+            ${{ runner.temp }}/hia-machine-plan-fixture/
+            ${{ runner.temp }}/hia-machine-plan-callers.json
+            ${{ runner.temp }}/hia-machine-plan-callers-evidence/
+            ${{ runner.temp }}/hia-json-wire-callers.json
+            ${{ runner.temp }}/hia-json-wire-callers-evidence/

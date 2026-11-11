@@ -1,9 +1,12 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
-The current v65 integration combines returned-loan origins, complete nominal
-constructor/function/outer-program lowering, native worker-request and journal decisions, immutable
-release publication and bounded cold-evidence scheduling. Its audited baseline,
-new source-bound observations and remaining delivery owners are recorded in
+The current v66 candidate adds native foreign-graph wire encoding, worker
+control/report decisions, machine-plan validation and a linked qualification
+observer to the v65 integration. The earlier integration contains returned-loan
+origins, complete nominal constructor/function/outer-program lowering, native
+worker-request and journal decisions, immutable release publication and bounded
+cold-evidence scheduling. Its audited baseline, source-bound observations and
+remaining delivery owners are recorded in
 [the continuation audit](HIA_NATIVE_CLOSURE_20261111.md). The earlier experiments
 and failures below retain their original source identities.
 
@@ -19,6 +22,88 @@ complete primitive checker, native workspace filters and native applications
 are real implementations. The installed `hia` entry, Agent request authority,
 build/install ownership and other retained components still contain Python.
 Removing those owners now would remove supported behavior, not finish its port.
+
+## Current v66 candidate and exact v65 outcomes
+
+The last frozen combined source is `4161e8d12d87906fde144f039da07908ad52d98a`,
+tree `1c6ab0228f012429149997d1f731833739f433eb`. Its 634 declared source files
+plus support contract bind the v65 profile. The three actual executions below
+have different outcomes; a successful execution does not erase a timeout of the
+same source on another runner.
+
+| Exact-source execution | Source suite | Cold qualification | Complete workflow / regression |
+| --- | --- | --- | --- |
+| [GitHub push 42990498466](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42990498466) | 333 passed | 144.808616222 s; 11/11 wrapper checks; 38/38 phases; 5,049 nested checks | HIA workflow passed, including the language checks and all later native groups |
+| [GitHub PR 42990507317](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42990507317), identical source tree | 333 passed | Timed out at 180.178016991 s; 6/11 wrapper checks; 34/38 phases complete | Failed; downstream native groups were skipped |
+| Independent desktop full run, attempt r2 | 333 loaded and executed in the same order; zero anomalies | Timed out at 180.501917585 s; 6/11 wrapper checks; 26/38 phases complete | HOLD; native and retained full regression suites were not executed |
+
+All three keep the original 180-second deadline, two cold workers, 38 phases
+and owned-process cleanup requirements. The desktop timeout's twelve pending
+phases are the original and modified signed, scalar-casts, explicit-traps, cli,
+names and exports phases. Incomplete wrapper attestations and unexecuted suites
+are not passing results or demonstrated semantic counterexamples.
+
+The [original GitHub receipts and independent replay](../experiments/hia_core_ci_4161_20261111/audit.json)
+retain both complete artifacts. Independent replay checked all 38 push archives
+and 34 PR archives, their member bytes/modes and exported source identities.
+The [desktop originals](../experiments/hia_v66_integration_20261111/desktop-v65-originals/)
+record its separate interpreter, original reports and complete cleanup. Its
+3,741 regular original files are preserved in a 32,451,512-byte archive with
+SHA-256 `cf02335c474101dd054c7b917b198b0dd8f398ea91f09e5f0ba4423c66c3946a`.
+Six private toolchain symlinks have separate lstat/readlink records; their targets
+were not followed by the archiver. The archival command's lost transport receipt
+is separate from the independently verified archive custody.
+
+### New native responsibilities and observed limits
+
+| Responsibility | Ordinary integration and retained boundary | Actual development evidence |
+| --- | --- | --- |
+| [Foreign-graph JSON wire](HIA_JSON_WIRE_NATIVE.md) | HIA owns graph admission, traversals, sorting, escaping, number conversion and output budgets; actual object observations and selected foreign effects remain hosted | Byte/refusal differential, independent Core VM, exact 8 MiB boundaries, installed resources and lazy observation controls; arbitrary stateful encoder hooks remain outside the admitted component profile |
+| [Worker control and reports](HIA_WORKER_REPORT_NATIVE.md) | Explicit native selection owns service/callback order, manifest comparison, exception precedence, report graph and output decisions; foreign calls, IO, service bodies and SQL remain hosted | Corrected active-exception and ambient-context counterexamples; wire plus worker classes ran 33 tests without anomalies on the corrected development source |
+| [Machine plans and register witnesses](HIA_MACHINE_PLAN_NATIVE.md) | Public plan/witness entries explicitly select HIA, with both retained semantic owners forbidden; verified Core custody, bounded plan capture and full machine encoding/linking remain hosted | 2,131 differential cases; unchanged original 44 caller tests; source/VM controls and a real installed wheel with missing/changed resource refusals |
+| [Linked qualification observer](../experiments/hia_linked_observer_20261111/EVIDENCE.md) | HIA drives resource/continuation policy and packs the executable; a fixed assembly bridge calls the system loader on the actual GNU-linked shared object | 14 new source/native controls; original signed phase passes all 326 checks under both observers, with identical old semantic fields and payload hashes |
+
+The corrected worker observations include actual same-exception rethrows and
+foreign callbacks that mutate the ambient exception-context chain. Original
+failed observations remain. The local temporary filesystem was reset before
+one 33-test fixture archive was uploaded. Surviving original logs, reports and
+counterexamples are preserved with an explicit
+[fixture-custody gap](../experiments/hia_worker_report_development_20261111/context-r4/README.md);
+the missing original fixture is not reconstructed and labelled as original.
+
+The linked signed-phase comparison reduced its 52 shared-object observations
+from 1.735399496 to 0.101399219 seconds. The whole measured stage changed from
+13.591783677 to 12.295290283 seconds, and the new observer's one-time build/VM
+work took 2.226221666 seconds. These are scoped measurements, not a claim that
+the new combined cold run passes. The complete 38-phase run still has to meet
+the unchanged deadline. The new observer also adds independent VM/native ELF
+packing checks without removing any prior phase check. Seeds and specialized
+allocator observations keep their separate original roles.
+
+The v66 contract and workflow bind all new sources, require the complete new
+native modules, preserve original loaded/executed test IDs, forbid every unittest
+anomaly, and run the original machine-plan/Agent callers against the selected
+native owner. An explicit component selection is not default activation or
+whole-product acceptance. Development compiler reuse cannot qualify changed
+source; the combined source needs a fresh matching cold result and full run.
+
+### Remaining owners before retirement
+
+| Product responsibility | Remaining implementation / gate |
+| --- | --- |
+| Ordinary CLI | All 15 supported actions still use the Python entry; the native five-operation stdio protocol is only a separate implemented surface |
+| Compiler and backend | Native kernels and compiler fixed points exist; complete standalone nominal normalization, all supported machine targets, code generation and object pipeline still have hosted owners |
+| Agent artifact authority | Ref issuance/lookup, URI resolution, profiles, metadata, SQLite durability and artifact page/service policy still have hosted responsibilities |
+| Worker and serialization | Explicit HIA paths exist; supported extension behavior, foreign IO/process control and ordinary installation/cutover remain to be closed |
+| Evaluation and adoption | Evaluation, leases, transactional adoption/rollback and the eleven ordinary service tool bodies are not all implemented by the journal decision kernel |
+| Build and release | The native immutable installer exists; complete build/authoring, release activation, recovery, upgrades and reference-aware retirement remain open |
+| Deployed runtime | The separately deployed Rust `hepta-runtime` process/MCP owner has not been replaced or cut over |
+| Whole delivery | Fresh combined-source cold, installed ordinary callers, retained full regressions, recovery and default activation must pass before supported old owners can be deleted |
+
+The source inventory counts retained code and records static callers. It does
+not convert those counts into a migration percentage, certify dynamic callers,
+or authorize deletion of supported behavior. None of the current component
+results is labelled as whole HIA-native completion.
 
 ## Incoming v64 complete selected nominal integration
 

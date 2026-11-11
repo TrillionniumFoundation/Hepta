@@ -64,20 +64,54 @@ def python_record(path: str, raw: bytes) -> dict:
 
 
 def inventory(excluded: set[str]) -> dict:
-    names = sorted(set(git("ls-files", "-z").split("\0")) - {""} - excluded)
+    index_raw = git("ls-files", "--stage", "-z")
+    index = {}
+    for entry in index_raw.split("\0"):
+        if not entry:
+            continue
+        metadata, name = entry.split("\t", 1)
+        mode, blob, stage = metadata.split()
+        if stage != '0':
+            raise ValueError('unmerged index cannot be a complete source inventory')
+        index[name] = (mode, blob)
+    sparse = {entry[2:] for entry in git('ls-files', '-v', '-z').split('\0')
+              if entry and entry[0].upper() == 'S'}
+    names = sorted(set(index) - excluded)
     ledger = []
     python = {}
-    for name in names:
-        path = ROOT / name
-        if not path.is_file() or path.is_symlink():
-            ledger.append({"path": name, "kind": "missing_or_nonregular",
-                           "bytes": None, "sha256": None})
-            continue
-        raw = path.read_bytes()
-        ledger.append({"path": name, "kind": path.suffix or "extensionless",
-                       "bytes": len(raw), "sha256": sha256(raw).hexdigest()})
-        if name.endswith(".py"):
-            python[name] = python_record(name, raw)
+    with subprocess.Popen(['git', '-C', str(ROOT), 'cat-file', '--batch'],
+                          stdin=subprocess.PIPE, stdout=subprocess.PIPE) as objects:
+        for name in names:
+            path = ROOT / name
+            if path.is_file() and not path.is_symlink():
+                raw = path.read_bytes()
+                origin = 'worktree'
+            elif not path.exists() and not path.is_symlink() and name in sparse and index[name][0] in ('100644', '100755'):
+                # An omitted sparse member is still retained source. Only the
+                # index's explicit skip-worktree flag permits this fallback;
+                # an ordinary missing file must remain a missing-file finding.
+                blob = index[name][1]
+                objects.stdin.write(blob.encode('ascii') + b'\n')
+                objects.stdin.flush()
+                header = objects.stdout.readline().decode('ascii').split()
+                if len(header) != 3 or header[:2] != [blob, 'blob']:
+                    raise ValueError('cannot read the indexed sparse source blob')
+                size = int(header[2])
+                raw = objects.stdout.read(size)
+                if len(raw) != size or objects.stdout.read(1) != b'\n':
+                    raise ValueError('truncated indexed sparse source blob')
+                origin = 'git_index_skip_worktree'
+            else:
+                ledger.append({"path": name, "kind": "missing_or_nonregular",
+                               "bytes": None, "sha256": None, "content_origin": None})
+                continue
+            ledger.append({"path": name, "kind": path.suffix or "extensionless",
+                           "bytes": len(raw), "sha256": sha256(raw).hexdigest(),
+                           "content_origin": origin})
+            if name.endswith(".py"):
+                python[name] = python_record(name, raw)
+    if git('ls-files', '--stage', '-z') != index_raw:
+        raise ValueError('source index changed during inventory')
     modules = {row["module"]: path for path, row in python.items()}
     callers = defaultdict(set)
     for path, row in python.items():
@@ -108,12 +142,13 @@ def inventory(excluded: set[str]) -> dict:
         "status": "STATIC_INVENTORY_NOT_NATIVE_DELIVERY_ACCEPTANCE",
         "git_head": git("rev-parse", "HEAD").strip(),
         "git_head_tree": git("rev-parse", "HEAD^{tree}").strip(),
+        "git_index_manifest_sha256": sha256(index_raw.encode()).hexdigest(),
         "index_vs_head_changed_paths": git("diff", "--cached", "--name-only").splitlines(),
         "worktree_vs_index_changed_paths": git("diff", "--name-only").splitlines(),
         "scope": {
-            "members": "Git index paths; current worktree bytes",
+            "members": "Git index paths; current worktree bytes, or index blobs for absent skip-worktree members only",
             "excluded_report_paths": sorted(excluded),
-            "all_retained_python_parsed": True,
+            "all_retained_python_parsed": len(python) == sum(name.endswith('.py') for name in names),
             "every_line_semantically_audited": False,
             "dynamic_caller_closure_established": False,
             "independent_reference_tests_replaced": False,
@@ -124,6 +159,8 @@ def inventory(excluded: set[str]) -> dict:
             "production_python_modules": len(package),
             "hia_assembly_files": sum(x["kind"] == ".hiaasm" for x in ledger),
             "hia_json_source_files": sum(x["kind"] == ".hia" for x in ledger),
+            "sparse_members_read_from_index": sum(x['content_origin'] == 'git_index_skip_worktree' for x in ledger),
+            "missing_or_nonregular_members": sum(x['kind'] == 'missing_or_nonregular' for x in ledger),
             "files_by_extension": dict(sorted(Counter(x["kind"] for x in ledger).items())),
         },
         "package_modules": package,

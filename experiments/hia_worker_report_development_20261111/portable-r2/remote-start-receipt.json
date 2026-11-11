@@ -1,0 +1,37 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-B",
+      "-c",
+      "\"\"\"Actual CPython 3.14 portability subset, never a whole-source qualification.\"\"\"\nimport base64\nimport ctypes\nfrom hashlib import sha256\nimport importlib.util\nimport io\nimport json\nimport os\nfrom pathlib import Path\nimport subprocess\nimport sys\nimport time\nimport unittest\nimport zipfile\n\npayload = json.load(sys.stdin)\nraw = base64.b64decode(payload['archive'], validate=True)\nassert sha256(raw).hexdigest() == payload['sha256']\nbase = Path('/var/tmp/he26v65/s')\nbefore = subprocess.check_output(['git', '-C', str(base), 'rev-parse', 'HEAD'], text=True).strip()\nassert before.startswith('4161e8d'), before\nroot = Path('/var/tmp/he26worker')\nroot.mkdir(mode=0o700)\nprivate = root / 'public-dict-r2'\nprivate.mkdir(mode=0o700)\n(private / 'transfer.zip').write_bytes(raw)\nwith zipfile.ZipFile(io.BytesIO(raw)) as archive:\n    pins = json.loads(archive.read('PINS.json'))\n    for name, expected in pins.items():\n        path = Path(name)\n        assert not path.is_absolute() and '..' not in path.parts\n        content = archive.read(name)\n        assert sha256(content).hexdigest() == expected\n        target = private / path\n        target.parent.mkdir(parents=True, exist_ok=True)\n        with target.open('xb') as handle:\n            handle.write(content)\n(private / 'PINS.json').write_text(json.dumps(pins, sort_keys=True, indent=2) + '\\n')\nsys.dont_write_bytecode = True\nsys.path.insert(0, str(base))\nimport hepta\nhepta.__path__.insert(0, str(private / 'hepta'))\nspec = importlib.util.spec_from_file_location('worker_portability_fixture', private / 'tests/test_hia_worker_report_native.py')\nmodule = importlib.util.module_from_spec(spec)\nspec.loader.exec_module(module)\nfrom hepta.hia_worker_report_native import SOURCE, installed_worker_report, _dict_primitives\nassert SOURCE == private / 'examples/hia_bootstrap/worker_report.hiaasm', SOURCE\ncls = module.WorkerReportNativeTests\ncls.manifest = private / 'bundle/manifest.json'\ncls.owner = installed_worker_report(cls.manifest)\ncls.folder = private / 'observations'\ncls.folder.mkdir()\ncls.scope = 'ACTUAL_CPYTHON314_SUBSET_PORTABILITY_ONLY'\ncls.setUpClass = classmethod(lambda cls: None)\ncls.tearDownClass = classmethod(lambda cls: None)\nnames = [\n    'test_ordinary_success_and_service_close_exception_order',\n    'test_modes_pins_and_malformed_request_correlation',\n    'test_entire_manifest_equality_and_latest_identity_adoption',\n    'test_manifest_numeric_unicode_and_container_random_differential',\n    'test_error_callbacks_order_mutation_and_unicode_slice',\n    'test_error_callback_failure_and_output_encoding_remain_outside_catch',\n    'test_foreign_leaf_effects_and_list_mutation_order',\n    'test_stored_hash_foreign_key_capability_and_public_builtin_profile',\n    'test_uncorrelated_empty_message_and_foreign_text_subclass_behavior',\n]\nsuite = unittest.TestSuite(cls(name) for name in names)\nloaded = [test.id() for test in suite]\nstarted = time.monotonic()\nresult = unittest.TextTestRunner(stream=sys.stdout, verbosity=2).run(suite)\nafter = subprocess.check_output(['git', '-C', str(base), 'rev-parse', 'HEAD'], text=True).strip()\nunchanged = before == after and all(sha256((private / name).read_bytes()).hexdigest() == expected for name, expected in pins.items())\npassed = bool(loaded) and result.testsRun == len(loaded) and result.wasSuccessful() and not any((result.skipped, result.expectedFailures, result.unexpectedSuccesses)) and unchanged\nrecord = {\n    'schema': 'hia.worker-cpython314-portability-observation.v1',\n    'scope': 'ACTUAL_CPYTHON314_WORKER_SUBSET_WITH_READONLY_416_FOREIGN_DEPENDENCIES_NOT_FULL_SOURCE_QUALIFICATION',\n    'status': 'PASS' if passed else 'FAIL', 'source_commit_of_uploaded_subset': payload['source_commit'],\n    'baseline_before': before, 'baseline_after': after, 'uploaded_source_and_image_pins': pins,\n    'all_pins_unchanged': unchanged, 'tests_run': result.testsRun, 'loaded_test_ids': loaded,\n    'failures': len(result.failures), 'errors': len(result.errors), 'skips': len(result.skipped),\n    'expected_failures': len(result.expectedFailures), 'unexpected_successes': len(result.unexpectedSuccesses),\n    'setUpClass_bypassed_only_to_use_transferred_development_images': True,\n    'cold_qualification': False, 'ordinary_entry_witness': True,\n    'python': sys.version, 'executable': sys.executable,\n    'executable_sha256': sha256(Path(sys.executable).resolve().read_bytes()).hexdigest(),\n    'private_hash_iterator_exported': _dict_primitives()[2],\n    'public_iterator_exported': hasattr(ctypes.pythonapi, 'PyDict_Next'),\n    'known_hash_lookup_exported': hasattr(ctypes.pythonapi, '_PyDict_GetItem_KnownHash'),\n    'wall_seconds': time.monotonic() - started,\n    'whole_worker_native': False, 'foreign_dictionary_keys_without_stored_hash_are_explicit_profile_refusals': True,\n}\n(private / 'audit.json').write_text(json.dumps(record, sort_keys=True, indent=2) + '\\n')\nprint(json.dumps(record, sort_keys=True))\nraise SystemExit(0 if passed else 1)\n"
+    ],
+    "created_unix_ms": 1794388801444,
+    "cwd": "/home/qian-qi",
+    "env_keys": [
+      "PYTHONDONTWRITEBYTECODE",
+      "PYTHONUNBUFFERED"
+    ],
+    "executable": "/home/qian-qi/hia-e26e-v64-prerequisites/venv/bin/python",
+    "execution_mode": "operator",
+    "host": "desktop",
+    "id": "1a1c9e837a4-2564-35f",
+    "idempotency_key": "hia-e26e-worker-public-dict-cpython314-r2-v1",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1c9e837a4-2564-35f",
+    "request_digest": "e233c78d60e23d27570b4655cd0c2982f823dd3139d75eb5f3899b8a968ebf4d",
+    "request_fingerprint": 16299590886413712679,
+    "ssh_target": "desktop-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a1c9e837a4-2564-35f"
+  },
+  "launch": {
+    "backend": "systemd",
+    "launcher_pid": null,
+    "ok": true,
+    "unit": "hepta-runtime-job-1a1c9e837a4-2564-35f"
+  },
+  "local_record_pending": false,
+  "reused": false
+}

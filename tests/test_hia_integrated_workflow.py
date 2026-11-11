@@ -202,10 +202,71 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
                      'hia-language.evidence/', 'hia-nominal-fixture/',
-                     'hia-module-projects/', 'hia-journal-callers.json']:
+                     'hia-module-projects/', 'hia-journal-callers.json',
+                     'hia-native-components.json', 'hia-json-wire-fixture/', 'hia-json-wire-entry-fixture/',
+                     'hia-worker-report-fixture/', 'hia-machine-plan-fixture/',
+                     'hia-machine-plan-callers.json', 'hia-machine-plan-callers-evidence/',
+                     'hia-json-wire-callers.json', 'hia-json-wire-callers-evidence/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
+
+    def test_native_component_step_requires_original_loaded_ids_and_zero_anomalies(self):
+        name = 'Native graph wire worker machine-plan and linked observer'
+        code = script(name).split("<<'PYNATIVEOWNERS'\n", 1)[1].rsplit('\nPYNATIVEOWNERS', 1)[0]
+        assignment = next(n for n in ast.parse(code).body if isinstance(n, ast.Assign))
+        self.assertEqual(ast.literal_eval(assignment.value.args[0]), (
+            'tests.test_hia_json_wire_native', 'tests.test_hia_json_wire_entry',
+            'tests.test_hia_worker_report_native',
+            'tests.test_hia_machine_plan_native', 'tests.test_hia_selfhost_linked_observer'))
+        for component in ('JSON_WIRE', 'WORKER_REPORT', 'MACHINE_PLAN'):
+            self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                          step(name))
+        fixture = '''import unittest
+class Fixture(unittest.TestCase):
+    def test_first(self):
+        if mode in ('failure', 'expected_failure'):
+            self.fail('explicit workflow failure fixture')
+        if mode == 'error':
+            raise RuntimeError('explicit workflow error fixture')
+        if mode == 'skipped':
+            self.skipTest('explicit workflow skip fixture')
+    def test_second(self):
+        pass
+if mode in ('expected_failure', 'unexpected_success'):
+    Fixture.test_first = unittest.expectedFailure(Fixture.test_first)
+def load(names):
+    if mode == 'empty':
+        return unittest.TestSuite()
+    return unittest.TestSuite((Fixture('test_first'), Fixture('test_second')))
+unittest.defaultTestLoader.loadTestsFromNames = load
+original_runner = unittest.TextTestRunner
+class Runner(original_runner):
+    def run(self, suite):
+        if mode == 'partial':
+            suite._tests = suite._tests[:1]
+        elif mode == 'reordered':
+            suite._tests.reverse()
+        elif mode == 'duplicate':
+            suite._tests = [suite._tests[0], suite._tests[0]]
+        return super().run(suite)
+unittest.TextTestRunner = Runner
+'''
+        modes = ('complete', 'empty', 'partial', 'reordered', 'duplicate',
+                 'failure', 'error', 'skipped', 'expected_failure', 'unexpected_success')
+        with tempfile.TemporaryDirectory(prefix='hia-native-ci-controls-') as temporary:
+            for mode in modes:
+                with self.subTest(mode=mode):
+                    report = Path(temporary) / (mode + '.json')
+                    env = dict(os.environ, HEPTA_HIA_NATIVE_COMPONENT_REPORT=str(report))
+                    child = subprocess.run([sys.executable, '-I', '-S', '-B', '-c',
+                                            'mode=' + repr(mode) + '\n' + fixture + code],
+                                           env=env, capture_output=True, timeout=10)
+                    self.assertEqual(child.returncode, 0 if mode == 'complete' else 1,
+                                     child.stdout + child.stderr)
+                    observed = json.loads(report.read_bytes())
+                    self.assertEqual(observed['status'], 'PASS' if mode == 'complete' else 'FAIL_OR_INCOMPLETE')
+                    self.assertFalse(observed['default_activation_or_whole_stack_claimed'])
 
 
 if __name__ == '__main__':

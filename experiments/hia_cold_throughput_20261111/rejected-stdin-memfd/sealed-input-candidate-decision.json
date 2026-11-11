@@ -1,0 +1,58 @@
+{
+  "actual_kernel_suite": "13 PASS in 5.430s; includes complete sealed input/offset, launch failure, real SIGKILL timeout and reaping",
+  "candidate_files": {
+    "candidate.patch": "cdf6021d1f386887a07f43da4f0e584ca0b6d89e15e5c18669e4ad8f09c71d78",
+    "hia_selfhost_native_observer.py": "e96282b3c5f8603ea156087b3d2ec44480ba65b9e430cc2f62a93bdce5785fdd",
+    "test_hia_selfhost_native_observer.py": "01852e1bf37931ae48b49a63e9b3617449187e9600f985007de42b158a983183"
+  },
+  "cold_qualification_inferred": false,
+  "complete_nonprofile_phase": {
+    "each_checks": 326,
+    "each_invocations": 458,
+    "memfd_seconds": 15.426312327,
+    "pipe_seconds": 13.542760233,
+    "same_check_names_and_values": true,
+    "same_complete_receipt_semantic_projection": true,
+    "same_reference_sha256": "9173097ab604e5fb04fda2a14ea037d5d9e040aaa2b61b792c159a3bd2be3a74"
+  },
+  "decision": "REJECTED_FOR_MERGE_NO_MEASURED_THROUGHPUT_GAIN",
+  "native_observer_protocol_and_deadlines_changed": false,
+  "original_observations_retained": true,
+  "paired_medians": [
+    {
+      "median_ns": {
+        "pipe": 10197711.5,
+        "sealed-memfd": 10839571.5
+      },
+      "name": "invalid-compiler-input",
+      "sum_ns": {
+        "pipe": 229966271,
+        "sealed-memfd": 224540254
+      }
+    },
+    {
+      "median_ns": {
+        "pipe": 80012096.5,
+        "sealed-memfd": 82473745.0
+      },
+      "name": "signed-batch-58960-bytes",
+      "sum_ns": {
+        "pipe": 963717377,
+        "sealed-memfd": 1089749347
+      }
+    },
+    {
+      "median_ns": {
+        "pipe": 724499347.0,
+        "sealed-memfd": 772410825.5
+      },
+      "name": "complete-selfhost-source",
+      "sum_ns": {
+        "pipe": 2905642303,
+        "sealed-memfd": 2989036505
+      }
+    }
+  ],
+  "reason": "Full phase is slower; adjacent alternating fixed-payload controls do not show stable gain. No claim that timing variation has a known cause.",
+  "schema": "hia.cold-throughput.sealed-input-candidate-decision.v1"
+}

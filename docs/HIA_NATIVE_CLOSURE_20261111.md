@@ -12,6 +12,23 @@ native kernel or a bounded self-compilation run as whole-product equivalence.
 The final retirement target remains one HIA-native product with preserved
 language semantics, ordinary callers, installation and recovery.
 
+## Current continuation status
+
+The current v66 candidate adds the native foreign-graph wire, worker control and
+report owner, machine-plan validator/witness and linked qualification observer.
+Their exact responsibilities, development evidence, unresolved compatibility
+boundaries and remaining product owners are recorded in the
+[current status ledger](HIA_NATIVE_REWRITE_STATUS_20261111.md#current-v66-candidate-and-exact-v65-outcomes).
+All historical results below retain their original source identity.
+
+Frozen combined v65 commit `4161e8d12d87906fde144f039da07908ad52d98a`
+passed its GitHub push HIA workflow, including a 144.808616222-second cold run.
+The same source tree timed out at 180.178016991 seconds in its PR workflow and
+at 180.501917585 seconds in its independent desktop full run. Both failures
+remain; their later native/full suites did not execute. The native observer's
+scoped development speedup is not a substitute for a new combined run under
+the original 180-second deadline, two workers and 38 complete phases.
+
 ## Exact baseline audit
 
 The frozen tree has 2,532 blobs, including 1,072 Python files, 147 production
@@ -53,7 +70,7 @@ update or default-release activation was performed.
 
 ## Implemented native responsibilities
 
-### Current v65 source repair
+### v65 source repair before the recorded exact-source runs
 
 The current integration includes exact main `5831f52` with complete nominal
 constructor and outer-program lowering. At the merged `c4add225` source, all
