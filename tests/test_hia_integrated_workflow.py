@@ -94,6 +94,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         required.add('tests.test_hia_agent_data_json_native')
         required.add('tests.test_hia_agent_binary64_native')
         required.add('tests.test_hia_agent_binary64_format_native')
+        required.add('tests.test_hia_selfhost_native_observer')
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
 

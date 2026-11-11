@@ -13,7 +13,88 @@ are real implementations. The installed `hia` entry, Agent request authority,
 build/install ownership and other retained components still contain Python.
 Removing those owners now would remove supported behavior, not finish its port.
 
-## Current continuation: v64 complete selected nominal integration
+## Current continuation: v65 request, journal and release ownership
+
+This continuation is based on v64 commit
+`5831f52fada45e076f8f68f198a15c0585e6104f`. It preserves the five-owner,
+eleven-image nominal route and adds three explicit native boundaries:
+[worker request admission](HIA_WORKER_REQUEST_NATIVE.md),
+[Agent journal decisions](HIA_AGENT_JOURNAL_NATIVE.md), and
+[release installation](HIA_RELEASE_INSTALL_NATIVE.md). Source contracts and
+installed-resource inventories include their actual source files. All prior
+source/native groups remain; the new group and ordinary selected-caller gate
+require complete execution with no errors, failures, skips or expected failures.
+
+The request owner validates the envelope, known tool and trusted catalog, and
+hashes the canonical five-field body without dropping nested fields. The
+journal owner preserves request identity, conflict-before-state ordering,
+reserved intents, cached replay and the acknowledgment-before-COMMIT boundary.
+Its separate response and cost channels do not introduce a combined byte limit.
+The hosted adapter still owns SQLite operations, business methods, schemas,
+context/proof authority, references and external materialization. These changes
+do not make durable Agent execution wholly native.
+
+The release executable performs bounded flat-package validation, SHA-256 checks,
+held-descriptor file operations, fsync, no-replace rename and read-only verification.
+It does not activate releases, upgrade workers or migrate user state. Python
+authoring/build tools and a fixed syscall template remain outside the runtime
+executable. Default activation and whole-stack retirement remain open.
+
+### Earlier exact-source observations and required follow-up
+
+GitHub run `42986320732` tested exact v64 main. Its 307 source tests and separate
+four-language CodeQL run passed, but cold qualification timed out at
+180.141377508 seconds under the unchanged 180-second limit. All 34 completed
+phases and 3,758 checks passed; two names phases were unfinished and exports
+had not started. The final nested report is absent and later native groups were
+skipped. Independent readback checked all 614 exported sources, all 4,394 outer
+archive members and 36,669 sealed current-phase raw members. This remains FAIL.
+
+The v64 ROG full run passed cold, language and earlier native groups, then its
+64-test composite-function group recorded two `EDQUOT` errors in installation
+fixtures. Both fixtures explicitly selected `/dev/shm` despite the configured
+NVMe temporary directory. This continuation removes those two hardcoded
+locations so standard `TMPDIR` selection applies. Package/resource, isolation,
+old-owner refusal and tamper assertions remain unchanged. The original failed
+run is retained; changing a fixture directory does not retroactively pass it.
+
+The frozen v65 stage-3 draft passed all 46 generators and 43 focused source/VM
+checks. An initial stale support hash caused by generating the coverage
+inventory after the contract was preserved and corrected by generation order.
+Its first local cold run timed out at 180.170136349 seconds after 34 phases,
+with source preservation and complete child cleanup. The original 3,216-file
+raw archive was sealed and fully read back. That report is never admitted as
+passing cold evidence.
+
+The same frozen draft ran all 58 tests in the four new development modules:
+51 passed, four release fault-injection controls failed because local ptrace
+is unavailable, and three journal cases errored in development setup. One
+fixture used an underscore label where the retained request name required a
+hyphen; two cases used a Python 3.13 controller with a Python 3.12 `rpds`
+extension. All three cases subsequently passed unchanged on the existing
+matching Python 3.12 runtime with a real, correctly labeled recompilation.
+The first run remains failed. The cold-required composition group was not
+claimed by these development runs. ROG independently supports own-child
+ptrace/strace, allowing its unchanged release fault controls to run there.
+
+The observer transport now avoids a discarded full frame, repeated hashes of
+the same already-held immutable bytes and copying a full workspace to inspect
+fixed headers. It preserves every new native process, all response checks and
+the final actual disk reads. Accepted byte-subclass concatenation and exception
+order remain covered. All 11 original observer test bodies are unchanged;
+five native and two pure differential tests bring the module to 18 passing
+development tests. A balanced 12-process, 504-call A/B experiment found equal
+non-clock receipts and output bytes. Parent CPU decreased in that sample;
+wall-clock variation does not establish that the 180-second gate is repaired.
+
+These observations name their original frozen revisions. Current-source cold,
+language, installed and full-regression evidence must bind this exact source
+closure separately. The original time limits, two cold workers, full phase
+inventory and all existing negative controls remain required. Historical
+failures and source checkpoints are retained in the recovery branch, including
+commit `d4354aea3ad56c5e4ce6e2d72d4ce1974344f502`.
+
+## Retained v64 complete selected nominal integration
 
 The current source integrates the constructor and outer-program owners on top
 of v63 `31d81594997cfb6cce5ab62ea5aaba3bb7757af1`. Five explicitly selected

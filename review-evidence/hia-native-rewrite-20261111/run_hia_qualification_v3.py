@@ -69,7 +69,9 @@ development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_CONSTRUCTOR_DEVELOPMENT_MANIFEST',
-                         'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST')
+                         'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_WORKER_REQUEST_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
     environment.pop(development_selector, None)
@@ -86,7 +88,8 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'FUNCTION_SHAPE', 'PROGRAM_SHAPE', 'INSTRUCTION_POLICY',
              'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
-             'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER'):
+             'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR',
+             'COMPOSITE_OUTER', 'WORKER_REQUEST', 'RELEASE_INSTALL', 'AGENT_JOURNAL'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -101,6 +104,7 @@ def run(name, args, *, timeout=1800):
     step_environment = dict(environment)
     step_environment['HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS'] = str(out / (name + '-module-projects'))
     step_environment['HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE'] = str(out / (name + '-nominal-fixture'))
+    step_environment['HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS'] = str(out / (name + '-release-install'))
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
                       stdout_path=stdout, stderr_path=stderr,
                       receipt_path=out / (name + '.owner.json'),
@@ -125,15 +129,16 @@ def suite(name, names=None, discover=False):
     source = '''import json,unittest
 loader=unittest.defaultTestLoader
 suite=loader.discover('tests',top_level_dir='.') if DISCOVER else loader.loadTestsFromNames(NAMES)
+expected=suite.countTestCases()
 r=unittest.TextTestRunner(verbosity=2).run(suite)
-value={'tests_run':r.testsRun,'successful':r.wasSuccessful(),
+value={'tests_run':r.testsRun,'tests_loaded':expected,'successful':r.wasSuccessful(),
        'errors':[{'test':str(t),'traceback':s} for t,s in r.errors],
        'failures':[{'test':str(t),'traceback':s} for t,s in r.failures],
        'skipped':[{'test':str(t),'reason':s} for t,s in r.skipped],
        'expected_failures':[str(t) for t,s in r.expectedFailures],
        'unexpected_successes':[str(t) for t in r.unexpectedSuccesses]}
 open(RESULT,'w').write(json.dumps(value,indent=2)+'\\n')
-raise SystemExit(0 if r.testsRun > 0 and r.wasSuccessful() and not r.skipped and not r.expectedFailures else 1)
+raise SystemExit(0 if expected > 0 and r.testsRun == expected and r.wasSuccessful() and not r.skipped and not r.expectedFailures and not r.unexpectedSuccesses else 1)
 '''
     code = 'DISCOVER=' + repr(discover) + '\nNAMES=' + repr(names or []) + '\nRESULT=' + repr(str(result_path)) + '\n' + source
     completed = run(name, ['-c', code], timeout=5400 if discover else 1800)
@@ -143,7 +148,9 @@ raise SystemExit(0 if r.testsRun > 0 and r.wasSuccessful() and not r.skipped and
         outcome['result'] = file_record(result_path)
         outcome['tests_run'] = value.get('tests_run')
         outcome['passed'] = (completed and type(value.get('tests_run')) is int
-                             and value['tests_run'] > 0 and value.get('successful') is True
+                             and value['tests_run'] > 0
+                             and value['tests_run'] == value.get('tests_loaded')
+                             and value.get('successful') is True
                              and all(value.get(key) == [] for key in (
                                  'errors', 'failures', 'skipped',
                                  'expected_failures', 'unexpected_successes')))
@@ -259,9 +266,42 @@ if cold_ok:
                                 'tests.test_hia_composite_outer_native',
                                 'tests.test_hia_composite_outer_integration',
                                 'tests.test_hia_composite_nominal_lifecycle'],
+        'worker-request': ['tests.test_hia_worker_request_native',
+                           'tests.test_hia_worker_request_review'],
+        'release-install': ['tests.test_hia_release_install'],
+        'agent-journal': ['tests.test_hia_agent_journal_native'],
+        'composite-composition': ['tests.test_hia_composite_native_composition'],
     }
     for name, names in groups.items():
         ok = suite(name, names) and ok
+    callers_path = out / 'agent-journal-callers.json'
+    callers_completed = run('agent-journal-callers', [
+        'tools/qualify_hia_agent_journal_callers.py', '--cold-report', str(cold),
+        '--output', str(callers_path), '--evidence-directory',
+        str(out / 'agent-journal-callers-evidence')])
+    callers_outcome = {'completed': callers_completed, 'passed': False}
+    try:
+        callers = json.loads(callers_path.read_bytes())
+        callers_outcome['result'] = file_record(callers_path)
+        callers_outcome['tests_run'] = callers.get('tests_run')
+        callers_outcome['passed'] = (
+            callers_completed and callers.get('status') == 'PASS'
+            and callers.get('scope') == 'MATCHING_SOURCE_COLD_SELECTED_CALLERS'
+            and type(callers.get('tests_run')) is int and callers['tests_run'] > 0
+            and callers['tests_run'] == callers.get('tests_loaded') == callers.get('tests_chosen')
+            and callers.get('loaded_test_ids') == callers.get('chosen_test_ids') == callers.get('executed_test_ids')
+            and callers.get('explicit_development_exclusions') == {}
+            and callers.get('retained_call_owner_forbidden') is True
+            and callers.get('all_eleven_tools_entered_selected_driver') is True
+            and all(callers.get(key) == [] for key in (
+                'errors', 'failures', 'skipped', 'expected_failures', 'unexpected_successes')))
+    except (OSError, ValueError, AttributeError) as error:
+        callers_outcome['result_error'] = repr(error)
+    suite_outcomes['agent-journal-callers'] = callers_outcome
+    steps[-1]['suite_result'] = callers_outcome
+    steps[-1]['passed'] = callers_outcome['passed']
+    (out / 'steps.json').write_text(json.dumps(steps, indent=2) + '\n')
+    ok = callers_outcome['passed'] and ok
     if a.full:
         ok = suite('full-retained-regression', discover=True) and ok
 try:

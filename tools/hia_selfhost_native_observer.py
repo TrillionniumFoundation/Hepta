@@ -89,7 +89,7 @@ def build(directory, compiler, reference):
     return executable, receipt
 
 
-def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+def _validate_frame_fields(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
     if (not isinstance(image, bytes) or not 0 < len(image) <= 4*LIMIT
             or not isinstance(source, bytes) or len(source) > LIMIT
             or type(capacity) is not int or not 0 <= capacity <= LIMIT
@@ -97,6 +97,10 @@ def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=Non
             or type(workspace_fill) is not int or not 0 <= workspace_fill <= 255
             or (output_fd is not None and (type(output_fd) is not int or not 3 <= output_fd <= 2147483647))):
         raise ValueError('native observer frame exceeds the unchanged byte ABI limits')
+
+
+def frame(image, source, capacity, workspace_size, workspace_fill, output_fd=None):
+    _validate_frame_fields(image, source, capacity, workspace_size, workspace_fill, output_fd)
     return b'HIAOBS02'+struct.pack('<6Q',len(image),len(source),capacity,workspace_size,workspace_fill,
         (1<<64)-1 if output_fd is None else output_fd)+image+source
 
@@ -156,7 +160,11 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
     directory, image, observer = Path(directory), Path(image), Path(observer)
     image_bytes, executable = image.read_bytes(), observer.read_bytes()
     # Validate before creating a file descriptor or serializing large buffers.
-    frame(image_bytes,source,capacity,workspace_size,workspace_fill)
+    if type(image_bytes) is bytes and type(source) is bytes:
+        _validate_frame_fields(image_bytes,source,capacity,workspace_size,workspace_fill)
+    else:
+        # Preserve accepted byte subclasses' concatenation hooks and errors.
+        frame(image_bytes,source,capacity,workspace_size,workspace_fill)
     initial = b'\xa5'*capacity if output_initial is None else output_initial
     if not isinstance(initial,bytes) or len(initial)!=capacity:
         raise ValueError('output preimage must match the capacity')
@@ -201,16 +209,16 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                         returned, elapsed = struct.unpack_from('<2Q',raw,8)
                         actual_source = raw[24:24+len(source)]
                         output = raw[24+len(source):24+len(source)+capacity]
-                        workspace = raw[24+len(source)+capacity:]
+                        workspace_start = 24+len(source)+capacity
                         output_path.write_bytes(output)
                         if actual_source != source:
                             (directory/(label+'.modified-source.bin')).write_bytes(actual_source)
                         result = {'status':'returned','result_u64':returned,'abi_status':returned>>32,
                             'return_encoding':'zero-extended-u32','core_u32':returned & 0xffffffff,
-                            'source_sha256':digest(source),'image_sha256':digest(image_bytes),
+                            'source_sha256':request['source_sha256'],'image_sha256':request['image_sha256'],
                             'output_sha256':digest(output),'source_unchanged':actual_source==source,
                             'output_unchanged':output==initial,
-                            'workspace_header':{str(at):int.from_bytes(workspace[at:at+8],'little')
+                            'workspace_header':{str(at):int.from_bytes(raw[workspace_start+at:workspace_start+at+8],'little')
                                 for at in WORKSPACE_FIELDS if workspace_size>=at+8},
                             'native_elapsed_ns':elapsed,'forbidden_compiler_modules_loaded':[],
                             'loader_operations':'HIA-emitted static ELF; sealed exec; RW-to-RX image; fixed ABI call',
@@ -231,8 +239,8 @@ def invoke(directory, label, observer, image, source, *, capacity, workspace_siz
                 'available':True,'initial_sha256':digest(initial),'observed_sha256':digest(output),
                 'observed_bytes':len(output),'unchanged':output==initial,
                 'capture_origin':'parent-owned size-sealed memfd, mapped by actual native child'}
-        result.update(case=label,input_sha256=digest(source),input_bytes=len(source),
-            artifact_sha256=digest(image_bytes),format='flat-x86-64',runner_sha256=digest(executable),
+        result.update(case=label,input_sha256=request['source_sha256'],input_bytes=len(source),
+            artifact_sha256=request['image_sha256'],format='flat-x86-64',runner_sha256=request['observer_sha256'],
             wall_elapsed_ns=time.monotonic_ns()-began,transport=request['transport'],
             fresh_native_exec=True,successor_process_reuse=False)
         if observer.read_bytes()!=executable or image.read_bytes()!=image_bytes or input_path.read_bytes()!=source:

@@ -57,13 +57,22 @@ activation, package installation, portability and removal of the reference are
 still OPEN. Finite differential tests do not prove worst-case cost or all-input
 refinement; this candidate is not advertised as a hardened public code sandbox.
 
-Status 1 retains the native adapter's exact diagnostic
-`HIA JSON preflight: invalid JSON syntax or Unicode`. The independent Python
-scanner has more specific English reasons for malformed tokens. Shared API
-regressions assert each route's existing exact diagnostic and still exercise
-the selected native path; unencodable Python strings retain the reference
-behavior described above. They do not require a status-only ABI to synthesize
-the reference scanner's internal diagnostic branches.
+The status values are unchanged. The HIA scanner additionally writes a syntax
+reason to private state offset 32 at the original refusal point. Status 1
+requires one of the twenty declared reasons; every other status requires zero
+in that field. `diagnostic()` checks and returns both words, and `status()`
+preserves the existing status-only caller interface while validating the reason.
+The adapter maps that HIA-issued reason to text without parsing the payload.
+For the shared Python-string input domain, malformed-token diagnostics match
+the retained scanner's exact reason and ordering. The final reason covers
+invalid byte-level UTF-8, which a valid Python string cannot supply.
+
+The independently selected byte scanner, decoded arena and Agent-data profiles
+remain separate interfaces. All generated consumers of the shared preflight
+source must be regenerated and separately exercised; an earlier image/source
+identity cannot qualify this changed ABI. Unencodable Python strings retain the
+reference behavior described above. These diagnostic changes do not remove
+the independent scanner or establish all-input equivalence.
 
 ## Independent regression authorities
 
