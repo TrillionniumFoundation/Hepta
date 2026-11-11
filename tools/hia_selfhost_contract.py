@@ -24,6 +24,8 @@ SOURCE_FILES = (
     'docs/HIA_COMPILER_EXTENSION_CONTRACT_20261111.md',
     'tests/fixtures/hia_original_select_v1/bytesum.hiaasm',
     'tests/test_hia_original_select_extension.py',
+    'tests/test_hia_original_select_fragments.py',
+    'tests/test_hia_agent_identity_source_binding.py',
     'tools/qualify_hia_original_select_extension.py',
     'tools/hia_candidate_preflight.py',
     'tools/generate_hia_agent_native_contract.py',

@@ -38,6 +38,21 @@ A native Core patch selection additionally requires the exact adjacent `admissio
 
 ## Custody and identity
 
+The identity helper builder admits the same complete current-source cold
+contract used by the other native helper builders. Before creating its output
+directory it checks the support profile, complete source manifest, three
+compiler generations and the actual identity source bytes. Before publishing
+the manifest and build receipt it checks the full source map and the original
+helper, compiler and cold-report bytes again. The build receipt retains the
+admitted source map. An otherwise successful report from another source or a
+dependency changed during compilation cannot qualify the new helper.
+
+This build admission binds the current source contract. A caller claiming an
+exact Git revision must additionally compare those bytes with that revision;
+Git status alone does not detect every hidden worktree change. Synthetic
+admission tests stub compilation explicitly and remain separate from the real
+native and MCP qualification.
+
 The worker checks the bundle's exact bytes, every child manifest, the current HIA source and the complete image bytes. Files must be bounded ordinary files owned by the executing user or root, without writable group/other modes, final symlinks or multiple hard links. The existing loader verifies the Linux x86-64 LP64 platform and maps the admitted bytes read/execute after writing them.
 
 The worker retains strong references to those exact mappings for the request. Its loader hook precedes the general loader cache, so an old cached mapping cannot override a new pinned bundle. A path outside the selected set cannot load another native owner. Input snapshots and selected environment values are checked again before terminal success is attested.

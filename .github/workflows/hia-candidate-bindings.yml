@@ -10,6 +10,11 @@ on:
       - 'tests/test_hia_checker_identity*.py'
       - 'tests/test_hia_worker_native_helpers.py'
       - 'tests/test_hia_original_select_extension.py'
+      - 'tests/test_hia_original_select_fragments.py'
+      - 'tests/test_hia_agent_identity_source_binding.py'
+      - 'tools/build_hia_agent_identity.py'
+      - 'tools/qualify_hia_original_select_fragments.py'
+      - 'tools/replay_hia_original_select_fragments.py'
       - 'tools/qualify_hia_original_select_extension.py'
       - 'tests/test_hia_candidate*.py'
       - '.github/workflows/hia-candidate-bindings.yml'
@@ -79,6 +84,8 @@ jobs:
               "tests.test_hia_agent_native_machine_validation",
               "tests.test_hia_worker_native_helpers",
               "tests.test_hia_original_select_extension",
+              "tests.test_hia_original_select_fragments",
+              "tests.test_hia_agent_identity_source_binding",
           )
           started = time.monotonic()
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
