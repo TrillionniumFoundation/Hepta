@@ -1,0 +1,74 @@
+{
+  "blocking_findings": [],
+  "claimed_source_commit_from_owner": "4c6a7e92d20a3abb2a84e157e6ff86bbdc40b149",
+  "files": [
+    {
+      "bytes": 22229,
+      "git_blob_sha": "7dfd27c4881aee90c8e987acfef46a6d8922cba7",
+      "path": "tools/generate_hia_artifact_page.py",
+      "sha256": "c2c33093f21c7783ab47d2e7071e3fbb4f6286d16c1f5ff55720c96bad39aaf9"
+    },
+    {
+      "bytes": 14759,
+      "git_blob_sha": "e396e79632e50e4f214c87a58ac2c9ade90e45cc",
+      "path": "hepta/hia_artifact_page_native.py",
+      "sha256": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814"
+    },
+    {
+      "bytes": 101065,
+      "git_blob_sha": "e8eb3f28e77d9e4c7d3b3f3ea018d8cec76b9271",
+      "path": "hepta/hia_agent_service.py",
+      "sha256": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4"
+    },
+    {
+      "bytes": 18433,
+      "git_blob_sha": "0889f0c782535db5628169018a8fc09a2ca7bc0c",
+      "path": "hepta/hia_json_wire_native.py",
+      "sha256": "b6034104addb305f30181632284c8eac18ff8871b13c22e18b3bf68ad3638216"
+    },
+    {
+      "bytes": 21838,
+      "git_blob_sha": "935fd9b5c327f91407f9e910afa23edd0f01f04f",
+      "path": "hepta/hia_agent_store.py",
+      "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579"
+    },
+    {
+      "bytes": 100742,
+      "git_blob_sha": "2f56a5b4b02c54b9e56e53882db5cbd5687e4b4e",
+      "path": "tests/fixtures/hia_agent_service_5810.py.txt",
+      "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330"
+    },
+    {
+      "bytes": 4730,
+      "git_blob_sha": "60e1049835becf3c33e31f4e5e9e3b14d8a83c28",
+      "path": "docs/HIA_ARTIFACT_READ_NATIVE.md",
+      "sha256": "086fe48769c91bb582a0db1fc40e9aeb303a41f0622f870880a80f9681b7021a"
+    }
+  ],
+  "limits": [
+    "No product test, native compile, performance run or remote command executed by this review.",
+    "No claim of arbitrary replacement Store compatibility, private oversized/negative page-limit equivalence, finalizer/resource-exhaustion equivalence or all-domain proof.",
+    "This is explicit page-control ownership; Store persistence, SQLite transactions/durability, metadata decode and independent source/resource admission remain separate owners.",
+    "Owner reported 11/11 plus8 source and67 selected callers are not independently rerun or promoted by this review."
+  ],
+  "observations": [
+    "SQL callable binding occurs before cursor argument lookup and before final ref id/SHA reads, matching retained evaluation order.",
+    "SQLite NULL/REAL/TEXT/BLOB offsets request original arithmetic and slice at the old boundary after limit conversion and before UTF-8 scanning.",
+    "Foreign equality for non-exact strings and each binary64 then wire selector lookup preserve the explicit foreign boundary.",
+    "Whole-artifact UTF-8 classification, page truncation, negative signed SQLite offsets, base64 padding, three ordered wire calls per attempt, cursor digest and insertion order are owned by HIA.",
+    "Workspace regions, maximum 64KiB page, maximum 87384-byte base64 content, cursor output at98304 and SHA tail scratch remain disjoint.",
+    "Observation permission is consumed before a foreign effect; step/observe/run exceptions close the continuation without retrying SQL.",
+    "Original retained method AST is unchanged apart from its name."
+  ],
+  "read_scope": {
+    "complete_retained_method_and_pinned_fixture_ast_compared": true,
+    "foreign_graph_observer_summary_points_limbs_and_reference_wire_read": true,
+    "full_adapter": true,
+    "full_generator": true,
+    "scope_document_read": true,
+    "test_suite_source_only_targeted_sections": true
+  },
+  "reviewer": "cold_ci_closure",
+  "schema": "hia.artifact-page.independent-static-review.v1",
+  "status": "STATIC_CLEAR_WITHIN_DECLARED_SCOPE"
+}
