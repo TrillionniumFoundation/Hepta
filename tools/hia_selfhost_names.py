@@ -224,21 +224,34 @@ def renamed_source(source, mapping):
     """Author a name-only fixture, independently reverified as ordinary Core."""
     from hepta.hia_agent_assembly import assemble_program, render_assembly
     doc = assemble_program(source).as_dict()
+    _rename_function_document(doc, mapping)
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def _rename_function_document(doc, mapping):
+    """Author exact field renames; this helper grants no admission."""
     for fn in doc['functions']:
         fn['name'] = mapping[fn['name']]
         for block in fn['blocks']:
             for op in block['ops']:
                 if op['op'] == 'call':
                     op['attrs']['function'] = mapping[op['attrs']['function']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
 
 
 def renamed_values(source, spellings=None):
     """Rename every SSA definition/use/formal origin, then reverify real Core."""
     from hepta.hia_agent_assembly import assemble_program, render_assembly
     doc = assemble_program(source).as_dict()
+    _rename_value_document(doc, spellings)
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def _rename_value_document(doc, spellings):
+    """Rename only definitions, uses and declared formal origins in place."""
     for fi, fn in enumerate(doc['functions']):
         definitions = dict.fromkeys(p['name'] for b in fn['blocks']
             for p in [*b['params'], *[p for op in b['ops'] for p in op['out']]])
@@ -265,15 +278,20 @@ def renamed_values(source, spellings=None):
                 term['cond'] = mapping[term['cond']]
                 for arm in ('then', 'else'):
                     term[arm]['args'] = [mapping[x] for x in term[arm]['args']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
 
 
 def renamed_blocks(source, spellings=None):
     """Reverify all label definitions, entry names and forward/backward edges."""
     from hepta.hia_agent_assembly import assemble_program, render_assembly
     doc = assemble_program(source).as_dict()
+    _rename_block_document(doc, spellings)
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def _rename_block_document(doc, spellings):
+    """Rename only block declarations, entries and explicit control edges."""
     for fi, fn in enumerate(doc['functions']):
         mapping = {block['id']: (spellings[i] if spellings is not None and i < len(spellings)
                                 else 'node_' + str(fi) + '_' + str(i))
@@ -287,9 +305,24 @@ def renamed_blocks(source, spellings=None):
             elif term['op'] == 'branch':
                 for arm in ('then', 'else'):
                     term[arm]['target'] = mapping[term[arm]['target']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+
+
+def renamed_compiler(source, function_mapping):
+    """Compose three fixture renames before the full final Core round trip.
+
+    The original source is admitted before any edit. The final renderer fully
+    verifies the resulting document, reparses its text and checks exact Core
+    identity. The independent reference still admits the emitted source again.
+    Intermediate rename-only spellings are neither executed nor evidence, so
+    do not repeatedly encode/parse the entire compiler merely to make them.
+    No VerifiedProgram, qualification result or native artifact is reused.
+    """
+    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    doc = assemble_program(source).as_dict()
+    _rename_function_document(doc, function_mapping)
+    _rename_value_document(doc, None)
+    _rename_block_document(doc, None)
+    return render_assembly(doc).encode()
 
 
 def reordered_blocks(source, position='last'):
@@ -632,7 +665,7 @@ def independent_reference():
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):
-        renamed = renamed_blocks(renamed_values(renamed_source(source, mapping)))
+        renamed = renamed_compiler(source, mapping)
         alpha[label] = {'source': renamed.decode(), 'core_sha256': assemble_program(renamed).sha256,
             'canonical_core_sha256': assemble_program(source).sha256}
     return {'before_B0': True, 'cases': rows, 'refusals': rejected, 'alpha_compiler': alpha,
