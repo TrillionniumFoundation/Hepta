@@ -1,0 +1,30 @@
+Traceback (most recent call last):
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py", line 688, in instruction
+    self.required.update(check_instruction(spec, actual, types, attrs))
+                         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_opcodes.py", line 227, in check_instruction
+    raise OpcodeRejected(f"{spec.name}: {label} types must match {rules}", code)
+hepta.hia_opcodes.OpcodeRejected: compare.ne: operand types must match ('equality', '=0')
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/qian-qi/he26corelowering-authoring-r2/control/authoring.py", line 237, in main
+    document = generator.document(authoring, name)
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/tools/generate_hia_core_lowering.py", line 334, in document
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module, 'functions': functions})
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/tools/generate_hia_selfhost.py", line 2063, in compact_authoring_cfg
+    verify_program(document)
+    ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py", line 959, in verify_program
+    _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py", line 912, in _verify_function
+    check.instruction(ins)
+    ~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py", line 696, in instruction
+    _reject(str(exc), exc.code)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py", line 61, in _reject
+    raise HIAProgramRejected(message, code)
+hepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.ne: operand types must match ('equality', '=0')

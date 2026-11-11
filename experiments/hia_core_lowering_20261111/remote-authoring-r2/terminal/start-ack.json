@@ -1,0 +1,37 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-B",
+      "-c",
+      "import hashlib, json, os\nfrom pathlib import Path\nimport sys\nPYTHON_SHA='b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'\nOWNER_SHA='36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2'\nGUARDIAN_SHA='d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023'\nrequest=json.load(sys.stdin)\nroot=Path(request['root'])\nif not root.is_absolute() or root.parent != Path('/home/qian-qi') or root.name != 'he26corelowering-authoring-r2':\n    raise RuntimeError('unexpected fresh Core authoring root')\nactual_python=Path(sys.executable).resolve()\nif hashlib.sha256(actual_python.read_bytes()).hexdigest()!=PYTHON_SHA:\n    raise RuntimeError('actual Python identity differs')\nos.umask(0o077)\nroot.mkdir(mode=0o700)\ncontrol=root/'control'\nguard=root/'guard'\ncontrol.mkdir(mode=0o700)\nguard.mkdir(mode=0o700)\nidentities={str(actual_python):PYTHON_SHA}\nfor name in ('guardian.py','process_owner_impl.py','authoring.py'):\n    item=request['controls'][name]\n    raw=item['content'].encode('utf-8')\n    actual=hashlib.sha256(raw).hexdigest()\n    if actual!=item['sha256'] or len(raw)!=item['size']:\n        raise RuntimeError('control payload differs: '+name)\n    path=control/name\n    with path.open('xb') as stream: stream.write(raw)\n    identities[str(path)]=actual\nif identities[str(control/'guardian.py')]!=GUARDIAN_SHA or identities[str(control/'process_owner_impl.py')]!=OWNER_SHA:\n    raise RuntimeError('original external guardian bytes differ')\npayload=(json.dumps(request['inputs'],indent=2,sort_keys=True)+'\\n').encode()\npath=control/'SOURCE-INPUTS.json'\nwith path.open('xb') as stream: stream.write(payload)\nidentities[str(path)]=hashlib.sha256(payload).hexdigest()\nfor name in tuple(os.environ):\n    if name.startswith('HEPTA_HIA_') or name=='PYTHONPATH':\n        del os.environ[name]\nos.environ['PYTHONDONTWRITEBYTECODE']='1'\nos.environ['PYTHONUNBUFFERED']='1'\nconfiguration={\n    'schema':'hia-external-guardian-request.v1',\n    'controller_seconds':180,\n    'command':[sys.executable,'-B',str(control/'authoring.py'),'--root',str(root)],\n    'cwd':str(root),\n    'source_identities':identities,\n}\nraw=(json.dumps(configuration,indent=2,sort_keys=True)+'\\n').encode()\npath=guard/'request.json'\nwith path.open('xb') as stream: stream.write(raw)\nfingerprint=hashlib.sha256(raw).hexdigest()\nprint(json.dumps({'stage':'CORE_LOWERING_AUTHORING_GUARDIAN_ONLY','root':str(root),\n                  'configuration_sha256':fingerprint,'source_candidate':request['inputs']['canonical_candidate'],\n                  'native_execution_requested':False}),flush=True)\nos.execv(sys.executable,[sys.executable,'-B',str(control/'guardian.py'),\n         '--config',str(path),'--config-sha256',fingerprint,\n         '--implementation',str(control/'process_owner_impl.py')])\n"
+    ],
+    "created_unix_ms": 1794424384596,
+    "cwd": "/home/qian-qi",
+    "env_keys": [
+      "PYTHONDONTWRITEBYTECODE",
+      "PYTHONUNBUFFERED"
+    ],
+    "executable": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "execution_mode": "operator",
+    "host": "desktop",
+    "id": "1a1cc072c54-2564-dd3",
+    "idempotency_key": "hia-e26e-desktop-core-lowering-source-authoring-r2",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1cc072c54-2564-dd3",
+    "request_digest": "81285933d49504aa396cc5a2a35a13b333e7847b30cc4a031d3524b9dbd44fd4",
+    "request_fingerprint": 9306786709105869994,
+    "ssh_target": "desktop-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a1cc072c54-2564-dd3"
+  },
+  "launch": {
+    "backend": "systemd",
+    "launcher_pid": null,
+    "ok": true,
+    "unit": "hepta-runtime-job-1a1cc072c54-2564-dd3"
+  },
+  "local_record_pending": false,
+  "reused": false
+}

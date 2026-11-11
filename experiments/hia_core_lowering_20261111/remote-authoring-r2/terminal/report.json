@@ -1,0 +1,427 @@
+{
+  "abi": {
+    "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/hia_core_lowering_abi.json",
+    "sha256": "bd8a8d512b6dc323cad6d9bfe6384a315f62b5a055df6e62acc468dc94b7c57f",
+    "size": 3021
+  },
+  "actual_candidate_index_tree": "095e31fc7baba6941d5f78d132ea6630e0dc83ae",
+  "additional_unchanged_source_line_bound": 16384,
+  "base_after": {
+    "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/base-after.json",
+    "sha256": "484a0dfe114d0747386ad7917693783deb36a1c47e46796eac26ae0ad1fd28a7",
+    "size": 1076839
+  },
+  "base_before": {
+    "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/base-before.json",
+    "sha256": "484a0dfe114d0747386ad7917693783deb36a1c47e46796eac26ae0ad1fd28a7",
+    "size": 1076839
+  },
+  "base_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+  "base_preserved": true,
+  "base_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+  "candidate_after": {
+    "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/candidate-after.json",
+    "sha256": "ed09f628b4f166509030c40bb0c1ad3d3ab1600c29b196ba772b9507efde1cc5",
+    "size": 1079764
+  },
+  "candidate_before": {
+    "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/candidate-before.json",
+    "sha256": "ed09f628b4f166509030c40bb0c1ad3d3ab1600c29b196ba772b9507efde1cc5",
+    "size": 1079764
+  },
+  "canonical_candidate_commit": "7d73eabbfed50254a5a94e555fff17405b8a6892",
+  "canonical_candidate_tree": "095e31fc7baba6941d5f78d132ea6630e0dc83ae",
+  "clone_command": [
+    "git",
+    "--no-replace-objects",
+    "clone",
+    "--quiet",
+    "--no-hardlinks",
+    "--no-checkout",
+    "/home/qian-qi/he26v67r2/s",
+    "/home/qian-qi/he26corelowering-authoring-r2/s"
+  ],
+  "cold_qualified": false,
+  "core_vm_executed": false,
+  "error": {
+    "message": "E_HIA_TYPE: compare.ne: operand types must match ('equality', '=0')",
+    "traceback": "Traceback (most recent call last):\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py\", line 688, in instruction\n    self.required.update(check_instruction(spec, actual, types, attrs))\n                         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_opcodes.py\", line 227, in check_instruction\n    raise OpcodeRejected(f\"{spec.name}: {label} types must match {rules}\", code)\nhepta.hia_opcodes.OpcodeRejected: compare.ne: operand types must match ('equality', '=0')\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/home/qian-qi/he26corelowering-authoring-r2/control/authoring.py\", line 237, in main\n    document = generator.document(authoring, name)\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/tools/generate_hia_core_lowering.py\", line 334, in document\n    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8', 'module': module, 'functions': functions})\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/tools/generate_hia_selfhost.py\", line 2063, in compact_authoring_cfg\n    verify_program(document)\n    ~~~~~~~~~~~~~~^^^^^^^^^^\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py\", line 959, in verify_program\n    _verify_function(data[\"schema\"], fn, block_maps[fn[\"name\"]], interfaces)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py\", line 912, in _verify_function\n    check.instruction(ins)\n    ~~~~~~~~~~~~~~~~~^^^^^\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py\", line 696, in instruction\n    _reject(str(exc), exc.code)\n    ~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/home/qian-qi/he26corelowering-authoring-r2/s/hepta/hia_program.py\", line 61, in _reject\n    raise HIAProgramRejected(message, code)\nhepta.hia_program.HIAProgramRejected: E_HIA_TYPE: compare.ne: operand types must match ('equality', '=0')\n",
+    "type": "HIAProgramRejected"
+  },
+  "expected_unit_count": 32,
+  "finite_control": {
+    "functions": 28,
+    "instructions": 1922,
+    "literal_count": 263,
+    "maximum_slots": 510,
+    "modes": {
+      "_Function.__init__": {
+        "mode": 6,
+        "parameters": [
+          "self",
+          "parent",
+          "fn",
+          "index"
+        ],
+        "pc": 94,
+        "slots": 179
+      },
+      "_Function.allocate": {
+        "mode": 7,
+        "parameters": [
+          "self",
+          "words"
+        ],
+        "pc": 344,
+        "slots": 7
+      },
+      "_Function.allocate_buffer": {
+        "mode": 21,
+        "parameters": [
+          "self",
+          "size",
+          "out",
+          "trapping"
+        ],
+        "pc": 1261,
+        "slots": 81
+      },
+      "_Function.block_label": {
+        "mode": 9,
+        "parameters": [
+          "self",
+          "name"
+        ],
+        "pc": 363,
+        "slots": 8
+      },
+      "_Function.bulk": {
+        "mode": 23,
+        "parameters": [
+          "self",
+          "op",
+          "args"
+        ],
+        "pc": 1365,
+        "slots": 114
+      },
+      "_Function.compare_imm": {
+        "mode": 15,
+        "parameters": [
+          "self",
+          "register",
+          "value"
+        ],
+        "pc": 449,
+        "slots": 12
+      },
+      "_Function.condition_value": {
+        "mode": 18,
+        "parameters": [
+          "self",
+          "condition"
+        ],
+        "pc": 527,
+        "slots": 5
+      },
+      "_Function.copy": {
+        "mode": 13,
+        "parameters": [
+          "self",
+          "source",
+          "destination"
+        ],
+        "pc": 428,
+        "slots": 16
+      },
+      "_Function.drop_chain": {
+        "mode": 26,
+        "parameters": [
+          "self",
+          "arg"
+        ],
+        "pc": 1639,
+        "slots": 63
+      },
+      "_Function.edge": {
+        "mode": 19,
+        "parameters": [
+          "self",
+          "target",
+          "arguments"
+        ],
+        "pc": 531,
+        "slots": 53
+      },
+      "_Function.fail_if": {
+        "mode": 14,
+        "parameters": [
+          "self",
+          "condition"
+        ],
+        "pc": 444,
+        "slots": 6
+      },
+      "_Function.immediate": {
+        "mode": 12,
+        "parameters": [
+          "self",
+          "name",
+          "value",
+          "word"
+        ],
+        "pc": 417,
+        "slots": 14
+      },
+      "_Function.label": {
+        "mode": 8,
+        "parameters": [
+          "self",
+          "suffix"
+        ],
+        "pc": 352,
+        "slots": 11
+      },
+      "_Function.load": {
+        "mode": 10,
+        "parameters": [
+          "self",
+          "name",
+          "reg",
+          "word"
+        ],
+        "pc": 371,
+        "slots": 20
+      },
+      "_Function.narrow_result": {
+        "mode": 17,
+        "parameters": [
+          "self",
+          "typ",
+          "checked"
+        ],
+        "pc": 506,
+        "slots": 14
+      },
+      "_Function.operation": {
+        "mode": 20,
+        "parameters": [
+          "self",
+          "ins"
+        ],
+        "pc": 594,
+        "slots": 510
+      },
+      "_Function.pop_chain": {
+        "mode": 25,
+        "parameters": [
+          "self",
+          "arg",
+          "out"
+        ],
+        "pc": 1581,
+        "slots": 59
+      },
+      "_Function.push_chain": {
+        "mode": 24,
+        "parameters": [
+          "self",
+          "args",
+          "out"
+        ],
+        "pc": 1516,
+        "slots": 68
+      },
+      "_Function.range_check": {
+        "mode": 16,
+        "parameters": [
+          "self",
+          "register",
+          "typ",
+          "source"
+        ],
+        "pc": 459,
+        "slots": 33
+      },
+      "_Function.range_guard": {
+        "mode": 22,
+        "parameters": [
+          "self",
+          "buffer",
+          "offset",
+          "size"
+        ],
+        "pc": 1346,
+        "slots": 22
+      },
+      "_Function.render": {
+        "mode": 27,
+        "parameters": [
+          "self"
+        ],
+        "pc": 1699,
+        "slots": 182
+      },
+      "_Function.store": {
+        "mode": 11,
+        "parameters": [
+          "self",
+          "name",
+          "reg",
+          "word"
+        ],
+        "pc": 394,
+        "slots": 20
+      },
+      "_bounds": {
+        "mode": 3,
+        "parameters": [
+          "typ"
+        ],
+        "pc": 16,
+        "slots": 17
+      },
+      "_native_globals": {
+        "mode": 28,
+        "parameters": [],
+        "pc": 1916,
+        "slots": 5
+      },
+      "_normalize": {
+        "mode": 4,
+        "parameters": [
+          "code",
+          "reg",
+          "typ"
+        ],
+        "pc": 38,
+        "slots": 25
+      },
+      "_prologue": {
+        "mode": 5,
+        "parameters": [
+          "code",
+          "frame"
+        ],
+        "pc": 76,
+        "slots": 15
+      },
+      "_reject": {
+        "mode": 1,
+        "parameters": [
+          "message",
+          "code"
+        ],
+        "pc": 1,
+        "slots": 6
+      },
+      "_words": {
+        "mode": 2,
+        "parameters": [
+          "typ"
+        ],
+        "pc": 7,
+        "slots": 4
+      }
+    }
+  },
+  "limits": {
+    "blocks_per_function": 256,
+    "blocks_total": 1536,
+    "functions": 128,
+    "instructions": 8192,
+    "parameters_or_arguments": 16,
+    "source_bytes": 1048576,
+    "ssa_names_per_function": 2048
+  },
+  "local_git_head_claim": "608 base plus explicitly verified candidate overlay; not a fabricated checkout",
+  "local_head": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+  "native_compiler_executed": false,
+  "native_image_limits_not_executed": [
+    "output capacity",
+    "relocations",
+    "machine compilation"
+  ],
+  "original_ast": {
+    "complete_class_ast_equal": true,
+    "helper_count": 5,
+    "helper_names": [
+      "_reject",
+      "_words",
+      "_bounds",
+      "_normalize",
+      "_prologue"
+    ],
+    "method_count": 22,
+    "method_names": [
+      "__init__",
+      "allocate",
+      "label",
+      "block_label",
+      "load",
+      "store",
+      "immediate",
+      "copy",
+      "fail_if",
+      "compare_imm",
+      "range_check",
+      "narrow_result",
+      "condition_value",
+      "edge",
+      "operation",
+      "allocate_buffer",
+      "range_guard",
+      "bulk",
+      "push_chain",
+      "pop_chain",
+      "drop_chain",
+      "render"
+    ]
+  },
+  "original_limits_changed": false,
+  "outer_controller_seconds": 180,
+  "product_tests_executed": false,
+  "python": {
+    "path": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "resolved": "/home/qian-qi/hia-e26e-python314-linux-r1/install/bin/python3.14",
+    "sha256": "b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493",
+    "version": "3.14.4 (main, Nov 11 2026, 04:27:45) [GCC 13.3.0]"
+  },
+  "python_syntax_checked": [
+    "tools/hia_core_lowering_policy.py",
+    "tools/hia_core_lowering_ir.py",
+    "tools/generate_hia_core_lowering.py",
+    "hepta/hia_core_lowering_native.py"
+  ],
+  "schema": "hepta.hia.core-lowering-development-authoring.v1",
+  "source_preserved": true,
+  "ssa_name_profile": "unique names per function <=2048; source spelling numeric suffix is not an admission limit",
+  "status": "HOLD",
+  "units": [
+    {
+      "checked_core_sha256": "711209b933b45be29021e8e141887282982fd66a610151a0cce5bb44ecea23a8",
+      "name": "core_lowering_pool",
+      "path": "/home/qian-qi/he26corelowering-authoring-r2/evidence/assembled/core_lowering_pool.hiaasm",
+      "public_core_roundtrip": true,
+      "sha256": "2048feb5a9ac873998247fb307e105d67dadc6f04c069f7be1f0f0a84c8f00b1",
+      "size": 103347,
+      "status": "PASS",
+      "structure": {
+        "blocks_per_function": 7,
+        "blocks_total": 45,
+        "functions": 39,
+        "instructions": 2457,
+        "parameters_or_arguments": 4,
+        "source_bytes": 103347,
+        "source_lines": 2626,
+        "ssa_names_per_function": 76,
+        "ssa_source_numeric_suffix_max_observation_only": 77
+      }
+    },
+    {
+      "name": "core_lowering_000",
+      "status": "HOLD"
+    }
+  ],
+  "wall_seconds": 22.007921965094283
+}
