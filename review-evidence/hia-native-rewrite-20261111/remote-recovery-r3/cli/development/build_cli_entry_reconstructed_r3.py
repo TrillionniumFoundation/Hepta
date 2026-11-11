@@ -70,6 +70,14 @@ def main():
             (out/(tool+'.stdout')).write_bytes(process.stdout)
             (out/(tool+'.stderr')).write_bytes(process.stderr)
             result['generations'].append({'tool':tool,'exit_code':process.returncode})
+            if process.returncode != 0:
+                print("HIA_GENERATOR_FAILURE " + json.dumps(
+                    {"tool":tool,"exit_code":process.returncode,
+                     "stdout_bytes":len(process.stdout),"stderr_bytes":len(process.stderr),
+                     "stdout_sha256":digest(process.stdout),"stderr_sha256":digest(process.stderr)},
+                    sort_keys=True), flush=True)
+                sys.stdout.buffer.write(process.stdout);sys.stdout.buffer.flush()
+                sys.stderr.buffer.write(process.stderr);sys.stderr.buffer.flush()
             assert process.returncode==0,tool
         paths={
           1:ROOT/'development/capture-reconstructed-compile-r1/cli-capture.manifest.json',

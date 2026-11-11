@@ -1,4 +1,4 @@
-"""Independent CI reconstruction and actual native CLI component validation.
+"""Independent CI entry-only continuation after the exact 469 component run.
 
 This driver consumes exact published R6/R14 inputs plus new source-delivery
 files. Original ROG observations are never inherited as CI test results.
@@ -6,7 +6,7 @@ It does not activate an installed entry or qualify whole-stack native closure.
 """
 from pathlib import Path, PurePosixPath
 from hashlib import sha1, sha256
-import importlib.util, io, json, lzma, os, shutil, stat, sys, tarfile, traceback, zlib
+import argparse, importlib.util, io, json, lzma, os, shutil, stat, sys, tarfile, traceback, zlib
 sys.dont_write_bytecode = True
 DELIVERY = Path(__file__).resolve().parents[1]
 EXPECTED = {
@@ -30,9 +30,9 @@ EXPECTED = {
   "tools/cli_file_owner.py": "92bc344da299cd98c50867d17a6d8609003f14980c8bec024c20eee1b15578d0",
   "tools/generate_hia_cli_file.py": "ebfac56dc0fe4cf225665efe4658743569f53de63df7999bd871391286203bdf",
   "development/test_file_reconstructed_r2.py": "b2cdc98a446ff52be32fbca0198d17dd20706bea00b7459655901c885f3b7186",
-  "tools/cli_entry_owner.py": "1f55d6005054f9a56f282559480b36f51cec950858c639db1ec773980a988693",
-  "tools/generate_hia_cli_native_packer.py": "ff9304fd88c4244b7b93647bedaebed03d94f969180c0b159fcb21766a246ade",
-  "development/build_cli_entry_reconstructed_r3.py": "b13c89745a0e3bf32ad7fe8774f927da9ee083c805c5ec2354be1c29303604b3",
+  "tools/cli_entry_owner.py": "d47f72eccb763bd4cc7ffb2a92aac7e96e3178c9f4df3c1bb60b9ccd68f0221c",
+  "tools/generate_hia_cli_native_packer.py": "0c3c3ef2e70ec4de523af08660a6ebfdec8960952933ad58119fd1f602cb8376",
+  "development/build_cli_entry_reconstructed_r3.py": "fa2ec6c9a4ba819358d63226cbc14ed932ed0a3cc604d9da892ae086f6f79140",
   "docs/HIA_CLI_BUSINESS_HANDOFF_FIELDS.json": "4a67da8afe6d25b7765d67ea88fcf446dd5ea0fe82016ef2ab6695320c99d46b"
 }
 BASE = Path("/var/tmp/hia9acdfa-native-resume-a3c61136-20261111")
@@ -229,6 +229,9 @@ def build_components(context, mine, project, common):
            "9db9331891c177da57621f69922214226886d74bf126b6362d5c223e6578dc16",
            "e6ba028f4f9e8565c80d792e2721bf2032706942aa7ec5d6b8cf03ee44b4cfa3")]),
     ]
+    # This continuation rebuilds only the entry's current dependencies.
+    # The scan/emit pair and all three completed component test groups are not run.
+    specifications = [row for row in specifications if row[0] != "wire"]
     compiled = []
     for kind, generator, directory, parts in specifications:
         stage = project / "development" / directory
@@ -334,6 +337,9 @@ def portable_raw_export(mine, project):
     return export
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scope", choices=("entry",), default="entry")
+    options = parser.parse_args()
     common_path = Path(os.environ["HIA_CI_COMMON"]).resolve()
     common_raw = common_path.read_bytes()
     specification = importlib.util.spec_from_file_location("cli_ci_common", common_path)
@@ -348,7 +354,13 @@ def main():
     status = "FAIL"
     details = dict(new_execution=True, old_ROG_launch_status="UNKNOWN_NOT_RESOLVED_BY_CI",
                    whole_stack_closed=False, installed_entry_activated=False,
-                   common_module_git_blob=git_sha(common_raw))
+                   common_module_git_blob=git_sha(common_raw),
+                   validation_scope=options.scope,
+                   component_test_groups_executed=[],
+                   component_test_cases_executed=0,
+                   component_test_entries_executed=0,
+                   prior_component_evidence=dict(run=43101326649, job=130793278379,
+                       artifact_id=13892287301, inherited_as_current_run=False))
     roots = {}
     try:
         context = common.prepare()
@@ -361,25 +373,7 @@ def main():
         details["actual_new_compiles"] = [
             {k:row[k] for k in ("source_path", "source_sha256", "image_path", "image_sha256")}
             for row in compiled]
-        tests = [
-            ("cli-capture-native", "test_capture_reconstructed_r1.py", 120,
-             "capture-reconstructed-native-r1/summary.json", 358, "actual_entries", 1061),
-            ("cli-wire-pretty-native", "test_wire_pretty_reconstructed_r1.py", 180,
-             "wire-pretty-reconstructed-native-r1/result.json", 397, "entries", 2395),
-            ("cli-file-native", "test_file_reconstructed_r2.py", 180,
-             "file-reconstructed-native-r2/result.json", 212, "entries", 1340),
-        ]
-        results = []
-        for label, filename, timeout, summary, cases, entry_key, entries in tests:
-            common.run(label, [sys.executable, "-B", project / "development" / filename],
-                       cwd=project, timeout=timeout, env=env)
-            result = json.loads((project / "development" / summary).read_bytes())
-            actual_entries = result[entry_key]
-            if isinstance(actual_entries, dict):
-                actual_entries = sum(actual_entries.values())
-            assert result["status"] == "PASS" and result["cases"] == cases and actual_entries == entries
-            results.append(result)
-            details["new_native_results"] = results
+        # 469 already completed all 967 component cases; no test-result inheritance.
         build_out = project / "development/entry-independent-ci-build-r1"
         common.run("cli-seven-image-build", [
             sys.executable, "-B", project / "development/build_cli_entry_reconstructed_r3.py",
@@ -416,7 +410,7 @@ def main():
             else:
                 caught.add_note("CLI portable raw export failed: " + repr(error))
         try:
-            common.finish("cli-independent-reconstruction-r1", status, details, roots=roots)
+            common.finish("cli-independent-entry-continuation-r2", status, details, roots=roots)
         except BaseException as error:
             if caught is None:
                 raise

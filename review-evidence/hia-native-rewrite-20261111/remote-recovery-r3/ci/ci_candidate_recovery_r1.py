@@ -1,4 +1,6 @@
-"""Fresh candidate qualification from immutable published source, on a new CI host."""
+"""Fresh remaining candidate gates after the exact 469 checkpoint passed 17+87.
+This run executes private 44 and two whole byte boundaries; no counts are inherited.
+"""
 import importlib.util, json, os, sys, traceback
 from hashlib import sha1,sha256
 from pathlib import Path
@@ -18,13 +20,19 @@ try:
     context=common.prepare()
     base=Path(context["base"])
     workspace=Path(context["workspace"])
-    executor_path=workspace/"native-edit-json-next/tools/edit_native_executor.S"
-    executor_raw=executor_path.read_bytes()
-    print("HIA_SOURCE_EXPORT "+json.dumps(dict(
-        schema="hia-ci-recovered-text-export-v1",path=str(executor_path),
-        bytes=len(executor_raw),sha256=sha256(executor_raw).hexdigest(),
-        git_sha=sha1(b"blob "+str(len(executor_raw)).encode()+b"\0"+executor_raw).hexdigest(),
-        text=executor_raw.decode("utf-8")),sort_keys=True),flush=True)
+    dependency=workspace/"native-edit-json-next/development/main-compile-r3/source/8/hia_composite_lowering_driver_common.py"
+    dependency_raw=dependency.read_bytes()
+    assert (len(dependency_raw),sha256(dependency_raw).hexdigest())==(17781,"fe63327671ea51ca950b955512a0f574d706176a4a8d050e3f8f12c83ef5e3a1")
+    restored=workspace/"native-composite-driver-reconstructed/tools/hia_composite_lowering_driver_common.py"
+    assert not restored.exists(),"Do not replace an existing original"
+    restored.parent.mkdir(parents=True,exist_ok=True)
+    restored.write_bytes(dependency_raw)
+    assert restored.read_bytes()==dependency_raw
+    common.PINS[restored]=dependency_raw
+    common.save(common.OUTPUT/"private-common-dependency.json",dict(
+        schema="hia-exact-original-helper-relocation-v1",source=str(dependency),restored=str(restored),
+        bytes=len(dependency_raw),sha256=sha256(dependency_raw).hexdigest(),
+        frozen_original_not_modified=True,semantics_changed=False))
     programs=[
         ("restore-retained-fixtures",R3+"candidate/restore_application_retained_r1.py",
          "14248c3662c53e1e9499339c2723d1307907e148",base/"restore_application_retained_r1.py",300),
@@ -34,12 +42,6 @@ try:
          "0a08bc8e9de12a7efbacaacb7c80967b740376f3",base/"compile_candidate_snapshot_r1.py",180),
         ("build-complete-native-elf",R2+"build_candidate_snapshot_r2.py",
          "03a1d6b7439d45d176bf39c69121b912a4ad168f",base/"build_candidate_snapshot_r2.py",180),
-        ("fresh-original-reproduction",R2+"reproduce_candidate_snapshot_r1.py",
-         "46a27c5f5e77566c916eaa763143ac724f7e78f2",base/"reproduce_candidate_snapshot_r1.py",900),
-        ("review-and-fresh-fixed-replay",R2+"review_replay_candidate_snapshot_r1.py",
-         "ef126aa913b52f5c947b301a00887130ffd7aa43",base/"review_replay_candidate_snapshot_r1.py",900),
-        ("retained-87-complete-replay",R3+"candidate/test_retained_complete_replay_r1.py",
-         "fecb061ff6c4379d489a9f02cf14c4f11f2982c9",root/"development/test_retained_complete_replay_r1.py",900),
         ("private-44-witness-cases",R3+"candidate/test_snapshot_limit_protocol_r1.py",
          "80533550364d339c9eccc0db1035df0a3de215c9",root/"development/test_snapshot_limit_protocol_r1.py",600),
         ("whole-8MiB-and-plus-one",R3+"candidate/test_snapshot_whole_boundary_r1.py",
@@ -55,23 +57,8 @@ try:
                 "59":"255a3ca76ffb8ccaf01cf01ee50fe22e328de06a60106a3408fe8b737703af50",
                 "60":"3e1f812d62e2efe210c9f5f94cd55cc2374283eee7856e48da9279f2f552600d"}
             assert {role:row["image_sha256"] for role,row in report["components"].items()}==expected_images
-            portable=json.loads((root/"development/compile-r1/portable-new-components.json").read_bytes())
-            print("HIA_OWNER_MAP "+json.dumps(portable,sort_keys=True),flush=True)
-            frozen=workspace/"native-edit-candidate-next/development/build-r1/source"
-            inventory=[dict(path=str(p),bytes=p.stat().st_size,
-                sha256=sha256(p.read_bytes()).hexdigest())
-                for p in sorted(frozen.rglob("*")) if p.is_file()
-                and p.suffix in (".py",".S",".md",".json")]
-            print("HIA_FROZEN_SOURCE_INDEX "+json.dumps(inventory,sort_keys=True),flush=True)
     def report(name):
         return json.loads((root/"development"/name/"summary.json").read_bytes())
-    fixed=report("complete-elf-replay-r1")
-    assert fixed["status"]=="PASS" and fixed["cases"]==fixed["matched"]==17 and not fixed["differences"]
-    original=report("original-review-r2")
-    assert original["reviewed_cases"]==17 and original["matched"]==11 and original["success_controls_pass"]
-    assert set(original["differences"])=={"depth-57","depth-58","depth-119","large-wide-only","large-deep-then-wide","large-wide-then-deep"}
-    retained=report("retained-complete-replay-r1")
-    assert retained["status"]=="PASS" and retained["case_count"]==87 and retained["source_before_after_equal"]
     private=report("snapshot-limit-protocol-r1")
     assert private["status"]=="PASS" and private["cases"]==44 and private["actual_entries"]==82
     assert private["production_source_and_image_unchanged"] and private["captured_original_metadata_unchanged"]
@@ -81,14 +68,16 @@ try:
     bundle=json.loads((root/"development/build-r2/bundle.json").read_bytes())
     executable=Path(bundle["executable"]["path"])
     assert sha256(executable.read_bytes()).hexdigest()==bundle["executable"]["sha256"]
-    details=dict(new_fixed_cases=17,retained_cases=87,private_cases=44,private_native_entries=82,
-        whole_byte_boundary_cases=2,original_true_differences=6,
-        original_success_controls_pass=True,executable=bundle["executable"],
-        public_cases=106,all_public_stdout_stderr_and_exitcodes_verified=True,
+    details=dict(scope="REMAINING_PRIVATE_AND_WHOLE_BYTE_BOUNDARY_GATES",
+        private_cases=44,private_native_entries=82,whole_byte_boundary_cases=2,
+        actual_public_cases_in_this_run=2,previous_public_case_counts_inherited=False,
+        prior_17_and_87_are_separate_run=43101326649,executable=bundle["executable"],
+        all_current_public_stdout_stderr_and_exitcodes_verified=True,
         private_witness_tests_do_not_establish_public_reachability=True,
         CPU_seconds_per_public_native_child=90,wall_seconds_per_public_native_child=180,
         address_space_bytes_per_native_child=1<<30,
-        image_build_matches_ROG_component_hashes=True,
+        image_build_matches_prior_component_hashes=True,
+        exact_missing_private_helper_restored=True,
         sqlite_not_used_as_a_namespace_oracle=True)
     status="PASS"
 except BaseException as exc:
@@ -99,5 +88,6 @@ except BaseException as exc:
 finally:
     common.finish("candidate",status,details,{
         "candidate":root,
+        "restored-original-lowering-helper":common.BASE/"root-recovery/workspace/native-composite-driver-reconstructed/tools/hia_composite_lowering_driver_common.py",
         "prior-application-fixtures":common.BASE/"root-recovery/application-reference-r1"})
 if status!="PASS":raise SystemExit(1)

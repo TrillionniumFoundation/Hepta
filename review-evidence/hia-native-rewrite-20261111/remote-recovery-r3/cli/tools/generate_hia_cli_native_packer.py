@@ -22,16 +22,32 @@ def template():
     with tempfile.TemporaryDirectory(prefix='hia-cli-template-',dir='/dev/shm') as temp:
         directory=Path(temp);obj=directory/'cli.o';binary=directory/'cli.bin';snapshot=directory/'source.S'
         snapshot.write_bytes(assembly)
-        subprocess.run(['as','--64',str(snapshot),'-o',str(obj)],check=True,capture_output=True)
-        subprocess.run(['objcopy','-O','binary','-j','.text',str(obj),str(binary)],check=True,capture_output=True)
-        syms={name:int(at,16) for at,_,name in (line.split() for line in subprocess.check_output(['nm','-n',str(obj)],text=True).splitlines())}
-        reloc=subprocess.check_output(['objdump','-r',str(obj)],text=True)
-        assert 'R_X86_64' not in reloc
-        code=binary.read_bytes()
-        (audit/'object.o').write_bytes(obj.read_bytes());(audit/'template.bin').write_bytes(code)
-        (audit/'symbols.json').write_text(json.dumps(syms,sort_keys=True,indent=2)+'\n')
-        (audit/'relocations.txt').write_text(reloc)
+        def actual_tool(label,command):
+            result=subprocess.run(command,capture_output=True)
+            (audit/(label+'.stdout')).write_bytes(result.stdout)
+            (audit/(label+'.stderr')).write_bytes(result.stderr)
+            (audit/(label+'.process.json')).write_text(json.dumps({
+                'command':command,'returncode':result.returncode,
+                'stdout_bytes':len(result.stdout),'stderr_bytes':len(result.stderr),
+                'stdout_sha256':sha256(result.stdout).hexdigest(),
+                'stderr_sha256':sha256(result.stderr).hexdigest()},sort_keys=True,indent=2)+'\n')
+            if result.returncode != 0:
+                sys.stdout.buffer.write(result.stdout);sys.stdout.buffer.flush()
+                sys.stderr.buffer.write(result.stderr);sys.stderr.buffer.flush()
+            result.check_returncode()
+            return result.stdout
         (audit/'source.json').write_text(json.dumps({'bytes':len(assembly),'sha256':sha256(assembly).hexdigest()},sort_keys=True)+'\n')
+        actual_tool('as',['as','--64',str(snapshot),'-o',str(obj)])
+        (audit/'object.o').write_bytes(obj.read_bytes())
+        actual_tool('objcopy',['objcopy','-O','binary','-j','.text',str(obj),str(binary)])
+        code=binary.read_bytes()
+        (audit/'template.bin').write_bytes(code)
+        symbol_text=actual_tool('nm',['nm','-n',str(obj)]).decode('utf-8')
+        syms={name:int(at,16) for at,_,name in (line.split() for line in symbol_text.splitlines())}
+        (audit/'symbols.json').write_text(json.dumps(syms,sort_keys=True,indent=2)+'\n')
+        reloc=actual_tool('objdump',['objdump','-r',str(obj)]).decode('utf-8')
+        (audit/'relocations.txt').write_text(reloc)
+        assert 'R_X86_64' not in reloc
         assert (ROOT/'tools/cli_native_executor.S').read_bytes()==assembly
     header=(b'\x7fELF\x02\x01\x01'+bytes(9)+
             struct.pack('<HHIQQQIHHHHHH',2,62,1,0x4000b0,64,0,0,64,56,2,0,0,0)+

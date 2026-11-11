@@ -1,8 +1,10 @@
-"""New HIA CLI continuation owner: reconstructed development revision r3.
+"""New HIA CLI continuation owner: reconstructed development revision r4.
 No activation or whole CLI closure is claimed. The fixed executor implements
 only captured OS bytes, slots, primitive syscalls and HIA-selected output.
 Successful file input currently produces an explicit unresolved service request.
-This new revision corrects initializer lengths before any compilation/run.
+This revision keeps internal dispatch results u64, including comparison with zero.
+The external entry and actual component ABI remain u32; numeric values and phases
+are unchanged. The prior exact CI generation/type failure remains preserved.
 """
 from pathlib import Path
 import ast,importlib.util
@@ -81,7 +83,7 @@ def entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return result
     return ABI
 
-def capture_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def capture_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 10:
         return grow(o, w, 5, 1024, 11)
     if phase == 11:
@@ -108,7 +110,7 @@ def capture_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
         return release(o, w, 5, 20)
     return refuse(w, 114)
 
-def arguments_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def arguments_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 20:
         return grow(o, w, 6, 1024, 21)
     if phase == 21:
@@ -169,7 +171,7 @@ def field_view(w:mutbuf) -> u64:
     put(w, S_SOURCE_BYTES, get(w, OBS + 24))
     return 1
 
-def metadata_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def metadata_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 40:
         if get(w, S_ACTION) == 2:
             return view(o, w, 6, 1024 + 3 * 32, 32, 41)
@@ -213,7 +215,7 @@ def metadata_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
         return protect(o, w, 8, 0, 70)
     return refuse(w, 134)
 
-def pretty_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def pretty_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 70:
         return grow(o, w, 8, 96, 71)
     if phase == 71:
@@ -244,7 +246,7 @@ def pretty_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
         return protect(o, w, 10, 1, 999)
     return refuse(w, 143)
 
-def file_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def file_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase < 120:
         return file_begin(o, w, phase)
     if phase < 140:
@@ -390,7 +392,7 @@ def file_response(o:mutbuf, w:mutbuf, phase:u64) -> u32:
         return copy(o, w, 2, WIRE, 12, 0, 96, 110)
     return refuse(w, 184)
 
-def diagnostic_step(o:mutbuf, w:mutbuf, phase:u64) -> u32:
+def diagnostic_step(o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 190:
         diagnostic_literals(w)
         target = 20000
