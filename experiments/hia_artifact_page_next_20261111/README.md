@@ -51,3 +51,7 @@ explicit retained owners outside this next component.
 ## Private lifecycle correction
 
 The current draft adapter additionally closes terminal and one-shot observation boundaries. `development-r2-lifecycle/` retains the actual three original failures and five passing candidate controls; `lifecycle-r2-draft/` retains the exact authored guard and test source. The original eight small page differential observations continue to identify their historical adapter d54b0999… and wire source/image, while the new guard is ff49d977…. The page HIA source and image did not change. Large input, formal selection, original caller and full qualification gates remain pending.
+
+## Native-step interruption correction
+
+`development-r3-step-close/` preserves an additional actual private interruption counterexample and six passing candidate controls, together with the original independent static review and final source/receipt review. The current adapter is 91baeeb4…, while HIA source/image remain unchanged. No public request false-success, disk durability, large-input or whole-stack qualification is inferred from these controls.

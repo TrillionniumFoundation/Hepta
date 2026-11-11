@@ -144,16 +144,24 @@ class PageSession:
         self._observation_pending = False
 
     def step(self, packet=None):
-        if self.finished:
-            raise RuntimeError('native artifact-page continuation is terminal')
-        raw = self.packet if packet is None else packet
-        source = ctypes.create_string_buffer(raw, max(1, len(raw)))
-        code = self.owner.policy._entry(source, len(raw), self.output, len(self.output),
-                                        self.workspace, len(self.workspace))
-        self._observation_pending = code == 1
-        if code != 1:
+        try:
+            if self.finished:
+                raise RuntimeError('native artifact-page continuation is terminal')
+            raw = self.packet if packet is None else packet
+            source = ctypes.create_string_buffer(raw, max(1, len(raw)))
+            code = self.owner.policy._entry(source, len(raw), self.output, len(self.output),
+                                            self.workspace, len(self.workspace))
+            self._observation_pending = code == 1
+            if code != 1:
+                self.finished = True
+            return code
+
+        except BaseException:
+            # Entry execution and reply bookkeeping form one private step.
+            # A failure in either part cannot leave a stale effect permission.
             self.finished = True
-        return code
+            self._observation_pending = False
+            raise
 
     def _wire(self, handle):
         # The retained wire() admits an explicitly selected binary64 renderer
