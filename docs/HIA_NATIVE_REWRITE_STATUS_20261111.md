@@ -158,8 +158,9 @@ the public boundary preserve the hosted `E_HIA_FORMAT` result; an extra public
 byte still returns `E_HIA_LIMIT` before native entry. The final development
 suite passed all 18 tests. Independent raw ABI controls admit the exact private
 limit and refuse one extra byte with output/state boundary canaries intact.
-This type owner does not replace the operation elaborator, task helper generation,
-returned-loan origin lowering, default installer or durable Agent.
+This v60 type owner did not replace the operation elaborator, task helper
+generation, returned-loan origin lowering, default installer or durable Agent.
+The additional v61 origin-resolution boundary is described below.
 
 A further independent fixed-seed panel executes the same r3 native image for
 96 seeds and 1,032 initialization/resolution state observations. It compares
@@ -208,6 +209,95 @@ a GitHub cold pass. The unchanged 180-second cold deadline, all 38 phases and
 the original/modified compiler generations remain mandatory.
 
 ### Qualification observations
+
+The published baseline for this continuation is
+`c80eb2ecc5d08421a3d124c879edb33cefff2267`.
+Its [Actions run 42949936235](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42949936235)
+passed all 252 source tests, source reproduction, contract and inventory checks;
+the separate CodeQL run passed all four language jobs. Its native job reached
+the unchanged 180-second deadline at 180.091261 seconds. All 562 cold source
+entries were matched to the exact Git blobs. Thirty phases completed both
+execution and evidence sealing; two further explicit-trap workers returned
+PASS but did not finish sealing before the timeout. The remaining six phases
+did not start. There is no observed semantic-failure witness in those 32
+reports, but this is a failed cold run and every later native CI step was
+skipped. The original 41,214,916-byte artifact has SHA-256
+`c1d137bf8f54afaff613e725c152e84ecb19cab20fd03f94531e8392ffef11ec`.
+
+A separately prepared ROG run of the exact same clean `c80eb2e` tree completed
+all 11 cold checks in 109.429 seconds and all 38 phase seals. The downloaded
+67,591-byte cold report has SHA-256
+`971cf03b74246da621d2681dfd306c2d798637beee3b3bc8c707a51112df1e2a`;
+its entire 562-entry source manifest was independently matched to the same Git
+commit. Original B1/B2/B3 hashes agree and the modified compiler reaches its
+distinct fixed point. Language and every explicit native component group
+passed, including 18 type-session tests, nine ordinary Agent candidate tests
+and 16 patch-result CLI tests. Its full retained regression then passed all
+3,931 tests in 1,802.846 seconds, with zero errors, failures, skips, expected
+failures or unexpected successes. The final status is `FULL_RETAINED_PASS`;
+all 2,532 complete-source entries match that Git tree and the before/after
+source snapshots and runner identities are unchanged. Its final report has
+SHA-256 `1427e146e568c570c687e3e8cc4e6e1ff76f520392c7e6e1b19705c000798d64`.
+The previous v59 temporary-directory/socket failures remain original failed
+observations; this is a fresh completed run under the corrected preparation.
+Neither this host result nor any older passing run turns the GitHub timeout
+into a pass or qualifies the changed v61 source.
+
+### v61 source continuation and development controls
+
+The selected HIA type session now also owns the complete source-level
+`_Elaborator.loan_origins` decision: annotation arity/absence, original formal
+names, nested record paths, exact flattened offsets, owned-origin refusal and
+read/mutable permission. Its `HIALOR01` frame preserves type-session counters.
+The ordinary v4 path transports issued type identities and consumes native
+results without invoking the hosted helper. Final binding to generated Core
+entry names remains in the operation elaborator. Public input limits are
+unchanged: the private command is at least 103 bytes and eight nodes smaller
+than the smallest corresponding reachable public envelope. Native shape/name
+diagnostics preserve categories and refusal ordering; their English context
+is not claimed to be byte-identical to the hosted helper.
+
+The new HIA source has SHA-256
+`8c6fe9a4a3850838038e172c38ea08f16a86d8a03e7c47c250a805888a616cee`.
+An independent panel executed its actual development image on 64 different
+record/generic DAGs and 1,536 origin scenarios: 320 accepted and 1,216 refused,
+with no result, error-category or first-semantic-error differences. All 18,420
+observed native entries preserved their input bytes. Every origin command
+preserved counters and left later resolution usable. The original incorrect
+test expectations for two decimal-ID fatal statuses are retained separately;
+the corrected assertions and installed-wheel controls passed. These are
+development observations, not matching-source cold qualification.
+
+The host reference's snapshot and independent structure passes remain distinct.
+Container-only capture frames and a direct-node verification stack remove
+temporary task allocations while preserving traversal/error order, aliases,
+cycles and all budgets. A per-call, at-most-1,024-entry string-size arithmetic
+table counts each occurrence separately and never caches an admission. Its
+length lower-bound gate precedes hashing; an admitted-length malformed string
+may still incur a bounded hash before its original surrogate error. Independent
+mutation controls and exact boundary/error differentials found no semantic
+change. All 105 focused structure/Core controls passed. Complete names, signed
+and scalar-cast reference reports remain byte-identical; final single-run
+combined wall time was 44.901 versus 44.622 seconds, so a large full-cold saving
+is not inferred from faster component CPU measurements.
+
+The JSON reference scanner skips only ordinary spans using exact character
+classes. Both preflights and both explicit native selectors remain active.
+An independent 281,836-case panel found identical returns and complete exception
+type/text, including all escaped and raw BMP units, surrogate pairs, malformed
+continuations, mutable-input-free grammar/budget cases and selector boundaries.
+Real selfhost attributes still invoked both preflights 5,630 times each. Five
+interleaved timing rounds improved aggregate wall time by 6.53%; this is a
+local workload observation. Archive buffer and ZIP_STORED experiments did not
+show a dependable benefit and were not merged. No deadline, worker count,
+phase, witness or evidence-retirement requirement was reduced.
+
+The first combined local development invocation correctly refused a stale
+contract produced before the regenerated language inventory; no terminal
+qualification pass was observed for that invocation. After regenerating the
+contract in dependency order and checking the fixed point, all 71 focused
+source/adapter controls passed. Raw observations and source identities are
+retained under `review-evidence/hia-native-rewrite-20261111/v61`.
 
 The first published v58 tree was exactly
 `243ca1d7d25ba485681488ea330ff81167e0fff1`, committed as
@@ -281,9 +371,9 @@ deadline change or new cold pass.
 
 | Area | Native implementation present | Work required before retiring the remaining owner |
 | --- | --- | --- |
-| Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` | Full retained language/composite lowering, general linking and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
+| Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` and the retained static x86-64 ELF ET_REL/RELA linker | Full retained language/composite lowering, linking beyond the existing static ELF profile and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
 | Primitive Core admission | Declarations, 50 opcodes, SSA/CFG, calls/effects, ownership and loans; standalone checker | Nominal/composite normalization, complete object/diagnostic custody and independently justified equivalence for retained semantics |
-| Nominal types | Complete selected declaration/layout session for four composite versions, including unused and symbolic partial obligations | Complete operation/helper lowering, returned-loan origin lowering and default installed integration |
+| Nominal types | Complete selected declaration/layout session for four composite versions, including unused/symbolic partial obligations and v4 source-path-to-slot returned-loan resolution | Complete operation/helper lowering, binding origins to generated Core entry names and default installed integration |
 | Workspace/project build | Native module graph, naming/privacy, Core materialization and semantic compiler pipeline | Complete project build, library resolution, installation/upgrade/recovery and file/process ownership without hosted orchestration |
 | Agent editing | Native slice/snapshot/data helpers, snapshot-bound patches, complete patch diagnostics and explicit ordinary raw-byte candidate route | Remaining query, batch/impact orchestration, composite/import paths, default installation and ordinary full worker protocol |
 | Agent state | Native artifact hashing, no-replace file publication and content byte store | Metadata/ref encoding and issuance, namespace/kind authority, SQLite transactions/WAL, request intents, locks, costs, leases, slots, versions and uncertain-operation recovery |
@@ -293,7 +383,7 @@ deadline change or new cold pass.
 
 The independently deployed Runtime is a separate owner. A new live discovery
 and artifact read obtained and independently hashed its complete manifest and
-backend profile. Its catalog digest matches `bfea47b`, but its advertised worker
+backend profile. Its catalog digest matches `c80eb2e`, but its advertised worker
 and backend digests differ from that checkout; the backend profile still says
 `self_hosted: false`. This observes issued artifact bytes and advertised source
 identities, not an independent deployed-file or loaded-process audit. The earlier
@@ -311,7 +401,7 @@ admission. The explicitly selected native type session now owns nominal
 declarations, generic binding, finite layout, by-value cycles, stored loans and
 partial-declaration obligations; the no-selector path retains `_Types`.
 `_Elaborator` still owns nominal SSA, record/enum transformations, inactive-slot
-cleanup, task helpers, partial tokens, original-field returned-loan origins and
+cleanup, task helpers, partial tokens, generated entry-name origin binding and
 export eligibility. Composite v1 lowers to primitive v6, v2/v3 to v7 and v4 to
 v8; changing those schemas would change the retained language.
 

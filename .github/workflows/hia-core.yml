@@ -29,6 +29,7 @@ jobs:
               'tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests',
               'tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests',
               'tests.test_hia_core_string_accounting',
+              'tests.test_hia_structure_traversal',
               'tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests',
               'tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests',
               'tests.test_hia_source_head_identity',
@@ -81,6 +82,7 @@ jobs:
               'tests.test_hia_core_patch_result_cli.CorePatchResultCliAdapterTests',
               'tests.test_hia_composite_types_native.CompositeTypesSourceTests',
               'tests.test_hia_composite_types_native.CompositeTypesAdapterTests',
+              'tests.test_hia_composite_origins_native.CompositeOriginsAdapterTests',
               'tests.test_hia_native_builder_source_binding',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
@@ -213,11 +215,13 @@ jobs:
         env:
           HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
-      - name: Native complete composite type sessions and ordinary normalization
+      - name: Native composite type sessions returned-loan origins and ordinary normalization
         run: |
           python -B - <<'PYTYPES'
           import unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_composite_types_native')
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_composite_types_native',
+              'tests.test_hia_composite_origins_native'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYTYPES

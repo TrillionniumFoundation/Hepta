@@ -11,6 +11,15 @@ from __future__ import annotations
 
 import json
 import os
+import re
+
+
+# Skip only spans which the reference grammar treats identically. Escapes,
+# quote boundaries, controls and surrogate code points still reach the same
+# ordered checks below; no parsed value or previous admission is reused.
+_STRING_BOUNDARY = re.compile(r'["\\\x00-\x1f\ud800-\udfff]')
+_WHITESPACE_SPAN = re.compile(r'[ \t\n\r]+')
+_DIGIT_SPAN = re.compile(r'[0-9]+')
 
 
 def preflight_hia_json(text: str, *, max_nodes: int, max_depth: int) -> None:
@@ -59,8 +68,8 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
 
     def whitespace() -> None:
         nonlocal index
-        while index < size and text[index] in " \t\n\r":
-            index += 1
+        if index < size and text[index] in " \t\n\r":
+            index = _WHITESPACE_SPAN.match(text, index).end()
 
     def string_token() -> str:
         nonlocal index
@@ -69,6 +78,13 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
         first = index
         index += 1
         while index < size:
+            boundary = _STRING_BOUNDARY.search(text, index)
+            if boundary is None:
+                # All remaining characters were ordinary string contents;
+                # the original scanner would reach the same missing quote.
+                index = size
+                break
+            index = boundary.start()
             ch = text[index]
             index += 1
             if ch == '"':
@@ -122,8 +138,7 @@ def _preflight_hia_json_reference(text: str, *, max_nodes: int, max_depth: int) 
         if text[index] == "0":
             index += 1
         else:
-            while index < size and '0' <= text[index] <= '9':
-                index += 1
+            index = _DIGIT_SPAN.match(text, index).end()
         # We intentionally decline fractions/exponents: HIA never admits a
         # floating-point JSON node, and stdlib JSON decoding still follows.
 

@@ -464,7 +464,8 @@ class _Elaborator:
                    for t in returns):
                 _reject("stored loans may not escape a function", "E_HIA_LOAN")
             if self.parameter_loan_returns:
-                self.return_origins[name] = self.loan_origins(fn, params, returns)
+                self.return_origins[name] = (self.types.loan_origins(fn, params, returns)
+                    if selected is not None else self.loan_origins(fn, params, returns))
             effects = fn["effects"]
             if (type(effects) is not list or any(type(e) is not str or e not in EFFECTS for e in effects)
                     or len(set(effects)) != len(effects)):

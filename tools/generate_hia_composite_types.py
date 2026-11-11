@@ -16,6 +16,7 @@ from tools.generate_hia_json_decode import source_program as decoder_source
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 MAGIC = int.from_bytes(b'HIATYP01', 'little')
+ORIGINS_MAGIC = int.from_bytes(b'HIALOR01', 'little')
 STATE_MAGIC = int.from_bytes(b'HIATYS01', 'little')
 OUTPUT_BYTES = 64 * 1024 * 1024
 WORKSPACE_BYTES = 128 * 1024 * 1024
@@ -44,8 +45,8 @@ PRIMITIVES = ('bool', 'unit', 'i8', 'i16', 'i32', 'i64', 'u8', 'u16',
               'u32', 'u64', 'isize', 'usize', 'buffer', 'readbuf', 'mutbuf', 'chain')
 KEYS = ('op', 'definitions', 'recursive_chain', 'partial_records', 'ref', 'base',
         'initialized', 'kind', 'name', 'params', 'fields', 'variants', 'state',
-        'result', 'poll', 'cancel', 'type', 'args', 'partial')
-LITERALS = {name:name for name in ('init', 'resolve', 'partial', 'record', 'enum', 'task',
+        'result', 'poll', 'cancel', 'type', 'args', 'partial', 'returns', 'return_loans', 'param')
+LITERALS = {name:name for name in ('init', 'resolve', 'partial', 'origins', 'record', 'enum', 'task',
                                   *PRIMITIVES)}
 LITERALS.update(reserved_core='__hia_', reserved_nominal='h2internal_')
 ERRORS = {
@@ -85,10 +86,18 @@ ERRORS = {
     34: ('E_HIA_TYPE', 'partial type requires a nominal record in composite v3/v4'),
     35: ('E_HIA_LIMIT', 'generic/partial instantiation budget exceeded'),
     36: ('E_HIA_LIMIT', 'flattened partial-record layout exceeds budget'),
+    37: ('E_HIA_LOAN', 'nominal return_loans must match return arity'),
+    38: ('E_HIA_LOAN', 'nonloan nominal result requires a null origin'),
+    39: ('E_HIA_LOAN', 'returned loan names no original parameter'),
+    40: ('E_HIA_LOAN', 'returned-loan origin requires an incoming loan-only parameter'),
+    41: ('E_HIA_LIMIT', 'returned-loan field path exceeds finite budget'),
+    42: ('E_HIA_LOAN', 'returned-loan path must traverse record fields'),
+    43: ('E_HIA_LOAN', 'returned-loan path names no record field'),
+    44: ('E_HIA_LOAN', 'returned-loan field must be an incoming loan with sufficient permission'),
 }
 
 CONSTANTS = {
-    'N': (1 << 64) - 1, 'MAGIC': MAGIC, 'STATE_MAGIC': STATE_MAGIC,
+    'N': (1 << 64) - 1, 'MAGIC': MAGIC, 'ORIGINS_MAGIC': ORIGINS_MAGIC, 'STATE_MAGIC': STATE_MAGIC,
     'O_BYTES': OUTPUT_BYTES, 'W_BYTES': WORKSPACE_BYTES,
     'INPUT_BYTES': MAX_COMMAND_BYTES,
     'Q': 32 * 1024 * 1024, 'D': 64 * 1024 * 1024,
@@ -105,6 +114,10 @@ CONSTANTS = {
     'RESSTACK': 126 * 1024 * 1024 + 65536,
     'SYMSTACK': 126 * 1024 * 1024 + 131072,
     'MISC': 126 * 1024 * 1024 + 524288,
+    # An origins command has at most floor((262144 - 4) / 3) parameters.
+    # 131072 eight-byte slots therefore fit every admitted command without
+    # an additional language limit. This scratch is separate from type state.
+    'ORIGIN_HASH': 126 * 1024 * 1024 + 589824,
 }
 
 BODY = r'''
@@ -154,6 +167,10 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if base == 0 or base > get(w, S + 16) or get(w, type_at(base) + 37872) == 0:
                 return 4294967281
             result = partial_type(w, base, field(w, root, K_initialized))
+        elif text_is(w, operation, L_origins) == 1:
+            if admit_origins(s, w, root) == 0:
+                return 4294967281
+            return render_origins(s, o, w, root)
         else:
             return 4294967281
     if error(w) != 0:
@@ -919,6 +936,144 @@ def input_id(s:readbuf, w:mutbuf, node:u64) -> u64:
         value = value * 10 + digit - 48
         i = i + 1
     return value
+
+def admit_origins(s:readbuf, w:mutbuf, root:u64) -> u64:
+    expected = K_op | K_params | K_returns
+    if field(w, root, K_return_loans) != N:
+        expected = expected | K_return_loans
+    params = field(w, root, K_params)
+    returns = field(w, root, K_returns)
+    if shape(w, root, expected) == 0 or kind(w, params) != 5 or kind(w, returns) != 5:
+        return 0
+    fill_range(w, ORIGIN_HASH, 1048576, 0)
+    item = child(w, params)
+    while item != N:
+        if kind(w, item) != 5 or count(w, item) != 2:
+            return 0
+        name = child(w, item)
+        if name_ok(w, name) == 0:
+            return 0
+        identifier = input_id(s, w, next_node(w, name))
+        if identifier == 0 or identifier > get(w, S + 16) or get(w, type_at(identifier) + 37872) != 1:
+            return 0
+        index = text_hash(w, name) & 131071
+        while get(w, ORIGIN_HASH + index * 8) != 0:
+            if equal_text(w, name, child(w, get(w, ORIGIN_HASH + index * 8))) == 1:
+                return 0
+            index = (index + 1) & 131071
+        put(w, ORIGIN_HASH + index * 8, item)
+        item = next_node(w, item)
+    item = child(w, returns)
+    while item != N:
+        identifier = input_id(s, w, item)
+        if identifier == 0 or identifier > get(w, S + 16) or get(w, type_at(identifier) + 37872) != 1:
+            return 0
+        item = next_node(w, item)
+    return 1
+
+def origin_parameter(s:readbuf, w:mutbuf, name:u64) -> u64:
+    index = text_hash(w, name) & 131071
+    parameter = get(w, ORIGIN_HASH + index * 8)
+    while parameter != 0:
+        first = child(w, parameter)
+        if equal_text(w, name, first) == 1:
+            return input_id(s, w, next_node(w, first))
+        index = (index + 1) & 131071
+        parameter = get(w, ORIGIN_HASH + index * 8)
+    return 0
+
+def resolve_origin(s:readbuf, w:mutbuf, typ:u64, annotation:u64) -> u64:
+    put(w, S + 176, N)
+    put(w, S + 184, 0)
+    if get(w, type_at(typ) + 37848) == 0:
+        if annotation != N and kind(w, annotation) != 0:
+            return reject(w, 38)
+        return 1
+    if shape(w, annotation, K_param | K_fields) == 0:
+        return reject(w, 1)
+    name = field(w, annotation, K_param)
+    if name_ok(w, name) == 0:
+        return 0
+    selected = origin_parameter(s, w, name)
+    if selected == 0:
+        return reject(w, 39)
+    record = type_at(selected)
+    if get(w, record) > 1 or get(w, record + 37856) != 0:
+        return reject(w, 40)
+    path = field(w, annotation, K_fields)
+    if kind(w, path) != 5 or count(w, path) > 32:
+        return reject(w, 41)
+    offset = 0
+    item = child(w, path)
+    while item != N:
+        if name_ok(w, item) == 0:
+            return 0
+        record = type_at(selected)
+        if get(w, record) != 1:
+            return reject(w, 42)
+        index = 0
+        found = 0
+        while index < get(w, record + 4256) and found == 0:
+            nested = get(w, record + 4272 + index * 16)
+            if equal_text(w, item, get(w, record + 4264 + index * 16)) == 1:
+                found = 1
+                selected = nested
+            else:
+                offset = offset + get(w, type_at(nested) + 152)
+            index = index + 1
+        if found == 0:
+            return reject(w, 43)
+        item = next_node(w, item)
+    if (selected != 14 and selected != 15) or (typ == 15 and selected != 15):
+        return reject(w, 44)
+    put(w, S + 176, name)
+    put(w, S + 184, offset)
+    return 1
+
+def render_origins(s:readbuf, o:mutbuf, w:mutbuf, root:u64) -> u32:
+    returns = field(w, root, K_returns)
+    annotations = field(w, root, K_return_loans)
+    if annotations != N and (kind(w, annotations) != 5 or count(w, annotations) != count(w, returns)):
+        reject(w, 37)
+    put(w, S + 136, 64)
+    put(w, S + 144, 0)
+    emit_text(o, w, '{"origins":[')
+    item = child(w, returns)
+    annotation = child(w, annotations)
+    emitted = 0
+    while item != N and error(w) == 0:
+        resolve_origin(s, w, input_id(s, w, item), annotation)
+        if error(w) == 0:
+            if emitted != 0:
+                append_byte(o, w, 44)
+            name = get(w, S + 176)
+            if name == N:
+                emit_text(o, w, 'null')
+            else:
+                append_byte(o, w, 91)
+                emit_name(o, w, name)
+                append_byte(o, w, 44)
+                emit_number(o, w, get(w, S + 184))
+                append_byte(o, w, 93)
+            emitted = emitted + 1
+        item = next_node(w, item)
+        annotation = next_node(w, annotation)
+    if error(w) != 0:
+        put(w, S + 136, 64)
+        emitted = 0
+        emit_text(o, w, '{"origins":[')
+    emit_text(o, w, ']}')
+    if get(w, S + 144) != 0:
+        return 4294967280
+    put(o, 0, ORIGINS_MAGIC)
+    put(o, 8, error(w))
+    put(o, 16, emitted)
+    put(o, 24, get(w, S + 136) - 64)
+    put(o, 32, get(w, S + 24))
+    put(o, 40, get(w, S + 16) - 16 - get(w, S + 24))
+    put(o, 48, get(w, S + 32))
+    put(o, 56, 0)
+    return get(w, S + 136)
 
 def partial_step(w:mutbuf) -> u64:
     steps = get(w, S + 32) + 1
