@@ -50,6 +50,7 @@ jobs:
               'tests.test_hia_selfhost_native_observer.ObserverFrameDifferentialTests',
               'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
               'tests.test_hia_selfhost_emitter_words.EmitterSourceTests',
+              'tests.test_hia_selfhost_call_graph.CallGraphSourceTests',
               'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests',
               'tests.test_hia_sha256_native.Sha256HiaSourceTests',
               'tests.test_hia_json_preflight',
@@ -128,6 +129,8 @@ jobs:
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
+        env:
+          HEPTA_HIA_CALL_GRAPH_EVIDENCE: ${{ runner.temp }}/hia-call-graph-native/
         run: |
           python -B - <<'PYTEST'
           import unittest
@@ -148,6 +151,7 @@ jobs:
               'tests.test_hia_native_startup_isolation',
               'tests.test_hia_json_preflight_native',
               'tests.test_hia_selfhost_emitter_words',
+              'tests.test_hia_selfhost_call_graph',
               'tests.test_hia_host_region',
               'tests.test_hia_host_region_admission_transaction',
               'tests.test_hia_host_region_borrow_admission',
@@ -313,6 +317,7 @@ jobs:
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
             ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-call-graph-native/
             ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/

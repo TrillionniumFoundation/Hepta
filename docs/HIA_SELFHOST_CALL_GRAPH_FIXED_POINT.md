@@ -1,0 +1,33 @@
+# Complete-round fixed point in the HIA call-graph checker
+
+This changes the actual HIA compiler's bounded call-graph loop. It does not activate a candidate or close the complete stack. Complete source, cold and retained native qualification remain necessary.
+
+## The unchanged rule and the new stopping condition
+
+The previous HIA `check_calls` performs `n` complete rounds, scanning all 128 possible targets of each of `n` admitted functions. A nonzero edge to an out-of-range target records error 55; an edge to a zero readiness word prevents its owner from becoming ready. A ready owner is written as the complete eight-byte value one. After all rounds, an unresolved zero state records error 56. The existing `fail` helper preserves the first error and its source position.
+
+The candidate still visits every owner and target in every executed round, including edges owned by a function that was already ready. It counts active readiness words that do not equal exactly one. It returns early only after a complete round leaves that count at zero. Returning earlier on an already-ready prefix would be incorrect because a later owner could contain an invalid edge.
+
+At that stopping point every active word is exactly one, every active edge was checked, and every edge targets an admitted function. Every subsequent round would see the same nonzero dependencies and could only rewrite the same complete eight-byte ones. It cannot introduce an edge error, change any workspace byte, or cause the final unresolved-state scan to fail. Induction over the remaining rounds proves the return preserves the prior result and complete state. If the condition is never reached, the original round bound and final zero-state scan execute. Zero functions retain their original behavior. Arbitrary nonzero private state is not treated as the exact fixed point.
+
+The same 128-function, 1536-block, 8192-operation, source/output and one-MiB workspace limits remain. The new generated compiler has 125 functions, 1460 blocks and 8103 operations. Its HIA source is 462844 bytes, SHA-256 `6e02fe4e6efbe59d5d4286de6bf3d0d9e22364a10f09d5831355d0c9885d3f4c`. There is no new parser, accepted language construct, helper function, quota or native intrinsic.
+
+## Independent and actual controls
+
+`tests/test_hia_selfhost_call_graph.py` retains the exact previous HIA function body after the existing private-header narrowing: SHA-256 `cc639d6a1093e6dba269fe05a715a7b09c36065610f4959a49e23f7bf669d530`. It renders both implementations as actual HIA probes. Its independent decision uses predecessor/out-degree elimination instead of copying the ordered rounds. The independent Core VM directly executes both HIA bodies and compares all 1048576 workspace bytes for ordinary graphs, cycles, late invalid edges and a previously recorded first error.
+
+The native group performs independent VM observations before creating its fresh B0 and B1. It compiles both probes and runs 96 cases with 192 actual native entries. Cases cover zero/one function, counts 2/3/4/8/16/64/128, both chain orders, dense acyclic graphs in both directions, cycles with ready leaves, late self cycles, invalid edges after an already-ready prefix, retained errors, private dirty-state controls and deterministic random graphs. Each entry retains the original 10-CPU-second, 20-wall-second, 256-MiB limits. It checks complete workspace bytes returned through ordinary HIA byte loads/stores, independent decisions, source immutability and untouched canary ranges. Private prefilled graph state is a helper differential control, not an additional public language capability.
+
+A separate full-compiler development controller records independent general-Core and complete observer-VM observations before its fresh seed. The candidate compiles the exact previous selfhost source into the original B3 image, SHA-256 `0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8`. The previous compiler compiles the candidate source into the same image as the fresh seed, SHA-256 `35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b`. Fourteen identical source inputs are passed to both actual full compilers: both selfhost sources, a small function, a 128-function chain, three recursion refusals, four invalid-callee/signature cases, 8192/8193 operations and a named 128-function program. The controller requires equality of complete return values, one-MiB outputs and one-MiB workspaces, and retains full native request/response frames. General-Core acceptance remains distinct from the bounded native profile.
+
+## Provenance after executor interruption
+
+The first development implementation observed successful 96-case native and 14-case complete-compiler comparisons. Its two earlier probe-authoring failures occurred before native execution: a missing test copy intrinsic, then a mutable buffer where a read view was required. The production algorithm was unchanged by those fixes. Before the next recovery checkpoint completed, executor switch 2 made that workspace and its raw directories unavailable. Those observed results and the interrupted source gate are recorded as historical observations; their lost raw originals are not recreated or claimed recoverable.
+
+The current source was reconstructed from exact published `e2f392e` in a new clean worktree. Its generated HIA bytes match the preceding generated HIA SHA above. Fresh development and qualification runs use new directories and identities. The original interrupted gate remains unqualified. Recovery records distinguish original blobs restored from GitHub, new reconstructed text and new execution evidence.
+
+## Workflow obligations
+
+Both source controls and the complete native module are selected by the current workflow. The native step has an explicit evidence directory included in its unconditional artifact upload, so partial failures retain originals. The source contract includes this module and this document. The cold gate remains 180 seconds with two independent oracle workers and all 38 phases. No test, phase, process limit, skip policy or reference owner is removed.
+
+The previous `e2f392e` GitHub run passed 329 source tests and failed its cold gate at 180.155371854 seconds, with 34 completed phases, two partial name phases and two unstarted export phases. Its separate local frozen-source run passed at 142.695331342 seconds. The earlier `d5da1eb` ROG run completed all 4134 retained tests with zero anomalies. Their original cold archives or ROG originals remain separately preserved. These observations do not qualify this new source change. Complete composite coordination, namespace state, installed worker/build ownership and the remaining audited responsibilities stay open.

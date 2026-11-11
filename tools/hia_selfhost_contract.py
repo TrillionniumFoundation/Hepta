@@ -177,6 +177,8 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
     'tests/test_hia_selfhost_word_io.py',
     'tests/test_hia_selfhost_emitter_words.py',
+    'tests/test_hia_selfhost_call_graph.py',
+    'docs/HIA_SELFHOST_CALL_GRAPH_FIXED_POINT.md',
     'tools/generate_hia_sha256_stream.py',
     'tests/test_hia_sha256_stream_native.py',
     'examples/hia_bootstrap/sha256_stream.hiaasm',
