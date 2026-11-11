@@ -1,0 +1,17 @@
+{
+  "schema": "hia.core-lowering-read-only-precheck-revision.v1",
+  "original_unexecuted_commit": "d2566071e82f5564f31ffab2a846f8f598cca60f",
+  "original_unexecuted_bootstrap": {
+    "bytes": 8366,
+    "sha256": "aa6f07554aaf782601f3a55814f75986bb20a7ac46b254d6e9d27b4e9ef8dc7f",
+    "git_blob_sha1": "8d4bcf409e4246123cd5ce1af273346c0abf6cb8"
+  },
+  "before": "def original(pin):\n    path = Path(pin['path'])\n    info = path.lstat()\n    raw = path.read_bytes()\n    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1\n            and stat.S_IMODE(info.st_mode) == pin['posix_mode']\n            and identity(raw) == {k: pin[k] for k in ('bytes', 'sha256', 'git_blob')},\n            'original aggregate input differs: ' + str(path))\n    return raw\n",
+  "after": "def original(pin):\n    path = Path(pin['path'])\n    expected = pin['bytes']\n    require(type(expected) is int and expected >= 0,\n            'original aggregate input size is invalid: ' + str(path))\n    info = path.lstat()\n    require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1\n            and stat.S_IMODE(info.st_mode) == pin['posix_mode']\n            and info.st_size == expected,\n            'original aggregate input is not the pinned regular file: ' + str(path))\n\n    def signature(value):\n        return (value.st_dev, value.st_ino, value.st_mode, value.st_nlink,\n                value.st_uid, value.st_gid, value.st_size,\n                value.st_mtime_ns, value.st_ctime_ns)\n\n    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW\n                         | os.O_NONBLOCK | os.O_CLOEXEC)\n    try:\n        opened = os.fstat(descriptor)\n        require(stat.S_ISREG(opened.st_mode)\n                and signature(opened) == signature(info),\n                'original aggregate input changed while opening: ' + str(path))\n        chunks = []\n        remaining = expected + 1\n        while remaining:\n            chunk = os.read(descriptor, min(65536, remaining))\n            if not chunk:\n                break\n            chunks.append(chunk)\n            remaining -= len(chunk)\n        raw = b''.join(chunks)\n        after = os.fstat(descriptor)\n        require(signature(after) == signature(opened)\n                and signature(path.lstat()) == signature(opened),\n                'original aggregate input changed while reading: ' + str(path))\n        require(identity(raw) == {k: pin[k] for k in ('bytes', 'sha256', 'git_blob')},\n                'original aggregate input bytes differ: ' + str(path))\n        return raw\n    finally:\n        os.close(descriptor)\n",
+  "other_bootstrap_change": "Only the create-only new aggregate root advances from r1 to r2.",
+  "common_unchanged": true,
+  "aggregate_unchanged": true,
+  "actual21pins_unchanged": true,
+  "products_repeated": false,
+  "python_parsed_or_executed": false
+}
