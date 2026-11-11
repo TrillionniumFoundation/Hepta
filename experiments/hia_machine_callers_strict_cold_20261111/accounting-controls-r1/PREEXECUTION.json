@@ -1,0 +1,75 @@
+{
+  "schema": "hepta.hia.native-caller-accounting-controls-preexecution.v1",
+  "status": "FROZEN_UNPARSED_UNEXECUTED",
+  "product_commit": "f1512e89528d383c8d0a6175e8f0cd52f65248fe",
+  "product_tree": "2ae7a011523909f875122f7901b74c3d6b3f0db8",
+  "product_source_pins": [
+    {
+      "path": "tools/qualify_hia_machine_state_callers.py",
+      "bytes": 24786,
+      "sha256": "9df4b35742c342a61262733287d68157eb66f1a9bc10032a235309825d2be52c",
+      "git_blob": "4ac8ca8fe076b47c3d4ae2c94c7eb50f5eebcea0"
+    },
+    {
+      "path": "tools/qualify_hia_machine_instructions_callers.py",
+      "bytes": 12917,
+      "sha256": "76f87d7938f9bb69526e3f1d545510b0acfd821454f5cf280406e28e4cdcb944",
+      "git_blob": "7446f3fec39512500c6bfd7846eaeaeb6b479fcd"
+    }
+  ],
+  "control_files": [
+    {
+      "path": "experiments/hia_machine_callers_strict_cold_20261111/accounting-controls-r1/check_accounting_controls.py",
+      "bytes": 14621,
+      "sha256": "3257103dd6139f8b6f76716f06cb6a441b93f8f7cc102282e53491cd30ff671c",
+      "git_blob": "f8084fe23009bcaacff308b248cd89c6dbd2aabd"
+    },
+    {
+      "path": "experiments/hia_machine_callers_strict_cold_20261111/accounting-controls-r1/base/qualify_hia_machine_state_callers.py.txt",
+      "bytes": 11577,
+      "sha256": "617426c0cbb7cc49fe320f8fc04ef1458579cfca14a322917377c44367175c02",
+      "git_blob": "c23883241f4dcab6a901d4292d55230032e7dae9"
+    },
+    {
+      "path": "experiments/hia_machine_callers_strict_cold_20261111/accounting-controls-r1/base/qualify_hia_machine_instructions_callers.py.txt",
+      "bytes": 10925,
+      "sha256": "be1bd276e8f42312c86bdcfdec7c372ed8cf28153110f31ec842e4addb05b671",
+      "git_blob": "d1f8762a9b8cbdeff304086dd66812b7b6e7d603"
+    }
+  ],
+  "expected_control_methods": 11,
+  "scope": "SYNTHETIC_RECEIPT_AND_SOURCE_CONTROLS_ONLY",
+  "command": [
+    "PYTHON",
+    "-I",
+    "-S",
+    "-B",
+    "check_accounting_controls.py",
+    "--source",
+    "EXACT_CANDIDATE_SOURCE",
+    "--output",
+    "NEW_PRIVATE_OUTPUT"
+  ],
+  "native_or_compiler_calls": 0,
+  "new_cold_or_product_execution": false,
+  "observed_result": null,
+  "checks_planned": [
+    "separate component/caller actual image keys with union coverage",
+    "attempt-only does not satisfy normal returns",
+    "wrong group image is refused",
+    "missing group or operation is refused",
+    "source/cold drift preserves partial binding and refuses",
+    "real retained toy-file byte mutation refuses",
+    "earlier exception/attempt ledger is not upgraded",
+    "cross-return image change is retained and refuses",
+    "group capture cannot overwrite earlier evidence",
+    "original helper AST and exact complete group selection retained",
+    "recording follows original method return and original attempt statements remain"
+  ],
+  "claims_excluded": [
+    "matching-source cold qualification",
+    "new native component or caller pass",
+    "all input equivalence",
+    "whole native delivery"
+  ]
+}
