@@ -1,0 +1,37 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-B",
+      "-c",
+      "\"\"\"Create one private development root, then exec the unchanged owned guardian.\"\"\"\nfrom hashlib import sha1,sha256\nimport json\nimport os\nfrom pathlib import Path\nimport stat\nimport sys\n\nos.umask(0o077)\nraw_payload=sys.stdin.buffer.read(1048577)\nassert len(raw_payload)<=1048576\npayload=json.loads(raw_payload)\nROOT=Path('/home/qian-qi/he26v66devr1')\nPYTHON=Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')\nB3=Path('/home/qian-qi/he26v65r2/q/cold.cold/qualification.evidence/B3.image.bin')\nB3_SHA='0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8'\nrequired={\n'prepare_development.py':'93ad9df23c46553455fdc2a152950606a716aad7bffcc76618a3120076f67015',\n'old-input-pins.json':'f241c001230fc6c829ae583f27da9e1b1267a9675d6ed615911091bbafdb22f1',\n'guardian.py':'d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023',\n'process_owner_impl.py':'36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2',\n'workflow_process.py':'f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80',\n'run_wire_r7_development_recovery.py':'d391b61f4023914155497449f57e42e24659f558ee82a414efe5d19a230812ee',\n}\nblobs={'generate_hia_json_wire.py':'f4e2648158896f26e46a2e8a7a0b22f94de50e7e',\n       'test_hia_json_wire_native.py':'f4ece1f7d8e61d4e19c98b43a44843525a6b8eb8'}\nassert payload['stable_key']=='hia-e26e-desktop-e09-development-prepare-r1'\nassert payload['head']=='e09c6faf5507fc4e38d8b7c36ba2650a1c0a10d6'\nassert payload['tree']=='bfcbb39e22371cbb2292c89a2fa1ca010353a56f'\nassert set(payload['files'])==set(required)|{'bootstrap.py'}\nassert set(payload['recovery'])==set(blobs)\nassert not any(p.is_symlink()for p in (ROOT,*ROOT.parents))\nassert not os.path.lexists(ROOT)\nparent=ROOT.parent.lstat()\nassert stat.S_ISDIR(parent.st_mode)and parent.st_uid==os.geteuid()and not parent.st_mode&0o022\ncapacity=os.statvfs(ROOT.parent)\nassert capacity.f_bavail*capacity.f_frsize>=8<<30 and capacity.f_favail>=100000\nfor name,item in payload['files'].items():\n    assert Path(name).name==name\n    b=item['source'].encode()\n    assert sha256(b).hexdigest()==item['sha256']\n    if name in required:assert item['sha256']==required[name]\nfor name,item in payload['recovery'].items():\n    b=item['source'].encode()\n    assert sha1(b'blob '+str(len(b)).encode()+b'\\0'+b).hexdigest()==blobs[name]==item['blob_sha']\n    assert sha256(b).hexdigest()==item['sha256']\npins=json.loads(payload['files']['old-input-pins.json']['source'])\nfor path,expected in pins.items():assert sha256(Path(path).read_bytes()).hexdigest()==expected\nassert Path(sys.executable).resolve()==PYTHON.resolve()\nassert sha256(PYTHON.read_bytes()).hexdigest()=='b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'\nold_b3=B3.lstat();assert stat.S_ISREG(old_b3.st_mode)and old_b3.st_uid==os.geteuid()and old_b3.st_nlink==1\ncompiler=B3.read_bytes();assert sha256(compiler).hexdigest()==B3_SHA\nafter_b3=B3.lstat();assert (old_b3.st_dev,old_b3.st_ino,old_b3.st_size,old_b3.st_mtime_ns,old_b3.st_ctime_ns)==(after_b3.st_dev,after_b3.st_ino,after_b3.st_size,after_b3.st_mtime_ns,after_b3.st_ctime_ns)\nROOT.mkdir(mode=0o700)\ndirectories=['control','guard','inputs','preparation-logs','evidence','recovery','recovery/r7-candidate','wire-r7','cli']\nfor name in directories:(ROOT/name).mkdir(mode=0o700)\n\ndef create(path,data,mode=0o400):\n    fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW|os.O_CLOEXEC,mode)\n    with os.fdopen(fd,'wb')as stream:\n        stream.write(data);stream.flush();os.fsync(stream.fileno())\n    assert path.read_bytes()==data\n\nidentities=dict(pins)\nidentities[str(B3)]=B3_SHA\nidentities[str(ROOT/'inputs/B3.image.bin')]=B3_SHA\ncreate(ROOT/'inputs/B3.image.bin',compiler)\nfor name,item in payload['files'].items():\n    path=ROOT/'control'/name;create(path,item['source'].encode());identities[str(path)]=item['sha256']\nfor name,item in payload['recovery'].items():\n    path=ROOT/'recovery/r7-candidate'/name;create(path,item['source'].encode());identities[str(path)]=item['sha256']\nrecovery={'schema':'hia.remote-wire-r7-candidate-custody.v1','scope':'NEW_REMOTE_CANDIDATE_NOT_ORIGINAL_LOCAL_R7_RECOVERY',\n          'source_commit':'aef3b5813aa49b2356fbd4dd7314e40737b3e4cf',\n          'files':{name:{'sha256':item['sha256'],'git_blob':item['blob_sha']}for name,item in payload['recovery'].items()},\n          'whole_native_delivery_qualified':False}\ncreate(ROOT/'recovery/r7-candidate/MANIFEST.json',(json.dumps(recovery,indent=2,sort_keys=True)+'\\n').encode())\nconfig={'schema':'hia-external-guardian-request.v1','controller_seconds':1800,\n        'command':[str(PYTHON),'-B',str(ROOT/'control/prepare_development.py')],\n        'cwd':str(ROOT),'source_identities':identities}\nraw=(json.dumps(config,indent=2,sort_keys=True)+'\\n').encode()\ncreate(ROOT/'guard/request.json',raw)\nintent={'schema':'hia.desktop-development-preparation-intent.v1','stable_key':payload['stable_key'],\n        'head':payload['head'],'tree':payload['tree'],'root':str(ROOT),'source':str(ROOT/'s'),\n        'wire_candidate_source':str(ROOT/'wire-r7/s'),'cli_candidate_source':str(ROOT/'cli/s'),\n        'capacity_before':{'available_bytes':capacity.f_bavail*capacity.f_frsize,'free_inodes':capacity.f_favail},\n        'control_files':{name:item['sha256']for name,item in payload['files'].items()},\n        'recovery_files':recovery['files'],'tests_requested':False,'qualification_requested':False,\n        'final_full_root_touched':False,'whole_native_delivery_qualified':False,\n        'outer_guardian_acceptance_required':True,\n        'hard_sigkill_or_host_loss_cleanup_claimed':False}\ncreate(ROOT/'launch-intent.json',(json.dumps(intent,indent=2,sort_keys=True)+'\\n').encode())\nfor path in [ROOT/name for name in reversed(directories)]+[ROOT,ROOT.parent]:\n    fd=os.open(path,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)\n    try:os.fsync(fd)\n    finally:os.close(fd)\nprint(json.dumps({'stage':'DEVELOPMENT_PREPARATION_GUARDIAN_LAUNCH','root':str(ROOT),'controller_seconds':1800}),flush=True)\nos.execv(str(PYTHON),[str(PYTHON),'-B',str(ROOT/'control/guardian.py'),\n         '--config',str(ROOT/'guard/request.json'),'--config-sha256',sha256(raw).hexdigest(),\n         '--implementation',str(ROOT/'control/process_owner_impl.py')])\n"
+    ],
+    "created_unix_ms": 1794400592222,
+    "cwd": "/home/qian-qi",
+    "env_keys": [
+      "PYTHONDONTWRITEBYTECODE",
+      "PYTHONUNBUFFERED"
+    ],
+    "executable": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "execution_mode": "operator",
+    "host": "desktop",
+    "id": "1a1ca9c215e-2564-740",
+    "idempotency_key": "hia-e26e-desktop-e09-development-prepare-r1",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1ca9c215e-2564-740",
+    "request_digest": "df2f08bc1745bc9cb46a409275b3dc1c140ed283968d8ad9364631159f15b6cc",
+    "request_fingerprint": 16082082398300650652,
+    "ssh_target": "desktop-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a1ca9c215e-2564-740"
+  },
+  "launch": {
+    "backend": "systemd",
+    "launcher_pid": null,
+    "ok": true,
+    "unit": "hepta-runtime-job-1a1ca9c215e-2564-740"
+  },
+  "local_record_pending": false,
+  "reused": false
+}
