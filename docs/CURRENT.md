@@ -19,12 +19,12 @@ was `5831f52fada45e076f8f68f198a15c0585e6104f`; a candidate is not main adoption
 The exact current compiler/source identity is the checked
 [Selfhost-Core contract](HIA_SELFHOST_CORE_SUPPORT.json).
 
-All 90 retained language sources use `.hepta`: 67 assembly sources and 23
+All 92 retained language sources use `.hepta`: 69 assembly sources and 23
 structured Core sources. There are no active `.HIA`, `.hia`, `.hiaasm` or
 `.hia.json` files. Assembly retains its `hia-asm.v1` header, structured Core
 retains its explicit schema, and paired JSON projections use `.core.hepta`.
 The [87-file migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) preserves each
-renamed source byte for byte. The three later assembly sources are new inputs,
+renamed source byte for byte. The five later assembly sources are new inputs,
 not entries fabricated into that historical rename map.
 
 The [source suffix contract](HIA_SOURCE_SUFFIX.md) explains whole-program
@@ -42,7 +42,7 @@ The `hia` executable and `hepta.hia.*` schema names are unchanged.
 | Native source build | Assembly bundle admission, embedded compiler and source/image self-pack in HIA | General structured-project build and initial bootstrap custody remain hosted |
 | Nominal Core | Selected type/helper/function/constructor/outer owners; raw JSON codec | Complete default routing, diagnostics and foreign-object/state transfer |
 | Agent service | Selected native identity, request, journal and publication kernels | Ordinary worker, eleven-tool service, SQLite effects, recovery and version ownership |
-| Release retirement | Isolated native installer and publication controls | Actual worker cutover, active references, restart/rollback and old-owner retirement |
+| Release selection | Native immutable installation, compare-and-swap activation, previous-release rollback and status | Actual worker cutover, active references, service restart and old-owner retirement |
 
 The selfhost compiler is a bounded Linux x86-64 profile. It is not a proof of
 whole-language formal correctness or support for every general Core input.
@@ -57,7 +57,7 @@ checks from the separately reviewed v67 integration source
 `5d5424a31caa33283a562defba9cb6b187deb99c`, adapting only physical source names.
 It does not overwrite either parallel candidate's native language semantics.
 
-- All 42 public builder scripts can resolve their own imports when invoked by
+- All 43 public builder scripts can resolve their own imports when invoked by
   absolute path from an unrelated directory with Python `-I` and no PYTHONPATH.
 - SHA builders require the shared strict cold/profile/compiler/full-source gate
   before creating output. The two SHA algorithms and native manifests are unchanged.
@@ -68,6 +68,18 @@ It does not overwrite either parallel candidate's native language semantics.
   hashed after substitution.
 - Missing-source, changed-packer, changed-manifest and changed-source controls
   are registered in the source CI and frozen support contract.
+- The independent [native release selector](HIA_RELEASE_SELECTION_NATIVE.md)
+  is integrated from the same reviewed source. Its two HIA programs retain
+  their exact bytes, installed-release verifier, limits, refusal policy and
+  durable record format. It adds activation, previous-release rollback and
+  restart status without changing the ordinary worker or its slot/lease state.
+
+The combined source has the distinct profile
+`selfhost-core-linux-x86_64-v68-native-source-build-release-selection`.
+The [development observations](../review-evidence/hia-native-rewrite-20261111/release-selection-v68-development/README.md)
+record 21 passing controls and four actual ptrace-environment failures. The
+failed fault-injection controls remain required in CI. These development runs
+do not supply a completed cold qualification for the integrated source.
 
 Original cold limits remain 180 seconds for qualification and 3 seconds for
 owned cleanup. A timed-out run remains failed even when another host passes.

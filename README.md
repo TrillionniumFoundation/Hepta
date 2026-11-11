@@ -56,6 +56,10 @@ instructions; SQLite durability and tool effects retain their existing owners.
 The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
 checks and publishes a bounded immutable release from an operator-pinned bundle.
 It does not select the active worker or replace the service journal.
+The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) verifies
+installed release bytes and provides explicit status, compare-and-swap
+activation and previous-release rollback. Its durable selection is independent
+of the ordinary worker; default service migration remains open.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

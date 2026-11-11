@@ -51,6 +51,7 @@ BUILDER_SCRIPTS = (
     'build_hia_raw_model_bridge.py',
     'build_hia_recursive_ndu_bridge.py',
     'build_hia_release_install.py',
+    'build_hia_release_selection.py',
     'build_hia_safe_core.py',
     'build_hia_sha256.py',
     'build_hia_source_build.py',

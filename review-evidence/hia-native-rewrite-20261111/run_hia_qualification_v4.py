@@ -93,7 +93,7 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
              'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
-             'WORKER_REQUEST', 'AGENT_JOURNAL', 'RELEASE_INSTALL',
+             'WORKER_REQUEST', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
              'SOURCE_BUILD', 'NOMINAL_JSON'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
@@ -110,6 +110,7 @@ def run(name, args, *, timeout=1800):
     step_environment['HEPTA_HIA_CORE_MODULE_GRAPH_OBSERVATIONS'] = str(out / (name + '-module-projects'))
     step_environment['HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE'] = str(out / (name + '-nominal-fixture'))
     step_environment['HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS'] = str(out / (name + '-release-install'))
+    step_environment['HEPTA_HIA_RELEASE_SELECTION_OBSERVATIONS'] = str(out / (name + '-release-selection'))
     step_environment['HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS'] = str(out / (name + '-source-build'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_EVIDENCE'] = str(out / (name + '-nominal-json'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE'] = str(out / (name + '-nominal-json-ingress'))
@@ -250,6 +251,8 @@ if cold_ok:
         'worker-request': ['tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review'],
         'agent-journal': ['tests.test_hia_agent_journal_native'],
         'release-install': ['tests.test_hia_release_install'],
+        'release-selection': ['tests.test_hia_release_selection',
+                              'tests.test_hia_release_selection_review'],
         'source-build': ['tests.test_hia_source_build'],
         'nominal-json': ['tests.test_hia_nominal_json_native',
                          'tests.test_hia_nominal_json_constructor_ingress'],

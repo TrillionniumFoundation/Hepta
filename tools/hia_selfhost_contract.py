@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v67-native-source-build-and-nominal-json'
+PROFILE = 'selfhost-core-linux-x86_64-v68-native-source-build-release-selection'
 SOURCE_FILES = (
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
@@ -60,6 +60,14 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/release_install_packer.hepta',
     'tests/test_hia_release_install.py',
     'docs/HIA_RELEASE_INSTALL_NATIVE.md',
+    'tools/generate_hia_release_selection.py',
+    'tools/hia_release_selection_syscalls.S',
+    'tools/build_hia_release_selection.py',
+    'examples/hia_bootstrap/release_selection_policy.hepta',
+    'examples/hia_bootstrap/release_selection_packer.hepta',
+    'tests/test_hia_release_selection.py',
+    'tests/test_hia_release_selection_review.py',
+    'docs/HIA_RELEASE_SELECTION_NATIVE.md',
     'tools/generate_hia_composite_constructor.py',
     'tools/generate_hia_composite_outer.py',
     'tools/build_hia_composite_constructor.py',
@@ -653,6 +661,24 @@ def support_contract(root=ROOT):
             'source_preorder_arena_restored_on_parsed_returns': True,
             'service_journal_foreign_objects_and_report_serialization_are_hosted': True,
             'default_worker_changed': False,
+        },
+        'native_release_selection': {
+            'policy': 'examples/hia_bootstrap/release_selection_policy.hepta',
+            'packer': 'examples/hia_bootstrap/release_selection_packer.hepta',
+            'fixed_syscall_adapter': 'tools/hia_release_selection_syscalls.S',
+            'target': 'Linux x86-64',
+            'operations': ['status', 'activate', 'rollback'],
+            'precondition': 'exact expected sequence and current release; rollback targets recorded previous release',
+            'target_admission': 'actual immutable release installer package/policy/byte verifier',
+            'selection_record_bytes': 192,
+            'serialization': 'kernel flock; descriptor-relative atomic rename and fsync with readback',
+            'lost_receipt_observation': 'read-only status; no blind replay with a new precondition',
+            'runtime_python_libc_or_child_required': False,
+            'authoring_and_build_custody_are_hosted': True,
+            'live_worker_migrated': False,
+            'default_cli_cutover': False,
+            'automatic_staging_cleanup_or_release_retirement': False,
+            'whole_native_delivery_qualified': False,
         },
         'immutable_release_installation': {
             'policy': 'examples/hia_bootstrap/release_install_policy.hepta',
