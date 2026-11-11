@@ -19,6 +19,7 @@ SOURCE_PATH = "examples/hia_bootstrap/cli_format.hiaasm"
 SYMBOLS = {
     "ARGV_MAGIC": grammar.SYMBOLS["ARGV_MAGIC"],
     "RESULT_MAGIC": grammar.SYMBOLS["RESULT_MAGIC"],
+    "OBSERVE_MAGIC": int.from_bytes(b"HCLIOBS4", "little"),
     "ERROR_MAGIC": int.from_bytes(b"HCLIERR4", "little"),
     "F_CURSOR": 1024, "F_SPLIT": 1032, "F_COLUMNS": 1040,
     "F_WIDTH": 1048, "F_NEGATIVE": 1056, "F_COLOR": 1064,
@@ -40,6 +41,8 @@ def format_cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     put(w, F_SPLIT, 0)
     put(w, F_OVERFLOW, 0)
     format_constants(w)
+    if read64(s, 0) == ARGV_MAGIC and get(w, 0) == OBSERVE_MAGIC:
+        return observation_request(s, w)
     if read64(s, 0) == ERROR_MAGIC:
         return driver_error(s, o, w)
     if read64(s, 0) != ARGV_MAGIC or length(s) < 192 or read64(s, 8) != 4:
@@ -225,29 +228,61 @@ def columns(s:readbuf, w:mutbuf) -> u64:
         return fallback
     return value
 
+def color_choice(s:readbuf, w:mutbuf) -> u64:
+    if get(w, 128) != 314:
+        return 0
+    if read64(s, 40) == 0 and env_equal(s, w, 1, L_ZERO):
+        return 0
+    if read64(s, 40) == 0 and env_equal(s, w, 1, L_ONE):
+        return 1
+    if read64(s, 136) != 0:
+        return 0
+    if read64(s, 152) != 0:
+        return 1
+    if env_equal(s, w, 4, L_DUMB):
+        return 0
+    return 2
+
+def observation_request(s:readbuf, w:mutbuf) -> u32:
+    if length(s) < 192 or read64(s, 8) != 4:
+        return 199
+    profile = read64(s, 24)
+    if profile != 312 and profile != 314:
+        return 199
+    if read64(s, 40) > 1 or read64(s, 48) > 1 or read64(s, 72) > 63:
+        return 199
+    if read64(s, 64) != 0 or read64(s, 80) != 0 or read64(s, 88) != 0:
+        return 199
+    argc = read64(s, 16)
+    if argc > (length(s) - 192) >> 4:
+        return 199
+    cursor = 192 + argc * 16
+    record = 96
+    while record < 192 + argc * 16:
+        begin = read64(s, record)
+        size = read64(s, record + 8)
+        if begin != cursor or size > (length(s) - cursor) >> 2:
+            return 199
+        end = cursor + size * 4
+        while cursor < end:
+            if read32(s, cursor) > 1114111:
+                return 199
+            cursor = cursor + 4
+        record = record + 16
+    if cursor != length(s):
+        return 199
+    put(w, 128, profile)
+    put(w, F_COLOR, choose(color_choice(s, w) == 2, 1, 0))
+    return 3
+
 def settings(s:readbuf, w:mutbuf) -> u64:
     size = columns(s, w)
     put(w, F_COLUMNS, size)
     put(w, F_WIDTH, size - 2)
     put(w, F_NEGATIVE, choose(size < 2, 1, 0))
-    color = 0
-    if get(w, 128) == 314:
-        if read64(s, 40) == 0 and env_equal(s, w, 1, L_ZERO):
-            color = 0
-        else:
-            if read64(s, 40) == 0 and env_equal(s, w, 1, L_ONE):
-                color = 1
-            else:
-                if read64(s, 136) != 0:
-                    color = 0
-                else:
-                    if read64(s, 152) != 0:
-                        color = 1
-                    else:
-                        if env_equal(s, w, 4, L_DUMB):
-                            color = 0
-                        else:
-                            color = read64(s, 48)
+    color = color_choice(s, w)
+    if color == 2:
+        color = read64(s, 48)
     put(w, F_COLOR, color)
     return 0
 

@@ -53,41 +53,49 @@ SYMBOLS = {
 # native literal identifier for the namespace key.
 SOURCE = r'''
 def cli(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) < 8 or length(o) < 128 or length(w) < 65536:
+    if length(w) < 65536:
+        if length(w) >= C_CLOSED + 8:
+            put(w, C_MAGIC, CONTROL_MAGIC)
+            put(w, C_CLOSED, 1)
+            put(w, C_PENDING, 0)
         return 199
+    if length(s) < 8 or length(o) < 128:
+        return control_refuse(w)
     if read64(s, 0) == STEP_MAGIC:
         return control_step(s, o, w)
+    if get(w, C_MAGIC) == CONTROL_MAGIC:
+        return control_refuse(w)
     if read64(s, 0) != ARGV_MAGIC or length(s) < 192:
-        return 199
+        return control_refuse(w)
     if read64(s, 8) != 4:
-        return 199
+        return control_refuse(w)
     argc = read64(s, 16)
     profile = read64(s, 24)
     if profile != 312 and profile != 314:
-        return 199
+        return control_refuse(w)
     if argc > (length(s) - 192) >> 4:
-        return 199
+        return control_refuse(w)
     if length(w) < 65536 + argc * 80 + length(s):
-        return 199
+        return control_refuse(w)
     if read64(s, 40) > 1 or read64(s, 48) > 1 or read64(s, 72) > 63:
-        return 199
+        return control_refuse(w)
     if read64(s, 64) != 0 or read64(s, 80) != 0 or read64(s, 88) != 0:
-        return 199
+        return control_refuse(w)
     cursor = 192 + argc * 16
     record = 96
     while record < 192 + argc * 16:
         begin = read64(s, record)
         size = read64(s, record + 8)
         if begin != cursor or size > (length(s) - cursor) >> 2:
-            return 199
+            return control_refuse(w)
         end = begin + size * 4
         while cursor < end:
             if read32(s, cursor) > 1114111:
-                return 199
+                return control_refuse(w)
             cursor = cursor + 4
         record = record + 16
     if cursor != length(s):
-        return 199
+        return control_refuse(w)
     index = 0
     while index < 4096:
         store(w, index, 0)

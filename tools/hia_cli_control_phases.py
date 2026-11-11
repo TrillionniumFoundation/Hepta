@@ -19,7 +19,9 @@ COMMANDS = {
     25: "dict_set", 26: "new_dict", 27: "new_list",
     28: "list_append", 29: "field_slice", 30: "accepted_truth",
     31: "ok_is_true", 32: "str_exception", 33: "format_driver_error",
-    34: "print_formatted_error",
+    34: "print_formatted_error", 35: "import_common", 36: "import_assembly",
+    37: "import_edit_query", 38: "import_edit_apply", 39: "import_batch_query",
+    40: "import_batch_apply", 41: "import_impact",
 }
 # These remain foreign implementation boundaries and are not called HIA
 # implementations merely because the continuation selects their invocation.
@@ -65,6 +67,7 @@ def control_seed(w:mutbuf, action:u64, output:u64) -> u64:
     return 0
 
 def control_refuse(w:mutbuf) -> u32:
+    put(w, C_MAGIC, CONTROL_MAGIC)
     put(w, C_CLOSED, 1)
     put(w, C_PENDING, 0)
     return 199
@@ -156,7 +159,7 @@ def control_reply_valid(s:readbuf, w:mutbuf) -> u64:
     operation = get(w, C_PENDING)
     if read64(s, 32) == 1:
         return choose(a > 0 and a < 9223372036854775808 and b == 0 and c == 0, 1, 0)
-    if operation == 22 or operation == 23 or operation == 25 or operation == 28 or operation == 34:
+    if operation == 22 or operation == 23 or operation == 25 or operation == 28 or operation == 34 or (operation >= 35 and operation <= 41):
         return choose(a == 0 and b == 0 and c == 0, 1, 0)
     if operation == 30 or operation == 31:
         return choose(a <= 1 and b == 0 and c == 0, 1, 0)
@@ -178,9 +181,15 @@ def control_initial(w:mutbuf) -> u64:
         put(w, C_NS, value)
         if action == 1:
             return control_ask(w, 1, 200, 0, 0, 0, 0)
+        return control_ask(w, 35, 1, 0, 0, 0, 0)
+    if phase == 1:
         if action == 2:
-            return control_ask(w, 2, 200, value, 2, 0, 0)
-        return control_ask(w, 3, 10, value, 15, 8388608, 0)
+            return control_ask(w, 2, 200, get(w, C_NS), 2, 0, 0)
+        if action == 3 or action == 4 or action == 5:
+            return control_ask(w, 36, 2, 0, 0, 0, 0)
+        return control_ask(w, 3, 10, get(w, C_NS), 15, 8388608, 0)
+    if phase == 2:
+        return control_ask(w, 3, 10, get(w, C_NS), 15, 8388608, 0)
     if phase == 10:
         if action == 3:
             return control_ask(w, 5, 11, value, 0, 0, 0)
@@ -220,16 +229,18 @@ def control_initial(w:mutbuf) -> u64:
             return 0
         if action == 9:
             return control_ask(w, 11, 24, value, get(w, C_NS), 3, 0)
-        if action == 10 or action == 11:
+        if action == 10:
             return control_ask(w, 3, 30, get(w, C_NS), 7, 8388608, 0)
+        if action == 11:
+            return control_ask(w, 41, 27, 0, 0, 0, 0)
         if action == 12:
-            return control_ask(w, 27, 50, 0, 0, 0, 0)
+            return control_ask(w, 37, 27, 0, 0, 0, 0)
         if action == 13:
-            return control_ask(w, 3, 60, get(w, C_NS), 13, 8388608, 0)
+            return control_ask(w, 38, 27, 0, 0, 0, 0)
         if action == 14:
-            return control_ask(w, 3, 65, get(w, C_NS), 12, 8388608, 0)
+            return control_ask(w, 39, 27, 0, 0, 0, 0)
         if action == 15:
-            return control_ask(w, 3, 67, get(w, C_NS), 13, 1048576, 0)
+            return control_ask(w, 40, 27, 0, 0, 0, 0)
         return 199
     if phase == 21:
         return control_ask(w, 24, 22, value, 0, 0, 0)
@@ -247,6 +258,18 @@ def control_initial(w:mutbuf) -> u64:
         if value > 1:
             return 199
         return control_done(w, 1 - value)
+    if phase == 27:
+        if action == 11:
+            return control_ask(w, 3, 30, get(w, C_NS), 7, 8388608, 0)
+        if action == 12:
+            return control_ask(w, 27, 50, 0, 0, 0, 0)
+        if action == 13:
+            return control_ask(w, 3, 60, get(w, C_NS), 13, 8388608, 0)
+        if action == 14:
+            return control_ask(w, 3, 65, get(w, C_NS), 12, 8388608, 0)
+        if action == 15:
+            return control_ask(w, 3, 67, get(w, C_NS), 13, 1048576, 0)
+        return 199
     if phase == 30:
         if action == 10:
             return control_ask(w, 13, 70, get(w, C_PROGRAM), value, 0, 0)
