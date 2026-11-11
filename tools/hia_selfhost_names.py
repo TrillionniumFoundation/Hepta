@@ -376,7 +376,12 @@ def entry_order_refusals():
         {'id': 'entry-later-mismatched-join-roots', 'source': bad_join, 'general_core_expected': 'rejected'}]
 
 
-def block_cases():
+def _block_spelling_seed():
+    """Construct only the branch fixture shared by block-name controls.
+
+    This keeps both ordinary Core checks in renamed_values. Callers that need
+    one seed do not also author the unrelated maximal-CFG positive fixtures.
+    """
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
     b = Body()
@@ -394,9 +399,16 @@ def block_cases():
     source += 'end\n'
     # A typed end/block/ret name must not be a declaration or terminator during
     # discovery. The complete original parser still checks its real syntax.
-    source = renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+    return renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+
+
+_FIRST_BLOCK_SPELLINGS = ('entry', 'aaB', 'aba')
+
+
+def block_cases():
+    source = _block_spelling_seed()
     rows = []
-    for i, spellings in enumerate((['entry', 'aaB', 'aba'], ['block', 'end', 'ret'],
+    for i, spellings in enumerate((_FIRST_BLOCK_SPELLINGS, ['block', 'end', 'ret'],
             ['_', 'b00', 'b18446744073709551615'], ['b', 'prefix', 'prefix_more'],
             ['n' * 128, 'N' * 128, 'tail_' + 'z' * 123])):
         changed = renamed_blocks(source, spellings)
@@ -420,7 +432,7 @@ def block_cases():
 
 
 def block_refusals():
-    source = block_cases()[0]['source']
+    source = renamed_blocks(_block_spelling_seed(), _FIRST_BLOCK_SPELLINGS).decode()
     rows = []
     for name in ['n' * 129, '__hia_block', 'bad.name', 'bad-name', '1bad', '汉字']:
         rows.append({'id': 'block-invalid-' + str(len(rows)),
@@ -453,7 +465,10 @@ def core_observed_case(name, source):
 
 
 def value_cases():
-    base = [row for row in cases() if row['program'] == 'named-pair-0']
+    # These are ordinary source fixtures, not cached VerifiedPrograms or VM
+    # results. Every selected rename and every reference still runs its checks.
+    named_cases = cases()
+    base = [row for row in named_cases if row['program'] == 'named-pair-0']
     spellings = [
         ['source', 'output', 'workspace', 'zero', 'byteValue', 'result'],
         ['fn', 'block', 'entry', 'ret', 'trap', 'end', 'branch', 'jump'],
@@ -468,21 +483,25 @@ def value_cases():
             program = 'ssa-spellings-' + str(index)
             rows.append({**row, 'id': program + '-' + row['source_hex'], 'program': program,
                          'source': renamed_values(row['source'].encode(), names).decode()})
-    for row in cases():
+    for row in named_cases:
         if row['program'].startswith('named-loan-'):
             rows.append({**row, 'id': 'ssa-' + row['id'], 'program': 'ssa-' + row['program'],
                          'source': renamed_values(row['source'].encode()).decode()})
-    from tools.hia_selfhost_cases import HEADER
-    full = (HEADER + ''.join('  v' + str(i) + ':u32 = const() {"value":0}\n'
-                             for i in range(3, 2048)) + '  ret(v2047)\nend\n')
+    full = _full_value_table_source()
     rows.append({'id': 'ssa-intern-table-full-2048', 'program': 'ssa-intern-table-full-2048',
                  'source': full, 'source_hex': '', 'initial_hex': 'a5',
                  'expected_result': 0, 'expected_hex': 'a5'})
     return rows
 
 
+def _full_value_table_source():
+    from tools.hia_selfhost_cases import HEADER
+    return (HEADER + ''.join('  v' + str(i) + ':u32 = const() {"value":0}\n'
+                             for i in range(3, 2048)) + '  ret(v2047)\nend\n')
+
+
 def value_refusals():
-    seed = value_cases()[-1]['source']
+    seed = _full_value_table_source()
     overflow = seed.replace('  ret(v2047)', '  v2048:u32 = const() {"value":1}\n  ret(v2048)')
     rows = [{'id': 'ssa-intern-table-overfull-2049', 'source': overflow,
              'general_core_expected': 'accepted'}]

@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v59-native-agent-patch-results'
+PROFILE = 'selfhost-core-linux-x86_64-v60-native-composite-type-sessions'
 SOURCE_FILES = (
+    'tools/generate_hia_composite_types.py',
+    'examples/hia_bootstrap/composite_types.hiaasm',
+    'tests/test_hia_composite_types_native.py',
+    'tests/test_hia_native_builder_source_binding.py',
+    'tests/test_hia_reference_fixture_efficiency.py',
+    'docs/HIA_COMPOSITE_TYPES_NATIVE.md',
     'tools/generate_hia_core_patch_result_cli.py',
     'tools/build_hia_core_patch_result_cli.py',
     'examples/hia_bootstrap/core_patch_result_cli_packer.hiaasm',

@@ -23,6 +23,10 @@ snapshot-bound edits with native whole-Core checks of both base and candidate.
 The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
 constructs the complete diagnostic bytes. Its explicit ordinary Agent route
 consumes and stores opaque payload bytes, preserving the existing request journal.
+An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
+owns declaration checks, generic binding, finite layouts and partial-record
+obligations for all four composite versions. The ordinary elaborator consumes
+its descriptors; operation lowering and the durable Agent remain hosted owners.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

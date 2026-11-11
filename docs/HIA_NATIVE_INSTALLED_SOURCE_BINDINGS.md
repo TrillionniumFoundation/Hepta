@@ -1,7 +1,7 @@
 # Installed native source custody
 
 Every native image adapter with an owned HIA source uses the same explicit
-checkout-or-package resource path. All twenty-three current source assets are listed
+checkout-or-package resource path. All twenty-four current source assets are listed
 in `NATIVE_SOURCE_FILES`, copied byte-for-byte into the wheel, included explicitly
 in the sdist, and included in the installed worker identity. A missing packaged
 source fails custody; there is no cwd, HOME or alternate-checkout fallback.
@@ -21,7 +21,7 @@ remove the previous implementation.
 
 The optional artifact publisher/store additionally packages four explicit build
 inputs (policy/packer HIA, syscall adapter assembly and generator source). The
-streaming SHA HIA source is already in the twenty-three adapter resources. These
+streaming SHA HIA source is already in the twenty-four adapter resources. These
 four files are custody data, not installed/importable build-tool modules.
 
 Checkout admission still validates the complete actual source tree. Installed
@@ -46,3 +46,11 @@ refuse. Existing pinned RX images retain their documented immutable lifetime.
 Context, issued refs, attempts, SQLite intent/response commits and artifact
 publication retain their existing owners. Four real process-kill cut points
 cover unfinished intents and exact completed-response replay.
+
+The explicitly selected composite type resolver also owns its installed HIA
+source. Its real wheel control runs ordinary partial-record normalization with
+the hosted type resolver disabled and build-tool imports forbidden. Missing or
+changed source, invalid manifests and a changed image in a fresh process refuse;
+type declarations, layouts and symbolic partial obligations come from HIA.
+Nominal operation lowering and the remaining worker responsibilities stay with
+their existing owners. This source addition does not activate a default image.

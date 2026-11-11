@@ -39,7 +39,8 @@ def build(output,compiler,cold_report):
         'no_bytecode_cache_created','no_inherited_home_or_python_cache','no_inherited_seed_or_successor_images',
         'origin_hashes_preserved','owned_process_tree_cleanup_confirmed','source_export_hashes_preserved'}
     if (type(cold) is not dict or cold.get('schema')!='hepta.hia.selfhost-cold-replay.v1'
-            or cold.get('status')!='COLD_SELFHOST_REPLAY_PASS' or cold.get('returncode')!=0
+            or cold.get('status')!='COLD_SELFHOST_REPLAY_PASS'
+            or type(cold.get('returncode')) is not int or cold['returncode']!=0
             or cold.get('profile')!=PROFILE or cold.get('source_manifest')!=sources
             or type(cold.get('checks')) is not dict or set(cold['checks'])!=required
             or any(value is not True for value in cold['checks'].values())

@@ -1,0 +1,43 @@
+{
+  "schema": "hepta.hia.source-workflow-replay.v1",
+  "status": "HOLD",
+  "commit": "ecf6886f43e325c411be38fea172bba0d79d7230",
+  "tree": "6b57fdd027c93b7ad7cfcfe1d1de2911d24a4860",
+  "generators": 37,
+  "source_preserved": true,
+  "owner": {
+    "schema": "hepta.hia.external-workflow-process.v1",
+    "status": "WORKFLOW_STEP_HOLD",
+    "command": [
+      "/workspace/scratch/623459b0e1bc/venv/bin/python",
+      "-B",
+      "-c",
+      "COMPONENTS=['core_workspace_pipeline', 'core_workspace_facts', 'core_workspace_facts_cli', 'core_workspace_materialize', 'core_workspace_cli', 'capability_renaming', 'core_module_graph', 'core_workspace_json', 'core_workspace_json_cli', 'agent_identity', 'agent_slice', 'elf_linker', 'native_filter', 'core_json_cli', 'agent_stdio', 'agent_snapshot', 'agent_snapshot_json', 'agent_snapshot_json_cli', 'sha256_stream', 'native_observer', 'sha256', 'json_preflight', 'json_decode', 'json_canonical', 'core_json_frontend', 'selfhost', 'agent_binary64', 'agent_data_json', 'instruction_policy', 'program_shape', 'function_shape', 'artifact_publication', 'core_admission_cli', 'core_admission', 'agent_binary64_format', 'core_patch', 'core_patch_cli']\nNAMES=['tests.test_hia_core_only', 'tests.test_hia_evidence_archive', 'tests.test_hia_core_workspace_facts_native.CoreWorkspaceFactsSourceTests', 'tests.test_hia_core_workspace_materialize_native.CoreWorkspaceMaterializerSourceTests', 'tests.test_hia_core_string_accounting', 'tests.test_hia_capability_renaming_native.CapabilityRenamingSourceTests', 'tests.test_hia_core_module_graph_native.CoreModuleGraphSourceTests', 'tests.test_hia_source_head_identity', 'tests.test_hia_integrated_workflow', 'tests.test_hia_core_workspace_json_native.CoreWorkspaceJsonSourceTests', 'tests.test_hia_core_workspace_json_cli.CoreWorkspaceJsonCliSourceTests', 'tests.test_hia_core_workspace_pipeline.CoreWorkspacePipelineSourceTests', 'tests.test_hia_agent_identity_native.AgentIdentitySourceTests', 'tests.test_hia_agent_slice_native.AgentSliceSourceTests', 'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests', 'tests.test_hia_agent_stdio.AgentStdioSourceTests', 'tests.test_hia_agent_snapshot_native.AgentSnapshotSourceTests', 'tests.test_hia_agent_snapshot_json_native.AgentSnapshotJsonSourceTests', 'tests.test_hia_agent_entry', 'tests.test_hia_elf_linker.ElfLinkerSourceTests', 'tests.test_hia_core_json_cli.CoreJsonCliSourceTests', 'tests.test_hia_selfhost_word_io.WordIOSourceTests', 'tests.test_hia_selfhost_emitter_words.EmitterSourceTests', 'tests.test_hia_sha256_stream_native.Sha256StreamSourceTests', 'tests.test_hia_sha256_native.Sha256HiaSourceTests', 'tests.test_hia_json_preflight', 'tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests', 'tests.test_hia_json_decode_native.JsonDecodeHiaSourceTests', 'tests.test_hia_json_canonical_native.JsonCanonicalHiaSourceTests', 'tests.test_hia_selfhost_exports.ExportSourceTests', 'tests.test_hia_core_json_frontend_native.CoreJsonFrontendHiaSourceTests', 'tests.test_hia_selfhost.SelfhostSourceTests', 'tests.test_hia_selfhost_contract.SelfhostContractTests', 'tests.test_hia_selfhost_cli', 'tests.test_hia_selfhost_names', 'tests.test_hia_selfhost_returned_loans', 'tests.test_hia_selfhost_multi_results.SelfhostMultiResultSourceTests', 'tests.test_hia_selfhost_keywords.SelfhostKeywordTests', 'tests.test_hia_selfhost_signed.SelfhostSignedTests', 'tests.test_hia_selfhost_traps.SelfhostExplicitTrapTests', 'tests.test_hia_selfhost_language_coverage.SelfhostLanguageSourceTests', 'tests.test_hia_agent_data_json_native.AgentDataJsonSourceTests', 'tests.test_hia_agent_binary64_native.AgentBinary64SourceTests', 'tests.test_hia_instruction_policy_native.InstructionPolicySourceTests', 'tests.test_hia_program_shape_native.ProgramShapeSourceTests', 'tests.test_hia_function_shape_native.FunctionShapeSourceTests', 'tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests', 'tests.test_hia_artifact_publication_route.PublicationRouteSourceTests', 'tests.test_hia_core_admission_native.CoreAdmissionSourceTests', 'tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests', 'tests.test_hia_core_patch_native.CorePatchSourceTests', 'tests.test_hia_core_patch_cli.CorePatchCliSourceTests', 'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests', 'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests']\nRESULT='/workspace/scratch/623459b0e1bc/v58-source-replay-2/tests.json'\nimport json,subprocess,sys,unittest\nfor name in COMPONENTS:\n print(json.dumps({'generator':name}),flush=True)\n subprocess.run([sys.executable,'-B','-m','tools.generate_hia_'+name],check=True)\nfor args in [['tools/check_hia_core_only.py'],['tools/generate_hia_selfhost_contract.py','--check'],['tests/test_hia_selfhost_language_coverage.py','--generate-inventory']]:\n subprocess.run([sys.executable,'-B',*args],check=True)\nstatus=subprocess.check_output(['git','status','--porcelain','--untracked-files=all'],text=True)\nif status: raise RuntimeError('generated source changed: '+status)\nr=unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(NAMES))\nvalue={'tests':r.testsRun,'failures':[{'test':str(t),'traceback':s} for t,s in r.failures],'errors':[{'test':str(t),'traceback':s} for t,s in r.errors],'skipped':[{'test':str(t),'reason':s} for t,s in r.skipped],'expected_failures':[str(t) for t,s in r.expectedFailures],'unexpected_successes':[str(t) for t in r.unexpectedSuccesses]}\nopen(RESULT,'w').write(json.dumps(value,indent=2)+'\\n')\nraise SystemExit(0 if r.wasSuccessful() and not r.skipped and not r.expectedFailures else 1)\n"
+    ],
+    "cwd": "/workspace/scratch/623459b0e1bc/v58-source-replay-2/source",
+    "returncode": -15,
+    "timed_out": true,
+    "seconds": 1800.0269212150006,
+    "workflow_seconds": 1800,
+    "cleanup": {
+      "scope": "started POSIX process group only",
+      "complete": true,
+      "full_process_tree_claimed": false,
+      "signalled": [
+        "SIGTERM"
+      ],
+      "errors": []
+    },
+    "selfhost_qualification_gate_modified": false,
+    "logs": {
+      "/workspace/scratch/623459b0e1bc/v58-source-replay-2/stdout.log": "74e439c2e45d73e85a77c10a339e1105d411ddf4f78b9142e0dc515d5530ba9f",
+      "/workspace/scratch/623459b0e1bc/v58-source-replay-2/stderr.log": "78de98fa683ec1eb0405ce23bcd0d08dd7bf7ce167f067fd3dbc04527b64dfa7"
+    }
+  },
+  "tests": null,
+  "whole_native_delivery_qualified": false,
+  "logs": {
+    "stdout.log": "74e439c2e45d73e85a77c10a339e1105d411ddf4f78b9142e0dc515d5530ba9f",
+    "stderr.log": "78de98fa683ec1eb0405ce23bcd0d08dd7bf7ce167f067fd3dbc04527b64dfa7"
+  }
+}

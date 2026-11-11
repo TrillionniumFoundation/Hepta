@@ -2,8 +2,9 @@
 
 Baseline audited on 2026-11-10 America/New_York:
 `c2d937e5eec734af5c1d5d0519afc7e3a91df58a`.
-The repository is `TrillionniumFoundation/Hepta`; the only active remote branch
-is `main`. This report does not create a second product line or restore the
+The repository is `TrillionniumFoundation/Hepta`; product development continues
+on `main`. The separate archival source-recovery PR #887 is not an adopted
+compiler or an alternative product line. This report does not restore the
 retired high-level language. Git history and original failed observations remain.
 
 **Whole HIA-native delivery is not yet qualified.** The checked-in HIA compiler,
@@ -124,6 +125,88 @@ The original local ptrace failures, a corrected `return_loans` test-fixture typo
 and an initially incorrect cache-invalidation test remain in the evidence.
 Development tests are not substituted for matching-source cold qualification.
 
+### Complete nominal type sessions in HIA
+
+The explicitly selected [nominal type owner](HIA_COMPOSITE_TYPES_NATIVE.md)
+now performs the complete declaration and layout responsibility of `_Types`
+in HIA for composite v1 through v4. This includes unused declarations,
+generic applications and lexical bindings, by-value cycles, record/enum/task
+layouts, stored-loan constraints, partial records, exact cache/active state and
+the existing work budgets. The ordinary elaborator consumes native descriptors;
+it does not rerun the hosted type algorithm on the selected path.
+
+Private nominal keys are exact interned type identities in a held session.
+They do not expand a shared zero-width type graph into an exponentially large
+display string and never enter public normalized Core bytes. Primitive keys
+remain their original strings. The 128-definition/instantiation, depth-32,
+64-field, 32-variant, 512-slot and 32,768-step language limits remain explicit.
+The arena layout accounts for lexical alias calls that do not increase layout
+depth; their frames share a proven bounded region with symbolic nodes.
+
+Development controls include independent Core VM execution before native
+compilation, exact layout/error/state/counter differentials, four-version
+ordinary normalization with the old type owner disabled, and an actual installed
+wheel with build-tool imports forbidden. Original development observations are
+retained by source/image identity. The independent boundary review also found
+an init-envelope overhead issue at the original 8 MiB input limit; its failed
+observation and correction must remain separate from earlier development passes.
+The corrected private command envelope permits 8 MiB plus 128 bytes, while
+public Core retains its original 8 MiB input, 262,144-node and depth-64 limits.
+The complete program-to-command bound is at most five extra bytes, including
+malformed inputs that reach the type owner. Five actual native-entry cases at
+the public boundary preserve the hosted `E_HIA_FORMAT` result; an extra public
+byte still returns `E_HIA_LIMIT` before native entry. The final development
+suite passed all 18 tests. Independent raw ABI controls admit the exact private
+limit and refuse one extra byte with output/state boundary canaries intact.
+This type owner does not replace the operation elaborator, task helper generation,
+returned-loan origin lowering, default installer or durable Agent.
+
+A further independent fixed-seed panel executes the same r3 native image for
+96 seeds and 1,032 initialization/resolution state observations. It compares
+record, enum, task, generic and partial combinations, unused invalid declarations,
+and state/counters after refusals against the retained reference. No differences
+were observed. The original source/image identities and all observations are in
+`review-evidence/hia-native-rewrite-20261111/v60/continuation`; this is development
+evidence, not a new cold result or proof of equivalence over all inputs.
+
+### Shared native builder source binding
+
+The audit found that the shared JSON/kernel builder accepted a completed cold
+report based on compiler hashes without checking the current complete source
+manifest. It also accepted JSON `false` as a zero return code through Python's
+integer equality. The builder now requires the current profile, exact integer
+zero, every cold check, the complete source/contract map and the selected source.
+It rechecks source, compiler and report bytes before publishing a manifest.
+Custody controls reject stale/missing/extra source identities and changed build
+inputs before publication. Their recording compiler stub is explicitly not
+native execution evidence; actual native suites retain their separate gates.
+
+The same complete gate now runs in outer application builders before they create
+their parent output directory. Eight builders share this admission and recheck
+the complete source map before publication; the existing workspace pipeline
+keeps its independent full gate and now also requires an exact integer return
+code. Nine application paths were checked against ten malformed or stale cold
+receipts for both absent and pre-existing output directories: 180 refusal-boundary
+observations preserve prior bytes, modes, inode and directory contents. Valid
+bindings reach the native-build stage. These controls deliberately stop at that
+stage and do not create a synthetic native qualification pass.
+
+### Preserve cold evidence while removing repeated host work
+
+The assembly source boundary uses the same exact forbidden-control-character
+set through a compiled regular expression. Input limits, UTF-8/BOM handling and
+error order remain unchanged. Name-limit fixtures reuse pure source-string seed
+constructors instead of reconstructing unrelated accepted programs merely to
+select one string; each actual reference case still executes its own admission,
+assembly, interpreter and refusal controls. No qualification result is cached.
+
+The complete old/new name-reference result is byte-identical: 2,447,154 bytes,
+106 positive cases, 40 refusals and 52 programs. One local development comparison
+measured 24.038 seconds before and 20.145 seconds after; 5,213 source inputs
+retain their full outcome/error observations. These timings do not establish
+a GitHub cold pass. The unchanged 180-second cold deadline, all 38 phases and
+the original/modified compiler generations remain mandatory.
+
 ### Qualification observations
 
 The first published v58 tree was exactly
@@ -139,13 +222,60 @@ Its new run `42934701069` passed both jobs: 222 source tests, 424 native compone
 test invocations, 1,242 language checks and 10 assertions, plus the 11 cold
 checks. That exact v58 qualification does not qualify later v59 source edits.
 
+The v59 commit `95ba911c347f8ef19cead56d04219093705219cf` passed 229 source
+tests. Its first native attempt hit the unchanged 180-second deadline after
+34 completed phases; all 3,758 checks in those completed phases were true.
+Its second attempt passed all 11 cold gates, 38 phases/5,049 nested checks,
+1,242 language checks and 10 report assertions. The archive and all 555 declared
+cold-source entries were checked against that exact Git commit. The native job
+still failed: nine Agent tests stopped in setup because `jsonschema` was absent;
+the other 16 tests in that last group passed. Those nine errors are not passes.
+
+Commit `bfea47b6267e4a2b18acb45e114aafcd9f466b1a` pins the missing CI dependency
+to `jsonschema==4.26.0` and rebinds the source contract. Its first source job
+passed 229 tests; cold again reached 180 seconds after 32 phases/3,718 checks.
+All retained completed-phase checks passed, and process cleanup was confirmed.
+Its only retry again timed out at 180.139949 seconds. The phase index records
+28 completed phases and 2,876 true checks. Two additional scalar-cast reports
+were actually written and independently verified, adding 736 true checks,
+but remained pending in the index. The retained evidence therefore contains
+30 independently checked reports and 3,612 true checks, without a complete
+cold pass or any language/application test execution. Cleanup completed in
+47.535 milliseconds with the leader reaped, ECHILD observed and no remaining
+processes or errors. The source log was reused unchanged, not run a second time.
+Repeated elapsed-time increases across identical inputs/images are measurable;
+the available records do not establish a specific CPU, I/O or scheduling cause.
+Later attempts retain their own source-bound results rather than overwriting
+either original failure.
+
 Two local cold attempts reached the unchanged 180-second limit and confirmed
 their owned process-tree cleanup. The h execution connector subsequently
 returned internal errors even for controller-only and known-state reads; the
-uncertain remote source operation was not replayed with a new key. Whole retained
-repository qualification and current live-runtime identity remain open until
-those exact operations and their prerequisites can be observed. Later CI and
-qualification records must identify their own complete source and result scope.
+uncertain remote source operation was not replayed with a new key. After the
+connection recovered, the original environment job was observed successful and
+the exact original source request/key was reconciled and observed complete.
+A separately identified replay of the frozen `95ba911` Git tree passed source
+reproduction, source controls, cold, language and every native component group.
+The full retained suite then ran 3,896 tests in 1,742.849 seconds, with four
+error records across three methods, no assertion failures, skips, expected
+failures or unexpected successes. One public CLI fixture refused a temporary
+directory beneath a Git ancestor; three UNIX socket setup records exceeded
+the socket path limit. The original final status is HOLD, with full source
+identity preserved. A revised external preparation tool requires a fresh short
+temporary directory outside Git ancestors, checks a real UNIX socket round
+trip and separately checks its disk/inode reserve. The failed complete suite
+is not reclassified as passed by this environment correction.
+
+The completed-stage archive now performs one complete ZIP-member replay and
+binds that replay to three complete compressed-byte hashes on held descriptors.
+Published bytes must retain the same inode, extent, mode and owner, with only
+the expected hard-link ctime/link-count transition permitted. Source files
+remain until publication and identity checks finish. Twelve archive tests
+include actual replacement and in-place-change controls; failed sealing
+preserves originals. A local read-only timing panel over 38 earlier completed
+archives measured 6.126 seconds for full replay and 0.066 seconds for compressed
+SHA-256. This is a bounded removal of duplicate work, not a measured CI speedup,
+deadline change or new cold pass.
 
 ## Remaining implementation owners
 
@@ -153,6 +283,7 @@ qualification records must identify their own complete source and result scope.
 | --- | --- | --- |
 | Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` | Full retained language/composite lowering, general linking and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
 | Primitive Core admission | Declarations, 50 opcodes, SSA/CFG, calls/effects, ownership and loans; standalone checker | Nominal/composite normalization, complete object/diagnostic custody and independently justified equivalence for retained semantics |
+| Nominal types | Complete selected declaration/layout session for four composite versions, including unused and symbolic partial obligations | Complete operation/helper lowering, returned-loan origin lowering and default installed integration |
 | Workspace/project build | Native module graph, naming/privacy, Core materialization and semantic compiler pipeline | Complete project build, library resolution, installation/upgrade/recovery and file/process ownership without hosted orchestration |
 | Agent editing | Native slice/snapshot/data helpers, snapshot-bound patches, complete patch diagnostics and explicit ordinary raw-byte candidate route | Remaining query, batch/impact orchestration, composite/import paths, default installation and ordinary full worker protocol |
 | Agent state | Native artifact hashing, no-replace file publication and content byte store | Metadata/ref encoding and issuance, namespace/kind authority, SQLite transactions/WAL, request intents, locks, costs, leases, slots, versions and uncertain-operation recovery |
@@ -160,12 +291,15 @@ qualification records must identify their own complete source and result scope.
 | Authoring and packaging | Checked-in HIA source, native compiler and application packers | Replace remaining Python generation/build/custody entry points, native installer and reproducible clean-machine rebuild without importing the retired stack |
 | HeptaRuntime integration | Existing eleven-tool contract and explicit candidate identities | Native worker request/report parity, original operation continuity, immutable installation pins, real SSH/MCP first use and qualified cutover |
 
-The independently deployed Runtime is a separate owner. An earlier read-only
-audit observed an X230 worker still containing the old language, but that
-historical installation is not asserted to be the current live state. A matching
-tool catalog does not establish matching executable, worker or backend identity.
-No live worker, service, state root, release pin or request was migrated by this
-source continuation.
+The independently deployed Runtime is a separate owner. A new live discovery
+and artifact read obtained and independently hashed its complete manifest and
+backend profile. Its catalog digest matches `bfea47b`, but its advertised worker
+and backend digests differ from that checkout; the backend profile still says
+`self_hosted: false`. This observes issued artifact bytes and advertised source
+identities, not an independent deployed-file or loaded-process audit. The earlier
+historical X230 observation is not substituted for this current observation.
+No live worker, service, state root or release pin was migrated by this source
+continuation.
 
 ## Retirement and completion criteria
 
@@ -173,16 +307,16 @@ source continuation.
 
 `hepta/hia_program.py::verify_program` invokes
 `hepta/hia_program_composite.py::elaborate_program` before primitive native
-admission. `_Types` still owns nominal declarations, generic binding, finite
-layout, by-value cycles, stored loans and partial-declaration obligations.
+admission. The explicitly selected native type session now owns nominal
+declarations, generic binding, finite layout, by-value cycles, stored loans and
+partial-declaration obligations; the no-selector path retains `_Types`.
 `_Elaborator` still owns nominal SSA, record/enum transformations, inactive-slot
 cleanup, task helpers, partial tokens, original-field returned-loan origins and
 export eligibility. Composite v1 lowers to primitive v6, v2/v3 to v7 and v4 to
 v8; changing those schemas would change the retained language.
 
-A complete next type-layout slice must preserve all four composite versions,
-including unused declarations and generic/partial obligations: 128 definitions,
-128 instantiations, depth 32, 64 fields, 32 variants and 512 flat slots per type.
+The next semantic owner is complete nominal operation lowering, preserving all
+four composite versions and the native type session's stateful obligations.
 The current native JSON compiler frontend accepts v8; its 16 arguments, three
 results, 128 functions and 256 blocks per function are smaller than some legal
 normalized programs and the complete primitive checker's profile. Type-layout
@@ -199,7 +333,7 @@ native or qualify the current complete retained suite.
 ### Build and installed-runtime prerequisites
 
 `pyproject.toml` still installs the `hia-core` Python distribution with
-`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 23 kernel HIA
+`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 24 kernel HIA
 sources and the publisher's declared assets, but it is not a complete native
 self-rebuild kit: the selfhost source, general stdio/result packers, their build
 drivers and default installed native executables are not supplied through that
@@ -216,14 +350,11 @@ delivery needs an explicitly retained bootstrap trust root and native build
 orchestration; deleting the current seed/build drivers first would remove the
 present clean-machine reconstruction path.
 
-Builder qualification scopes also differ. The new patch/result builders bind
-the complete current contract and cold source manifest. The shared
-`tools/build_hia_json_preflight.py::build` path checks cold schema/status/checks
-and compiler-generation hashes but does not compare the current full profile
-and source manifest. That path establishes a qualified compiler plus the
-current kernel/image source binding; it must not be described as equivalent to
-whole current-application qualification. This distinction remains an installer
-and build-contract obligation.
+The shared `tools/build_hia_json_preflight.py::build` path now binds the
+complete current contract and cold source manifest, as the patch/result builders
+already do. This closes the observed stale-source admission gap; source binding
+still does not establish the behavior of an application merely built afterward.
+Actual application execution, installation and recovery remain distinct gates.
 
 The obsolete high-level source language and compatibility entry were already
 removed from the active repository. Remaining hosted components retain actual
@@ -232,7 +363,7 @@ owner with the same retained semantics, ordinary caller integration, matching
 source qualification and recovery evidence. Independent reference controls
 cannot be deleted merely because the implementation under test is now native.
 
-The next complete vertical slice is the native durable Agent owner: exact
+The durable Agent is a separate remaining vertical slice: exact
 metadata/ref/request protocol, write intent before effect, same-key conflict and
 unknown-result behavior, interrupted publication/restart, adoption and rollback.
 Then bind that owner to a clean native installer and the actual Runtime provider.

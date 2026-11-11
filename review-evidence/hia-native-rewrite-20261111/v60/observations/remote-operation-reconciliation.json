@@ -1,0 +1,236 @@
+{
+  "schema": "hepta.hia.remote-operation-reconciliation.v1",
+  "original_environment_probe": {
+    "idempotency_key": "hia-native-623459-qualified-env-01",
+    "job_id": "1a1c7f707e4-be2a-253",
+    "status": {
+      "at_unix_ms": 1794356219573,
+      "audit_recorded": true,
+      "automatic_retry": false,
+      "cancelled": false,
+      "exit_code": 0,
+      "job_id": "1a1c7f707e4-be2a-253",
+      "launch_nonce": "c65b2badf333d884144db10c72eb3886",
+      "log_bytes": {
+        "stderr": {
+          "seen": 0,
+          "stored": 0
+        },
+        "stdout": {
+          "seen": 1252,
+          "stored": 1252
+        }
+      },
+      "log_errors": {
+        "stderr": null,
+        "stdout": null
+      },
+      "log_synced": {
+        "stderr": true,
+        "stdout": true
+      },
+      "log_truncated": {
+        "stderr": false,
+        "stdout": false
+      },
+      "output_complete": true,
+      "output_durable": true,
+      "state": "succeeded",
+      "terminal_publication_confirmed": true,
+      "terminal_publication_protocol": 1,
+      "timed_out": false
+    },
+    "observation": {
+      "audit_recorded": true,
+      "job_id": "1a1c7f707e4-be2a-253",
+      "stderr": {
+        "eof": true,
+        "next_offset": 0,
+        "offset": 0,
+        "size": 0,
+        "text": ""
+      },
+      "stdout": {
+        "eof": true,
+        "next_offset": 1252,
+        "offset": 0,
+        "size": 1252,
+        "text": "{\"python\": \"3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]\", \"paths\": {\"venv/bin/python\": \"/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python\", \"toolchains-rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc\": \"/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/toolchains-rustup/toolchains/1.90.0-x86_64-unknown-linux-gnu/bin/rustc\", \"verification-tools/lean-4.19.0/bin/lean\": \"/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/verification-tools/lean-4.19.0/bin/lean\"}, \"packages\": {\"setuptools\": \"78.1.1\", \"wheel\": \"0.46.3\", \"z3-solver\": null, \"jsonschema\": \"4.19.2\", \"pip\": \"25.1.1\"}, \"trace\": {\"code\": 0, \"stderr\": \"execve(\\\"/bin/true\\\", [\\\"/bin/true\\\"], 0x7fff678b3268 /* 43 vars */) = 0\\nbrk(NULL)                               = 0x5e8b9ca0c000\\nmmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x75a2bc05f000\\naccess(\\\"/etc/ld.so.preload\\\", R_OK)      = -1 ENOENT (No such file or directory)\\nopenat(AT_FDCWD, \\\"/etc/ld.so.cache\\\", O_RDONLY|O_CLOEXEC) = 3\\nfstat(3, {st_mode=S_IFREG|0644, st_size=148515, ...}) = 0\\nmmap(NULL, 148515, PROT_READ, MAP_PRIVATE, 3, 0) = 0x75a2bc03a000\\nclose(3)           \"}}\n"
+      }
+    }
+  },
+  "original_source_preparation": {
+    "idempotency_key": "hia-native-623459-v58-source-01",
+    "exact_request_reconciled": true,
+    "response": {
+      "audit_recorded": true,
+      "automatic_retry": false,
+      "host": "rog",
+      "persistent_across_runtime_restart": true,
+      "reused": false,
+      "session_id": "dpty-84d41afcd19ee2c7da4ba0cf3e219935c07fe9feb3148b8f377e027e2a9f0f9c",
+      "status": {
+        "boot": "fcdd2477-a952-4ef2-9bdc-2237255080f1",
+        "bytes_seen": 0,
+        "bytes_stored": 0,
+        "capture_error": null,
+        "created_unix_ms": 1794361711710,
+        "output_complete": false,
+        "owner_pid": 479838,
+        "pid": 479842,
+        "state": "running"
+      }
+    },
+    "source_receipt": {
+      "atomic_snapshot": false,
+      "encoding": "utf-8",
+      "files": [
+        {
+          "eof": true,
+          "path": "/tmp/hia-native-623459-v58/source-receipt.json",
+          "sha256": "20d669681c1e49226cf7541f1e634d361f63b83e5da25bf7c4a746b759678d6e",
+          "size": 249,
+          "text": "{\n  \"commit\": \"85a2aed5244714aa93607975373c14dfa730d61d\",\n  \"tree\": \"243ca1d7d25ba485681488ea330ff81167e0fff1\",\n  \"bundle_sha256\": \"6ba816bac2513d8324d3405a9bb2258c10f0044f19a89c9502982ffb4d42c334\",\n  \"source\": \"/tmp/hia-native-623459-v58/source\"\n}\n",
+          "version": "51:13355192:249:1794361720019421227:1794361720019421227"
+        }
+      ],
+      "snapshot_scope": "independent_file",
+      "truncated": false
+    }
+  },
+  "new_v59_clone": {
+    "admission": {
+      "audit_recorded": true,
+      "job": {
+        "args": [
+          "-u",
+          "-c",
+          "from pathlib import Path\nfrom hashlib import sha256\nimport json,subprocess\nroot=Path('/tmp/hia-native-623459-v59')\nroot.mkdir(mode=0o700,exist_ok=False)\nsource=root/'source'\ndef run(args):\n p=subprocess.run(args,capture_output=True,text=True,timeout=300)\n print(json.dumps({'argv':args,'returncode':p.returncode,'stdout':p.stdout[-4096:],'stderr':p.stderr[-4096:]}),flush=True)\n p.check_returncode()\nrun(['git','clone','--quiet','--no-checkout','/tmp/hia-native-623459-v58/source',str(source)])\nrun(['git','-C',str(source),'remote','set-url','origin','https://github.com/TrillionniumFoundation/Hepta.git'])\nrun(['git','-C',str(source),'fetch','--quiet','--depth','1','origin','95ba911c347f8ef19cead56d04219093705219cf'])\nrun(['git','-C',str(source),'checkout','--quiet','--detach','95ba911c347f8ef19cead56d04219093705219cf'])\nhead=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip()\ntree=subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD^{tree}'],text=True).strip()\nstatus=subprocess.check_output(['git','-C',str(source),'status','--porcelain'],text=True)\nassert head=='95ba911c347f8ef19cead56d04219093705219cf' and tree=='f196cf455b5eabe43d6c7feca94edf95ccc3cf1c' and not status\nrecord={'commit':head,'tree':tree,'source':str(source),'clean':True}\n(root/'source-receipt.json').write_text(json.dumps(record,indent=2)+'\\n')\nprint(json.dumps(record),flush=True)\n"
+        ],
+        "created_unix_ms": 1794361804104,
+        "cwd": null,
+        "env_keys": [],
+        "executable": "/usr/bin/python3",
+        "execution_mode": "operator",
+        "host": "rog",
+        "id": "1a1c84c4548-135c4-6",
+        "idempotency_key": "hia-native-623459-v59-source-01",
+        "launch_error": null,
+        "launch_state": "launched",
+        "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1c84c4548-135c4-6",
+        "request_digest": "f65d9535f205be13848b875639da6058233c987ba8422a8b69afb1df660d9b5b",
+        "request_fingerprint": 17752509365090632000,
+        "ssh_target": "rog-ts",
+        "system_jobctl": false,
+        "unit": "hepta-runtime-job-1a1c84c4548-135c4-6"
+      },
+      "launch": {
+        "backend": "systemd",
+        "launcher_pid": null,
+        "ok": true,
+        "unit": "hepta-runtime-job-1a1c84c4548-135c4-6"
+      },
+      "local_record_pending": false,
+      "reused": false
+    },
+    "status": {
+      "at_unix_ms": 1794361814404,
+      "audit_recorded": true,
+      "automatic_retry": false,
+      "cancelled": false,
+      "exit_code": 0,
+      "job_id": "1a1c84c4548-135c4-6",
+      "launch_nonce": "03a2e43ebac2b26a8f8c9536f05bd8ef",
+      "log_bytes": {
+        "stderr": {
+          "seen": 0,
+          "stored": 0
+        },
+        "stdout": {
+          "seen": 916,
+          "stored": 916
+        }
+      },
+      "log_errors": {
+        "stderr": null,
+        "stdout": null
+      },
+      "log_synced": {
+        "stderr": true,
+        "stdout": true
+      },
+      "log_truncated": {
+        "stderr": false,
+        "stdout": false
+      },
+      "output_complete": true,
+      "output_durable": true,
+      "state": "succeeded",
+      "terminal_publication_confirmed": true,
+      "terminal_publication_protocol": 1,
+      "timed_out": false
+    },
+    "logs": {
+      "audit_recorded": true,
+      "job_id": "1a1c84c4548-135c4-6",
+      "stderr": {
+        "eof": true,
+        "next_offset": 0,
+        "offset": 0,
+        "size": 0,
+        "text": ""
+      },
+      "stdout": {
+        "eof": true,
+        "next_offset": 916,
+        "offset": 0,
+        "size": 916,
+        "text": "{\"argv\": [\"git\", \"clone\", \"--quiet\", \"--no-checkout\", \"/tmp/hia-native-623459-v58/source\", \"/tmp/hia-native-623459-v59/source\"], \"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\"}\n{\"argv\": [\"git\", \"-C\", \"/tmp/hia-native-623459-v59/source\", \"remote\", \"set-url\", \"origin\", \"https://github.com/TrillionniumFoundation/Hepta.git\"], \"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\"}\n{\"argv\": [\"git\", \"-C\", \"/tmp/hia-native-623459-v59/source\", \"fetch\", \"--quiet\", \"--depth\", \"1\", \"origin\", \"95ba911c347f8ef19cead56d04219093705219cf\"], \"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\"}\n{\"argv\": [\"git\", \"-C\", \"/tmp/hia-native-623459-v59/source\", \"checkout\", \"--quiet\", \"--detach\", \"95ba911c347f8ef19cead56d04219093705219cf\"], \"returncode\": 0, \"stdout\": \"\", \"stderr\": \"\"}\n{\"commit\": \"95ba911c347f8ef19cead56d04219093705219cf\", \"tree\": \"f196cf455b5eabe43d6c7feca94edf95ccc3cf1c\", \"source\": \"/tmp/hia-native-623459-v59/source\", \"clean\": true}\n"
+      }
+    }
+  },
+  "new_full_qualification": {
+    "admission": {
+      "audit_recorded": true,
+      "job": {
+        "args": [
+          "-B",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-native-623459-v59/preparation-01/launch.py",
+          "/tmp/hia-native-623459-v59/source/review-evidence/hia-native-rewrite-20261111/run_hia_qualification_v2.py",
+          "--source",
+          "/tmp/hia-native-623459-v59/source",
+          "--output",
+          "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-native-623459-v59/qualification-01",
+          "--full"
+        ],
+        "created_unix_ms": 1794362113909,
+        "cwd": null,
+        "env_keys": [],
+        "executable": "/usr/bin/python3",
+        "execution_mode": "operator",
+        "host": "rog",
+        "id": "1a1c850ff75-135c4-1b",
+        "idempotency_key": "hia-native-623459-v59-full-01",
+        "launch_error": null,
+        "launch_state": "launched",
+        "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1c850ff75-135c4-1b",
+        "request_digest": "625c69980be38912a57f92004459ab96310944a0298ef8dd7e71d58aada407ae",
+        "request_fingerprint": 7087656015329724000,
+        "ssh_target": "rog-ts",
+        "system_jobctl": false,
+        "unit": "hepta-runtime-job-1a1c850ff75-135c4-1b"
+      },
+      "launch": {
+        "backend": "systemd",
+        "launcher_pid": null,
+        "ok": true,
+        "unit": "hepta-runtime-job-1a1c850ff75-135c4-1b"
+      },
+      "local_record_pending": false,
+      "reused": false
+    },
+    "result_at_recording": "running",
+    "qualified": false
+  },
+  "services_or_live_worker_changed": false
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "hepta.hia.external-workflow-process.v1",
+  "status": "WORKFLOW_STEP_HOLD",
+  "command": [
+    "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-selfhost-completion-20261109/venv/bin/python",
+    "-B",
+    "-c",
+    "DISCOVER=True\nNAMES=[]\nRESULT='/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-native-623459-v59/qualification-01/full-retained-regression.json'\nimport json,unittest\nloader=unittest.defaultTestLoader\nsuite=loader.discover('tests',top_level_dir='.') if DISCOVER else loader.loadTestsFromNames(NAMES)\nr=unittest.TextTestRunner(verbosity=2).run(suite)\nvalue={'tests_run':r.testsRun,'successful':r.wasSuccessful(),\n       'errors':[{'test':str(t),'traceback':s} for t,s in r.errors],\n       'failures':[{'test':str(t),'traceback':s} for t,s in r.failures],\n       'skipped':[{'test':str(t),'reason':s} for t,s in r.skipped],\n       'expected_failures':[str(t) for t,s in r.expectedFailures],\n       'unexpected_successes':[str(t) for t in r.unexpectedSuccesses]}\nopen(RESULT,'w').write(json.dumps(value,indent=2)+'\\n')\nraise SystemExit(0 if r.testsRun > 0 and r.wasSuccessful() and not r.skipped and not r.expectedFailures else 1)\n"
+  ],
+  "cwd": "/tmp/hia-native-623459-v59/source",
+  "returncode": 1,
+  "timed_out": false,
+  "seconds": 1742.8439670599764,
+  "workflow_seconds": 5400,
+  "cleanup": {
+    "scope": "started POSIX process group only",
+    "complete": true,
+    "full_process_tree_claimed": false,
+    "signalled": [],
+    "errors": []
+  },
+  "selfhost_qualification_gate_modified": false,
+  "logs": {
+    "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-native-623459-v59/qualification-01/full-retained-regression.stdout.log": "aac7ac54be5b35771ddc334bdd40646ba86b00fc782373de26bffdd914487a7e",
+    "/home/qian-qi/.openclaw/workspaces/azi5/tasks/hia-native-623459-v59/qualification-01/full-retained-regression.stderr.log": "7cebd3374a082f6e187442478d1bdc043d1881f84ec19ca1d61a0e0cd0de757a"
+  }
+}

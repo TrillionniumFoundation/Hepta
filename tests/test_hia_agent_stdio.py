@@ -159,8 +159,9 @@ class AgentStdioSourceTests(unittest.TestCase):
             compiler.write_bytes(b'unqualified');cold.write_text('{}')
             for profile in (True,'unknown'):
                 with self.assertRaises(ValueError):build(root/'bad',compiler,cold,output_profile=profile)
+            self.assertFalse((root/'bad').exists())
             with self.assertRaises(ValueError):build(root/'build',compiler,cold)
-            self.assertFalse((root/'build/hia-native').exists())
+            self.assertFalse((root/'build').exists())
 
 
 class AgentStdioNativeTests(unittest.TestCase):

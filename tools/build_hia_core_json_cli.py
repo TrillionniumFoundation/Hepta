@@ -13,7 +13,8 @@ from pathlib import Path
 import struct
 
 from tools.generate_hia_core_json_cli import MAGIC, LIMIT
-from tools.build_hia_json_preflight import build as build_frontend
+from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
+                                           build as build_frontend)
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
@@ -26,6 +27,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         raise ValueError('unknown native JSON CLI output profile')
     compiler_raw, cold_raw, packer_source = compiler.read_bytes(), cold_report.read_bytes(), SOURCE.read_bytes()
     frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes()
+    admitted_sources = admit_cold_build(compiler_raw, cold_raw)
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')
     metadata = json.loads(frontend_manifest.read_bytes())
@@ -45,7 +47,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
             or SOURCE.read_bytes() != packer_source or frontend.read_bytes() != frontend_raw
             or (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes() != frontend_source
-            or sha256(frontend_raw).hexdigest() != metadata['image_sha256']):
+            or sha256(frontend_raw).hexdigest() != metadata['image_sha256']
+            or current_sources() != admitted_sources):
         raise ValueError('native JSON CLI build inputs changed')
     executable = output/'hia-core-json'
     executable.write_bytes(executable_bytes)

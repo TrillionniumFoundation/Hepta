@@ -3,7 +3,8 @@ from pathlib import Path
 from hashlib import sha256
 import argparse, json, struct
 from tools.generate_hia_core_workspace_json_cli import MAGIC
-from tools.build_hia_json_preflight import build as build_kernel
+from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
+                                           build as build_kernel)
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
@@ -23,6 +24,7 @@ def build(output, compiler, cold_report):
                         CONTRACT_PATH: sha256((ROOT / CONTRACT_PATH).read_bytes()).hexdigest()}
     if qualification.get('profile') != PROFILE or qualification.get('source_manifest') != expected_sources:
         raise ValueError('cold qualification source identity does not match current source')
+    admitted_sources = admit_cold_build(inputs[compiler], inputs[cold_report])
     output.mkdir(mode=0o700)
     manifest = build_kernel(output / 'kernel', compiler, cold_report, candidate='core-workspace-json')
     metadata = json.loads(manifest.read_bytes()); image = manifest.parent / metadata['image_path']
@@ -37,7 +39,7 @@ def build(output, compiler, cold_report):
         raise ValueError('native workspace JSON packer refused image frame')
     executable = packed[:size]; inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in inputs.items()) or image.read_bytes() != application
-            or validate_contract()['source_identity']['files'] != contract['source_identity']['files']):
+            or current_sources() != admitted_sources):
         raise ValueError('native workspace JSON build inputs changed')
     path = output / 'hia-workspace-json'; path.write_bytes(executable); path.chmod(0o700)
     (output / 'build.json').write_text(json.dumps({

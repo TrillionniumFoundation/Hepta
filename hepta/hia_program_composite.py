@@ -46,7 +46,9 @@ def _name(value, where):
 
 @dataclass(frozen=True)
 class _Type:
-    key: str
+    # Primitive names stay strings. An explicitly selected native resolver may
+    # provide its exact private session/type identity for a nominal layout.
+    key: object
     kind: str
     flat: tuple[str, ...]
     fields: tuple = ()
@@ -434,10 +436,12 @@ class _Elaborator:
         self.document, self.serial, self.value_slots = document, 0, 0
         self.nominal_operations = (LEGACY_COMPOSITE_OPERATIONS if legacy else
                                    COMPOSITE_OPERATIONS_BY_SCHEMA[document["schema"]])
-        self.types = _Types(document["types"],
-                            recursive_chain=document["schema"] != SCHEMA,
-                            partial_records=document["schema"] in {
-                                COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4})
+        from .hia_composite_types_native import selected_composite_types
+        type_flags = {"recursive_chain": document["schema"] != SCHEMA,
+                      "partial_records": document["schema"] in {
+                          COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4}}
+        selected = selected_composite_types(document["types"], **type_flags)
+        self.types = selected if selected is not None else _Types(document["types"], **type_flags)
         self.parameter_loan_returns = document["schema"] == COMPOSITE_SCHEMA_V4
         functions = document["functions"]
         if type(functions) is not list or not 1 <= len(functions) <= MAX_FUNCTIONS:

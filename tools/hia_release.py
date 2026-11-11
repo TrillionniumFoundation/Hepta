@@ -13,7 +13,7 @@ def describe():
     contract=validate_contract()
     return {"schema":"hepta.hia.core-only-release.v1", "profile":contract["profile"],
             "source_identity":contract["source_identity"], "entry":"hia",
-            "native_stdio_commands":["capabilities","verify","compile"],
+            "native_stdio_commands":["capabilities","verify","compile","render-assembly","assemble"],
             "high_level_source_language":"removed", "host_build_requires_python":True,
             "agent_editing_and_persistence_native":False,
             "whole_native_delivery_qualified":False,"production_activated":False}

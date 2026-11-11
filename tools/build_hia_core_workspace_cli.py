@@ -10,7 +10,8 @@ import json
 from pathlib import Path
 import struct
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
-from tools.build_hia_json_preflight import build as build_kernel
+from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
+                                           build as build_kernel)
 from tools.generate_hia_core_workspace_cli import MAGIC,BUNDLE_LIMIT
 from tools.hia_selfhost_contract import CONTRACT_PATH,PROFILE,validate_contract
 from tools.qualify_hia_selfhost import compile_stage
@@ -29,6 +30,7 @@ def build(output,compiler,cold_report):
             or qualification.get('profile')!=PROFILE or qualification.get('source_manifest')!=expected
             or str(SOURCE.relative_to(ROOT)) not in expected or str(PACKER.relative_to(ROOT)) not in expected):
         raise ValueError('completed matching-source cold qualification required for native workspace')
+    admitted_sources=admit_cold_build(inputs[compiler],inputs[cold_report])
     output.mkdir(mode=0o700)
     manifest=build_kernel(output/'materializer',compiler,cold_report,candidate='core-workspace-materialize')
     metadata=json.loads(manifest.read_bytes());image=manifest.parent/metadata['image_path'];application=image.read_bytes()
@@ -45,7 +47,7 @@ def build(output,compiler,cold_report):
     if not 0<size<=BUNDLE_LIMIT:raise ValueError('native workspace packer refused image bundle')
     executable=ctypes.string_at(arena,size);inspection=inspect_executable(executable)
     if (any(p.read_bytes()!=b for p,b in inputs.items()) or image.read_bytes()!=application
-            or validate_contract()['source_identity']['files']!=contract['source_identity']['files']):
+            or current_sources()!=admitted_sources):
         raise ValueError('native workspace build inputs changed')
     target=output/'hia-workspace-elf';target.write_bytes(executable);target.chmod(0o700)
     (output/'build.json').write_text(json.dumps({'schema':'hepta.hia.core-workspace-cli-build.v1',

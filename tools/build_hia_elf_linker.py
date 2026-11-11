@@ -10,7 +10,8 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
-from tools.build_hia_json_preflight import build as build_application
+from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
+                                           build as build_application)
 from tools.generate_hia_native_filter import MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -21,6 +22,7 @@ def build(output:Path,compiler:Path,cold_report:Path)->Path:
     pins={p:p.read_bytes() for p in (compiler,cold_report,
         ROOT/'examples/hia_bootstrap/elf_static_linker.hiaasm',
         ROOT/'examples/hia_bootstrap/native_filter_packer.hiaasm')}
+    admitted_sources=admit_cold_build(pins[compiler],pins[cold_report])
     output.mkdir(mode=0o700)
     manifests={name:build_application(output/name,compiler,cold_report,candidate=name)
                for name in ('elf-linker','native-filter')}
@@ -35,7 +37,8 @@ def build(output:Path,compiler:Path,cold_report:Path)->Path:
     if not 0<size<=1048576 or size>len(packed):
         raise ValueError('native filter packer refused the linker image')
     executable_raw=packed[:size];inspection=inspect_executable(executable_raw)
-    if any(p.read_bytes()!=before for p,before in pins.items()):
+    if (any(p.read_bytes()!=before for p,before in pins.items())
+            or current_sources()!=admitted_sources):
         raise ValueError('native linker build input changed')
     for p,raw,metadata in applications.values():
         if p.read_bytes()!=raw or sha256(raw).hexdigest()!=metadata['image_sha256']:

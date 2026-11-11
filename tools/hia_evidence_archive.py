@@ -24,6 +24,32 @@ def digest(data):return sha256(data).hexdigest()
 def identity(info):
     return info.st_dev,info.st_ino,info.st_mode,info.st_size,info.st_mtime_ns,info.st_ctime_ns
 
+def _archive_metadata(info):
+    return identity(info)+(info.st_uid,info.st_nlink)
+
+def _archive_snapshot(descriptor,path,links,expected=None):
+    """Bind a held ordinary inode to its current path, including link count."""
+    info=os.fstat(descriptor)
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid()
+            or info.st_nlink!=links):
+        raise ValueError('archive requires owned ordinary bytes and exact links')
+    if _archive_metadata(info)!=_archive_metadata(path.lstat()):
+        raise ValueError('archive pathname changed while sealing')
+    if expected is not None and _archive_metadata(info)!=_archive_metadata(expected):
+        raise ValueError('archive changed while sealing')
+    return info
+
+def _archive_sha256(descriptor,path,links,expected):
+    """Read exactly the held file extent without sharing the ZIP seek offset."""
+    before=_archive_snapshot(descriptor,path,links,expected)
+    result=sha256();offset=0
+    while offset<before.st_size:
+        chunk=os.pread(descriptor,min(1024*1024,before.st_size-offset),offset)
+        if not chunk:raise ValueError('archive changed while hashing')
+        result.update(chunk);offset+=len(chunk)
+    _archive_snapshot(descriptor,path,links,before)
+    return result.hexdigest()
+
 def verify_archive(path):
     with zipfile.ZipFile(path) as archive:
         names=archive.namelist()
@@ -69,42 +95,85 @@ def archive_completed_stage(directory, token):
     manifest={'schema':'hepta.hia.lossless-evidence-archive.v1','files':inventory,
               'unpacked_bytes':total,'source_directory':str(directory),
               'native_or_correctness_authority':False}
-    # Private temporary archive, verified independently through its read path.
+    # Keep the created inode held even while writing. Reopening a pathname alone
+    # would not bind a later replay or publication to these bytes.
     descriptor,temporary=tempfile.mkstemp(prefix='.hia-archive-',dir=directory.parent)
-    os.close(descriptor);temporary=Path(temporary)
+    temporary=Path(temporary);created=os.fstat(descriptor)
+    held=None;published=None;receipt_inode=None;retiring=False
     try:
-        with zipfile.ZipFile(temporary,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=1) as archive:
-            for name in inventory:
-                path=directory/name
-                if identity(path.stat())!=identities[name]:raise ValueError('stage changed before archive')
-                archive.write(path,arcname=name)
-            archive.writestr(MANIFEST,json.dumps(manifest,sort_keys=True,separators=(',',':')))
-        with temporary.open('rb') as stream:os.fsync(stream.fileno())
-        if verify_archive(temporary)!=manifest:raise ValueError('archive replay differs')
+        with os.fdopen(os.dup(descriptor),'w+b') as stream:
+            with zipfile.ZipFile(stream,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=1) as archive:
+                for name in inventory:
+                    path=directory/name
+                    if identity(path.stat())!=identities[name]:raise ValueError('stage changed before archive')
+                    archive.write(path,arcname=name)
+                archive.writestr(MANIFEST,json.dumps(manifest,sort_keys=True,separators=(',',':')))
+        os.fsync(descriptor)
+        flags=os.O_RDONLY|os.O_CLOEXEC|os.O_NOFOLLOW|os.O_NONBLOCK
+        held=os.open(temporary,flags)
+        verified=_archive_snapshot(held,temporary,1)
+        if ((verified.st_dev,verified.st_ino)!=(created.st_dev,created.st_ino)
+                or _archive_metadata(verified)!=_archive_metadata(os.fstat(descriptor))):
+            raise ValueError('temporary archive replaced before replay')
+        os.close(descriptor);descriptor=None
+        packed_sha256=_archive_sha256(held,temporary,1,verified)
+        with os.fdopen(os.dup(held),'rb') as stream:
+            if verify_archive(stream)!=manifest:raise ValueError('archive replay differs')
+        if _archive_sha256(held,temporary,1,verified)!=packed_sha256:
+            raise ValueError('archive bytes changed during replay')
         # Check every original before retiring any one original.
         for name,row in inventory.items():
             path=directory/name
             if identity(path.lstat())!=identities[name] or digest(path.read_bytes())!=row['sha256']:raise ValueError('stage changed before seal')
+        _archive_snapshot(held,temporary,1,verified)
         os.link(temporary,destination)
         parent=os.open(directory.parent,os.O_RDONLY|os.O_DIRECTORY)
         try:os.fsync(parent)
         finally:os.close(parent)
-        if verify_archive(destination)!=manifest:raise ValueError('published archive replay differs')
+        linked=_archive_snapshot(held,temporary,2)
+        # A hard link necessarily changes ctime/nlink. Every other field remains
+        # pinned, and the complete published SHA binds the contents across that
+        # unavoidable metadata transition. No second member decompression is
+        # needed for a byte-identical container already independently replayed.
+        if (identity(linked)[:-1]+(linked.st_uid,)
+                !=identity(verified)[:-1]+(verified.st_uid,)):
+            raise ValueError('archive changed at publication')
+        published=os.open(destination,flags)
+        _archive_snapshot(published,destination,2,linked)
+        if _archive_sha256(published,destination,2,linked)!=packed_sha256:
+            raise ValueError('published archive bytes differ')
+        _archive_snapshot(held,temporary,2,linked)
+        _archive_snapshot(published,destination,2,linked)
         receipt={'schema':'hepta.hia.archived-stage.v1','archive':str(destination),
-                 'archive_sha256':digest(destination.read_bytes()),'files':len(inventory),
-                 'unpacked_bytes':total,'packed_bytes':destination.stat().st_size,
+                 'archive_sha256':packed_sha256,'files':len(inventory),
+                 'unpacked_bytes':total,'packed_bytes':linked.st_size,
                  'manifest_sha256':digest(json.dumps(manifest,sort_keys=True,separators=(',',':')).encode()),
                  'every_original_byte_verified_before_retirement':True,
                  'raw_paths_available':False,'recovery':'ZIP member paths relative to original source_directory; replay manifest hashes and modes',
                  'qualification_or_production_authority':False}
         with receipt_path.open('x') as stream:
+            info=os.fstat(stream.fileno());receipt_inode=(info.st_dev,info.st_ino)
             json.dump(receipt,stream,sort_keys=True,indent=2);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+        _archive_snapshot(held,temporary,2,linked)
+        _archive_snapshot(published,destination,2,linked)
+        retiring=True
         for name in inventory:(directory/name).unlink()
-        descriptor=os.open(directory,os.O_RDONLY|os.O_DIRECTORY)
-        try:os.fsync(descriptor)
-        finally:os.close(descriptor)
+        stage_descriptor=os.open(directory,os.O_RDONLY|os.O_DIRECTORY)
+        try:os.fsync(stage_descriptor)
+        finally:os.close(stage_descriptor)
         return receipt
-    finally:temporary.unlink(missing_ok=True)
+    finally:
+        for opened in (published,held,descriptor):
+            if opened is not None:os.close(opened)
+        if receipt_inode is not None and not retiring:
+            try:
+                info=receipt_path.lstat()
+                if (info.st_dev,info.st_ino)==receipt_inode:receipt_path.unlink()
+            except FileNotFoundError:pass
+        try:
+            info=temporary.lstat()
+            if (info.st_dev,info.st_ino)==(created.st_dev,created.st_ino):temporary.unlink()
+        except FileNotFoundError:pass
 
 
 def _ordinary_bytes(path, maximum):

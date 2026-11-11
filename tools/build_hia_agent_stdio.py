@@ -11,7 +11,8 @@ import json
 from pathlib import Path
 import struct
 
-from tools.build_hia_json_preflight import build as build_frontend
+from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
+                                           build as build_frontend)
 from tools.generate_hia_agent_stdio import MAGIC, LIMIT
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
@@ -27,6 +28,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     sources = {path: path.read_bytes() for path in
                (DISPATCH, PACKER, ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm')}
+    admitted_sources = admit_cold_build(compiler_bytes, cold_bytes)
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')
     metadata = json.loads(frontend_manifest.read_bytes())
@@ -49,7 +51,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     inspection = inspect_executable(raw)
     if (len(raw)!=count or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold_bytes
             or any(path.read_bytes()!=data for path,data in sources.items())
-            or dispatch.read_bytes()!=dispatch_bytes or frontend.read_bytes()!=frontend_bytes):
+            or dispatch.read_bytes()!=dispatch_bytes or frontend.read_bytes()!=frontend_bytes
+            or current_sources()!=admitted_sources):
         raise ValueError('Agent build inputs changed')
     executable = output/'hia-native'
     executable.write_bytes(raw)

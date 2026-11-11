@@ -42,6 +42,7 @@ _RETURN = re.compile(r"ret\(([^()]*)\)")
 _JUMP = re.compile(rf"jump\s+({_NAME})\(([^()]*)\)")
 _BRANCH = re.compile(rf"branch\s+({_NAME})\s+({_NAME})\(([^()]*)\)\s+({_NAME})\(([^()]*)\)")
 _TRAP = re.compile(rf"trap\s+({_NAME})")
+_SOURCE_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ufeff]")
 
 
 class HIAAssemblyRejected(HIAProgramRejected):
@@ -72,7 +73,10 @@ def _source(value):
         raise HIAAssemblyRejected("source is not valid UTF-8") from exc
     # LF and optional CRLF are the only line separators. Do not let Unicode
     # splitlines(), NUL, BOM or terminal controls change visible tokenization.
-    if any(ord(c) < 32 and c not in "\n\r\t" for c in text) or "\ufeff" in text:
+    # The pattern is the exact rejected set from the character-wise check:
+    # ASCII controls except TAB/LF/CR, plus BOM. UTF-8 and source-size checks
+    # still precede it, and the separate CRLF/line checks still follow it.
+    if _SOURCE_CONTROL.search(text) is not None:
         _reject("unsupported control character or byte-order mark")
     lines = text.split("\n")
     if len(lines) > MAX_LINES:
