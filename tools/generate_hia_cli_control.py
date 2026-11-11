@@ -210,6 +210,13 @@ def token_find(s:readbuf, w:mutbuf, scope:u64, begin:u64, size:u64, prefix:bool)
 def negative_number(s:readbuf, w:mutbuf, begin:u64, size:u64) -> bool:
     if size < 2:
         return False
+    if get(w, 128) != 312:
+        index = 1
+        if read32(s, begin + index * 4) == 46:
+            index = index + 1
+        if index == size:
+            return False
+        return decimal(read32(s, begin + index * 4), get(w, 128)) != 0
     end = size
     if read32(s, begin + (end - 1) * 4) == 10:
         end = end - 1
