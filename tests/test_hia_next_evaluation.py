@@ -194,7 +194,7 @@ class NextAgentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "E_UPGRADE_WORKSPACE_FILES"):
             upgrade.parse_files(task, "hia", json.dumps({"files": old}))
         files = upgrade._historical_hia_file_pair(old)
-        files["api.core.hepta"] = "module legacy; fn wire_length() {}"
+        files["api.core.hepta"] = "not a Core function object"
         with self.assertRaisesRegex(ValueError, "E_UPGRADE_HIA_FUNCTION_OBJECT"):
             upgrade.parse_files(task, "hia", json.dumps({"files": files}))
         files = upgrade._historical_hia_file_pair(old)
