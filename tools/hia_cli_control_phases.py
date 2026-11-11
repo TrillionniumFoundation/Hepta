@@ -115,6 +115,8 @@ def control_step(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return control_refuse(w)
     if get(w, C_PENDING) == 0 and get(w, C_PHASE) != 0:
         return control_refuse(w)
+    if control_reply_valid(s, w) == 0:
+        return control_refuse(w)
     if read64(s, 32) == 1:
         if get(w, C_CATCH) != 1 or read64(s, 40) == 0:
             return control_refuse(w)
@@ -145,6 +147,26 @@ def control_step(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         store(o, index, byte(w, C_COMMAND + index))
         index = index + 1
     return result
+
+
+def control_reply_valid(s:readbuf, w:mutbuf) -> u64:
+    a = read64(s, 40)
+    b = read64(s, 48)
+    c = read64(s, 56)
+    operation = get(w, C_PENDING)
+    if read64(s, 32) == 1:
+        return choose(a > 0 and a < 9223372036854775808 and b == 0 and c == 0, 1, 0)
+    if operation == 22 or operation == 23 or operation == 25 or operation == 28 or operation == 34:
+        return choose(a == 0 and b == 0 and c == 0, 1, 0)
+    if operation == 30 or operation == 31:
+        return choose(a <= 1 and b == 0 and c == 0, 1, 0)
+    if a == 0 or a >= 9223372036854775808:
+        return 0
+    if operation == 13 or operation == 16 or operation == 18:
+        return choose(b > 0 and b < 9223372036854775808 and c == 0, 1, 0)
+    if operation == 14:
+        return choose(b > 0 and b < 9223372036854775808 and c > 0 and c < 9223372036854775808, 1, 0)
+    return choose(b == 0 and c == 0, 1, 0)
 
 def control_initial(w:mutbuf) -> u64:
     phase = get(w, C_PHASE)
