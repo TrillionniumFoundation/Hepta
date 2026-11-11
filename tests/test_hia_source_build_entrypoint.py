@@ -57,6 +57,7 @@ BUILDER_SCRIPTS = (
     'build_hia_retirement_state.py',
     'build_hia_safe_core.py',
     'build_hia_sha256.py',
+    'build_hia_slot_ledger.py',
     'build_hia_source_build.py',
 )
 

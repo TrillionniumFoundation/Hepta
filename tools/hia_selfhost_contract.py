@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v69-native-worker-state-owners'
+PROFILE = 'selfhost-core-linux-x86_64-v70-native-slot-ledger-state'
 SOURCE_FILES = (
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
@@ -57,6 +57,12 @@ SOURCE_FILES = (
     'examples/hia_bootstrap/candidate_budget.hepta',
     'tests/test_hia_candidate_budget_native.py',
     'docs/HIA_CANDIDATE_BUDGET_NATIVE.md',
+    'tools/generate_hia_slot_ledger.py',
+    'tools/build_hia_slot_ledger.py',
+    'examples/hia_bootstrap/slot_ledger.hepta',
+    'tests/test_hia_slot_ledger_native.py',
+    'tests/test_hia_slot_ledger_native_integration.py',
+    'docs/HIA_SLOT_LEDGER_NATIVE.md',
     'docs/HIA_JSON_PREFLIGHT_NATIVE.md',
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hepta',
@@ -142,6 +148,7 @@ SOURCE_FILES = (
     'tests/test_hia_unittest_gate.py',
     'tests/test_hia_sha256_builder_source_binding.py',
     'tests/test_hia_reference_fixture_efficiency.py',
+    'tests/fixtures/hia_compiler_rename_reference.json.gz',
     'docs/HIA_COMPOSITE_TYPES_NATIVE.md',
     'tools/generate_hia_core_patch_result_cli.py',
     'tools/build_hia_core_patch_result_cli.py',
@@ -706,10 +713,11 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 23,
+            'supported_single_image_selectors': 24,
             'current_journal_schema': 'hepta.hia.agent-journal-native.v2',
             'execution_budget_schema': 'hepta.hia.execution-budget-native.v1',
             'candidate_budget_schema': 'hepta.hia.candidate-budget-native.v1',
+            'slot_ledger_schema': 'hepta.hia.slot-ledger-native.v1',
             'retirement_state_schema': 'hepta.hia.retirement-state-native.v1',
             'selection': 'operator-pinned explicit bundle; every ambient manifest refuses',
             'custody': 'whole bundle, child manifests, packaged sources and executable bytes',
@@ -726,6 +734,23 @@ def support_contract(root=ROOT):
             'native_policy': ['count admission', 'increment', 'exact readback', 'commit acknowledgement'],
             'request_replay_owner': 'existing ordinary or selected journal v2',
             'transaction_transport': 'fixed parameterized SQLite statements on a bound private connection',
+            'whole_service_and_SQLite_replaced': False,
+        },
+        'native_slot_ledger': {
+            'source': 'examples/hia_bootstrap/slot_ledger.hepta',
+            'selection': 'explicit HEPTA_HIA_SLOT_LEDGER_MANIFEST; no selected fallback',
+            'durable_authority': 'original slots, versions and leases tables in the original AgentStore WAL',
+            'native_policy': ['canonical u64 decimal fields', 'generation and epoch conditional comparison',
+                              'streamed retained-generation maximum and successor', 'rollback epoch progression',
+                              'active lease identity and detached retained descriptor'],
+            'history_row_limit_added': False,
+            'adoption_and_rollback_transaction': 'same original connection as the request effect and completed response',
+            'acquire_and_release_transactions': 'original local-consumer transactions',
+            'request_replay_owner': 'existing ordinary or selected journal v2',
+            'host_boundaries': ['SQLite statements and actual durability', 'artifact/proof/evaluation admission',
+                                'native process invocation and foreign-buffer publication'],
+            'scalar_multiversion_runtime_replaced': False,
+            'default_native_selection': False,
             'whole_service_and_SQLite_replaced': False,
         },
         'native_retirement_state': {

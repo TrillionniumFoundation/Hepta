@@ -38,10 +38,11 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-three
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-four
 current single-image contracts include the original nineteen helper adapters
 and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
-**candidate-budget-native.v1** and **retirement-state-native.v1** owners.
+**candidate-budget-native.v1**, **retirement-state-native.v1** and
+**slot-ledger-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
@@ -132,6 +133,12 @@ The required CI and complete qualification runner select
 from the same current-source replay.
 The candidate composition step uses `HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT`
 to build all four selected state-owner images from that same replay.
+The slot-ledger composition step uses `HEPTA_HIA_SLOT_LEDGER_COLD_REPORT`
+and the same current-source cold report for the journal, execution budget,
+candidate budget, retirement and worker helper controls. The
+[slot-ledger contract](HIA_SLOT_LEDGER_NATIVE.md) preserves the original SQLite
+connection and the adoption/rollback request transaction. Its lease decisions
+do not replace the separate in-process multiversion runtime or the process owner.
 The helper CI step requires a complete nonempty run and no failures, errors,
 skips, expected failures or unexpected successes. Explicit development images
 and local B0/B1/B2 builds remain development observations; they cannot override

@@ -91,26 +91,67 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
                 generator.function_names()
 
     def test_complete_compiler_renames_keep_original_and_modified_bytes(self):
-        # Captured from the original c80eb2e three-pass transformation, before
-        # composing its fixture edits. These identities include all functions,
-        # SSA uses, formal return origins, blocks, entries and explicit edges.
+        # Keep the c80eb2e identities attached to their actual historical inputs.
+        # Both input variants and the whole function map are frozen test data;
+        # live mutate_compiler() reads the current contract's symbol table.
+        import gzip
+        from pathlib import Path
         from tools.generate_hia_selfhost import document
         from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
-        _, table = document()
-        mapping = {number: name for name, number in table.items()}
-        source = SOURCE.read_bytes()
+
+        fixture_path = Path(__file__).resolve().parent / 'fixtures' / 'hia_compiler_rename_reference.json.gz'
+        compressed = fixture_path.read_bytes()
+        self.assertEqual(sha256(compressed).hexdigest(),
+                         '0bfb03e219dc31352ae92e22288139e66e1c00ab4a4861648b54712c8e213069')
+        fixture = json.loads(gzip.decompress(compressed))
+        self.assertEqual(fixture['schema'], 'hepta.hia.compiler-rename-reference.v1')
+        self.assertEqual(fixture['source_commit'], '6923b86d9a007aa15b9a5803b35c0f288590dfd2')
+        self.assertEqual(fixture['historical_algorithm_commit'], 'c80eb2ecc5d08421a3d124c879edb33cefff2267')
+        self.assertEqual(fixture['original_source_git_blob'], '8471227648daffef977be26ad6b55395677cdc12')
+        self.assertEqual(fixture['generator_git_blob'], '36f1932306a324ef3a2783b66ab48dece029597d')
+        historical_mapping = fixture['function_mapping']
+        self.assertEqual(len(historical_mapping), 125)
+        encoded_mapping = (json.dumps(historical_mapping, sort_keys=True, separators=(',', ':')) + '\n').encode()
+        self.assertEqual(sha256(encoded_mapping).hexdigest(),
+                         '62bae0752472b42925bb380df4731fd29da618253acdcc8dc5b63886a1d50531')
+        self.assertEqual([row['label'] for row in fixture['cases']], ['original', 'modified'])
+        historical = {row['label']: row for row in fixture['cases']}
+        # These four original golden identities and the original byte length
+        # are unchanged. The historical oracle still covers every compiler
+        # function, SSA use, formal return origin, block, entry and edge.
         cases = (
-            (source, 'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
+            ('original', 'b23924a2817e384a6597a7ed97a8ebe521f8402bc0f3d6ebc8593cb5b3750029',
+             'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
              'bbd534f4799bc2fc76e787e21ba7a8cab79b4d3e38e2b41bbd22a1decb316063'),
-            (mutate_compiler(source), '25dd7b4753da78c3ee0f04a8f98e87e04859f2d67d9255c562e17a7ef406cb96',
+            ('modified', '07957626a208ee3e873540b24cdd0a40adcbcc55de47914692fcf5e31de58661',
+             '25dd7b4753da78c3ee0f04a8f98e87e04859f2d67d9255c562e17a7ef406cb96',
              'b99ab525232bc54a6919ae057ae0da8745ab47f576e3d9435c6b98b4dfb59d6d'),
         )
-        for actual, source_hash, core_hash in cases:
-            with self.subTest(source=source_hash):
-                rendered = names.renamed_compiler(actual, mapping)
+        for label, input_hash, source_hash, core_hash in cases:
+            with self.subTest(scope='historical', source=source_hash):
+                actual = historical[label]['source_utf8'].encode('utf-8')
+                self.assertEqual(len(actual), 462153)
+                self.assertEqual(historical[label]['source_sha256'], input_hash)
+                self.assertEqual(sha256(actual).hexdigest(), input_hash)
+                rendered = names.renamed_compiler(actual, historical_mapping)
                 self.assertEqual(len(rendered), 769584)
                 self.assertEqual(sha256(rendered).hexdigest(), source_hash)
                 self.assertEqual(assembly.assemble_program(rendered).sha256, core_hash)
+
+        # Check the entire current compiler with the original public three-pass
+        # transformation. Each public pass retains its complete Core admission;
+        # the composed function is never used to generate its own expectation.
+        _, table = document()
+        current_mapping = {number: name for name, number in table.items()}
+        source = SOURCE.read_bytes()
+        for label, actual in (('original', source), ('modified', mutate_compiler(source))):
+            with self.subTest(scope='current', compiler=label):
+                reference = names.renamed_blocks(
+                    names.renamed_values(names.renamed_source(actual, current_mapping)))
+                rendered = names.renamed_compiler(actual, current_mapping)
+                self.assertEqual(rendered, reference)
+                self.assertEqual(assembly.assemble_program(rendered).sha256,
+                                 assembly.assemble_program(reference).sha256)
 
     def test_composed_renames_cannot_admit_an_invalid_final_program(self):
         source = (b'hia-asm.v1 hepta.hia.program.v8 fixture\n'
