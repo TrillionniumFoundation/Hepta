@@ -1,0 +1,285 @@
+{
+  "schema": "hia.normalization.v70.original-unknown-execution-custody.v1",
+  "scope": "Original immutable intents and raw tool observations. Unknown dispatch/ACK does not prove non-execution. No same-key arguments were changed and no new key reran either action.",
+  "baseline": {
+    "status": "UNKNOWN_NO_DURABLE_ID",
+    "intent": {
+      "arguments_except_stdin": {
+        "host": "ai395",
+        "executable": "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "args": [
+          "-B",
+          "-c",
+          "import hashlib, json, os, pathlib, sys\nroot = pathlib.Path(\"/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1\")\nraw = sys.stdin.buffer.read()\nassert hashlib.sha256(raw).hexdigest() == \"0464c6266088ea4c17e5ccf76bc40fab71c550e0235f8a6b9af2434c859edfb7\"\npackage = json.loads(raw)\nassert package[\"schema\"] == \"hia.normalization.v70.source-reconstruction-input.v1\"\nassert json.loads((root / \"RECOVERY.json\").read_bytes())[\"status\"] == \"FIVE_RETAINED_WIP_FILES_RESTORED_EXACTLY\"\nscript = root / \"helpers\" / \"source_reconstruction_native_baseline_r1.py\"\ninput_path = root / \"helpers\" / \"source_reconstruction_input_r1.json\"\nfor path, data in ((script, package[\"runner\"].encode(\"utf-8\")), (input_path, raw)):\n    with path.open(\"xb\") as stream:\n        stream.write(data); stream.flush(); os.fsync(stream.fileno())\n    assert path.read_bytes() == data\ndescriptor = os.open(input_path, os.O_RDONLY)\nos.dup2(descriptor, 0)\nos.close(descriptor)\nprint(json.dumps({\"event\": \"new_reconstruction_runner_published\", \"sha256\": hashlib.sha256(raw).hexdigest()}), flush=True)\nos.execv(sys.executable, [sys.executable, \"-B\", str(script)])\n"
+        ],
+        "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1",
+        "idempotency_key": "hia-dda7-normalization-v70-source-reconstruction-native-baseline-r1-20261111",
+        "timeout_seconds": 300
+      },
+      "stdin": {
+        "bytes": 611066,
+        "sha256": "0464c6266088ea4c17e5ccf76bc40fab71c550e0235f8a6b9af2434c859edfb7",
+        "blob": "6ca1e2ff987f6c2327fe51059604b113a527eecf",
+        "content_mode": "entire blob UTF-8"
+      }
+    },
+    "responses": {
+      "start_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r1_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r2_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r3_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r4_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "result_view_r1": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Path not found: ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/source-reconstruction-native-baseline-r1/RESULT.json (resolved to ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/source-reconstruction-native-baseline-r1/RESULT.json)"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      },
+      "result_view_r2": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Path not found: ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/source-reconstruction-native-baseline-r1/RESULT.json (resolved to ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/source-reconstruction-native-baseline-r1/RESULT.json)"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      },
+      "helper_info_r1": {
+        "content": [
+          {
+            "type": "text",
+            "text": "remote helper on ai395-lan failed with 1\nstdout:\n\nstderr:\nFileNotFoundError: [Errno 2] No such file or directory: 'source_reconstruction_native_baseline_r1.py'"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      },
+      "registry_page_r1": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"has_more\":true,\"inventory_complete\":false,\"jobs\":[],\"next_cursor\":\"pending:c43051bb8aac2efb112f549e227e4ec186baecab314001baf2f2e3057d6aa0e4:0\",\"observation_atomic\":false,\"observation_deadline_seconds\":30,\"observation_started_unix_ms\":null,\"observer_mode\":\"continuous_background\",\"snapshot_semantics\":\"registry_metadata_at_observation\",\"snapshot_sha256\":null,\"status_authoritative\":false,\"total\":null,\"validation_pending\":true}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      },
+      "registry_page_r2": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_list_page`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "registry_page_r3": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"has_more\":true,\"inventory_complete\":false,\"jobs\":[],\"next_cursor\":\"pending:b3c590019b83f23f74400ada91d91403dc4f2e368312e7b4480be8d7b974adc7:0\",\"observation_atomic\":false,\"observation_deadline_seconds\":30,\"observation_started_unix_ms\":null,\"observer_mode\":\"continuous_background\",\"snapshot_semantics\":\"registry_metadata_at_observation\",\"snapshot_sha256\":null,\"status_authoritative\":false,\"total\":null,\"validation_pending\":true}"
+          }
+        ],
+        "structuredContent": null,
+        "isError": false
+      },
+      "exact_request_discovery_r1": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.view`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "exact_request_discovery_r2": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.view`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "exact_request_discovery_r3": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.view`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r5_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "original_pending_cursor_continuation_r2": {
+        "content": [
+          {
+            "type": "text",
+            "text": "inventory progress cursor unavailable, expired or invalidated; restart from the first page"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      }
+    },
+    "size_measurement": {
+      "stdin_utf8_bytes": 611066,
+      "stdin_sha256": "0464c6266088ea4c17e5ccf76bc40fab71c550e0235f8a6b9af2434c859edfb7",
+      "full_args_json_utf8_bytes": 646361,
+      "args_array_json_utf8_bytes": 1205,
+      "host": "ai395",
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1",
+      "idempotency_key": "hia-dda7-normalization-v70-source-reconstruction-native-baseline-r1-20261111",
+      "timeout_seconds": 300,
+      "stdin_is_base64": false
+    },
+    "reporting_harness_static_issue": {
+      "classification": "SOURCE_REVIEW_ONLY_NOT_OBSERVED_TERMINAL_FAILURE",
+      "runner_sha256": "b8d8c42d8b8549d4966facbbf460957b3785a5a9030a950c91fa17e67ddad222",
+      "finding": "error_state copies list(error.args) including bytes for UnicodeDecodeError; final json.dumps(report) has no bytes encoder. Therefore absence of final RESULT cannot establish that no compilation/observations executed.",
+      "original_intent_changed": false
+    }
+  },
+  "note_context": {
+    "status": "UNKNOWN_NO_DURABLE_ID",
+    "intent": {
+      "arguments_except_stdin": {
+        "host": "ai395",
+        "executable": "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "args": [
+          "-I",
+          "-B",
+          "-c",
+          "import sys,hashlib,os,runpy\nfrom pathlib import Path\nraw=sys.stdin.buffer.read()\nassert hashlib.sha256(raw).hexdigest()==sys.argv[2]\np=Path(sys.argv[1])\nwith p.open('xb') as f:\n f.write(raw); f.flush(); os.fsync(f.fileno())\nos.chmod(p,0o600)\nrunpy.run_path(str(p),run_name='__main__')\n",
+          "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/helpers/probe_cpython314_note_context_r2.py",
+          "d41e5b9868fc067b24132b04c13208969afbf1aaea44468f9912d562596afd63"
+        ],
+        "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1",
+        "idempotency_key": "hia-dda7-normalization-v70-cpython314-note-context-r2-20261111",
+        "timeout_seconds": 60
+      },
+      "stdin": {
+        "bytes": 7163,
+        "sha256": "d41e5b9868fc067b24132b04c13208969afbf1aaea44468f9912d562596afd63",
+        "blob": "f66c4d265db838a8e5670d7636799753327649d0",
+        "content_mode": "package source field"
+      }
+    },
+    "responses": {
+      "start_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "reconcile_r1_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      },
+      "result_view_r1": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Path not found: ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/cpython314-note-context-r2/RESULT.json (resolved to ssh://ai395/home/qq/hia-native-self-rewrite-20261111-dda7/normalization-v70-r1/evidence/cpython314-note-context-r2/RESULT.json)"
+          }
+        ],
+        "structuredContent": {
+          "error_code": "INVALID_ARGUMENT"
+        },
+        "isError": true
+      },
+      "reconcile_r2_response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+          }
+        ],
+        "isError": true
+      }
+    }
+  },
+  "readonly_local_executor_observation": {
+    "origin": "actual functions tool-dispatch failure g4 exec readonly pwd",
+    "outcome": "No usable execution environment is available. Wait for an environment to become available before using this tool.",
+    "mutations": false,
+    "recovered_environment_claim": false
+  },
+  "new_source_draft": {
+    "blob": "4ea5d5ea4b340a33c28cff7d2521015e8537b808",
+    "applied": false,
+    "executed": false
+  },
+  "cpu_overlap": "Root explicitly permitted independent heap functional development compilation to overlap this unknown intent; strict performance/cold qualification is not claimed.",
+  "previous_checkpoint_blob": "6a114e2a78807418fea78ddab1ea95f0b63ad64c",
+  "sequence": "After fifth exact baseline reconcile and second exact note-context reconcile; both remained MCP timeout without durable IDs."
+}
