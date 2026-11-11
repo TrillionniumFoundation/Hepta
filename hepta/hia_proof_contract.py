@@ -10,6 +10,7 @@ from copy import deepcopy
 import platform
 
 from .hia_agent_store import digest, reject
+from .hia_checker_identity import checker_native_selection
 
 
 PROOF_SCHEMA = "hepta.hia.agent.proof-result.v1"
@@ -106,6 +107,7 @@ def _safe_core_method(status, subject, evidence):
     _require(solver == actual_solver and validation.get("solver") == solver,
              "independent machine solver binding or native library differs")
     checker = {"name": _CHECKERS[SAFE_CORE_METHOD], "source_identity": identity,
+               "native_selection": checker_native_selection(),
                "solver": solver, "producer_reemission_used": False}
     _require(validation.get("schema") == SCHEMA and validation.get("profile") == ARTIFACT_PROFILE
              and validation.get("artifact_input_profile") == ARTIFACT_PROFILE
@@ -263,6 +265,9 @@ def _method(claim, status, subject, evidence):
 
 def proof_result(*, claim, status, domain, subject, profile, installation, evidence):
     """Produce a self-contained description, never upgrade checker conclusions."""
+    native_selection = checker_native_selection()
+    _require(evidence.get("native_checker_selection") == native_selection,
+             "native checker selection differs from the actual verification owners")
     method = _method(claim, status, subject, evidence)
     assumptions = [
         _item("identified_checker_execution", "The identified Python runtime, checker source and hashing implementation execute their specified checks faithfully."),
@@ -326,6 +331,7 @@ def proof_result(*, claim, status, domain, subject, profile, installation, evide
         "checker": {
             "name": _CHECKERS[method], "method": method,
             "installation": deepcopy(installation),
+            "native_selection_sha256": digest(native_selection),
             "python": {"implementation": platform.python_implementation(), "version": platform.python_version()},
             "auxiliary_checker_sha256": evidence.get("checker_sha256") if method in {"compositional_scalar_effect", SAFE_CORE_METHOD} else None,
             "solver": solver_identity,

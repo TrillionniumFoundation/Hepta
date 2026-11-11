@@ -82,6 +82,8 @@ def _implementation_hash():
         "object_structure.py", "native_tool_identity.py",
     ):
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
+    from .hia_checker_identity import checker_digest
+    digest.update(checker_digest().encode())
     return digest.hexdigest()
 
 

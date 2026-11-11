@@ -205,7 +205,9 @@ NATIVE_SUBJECT = obj({'kind': {'const': 'native_artifact'}, 'backend_profile': P
                       'native_artifact': ARTIFACT, 'build_receipt': ARTIFACT})
 VERIFY_SUBJECT = {'oneOf': [CORE_SUBJECT, CANONICAL_SUBJECT, PLAN_SUBJECT, NATIVE_SUBJECT]}
 
-INSTALLATION = obj({'worker_sha256': SHA, 'backend_sha256': SHA, 'catalog_sha256': SHA})
+INSTALLATION = obj({'worker_sha256': SHA, 'backend_sha256': SHA, 'catalog_sha256': SHA,
+                    'native_helpers_sha256': SHA},
+                   ['worker_sha256', 'backend_sha256', 'catalog_sha256'])
 SCOPED_SUBJECT_FIELDS = {
     'context': CONTEXT, 'target_profile': PROFILE, 'candidate': ARTIFACT,
     'candidate_core_sha256': SHA, 'base_program': nullable(ARTIFACT),
@@ -223,6 +225,7 @@ PROOF_CHECKER = obj({
                    'checked_explicit_machine_choices', 'canonical_lowering_unsupported',
                    'complete_native_rederivation', 'independent_safe_core_machine_validation'),
     'installation': INSTALLATION,
+    'native_selection_sha256': SHA,
     'python': obj({'implementation': text(64), 'version': text(64)}),
     'auxiliary_checker_sha256': nullable(SHA),
     'solver': nullable(obj({'name': text(64), 'version': text(64),
@@ -515,6 +518,7 @@ scoped_check = {
                 'installation': {'worker_sha256': 'a' * 64, 'backend_sha256': 'b' * 64,
                                  'catalog_sha256': 'c' * 64},
                 'python': {'implementation': 'CPython', 'version': '3.11'},
+                'native_selection_sha256': 'd' * 64,
                 'auxiliary_checker_sha256': None, 'solver': None},
     'unproved_obligations': [{'id': 'fixture_obligation', 'statement': 'Schema fixture only'}],
     'global_safety_proved': False, 'execution_authority_granted': False,
