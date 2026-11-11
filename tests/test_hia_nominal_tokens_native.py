@@ -414,6 +414,157 @@ class NominalTokensNativeTests(unittest.TestCase):
             self.assertEqual(reply[3], 1)
             self.assertEqual(output.raw[64:512], before)
             self.assertEqual(session.canonical(), canonical({'key': 'v'*100}))
+        with self.native.session() as session:
+            session.begin(transport(None), STREAM_MAGIC, 0)
+            actual_frame = frame(text_token('a'*20000))
+            request = HEADER.pack(REQUEST_MAGIC, 2, 0, 0, 0, 0, 0, len(actual_frame)) + actual_frame
+            source = ctypes.create_string_buffer(request)
+            address = ctypes.addressof(ctypes.c_char.from_buffer(session._workspace))
+            cursor = struct.unpack_from('<Q', session._workspace, 16)[0]
+            self.assertEqual(self.native._entry(source, len(request), output, 512,
+                                               address, len(session._workspace)), 64)
+            reply = HEADER.unpack_from(output)
+            self.assertEqual(reply[1], 1)
+            self.assertEqual(reply[3], 0)
+            self.assertEqual(reply[6], 0)
+            self.assertEqual(struct.unpack_from('<Q', session._workspace, 16)[0], cursor)
+            self.assertEqual(output.raw[64:512], before)
+            session.feed(actual_frame)
+            self.assertEqual(session.sequence, 1)
+            self.assertEqual(session.canonical(), b'"' + b'a'*20000 + b'"')
+
+    def test_u64_progress_counters_are_distinct_from_address_space_sizes(self):
+        # A direct ABI boundary control sets scalar progress cursors. It does
+        # not claim to have executed 2**64 preceding frames or tokens.
+        for initial in ((1 << 63)-1, (1 << 64)-2):
+            with self.native.session() as session:
+                session.begin(transport(None), STREAM_MAGIC, 0)
+                struct.pack_into('<Q', session._workspace, 192, initial)
+                struct.pack_into('<Q', session._workspace, 232, initial)
+                session.feed(frame(token(4), sequence=initial, final=False))
+                self.assertEqual(session.sequence, initial+1)
+                self.assertEqual(session.token_count, initial+1)
+                if initial == (1 << 64)-2:
+                    with self.assertRaises(NominalTokensProtocolError):
+                        session.feed(frame(b'', sequence=initial+1, final=True))
+
+    def test_actual_constructor_owner_and_render_frames_without_host_payload_decoding(self):
+        from hepta.hia_composite_constructor_native import SOURCES, CTOR_MAGIC, WORKSPACE_BYTES, OUTPUT_BYTES
+        from hepta.hia_json_preflight_native import NativeHiaJsonImage
+        from hepta.hia_nominal_json_native import NativeNominalJSON, SOURCE as JSON_SOURCE
+        from tools.qualify_hia_selfhost import compile_stage
+        from tools.build_hia_json_preflight import admit_cold_build, current_sources
+        selected = os.environ.get(COLD_REPORT)
+        cold_bytes = Path(selected).read_bytes() if selected else None
+        sources = admit_cold_build(self.compiler_bytes, cold_bytes) if selected else None
+        images, pins = {}, {}
+        for name, path in {**SOURCES, 'json': JSON_SOURCE}.items():
+            source = path.read_bytes()
+            if sources is not None:
+                self.assertEqual(sources[path.relative_to(ROOT).as_posix()], sha256(source).hexdigest())
+            image, receipt = compile_stage(self.folder, 'linked-'+name, self.compiler, source)
+            produced = image.read_bytes()
+            admit_compile_receipt(receipt, compiler_bytes=self.compiler_bytes,
+                                  source_bytes=source, image_bytes=produced)
+            images[name] = (NativeNominalJSON if name == 'json' else NativeHiaJsonImage)(
+                produced, sha256(produced).hexdigest())
+            self.assertEqual(path.read_bytes(), source)
+            self.assertEqual(self.compiler.read_bytes(), self.compiler_bytes)
+            pins[name] = {'source_sha256': sha256(source).hexdigest(),
+                          'image_sha256': sha256(produced).hexdigest(), 'receipt': receipt}
+        rows = [(None, False), ([], False), ({'schema': 'unknown'}, False)]
+        for profile in (1, 2, 3, 4):
+            document = {'schema': 'hepta.hia.composite.v'+str(profile), 'module': 'm',
+                'types': [], 'functions': [{'name': 'f', 'params': [], 'returns': [], 'effects': [],
+                'entry': 'b', 'blocks': [{'id': 'b', 'params': [], 'ops': [],
+                'term': {'op': 'ret', 'values': []}}]}]}
+            rows.append((document, False))
+            if profile == 1:
+                rows.append((document, True))
+        observed = []
+        for document, legacy in rows:
+            raw = canonical(document)
+            flags = mmap.MAP_PRIVATE | mmap.MAP_ANONYMOUS
+            with (mmap.mmap(-1, WORKSPACE_BYTES, flags=flags) as workspace,
+                  mmap.mmap(-1, OUTPUT_BYTES, flags=flags) as output,
+                  self.native.session() as session):
+                wptr = ctypes.addressof(ctypes.c_char.from_buffer(workspace))
+                optr = ctypes.addressof(ctypes.c_char.from_buffer(output))
+                captured = []
+                with (patch('json.loads', side_effect=AssertionError('host payload decoder')),
+                      patch('json.dumps', side_effect=AssertionError('host payload encoder')),
+                      patch('hepta.hia_instruction_policy_native.transport', side_effect=AssertionError('host typed encoder')),
+                      patch('hepta.hia_composite_function_tokens.ObjectTokenDecoder', side_effect=AssertionError('host object decoder'))):
+                    wire = images['json'].constructor_packet(raw, legacy=legacy)
+                    source = ctypes.create_string_buffer(wire)
+                    result = images['owner']._entry(source, len(wire), optr, OUTPUT_BYTES, wptr, WORKSPACE_BYTES)
+                    self.assertEqual(result, 64)
+                    owner = HEADER.unpack_from(output)
+                    self.assertEqual(owner[0], CTOR_MAGIC)
+                    action = 0 if owner[3] == 2000 else owner[7]
+                    self.assertIn(owner[1], (0, 2))
+                    session.begin(wire, STREAM_MAGIC, action, request=owner[6])
+                    empty = ctypes.create_string_buffer(1)
+                    while not session.final:
+                        size = images['render']._entry(empty, 0, optr, OUTPUT_BYTES, wptr, WORKSPACE_BYTES)
+                        self.assertTrue(type(size) is int and 64 <= size <= OUTPUT_BYTES)
+                        chunk = output[:size]
+                        captured.append(chunk)
+                        session.feed(chunk)
+                    actual = session.canonical()
+                _, index = detached_packet_index(wire)
+                decoder = ObjectTokenDecoder(index)
+                for chunk in captured:
+                    header = HEADER.unpack_from(chunk)
+                    decoder.feed(chunk[64:], final=bool(header[3]))
+                self.assertEqual(actual, canonical(decoder.root))
+                if owner[3] != 2000:
+                    self.assertEqual(owner[1:4], (2, 0, 10))
+                    self.assertEqual(action, 1)
+                observed.append({'owner': list(owner), 'source_sha256': sha256(wire).hexdigest(),
+                    'chunks': len(captured), 'canonical_sha256': sha256(actual).hexdigest()})
+        if sources is not None:
+            self.assertEqual(Path(selected).read_bytes(), cold_bytes)
+            self.assertEqual(current_sources(), sources)
+        self.observations.append({'actual_constructor_streams': observed, 'linked_image_pins': pins,
+                                  'complete_constructor_initialization_tested': False})
+
+    def test_selected_resource_identity_missing_source_and_fresh_image_refusal(self):
+        import hepta.hia_nominal_tokens_native as bridge
+        directory = self.folder/'resource-controls'
+        directory.mkdir()
+        source = directory/'source.hepta'
+        source.write_bytes(self.source_bytes)
+        for control in ('valid', 'missing-source', 'changed-source', 'missing-image', 'changed-image'):
+            current = directory/control
+            current.mkdir()
+            image = current/'image.bin'
+            image.write_bytes(self.image)
+            manifest = current/'manifest.json'
+            manifest.write_text(json.dumps({'schema': SCHEMA,
+                'source_sha256': sha256(self.source_bytes).hexdigest(), 'image_path': image.name,
+                'image_sha256': sha256(self.image).hexdigest(),
+                'compiler_sha256': sha256(self.compiler_bytes).hexdigest()}))
+            if control == 'missing-source':
+                source.unlink()
+            elif control == 'changed-source':
+                source.write_bytes(self.source_bytes+b'\n')
+            else:
+                source.write_bytes(self.source_bytes)
+            if control == 'missing-image':
+                image.unlink()
+            elif control == 'changed-image':
+                image.write_bytes(bytes([self.image[0] ^ 1])+self.image[1:])
+            with patch.object(bridge, 'SOURCE', source):
+                if control == 'valid':
+                    loaded = installed_nominal_tokens(manifest)
+                    with loaded.session() as session:
+                        session.begin(transport(None), STREAM_MAGIC, 0)
+                        session.feed(frame(token(4)))
+                        self.assertEqual(session.canonical(), b'null')
+                else:
+                    with self.assertRaises((ValueError, FileNotFoundError)):
+                        installed_nominal_tokens(manifest)
 
     def test_native_return_full_abi_input_custody_and_mapping_cleanup(self):
         entry = self.native._entry

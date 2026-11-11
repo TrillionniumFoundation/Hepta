@@ -98,6 +98,12 @@ def plus(w:mutbuf, a:u64, b:u64) -> u64:
         return 0
     return a + b
 
+def increment(w:mutbuf, value:u64) -> u64:
+    if value == N:
+        poison(w)
+        return 0
+    return value + 1
+
 def allocate(w:mutbuf, size:u64) -> u64:
     at = get(w, 16)
     rounded = (size + 7) & 18446744073709551608
@@ -613,14 +619,14 @@ def feed_frame(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     at = 128
     while at < length(s) and get(w, 8) == 0:
         at = token_node(s, w, at)
-        put(w, 232, plus(w, get(w, 232), 1))
+        put(w, 232, increment(w, get(w, 232)))
     if get(w, 8) != 0:
         return reject(o, w)
     if word(s, 88) == 1:
         if get(w, 216) != 1 or get(w, 208) != 0:
             return reject(o, w)
         put(w, 224, 1)
-    put(w, 192, plus(w, get(w, 192), 1))
+    put(w, 192, increment(w, get(w, 192)))
     if get(w, 8) != 0:
         return reject(o, w)
     return reply(o, w, 0)
