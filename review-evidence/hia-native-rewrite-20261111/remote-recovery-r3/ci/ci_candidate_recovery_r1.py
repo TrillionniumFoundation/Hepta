@@ -5,7 +5,7 @@ from pathlib import Path
 sys.dont_write_bytecode=True
 common_path=Path(os.environ["HIA_CI_COMMON"])
 common_raw=common_path.read_bytes()
-assert sha1(b"blob "+str(len(common_raw)).encode()+b"\0"+common_raw).hexdigest()=="b3637486fbd73dccc91051de05873daff78ed630"
+assert sha1(b"blob "+str(len(common_raw)).encode()+b"\0"+common_raw).hexdigest()=="61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e"
 spec=importlib.util.spec_from_file_location("hia_ci_common",common_path)
 common=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(common)
@@ -17,6 +17,14 @@ root=common.BASE/"root-recovery/workspace/native-edit-candidate-snapshot-r2-next
 try:
     context=common.prepare()
     base=Path(context["base"])
+    workspace=Path(context["workspace"])
+    executor_path=workspace/"native-edit-json-next/tools/edit_native_executor.S"
+    executor_raw=executor_path.read_bytes()
+    print("HIA_SOURCE_EXPORT "+json.dumps(dict(
+        schema="hia-ci-recovered-text-export-v1",path=str(executor_path),
+        bytes=len(executor_raw),sha256=sha256(executor_raw).hexdigest(),
+        git_sha=sha1(b"blob "+str(len(executor_raw)).encode()+b"\0"+executor_raw).hexdigest(),
+        text=executor_raw.decode("utf-8")),sort_keys=True),flush=True)
     programs=[
         ("restore-retained-fixtures",R3+"candidate/restore_application_retained_r1.py",
          "14248c3662c53e1e9499339c2723d1307907e148",base/"restore_application_retained_r1.py",300),
@@ -47,6 +55,14 @@ try:
                 "59":"255a3ca76ffb8ccaf01cf01ee50fe22e328de06a60106a3408fe8b737703af50",
                 "60":"3e1f812d62e2efe210c9f5f94cd55cc2374283eee7856e48da9279f2f552600d"}
             assert {role:row["image_sha256"] for role,row in report["components"].items()}==expected_images
+            portable=json.loads((root/"development/compile-r1/portable-new-components.json").read_bytes())
+            print("HIA_OWNER_MAP "+json.dumps(portable,sort_keys=True),flush=True)
+            frozen=workspace/"native-edit-candidate-next/development/build-r1/source"
+            inventory=[dict(path=str(p),bytes=p.stat().st_size,
+                sha256=sha256(p.read_bytes()).hexdigest())
+                for p in sorted(frozen.rglob("*")) if p.is_file()
+                and p.suffix in (".py",".S",".md",".json")]
+            print("HIA_FROZEN_SOURCE_INDEX "+json.dumps(inventory,sort_keys=True),flush=True)
     def report(name):
         return json.loads((root/"development"/name/"summary.json").read_bytes())
     fixed=report("complete-elf-replay-r1")

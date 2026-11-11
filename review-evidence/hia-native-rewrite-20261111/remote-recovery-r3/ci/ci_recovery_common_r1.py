@@ -15,6 +15,21 @@ STEPS = []
 SOURCE_INDEX = []
 REFERENCE_INDEX = []
 PINS = {}
+GIT_PACK_MAPPING = {"core.packedGitWindowSize": "16m", "core.packedGitLimit": "64m"}
+def configure_git_pack_mapping():
+    # Append command-scope settings, inherited by restorers and their Git children.
+    # Preserve any pre-existing environment configuration without logging its values.
+    count = int(os.environ.get("GIT_CONFIG_COUNT", "0"))
+    assert count >= 0, "Invalid inherited Git configuration count"
+    for key, value in GIT_PACK_MAPPING.items():
+        os.environ["GIT_CONFIG_KEY_" + str(count)] = key
+        os.environ["GIT_CONFIG_VALUE_" + str(count)] = value
+        count += 1
+    os.environ["GIT_CONFIG_COUNT"] = str(count)
+    for key, value in GIT_PACK_MAPPING.items():
+        actual = subprocess.check_output(
+            ["/usr/bin/git", "config", "--get", key], cwd=REPO, text=True).strip()
+        assert actual == value, (key, actual, value)
 def digest(raw):
     return sha256(raw).hexdigest()
 def git_blob(raw):
@@ -123,6 +138,10 @@ def prepare():
     assert unicodedata.unidata_version=="15.0.0"
     assert platform.machine()=="x86_64"
     assert identity["z3_distribution"]=="4.15.4.0"
+    configure_git_pack_mapping()
+    save(OUTPUT/"git-pack-mapping.json",dict(settings=GIT_PACK_MAPPING,
+        scope="process environment inherited by all recovery descendants",
+        parent_address_space_limit_bytes=1 << 30,native_resource_limits_changed=False))
     head=subprocess.check_output(["/usr/bin/git","rev-parse","HEAD"],cwd=REPO,text=True).strip()
     assert head==identity["commit"],(head,identity["commit"])
     source=BASE/"source"

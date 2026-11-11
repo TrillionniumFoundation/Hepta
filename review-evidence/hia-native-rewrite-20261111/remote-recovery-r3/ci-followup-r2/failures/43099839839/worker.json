@@ -1,0 +1,35 @@
+{
+  "schema": "hia-worker-ci-first-failure-v1",
+  "commit": "33c87f91033b884509e860263eecd8459dd5f112",
+  "run_id": 43099839839,
+  "job_id": 130787486988,
+  "attempt": 1,
+  "job": "Worker records and actual journal bridge",
+  "status": "FAIL",
+  "stage": "common.prepare -> checkout-pinned-baseline",
+  "returncode": 128,
+  "root_cause_observed": "Git pack file cannot be mapped under inherited 1 GiB RLIMIT_AS; HIA native tests have not begun",
+  "actual_worker_native_entries": 0,
+  "records_228_pass_claim": false,
+  "artifact": {
+    "id": 13892450291,
+    "zip_bytes": 12259,
+    "zip_sha256_from_github_upload_log": "f8f421f9f7348d347206ffd23501d20fddef8af3919aaff0b777614fb1540712",
+    "inner_tar_bytes_from_actual_custody": 1976,
+    "inner_tar_sha256_from_actual_custody": "a082fa22affe06e90e7cee123349119467bb8dd1a00149ebbe5ce04f1c28e4ee",
+    "members_from_actual_custody": 6,
+    "downloaded_and_independently_decoded_here": false
+  },
+  "log": {
+    "path": "worker-33c87f9-attempt1.github-job.log",
+    "bytes": 43692,
+    "sha256": "8667a12d52717ff3782213bbf67993713a6615cbb9ac4475a0595908f69b9a92",
+    "gitsha": "2d77ff14d2c597f3ce92c2d3c389907b73367e06"
+  },
+  "log_scope": "Complete decoded GitHub job log returned by connector; UTF-8 encoding hashed here, not a claim about ZIP member bytes.",
+  "proposed_fix": "Bound Git packedGitWindowSize to 16 MiB and packedGitLimit to 64 MiB for every inherited git subprocess, retaining parent 1 GiB and all compiler/native/cold limits.",
+  "new_test_result_inherited": false,
+  "whole_stack_closed": false,
+  "source_changed": false,
+  "refs_changed": false
+}

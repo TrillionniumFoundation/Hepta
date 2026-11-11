@@ -1,0 +1,17 @@
+{
+  "schema": "hia.namespace-ci-common-pin-update.v1",
+  "status": "SOURCE_ONLY_NOT_REEXECUTED",
+  "prior_launcher_git_blob": "7b922d4e210960eab3a55be61b0b4869557ea602",
+  "new_launcher_git_blob": "2e3267a95da23d18410b797af729559c2af52634",
+  "old_common_git_blob": "b3637486fbd73dccc91051de05873daff78ed630",
+  "new_common_git_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+  "exact_change": "One COMMON_GIT literal replacement; reverting that literal returns the full prior launcher bytes.",
+  "unchanged": {
+    "validator_git_blob": "105d4a8bd7a05ee37052dada24ddde8dc487710d",
+    "input_bundle_git_blob": "4a9ac654e496f2bbe2e4067cbec5129ee81b45dc",
+    "kernel_and_14_test_groups": true,
+    "native_limits": true
+  },
+  "common_static_review": "New configuration appends only core.packedGitWindowSize=16m and core.packedGitLimit=64m to process environment configuration before first Git read; it preserves inherited configuration slots, reads back both exact values and is inherited by descendants. Parent 1 GiB/one CPU and original compiler/test constraints remain. It has not yet been observed successful in CI.",
+  "prior_failure_report_git_blob": "96042db024d6039c9dbd84ba00227da52a5878f5"
+}

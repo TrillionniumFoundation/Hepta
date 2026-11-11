@@ -47,7 +47,7 @@ PINS={
     "gitsha": "d7f705a40819e80a73d559c92ec33e1a1cce94b6"
   }
 }
-COMMON_SHA="b3637486fbd73dccc91051de05873daff78ed630"
+COMMON_SHA="61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e"
 COMMON=Path(os.environ["HIA_CI_COMMON"]).resolve()
 common_raw=COMMON.read_bytes()
 def digest(raw):return sha256(raw).hexdigest()

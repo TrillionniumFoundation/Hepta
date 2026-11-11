@@ -1,0 +1,222 @@
+{
+  "schema": "hia-independent-ci-git-pack-mapping-followup-v1",
+  "original": {
+    "commit": "33c87f91033b884509e860263eecd8459dd5f112",
+    "workflow_run": 43099839839,
+    "common_git": "b3637486fbd73dccc91051de05873daff78ed630",
+    "jobs": [
+      {
+        "id": 130787486988,
+        "name": "Worker records and actual journal bridge",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "id": 130787487555,
+        "name": "Namespace filesystem VM and actual native owner",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "id": 130787488247,
+        "name": "Reconstructed CLI components and actual seven-image entry",
+        "status": "completed",
+        "conclusion": "failure"
+      },
+      {
+        "id": 130787490316,
+        "name": "Candidate 17 + retained 87 + private 44 + byte boundaries 2",
+        "status": "completed",
+        "conclusion": "failure"
+      }
+    ]
+  },
+  "observed": {
+    "all_four_jobs_registered": true,
+    "earliest_failure": "checkout-pinned-baseline",
+    "git_exit": 128,
+    "stderr": "packfile cannot be mapped ... Cannot allocate memory",
+    "new_HIA_generation": 0,
+    "new_HIA_compilations": 0,
+    "new_native_cases": 0,
+    "candidate_elapsed_ns": 4764785,
+    "candidate_timed_out": false,
+    "interpretation": "All four jobs failed in common source preparation before semantic owners or tests ran."
+  },
+  "diagnosis": {
+    "classification": "Inference consistent with observed Git error and retained parent RLIMIT_AS, not measured process mappings",
+    "parent_RLIMIT_AS_bytes": 1073741824,
+    "documented_64_bit_default_packedGitWindowSize": 1073741824,
+    "documented_64_bit_default_packedGitLimit": 35184372088832,
+    "official_source": "https://git-scm.com/docs/git-config#Documentation/git-config.txt-corepackedGitWindowSize"
+  },
+  "fix": {
+    "common_git": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "settings": {
+      "core.packedGitWindowSize": "16m",
+      "core.packedGitLimit": "64m"
+    },
+    "scope": "Append GIT_CONFIG_COUNT pairs to this driver process environment before any Git command; subprocess descendants inherit both settings.",
+    "readback": "Check each effective setting with git config --get; record only the two new values.",
+    "prior_environment_config": "Preserved; prior keys/values are not logged or rewritten.",
+    "parent_RLIMIT_AS_changed": false,
+    "B3_CPU_wall_AS_limits_changed": false,
+    "native_CPU_wall_AS_limits_changed": false,
+    "semantic_implementation_changed": false,
+    "semantic_expectations_changed": false,
+    "active_candidate_driver_git": "55fbb721ad4d01dcab916a2c1931d726d3caf1bb",
+    "active_namespace_launcher_git": "2e3267a95da23d18410b797af729559c2af52634",
+    "active_worker_runner_git": "caae71c1e3ea898242a0f589fb3d604d57bbdf04",
+    "cli_driver": "Existing CLI driver dynamically binds the common source, unchanged.",
+    "candidate_observability": "After verified source recovery, emit the exact fixed executor source with Git/SHA256/size; after actual compilation, emit the recovered complete 63-owner map and frozen source index. This exposes no input/environment data and changes no test expectations.",
+    "previous_revisions": "Original source and job logs are retained by immutable parent commit 33c87f91033b884509e860263eecd8459dd5f112; the active paths are updated in this follow-up."
+  },
+  "artifact_api_metadata": [
+    {
+      "id": 13892450291,
+      "name": "hia-worker-recovery-43099839839-1",
+      "size_in_bytes": 12259,
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13892450291",
+      "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13892450291/zip",
+      "expired": false,
+      "created_at": "2026-11-11T21:04:39Z",
+      "expires_at": "2027-02-09T21:03:45Z",
+      "updated_at": "2026-11-11T21:04:39Z",
+      "digest": "sha256:f8f421f9f7348d347206ffd23501d20fddef8af3919aaff0b777614fb1540712",
+      "workflow_run": {
+        "id": 43099839839,
+        "repository_id": 1432132756,
+        "head_repository_id": 1432132756,
+        "head_branch": "recovery/hia-function-9acdfa-20261111",
+        "head_sha": "33c87f91033b884509e860263eecd8459dd5f112"
+      }
+    },
+    {
+      "id": 13892115027,
+      "name": "hia-cli-recovery-43099839839-1",
+      "size_in_bytes": 13928,
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13892115027",
+      "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13892115027/zip",
+      "expired": false,
+      "created_at": "2026-11-11T21:04:46Z",
+      "expires_at": "2027-02-09T21:03:45Z",
+      "updated_at": "2026-11-11T21:04:46Z",
+      "digest": "sha256:cbce813001431950ec878c7dbfc1adb7627d1fd4bf5b8aa105357924bf31a3ee",
+      "workflow_run": {
+        "id": 43099839839,
+        "repository_id": 1432132756,
+        "head_repository_id": 1432132756,
+        "head_branch": "recovery/hia-function-9acdfa-20261111",
+        "head_sha": "33c87f91033b884509e860263eecd8459dd5f112"
+      }
+    },
+    {
+      "id": 13891985259,
+      "name": "hia-namespace-recovery-43099839839-1",
+      "size_in_bytes": 14481,
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13891985259",
+      "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13891985259/zip",
+      "expired": false,
+      "created_at": "2026-11-11T21:04:51Z",
+      "expires_at": "2027-02-09T21:03:45Z",
+      "updated_at": "2026-11-11T21:04:51Z",
+      "digest": "sha256:bad5cd0c677f4e8d759cfeb75e137e3776b400154fa70699ec48d6d98bf77f0c",
+      "workflow_run": {
+        "id": 43099839839,
+        "repository_id": 1432132756,
+        "head_repository_id": 1432132756,
+        "head_branch": "recovery/hia-function-9acdfa-20261111",
+        "head_sha": "33c87f91033b884509e860263eecd8459dd5f112"
+      }
+    },
+    {
+      "id": 13890073651,
+      "name": "hia-candidate-recovery-43099839839-1",
+      "size_in_bytes": 12968,
+      "url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13890073651",
+      "archive_download_url": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/artifacts/13890073651/zip",
+      "expired": false,
+      "created_at": "2026-11-11T21:04:52Z",
+      "expires_at": "2027-02-09T21:03:45Z",
+      "updated_at": "2026-11-11T21:04:52Z",
+      "digest": "sha256:e6f637c742a1901ed860ce4c4df9659a6a4c6a09e6981c6c0e4244b8235e3f1e",
+      "workflow_run": {
+        "id": 43099839839,
+        "repository_id": 1432132756,
+        "head_repository_id": 1432132756,
+        "head_branch": "recovery/hia-function-9acdfa-20261111",
+        "head_sha": "33c87f91033b884509e860263eecd8459dd5f112"
+      }
+    }
+  ],
+  "artifact_verification": "GitHub metadata and retained job logs inspected. Root has not downloaded and unpacked these ZIP files; no independent ZIP/member verification claim is made here.",
+  "files": [
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/candidate.job.log",
+      "relative": "ci-followup-r2/failures/43099839839/candidate.job.log",
+      "mode": "100644",
+      "type": "blob",
+      "size": 43676,
+      "sha": "f0b3cbeb8f08f155d6292b85e367da7cbe5dd42e",
+      "sha256": "9a3503ac77a67464ddfe2ab6ef8bef3f3942cac6e3aa0d102c2f1acbc00a1636"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/cli.job.log",
+      "relative": "ci-followup-r2/failures/43099839839/cli.job.log",
+      "mode": "100644",
+      "type": "blob",
+      "size": 45273,
+      "sha": "2543ec6fc783c737fafd2a740517136ba4f180a7",
+      "sha256": "cbd821c73cadd710128c0323434d0922c55beb37e21d6ffc643b10c01e6719c7"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/cli.json",
+      "relative": "ci-followup-r2/failures/43099839839/cli.json",
+      "mode": "100644",
+      "type": "blob",
+      "size": 2837,
+      "sha": "8b306ae08da930ca7f317644413ef12df356671c",
+      "sha256": "8588c04e665929d2269bed974ce291e68d40b39e7df4dca734bb0fac17da7d45"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/namespace.job.log",
+      "relative": "ci-followup-r2/failures/43099839839/namespace.job.log",
+      "mode": "100644",
+      "type": "blob",
+      "size": 43733,
+      "sha": "047a63b0a376a5acaf3822c8e4e20b572b4d94b9",
+      "sha256": "52bfede047e1a0d2aca7075d48df917c7d6f2eb971df675b1bc72325c5feb4a3"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/namespace.json",
+      "relative": "ci-followup-r2/failures/43099839839/namespace.json",
+      "mode": "100644",
+      "type": "blob",
+      "size": 2321,
+      "sha": "96042db024d6039c9dbd84ba00227da52a5878f5",
+      "sha256": "7fd77080c29bbe8b1ba1d701bbed0277a7843bb1a8046cfb8320f086f3e3c105"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/worker.job.log",
+      "relative": "ci-followup-r2/failures/43099839839/worker.job.log",
+      "mode": "100644",
+      "type": "blob",
+      "size": 43692,
+      "sha": "2d77ff14d2c597f3ce92c2d3c389907b73367e06",
+      "sha256": "8667a12d52717ff3782213bbf67993713a6615cbb9ac4475a0595908f69b9a92"
+    },
+    {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci-followup-r2/failures/43099839839/worker.json",
+      "relative": "ci-followup-r2/failures/43099839839/worker.json",
+      "mode": "100644",
+      "type": "blob",
+      "size": 1623,
+      "sha": "d00e4305fd29d11096af19835e7cfb75c68fcb25",
+      "sha256": "1b03af1ee0dbd7159a4ab9e33958ea021c6d641eea005aead0a02cea8d967938"
+    }
+  ],
+  "whole_stack_closed": false,
+  "production_activated": false,
+  "legacy_owners_removed": false,
+  "new_run_status": "NOT_YET_OBSERVED"
+}

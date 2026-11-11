@@ -1,0 +1,57 @@
+{
+  "schema": "hia.cli.independent-ci-first-failure.v1",
+  "repository": "TrillionniumFoundation/Hepta",
+  "head": "33c87f91033b884509e860263eecd8459dd5f112",
+  "run_id": 43099839839,
+  "job_id": 130787488247,
+  "job_name": "Reconstructed CLI components and actual seven-image entry",
+  "status": "FAIL",
+  "first_failing_step": "checkout-pinned-baseline",
+  "failure": "git worktree add --detach source a3c61136 failed with returncode 128: packfile could not be mapped (Cannot allocate memory).",
+  "measured_step": {
+    "elapsed_ns": 5746582,
+    "child_cpu_seconds": 0.004534999999999999,
+    "children_cumulative_maxrss_kib": 31116,
+    "stderr_bytes": 247,
+    "stderr_sha256": "7d358efbeaa346b9d1b7855f67106d05b2330f7b411b68db67410eb20cf699ab"
+  },
+  "scope": {
+    "new_hia_generations": 0,
+    "new_b3_compiles": 0,
+    "new_component_cases": 0,
+    "new_cli_entry_cases": 0,
+    "source_restoration_completed": false,
+    "installed_entry_activated": false,
+    "whole_stack_closed": false
+  },
+  "original_log": {
+    "blob": "2543ec6fc783c737fafd2a740517136ba4f180a7",
+    "bytes": 45273,
+    "sha256": "cbd821c73cadd710128c0323434d0922c55beb37e21d6ffc643b10c01e6719c7",
+    "representation": "UTF-8 decoded complete GitHub job-log response; not a reconstruction of the artifact ZIP."
+  },
+  "original_artifact": {
+    "id": 13892115027,
+    "name": "hia-cli-recovery-43099839839-1",
+    "bytes": 13928,
+    "sha256": "cbce813001431950ec878c7dbfc1adb7627d1fd4bf5b8aa105357924bf31a3ee",
+    "file_reference": "file_0000000019bc81f598c961fccd425f65",
+    "member_readback_independently_performed_here": false
+  },
+  "reported_inner_evidence": {
+    "archive_bytes": 2056,
+    "archive_sha256": "332dfc7c08b4ad22feebbf76d2ef8b2edcbb8c07d2c914702df98757632097e3",
+    "members": 6,
+    "raw_bytes": 4881,
+    "member_index_bytes": 1534,
+    "member_index_sha256": "7d7b8111769d72f5e3d8d790ccb43aa5f1911d765ac29a75159c96bc4d280dd6",
+    "provenance": "CI finish() log reports its own complete readback; this agent has not independently decoded the ZIP."
+  },
+  "diagnosis": {
+    "observed": "The common parent applies RLIMIT_AS 1 GiB before invoking git; failure occurred inside that baseline restoration, before CLI-specific code.",
+    "inference": "Git's documented 64-bit default single packed-object mapping window is 1 GiB and its total mapped-pack budget is effectively unlimited. This is consistent with the observed allocation refusal; the actual process mappings were not captured.",
+    "primary_reference": "https://git-scm.com/docs/git-config",
+    "proposed_unexecuted_change": "Use explicit small core.packedGitWindowSize/core.packedGitLimit for every Git subprocess, preserving the 1 GiB parent limit, all compiler limits and all test cases.",
+    "no_component_source_change_needed_for_this_failure": true
+  }
+}
