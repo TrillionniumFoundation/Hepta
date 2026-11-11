@@ -268,6 +268,23 @@ class CliNativeTests(unittest.TestCase):
                 with self.subTest(argv=argv):
                     self.assert_parse_same(argv)
 
+    def test_python_color_environment_precedence_and_colored_wrapping(self):
+        cases = [
+            ("python-force-before-no-color", {"PYTHON_COLORS": "1", "NO_COLOR": "1", "TERM": "dumb"}, True),
+            ("python-disable-before-force", {"PYTHON_COLORS": "0", "FORCE_COLOR": "1", "TERM": "xterm"}, False),
+            ("no-color", {"PYTHON_COLORS": "", "NO_COLOR": "1", "FORCE_COLOR": "1", "TERM": "xterm"}, False),
+            ("force-color", {"PYTHON_COLORS": "", "NO_COLOR": "", "FORCE_COLOR": "1", "TERM": "dumb"}, True),
+            ("dumb-terminal", {"PYTHON_COLORS": "other", "NO_COLOR": "", "FORCE_COLOR": "", "TERM": "dumb"}, False),
+            ("observed-nonterminal", {"PYTHON_COLORS": "other", "NO_COLOR": "", "FORCE_COLOR": "", "TERM": "xterm"}, False),
+        ]
+        for name, values, colored in cases:
+            for argv in (["--help"], ["build", "--help"], ["--version"], ["catalog", "--schema", "bad"]):
+                with self.subTest(color_case=name, argv=argv):
+                    outcome = self.assert_parse_same(argv, {**values, "COLUMNS": "39"})
+                    if argv == ["--help"]:
+                        self.assertEqual("\x1b[" in outcome[1],
+                                         colored and sys.version_info[:2] == (3, 14))
+
     def test_error_json_is_native_and_keeps_active_exception_context(self):
         messages = ["ordinary", "snow 雪 😀", '"quoted"\\slash\n\t', "\ud800", "\x00\x1f"]
         from hepta import hia_program_tools
