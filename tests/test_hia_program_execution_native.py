@@ -218,6 +218,9 @@ class ProgramExecutionNativeTests(unittest.TestCase):
             cls.compiler_bytes = cls.compiler.read_bytes()
             cls.cold_sources = admit_cold_build(cls.compiler_bytes, cls.cold_bytes)
             cls.folder = Path(os.environ.get(EVIDENCE) or tempfile.mkdtemp(prefix='hia-execution-cold-')) / 'candidate'
+            # An explicit evidence root may not exist; the builder still owns
+            # exclusive creation of the candidate after cold admission.
+            cls.folder.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             cls.manifest_path = build(cls.folder, cls.compiler, report, candidate='program-execution')
             cls.scope = 'CURRENT_SOURCE_COLD_BUILT_COMPONENT'
         else:
