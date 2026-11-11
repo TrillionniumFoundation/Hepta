@@ -131,6 +131,25 @@ records the input archive hash, original request identity and completed,
 nontruncated log status. Log-body retrieval timed out, so individual Rust test
 counts and stdout input-hash readback are not claimed.
 
+### Later checks on the frozen integration
+
+The following successful runs belong to the exact source commit
+`5a39a6d8df1bd17b728a1323bd6f4febeabfad71`, with the unchanged
+`selfhost-core-linux-x86_64-v69-native-candidate-budget` profile:
+
+| Check | Observed result | Elapsed time |
+| --- | --- | --- |
+| Local cold self-bootstrap replay | 11/11 checks passed | 166.340746393 seconds |
+| Local native language qualification | 1,242/1,242 checks passed; 10 report assertions also passed | 106.262896981 seconds for qualification |
+| Local native execution-budget, candidate-budget and publication controls | 49 tests passed | 218.540 seconds |
+| [GitHub push source job](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43044847906/job/130605956890) | 423 tests passed | 327.466 seconds |
+
+The language report assertions inspect that completed native observation; they
+are not ten additional native executions. The earlier 460.977-second source
+run remains a separate observation. These passes establish the stated checks
+on their bound source, without qualifying native-only delivery, the complete
+installed product or live worker migration.
+
 ## Repository cleanup
 
 Two isolated, unused experiments are removed from the active Python package:
@@ -140,6 +159,13 @@ The empty-reduction document referred to a test module that no longer existed;
 that obsolete candidate document is removed as well. This is retirement of
 unintegrated experiments, not a claim that they were rewritten in HIA.
 Their original source remains in the Git history of the published base.
+
+The isolated `hia_empty_wrapper_candidate.py` LLVM wrapper experiment is also
+removed from `tools/`. It had no current production, tool, test or CLI caller and was
+absent from the cold-source contract and installed-resource lists. Its remaining
+references were historical source inventories. This deletes an unused experiment;
+it does not replace any ordinary emitter with HIA. The original implementation
+and its negative observations remain available in Git history and retained evidence.
 
 The active package currently has 158 Python modules, including the new native
 budget adapters and retained hosted reference. This count is an inventory,
@@ -203,6 +229,25 @@ request/report service through hosted transport, durable store and selected
 native adapters. The separate five-command
 [native stdio application](HIA_AGENT_STDIO_NATIVE.md) implements another
 protocol. Installing its executable does not replace the ordinary worker.
+
+Three concrete dependencies prevent retiring the remaining hosted implementation:
+
+- Ordinary `hia build` calls `build_program_machine`, and the Agent service's
+  `hia_emit` calls `_compile`; both reach the Python `emit_program_machine`
+  and `_Emitter` in [the production native backend](../hepta/hia_program_native.py).
+  The bounded HIA selfhost compiler does not own these ordinary emission routes.
+- Ordinary `hia_evaluate` runs both baseline and candidate through
+  `run_reference_batch` before comparing their native observations. The
+  [production runner](../hepta/hia_agent_runner.py) calls the hosted Core VM
+  through `_vm_observation` in [the Agent service](../hepta/hia_agent_service.py).
+  This VM participates in the actual evaluation decision and cannot be removed
+  as an unused test oracle.
+- [Installation identity](../hepta/hia_agent_contract.py) hashes every actual
+  production Python module and the declared resources. Existing contexts,
+  artifacts and receipts bind that identity; session and context checks reject
+  changed implementations. Removing or replacing those modules requires an
+  explicit identity and durable-state migration, preserving existing requests
+  and active versions through restart, adoption and rollback.
 
 The [Agent runtime contract](HIA_AGENT_NATIVE_RUNTIME_CONTRACT.md) and
 [installed-resource contract](HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md) describe
