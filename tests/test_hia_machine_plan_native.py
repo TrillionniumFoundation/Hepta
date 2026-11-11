@@ -10,7 +10,10 @@ import json
 import os
 from pathlib import Path
 import random
+import shutil
 import struct
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -23,6 +26,7 @@ from tools.qualify_hia_machine_registers import fixture, explicit_plan
 
 DEVELOPMENT = 'HEPTA_HIA_MACHINE_PLAN_DEVELOPMENT_MANIFEST'
 COLD = 'HEPTA_HIA_MACHINE_PLAN_COLD_REPORT'
+EVIDENCE = 'HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE'
 
 
 def observed(call):
@@ -117,9 +121,14 @@ class MachinePlanNativeTests(unittest.TestCase):
         development, cold = os.environ.get(DEVELOPMENT), os.environ.get(COLD)
         if development and cold:
             raise AssertionError('development image cannot override a requested cold report')
-        cls.temporary = tempfile.TemporaryDirectory(prefix='hia-machine-plan-native-')
-        cls.addClassCleanup(cls.temporary.cleanup)
-        cls.folder = Path(cls.temporary.name)
+        evidence = os.environ.get(EVIDENCE)
+        if evidence:
+            cls.folder = Path(evidence).resolve()
+            cls.folder.mkdir(parents=True)
+        else:
+            cls.temporary = tempfile.TemporaryDirectory(prefix='hia-machine-plan-native-')
+            cls.addClassCleanup(cls.temporary.cleanup)
+            cls.folder = Path(cls.temporary.name)
         if cold:
             from tools.build_hia_machine_plan import build
             report = json.loads(Path(cold).read_bytes())
@@ -299,6 +308,98 @@ class MachinePlanNativeTests(unittest.TestCase):
             self.assertIn(self.native.image_sha256.encode(), plans.native_implementation_identity())
             with patch.object(self.native, 'image_sha256', '0' * 64):
                 self.assertNotEqual(_implementation_hash(), selected)
+
+    def test_actual_wheel_native_calls_without_authoring_or_checkout_fallback(self):
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        root = Path(__file__).resolve().parents[1]
+        case = self.folder / 'installed-control'
+        case.mkdir()
+        source = case / 'source'
+        source.mkdir()
+        shutil.copytree(root / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+            target = source / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root / name, target)
+        packaging_python = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+        wheels, installed = case / 'wheels', case / 'installed'
+        commands = [[packaging_python, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps',
+                     '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)]]
+        records = []
+
+        def command(arguments, label, *, env=None):
+            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=120)
+            (case / (label + '.stdout')).write_bytes(result.stdout)
+            (case / (label + '.stderr')).write_bytes(result.stderr)
+            records.append({'argv': arguments, 'returncode': result.returncode,
+                'stdout_sha256': sha256(result.stdout).hexdigest(),
+                'stderr_sha256': sha256(result.stderr).hexdigest()})
+            (case / 'processes.json').write_text(json.dumps(records, indent=2, sort_keys=True) + '\n')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result
+
+        command(commands[0], 'wheel-build')
+        wheel, = wheels.glob('*.whl')
+        command([packaging_python, '-B', '-m', 'pip', 'install', '--no-cache-dir', '--no-deps',
+                 '--no-index', '--target', str(installed), str(wheel)], 'wheel-install')
+        inputs = case / 'inputs.json'
+        inputs.write_text(json.dumps({'core': self.program.as_dict(),
+            'plan': explicit_plan(self.program, self.placements),
+            'witness': plans._reference_register_assignment_witness(self.program, self.placements)}))
+        child = r'''import importlib.abc,json,os,sys
+from hashlib import sha256
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+class NoTools(importlib.abc.MetaPathFinder):
+    def find_spec(self,fullname,path=None,target=None):
+        if fullname=='tools' or fullname.startswith('tools.'):
+            raise AssertionError('installed machine plan imported authoring tools')
+sys.meta_path.insert(0,NoTools())
+from hepta import hia_machine_plan as plans
+from hepta.hia_machine_plan_native import SOURCE,SELECTOR,installed_machine_plan
+from hepta.hia_program import verify_program
+from hepta.hia_program_native import emit_program_machine
+assert Path(sys.argv[1]) in SOURCE.parents
+def forbidden(*args,**kwargs):
+    raise AssertionError('retained machine-plan owner entered installed execution')
+plans._reference_validate_plan=plans._reference_register_assignment_witness=forbidden
+os.environ[SELECTOR]=sys.argv[2]
+inputs=json.loads(Path(sys.argv[3]).read_bytes())
+core=verify_program(inputs['core'])
+plan=plans.validate_plan(core,inputs['plan'])
+assert plan==inputs['plan']
+assert plans.register_assignment_witness(core,plan['value_registers'])==inputs['witness']
+machine=emit_program_machine(core,machine_plan=plan)
+assert machine.object_bytes[:4]==b'\x7fELF' and machine.machine_plan_sha256
+native=installed_machine_plan(sys.argv[2])
+original=SOURCE.read_bytes()
+SOURCE.write_bytes(original+b'\n')
+try:installed_machine_plan(sys.argv[2])
+except ValueError:pass
+else:raise AssertionError('warm image hid changed installed source')
+SOURCE.write_bytes(original)
+SOURCE.unlink()
+try:installed_machine_plan(sys.argv[2])
+except FileNotFoundError:pass
+else:raise AssertionError('missing installed source used checkout fallback')
+SOURCE.write_bytes(original)
+print(json.dumps({'status':'INSTALLED_NATIVE_MACHINE_PLAN_PASS',
+ 'image_sha256':native.image_sha256,'source_sha256':sha256(original).hexdigest(),
+ 'object_sha256':sha256(machine.object_bytes).hexdigest(),
+ 'isolated_without_site':sys.flags.isolated and sys.flags.no_site,
+ 'empty_PATH':os.environ['PATH']=='','authoring_forbidden':True,'retained_owners_forbidden':True}))
+'''
+        script = case / 'installed-control.py'
+        script.write_text(child)
+        env = {key: value for key, value in os.environ.items() if not key.startswith('HEPTA_HIA_')}
+        env.update(PATH='', PYTHONPATH='')
+        observed_child = command([sys.executable, '-I', '-S', '-B', str(script), str(installed),
+                                  str(self.manifest), str(inputs)], 'installed-execution', env=env)
+        observed_result = json.loads(observed_child.stdout)
+        self.assertEqual(observed_result['status'], 'INSTALLED_NATIVE_MACHINE_PLAN_PASS')
+        self.assertTrue(observed_result['isolated_without_site'])
+        self.assertTrue(observed_result['empty_PATH'])
 
 
 if __name__ == '__main__':

@@ -101,6 +101,13 @@ foreign mutation order, immutable plan/owner capture, warm source admission and
 backend identity. Native tests require an explicit
 `HEPTA_HIA_MACHINE_PLAN_COLD_REPORT` or a distinctly named
 `HEPTA_HIA_MACHINE_PLAN_DEVELOPMENT_MANIFEST`; the two cannot override each other.
+An actual wheel build/install control executes the public selected entrypoints
+from the installed package under `-I -S -B`, with an empty `PATH`, authoring
+imports forbidden and both retained plan owners forbidden. Changed or missing
+installed source is refused even after the native code cache is warm. Setting
+`HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE` to a new directory retains the complete
+fixture, wheel, child program, process arguments and original output streams;
+ordinary test execution uses a cleaned temporary directory.
 
 `tools/qualify_hia_machine_plan_native_callers.py` runs the unchanged original
 machine-plan, scalar-register, leaf-register and Agent machine-choice suites.
