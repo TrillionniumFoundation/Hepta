@@ -1,0 +1,99 @@
+{
+  "cold_run_executed_by_reviewer": false,
+  "findings_closed": [
+    {
+      "current": "Ledger distinguishes controller10800/full_retained5400/cold180; its source control reads unchanged v8 suite timeout AST (5400 if discover else 1800).",
+      "id": "FULL_TIMEOUT_MISLABEL",
+      "prior": "New ledger said full_retained_seconds=10800; the unchanged actual v8 suite used 5400.",
+      "runtime_or_budget_changed": false
+    },
+    {
+      "current": "Sixth positional runtime_observations is mandatory without a default; validator requires nonempty exact-dict equality to report; CI obtains it from inspect_component_observations and passes that same actual readback; added mutation supplies a different nonempty record and expects rejection.",
+      "id": "COMPONENT_RUNTIME_BINDING_OPTIONAL",
+      "prior": "validate_component could accept an arbitrary nonempty runtime_observations field without receiving independent reader results."
+    }
+  ],
+  "independent_GitHub_tree_fetch_in_this_review": false,
+  "limitations": [
+    "This receipt closes only the two identified review findings and the adjacent producer/consumer static wiring.",
+    "It does not qualify the two owners on current-source cold or a successor full run.",
+    "Prior source-only50 result and prior wrong ledger remain historical artifacts."
+  ],
+  "local_files_match_peer_canonical_delta": true,
+  "observations": [
+    "Read the changed validator, CI call site, full timeout ledger, relevant source tests and original v8 suite.",
+    "Parsed source AST and compared fixed file hashes; did not import or execute the changed qualification code.",
+    "Read peer original13-method report and checked complete loaded/executed IDs, zero anomaly lists and declared source-only scope; this review did not rerun those tests.",
+    "The original17 gates and this active608 formal r2 remain unchanged; successor needs21 gates before any later state/ELF additions."
+  ],
+  "peer_original_source_only_report": {
+    "bytes": 4749,
+    "git_blob_sha1": "371e19b05dbe2010603f811d224be7e5f682c497",
+    "path": "/tmp/hia-e26e-authority-page-integration-r1/publication-review-r2/raw/inner/report.json",
+    "sha256": "29499533e0163c8858bd2f1a7e3fdaf826f99bbe4bccab17c277662a6737185c"
+  },
+  "product_or_native_tests_executed_by_reviewer": false,
+  "remote_mutation": false,
+  "reviewed_utc": "2026-11-11T18:13:42.807763+00:00",
+  "schema": "hia.store-page.review-correction-independent-static-review.v1",
+  "source_after": {
+    "docs/HIA_STORE_PAGE_QUALIFICATION_GATES.json": {
+      "bytes": 3041,
+      "git_blob_sha1": "8f4bdd7591f744d893db46f4f996c219c0151ba7",
+      "sha256": "d2fc5878b44a00ff69b85df851409540f92e620e558c246850e63bf70fc6613a"
+    },
+    "experiments/hia_v67_qualification_runner_20261111/run_hia_qualification_v8.py": {
+      "bytes": 48727,
+      "git_blob_sha1": "b8d83c8f05e46c822cbe3e4fa73293ff39eaba1e",
+      "sha256": "5b7a2dfb32fd7767c3c402d84b61c2773f7d863bd116c9a5ce28c4176c96d310"
+    },
+    "tests/test_hia_store_page_gates.py": {
+      "bytes": 19002,
+      "git_blob_sha1": "41f3b88febcc9709181d4213f9d3c1f47d94d22e",
+      "sha256": "1bf6919d1612cfe991cb8de0fef591d9859bd0886bbb8c47e43304eb27560ae5"
+    },
+    "tools/hia_store_page_gates.py": {
+      "bytes": 21382,
+      "git_blob_sha1": "cea3e8a984d7eff144d4d5f4076fecc62fe60eb5",
+      "sha256": "3e56a4cb60ff346258f6e314c390d1354efd7319b6c45396ac166ca3a1f1b77d"
+    },
+    "tools/qualify_hia_store_page_ci.py": {
+      "bytes": 6302,
+      "git_blob_sha1": "333eedcc339b25c5bba143b30f6b7c4ef6c8d2aa",
+      "sha256": "0c0d718fedc2d1baade11ef9c54bce64acb6c7f4f3b0a74a178cc80c7b53c302"
+    }
+  },
+  "source_before": {
+    "docs/HIA_STORE_PAGE_QUALIFICATION_GATES.json": {
+      "bytes": 3041,
+      "git_blob_sha1": "8f4bdd7591f744d893db46f4f996c219c0151ba7",
+      "sha256": "d2fc5878b44a00ff69b85df851409540f92e620e558c246850e63bf70fc6613a"
+    },
+    "experiments/hia_v67_qualification_runner_20261111/run_hia_qualification_v8.py": {
+      "bytes": 48727,
+      "git_blob_sha1": "b8d83c8f05e46c822cbe3e4fa73293ff39eaba1e",
+      "sha256": "5b7a2dfb32fd7767c3c402d84b61c2773f7d863bd116c9a5ce28c4176c96d310"
+    },
+    "tests/test_hia_store_page_gates.py": {
+      "bytes": 19002,
+      "git_blob_sha1": "41f3b88febcc9709181d4213f9d3c1f47d94d22e",
+      "sha256": "1bf6919d1612cfe991cb8de0fef591d9859bd0886bbb8c47e43304eb27560ae5"
+    },
+    "tools/hia_store_page_gates.py": {
+      "bytes": 21382,
+      "git_blob_sha1": "cea3e8a984d7eff144d4d5f4076fecc62fe60eb5",
+      "sha256": "3e56a4cb60ff346258f6e314c390d1354efd7319b6c45396ac166ca3a1f1b77d"
+    },
+    "tools/qualify_hia_store_page_ci.py": {
+      "bytes": 6302,
+      "git_blob_sha1": "333eedcc339b25c5bba143b30f6b7c4ef6c8d2aa",
+      "sha256": "0c0d718fedc2d1baade11ef9c54bce64acb6c7f4f3b0a74a178cc80c7b53c302"
+    }
+  },
+  "source_bytes_unchanged": true,
+  "source_commit_supplied": "a3ebd11545d48dedbed8dbdb0d2c01f39bd7e564",
+  "source_root": "/tmp/hia-e26e-authority-page-integration-r1/source",
+  "source_tree_supplied": "9d71f032a2301c56c21abe8c2c38e306b450eafb",
+  "status": "CLEAR_WITHIN_TWO_FINDING_SCOPE",
+  "whole_native_delivery_qualified": false
+}
