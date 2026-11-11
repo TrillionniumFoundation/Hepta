@@ -138,3 +138,20 @@ def write_elf_object(code, symbols, relocations, *, text_alignment=16):
     image[:64] = struct.pack("<16sHHIQQQIHHHHHH", ident, 1, 62, 1, 0, 0,
                              shoff, 0, 64, 0, 0, 64, len(headers), 5)
     return bytes(image)
+
+
+# Reconstructed explicit development selector. The entire original 608 module
+# above remains byte-for-byte unchanged and is the complete oracle.
+_reference_write_elf_object = write_elf_object
+
+
+def write_elf_object(code, symbols, relocations, *, text_alignment=16):
+    """Choose the explicit HIA candidate, retaining the ordinary default owner."""
+    import os
+    manifest = os.environ.get('HEPTA_HIA_MACHINE_ELF_MANIFEST')
+    if manifest is None:
+        return _reference_write_elf_object(
+            code, symbols, relocations, text_alignment=text_alignment)
+    from .hia_machine_elf_native import installed_machine_elf
+    return installed_machine_elf(manifest).write(
+        code, symbols, relocations, text_alignment=text_alignment)
