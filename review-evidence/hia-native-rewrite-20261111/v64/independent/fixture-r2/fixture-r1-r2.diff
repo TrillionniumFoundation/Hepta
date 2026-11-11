@@ -1,0 +1,167 @@
+--- e568-r1
++++ b668-r2
+@@ -15,6 +15,7 @@
+ import os
+ from pathlib import Path
+ import shutil
++import stat
+ import tempfile
+ 
+ from hepta.hia_composite_functions_native import (
+@@ -87,6 +88,7 @@
+     constructor_bundle: object
+     outer_bundle: object
+     pins: tuple
++    evidence_destination: str
+ 
+     @property
+     def environment(self):
+@@ -121,14 +123,7 @@
+                 raise ValueError('shared complete nominal fixture changed: ' + str(path))
+ 
+ 
+-def _preserve_evidence(fixture, build_folder):
+-    """Copy real build bytes and input pins; never create a qualification claim."""
+-    selected = os.environ.get(EVIDENCE_KEY, '')
+-    if not selected:
+-        return
+-    destination = Path(selected).resolve()
+-    destination.mkdir(mode=0o700, parents=True)
+-    fixture.check_custody()
++def _copy_build_evidence(build_folder, destination):
+     records = []
+     if build_folder is not None:
+         # B0/B1/B2, each source packet, real image, receipt and child log survive
+@@ -140,11 +135,26 @@
+             target = destination / relative
+             target.parent.mkdir(parents=True, exist_ok=True)
+             raw = source.read_bytes()
++            mode = stat.S_IMODE(source.stat().st_mode)
+             shutil.copyfile(source, target)
+-            if target.read_bytes() != raw or source.read_bytes() != raw:
++            target.chmod(mode)
++            if (target.read_bytes() != raw or source.read_bytes() != raw
++                    or stat.S_IMODE(target.stat().st_mode) != mode
++                    or stat.S_IMODE(source.stat().st_mode) != mode):
+                 raise ValueError('complete nominal build evidence changed during copying')
+             records.append(dict(path=relative.as_posix(), original_path=str(source),
+-                                bytes=len(raw), sha256=sha256(raw).hexdigest()))
++                                bytes=len(raw), sha256=sha256(raw).hexdigest(), mode=mode))
++    return records
++
++
++def _preserve_evidence(fixture, build_folder):
++    """Copy real build bytes and input pins; never create a qualification claim."""
++    if not fixture.evidence_destination:
++        return
++    destination = Path(fixture.evidence_destination)
++    destination.mkdir(mode=0o700, parents=True)
++    fixture.check_custody()
++    records = _copy_build_evidence(build_folder, destination)
+     for index, (source, digest) in enumerate(fixture.pins):
+         raw = source.read_bytes()
+         if sha256(raw).hexdigest() != digest:
+@@ -153,10 +163,12 @@
+         target = destination / relative
+         target.parent.mkdir(parents=True, exist_ok=True)
+         target.write_bytes(raw)
+-        if target.read_bytes() != raw:
++        mode = stat.S_IMODE(source.stat().st_mode)
++        target.chmod(mode)
++        if target.read_bytes() != raw or stat.S_IMODE(target.stat().st_mode) != mode:
+             raise ValueError('complete nominal evidence copy differs from its source')
+         records.append(dict(path=relative.as_posix(), original_path=str(source),
+-                            bytes=len(raw), sha256=digest))
++                            bytes=len(raw), sha256=digest, mode=mode))
+     fixture.check_custody()
+     (destination / 'custody.json').write_text(json.dumps(dict(
+         schema='hepta.hia.complete-nominal-fixture-custody.v1',
+@@ -166,6 +178,37 @@
+         fixture_result_is_whole_stack_qualification=False,
+         original_build_folder=str(build_folder) if build_folder is not None else None,
+         files=records), indent=2, sort_keys=True) + '\n')
++
++
++def _preserve_failed_build(scope, build_folder, selected, error):
++    """Retain a partial compiler run as raw failure evidence only."""
++    if not selected:
++        return
++    destination = Path(selected)
++    destination.mkdir(mode=0o700, parents=True)
++    records = _copy_build_evidence(build_folder, destination)
++    (destination / 'failure-custody.json').write_text(json.dumps(dict(
++        schema='hepta.hia.complete-nominal-fixture-failure.v1',
++        status='BUILD_FAILED_RAW_ONLY', scope=scope, partial_build=True,
++        error_type=type(error).__name__, error=str(error),
++        fixture_usable=False, matching_source_cold_build_qualified=False,
++        fixture_result_is_whole_stack_qualification=False,
++        original_build_folder=str(build_folder), files=records),
++        indent=2, sort_keys=True) + '\n')
++
++
++def _requested_evidence():
++    value = os.environ.get(EVIDENCE_KEY, '')
++    return str(Path(value).resolve()) if value else ''
++
++
++def _cleanup_note(original, action, failure):
++    try:
++        original.add_note(action + ': ' + repr(failure))
++    except BaseException:
++        # Even allocation failure while annotating must preserve the original
++        # failing build. There is no fixture publication on this branch.
++        pass
+ 
+ 
+ def _compile_bound(folder, label, compiler, source, compiler_sha, **options):
+@@ -294,10 +337,12 @@
+     return pins, images
+ 
+ 
+-def _build_fixture(scope, paths):
++def _build_fixture(scope, paths, *, evidence_destination=None):
+     temporary = None
+     folder = None
+     extra_pins = {}
++    evidence_destination = (_requested_evidence() if evidence_destination is None
++                            else evidence_destination)
+     try:
+         if scope == 'DEVELOPMENT_ONLY':
+             manifest, type_manifest, helper_manifest, constructor_manifest, outer_manifest = map(Path, paths)
+@@ -357,12 +402,19 @@
+         pins = tuple(sorted(pins.items(), key=lambda item: str(item[0])))
+         fixture = CompositeFunctionFixture(scope, manifest, type_manifest, helper_manifest,
+             bundle, types_image, helpers_image, constructor_manifest, outer_manifest,
+-            constructor_bundle, outer_bundle, pins)
++            constructor_bundle, outer_bundle, pins, evidence_destination)
+         fixture.check_custody()
+         _preserve_evidence(fixture, folder)
+-    except BaseException:
++    except BaseException as original:
+         if temporary is not None:
+-            temporary.cleanup()
++            try:
++                _preserve_failed_build(scope, folder, evidence_destination, original)
++            except BaseException as failure:
++                _cleanup_note(original, 'failure evidence capture did not complete', failure)
++            try:
++                temporary.cleanup()
++            except BaseException as failure:
++                _cleanup_note(original, 'temporary build cleanup did not complete', failure)
+         raise
+     if temporary is not None:
+         atexit.register(temporary.cleanup)
+@@ -372,9 +424,12 @@
+ def composite_function_fixture():
+     """Share one real build, with no native-test skips or provenance fallback."""
+     key = configuration()
++    evidence_destination = _requested_evidence()
+     fixture = _FIXTURES.get(key)
+     if fixture is None:
+-        fixture = _build_fixture(*key)
++        fixture = _build_fixture(*key, evidence_destination=evidence_destination)
+         _FIXTURES[key] = fixture
++    elif fixture.evidence_destination != evidence_destination:
++        raise ValueError('shared nominal fixture evidence destination changed after construction')
+     fixture.check_custody()
+     return fixture

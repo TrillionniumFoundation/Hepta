@@ -97,8 +97,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
 
-    def test_complete_function_ci_retains_every_native_owner_and_rejects_incomplete_runs(self):
-        name = 'Native composite types signatures helpers and complete function lowering'
+    def test_complete_nominal_ci_retains_every_native_owner_and_rejects_incomplete_runs(self):
+        name = 'Native complete nominal types helpers constructor functions and outer lowering'
         code = script(name).split("<<'PYTYPES'\n", 1)[1].rsplit('\nPYTYPES', 1)[0]
         assignment = next(n for n in ast.parse(code).body if isinstance(n, ast.Assign))
         names = ast.literal_eval(assignment.value.args[0])
@@ -110,23 +110,40 @@ class CoreWorkflowContractTests(unittest.TestCase):
             'tests.test_hia_composite_functions_native',
             'tests.test_hia_composite_public_lifecycle',
         }
-        required = functions | {
+        elaboration = {
+            'tests.test_hia_composite_constructor_native',
+            'tests.test_hia_composite_constructor_integration',
+            'tests.test_hia_composite_outer_native',
+            'tests.test_hia_composite_outer_integration',
+            'tests.test_hia_composite_nominal_lifecycle',
+        }
+        required = functions | elaboration | {
             'tests.test_hia_composite_types_native', 'tests.test_hia_composite_origins_native',
             'tests.test_hia_composite_signatures_native', 'tests.test_hia_task_helpers_native'}
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
         from tools.hia_selfhost_contract import validate_contract
-        owner = validate_contract()['composite_function_lowering']
+        contract = validate_contract()
+        owner = contract['composite_function_lowering']
         self.assertEqual(set(owner['required_test_modules']), functions)
-        self.assertIn('          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+        self.assertEqual(set(contract['composite_complete_elaboration']['required_test_modules']), required)
+        for component in ('COMPOSITE_TYPES', 'TASK_HELPERS', 'COMPOSITE_FUNCTIONS',
+                          'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER'):
+            self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                          step(name))
+        self.assertIn('          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture',
                       step(name))
         source = script('Core source and independent reference controls')
         for selected in (
                 'tests.test_hia_composite_functions_native.FunctionSourceTests',
                 'tests.test_hia_composite_function_tokens.TokenCodecTests',
-                'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests'):
+                'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',
+                'tests.test_hia_composite_constructor_source.ConstructorSourceTests',
+                'tests.test_hia_composite_constructor_native.ConstructorFrameTests',
+                'tests.test_hia_composite_outer_source.OuterSourceTests',
+                'tests.test_hia_composite_outer_native.OuterFrameTests'):
             self.assertIn(repr(selected), source)
-        for selected in functions:
+        for selected in functions | elaboration:
             self.assertNotIn(repr(selected), source)
         for successful, skipped, expected_failures, status in (
                 (True, [], [], 0), (False, [], [], 1),
@@ -150,7 +167,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', source)
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
-                     'hia-language.evidence/',
+                     'hia-language.evidence/', 'hia-nominal-fixture/',
                      'hia-module-projects/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
