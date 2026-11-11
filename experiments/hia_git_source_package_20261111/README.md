@@ -87,8 +87,9 @@ history exists. Source custody PASS does not grant language, native execution,
 performance, cold or full-regression qualification.
 
 Both destination directories are create-only. The workflow timeout is a transport
-job limit; the project's original 180-second cold and 10800-second retained-suite
-limits are unchanged. The workflow retains the package and available original
+job limit; the project's original 180-second cold and 10800-second overall
+qualification guardian limits are unchanged. The retained-suite observer's own
+timeout is also unchanged. The workflow retains the package and available original
 failure receipts even when its transport verification fails. It uploads only the
 object package and receipts, not duplicate reconstructed checkout bytes.
 
@@ -119,9 +120,11 @@ reproduction. These small controls do not claim a completed Actions export of
 the full HIA repository or a desktop source materialization.
 
 A separate, subsequent `runner-local-clone-r1` control passed in 0.288444281
-seconds. It uses the original v7/v8 commands verbatim:
+seconds. It uses the requested v7/v8 local-path clone form:
 `git --no-replace-objects clone --quiet --no-hardlinks --no-checkout SOURCE COPY`,
-then `git --no-replace-objects checkout --quiet --detach HEAD`. Its complete
+then `git --no-replace-objects checkout --quiet --detach HEAD`. The runner spells
+the checkout with `-C COPY` and the pinned expected HEAD SHA; this control verifies
+that cloned HEAD is exactly that SHA before comparing its source state. Its complete
 original `_source_state` before/clone/after records, raw commit bytes, object set,
 shallow HEAD boundary and strict fsck agree, with no shared object-storage inode.
 This is one additional control, not a rerun or relabeling of the original 13.
