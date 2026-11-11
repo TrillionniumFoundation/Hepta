@@ -27,6 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/worker_report.hiaasm',
     'examples/hia_bootstrap/json_wire.hiaasm',
     'examples/hia_bootstrap/agent_journal.hiaasm',
     'examples/hia_bootstrap/worker_request.hiaasm',
