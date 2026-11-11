@@ -1,0 +1,24 @@
+{
+  "schema": "hia.cli-ci-independent-static-review.followup.v1",
+  "reviewer": "audit_runtime",
+  "prior_review_git_blob": "0b58eef99f827cb80b93adf30085e0c5bbb01c52",
+  "input": {
+    "git_blob": "67d9afad27449a8e54c7ee27352e66fd4c6d4bc3",
+    "bytes": 17324,
+    "sha256": "690acbd6dfdc71555ccf3a5eb0a256a9e407e9ef6f31b55ebab554fb1cb98378"
+  },
+  "status": "TWO_IDENTIFIED_LIFECYCLE_GAPS_ADDRESSED_STATICALLY",
+  "scope": "Read-only diff of child lifetime binding, invoke exception cleanup, and unchanged oracle case/assertion suffix. No AST, native execution, process fault injection or timing run.",
+  "observations": [
+    "Child preexec applies PR_SET_PDEATHSIG(SIGKILL) before exec and checks getppid against the parent PID captured before Popen; the parent-death race is covered.",
+    "Invoke encloses PTY setup/Popen/read/wait in finally, terminates and reaps the task-owned still-live child, closes both PTY descriptors, and saves captured PTY stdout on instrumentation failure.",
+    "Cleanup errors add notes to an in-flight original exception instead of replacing it; absent an original exception, cleanup failure still fails the test.",
+    "The prefix before child-lifetime setup and all code from compare() through case generation/result checks are byte-identical to the reviewed r1. Original 30s per-child timeout and separate OPEN handoff semantics remain.",
+    "Exceptional setup paths may have only preserved raw stdout/stderr and enclosing traceback rather than a complete process.json; no successful-process receipt is asserted on those paths."
+  ],
+  "remaining_limits": [
+    "Static reasoning does not substitute for actual cleanup fault controls or eventual CI execution.",
+    "The direct-child guarantee applies to the frozen no-fork native entry and selected oracle paths; no arbitrary descendant-tree termination proof is claimed.",
+    "No product CLI or namespace closure claim is made."
+  ]
+}

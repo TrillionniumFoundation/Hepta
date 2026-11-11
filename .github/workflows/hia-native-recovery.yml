@@ -17,14 +17,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+
   candidate:
     name: Candidate 17 + retained 87 + private 44 + byte boundaries 2
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      HIA_CI_OUTPUT: ${{ runner.temp }}/hia-candidate-recovery
-      HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
     steps:
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
@@ -44,14 +43,20 @@ jobs:
           python-version: '3.12.14'
       - name: Install the declared development solver
         run: python -m pip install z3-solver==4.15.4.0
-      - name: Reconstruct, compile, and execute original-limit candidate gates
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_candidate_recovery_r1.py
+      - name: Reconstruct and execute independent candidate gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-candidate-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_candidate_recovery_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-candidate-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hia-candidate-recovery-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/hia-candidate-recovery
+          path: |
+            ${{ runner.temp }}/hia-candidate-recovery
+            ${{ runner.temp }}/hia-candidate-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
@@ -62,8 +67,6 @@ jobs:
     timeout-minutes: 30
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      HIA_CI_OUTPUT: ${{ runner.temp }}/hia-cli-recovery
-      HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
     steps:
       - name: Check out submitted recovery source and history
         uses: actions/checkout@v4
@@ -83,14 +86,106 @@ jobs:
           python-version: '3.12.14'
       - name: Install the declared development solver
         run: python -m pip install z3-solver==4.15.4.0
-      - name: Reconstruct and execute CLI component and entry gates
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py
+      - name: Reconstruct and execute independent cli gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-cli-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: hia-cli-recovery-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/hia-cli-recovery
+          path: |
+            ${{ runner.temp }}/hia-cli-recovery
+            ${{ runner.temp }}/hia-cli-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  namespace:
+    name: Namespace filesystem VM and actual native owner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Reconstruct and execute independent namespace gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-r3-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-recovery
+            ${{ runner.temp }}/hia-namespace-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  worker:
+    name: Worker records and actual journal bridge
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Reconstruct and execute independent worker gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-ci/worker_records_journal_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-worker-recovery
+            ${{ runner.temp }}/hia-worker-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

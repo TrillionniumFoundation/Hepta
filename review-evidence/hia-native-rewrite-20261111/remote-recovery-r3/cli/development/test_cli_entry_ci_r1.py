@@ -90,7 +90,19 @@ def main():
                   installed_entry_activated=False, native_interpreter_or_runtime_fallback=False)
     ledger = (out / "cases.jsonl").open("w")
 
-    def child_limits(close_stdin):
+    libc = ctypes.CDLL(None, use_errno=True)
+    prctl = libc.prctl
+    prctl.argtypes = [ctypes.c_int, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong, ctypes.c_ulong]
+    prctl.restype = ctypes.c_int
+
+    def child_limits(close_stdin, expected_parent):
+        # The outer CI supervisor kills this harness's process group. Each child
+        # starts a separate session, so also bind its lifetime to this parent.
+        if prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
+            number = ctypes.get_errno()
+            raise OSError(number, os.strerror(number))
+        if os.getppid() != expected_parent:
+            os.kill(os.getpid(), signal.SIGKILL)
         resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
         if close_stdin:
             os.close(0)
@@ -107,54 +119,82 @@ def main():
         master = slave = None
         captured = bytearray()
         tty_eof = False
-        if tty_columns is not None:
-            master, slave = pty.openpty()
-            fcntl.ioctl(slave, 0x5414, struct.pack("HHHH", 17, tty_columns, 0, 0))
-            os.set_blocking(master, False)
+        process = None
+        status = usage = None
         started = time.monotonic_ns()
         timed_out = False
+        expected_parent = os.getpid()
         with (target / "stdout.bin").open("wb") as so, (target / "stderr.bin").open("wb") as se:
-            process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.DEVNULL,
-                stdout=slave if slave is not None else so, stderr=se,
-                start_new_session=True, preexec_fn=lambda: child_limits(close_stdin))
-            if slave is not None:
-                os.close(slave)
-                slave = None
-            status = usage = None
-            while status is None or (master is not None and not tty_eof):
-                if master is not None and not tty_eof:
-                    ready, _, _ = select.select([master], [], [], 0.02)
-                    if ready:
-                        try:
-                            part = os.read(master, 65536)
-                            if part:
-                                captured.extend(part)
-                            else:
+            try:
+                if tty_columns is not None:
+                    master, slave = pty.openpty()
+                    fcntl.ioctl(slave, 0x5414, struct.pack("HHHH", 17, tty_columns, 0, 0))
+                    os.set_blocking(master, False)
+                process = subprocess.Popen(command, cwd=directory, env=env, stdin=subprocess.DEVNULL,
+                    stdout=slave if slave is not None else so, stderr=se,
+                    start_new_session=True, preexec_fn=lambda: child_limits(close_stdin, expected_parent))
+                if slave is not None:
+                    os.close(slave)
+                    slave = None
+                while status is None or (master is not None and not tty_eof):
+                    if master is not None and not tty_eof:
+                        ready, _, _ = select.select([master], [], [], 0.02)
+                        if ready:
+                            try:
+                                part = os.read(master, 65536)
+                                if part:
+                                    captured.extend(part)
+                                else:
+                                    tty_eof = True
+                            except BlockingIOError:
+                                pass
+                            except OSError as error:
+                                if error.errno != 5:
+                                    raise
                                 tty_eof = True
-                        except BlockingIOError:
-                            pass
-                        except OSError as error:
-                            if error.errno != 5:
-                                raise
-                            tty_eof = True
-                else:
-                    time.sleep(0.01)
-                if status is None:
-                    pid, state, measured = os.wait4(process.pid, os.WNOHANG)
-                    if pid:
-                        status, usage = state, measured
-                        process.returncode = os.waitstatus_to_exitcode(state)
-                if time.monotonic_ns() - started > 30_000_000_000:
-                    timed_out = True
+                    else:
+                        time.sleep(0.01)
                     if status is None:
+                        pid, state, measured = os.wait4(process.pid, os.WNOHANG)
+                        if pid:
+                            status, usage = state, measured
+                            process.returncode = os.waitstatus_to_exitcode(state)
+                    if time.monotonic_ns() - started > 30_000_000_000:
+                        timed_out = True
+                        break
+            finally:
+                original_error = sys.exception()
+                cleanup_errors = []
+                if process is not None and process.returncode is None:
+                    try:
                         os.killpg(process.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+                    try:
                         _, status, usage = os.wait4(process.pid, 0)
                         process.returncode = os.waitstatus_to_exitcode(status)
-                    break
-            if master is not None:
-                os.close(master)
-                master = None
-                so.write(captured)
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+                for descriptor in (slave, master):
+                    if descriptor is not None:
+                        try:
+                            os.close(descriptor)
+                        except BaseException as error:
+                            cleanup_errors.append(error)
+                slave = master = None
+                if tty_columns is not None:
+                    try:
+                        so.write(captured)
+                    except BaseException as error:
+                        cleanup_errors.append(error)
+                if cleanup_errors:
+                    if original_error is not None:
+                        for error in cleanup_errors:
+                            original_error.add_note("CLI child cleanup: " + repr(error))
+                    else:
+                        raise cleanup_errors[0]
         stdout, stderr = (target / "stdout.bin").read_bytes(), (target / "stderr.bin").read_bytes()
         record = dict(argv=argv, env=env, tty_columns=tty_columns, close_stdin=close_stdin,
                       pid=process.pid, returncode=process.returncode, wait_status=status,

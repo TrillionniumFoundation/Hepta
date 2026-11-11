@@ -1,0 +1,57 @@
+{
+  "schema": "hia.namespace-ci-independent-static-review.v1",
+  "reviewer": "native_checker",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_SCOPE",
+  "scope": "Read-only review of the two new CI scripts. Zero AST executions, VM calls, native calls, or filesystem primitives executed by reviewer.",
+  "inputs": [
+    {
+      "name": "namespace.launcher",
+      "git_blob": "7b922d4e210960eab3a55be61b0b4869557ea602",
+      "bytes": 16543,
+      "sha256": "21496a61c07c8bd6a8d118a0f79f1070044f7bb5d0b54a3f846b57aa7ba42028"
+    },
+    {
+      "name": "namespace.validator",
+      "git_blob": "105d4a8bd7a05ee37052dada24ddde8dc487710d",
+      "bytes": 11790,
+      "sha256": "02460a84978d0d218506b0a6b21def854ca070de63624486e284012c4a65f3c0"
+    }
+  ],
+  "findings": [
+    {
+      "area": "Source and ABI provenance",
+      "assessment": "The launcher binds exact common/input-bundle/validator Git blobs, pins the retained B3 size/SHA, retains the original source/reference identities, and checks final source/image disk bytes. The validator executes module bytes from its single pin snapshot."
+    },
+    {
+      "area": "Native versus VM comparison",
+      "assessment": "Paired invocation feeds the prior native workspace, only applies explicit frozen-test resize/private-mutation inputs, then compares exact return, complete output, complete post-workspace and all source/output/workspace canaries. No mask removes fields."
+    },
+    {
+      "area": "Test outcome gates",
+      "assessment": "Both VM and paired suites require a nonempty exact loaded/run count and reject failure/error/skip/expected-failure/unexpected-success. Actual native entries must be nonzero. The frozen test bundle and HIA source bodies themselves were not re-audited here."
+    },
+    {
+      "area": "Compiler limits",
+      "assessment": "Compilation uses the original frozen compile_stage/CHILD path; receipt explicitly checks 10 CPU / 256 MiB and original 1 MiB capacity/workspace, runner identity, produced bytes and forbidden-module/source checks. The 20 wall bound is inherited from the pinned original compile_stage; the two-script review did not execute it."
+    },
+    {
+      "area": "Archive and final evidence",
+      "assessment": "Every restored archive is SHA/GitSHA/size bound. Extraction rejects symlink/hardlink and traversal, rereads regular bytes/modes, and verifies aggregate counts. Newly executed evidence is placed beneath the common output root; historical restored records are not converted to new counts."
+    },
+    {
+      "area": "Truthful scope",
+      "assessment": "The reports explicitly leave ordinary namespace, physical syscall execution and SQLite migration unclosed. Script-level progress requires actual recorded test outcomes; read-only review is not execution qualification."
+    }
+  ],
+  "verified_api_reference": {
+    "commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "path": "hepta/hia_json_preflight_native.py",
+    "git_blob": "b661ae0b42b1ba83b89c123309f216d18ba6a36d",
+    "note": "Read exact constructor declaration: NativeHiaJsonImage(image, expected_sha256) permits the positional second argument used by this validator."
+  },
+  "limitations": [
+    "No independent review of the new FS HIA algorithm or the 14 test method bodies in this exchange.",
+    "No new actual execution or timing claim.",
+    "All immutable source assumptions remain explicit private CI provenance; no public untrusted graph/database authentication is claimed."
+  ]
+}

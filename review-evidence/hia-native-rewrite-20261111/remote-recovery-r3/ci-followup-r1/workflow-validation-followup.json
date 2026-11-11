@@ -1,0 +1,40 @@
+{
+  "schema": "hia-ci-validation-failure-followup-v1",
+  "previous_commit": "1c39366419efe3eb5179ec6ab571552b2f6c2c96",
+  "previous_workflow_git_blob": "dba3377267f7b249c4ede85e7baf569e4a8f59ed",
+  "observed_runs": [
+    {
+      "id": 43098424911,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 43098599202,
+      "status": "completed",
+      "conclusion": "failure",
+      "total_jobs": 0
+    }
+  ],
+  "jobs_endpoint": "https://api.github.com/repos/TrillionniumFoundation/Hepta/actions/runs/43098599202/jobs?per_page=10",
+  "invalid_configuration": "jobs.<job_id>.env used runner.temp, but runner context is not allowed at that key.",
+  "official_context_table": "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability",
+  "repair": "Move HIA_CI_OUTPUT and HIA_CI_COMMON to the executing step's env; retain all compiler/native limits.",
+  "attribution": "The prohibited expression is independently established from the submitted workflow and official context table. The private validation annotation was not retrieved.",
+  "component_native_invocations_from_these_failed_launches": 0,
+  "workflow_after_fix": "Adds namespace and worker jobs, preserves candidate and CLI jobs, and retains an outer driver log even if Python cannot import a harness.",
+  "new_component_passes_claimed": false,
+  "lifecycle_fix": {
+    "test_blob": "67d9afad27449a8e54c7ee27352e66fd4c6d4bc3",
+    "expected_counts": [
+      193,
+      176,
+      17,
+      193,
+      176
+    ],
+    "case_and_assertion_suffix_byte_equal": true,
+    "execution": "NOT_YET_RUN"
+  },
+  "root_ROG_recheck": "A single read after the coordinated pause also timed out; old operations remain UNKNOWN.",
+  "whole_stack_closed": false
+}

@@ -1,0 +1,133 @@
+{
+  "schema": "hia-worker-ci-draft-delivery-v1",
+  "status": "NEW_UNEXECUTED_CI_SOURCES",
+  "repository": "TrillionniumFoundation/Hepta",
+  "common": {
+    "path": "r3/ci/ci_recovery_common_r1.py",
+    "gitsha": "b3637486fbd73dccc91051de05873daff78ed630"
+  },
+  "entrypoint": {
+    "path": "worker_records_journal_ci_r1.py",
+    "bytes": 10011,
+    "sha256": "c9734ac7edd5e77bc1ae16ffa4b7e11ec6e4d36486a04edebb0dfe6972720763",
+    "gitsha": "30db6eea10c2d388f831882a68887f92cbb54ee6"
+  },
+  "environment": {
+    "HIA_CI_COMMON": "absolute path to exact common module",
+    "HIA_CI_OUTPUT": "fresh independent evidence directory",
+    "HIA_WORKER_COMPONENTS": "all (default), records, or bridge"
+  },
+  "workflow_expectations": {
+    "python": "3.12.14",
+    "z3_solver": "4.15.4.0",
+    "source": "a3c61136b79fdb7a4b6d6428fb4bdf31cd5ed270",
+    "reference": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "parent_wall_seconds": 1800
+  },
+  "files": [
+    {
+      "path": "worker_ci_dependencies_r2.json",
+      "bytes": 11581,
+      "sha256": "58281cd95288e6ec3108d4214203847fef764765e1b35f597eb696e404c32bcb",
+      "gitsha": "c86f3db86034d71a0e5966341d2a532f65c88fa5"
+    },
+    {
+      "path": "worker_ci_restore_r1.py",
+      "bytes": 7621,
+      "sha256": "f7456e8e5e39cb284e4447d3b6e2898748dd5b93cdfbb3ce0c35016a11d37ddb",
+      "gitsha": "07785fec88f5471c237e29198eeaf30e7b8a2b81"
+    },
+    {
+      "path": "compile_worker_peers_ci_r1.py",
+      "bytes": 6697,
+      "sha256": "74b644e9e96fbf2dddac82d864debfb4b9dcd3c6e52a708fa2b2028ef2cecad2",
+      "gitsha": "024d17dcf205c633e055a6633e397ada3a21bdd3"
+    },
+    {
+      "path": "development/journal_bridge_ci_harness_r1.py",
+      "bytes": 13893,
+      "sha256": "58aede7e8cb00a9d460b7b997abb19451469c3910f8f1ef8777aa3135ee520fc",
+      "gitsha": "5e6bf5c6b9badbb0862d20ab83dc6979f4308ced"
+    },
+    {
+      "path": "development/test_journal_bridge_ci_r1.py",
+      "bytes": 10402,
+      "sha256": "779c20a02ee833cc2a39c4d714c929b48ead6c5002ae84c9b0342ee85d6047e3",
+      "gitsha": "acd2a9cff8f1e66686825e74cb8dc2db15b6a8dc"
+    },
+    {
+      "path": "development/test_journal_bridge_protocol_ci_r1.py",
+      "bytes": 6854,
+      "sha256": "82d8d3b4ef28ec3e3e87971c7097aa299a495a785953d6e545fab08abada030d",
+      "gitsha": "bbb3e1f2f5749ec02aa7de2e4b44197dc17efcb9"
+    },
+    {
+      "path": "worker_records_journal_ci_r1.py",
+      "bytes": 10011,
+      "sha256": "c9734ac7edd5e77bc1ae16ffa4b7e11ec6e4d36486a04edebb0dfe6972720763",
+      "gitsha": "30db6eea10c2d388f831882a68887f92cbb54ee6"
+    }
+  ],
+  "separately_required_production_sources": [
+    {
+      "path": "tools/service_journal_bridge.py",
+      "bytes": 18612,
+      "sha256": "c6990bbe908670941102bdece6bf94587091e1e6e0f45756a2768f30dbbcdbe1",
+      "blob": "e3b01ccff4302da2cbb5fbf0b18a52fdc3733f31",
+      "status": "NEW_UNEXECUTED_DEVELOPMENT"
+    },
+    {
+      "path": "tools/generate_hia_service_journal_bridge.py",
+      "blob": "7a4dbede1d3dfd4ce39ea63f0d42405608e4cdcf",
+      "bytes": 5007,
+      "sha256": "be8aeb6d62cef861e04b5690a5e2eea59815a81772e0a1b063c1532cee5b4189",
+      "classification": "NEW_UNEXECUTED_DRAFT",
+      "actual_native_tests": 0
+    }
+  ],
+  "original_limits": {
+    "compiler_cpu_seconds": 10,
+    "compiler_wall_seconds": 20,
+    "compiler_address_space_bytes": 268435456,
+    "native_child_cpu_seconds": 90,
+    "native_child_address_space_bytes": 1073741824
+  },
+  "expected_records": {
+    "cases": 228,
+    "actual_entries": 1054,
+    "records": 466,
+    "scan": 240,
+    "emit": 348,
+    "prior_result_inherited": false
+  },
+  "planned_bridge": {
+    "actual_journal_image": true,
+    "complete_transport_stages": "0..10",
+    "groups": [
+      "smoke",
+      "semantic",
+      "diagnostics",
+      "faults",
+      "foreign-boundary",
+      "boundary-exact",
+      "boundary-plusone",
+      "protocol"
+    ],
+    "whole_service_call_fsm": false,
+    "namespace": false,
+    "ordinary_worker": false
+  },
+  "archive": {
+    "old_ROG_records_uploaded": false,
+    "expected_bytes": 764456,
+    "expected_sha256": "202d21ece858801890be054e124435678032a96e0bf5435ff9a860062a33774a",
+    "expected_gitsha": "0a167e319f192f321b8fcf4cc384535a02a5d14a",
+    "state": "73728 ASCII base64 transport bytes still unavailable; not a stored Git object"
+  },
+  "prior_unexecuted_test_draft": {
+    "gitsha": "b4d86eb458815107ba49c5fa302fb9a236f67652",
+    "change": "Before execution, pointer fault helpers were corrected to distinguish ctypes.c_void_p from char-array .value; current test blob acd2a9c is used."
+  },
+  "checks_performed": "Source review and local JS UTF-8/SHA256/Git-blob hash verification only; no Python environment or native execution has been available for these CI sources.",
+  "authorization": "Only blobs created. No refs, workflows, production selectors or shared components modified."
+}
