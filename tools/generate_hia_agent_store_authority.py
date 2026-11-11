@@ -12,7 +12,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 from tools import generate_hia_worker_report as equality_source
 
 SOURCE_PATH = 'examples/hia_bootstrap/agent_store_authority.hiaasm'
-MAGIC = int.from_bytes(b'HIASTA01', 'little')
+MAGIC = int.from_bytes(b'HIASTA02', 'little')
 HIGH = 1 << 63
 LITERALS = {
     'ID': 'id', 'SHA': 'sha256', 'URI': 'uri', 'KIND': 'kind',
@@ -50,6 +50,8 @@ FIELDS.update({
     'NATIVE_HASH': 160, 'TEMP': 168, 'TEMP2': 176, 'INDEX': 184,
     'REQ_A': 200, 'REQ_B': 208, 'REQ_C': 216, 'REQ_D': 224,
     'ISSUE_ID': 240, 'ISSUE_URI': 248,
+    'SQL_CALLABLE': 256, 'FILE_CONTEXT': 264, 'DECODE_CALLABLE': 272,
+    'REJECT_CALLABLE': 280, 'GET_JSON_CALLABLE': 288,
     'NEXT_NODE': 328, 'NEXT_DATA': 336, 'NODE_BASE': 32768, 'DATA_BASE': 65536,
     'FIRST_DYNAMIC': len(LITERALS) + 1,
 })
@@ -177,9 +179,12 @@ def read_artifact(s:readbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 30:
         return ask(w, 42, get(w, ARG0), 0, 0, 0, 31)
     if phase == 31:
+        return ask(w, 63, 0, 0, 0, 0, 55)
+    if phase == 55:
+        put(w, SQL_CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, ARG0), L_ID, 0, 0, 32)
     if phase == 32:
-        return ask(w, 43, L_SELECT_ID, tuple1(w, read64(s, 32)), 0, 0, 33)
+        return ask(w, 43, L_SELECT_ID, tuple1(w, read64(s, 32)), get(w, SQL_CALLABLE), 0, 33)
     if phase == 33:
         put(w, ROW, read64(s, 32))
         if get(w, ROW) == get(w, NONE):
@@ -198,22 +203,33 @@ def read_artifact(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return equal_begin(w, read64(s, 32), get(w, ARG1), 37)
     if phase == 37:
         if get(w, EQ_RESULT) == 0:
-            return ask(w, 33, L_AUTHORITY_PREFIX, get(w, ARG1), 0, 0, 38)
+            return ask(w, 67, 0, 0, 0, 0, 56)
         put(w, PHASE, 40)
         return 0
+    if phase == 56:
+        put(w, REJECT_CALLABLE, read64(s, 32))
+        return ask(w, 33, L_AUTHORITY_PREFIX, get(w, ARG1), 0, 0, 38)
     if phase == 38:
-        return refusal(w, L_AUTHORITY_CODE, read64(s, 32))
+        return ask(w, 16, L_AUTHORITY_CODE, read64(s, 32), get(w, REJECT_CALLABLE), 0, 4294967295)
+    if phase == 39:
+        return ask(w, 46, read64(s, 32), get(w, FILE_CONTEXT), 0, 0, 43)
     if phase == 40:
+        return ask(w, 64, 0, 0, 0, 0, 52)
+    if phase == 52:
+        put(w, FILE_CONTEXT, tuple2(w, read64(s, 32), read64(s, 40)))
         return ask(w, 5, get(w, ROW), L_SHA, 0, 0, 41)
     if phase == 41:
         put(w, CONTENT_HASH, read64(s, 32))
-        return ask(w, 45, L_STORE_GET, read64(s, 32), get(w, NONE), 0, 42)
+        return ask(w, 45, L_STORE_GET, read64(s, 32), get(w, NONE), get(w, FILE_CONTEXT), 42)
     if phase == 42:
         if read64(s, 32) == get(w, NONE):
-            return ask(w, 46, get(w, CONTENT_HASH), 0, 0, 0, 43)
+            return ask(w, 65, 0, 0, 0, 0, 53)
         put(w, DATA, read64(s, 32))
         put(w, PHASE, 49)
         return 0
+    if phase == 53:
+        put(w, FILE_CONTEXT, tuple2(w, read64(s, 32), read64(s, 40)))
+        return ask(w, 5, get(w, ROW), L_SHA, 0, 0, 39)
     if phase == 43:
         put(w, DATA, read64(s, 32))
         return ask(w, 47, read64(s, 32), 0, 0, 0, 44)
@@ -228,9 +244,12 @@ def read_artifact(s:readbuf, w:mutbuf, phase:u64) -> u64:
         put(w, PHASE, 49)
         return 0
     if phase == 49:
+        return ask(w, 66, 0, 0, 0, 0, 54)
+    if phase == 54:
+        put(w, DECODE_CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, ROW), L_METADATA, 0, 0, 50)
     if phase == 50:
-        return ask(w, 48, read64(s, 32), 0, 0, 0, 51)
+        return ask(w, 48, read64(s, 32), get(w, DECODE_CALLABLE), 0, 0, 51)
     if phase == 51:
         return finish(w, tuple2(w, get(w, DATA), read64(s, 32)))
     return 199
@@ -262,6 +281,9 @@ def issue_profile(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return ask(w, 51, result, 0, 0, 0, 83)
     if phase == 83:
         put(w, TEMP, read64(s, 32))
+        return ask(w, 63, 0, 0, 0, 0, 88)
+    if phase == 88:
+        put(w, SQL_CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, REF), L_SHA, 0, 0, 84)
     if phase == 84:
         put(w, TEMP2, read64(s, 32))
@@ -270,7 +292,7 @@ def issue_profile(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return ask(w, 53, read64(s, 32), 0, 0, 0, 86)
     if phase == 86:
         params = tuple3(w, get(w, ARG0), get(w, TEMP2), read64(s, 32))
-        return ask(w, 54, L_INSERT_PROFILE, params, 0, 0, 87)
+        return ask(w, 54, L_INSERT_PROFILE, params, get(w, SQL_CALLABLE), 0, 87)
     if phase == 87:
         return finish(w, tuple2(w, get(w, TEMP), get(w, REF)))
     return 199
@@ -281,20 +303,30 @@ def check_profile(s:readbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 111:
         if get(w, EQ_RESULT) == 0:
             return refusal(w, L_PROFILE_STALE_CODE, L_PROFILE_STALE_MESSAGE)
+        return ask(w, 63, 0, 0, 0, 0, 119)
+    if phase == 119:
+        put(w, SQL_CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, ARG0), L_ID, 0, 0, 112)
     if phase == 112:
         put(w, TEMP, read64(s, 32))
         return ask(w, 5, get(w, ARG0), L_SHA, 0, 0, 113)
     if phase == 113:
-        return ask(w, 43, L_SELECT_PROFILE, tuple2(w, get(w, TEMP), read64(s, 32)), 0, 0, 114)
+        return ask(w, 43, L_SELECT_PROFILE, tuple2(w, get(w, TEMP), read64(s, 32)), get(w, SQL_CALLABLE), 0, 114)
     if phase == 114:
         if read64(s, 32) == get(w, NONE):
             return refusal(w, L_PROFILE_AUTHORITY_CODE, L_PROFILE_AUTHORITY_MESSAGE)
-        return ask(w, 5, read64(s, 32), L_ARTIFACT, 0, 0, 115)
+        put(w, ROW, read64(s, 32))
+        return ask(w, 68, 0, 0, 0, 0, 121)
+    if phase == 121:
+        put(w, GET_JSON_CALLABLE, read64(s, 32))
+        return ask(w, 66, 0, 0, 0, 0, 120)
+    if phase == 120:
+        put(w, DECODE_CALLABLE, read64(s, 32))
+        return ask(w, 5, get(w, ROW), L_ARTIFACT, 0, 0, 115)
     if phase == 115:
-        return ask(w, 48, read64(s, 32), 0, 0, 0, 116)
+        return ask(w, 48, read64(s, 32), get(w, DECODE_CALLABLE), 0, 0, 116)
     if phase == 116:
-        return ask(w, 55, read64(s, 32), L_PROFILE, 0, 0, 117)
+        return ask(w, 55, read64(s, 32), L_PROFILE, get(w, GET_JSON_CALLABLE), 0, 117)
     if phase == 117:
         return ask(w, 56, read64(s, 32), 0, 0, 0, 118)
     if phase == 118:
@@ -400,6 +432,9 @@ def put_artifact(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return ask(w, 51, ref, 0, 0, 0, 326)
     if phase == 326:
         put(w, REF, read64(s, 32))
+        return ask(w, 63, 0, 0, 0, 0, 334)
+    if phase == 334:
+        put(w, SQL_CALLABLE, read64(s, 32))
         return ask(w, 5, get(w, REF), L_ID, 0, 0, 327)
     if phase == 327:
         put(w, ISSUE_ID, read64(s, 32))
@@ -411,7 +446,7 @@ def put_artifact(s:readbuf, w:mutbuf, phase:u64) -> u64:
         return ask(w, 53, read64(s, 32), 0, 0, 0, 330)
     if phase == 330:
         params = tuple6(w, get(w, ISSUE_ID), get(w, CONTENT_HASH), get(w, ISSUE_URI), get(w, ARG1), read64(s, 32), get(w, CONTENT_KEY))
-        return ask(w, 54, L_INSERT_ARTIFACT, params, 0, 0, 331)
+        return ask(w, 54, L_INSERT_ARTIFACT, params, get(w, SQL_CALLABLE), 0, 331)
     if phase == 331:
         return ask(w, 43, L_SELECT_CONTENT, tuple1(w, get(w, CONTENT_KEY)), 0, 0, 332)
     if phase == 332:

@@ -24,7 +24,7 @@ def _build(output, compiler, cold_report=None):
     if (compiler.read_bytes() != compiler_raw or (ROOT / SOURCE).read_bytes() != raw
             or (cold_report is not None and (cold_report.read_bytes() != cold_raw or current_sources() != sources))):
         raise ValueError('AgentStore authority build inputs changed')
-    manifest = {'schema': 'hepta.hia.agent-store-authority-native.v1',
+    manifest = {'schema': 'hepta.hia.agent-store-authority-native.v2',
                 'source_sha256': sha256(raw).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image.read_bytes()).hexdigest(),
                 'compiler_sha256': sha256(compiler_raw).hexdigest()}

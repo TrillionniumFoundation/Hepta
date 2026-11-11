@@ -16,9 +16,9 @@ from .hia_json_wire_native import _private_zeroed_buffer
 from .hia_worker_report_native import WorkerGraphObserver, _dict_primitives, _pure_builtin_key_hash
 
 SOURCE = _source_resource_path('examples/hia_bootstrap/agent_store_authority.hiaasm')
-SCHEMA = 'hepta.hia.agent-store-authority-native.v1'
+SCHEMA = 'hepta.hia.agent-store-authority-native.v2'
 SELECTOR = 'HEPTA_HIA_AGENT_STORE_AUTHORITY_MANIFEST'
-MAGIC = int.from_bytes(b'HIASTA01', 'little')
+MAGIC = int.from_bytes(b'HIASTA02', 'little')
 HIGH = 1 << 63
 
 
@@ -172,7 +172,8 @@ class StoreAuthoritySession:
         elif opcode == 7:
             x = reg(getattr(value(a), value(b)))
         elif opcode == 16:
-            m.reject(value(a), value(b))
+            reject = value(c) if c else m.reject
+            reject(value(a), value(b))
         elif opcode == 20:
             # The shared HIA equality walker requests rich comparison only at
             # opaque foreign leaves. Builtin graphs and scalars remain HIA.
@@ -219,21 +220,25 @@ class StoreAuthoritySession:
             m.keys(value(a), ('id', 'sha256', 'uri'), label='artifact reference')
             x = reg(None)
         elif opcode == 43:
-            x = reg(self.store.db.execute(value(a), value(b)).fetchone())
+            execute = value(c) if c else self.store.db.execute
+            x = reg(execute(value(a), value(b)).fetchone())
         elif opcode == 44:
             x = reg(self.store._ref(value(a)))
         elif opcode == 45:
             operation = value(a)
+            function, root = value(d) if d else (m._native_artifact_file, self.store.artifacts)
             if operation == 'store-get':
-                x = reg(m._native_artifact_file(operation, self.store.artifacts, content_hash=value(b)))
+                x = reg(function(operation, root, content_hash=value(b)))
             else:
-                x = reg(m._native_artifact_file(operation, self.store.artifacts, data=value(b), _admission=value(c)))
+                x = reg(function(operation, root, data=value(b), _admission=value(c)))
         elif opcode == 46:
-            x = reg(m.stable_read(self.store.artifacts / value(a), m.MAX_ARTIFACT_BYTES))
+            function, root = value(b) if b else (m.stable_read, self.store.artifacts)
+            x = reg(function(root / value(a), m.MAX_ARTIFACT_BYTES))
         elif opcode == 47:
             x = reg(m.sha256(value(a)).hexdigest())
         elif opcode == 48:
-            x = reg(m.decode_data(value(a)))
+            decoder = value(b) if b else m.decode_data
+            x = reg(decoder(value(a)))
         elif opcode == 49:
             x = reg(self.store.get(value(a)))
         elif opcode == 50:
@@ -245,9 +250,11 @@ class StoreAuthoritySession:
         elif opcode == 53:
             x = reg(value(a).decode())
         elif opcode == 54:
-            x = reg(self.store.db.execute(value(a), value(b)))
+            execute = value(c) if c else self.store.db.execute
+            x = reg(execute(value(a), value(b)))
         elif opcode == 55:
-            x = reg(self.store.get_json(value(a), kind=value(b)))
+            get_json = value(c) if c else self.store.get_json
+            x = reg(get_json(value(a), kind=value(b)))
         elif opcode == 56:
             x = reg(value(a)[b])
         elif opcode == 57:
@@ -264,6 +271,20 @@ class StoreAuthoritySession:
             x = reg(self.store.get(value(a), kind=value(b)))
         elif opcode == 62:
             x = reg(m.uuid.uuid4())
+        elif opcode == 63:
+            x = reg(self.store.db.execute)
+        elif opcode == 64:
+            x = reg(m._native_artifact_file)
+            y = reg(self.store.artifacts)
+        elif opcode == 65:
+            x = reg(m.stable_read)
+            y = reg(self.store.artifacts)
+        elif opcode == 66:
+            x = reg(m.decode_data)
+        elif opcode == 67:
+            x = reg(m.reject)
+        elif opcode == 68:
+            x = reg(self.store.get_json)
         else:
             raise RuntimeError('unknown HIA AgentStore foreign instruction')
         return struct.pack('<8Q', MAGIC, sequence, opcode, 0, x, y, z, t) + payload

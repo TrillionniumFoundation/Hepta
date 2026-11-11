@@ -46,7 +46,7 @@ selected missing or mismatching image fails without entering a retained method.
 
 ## Protocol and limits
 
-`HIASTA01` has a fresh zeroed private workspace, a bounded initial packet and
+`HIASTA02` has a fresh zeroed private workspace, a bounded initial packet and
 sequence/opcode-bound continuation acknowledgements. Every foreign request is
 consumed before performing the operation. Repeated observation, continuation
 after a foreign exception, and continuation after a terminal/refused result
@@ -78,7 +78,35 @@ development source population, not a complete Git checkout or cold identity.
 The development compiler is the existing `0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8`
 image. Reusing that compiler does not qualify the new source.
 
-This initial checkpoint records generated source and an actual native compile.
-Behavioral, installed-resource and selected ordinary-caller tests are still
-being implemented. No complete equivalence, matching-source cold, complete
-regression or native durability pass is asserted.
+Development revision 4 has an actual native compile and 15 complete dedicated
+test methods: independent Core execution, six unchanged retained ASTs, real
+SQLite state/trace/reopen comparisons, publication routing, profile numeric
+and foreign comparison controls, transactional and nontransactional failures,
+one-shot protocol controls, exact 64 MiB admission, and an actual wheel child
+under `-I -S -B` with an empty PATH. The installed child uses the packaged HIA
+resource, forbids all six retained owners and checks the installed identity.
+The tests record complete loaded/executed IDs, zero anomalies and source/image
+identities; this remains CPython 3.12 development evidence.
+
+Two actual counterexamples were found after the first ordinary successful
+comparison and retained separately. Revision 2 omitted one repeated row SHA
+observation before the hosted stable read. Revision 3 bound several foreign
+callables and path attributes after argument observations, whereas the original
+Python expressions bind them first. Revision 4 restores those observation
+points and versions the callback protocol as `HIASTA02`. Its dedicated suite
+includes both counterexamples. The original compiler refusal and both failed
+comparisons are not relabelled as passes.
+
+`tools/qualify_hia_agent_store_authority_callers.py` runs the original five Agent
+modules without exclusions, forbids all six retained store owners, records
+every actual native mode and original Agent tool call, and requires nonempty
+identical loaded/chosen/executed IDs and no failure, error, skip, expected
+failure or unexpected success. Tools which do not perform store operations are
+reported separately; they are not assigned invented store entries. The strict
+cold path builds from the complete matching source closure and retains its
+build when `--evidence-dir` names a new directory. The explicit development
+path cannot be relabelled as qualified cold.
+
+The original selected caller run has not yet completed at this checkpoint.
+No complete equivalence, matching-source cold, complete regression or native
+durability pass is asserted.
