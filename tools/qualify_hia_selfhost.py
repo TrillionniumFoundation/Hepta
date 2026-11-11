@@ -192,13 +192,28 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
 
 def compile_stage(directory, label, image, source, *, image_format="flat-x86-64", workspace_fill=0,
                   output_extension=".image.bin"):
+    compiler_bytes = Path(image).read_bytes()
     result, output = invoke(directory, label, image, source, image_format=image_format,
                             workspace_fill=workspace_fill)
-    if result.get("status") != "returned" or result.get("abi_status") != 0 or result["core_u32"] > len(output):
+    # These are publication conditions, including under Python -O.  In
+    # particular, bool/float zero is not a successful native integer status,
+    # and a missing/truthy custody observation is not an unchanged-source
+    # receipt.  Validate the captured invocation before creating an image.
+    if (type(result) is not dict or type(output) is not bytes
+            or result.get("status") != "returned"
+            or type(result.get("abi_status")) is not int or result["abi_status"] != 0
+            or type(result.get("core_u32")) is not int
+            or not 0 < result["core_u32"] <= min(CAPACITY, len(output))
+            or result.get("source_unchanged") is not True
+            or type(result.get("forbidden_compiler_modules_loaded")) is not list
+            or result["forbidden_compiler_modules_loaded"] != []
+            or result.get("input_sha256") != digest(source)
+            or type(result.get("input_bytes")) is not int or result["input_bytes"] != len(source)
+            or result.get("artifact_sha256") != digest(compiler_bytes)
+            or result.get("format") != image_format
+            or Path(image).read_bytes() != compiler_bytes):
         raise AssertionError({"compile_failed": label, "receipt": result})
-    assert result["source_unchanged"] and not result["forbidden_compiler_modules_loaded"]
     size = result["core_u32"]
-    assert 0 < size <= CAPACITY
     produced = output[:size]
     path = Path(directory) / (label + output_extension)
     path.write_bytes(produced)
