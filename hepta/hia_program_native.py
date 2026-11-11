@@ -85,6 +85,8 @@ def _implementation_hash():
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
         "hia_machine_x64.py", "hia_machine_encoding_native.py", "hia_machine_elf.py",
+        "hia_machine_state_native.py", "hia_machine_instructions_native.py",
+        "hia_json_wire_native.py",
         "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
         "hia_machine_plan.py", "hia_machine_plan_native.py",
         "hia_instruction_policy_native.py", "hia_json_preflight_native.py",

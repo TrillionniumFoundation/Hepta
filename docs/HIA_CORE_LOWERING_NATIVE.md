@@ -181,3 +181,7 @@ foreign StopIteration/PEP479 behavior and monkeypatching reducer builtins are no
 included in the ordinary verified-builtin claim. The existing arbitrary
 recursion/resource, finalizer and introspection limitations also remain.
 No retained implementation is removed and no default selection is enabled.
+
+## Instruction owner integration boundary
+
+The ordinary-entry draft additionally preserves the exact 7186dee24f33173c25f2246a6dfe15eeda053992 machine-state and instruction-control source. The backend identity includes hia_machine_state_native.py, hia_machine_instructions_native.py and hia_json_wire_native.py alongside both Core-lowering bridges. The existing native_encoding_scope implementation and its independently selected Code owners remain unchanged. The complete original Function and helper oracle is still the exact 608 source; these bodies did not change in 7186. This source merge does not inherit native/caller qualification for the new composition. Its private v72 contract definition still requires actual regeneration and source-bound validation before any cold-built claim.

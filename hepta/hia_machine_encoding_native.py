@@ -235,7 +235,13 @@ class NativeEncodedCode(reference.Code):
 
 
 @lru_cache(maxsize=3)
-def selected_code_class(encoding):
+def selected_code_class(encoding, state=None, instructions=None):
+    if instructions is not None:
+        from .hia_machine_instructions_native import selected_instruction_code_class
+        return selected_instruction_code_class(encoding, state, instructions)
+    if state is not None:
+        from .hia_machine_state_native import selected_state_code_class
+        return selected_state_code_class(encoding, state)
     class SelectedCode(NativeEncodedCode):
         def __init__(self, *, scratch_registers=None,
                      move_immediate='movabs', alu_immediate='imm32'):
