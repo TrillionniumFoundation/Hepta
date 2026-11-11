@@ -1,0 +1,193 @@
+{
+  "bundle_sha256": "95c257090a298939576c3a2d7bbfc59683dacc8618bf0bcaa2a9d4e1531ae2b5",
+  "calls": [
+    {
+      "argv": [
+        "--version"
+      ],
+      "code": 0,
+      "kind": "exit",
+      "stderr": "",
+      "stdout": "hia 0.3.0\n"
+    },
+    {
+      "argv": [
+        "--help"
+      ],
+      "code": 0,
+      "kind": "exit",
+      "stderr": "",
+      "stdout": "usage: hia [-h] [--version]\n           {capabilities,catalog,import-assembly,render-assembly,check-assembly,verify,inspect,normalize,build,patch,impact,edit-query,edit-apply,edit-batch-query,edit-batch-apply}\n           ...\n\nHIA Core Agent interface\n\npositional arguments:\n  {capabilities,catalog,import-assembly,render-assembly,check-assembly,verify,inspect,normalize,build,patch,impact,edit-query,edit-apply,edit-batch-query,edit-batch-apply}\n\noptions:\n  -h, --help            show this help message and exit\n  --version             show program's version number and exit\n"
+    },
+    {
+      "argv": [
+        "verify",
+        "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/input.hia"
+      ],
+      "code": 0,
+      "kind": "return",
+      "stderr": "",
+      "stdout": "{\n  \"blocks_checked\": 2,\n  \"claims\": {\n    \"backend_refinement_proved\": false,\n    \"background_tasks_supported\": false,\n    \"concurrency_supported\": false,\n    \"cooperative_task_protocol_checked\": false,\n    \"escaping_loans_supported\": false,\n    \"foreign_code_supported\": false,\n    \"linear_resources_and_loan_provenance_checked\": true,\n    \"local_stored_loan_identity_checked\": false,\n    \"nominal_products_and_enums_checked\": false,\n    \"parameter_bound_loan_returns_supported\": true,\n    \"preemptive_or_async_cancellation_supported\": false,\n    \"record_field_borrow_provenance_checked\": false,\n    \"recursive_buffer_chains_supported\": true,\n    \"recursive_heap_adts_supported\": false,\n    \"typed_closed_ssa_checked\": true,\n    \"whole_language_soundness_proved\": false\n  },\n  \"functions_checked\": 2,\n  \"input_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n  \"native_executed\": false,\n  \"normalization\": {\n    \"core_profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n    \"core_schema\": \"hepta.hia.program.v8\",\n    \"core_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n    \"input_profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n    \"input_schema\": \"hepta.hia.program.v8\",\n    \"input_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n    \"primitive_core_rechecked\": true,\n    \"public_scalar_entrypoints\": [\n      \"calculate\",\n      \"caller\"\n    ],\n    \"source_ast_required\": false,\n    \"structured_elaboration_rechecked\": false\n  },\n  \"ok\": true,\n  \"profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n  \"program_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n  \"schema\": \"hepta.hia.program-verification.v1\",\n  \"source_required\": false,\n  \"status\": \"standalone_core_checked\",\n  \"word_bits\": 64\n}\n"
+    },
+    {
+      "argv": [
+        "capabilities"
+      ],
+      "code": 0,
+      "kind": "return",
+      "stderr": "",
+      "stdout": "{\n  \"actions\": [\n    \"capabilities\",\n    \"catalog\",\n    \"import-assembly\",\n    \"render-assembly\",\n    \"check-assembly\",\n    \"verify\",\n    \"inspect\",\n    \"normalize\",\n    \"build\",\n    \"patch\",\n    \"impact\",\n    \"edit-query\",\n    \"edit-apply\",\n    \"edit-batch-query\",\n    \"edit-batch-apply\"\n  ],\n  \"audience\": \"ai-agent\",\n  \"build\": {\n    \"backend\": \"native\",\n    \"fallback\": false,\n    \"kind\": \"object\",\n    \"target\": \"x86_64-unknown-linux-gnu\"\n  },\n  \"edits\": {\n    \"entire_module_reverified\": true,\n    \"publication\": \"new_path_only\",\n    \"snapshot_bound\": true\n  },\n  \"entry\": \"hia\",\n  \"high_level_hepta\": \"removed\",\n  \"high_level_source_required\": false,\n  \"implementation\": \"python_host_bridge\",\n  \"inputs\": [\n    \"standalone-hia-json\",\n    \"explicit-hia-assembly\"\n  ],\n  \"language_core\": \"HIA\",\n  \"native_only_delivery_qualified\": false,\n  \"production_activated\": false,\n  \"schema\": \"hepta.hia.agent-entry.v1\"\n}\n"
+    },
+    {
+      "argv": [
+        "verify"
+      ],
+      "code": 2,
+      "kind": "exit",
+      "stderr": "usage: hia verify [-h] input\nhia verify: error: the following arguments are required: input\n",
+      "stdout": ""
+    },
+    {
+      "argv": [
+        "verify",
+        "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/input.missing"
+      ],
+      "code": 2,
+      "kind": "return",
+      "stderr": "",
+      "stdout": "{\n  \"diagnostics\": [\n    {\n      \"code\": \"E_DRIVER\",\n      \"message\": \"E_HIA_EDIT: cannot read ordinary input\",\n      \"phase\": \"driver\"\n    }\n  ],\n  \"ok\": false,\n  \"status\": \"error\"\n}\n"
+    },
+    {
+      "argv": [
+        "--version"
+      ],
+      "code": 0,
+      "kind": "exit",
+      "stderr": "",
+      "stdout": "hia 0.3.0\n"
+    },
+    {
+      "argv": [
+        "--version"
+      ],
+      "code": 0,
+      "kind": "exit",
+      "stderr": "",
+      "stdout": "hia 0.3.0\n"
+    }
+  ],
+  "console_entry_point": "hepta.cli:hia_main",
+  "empty_PATH": true,
+  "forbidden_entries": {
+    "retained_cli": [],
+    "retained_parser": [],
+    "tools": []
+  },
+  "installed_source_paths": {
+    "control": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_control.hiaasm",
+    "format": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_format.hiaasm"
+  },
+  "isolated_without_site": true,
+  "native_returns": {
+    "control": [
+      0,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      0,
+      1,
+      1,
+      2,
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      2,
+      0,
+      0
+    ],
+    "format": [
+      3,
+      0,
+      3,
+      0,
+      3,
+      3,
+      3,
+      0,
+      3,
+      0,
+      3,
+      0,
+      3,
+      0
+    ]
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "refusals": [
+    {
+      "case": "changed-installed-control",
+      "message": "native HIA JSON source identity mismatch",
+      "type": "ValueError"
+    },
+    {
+      "case": "missing-installed-control",
+      "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_control.hiaasm'",
+      "type": "FileNotFoundError"
+    },
+    {
+      "case": "changed-installed-format",
+      "message": "native HIA JSON source identity mismatch",
+      "type": "ValueError"
+    },
+    {
+      "case": "missing-installed-format",
+      "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_format.hiaasm'",
+      "type": "FileNotFoundError"
+    },
+    {
+      "case": "bundle-schema",
+      "message": "invalid native CLI bundle",
+      "type": "ValueError"
+    },
+    {
+      "case": "bundle-child-traversal",
+      "message": "invalid native CLI child identity",
+      "type": "ValueError"
+    },
+    {
+      "case": "bundle-child-hash",
+      "message": "native CLI child manifest identity mismatch",
+      "type": "ValueError"
+    },
+    {
+      "case": "missing-selected-bundle",
+      "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/bundle/manifest.missing'",
+      "type": "FileNotFoundError"
+    },
+    {
+      "case": "empty-selected-bundle",
+      "message": "[Errno 21] Is a directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control'",
+      "type": "IsADirectoryError"
+    }
+  ],
+  "schema": "hepta.hia.cli-installed-execution.v1",
+  "source_sha256": {
+    "control": "c5cc2d52a5e3b9085954eb1f9e9dfb0b66f26673ced207a3fd89ba6696dff5dc",
+    "format": "ebd4610211909ad190976dbcbd603e93884b812fde34871a7e23de98548e8269"
+  },
+  "sources_and_bundle_restored": true,
+  "status": "PASS_INSTALLED_NATIVE_CLI_CONTROL",
+  "whole_native_delivery_qualified": false
+}
