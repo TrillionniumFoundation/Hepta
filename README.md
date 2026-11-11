@@ -15,8 +15,11 @@ hia verify examples/hia_program/counter.hia
 ```
 
 The `hia` entry is currently a Python-hosted bridge. The independently built
-HIA-native stdio application supports `capabilities`, `verify` and `compile` on
+HIA-native stdio application supports `capabilities`, `verify`, `compile`,
+`render-assembly` and direct HIA-source `assemble` on
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
+The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
+snapshot-bound edits with native whole-Core checks of both base and candidate.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

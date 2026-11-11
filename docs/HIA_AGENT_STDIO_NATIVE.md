@@ -1,7 +1,8 @@
 # HIA-native Agent stdio entry
 
 This explicitly built Linux x86-64 entry implements `capabilities`, `verify`,
-`compile` and `render-assembly` without Python, a host JSON parser, Rust, LLVM, libc, a dynamic
+`compile`, `render-assembly` and `assemble` without Python, a host JSON parser,
+Rust, LLVM, libc, a dynamic
 loader or a second executable at runtime. It is the first native replacement
 component of the Agent-only product, **not** its complete editing/persistence,
 runtime, package/build or installation/release implementation.
@@ -16,6 +17,7 @@ python -B -m tools.build_hia_agent_stdio \
 /new/private/agent/hia-native verify < program.core.json
 /new/private/agent/hia-native compile < program.core.json > program.image.bin
 /new/private/agent/hia-native render-assembly < program.core.json > program.hiaasm
+/new/private/agent/hia-native assemble < program.hiaasm > program.image.bin
 ```
 
 The build/custody driver is still Python. Actual HIA code compiles the command
@@ -34,30 +36,45 @@ stdout. `render-assembly` publishes the native frontend assembly only after the
 mandatory native semantic/resource compiler accepts it. It publishes no machine
 code and cannot return an unchecked view of malformed, invalid SSA, leaking or
 unsupported programs. The exact original build profile is preserved; this is
-not a general Core renderer or a profile upgrade. These are command-specific output contracts, not JSON-lines RPC.
+not a general Core renderer or a profile upgrade. `assemble` passes the submitted
+HIA assembly bytes directly to that same native semantic/resource compiler,
+without the JSON representation frontend or a source-language conversion.
+These are command-specific output contracts, not JSON-lines RPC.
 
 The output profile is chosen explicitly at build time: `flat`, `elf` (ET_REL
 objects) or `exec` (the existing syscall-only program entry). The capabilities
 record reports its numeric build profile, 0/1/2 respectively. Input module or
-export metadata cannot switch that operator-selected profile. The existing
+export metadata cannot switch that operator-selected profile. For `assemble`,
+an ordinary module selects flat output, `selfhost_elf` or explicit scalar
+exports select ELF, and `selfhost_exec` selects the executable profile. The
+caller must provide source matching the selected profile; the adapter never
+rewrites its module or exports. After successful semantic compilation, a
+private HIA dispatcher phase checks the actual flat/ET_REL/ET_EXEC result against
+the build profile before publication. This is an output-selection check, not
+a general ELF validator or an admission path for submitted machine code. The existing
 no-argument JSON compiler filter is unchanged.
 
 ## Limits and failure contract
 
-Input JSON remains bounded to 8 MiB, 1,048,576 nodes and depth 128; there is no
+Input JSON for `verify`, `compile` and `render-assembly` remains bounded to
+8 MiB, 1,048,576 nodes and depth 128; there is no
 new JSON envelope subtracting from those budgets. The unchanged compiler
-source/output/workspace ceilings are 1 MiB. The separate anonymous RW mapping
+source/output/workspace ceilings are 1 MiB. `assemble` reads at most 1 MiB plus
+the one-byte oversize guard, rejects excess bytes, and copies the unchanged
+input into the existing disjoint compiler source region. Commands never infer
+or convert the input language. Capabilities separately report
+`assembly_input_bytes_max`. The separate anonymous RW mapping
 has the same 88 MiB plus 8192 bytes transport budget as the JSON CLI; code is RX.
 The private command mode occupies bytes beyond the input's oversize-read guard,
 outside all frontend/compiler output and workspace regions.
 
 Exactly one argument is required. The adapter scans at most 32 command bytes;
-the HIA dispatcher accepts only the four exact declared words. Exit codes:
+the HIA dispatcher accepts only the five exact declared words. Exit codes:
 
 | Exit | Category |
 | --- | --- |
 | 0 | Accepted operation completed |
-| 2 | JSON representation or semantic/resource refusal |
+| 2 | JSON/assembly representation, semantic/resource or output-profile refusal |
 | 3 | Wire/node/depth/assembly/native-output capacity |
 | 4 | Mapping or descriptor I/O failure |
 | 64 | Invalid argument count or unsupported command |
@@ -80,6 +97,17 @@ canaries. Native qualification must use a genuine completed matching cold
 receipt, not a shape-only fixture. Original/modified compiler chains, real
 generated-program execution, installed copies, profile-switch refusals,
 ownership rejection, I/O failure and native syscall traces are separate controls.
+
+The assembly continuation checks exact 1 MiB and plus-one input, command-language
+mismatch, missing effects, invalid loans, leaked owners and all cross-profile
+refusals. Raw original and modified HIA compiler sources can be assembled to
+standalone executables that compile the same source through their own
+stdin/stdout entry under an empty `PATH`. The original three images must agree;
+the modified first image must differ from the next, the next two must agree,
+and the modified fixed point must differ from the original. This is compiler
+self-hosting, not complete Agent package/build/install/persistence closure.
+Fresh matching-source cold qualification and actual native observations are
+required for changed source; these tests inherit no prior-source acceptance.
 
 The hosted `hia` bridge remains during replacement. The high-level language
 and old `hepta` CLI entry are removed; no compatibility entry is packaged. Native command presence does not qualify complete Agent editing,

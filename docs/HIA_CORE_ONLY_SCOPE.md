@@ -21,11 +21,15 @@ cold bootstrap and original/modified-source witnesses must be run for this tree.
 
 ## Remaining blockers
 
-- Hosted Agent editing still requires Python; native stdio implements only
-  capabilities, Core verify and compile, not snapshot-bound edits or persistence.
-- Native module graph/build orchestration and runtime/standard-library coverage
-  remain incomplete. Research backends and host qualification tools are not
-  production-native replacements.
+- The installed Agent entry remains hosted. Native stdio provides capabilities,
+  verify/compile, assembly rendering and direct assembly. A separate native
+  snapshot-bound patch application performs four edit kinds with full primitive
+  Core admission before and after editing. Durable metadata/ref authority,
+  request intents, crash recovery and publication remain hosted.
+- Native module graph and workspace compilation filters exist. Full project
+  build/install ownership, nominal/composite normalization and runtime/standard
+  library coverage remain incomplete. Research backends and host qualification
+  tools are not whole-product replacements.
 - Durable publication/recovery, installation, bounded artifact lifecycle and
   clean-machine real-project acceptance remain open.
 - Full native defaults and old production-stack retirement await those gates.

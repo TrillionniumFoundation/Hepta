@@ -25,8 +25,9 @@ ROOT = Path(__file__).resolve().parents[1]
 def capabilities_bytes():
     return (json.dumps({
         'schema': 'hepta.hia.agent-stdio.v1', 'implementation': 'hia-native',
-        'operations': ['capabilities', 'verify', 'compile', 'render-assembly'], 'build_profile': 0,
+        'operations': ['capabilities', 'verify', 'compile', 'render-assembly', 'assemble'], 'build_profile': 0,
         'input': 'primitive-v8-Core-JSON', 'input_bytes_max': WIRE_LIMIT,
+        'assembly_input': 'hia-asm.v1', 'assembly_input_bytes_max': LIMIT,
         'compiler_bytes_max': LIMIT, 'program_nodes_max': 1048576, 'json_depth_max': 128,
         'target': 'linux-x86_64', 'runtime_python_required': False,
         'edit_and_persistence_implemented': False, 'whole_native_delivery_qualified': False,
@@ -52,11 +53,15 @@ def dispatcher_source():
     cap = capabilities_bytes()
     profile_at = cap.index(b'"build_profile":0') + len(b'"build_profile":')
     source = '''def dispatch(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
-    if length(s) > 32 or length(w) < 48:
+    if length(w) < 48:
         return 4294967293
     phase = read_word(w, 0)
     profile = read_word(w, 40)
-    if phase > 1 or profile > 2:
+    if phase > 2 or profile > 2:
+        return 4294967293
+    if phase == 2:
+        return emitted_profile(s, profile)
+    if length(s) > 32:
         return 4294967293
     if matches(s, 6, 133476589827702) == 1:
         if phase == 0:
@@ -69,6 +74,8 @@ def dispatcher_source():
     if matches(s, 15, 7002378775433209202) == 1:
         if byte(s, 8) == 115 and byte(s, 9) == 115 and byte(s, 10) == 101 and byte(s, 11) == 109 and byte(s, 12) == 98 and byte(s, 13) == 108 and byte(s, 14) == 121:
             return 3
+    if matches(s, 8, 7308332187135341409) == 1:
+        return 4
     if matches(s, 12, 7809644627822477667) == 1:
         if byte(s, 8) == 116 and byte(s, 9) == 105 and byte(s, 10) == 101 and byte(s, 11) == 115:
             return capabilities(o, profile)
@@ -79,6 +86,7 @@ def capabilities(o:mutbuf, profile:u64) -> u32:
     # Compare only the exact declared command bytes, with no prefix matching.
     source = source.replace('133476589827702', str(int.from_bytes(b'verify', 'little')))
     source = source.replace('28548189479661411', str(int.from_bytes(b'compile', 'little')))
+    source = source.replace('7308332187135341409', str(int.from_bytes(b'assemble', 'little')))
     source = source.replace('7809644627822477667', str(int.from_bytes(b'capabili', 'little')))
     source += f'    if length(o) < {len(cap)}:\n        return 4294967294\n'
     source += writes(cap)
@@ -86,6 +94,25 @@ def capabilities(o:mutbuf, profile:u64) -> u32:
     source += f'\ndef verified(o:mutbuf) -> u32:\n    if length(o) < {len(VERIFIED)}:\n        return 4294967294\n'
     source += writes(VERIFIED) + f'    return {len(VERIFIED)}\n'
     source += '''
+def emitted_profile(s:readbuf, profile:u64) -> u32:
+    if length(s) == 0 or length(s) > 1048576:
+        return 4294967295
+    elf = 0
+    if length(s) >= 4:
+        if byte(s, 0) == 127 and byte(s, 1) == 69 and byte(s, 2) == 76 and byte(s, 3) == 70:
+            elf = 1
+    if profile == 0:
+        if elf == 1:
+            return 4294967295
+        return 1
+    if length(s) < 64 or elf == 0:
+        return 4294967295
+    if byte(s, 4) != 2 or byte(s, 5) != 1 or byte(s, 6) != 1:
+        return 4294967295
+    if byte(s, 16) != profile or byte(s, 17) != 0 or byte(s, 18) != 62 or byte(s, 19) != 0:
+        return 4294967295
+    return 1
+
 def matches(s:readbuf, size:u64, word:u64) -> u64:
     if length(s) != size:
         return 0
@@ -153,18 +180,25 @@ def template():
     emit('83 f8 01'); branch('0f 84', 'mode')
     emit('83 f8 02'); branch('0f 84', 'mode')
     emit('83 f8 03'); branch('0f 84', 'mode')
+    emit('83 f8 04'); branch('0f 84', 'mode')
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('85 c0'); branch('0f 84', 'io')
     branch('e9', 'reply_output')
     label('mode')
     emit('41 89 84 24'); word(MODE_OFFSET)      # outside input/compiler output
+    emit('bb'); word(WIRE_LIMIT)               # JSON wire ceiling
+    emit('83 f8 04'); branch('0f 85', 'reading')
+    emit('bb'); word(LIMIT)                    # exact native assembly ceiling
+    label('reading')
     emit('45 31 ed')
     label('read')
-    emit('31 c0 31 ff 4b 8d 34 2c ba'); word(WIRE_LIMIT+1)
+    emit('31 c0 31 ff 4b 8d 34 2c 89 da 83 c2 01')
     emit('4c 29 ea 0f 05 48 83 f8 fc'); branch('0f 84', 'read')
-    emit('48 85 c0'); branch('0f 88', 'io'); branch('0f 84', 'frontend')
-    emit('49 01 c5 49 81 fd'); word(WIRE_LIMIT); branch('0f 87', 'space')
+    emit('48 85 c0'); branch('0f 88', 'io'); branch('0f 84', 'received')
+    emit('49 01 c5 49 39 dd'); branch('0f 87', 'space')
     branch('e9', 'read')
+    label('received')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 84', 'assembly')
     label('frontend')
     emit('4c 89 e7 4c 89 ee 49 8d 94 24'); word(OUTPUT_OFFSET)
     emit('b9'); word(OUTPUT_BYTES)
@@ -179,7 +213,14 @@ def template():
     emit('83 f8 fd'); branch('0f 84', 'io')
     emit('85 c0'); branch('0f 84', 'invalid')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
-    emit('41 89 c5 49 8d bc 24'); word(ARENA_OFFSET)
+    emit('41 89 c5'); branch('e9', 'compiler_input')
+    label('assembly')
+    # Keep exactly the same disjoint compiler ABI regions. Copy admitted raw
+    # assembly into the frontend-output region without parsing or rewriting it.
+    emit('4c 89 e6 49 8d bc 24'); word(OUTPUT_OFFSET)
+    emit('4c 89 e9 fc f3 a4')
+    label('compiler_input')
+    emit('49 8d bc 24'); word(ARENA_OFFSET)
     emit('31 c0 b9'); word(LIMIT)
     emit('fc f3 aa 49 8d bc 24'); word(OUTPUT_OFFSET)
     emit('4c 89 ee 4c 89 e2 b9'); word(LIMIT)
@@ -189,11 +230,26 @@ def template():
     emit('83 f8 fe'); branch('0f 84', 'space')
     emit('85 c0'); branch('0f 84', 'invalid')
     emit('3d'); word(LIMIT); branch('0f 87', 'invalid')
+    emit('41 83 bc 24'); word(MODE_OFFSET); emit('04'); branch('0f 84', 'assembly_profile')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('01'); branch('0f 84', 'verified')
     emit('41 83 bc 24'); word(MODE_OFFSET); emit('03'); branch('0f 84', 'assembly_output')
     emit('41 89 c6 4d 89 e7'); branch('e9', 'write')
     label('assembly_output')
     emit('44 89 e8'); branch('e9', 'reply_output')  # preserved checked frontend length
+    label('assembly_profile')
+    # Only a successful native compilation reaches this private HIA phase.
+    # It checks the emitted format against the operator's build profile; it
+    # never admits submitted machine code or changes module/export metadata.
+    emit('41 89 c6 4c 89 e7 4c 89 f6')
+    emit('49 8d 94 24'); word(OUTPUT_OFFSET)
+    emit('b9'); word(OUTPUT_BYTES)
+    emit('4d 8d 84 24'); word(ARENA_OFFSET)
+    emit('41 b9'); word(ARENA_BYTES)
+    emit('49 c7 00 02 00 00 00')
+    emit('49 c7 40 28'); hole('profile_dispatch_assembly')
+    emit('e8'); hole('dispatch_assembly')
+    emit('83 f8 01'); branch('0f 85', 'invalid')
+    emit('4d 89 e7'); branch('e9', 'write')
     label('verified'); dispatch('dispatch_verified', reply=True)
     emit('3d'); word(OUTPUT_BYTES); branch('0f 87', 'io')
     emit('83 f8 02'); branch('0f 86', 'io')
@@ -258,9 +314,9 @@ def packer_source():
 '''
     source += writes(prefix)
     source += '    put_word(o, 96, size)\n    put_word(o, 104, size)\n'
-    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_frontend'):
+    for name in ('profile_dispatch_initial','profile_dispatch_verified','profile_dispatch_assembly','profile_frontend'):
         source += f'    put_four(o, {holes[name]}, profile)\n'
-    for name, offset in [('dispatch_initial','0'),('dispatch_verified','0'),
+    for name, offset in [('dispatch_initial','0'),('dispatch_verified','0'),('dispatch_assembly','0'),
                          ('frontend','dispatch'),('compiler','dispatch + frontend')]:
         source += f'    put_four(o, {holes[name]}, {len(prefix)-holes[name]-4} + {offset})\n'
     source += f'''    i = 40

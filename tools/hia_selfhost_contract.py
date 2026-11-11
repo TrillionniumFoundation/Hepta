@@ -13,8 +13,16 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v57-installed-native-publication-custody'
+PROFILE = 'selfhost-core-linux-x86_64-v58-native-core-patch-and-loan-closure'
 SOURCE_FILES = (
+    'tools/generate_hia_core_patch.py',
+    'examples/hia_bootstrap/core_patch.hiaasm',
+    'tests/test_hia_core_patch_native.py',
+    'tools/generate_hia_core_patch_cli.py',
+    'tools/build_hia_core_patch_cli.py',
+    'examples/hia_bootstrap/core_patch_cli_packer.hiaasm',
+    'tests/test_hia_core_patch_cli.py',
+    'docs/HIA_CORE_PATCH_CLI.md',
     'docs/HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md',
     'tools/generate_hia_capability_renaming.py',
     'examples/hia_bootstrap/capability_renaming.hiaasm',
@@ -424,6 +432,26 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'core_patch_application': {
+            'source': 'examples/hia_bootstrap/core_patch.hiaasm',
+            'standalone_packer': 'examples/hia_bootstrap/core_patch_cli_packer.hiaasm',
+            'command': 'hia-patch-core < [BASE, PATCH] JSON envelope',
+            'selection': 'explicit HEPTA_HIA_CORE_PATCH_MANIFEST; default unchanged; no fallback',
+            'operations': ['replace_function', 'add_function', 'replace_operation', 'replace_terminator'],
+            'policy': ['native canonical base SHA-256 snapshot binding',
+                       'exact edit schema and target types', 'duplicate and overlap refusal',
+                       'v1 preserve and explicit v2 preserve/migrate interface policy',
+                       'mandatory native whole primitive Core admission before and after editing'],
+            'input_component_bytes': 8388608,
+            'input_envelope_bytes': 16777219,
+            'maximum_edits': 64,
+            'standalone_runtime_host_payload_parser_or_interpreter': False,
+            'host_boundaries': ['authoring and build custody', 'installed Python entry and object materialization',
+                                'filesystem publication', 'Agent metadata/reference authority',
+                                'request journal and crash recovery', 'nominal/composite normalization'],
+            'whole_Agent_replaced': False,
+            'whole_native_delivery_qualified': False,
+        },
         'agent_binary64_format_application': {
             "source": "examples/hia_bootstrap/agent_binary64_format.hiaasm",
             "selection": "explicit HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST; default unchanged; no fallback",
@@ -693,8 +721,10 @@ def support_contract(root=ROOT):
         "agent_stdio_application": {
             "sources": ["examples/hia_bootstrap/agent_stdio_dispatch.hiaasm",
                         "examples/hia_bootstrap/agent_stdio_packer.hiaasm"],
-            "commands": ["capabilities", "verify", "compile", "render-assembly"],
+            "commands": ["capabilities", "verify", "compile", "render-assembly", "assemble"],
             "assembly_rendering_requires_native_semantic_compiler_acceptance": True,
+            "direct_assembly_input_bytes": 1048576,
+            "direct_assembly_preserves_explicit_output_profile": True,
             "core_frontend_source": "examples/hia_bootstrap/core_json_frontend.hiaasm",
             "output_profile_selection": "explicit build-time flat/elf/exec; never inferred from payload",
             "native_runtime_python_required": False,

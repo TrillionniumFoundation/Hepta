@@ -34,6 +34,30 @@ def borrowed_owner():
     return value
 
 
+def returned_aliases(types):
+    """A body-independent interface can declare mutually conflicting results.
+
+    The callee traps, so its own body is legal. Its caller must still enforce
+    the complete returned-capability contract before admitting later code.
+    """
+    from tests.test_hia_program import f, b, i, ret
+    callee = f('never_returns', [('p', 'mutbuf')], list(types), ['trap'], [
+        b('entry', [('p', 'mutbuf')], [], {'op': 'trap', 'code': 'user'})])
+    callee['return_loans'] = ['p' if typ in ('readbuf', 'mutbuf') else None
+                              for typ in types]
+    outputs = [('result_' + str(index), typ) for index, typ in enumerate(types)]
+    ops = [i('call', ['input'], outputs, function='never_returns')]
+    for name, typ in outputs:
+        if typ in ('readbuf', 'mutbuf'):
+            ops.append(i('loan.end', [name]))
+        elif typ in ('buffer', 'chain'):
+            ops.append(i('owner.drop', [name]))
+    caller = f('caller', [('input', 'mutbuf')], [], ['alloc', 'trap'], [
+        b('entry', [('input', 'mutbuf')], ops, ret())])
+    return {'schema': 'hepta.hia.program.v8', 'module': 'returned_aliases',
+            'functions': [callee, caller]}
+
+
 def interpreted(raw):
     from tests import test_hia_function_shape_native as observer
     with patch.object(observer, 'SOURCE', SOURCE), patch.object(observer, 'scratch_sizes', scratch_sizes):
@@ -57,6 +81,12 @@ class CoreAdmissionSourceTests(unittest.TestCase):
             {'op': 'const', 'args': [], 'out': [{'name': 'b', 'type': 'bool'}],
              'attrs': {'value': 1}}]
         self.assertEqual(interpreted(wire(bad)), 0xfffffff9)
+
+    def test_independent_vm_rejects_conflicting_results_of_one_call(self):
+        # Earlier returned loans must be live while admitting each next result.
+        self.assertEqual(interpreted(wire(returned_aliases(('mutbuf', 'mutbuf')))),
+                         0xfffffff8)
+        self.assertEqual(interpreted(wire(returned_aliases(('readbuf', 'readbuf')))), 0)
 
 
 class CoreAdmissionNativeTests(unittest.TestCase):
@@ -137,6 +167,22 @@ class CoreAdmissionNativeTests(unittest.TestCase):
             else:
                 fn['effects'] = rng.choice(([], ['alloc'], ['read'], ['trap'], ['bogus']))
             self.compare(value)
+
+    def test_returned_alias_conflicts_are_checked_within_each_call(self):
+        for types in (('mutbuf', 'mutbuf'), ('mutbuf', 'readbuf'),
+                      ('readbuf', 'mutbuf'),
+                      ('u32', 'mutbuf', 'buffer', 'readbuf')):
+            with self.subTest(types=types):
+                value = returned_aliases(types)
+                self.compare(value)
+                self.assertEqual(self.native.status(wire(value)), 0xfffffff8)
+        for types in (('readbuf', 'readbuf'),
+                      ('u32', 'readbuf', 'buffer', 'readbuf'),
+                      ('buffer', 'chain', 'u64', 'mutbuf')):
+            with self.subTest(types=types):
+                value = returned_aliases(types)
+                self.compare(value)
+                self.assertEqual(self.native.status(wire(value)), 0)
 
     def test_full_function_block_and_arity_profiles_are_not_compiler_profiles(self):
         value = copy.deepcopy(VALID)

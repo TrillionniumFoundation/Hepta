@@ -297,6 +297,10 @@ def _prepare_program_patch(original, request):
     The public editor fully checks its base. Incremental sessions own their
     verified base; neither helper nor a caller digest grants candidate admission.
     """
+    from .hia_core_patch_native import selected_prepare_patch
+    selected = selected_prepare_patch(original, request)
+    if selected is not None:
+        return selected
     if type(request) in (str, bytes):
         request = decode_json(request)
     else:

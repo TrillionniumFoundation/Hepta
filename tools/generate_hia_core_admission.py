@@ -397,6 +397,10 @@ def call_instruction(w:mutbuf, o:mutbuf, ins:u64) -> u64:
             borrow(w, o, argument(w, o, ins, j), actual, choose(typ == 16, 1, 0), 0)
             if get(o, 0) != 0:
                 return 0
+        # A later result of this call must see every earlier returned loan.
+        # Otherwise two exclusive results for one actual root can be admitted.
+        if typ > 12:
+            append_live(o, actual)
         i = i + 1
     return 0
 
@@ -428,7 +432,8 @@ def check_block(s:readbuf, w:mutbuf, o:mutbuf, block:u64) -> u64:
         while out != NONE:
             name = definition(w, o, field(w, out, K_name))
             put(o, rec(o, name), get(o, 56))
-            if value_type(w, name) > 12:
+            # Calls already publish resources incrementally during admission.
+            if value_type(w, name) > 12 and text_is(w, field(w, ins, K_op), L_call) == 0:
                 append_live(o, name)
             out = next_node(w, out)
         ins = next_node(w, ins)
@@ -717,7 +722,7 @@ def source_program():
         if fn.name=='group':fn.name='type_group';extra.append(fn)
         if fn.name=='literal_bound':extra.append(fn)
     constants={**ERRORS,**{'K_'+name:1<<i for i,name in enumerate(KEYS)}}
-    literals={'L_'+name:packed(name) for name in ('branch','ret','trap','jump')}
+    literals={'L_'+name:packed(name) for name in ('branch','ret','trap','jump','call')}
     class Expand(ast.NodeTransformer):
         def visit_Name(self,node):return ast.copy_location(ast.Constant(constants[node.id]),node) if node.id in constants else node
         def visit_Call(self,node):
