@@ -1,0 +1,43 @@
+{
+  "schema": "hia.existing-cold-record-read-request.v1",
+  "status": "UNEXECUTED_PENDING_EXCLUSIVE_READ_WINDOW",
+  "original_source_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+  "original_source_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+  "original_cold_path": "/home/qian-qi/he26v67r2/q/cold.json",
+  "original_cold_sha256": "c64d3b4a7f46233e593e8bd5b6f87c18ebffb4b9ca9e02e0f3cd1070a5339628",
+  "original_report_commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+  "collector": {
+    "bytes": 13053,
+    "sha256": "00fdf9a3d02e3d64ce08102c7348e147e6806c5eded36fdb1c76f1a501aae06a",
+    "git_blob_sha1": "0a5036ac7831915b546cfedd129c7621ce06ea54"
+  },
+  "command": [
+    "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "-I",
+    "-S",
+    "-B",
+    "-"
+  ],
+  "cwd": "/home/qian-qi/he26v67r2/q",
+  "limits": {
+    "collector_cpu_seconds": 30,
+    "collector_address_bytes": 536870912,
+    "h_command_timeout_seconds": 60,
+    "single_read_file_bytes": 67108864,
+    "first_pass_total_bytes": 536870912,
+    "raw_capture_total_bytes": 4194304
+  },
+  "expected": {
+    "reference_workers": 17,
+    "original_prefix_receipts": 75,
+    "other_existing_reports": 5,
+    "B3_bytes": 668608,
+    "B3_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+  },
+  "idempotency_key": "hia-e26e-desktop-608-r2-existing-cold-timings-read-r2",
+  "purpose": "Only read currently existing original files; preserve exact small bytes and missing timing fields. No project import/generation/compilation/tests/child process/network/file or directory creation. These limits apply only to this read-only collector, not product qualification.",
+  "qualification_executed": false,
+  "old_attempt_replayed": false,
+  "supersedes_unexecuted_control": "3eba430bcf7e884588cb0974b08aa03df8a112a2",
+  "change": "Add O_NONBLOCK to both read-only file opens; all original paths, payload capture, identity checks and bounds unchanged."
+}
