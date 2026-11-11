@@ -229,13 +229,121 @@ clone deadline. The remote supervisor reported an incomplete stderr drain and
 no successful-test status. Any later source preparation uses its own pinned
 candidate and independent output directory.
 
+## Exact v63 terminal results and continued v64 integration
+
+The published v63 head is `93d66bcc3acb88212c9b153d7852ba22eeab24c8`,
+tree `0a67bf07951505a50e9aeb888f1c2c448d1eb816`. Its local source controls
+passed 298 tests, and its local cold replay passed all 11 wrapper checks,
+38 phases and 5,049 checks in 148.166989520 seconds. Both GitHub Core runs
+also passed 298 source controls and 555 native unittest cases, including the
+ten language-report assertions. The push cold run took 176.683950431 seconds;
+the pull-request run took 112.725333054 seconds on a synthetic merge with the
+same exact product tree. The separate exact-head NDU workflow also completed
+successfully. These are distinct observations with their original source and
+run identities.
+
+The complete retained regression on ROG instead ended **HOLD: 4,031 tests,
+two failures, zero errors and 143 skip records**. It exposed a reviewed-QEMU
+selection mismatch and two original API diagnostic differences inside the
+native preflight dispatch test. Missing explicit compiler, proof and native
+fixture selections caused the skips. One class-level skip covers three methods;
+the next complete suite must discover its actual current count. The external
+guardian observed the leader reaped, no remaining children and kernel ECHILD.
+Input source bytes were preserved. The original failure and durable archive
+receipts are in [the terminal evidence](../review-evidence/hia-native-closure-20261111/v63/full-retained-terminal-hold/README.md).
+
+An independent local audit had fully read the original v63 cold phase archives
+before a cloud interruption. Its reports and hashes survive; the transient
+phase ZIPs and original local compiler directory do not. Later interrupted
+local audits of the CI artifact produced no successful final audit. Both
+original CI ZIPs and the ROG final reports/logs/compiler archive have separately
+verified home copies. The [v63 evidence](../review-evidence/hia-native-closure-20261111/v63/README.md)
+keeps these custody limits explicit.
+
+Main `f50b37543d1a379353267ce0ab7111242806b8b4` was subsequently merged,
+including complete child-test identity/count checks, the full native preflight
+CI module, and private batched-fixture construction without redundant semantic
+admission. This continuation additionally gives the shared HIA parser exact
+reason IDs for the original API diagnostics. The adapter only maps those IDs to
+text. Both the retained and explicitly selected native routes keep the same
+original assertions; no native-specific generic-error exception is used to
+make the old tests pass. All fifteen affected composed HIA sources were
+regenerated.
+
+The next combined profile is
+`selfhost-core-linux-x86_64-v64-native-journal-diagnostics-function-lowering`.
+[The new request-journal component](HIA_AGENT_JOURNAL_NATIVE.md) owns request
+and key identity, tool/key admission, reservation/replay/conflict/unknown
+decisions, verification replay routing, phase acknowledgements and terminal
+response/cost byte instructions. SQLite operations and durability, the business
+methods, foreign objects and existing proof/context authority remain hosted.
+Its independent selector has no fallback on selected admission failure.
+
+Independent development review found actual rollback-to-completed defects at
+native acknowledgement and SQL-to-acknowledgement interruption boundaries.
+The original 36 observations are retained. Replaying them after the bridge
+repair preserves original exception types, leaves unconfirmed intent unknown
+after close/reopen, and avoids false completed responses or costs. Separate
+cached-BLOB observations found UTF-8 error-span and decode-before-size priority
+differences. A HIA codec stage now supplies the error span for the foreign
+exception constructor; the original five counterexamples agree after the fix.
+Further review found two distinct lexical-number projection cases: malformed
+escape lookahead after number masking, and an invalid original number whose
+masked text passes preflight. HIA now performs the complete projection and
+supplies the original syntax reason and Unicode position where necessary.
+The original eight cases agree on the r9 source/image. Its complete dedicated
+development suite passed 21 tests under Python 3.12.14. A separate exact-956
+Python 3.14.4 run had one of twenty tests fail on the interpreter's changed
+unhashable dict-key wording; HIA now distinguishes direct and tuple-nested
+types and the bridge renders the actual interpreter's text. That original
+remote failure is retained and is not relabelled by a different run.
+
+Ten independent dual-path cache-selection controls also agree on r9, including
+actual SQLite close/reopen rows and selected-driver admission sequences.
+Changing a manifest to name a damaged new image causes fresh admission to
+refuse. An already pinned immutable mapping may continue to replay after its
+disk file changes, as in the retained path. Cache-internal selector changes
+preserve the captured codec and numeric-converter profiles. These are explicit
+development observations, not the pending combined cold/full qualification.
+
+Development success is not a combined qualification. The v64 pipeline requires
+a new complete matching-source cold replay, source controls, all component
+groups, and ordinary caller execution with the retained journal owner forbidden.
+That caller gate includes the original Agent tools/proof/lease/machine-choice/
+campaign modules, native candidate tests, and native worker/adversarial modules.
+Every loaded test ID must execute; empty suites, exclusions in qualified mode,
+errors, failures, skips and expected/unexpected outcomes refuse qualification.
+The full retained regression and the independent external process guardian are
+additional gates. Until those actual results exist, the combined profile is
+unqualified.
+
+### Integration of complete nominal function lowering
+
+Main subsequently advanced to
+`31d81594997cfb6cce5ab62ea5aaba3bb7757af1`, tree
+`dc7b7f1f5fc07c8502a27ba4907fe768ee1f0207`, directly above `f50b375`.
+Its exact Git objects were verified and merged. Five explicit HIA kernels now
+own complete function block/SSA admission, record/enum/partial/task operations,
+terminators, generated helper requests and Core function construction. Public
+elaboration closes native sessions on successful and failed exits; private
+elaborator behavior and partial-state observation remain available.
+
+The incoming six required test modules and their source controls are preserved
+alongside the existing combined type/helper controls. The combined workflow
+also requires nonempty, complete execution and zero anomalous outcomes for
+this group. Its function kernels use the same new matching-source cold report
+as the other components. Incoming development and exact-`f50b375` results retain
+their original source identities and do not qualify this combined tree.
+Nominal constructor ordering, outer module/export construction, final primitive
+admission and general backends remain distinct migration responsibilities.
+
 ## Remaining production owners and retirement gates
 
 | Owner | Current actual responsibility | Required closure before retirement |
 | --- | --- | --- |
-| `hia_program_composite._Elaborator` | Nominal SSA, record/enum operations, partial tokens, binding native descriptors and loan origins to generated entry slots and export eligibility; type/signature admission and all five task-helper bodies have explicit native selectors | Complete HIA lowering for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
+| `hia_program_composite._Elaborator` | Nominal constructor ordering, outer module/export construction and foreign object custody; complete function lowering, type/signature admission and all five task-helper bodies have explicit native selectors | Complete constructor and outer-module HIA owners for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
 | General compiler/backend | Canonical machine plans, broader retained Core layouts, object/linking and target support beyond the selfhost profile | Native producers for every retained language and ABI target, with explicit profile boundaries, cross-target execution and source-matched qualification |
-| `HIAAgentService` and `AgentStore` | Tool methods, refs/namespaces, SQLite/WAL transactions, intents/completions, costs, slots, versions, leases, evaluation, adoption and rollback | Full native ordinary worker with same-key conflict, unknown outcomes, crash/restart, original-operation observation and state continuity |
+| `HIAAgentService` and `AgentStore` | Tool methods, refs/namespaces, SQLite/WAL durability, cost persistence, slots, versions, leases, evaluation, adoption and rollback; an explicit HIA selector now owns ordinary request-journal decisions and canonical write instructions | Full native ordinary worker with same-key conflict, unknown outcomes, crash/restart, original-operation observation and state continuity |
 | Worker and foreign bridge | Administrator parsing, Python object materialization, service entry, installation readback and report serialization | Native complete request/report/service protocol with current code/profile pinning |
 | Build, authoring and default CLI | Python seed generation/custody, package hooks, source assembly, complete project orchestration and the 15-action installed CLI | Native clean-machine rebuild from an explicit bootstrap trust root, native module/library build and equivalent default installed behavior |
 | Release lifecycle | Initial native bundle installation/readback now exists; active-release choice, staging recovery, upgrade/cutover and retirement remain external | Persistent version/ref ownership, no duplicated effects, restart/rollback and real default activation |

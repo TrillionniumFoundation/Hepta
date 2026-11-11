@@ -14,6 +14,9 @@ SOURCE = r'''
 def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) > 8388608 or length(w) < 128:
         return 3
+    # Preserve the status ABI. Offset 32 is a private diagnostic reason, not
+    # an input claim; the native parser sets it at the first grammar refusal.
+    put(w, 32, 0)
     maximum = get(w, 48)
     maximum_depth = get(w, 56)
     if maximum < 1 or maximum > 1048576 or maximum_depth > 128:
@@ -43,9 +46,11 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if done:
             if index == length(s):
                 return 0
+            put(w, 32, 12)
             return 1
         if want_value:
             if index >= length(s):
+                put(w, 32, 9)
                 return 1
             nodes = nodes + 1
             if nodes > maximum or depth > maximum_depth:
@@ -66,6 +71,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 else:
                     result = atom(s, index)
                     if result == 4294967295:
+                        put(w, 32, 10)
                         return 1
                     put(w, 0, result)
                 if depth == 0:
@@ -75,6 +81,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             want_value = False
         else:
             if depth == 0:
+                put(w, 32, 13)
                 return 1
             slot = 128 + (depth - 1) * 32
             kind = get(w, slot)
@@ -92,6 +99,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                         want_value = True
                 else:
                     if state != 5:
+                        put(w, 32, 15)
                         return 1
                     if ch == 44:
                         put(w, 0, index + 1)
@@ -100,6 +108,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                         if ch == 93:
                             closing = True
                         else:
+                            put(w, 32, 14)
                             return 1
             else:
                 if state == 0 or state == 1:
@@ -107,6 +116,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                         closing = True
                     else:
                         if ch != 34:
+                            put(w, 32, 16)
                             return 1
                         result = string_token(s, w)
                         if result != 0:
@@ -118,6 +128,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 else:
                     if state == 2:
                         if ch != 58:
+                            put(w, 32, 17)
                             return 1
                         put(w, 0, index + 1)
                         put(w, slot + 8, 3)
@@ -127,6 +138,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                             want_value = True
                         else:
                             if state != 5:
+                                put(w, 32, 19)
                                 return 1
                             if ch == 44:
                                 put(w, 0, index + 1)
@@ -135,6 +147,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                                 if ch == 125:
                                     closing = True
                                 else:
+                                    put(w, 32, 18)
                                     return 1
             if closing:
                 put(w, 0, index + 1)
@@ -143,6 +156,7 @@ def preflight(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                     done = True
                 else:
                     put(w, 128 + (depth - 1) * 32 + 8, 5)
+    put(w, 32, 13)
     return 1
 
 def whitespace(s:readbuf, index:u64) -> u64:
@@ -191,6 +205,7 @@ def string_token(s:readbuf, w:mutbuf) -> u64:
         unit = decoded(s, index)
         cp = unit & 4294967295
         if cp == 1114113:
+            put(w, 32, unit >> 32)
             return 1
         index = unit >> 32
         if cp == 1114112:
@@ -255,20 +270,21 @@ def hex4(s:readbuf, index:u64) -> u64:
     return value
 
 def decoded(s:readbuf, index:u64) -> u64:
-    # Packed next-byte offset and Unicode scalar. Two out-of-range sentinels
-    # distinguish closing quote from invalid grammar; escaped quotes are scalars.
+    # Packed next-byte offset and Unicode scalar. On the invalid sentinel the
+    # high word carries a reason instead of an offset. Escaped quotes remain
+    # scalars; same_key and the arena decoder consume only admitted strings.
     size = length(s)
     if index >= size:
-        return 1114113
+        return (8 << 32) | 1114113
     ch = byte(s, index)
     index = index + 1
     if ch == 34:
         return (index << 32) | 1114112
     if ch < 32:
-        return 1114113
+        return (2 << 32) | 1114113
     if ch == 92:
         if index >= size:
-            return 1114113
+            return (3 << 32) | 1114113
         esc = byte(s, index)
         index = index + 1
         if esc == 34 or esc == 92 or esc == 47:
@@ -283,25 +299,36 @@ def decoded(s:readbuf, index:u64) -> u64:
             return (index << 32) | 13
         if esc == 116:
             return (index << 32) | 9
-        if esc != 117:
-            return 1114113
+        if esc != 117 or index + 4 > size:
+            return (4 << 32) | 1114113
+        # The public str scanner tests four characters before their hex
+        # spellings. A truncated non-ASCII escape must retain that ordering.
+        cursor = index
+        characters = 0
+        while cursor < size and characters < 4:
+            unit = byte(s, cursor)
+            if unit < 128 or unit >= 192:
+                characters = characters + 1
+            cursor = cursor + 1
+        if characters < 4:
+            return (4 << 32) | 1114113
         cp = hex4(s, index)
         if cp == 4294967295:
-            return 1114113
+            return (5 << 32) | 1114113
         index = index + 4
         if cp >= 55296 and cp <= 56319:
             if index + 6 > size:
-                return 1114113
+                return (6 << 32) | 1114113
             if byte(s, index) != 92 or byte(s, index + 1) != 117:
-                return 1114113
+                return (6 << 32) | 1114113
             low = hex4(s, index + 2)
             if low < 56320 or low > 57343:
-                return 1114113
+                return (6 << 32) | 1114113
             cp = 65536 + (cp - 55296) * 1024 + low - 56320
             index = index + 6
         else:
             if cp >= 56320 and cp <= 57343:
-                return 1114113
+                return (7 << 32) | 1114113
         return (index << 32) | cp
     if ch < 128:
         return (index << 32) | ch
@@ -321,19 +348,19 @@ def decoded(s:readbuf, index:u64) -> u64:
         minimum = 65536
         cp = ch & 7
     if needed == 0 or index + needed > size:
-        return 1114113
+        return (20 << 32) | 1114113
     count = 0
     while count < needed:
         ch = byte(s, index)
         if ch < 128 or ch > 191:
-            return 1114113
+            return (20 << 32) | 1114113
         cp = cp * 64 + (ch & 63)
         index = index + 1
         count = count + 1
     if cp < minimum or cp > 1114111:
-        return 1114113
+        return (20 << 32) | 1114113
     if cp >= 55296 and cp <= 57343:
-        return 1114113
+        return (20 << 32) | 1114113
     return (index << 32) | cp
 
 def get(w:mutbuf, index:u64) -> u64:

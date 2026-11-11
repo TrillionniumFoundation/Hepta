@@ -6,12 +6,21 @@ import random
 import unittest
 from unittest.mock import patch
 
-from hepta.hia_json_preflight import preflight_hia_json
+from hepta.hia_json_preflight import (_preflight_hia_json_reference,
+                                     preflight_hia_json)
 
 
 class HIAPreflightTests(unittest.TestCase):
     def admit(self, text, *, nodes=262144, depth=64):
         preflight_hia_json(text, max_nodes=nodes, max_depth=depth)
+
+    def assert_syntax_refusal_routes(self, text, reason):
+        # The explicit native selector preserves the ordinary API's exact
+        # diagnostic. Exercise both routes with the same original assertion.
+        for admit in (_preflight_hia_json_reference, preflight_hia_json):
+            with self.assertRaises(ValueError) as caught:
+                admit(text, max_nodes=1, max_depth=0)
+            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
 
     def test_valid_json_and_scalar_shape_coverage(self):
         examples = [
@@ -77,9 +86,8 @@ class HIAPreflightTests(unittest.TestCase):
             ('\\uDC00"', 'unpaired low Unicode surrogate'),
         )
         for suffix, reason in bad_suffixes:
-            with self.subTest(suffix=repr(suffix)), self.assertRaises(ValueError) as caught:
-                self.admit('"' + prefix + suffix, nodes=1, depth=0)
-            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+            with self.subTest(suffix=repr(suffix)):
+                self.assert_syntax_refusal_routes('"' + prefix + suffix, reason)
 
     def test_long_spans_preserve_budget_and_duplicate_error_order(self):
         key = 'long-key-Ω' * 4096
@@ -110,9 +118,8 @@ class HIAPreflightTests(unittest.TestCase):
             (space + '0' + digits, 'extra JSON data'),
             (space + '-' + space + '1', 'expected JSON integer or literal'),
         ):
-            with self.subTest(reason=reason), self.assertRaises(ValueError) as caught:
-                self.admit(wire, nodes=1, depth=0)
-            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+            with self.subTest(reason=reason):
+                self.assert_syntax_refusal_routes(wire, reason)
 
     def test_randomized_grammar_and_budget_equivalence_to_stdlib(self):
         rng = random.Random(1776)

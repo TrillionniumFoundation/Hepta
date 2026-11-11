@@ -478,6 +478,10 @@ class _Elaborator:
         for definition in document["types"]:
             if definition["kind"] == "task":
                 self.check_task(self.types.resolve(definition["name"]))
+        from .hia_composite_functions_native import selected_composite_functions
+        function_owner = selected_composite_functions()
+        self._native_function_session = (None if function_owner is None else
+            function_owner.session(self, legacy=legacy))
 
     @staticmethod
     def loan_origins(fn, params, returns):
@@ -752,6 +756,11 @@ class _Elaborator:
         return name
 
     def function(self, fn):
+        if self._native_function_session is not None:
+            return self._native_function_session.function(fn)
+        return self._reference_function(fn)
+
+    def _reference_function(self, fn):
         blocks = fn["blocks"]
         if type(blocks) is not list or not 1 <= len(blocks) <= MAX_BLOCKS:
             _reject("invalid nominal block inventory", "E_HIA_CFG")
@@ -1212,4 +1221,18 @@ def elaborate_program(document, *, legacy=False):
     before this function.  Direct callers gain no VerifiedProgram or execution
     authority from this function alone.
     """
-    return _Elaborator(document, legacy=legacy).lower()
+    # Retain the partial owner even if __init__ raises after acquiring native
+    # sessions. Private callers still own their sessions and partial state.
+    owner = _Elaborator.__new__(_Elaborator)
+    try:
+        owner.__init__(document, legacy=legacy)
+        return owner.lower()
+    finally:
+        try:
+            session = getattr(owner, '_native_function_session', None)
+            if session is not None:
+                session.close()
+        finally:
+            types = getattr(owner, 'native_types', None)
+            if types is not None:
+                types.close()

@@ -90,11 +90,90 @@ class CoreWorkflowContractTests(unittest.TestCase):
             'child_limits', 'seccomp', 'side_effects', 'cleanup',
             'mapping_identity', 'startup_isolation'))
         required.add('tests.test_hia_selfhost_emitter_words')
+        required.add('tests.test_hia_json_preflight_native')
         required.add('tests.test_hia_agent_data_json_native')
         required.add('tests.test_hia_agent_binary64_native')
         required.add('tests.test_hia_agent_binary64_format_native')
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
+
+    def test_journal_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        source = script('Native request journal decisions and actual SQL crash controls')
+        code = source.split("<<'PYJOURNAL'\n", 1)[1].rsplit('\nPYJOURNAL', 1)[0]
+        clean = dict(testsRun=2, errors=[], failures=[], skipped=[],
+                     expectedFailures=[], unexpectedSuccesses=[])
+        cases = [('complete', 2, clean, True, 0),
+                 ('empty', 0, dict(clean, testsRun=0), True, 1),
+                 ('incomplete', 2, dict(clean, testsRun=1), True, 1),
+                 ('unsuccessful', 2, clean, False, 1)]
+        cases.extend((field, 2, dict(clean, **{field: ['observed anomaly']}), True, 1)
+                     for field in ('errors', 'failures', 'skipped',
+                                   'expectedFailures', 'unexpectedSuccesses'))
+        for name, expected_count, fields, success, expected_status in cases:
+            with self.subTest(name=name):
+                fixture = ('import sys,types\n'
+                           'result=types.SimpleNamespace(**' + repr(fields) +
+                           ',wasSuccessful=lambda: ' + repr(success) + ')\n'
+                           'suite=types.SimpleNamespace(countTestCases=lambda: ' + repr(expected_count) + ')\n'
+                           'sys.modules["unittest"]=types.SimpleNamespace('
+                           'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
+                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromName=lambda name:suite))\n')
+                child = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
+                                       capture_output=True, timeout=10)
+                self.assertEqual(child.returncode, expected_status, child.stdout + child.stderr)
+
+    def test_complete_function_ci_retains_every_native_owner_and_rejects_incomplete_runs(self):
+        name = 'Native composite types signatures helpers and complete function lowering'
+        code = script(name).split("<<'PYTYPES'\n", 1)[1].rsplit('\nPYTYPES', 1)[0]
+        assignment = next(n for n in ast.parse(code).body if isinstance(n, ast.Assign))
+        names = ast.literal_eval(assignment.value.args[0])
+        functions = {
+            'tests.test_hia_composite_function_tokens',
+            'tests.test_hia_composite_function_admission',
+            'tests.test_hia_composite_function_protocol_audit',
+            'tests.test_hia_composite_function_terms_native',
+            'tests.test_hia_composite_functions_native',
+            'tests.test_hia_composite_public_lifecycle',
+        }
+        required = functions | {
+            'tests.test_hia_composite_types_native', 'tests.test_hia_composite_origins_native',
+            'tests.test_hia_composite_signatures_native', 'tests.test_hia_task_helpers_native',
+            'tests.test_hia_composite_native_composition'}
+        self.assertEqual(set(names), required)
+        self.assertEqual(len(names), len(required))
+        from tools.hia_selfhost_contract import validate_contract
+        owner = validate_contract()['composite_function_lowering']
+        self.assertEqual(set(owner['required_test_modules']), functions)
+        self.assertIn('          HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        source = script('Core source and independent reference controls')
+        for selected in (
+                'tests.test_hia_composite_functions_native.FunctionSourceTests',
+                'tests.test_hia_composite_function_tokens.TokenCodecTests',
+                'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests'):
+            self.assertIn(repr(selected), source)
+        for selected in functions:
+            self.assertNotIn(repr(selected), source)
+        clean = dict(testsRun=2, errors=[], failures=[], skipped=[],
+                     expectedFailures=[], unexpectedSuccesses=[])
+        cases = [('complete', 2, clean, True, 0),
+                 ('empty', 0, dict(clean, testsRun=0), True, 1),
+                 ('incomplete', 2, dict(clean, testsRun=1), True, 1),
+                 ('unsuccessful', 2, clean, False, 1)]
+        cases.extend((field, 2, dict(clean, **{field: ['observed anomaly']}), True, 1)
+                     for field in ('errors', 'failures', 'skipped',
+                                   'expectedFailures', 'unexpectedSuccesses'))
+        for case, expected_count, fields, successful, status in cases:
+            fixture = ('import sys,types\n'
+                'result=types.SimpleNamespace(**' + repr(fields) +
+                ',wasSuccessful=lambda: ' + repr(successful) + ')\n'
+                'suite=types.SimpleNamespace(countTestCases=lambda: ' + repr(expected_count) + ')\n'
+                'sys.modules["unittest"]=types.SimpleNamespace('
+                'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
+                'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:suite))\n')
+            run = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
+                                 capture_output=True, timeout=10)
+            self.assertEqual(run.returncode, status, (case, run.stdout, run.stderr))
 
     def test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps(self):
         lines = step('Preserve actual cold failure and stage evidence')
@@ -105,7 +184,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', source)
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
-                     'hia-module-projects/']:
+                     'hia-language.evidence/', 'hia-module-projects/', 'hia-journal-callers.json']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))

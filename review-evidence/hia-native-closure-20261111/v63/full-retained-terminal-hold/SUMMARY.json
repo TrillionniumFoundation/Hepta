@@ -1,0 +1,74 @@
+{
+  "errors": [],
+  "failures": [
+    {
+      "test": "test_full_native_oracles_and_strict_retained_receipts (tests.test_hia_composite_bulk_native.CompositeBulkNativeTests.test_full_native_oracles_and_strict_retained_receipts)",
+      "traceback": "Traceback (most recent call last):\n  File \"/var/tmp/he26v63/s/tests/test_hia_composite_bulk_native.py\", line 124, in test_full_native_oracles_and_strict_retained_receipts\n    self.assertTrue(report[\"ok\"], json.dumps(report.get(\"error\")))\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: False is not true : {\"type\": \"ValueError\", \"message\": \"QEMU differs from the repository's reviewed executable\", \"traceback\": \"Traceback (most recent call last):\\n  File \\\"/var/tmp/he26v63/s/tools/qualify_hia_composite_bulk.py\\\", line 445, in qualify\\n    raise ValueError(\\\"QEMU differs from the repository's reviewed executable\\\")\\nValueError: QEMU differs from the repository's reviewed executable\\n\"}\n"
+    },
+    {
+      "test": "test_existing_api_dispatch_and_unchanged_original_regressions (tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests.test_existing_api_dispatch_and_unchanged_original_regressions)",
+      "traceback": "Traceback (most recent call last):\n  File \"/var/tmp/he26v63/s/tests/test_hia_json_preflight_native.py\", line 236, in test_existing_api_dispatch_and_unchanged_original_regressions\n    self.assertEqual(child.returncode, 0, child.stdout + child.stderr)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 1 != 0 : test_depth_limit_exactly_matches_root_zero_valuation (tests.test_hia_json_preflight.HIAPreflightTests.test_depth_limit_exactly_matches_root_zero_valuation) ... ok\ntest_early_duplicate_decoded_keys (tests.test_hia_json_preflight.HIAPreflightTests.test_early_duplicate_decoded_keys) ... ok\ntest_early_node_limit_refuses_before_any_full_json_load (tests.test_hia_json_preflight.HIAPreflightTests.test_early_node_limit_refuses_before_any_full_json_load) ... ok\ntest_invalid_grammar_and_float_rejection (tests.test_hia_json_preflight.HIAPreflightTests.test_invalid_grammar_and_float_rejection) ... ok\ntest_long_spans_preserve_budget_and_duplicate_error_order (tests.test_hia_json_preflight.HIAPreflightTests.test_long_spans_preserve_budget_and_duplicate_error_order) ... ok\ntest_long_strings_keep_exact_escape_and_unicode_refusals (tests.test_hia_json_preflight.HIAPreflightTests.test_long_strings_keep_exact_escape_and_unicode_refusals) ... FAIL\ntest_only_ascii_digits_and_json_whitespace_form_spans (tests.test_hia_json_preflight.HIAPreflightTests.test_only_ascii_digits_and_json_whitespace_form_spans) ... FAIL\ntest_randomized_grammar_and_budget_equivalence_to_stdlib (tests.test_hia_json_preflight.HIAPreflightTests.test_randomized_grammar_and_budget_equivalence_to_stdlib) ... ok\ntest_valid_json_and_scalar_shape_coverage (tests.test_hia_json_preflight.HIAPreflightTests.test_valid_json_and_scalar_shape_coverage) ... ok\n\n======================================================================\nFAIL: test_long_strings_keep_exact_escape_and_unicode_refusals (tests.test_hia_json_preflight.HIAPreflightTests.test_long_strings_keep_exact_escape_and_unicode_refusals)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/var/tmp/he26v63/s/tests/test_hia_json_preflight.py\", line 82, in test_long_strings_keep_exact_escape_and_unicode_refusals\n    self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'HIA JSON preflight: invalid JSON syntax or Unicode' != 'HIA JSON preflight: unterminated JSON string'\n- HIA JSON preflight: invalid JSON syntax or Unicode\n+ HIA JSON preflight: unterminated JSON string\n\n\n======================================================================\nFAIL: test_only_ascii_digits_and_json_whitespace_form_spans (tests.test_hia_json_preflight.HIAPreflightTests.test_only_ascii_digits_and_json_whitespace_form_spans)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/var/tmp/he26v63/s/tests/test_hia_json_preflight.py\", line 115, in test_only_ascii_digits_and_json_whitespace_form_spans\n    self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 'HIA JSON preflight: invalid JSON syntax or Unicode' != 'HIA JSON preflight: expected JSON integer or literal'\n- HIA JSON preflight: invalid JSON syntax or Unicode\n+ HIA JSON preflight: expected JSON integer or literal\n\n\n----------------------------------------------------------------------\nRan 9 tests in 0.878s\n\nFAILED (failures=2)\n\n"
+    }
+  ],
+  "guardian_cleanup": {
+    "attempted": true,
+    "complete": true,
+    "deadline_exceeded": false,
+    "elapsed_ns": 21520210,
+    "errors": [],
+    "leader_reaped": true,
+    "observed_echild": true,
+    "remaining_direct_children": [],
+    "started_ns": 707972619579048
+  },
+  "guardian_input_identity_preserved": true,
+  "guardian_status": "HOLD",
+  "hard_sigkill_or_host_loss_cleanup_claimed": false,
+  "head": "93d66bcc3acb88212c9b153d7852ba22eeab24c8",
+  "idempotency_key": "hia-e26e-rog-v63-93d66bcc-full-qualification-v1",
+  "job_id": "1a1c917bfd5-135c4-3da",
+  "omitted_directories": [
+    "q/source-reproduction",
+    "q/cold.cold/source",
+    "q/full-retained-regression-release-install/case-3/alias",
+    "q/full-retained-regression-release-install/case-3/parent-alias",
+    "q/release-install-release-install/case-3/alias",
+    "q/release-install-release-install/case-3/parent-alias"
+  ],
+  "original_root": "/var/tmp/he26v63",
+  "recorded_unix_ns": 1794378388814683866,
+  "schema": "hia.full-rog-terminal-hold-custody.v1",
+  "scope": "All direct q files; all guard/control files; recursively retained JSON, JSONL, log, stdout, stderr, trace files and B1/B2/B3 images outside source snapshots. Unlisted compiled payloads are not claimed preserved.",
+  "skip_reasons": {
+    "actual Z3 and pinned native NDU build are required": 4,
+    "actual build workspace and pinned Git checkout are required": 5,
+    "actual native NDU bridge path is required": 14,
+    "actual pinned recursive NDU bridge is required": 2,
+    "actual source-bound NDU bridge and Z3 are required": 14,
+    "actual source-bound native bridge and build receipt are required": 1,
+    "actual source-bound native build required": 11,
+    "all three actual pinned native profiles are required": 2,
+    "both actual NDU binaries and their distinct build receipts are required": 3,
+    "original native stream build not supplied; NOT qualified": 3,
+    "raw-model native binary and source-bound build receipt required": 10,
+    "requires actual Linux native compiler/solver": 18,
+    "requires recursive NDU identity/binary, Z3 and Clang for actual native execution": 6,
+    "requires the actual pinned finite Rust NDU bridge": 2,
+    "requires the actual pinned recursive and finite native NDU bridges": 5,
+    "requires the separate finite-graph native source/tool profile": 2,
+    "requires the separately pinned finite NDU executable and identity": 1,
+    "requires the separately pinned finite native NDU profile": 11,
+    "run standalone qualification with pinned --lean for theorem evidence": 2,
+    "set HEPTA_NDU_STREAM_IDENTITY for actual native stream tests": 15,
+    "set HEPTA_RECURSIVE_NDU_IDENTITY and HEPTA_RECURSIVE_NDU_BRIDGE for native recursion": 8,
+    "set HIA_TEST_CLANG20 for actual SSE2 and guard-page execution": 2,
+    "set LEAN to the pinned 4.19.0 checker for actual proof controls": 1,
+    "source-pinned supplied-path native bridge is optional": 1
+  },
+  "skipped_count": 143,
+  "source_preserved": true,
+  "status": "HOLD",
+  "tests_run": 4031,
+  "tree": "0a67bf07951505a50e9aeb888f1c2c448d1eb816",
+  "whole_native_delivery_qualified": false
+}

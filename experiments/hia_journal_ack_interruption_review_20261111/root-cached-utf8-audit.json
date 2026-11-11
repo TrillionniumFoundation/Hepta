@@ -1,0 +1,327 @@
+{
+  "image_sha256": "3c631631a0b69558dea132a5e4901d50605b887b20251025ec94c4906544130d",
+  "mismatch_cases": [
+    "invalid-start",
+    "invalid-continuation",
+    "truncated-codepoint",
+    "encoded-surrogate",
+    "invalid-before-size-limit"
+  ],
+  "records": [
+    {
+      "case": "invalid-start",
+      "equal": false,
+      "outcomes": [
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"'utf-8' codec can't decode byte 0xff in position 1: invalid start byte\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": false,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "'utf-8' codec can't decode byte 0xff in position 1: invalid start byte",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        },
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"invalid JSON syntax or Unicode\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": true,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "invalid JSON syntax or Unicode",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        }
+      ],
+      "payload_bytes": 3,
+      "payload_sha256": "2c1ba6ac713bfc21e74f3429be952fca3e7a796734394fd18a48eb6713880d89"
+    },
+    {
+      "case": "invalid-continuation",
+      "equal": false,
+      "outcomes": [
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"'utf-8' codec can't decode byte 0xe2 in position 1: invalid continuation byte\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": false,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "'utf-8' codec can't decode byte 0xe2 in position 1: invalid continuation byte",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        },
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"invalid JSON syntax or Unicode\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": true,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "invalid JSON syntax or Unicode",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        }
+      ],
+      "payload_bytes": 4,
+      "payload_sha256": "ac4b0b5180965ee68c432aaef25b7871423e5624004fec4b1b3061f619b940bb"
+    },
+    {
+      "case": "truncated-codepoint",
+      "equal": false,
+      "outcomes": [
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"'utf-8' codec can't decode bytes in position 1-2: unexpected end of data\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": false,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "'utf-8' codec can't decode bytes in position 1-2: unexpected end of data",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        },
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"invalid JSON syntax or Unicode\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": true,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "invalid JSON syntax or Unicode",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        }
+      ],
+      "payload_bytes": 3,
+      "payload_sha256": "04d07d17077b551814f8a654d0efa8d53015f6c6a95548d7945e0c2179a3dbcb"
+    },
+    {
+      "case": "encoded-surrogate",
+      "equal": false,
+      "outcomes": [
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"'utf-8' codec can't decode byte 0xed in position 1: invalid continuation byte\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": false,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "'utf-8' codec can't decode byte 0xed in position 1: invalid continuation byte",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        },
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"invalid JSON syntax or Unicode\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": true,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "invalid JSON syntax or Unicode",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        }
+      ],
+      "payload_bytes": 5,
+      "payload_sha256": "ee4a76500d4d714ca691afe56c1fd9e0a5fbcb42d6c8f8d7178aae4ddb683cf7"
+    },
+    {
+      "case": "invalid-before-size-limit",
+      "equal": false,
+      "outcomes": [
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"'utf-8' codec can't decode byte 0xff in position 0: invalid start byte\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": false,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_REJECTED",
+              "details_artifact": null,
+              "message": "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        },
+        {
+          "cached_blob_preserved": true,
+          "costs": [
+            {
+              "context_id": null,
+              "details": "{\"error\":{\"code\":\"E_HIA_JSON\",\"details_artifact\":null,\"message\":\"JSON data exceeds 8 MiB\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+              "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+              "sequence": 1,
+              "status": "rejected",
+              "tool": "hia_artifact",
+              "wall_ns": "8"
+            }
+          ],
+          "native": true,
+          "response": {
+            "contract_version": "hepta.hia.agent-native.v1",
+            "error": {
+              "code": "E_HIA_JSON",
+              "details_artifact": null,
+              "message": "JSON data exceeds 8 MiB",
+              "phase": "admission",
+              "retry_action": "correct_input"
+            },
+            "request_id": "r-2ad422ece2f24e0945fc565b1b9ff78ff2c02205a8a2b04f0d0e168673c57542",
+            "status": "rejected"
+          }
+        }
+      ],
+      "payload_bytes": 8388609,
+      "payload_sha256": "7f4643dfb5a98f58aaa7bd10bc208e5edbd7fcec095abe1d23eb6d05c9c11d70"
+    }
+  ],
+  "schema": "hia.journal-independent-cached-utf8-review.v1",
+  "scope": "DEVELOPMENT_ONLY: original cached SQLite BLOB bytes and actual native image",
+  "source_commit": "330ce4c5600c22985d1a7bad1b9199751a15fcc0",
+  "source_root": "/home/agent/hia-journal-review-330ce4c",
+  "source_sha256": "3d3f682df81b6bcef40d61fd21d464e0c20ca521b02011cd572fa16f44e0c2f0"
+}

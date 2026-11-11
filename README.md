@@ -28,12 +28,18 @@ owns declaration checks, generic binding, finite layouts and partial-record
 obligations for all four composite versions, source-level returned-loan origins,
 parameter admission and task-protocol checks. A separately selected
 [native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The ordinary
-elaborator consumes their results; remaining operation lowering and the durable
-Agent remain hosted owners.
+complete start, poll, cancel, join and close Core functions. The selected
+[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
+nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
+entry-name loan binding in HIA. The ordinary elaborator consumes these results;
+constructor ordering, final program/export assembly and the durable Agent remain
+hosted owners. Native functions preserve the existing primitive Core recheck.
 An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
 owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
 admission while preserving the existing service's durable request identity.
+An explicit [native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) supplies
+reservation, replay, conflict and unknown decisions and canonical response/cost
+instructions; SQLite durability and tool effects retain their existing owners.
 The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
 checks and publishes a bounded immutable release from an operator-pinned bundle.
 It does not select the active worker or replace the service journal.

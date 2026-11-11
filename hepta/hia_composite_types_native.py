@@ -143,10 +143,17 @@ class NativeCompositeTypeSession:
         self._observations = {}
         self._broken = False
         self._closed = False
-        self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
-        self._state = ctypes.create_string_buffer(SESSION_BYTES)
-        self._command({'op': 'init', 'definitions': definitions,
-            'recursive_chain': recursive_chain, 'partial_records': partial_records}, result=False)
+        self._output = self._state = None
+        try:
+            self._output = ctypes.create_string_buffer(OUTPUT_BYTES)
+            self._state = ctypes.create_string_buffer(SESSION_BYTES)
+            self._command({'op': 'init', 'definitions': definitions,
+                'recursive_chain': recursive_chain, 'partial_records': partial_records}, result=False)
+        except BaseException:
+            # An initializer which raises never transfers its session to the
+            # elaborator. A retained traceback must not retain its buffers.
+            self.close()
+            raise
 
     @property
     def observations(self):

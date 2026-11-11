@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "equal": true,
+      "input": "\"\\u\"123456e7",
+      "native": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      },
+      "reference": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      }
+    },
+    {
+      "equal": true,
+      "input": "\"\\uG\"12345e7",
+      "native": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      },
+      "reference": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      }
+    },
+    {
+      "equal": true,
+      "input": "\"\\u00\"12345e7",
+      "native": {
+        "message": "HIA JSON preflight: invalid Unicode escape",
+        "type": "ValueError"
+      },
+      "reference": {
+        "message": "HIA JSON preflight: invalid Unicode escape",
+        "type": "ValueError"
+      }
+    },
+    {
+      "equal": true,
+      "input": "\"\\u𐐷\"12345e7",
+      "native": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      },
+      "reference": {
+        "message": "HIA JSON preflight: invalid JSON escape",
+        "type": "ValueError"
+      }
+    }
+  ],
+  "manifest": "/workspace/scratch/e26ed3e2edcf/journal-recovered-development-r7/manifest.json",
+  "manifest_data": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "agent-journal.image.bin",
+    "image_sha256": "48e125ed08f38aae206106848b45f5b34051c4a6182c6fbf031646afadd0fa8f",
+    "schema": "hepta.hia.agent-journal-native.v2",
+    "source_sha256": "4f068ccbd8a0f70ca1259c839b90b839d5b90a74c41150e0b716d30393c18f0a"
+  }
+}

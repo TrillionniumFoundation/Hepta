@@ -12,12 +12,16 @@ import json
 
 
 def batch_cases(cases, maximum=12):
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
+    from hepta.hia_agent_assembly import (_parse_assembly_document,
+                                         _render_assembly_document)
     groups, documents = defaultdict(list), {}
     for case in cases:
         source = case["source"]
         if source not in documents:
-            documents[source] = assemble_program(source.encode()).as_dict()
+            # These are mutable syntax fixtures, not admitted programs. The
+            # final wrapper is independently assembled and executed below the
+            # caller's reference boundary before any native compiler is built.
+            documents[source] = _parse_assembly_document(source.encode())
         document = documents[source]
         helper_key = sha256(json.dumps(document["functions"][1:],sort_keys=True).encode()).hexdigest()[:12]
         groups[case.get("batch_group",case["program"]) + "-" + helper_key].append(case)
@@ -82,10 +86,10 @@ def batch_cases(cases, maximum=12):
             ops.append({"op":"const","args":[],"out":[{"name":zero,"type":"u32"}],"attrs":{"value":0}})
             block={**fn["blocks"][0],"ops":ops,"term":{"op":"ret","values":[zero]}}
             updated={**original,"functions":[{**fn,"blocks":[block]},*original["functions"][1:]]}
-            # render_assembly itself fully verifies the document AND checks
-            # its parsed canonical round trip. The VM later rechecks the actual
-            # wrapper plus this program before B0; do not duplicate that parse.
-            source=render_assembly(updated)
+            # Spelling an intermediate fixture grants no Core authority. Every
+            # final batched source still goes through its complete public Core
+            # admission and independent VM observation in independent_reference.
+            source=_render_assembly_document(updated)
             result.append({**chunk[0],"id":name+"-batch-"+str(batch_index)+"-sample",
                 "program":name+"-batch-"+str(batch_index),"source":source,
                 "source_hex":"".join(c["source_hex"] for c in chunk),

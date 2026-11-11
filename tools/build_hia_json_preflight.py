@@ -62,10 +62,16 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'worker-request': ('worker_request', 'worker-request'),
+    candidates = {'agent-journal': ('agent_journal', 'agent-journal'),
+                  'worker-request': ('worker_request', 'worker-request'),
                   'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
                   'task-helpers': ('task_helpers', 'task-helpers'),
+                  'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
+                  'composite-function-records': ('composite_function_records', 'composite-function-records'),
+                  'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
+                  'composite-function-terms': ('composite_function_terms', 'composite-function-terms'),
+                  'composite-function-render': ('composite_function_render', 'composite-function-render'),
                   'instruction-policy': ('instruction_policy','instruction-policy'),
                   'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
                   'core-workspace-facts': ('core_workspace_facts','core-workspace-facts'),
@@ -101,7 +107,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != raw or current_sources() != sources):
         raise ValueError('native candidate build inputs changed')
-    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v1',
+    protocol_version = '2' if candidate == 'agent-journal' else '1'
+    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'

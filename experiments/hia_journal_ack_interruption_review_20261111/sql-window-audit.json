@@ -1,0 +1,765 @@
+{
+  "false_completed_response_cases": [
+    "KeyboardInterrupt-update-before",
+    "KeyboardInterrupt-update-after",
+    "SystemExit-update-before",
+    "SystemExit-update-after",
+    "MemoryError-update-before",
+    "MemoryError-update-after",
+    "RuntimeError-update-before",
+    "RuntimeError-update-after"
+  ],
+  "image_sha256": "3c631631a0b69558dea132a5e4901d50605b887b20251025ec94c4906544130d",
+  "manifest": "/workspace/scratch/e26ed3e2edcf/journal-recovered-development-r3/manifest.json",
+  "observations": [
+    {
+      "case": "KeyboardInterrupt-update-before",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "147897380"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379358304829708",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "KeyboardInterrupt"
+      }
+    },
+    {
+      "case": "KeyboardInterrupt-update-after",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "148775279"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379358661245717",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "KeyboardInterrupt"
+      }
+    },
+    {
+      "case": "SystemExit-update-before",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "137429233"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379359008478455",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "SystemExit"
+      }
+    },
+    {
+      "case": "SystemExit-update-after",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "135839862"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379359376429072",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "SystemExit"
+      }
+    },
+    {
+      "case": "MemoryError-update-before",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "143500969"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379359744890725",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "MemoryError"
+      }
+    },
+    {
+      "case": "MemoryError-update-after",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "139145574"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379360116024408",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "MemoryError"
+      }
+    },
+    {
+      "case": "RuntimeError-update-before",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "137077891"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379360453112244",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "RuntimeError"
+      }
+    },
+    {
+      "case": "RuntimeError-update-after",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":null,\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "completed",
+            "tool": "hia_adopt",
+            "wall_ns": "131085666"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"result\":{\"effect\":\"would-have-committed\"},\"status\":\"completed\"}",
+            "started_ns": "1794379360817306484",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": true,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "result": {
+          "effect": "would-have-committed"
+        },
+        "status": "completed"
+      },
+      "returned": null,
+      "thrown": {
+        "message": "independent interruption between SQL UPDATE and native ACK",
+        "type": "RuntimeError"
+      }
+    },
+    {
+      "case": "OperationalError-update-before",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"independent interruption between SQL UPDATE and native ACK\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "rejected",
+            "tool": "hia_adopt",
+            "wall_ns": "142448849"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"independent interruption between SQL UPDATE and native ACK\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"status\":\"rejected\"}",
+            "started_ns": "1794379361159691016",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": false,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "E_HIA_REJECTED",
+          "details_artifact": null,
+          "message": "independent interruption between SQL UPDATE and native ACK",
+          "phase": "admission",
+          "retry_action": "correct_input"
+        },
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "status": "rejected"
+      },
+      "returned": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "E_HIA_REJECTED",
+          "details_artifact": null,
+          "message": "independent interruption between SQL UPDATE and native ACK",
+          "phase": "admission",
+          "retry_action": "correct_input"
+        },
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "status": "rejected"
+      },
+      "thrown": null
+    },
+    {
+      "case": "OperationalError-update-after",
+      "durable_after_reopen": {
+        "costs": [
+          {
+            "context_id": null,
+            "details": "{\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"independent interruption between SQL UPDATE and native ACK\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"replayed\":false}",
+            "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "sequence": 1,
+            "status": "rejected",
+            "tool": "hia_adopt",
+            "wall_ns": "147630928"
+          }
+        ],
+        "effect_probe": [],
+        "requests": [
+          {
+            "digest": "06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+            "key": "82d183f51f93fe501876a91d55d3cc50e9ef88fc000f92012e68d9cfca3341c9",
+            "response": "{\"contract_version\":\"hepta.hia.agent-native.v1\",\"error\":{\"code\":\"E_HIA_REJECTED\",\"details_artifact\":null,\"message\":\"independent interruption between SQL UPDATE and native ACK\",\"phase\":\"admission\",\"retry_action\":\"correct_input\"},\"request_id\":\"r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39\",\"status\":\"rejected\"}",
+            "started_ns": "1794379361506857534",
+            "state": "completed",
+            "tool": "hia_adopt"
+          }
+        ]
+      },
+      "false_completed_response": false,
+      "fault_reached": true,
+      "native_stage_trace": [
+        {
+          "after_sql_fault": false,
+          "stage": 9
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 0
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 1
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 2
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 5
+        },
+        {
+          "after_sql_fault": false,
+          "stage": 6
+        },
+        {
+          "after_sql_fault": true,
+          "stage": 8
+        }
+      ],
+      "retry": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "E_HIA_REJECTED",
+          "details_artifact": null,
+          "message": "independent interruption between SQL UPDATE and native ACK",
+          "phase": "admission",
+          "retry_action": "correct_input"
+        },
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "status": "rejected"
+      },
+      "returned": {
+        "contract_version": "hepta.hia.agent-native.v1",
+        "error": {
+          "code": "E_HIA_REJECTED",
+          "details_artifact": null,
+          "message": "independent interruption between SQL UPDATE and native ACK",
+          "phase": "admission",
+          "retry_action": "correct_input"
+        },
+        "request_id": "r-06bfdb1bb4c819e92eb8a26d91c5d21574576d391aa7ad415ed855d034d0be39",
+        "status": "rejected"
+      },
+      "thrown": null
+    }
+  ],
+  "qualification": "DEVELOPMENT_ONLY",
+  "schema": "hepta.hia.journal-independent-sql-ack-review.v1",
+  "source_commit": "330ce4c5600c22985d1a7bad1b9199751a15fcc0",
+  "source_root": "/home/agent/hia-journal-review-330ce4c",
+  "source_sha256": "3d3f682df81b6bcef40d61fd21d464e0c20ca521b02011cd572fa16f44e0c2f0"
+}
