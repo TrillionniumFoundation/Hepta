@@ -1,0 +1,26 @@
+--- original-r1/verify_terminal.py
++++ frozen-r2/verify_terminal.py
+@@ -14,6 +14,7 @@
+ 
+ from driver import ROOT, DEPENDENCIES, validate_request, read_json, stable_file, require
+ from driver import materialization_ok, preparation_ok, original_prerequisite_selection, wire
++from driver import verify_fixture_supply
+ 
+ 
+ REQUIRED_GATES = frozenset((
+@@ -114,6 +115,7 @@
+     environment, environment_pin = read_json(ROOT / 'p/environment.json')
+     preparation_ok(prep, environment, request)
+     original_prerequisite_selection(prep, request)
++    supplied_fixtures = verify_fixture_supply(request)
+     cold_manifest = outcome.get('cold_source_manifest')
+     require(type(cold_manifest) is dict and len(cold_manifest) == 682
+             and cold_manifest.get('docs/HIA_SELFHOST_CORE_SUPPORT.json') == source['contract_sha256'],
+@@ -129,6 +131,7 @@
+             'head': source['commit'], 'tree': source['tree'],
+             'guardian': guardian_pin, 'qualification': outcome_pin, 'full_discovery': discovery_pin,
+             'source_materialization': materialized_pin, 'preparation': prep_pin,
++            'source_bound_three_fixture_supply': supplied_fixtures,
+             'environment': environment_pin, 'cold': cold_pin,
+             'tests_run': full['tests_run'], 'complete_loaded_executed_ids': True,
+             'no_skips_expected_failures_or_exclusions': True,

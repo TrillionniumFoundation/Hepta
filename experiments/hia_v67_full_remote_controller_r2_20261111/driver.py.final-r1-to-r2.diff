@@ -1,0 +1,245 @@
+--- original-r1/driver.py
++++ frozen-r2/driver.py
+@@ -16,12 +16,13 @@
+ import stat
+ import sys
+ import time
++import types
+ import zipfile
+ 
+ import workflow_process
+ 
+ 
+-ROOT = Path('/home/qian-qi/he26v67r1')
++ROOT = Path('/home/qian-qi/he26v67r2')
+ PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')
+ PYTHON_SHA256 = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
+ CONTRACT = 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
+@@ -41,7 +42,7 @@
+     'native_owner_gates.py': 'a2d2a8f1ffcdf9032efc98f774f2f4e23bc94aaceb56f95a359b7d4442a1eb30',
+     'source-package.py': 'af243e692ee5b6e9289f6226a0269ae40b02e1b460521471e199dfb8981dca5a',
+     'prepare_remote_qualification_v2.py': '972dffc85f53093aa8d06f53a1a2154dc1731e7ad93c0ca39c93f0b03a91ffbc',
+-    'prepare_v67_cargo_environment.py': 'ca5dfabafce068e1a05a1c121d60bae66a35f5472f5c9a323d9d32155d909136',
++    'prepare_v67_cargo_environment.py': 'afb64c7dce8354f656ea151a7b8495bd4374ea929d6dfe41282598b6f2ce2c82',
+ }
+ LIMITS = {
+     'controller_seconds': 10800, 'source_materialization_seconds': 900,
+@@ -63,6 +64,29 @@
+ }
+ HEX40 = re.compile(r'[0-9a-f]{40}\Z')
+ HEX64 = re.compile(r'[0-9a-f]{64}\Z')
++SUPPLY_ROOT = Path('/home/qian-qi/he26v67fixturesr1')
++SUPPLY_KEY = 'hia-e26e-desktop-v67-608-three-ndu-fixtures-supply-r1'
++SUPPLY_REQUEST_SHA256 = '9384034cc1b5ab24c382049fef3f404e4c57ec4aca81063ab670dc5039b688e8'
++SUPPLY_CONTROL_FILES = {
++    'bootstrap.py': 'caff48a0f36499aebcd68455fba147cd17a2ee29ba78b7080ddae013419445ea',
++    'common.py': '850e8da5adcae0b0835719c37deacbc64833f453caf19574b997833530c7170a',
++    'driver.py': '33ea7d7922d0522d9ba670b542b6e07304acd676512b7490b8284cae24807c76',
++    'guardian.py': 'd0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023',
++    'process_owner_impl.py': '36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2',
++    'producer.py': 'e7ff8586c2c06d05cf579029bab905c35a437c1c5ae3136a2ad7734e3f47e452',
++    'source-inputs.json': 'dbc760cb306f9cca40c7240fcb0782fcfed3e6335ac9309402fbcfe45fa3497e',
++    'verify_terminal.py': 'f7a4ee8b896844a57e5699adc6d11276a59d059188b30c848c64aa3a71b7c4bd',
++    'workflow_process.py': 'f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80',
++}
++SUPPLY_PROFILES = {
++    'ranking': ('debug', '912c2f5520311284a89e452670415404523b8a5ffa18246f2ec3e2e727a0cf37',
++                'd3c2d760eca5065fc966820379c35c6e8d56e855'),
++    'raw': ('release', '46186790dd9ba0607ac4b3125cb21fefedc0256e24256e7220dff2c828c1c3df',
++            '8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d'),
++    'dynamic': ('release', '46186790dd9ba0607ac4b3125cb21fefedc0256e24256e7220dff2c828c1c3df',
++                '8e52e1187f47f6d4edc8d942fc7cb7eca4bc447d'),
++}
++SUPPLY_BUILDER_SHA256 = 'c4702a063f45b8a75973dc2978c38f414d43121dde7968af165c51b43241e6e8'
+ 
+ 
+ def require(condition, message):
+@@ -154,6 +178,108 @@
+     return row
+ 
+ 
++def validate_fixture_supply_pins(request):
++    """External frozen receipt pins, never values inferred from an unverified report."""
++    spec = request.get('fixture_supply')
++    require(type(spec) is dict and spec.get('schema') == 'hia.v67.full-qualification-fixture-supply-pins.v1'
++            and spec.get('root') == str(SUPPLY_ROOT) and spec.get('stable_key') == SUPPLY_KEY
++            and spec.get('head') == request['source']['commit']
++            and spec.get('tree') == request['source']['tree']
++            and spec.get('builder_sha256') == SUPPLY_BUILDER_SHA256,
++            'three-fixture supply has not been externally pinned')
++    readonly = request['readonly_inputs']
++    for name, digest in SUPPLY_CONTROL_FILES.items():
++        require(readonly.get(str(SUPPLY_ROOT / 'control' / name)) == digest,
++                'reviewed supply controller is not an immutable formal input: ' + name)
++    require(readonly.get(str(SUPPLY_ROOT / 'control/request.json')) == SUPPLY_REQUEST_SHA256,
++            'actual supply request is not an immutable formal input')
++    for field, path in (('report', SUPPLY_ROOT / 'report.json'),
++                        ('outer_guardian', SUPPLY_ROOT / 'guard/guardian.json')):
++        row = spec.get(field, {})
++        require(type(row) is dict and set(row) == {'path', 'sha256', 'bytes'}
++                and row['path'] == str(path) and type(row['bytes']) is int and row['bytes'] > 0
++                and type(row['sha256']) is str and HEX64.fullmatch(row['sha256'])
++                and readonly.get(str(path)) == row['sha256'],
++                'actual complete supply record is not externally pinned: ' + field)
++    fixtures = spec.get('fixtures')
++    require(type(fixtures) is dict and set(fixtures) == set(SUPPLY_PROFILES),
++            'exactly the three newly supplied fixtures are required')
++    for profile, (mode, lock, upstream) in SUPPLY_PROFILES.items():
++        row = fixtures[profile]
++        require(type(row) is dict and set(row) == {'receipt', 'receipt_sha256', 'binary',
++                    'binary_sha256', 'cargo_lock_sha256', 'builder_sha256', 'upstream_commit'}
++                and row['receipt'] == str(SUPPLY_ROOT / 'fixtures' / profile / 'build-receipt.json')
++                and row['binary'] == str(SUPPLY_ROOT / 'targets' / profile / mode / 'hia-ndu-bridge')
++                and row['cargo_lock_sha256'] == lock and row['upstream_commit'] == upstream
++                and row['builder_sha256'] == SUPPLY_BUILDER_SHA256
++                and all(type(row[key]) is str and HEX64.fullmatch(row[key])
++                        for key in ('receipt_sha256', 'binary_sha256'))
++                and readonly.get(row['receipt']) == row['receipt_sha256'],
++                'actual fresh receipt/binary binding differs: ' + profile)
++    return spec
++
++
++def verify_fixture_supply(request):
++    """Reuse the immutable supplier's exact read-only verifier inside this owner.
++
++    No process or effect is launched. The held source bytes are compiled in
++    private modules; only the verifier's explicit adjacent common import is
++    temporarily bound, then restored even if its original verification raises.
++    This preserves the supplier's actual binary/link and natural-reap checks.
++    """
++    spec = validate_fixture_supply_pins(request)
++    controls = {}
++    source_bytes = {}
++    for name, digest in SUPPLY_CONTROL_FILES.items():
++        collect = name in ('common.py', 'verify_terminal.py')
++        controls[name], raw = stable_file(SUPPLY_ROOT / 'control' / name, digest, collect=collect)
++        if collect:
++            source_bytes[name] = raw
++    read_json(SUPPLY_ROOT / 'control/request.json', SUPPLY_REQUEST_SHA256)
++    for field in ('report', 'outer_guardian'):
++        pin = spec[field]
++        _, observed = read_json(pin['path'], pin['sha256'])
++        require(observed['bytes'] == pin['bytes'], 'supply record size differs: ' + field)
++    common = types.ModuleType('_fixed_v67_supply_common')
++    common.__file__ = str(SUPPLY_ROOT / 'control/common.py')
++    exec(compile(source_bytes['common.py'], common.__file__, 'exec'), common.__dict__)
++    verifier = types.ModuleType('_fixed_v67_supply_verifier')
++    verifier.__file__ = str(SUPPLY_ROOT / 'control/verify_terminal.py')
++    absent = object()
++    previous = sys.modules.get('common', absent)
++    try:
++        sys.modules['common'] = common
++        exec(compile(source_bytes['verify_terminal.py'], verifier.__file__, 'exec'), verifier.__dict__)
++    finally:
++        if previous is absent:
++            sys.modules.pop('common', None)
++        else:
++            sys.modules['common'] = previous
++    observed = verifier.verify()
++    require(observed.get('schema') == 'hia.v67.ndu-fixture-supply-acceptance.v1'
++            and observed.get('status') == 'THREE_FIXTURES_READY_NOT_TEST_PASS'
++            and observed.get('head') == spec['head'] and observed.get('tree') == spec['tree']
++            and observed.get('root') == str(SUPPLY_ROOT) and observed.get('stable_key') == SUPPLY_KEY
++            and observed.get('builder_sha256') == SUPPLY_BUILDER_SHA256
++            and observed.get('qualification_executed') is False
++            and observed.get('whole_native_delivery_qualified') is False
++            and observed.get('old_formal_hold_preserved') is True,
++            'original supply terminal verifier did not admit these exact fixtures')
++    for field in ('report', 'outer_guardian'):
++        require(all(observed[field].get(key) == value for key, value in spec[field].items()),
++                'original verifier consumed a different supply record: ' + field)
++    require(set(observed.get('fixtures', {})) == set(SUPPLY_PROFILES), 'actual fixture population differs')
++    for profile, expected in spec['fixtures'].items():
++        require(all(observed['fixtures'][profile].get(key) == value for key, value in expected.items()),
++                'actual supply verifier receipt/binary differs from external pins: ' + profile)
++    for name, digest in SUPPLY_CONTROL_FILES.items():
++        require(stable_file(SUPPLY_ROOT / 'control' / name, digest)[0] == controls[name],
++                'supply controller changed during read-only verification: ' + name)
++    return dict(observed, immutable_verifier_source_sha256=SUPPLY_CONTROL_FILES['verify_terminal.py'],
++                immutable_common_source_sha256=SUPPLY_CONTROL_FILES['common.py'],
++                read_only_reverification_not_a_build_or_test=True)
++
++
+ def validate_request(value):
+     require(value.get('schema') == 'hia.v67.full-qualification-launch.v1'
+             and value.get('frozen') is True and not value.get('pending'),
+@@ -174,7 +300,7 @@
+             and source.get('leaf_count') == 3925
+             and source.get('contract_bytes') == 143277
+             and source.get('coverage_bytes') == 176638, 'frozen source population differs')
+-    require(value.get('stable_key') == 'hia-e26e-desktop-v67-' + source['commit'][:8] + '-full-qualification-r1',
++    require(value.get('stable_key') == 'hia-e26e-desktop-v67-' + source['commit'][:8] + '-full-qualification-r2',
+             'stable new-operation key differs')
+     artifact = value.get('artifact', {})
+     require(type(artifact.get('workflow_run_id')) is int and artifact['workflow_run_id'] > 0
+@@ -227,6 +353,7 @@
+         require(type(name) is str and Path(name).is_absolute()
+                 and not Path(name).is_relative_to(ROOT)
+                 and type(expected) is str and HEX64.fullmatch(expected), 'invalid original read-only input')
++    validate_fixture_supply_pins(value)
+     return value
+ 
+ 
+@@ -292,7 +419,7 @@
+     # c127 source. It delegates all original 972d run/save gates and adds only
+     # the private Cargo choice plus exact candidate/archive admission.
+     adapter = preparation.get('v67_adapter', {})
+-    require(adapter.get('revision') == 'new-private-cargo-v67-r1'
++    require(adapter.get('revision') == 'new-private-cargo-v67-r2-three-fresh-fixtures'
+             and adapter.get('original_adapter_c127_recovered') is False
+             and adapter.get('original_preparer_sha256') == DEPENDENCIES['prepare_remote_qualification_v2.py']
+             and adapter.get('original_run_and_save_unchanged') is True
+@@ -329,13 +456,20 @@
+         require(current.get('path') == expected['path'] and current.get('sha256') == expected['sha256']
+                 and current.get('available') is True, 'fresh tool differs from the original explicit candidate: ' + check_name)
+         actual[check_name] = {'path': current['path'], 'sha256': current['sha256']}
++    supplied = validate_fixture_supply_pins(request)['fixtures']
+     for name in ('ranking', 'raw', 'dynamic', 'recursive', 'finite', 'stream'):
+-        expected, current = fixtures['fixtures'][name], checks['ndu_' + name]
++        expected, current = supplied.get(name, fixtures['fixtures'][name]), checks['ndu_' + name]
+         require(current.get('path') == expected['receipt']
+                 and current.get('sha256') == expected['receipt_sha256']
+                 and current.get('available') is True, 'fresh source-bound fixture differs: ' + name)
++        if name in supplied:
++            require(current.get('binary', {}).get('path') == expected['binary']
++                    and current['binary'].get('sha256') == expected['binary_sha256'],
++                    'original current gate admitted a different fresh binary: ' + name)
+     return {'original_tool_candidates': tool_pin, 'original_fixture_candidates': fixture_pin,
+             'twelve_actual_tool_paths_and_hashes': actual,
++            'three_new_fixture_candidates': supplied,
++            'three_other_fixture_candidates_unchanged': True,
+             'six_fixtures_freshly_reobserved_by_original_preparer': True,
+             'historical_READY_counted_as_current_test_pass': False}
+ 
+@@ -496,10 +630,11 @@
+         report['steps'].append({'label': label, 'owner': owner})
+         checkpoint()
+         cleanup = owner.get('cleanup', {})
+-        require(owner.get('status') == 'WORKFLOW_STEP_COMPLETED' and owner.get('returncode') == 0
+-                and owner.get('timed_out') is False and cleanup.get('complete') is True
++        require(owner.get('timed_out') is False and cleanup.get('complete') is True
+                 and cleanup.get('errors') == [] and cleanup.get('signalled') == [],
+                 'original owned preparation step did not close naturally: ' + label)
++        require(owner.get('status') == 'WORKFLOW_STEP_COMPLETED' and owner.get('returncode') == 0,
++                'original preparation command rejected its inputs or failed: ' + label)
+ 
+     def readonly_inputs():
+         return {path: stable_file(path, expected)[0] for path, expected in request['readonly_inputs'].items()}
+@@ -522,6 +657,7 @@
+ 
+     try:
+         report['original_inputs_before'] = readonly_inputs()
++        report['fixture_supply_before'] = verify_fixture_supply(request)
+         runtime = request['runtime']
+         report['python_binary'], _ = stable_file(PYTHON.resolve(), PYTHON_SHA256)
+         python_report, _ = read_json(runtime['python_preparation'], runtime['python_preparation_sha256'])
+@@ -568,6 +704,9 @@
+         prepared_environment, report['prerequisite_environment'] = read_json(ROOT / 'p/environment.json')
+         preparation_ok(preparation, prepared_environment, request)
+         report['exact_original_prerequisite_selection'] = original_prerequisite_selection(preparation, request)
++        report['fixture_supply_after'] = verify_fixture_supply(request)
++        require(report['fixture_supply_after'] == report['fixture_supply_before'],
++                'supplied fixture identity changed during original fresh probes')
+         require(check_declared_source() == cold_sources, 'source changed during prerequisite preparation')
+         report['original_inputs_after'] = readonly_inputs()
+         require(report['original_inputs_after'] == report['original_inputs_before'], 'old input identity changed')

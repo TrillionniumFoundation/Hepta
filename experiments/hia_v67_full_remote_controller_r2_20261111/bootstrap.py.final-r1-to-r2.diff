@@ -1,0 +1,50 @@
+--- original-r1/bootstrap.py
++++ frozen-r2/bootstrap.py
+@@ -16,7 +16,7 @@
+ import sys
+ 
+ 
+-ROOT = Path('/home/qian-qi/he26v67r1')
++ROOT = Path('/home/qian-qi/he26v67r2')
+ PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')
+ PYTHON_SHA256 = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
+ FIXED = {
+@@ -28,7 +28,7 @@
+     'native_owner_gates.py': 'a2d2a8f1ffcdf9032efc98f774f2f4e23bc94aaceb56f95a359b7d4442a1eb30',
+     'source-package.py': 'af243e692ee5b6e9289f6226a0269ae40b02e1b460521471e199dfb8981dca5a',
+     'prepare_remote_qualification_v2.py': '972dffc85f53093aa8d06f53a1a2154dc1731e7ad93c0ca39c93f0b03a91ffbc',
+-    'prepare_v67_cargo_environment.py': 'ca5dfabafce068e1a05a1c121d60bae66a35f5472f5c9a323d9d32155d909136',
++    'prepare_v67_cargo_environment.py': 'afb64c7dce8354f656ea151a7b8495bd4374ea929d6dfe41282598b6f2ce2c82',
+ }
+ LIMITS = {
+     'controller_seconds': 10800, 'source_materialization_seconds': 900,
+@@ -111,7 +111,7 @@
+                 'required full source pin missing: ' + key)
+     require(source.get('declared_source_count') == 681 and source.get('cold_source_count') == 682
+             and source.get('leaf_count') == 3925 and source.get('profile'), 'frozen source population differs')
+-    require(request.get('stable_key') == 'hia-e26e-desktop-v67-' + source['commit'][:8] + '-full-qualification-r1',
++    require(request.get('stable_key') == 'hia-e26e-desktop-v67-' + source['commit'][:8] + '-full-qualification-r2',
+             'new original-operation key differs')
+     artifact = request.get('artifact', {})
+     require(type(artifact.get('workflow_run_id')) is int and artifact['workflow_run_id'] > 0
+@@ -150,6 +150,20 @@
+         require(type(path) is str and Path(path).is_absolute() and not Path(path).is_relative_to(ROOT)
+                 and type(expected) is str and re.fullmatch('[0-9a-f]{64}', expected),
+                 'invalid read-only original input identity')
++    supply = request.get('fixture_supply', {})
++    require(supply.get('schema') == 'hia.v67.full-qualification-fixture-supply-pins.v1'
++            and supply.get('root') == '/home/qian-qi/he26v67fixturesr1'
++            and supply.get('stable_key') == 'hia-e26e-desktop-v67-608-three-ndu-fixtures-supply-r1'
++            and supply.get('head') == source['commit'] and supply.get('tree') == source['tree']
++            and set(supply.get('fixtures', {})) == {'ranking', 'raw', 'dynamic'},
++            'actual newly supplied fixtures have not been externally bound')
++    for field, suffix in (('report', 'report.json'), ('outer_guardian', 'guard/guardian.json')):
++        pin = supply.get(field, {})
++        require(pin.get('path') == supply['root'] + '/' + suffix
++                and type(pin.get('bytes')) is int and pin['bytes'] > 0
++                and type(pin.get('sha256')) is str and re.fullmatch('[0-9a-f]{64}', pin['sha256'])
++                and old.get(pin['path']) == pin['sha256'],
++                'actual supply record must remain an externally fixed input: ' + field)
+     return request
+ 
+ 
