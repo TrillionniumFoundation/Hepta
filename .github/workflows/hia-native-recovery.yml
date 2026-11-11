@@ -1180,3 +1180,106 @@ jobs:
           retention-days: 90
           compression-level: 0
 
+
+  a_fault_diagnosis:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:a-fault]')
+    name: Reproduce exact first A native failure and capture original rejection
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact failed A integration archive
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13899312188'
+          run-id: '43116890231'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/A-fault-original
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/program-integration/diagnose_actual_A_failure_r1.py --download "$RUNNER_TEMP/A-fault-original" --out "$RUNNER_TEMP/hia-a-fault-output" 2>&1 | tee "$RUNNER_TEMP/hia-a-fault-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-a-fault-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/A-fault-original
+            ${{ runner.temp }}/hia-a-fault-output
+            ${{ runner.temp }}/hia-a-fault-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  getlk_installed_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:getlk-installed-readback]')
+    name: Read exact successful GETLK and all installed resource results
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original GETLK archive
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13898836544'
+          run-id: '43115476503'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/getlk-original
+      - name: Download exact original installed archive
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13897658842'
+          run-id: '43115476503'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/installed-original
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_NAMESPACE_GETLK_READBACK_DIR: ${{ runner.temp }}/getlk-original
+          HIA_INSTALLED_READBACK_DIR: ${{ runner.temp }}/installed-original
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-getlk-installed-readback-output
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-followup9-evidence-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-getlk-installed-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-getlk-installed-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-getlk-installed-readback-output
+            ${{ runner.temp }}/hia-getlk-installed-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
