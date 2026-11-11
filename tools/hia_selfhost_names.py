@@ -708,19 +708,53 @@ def independent_reference():
         'all_input_correctness_proved': False, 'whole_stack_rewrite_complete': False}
 
 
+def _verify_compilation_evidence(directory, observations, expected_count):
+    """Reject lost compilation bytes before a completed phase can be archived."""
+    from hashlib import sha256
+    import json
+    from pathlib import Path
+    directory = Path(directory).resolve(strict=True)
+    rows = [row for row in observations if 'produced_image' in row]
+    if len(rows) != expected_count or len({row['case'] for row in rows}) != expected_count:
+        raise AssertionError('compilation evidence inventory differs')
+    for row in rows:
+        image_path = Path(row['produced_image'])
+        if image_path.resolve(strict=True).parent != directory:
+            raise AssertionError('compilation image is outside its evidence directory')
+        source = (directory / (row['case'] + '.input.bin')).read_bytes()
+        output = (directory / (row['case'] + '.output.bin')).read_bytes()
+        final_receipt = (directory / (row['case'] + '.receipt.json')).read_bytes()
+        image = image_path.read_bytes()
+        # Only object/executable inspection is added outside compile_stage.
+        original = {key: value for key, value in row.items() if key != 'inspection'}
+        expected_receipt = (json.dumps(original, indent=2, sort_keys=True) + '\n').encode()
+        size = row['produced_bytes']
+        if (len(source) != row['input_bytes']
+                or sha256(source).hexdigest() != row['input_sha256']
+                or sha256(output).hexdigest() != row['output_sha256']
+                or final_receipt != expected_receipt
+                or type(size) is not int or not 0 < size <= len(output)
+                or size != row['core_u32'] or len(image) != size
+                or image != output[:size]
+                or sha256(image).hexdigest() != row['produced_sha256']):
+            raise AssertionError('compilation raw evidence differs: ' + row['case'])
+
+
 def qualify(directory, compiler, checks, reference, label):
     from pathlib import Path
     from tools.qualify_hia_selfhost import compile_stage, invoke, observe_native_tool, INVALID, inspect_selfhost_object
     from tools.qualify_hia_selfhost_cli import execute, inspect_executable
     directory = Path(directory)
+    compilation = directory / 'compilation'
+    compilation.mkdir()
     observations, images = [], {}
     for row in reference['cases']:
         program = row['program']
         if program not in images:
             source = row['source'].encode()
-            flat, build = compile_stage(directory, label + '-' + program + '-flat', compiler, source)
+            flat, build = compile_stage(compilation, label + '-' + program + '-flat', compiler, source)
             observations.append(build)
-            obj, build = compile_stage(directory, label + '-' + program + '-object', compiler,
+            obj, build = compile_stage(compilation, label + '-' + program + '-object', compiler,
                 source.replace(b'v8 selfhost\n', b'v8 selfhost_elf\n', 1), output_extension='.o')
             observations.append({**build, 'inspection': inspect_selfhost_object(obj.read_bytes())})
             linked = directory / (label + '-' + program + '.so')
@@ -751,11 +785,11 @@ def qualify(directory, compiler, checks, reference, label):
     alpha = reference['alpha_compiler'][label]['source'].encode()
     previous = compiler
     for generation in (1, 2):
-        image, build = compile_stage(directory, label + '-alpha-R' + str(generation), previous, alpha)
+        image, build = compile_stage(compilation, label + '-alpha-R' + str(generation), previous, alpha)
         checks[label + '-alpha-R' + str(generation)] = image.read_bytes() == compiler.read_bytes()
         observations.append(build); previous = image
     executable_source = alpha.replace(b'v8 selfhost\n', b'v8 selfhost_exec\n', 1)
-    executable, build = compile_stage(directory, label + '-alpha-E1', compiler,
+    executable, build = compile_stage(compilation, label + '-alpha-E1', compiler,
         executable_source, output_extension='.elf')
     observations.append({**build, 'inspection': inspect_executable(executable.read_bytes())})
     executable.chmod(0o700)
@@ -772,11 +806,13 @@ def qualify(directory, compiler, checks, reference, label):
         b'v8 ' + ('Compiler_' + label).encode() + b'\n', 1)
     previous = compiler
     for generation in (1, 2):
-        image, build = compile_stage(directory, label + '-module-R' + str(generation),
+        image, build = compile_stage(compilation, label + '-module-R' + str(generation),
                                      previous, module_source)
         checks[label + '-module-R' + str(generation)] = image.read_bytes() == compiler.read_bytes()
         observations.append(build)
         previous = image
+    _verify_compilation_evidence(compilation, observations,
+        2 * len({row['program'] for row in reference['cases']}) + 5)
     return observations
 
 

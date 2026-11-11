@@ -91,7 +91,7 @@ class NativeConstructorIntegrationTests(unittest.TestCase):
         resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in KERNELS:
             self.assertIn('examples/hia_bootstrap/composite_constructor_' + name + '.hepta', resources)
-        with tempfile.TemporaryDirectory(prefix='hia-ctor-wheel-', dir='/dev/shm') as temporary:
+        with tempfile.TemporaryDirectory(prefix='hia-ctor-wheel-') as temporary:
             folder = Path(temporary)
             source = folder/'source'; source.mkdir()
             shutil.copytree(ROOT/'hepta', source/'hepta', ignore=shutil.ignore_patterns('__pycache__'))

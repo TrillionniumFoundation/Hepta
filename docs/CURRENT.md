@@ -145,6 +145,63 @@ owned cleanup. A timed-out run remains failed even when another host passes.
 Recording compiler/packer stages are custody controls, not native executions.
 New code must have its own matching-source cold and native observations.
 
+## Retained observations for the helper-caller integration
+
+The following observations belong to commit
+`6923b86d9a007aa15b9a5803b35c0f288590dfd2`, tree
+`1e77b5916c6ea45ccc32a7364de0a3d683a7c2eb`. They do not qualify a subsequent
+compiler or fixture change. This source has 2,350 tracked files, 95 `.hepta`
+sources and 161 production Python modules. Its contract binds 697 inputs plus
+the contract itself, for 698 captured source files.
+
+| Observation | Actual result | Boundary |
+| --- | --- | --- |
+| ROG cold qualification | All 11 outer checks passed in 79.688433229 seconds | Original 180-second qualification and 3-second cleanup bounds; matching source before and after |
+| Helper caller controls | 10 exact tests passed: six source controls and four actual native controls | Explicit snapshot descriptor and two exact patch-factory views; no unknown-factory or adjacent-admission relaxation |
+| Source regeneration | All 52 generators reproduced the fixed source | This is build-source reproducibility, not an additional native execution count |
+| Complete retained regression | 4,388 loaded and executed; 4,386 passed and two errored; 66,170 subtests passed | **HOLD**, no skipped, expected-failure or omitted tests; original 5,400-second owner bound |
+| Language component inside that regression | The original ten language tests and 1,242 reported checks passed | Included in the 4,388 tests, not an independent rerun; the enclosing run remains HOLD |
+| [PR Core run 43070851690](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43070851690) | Completed successfully, attempt 1 | Bound to the original 6923 source |
+| [Push Core run 43070837385](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43070837385) | Cold qualification timed out at 180.190390384 seconds, attempt 1 | Original timeout, six of eleven outer checks and completed owned cleanup remain failed evidence |
+
+The complete regression owner returned exit 1 normally after 1,989.081059663
+seconds; it did not time out. All 4,388 test identities retain their original
+order. The two errors occurred during initial installed-package fixture copying
+into hardcoded `/dev/shm` temporary directories:
+
+- `NativeConstructorIntegrationTests.test_installed_wheel_without_retained_nominal_owners_and_tamper_refusal`
+- `NativeOuterIntegrationTests.test_real_sdist_to_wheel_without_old_owners_and_all_new_resource_refusals`
+
+Both raised `OSError: [Errno 122] Disk quota exceeded`. A read-only query of the
+test account's actual quota found 7,023,616 bytes remaining on `/dev/shm`;
+each fixture initially copies 9,394,632 bytes in 222 files. Global filesystem
+free space did not represent that account's remaining quota. These tests
+therefore did not reach their installed success, owner-refusal and resource
+tamper controls in this run. They are not counted as passed.
+
+The original result SHA-256 is
+`98566791c364a663fceaa4abefa63150a09ad45cfc4d31ed2dae8ed6fa6a9750`.
+The source, cold compiler evidence, harness and 797 admitted prerequisite
+bindings were preserved. The independent final review executed no tests and
+checked the complete test inventory and all 79,337 event records. Its result
+remains `ORIGINAL_FULL_HOLD_VERIFIED`, not a regression pass.
+
+A later read-only custody audit found an original raw-evidence gap in both
+name-qualification phases. Compilation observation 185 and execution observation
+188 share the `ssa-intern-table-full-2048-flat` basename. In each original ZIP,
+the later execution replaced the earlier 68,610-byte compiler input with an
+empty input, the 1 MiB compilation output with a one-byte runtime output, and
+the compilation receipt with the execution receipt. The separately published
+35,060-byte image remains intact. Each original phase still reports its actual
+414 observations and 257 passing checks. Those results and archives are retained
+unchanged; they do not establish complete retention of the overwritten raw
+invocation. A new qualification must keep compilation artifacts separate and
+verify the raw inputs, full outputs, final receipts and published images.
+
+The PR success and push timeout are separate observations of the same source.
+Later performance changes must run the original cases and budgets on their
+own source; a successful rerun cannot rewrite either original result.
+
 ## Repository cleanup
 
 Two isolated, unused experiments are removed from the active Python package:
@@ -160,10 +217,16 @@ The active package has 161 Python modules, including the explicit
 not a native-completion percentage. Required hosted modules are retained until
 replacement and ordinary-operation equivalence are established.
 
-Six superseded progress and deployment reports have been removed from the
-active documentation tree. Their exact earlier revisions are linked below.
-README points to this single current-state index. The duplicate active-module
-report is removed; the complete repository inventory is maintained once.
+Twelve superseded progress, deployment and component-acceptance reports are
+removed from the active documentation tree. The six additional historical
+component reports total 17,163 bytes and are outside the declared cold-source,
+package-resource and Agent discovery sets. Their exact published Git blobs,
+content hashes and consumer review are recorded in the
+[historical-report retirement ledger](../review-evidence/hia-native-cleanup-20261111/retired-historical-reports.json).
+Their original observations remain available at the fixed revisions below;
+the historical source maps and failed records are unchanged. README points to
+this single current-state index. The duplicate active-module report is removed;
+the complete current repository inventory is maintained once.
 
 The [AST and textual caller inventory](HIA_NATIVE_REWRITE_INVENTORY.json) found no further demonstrated unused
 production module. `__main__` is the module entry, `hia_agent_exec` is launched
@@ -226,6 +289,12 @@ observations, not to the current checkout.
 | Product follow-through and original failures, 2026-11-07 | [Retained report at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_PRODUCT_FOLLOWTHROUGH_20261107.md) |
 | Runtime compatibility observation, 2026-11-10 | [Retained audit at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md) |
 | Core-only cleanup and its fixed-source acceptance, 2026-11-10 | [Retained report at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_REPOSITORY_CLEANUP_20261110.md) |
+| Core-only source transition | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_CORE_ONLY_TRANSITION.md) |
+| Installed Agent component acceptance | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_CORE_INSTALLED_AGENT_ACCEPTANCE.md) |
+| Descriptor snapshot component acceptance | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_AGENT_SNAPSHOT_ACCEPTANCE.md) |
+| JSON snapshot component acceptance | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_AGENT_SNAPSHOT_JSON_ACCEPTANCE.md) |
+| Agent delivery component acceptance | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_CORE_ONLY_AGENT_DELIVERY_ACCEPTANCE.md) |
+| Agent editing-view component acceptance | [Retained report at `6923b86d`](https://github.com/TrillionniumFoundation/Hepta/blob/6923b86d9a007aa15b9a5803b35c0f288590dfd2/docs/HIA_CORE_ONLY_AGENT_SLICE_ACCEPTANCE.md) |
 
 ## Runtime integration
 
@@ -236,10 +305,12 @@ native adapters. The separate five-command
 [native stdio application](HIA_AGENT_STDIO_NATIVE.md) implements another
 protocol. Installing its executable does not replace the ordinary worker.
 
-The [Agent runtime contract](HIA_AGENT_NATIVE_RUNTIME_CONTRACT.md) and
-[installed-resource contract](HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md) describe
-the current source interfaces. A dated deployment observation or a matching
-catalog hash does not identify the code currently executing on a machine.
+The [Agent runtime contract](HIA_AGENT_NATIVE_RUNTIME_CONTRACT.md) preserves
+its 2026-11-06 interface design and the historical source pins and CLI behavior
+stated there. It is not a report of the current CLI or a deployed worker.
+The [installed-resource contract](HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md)
+describes current package resource custody. A dated deployment observation or
+a matching catalog hash does not identify the code currently executing on a machine.
 Runtime migration must therefore establish all of the following on the actual
 selected installation:
 

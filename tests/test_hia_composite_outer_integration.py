@@ -106,7 +106,7 @@ class NativeOuterIntegrationTests(unittest.TestCase):
                          for owner in ('constructor', 'outer') for name in KERNELS]
         for name in new_resources:
             self.assertIn(name, resources)
-        with tempfile.TemporaryDirectory(prefix='hia-outer-wheel-', dir='/dev/shm') as temporary:
+        with tempfile.TemporaryDirectory(prefix='hia-outer-wheel-') as temporary:
             folder = Path(temporary)
             source = folder/'source'; source.mkdir()
             shutil.copytree(ROOT/'hepta', source/'hepta', ignore=shutil.ignore_patterns('__pycache__'))
