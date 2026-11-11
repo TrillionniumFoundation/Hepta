@@ -129,8 +129,6 @@ jobs:
       - run: python -B tools/replay_hia_selfhost_cold.py --output "$RUNNER_TEMP/hia-cold.json"
       - run: python -B tests/test_hia_selfhost_language_coverage.py --output "$RUNNER_TEMP/hia-language.json"
       - name: Native applications and actual Core memory controls
-        env:
-          HEPTA_HIA_CALL_GRAPH_EVIDENCE: ${{ runner.temp }}/hia-call-graph-native/
         run: |
           python -B - <<'PYTEST'
           import unittest
@@ -187,6 +185,7 @@ jobs:
           PYTEST
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CALL_GRAPH_EVIDENCE: ${{ runner.temp }}/hia-call-graph-native/
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:

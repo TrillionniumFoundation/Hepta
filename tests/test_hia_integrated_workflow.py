@@ -77,6 +77,14 @@ class CoreWorkflowContractTests(unittest.TestCase):
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
     def test_actual_native_ci_retains_original_applications_and_all_core_region_controls(self):
+        lines = step('Native applications and actual Core memory controls')
+        self.assertEqual(lines.count('        env:'), 1,
+                         'GitHub rejects duplicate step environment mappings before any gate runs')
+        environment = lines[lines.index('        env:') + 1:]
+        self.assertIn('          HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      environment)
+        self.assertIn('          HEPTA_HIA_CALL_GRAPH_EVIDENCE: ${{ runner.temp }}/hia-call-graph-native/',
+                      environment)
         source = script('Native applications and actual Core memory controls')
         code = source.split("<<'PYTEST'\n", 1)[1].rsplit('\nPYTEST', 1)[0]
         node = next(n for n in ast.parse(code).body if isinstance(n, ast.Assign))
@@ -170,7 +178,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertNotIn('continue-on-error', source)
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
-                     'hia-language.evidence/', 'hia-nominal-fixture/',
+                     'hia-language.evidence/', 'hia-call-graph-native/', 'hia-nominal-fixture/',
                      'hia-module-projects/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
