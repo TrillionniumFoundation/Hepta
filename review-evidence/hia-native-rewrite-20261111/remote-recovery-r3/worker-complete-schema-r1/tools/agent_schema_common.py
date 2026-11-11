@@ -1,6 +1,9 @@
 """Shared state and transport for the complete fixed-catalog schema owner.
 
-NEW UNEXECUTED r2. Pending peers publish their actual request event. The four HIA images share one private growable workspace.
+r3 changes only the ASCII span inside complete initial UTF-8 validation. Every
+byte and codepoint is still checked; V_NEXT is the exact last completed character
+offset before a Unicode refusal, and the complete old/new workspace is compared.
+Pending peers publish their actual request event. The four HIA images share one private growable workspace.
 Only HIA chooses validation stages, peer requests, catch scopes and outcomes.
 The caller supplies a private immutable issued HIAGRF01 containing both value
 and catalog schemas. No host schema walker or generic semantic plan is allowed.
@@ -184,10 +187,18 @@ def sv_string_valid(g:readbuf, w:mutbuf, at:u64) -> u64:
     end = position + sn_word(g, at + 16)
     count = 0
     while position < end:
-        if sv_unit(g, w, position, end) == SV_MAX:
-            return 0
-        count = count + 1
-        position = sv_get(w, V_NEXT)
+        if byte(g, position) < 128:
+            while position < end:
+                if byte(g, position) >= 128:
+                    break
+                count = count + 1
+                position = position + 1
+            sv_put(w, V_NEXT, position)
+        else:
+            if sv_unit(g, w, position, end) == SV_MAX:
+                return 0
+            count = count + 1
+            position = sv_get(w, V_NEXT)
     return choose(count == sn_word(g, at + 48), 1, 0)
 
 def sv_kind(g:readbuf, w:mutbuf, identifier:u64) -> u64:

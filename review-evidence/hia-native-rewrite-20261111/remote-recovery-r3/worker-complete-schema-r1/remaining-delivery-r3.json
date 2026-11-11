@@ -1,0 +1,59 @@
+{
+  "schema": "hia-worker-complete-schema-remaining-delivery-r3",
+  "scope": "NEW_UNEXECUTED_SOURCE_AND_REMAINING_QUALIFICATION",
+  "driver": {
+    "path": "worker_complete_schema_ci_r3.py",
+    "bytes": 6814,
+    "sha256": "403d2b13a33ca33c68e95916c5efb5778289c87ac10bda280bb6c74752ec9c9a",
+    "gitsha": "f42770dd366f251a19e665f86ea21ee265fa1081"
+  },
+  "files": [
+    {
+      "path": "tools/agent_schema_common.py",
+      "bytes": 17243,
+      "sha256": "a54f0e35263ee802761182c70ec86338305859797fce998f35ae78c8b62fb2b7",
+      "gitsha": "11e65672854db70650e16f6e8bd77a7c499cb326"
+    },
+    {
+      "path": "development/test_complete_schema_ci_r2.py",
+      "bytes": 32948,
+      "sha256": "c41de7121c4dbde203489fa5bca74af907099e266478acfb3f52d3b317fdb3a6",
+      "gitsha": "f3c159cde18c0c84f224431eef84949ade828874"
+    },
+    {
+      "path": "compile_complete_schema_ci_r4.py",
+      "bytes": 11816,
+      "sha256": "0c3e49f52da29cc9e98ba80c9f9757cf04ed12770ab5da0c2cc2f1655371c670",
+      "gitsha": "7e9cdb6c9f4030d6d669e29079603b52f10ed2ff"
+    }
+  ],
+  "historical_records": [
+    {
+      "path": "follow13-schema-r2-original-job.log",
+      "bytes": 69055,
+      "sha256": "d9313618ab8065325788c2ee6b08ac64728e1a2b3b12db6463d9a7554a636370",
+      "gitsha": "2866595f7dffc5f0d9402a514c339ad0752b57c4"
+    },
+    {
+      "path": "follow13-schema-r2-original-observation.json",
+      "bytes": 24361,
+      "sha256": "09eded33e4349192d28d5d42f83e3b5d99848ce31298eb2360b167d47f51fdde",
+      "gitsha": "4802478dbe32d02ee018c698962027ef387f9b03"
+    }
+  ],
+  "unchanged_dependencies": "All r2 pins except common source, test harness and compiler/CI glue; 7 current images and one exact original scalar reference compile afresh.",
+  "planned_groups": {
+    "paired": "366 initial graph-string inputs, exact old/new u32 status and full 4096-byte workspace",
+    "large": "Original 5 cases unchanged, including 8MiB input; aggregate 90CPU / 1GiB unchanged",
+    "protocol": "Original 46 controls unchanged; bytearray frozen as exact bytes before ctypes"
+  },
+  "old_completed_not_recounted": {
+    "cases": 1702,
+    "entries": 11985
+  },
+  "limitations": [
+    "No r3 AST/authoring/native execution yet.",
+    "Old r2 large SIGKILL has no semantic terminal and remains FAIL.",
+    "Whole Worker / default raw JSON prefix / high-level namespace remain OPEN."
+  ]
+}
