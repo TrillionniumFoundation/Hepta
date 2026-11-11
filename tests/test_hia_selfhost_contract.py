@@ -30,10 +30,13 @@ class SelfhostContractTests(unittest.TestCase):
     def test_release_freeze_inventory_covers_the_complete_selfhost_closure(self):
         from tools.hia_release import BOOTSTRAP_FILES
         declared = validate_contract()["source_identity"]["files"]
-        # The public freeze reads its own explicit inventory. A newly declared
-        # selfhost helper must be present there before a release can be locked.
-        self.assertEqual(set(BOOTSTRAP_FILES) - {CONTRACT_PATH},
-                         {name for name in declared if not name.startswith("hepta/")})
+        # Production Python is discovered by the contract. Every other source,
+        # including ABI data under hepta/, must be in the explicit freeze list.
+        # Explicit Python entries may overlap that automatic source inventory.
+        production_python={path.relative_to(ROOT).as_posix()
+                           for path in (ROOT / "hepta").rglob("*.py")}
+        self.assertEqual(set(BOOTSTRAP_FILES) | production_python,
+                         set(declared) | {CONTRACT_PATH})
 
     def test_contract_binds_support_and_complete_seed_source_closure(self):
         contract = validate_contract()

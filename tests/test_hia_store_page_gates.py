@@ -152,7 +152,25 @@ class StorePageCIGateTests(unittest.TestCase):
         workflow = (ROOT / '.github/workflows/hia-core.yml').read_text()
         generators = script('Regenerate actual HIA sources').split('for component in ', 1)[1].split('; do', 1)[0].split()
         self.assertEqual(len(generators), len(set(generators)))
-        self.assertEqual(generators[-2:], ['agent_store_authority', 'artifact_page'])
+        legacy_generators = [
+            'core_workspace_pipeline', 'core_workspace_facts', 'core_workspace_facts_cli',
+            'core_workspace_materialize', 'core_workspace_cli', 'capability_renaming',
+            'core_module_graph', 'core_workspace_json', 'core_workspace_json_cli',
+            'agent_identity', 'agent_slice', 'elf_linker', 'native_filter', 'core_json_cli',
+            'agent_stdio', 'agent_snapshot', 'agent_snapshot_json', 'agent_snapshot_json_cli',
+            'sha256_stream', 'native_observer', 'sha256', 'json_preflight', 'json_decode',
+            'json_canonical', 'core_json_frontend', 'selfhost', 'agent_binary64',
+            'agent_data_json', 'instruction_policy', 'program_shape', 'function_shape',
+            'artifact_publication', 'core_admission_cli', 'core_admission',
+            'agent_binary64_format', 'core_patch', 'core_patch_cli', 'core_patch_result_cli',
+            'composite_types', 'task_helpers', 'composite_functions', 'composite_constructor',
+            'composite_outer', 'worker_request', 'release_install', 'agent_journal', 'json_wire',
+            'worker_report', 'machine_plan', 'linked_observer', 'machine_encoding',
+            'cli_control', 'cli_format', 'agent_store_authority', 'artifact_page',
+        ]
+        self.assertEqual(generators[:55], legacy_generators)
+        self.assertEqual(generators[55:], [
+            'machine_state', 'machine_instructions', 'machine_elf', 'core_lowering'])
         archive = step('Preserve actual cold failure and stage evidence')
         for owner, label, slug in [('authority', 'Store reference URI and profile authority', 'store-authority'),
                                   ('page', 'ordinary artifact read and complete page boundaries', 'artifact-read')]:
