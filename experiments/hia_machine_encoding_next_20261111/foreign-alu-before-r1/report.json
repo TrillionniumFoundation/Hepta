@@ -1,0 +1,319 @@
+{
+  "after": {
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native-r1/machine-encoding.image.bin": "adfc2283804749354cdffd34c8fcaef48f409c8070d676b45e0a40c28ab87889",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native-r1/manifest.json": "81b42ca09b3e38dea67fde37d452cea4e296a26414070d0648c8a27a51e64f30",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native_encoding_bridge.py": "661c455c310d9971f5899ffdf399f508015e9c20e3ada41a7edb1e191769f165",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/observe_foreign_alu_r1.py": "2d1e91295e233f67020220f99639d99da545b2909de08d89cd4c9abbb6e2f9e4",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/source-r1/machine_encoding.hiaasm": "af107d6bfd763bb6c1e294a5036f5a0a1c4fb45e0e1efe92aa61846abb032de1"
+  },
+  "before": {
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native-r1/machine-encoding.image.bin": "adfc2283804749354cdffd34c8fcaef48f409c8070d676b45e0a40c28ab87889",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native-r1/manifest.json": "81b42ca09b3e38dea67fde37d452cea4e296a26414070d0648c8a27a51e64f30",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/native_encoding_bridge.py": "661c455c310d9971f5899ffdf399f508015e9c20e3ada41a7edb1e191769f165",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/observe_foreign_alu_r1.py": "2d1e91295e233f67020220f99639d99da545b2909de08d89cd4c9abbb6e2f9e4",
+    "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111/source-r1/machine_encoding.hiaasm": "af107d6bfd763bb6c1e294a5036f5a0a1c4fb45e0e1efe92aa61846abb032de1"
+  },
+  "cases": [
+    {
+      "candidate": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "equal": false,
+      "id": "all-false-observation-count",
+      "rebind_emit_on_third_truth": false,
+      "reference": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ],
+          [
+            "truth",
+            2,
+            false
+          ],
+          [
+            "truth",
+            3,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "truth_sequence": [
+        false,
+        false,
+        false
+      ],
+      "value": 7
+    },
+    {
+      "candidate": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "equal": false,
+      "id": "short-word-long-opcode",
+      "rebind_emit_on_third_truth": false,
+      "reference": {
+        "data_hex": "4981c207",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ],
+          [
+            "truth",
+            2,
+            true
+          ],
+          [
+            "truth",
+            3,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "truth_sequence": [
+        false,
+        true,
+        false
+      ],
+      "value": 7
+    },
+    {
+      "candidate": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "equal": false,
+      "id": "long-word-short-opcode",
+      "rebind_emit_on_third_truth": false,
+      "reference": {
+        "data_hex": "4983c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ],
+          [
+            "truth",
+            2,
+            false
+          ],
+          [
+            "truth",
+            3,
+            true
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "truth_sequence": [
+        false,
+        false,
+        true
+      ],
+      "value": 7
+    },
+    {
+      "candidate": {
+        "data_hex": "4981c280000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "equal": false,
+      "id": "byte-pack-refusal-precedes-third-truth",
+      "rebind_emit_on_third_truth": false,
+      "reference": {
+        "data_hex": "",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ],
+          [
+            "truth",
+            2,
+            true
+          ]
+        ],
+        "exception": {
+          "message": "'b' format requires -128 <= number <= 127",
+          "type": "error"
+        },
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "truth_sequence": [
+        false,
+        true,
+        false
+      ],
+      "value": 128
+    },
+    {
+      "candidate": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "equal": false,
+      "id": "emit-binding-precedes-third-truth",
+      "rebind_emit_on_third_truth": true,
+      "reference": {
+        "data_hex": "4981c207000000",
+        "events": [
+          [
+            "option_equality",
+            "imm8_if_exact"
+          ],
+          [
+            "truth",
+            1,
+            false
+          ],
+          [
+            "truth",
+            2,
+            false
+          ],
+          [
+            "truth",
+            3,
+            false
+          ],
+          [
+            "emit_rebound"
+          ]
+        ],
+        "exception": null,
+        "fixups": [],
+        "labels": {},
+        "relocations": []
+      },
+      "truth_sequence": [
+        false,
+        false,
+        false
+      ],
+      "value": 7
+    }
+  ],
+  "mismatches": [
+    "all-false-observation-count",
+    "short-word-long-opcode",
+    "long-word-short-opcode",
+    "byte-pack-refusal-precedes-third-truth",
+    "emit-binding-precedes-third-truth"
+  ],
+  "native_calls": {
+    "alu_imm": 5
+  },
+  "pins_stable": true,
+  "schema": "hepta.hia.machine-encoding.foreign-alu-observation.v1",
+  "scope": "DEVELOPMENT_FIELD_MUTATION_OBSERVATION_NOT_RELEASE",
+  "seconds": 0.0059262650001983275,
+  "status": "DIFFERENCES_OBSERVED"
+}

@@ -20,7 +20,7 @@ COMMANDS = (
     'set_byte', 'cmov', 'push', 'pop', 'ret', 'leave', 'ud2',
     'jmp_prefix', 'jcc_prefix', 'call_prefix', 'zero_rel32', 'rel32',
 )
-MAGIC = int.from_bytes(b'HIAX6401', 'little')
+MAGIC = int.from_bytes(b'HIAX6402', 'little')
 ABI = 0xfffffffd
 SOURCE = r'''
 def machine_encoding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
@@ -41,7 +41,7 @@ def machine_encoding(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if command <= 15:
         encode_data(o, w, command, r, m, value, auxiliary, mode, offset)
     elif command <= 27:
-        encode_arithmetic(o, w, command, r, m, value, auxiliary, mode)
+        encode_arithmetic(o, w, command, r, m, value, auxiliary, mode, offset)
     else:
         encode_control(o, w, command, r, value, auxiliary)
     n = get(w, 0) - 8
@@ -56,7 +56,11 @@ def valid(command:u64, r:u64, m:u64, value:u64, auxiliary:u64, mode:u64, offset:
     if command >= 4 and command <= 8:
         return signed32(value)
     if command == 16:
-        return choose(auxiliary <= 5 and signed32(value) != 0, 1, 0)
+        if auxiliary > 5 or signed32(value) == 0 or offset > 1:
+            return 0
+        if offset == 1 and value > 127 and value < 18446744073709551488:
+            return 0
+        return 1
     if command == 17:
         return choose(auxiliary <= 2 and (mode == 1 or value < 64), 1, 0)
     if command == 26 or command == 27 or command == 34:
@@ -108,16 +112,15 @@ def encode_data(o:mutbuf, w:mutbuf, command:u64, r:u64, m:u64, value:u64, auxili
     rr(o, w, opcode, 0, m, r)
     return 0
 
-def encode_arithmetic(o:mutbuf, w:mutbuf, command:u64, r:u64, m:u64, value:u64, auxiliary:u64, mode:u64) -> u64:
+def encode_arithmetic(o:mutbuf, w:mutbuf, command:u64, r:u64, m:u64, value:u64, auxiliary:u64, mode:u64, offset:u64) -> u64:
     if command == 16:
         group = auxiliary
         if auxiliary >= 2:
             group = auxiliary + 2
-        compact = mode == 1 and (value <= 127 or value >= 18446744073709551488)
         emit(o, w, 72 | (r >> 3))
-        emit(o, w, choose(compact, 131, 129))
+        emit(o, w, choose(mode == 1, 131, 129))
         emit(o, w, 192 | (group << 3) | (r & 7))
-        little(o, w, value, choose(compact, 1, 4))
+        little(o, w, value, choose(offset == 1, 1, 4))
         return 0
     if command == 17:
         group = auxiliary + 4

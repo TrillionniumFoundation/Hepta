@@ -22,7 +22,7 @@ COMMANDS = (
     'jmp_prefix', 'jcc_prefix', 'call_prefix', 'zero_rel32', 'rel32',
 )
 COMMAND_IDS = {name: index for index, name in enumerate(COMMANDS, 1)}
-MAGIC = int.from_bytes(b'HIAX6401', 'little')
+MAGIC = int.from_bytes(b'HIAX6402', 'little')
 MASK = (1 << 64) - 1
 
 
@@ -124,9 +124,19 @@ class NativeEncodedCode(reference.Code):
             raise reference.MachineEncodingError('unsupported immediate ALU operation')
         register = self._reg(dst)
         value = _displacement(value)
-        mode = bool(self.alu_immediate == 'imm8_if_exact')
-        self.emit(self._bytes('alu_imm', r=register, value=value,
-                              auxiliary=choices[op], mode=int(mode)))
+        # A foreign option can return a falsy object, retained by `and`.
+        # Preserve all three original truth observations, the intervening
+        # signed-byte refusal, and binding emit before the third observation.
+        compact = self.alu_immediate == 'imm8_if_exact' and -128 <= value <= 127
+        short_word = False
+        if compact:
+            if not -128 <= value <= 127:
+                raise struct.error('byte format requires -128 <= number <= 127')
+            short_word = True
+        emit = self.emit
+        short_opcode = bool(compact)
+        emit(self._bytes('alu_imm', r=register, value=value,
+                         auxiliary=choices[op], mode=int(short_opcode), offset=int(short_word)))
 
     def shift(self, op, dst, count):
         choices = {'shl': 0, 'shr': 1, 'sar': 2}
