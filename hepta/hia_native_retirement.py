@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass, field
-import os
 from pathlib import Path
 import stat
 import time
+
+from .hia_retirement_effects import os
 
 
 def _error(exc):
@@ -22,7 +23,7 @@ def _error(exc):
 
 
 @dataclass
-class PathIdentityPin:
+class _ReferencePathIdentityPin:
     """Hold the original inode alive; never rebind a released path or fd number.
 
     A dev/inode pair alone is reusable immediately after unlink/rmdir. Keeping
@@ -123,15 +124,15 @@ class PathIdentityPin:
                 "close_retry_permitted": False, "rebind_permitted": False}
 
 
-def observe_directory(path, inode, pin=None):
+def _reference_observe_directory(path, inode, pin=None):
     if pin is not None and pin.path == path and pin.directory and pin.inode == inode:
         return pin.observe()
     # Historical tuple identities are diagnostic, never delete authority.
-    return PathIdentityPin(path, directory=True).observe()
+    return _ReferencePathIdentityPin(path, directory=True).observe()
 
 
-def remove_directory(path, inode, pin=None):
-    before = observe_directory(path, inode, pin)
+def _reference_remove_directory(path, inode, pin=None):
+    before = _reference_observe_directory(path, inode, pin)
     result = {"path": str(path), "attempted_ns": time.monotonic_ns(), "before": before}
     if before["status"] == "absent":
         result["status"] = "already_absent"
@@ -149,13 +150,13 @@ def remove_directory(path, inode, pin=None):
             pin.release_absent_path()
         except OSError as exc:
             result.update(status="error", error=_error(exc))
-    result["after"] = observe_directory(path, inode, pin)
+    result["after"] = _reference_observe_directory(path, inode, pin)
     result["identity_pin"] = pin.snapshot() if pin is not None else None
     return result
 
 
 @dataclass
-class NativeRetirement:
+class _ReferenceNativeRetirement:
     generation: int
     cause: str
     artifact: Path
@@ -250,3 +251,150 @@ class NativeRetirement:
                 "artifact_identity_pin": self.identity_pin.snapshot(),
                 "disk_attempts": self.disk_attempts, "complete": self.complete,
                 "native_retry_permitted": False}
+
+
+def _native_image(pin=None):
+    from .hia_retirement_state_native import (NativePathIdentityPin,
+                                              selected_retirement_state)
+    backend = getattr(pin, '_backend', None)
+    if isinstance(backend, NativePathIdentityPin):
+        # Resource custody is bound to this immutable native image for its
+        # whole lifetime; changing ambient selection cannot replace its state
+        # machine or prevent its already-authorized cleanup observations.
+        return backend._state.image
+    selected = selected_retirement_state()
+    if pin is not None and selected is not None:
+        raise ValueError('native retirement cannot import an existing hosted pin')
+    return selected
+
+
+def require_new_retirement_custody():
+    """Refuse selected failed-policy admission before a runtime creates paths."""
+    image = _native_image()
+    if image is not None:
+        from .hia_retirement_state_native import _admit_new_custody
+        _admit_new_custody()
+    return image
+
+
+def retirement_quarantine_snapshot():
+    """Observe process-local failed-policy custody; never retry its effects."""
+    from .hia_retirement_state_native import retirement_quarantine_snapshot as observe
+    return observe()
+
+
+class PathIdentityPin:
+    """One explicitly selected policy owner; the reference remains a test oracle.
+
+    Foreign descriptors remain in this process. Selecting a native image never
+    retries its admission or transition with the hosted policy implementation.
+    """
+    def __init__(self, path, directory=False, *reference_args, **reference_state):
+        image = _native_image()
+        if image is None:
+            self._backend = _ReferencePathIdentityPin(path, directory, *reference_args, **reference_state)
+        else:
+            if reference_args or reference_state:
+                raise ValueError('native retirement requires a fresh retained state owner')
+            from .hia_retirement_state_native import NativePathIdentityPin
+            self._backend = NativePathIdentityPin(path, directory, image)
+
+    @classmethod
+    def _from_admitted_image(cls, path, directory, image):
+        """Prepare an owner before path creation, without a second selection."""
+        pin = object.__new__(cls)
+        if image is None:
+            pin._backend = _ReferencePathIdentityPin(path, directory)
+        else:
+            from .hia_retirement_state_native import NativePathIdentityPin
+            pin._backend = NativePathIdentityPin(path, directory, image)
+        return pin
+
+    def __getattr__(self, name):
+        return getattr(self._backend, name)
+
+    def __setattr__(self, name, value):
+        if name == '_backend' or '_backend' not in self.__dict__:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._backend, name, value)
+
+    def __delattr__(self, name):
+        if name == '_backend':
+            object.__delattr__(self, name)
+        else:
+            delattr(self._backend, name)
+
+    @property
+    def release_succeeded(self): return self._backend.release_succeeded
+    def acquire(self, expected_inode): return self._backend.acquire(expected_inode)
+    def _close_once(self): return self._backend._close_once()
+    def release_absent_path(self): return self._backend.release_absent_path()
+    def observe(self): return self._backend.observe()
+    def snapshot(self): return self._backend.snapshot()
+
+
+class NativeRetirement:
+    """The actual runtime retirement entry, with an optional complete HIA policy."""
+    def __init__(self, generation, cause, artifact, inode, library, functions, fd,
+                 identity_pin=None, *reference_args, **reference_state):
+        if identity_pin is None:
+            identity_pin = PathIdentityPin(artifact)
+        image = _native_image(identity_pin)
+        values = (generation, cause, artifact, inode, library, functions, fd, identity_pin)
+        if image is None:
+            self._backend = _ReferenceNativeRetirement(*values, *reference_args, **reference_state)
+        else:
+            if reference_args or reference_state:
+                raise ValueError('native retirement requires a fresh retained state owner')
+            from .hia_retirement_state_native import NativeRetirement as NativeOwner
+            try:
+                self._backend = NativeOwner.retain_or_recover(*values)
+            except BaseException as exc:
+                # A returned native holder can outlive an interrupted Python
+                # STORE_ATTR. Recover that same holder as inert custody; never
+                # let a second wrapper manufacture a second state owner.
+                pin = identity_pin._backend
+                holder = pin._retirement_custody
+                if holder is None or getattr(exc, '_hia_retirement_custody_conflict', False):
+                    raise
+                pin._state._fence(exc)
+                self._backend = holder
+
+    def __getattr__(self, name):
+        return getattr(self._backend, name)
+
+    def __setattr__(self, name, value):
+        if name == '_backend' or '_backend' not in self.__dict__:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._backend, name, value)
+
+    def __delattr__(self, name):
+        if name == '_backend':
+            object.__delattr__(self, name)
+        else:
+            delattr(self._backend, name)
+
+    @property
+    def native_succeeded(self): return self._backend.native_succeeded
+    @property
+    def complete(self): return self._backend.complete
+    def attempt(self): return self._backend.attempt()
+    def snapshot(self): return self._backend.snapshot()
+
+
+def observe_directory(path, inode, pin=None):
+    image = _native_image(pin)
+    if image is None:
+        return _reference_observe_directory(path, inode, pin)
+    from .hia_retirement_state_native import observe_directory as native_observe
+    return native_observe(path, inode, pin, image)
+
+
+def remove_directory(path, inode, pin=None):
+    image = _native_image(pin)
+    if image is None:
+        return _reference_remove_directory(path, inode, pin)
+    from .hia_retirement_state_native import remove_directory as native_remove
+    return native_remove(path, inode, pin, image)

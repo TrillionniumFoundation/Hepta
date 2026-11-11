@@ -64,6 +64,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     from tools.hia_selfhost_contract import PROFILE
     candidates = {'agent-journal': ('agent_journal', 'agent-journal'),
                   'execution-budget': ('execution_budget', 'execution-budget'),
+                  'retirement-state': ('retirement_state', 'retirement-state'),
                   'worker-request': ('worker_request', 'worker-request'),
                   'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
