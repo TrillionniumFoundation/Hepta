@@ -1,10 +1,10 @@
 # General Core function lowering: static work in progress
 
 This branch preserves an unexecuted authoring candidate for moving the complete
-`_Function` policy in `hepta.hia_program_native` into HIA. It does not provide an
-executable native owner yet. No generated HIA, runtime adapter, selector, build
-manifest, installed resources, source-bound cold run, or product result exists for
-this candidate. The ordinary product entry remains unchanged.
+`_Function` policy in `hepta.hia_program_native` into HIA. It does not provide a qualified or integrated native owner yet. The second
+static revision adds a HIA unit renderer and primitive continuation bridge, but
+neither has executed. No generated HIA, selector, build manifest, installed
+resources, source-bound cold run, or product result exists for this candidate. The ordinary product entry remains unchanged.
 
 ## Exact source and proposed boundary
 
@@ -66,3 +66,34 @@ There has been no Python syntax check, IR generation, HIA generation, Core VM
 execution, native compilation, component test, caller test, or cold/full
 qualification on this candidate. All such steps are pending. See the adjacent
 custody and recovered boundary records for the exact limits of this checkpoint.
+
+## Static revision 2
+
+The renderer emits HIA control units with 64 finite control instructions per
+unit, and a separate HIA-owned typed literal pool. The HIA program chooses
+cross-unit handoffs using its own program counter. The bridge decodes only the
+versioned literal framing and primitive requests. It binds all 22 original
+method signatures to native invocations; the ordinary product selector and
+source-bound loader have not yet been added.
+
+The 128-byte request/acknowledgement protocol carries a sequence, phase, mode,
+object handles and raw truth/iteration observations. Private state remains HIA
+owned. Foreign permission is consumed before the effect; BaseException in a
+native step, post-call framing or foreign effect permanently closes the session.
+No claim about that protocol is validated by this unexecuted source.
+
+The intended initial domain retains normal module and built-in bindings.
+Monkeypatching the five private helpers or the reducer built-ins is not silently
+presented as equivalent: helper names always select their HIA implementations,
+and sum/max/any generator control is compiled into HIA. Literal object identity,
+arbitrary stack/traceback introspection, foreign finalizer timing, recursive
+resource exhaustion, and tampering with private registries are also unproven.
+Normal public method argument binding, dynamic receiver attributes, independent
+rich comparisons, module value observations and actual Code effects remain
+explicit compatibility targets. Remaining limits must be reported rather than
+removed by an implicit retained-owner fallback.
+
+Source revision 2 also refuses value-context chained comparisons, which are
+absent from the current policy, rather than incorrectly normalizing arbitrary
+rich comparison results into booleans. Original source and all prior unknown
+write records remain unchanged in history.

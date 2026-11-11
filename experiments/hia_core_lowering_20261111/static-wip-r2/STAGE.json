@@ -1,0 +1,40 @@
+{
+  "schema": "hepta.hia.core-lowering-static-stage.v1",
+  "stage": 2,
+  "status": "STATIC_PREEXEC_UNVALIDATED",
+  "parent_commit": "3553ff312f86e916309d7838a591071c60dd186d",
+  "local_executor": "UNAVAILABLE_NO_NEW_EXEC_ATTEMPT",
+  "additions": [
+    "tools/generate_hia_core_lowering.py",
+    "hepta/hia_core_lowering_native.py"
+  ],
+  "corrections": [
+    "refuse unsupported value-context chained rich comparisons",
+    "split initial HIA mode admission into at most four modes per helper",
+    "use existing authoring byte/store primitives; no compiler intrinsic or cap expansion"
+  ],
+  "proposed_protocol": {
+    "magic": "HIALOW01",
+    "literal_magic": "HIALIT01",
+    "packet_bytes": 128,
+    "instructions_per_unit": 64,
+    "object_identity": "stable strong-reference handles",
+    "host_effects": "18 generic primitive observations, no Function opcode/branch decision"
+  },
+  "executed": {
+    "syntax": false,
+    "authoring": false,
+    "core_vm": false,
+    "native": false,
+    "product": false,
+    "cold": false
+  },
+  "not_integrated": [
+    "ordinary _Function selector",
+    "source-bound multi-image manifest",
+    "installed resources",
+    "current contract and CI",
+    "independent tests and caller denominator"
+  ],
+  "preserved_original_608": true
+}

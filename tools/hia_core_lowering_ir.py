@@ -208,11 +208,7 @@ class Function:
         if isinstance(node, ast.Compare):
             if len(node.ops) == 1:
                 return self.compare(node.ops[0], self.expression(node.left), self.expression(node.comparators[0]))
-            result, yes, no, done = self.temporary(), self.label(), self.label(), self.label()
-            self.condition(node, yes, no)
-            self.mark(yes); self.move(result, self.constant(True)); self.jump(done)
-            self.mark(no); self.move(result, self.constant(False)); self.mark(done)
-            return result
+            raise ValueError('value-context chained comparisons are outside this finite policy grammar')
         if isinstance(node, (ast.List, ast.Tuple, ast.Set, ast.Dict)):
             if isinstance(node, ast.Dict):
                 if any(k is None for k in node.keys): raise ValueError('dict expansion is not admitted')
