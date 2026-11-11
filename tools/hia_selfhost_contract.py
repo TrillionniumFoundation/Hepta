@@ -13,8 +13,21 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v63-native-request-release-signatures-helpers'
+PROFILE = 'selfhost-core-linux-x86_64-v64-native-match-selection-build-custody'
 SOURCE_FILES = (
+    'tools/generate_hia_enum_match.py',
+    'examples/hia_bootstrap/enum_match.hiaasm',
+    'tests/test_hia_enum_match_native.py',
+    'docs/HIA_ENUM_MATCH_NATIVE.md',
+    'tools/generate_hia_release_selection.py',
+    'tools/hia_release_selection_syscalls.S',
+    'tools/build_hia_release_selection.py',
+    'examples/hia_bootstrap/release_selection_policy.hiaasm',
+    'examples/hia_bootstrap/release_selection_packer.hiaasm',
+    'tests/test_hia_release_selection.py',
+    'tests/test_hia_release_selection_review.py',
+    'docs/HIA_RELEASE_SELECTION_NATIVE.md',
+    'tests/test_hia_standalone_builder_source_binding.py',
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hiaasm',
     'tests/test_hia_worker_request_native.py',
@@ -464,6 +477,40 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'native_enum_match_lowering': {
+            'source': 'examples/hia_bootstrap/enum_match.hiaasm',
+            'selection': 'explicit HEPTA_HIA_ENUM_MATCH_MANIFEST; source/image-bound image; no fallback',
+            'schemas': ['hepta.hia.composite.v1', 'hepta.hia.composite.v2',
+                        'hepta.hia.composite.v3', 'hepta.hia.composite.v4'],
+            'native_owners': ['case inventory and exhaustiveness', 'nominal edge admission and linear transfer',
+                              'inactive-owner cleanup', 'generated names and complete match Core CFG'],
+            'result_frame': 'HIAMAT01; semantic status, final fresh counter and complete Core block suffix/blocks',
+            'generated_name_limit': 8192,
+            'host_boundaries': ['resolved descriptor and environment transport',
+                                'remaining nominal operations and function aggregation',
+                                'primitive verification and backend', 'default installation and durable Agent'],
+            'default_changed': False,
+            'whole_nominal_elaborator_replaced': False,
+            'whole_native_delivery_qualified': False,
+        },
+        'native_release_selection': {
+            'policy': 'examples/hia_bootstrap/release_selection_policy.hiaasm',
+            'packer': 'examples/hia_bootstrap/release_selection_packer.hiaasm',
+            'fixed_syscall_adapter': 'tools/hia_release_selection_syscalls.S',
+            'target': 'Linux x86-64',
+            'operations': ['status', 'activate', 'rollback'],
+            'precondition': 'exact expected sequence and current release; rollback targets recorded previous release',
+            'target_admission': 'actual immutable release installer package/policy/byte verifier',
+            'selection_record_bytes': 192,
+            'serialization': 'kernel flock; descriptor-relative atomic rename and fsync with readback',
+            'lost_receipt_observation': 'read-only status; no blind replay with a new precondition',
+            'runtime_python_libc_or_child_required': False,
+            'authoring_and_build_custody_are_hosted': True,
+            'live_worker_migrated': False,
+            'default_cli_cutover': False,
+            'automatic_staging_cleanup_or_release_retirement': False,
+            'whole_native_delivery_qualified': False,
+        },
         'worker_request_admission': {
             'source': 'examples/hia_bootstrap/worker_request.hiaasm',
             'selection': 'explicit HEPTA_HIA_WORKER_REQUEST_MANIFEST; no fallback',

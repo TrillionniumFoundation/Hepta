@@ -45,13 +45,14 @@ def build(output,compiler,cold_report):
             or type(cold.get('checks')) is not dict or set(cold['checks'])!=required
             or any(value is not True for value in cold['checks'].values())
             or cold.get('generation_sha256')!=[sha256(pins[compiler]).hexdigest()]*3
-            or any(name not in sources for name in SOURCES)):
+            or any(sources.get(name)!=sha256(pins[ROOT/name]).hexdigest() for name in SOURCES)):
         raise ValueError('completed matching-source cold qualification required for native workspace pipeline')
     output.mkdir(mode=0o700)
-    images={}
+    images={};manifest_inputs={}
     for name,candidate in [('workspace','core-workspace-json'),('admission','core-admission'),('frontend','core-frontend')]:
         manifest=build_candidate(output/name,compiler,cold_report,candidate=candidate)
-        metadata=json.loads(manifest.read_bytes());path=manifest.parent/metadata['image_path'];raw=path.read_bytes()
+        manifest_inputs[manifest]=manifest.read_bytes()
+        metadata=json.loads(manifest_inputs[manifest]);path=manifest.parent/metadata['image_path'];raw=path.read_bytes()
         if sha256(raw).hexdigest()!=metadata['image_sha256']:
             raise ValueError('native workspace pipeline component image changed')
         images[name]=(path,raw)
@@ -67,6 +68,7 @@ def build(output,compiler,cold_report):
     if not 0<size<=BUNDLE_LIMIT:raise ValueError('native workspace pipeline packer refused frame')
     raw=ctypes.string_at(arena,size);inspection=inspect_executable(raw)
     if (any(path.read_bytes()!=before for path,before in pins.items()) or current_sources()!=sources
+            or any(path.read_bytes()!=before for path,before in manifest_inputs.items())
             or any(path.read_bytes()!=before for path,before in images.values())):
         raise ValueError('native workspace pipeline build custody changed')
     executable=output/'hia-workspace-compile'

@@ -1,5 +1,10 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
+Further continuation is recorded in the
+[self-rewrite audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md), including native
+enum-match CFG generation, release-selection state and the expanded builder
+custody review. The observations below retain their original source identities.
+
 The subsequent v62 integration combines the v61 returned-loan origin work with
 native worker-request admission, immutable release publication and bounded
 cold-evidence scheduling. Its audited baseline,

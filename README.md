@@ -56,5 +56,11 @@ are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
 Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current implementation and remaining owners](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+Native rewrite: [current audit, implementation and remaining owners](docs/HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md).
+Earlier source-bound observations remain in the [rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+The selected [native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md) produces
+complete match control flow; other nominal operations remain separate owners.
+The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) implements
+explicit status, compare-and-swap activation and previous-version rollback for
+verified immutable releases. Ordinary CLI/service migration remains open.
 Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

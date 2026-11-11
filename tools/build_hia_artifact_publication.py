@@ -10,7 +10,8 @@ import argparse
 from hashlib import sha256
 import json,struct
 from pathlib import Path
-from tools.hia_selfhost_contract import CONTRACT_PATH,PROFILE,validate_contract
+from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.hia_selfhost_contract import PROFILE
 from tools.qualify_hia_selfhost import compile_stage,invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.generate_hia_artifact_publication import MAGIC
@@ -20,28 +21,15 @@ OPERATIONS=list(NATIVE_PUBLICATION_OPERATIONS)
 SOURCES=NATIVE_PUBLICATION_SOURCES
 
 
-def current_sources():
-    contract=validate_contract()
-    return {**contract['source_identity']['files'],
-            CONTRACT_PATH:sha256((ROOT/CONTRACT_PATH).read_bytes()).hexdigest()}
-
-
 def build(output:Path,compiler:Path,cold_report:Path):
     paths=[compiler,cold_report,*(ROOT/name for name in SOURCES)]
-    pins={path:path.read_bytes() for path in paths};sources=current_sources()
-    cold=json.loads(pins[cold_report]);required={
-        'export_manifest_matches_qualification','isolated_python_without_site',
-        'nested_full_qualification_pass','nested_process_exit_zero','no_ancestor_git_identity',
-        'no_bytecode_cache_created','no_inherited_home_or_python_cache','no_inherited_seed_or_successor_images',
-        'origin_hashes_preserved','owned_process_tree_cleanup_confirmed','source_export_hashes_preserved'}
-    if (type(cold) is not dict or cold.get('schema')!='hepta.hia.selfhost-cold-replay.v1'
-            or cold.get('status')!='COLD_SELFHOST_REPLAY_PASS' or cold.get('returncode')!=0
-            or cold.get('profile')!=PROFILE or cold.get('source_manifest')!=sources
-            or type(cold.get('checks')) is not dict or set(cold['checks'])!=required
-            or any(value is not True for value in cold['checks'].values())
-            or cold.get('generation_sha256')!=[sha256(pins[compiler]).hexdigest()]*3
-            or any(name not in sources for name in SOURCES)):
-        raise ValueError('completed matching-source cold qualification required for native publication')
+    pins={path:path.read_bytes() for path in paths}
+    try:
+        sources=admit_cold_build(pins[compiler],pins[cold_report])
+    except ValueError as exc:
+        raise ValueError('completed matching-source cold qualification required for native publication') from exc
+    if any(name not in sources or sha256(pins[ROOT/name]).hexdigest()!=sources[name] for name in SOURCES):
+        raise ValueError('native publication input differs from admitted cold source')
     output.mkdir(mode=0o700);images={};receipts={}
     for label,name in zip(('policy','packer','sha256'),SOURCES[:3]):
         image,receipts[label]=compile_stage(output,label,compiler,pins[ROOT/name])

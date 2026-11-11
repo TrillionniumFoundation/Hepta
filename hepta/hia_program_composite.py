@@ -1112,74 +1112,7 @@ class _Elaborator:
                 _keys(term, {"op", "code"}, "trap")
                 current["term"] = dict(term)
             elif op == "match":
-                _keys(term, {"op", "value", "cases"}, "enum match")
-                matched = value(term["value"])
-                if matched.typ.kind != "enum":
-                    _reject("match requires a nominal enum", "E_HIA_TYPE")
-                cases = term["cases"]
-                if type(cases) is not list:
-                    _reject("match cases must be a list", "E_HIA_CFG")
-                case_map = {}
-                for case in cases:
-                    _keys(case, {"variant", "target", "args"}, "match case")
-                    variant = _name(case["variant"], "matched variant")
-                    _names(case["args"], "match case arguments")
-                    if variant in case_map:
-                        _reject("duplicate match case", "E_HIA_CFG")
-                    case_map[variant] = case
-                    if matched.typ.linear and term["value"] in case["args"]:
-                        _reject("matched linear enum cannot also escape on its case edge", "E_HIA_RESOURCE")
-                if set(case_map) != {v for v, _ in matched.typ.variants}:
-                    _reject("enum match must be exhaustive", "E_HIA_CFG")
-                # All needed values travel through the decision blocks.  The
-                # ordinary verifier independently checks every capability edge.
-                carry = []
-                carry_types = []
-                seen = set()
-                for item in env.values():
-                    if item.consumed:
-                        continue
-                    for name, typ in zip(item.names, item.typ.flat):
-                        if name not in seen:
-                            seen.add(name)
-                            carry.append(name)
-                            carry_types.append(typ)
-                mapping = dict(zip(carry, carry))
-                cursor = 1
-                for index, (variant, fields) in enumerate(matched.typ.variants):
-                    width = sum(len(t.flat) for _, t in fields)
-                    payload = matched.names[cursor:cursor + width]
-                    target = edge({"target": case_map[variant]["target"], "args": case_map[variant]["args"]},
-                                  [t for _, t in fields], payload, [term["value"]])
-                    arm_names = tuple(self.fresh() for _ in carry)
-                    arm_map = dict(zip(carry, arm_names))
-                    arm = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(arm_names, carry_types)],
-                           "ops": [], "term": None}
-                    selected = set(payload)
-                    self.drop_padding([arm_map[n] for n in matched.names[1:] if n not in selected],
-                                      [t for n, t in zip(matched.names[1:], matched.typ.flat[1:]) if n not in selected], arm["ops"])
-                    arm["term"] = _jump(target["target"], [arm_map[n] for n in target["args"]])
-                    result.append(arm)
-                    expected = self.constant(current["ops"], "u32", index)
-                    matches = self.fresh()
-                    current["ops"].append(_ins("compare.eq", [mapping[matched.names[0]], expected], [(matches, "bool")]))
-                    if index + 1 == len(matched.typ.variants):
-                        invalid_names = tuple(self.fresh() for _ in carry)
-                        invalid = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(invalid_names, carry_types)],
-                                   "ops": [], "term": {"op": "trap", "code": "user"}}
-                        result.append(invalid)
-                        current["term"] = _branch(matches, (arm["id"], [mapping[n] for n in carry]),
-                                                  (invalid["id"], [mapping[n] for n in carry]))
-                    else:
-                        next_names = tuple(self.fresh() for _ in carry)
-                        next_block = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(next_names, carry_types)],
-                                      "ops": [], "term": None}
-                        current["term"] = _branch(matches, (arm["id"], [mapping[n] for n in carry]),
-                                                  (next_block["id"], [mapping[n] for n in carry]))
-                        result.append(next_block)
-                        current = next_block
-                        mapping = dict(zip(carry, next_names))
-                    cursor += width
+                self.lower_enum_match(term, env, signatures, current, result, value, edge)
             else:
                 _reject("unknown nominal terminator", "E_HIA_CFG")
         lowered = {"name": fn["name"], "params": flattened[fn["entry"]],
@@ -1192,6 +1125,88 @@ class _Elaborator:
                 for typ, origin in zip(self.signatures[fn["name"]][1], self.return_origins[fn["name"]])
                 for _ in typ.flat]
         return lowered
+
+    def lower_enum_match(self, term, env, signatures, current, result, value, edge):
+        from .hia_enum_match_native import selected_enum_match
+        selected = selected_enum_match()
+        if selected is None:
+            return self._reference_match(term, env, current, result, value, edge)
+        lowered = selected.lower(term, env, signatures, self.serial)
+        self.serial = lowered.serial
+        lowered.admit()
+        current["ops"].extend(lowered.first["ops"])
+        current["term"] = lowered.first["term"]
+        result.extend(lowered.blocks)
+
+    def _reference_match(self, term, env, current, result, value, edge):
+        _keys(term, {"op", "value", "cases"}, "enum match")
+        matched = value(term["value"])
+        if matched.typ.kind != "enum":
+            _reject("match requires a nominal enum", "E_HIA_TYPE")
+        cases = term["cases"]
+        if type(cases) is not list:
+            _reject("match cases must be a list", "E_HIA_CFG")
+        case_map = {}
+        for case in cases:
+            _keys(case, {"variant", "target", "args"}, "match case")
+            variant = _name(case["variant"], "matched variant")
+            _names(case["args"], "match case arguments")
+            if variant in case_map:
+                _reject("duplicate match case", "E_HIA_CFG")
+            case_map[variant] = case
+            if matched.typ.linear and term["value"] in case["args"]:
+                _reject("matched linear enum cannot also escape on its case edge", "E_HIA_RESOURCE")
+        if set(case_map) != {v for v, _ in matched.typ.variants}:
+            _reject("enum match must be exhaustive", "E_HIA_CFG")
+        # All needed values travel through the decision blocks.  The
+        # ordinary verifier independently checks every capability edge.
+        carry = []
+        carry_types = []
+        seen = set()
+        for item in env.values():
+            if item.consumed:
+                continue
+            for name, typ in zip(item.names, item.typ.flat):
+                if name not in seen:
+                    seen.add(name)
+                    carry.append(name)
+                    carry_types.append(typ)
+        mapping = dict(zip(carry, carry))
+        cursor = 1
+        for index, (variant, fields) in enumerate(matched.typ.variants):
+            width = sum(len(t.flat) for _, t in fields)
+            payload = matched.names[cursor:cursor + width]
+            target = edge({"target": case_map[variant]["target"], "args": case_map[variant]["args"]},
+                          [t for _, t in fields], payload, [term["value"]])
+            arm_names = tuple(self.fresh() for _ in carry)
+            arm_map = dict(zip(carry, arm_names))
+            arm = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(arm_names, carry_types)],
+                   "ops": [], "term": None}
+            selected = set(payload)
+            self.drop_padding([arm_map[n] for n in matched.names[1:] if n not in selected],
+                              [t for n, t in zip(matched.names[1:], matched.typ.flat[1:]) if n not in selected], arm["ops"])
+            arm["term"] = _jump(target["target"], [arm_map[n] for n in target["args"]])
+            result.append(arm)
+            expected = self.constant(current["ops"], "u32", index)
+            matches = self.fresh()
+            current["ops"].append(_ins("compare.eq", [mapping[matched.names[0]], expected], [(matches, "bool")]))
+            if index + 1 == len(matched.typ.variants):
+                invalid_names = tuple(self.fresh() for _ in carry)
+                invalid = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(invalid_names, carry_types)],
+                           "ops": [], "term": {"op": "trap", "code": "user"}}
+                result.append(invalid)
+                current["term"] = _branch(matches, (arm["id"], [mapping[n] for n in carry]),
+                                          (invalid["id"], [mapping[n] for n in carry]))
+            else:
+                next_names = tuple(self.fresh() for _ in carry)
+                next_block = {"id": self.fresh(), "params": [_param(n, t) for n, t in zip(next_names, carry_types)],
+                              "ops": [], "term": None}
+                current["term"] = _branch(matches, (arm["id"], [mapping[n] for n in carry]),
+                                          (next_block["id"], [mapping[n] for n in carry]))
+                result.append(next_block)
+                current = next_block
+                mapping = dict(zip(carry, next_names))
+            cursor += width
 
     def lower(self):
         functions = [self.function(fn) for fn in self.document["functions"]]

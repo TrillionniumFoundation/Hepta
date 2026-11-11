@@ -50,7 +50,8 @@ def build(output, compiler, cold_report):
         raise ValueError('completed matching-source native cold qualification required for Core patch CLI')
     sources = current_sources()
     if (cold.get('source_manifest') != sources
-            or any(str(path.relative_to(ROOT)) not in sources for path in (SOURCE, ADMISSION, PACKER))):
+            or any(sources.get(path.relative_to(ROOT).as_posix()) != sha256(pins[path]).hexdigest()
+                   for path in (SOURCE, ADMISSION, PACKER))):
         raise ValueError('completed matching-source native cold qualification required for Core patch CLI')
     output.mkdir(mode=0o700)
     images = {}; receipts = {}
