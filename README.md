@@ -28,9 +28,12 @@ owns declaration checks, generic binding, finite layouts and partial-record
 obligations for all four composite versions, source-level returned-loan origins,
 parameter admission and task-protocol checks. A separately selected
 [native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The ordinary
-elaborator consumes their results; remaining operation lowering and the durable
-Agent remain hosted owners.
+complete start, poll, cancel, join and close Core functions. The selected
+[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
+nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
+entry-name loan binding in HIA. The ordinary elaborator consumes these results;
+constructor ordering, final program/export assembly and the durable Agent remain
+hosted owners. Native functions preserve the existing primitive Core recheck.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

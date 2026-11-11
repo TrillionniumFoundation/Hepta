@@ -66,7 +66,8 @@ environment['PYTHONDONTWRITEBYTECODE'] = '1'
 environment['PYTHONUNBUFFERED'] = '1'
 development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST',
-                         'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST')
+                         'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
     environment.pop(development_selector, None)
@@ -75,7 +76,7 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'FUNCTION_SHAPE', 'PROGRAM_SHAPE', 'INSTRUCTION_POLICY',
              'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
-             'TASK_HELPERS'):
+             'TASK_HELPERS', 'COMPOSITE_FUNCTIONS'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -236,6 +237,12 @@ if cold_ok:
                             'tests.test_hia_composite_origins_native',
                             'tests.test_hia_composite_signatures_native',
                             'tests.test_hia_task_helpers_native'],
+        'composite-functions': ['tests.test_hia_composite_function_tokens',
+                                'tests.test_hia_composite_function_admission',
+                                'tests.test_hia_composite_function_protocol_audit',
+                                'tests.test_hia_composite_function_terms_native',
+                                'tests.test_hia_composite_functions_native',
+                                'tests.test_hia_composite_public_lifecycle'],
     }
     for name, names in groups.items():
         ok = suite(name, names) and ok
