@@ -1,0 +1,32 @@
+{
+  "schema": "hia.stack-source-original-recovery-launch-template.v1",
+  "status": "UNEXECUTED_PENDING_REVIEW_PRIVATE_URL_AND_LANE",
+  "host": "desktop",
+  "executable": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+  "args_template": [
+    "-I",
+    "-S",
+    "-B",
+    "-c",
+    "<exact bootstrap.py UTF-8>",
+    "<SHA256 of complete private stdin payload>"
+  ],
+  "cwd": "/home/qian-qi",
+  "env": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8",
+    "TZ": "UTC"
+  },
+  "stdin_schema": "hia.stack-source-original-bootstrap.v1",
+  "stdin_shape": {
+    "schema": "hia.stack-source-original-bootstrap.v1",
+    "request": "<complete private request with one fresh official artifact URL>",
+    "files": "<six exact frozen filename:text pairs>"
+  },
+  "idempotency_key": "hia-e26e-desktop-acffa-source-original-recovery-r1",
+  "timeout_seconds": 960,
+  "nice": 10,
+  "guardian_seconds": 900,
+  "complete_stdin_is_private": true,
+  "public_receipt_contains_signed_URL": false
+}
