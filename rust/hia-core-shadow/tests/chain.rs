@@ -66,7 +66,7 @@ fn real_recursive_chain_project_fixture_is_accepted_as_single_closed_module() {
     // Imported directly from the repository's canonical executable Core fixture.
     // Includes nested chain/buffer calls, failure branches, loops, head borrows,
     // dynamic owners and recursive-node lifecycle; no source-level shortcuts.
-    let fixture = include_bytes!("../../../examples/hia_recursive_chain/core_v7.json");
+    let fixture = include_bytes!("../../../examples/hia_recursive_chain/core_v7.hepta");
     let report = verify_owned(fixture).unwrap();
     assert_eq!(report["functions_checked"], 9);
     assert_eq!(report["claims"]["v7_chain_owner_loan_cfg_checked"], true);

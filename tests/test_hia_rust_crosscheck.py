@@ -289,7 +289,7 @@ class RustShadowCrosscheckNative(unittest.TestCase):
             "examples/hia_program/generic_owned_enum.hepta",
             "examples/hia_program/stored_loan_record.hepta",
             "examples/hia_program/cooperative_task.hepta",
-            "examples/hia_recursive_chain/composite_v2.json",
+            "examples/hia_recursive_chain/composite_v2.hepta",
         )
         for name in fixtures:
             with self.subTest(fixture=name):

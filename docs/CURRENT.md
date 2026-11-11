@@ -19,13 +19,18 @@ was `5831f52fada45e076f8f68f198a15c0585e6104f`; a candidate is not main adoption
 The exact current compiler/source identity is the checked
 [Selfhost-Core contract](HIA_SELFHOST_CORE_SUPPORT.json).
 
-All 92 retained language sources use `.hepta`: 69 assembly sources and 23
+All 96 current language sources use `.hepta`: 69 assembly sources and 27
 structured Core sources. There are no active `.HIA`, `.hia`, `.hiaasm` or
 `.hia.json` files. Assembly retains its `hia-asm.v1` header, structured Core
 retains its explicit schema, and paired JSON projections use `.core.hepta`.
 The [87-file migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) preserves each
 renamed source byte for byte. The five later assembly sources are new inputs,
 not entries fabricated into that historical rename map.
+Four existing structured examples whose names ended in plain `.json` are also
+renamed byte for byte. Their Python and Rust consumers use `.hepta`; the source
+gate rejects program/composite JSON documents with a `.json` suffix in current
+example, test, formal and benchmark trees. Frozen experiment programs and
+receipts retain their original names and bytes.
 
 The [source suffix contract](HIA_SOURCE_SUFFIX.md) explains whole-program
 admission, package resources and the exact historical-name projections. Old
