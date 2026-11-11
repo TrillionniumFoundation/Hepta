@@ -1,0 +1,9 @@
+# Original 75-case prefix transport A/B
+
+This is development evidence for c1d5569ff6d7de6ace669b929e02e3e7aac10eac, run once with immutable control b4bd97d51a8d62f3f817cb42e714cab71f7d2a76. It is not a cold qualification or a fresh compiler fixed-point chain.
+
+The original worker completed both transports: 75 original cases each, 150 distinct reaped children, the same 68 checks, two scope controls, and 157 actual full-byte comparisons (63,614,816 bytes on each side, including seven produced images). The original 180-second process owner exited naturally and observed ECHILD with no remaining children or kill events. The legacy prefix took 7.765729965 seconds and the native prefix took 3.344434360 seconds. The observed difference is 4.421295605 seconds; no whole-cold deadline result follows from it.
+
+The complete 917,592-byte original worker report and 250,410-byte pair report were recovered with version-pinned binary reads, per-chunk hashes, and complete-file SHA256 verification. Both complete transport reports were extracted from the raw worker text without parsing/reformatting numbers; removing only parent indentation and selecting the original final LF reproduced their independently recorded sizes and SHA256 exactly. Every raw chunk response is retained. One earlier read timeout is recorded separately; its entire SDK serialization was not saved, and the observation states that limit explicitly.
+
+The remote worker actually read and compared all input, output, and produced-image byte pairs. Those binary payloads remain in /home/qian-qi/he26-cold-prefix-r1/run; this checkpoint retains reports and their complete identities, not a copied payload archive. The reviewer independently checked every report row and semantic field using lossless numeric tokens. No second product run, changed budget, or new compiler origin was used.
