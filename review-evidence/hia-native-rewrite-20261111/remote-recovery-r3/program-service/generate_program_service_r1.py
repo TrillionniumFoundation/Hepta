@@ -328,7 +328,7 @@ def projection_step(o:mutbuf, w:mutbuf) -> u64:
     if phase == 30:
         return view(o, w, B_GRAPH, 0, 64, 31)
     if phase == 31:
-        if get(w, OBS) != GRAPH_MAGIC or get(w, OBS + 8) != 9 or get(w, OBS + 16) == 0:
+        if get(w, OBS) != GRAPH_MAGIC or get(w, OBS + 8) != get(w, S_RESULT_EVENT + 16) or get(w, OBS + 16) == 0:
             return refuse(w, 2030)
         if get(w, OBS + 24) == 0 or get(w, OBS + 24) > get(w, OBS + 16) or get(w, OBS + 48) != get(w, A_GRAPH_BYTES) or get(w, OBS + 56) != 0:
             return refuse(w, 2031)

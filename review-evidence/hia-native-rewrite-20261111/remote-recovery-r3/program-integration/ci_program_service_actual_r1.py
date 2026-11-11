@@ -87,9 +87,9 @@ INPUTS={
   },
   "generator": {
     "path": "generate_program_service_r1.py",
-    "gitsha": "2a2609ec9f2d96980b70a777019b15506f65f5fa",
-    "bytes": 33649,
-    "sha256": "b0473ce106d0f614bdf21fa11cf887fac06193c2a63dbb9708d209a6e7d11f62"
+    "gitsha": "e572e1273fcd55518f7395071cc56534f2771fc6",
+    "bytes": 33675,
+    "sha256": "f378c5cd7ef6a053ec63090cc3b3322929f54ef566a29fbaa3f687318c6779d9"
   },
   "compile": {
     "path": "compile_program_service_r1.py",

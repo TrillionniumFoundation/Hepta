@@ -1,0 +1,83 @@
+{
+  "schema": "hia-cli-verified-publication-source-delivery.v1",
+  "status": "NEW_AUTHORING_UNEXECUTED",
+  "proposed_prefix": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-publication-r1",
+  "files": {
+    "tools/cli_authoring.py": {
+      "git_blob_sha": "6f1bffe8bd815a068f9834489960006cbaad6fac",
+      "bytes": 2112,
+      "sha256": "717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b"
+    },
+    "tools/cli_publication_verified_owner.py": {
+      "git_blob_sha": "c9d9861c96c23e36ad996035f4f21f2f8147f9cb",
+      "bytes": 18791,
+      "sha256": "e07b8888aeb1c70743e3119a56b9f4e4aa79e22e8e647b0a28f3249d5d315e44"
+    },
+    "tools/generate_hia_cli_verified_publication.py": {
+      "git_blob_sha": "cacb56dae0c6be756338c852102c4329e7854cb3",
+      "bytes": 1265,
+      "sha256": "3f75cad9055d44f5db353ba148a030dd9031bd8217ed7a7d00769b006d8bb0d9"
+    },
+    "tests/test_hia_cli_verified_publication.py": {
+      "git_blob_sha": "54acb119bcad1fc8cf7b904a45c103a30321c4cc",
+      "bytes": 21430,
+      "sha256": "ed822559e0f6efc6aa54d9711b738ecf30f6fde345c05070daf7cf6e856106cc"
+    },
+    "docs/HIA_CLI_VERIFIED_PUBLICATION_ABI.md": {
+      "git_blob_sha": "653c7ab7ca891a342c2da0a56e83d1e4fb735bd2",
+      "bytes": 6156,
+      "sha256": "2f16e0059566ae1458bb05ae2ba8029e55bb7d16791244fa0f501da4f1bd069a"
+    },
+    "ci/ci_cli_verified_publication_r1.py": {
+      "git_blob_sha": "e685e1ec2b3d66b3a2a4c6c56feb4a8a7116b49e",
+      "bytes": 7872,
+      "sha256": "136d998f552669f224060c01e0043bd0d2059f45d8110a4174361559071b9613"
+    }
+  },
+  "all_blobs_full_text_readback": true,
+  "ci": {
+    "path": "ci/ci_cli_verified_publication_r1.py",
+    "common": "HIA_CI_COMMON injected current shared prepare/run/finish",
+    "command": "python -B <prefix>/ci/ci_cli_verified_publication_r1.py",
+    "output": "HIA_CI_OUTPUT unique directory",
+    "original_compiler_limits": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456
+    },
+    "actual_test_limits": {
+      "cpu_seconds": 90,
+      "address_bytes": 1073741824,
+      "outer_wall_seconds": 300
+    },
+    "planned": {
+      "physical_exact_reference_cases": 29,
+      "private_bad_reply_controls": 11
+    },
+    "old967_or193_repeated": false
+  },
+  "provenance": {
+    "base": "a3c61136b79fdb7a4b6d6428fb4bdf31cd5ed270",
+    "reference": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "compiler_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+    "expected_sha_source": "a30377e1f08a3426cfffe609ddbe35de67e87791cb0e9645c79e063f5d3d205a",
+    "expected_sha_image": "7bca81777197af059b1b5c48e340c0215214370fec007bb82ae5cadca81ef274"
+  },
+  "mechanics": "Development Python forwards only HIA-selected physical syscall operations and already-bound native SHA input/output; HIA alone chooses transaction/read/link/cleanup/receipt semantics. New fixed ELF publication forwarding is still to be implemented.",
+  "evidence": "Each actual entry preserves complete immutable input/reply, whole workspace before/after, return, actual syscall result, compressed exact CAS and final fresh readback. All physical fixture object identities and regular bytes preserved, including failure, outside generic tar special-file restrictions.",
+  "remaining": [
+    "Path.absolute parsing and native cwd",
+    "mkdir(parents=True,exist_ok=True) and resolve comparison",
+    "TemporaryDirectory creation and exact staging write/flush/fsync/cleanup",
+    "Raw OSError Unicode path presentation",
+    "Fixed syscall carrier integration and parent HIACPR",
+    "No installed or whole CLI activation"
+  ],
+  "finite_follow10": {
+    "log_blob": "8836d31d9e22dd98dab625730ca4816871f6f5a1",
+    "observation_blob": "cbc5871563b2007952e2fd93f3f8577ce4ffedad",
+    "job": 130847079409,
+    "status": "PASS",
+    "scope": "finite18; independent inner raw reader pending"
+  }
+}
