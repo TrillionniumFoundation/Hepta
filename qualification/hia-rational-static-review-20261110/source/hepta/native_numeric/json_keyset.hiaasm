@@ -1,0 +1,117 @@
+hia-asm.v1 hepta.hia.program.v8 paged_decoded_key_comparison
+fn key_compare_chunk(left_k0:readbuf,right_k0:readbuf,offset_k0:u64,left_total_k0:u64,right_total_k0:u64) -> (u32) effects(read,trap) entry(start)
+block start(left_k0:readbuf,right_k0:readbuf,offset_k0:u64,left_total_k0:u64,right_total_k0:u64)
+  same_total_k0:bool = compare.eq(left_total_k0,right_total_k0)
+  branch same_total_k0 extent(left_k0,right_k0,offset_k0,left_total_k0) unequal()
+block extent(left_k1:readbuf,right_k1:readbuf,offset_k1:u64,total_k1:u64)
+  n_k1:usize = buffer.len(left_k1)
+  m_k1:usize = buffer.len(right_k1)
+  same_k1:bool = compare.eq(n_k1,m_k1)
+  in_k1:bool = compare.le(offset_k1,total_k1)
+  valid_k1:bool = bool.and(same_k1,in_k1)
+  branch valid_k1 remaining(left_k1,right_k1,offset_k1,total_k1,n_k1) invalid()
+block remaining(left_k2:readbuf,right_k2:readbuf,offset_k2:u64,total_k2:u64,n_k2:usize)
+  remaining_k2:u64 = int.sub.checked(total_k2,offset_k2)
+  size_k2:u64 = int.cast(n_k2) {"mode":"wrap"}
+  fits_k2:bool = compare.le(size_k2,remaining_k2)
+  branch fits_k2 progress(left_k2,right_k2,offset_k2,total_k2,n_k2) invalid()
+block progress(left_k3:readbuf,right_k3:readbuf,offset_k3:u64,total_k3:u64,n_k3:usize)
+  zero_k3:usize = const() {"value":0}
+  nonempty_k3:bool = compare.gt(n_k3,zero_k3)
+  final_k3:bool = compare.eq(offset_k3,total_k3)
+  valid_k3:bool = bool.or(nonempty_k3,final_k3)
+  branch valid_k3 loop(left_k3,right_k3,offset_k3,total_k3,n_k3,zero_k3) invalid()
+block loop(left_k4:readbuf,right_k4:readbuf,offset_k4:u64,total_k4:u64,n_k4:usize,index_k4:usize)
+  more_k4:bool = compare.lt(index_k4,n_k4)
+  branch more_k4 byte(left_k4,right_k4,offset_k4,total_k4,n_k4,index_k4) finish(offset_k4,total_k4,n_k4)
+block byte(left_k5:readbuf,right_k5:readbuf,offset_k5:u64,total_k5:u64,n_k5:usize,index_k5:usize)
+  a_k5:u8 = buffer.load(left_k5,index_k5)
+  b_k5:u8 = buffer.load(right_k5,index_k5)
+  equal_k5:bool = compare.eq(a_k5,b_k5)
+  one_k5:usize = const() {"value":1}
+  next_k5:usize = int.add.checked(index_k5,one_k5)
+  branch equal_k5 loop(left_k5,right_k5,offset_k5,total_k5,n_k5,next_k5) unequal()
+block finish(offset_k6:u64,total_k6:u64,n_k6:usize)
+  size_k6:u64 = int.cast(n_k6) {"mode":"wrap"}
+  end_k6:u64 = int.add.checked(offset_k6,size_k6)
+  final_k6:bool = compare.eq(end_k6,total_k6)
+  branch final_k6 equal() continuing()
+block unequal()
+  status_k7:u32 = const() {"value":0}
+  ret(status_k7)
+block continuing()
+  status_k8:u32 = const() {"value":1}
+  ret(status_k8)
+block equal()
+  status_k9:u32 = const() {"value":2}
+  ret(status_k9)
+block invalid()
+  status_k10:u32 = const() {"value":3}
+  ret(status_k10)
+end
+fn key_hash_chunk(source_h0:readbuf,output_h0:mutbuf,seed_h0:u64) -> (u32) effects(read,write,trap) entry(start)
+block start(source_h0:readbuf,output_h0:mutbuf,seed_h0:u64)
+  n_h0:usize = buffer.len(source_h0)
+  zero_h0:usize = const() {"value":0}
+  jump loop(source_h0,output_h0,n_h0,zero_h0,seed_h0)
+block loop(source_h1:readbuf,output_h1:mutbuf,n_h1:usize,index_h1:usize,hash_h1:u64)
+  more_h1:bool = compare.lt(index_h1,n_h1)
+  branch more_h1 byte(source_h1,output_h1,n_h1,index_h1,hash_h1) done(output_h1,hash_h1)
+block byte(source_h2:readbuf,output_h2:mutbuf,n_h2:usize,index_h2:usize,hash_h2:u64)
+  ch_h2:u8 = buffer.load(source_h2,index_h2)
+  word_h2:u64 = int.cast(ch_h2) {"mode":"wrap"}
+  mixed_h2:u64 = bit.xor(hash_h2,word_h2)
+  prime_h2:u64 = const() {"value":1099511628211}
+  next_hash_h2:u64 = int.mul.wrap(mixed_h2,prime_h2)
+  one_h2:usize = const() {"value":1}
+  next_h2:usize = int.add.checked(index_h2,one_h2)
+  jump loop(source_h2,output_h2,n_h2,next_h2,next_hash_h2)
+block done(output_h3:mutbuf,hash_h3:u64)
+  count_h3:usize = int.cast(hash_h3) {"mode":"wrap"}
+  _ = call(output_h3,count_h3) {"function":"key_write_hash"}
+  ok_h3:u32 = const() {"value":0}
+  ret(ok_h3)
+end
+fn key_write_hash(output_b28:mutbuf,count_b28:usize) -> () effects(write,trap) entry(start)
+block start(output_b28:mutbuf,count_b28:usize)
+  value_b28:u64 = int.cast(count_b28) {"mode":"wrap"}
+  i0_b28:usize = const() {"value":0}
+  b0_b28:u8 = int.cast(value_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i0_b28,b0_b28)
+  i1_b28:usize = const() {"value":1}
+  s1_b28:u64 = const() {"value":8}
+  p1_b28:u64 = int.shr.checked(value_b28,s1_b28)
+  b1_b28:u8 = int.cast(p1_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i1_b28,b1_b28)
+  i2_b28:usize = const() {"value":2}
+  s2_b28:u64 = const() {"value":16}
+  p2_b28:u64 = int.shr.checked(value_b28,s2_b28)
+  b2_b28:u8 = int.cast(p2_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i2_b28,b2_b28)
+  i3_b28:usize = const() {"value":3}
+  s3_b28:u64 = const() {"value":24}
+  p3_b28:u64 = int.shr.checked(value_b28,s3_b28)
+  b3_b28:u8 = int.cast(p3_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i3_b28,b3_b28)
+  i4_b28:usize = const() {"value":4}
+  s4_b28:u64 = const() {"value":32}
+  p4_b28:u64 = int.shr.checked(value_b28,s4_b28)
+  b4_b28:u8 = int.cast(p4_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i4_b28,b4_b28)
+  i5_b28:usize = const() {"value":5}
+  s5_b28:u64 = const() {"value":40}
+  p5_b28:u64 = int.shr.checked(value_b28,s5_b28)
+  b5_b28:u8 = int.cast(p5_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i5_b28,b5_b28)
+  i6_b28:usize = const() {"value":6}
+  s6_b28:u64 = const() {"value":48}
+  p6_b28:u64 = int.shr.checked(value_b28,s6_b28)
+  b6_b28:u8 = int.cast(p6_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i6_b28,b6_b28)
+  i7_b28:usize = const() {"value":7}
+  s7_b28:u64 = const() {"value":56}
+  p7_b28:u64 = int.shr.checked(value_b28,s7_b28)
+  b7_b28:u8 = int.cast(p7_b28) {"mode":"wrap"}
+  _ = buffer.store(output_b28,i7_b28,b7_b28)
+  ret()
+end

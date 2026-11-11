@@ -1,0 +1,56 @@
+hia-asm.v1 hepta.hia.program.v8 ordinary_policy_numeric
+fn select_plan(input:readbuf,count:u64,wall:u64,tokens:u64,incumbent:u64) -> (u32) effects(read,trap) entry(start)
+block start(input:readbuf,count:u64,wall:u64,tokens:u64,incumbent:u64)
+  zero:u64 = const() {"value":0}
+  none:u32 = const() {"value":0}
+  jump loop(input,count,wall,tokens,incumbent,zero,none)
+block loop(src:readbuf,n:u64,w:u64,t:u64,best:u64,index:u64,chosen:u32)
+  more:bool = compare.lt(index,n)
+  branch more body(src,n,w,t,best,index,chosen) done(chosen)
+block body(s:readbuf,nn:u64,ww:u64,tt:u64,bb:u64,ii:u64,cc:u32)
+  stride:u64 = const() {"value":24}
+  offset:u64 = int.mul.checked(ii,stride)
+  base:u64 = call(s,offset) {"function":"read64"}
+  eight:u64 = const() {"value":8}
+  unc_offset:u64 = int.add.checked(offset,eight)
+  uncertainty:u64 = call(s,unc_offset) {"function":"read64"}
+  tok_offset:u64 = int.add.checked(unc_offset,eight)
+  required:u64 = call(s,tok_offset) {"function":"read64"}
+  robust:u64 = int.add.checked(base,uncertainty)
+  wall_ok:bool = compare.le(robust,ww)
+  token_ok:bool = compare.le(required,tt)
+  improves:bool = compare.lt(robust,bb)
+  fits:bool = bool.and(wall_ok,token_ok)
+  take:bool = bool.and(fits,improves)
+  next_best:u64 = select(take,robust,bb)
+  one:u64 = const() {"value":1}
+  next:u64 = int.add.checked(ii,one)
+  ordinal:u32 = int.cast(next) {"mode":"checked"}
+  next_chosen:u32 = select(take,ordinal,cc)
+  jump loop(s,nn,ww,tt,next_best,next,next_chosen)
+block done(answer:u32)
+  ret(answer)
+end
+fn read64(bytes:readbuf,at:u64) -> (u64) effects(read,trap) entry(begin)
+block begin(bytes:readbuf,at:u64)
+  z:u64 = const() {"value":0}
+  jump read_loop(bytes,at,z,z)
+block read_loop(data:readbuf,origin:u64,j:u64,acc:u64)
+  size:u64 = const() {"value":8}
+  pending:bool = compare.lt(j,size)
+  branch pending read_body(data,origin,j,acc) read_done(acc)
+block read_body(d:readbuf,o:u64,k:u64,a:u64)
+  absolute:u64 = int.add.checked(o,k)
+  ix:usize = int.cast(absolute) {"mode":"checked"}
+  byte:u8 = buffer.load(d,ix)
+  wide:u64 = int.cast(byte) {"mode":"checked"}
+  bits:u64 = const() {"value":8}
+  shift:u64 = int.mul.checked(k,bits)
+  part:u64 = int.shl.checked(wide,shift)
+  combined:u64 = bit.or(a,part)
+  unit:u64 = const() {"value":1}
+  following:u64 = int.add.checked(k,unit)
+  jump read_loop(d,o,following,combined)
+block read_done(value:u64)
+  ret(value)
+end

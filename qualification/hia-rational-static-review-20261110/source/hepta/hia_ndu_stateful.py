@@ -1,0 +1,423 @@
+"""Stateful preparation/holding workloads for the original finite NDU profile.
+
+Preparing a variant pays its cost once and leaves an explicitly charged resident
+state.  A later refusal creates a new snapshot and consumes actual reported
+budget; it cannot reuse the rejected proposal's projected benefit.  This module
+constructs a bounded planning model.  It neither verifies machine code nor turns
+model costs into application measurements or native NDU evaluation receipts.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+from hashlib import sha256
+from itertools import combinations
+import json
+import re
+
+SCHEMA = "hepta.hia.ndu.stateful-preparation.v1"
+SCHEMA_V2 = "hepta.hia.ndu.stateful-preparation.v2"
+SCHEMA_V3 = "hepta.hia.ndu.stateful-preparation.v3"
+_MAX_NS = 1_000_000_000_000
+_ID = re.compile(r"[a-zA-Z][a-zA-Z0-9_-]{0,31}\Z")
+_HEX = re.compile(r"[0-9a-f]{64}\Z")
+_STATUSES = {"verified", "rejected", "unknown", "timeout"}
+_FIELDS = {"schema", "name", "objective_digest", "generation", "baseline",
+           "variants", "initial_ready", "memory_budget_bytes", "budget_ns",
+           "completion_value_ns", "sunk_cost_ns", "observations", "cost_basis"}
+_VARIANT_FIELDS = {"id", "source_sha256", "verification_sha256", "support_sha256",
+                   "status", "preparation_ns", "holding_ns", "resident_bytes", "latency_ns"}
+_BASE_FIELDS = {"source_sha256", "verification_sha256", "latency_ns"}
+
+
+class StatefulPlanningError(ValueError):
+    """An incomplete or inconsistent model cannot authorize planning."""
+
+
+def wire(value):
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def digest(value):
+    return sha256(wire(value)).hexdigest()
+
+
+def _require(condition, message):
+    if not condition:
+        raise StatefulPlanningError("E_HIA_NDU_STATEFUL: " + message)
+
+
+def _int(value, name, maximum=_MAX_NS):
+    _require(type(value) is int and 0 <= value <= maximum,
+             name + " requires a bounded nonnegative integer")
+    return value
+
+
+def _hex(value, name):
+    _require(type(value) is str and _HEX.fullmatch(value) is not None
+             and value != "0" * 64, name + " requires a nonzero SHA-256")
+
+
+def validate_model(value):
+    """Validate one bounded detached JSON snapshot; never reread caller state.
+
+    This remains an offline advisory model, not native execution authority.
+    Existing HIA intake rejects subclasses, cycles and oversized containers
+    before materializing JSON. All semantic checks below use the decoded bytes.
+    """
+    from .hia_json_preflight import preflight_hia_json
+    from .hia_program_tools import HIAEditRejected, bounded_json_wire, decode_json
+    try:
+        _require(type(value) is dict, "model must be an ordinary JSON object")
+        encoded = bounded_json_wire(value, 500_000)
+        preflight_hia_json(encoded.decode("ascii"), max_nodes=32768, max_depth=32)
+        value = decode_json(encoded)
+    except (HIAEditRejected, ValueError, TypeError, RuntimeError, UnicodeError,
+            RecursionError, OverflowError) as error:
+        raise StatefulPlanningError("E_HIA_NDU_STATEFUL: bounded model snapshot rejected") from error
+    _require(type(value) is dict and type(value.get("schema")) is str
+             and value["schema"] in {SCHEMA, SCHEMA_V2, SCHEMA_V3}, "unsupported schema")
+    reversible = value["schema"] == SCHEMA_V3
+    fields = _FIELDS | ({"future_decision_cost_ns"} if value["schema"] != SCHEMA else set())
+    _require(set(value) == fields, "unknown or missing model fields")
+    if value["schema"] != SCHEMA:
+        _int(value["future_decision_cost_ns"], "future decision cost")
+    _require(type(value["name"]) is str and _ID.fullmatch(value["name"]) is not None,
+             "invalid model name")
+    _hex(value["objective_digest"], "objective")
+    _int(value["generation"], "generation", (1 << 32) - 1)
+    _require(value["generation"] > 0, "generation must be nonzero")
+    for field in ("memory_budget_bytes", "budget_ns", "completion_value_ns", "sunk_cost_ns"):
+        _int(value[field], field)
+    _require(type(value["cost_basis"]) is str
+             and value["cost_basis"] in {"declared-model-only", "caller-measurement-estimates"},
+             "cost basis must be explicit")
+    base = value["baseline"]
+    _require(type(base) is dict and set(base) == _BASE_FIELDS, "invalid baseline fields")
+    _hex(base["source_sha256"], "baseline source")
+    _hex(base["verification_sha256"], "baseline verification")
+    horizon = len(base["latency_ns"]) if type(base["latency_ns"]) is list else 0
+    _require(1 <= horizon <= 4, "one to four remaining batches required")
+    for latency in base["latency_ns"]:
+        _int(latency, "baseline latency")
+    variants = value["variants"]
+    # Complete reversible subsets have n*(n-1) edges. Two variants produce
+    # four states / twelve edges; three would exceed the native 32-edge profile.
+    maximum_variants = 2 if reversible else 3
+    _require(type(variants) is list and 1 <= len(variants) <= maximum_variants,
+             "one to two variants required for reversible residency" if reversible
+             else "one to three variants required")
+    names = set()
+    for variant in variants:
+        variant_fields = _VARIANT_FIELDS | ({"eviction_ns"} if reversible else set())
+        _require(type(variant) is dict and set(variant) == variant_fields,
+                 "unknown or missing variant fields")
+        name = variant["id"]
+        _require(type(name) is str and _ID.fullmatch(name) is not None and name not in names,
+                 "invalid or duplicate variant identity")
+        names.add(name)
+        for key in ("source_sha256", "verification_sha256", "support_sha256"):
+            _hex(variant[key], key)
+        _require(type(variant["status"]) is str and variant["status"] in _STATUSES,
+                 "invalid verification status")
+        for key in ("preparation_ns", "resident_bytes"):
+            _int(variant[key], key)
+        if reversible:
+            _int(variant["eviction_ns"], "eviction_ns")
+        for key in ("holding_ns", "latency_ns"):
+            _require(type(variant[key]) is list and len(variant[key]) == horizon,
+                     "variant costs must cover every remaining batch")
+            for cost in variant[key]:
+                _int(cost, key)
+    ready = value["initial_ready"]
+    _require(type(ready) is list and all(type(name) is str for name in ready)
+             and len(set(ready)) == len(ready) and set(ready) <= names,
+             "invalid initial prepared set")
+    by_id = {v["id"]: v for v in variants}
+    _require(all(by_id[name]["status"] == "verified" for name in ready),
+             "an incumbent prepared variant must be verified")
+    _require(sum(by_id[name]["resident_bytes"] for name in ready) <= value["memory_budget_bytes"],
+             "incumbent exceeds the resident-memory model quota")
+    observations = value["observations"]
+    _require(type(observations) is list and len(observations) <= 120
+             and all(type(row) is dict for row in observations), "invalid past observations")
+    # Bound even losing complete paths before they reach the native utility
+    # profile. Unknown/unaffordable costs are not replaced with zero.
+    transition_bound = (horizon * sum(v["preparation_ns"] + v["eviction_ns"] for v in variants)
+                        if reversible else sum(v["preparation_ns"] for v in variants))
+    upper = (transition_bound
+             + sum(base["latency_ns"])
+             + sum(sum(v["holding_ns"]) for v in variants)
+             + (horizon - 1) * value.get("future_decision_cost_ns", 0))
+    _require(upper <= _MAX_NS, "complete cost envelope exceeds the finite profile")
+    result = value
+    result["variants"].sort(key=lambda v: v["id"])
+    result["initial_ready"].sort()
+    return result
+
+
+def _subsets(names):
+    for length in range(len(names) + 1):
+        yield from combinations(names, length)
+
+
+def _state_id(ready):
+    # At most eight states. Opaque IDs avoid concatenated-ID length collisions.
+    return "ready-" + digest(list(ready))[:16]
+
+
+def _state_cost(model, ready, batch):
+    by_id = {v["id"]: v for v in model["variants"]}
+    alternatives = [(model["baseline"]["latency_ns"][batch], "baseline")]
+    alternatives.extend((by_id[name]["latency_ns"][batch], name) for name in ready)
+    latency, dispatch = min(alternatives)
+    holding = sum(by_id[name]["holding_ns"][batch] for name in ready)
+    return {"dispatch": dispatch, "execution_ns": latency, "holding_ns": holding,
+            "total_ns": latency + holding,
+            "resident_bytes": sum(by_id[name]["resident_bytes"] for name in ready)}
+
+
+def graph_fields(raw):
+    """Expand prepared sets, pay-once acquisitions and resident holding costs.
+
+    V1/v2 retain monotone preparation. V3 may first evict old variants, then
+    prepare new ones, charging both operations. Every reacquisition pays again.
+    No transient union of the two resident sets is needed in this advisory
+    release-before-prepare model. A real loader must separately establish that
+    order and the absence of outstanding borrows before using this advice.
+    """
+    model = validate_model(raw)
+    variants = {v["id"]: v for v in model["variants"]}
+    initial = set(model["initial_ready"])
+    names = sorted(variants)
+    reversible = model["schema"] == SCHEMA_V3
+    ready_sets = (list(_subsets(names)) if reversible else
+                  [tuple(sorted(initial | set(extra))) for extra in _subsets(sorted(set(names) - initial))])
+    # Check the complete graph size before constructing or hashing transitions.
+    if reversible:
+        _require(len(ready_sets) <= 8 and len(ready_sets) * (len(ready_sets) - 1) <= 32,
+                 "complete reversible graph exceeds native capacity")
+    states, costs, details = {}, {}, {}
+    for ready in ready_sets:
+        identity = _state_id(ready)
+        row = [_state_cost(model, ready, batch) for batch in range(len(model["baseline"]["latency_ns"]))]
+        statuses = [variants[name]["status"] for name in ready]
+        if any(item["resident_bytes"] > model["memory_budget_bytes"] for item in row):
+            status = "rejected"
+        else:
+            status = next((s for s in ("rejected", "timeout", "unknown") if s in statuses), "verified")
+        source = {"baseline": model["baseline"]["source_sha256"],
+                  "ready": {name: variants[name]["source_sha256"] for name in ready}}
+        verification = {"baseline": model["baseline"]["verification_sha256"],
+                        "ready": {name: variants[name]["verification_sha256"] for name in ready},
+                        "memory_budget_bytes": model["memory_budget_bytes"], "status": status}
+        states[identity] = {"source_sha256": digest(source),
+                            "verification_sha256": digest(verification), "status": status}
+        costs[identity] = [item["total_ns"] for item in row]
+        details[identity] = {"ready": list(ready), "batches": row}
+    transitions = []
+    for ready in ready_sets:
+        for target in ready_sets:
+            if (ready == target if reversible else not set(ready) < set(target)):
+                continue
+            acquired = sorted(set(target) - set(ready))
+            released = sorted(set(ready) - set(target))
+            source_id, target_id = _state_id(ready), _state_id(target)
+            transition = {"id": ("reside-" if reversible else "prepare-") + digest([ready, target])[:20],
+                "source": source_id, "target": target_id,
+                "setup_ns": (sum(variants[name]["preparation_ns"] for name in acquired)
+                             + sum(variants[name]["eviction_ns"] for name in released)),
+                "status": states[target_id]["status"],
+                "verification_sha256": digest({"acquired": [variants[name]["verification_sha256"] for name in acquired],
+                                                "state": states[target_id]["verification_sha256"]}),
+                "support_sha256": digest({name: variants[name]["support_sha256"] for name in acquired})}
+            if reversible:
+                transition["verification_sha256"] = digest({
+                    "source": states[source_id]["verification_sha256"],
+                    "target": states[target_id]["verification_sha256"],
+                    "acquired": acquired, "released": released,
+                    "order": "release-before-prepare-model-only"})
+                transition["support_sha256"] = digest({
+                    "acquired": {name: variants[name]["support_sha256"] for name in acquired},
+                    "released": {name: variants[name]["support_sha256"] for name in released},
+                    "eviction_ns": {name: variants[name]["eviction_ns"] for name in released}})
+            transitions.append(transition)
+    binding = {"schema": model["schema"], "model_sha256": digest(model), "states": details,
+        "preparation_charged": "once per acquisition; already prepared variants have no new setup cost",
+        "holding_charged": "each resident variant for every remaining batch, including stop paths",
+        "dispatch_rule": "lowest supplied current-batch execution cost; exact ties use stable variant identity",
+        "sunk_cost_ns": model["sunk_cost_ns"], "cost_basis": model["cost_basis"],
+        "verification_inputs_are_external_assertions": True,
+        "native_application_executed": False, "safety_certificate": False}
+    if model["schema"] != SCHEMA:
+        binding["future_decision_cost_ns"] = model["future_decision_cost_ns"]
+        binding["future_decision_charged"] = (
+            "each active decision after batch zero, including the decision to stop; "
+            "no decisions after stop; current invocation is outside this continuation model")
+    if reversible:
+        binding.update(
+            preparation_charged="each acquisition, including reacquisition after eviction",
+            eviction_charged="each release; no charge for a retained variant",
+            residency_order="release-before-prepare; bounded model only, no loader authority",
+            model_peak_resident_bytes="maximum endpoint residency; source and target never coexist in this model",
+            complete_graph_states=len(states), complete_graph_transitions=len(transitions))
+    fields = {"objective_digest": model["objective_digest"], "snapshot_digest": digest(binding),
+        "generation": model["generation"], "initial_state": _state_id(tuple(model["initial_ready"])),
+        "states": states, "transitions": transitions, "batch_costs_ns": costs,
+        "remaining_budget_ns": model["budget_ns"], "completion_value_ns": model["completion_value_ns"],
+        "decision_cost_ns": model.get("future_decision_cost_ns", 0),
+        "observations": [*model["observations"], binding]}
+    return fields, binding
+
+
+def invocation_gate(raw, *, invocation_cost_ns):
+    """Bound the value of invoking before paying for the current planner call.
+
+    The lower bound gives every verified, individually affordable candidate free
+    preparation and zero additional holding/decision costs. It may combine
+    mutually incompatible candidates across batches. Hence it is optimistic for
+    *every* legal monotone prepared-set schedule. V3 additionally grants free
+    eviction and removes all holding costs, because incumbents may be released.
+    If even this relaxation cannot
+    repay the supplied invocation cost, retaining the incumbent is no worse in
+    this declared nanosecond model. The estimate is not a measured-time bound,
+    an execution permission, or evidence of an NDU advantage. Gate evaluation
+    itself remains part of the caller's actual cost ledger.
+    """
+    model = validate_model(raw)
+    _int(invocation_cost_ns, "current invocation cost")
+    variants = {v["id"]: v for v in model["variants"]}
+    ready = set(model["initial_ready"])
+    reversible = model["schema"] == SCHEMA_V3
+    resident = sum(variants[name]["resident_bytes"] for name in ready)
+    available = [v for v in variants.values() if v["status"] == "verified"
+                 and (v["resident_bytes"] if reversible else
+                      resident + (0 if v["id"] in ready else v["resident_bytes"]))
+                 <= model["memory_budget_bytes"]]
+    skip_ns, relaxed_ns = 0, 0
+    for batch, base in enumerate(model["baseline"]["latency_ns"]):
+        holding = sum(variants[name]["holding_ns"][batch] for name in ready)
+        skip_ns += min([base, *(variants[name]["latency_ns"][batch] for name in ready)]) + holding
+        relaxed_ns += min([base, *(v["latency_ns"][batch] for v in available)]) + (0 if reversible else holding)
+    upper = skip_ns - relaxed_ns
+    affordable = invocation_cost_ns + relaxed_ns <= model["budget_ns"]
+    invoke = affordable and upper > invocation_cost_ns
+    reason = ("optimistic_savings_exceed_invocation_estimate" if invoke else
+              "invocation_and_optimistic_delivery_exceed_budget" if not affordable else
+              "optimistic_savings_cannot_repay_invocation")
+    return {"schema": "hepta.hia.ndu.invocation-gate.v1", "model_sha256": digest(model),
+            "invoke": invoke, "reason": reason, "invocation_cost_ns": invocation_cost_ns,
+            "incumbent_delivery_ns": skip_ns, "optimistic_delivery_lower_bound_ns": relaxed_ns,
+            "gross_savings_upper_bound_ns": upper, "incumbent_ready": sorted(ready),
+            "cost_basis": model["cost_basis"], "future_decision_cost_ns": model.get("future_decision_cost_ns", 0),
+            "scope": "supplied deterministic nanosecond model; no empirical net-benefit guarantee",
+            "authority": "DENY_ALL", "safety_certificate": False}
+
+
+def build_request(raw, *, search="dynamic-frontier"):
+    """Use the real existing finite planner, without producing a native receipt."""
+    from .hia_ndu import finite_plan_request
+    fields, binding = graph_fields(raw)
+    result = finite_plan_request(**fields, search=search)
+    result["stateful_binding"] = binding
+    return result
+
+
+def observe_refusal(raw, *, variant_id, actual_attempt_ns, observation_digest):
+    """Create a successor snapshot after an observed failed preparation attempt.
+
+    The caller reports elapsed cost; no measurement is invented here. This does
+    not advance the workload's batch, create prepared code or erase past costs.
+    Exhausted budget remains zero with an explicit overrun; remaining work can
+    still be infeasible. Callers must retain the complete observation ledger.
+    """
+    model = validate_model(raw)
+    _int(actual_attempt_ns, "actual attempt cost")
+    _hex(observation_digest, "refusal observation")
+    variants = {v["id"]: v for v in model["variants"]}
+    _require(type(variant_id) is str and variant_id in variants
+             and variant_id not in model["initial_ready"],
+             "refusal must name an unprepared variant")
+    _require(not any(row.get("observation_digest") == observation_digest
+                     for row in model["observations"]), "refusal observation was already consumed")
+    _require(model["generation"] < (1 << 32) - 1, "generation exhausted")
+    _require(model["sunk_cost_ns"] + actual_attempt_ns <= _MAX_NS, "sunk-cost ledger overflow")
+    before = model["budget_ns"]
+    variants[variant_id]["status"] = "rejected"
+    variants[variant_id]["verification_sha256"] = observation_digest
+    model["budget_ns"] = max(0, before - actual_attempt_ns)
+    model["sunk_cost_ns"] += actual_attempt_ns
+    model["generation"] += 1
+    model["observations"].append({"kind": "preparation-refused", "variant_id": variant_id,
+        "actual_attempt_ns": actual_attempt_ns, "budget_before_ns": before,
+        "budget_after_ns": model["budget_ns"], "budget_overrun_ns": max(0, actual_attempt_ns - before),
+        "observation_digest": observation_digest, "generation": model["generation"]})
+    return validate_model(model)
+
+
+def observe_residency(raw, *, ready, actual_transition_ns, observation_digest):
+    """Record a caller-observed v3 eviction/preparation without advancing time.
+
+    This records the actual reported cost instead of the projected transition
+    cost, preserves overruns and fences replay by generation/observation digest.
+    It neither executes unload/load nor attests that those operations happened.
+    A later reacquisition of an evicted variant has a fresh preparation cost in
+    the successor graph; its historical preparation never becomes free credit.
+    """
+    model = validate_model(raw)
+    _require(model["schema"] == SCHEMA_V3, "residency observations require v3")
+    _int(actual_transition_ns, "actual transition cost")
+    _hex(observation_digest, "residency observation")
+    variants = {v["id"]: v for v in model["variants"]}
+    _require(type(ready) is list and len(ready) <= 2 and all(type(name) is str for name in ready)
+             and len(set(ready)) == len(ready) and set(ready) <= set(variants),
+             "invalid observed resident set")
+    target = sorted(ready)
+    previous = model["initial_ready"]
+    _require(target != previous, "residency observation must change the resident set")
+    _require(all(variants[name]["status"] == "verified" for name in target),
+             "observed resident set contains an unverified variant")
+    _require(sum(variants[name]["resident_bytes"] for name in target) <= model["memory_budget_bytes"],
+             "observed resident set exceeds the memory quota")
+    _require(not any(row.get("observation_digest") == observation_digest
+                     for row in model["observations"]), "residency observation was already consumed")
+    _require(model["generation"] < (1 << 32) - 1, "generation exhausted")
+    _require(model["sunk_cost_ns"] + actual_transition_ns <= _MAX_NS, "sunk-cost ledger overflow")
+    before = model["budget_ns"]
+    model["initial_ready"] = target
+    model["budget_ns"] = max(0, before - actual_transition_ns)
+    model["sunk_cost_ns"] += actual_transition_ns
+    model["generation"] += 1
+    model["observations"].append({"kind": "residency-transition-observed",
+        "previous_ready": previous, "ready": target,
+        "acquired": sorted(set(target) - set(previous)),
+        "released": sorted(set(previous) - set(target)),
+        "actual_transition_ns": actual_transition_ns, "budget_before_ns": before,
+        "budget_after_ns": model["budget_ns"], "budget_overrun_ns": max(0, actual_transition_ns - before),
+        "observation_digest": observation_digest, "generation": model["generation"],
+        "observation_authenticated": False})
+    return validate_model(model)
+
+
+def separability_diagnostic(raw):
+    """Recognize the old profile in which a full DP adds no planning opportunity.
+
+    This is an exact sufficient condition on the declared finite model, not an
+    empirical claim about compiler policies. False means this particular
+    reduction is unavailable; it does not prove a useful continuation benefit.
+    """
+    model = validate_model(raw)
+    available = [v for v in model["variants"] if v["status"] == "verified"]
+    all_ready = set(v["id"] for v in available) <= set(model["initial_ready"])
+    zero_holding = all(not any(v["holding_ns"]) for v in available)
+    fits = sum(v["resident_bytes"] for v in available) <= model["memory_budget_bytes"]
+    reducible = all_ready and zero_holding and fits
+    minimum = sum(min([value, *(v["latency_ns"][batch] for v in available)])
+                  for batch, value in enumerate(model["baseline"]["latency_ns"])) if reducible else None
+    return {"schema": "hepta.hia.ndu.separability-diagnostic.v1", "profile_sha256": digest(model),
+            "stepwise_minimum_is_finite_global_minimum": reducible,
+            "reason": ("all legal variants are already prepared; no holding or action-dependent future cost"
+                       if reducible else "preparation, residency or unavailable state prevents this sufficient reduction"),
+            "minimum_execution_ns": minimum,
+            "completion_fits_budget": minimum <= model["budget_ns"] if reducible else None,
+            "continuation_advantage_established": False,
+            "scope": "supplied finite deterministic model only", "authority": "DENY_ALL"}

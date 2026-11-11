@@ -1,0 +1,571 @@
+hia-asm.v1 hepta.hia.program.v8 paged_json_grammar
+fn grammar_step(state_g0:mutbuf,page_g0:mutbuf,loaded_g0:u64,event_g0:u32,head_g0:u32) -> (u32) effects(read,write,trap) entry(start)
+block start(state_g0:mutbuf,page_g0:mutbuf,loaded_g0:u64,event_g0:u32,head_g0:u32)
+  at0_g0:usize = const() {"value":0}
+  ph_g0:u64 = call(state_g0,at0_g0) {"function":"grammar_read_word"}
+  at1_g0:usize = const() {"value":8}
+  wa_g0:u64 = call(state_g0,at1_g0) {"function":"grammar_read_word"}
+  at2_g0:usize = const() {"value":16}
+  dn_g0:u64 = call(state_g0,at2_g0) {"function":"grammar_read_word"}
+  at3_g0:usize = const() {"value":24}
+  dp_g0:u64 = call(state_g0,at3_g0) {"function":"grammar_read_word"}
+  at4_g0:usize = const() {"value":32}
+  nn_g0:u64 = call(state_g0,at4_g0) {"function":"grammar_read_word"}
+  at5_g0:usize = const() {"value":40}
+  uid_g0:u64 = call(state_g0,at5_g0) {"function":"grammar_read_word"}
+  at6_g0:usize = const() {"value":48}
+  mn_g0:u64 = call(state_g0,at6_g0) {"function":"grammar_read_word"}
+  at7_g0:usize = const() {"value":56}
+  md_g0:u64 = call(state_g0,at7_g0) {"function":"grammar_read_word"}
+  at8_g0:usize = const() {"value":64}
+  rq_g0:u64 = call(state_g0,at8_g0) {"function":"grammar_read_word"}
+  at9_g0:usize = const() {"value":72}
+  key_g0:u64 = call(state_g0,at9_g0) {"function":"grammar_read_word"}
+  at10_g0:usize = const() {"value":80}
+  pn_g0:u64 = call(state_g0,at10_g0) {"function":"grammar_read_word"}
+  at11_g0:usize = const() {"value":88}
+  version_g0:u64 = call(state_g0,at11_g0) {"function":"grammar_read_word"}
+  one_g0:u64 = const() {"value":1}
+  valid_g0:bool = compare.eq(version_g0,one_g0)
+  branch valid_g0 phase0(state_g0,page_g0,loaded_g0,event_g0,head_g0,ph_g0,wa_g0,dn_g0,dp_g0,nn_g0,uid_g0,mn_g0,md_g0,rq_g0,key_g0,pn_g0) bad43()
+block phase0(d_g1:mutbuf,pg_g1:mutbuf,ld_g1:u64,ev_g1:u32,hd_g1:u32,ph_g1:u64,wa_g1:u64,dn_g1:u64,dp_g1:u64,nn_g1:u64,uid_g1:u64,mn_g1:u64,md_g1:u64,rq_g1:u64,key_g1:u64,pn_g1:u64)
+  value_g1:u64 = const() {"value":0}
+  matches_g1:bool = compare.eq(ph_g1,value_g1)
+  branch matches_g1 normal(d_g1,pg_g1,ld_g1,ev_g1,hd_g1,ph_g1,wa_g1,dn_g1,dp_g1,nn_g1,uid_g1,mn_g1,md_g1,rq_g1,key_g1,pn_g1) phase1(d_g1,pg_g1,ld_g1,ev_g1,hd_g1,ph_g1,wa_g1,dn_g1,dp_g1,nn_g1,uid_g1,mn_g1,md_g1,rq_g1,key_g1,pn_g1)
+block phase1(d_g2:mutbuf,pg_g2:mutbuf,ld_g2:u64,ev_g2:u32,hd_g2:u32,ph_g2:u64,wa_g2:u64,dn_g2:u64,dp_g2:u64,nn_g2:u64,uid_g2:u64,mn_g2:u64,md_g2:u64,rq_g2:u64,key_g2:u64,pn_g2:u64)
+  value_g2:u64 = const() {"value":1}
+  matches_g2:bool = compare.eq(ph_g2,value_g2)
+  branch matches_g2 push(d_g2,pg_g2,ld_g2,ev_g2,hd_g2,ph_g2,wa_g2,dn_g2,dp_g2,nn_g2,uid_g2,mn_g2,md_g2,rq_g2,key_g2,pn_g2) phase2(d_g2,pg_g2,ld_g2,ev_g2,hd_g2,ph_g2,wa_g2,dn_g2,dp_g2,nn_g2,uid_g2,mn_g2,md_g2,rq_g2,key_g2,pn_g2)
+block phase2(d_g3:mutbuf,pg_g3:mutbuf,ld_g3:u64,ev_g3:u32,hd_g3:u32,ph_g3:u64,wa_g3:u64,dn_g3:u64,dp_g3:u64,nn_g3:u64,uid_g3:u64,mn_g3:u64,md_g3:u64,rq_g3:u64,key_g3:u64,pn_g3:u64)
+  value_g3:u64 = const() {"value":2}
+  matches_g3:bool = compare.eq(ph_g3,value_g3)
+  branch matches_g3 push(d_g3,pg_g3,ld_g3,ev_g3,hd_g3,ph_g3,wa_g3,dn_g3,dp_g3,nn_g3,uid_g3,mn_g3,md_g3,rq_g3,key_g3,pn_g3) phase3(d_g3,pg_g3,ld_g3,ev_g3,hd_g3,ph_g3,wa_g3,dn_g3,dp_g3,nn_g3,uid_g3,mn_g3,md_g3,rq_g3,key_g3,pn_g3)
+block phase3(d_g4:mutbuf,pg_g4:mutbuf,ld_g4:u64,ev_g4:u32,hd_g4:u32,ph_g4:u64,wa_g4:u64,dn_g4:u64,dp_g4:u64,nn_g4:u64,uid_g4:u64,mn_g4:u64,md_g4:u64,rq_g4:u64,key_g4:u64,pn_g4:u64)
+  value_g4:u64 = const() {"value":3}
+  matches_g4:bool = compare.eq(ph_g4,value_g4)
+  branch matches_g4 await_value(d_g4,pg_g4,ld_g4,ev_g4,hd_g4,ph_g4,wa_g4,dn_g4,dp_g4,nn_g4,uid_g4,mn_g4,md_g4,rq_g4,key_g4,pn_g4) phase4(d_g4,pg_g4,ld_g4,ev_g4,hd_g4,ph_g4,wa_g4,dn_g4,dp_g4,nn_g4,uid_g4,mn_g4,md_g4,rq_g4,key_g4,pn_g4)
+block phase4(d_g5:mutbuf,pg_g5:mutbuf,ld_g5:u64,ev_g5:u32,hd_g5:u32,ph_g5:u64,wa_g5:u64,dn_g5:u64,dp_g5:u64,nn_g5:u64,uid_g5:u64,mn_g5:u64,md_g5:u64,rq_g5:u64,key_g5:u64,pn_g5:u64)
+  value_g5:u64 = const() {"value":4}
+  matches_g5:bool = compare.eq(ph_g5,value_g5)
+  branch matches_g5 await_key(d_g5,pg_g5,ld_g5,ev_g5,hd_g5,ph_g5,wa_g5,dn_g5,dp_g5,nn_g5,uid_g5,mn_g5,md_g5,rq_g5,key_g5,pn_g5) phase5(d_g5,pg_g5,ld_g5,ev_g5,hd_g5,ph_g5,wa_g5,dn_g5,dp_g5,nn_g5,uid_g5,mn_g5,md_g5,rq_g5,key_g5,pn_g5)
+block phase5(d_g6:mutbuf,pg_g6:mutbuf,ld_g6:u64,ev_g6:u32,hd_g6:u32,ph_g6:u64,wa_g6:u64,dn_g6:u64,dp_g6:u64,nn_g6:u64,uid_g6:u64,mn_g6:u64,md_g6:u64,rq_g6:u64,key_g6:u64,pn_g6:u64)
+  value_g6:u64 = const() {"value":5}
+  matches_g6:bool = compare.eq(ph_g6,value_g6)
+  branch matches_g6 complete(d_g6,pg_g6,ld_g6,ev_g6,hd_g6,ph_g6,wa_g6,dn_g6,dp_g6,nn_g6,uid_g6,mn_g6,md_g6,rq_g6,key_g6,pn_g6) phase6(d_g6,pg_g6,ld_g6,ev_g6,hd_g6,ph_g6,wa_g6,dn_g6,dp_g6,nn_g6,uid_g6,mn_g6,md_g6,rq_g6,key_g6,pn_g6)
+block phase6(d_g7:mutbuf,pg_g7:mutbuf,ld_g7:u64,ev_g7:u32,hd_g7:u32,ph_g7:u64,wa_g7:u64,dn_g7:u64,dp_g7:u64,nn_g7:u64,uid_g7:u64,mn_g7:u64,md_g7:u64,rq_g7:u64,key_g7:u64,pn_g7:u64)
+  value_g7:u64 = const() {"value":6}
+  matches_g7:bool = compare.eq(ph_g7,value_g7)
+  branch matches_g7 await_drop(d_g7,pg_g7,ld_g7,ev_g7,hd_g7,ph_g7,wa_g7,dn_g7,dp_g7,nn_g7,uid_g7,mn_g7,md_g7,rq_g7,key_g7,pn_g7) bad43()
+block normal(d_g8:mutbuf,pg_g8:mutbuf,ld_g8:u64,ev_g8:u32,hd_g8:u32,ph_g8:u64,wa_g8:u64,dn_g8:u64,dp_g8:u64,nn_g8:u64,uid_g8:u64,mn_g8:u64,md_g8:u64,rq_g8:u64,key_g8:u64,pn_g8:u64)
+  zero_g8:u32 = const() {"value":0}
+  valid_g8:bool = compare.eq(ev_g8,zero_g8)
+  branch valid_g8 normal_done(d_g8,pg_g8,ld_g8,ev_g8,hd_g8,ph_g8,wa_g8,dn_g8,dp_g8,nn_g8,uid_g8,mn_g8,md_g8,rq_g8,key_g8,pn_g8) bad43()
+block normal_done(d_g9:mutbuf,pg_g9:mutbuf,ld_g9:u64,ev_g9:u32,hd_g9:u32,ph_g9:u64,wa_g9:u64,dn_g9:u64,dp_g9:u64,nn_g9:u64,uid_g9:u64,mn_g9:u64,md_g9:u64,rq_g9:u64,key_g9:u64,pn_g9:u64)
+  zero_g9:u64 = const() {"value":0}
+  done_g9:bool = compare.ne(dn_g9,zero_g9)
+  branch done_g9 done(d_g9,pg_g9,ld_g9,ev_g9,hd_g9,ph_g9,wa_g9,dn_g9,dp_g9,nn_g9,uid_g9,mn_g9,md_g9,rq_g9,key_g9,pn_g9) normal_want(d_g9,pg_g9,ld_g9,ev_g9,hd_g9,ph_g9,wa_g9,dn_g9,dp_g9,nn_g9,uid_g9,mn_g9,md_g9,rq_g9,key_g9,pn_g9)
+block done(d_g10:mutbuf,pg_g10:mutbuf,ld_g10:u64,ev_g10:u32,hd_g10:u32,ph_g10:u64,wa_g10:u64,dn_g10:u64,dp_g10:u64,nn_g10:u64,uid_g10:u64,mn_g10:u64,md_g10:u64,rq_g10:u64,key_g10:u64,pn_g10:u64)
+  zero_g10:u32 = const() {"value":0}
+  eof_g10:bool = compare.eq(hd_g10,zero_g10)
+  branch eof_g10 finished(d_g10,pg_g10,ld_g10,ev_g10,hd_g10,ph_g10,wa_g10,dn_g10,dp_g10,nn_g10,uid_g10,mn_g10,md_g10,rq_g10,key_g10,pn_g10) bad33()
+block finished(d_g11:mutbuf,pg_g11:mutbuf,ld_g11:u64,ev_g11:u32,hd_g11:u32,ph_g11:u64,wa_g11:u64,dn_g11:u64,dp_g11:u64,nn_g11:u64,uid_g11:u64,mn_g11:u64,md_g11:u64,rq_g11:u64,key_g11:u64,pn_g11:u64)
+  action_g11:u32 = const() {"value":6}
+  jump returned(d_g11,pg_g11,ld_g11,ev_g11,hd_g11,ph_g11,wa_g11,dn_g11,dp_g11,nn_g11,uid_g11,mn_g11,md_g11,rq_g11,key_g11,pn_g11,action_g11)
+block normal_want(d_g12:mutbuf,pg_g12:mutbuf,ld_g12:u64,ev_g12:u32,hd_g12:u32,ph_g12:u64,wa_g12:u64,dn_g12:u64,dp_g12:u64,nn_g12:u64,uid_g12:u64,mn_g12:u64,md_g12:u64,rq_g12:u64,key_g12:u64,pn_g12:u64)
+  zero_g12:u64 = const() {"value":0}
+  want_g12:bool = compare.ne(wa_g12,zero_g12)
+  branch want_g12 want(d_g12,pg_g12,ld_g12,ev_g12,hd_g12,ph_g12,wa_g12,dn_g12,dp_g12,nn_g12,uid_g12,mn_g12,md_g12,rq_g12,key_g12,pn_g12) top(d_g12,pg_g12,ld_g12,ev_g12,hd_g12,ph_g12,wa_g12,dn_g12,dp_g12,nn_g12,uid_g12,mn_g12,md_g12,rq_g12,key_g12,pn_g12)
+block want(d_g13:mutbuf,pg_g13:mutbuf,ld_g13:u64,ev_g13:u32,hd_g13:u32,ph_g13:u64,wa_g13:u64,dn_g13:u64,dp_g13:u64,nn_g13:u64,uid_g13:u64,mn_g13:u64,md_g13:u64,rq_g13:u64,key_g13:u64,pn_g13:u64)
+  zero_g13:u32 = const() {"value":0}
+  eof_g13:bool = compare.eq(hd_g13,zero_g13)
+  branch eof_g13 bad32() count_node(d_g13,pg_g13,ld_g13,ev_g13,hd_g13,ph_g13,wa_g13,dn_g13,dp_g13,nn_g13,uid_g13,mn_g13,md_g13,rq_g13,key_g13,pn_g13)
+block count_node(d_g14:mutbuf,pg_g14:mutbuf,ld_g14:u64,ev_g14:u32,hd_g14:u32,ph_g14:u64,wa_g14:u64,dn_g14:u64,dp_g14:u64,nn_g14:u64,uid_g14:u64,mn_g14:u64,md_g14:u64,rq_g14:u64,key_g14:u64,pn_g14:u64)
+  one_g14:u64 = const() {"value":1}
+  nodes_g14:u64 = int.add.checked(nn_g14,one_g14)
+  over_nodes_g14:bool = compare.gt(nodes_g14,mn_g14)
+  over_depth_g14:bool = compare.gt(dp_g14,md_g14)
+  over_g14:bool = bool.or(over_nodes_g14,over_depth_g14)
+  branch over_g14 bad42() container(d_g14,pg_g14,ld_g14,ev_g14,hd_g14,ph_g14,wa_g14,dn_g14,dp_g14,nodes_g14,uid_g14,mn_g14,md_g14,rq_g14,key_g14,pn_g14)
+block container(d_g15:mutbuf,pg_g15:mutbuf,ld_g15:u64,ev_g15:u32,hd_g15:u32,ph_g15:u64,wa_g15:u64,dn_g15:u64,dp_g15:u64,nn_g15:u64,uid_g15:u64,mn_g15:u64,md_g15:u64,rq_g15:u64,key_g15:u64,pn_g15:u64)
+  array_g15:u32 = const() {"value":3}
+  is_array_g15:bool = compare.eq(hd_g15,array_g15)
+  one_g15:u64 = const() {"value":1}
+  branch is_array_g15 push(d_g15,pg_g15,ld_g15,ev_g15,hd_g15,one_g15,wa_g15,dn_g15,dp_g15,nn_g15,uid_g15,mn_g15,md_g15,rq_g15,key_g15,pn_g15) object(d_g15,pg_g15,ld_g15,ev_g15,hd_g15,ph_g15,wa_g15,dn_g15,dp_g15,nn_g15,uid_g15,mn_g15,md_g15,rq_g15,key_g15,pn_g15)
+block object(d_g16:mutbuf,pg_g16:mutbuf,ld_g16:u64,ev_g16:u32,hd_g16:u32,ph_g16:u64,wa_g16:u64,dn_g16:u64,dp_g16:u64,nn_g16:u64,uid_g16:u64,mn_g16:u64,md_g16:u64,rq_g16:u64,key_g16:u64,pn_g16:u64)
+  object_g16:u32 = const() {"value":5}
+  is_object_g16:bool = compare.eq(hd_g16,object_g16)
+  two_g16:u64 = const() {"value":2}
+  branch is_object_g16 push(d_g16,pg_g16,ld_g16,ev_g16,hd_g16,two_g16,wa_g16,dn_g16,dp_g16,nn_g16,uid_g16,mn_g16,md_g16,rq_g16,key_g16,pn_g16) primitive(d_g16,pg_g16,ld_g16,ev_g16,hd_g16,ph_g16,wa_g16,dn_g16,dp_g16,nn_g16,uid_g16,mn_g16,md_g16,rq_g16,key_g16,pn_g16)
+block primitive(d_g17:mutbuf,pg_g17:mutbuf,ld_g17:u64,ev_g17:u32,hd_g17:u32,ph_g17:u64,wa_g17:u64,dn_g17:u64,dp_g17:u64,nn_g17:u64,uid_g17:u64,mn_g17:u64,md_g17:u64,rq_g17:u64,key_g17:u64,pn_g17:u64)
+  phase_g17:u64 = const() {"value":3}
+  action_g17:u32 = const() {"value":2}
+  jump returned(d_g17,pg_g17,ld_g17,ev_g17,hd_g17,phase_g17,wa_g17,dn_g17,dp_g17,nn_g17,uid_g17,mn_g17,md_g17,rq_g17,key_g17,pn_g17,action_g17)
+block push(d_g18:mutbuf,pg_g18:mutbuf,ld_g18:u64,ev_g18:u32,hd_g18:u32,ph_g18:u64,wa_g18:u64,dn_g18:u64,dp_g18:u64,nn_g18:u64,uid_g18:u64,mn_g18:u64,md_g18:u64,rq_g18:u64,key_g18:u64,pn_g18:u64)
+  sixteen_g18:u64 = const() {"value":16}
+  page_g18:u64 = int.div.checked(dp_g18,sixteen_g18)
+  loaded_g18:bool = compare.eq(page_g18,ld_g18)
+  branch loaded_g18 push_frame(d_g18,pg_g18,ld_g18,ev_g18,hd_g18,ph_g18,wa_g18,dn_g18,dp_g18,nn_g18,uid_g18,mn_g18,md_g18,rq_g18,key_g18,pn_g18,page_g18) request(d_g18,pg_g18,ld_g18,ev_g18,hd_g18,ph_g18,wa_g18,dn_g18,dp_g18,nn_g18,uid_g18,mn_g18,md_g18,page_g18,key_g18,pn_g18)
+block push_frame(d_g19:mutbuf,pg_g19:mutbuf,ld_g19:u64,ev_g19:u32,hd_g19:u32,ph_g19:u64,wa_g19:u64,dn_g19:u64,dp_g19:u64,nn_g19:u64,uid_g19:u64,mn_g19:u64,md_g19:u64,rq_g19:u64,key_g19:u64,pn_g19:u64,page_g19:u64)
+  sixteen_g19:u64 = const() {"value":16}
+  within_g19:u64 = int.rem.checked(dp_g19,sixteen_g19)
+  relative_g19:u64 = int.mul.checked(within_g19,sixteen_g19)
+  off_g19:usize = int.cast(relative_g19) {"mode":"checked"}
+  one_g19:u64 = const() {"value":1}
+  two_g19:u64 = const() {"value":2}
+  five_g19:u64 = const() {"value":5}
+  zero_g19:u64 = const() {"value":0}
+  object_g19:bool = compare.eq(ph_g19,two_g19)
+  kind_g19:u64 = select(object_g19,five_g19,one_g19)
+  new_id_g19:u64 = int.add.checked(uid_g19,one_g19)
+  fid_g19:u64 = select(object_g19,new_id_g19,zero_g19)
+  next_id_g19:u64 = select(object_g19,new_id_g19,uid_g19)
+  _ = call(pg_g19,off_g19,kind_g19) {"function":"grammar_write_word"}
+  eight_g19:usize = const() {"value":8}
+  id_at_g19:usize = int.add.checked(off_g19,eight_g19)
+  _ = call(pg_g19,id_at_g19,fid_g19) {"function":"grammar_write_word"}
+  depth_g19:u64 = int.add.checked(dp_g19,one_g19)
+  action_g19:u32 = const() {"value":1}
+  jump returned(d_g19,pg_g19,ld_g19,ev_g19,hd_g19,zero_g19,zero_g19,dn_g19,depth_g19,nn_g19,next_id_g19,mn_g19,md_g19,rq_g19,key_g19,pn_g19,action_g19)
+block request(d_g20:mutbuf,pg_g20:mutbuf,ld_g20:u64,ev_g20:u32,hd_g20:u32,ph_g20:u64,wa_g20:u64,dn_g20:u64,dp_g20:u64,nn_g20:u64,uid_g20:u64,mn_g20:u64,md_g20:u64,rq_g20:u64,key_g20:u64,pn_g20:u64)
+  action_g20:u32 = const() {"value":5}
+  jump returned(d_g20,pg_g20,ld_g20,ev_g20,hd_g20,ph_g20,wa_g20,dn_g20,dp_g20,nn_g20,uid_g20,mn_g20,md_g20,rq_g20,key_g20,pn_g20,action_g20)
+block top(d_g21:mutbuf,pg_g21:mutbuf,ld_g21:u64,ev_g21:u32,hd_g21:u32,ph_g21:u64,wa_g21:u64,dn_g21:u64,dp_g21:u64,nn_g21:u64,uid_g21:u64,mn_g21:u64,md_g21:u64,rq_g21:u64,key_g21:u64,pn_g21:u64)
+  zero_g21:u64 = const() {"value":0}
+  exists_g21:bool = compare.gt(dp_g21,zero_g21)
+  branch exists_g21 top_page(d_g21,pg_g21,ld_g21,ev_g21,hd_g21,ph_g21,wa_g21,dn_g21,dp_g21,nn_g21,uid_g21,mn_g21,md_g21,rq_g21,key_g21,pn_g21) bad34()
+block top_page(d_g22:mutbuf,pg_g22:mutbuf,ld_g22:u64,ev_g22:u32,hd_g22:u32,ph_g22:u64,wa_g22:u64,dn_g22:u64,dp_g22:u64,nn_g22:u64,uid_g22:u64,mn_g22:u64,md_g22:u64,rq_g22:u64,key_g22:u64,pn_g22:u64)
+  one_g22:u64 = const() {"value":1}
+  index_g22:u64 = int.sub.checked(dp_g22,one_g22)
+  sixteen_g22:u64 = const() {"value":16}
+  page_g22:u64 = int.div.checked(index_g22,sixteen_g22)
+  loaded_g22:bool = compare.eq(page_g22,ld_g22)
+  branch loaded_g22 top_read(d_g22,pg_g22,ld_g22,ev_g22,hd_g22,ph_g22,wa_g22,dn_g22,dp_g22,nn_g22,uid_g22,mn_g22,md_g22,rq_g22,key_g22,pn_g22,index_g22) request(d_g22,pg_g22,ld_g22,ev_g22,hd_g22,ph_g22,wa_g22,dn_g22,dp_g22,nn_g22,uid_g22,mn_g22,md_g22,page_g22,key_g22,pn_g22)
+block top_read(d_g23:mutbuf,pg_g23:mutbuf,ld_g23:u64,ev_g23:u32,hd_g23:u32,ph_g23:u64,wa_g23:u64,dn_g23:u64,dp_g23:u64,nn_g23:u64,uid_g23:u64,mn_g23:u64,md_g23:u64,rq_g23:u64,key_g23:u64,pn_g23:u64,index_g23:u64)
+  sixteen_g23:u64 = const() {"value":16}
+  within_g23:u64 = int.rem.checked(index_g23,sixteen_g23)
+  relative_g23:u64 = int.mul.checked(within_g23,sixteen_g23)
+  off_g23:usize = int.cast(relative_g23) {"mode":"checked"}
+  kind_g23:u64 = call(pg_g23,off_g23) {"function":"grammar_read_word"}
+  eight_g23:usize = const() {"value":8}
+  id_at_g23:usize = int.add.checked(off_g23,eight_g23)
+  fid_g23:u64 = call(pg_g23,id_at_g23) {"function":"grammar_read_word"}
+  jump frame0(d_g23,pg_g23,ld_g23,ev_g23,hd_g23,ph_g23,wa_g23,dn_g23,dp_g23,nn_g23,uid_g23,mn_g23,md_g23,rq_g23,key_g23,pn_g23,off_g23,kind_g23,fid_g23)
+block frame0(d_g24:mutbuf,pg_g24:mutbuf,ld_g24:u64,ev_g24:u32,hd_g24:u32,ph_g24:u64,wa_g24:u64,dn_g24:u64,dp_g24:u64,nn_g24:u64,uid_g24:u64,mn_g24:u64,md_g24:u64,rq_g24:u64,key_g24:u64,pn_g24:u64,off_g24:usize,kind_g24:u64,fid_g24:u64)
+  value_g24:u64 = const() {"value":1}
+  match_g24:bool = compare.eq(kind_g24,value_g24)
+  branch match_g24 array_before(d_g24,pg_g24,ld_g24,ev_g24,hd_g24,ph_g24,wa_g24,dn_g24,dp_g24,nn_g24,uid_g24,mn_g24,md_g24,rq_g24,key_g24,pn_g24,off_g24,kind_g24,fid_g24) frame1(d_g24,pg_g24,ld_g24,ev_g24,hd_g24,ph_g24,wa_g24,dn_g24,dp_g24,nn_g24,uid_g24,mn_g24,md_g24,rq_g24,key_g24,pn_g24,off_g24,kind_g24,fid_g24)
+block frame1(d_g25:mutbuf,pg_g25:mutbuf,ld_g25:u64,ev_g25:u32,hd_g25:u32,ph_g25:u64,wa_g25:u64,dn_g25:u64,dp_g25:u64,nn_g25:u64,uid_g25:u64,mn_g25:u64,md_g25:u64,rq_g25:u64,key_g25:u64,pn_g25:u64,off_g25:usize,kind_g25:u64,fid_g25:u64)
+  value_g25:u64 = const() {"value":2}
+  match_g25:bool = compare.eq(kind_g25,value_g25)
+  branch match_g25 array_before(d_g25,pg_g25,ld_g25,ev_g25,hd_g25,ph_g25,wa_g25,dn_g25,dp_g25,nn_g25,uid_g25,mn_g25,md_g25,rq_g25,key_g25,pn_g25,off_g25,kind_g25,fid_g25) frame2(d_g25,pg_g25,ld_g25,ev_g25,hd_g25,ph_g25,wa_g25,dn_g25,dp_g25,nn_g25,uid_g25,mn_g25,md_g25,rq_g25,key_g25,pn_g25,off_g25,kind_g25,fid_g25)
+block frame2(d_g26:mutbuf,pg_g26:mutbuf,ld_g26:u64,ev_g26:u32,hd_g26:u32,ph_g26:u64,wa_g26:u64,dn_g26:u64,dp_g26:u64,nn_g26:u64,uid_g26:u64,mn_g26:u64,md_g26:u64,rq_g26:u64,key_g26:u64,pn_g26:u64,off_g26:usize,kind_g26:u64,fid_g26:u64)
+  value_g26:u64 = const() {"value":4}
+  match_g26:bool = compare.eq(kind_g26,value_g26)
+  branch match_g26 array_after(d_g26,pg_g26,ld_g26,ev_g26,hd_g26,ph_g26,wa_g26,dn_g26,dp_g26,nn_g26,uid_g26,mn_g26,md_g26,rq_g26,key_g26,pn_g26,off_g26,kind_g26,fid_g26) frame3(d_g26,pg_g26,ld_g26,ev_g26,hd_g26,ph_g26,wa_g26,dn_g26,dp_g26,nn_g26,uid_g26,mn_g26,md_g26,rq_g26,key_g26,pn_g26,off_g26,kind_g26,fid_g26)
+block frame3(d_g27:mutbuf,pg_g27:mutbuf,ld_g27:u64,ev_g27:u32,hd_g27:u32,ph_g27:u64,wa_g27:u64,dn_g27:u64,dp_g27:u64,nn_g27:u64,uid_g27:u64,mn_g27:u64,md_g27:u64,rq_g27:u64,key_g27:u64,pn_g27:u64,off_g27:usize,kind_g27:u64,fid_g27:u64)
+  value_g27:u64 = const() {"value":5}
+  match_g27:bool = compare.eq(kind_g27,value_g27)
+  branch match_g27 object_before(d_g27,pg_g27,ld_g27,ev_g27,hd_g27,ph_g27,wa_g27,dn_g27,dp_g27,nn_g27,uid_g27,mn_g27,md_g27,rq_g27,key_g27,pn_g27,off_g27,kind_g27,fid_g27) frame4(d_g27,pg_g27,ld_g27,ev_g27,hd_g27,ph_g27,wa_g27,dn_g27,dp_g27,nn_g27,uid_g27,mn_g27,md_g27,rq_g27,key_g27,pn_g27,off_g27,kind_g27,fid_g27)
+block frame4(d_g28:mutbuf,pg_g28:mutbuf,ld_g28:u64,ev_g28:u32,hd_g28:u32,ph_g28:u64,wa_g28:u64,dn_g28:u64,dp_g28:u64,nn_g28:u64,uid_g28:u64,mn_g28:u64,md_g28:u64,rq_g28:u64,key_g28:u64,pn_g28:u64,off_g28:usize,kind_g28:u64,fid_g28:u64)
+  value_g28:u64 = const() {"value":6}
+  match_g28:bool = compare.eq(kind_g28,value_g28)
+  branch match_g28 object_before(d_g28,pg_g28,ld_g28,ev_g28,hd_g28,ph_g28,wa_g28,dn_g28,dp_g28,nn_g28,uid_g28,mn_g28,md_g28,rq_g28,key_g28,pn_g28,off_g28,kind_g28,fid_g28) frame5(d_g28,pg_g28,ld_g28,ev_g28,hd_g28,ph_g28,wa_g28,dn_g28,dp_g28,nn_g28,uid_g28,mn_g28,md_g28,rq_g28,key_g28,pn_g28,off_g28,kind_g28,fid_g28)
+block frame5(d_g29:mutbuf,pg_g29:mutbuf,ld_g29:u64,ev_g29:u32,hd_g29:u32,ph_g29:u64,wa_g29:u64,dn_g29:u64,dp_g29:u64,nn_g29:u64,uid_g29:u64,mn_g29:u64,md_g29:u64,rq_g29:u64,key_g29:u64,pn_g29:u64,off_g29:usize,kind_g29:u64,fid_g29:u64)
+  value_g29:u64 = const() {"value":7}
+  match_g29:bool = compare.eq(kind_g29,value_g29)
+  branch match_g29 object_colon(d_g29,pg_g29,ld_g29,ev_g29,hd_g29,ph_g29,wa_g29,dn_g29,dp_g29,nn_g29,uid_g29,mn_g29,md_g29,rq_g29,key_g29,pn_g29,off_g29,kind_g29,fid_g29) frame6(d_g29,pg_g29,ld_g29,ev_g29,hd_g29,ph_g29,wa_g29,dn_g29,dp_g29,nn_g29,uid_g29,mn_g29,md_g29,rq_g29,key_g29,pn_g29,off_g29,kind_g29,fid_g29)
+block frame6(d_g30:mutbuf,pg_g30:mutbuf,ld_g30:u64,ev_g30:u32,hd_g30:u32,ph_g30:u64,wa_g30:u64,dn_g30:u64,dp_g30:u64,nn_g30:u64,uid_g30:u64,mn_g30:u64,md_g30:u64,rq_g30:u64,key_g30:u64,pn_g30:u64,off_g30:usize,kind_g30:u64,fid_g30:u64)
+  value_g30:u64 = const() {"value":8}
+  match_g30:bool = compare.eq(kind_g30,value_g30)
+  branch match_g30 object_value(d_g30,pg_g30,ld_g30,ev_g30,hd_g30,ph_g30,wa_g30,dn_g30,dp_g30,nn_g30,uid_g30,mn_g30,md_g30,rq_g30,key_g30,pn_g30,off_g30,kind_g30,fid_g30) frame7(d_g30,pg_g30,ld_g30,ev_g30,hd_g30,ph_g30,wa_g30,dn_g30,dp_g30,nn_g30,uid_g30,mn_g30,md_g30,rq_g30,key_g30,pn_g30,off_g30,kind_g30,fid_g30)
+block frame7(d_g31:mutbuf,pg_g31:mutbuf,ld_g31:u64,ev_g31:u32,hd_g31:u32,ph_g31:u64,wa_g31:u64,dn_g31:u64,dp_g31:u64,nn_g31:u64,uid_g31:u64,mn_g31:u64,md_g31:u64,rq_g31:u64,key_g31:u64,pn_g31:u64,off_g31:usize,kind_g31:u64,fid_g31:u64)
+  value_g31:u64 = const() {"value":10}
+  match_g31:bool = compare.eq(kind_g31,value_g31)
+  branch match_g31 object_after(d_g31,pg_g31,ld_g31,ev_g31,hd_g31,ph_g31,wa_g31,dn_g31,dp_g31,nn_g31,uid_g31,mn_g31,md_g31,rq_g31,key_g31,pn_g31,off_g31,kind_g31,fid_g31) frame8(d_g31,pg_g31,ld_g31,ev_g31,hd_g31,ph_g31,wa_g31,dn_g31,dp_g31,nn_g31,uid_g31,mn_g31,md_g31,rq_g31,key_g31,pn_g31,off_g31,kind_g31,fid_g31)
+block frame8(d_g32:mutbuf,pg_g32:mutbuf,ld_g32:u64,ev_g32:u32,hd_g32:u32,ph_g32:u64,wa_g32:u64,dn_g32:u64,dp_g32:u64,nn_g32:u64,uid_g32:u64,mn_g32:u64,md_g32:u64,rq_g32:u64,key_g32:u64,pn_g32:u64,off_g32:usize,kind_g32:u64,fid_g32:u64)
+  value_g32:u64 = const() {"value":3}
+  match_g32:bool = compare.eq(kind_g32,value_g32)
+  branch match_g32 array_invalid(d_g32,pg_g32,ld_g32,ev_g32,hd_g32,ph_g32,wa_g32,dn_g32,dp_g32,nn_g32,uid_g32,mn_g32,md_g32,rq_g32,key_g32,pn_g32,off_g32,kind_g32,fid_g32) frame9(d_g32,pg_g32,ld_g32,ev_g32,hd_g32,ph_g32,wa_g32,dn_g32,dp_g32,nn_g32,uid_g32,mn_g32,md_g32,rq_g32,key_g32,pn_g32,off_g32,kind_g32,fid_g32)
+block frame9(d_g33:mutbuf,pg_g33:mutbuf,ld_g33:u64,ev_g33:u32,hd_g33:u32,ph_g33:u64,wa_g33:u64,dn_g33:u64,dp_g33:u64,nn_g33:u64,uid_g33:u64,mn_g33:u64,md_g33:u64,rq_g33:u64,key_g33:u64,pn_g33:u64,off_g33:usize,kind_g33:u64,fid_g33:u64)
+  value_g33:u64 = const() {"value":9}
+  match_g33:bool = compare.eq(kind_g33,value_g33)
+  branch match_g33 object_invalid(d_g33,pg_g33,ld_g33,ev_g33,hd_g33,ph_g33,wa_g33,dn_g33,dp_g33,nn_g33,uid_g33,mn_g33,md_g33,rq_g33,key_g33,pn_g33,off_g33,kind_g33,fid_g33) bad43()
+block array_invalid(d_g34:mutbuf,pg_g34:mutbuf,ld_g34:u64,ev_g34:u32,hd_g34:u32,ph_g34:u64,wa_g34:u64,dn_g34:u64,dp_g34:u64,nn_g34:u64,uid_g34:u64,mn_g34:u64,md_g34:u64,rq_g34:u64,key_g34:u64,pn_g34:u64,off_g34:usize,kind_g34:u64,fid_g34:u64)
+  jump bad37()
+block object_invalid(d_g35:mutbuf,pg_g35:mutbuf,ld_g35:u64,ev_g35:u32,hd_g35:u32,ph_g35:u64,wa_g35:u64,dn_g35:u64,dp_g35:u64,nn_g35:u64,uid_g35:u64,mn_g35:u64,md_g35:u64,rq_g35:u64,key_g35:u64,pn_g35:u64,off_g35:usize,kind_g35:u64,fid_g35:u64)
+  jump bad41()
+block array_before(d_g36:mutbuf,pg_g36:mutbuf,ld_g36:u64,ev_g36:u32,hd_g36:u32,ph_g36:u64,wa_g36:u64,dn_g36:u64,dp_g36:u64,nn_g36:u64,uid_g36:u64,mn_g36:u64,md_g36:u64,rq_g36:u64,key_g36:u64,pn_g36:u64,off_g36:usize,kind_g36:u64,fid_g36:u64)
+  one_g36:u64 = const() {"value":1}
+  first_g36:bool = compare.eq(kind_g36,one_g36)
+  end_g36:u32 = const() {"value":4}
+  close_g36:bool = compare.eq(hd_g36,end_g36)
+  empty_g36:bool = bool.and(first_g36,close_g36)
+  branch empty_g36 pop_array(d_g36,pg_g36,ld_g36,ev_g36,hd_g36,ph_g36,wa_g36,dn_g36,dp_g36,nn_g36,uid_g36,mn_g36,md_g36,rq_g36,key_g36,pn_g36) array_wait(d_g36,pg_g36,ld_g36,ev_g36,hd_g36,ph_g36,wa_g36,dn_g36,dp_g36,nn_g36,uid_g36,mn_g36,md_g36,rq_g36,key_g36,pn_g36,off_g36,kind_g36,fid_g36)
+block array_wait(d_g37:mutbuf,pg_g37:mutbuf,ld_g37:u64,ev_g37:u32,hd_g37:u32,ph_g37:u64,wa_g37:u64,dn_g37:u64,dp_g37:u64,nn_g37:u64,uid_g37:u64,mn_g37:u64,md_g37:u64,rq_g37:u64,key_g37:u64,pn_g37:u64,off_g37:usize,kind_g37:u64,fid_g37:u64)
+  three_g37:u64 = const() {"value":3}
+  _ = call(pg_g37,off_g37,three_g37) {"function":"grammar_write_word"}
+  one_g37:u64 = const() {"value":1}
+  action_g37:u32 = const() {"value":0}
+  jump returned(d_g37,pg_g37,ld_g37,ev_g37,hd_g37,ph_g37,one_g37,dn_g37,dp_g37,nn_g37,uid_g37,mn_g37,md_g37,rq_g37,key_g37,pn_g37,action_g37)
+block array_after(d_g38:mutbuf,pg_g38:mutbuf,ld_g38:u64,ev_g38:u32,hd_g38:u32,ph_g38:u64,wa_g38:u64,dn_g38:u64,dp_g38:u64,nn_g38:u64,uid_g38:u64,mn_g38:u64,md_g38:u64,rq_g38:u64,key_g38:u64,pn_g38:u64,off_g38:usize,kind_g38:u64,fid_g38:u64)
+  comma_g38:u32 = const() {"value":8}
+  is_comma_g38:bool = compare.eq(hd_g38,comma_g38)
+  branch is_comma_g38 array_element(d_g38,pg_g38,ld_g38,ev_g38,hd_g38,ph_g38,wa_g38,dn_g38,dp_g38,nn_g38,uid_g38,mn_g38,md_g38,rq_g38,key_g38,pn_g38,off_g38,kind_g38,fid_g38) array_end(d_g38,pg_g38,ld_g38,ev_g38,hd_g38,ph_g38,wa_g38,dn_g38,dp_g38,nn_g38,uid_g38,mn_g38,md_g38,rq_g38,key_g38,pn_g38,off_g38,kind_g38,fid_g38)
+block array_element(d_g39:mutbuf,pg_g39:mutbuf,ld_g39:u64,ev_g39:u32,hd_g39:u32,ph_g39:u64,wa_g39:u64,dn_g39:u64,dp_g39:u64,nn_g39:u64,uid_g39:u64,mn_g39:u64,md_g39:u64,rq_g39:u64,key_g39:u64,pn_g39:u64,off_g39:usize,kind_g39:u64,fid_g39:u64)
+  two_g39:u64 = const() {"value":2}
+  _ = call(pg_g39,off_g39,two_g39) {"function":"grammar_write_word"}
+  action_g39:u32 = const() {"value":1}
+  jump returned(d_g39,pg_g39,ld_g39,ev_g39,hd_g39,ph_g39,wa_g39,dn_g39,dp_g39,nn_g39,uid_g39,mn_g39,md_g39,rq_g39,key_g39,pn_g39,action_g39)
+block array_end(d_g40:mutbuf,pg_g40:mutbuf,ld_g40:u64,ev_g40:u32,hd_g40:u32,ph_g40:u64,wa_g40:u64,dn_g40:u64,dp_g40:u64,nn_g40:u64,uid_g40:u64,mn_g40:u64,md_g40:u64,rq_g40:u64,key_g40:u64,pn_g40:u64,off_g40:usize,kind_g40:u64,fid_g40:u64)
+  end_g40:u32 = const() {"value":4}
+  close_g40:bool = compare.eq(hd_g40,end_g40)
+  branch close_g40 pop_array(d_g40,pg_g40,ld_g40,ev_g40,hd_g40,ph_g40,wa_g40,dn_g40,dp_g40,nn_g40,uid_g40,mn_g40,md_g40,rq_g40,key_g40,pn_g40) bad36()
+block pop_array(d_g41:mutbuf,pg_g41:mutbuf,ld_g41:u64,ev_g41:u32,hd_g41:u32,ph_g41:u64,wa_g41:u64,dn_g41:u64,dp_g41:u64,nn_g41:u64,uid_g41:u64,mn_g41:u64,md_g41:u64,rq_g41:u64,key_g41:u64,pn_g41:u64)
+  one_g41:u64 = const() {"value":1}
+  depth_g41:u64 = int.sub.checked(dp_g41,one_g41)
+  phase_g41:u64 = const() {"value":5}
+  jump complete(d_g41,pg_g41,ld_g41,ev_g41,hd_g41,phase_g41,wa_g41,dn_g41,depth_g41,nn_g41,uid_g41,mn_g41,md_g41,rq_g41,key_g41,one_g41)
+block object_before(d_g42:mutbuf,pg_g42:mutbuf,ld_g42:u64,ev_g42:u32,hd_g42:u32,ph_g42:u64,wa_g42:u64,dn_g42:u64,dp_g42:u64,nn_g42:u64,uid_g42:u64,mn_g42:u64,md_g42:u64,rq_g42:u64,key_g42:u64,pn_g42:u64,off_g42:usize,kind_g42:u64,fid_g42:u64)
+  five_g42:u64 = const() {"value":5}
+  first_g42:bool = compare.eq(kind_g42,five_g42)
+  end_g42:u32 = const() {"value":6}
+  close_g42:bool = compare.eq(hd_g42,end_g42)
+  empty_g42:bool = bool.and(first_g42,close_g42)
+  branch empty_g42 drop_keys(d_g42,pg_g42,ld_g42,ev_g42,hd_g42,ph_g42,wa_g42,dn_g42,dp_g42,nn_g42,uid_g42,mn_g42,md_g42,rq_g42,key_g42,pn_g42,off_g42,kind_g42,fid_g42) object_key(d_g42,pg_g42,ld_g42,ev_g42,hd_g42,ph_g42,wa_g42,dn_g42,dp_g42,nn_g42,uid_g42,mn_g42,md_g42,rq_g42,key_g42,pn_g42,off_g42,kind_g42,fid_g42)
+block object_key(d_g43:mutbuf,pg_g43:mutbuf,ld_g43:u64,ev_g43:u32,hd_g43:u32,ph_g43:u64,wa_g43:u64,dn_g43:u64,dp_g43:u64,nn_g43:u64,uid_g43:u64,mn_g43:u64,md_g43:u64,rq_g43:u64,key_g43:u64,pn_g43:u64,off_g43:usize,kind_g43:u64,fid_g43:u64)
+  quote_g43:u32 = const() {"value":2}
+  string_g43:bool = compare.eq(hd_g43,quote_g43)
+  branch string_g43 scan_key(d_g43,pg_g43,ld_g43,ev_g43,hd_g43,ph_g43,wa_g43,dn_g43,dp_g43,nn_g43,uid_g43,mn_g43,md_g43,rq_g43,key_g43,pn_g43,off_g43,kind_g43,fid_g43) bad38()
+block scan_key(d_g44:mutbuf,pg_g44:mutbuf,ld_g44:u64,ev_g44:u32,hd_g44:u32,ph_g44:u64,wa_g44:u64,dn_g44:u64,dp_g44:u64,nn_g44:u64,uid_g44:u64,mn_g44:u64,md_g44:u64,rq_g44:u64,key_g44:u64,pn_g44:u64,off_g44:usize,kind_g44:u64,fid_g44:u64)
+  phase_g44:u64 = const() {"value":4}
+  action_g44:u32 = const() {"value":3}
+  jump returned(d_g44,pg_g44,ld_g44,ev_g44,hd_g44,phase_g44,wa_g44,dn_g44,dp_g44,nn_g44,uid_g44,mn_g44,md_g44,rq_g44,fid_g44,pn_g44,action_g44)
+block object_colon(d_g45:mutbuf,pg_g45:mutbuf,ld_g45:u64,ev_g45:u32,hd_g45:u32,ph_g45:u64,wa_g45:u64,dn_g45:u64,dp_g45:u64,nn_g45:u64,uid_g45:u64,mn_g45:u64,md_g45:u64,rq_g45:u64,key_g45:u64,pn_g45:u64,off_g45:usize,kind_g45:u64,fid_g45:u64)
+  colon_g45:u32 = const() {"value":7}
+  match_g45:bool = compare.eq(hd_g45,colon_g45)
+  branch match_g45 colon_value(d_g45,pg_g45,ld_g45,ev_g45,hd_g45,ph_g45,wa_g45,dn_g45,dp_g45,nn_g45,uid_g45,mn_g45,md_g45,rq_g45,key_g45,pn_g45,off_g45,kind_g45,fid_g45) bad39()
+block colon_value(d_g46:mutbuf,pg_g46:mutbuf,ld_g46:u64,ev_g46:u32,hd_g46:u32,ph_g46:u64,wa_g46:u64,dn_g46:u64,dp_g46:u64,nn_g46:u64,uid_g46:u64,mn_g46:u64,md_g46:u64,rq_g46:u64,key_g46:u64,pn_g46:u64,off_g46:usize,kind_g46:u64,fid_g46:u64)
+  eight_g46:u64 = const() {"value":8}
+  _ = call(pg_g46,off_g46,eight_g46) {"function":"grammar_write_word"}
+  action_g46:u32 = const() {"value":1}
+  jump returned(d_g46,pg_g46,ld_g46,ev_g46,hd_g46,ph_g46,wa_g46,dn_g46,dp_g46,nn_g46,uid_g46,mn_g46,md_g46,rq_g46,key_g46,pn_g46,action_g46)
+block object_value(d_g47:mutbuf,pg_g47:mutbuf,ld_g47:u64,ev_g47:u32,hd_g47:u32,ph_g47:u64,wa_g47:u64,dn_g47:u64,dp_g47:u64,nn_g47:u64,uid_g47:u64,mn_g47:u64,md_g47:u64,rq_g47:u64,key_g47:u64,pn_g47:u64,off_g47:usize,kind_g47:u64,fid_g47:u64)
+  nine_g47:u64 = const() {"value":9}
+  _ = call(pg_g47,off_g47,nine_g47) {"function":"grammar_write_word"}
+  one_g47:u64 = const() {"value":1}
+  action_g47:u32 = const() {"value":0}
+  jump returned(d_g47,pg_g47,ld_g47,ev_g47,hd_g47,ph_g47,one_g47,dn_g47,dp_g47,nn_g47,uid_g47,mn_g47,md_g47,rq_g47,key_g47,pn_g47,action_g47)
+block object_after(d_g48:mutbuf,pg_g48:mutbuf,ld_g48:u64,ev_g48:u32,hd_g48:u32,ph_g48:u64,wa_g48:u64,dn_g48:u64,dp_g48:u64,nn_g48:u64,uid_g48:u64,mn_g48:u64,md_g48:u64,rq_g48:u64,key_g48:u64,pn_g48:u64,off_g48:usize,kind_g48:u64,fid_g48:u64)
+  comma_g48:u32 = const() {"value":8}
+  match_g48:bool = compare.eq(hd_g48,comma_g48)
+  branch match_g48 object_next_key(d_g48,pg_g48,ld_g48,ev_g48,hd_g48,ph_g48,wa_g48,dn_g48,dp_g48,nn_g48,uid_g48,mn_g48,md_g48,rq_g48,key_g48,pn_g48,off_g48,kind_g48,fid_g48) object_end(d_g48,pg_g48,ld_g48,ev_g48,hd_g48,ph_g48,wa_g48,dn_g48,dp_g48,nn_g48,uid_g48,mn_g48,md_g48,rq_g48,key_g48,pn_g48,off_g48,kind_g48,fid_g48)
+block object_next_key(d_g49:mutbuf,pg_g49:mutbuf,ld_g49:u64,ev_g49:u32,hd_g49:u32,ph_g49:u64,wa_g49:u64,dn_g49:u64,dp_g49:u64,nn_g49:u64,uid_g49:u64,mn_g49:u64,md_g49:u64,rq_g49:u64,key_g49:u64,pn_g49:u64,off_g49:usize,kind_g49:u64,fid_g49:u64)
+  six_g49:u64 = const() {"value":6}
+  _ = call(pg_g49,off_g49,six_g49) {"function":"grammar_write_word"}
+  action_g49:u32 = const() {"value":1}
+  jump returned(d_g49,pg_g49,ld_g49,ev_g49,hd_g49,ph_g49,wa_g49,dn_g49,dp_g49,nn_g49,uid_g49,mn_g49,md_g49,rq_g49,key_g49,pn_g49,action_g49)
+block object_end(d_g50:mutbuf,pg_g50:mutbuf,ld_g50:u64,ev_g50:u32,hd_g50:u32,ph_g50:u64,wa_g50:u64,dn_g50:u64,dp_g50:u64,nn_g50:u64,uid_g50:u64,mn_g50:u64,md_g50:u64,rq_g50:u64,key_g50:u64,pn_g50:u64,off_g50:usize,kind_g50:u64,fid_g50:u64)
+  end_g50:u32 = const() {"value":6}
+  close_g50:bool = compare.eq(hd_g50,end_g50)
+  branch close_g50 drop_keys(d_g50,pg_g50,ld_g50,ev_g50,hd_g50,ph_g50,wa_g50,dn_g50,dp_g50,nn_g50,uid_g50,mn_g50,md_g50,rq_g50,key_g50,pn_g50,off_g50,kind_g50,fid_g50) bad40()
+block drop_keys(d_g51:mutbuf,pg_g51:mutbuf,ld_g51:u64,ev_g51:u32,hd_g51:u32,ph_g51:u64,wa_g51:u64,dn_g51:u64,dp_g51:u64,nn_g51:u64,uid_g51:u64,mn_g51:u64,md_g51:u64,rq_g51:u64,key_g51:u64,pn_g51:u64,off_g51:usize,kind_g51:u64,fid_g51:u64)
+  phase_g51:u64 = const() {"value":6}
+  action_g51:u32 = const() {"value":4}
+  jump returned(d_g51,pg_g51,ld_g51,ev_g51,hd_g51,phase_g51,wa_g51,dn_g51,dp_g51,nn_g51,uid_g51,mn_g51,md_g51,rq_g51,fid_g51,pn_g51,action_g51)
+block await_drop(d_g52:mutbuf,pg_g52:mutbuf,ld_g52:u64,ev_g52:u32,hd_g52:u32,ph_g52:u64,wa_g52:u64,dn_g52:u64,dp_g52:u64,nn_g52:u64,uid_g52:u64,mn_g52:u64,md_g52:u64,rq_g52:u64,key_g52:u64,pn_g52:u64)
+  ack_g52:u32 = const() {"value":3}
+  match_g52:bool = compare.eq(ev_g52,ack_g52)
+  branch match_g52 pop_array(d_g52,pg_g52,ld_g52,ev_g52,hd_g52,ph_g52,wa_g52,dn_g52,dp_g52,nn_g52,uid_g52,mn_g52,md_g52,rq_g52,key_g52,pn_g52) bad43()
+block await_value(d_g53:mutbuf,pg_g53:mutbuf,ld_g53:u64,ev_g53:u32,hd_g53:u32,ph_g53:u64,wa_g53:u64,dn_g53:u64,dp_g53:u64,nn_g53:u64,uid_g53:u64,mn_g53:u64,md_g53:u64,rq_g53:u64,key_g53:u64,pn_g53:u64)
+  ack_g53:u32 = const() {"value":1}
+  match_g53:bool = compare.eq(ev_g53,ack_g53)
+  five_g53:u64 = const() {"value":5}
+  zero_g53:u64 = const() {"value":0}
+  branch match_g53 complete(d_g53,pg_g53,ld_g53,ev_g53,hd_g53,five_g53,wa_g53,dn_g53,dp_g53,nn_g53,uid_g53,mn_g53,md_g53,rq_g53,key_g53,zero_g53) bad43()
+block await_key(d_g54:mutbuf,pg_g54:mutbuf,ld_g54:u64,ev_g54:u32,hd_g54:u32,ph_g54:u64,wa_g54:u64,dn_g54:u64,dp_g54:u64,nn_g54:u64,uid_g54:u64,mn_g54:u64,md_g54:u64,rq_g54:u64,key_g54:u64,pn_g54:u64)
+  ack_g54:u32 = const() {"value":2}
+  match_g54:bool = compare.eq(ev_g54,ack_g54)
+  branch match_g54 key_page(d_g54,pg_g54,ld_g54,ev_g54,hd_g54,ph_g54,wa_g54,dn_g54,dp_g54,nn_g54,uid_g54,mn_g54,md_g54,rq_g54,key_g54,pn_g54) bad43()
+block key_page(d_g55:mutbuf,pg_g55:mutbuf,ld_g55:u64,ev_g55:u32,hd_g55:u32,ph_g55:u64,wa_g55:u64,dn_g55:u64,dp_g55:u64,nn_g55:u64,uid_g55:u64,mn_g55:u64,md_g55:u64,rq_g55:u64,key_g55:u64,pn_g55:u64)
+  one_g55:u64 = const() {"value":1}
+  index_g55:u64 = int.sub.checked(dp_g55,one_g55)
+  sixteen_g55:u64 = const() {"value":16}
+  page_g55:u64 = int.div.checked(index_g55,sixteen_g55)
+  loaded_g55:bool = compare.eq(page_g55,ld_g55)
+  branch loaded_g55 key_write(d_g55,pg_g55,ld_g55,ev_g55,hd_g55,ph_g55,wa_g55,dn_g55,dp_g55,nn_g55,uid_g55,mn_g55,md_g55,rq_g55,key_g55,pn_g55,index_g55) request(d_g55,pg_g55,ld_g55,ev_g55,hd_g55,ph_g55,wa_g55,dn_g55,dp_g55,nn_g55,uid_g55,mn_g55,md_g55,page_g55,key_g55,pn_g55)
+block key_write(d_g56:mutbuf,pg_g56:mutbuf,ld_g56:u64,ev_g56:u32,hd_g56:u32,ph_g56:u64,wa_g56:u64,dn_g56:u64,dp_g56:u64,nn_g56:u64,uid_g56:u64,mn_g56:u64,md_g56:u64,rq_g56:u64,key_g56:u64,pn_g56:u64,index_g56:u64)
+  sixteen_g56:u64 = const() {"value":16}
+  within_g56:u64 = int.rem.checked(index_g56,sixteen_g56)
+  relative_g56:u64 = int.mul.checked(within_g56,sixteen_g56)
+  off_g56:usize = int.cast(relative_g56) {"mode":"checked"}
+  seven_g56:u64 = const() {"value":7}
+  _ = call(pg_g56,off_g56,seven_g56) {"function":"grammar_write_word"}
+  zero_g56:u64 = const() {"value":0}
+  action_g56:u32 = const() {"value":0}
+  jump returned(d_g56,pg_g56,ld_g56,ev_g56,hd_g56,zero_g56,wa_g56,dn_g56,dp_g56,nn_g56,uid_g56,mn_g56,md_g56,rq_g56,key_g56,pn_g56,action_g56)
+block complete(d_g57:mutbuf,pg_g57:mutbuf,ld_g57:u64,ev_g57:u32,hd_g57:u32,ph_g57:u64,wa_g57:u64,dn_g57:u64,dp_g57:u64,nn_g57:u64,uid_g57:u64,mn_g57:u64,md_g57:u64,rq_g57:u64,key_g57:u64,pn_g57:u64)
+  zero_g57:u64 = const() {"value":0}
+  root_g57:bool = compare.eq(dp_g57,zero_g57)
+  branch root_g57 root_complete(d_g57,pg_g57,ld_g57,ev_g57,hd_g57,ph_g57,wa_g57,dn_g57,dp_g57,nn_g57,uid_g57,mn_g57,md_g57,rq_g57,key_g57,pn_g57) complete_page(d_g57,pg_g57,ld_g57,ev_g57,hd_g57,ph_g57,wa_g57,dn_g57,dp_g57,nn_g57,uid_g57,mn_g57,md_g57,rq_g57,key_g57,pn_g57)
+block root_complete(d_g58:mutbuf,pg_g58:mutbuf,ld_g58:u64,ev_g58:u32,hd_g58:u32,ph_g58:u64,wa_g58:u64,dn_g58:u64,dp_g58:u64,nn_g58:u64,uid_g58:u64,mn_g58:u64,md_g58:u64,rq_g58:u64,key_g58:u64,pn_g58:u64)
+  one_g58:u64 = const() {"value":1}
+  zero_g58:u64 = const() {"value":0}
+  jump completed(d_g58,pg_g58,ld_g58,ev_g58,hd_g58,zero_g58,zero_g58,one_g58,dp_g58,nn_g58,uid_g58,mn_g58,md_g58,rq_g58,key_g58,pn_g58)
+block complete_page(d_g59:mutbuf,pg_g59:mutbuf,ld_g59:u64,ev_g59:u32,hd_g59:u32,ph_g59:u64,wa_g59:u64,dn_g59:u64,dp_g59:u64,nn_g59:u64,uid_g59:u64,mn_g59:u64,md_g59:u64,rq_g59:u64,key_g59:u64,pn_g59:u64)
+  one_g59:u64 = const() {"value":1}
+  index_g59:u64 = int.sub.checked(dp_g59,one_g59)
+  sixteen_g59:u64 = const() {"value":16}
+  page_g59:u64 = int.div.checked(index_g59,sixteen_g59)
+  loaded_g59:bool = compare.eq(page_g59,ld_g59)
+  branch loaded_g59 complete_read(d_g59,pg_g59,ld_g59,ev_g59,hd_g59,ph_g59,wa_g59,dn_g59,dp_g59,nn_g59,uid_g59,mn_g59,md_g59,rq_g59,key_g59,pn_g59,index_g59) request(d_g59,pg_g59,ld_g59,ev_g59,hd_g59,ph_g59,wa_g59,dn_g59,dp_g59,nn_g59,uid_g59,mn_g59,md_g59,page_g59,key_g59,pn_g59)
+block complete_read(d_g60:mutbuf,pg_g60:mutbuf,ld_g60:u64,ev_g60:u32,hd_g60:u32,ph_g60:u64,wa_g60:u64,dn_g60:u64,dp_g60:u64,nn_g60:u64,uid_g60:u64,mn_g60:u64,md_g60:u64,rq_g60:u64,key_g60:u64,pn_g60:u64,index_g60:u64)
+  sixteen_g60:u64 = const() {"value":16}
+  within_g60:u64 = int.rem.checked(index_g60,sixteen_g60)
+  relative_g60:u64 = int.mul.checked(within_g60,sixteen_g60)
+  off_g60:usize = int.cast(relative_g60) {"mode":"checked"}
+  kind_g60:u64 = call(pg_g60,off_g60) {"function":"grammar_read_word"}
+  three_g60:u64 = const() {"value":3}
+  array_g60:bool = compare.eq(kind_g60,three_g60)
+  branch array_g60 complete_array(d_g60,pg_g60,ld_g60,ev_g60,hd_g60,ph_g60,wa_g60,dn_g60,dp_g60,nn_g60,uid_g60,mn_g60,md_g60,rq_g60,key_g60,pn_g60,off_g60) complete_object(d_g60,pg_g60,ld_g60,ev_g60,hd_g60,ph_g60,wa_g60,dn_g60,dp_g60,nn_g60,uid_g60,mn_g60,md_g60,rq_g60,key_g60,pn_g60,off_g60,kind_g60)
+block complete_array(d_g61:mutbuf,pg_g61:mutbuf,ld_g61:u64,ev_g61:u32,hd_g61:u32,ph_g61:u64,wa_g61:u64,dn_g61:u64,dp_g61:u64,nn_g61:u64,uid_g61:u64,mn_g61:u64,md_g61:u64,rq_g61:u64,key_g61:u64,pn_g61:u64,off_g61:usize)
+  four_g61:u64 = const() {"value":4}
+  _ = call(pg_g61,off_g61,four_g61) {"function":"grammar_write_word"}
+  zero_g61:u64 = const() {"value":0}
+  jump completed(d_g61,pg_g61,ld_g61,ev_g61,hd_g61,zero_g61,zero_g61,dn_g61,dp_g61,nn_g61,uid_g61,mn_g61,md_g61,rq_g61,key_g61,pn_g61)
+block complete_object(d_g62:mutbuf,pg_g62:mutbuf,ld_g62:u64,ev_g62:u32,hd_g62:u32,ph_g62:u64,wa_g62:u64,dn_g62:u64,dp_g62:u64,nn_g62:u64,uid_g62:u64,mn_g62:u64,md_g62:u64,rq_g62:u64,key_g62:u64,pn_g62:u64,off_g62:usize,kind_g62:u64)
+  nine_g62:u64 = const() {"value":9}
+  object_g62:bool = compare.eq(kind_g62,nine_g62)
+  branch object_g62 complete_object_write(d_g62,pg_g62,ld_g62,ev_g62,hd_g62,ph_g62,wa_g62,dn_g62,dp_g62,nn_g62,uid_g62,mn_g62,md_g62,rq_g62,key_g62,pn_g62,off_g62) bad35()
+block complete_object_write(d_g63:mutbuf,pg_g63:mutbuf,ld_g63:u64,ev_g63:u32,hd_g63:u32,ph_g63:u64,wa_g63:u64,dn_g63:u64,dp_g63:u64,nn_g63:u64,uid_g63:u64,mn_g63:u64,md_g63:u64,rq_g63:u64,key_g63:u64,pn_g63:u64,off_g63:usize)
+  ten_g63:u64 = const() {"value":10}
+  _ = call(pg_g63,off_g63,ten_g63) {"function":"grammar_write_word"}
+  zero_g63:u64 = const() {"value":0}
+  jump completed(d_g63,pg_g63,ld_g63,ev_g63,hd_g63,zero_g63,zero_g63,dn_g63,dp_g63,nn_g63,uid_g63,mn_g63,md_g63,rq_g63,key_g63,pn_g63)
+block completed(d_g64:mutbuf,pg_g64:mutbuf,ld_g64:u64,ev_g64:u32,hd_g64:u32,ph_g64:u64,wa_g64:u64,dn_g64:u64,dp_g64:u64,nn_g64:u64,uid_g64:u64,mn_g64:u64,md_g64:u64,rq_g64:u64,key_g64:u64,pn_g64:u64)
+  zero_g64:u64 = const() {"value":0}
+  consume_g64:bool = compare.ne(pn_g64,zero_g64)
+  one_g64:u32 = const() {"value":1}
+  none_g64:u32 = const() {"value":0}
+  action_g64:u32 = select(consume_g64,one_g64,none_g64)
+  jump returned(d_g64,pg_g64,ld_g64,ev_g64,hd_g64,ph_g64,wa_g64,dn_g64,dp_g64,nn_g64,uid_g64,mn_g64,md_g64,rq_g64,key_g64,pn_g64,action_g64)
+block returned(d_g65:mutbuf,pg_g65:mutbuf,ld_g65:u64,ev_g65:u32,hd_g65:u32,ph_g65:u64,wa_g65:u64,dn_g65:u64,dp_g65:u64,nn_g65:u64,uid_g65:u64,mn_g65:u64,md_g65:u64,rq_g65:u64,key_g65:u64,pn_g65:u64,action_g65:u32)
+  _ = call(d_g65,ph_g65,wa_g65,dn_g65,dp_g65,nn_g65,uid_g65,mn_g65,md_g65,rq_g65,key_g65,pn_g65) {"function":"grammar_save"}
+  ret(action_g65)
+block bad32()
+  status_g66:u32 = const() {"value":32}
+  ret(status_g66)
+block bad33()
+  status_g67:u32 = const() {"value":33}
+  ret(status_g67)
+block bad34()
+  status_g68:u32 = const() {"value":34}
+  ret(status_g68)
+block bad35()
+  status_g69:u32 = const() {"value":35}
+  ret(status_g69)
+block bad36()
+  status_g70:u32 = const() {"value":36}
+  ret(status_g70)
+block bad37()
+  status_g71:u32 = const() {"value":37}
+  ret(status_g71)
+block bad38()
+  status_g72:u32 = const() {"value":38}
+  ret(status_g72)
+block bad39()
+  status_g73:u32 = const() {"value":39}
+  ret(status_g73)
+block bad40()
+  status_g74:u32 = const() {"value":40}
+  ret(status_g74)
+block bad41()
+  status_g75:u32 = const() {"value":41}
+  ret(status_g75)
+block bad42()
+  status_g76:u32 = const() {"value":42}
+  ret(status_g76)
+block bad43()
+  status_g77:u32 = const() {"value":43}
+  ret(status_g77)
+end
+fn grammar_init(state_g78:mutbuf,nlow_g78:u64,nbits_g78:u64,dlow_g78:u64,dbits_g78:u64) -> (u32) effects(write,trap) entry(start)
+block start(state_g78:mutbuf,nlow_g78:u64,nbits_g78:u64,dlow_g78:u64,dbits_g78:u64)
+  bits_g78:u64 = const() {"value":64}
+  maximum_g78:u64 = const() {"value":18446744073709551615}
+  big_nodes_g78:bool = compare.gt(nbits_g78,bits_g78)
+  big_depth_g78:bool = compare.gt(dbits_g78,bits_g78)
+  nodes_g78:u64 = select(big_nodes_g78,maximum_g78,nlow_g78)
+  depth_g78:u64 = select(big_depth_g78,maximum_g78,dlow_g78)
+  zero_g78:u64 = const() {"value":0}
+  one_g78:u64 = const() {"value":1}
+  _ = call(state_g78,zero_g78,one_g78,zero_g78,zero_g78,zero_g78,zero_g78,nodes_g78,depth_g78,zero_g78,zero_g78,zero_g78) {"function":"grammar_save"}
+  version_at_g78:usize = const() {"value":88}
+  _ = call(state_g78,version_at_g78,one_g78) {"function":"grammar_write_word"}
+  ok_g78:u32 = const() {"value":0}
+  ret(ok_g78)
+end
+fn grammar_save(state_g79:mutbuf,ph_g79:u64,wa_g79:u64,dn_g79:u64,dp_g79:u64,nn_g79:u64,uid_g79:u64,mn_g79:u64,md_g79:u64,rq_g79:u64,key_g79:u64,pn_g79:u64) -> () effects(write,trap) entry(start)
+block start(state_g79:mutbuf,ph_g79:u64,wa_g79:u64,dn_g79:u64,dp_g79:u64,nn_g79:u64,uid_g79:u64,mn_g79:u64,md_g79:u64,rq_g79:u64,key_g79:u64,pn_g79:u64)
+  at0_g79:usize = const() {"value":0}
+  _ = call(state_g79,at0_g79,ph_g79) {"function":"grammar_write_word"}
+  at1_g79:usize = const() {"value":8}
+  _ = call(state_g79,at1_g79,wa_g79) {"function":"grammar_write_word"}
+  at2_g79:usize = const() {"value":16}
+  _ = call(state_g79,at2_g79,dn_g79) {"function":"grammar_write_word"}
+  at3_g79:usize = const() {"value":24}
+  _ = call(state_g79,at3_g79,dp_g79) {"function":"grammar_write_word"}
+  at4_g79:usize = const() {"value":32}
+  _ = call(state_g79,at4_g79,nn_g79) {"function":"grammar_write_word"}
+  at5_g79:usize = const() {"value":40}
+  _ = call(state_g79,at5_g79,uid_g79) {"function":"grammar_write_word"}
+  at6_g79:usize = const() {"value":48}
+  _ = call(state_g79,at6_g79,mn_g79) {"function":"grammar_write_word"}
+  at7_g79:usize = const() {"value":56}
+  _ = call(state_g79,at7_g79,md_g79) {"function":"grammar_write_word"}
+  at8_g79:usize = const() {"value":64}
+  _ = call(state_g79,at8_g79,rq_g79) {"function":"grammar_write_word"}
+  at9_g79:usize = const() {"value":72}
+  _ = call(state_g79,at9_g79,key_g79) {"function":"grammar_write_word"}
+  at10_g79:usize = const() {"value":80}
+  _ = call(state_g79,at10_g79,pn_g79) {"function":"grammar_write_word"}
+  ret()
+end
+fn grammar_head(source_g80:readbuf) -> (u32) effects(read,trap) entry(start)
+block start(source_g80:readbuf)
+  n_g80:usize = buffer.len(source_g80)
+  zero_g80:usize = const() {"value":0}
+  empty_g80:bool = compare.eq(n_g80,zero_g80)
+  branch empty_g80 eof() read(source_g80,zero_g80)
+block eof()
+  result_g81:u32 = const() {"value":0}
+  ret(result_g81)
+block read(source_g82:readbuf,at_g82:usize)
+  ch_g82:u8 = buffer.load(source_g82,at_g82)
+  jump byte0(ch_g82)
+block byte0(ch_g83:u8)
+  byte_g83:u8 = const() {"value":34}
+  match_g83:bool = compare.eq(ch_g83,byte_g83)
+  branch match_g83 kind2() byte1(ch_g83)
+block kind2()
+  result_g84:u32 = const() {"value":2}
+  ret(result_g84)
+block byte1(ch_g85:u8)
+  byte_g85:u8 = const() {"value":91}
+  match_g85:bool = compare.eq(ch_g85,byte_g85)
+  branch match_g85 kind3() byte2(ch_g85)
+block kind3()
+  result_g86:u32 = const() {"value":3}
+  ret(result_g86)
+block byte2(ch_g87:u8)
+  byte_g87:u8 = const() {"value":93}
+  match_g87:bool = compare.eq(ch_g87,byte_g87)
+  branch match_g87 kind4() byte3(ch_g87)
+block kind4()
+  result_g88:u32 = const() {"value":4}
+  ret(result_g88)
+block byte3(ch_g89:u8)
+  byte_g89:u8 = const() {"value":123}
+  match_g89:bool = compare.eq(ch_g89,byte_g89)
+  branch match_g89 kind5() byte4(ch_g89)
+block kind5()
+  result_g90:u32 = const() {"value":5}
+  ret(result_g90)
+block byte4(ch_g91:u8)
+  byte_g91:u8 = const() {"value":125}
+  match_g91:bool = compare.eq(ch_g91,byte_g91)
+  branch match_g91 kind6() byte5(ch_g91)
+block kind6()
+  result_g92:u32 = const() {"value":6}
+  ret(result_g92)
+block byte5(ch_g93:u8)
+  byte_g93:u8 = const() {"value":58}
+  match_g93:bool = compare.eq(ch_g93,byte_g93)
+  branch match_g93 kind7() byte6(ch_g93)
+block kind7()
+  result_g94:u32 = const() {"value":7}
+  ret(result_g94)
+block byte6(ch_g95:u8)
+  byte_g95:u8 = const() {"value":44}
+  match_g95:bool = compare.eq(ch_g95,byte_g95)
+  branch match_g95 kind8() other()
+block kind8()
+  result_g96:u32 = const() {"value":8}
+  ret(result_g96)
+block other()
+  result_g97:u32 = const() {"value":9}
+  ret(result_g97)
+end
+fn grammar_read_word(data_q67:mutbuf,base_q67:usize) -> (u64) effects(read,trap) entry(start)
+block start(data_q67:mutbuf,base_q67:usize)
+  z_q67:usize = const() {"value":0}
+  a_q67:u64 = const() {"value":0}
+  jump loop(data_q67,base_q67,z_q67,a_q67)
+block loop(data_q68:mutbuf,base_q68:usize,j_q68:usize,a_q68:u64)
+  eight_q68:usize = const() {"value":8}
+  more_q68:bool = compare.lt(j_q68,eight_q68)
+  branch more_q68 body(data_q68,base_q68,j_q68,a_q68) done(a_q68)
+block body(data_q69:mutbuf,base_q69:usize,j_q69:usize,a_q69:u64)
+  at_q69:usize = int.add.checked(base_q69,j_q69)
+  ch_q69:u8 = buffer.load(data_q69,at_q69)
+  value_q69:u64 = int.cast(ch_q69) {"mode":"wrap"}
+  index_q69:u64 = int.cast(j_q69) {"mode":"wrap"}
+  eight_q69:u64 = const() {"value":8}
+  bits_q69:u64 = int.mul.checked(index_q69,eight_q69)
+  part_q69:u64 = int.shl.checked(value_q69,bits_q69)
+  acc_q69:u64 = bit.or(a_q69,part_q69)
+  one_q69:usize = const() {"value":1}
+  next_q69:usize = int.add.checked(j_q69,one_q69)
+  jump loop(data_q69,base_q69,next_q69,acc_q69)
+block done(value_q70:u64)
+  ret(value_q70)
+end
+fn grammar_write_word(data_q71:mutbuf,base_q71:usize,value_q71:u64) -> () effects(write,trap) entry(start)
+block start(data_q71:mutbuf,base_q71:usize,value_q71:u64)
+  index0_q71:usize = const() {"value":0}
+  at0_q71:usize = int.add.checked(base_q71,index0_q71)
+  byte0_q71:u8 = int.cast(value_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at0_q71,byte0_q71)
+  index1_q71:usize = const() {"value":1}
+  at1_q71:usize = int.add.checked(base_q71,index1_q71)
+  shift1_q71:u64 = const() {"value":8}
+  part1_q71:u64 = int.shr.checked(value_q71,shift1_q71)
+  byte1_q71:u8 = int.cast(part1_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at1_q71,byte1_q71)
+  index2_q71:usize = const() {"value":2}
+  at2_q71:usize = int.add.checked(base_q71,index2_q71)
+  shift2_q71:u64 = const() {"value":16}
+  part2_q71:u64 = int.shr.checked(value_q71,shift2_q71)
+  byte2_q71:u8 = int.cast(part2_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at2_q71,byte2_q71)
+  index3_q71:usize = const() {"value":3}
+  at3_q71:usize = int.add.checked(base_q71,index3_q71)
+  shift3_q71:u64 = const() {"value":24}
+  part3_q71:u64 = int.shr.checked(value_q71,shift3_q71)
+  byte3_q71:u8 = int.cast(part3_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at3_q71,byte3_q71)
+  index4_q71:usize = const() {"value":4}
+  at4_q71:usize = int.add.checked(base_q71,index4_q71)
+  shift4_q71:u64 = const() {"value":32}
+  part4_q71:u64 = int.shr.checked(value_q71,shift4_q71)
+  byte4_q71:u8 = int.cast(part4_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at4_q71,byte4_q71)
+  index5_q71:usize = const() {"value":5}
+  at5_q71:usize = int.add.checked(base_q71,index5_q71)
+  shift5_q71:u64 = const() {"value":40}
+  part5_q71:u64 = int.shr.checked(value_q71,shift5_q71)
+  byte5_q71:u8 = int.cast(part5_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at5_q71,byte5_q71)
+  index6_q71:usize = const() {"value":6}
+  at6_q71:usize = int.add.checked(base_q71,index6_q71)
+  shift6_q71:u64 = const() {"value":48}
+  part6_q71:u64 = int.shr.checked(value_q71,shift6_q71)
+  byte6_q71:u8 = int.cast(part6_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at6_q71,byte6_q71)
+  index7_q71:usize = const() {"value":7}
+  at7_q71:usize = int.add.checked(base_q71,index7_q71)
+  shift7_q71:u64 = const() {"value":56}
+  part7_q71:u64 = int.shr.checked(value_q71,shift7_q71)
+  byte7_q71:u8 = int.cast(part7_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at7_q71,byte7_q71)
+  ret()
+end

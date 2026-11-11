@@ -1,0 +1,1399 @@
+hia-asm.v1 hepta.hia.program.v8 paged_scope_key_table
+fn table_step(st_tb0:mutbuf,pg_tb0:mutbuf,kp_tb0:readbuf,loaded_tb0:u64,keyloaded_tb0:u64,event_tb0:u32) -> (u32) effects(read,write,trap) entry(start)
+block start(st_tb0:mutbuf,pg_tb0:mutbuf,kp_tb0:readbuf,loaded_tb0:u64,keyloaded_tb0:u64,event_tb0:u32)
+  n_tb0:usize = buffer.len(st_tb0)
+  p_tb0:usize = buffer.len(pg_tb0)
+  k_tb0:usize = buffer.len(kp_tb0)
+  size_tb0:usize = const() {"value":256}
+  sok_tb0:bool = compare.eq(n_tb0,size_tb0)
+  pok_tb0:bool = compare.eq(p_tb0,size_tb0)
+  kok_tb0:bool = compare.eq(k_tb0,size_tb0)
+  a_tb0:bool = bool.and(sok_tb0,pok_tb0)
+  ok_tb0:bool = bool.and(a_tb0,kok_tb0)
+  branch ok_tb0 version_check(st_tb0,pg_tb0,kp_tb0,loaded_tb0,keyloaded_tb0,event_tb0) reject(st_tb0,pg_tb0,kp_tb0,loaded_tb0,keyloaded_tb0,event_tb0)
+block version_check(st_tb1:mutbuf,pg_tb1:mutbuf,kp_tb1:readbuf,loaded_tb1:u64,keyloaded_tb1:u64,event_tb1:u32)
+  at_version_tb1:usize = const() {"value":0}
+  version_tb1:u64 = call(st_tb1,at_version_tb1) {"function":"table_read_word"}
+  at_stage_tb1:usize = const() {"value":8}
+  stage_tb1:u64 = call(st_tb1,at_stage_tb1) {"function":"table_read_word"}
+  one_tb1:u64 = const() {"value":1}
+  valid_tb1:bool = compare.eq(version_tb1,one_tb1)
+  branch valid_tb1 stage_release_check(st_tb1,pg_tb1,kp_tb1,loaded_tb1,keyloaded_tb1,event_tb1) reject(st_tb1,pg_tb1,kp_tb1,loaded_tb1,keyloaded_tb1,event_tb1)
+block stage_release_check(st_tb2:mutbuf,pg_tb2:mutbuf,kp_tb2:readbuf,loaded_tb2:u64,keyloaded_tb2:u64,event_tb2:u32)
+  at_stage_tb2:usize = const() {"value":8}
+  stage_tb2:u64 = call(st_tb2,at_stage_tb2) {"function":"table_read_word"}
+  nine_tb2:u64 = const() {"value":9}
+  releasing_tb2:bool = compare.eq(stage_tb2,nine_tb2)
+  branch releasing_tb2 close_release(st_tb2,pg_tb2,kp_tb2,loaded_tb2,keyloaded_tb2,event_tb2) stage_abort_check(st_tb2,pg_tb2,kp_tb2,loaded_tb2,keyloaded_tb2,event_tb2)
+block stage_abort_check(st_tb3:mutbuf,pg_tb3:mutbuf,kp_tb3:readbuf,loaded_tb3:u64,keyloaded_tb3:u64,event_tb3:u32)
+  at_stage_tb3:usize = const() {"value":8}
+  stage_tb3:u64 = call(st_tb3,at_stage_tb3) {"function":"table_read_word"}
+  ten_tb3:u64 = const() {"value":10}
+  aborting_tb3:bool = compare.eq(stage_tb3,ten_tb3)
+  branch aborting_tb3 abort_release(st_tb3,pg_tb3,kp_tb3,loaded_tb3,keyloaded_tb3,event_tb3) event_check(st_tb3,pg_tb3,kp_tb3,loaded_tb3,keyloaded_tb3,event_tb3)
+block event_check(st_tb4:mutbuf,pg_tb4:mutbuf,kp_tb4:readbuf,loaded_tb4:u64,keyloaded_tb4:u64,event_tb4:u32)
+  zero_tb4:u32 = const() {"value":0}
+  normal_tb4:bool = compare.eq(event_tb4,zero_tb4)
+  branch normal_tb4 dispatch1(st_tb4,pg_tb4,kp_tb4,loaded_tb4,keyloaded_tb4,event_tb4) cancel_check(st_tb4,pg_tb4,kp_tb4,loaded_tb4,keyloaded_tb4,event_tb4)
+block cancel_check(st_tb5:mutbuf,pg_tb5:mutbuf,kp_tb5:readbuf,loaded_tb5:u64,keyloaded_tb5:u64,event_tb5:u32)
+  cancel_tb5:u32 = const() {"value":3}
+  failed_tb5:u32 = const() {"value":9}
+  a_tb5:bool = compare.eq(event_tb5,cancel_tb5)
+  b_tb5:bool = compare.eq(event_tb5,failed_tb5)
+  okay_tb5:bool = bool.or(a_tb5,b_tb5)
+  branch okay_tb5 cancel(st_tb5,pg_tb5,kp_tb5,loaded_tb5,keyloaded_tb5,event_tb5) reject(st_tb5,pg_tb5,kp_tb5,loaded_tb5,keyloaded_tb5,event_tb5)
+block cancel(st_tb6:mutbuf,pg_tb6:mutbuf,kp_tb6:readbuf,loaded_tb6:u64,keyloaded_tb6:u64,event_tb6:u32)
+  at_stage_tb6:usize = const() {"value":8}
+  stage_tb6:u64 = call(st_tb6,at_stage_tb6) {"function":"table_read_word"}
+  at_op_tb6:usize = const() {"value":16}
+  op_tb6:u64 = call(st_tb6,at_op_tb6) {"function":"table_read_word"}
+  zero_tb6:u64 = const() {"value":0}
+  idle_tb6:bool = compare.eq(stage_tb6,zero_tb6)
+  branch idle_tb6 reject(st_tb6,pg_tb6,kp_tb6,loaded_tb6,keyloaded_tb6,event_tb6) cancel_op(st_tb6,pg_tb6,kp_tb6,loaded_tb6,keyloaded_tb6,event_tb6)
+block cancel_op(st_tb7:mutbuf,pg_tb7:mutbuf,kp_tb7:readbuf,loaded_tb7:u64,keyloaded_tb7:u64,event_tb7:u32)
+  at_op_tb7:usize = const() {"value":16}
+  op_tb7:u64 = call(st_tb7,at_op_tb7) {"function":"table_read_word"}
+  close_tb7:u64 = const() {"value":2}
+  closing_tb7:bool = compare.eq(op_tb7,close_tb7)
+  branch closing_tb7 cancel_close(st_tb7,pg_tb7,kp_tb7,loaded_tb7,keyloaded_tb7,event_tb7) cancel_insert(st_tb7,pg_tb7,kp_tb7,loaded_tb7,keyloaded_tb7,event_tb7)
+block cancel_close(st_tb8:mutbuf,pg_tb8:mutbuf,kp_tb8:readbuf,loaded_tb8:u64,keyloaded_tb8:u64,event_tb8:u32)
+  at_finish_tb8:usize = const() {"value":200}
+  finish_tb8:u64 = call(st_tb8,at_finish_tb8) {"function":"table_read_word"}
+  two_tb8:u64 = const() {"value":2}
+  committed_tb8:bool = compare.eq(finish_tb8,two_tb8)
+  branch committed_tb8 retry_close(st_tb8,pg_tb8,kp_tb8,loaded_tb8,keyloaded_tb8,event_tb8) cancel_done(st_tb8,pg_tb8,kp_tb8,loaded_tb8,keyloaded_tb8,event_tb8)
+block cancel_done(st_tb9:mutbuf,pg_tb9:mutbuf,kp_tb9:readbuf,loaded_tb9:u64,keyloaded_tb9:u64,event_tb9:u32)
+  failed_tb9:u32 = const() {"value":9}
+  bad_tb9:bool = compare.eq(event_tb9,failed_tb9)
+  six_tb9:u32 = const() {"value":6}
+  seven_tb9:u32 = const() {"value":7}
+  result_tb9:u32 = select(bad_tb9,six_tb9,seven_tb9)
+  set_stage_tb9:u64 = const() {"value":0}
+  set_at_stage_tb9:usize = const() {"value":8}
+  _ = call(st_tb9,set_at_stage_tb9,set_stage_tb9) {"function":"table_write_word"}
+  set_newroot_tb9:u64 = const() {"value":0}
+  set_at_newroot_tb9:usize = const() {"value":104}
+  _ = call(st_tb9,set_at_newroot_tb9,set_newroot_tb9) {"function":"table_write_word"}
+  ret(result_tb9)
+block retry_close(st_tb10:mutbuf,pg_tb10:mutbuf,kp_tb10:readbuf,loaded_tb10:u64,keyloaded_tb10:u64,event_tb10:u32)
+  action_tb10:u32 = const() {"value":1}
+  ret(action_tb10)
+block cancel_insert(st_tb11:mutbuf,pg_tb11:mutbuf,kp_tb11:readbuf,loaded_tb11:u64,keyloaded_tb11:u64,event_tb11:u32)
+  failed_tb11:u32 = const() {"value":9}
+  failure_tb11:bool = compare.eq(event_tb11,failed_tb11)
+  bad_tb11:u64 = const() {"value":6}
+  cancelled_tb11:u64 = const() {"value":7}
+  why_tb11:u64 = select(failure_tb11,bad_tb11,cancelled_tb11)
+  jump abort_start(st_tb11,pg_tb11,kp_tb11,loaded_tb11,keyloaded_tb11,event_tb11,why_tb11)
+block abort_start(st_tb12:mutbuf,pg_tb12:mutbuf,kp_tb12:readbuf,loaded_tb12:u64,keyloaded_tb12:u64,event_tb12:u32,why_tb12:u64)
+  at_newroot_tb12:usize = const() {"value":104}
+  newroot_tb12:u64 = call(st_tb12,at_newroot_tb12) {"function":"table_read_word"}
+  zero_tb12:u64 = const() {"value":0}
+  none_tb12:bool = compare.eq(newroot_tb12,zero_tb12)
+  branch none_tb12 abort_empty(st_tb12,pg_tb12,kp_tb12,loaded_tb12,keyloaded_tb12,event_tb12,why_tb12) abort_first(st_tb12,pg_tb12,kp_tb12,loaded_tb12,keyloaded_tb12,event_tb12,why_tb12)
+block abort_empty(st_tb13:mutbuf,pg_tb13:mutbuf,kp_tb13:readbuf,loaded_tb13:u64,keyloaded_tb13:u64,event_tb13:u32,why_tb13:u64)
+  status_tb13:u32 = int.cast(why_tb13) {"mode":"wrap"}
+  set_stage_tb13:u64 = const() {"value":0}
+  set_at_stage_tb13:usize = const() {"value":8}
+  _ = call(st_tb13,set_at_stage_tb13,set_stage_tb13) {"function":"table_write_word"}
+  set_newroot_tb13:u64 = const() {"value":0}
+  set_at_newroot_tb13:usize = const() {"value":104}
+  _ = call(st_tb13,set_at_newroot_tb13,set_newroot_tb13) {"function":"table_write_word"}
+  ret(status_tb13)
+block abort_first(st_tb14:mutbuf,pg_tb14:mutbuf,kp_tb14:readbuf,loaded_tb14:u64,keyloaded_tb14:u64,event_tb14:u32,why_tb14:u64)
+  at_newroot_tb14:usize = const() {"value":104}
+  newroot_tb14:u64 = call(st_tb14,at_newroot_tb14) {"function":"table_read_word"}
+  set_stage_tb14:u64 = const() {"value":10}
+  set_at_stage_tb14:usize = const() {"value":8}
+  _ = call(st_tb14,set_at_stage_tb14,set_stage_tb14) {"function":"table_write_word"}
+  set_at_finish_tb14:usize = const() {"value":200}
+  _ = call(st_tb14,set_at_finish_tb14,why_tb14) {"function":"table_write_word"}
+  set_abortindex_tb14:u64 = const() {"value":0}
+  set_at_abortindex_tb14:usize = const() {"value":216}
+  _ = call(st_tb14,set_at_abortindex_tb14,set_abortindex_tb14) {"function":"table_write_word"}
+  set_at_release_tb14:usize = const() {"value":208}
+  _ = call(st_tb14,set_at_release_tb14,newroot_tb14) {"function":"table_write_word"}
+  set_at_request_tb14:usize = const() {"value":56}
+  _ = call(st_tb14,set_at_request_tb14,newroot_tb14) {"function":"table_write_word"}
+  action_tb14:u32 = const() {"value":4}
+  ret(action_tb14)
+block dispatch1(st_tb15:mutbuf,pg_tb15:mutbuf,kp_tb15:readbuf,loaded_tb15:u64,keyloaded_tb15:u64,event_tb15:u32)
+  at_stage_tb15:usize = const() {"value":8}
+  stage_tb15:u64 = call(st_tb15,at_stage_tb15) {"function":"table_read_word"}
+  match_tb15:u64 = const() {"value":1}
+  yes_tb15:bool = compare.eq(stage_tb15,match_tb15)
+  branch yes_tb15 scope_page(st_tb15,pg_tb15,kp_tb15,loaded_tb15,keyloaded_tb15,event_tb15) dispatch2(st_tb15,pg_tb15,kp_tb15,loaded_tb15,keyloaded_tb15,event_tb15)
+block dispatch2(st_tb16:mutbuf,pg_tb16:mutbuf,kp_tb16:readbuf,loaded_tb16:u64,keyloaded_tb16:u64,event_tb16:u32)
+  at_stage_tb16:usize = const() {"value":8}
+  stage_tb16:u64 = call(st_tb16,at_stage_tb16) {"function":"table_read_word"}
+  match_tb16:u64 = const() {"value":2}
+  yes_tb16:bool = compare.eq(stage_tb16,match_tb16)
+  branch yes_tb16 candidate_page(st_tb16,pg_tb16,kp_tb16,loaded_tb16,keyloaded_tb16,event_tb16) dispatch3(st_tb16,pg_tb16,kp_tb16,loaded_tb16,keyloaded_tb16,event_tb16)
+block dispatch3(st_tb17:mutbuf,pg_tb17:mutbuf,kp_tb17:readbuf,loaded_tb17:u64,keyloaded_tb17:u64,event_tb17:u32)
+  at_stage_tb17:usize = const() {"value":8}
+  stage_tb17:u64 = call(st_tb17,at_stage_tb17) {"function":"table_read_word"}
+  match_tb17:u64 = const() {"value":3}
+  yes_tb17:bool = compare.eq(stage_tb17,match_tb17)
+  branch yes_tb17 compare_page(st_tb17,pg_tb17,kp_tb17,loaded_tb17,keyloaded_tb17,event_tb17) dispatch4(st_tb17,pg_tb17,kp_tb17,loaded_tb17,keyloaded_tb17,event_tb17)
+block dispatch4(st_tb18:mutbuf,pg_tb18:mutbuf,kp_tb18:readbuf,loaded_tb18:u64,keyloaded_tb18:u64,event_tb18:u32)
+  at_stage_tb18:usize = const() {"value":8}
+  stage_tb18:u64 = call(st_tb18,at_stage_tb18) {"function":"table_read_word"}
+  match_tb18:u64 = const() {"value":4}
+  yes_tb18:bool = compare.eq(stage_tb18,match_tb18)
+  branch yes_tb18 compare_key_request(st_tb18,pg_tb18,kp_tb18,loaded_tb18,keyloaded_tb18,event_tb18) dispatch5(st_tb18,pg_tb18,kp_tb18,loaded_tb18,keyloaded_tb18,event_tb18)
+block dispatch5(st_tb19:mutbuf,pg_tb19:mutbuf,kp_tb19:readbuf,loaded_tb19:u64,keyloaded_tb19:u64,event_tb19:u32)
+  at_stage_tb19:usize = const() {"value":8}
+  stage_tb19:u64 = call(st_tb19,at_stage_tb19) {"function":"table_read_word"}
+  match_tb19:u64 = const() {"value":5}
+  yes_tb19:bool = compare.eq(stage_tb19,match_tb19)
+  branch yes_tb19 new_page(st_tb19,pg_tb19,kp_tb19,loaded_tb19,keyloaded_tb19,event_tb19) dispatch6(st_tb19,pg_tb19,kp_tb19,loaded_tb19,keyloaded_tb19,event_tb19)
+block dispatch6(st_tb20:mutbuf,pg_tb20:mutbuf,kp_tb20:readbuf,loaded_tb20:u64,keyloaded_tb20:u64,event_tb20:u32)
+  at_stage_tb20:usize = const() {"value":8}
+  stage_tb20:u64 = call(st_tb20,at_stage_tb20) {"function":"table_read_word"}
+  match_tb20:u64 = const() {"value":6}
+  yes_tb20:bool = compare.eq(stage_tb20,match_tb20)
+  branch yes_tb20 fill_page(st_tb20,pg_tb20,kp_tb20,loaded_tb20,keyloaded_tb20,event_tb20) dispatch7(st_tb20,pg_tb20,kp_tb20,loaded_tb20,keyloaded_tb20,event_tb20)
+block dispatch7(st_tb21:mutbuf,pg_tb21:mutbuf,kp_tb21:readbuf,loaded_tb21:u64,keyloaded_tb21:u64,event_tb21:u32)
+  at_stage_tb21:usize = const() {"value":8}
+  stage_tb21:u64 = call(st_tb21,at_stage_tb21) {"function":"table_read_word"}
+  match_tb21:u64 = const() {"value":7}
+  yes_tb21:bool = compare.eq(stage_tb21,match_tb21)
+  branch yes_tb21 commit(st_tb21,pg_tb21,kp_tb21,loaded_tb21,keyloaded_tb21,event_tb21) dispatch8(st_tb21,pg_tb21,kp_tb21,loaded_tb21,keyloaded_tb21,event_tb21)
+block dispatch8(st_tb22:mutbuf,pg_tb22:mutbuf,kp_tb22:readbuf,loaded_tb22:u64,keyloaded_tb22:u64,event_tb22:u32)
+  at_stage_tb22:usize = const() {"value":8}
+  stage_tb22:u64 = call(st_tb22,at_stage_tb22) {"function":"table_read_word"}
+  match_tb22:u64 = const() {"value":8}
+  yes_tb22:bool = compare.eq(stage_tb22,match_tb22)
+  branch yes_tb22 close_page(st_tb22,pg_tb22,kp_tb22,loaded_tb22,keyloaded_tb22,event_tb22) dispatch11(st_tb22,pg_tb22,kp_tb22,loaded_tb22,keyloaded_tb22,event_tb22)
+block dispatch11(st_tb23:mutbuf,pg_tb23:mutbuf,kp_tb23:readbuf,loaded_tb23:u64,keyloaded_tb23:u64,event_tb23:u32)
+  at_stage_tb23:usize = const() {"value":8}
+  stage_tb23:u64 = call(st_tb23,at_stage_tb23) {"function":"table_read_word"}
+  match_tb23:u64 = const() {"value":11}
+  yes_tb23:bool = compare.eq(stage_tb23,match_tb23)
+  branch yes_tb23 close_page(st_tb23,pg_tb23,kp_tb23,loaded_tb23,keyloaded_tb23,event_tb23) dispatch12(st_tb23,pg_tb23,kp_tb23,loaded_tb23,keyloaded_tb23,event_tb23)
+block dispatch12(st_tb24:mutbuf,pg_tb24:mutbuf,kp_tb24:readbuf,loaded_tb24:u64,keyloaded_tb24:u64,event_tb24:u32)
+  at_stage_tb24:usize = const() {"value":8}
+  stage_tb24:u64 = call(st_tb24,at_stage_tb24) {"function":"table_read_word"}
+  match_tb24:u64 = const() {"value":12}
+  yes_tb24:bool = compare.eq(stage_tb24,match_tb24)
+  branch yes_tb24 close_recheck(st_tb24,pg_tb24,kp_tb24,loaded_tb24,keyloaded_tb24,event_tb24) reject(st_tb24,pg_tb24,kp_tb24,loaded_tb24,keyloaded_tb24,event_tb24)
+block scope_page(st_tb25:mutbuf,pg_tb25:mutbuf,kp_tb25:readbuf,loaded_tb25:u64,keyloaded_tb25:u64,event_tb25:u32)
+  at_request_tb25:usize = const() {"value":56}
+  request_tb25:u64 = call(st_tb25,at_request_tb25) {"function":"table_read_word"}
+  right_tb25:bool = compare.eq(loaded_tb25,request_tb25)
+  branch right_tb25 scope_version(st_tb25,pg_tb25,kp_tb25,loaded_tb25,keyloaded_tb25,event_tb25) reject(st_tb25,pg_tb25,kp_tb25,loaded_tb25,keyloaded_tb25,event_tb25)
+block scope_version(st_tb26:mutbuf,pg_tb26:mutbuf,kp_tb26:readbuf,loaded_tb26:u64,keyloaded_tb26:u64,event_tb26:u32)
+  page_at_pv_tb26:usize = const() {"value":0}
+  pv_tb26:u64 = call(pg_tb26,page_at_pv_tb26) {"function":"table_read_word"}
+  zero_tb26:u64 = const() {"value":0}
+  fresh_tb26:bool = compare.eq(pv_tb26,zero_tb26)
+  branch fresh_tb26 scope_zero(st_tb26,pg_tb26,kp_tb26,loaded_tb26,keyloaded_tb26,event_tb26) scope_active(st_tb26,pg_tb26,kp_tb26,loaded_tb26,keyloaded_tb26,event_tb26)
+block scope_zero(st_tb27:mutbuf,pg_tb27:mutbuf,kp_tb27:readbuf,loaded_tb27:u64,keyloaded_tb27:u64,event_tb27:u32)
+  zero_tb27:bool = call(pg_tb27) {"function":"table_page_zero"}
+  branch zero_tb27 scope_new_op(st_tb27,pg_tb27,kp_tb27,loaded_tb27,keyloaded_tb27,event_tb27) reject(st_tb27,pg_tb27,kp_tb27,loaded_tb27,keyloaded_tb27,event_tb27)
+block scope_new_op(st_tb28:mutbuf,pg_tb28:mutbuf,kp_tb28:readbuf,loaded_tb28:u64,keyloaded_tb28:u64,event_tb28:u32)
+  at_op_tb28:usize = const() {"value":16}
+  op_tb28:u64 = call(st_tb28,at_op_tb28) {"function":"table_read_word"}
+  insert_tb28:u64 = const() {"value":1}
+  inserting_tb28:bool = compare.eq(op_tb28,insert_tb28)
+  branch inserting_tb28 scope_new_insert(st_tb28,pg_tb28,kp_tb28,loaded_tb28,keyloaded_tb28,event_tb28) empty_close(st_tb28,pg_tb28,kp_tb28,loaded_tb28,keyloaded_tb28,event_tb28)
+block scope_new_insert(st_tb29:mutbuf,pg_tb29:mutbuf,kp_tb29:readbuf,loaded_tb29:u64,keyloaded_tb29:u64,event_tb29:u32)
+  set_oldbucket_tb29:u64 = const() {"value":0}
+  set_at_oldbucket_tb29:usize = const() {"value":88}
+  _ = call(st_tb29,set_at_oldbucket_tb29,set_oldbucket_tb29) {"function":"table_write_word"}
+  set_oldscope_tb29:u64 = const() {"value":0}
+  set_at_oldscope_tb29:usize = const() {"value":96}
+  _ = call(st_tb29,set_at_oldscope_tb29,set_oldscope_tb29) {"function":"table_write_word"}
+  set_oldcount_tb29:u64 = const() {"value":0}
+  set_at_oldcount_tb29:usize = const() {"value":224}
+  _ = call(st_tb29,set_at_oldcount_tb29,set_oldcount_tb29) {"function":"table_write_word"}
+  set_scopelimit_tb29:u64 = const() {"value":0}
+  set_at_scopelimit_tb29:usize = const() {"value":232}
+  _ = call(st_tb29,set_at_scopelimit_tb29,set_scopelimit_tb29) {"function":"table_write_word"}
+  set_isnew_tb29:u64 = const() {"value":1}
+  set_at_isnew_tb29:usize = const() {"value":160}
+  _ = call(st_tb29,set_at_isnew_tb29,set_isnew_tb29) {"function":"table_write_word"}
+  jump allocate(st_tb29,pg_tb29,kp_tb29,loaded_tb29,keyloaded_tb29,event_tb29)
+block empty_close(st_tb30:mutbuf,pg_tb30:mutbuf,kp_tb30:readbuf,loaded_tb30:u64,keyloaded_tb30:u64,event_tb30:u32)
+  at_scope_tb30:usize = const() {"value":24}
+  scope_tb30:u64 = call(st_tb30,at_scope_tb30) {"function":"table_read_word"}
+  two_tb30:u64 = const() {"value":2}
+  at0_tb30:usize = const() {"value":0}
+  at8_tb30:usize = const() {"value":8}
+  _ = call(pg_tb30,at0_tb30,two_tb30) {"function":"table_write_word"}
+  _ = call(pg_tb30,at8_tb30,scope_tb30) {"function":"table_write_word"}
+  set_stage_tb30:u64 = const() {"value":0}
+  set_at_stage_tb30:usize = const() {"value":8}
+  _ = call(st_tb30,set_at_stage_tb30,set_stage_tb30) {"function":"table_write_word"}
+  action_tb30:u32 = const() {"value":0}
+  ret(action_tb30)
+block scope_active(st_tb31:mutbuf,pg_tb31:mutbuf,kp_tb31:readbuf,loaded_tb31:u64,keyloaded_tb31:u64,event_tb31:u32)
+  page_at_pv_tb31:usize = const() {"value":0}
+  pv_tb31:u64 = call(pg_tb31,page_at_pv_tb31) {"function":"table_read_word"}
+  page_at_pid_tb31:usize = const() {"value":8}
+  pid_tb31:u64 = call(pg_tb31,page_at_pid_tb31) {"function":"table_read_word"}
+  at_scope_tb31:usize = const() {"value":24}
+  scope_tb31:u64 = call(st_tb31,at_scope_tb31) {"function":"table_read_word"}
+  one_tb31:u64 = const() {"value":1}
+  active_tb31:bool = compare.eq(pv_tb31,one_tb31)
+  identity_tb31:bool = compare.eq(pid_tb31,scope_tb31)
+  okay_tb31:bool = bool.and(active_tb31,identity_tb31)
+  branch okay_tb31 scope_existing_op(st_tb31,pg_tb31,kp_tb31,loaded_tb31,keyloaded_tb31,event_tb31) reject(st_tb31,pg_tb31,kp_tb31,loaded_tb31,keyloaded_tb31,event_tb31)
+block scope_existing_op(st_tb32:mutbuf,pg_tb32:mutbuf,kp_tb32:readbuf,loaded_tb32:u64,keyloaded_tb32:u64,event_tb32:u32)
+  at_next_tb32:usize = const() {"value":48}
+  next_tb32:u64 = call(st_tb32,at_next_tb32) {"function":"table_read_word"}
+  page_at_head_tb32:usize = const() {"value":16}
+  head_tb32:u64 = call(pg_tb32,page_at_head_tb32) {"function":"table_read_word"}
+  page_at_records_tb32:usize = const() {"value":24}
+  records_tb32:u64 = call(pg_tb32,page_at_records_tb32) {"function":"table_read_word"}
+  zero_tb32:u64 = const() {"value":0}
+  a_tb32:bool = compare.eq(head_tb32,zero_tb32)
+  b_tb32:bool = compare.eq(records_tb32,zero_tb32)
+  both_tb32:bool = bool.and(a_tb32,b_tb32)
+  na_tb32:bool = bool.not(a_tb32)
+  nb_tb32:bool = bool.not(b_tb32)
+  neither_tb32:bool = bool.and(na_tb32,nb_tb32)
+  consistent_tb32:bool = bool.or(both_tb32,neither_tb32)
+  bounded_tb32:bool = compare.le(records_tb32,next_tb32)
+  valid_tb32:bool = bool.and(consistent_tb32,bounded_tb32)
+  branch valid_tb32 scope_counted_op(st_tb32,pg_tb32,kp_tb32,loaded_tb32,keyloaded_tb32,event_tb32,records_tb32) reject(st_tb32,pg_tb32,kp_tb32,loaded_tb32,keyloaded_tb32,event_tb32)
+block scope_counted_op(st_tb33:mutbuf,pg_tb33:mutbuf,kp_tb33:readbuf,loaded_tb33:u64,keyloaded_tb33:u64,event_tb33:u32,records_tb33:u64)
+  at_op_tb33:usize = const() {"value":16}
+  op_tb33:u64 = call(st_tb33,at_op_tb33) {"function":"table_read_word"}
+  set_at_oldcount_tb33:usize = const() {"value":224}
+  _ = call(st_tb33,set_at_oldcount_tb33,records_tb33) {"function":"table_write_word"}
+  set_at_scopelimit_tb33:usize = const() {"value":232}
+  _ = call(st_tb33,set_at_scopelimit_tb33,records_tb33) {"function":"table_write_word"}
+  insert_tb33:u64 = const() {"value":1}
+  inserting_tb33:bool = compare.eq(op_tb33,insert_tb33)
+  branch inserting_tb33 scope_existing_insert(st_tb33,pg_tb33,kp_tb33,loaded_tb33,keyloaded_tb33,event_tb33) close_preflight_start(st_tb33,pg_tb33,kp_tb33,loaded_tb33,keyloaded_tb33,event_tb33)
+block scope_existing_insert(st_tb34:mutbuf,pg_tb34:mutbuf,kp_tb34:readbuf,loaded_tb34:u64,keyloaded_tb34:u64,event_tb34:u32)
+  at_slot_tb34:usize = const() {"value":152}
+  slot_tb34:u64 = call(st_tb34,at_slot_tb34) {"function":"table_read_word"}
+  at_next_tb34:usize = const() {"value":48}
+  next_tb34:u64 = call(st_tb34,at_next_tb34) {"function":"table_read_word"}
+  page_at_head_tb34:usize = const() {"value":16}
+  head_tb34:u64 = call(pg_tb34,page_at_head_tb34) {"function":"table_read_word"}
+  slot_at_tb34:usize = int.cast(slot_tb34) {"mode":"wrap"}
+  bucket_tb34:u64 = call(pg_tb34,slot_at_tb34) {"function":"table_read_word"}
+  a_tb34:bool = call(head_tb34,next_tb34) {"function":"table_pointer"}
+  b_tb34:bool = call(bucket_tb34,next_tb34) {"function":"table_pointer"}
+  okay_tb34:bool = bool.and(a_tb34,b_tb34)
+  branch okay_tb34 scope_bucket(st_tb34,pg_tb34,kp_tb34,loaded_tb34,keyloaded_tb34,event_tb34,bucket_tb34,head_tb34) reject(st_tb34,pg_tb34,kp_tb34,loaded_tb34,keyloaded_tb34,event_tb34)
+block scope_bucket(st_tb35:mutbuf,pg_tb35:mutbuf,kp_tb35:readbuf,loaded_tb35:u64,keyloaded_tb35:u64,event_tb35:u32,bucket_tb35:u64,head_tb35:u64)
+  set_at_oldbucket_tb35:usize = const() {"value":88}
+  _ = call(st_tb35,set_at_oldbucket_tb35,bucket_tb35) {"function":"table_write_word"}
+  set_at_oldscope_tb35:usize = const() {"value":96}
+  _ = call(st_tb35,set_at_oldscope_tb35,head_tb35) {"function":"table_write_word"}
+  set_isnew_tb35:u64 = const() {"value":0}
+  set_at_isnew_tb35:usize = const() {"value":160}
+  _ = call(st_tb35,set_at_isnew_tb35,set_isnew_tb35) {"function":"table_write_word"}
+  zero_tb35:u64 = const() {"value":0}
+  empty_tb35:bool = compare.eq(bucket_tb35,zero_tb35)
+  branch empty_tb35 allocate(st_tb35,pg_tb35,kp_tb35,loaded_tb35,keyloaded_tb35,event_tb35) candidate_request(st_tb35,pg_tb35,kp_tb35,loaded_tb35,keyloaded_tb35,event_tb35,bucket_tb35)
+block candidate_request(st_tb36:mutbuf,pg_tb36:mutbuf,kp_tb36:readbuf,loaded_tb36:u64,keyloaded_tb36:u64,event_tb36:u32,row_tb36:u64)
+  set_stage_tb36:u64 = const() {"value":2}
+  set_at_stage_tb36:usize = const() {"value":8}
+  _ = call(st_tb36,set_at_stage_tb36,set_stage_tb36) {"function":"table_write_word"}
+  set_at_request_tb36:usize = const() {"value":56}
+  _ = call(st_tb36,set_at_request_tb36,row_tb36) {"function":"table_write_word"}
+  set_at_candidate_tb36:usize = const() {"value":72}
+  _ = call(st_tb36,set_at_candidate_tb36,row_tb36) {"function":"table_write_word"}
+  action_tb36:u32 = const() {"value":1}
+  ret(action_tb36)
+block candidate_page(st_tb37:mutbuf,pg_tb37:mutbuf,kp_tb37:readbuf,loaded_tb37:u64,keyloaded_tb37:u64,event_tb37:u32)
+  at_request_tb37:usize = const() {"value":56}
+  request_tb37:u64 = call(st_tb37,at_request_tb37) {"function":"table_read_word"}
+  at_next_tb37:usize = const() {"value":48}
+  next_tb37:u64 = call(st_tb37,at_next_tb37) {"function":"table_read_word"}
+  at_walk_tb37:usize = const() {"value":128}
+  walk_tb37:u64 = call(st_tb37,at_walk_tb37) {"function":"table_read_word"}
+  at_oldcount_tb37:usize = const() {"value":224}
+  oldcount_tb37:u64 = call(st_tb37,at_oldcount_tb37) {"function":"table_read_word"}
+  right_tb37:bool = compare.eq(loaded_tb37,request_tb37)
+  pointer_tb37:bool = call(request_tb37,next_tb37) {"function":"table_pointer_nonzero"}
+  bounded_tb37:bool = compare.lt(walk_tb37,oldcount_tb37)
+  a_tb37:bool = bool.and(right_tb37,pointer_tb37)
+  okay_tb37:bool = bool.and(a_tb37,bounded_tb37)
+  branch okay_tb37 candidate_metadata(st_tb37,pg_tb37,kp_tb37,loaded_tb37,keyloaded_tb37,event_tb37) reject(st_tb37,pg_tb37,kp_tb37,loaded_tb37,keyloaded_tb37,event_tb37)
+block candidate_metadata(st_tb38:mutbuf,pg_tb38:mutbuf,kp_tb38:readbuf,loaded_tb38:u64,keyloaded_tb38:u64,event_tb38:u32)
+  at_scope_tb38:usize = const() {"value":24}
+  scope_tb38:u64 = call(st_tb38,at_scope_tb38) {"function":"table_read_word"}
+  at_request_tb38:usize = const() {"value":56}
+  request_tb38:u64 = call(st_tb38,at_request_tb38) {"function":"table_read_word"}
+  at_hashed_tb38:usize = const() {"value":32}
+  hashed_tb38:u64 = call(st_tb38,at_hashed_tb38) {"function":"table_read_word"}
+  at_length_tb38:usize = const() {"value":40}
+  length_tb38:u64 = call(st_tb38,at_length_tb38) {"function":"table_read_word"}
+  at_next_tb38:usize = const() {"value":48}
+  next_tb38:u64 = call(st_tb38,at_next_tb38) {"function":"table_read_word"}
+  page_at_pscope_tb38:usize = const() {"value":16}
+  pscope_tb38:u64 = call(pg_tb38,page_at_pscope_tb38) {"function":"table_read_word"}
+  page_at_owner_tb38:usize = const() {"value":40}
+  owner_tb38:u64 = call(pg_tb38,page_at_owner_tb38) {"function":"table_read_word"}
+  page_at_phash_tb38:usize = const() {"value":24}
+  phash_tb38:u64 = call(pg_tb38,page_at_phash_tb38) {"function":"table_read_word"}
+  page_at_plen_tb38:usize = const() {"value":32}
+  plen_tb38:u64 = call(pg_tb38,page_at_plen_tb38) {"function":"table_read_word"}
+  page_at_pnxt_tb38:usize = const() {"value":0}
+  pnxt_tb38:u64 = call(pg_tb38,page_at_pnxt_tb38) {"function":"table_read_word"}
+  a_tb38:bool = compare.eq(pscope_tb38,scope_tb38)
+  b_tb38:bool = compare.eq(owner_tb38,request_tb38)
+  c_tb38:bool = call(pnxt_tb38,next_tb38) {"function":"table_pointer"}
+  ab_tb38:bool = bool.and(a_tb38,b_tb38)
+  valid_tb38:bool = bool.and(ab_tb38,c_tb38)
+  branch valid_tb38 candidate_filter(st_tb38,pg_tb38,kp_tb38,loaded_tb38,keyloaded_tb38,event_tb38,phash_tb38,plen_tb38,pnxt_tb38) reject(st_tb38,pg_tb38,kp_tb38,loaded_tb38,keyloaded_tb38,event_tb38)
+block candidate_filter(st_tb39:mutbuf,pg_tb39:mutbuf,kp_tb39:readbuf,loaded_tb39:u64,keyloaded_tb39:u64,event_tb39:u32,phash_tb39:u64,plen_tb39:u64,pnxt_tb39:u64)
+  at_hashed_tb39:usize = const() {"value":32}
+  hashed_tb39:u64 = call(st_tb39,at_hashed_tb39) {"function":"table_read_word"}
+  at_length_tb39:usize = const() {"value":40}
+  length_tb39:u64 = call(st_tb39,at_length_tb39) {"function":"table_read_word"}
+  at_walk_tb39:usize = const() {"value":128}
+  walk_tb39:u64 = call(st_tb39,at_walk_tb39) {"function":"table_read_word"}
+  one_tb39:u64 = const() {"value":1}
+  steps_tb39:u64 = int.add.checked(walk_tb39,one_tb39)
+  set_at_walk_tb39:usize = const() {"value":128}
+  _ = call(st_tb39,set_at_walk_tb39,steps_tb39) {"function":"table_write_word"}
+  set_at_cnext_tb39:usize = const() {"value":80}
+  _ = call(st_tb39,set_at_cnext_tb39,pnxt_tb39) {"function":"table_write_word"}
+  a_tb39:bool = compare.eq(phash_tb39,hashed_tb39)
+  b_tb39:bool = compare.eq(plen_tb39,length_tb39)
+  same_tb39:bool = bool.and(a_tb39,b_tb39)
+  branch same_tb39 candidate_match(st_tb39,pg_tb39,kp_tb39,loaded_tb39,keyloaded_tb39,event_tb39) next_candidate(st_tb39,pg_tb39,kp_tb39,loaded_tb39,keyloaded_tb39,event_tb39)
+block candidate_match(st_tb40:mutbuf,pg_tb40:mutbuf,kp_tb40:readbuf,loaded_tb40:u64,keyloaded_tb40:u64,event_tb40:u32)
+  at_request_tb40:usize = const() {"value":56}
+  request_tb40:u64 = call(st_tb40,at_request_tb40) {"function":"table_read_word"}
+  seed_tb40:u64 = const() {"value":14695981039346656037}
+  set_stage_tb40:u64 = const() {"value":3}
+  set_at_stage_tb40:usize = const() {"value":8}
+  _ = call(st_tb40,set_at_stage_tb40,set_stage_tb40) {"function":"table_write_word"}
+  set_at_root_tb40:usize = const() {"value":176}
+  _ = call(st_tb40,set_at_root_tb40,request_tb40) {"function":"table_write_word"}
+  set_at_current_tb40:usize = const() {"value":112}
+  _ = call(st_tb40,set_at_current_tb40,request_tb40) {"function":"table_write_word"}
+  set_index_tb40:u64 = const() {"value":0}
+  set_at_index_tb40:usize = const() {"value":120}
+  _ = call(st_tb40,set_at_index_tb40,set_index_tb40) {"function":"table_write_word"}
+  set_keyindex_tb40:u64 = const() {"value":0}
+  set_at_keyindex_tb40:usize = const() {"value":64}
+  _ = call(st_tb40,set_at_keyindex_tb40,set_keyindex_tb40) {"function":"table_write_word"}
+  set_at_rolling_tb40:usize = const() {"value":136}
+  _ = call(st_tb40,set_at_rolling_tb40,seed_tb40) {"function":"table_write_word"}
+  action_tb40:u32 = const() {"value":2}
+  ret(action_tb40)
+block next_candidate(st_tb41:mutbuf,pg_tb41:mutbuf,kp_tb41:readbuf,loaded_tb41:u64,keyloaded_tb41:u64,event_tb41:u32)
+  at_cnext_tb41:usize = const() {"value":80}
+  cnext_tb41:u64 = call(st_tb41,at_cnext_tb41) {"function":"table_read_word"}
+  zero_tb41:u64 = const() {"value":0}
+  none_tb41:bool = compare.eq(cnext_tb41,zero_tb41)
+  branch none_tb41 allocate(st_tb41,pg_tb41,kp_tb41,loaded_tb41,keyloaded_tb41,event_tb41) candidate_request(st_tb41,pg_tb41,kp_tb41,loaded_tb41,keyloaded_tb41,event_tb41,cnext_tb41)
+block compare_key_request(st_tb42:mutbuf,pg_tb42:mutbuf,kp_tb42:readbuf,loaded_tb42:u64,keyloaded_tb42:u64,event_tb42:u32)
+  at_current_tb42:usize = const() {"value":112}
+  current_tb42:u64 = call(st_tb42,at_current_tb42) {"function":"table_read_word"}
+  right_tb42:bool = compare.eq(loaded_tb42,current_tb42)
+  branch right_tb42 compare_next_key(st_tb42,pg_tb42,kp_tb42,loaded_tb42,keyloaded_tb42,event_tb42) reject(st_tb42,pg_tb42,kp_tb42,loaded_tb42,keyloaded_tb42,event_tb42)
+block compare_next_key(st_tb43:mutbuf,pg_tb43:mutbuf,kp_tb43:readbuf,loaded_tb43:u64,keyloaded_tb43:u64,event_tb43:u32)
+  at_index_tb43:usize = const() {"value":120}
+  index_tb43:u64 = call(st_tb43,at_index_tb43) {"function":"table_read_word"}
+  set_stage_tb43:u64 = const() {"value":3}
+  set_at_stage_tb43:usize = const() {"value":8}
+  _ = call(st_tb43,set_at_stage_tb43,set_stage_tb43) {"function":"table_write_word"}
+  set_at_keyindex_tb43:usize = const() {"value":64}
+  _ = call(st_tb43,set_at_keyindex_tb43,index_tb43) {"function":"table_write_word"}
+  action_tb43:u32 = const() {"value":2}
+  ret(action_tb43)
+block compare_page(st_tb44:mutbuf,pg_tb44:mutbuf,kp_tb44:readbuf,loaded_tb44:u64,keyloaded_tb44:u64,event_tb44:u32)
+  at_current_tb44:usize = const() {"value":112}
+  current_tb44:u64 = call(st_tb44,at_current_tb44) {"function":"table_read_word"}
+  at_index_tb44:usize = const() {"value":120}
+  index_tb44:u64 = call(st_tb44,at_index_tb44) {"function":"table_read_word"}
+  at_scope_tb44:usize = const() {"value":24}
+  scope_tb44:u64 = call(st_tb44,at_scope_tb44) {"function":"table_read_word"}
+  at_root_tb44:usize = const() {"value":176}
+  root_tb44:u64 = call(st_tb44,at_root_tb44) {"function":"table_read_word"}
+  at_hashed_tb44:usize = const() {"value":32}
+  hashed_tb44:u64 = call(st_tb44,at_hashed_tb44) {"function":"table_read_word"}
+  at_length_tb44:usize = const() {"value":40}
+  length_tb44:u64 = call(st_tb44,at_length_tb44) {"function":"table_read_word"}
+  right_tb44:bool = compare.eq(loaded_tb44,current_tb44)
+  keyright_tb44:bool = compare.eq(keyloaded_tb44,index_tb44)
+  meta_tb44:bool = call(pg_tb44,scope_tb44,root_tb44,hashed_tb44,length_tb44) {"function":"table_metadata"}
+  a_tb44:bool = bool.and(right_tb44,keyright_tb44)
+  okay_tb44:bool = bool.and(a_tb44,meta_tb44)
+  branch okay_tb44 compare_extent(st_tb44,pg_tb44,kp_tb44,loaded_tb44,keyloaded_tb44,event_tb44) reject(st_tb44,pg_tb44,kp_tb44,loaded_tb44,keyloaded_tb44,event_tb44)
+block compare_extent(st_tb45:mutbuf,pg_tb45:mutbuf,kp_tb45:readbuf,loaded_tb45:u64,keyloaded_tb45:u64,event_tb45:u32)
+  at_index_tb45:usize = const() {"value":120}
+  index_tb45:u64 = call(st_tb45,at_index_tb45) {"function":"table_read_word"}
+  at_length_tb45:usize = const() {"value":40}
+  length_tb45:u64 = call(st_tb45,at_length_tb45) {"function":"table_read_word"}
+  capacity_tb45:u64 = const() {"value":208}
+  offset_tb45:u64 = int.mul.checked(index_tb45,capacity_tb45)
+  fits_tb45:bool = compare.le(offset_tb45,length_tb45)
+  branch fits_tb45 compare_count(st_tb45,pg_tb45,kp_tb45,loaded_tb45,keyloaded_tb45,event_tb45,offset_tb45) reject(st_tb45,pg_tb45,kp_tb45,loaded_tb45,keyloaded_tb45,event_tb45)
+block compare_count(st_tb46:mutbuf,pg_tb46:mutbuf,kp_tb46:readbuf,loaded_tb46:u64,keyloaded_tb46:u64,event_tb46:u32,offset_tb46:u64)
+  at_length_tb46:usize = const() {"value":40}
+  length_tb46:u64 = call(st_tb46,at_length_tb46) {"function":"table_read_word"}
+  at_rolling_tb46:usize = const() {"value":136}
+  rolling_tb46:u64 = call(st_tb46,at_rolling_tb46) {"function":"table_read_word"}
+  remaining_tb46:u64 = int.sub.checked(length_tb46,offset_tb46)
+  capacity_tb46:u64 = const() {"value":208}
+  small_tb46:bool = compare.lt(remaining_tb46,capacity_tb46)
+  count_tb46:u64 = select(small_tb46,remaining_tb46,capacity_tb46)
+  zero_tb46:u64 = const() {"value":0}
+  jump compare_loop(st_tb46,pg_tb46,kp_tb46,loaded_tb46,keyloaded_tb46,event_tb46,zero_tb46,count_tb46,offset_tb46,rolling_tb46)
+block compare_loop(st_tb47:mutbuf,pg_tb47:mutbuf,kp_tb47:readbuf,loaded_tb47:u64,keyloaded_tb47:u64,event_tb47:u32,cursor_tb47:u64,count_tb47:u64,offset_tb47:u64,acc_tb47:u64)
+  more_tb47:bool = compare.lt(cursor_tb47,count_tb47)
+  branch more_tb47 compare_byte(st_tb47,pg_tb47,kp_tb47,loaded_tb47,keyloaded_tb47,event_tb47,cursor_tb47,count_tb47,offset_tb47,acc_tb47) compare_complete(st_tb47,pg_tb47,kp_tb47,loaded_tb47,keyloaded_tb47,event_tb47,count_tb47,offset_tb47,acc_tb47)
+block compare_byte(st_tb48:mutbuf,pg_tb48:mutbuf,kp_tb48:readbuf,loaded_tb48:u64,keyloaded_tb48:u64,event_tb48:u32,cursor_tb48:u64,count_tb48:u64,offset_tb48:u64,acc_tb48:u64)
+  source_tb48:usize = int.cast(cursor_tb48) {"mode":"wrap"}
+  base_tb48:u64 = const() {"value":48}
+  dest64_tb48:u64 = int.add.checked(cursor_tb48,base_tb48)
+  dest_tb48:usize = int.cast(dest64_tb48) {"mode":"wrap"}
+  a_tb48:u8 = buffer.load(pg_tb48,dest_tb48)
+  b_tb48:u8 = buffer.load(kp_tb48,source_tb48)
+  same_tb48:bool = compare.eq(a_tb48,b_tb48)
+  word_tb48:u64 = int.cast(b_tb48) {"mode":"wrap"}
+  mixed_tb48:u64 = bit.xor(acc_tb48,word_tb48)
+  prime_tb48:u64 = const() {"value":1099511628211}
+  newhash_tb48:u64 = int.mul.wrap(mixed_tb48,prime_tb48)
+  one_tb48:u64 = const() {"value":1}
+  following_tb48:u64 = int.add.checked(cursor_tb48,one_tb48)
+  branch same_tb48 compare_loop(st_tb48,pg_tb48,kp_tb48,loaded_tb48,keyloaded_tb48,event_tb48,following_tb48,count_tb48,offset_tb48,newhash_tb48) next_candidate(st_tb48,pg_tb48,kp_tb48,loaded_tb48,keyloaded_tb48,event_tb48)
+block compare_complete(st_tb49:mutbuf,pg_tb49:mutbuf,kp_tb49:readbuf,loaded_tb49:u64,keyloaded_tb49:u64,event_tb49:u32,count_tb49:u64,offset_tb49:u64,acc_tb49:u64)
+  at_length_tb49:usize = const() {"value":40}
+  length_tb49:u64 = call(st_tb49,at_length_tb49) {"function":"table_read_word"}
+  end_tb49:u64 = int.add.checked(offset_tb49,count_tb49)
+  done_tb49:bool = compare.eq(end_tb49,length_tb49)
+  set_at_rolling_tb49:usize = const() {"value":136}
+  _ = call(st_tb49,set_at_rolling_tb49,acc_tb49) {"function":"table_write_word"}
+  branch done_tb49 duplicate_hash_check(st_tb49,pg_tb49,kp_tb49,loaded_tb49,keyloaded_tb49,event_tb49,acc_tb49) compare_more(st_tb49,pg_tb49,kp_tb49,loaded_tb49,keyloaded_tb49,event_tb49)
+block duplicate_hash_check(st_tb50:mutbuf,pg_tb50:mutbuf,kp_tb50:readbuf,loaded_tb50:u64,keyloaded_tb50:u64,event_tb50:u32,acc_tb50:u64)
+  at_hashed_tb50:usize = const() {"value":32}
+  hashed_tb50:u64 = call(st_tb50,at_hashed_tb50) {"function":"table_read_word"}
+  valid_tb50:bool = compare.eq(acc_tb50,hashed_tb50)
+  branch valid_tb50 duplicate(st_tb50,pg_tb50,kp_tb50,loaded_tb50,keyloaded_tb50,event_tb50) hash_failure(st_tb50,pg_tb50,kp_tb50,loaded_tb50,keyloaded_tb50,event_tb50)
+block duplicate(st_tb51:mutbuf,pg_tb51:mutbuf,kp_tb51:readbuf,loaded_tb51:u64,keyloaded_tb51:u64,event_tb51:u32)
+  set_stage_tb51:u64 = const() {"value":0}
+  set_at_stage_tb51:usize = const() {"value":8}
+  _ = call(st_tb51,set_at_stage_tb51,set_stage_tb51) {"function":"table_write_word"}
+  action_tb51:u32 = const() {"value":5}
+  ret(action_tb51)
+block compare_more(st_tb52:mutbuf,pg_tb52:mutbuf,kp_tb52:readbuf,loaded_tb52:u64,keyloaded_tb52:u64,event_tb52:u32)
+  at_index_tb52:usize = const() {"value":120}
+  index_tb52:u64 = call(st_tb52,at_index_tb52) {"function":"table_read_word"}
+  at_root_tb52:usize = const() {"value":176}
+  root_tb52:u64 = call(st_tb52,at_root_tb52) {"function":"table_read_word"}
+  at_next_tb52:usize = const() {"value":48}
+  next_tb52:u64 = call(st_tb52,at_next_tb52) {"function":"table_read_word"}
+  one_tb52:u64 = const() {"value":1}
+  following_tb52:u64 = int.add.checked(index_tb52,one_tb52)
+  page_tb52:u64 = int.add.checked(root_tb52,following_tb52)
+  valid_tb52:bool = call(page_tb52,next_tb52) {"function":"table_pointer_nonzero"}
+  branch valid_tb52 compare_more_request(st_tb52,pg_tb52,kp_tb52,loaded_tb52,keyloaded_tb52,event_tb52,following_tb52,page_tb52) reject(st_tb52,pg_tb52,kp_tb52,loaded_tb52,keyloaded_tb52,event_tb52)
+block compare_more_request(st_tb53:mutbuf,pg_tb53:mutbuf,kp_tb53:readbuf,loaded_tb53:u64,keyloaded_tb53:u64,event_tb53:u32,following_tb53:u64,page_tb53:u64)
+  set_stage_tb53:u64 = const() {"value":4}
+  set_at_stage_tb53:usize = const() {"value":8}
+  _ = call(st_tb53,set_at_stage_tb53,set_stage_tb53) {"function":"table_write_word"}
+  set_at_index_tb53:usize = const() {"value":120}
+  _ = call(st_tb53,set_at_index_tb53,following_tb53) {"function":"table_write_word"}
+  set_at_current_tb53:usize = const() {"value":112}
+  _ = call(st_tb53,set_at_current_tb53,page_tb53) {"function":"table_write_word"}
+  set_at_request_tb53:usize = const() {"value":56}
+  _ = call(st_tb53,set_at_request_tb53,page_tb53) {"function":"table_write_word"}
+  action_tb53:u32 = const() {"value":1}
+  ret(action_tb53)
+block allocate(st_tb54:mutbuf,pg_tb54:mutbuf,kp_tb54:readbuf,loaded_tb54:u64,keyloaded_tb54:u64,event_tb54:u32)
+  at_length_tb54:usize = const() {"value":40}
+  length_tb54:u64 = call(st_tb54,at_length_tb54) {"function":"table_read_word"}
+  at_next_tb54:usize = const() {"value":48}
+  next_tb54:u64 = call(st_tb54,at_next_tb54) {"function":"table_read_word"}
+  capacity_tb54:u64 = const() {"value":208}
+  quot_tb54:u64 = int.div.checked(length_tb54,capacity_tb54)
+  rem_tb54:u64 = int.rem.checked(length_tb54,capacity_tb54)
+  zero_tb54:u64 = const() {"value":0}
+  one_tb54:u64 = const() {"value":1}
+  tail_tb54:bool = compare.ne(rem_tb54,zero_tb54)
+  extra_tb54:u64 = select(tail_tb54,one_tb54,zero_tb54)
+  calculated_tb54:u64 = int.add.checked(quot_tb54,extra_tb54)
+  empty_tb54:bool = compare.eq(calculated_tb54,zero_tb54)
+  count_tb54:u64 = select(empty_tb54,one_tb54,calculated_tb54)
+  reserved_tb54:u64 = int.add.checked(next_tb54,count_tb54)
+  hi_tb54:u64 = const() {"value":9223372036854775808}
+  fits_tb54:bool = compare.le(reserved_tb54,hi_tb54)
+  head_tb54:u64 = int.add.checked(hi_tb54,next_tb54)
+  branch fits_tb54 allocate_request(st_tb54,pg_tb54,kp_tb54,loaded_tb54,keyloaded_tb54,event_tb54,head_tb54,count_tb54,reserved_tb54) reject(st_tb54,pg_tb54,kp_tb54,loaded_tb54,keyloaded_tb54,event_tb54)
+block allocate_request(st_tb55:mutbuf,pg_tb55:mutbuf,kp_tb55:readbuf,loaded_tb55:u64,keyloaded_tb55:u64,event_tb55:u32,head_tb55:u64,count_tb55:u64,reserved_tb55:u64)
+  seed_tb55:u64 = const() {"value":14695981039346656037}
+  set_stage_tb55:u64 = const() {"value":5}
+  set_at_stage_tb55:usize = const() {"value":8}
+  _ = call(st_tb55,set_at_stage_tb55,set_stage_tb55) {"function":"table_write_word"}
+  set_at_next_tb55:usize = const() {"value":48}
+  _ = call(st_tb55,set_at_next_tb55,reserved_tb55) {"function":"table_write_word"}
+  set_at_newroot_tb55:usize = const() {"value":104}
+  _ = call(st_tb55,set_at_newroot_tb55,head_tb55) {"function":"table_write_word"}
+  set_at_current_tb55:usize = const() {"value":112}
+  _ = call(st_tb55,set_at_current_tb55,head_tb55) {"function":"table_write_word"}
+  set_at_request_tb55:usize = const() {"value":56}
+  _ = call(st_tb55,set_at_request_tb55,head_tb55) {"function":"table_write_word"}
+  set_index_tb55:u64 = const() {"value":0}
+  set_at_index_tb55:usize = const() {"value":120}
+  _ = call(st_tb55,set_at_index_tb55,set_index_tb55) {"function":"table_write_word"}
+  set_at_pages_tb55:usize = const() {"value":144}
+  _ = call(st_tb55,set_at_pages_tb55,count_tb55) {"function":"table_write_word"}
+  set_at_rolling_tb55:usize = const() {"value":136}
+  _ = call(st_tb55,set_at_rolling_tb55,seed_tb55) {"function":"table_write_word"}
+  action_tb55:u32 = const() {"value":3}
+  ret(action_tb55)
+block new_page(st_tb56:mutbuf,pg_tb56:mutbuf,kp_tb56:readbuf,loaded_tb56:u64,keyloaded_tb56:u64,event_tb56:u32)
+  at_current_tb56:usize = const() {"value":112}
+  current_tb56:u64 = call(st_tb56,at_current_tb56) {"function":"table_read_word"}
+  right_tb56:bool = compare.eq(loaded_tb56,current_tb56)
+  zero_tb56:bool = call(pg_tb56) {"function":"table_page_zero"}
+  valid_tb56:bool = bool.and(right_tb56,zero_tb56)
+  branch valid_tb56 new_key_request(st_tb56,pg_tb56,kp_tb56,loaded_tb56,keyloaded_tb56,event_tb56) reject(st_tb56,pg_tb56,kp_tb56,loaded_tb56,keyloaded_tb56,event_tb56)
+block new_key_request(st_tb57:mutbuf,pg_tb57:mutbuf,kp_tb57:readbuf,loaded_tb57:u64,keyloaded_tb57:u64,event_tb57:u32)
+  at_index_tb57:usize = const() {"value":120}
+  index_tb57:u64 = call(st_tb57,at_index_tb57) {"function":"table_read_word"}
+  set_stage_tb57:u64 = const() {"value":6}
+  set_at_stage_tb57:usize = const() {"value":8}
+  _ = call(st_tb57,set_at_stage_tb57,set_stage_tb57) {"function":"table_write_word"}
+  set_at_keyindex_tb57:usize = const() {"value":64}
+  _ = call(st_tb57,set_at_keyindex_tb57,index_tb57) {"function":"table_write_word"}
+  action_tb57:u32 = const() {"value":2}
+  ret(action_tb57)
+block fill_page(st_tb58:mutbuf,pg_tb58:mutbuf,kp_tb58:readbuf,loaded_tb58:u64,keyloaded_tb58:u64,event_tb58:u32)
+  at_current_tb58:usize = const() {"value":112}
+  current_tb58:u64 = call(st_tb58,at_current_tb58) {"function":"table_read_word"}
+  at_index_tb58:usize = const() {"value":120}
+  index_tb58:u64 = call(st_tb58,at_index_tb58) {"function":"table_read_word"}
+  right_tb58:bool = compare.eq(loaded_tb58,current_tb58)
+  keyright_tb58:bool = compare.eq(keyloaded_tb58,index_tb58)
+  zero_tb58:bool = call(pg_tb58) {"function":"table_page_zero"}
+  a_tb58:bool = bool.and(right_tb58,keyright_tb58)
+  valid_tb58:bool = bool.and(a_tb58,zero_tb58)
+  branch valid_tb58 fill_extent(st_tb58,pg_tb58,kp_tb58,loaded_tb58,keyloaded_tb58,event_tb58) reject(st_tb58,pg_tb58,kp_tb58,loaded_tb58,keyloaded_tb58,event_tb58)
+block fill_extent(st_tb59:mutbuf,pg_tb59:mutbuf,kp_tb59:readbuf,loaded_tb59:u64,keyloaded_tb59:u64,event_tb59:u32)
+  at_index_tb59:usize = const() {"value":120}
+  index_tb59:u64 = call(st_tb59,at_index_tb59) {"function":"table_read_word"}
+  at_length_tb59:usize = const() {"value":40}
+  length_tb59:u64 = call(st_tb59,at_length_tb59) {"function":"table_read_word"}
+  at_rolling_tb59:usize = const() {"value":136}
+  rolling_tb59:u64 = call(st_tb59,at_rolling_tb59) {"function":"table_read_word"}
+  capacity_tb59:u64 = const() {"value":208}
+  offset_tb59:u64 = int.mul.checked(index_tb59,capacity_tb59)
+  fits_tb59:bool = compare.le(offset_tb59,length_tb59)
+  branch fits_tb59 fill_count(st_tb59,pg_tb59,kp_tb59,loaded_tb59,keyloaded_tb59,event_tb59,offset_tb59,rolling_tb59) reject(st_tb59,pg_tb59,kp_tb59,loaded_tb59,keyloaded_tb59,event_tb59)
+block fill_count(st_tb60:mutbuf,pg_tb60:mutbuf,kp_tb60:readbuf,loaded_tb60:u64,keyloaded_tb60:u64,event_tb60:u32,offset_tb60:u64,rolling_tb60:u64)
+  at_length_tb60:usize = const() {"value":40}
+  length_tb60:u64 = call(st_tb60,at_length_tb60) {"function":"table_read_word"}
+  remaining_tb60:u64 = int.sub.checked(length_tb60,offset_tb60)
+  capacity_tb60:u64 = const() {"value":208}
+  small_tb60:bool = compare.lt(remaining_tb60,capacity_tb60)
+  count_tb60:u64 = select(small_tb60,remaining_tb60,capacity_tb60)
+  zero_tb60:u64 = const() {"value":0}
+  jump hash_loop(st_tb60,pg_tb60,kp_tb60,loaded_tb60,keyloaded_tb60,event_tb60,zero_tb60,count_tb60,rolling_tb60)
+block hash_loop(st_tb61:mutbuf,pg_tb61:mutbuf,kp_tb61:readbuf,loaded_tb61:u64,keyloaded_tb61:u64,event_tb61:u32,cursor_tb61:u64,count_tb61:u64,acc_tb61:u64)
+  more_tb61:bool = compare.lt(cursor_tb61,count_tb61)
+  branch more_tb61 hash_byte(st_tb61,pg_tb61,kp_tb61,loaded_tb61,keyloaded_tb61,event_tb61,cursor_tb61,count_tb61,acc_tb61) hash_done(st_tb61,pg_tb61,kp_tb61,loaded_tb61,keyloaded_tb61,event_tb61,count_tb61,acc_tb61)
+block hash_byte(st_tb62:mutbuf,pg_tb62:mutbuf,kp_tb62:readbuf,loaded_tb62:u64,keyloaded_tb62:u64,event_tb62:u32,cursor_tb62:u64,count_tb62:u64,acc_tb62:u64)
+  at_tb62:usize = int.cast(cursor_tb62) {"mode":"wrap"}
+  byte_tb62:u8 = buffer.load(kp_tb62,at_tb62)
+  word_tb62:u64 = int.cast(byte_tb62) {"mode":"wrap"}
+  mixed_tb62:u64 = bit.xor(acc_tb62,word_tb62)
+  prime_tb62:u64 = const() {"value":1099511628211}
+  newhash_tb62:u64 = int.mul.wrap(mixed_tb62,prime_tb62)
+  one_tb62:u64 = const() {"value":1}
+  following_tb62:u64 = int.add.checked(cursor_tb62,one_tb62)
+  jump hash_loop(st_tb62,pg_tb62,kp_tb62,loaded_tb62,keyloaded_tb62,event_tb62,following_tb62,count_tb62,newhash_tb62)
+block hash_done(st_tb63:mutbuf,pg_tb63:mutbuf,kp_tb63:readbuf,loaded_tb63:u64,keyloaded_tb63:u64,event_tb63:u32,count_tb63:u64,acc_tb63:u64)
+  at_index_tb63:usize = const() {"value":120}
+  index_tb63:u64 = call(st_tb63,at_index_tb63) {"function":"table_read_word"}
+  at_pages_tb63:usize = const() {"value":144}
+  pages_tb63:u64 = call(st_tb63,at_pages_tb63) {"function":"table_read_word"}
+  at_hashed_tb63:usize = const() {"value":32}
+  hashed_tb63:u64 = call(st_tb63,at_hashed_tb63) {"function":"table_read_word"}
+  one_tb63:u64 = const() {"value":1}
+  following_tb63:u64 = int.add.checked(index_tb63,one_tb63)
+  last_tb63:bool = compare.eq(following_tb63,pages_tb63)
+  match_tb63:bool = compare.eq(acc_tb63,hashed_tb63)
+  notlast_tb63:bool = bool.not(last_tb63)
+  okay_tb63:bool = bool.or(notlast_tb63,match_tb63)
+  branch okay_tb63 write_metadata(st_tb63,pg_tb63,kp_tb63,loaded_tb63,keyloaded_tb63,event_tb63,count_tb63,acc_tb63) hash_failure(st_tb63,pg_tb63,kp_tb63,loaded_tb63,keyloaded_tb63,event_tb63)
+block hash_failure(st_tb64:mutbuf,pg_tb64:mutbuf,kp_tb64:readbuf,loaded_tb64:u64,keyloaded_tb64:u64,event_tb64:u32)
+  reason_tb64:u64 = const() {"value":6}
+  jump abort_start(st_tb64,pg_tb64,kp_tb64,loaded_tb64,keyloaded_tb64,event_tb64,reason_tb64)
+block write_metadata(st_tb65:mutbuf,pg_tb65:mutbuf,kp_tb65:readbuf,loaded_tb65:u64,keyloaded_tb65:u64,event_tb65:u32,count_tb65:u64,acc_tb65:u64)
+  at_index_tb65:usize = const() {"value":120}
+  index_tb65:u64 = call(st_tb65,at_index_tb65) {"function":"table_read_word"}
+  at_oldbucket_tb65:usize = const() {"value":88}
+  oldbucket_tb65:u64 = call(st_tb65,at_oldbucket_tb65) {"function":"table_read_word"}
+  at_oldscope_tb65:usize = const() {"value":96}
+  oldscope_tb65:u64 = call(st_tb65,at_oldscope_tb65) {"function":"table_read_word"}
+  at_scope_tb65:usize = const() {"value":24}
+  scope_tb65:u64 = call(st_tb65,at_scope_tb65) {"function":"table_read_word"}
+  at_hashed_tb65:usize = const() {"value":32}
+  hashed_tb65:u64 = call(st_tb65,at_hashed_tb65) {"function":"table_read_word"}
+  at_length_tb65:usize = const() {"value":40}
+  length_tb65:u64 = call(st_tb65,at_length_tb65) {"function":"table_read_word"}
+  at_newroot_tb65:usize = const() {"value":104}
+  newroot_tb65:u64 = call(st_tb65,at_newroot_tb65) {"function":"table_read_word"}
+  zero_tb65:u64 = const() {"value":0}
+  first_tb65:bool = compare.eq(index_tb65,zero_tb65)
+  bucket_tb65:u64 = select(first_tb65,oldbucket_tb65,zero_tb65)
+  scopelink_tb65:u64 = select(first_tb65,oldscope_tb65,zero_tb65)
+  at0_tb65:usize = const() {"value":0}
+  at8_tb65:usize = const() {"value":8}
+  at16_tb65:usize = const() {"value":16}
+  at24_tb65:usize = const() {"value":24}
+  at32_tb65:usize = const() {"value":32}
+  at40_tb65:usize = const() {"value":40}
+  _ = call(pg_tb65,at0_tb65,bucket_tb65) {"function":"table_write_word"}
+  _ = call(pg_tb65,at8_tb65,scopelink_tb65) {"function":"table_write_word"}
+  _ = call(pg_tb65,at16_tb65,scope_tb65) {"function":"table_write_word"}
+  _ = call(pg_tb65,at24_tb65,hashed_tb65) {"function":"table_write_word"}
+  _ = call(pg_tb65,at32_tb65,length_tb65) {"function":"table_write_word"}
+  _ = call(pg_tb65,at40_tb65,newroot_tb65) {"function":"table_write_word"}
+  jump write_loop(st_tb65,pg_tb65,kp_tb65,loaded_tb65,keyloaded_tb65,event_tb65,zero_tb65,count_tb65,acc_tb65)
+block write_loop(st_tb66:mutbuf,pg_tb66:mutbuf,kp_tb66:readbuf,loaded_tb66:u64,keyloaded_tb66:u64,event_tb66:u32,cursor_tb66:u64,count_tb66:u64,acc_tb66:u64)
+  more_tb66:bool = compare.lt(cursor_tb66,count_tb66)
+  branch more_tb66 write_byte(st_tb66,pg_tb66,kp_tb66,loaded_tb66,keyloaded_tb66,event_tb66,cursor_tb66,count_tb66,acc_tb66) write_done(st_tb66,pg_tb66,kp_tb66,loaded_tb66,keyloaded_tb66,event_tb66,acc_tb66)
+block write_byte(st_tb67:mutbuf,pg_tb67:mutbuf,kp_tb67:readbuf,loaded_tb67:u64,keyloaded_tb67:u64,event_tb67:u32,cursor_tb67:u64,count_tb67:u64,acc_tb67:u64)
+  source_tb67:usize = int.cast(cursor_tb67) {"mode":"wrap"}
+  base_tb67:u64 = const() {"value":48}
+  where_tb67:u64 = int.add.checked(cursor_tb67,base_tb67)
+  dest_tb67:usize = int.cast(where_tb67) {"mode":"wrap"}
+  byte_tb67:u8 = buffer.load(kp_tb67,source_tb67)
+  _ = buffer.store(pg_tb67,dest_tb67,byte_tb67)
+  one_tb67:u64 = const() {"value":1}
+  following_tb67:u64 = int.add.checked(cursor_tb67,one_tb67)
+  jump write_loop(st_tb67,pg_tb67,kp_tb67,loaded_tb67,keyloaded_tb67,event_tb67,following_tb67,count_tb67,acc_tb67)
+block write_done(st_tb68:mutbuf,pg_tb68:mutbuf,kp_tb68:readbuf,loaded_tb68:u64,keyloaded_tb68:u64,event_tb68:u32,acc_tb68:u64)
+  at_index_tb68:usize = const() {"value":120}
+  index_tb68:u64 = call(st_tb68,at_index_tb68) {"function":"table_read_word"}
+  at_pages_tb68:usize = const() {"value":144}
+  pages_tb68:u64 = call(st_tb68,at_pages_tb68) {"function":"table_read_word"}
+  at_newroot_tb68:usize = const() {"value":104}
+  newroot_tb68:u64 = call(st_tb68,at_newroot_tb68) {"function":"table_read_word"}
+  one_tb68:u64 = const() {"value":1}
+  following_tb68:u64 = int.add.checked(index_tb68,one_tb68)
+  last_tb68:bool = compare.eq(following_tb68,pages_tb68)
+  set_at_rolling_tb68:usize = const() {"value":136}
+  _ = call(st_tb68,set_at_rolling_tb68,acc_tb68) {"function":"table_write_word"}
+  branch last_tb68 commit_request(st_tb68,pg_tb68,kp_tb68,loaded_tb68,keyloaded_tb68,event_tb68) allocate_next(st_tb68,pg_tb68,kp_tb68,loaded_tb68,keyloaded_tb68,event_tb68,following_tb68)
+block allocate_next(st_tb69:mutbuf,pg_tb69:mutbuf,kp_tb69:readbuf,loaded_tb69:u64,keyloaded_tb69:u64,event_tb69:u32,following_tb69:u64)
+  at_newroot_tb69:usize = const() {"value":104}
+  newroot_tb69:u64 = call(st_tb69,at_newroot_tb69) {"function":"table_read_word"}
+  page_tb69:u64 = int.add.checked(newroot_tb69,following_tb69)
+  set_stage_tb69:u64 = const() {"value":5}
+  set_at_stage_tb69:usize = const() {"value":8}
+  _ = call(st_tb69,set_at_stage_tb69,set_stage_tb69) {"function":"table_write_word"}
+  set_at_index_tb69:usize = const() {"value":120}
+  _ = call(st_tb69,set_at_index_tb69,following_tb69) {"function":"table_write_word"}
+  set_at_current_tb69:usize = const() {"value":112}
+  _ = call(st_tb69,set_at_current_tb69,page_tb69) {"function":"table_write_word"}
+  set_at_request_tb69:usize = const() {"value":56}
+  _ = call(st_tb69,set_at_request_tb69,page_tb69) {"function":"table_write_word"}
+  action_tb69:u32 = const() {"value":3}
+  ret(action_tb69)
+block commit_request(st_tb70:mutbuf,pg_tb70:mutbuf,kp_tb70:readbuf,loaded_tb70:u64,keyloaded_tb70:u64,event_tb70:u32)
+  at_scope_tb70:usize = const() {"value":24}
+  scope_tb70:u64 = call(st_tb70,at_scope_tb70) {"function":"table_read_word"}
+  set_stage_tb70:u64 = const() {"value":7}
+  set_at_stage_tb70:usize = const() {"value":8}
+  _ = call(st_tb70,set_at_stage_tb70,set_stage_tb70) {"function":"table_write_word"}
+  set_at_request_tb70:usize = const() {"value":56}
+  _ = call(st_tb70,set_at_request_tb70,scope_tb70) {"function":"table_write_word"}
+  action_tb70:u32 = const() {"value":1}
+  ret(action_tb70)
+block commit(st_tb71:mutbuf,pg_tb71:mutbuf,kp_tb71:readbuf,loaded_tb71:u64,keyloaded_tb71:u64,event_tb71:u32)
+  at_scope_tb71:usize = const() {"value":24}
+  scope_tb71:u64 = call(st_tb71,at_scope_tb71) {"function":"table_read_word"}
+  right_tb71:bool = compare.eq(loaded_tb71,scope_tb71)
+  branch right_tb71 commit_kind(st_tb71,pg_tb71,kp_tb71,loaded_tb71,keyloaded_tb71,event_tb71) reject(st_tb71,pg_tb71,kp_tb71,loaded_tb71,keyloaded_tb71,event_tb71)
+block commit_kind(st_tb72:mutbuf,pg_tb72:mutbuf,kp_tb72:readbuf,loaded_tb72:u64,keyloaded_tb72:u64,event_tb72:u32)
+  at_isnew_tb72:usize = const() {"value":160}
+  isnew_tb72:u64 = call(st_tb72,at_isnew_tb72) {"function":"table_read_word"}
+  one_tb72:u64 = const() {"value":1}
+  fresh_tb72:bool = compare.eq(isnew_tb72,one_tb72)
+  branch fresh_tb72 commit_new(st_tb72,pg_tb72,kp_tb72,loaded_tb72,keyloaded_tb72,event_tb72) commit_existing(st_tb72,pg_tb72,kp_tb72,loaded_tb72,keyloaded_tb72,event_tb72)
+block commit_new(st_tb73:mutbuf,pg_tb73:mutbuf,kp_tb73:readbuf,loaded_tb73:u64,keyloaded_tb73:u64,event_tb73:u32)
+  zero_tb73:bool = call(pg_tb73) {"function":"table_page_zero"}
+  branch zero_tb73 commit_write(st_tb73,pg_tb73,kp_tb73,loaded_tb73,keyloaded_tb73,event_tb73) reject(st_tb73,pg_tb73,kp_tb73,loaded_tb73,keyloaded_tb73,event_tb73)
+block commit_existing(st_tb74:mutbuf,pg_tb74:mutbuf,kp_tb74:readbuf,loaded_tb74:u64,keyloaded_tb74:u64,event_tb74:u32)
+  at_scope_tb74:usize = const() {"value":24}
+  scope_tb74:u64 = call(st_tb74,at_scope_tb74) {"function":"table_read_word"}
+  at_slot_tb74:usize = const() {"value":152}
+  slot_tb74:u64 = call(st_tb74,at_slot_tb74) {"function":"table_read_word"}
+  at_oldbucket_tb74:usize = const() {"value":88}
+  oldbucket_tb74:u64 = call(st_tb74,at_oldbucket_tb74) {"function":"table_read_word"}
+  at_oldscope_tb74:usize = const() {"value":96}
+  oldscope_tb74:u64 = call(st_tb74,at_oldscope_tb74) {"function":"table_read_word"}
+  at_oldcount_tb74:usize = const() {"value":224}
+  oldcount_tb74:u64 = call(st_tb74,at_oldcount_tb74) {"function":"table_read_word"}
+  page_at_records_tb74:usize = const() {"value":24}
+  records_tb74:u64 = call(pg_tb74,page_at_records_tb74) {"function":"table_read_word"}
+  page_at_pv_tb74:usize = const() {"value":0}
+  pv_tb74:u64 = call(pg_tb74,page_at_pv_tb74) {"function":"table_read_word"}
+  page_at_pid_tb74:usize = const() {"value":8}
+  pid_tb74:u64 = call(pg_tb74,page_at_pid_tb74) {"function":"table_read_word"}
+  page_at_head_tb74:usize = const() {"value":16}
+  head_tb74:u64 = call(pg_tb74,page_at_head_tb74) {"function":"table_read_word"}
+  slot_at_tb74:usize = int.cast(slot_tb74) {"mode":"wrap"}
+  bucket_tb74:u64 = call(pg_tb74,slot_at_tb74) {"function":"table_read_word"}
+  one_tb74:u64 = const() {"value":1}
+  a_tb74:bool = compare.eq(pv_tb74,one_tb74)
+  b_tb74:bool = compare.eq(pid_tb74,scope_tb74)
+  c_tb74:bool = compare.eq(head_tb74,oldscope_tb74)
+  d_tb74:bool = compare.eq(bucket_tb74,oldbucket_tb74)
+  ab_tb74:bool = bool.and(a_tb74,b_tb74)
+  cd_tb74:bool = bool.and(c_tb74,d_tb74)
+  same_count_tb74:bool = compare.eq(records_tb74,oldcount_tb74)
+  heads_tb74:bool = bool.and(ab_tb74,cd_tb74)
+  okay_tb74:bool = bool.and(heads_tb74,same_count_tb74)
+  branch okay_tb74 commit_write(st_tb74,pg_tb74,kp_tb74,loaded_tb74,keyloaded_tb74,event_tb74) reject(st_tb74,pg_tb74,kp_tb74,loaded_tb74,keyloaded_tb74,event_tb74)
+block commit_write(st_tb75:mutbuf,pg_tb75:mutbuf,kp_tb75:readbuf,loaded_tb75:u64,keyloaded_tb75:u64,event_tb75:u32)
+  at_scope_tb75:usize = const() {"value":24}
+  scope_tb75:u64 = call(st_tb75,at_scope_tb75) {"function":"table_read_word"}
+  at_slot_tb75:usize = const() {"value":152}
+  slot_tb75:u64 = call(st_tb75,at_slot_tb75) {"function":"table_read_word"}
+  at_newroot_tb75:usize = const() {"value":104}
+  newroot_tb75:u64 = call(st_tb75,at_newroot_tb75) {"function":"table_read_word"}
+  at_oldcount_tb75:usize = const() {"value":224}
+  oldcount_tb75:u64 = call(st_tb75,at_oldcount_tb75) {"function":"table_read_word"}
+  one_tb75:u64 = const() {"value":1}
+  newcount_tb75:u64 = int.add.checked(oldcount_tb75,one_tb75)
+  at0_tb75:usize = const() {"value":0}
+  at8_tb75:usize = const() {"value":8}
+  at16_tb75:usize = const() {"value":16}
+  at24_tb75:usize = const() {"value":24}
+  _ = call(pg_tb75,at0_tb75,one_tb75) {"function":"table_write_word"}
+  _ = call(pg_tb75,at8_tb75,scope_tb75) {"function":"table_write_word"}
+  _ = call(pg_tb75,at16_tb75,newroot_tb75) {"function":"table_write_word"}
+  _ = call(pg_tb75,at24_tb75,newcount_tb75) {"function":"table_write_word"}
+  slot_at_tb75:usize = int.cast(slot_tb75) {"mode":"wrap"}
+  _ = call(pg_tb75,slot_at_tb75,newroot_tb75) {"function":"table_write_word"}
+  set_stage_tb75:u64 = const() {"value":0}
+  set_at_stage_tb75:usize = const() {"value":8}
+  _ = call(st_tb75,set_at_stage_tb75,set_stage_tb75) {"function":"table_write_word"}
+  set_newroot_tb75:u64 = const() {"value":0}
+  set_at_newroot_tb75:usize = const() {"value":104}
+  _ = call(st_tb75,set_at_newroot_tb75,set_newroot_tb75) {"function":"table_write_word"}
+  action_tb75:u32 = const() {"value":0}
+  ret(action_tb75)
+block close_preflight_start(st_tb76:mutbuf,pg_tb76:mutbuf,kp_tb76:readbuf,loaded_tb76:u64,keyloaded_tb76:u64,event_tb76:u32)
+  at_next_tb76:usize = const() {"value":48}
+  next_tb76:u64 = call(st_tb76,at_next_tb76) {"function":"table_read_word"}
+  page_at_head_tb76:usize = const() {"value":16}
+  head_tb76:u64 = call(pg_tb76,page_at_head_tb76) {"function":"table_read_word"}
+  valid_tb76:bool = call(head_tb76,next_tb76) {"function":"table_pointer"}
+  branch valid_tb76 close_preflight_head(st_tb76,pg_tb76,kp_tb76,loaded_tb76,keyloaded_tb76,event_tb76,head_tb76) reject(st_tb76,pg_tb76,kp_tb76,loaded_tb76,keyloaded_tb76,event_tb76)
+block close_preflight_head(st_tb77:mutbuf,pg_tb77:mutbuf,kp_tb77:readbuf,loaded_tb77:u64,keyloaded_tb77:u64,event_tb77:u32,head_tb77:u64)
+  zero_tb77:u64 = const() {"value":0}
+  empty_tb77:bool = compare.eq(head_tb77,zero_tb77)
+  set_at_oldscope_tb77:usize = const() {"value":96}
+  _ = call(st_tb77,set_at_oldscope_tb77,head_tb77) {"function":"table_write_word"}
+  branch empty_tb77 close_commit(st_tb77,pg_tb77,kp_tb77,loaded_tb77,keyloaded_tb77,event_tb77) close_preflight_row(st_tb77,pg_tb77,kp_tb77,loaded_tb77,keyloaded_tb77,event_tb77,head_tb77)
+block close_preflight_row(st_tb78:mutbuf,pg_tb78:mutbuf,kp_tb78:readbuf,loaded_tb78:u64,keyloaded_tb78:u64,event_tb78:u32,head_tb78:u64)
+  set_stage_tb78:u64 = const() {"value":11}
+  set_at_stage_tb78:usize = const() {"value":8}
+  _ = call(st_tb78,set_at_stage_tb78,set_stage_tb78) {"function":"table_write_word"}
+  set_at_root_tb78:usize = const() {"value":176}
+  _ = call(st_tb78,set_at_root_tb78,head_tb78) {"function":"table_write_word"}
+  set_at_current_tb78:usize = const() {"value":112}
+  _ = call(st_tb78,set_at_current_tb78,head_tb78) {"function":"table_write_word"}
+  set_at_request_tb78:usize = const() {"value":56}
+  _ = call(st_tb78,set_at_request_tb78,head_tb78) {"function":"table_write_word"}
+  set_index_tb78:u64 = const() {"value":0}
+  set_at_index_tb78:usize = const() {"value":120}
+  _ = call(st_tb78,set_at_index_tb78,set_index_tb78) {"function":"table_write_word"}
+  action_tb78:u32 = const() {"value":1}
+  ret(action_tb78)
+block close_meta_mode(st_tb79:mutbuf,pg_tb79:mutbuf,kp_tb79:readbuf,loaded_tb79:u64,keyloaded_tb79:u64,event_tb79:u32)
+  at_stage_tb79:usize = const() {"value":8}
+  stage_tb79:u64 = call(st_tb79,at_stage_tb79) {"function":"table_read_word"}
+  eleven_tb79:u64 = const() {"value":11}
+  preflight_tb79:bool = compare.eq(stage_tb79,eleven_tb79)
+  branch preflight_tb79 close_preflight_advance(st_tb79,pg_tb79,kp_tb79,loaded_tb79,keyloaded_tb79,event_tb79) close_release_request(st_tb79,pg_tb79,kp_tb79,loaded_tb79,keyloaded_tb79,event_tb79)
+block close_preflight_advance(st_tb80:mutbuf,pg_tb80:mutbuf,kp_tb80:readbuf,loaded_tb80:u64,keyloaded_tb80:u64,event_tb80:u32)
+  at_index_tb80:usize = const() {"value":120}
+  index_tb80:u64 = call(st_tb80,at_index_tb80) {"function":"table_read_word"}
+  at_pages_tb80:usize = const() {"value":144}
+  pages_tb80:u64 = call(st_tb80,at_pages_tb80) {"function":"table_read_word"}
+  at_root_tb80:usize = const() {"value":176}
+  root_tb80:u64 = call(st_tb80,at_root_tb80) {"function":"table_read_word"}
+  one_tb80:u64 = const() {"value":1}
+  following_tb80:u64 = int.add.checked(index_tb80,one_tb80)
+  more_tb80:bool = compare.lt(following_tb80,pages_tb80)
+  branch more_tb80 close_preflight_page(st_tb80,pg_tb80,kp_tb80,loaded_tb80,keyloaded_tb80,event_tb80,following_tb80) close_preflight_next(st_tb80,pg_tb80,kp_tb80,loaded_tb80,keyloaded_tb80,event_tb80)
+block close_preflight_page(st_tb81:mutbuf,pg_tb81:mutbuf,kp_tb81:readbuf,loaded_tb81:u64,keyloaded_tb81:u64,event_tb81:u32,following_tb81:u64)
+  at_root_tb81:usize = const() {"value":176}
+  root_tb81:u64 = call(st_tb81,at_root_tb81) {"function":"table_read_word"}
+  page_tb81:u64 = int.add.checked(root_tb81,following_tb81)
+  set_stage_tb81:u64 = const() {"value":11}
+  set_at_stage_tb81:usize = const() {"value":8}
+  _ = call(st_tb81,set_at_stage_tb81,set_stage_tb81) {"function":"table_write_word"}
+  set_at_current_tb81:usize = const() {"value":112}
+  _ = call(st_tb81,set_at_current_tb81,page_tb81) {"function":"table_write_word"}
+  set_at_request_tb81:usize = const() {"value":56}
+  _ = call(st_tb81,set_at_request_tb81,page_tb81) {"function":"table_write_word"}
+  set_at_index_tb81:usize = const() {"value":120}
+  _ = call(st_tb81,set_at_index_tb81,following_tb81) {"function":"table_write_word"}
+  action_tb81:u32 = const() {"value":1}
+  ret(action_tb81)
+block close_preflight_next(st_tb82:mutbuf,pg_tb82:mutbuf,kp_tb82:readbuf,loaded_tb82:u64,keyloaded_tb82:u64,event_tb82:u32)
+  at_close_next_tb82:usize = const() {"value":168}
+  close_next_tb82:u64 = call(st_tb82,at_close_next_tb82) {"function":"table_read_word"}
+  zero_tb82:u64 = const() {"value":0}
+  empty_tb82:bool = compare.eq(close_next_tb82,zero_tb82)
+  branch empty_tb82 close_preflight_done(st_tb82,pg_tb82,kp_tb82,loaded_tb82,keyloaded_tb82,event_tb82) close_preflight_row(st_tb82,pg_tb82,kp_tb82,loaded_tb82,keyloaded_tb82,event_tb82,close_next_tb82)
+block close_preflight_done(st_tb83:mutbuf,pg_tb83:mutbuf,kp_tb83:readbuf,loaded_tb83:u64,keyloaded_tb83:u64,event_tb83:u32)
+  at_walk_tb83:usize = const() {"value":128}
+  walk_tb83:u64 = call(st_tb83,at_walk_tb83) {"function":"table_read_word"}
+  at_scopelimit_tb83:usize = const() {"value":232}
+  scopelimit_tb83:u64 = call(st_tb83,at_scopelimit_tb83) {"function":"table_read_word"}
+  valid_tb83:bool = compare.eq(walk_tb83,scopelimit_tb83)
+  branch valid_tb83 close_preflight_request(st_tb83,pg_tb83,kp_tb83,loaded_tb83,keyloaded_tb83,event_tb83) reject(st_tb83,pg_tb83,kp_tb83,loaded_tb83,keyloaded_tb83,event_tb83)
+block close_preflight_request(st_tb84:mutbuf,pg_tb84:mutbuf,kp_tb84:readbuf,loaded_tb84:u64,keyloaded_tb84:u64,event_tb84:u32)
+  at_scope_tb84:usize = const() {"value":24}
+  scope_tb84:u64 = call(st_tb84,at_scope_tb84) {"function":"table_read_word"}
+  set_stage_tb84:u64 = const() {"value":12}
+  set_at_stage_tb84:usize = const() {"value":8}
+  _ = call(st_tb84,set_at_stage_tb84,set_stage_tb84) {"function":"table_write_word"}
+  set_at_request_tb84:usize = const() {"value":56}
+  _ = call(st_tb84,set_at_request_tb84,scope_tb84) {"function":"table_write_word"}
+  action_tb84:u32 = const() {"value":1}
+  ret(action_tb84)
+block close_recheck(st_tb85:mutbuf,pg_tb85:mutbuf,kp_tb85:readbuf,loaded_tb85:u64,keyloaded_tb85:u64,event_tb85:u32)
+  at_scope_tb85:usize = const() {"value":24}
+  scope_tb85:u64 = call(st_tb85,at_scope_tb85) {"function":"table_read_word"}
+  at_oldscope_tb85:usize = const() {"value":96}
+  oldscope_tb85:u64 = call(st_tb85,at_oldscope_tb85) {"function":"table_read_word"}
+  at_scopelimit_tb85:usize = const() {"value":232}
+  scopelimit_tb85:u64 = call(st_tb85,at_scopelimit_tb85) {"function":"table_read_word"}
+  page_at_records_tb85:usize = const() {"value":24}
+  records_tb85:u64 = call(pg_tb85,page_at_records_tb85) {"function":"table_read_word"}
+  page_at_pv_tb85:usize = const() {"value":0}
+  pv_tb85:u64 = call(pg_tb85,page_at_pv_tb85) {"function":"table_read_word"}
+  page_at_pid_tb85:usize = const() {"value":8}
+  pid_tb85:u64 = call(pg_tb85,page_at_pid_tb85) {"function":"table_read_word"}
+  page_at_head_tb85:usize = const() {"value":16}
+  head_tb85:u64 = call(pg_tb85,page_at_head_tb85) {"function":"table_read_word"}
+  one_tb85:u64 = const() {"value":1}
+  a_tb85:bool = compare.eq(loaded_tb85,scope_tb85)
+  b_tb85:bool = compare.eq(pid_tb85,scope_tb85)
+  c_tb85:bool = compare.eq(pv_tb85,one_tb85)
+  d_tb85:bool = compare.eq(head_tb85,oldscope_tb85)
+  ab_tb85:bool = bool.and(a_tb85,b_tb85)
+  cd_tb85:bool = bool.and(c_tb85,d_tb85)
+  same_count_tb85:bool = compare.eq(records_tb85,scopelimit_tb85)
+  heads_tb85:bool = bool.and(ab_tb85,cd_tb85)
+  okay_tb85:bool = bool.and(heads_tb85,same_count_tb85)
+  branch okay_tb85 close_commit(st_tb85,pg_tb85,kp_tb85,loaded_tb85,keyloaded_tb85,event_tb85) reject(st_tb85,pg_tb85,kp_tb85,loaded_tb85,keyloaded_tb85,event_tb85)
+block close_commit(st_tb86:mutbuf,pg_tb86:mutbuf,kp_tb86:readbuf,loaded_tb86:u64,keyloaded_tb86:u64,event_tb86:u32)
+  at_next_tb86:usize = const() {"value":48}
+  next_tb86:u64 = call(st_tb86,at_next_tb86) {"function":"table_read_word"}
+  page_at_head_tb86:usize = const() {"value":16}
+  head_tb86:u64 = call(pg_tb86,page_at_head_tb86) {"function":"table_read_word"}
+  valid_tb86:bool = call(head_tb86,next_tb86) {"function":"table_pointer"}
+  branch valid_tb86 close_clear(st_tb86,pg_tb86,kp_tb86,loaded_tb86,keyloaded_tb86,event_tb86,head_tb86) reject(st_tb86,pg_tb86,kp_tb86,loaded_tb86,keyloaded_tb86,event_tb86)
+block close_clear(st_tb87:mutbuf,pg_tb87:mutbuf,kp_tb87:readbuf,loaded_tb87:u64,keyloaded_tb87:u64,event_tb87:u32,head_tb87:u64)
+  two_tb87:u64 = const() {"value":2}
+  zero_tb87:u64 = const() {"value":0}
+  at0_tb87:usize = const() {"value":0}
+  at16_tb87:usize = const() {"value":16}
+  at24_tb87:usize = const() {"value":24}
+  set_finish_tb87:u64 = const() {"value":2}
+  set_at_finish_tb87:usize = const() {"value":200}
+  _ = call(st_tb87,set_at_finish_tb87,set_finish_tb87) {"function":"table_write_word"}
+  set_walk_tb87:u64 = const() {"value":0}
+  set_at_walk_tb87:usize = const() {"value":128}
+  _ = call(st_tb87,set_at_walk_tb87,set_walk_tb87) {"function":"table_write_word"}
+  _ = call(pg_tb87,at0_tb87,two_tb87) {"function":"table_write_word"}
+  _ = call(pg_tb87,at16_tb87,zero_tb87) {"function":"table_write_word"}
+  _ = call(pg_tb87,at24_tb87,zero_tb87) {"function":"table_write_word"}
+  cursor_tb87:usize = const() {"value":128}
+  jump close_clear_loop(st_tb87,pg_tb87,kp_tb87,loaded_tb87,keyloaded_tb87,event_tb87,cursor_tb87,head_tb87)
+block close_clear_loop(st_tb88:mutbuf,pg_tb88:mutbuf,kp_tb88:readbuf,loaded_tb88:u64,keyloaded_tb88:u64,event_tb88:u32,cursor_tb88:usize,head_tb88:u64)
+  limit_tb88:usize = const() {"value":256}
+  more_tb88:bool = compare.lt(cursor_tb88,limit_tb88)
+  branch more_tb88 close_clear_word(st_tb88,pg_tb88,kp_tb88,loaded_tb88,keyloaded_tb88,event_tb88,cursor_tb88,head_tb88) close_head(st_tb88,pg_tb88,kp_tb88,loaded_tb88,keyloaded_tb88,event_tb88,head_tb88)
+block close_clear_word(st_tb89:mutbuf,pg_tb89:mutbuf,kp_tb89:readbuf,loaded_tb89:u64,keyloaded_tb89:u64,event_tb89:u32,cursor_tb89:usize,head_tb89:u64)
+  zero_tb89:u64 = const() {"value":0}
+  _ = call(pg_tb89,cursor_tb89,zero_tb89) {"function":"table_write_word"}
+  eight_tb89:usize = const() {"value":8}
+  following_tb89:usize = int.add.checked(cursor_tb89,eight_tb89)
+  jump close_clear_loop(st_tb89,pg_tb89,kp_tb89,loaded_tb89,keyloaded_tb89,event_tb89,following_tb89,head_tb89)
+block close_head(st_tb90:mutbuf,pg_tb90:mutbuf,kp_tb90:readbuf,loaded_tb90:u64,keyloaded_tb90:u64,event_tb90:u32,head_tb90:u64)
+  zero_tb90:u64 = const() {"value":0}
+  empty_tb90:bool = compare.eq(head_tb90,zero_tb90)
+  branch empty_tb90 done(st_tb90,pg_tb90,kp_tb90,loaded_tb90,keyloaded_tb90,event_tb90) close_row_request(st_tb90,pg_tb90,kp_tb90,loaded_tb90,keyloaded_tb90,event_tb90,head_tb90)
+block close_row_request(st_tb91:mutbuf,pg_tb91:mutbuf,kp_tb91:readbuf,loaded_tb91:u64,keyloaded_tb91:u64,event_tb91:u32,head_tb91:u64)
+  set_stage_tb91:u64 = const() {"value":8}
+  set_at_stage_tb91:usize = const() {"value":8}
+  _ = call(st_tb91,set_at_stage_tb91,set_stage_tb91) {"function":"table_write_word"}
+  set_at_root_tb91:usize = const() {"value":176}
+  _ = call(st_tb91,set_at_root_tb91,head_tb91) {"function":"table_write_word"}
+  set_at_current_tb91:usize = const() {"value":112}
+  _ = call(st_tb91,set_at_current_tb91,head_tb91) {"function":"table_write_word"}
+  set_at_request_tb91:usize = const() {"value":56}
+  _ = call(st_tb91,set_at_request_tb91,head_tb91) {"function":"table_write_word"}
+  set_index_tb91:u64 = const() {"value":0}
+  set_at_index_tb91:usize = const() {"value":120}
+  _ = call(st_tb91,set_at_index_tb91,set_index_tb91) {"function":"table_write_word"}
+  action_tb91:u32 = const() {"value":1}
+  ret(action_tb91)
+block close_page(st_tb92:mutbuf,pg_tb92:mutbuf,kp_tb92:readbuf,loaded_tb92:u64,keyloaded_tb92:u64,event_tb92:u32)
+  at_current_tb92:usize = const() {"value":112}
+  current_tb92:u64 = call(st_tb92,at_current_tb92) {"function":"table_read_word"}
+  at_index_tb92:usize = const() {"value":120}
+  index_tb92:u64 = call(st_tb92,at_index_tb92) {"function":"table_read_word"}
+  right_tb92:bool = compare.eq(loaded_tb92,current_tb92)
+  branch right_tb92 close_first_check(st_tb92,pg_tb92,kp_tb92,loaded_tb92,keyloaded_tb92,event_tb92) reject(st_tb92,pg_tb92,kp_tb92,loaded_tb92,keyloaded_tb92,event_tb92)
+block close_first_check(st_tb93:mutbuf,pg_tb93:mutbuf,kp_tb93:readbuf,loaded_tb93:u64,keyloaded_tb93:u64,event_tb93:u32)
+  at_index_tb93:usize = const() {"value":120}
+  index_tb93:u64 = call(st_tb93,at_index_tb93) {"function":"table_read_word"}
+  zero_tb93:u64 = const() {"value":0}
+  first_tb93:bool = compare.eq(index_tb93,zero_tb93)
+  branch first_tb93 close_first(st_tb93,pg_tb93,kp_tb93,loaded_tb93,keyloaded_tb93,event_tb93) close_meta(st_tb93,pg_tb93,kp_tb93,loaded_tb93,keyloaded_tb93,event_tb93)
+block close_first(st_tb94:mutbuf,pg_tb94:mutbuf,kp_tb94:readbuf,loaded_tb94:u64,keyloaded_tb94:u64,event_tb94:u32)
+  at_scope_tb94:usize = const() {"value":24}
+  scope_tb94:u64 = call(st_tb94,at_scope_tb94) {"function":"table_read_word"}
+  at_root_tb94:usize = const() {"value":176}
+  root_tb94:u64 = call(st_tb94,at_root_tb94) {"function":"table_read_word"}
+  at_next_tb94:usize = const() {"value":48}
+  next_tb94:u64 = call(st_tb94,at_next_tb94) {"function":"table_read_word"}
+  at_walk_tb94:usize = const() {"value":128}
+  walk_tb94:u64 = call(st_tb94,at_walk_tb94) {"function":"table_read_word"}
+  at_scopelimit_tb94:usize = const() {"value":232}
+  scopelimit_tb94:u64 = call(st_tb94,at_scopelimit_tb94) {"function":"table_read_word"}
+  page_at_pscope_tb94:usize = const() {"value":16}
+  pscope_tb94:u64 = call(pg_tb94,page_at_pscope_tb94) {"function":"table_read_word"}
+  page_at_owner_tb94:usize = const() {"value":40}
+  owner_tb94:u64 = call(pg_tb94,page_at_owner_tb94) {"function":"table_read_word"}
+  page_at_plen_tb94:usize = const() {"value":32}
+  plen_tb94:u64 = call(pg_tb94,page_at_plen_tb94) {"function":"table_read_word"}
+  page_at_phash_tb94:usize = const() {"value":24}
+  phash_tb94:u64 = call(pg_tb94,page_at_phash_tb94) {"function":"table_read_word"}
+  page_at_pnext_tb94:usize = const() {"value":8}
+  pnext_tb94:u64 = call(pg_tb94,page_at_pnext_tb94) {"function":"table_read_word"}
+  a_tb94:bool = compare.eq(pscope_tb94,scope_tb94)
+  b_tb94:bool = compare.eq(owner_tb94,root_tb94)
+  c_tb94:bool = call(pnext_tb94,next_tb94) {"function":"table_pointer"}
+  d_tb94:bool = compare.lt(walk_tb94,scopelimit_tb94)
+  ab_tb94:bool = bool.and(a_tb94,b_tb94)
+  cd_tb94:bool = bool.and(c_tb94,d_tb94)
+  okay_tb94:bool = bool.and(ab_tb94,cd_tb94)
+  branch okay_tb94 close_extent(st_tb94,pg_tb94,kp_tb94,loaded_tb94,keyloaded_tb94,event_tb94,plen_tb94,phash_tb94,pnext_tb94) reject(st_tb94,pg_tb94,kp_tb94,loaded_tb94,keyloaded_tb94,event_tb94)
+block close_extent(st_tb95:mutbuf,pg_tb95:mutbuf,kp_tb95:readbuf,loaded_tb95:u64,keyloaded_tb95:u64,event_tb95:u32,plen_tb95:u64,phash_tb95:u64,pnext_tb95:u64)
+  at_root_tb95:usize = const() {"value":176}
+  root_tb95:u64 = call(st_tb95,at_root_tb95) {"function":"table_read_word"}
+  at_next_tb95:usize = const() {"value":48}
+  next_tb95:u64 = call(st_tb95,at_next_tb95) {"function":"table_read_word"}
+  capacity_tb95:u64 = const() {"value":208}
+  q_tb95:u64 = int.div.checked(plen_tb95,capacity_tb95)
+  r_tb95:u64 = int.rem.checked(plen_tb95,capacity_tb95)
+  zero_tb95:u64 = const() {"value":0}
+  one_tb95:u64 = const() {"value":1}
+  tail_tb95:bool = compare.ne(r_tb95,zero_tb95)
+  extra_tb95:u64 = select(tail_tb95,one_tb95,zero_tb95)
+  n_tb95:u64 = int.add.checked(q_tb95,extra_tb95)
+  empty_tb95:bool = compare.eq(n_tb95,zero_tb95)
+  count_tb95:u64 = select(empty_tb95,one_tb95,n_tb95)
+  hi_tb95:u64 = const() {"value":9223372036854775808}
+  offset_tb95:u64 = int.sub.checked(root_tb95,hi_tb95)
+  end_tb95:u64 = int.add.checked(offset_tb95,count_tb95)
+  fits_tb95:bool = compare.le(end_tb95,next_tb95)
+  branch fits_tb95 close_record(st_tb95,pg_tb95,kp_tb95,loaded_tb95,keyloaded_tb95,event_tb95,plen_tb95,phash_tb95,pnext_tb95,count_tb95) reject(st_tb95,pg_tb95,kp_tb95,loaded_tb95,keyloaded_tb95,event_tb95)
+block close_record(st_tb96:mutbuf,pg_tb96:mutbuf,kp_tb96:readbuf,loaded_tb96:u64,keyloaded_tb96:u64,event_tb96:u32,plen_tb96:u64,phash_tb96:u64,pnext_tb96:u64,count_tb96:u64)
+  at_walk_tb96:usize = const() {"value":128}
+  walk_tb96:u64 = call(st_tb96,at_walk_tb96) {"function":"table_read_word"}
+  one_tb96:u64 = const() {"value":1}
+  steps_tb96:u64 = int.add.checked(walk_tb96,one_tb96)
+  set_at_recordlen_tb96:usize = const() {"value":192}
+  _ = call(st_tb96,set_at_recordlen_tb96,plen_tb96) {"function":"table_write_word"}
+  set_at_recordhash_tb96:usize = const() {"value":184}
+  _ = call(st_tb96,set_at_recordhash_tb96,phash_tb96) {"function":"table_write_word"}
+  set_at_close_next_tb96:usize = const() {"value":168}
+  _ = call(st_tb96,set_at_close_next_tb96,pnext_tb96) {"function":"table_write_word"}
+  set_at_pages_tb96:usize = const() {"value":144}
+  _ = call(st_tb96,set_at_pages_tb96,count_tb96) {"function":"table_write_word"}
+  set_at_walk_tb96:usize = const() {"value":128}
+  _ = call(st_tb96,set_at_walk_tb96,steps_tb96) {"function":"table_write_word"}
+  jump close_meta(st_tb96,pg_tb96,kp_tb96,loaded_tb96,keyloaded_tb96,event_tb96)
+block close_meta(st_tb97:mutbuf,pg_tb97:mutbuf,kp_tb97:readbuf,loaded_tb97:u64,keyloaded_tb97:u64,event_tb97:u32)
+  at_scope_tb97:usize = const() {"value":24}
+  scope_tb97:u64 = call(st_tb97,at_scope_tb97) {"function":"table_read_word"}
+  at_root_tb97:usize = const() {"value":176}
+  root_tb97:u64 = call(st_tb97,at_root_tb97) {"function":"table_read_word"}
+  at_recordhash_tb97:usize = const() {"value":184}
+  recordhash_tb97:u64 = call(st_tb97,at_recordhash_tb97) {"function":"table_read_word"}
+  at_recordlen_tb97:usize = const() {"value":192}
+  recordlen_tb97:u64 = call(st_tb97,at_recordlen_tb97) {"function":"table_read_word"}
+  okay_tb97:bool = call(pg_tb97,scope_tb97,root_tb97,recordhash_tb97,recordlen_tb97) {"function":"table_metadata"}
+  branch okay_tb97 close_meta_mode(st_tb97,pg_tb97,kp_tb97,loaded_tb97,keyloaded_tb97,event_tb97) reject(st_tb97,pg_tb97,kp_tb97,loaded_tb97,keyloaded_tb97,event_tb97)
+block close_release_request(st_tb98:mutbuf,pg_tb98:mutbuf,kp_tb98:readbuf,loaded_tb98:u64,keyloaded_tb98:u64,event_tb98:u32)
+  at_current_tb98:usize = const() {"value":112}
+  current_tb98:u64 = call(st_tb98,at_current_tb98) {"function":"table_read_word"}
+  set_stage_tb98:u64 = const() {"value":9}
+  set_at_stage_tb98:usize = const() {"value":8}
+  _ = call(st_tb98,set_at_stage_tb98,set_stage_tb98) {"function":"table_write_word"}
+  set_at_release_tb98:usize = const() {"value":208}
+  _ = call(st_tb98,set_at_release_tb98,current_tb98) {"function":"table_write_word"}
+  action_tb98:u32 = const() {"value":4}
+  ret(action_tb98)
+block close_release(st_tb99:mutbuf,pg_tb99:mutbuf,kp_tb99:readbuf,loaded_tb99:u64,keyloaded_tb99:u64,event_tb99:u32)
+  ack_tb99:u32 = const() {"value":1}
+  okay_tb99:bool = compare.eq(event_tb99,ack_tb99)
+  branch okay_tb99 close_advance(st_tb99,pg_tb99,kp_tb99,loaded_tb99,keyloaded_tb99,event_tb99) close_retry(st_tb99,pg_tb99,kp_tb99,loaded_tb99,keyloaded_tb99,event_tb99)
+block close_retry(st_tb100:mutbuf,pg_tb100:mutbuf,kp_tb100:readbuf,loaded_tb100:u64,keyloaded_tb100:u64,event_tb100:u32)
+  failed_tb100:u32 = const() {"value":9}
+  cancel_tb100:u32 = const() {"value":3}
+  a_tb100:bool = compare.eq(event_tb100,failed_tb100)
+  b_tb100:bool = compare.eq(event_tb100,cancel_tb100)
+  okay_tb100:bool = bool.or(a_tb100,b_tb100)
+  branch okay_tb100 release_again(st_tb100,pg_tb100,kp_tb100,loaded_tb100,keyloaded_tb100,event_tb100) reject(st_tb100,pg_tb100,kp_tb100,loaded_tb100,keyloaded_tb100,event_tb100)
+block release_again(st_tb101:mutbuf,pg_tb101:mutbuf,kp_tb101:readbuf,loaded_tb101:u64,keyloaded_tb101:u64,event_tb101:u32)
+  action_tb101:u32 = const() {"value":4}
+  ret(action_tb101)
+block close_advance(st_tb102:mutbuf,pg_tb102:mutbuf,kp_tb102:readbuf,loaded_tb102:u64,keyloaded_tb102:u64,event_tb102:u32)
+  at_index_tb102:usize = const() {"value":120}
+  index_tb102:u64 = call(st_tb102,at_index_tb102) {"function":"table_read_word"}
+  at_pages_tb102:usize = const() {"value":144}
+  pages_tb102:u64 = call(st_tb102,at_pages_tb102) {"function":"table_read_word"}
+  at_root_tb102:usize = const() {"value":176}
+  root_tb102:u64 = call(st_tb102,at_root_tb102) {"function":"table_read_word"}
+  one_tb102:u64 = const() {"value":1}
+  following_tb102:u64 = int.add.checked(index_tb102,one_tb102)
+  more_tb102:bool = compare.lt(following_tb102,pages_tb102)
+  branch more_tb102 close_next_page(st_tb102,pg_tb102,kp_tb102,loaded_tb102,keyloaded_tb102,event_tb102,following_tb102) close_next_row(st_tb102,pg_tb102,kp_tb102,loaded_tb102,keyloaded_tb102,event_tb102)
+block close_next_page(st_tb103:mutbuf,pg_tb103:mutbuf,kp_tb103:readbuf,loaded_tb103:u64,keyloaded_tb103:u64,event_tb103:u32,following_tb103:u64)
+  at_root_tb103:usize = const() {"value":176}
+  root_tb103:u64 = call(st_tb103,at_root_tb103) {"function":"table_read_word"}
+  page_tb103:u64 = int.add.checked(root_tb103,following_tb103)
+  set_stage_tb103:u64 = const() {"value":8}
+  set_at_stage_tb103:usize = const() {"value":8}
+  _ = call(st_tb103,set_at_stage_tb103,set_stage_tb103) {"function":"table_write_word"}
+  set_at_current_tb103:usize = const() {"value":112}
+  _ = call(st_tb103,set_at_current_tb103,page_tb103) {"function":"table_write_word"}
+  set_at_request_tb103:usize = const() {"value":56}
+  _ = call(st_tb103,set_at_request_tb103,page_tb103) {"function":"table_write_word"}
+  set_at_index_tb103:usize = const() {"value":120}
+  _ = call(st_tb103,set_at_index_tb103,following_tb103) {"function":"table_write_word"}
+  action_tb103:u32 = const() {"value":1}
+  ret(action_tb103)
+block close_next_row(st_tb104:mutbuf,pg_tb104:mutbuf,kp_tb104:readbuf,loaded_tb104:u64,keyloaded_tb104:u64,event_tb104:u32)
+  at_close_next_tb104:usize = const() {"value":168}
+  close_next_tb104:u64 = call(st_tb104,at_close_next_tb104) {"function":"table_read_word"}
+  zero_tb104:u64 = const() {"value":0}
+  empty_tb104:bool = compare.eq(close_next_tb104,zero_tb104)
+  branch empty_tb104 done(st_tb104,pg_tb104,kp_tb104,loaded_tb104,keyloaded_tb104,event_tb104) close_row_request(st_tb104,pg_tb104,kp_tb104,loaded_tb104,keyloaded_tb104,event_tb104,close_next_tb104)
+block abort_release(st_tb105:mutbuf,pg_tb105:mutbuf,kp_tb105:readbuf,loaded_tb105:u64,keyloaded_tb105:u64,event_tb105:u32)
+  ack_tb105:u32 = const() {"value":1}
+  okay_tb105:bool = compare.eq(event_tb105,ack_tb105)
+  branch okay_tb105 abort_advance(st_tb105,pg_tb105,kp_tb105,loaded_tb105,keyloaded_tb105,event_tb105) abort_retry(st_tb105,pg_tb105,kp_tb105,loaded_tb105,keyloaded_tb105,event_tb105)
+block abort_retry(st_tb106:mutbuf,pg_tb106:mutbuf,kp_tb106:readbuf,loaded_tb106:u64,keyloaded_tb106:u64,event_tb106:u32)
+  failed_tb106:u32 = const() {"value":9}
+  cancel_tb106:u32 = const() {"value":3}
+  a_tb106:bool = compare.eq(event_tb106,failed_tb106)
+  b_tb106:bool = compare.eq(event_tb106,cancel_tb106)
+  okay_tb106:bool = bool.or(a_tb106,b_tb106)
+  branch okay_tb106 release_again(st_tb106,pg_tb106,kp_tb106,loaded_tb106,keyloaded_tb106,event_tb106) reject(st_tb106,pg_tb106,kp_tb106,loaded_tb106,keyloaded_tb106,event_tb106)
+block abort_advance(st_tb107:mutbuf,pg_tb107:mutbuf,kp_tb107:readbuf,loaded_tb107:u64,keyloaded_tb107:u64,event_tb107:u32)
+  at_abortindex_tb107:usize = const() {"value":216}
+  abortindex_tb107:u64 = call(st_tb107,at_abortindex_tb107) {"function":"table_read_word"}
+  at_pages_tb107:usize = const() {"value":144}
+  pages_tb107:u64 = call(st_tb107,at_pages_tb107) {"function":"table_read_word"}
+  at_newroot_tb107:usize = const() {"value":104}
+  newroot_tb107:u64 = call(st_tb107,at_newroot_tb107) {"function":"table_read_word"}
+  one_tb107:u64 = const() {"value":1}
+  following_tb107:u64 = int.add.checked(abortindex_tb107,one_tb107)
+  more_tb107:bool = compare.lt(following_tb107,pages_tb107)
+  branch more_tb107 abort_next(st_tb107,pg_tb107,kp_tb107,loaded_tb107,keyloaded_tb107,event_tb107,following_tb107) abort_finish(st_tb107,pg_tb107,kp_tb107,loaded_tb107,keyloaded_tb107,event_tb107)
+block abort_next(st_tb108:mutbuf,pg_tb108:mutbuf,kp_tb108:readbuf,loaded_tb108:u64,keyloaded_tb108:u64,event_tb108:u32,following_tb108:u64)
+  at_newroot_tb108:usize = const() {"value":104}
+  newroot_tb108:u64 = call(st_tb108,at_newroot_tb108) {"function":"table_read_word"}
+  page_tb108:u64 = int.add.checked(newroot_tb108,following_tb108)
+  set_stage_tb108:u64 = const() {"value":10}
+  set_at_stage_tb108:usize = const() {"value":8}
+  _ = call(st_tb108,set_at_stage_tb108,set_stage_tb108) {"function":"table_write_word"}
+  set_at_abortindex_tb108:usize = const() {"value":216}
+  _ = call(st_tb108,set_at_abortindex_tb108,following_tb108) {"function":"table_write_word"}
+  set_at_release_tb108:usize = const() {"value":208}
+  _ = call(st_tb108,set_at_release_tb108,page_tb108) {"function":"table_write_word"}
+  set_at_request_tb108:usize = const() {"value":56}
+  _ = call(st_tb108,set_at_request_tb108,page_tb108) {"function":"table_write_word"}
+  action_tb108:u32 = const() {"value":4}
+  ret(action_tb108)
+block abort_finish(st_tb109:mutbuf,pg_tb109:mutbuf,kp_tb109:readbuf,loaded_tb109:u64,keyloaded_tb109:u64,event_tb109:u32)
+  at_finish_tb109:usize = const() {"value":200}
+  finish_tb109:u64 = call(st_tb109,at_finish_tb109) {"function":"table_read_word"}
+  status_tb109:u32 = int.cast(finish_tb109) {"mode":"wrap"}
+  set_stage_tb109:u64 = const() {"value":0}
+  set_at_stage_tb109:usize = const() {"value":8}
+  _ = call(st_tb109,set_at_stage_tb109,set_stage_tb109) {"function":"table_write_word"}
+  set_newroot_tb109:u64 = const() {"value":0}
+  set_at_newroot_tb109:usize = const() {"value":104}
+  _ = call(st_tb109,set_at_newroot_tb109,set_newroot_tb109) {"function":"table_write_word"}
+  ret(status_tb109)
+block done(st_tb110:mutbuf,pg_tb110:mutbuf,kp_tb110:readbuf,loaded_tb110:u64,keyloaded_tb110:u64,event_tb110:u32)
+  set_stage_tb110:u64 = const() {"value":0}
+  set_at_stage_tb110:usize = const() {"value":8}
+  _ = call(st_tb110,set_at_stage_tb110,set_stage_tb110) {"function":"table_write_word"}
+  set_newroot_tb110:u64 = const() {"value":0}
+  set_at_newroot_tb110:usize = const() {"value":104}
+  _ = call(st_tb110,set_at_newroot_tb110,set_newroot_tb110) {"function":"table_write_word"}
+  action_tb110:u32 = const() {"value":0}
+  ret(action_tb110)
+block reject(st_tb111:mutbuf,pg_tb111:mutbuf,kp_tb111:readbuf,loaded_tb111:u64,keyloaded_tb111:u64,event_tb111:u32)
+  action_tb111:u32 = const() {"value":6}
+  ret(action_tb111)
+end
+fn table_begin(st_tb112:mutbuf,operation_tb112:u32,scope_tb112:u64,length_tb112:u64,hashed_tb112:u64) -> (u32) effects(read,write,trap) entry(start)
+block start(st_tb112:mutbuf,operation_tb112:u32,scope_tb112:u64,length_tb112:u64,hashed_tb112:u64)
+  n_tb112:usize = buffer.len(st_tb112)
+  size_tb112:usize = const() {"value":256}
+  okay_tb112:bool = compare.eq(n_tb112,size_tb112)
+  branch okay_tb112 header(st_tb112,operation_tb112,scope_tb112,length_tb112,hashed_tb112) reject()
+block header(st_tb113:mutbuf,operation_tb113:u32,scope_tb113:u64,length_tb113:u64,hashed_tb113:u64)
+  at_version_tb113:usize = const() {"value":0}
+  version_tb113:u64 = call(st_tb113,at_version_tb113) {"function":"table_read_word"}
+  at_stage_tb113:usize = const() {"value":8}
+  stage_tb113:u64 = call(st_tb113,at_stage_tb113) {"function":"table_read_word"}
+  at_next_tb113:usize = const() {"value":48}
+  next_tb113:u64 = call(st_tb113,at_next_tb113) {"function":"table_read_word"}
+one_tb113:u64 = const() {"value":1}
+zero_tb113:u64 = const() {"value":0}
+  a_tb113:bool = compare.eq(version_tb113,one_tb113)
+  b_tb113:bool = compare.eq(stage_tb113,zero_tb113)
+  okay_tb113:bool = bool.and(a_tb113,b_tb113)
+  branch okay_tb113 arguments(st_tb113,operation_tb113,scope_tb113,length_tb113,hashed_tb113,next_tb113) reject()
+block arguments(st_tb114:mutbuf,operation_tb114:u32,scope_tb114:u64,length_tb114:u64,hashed_tb114:u64,next_tb114:u64)
+one_tb114:u32 = const() {"value":1}
+two_tb114:u32 = const() {"value":2}
+  a_tb114:bool = compare.eq(operation_tb114,one_tb114)
+  b_tb114:bool = compare.eq(operation_tb114,two_tb114)
+  op_ok_tb114:bool = bool.or(a_tb114,b_tb114)
+hi_tb114:u64 = const() {"value":9223372036854775808}
+zero_tb114:u64 = const() {"value":0}
+  scope_low_tb114:bool = compare.gt(scope_tb114,zero_tb114)
+  scope_high_tb114:bool = compare.lt(scope_tb114,hi_tb114)
+  length_ok_tb114:bool = compare.lt(length_tb114,hi_tb114)
+  next_ok_tb114:bool = compare.le(next_tb114,hi_tb114)
+  a1_tb114:bool = bool.and(scope_low_tb114,scope_high_tb114)
+  a2_tb114:bool = bool.and(length_ok_tb114,next_ok_tb114)
+  a3_tb114:bool = bool.and(a1_tb114,a2_tb114)
+  okay_tb114:bool = bool.and(a3_tb114,op_ok_tb114)
+  branch okay_tb114 begin(st_tb114,operation_tb114,scope_tb114,length_tb114,hashed_tb114) reject()
+block begin(st_tb115:mutbuf,operation_tb115:u32,scope_tb115:u64,length_tb115:u64,hashed_tb115:u64)
+mask_tb115:u64 = const() {"value":15}
+  bucket_tb115:u64 = bit.and(hashed_tb115,mask_tb115)
+eight_tb115:u64 = const() {"value":8}
+  offset_tb115:u64 = int.mul.checked(bucket_tb115,eight_tb115)
+base_tb115:u64 = const() {"value":128}
+  slot_tb115:u64 = int.add.checked(offset_tb115,base_tb115)
+  op_tb115:u64 = int.cast(operation_tb115) {"mode":"wrap"}
+  set_stage_tb115:u64 = const() {"value":1}
+  set_at_stage_tb115:usize = const() {"value":8}
+  _ = call(st_tb115,set_at_stage_tb115,set_stage_tb115) {"function":"table_write_word"}
+  set_at_op_tb115:usize = const() {"value":16}
+  _ = call(st_tb115,set_at_op_tb115,op_tb115) {"function":"table_write_word"}
+  set_at_scope_tb115:usize = const() {"value":24}
+  _ = call(st_tb115,set_at_scope_tb115,scope_tb115) {"function":"table_write_word"}
+  set_at_hashed_tb115:usize = const() {"value":32}
+  _ = call(st_tb115,set_at_hashed_tb115,hashed_tb115) {"function":"table_write_word"}
+  set_at_length_tb115:usize = const() {"value":40}
+  _ = call(st_tb115,set_at_length_tb115,length_tb115) {"function":"table_write_word"}
+  set_at_request_tb115:usize = const() {"value":56}
+  _ = call(st_tb115,set_at_request_tb115,scope_tb115) {"function":"table_write_word"}
+  set_at_slot_tb115:usize = const() {"value":152}
+  _ = call(st_tb115,set_at_slot_tb115,slot_tb115) {"function":"table_write_word"}
+  set_newroot_tb115:u64 = const() {"value":0}
+  set_at_newroot_tb115:usize = const() {"value":104}
+  _ = call(st_tb115,set_at_newroot_tb115,set_newroot_tb115) {"function":"table_write_word"}
+  set_walk_tb115:u64 = const() {"value":0}
+  set_at_walk_tb115:usize = const() {"value":128}
+  _ = call(st_tb115,set_at_walk_tb115,set_walk_tb115) {"function":"table_write_word"}
+  set_index_tb115:u64 = const() {"value":0}
+  set_at_index_tb115:usize = const() {"value":120}
+  _ = call(st_tb115,set_at_index_tb115,set_index_tb115) {"function":"table_write_word"}
+  set_close_next_tb115:u64 = const() {"value":0}
+  set_at_close_next_tb115:usize = const() {"value":168}
+  _ = call(st_tb115,set_at_close_next_tb115,set_close_next_tb115) {"function":"table_write_word"}
+  set_finish_tb115:u64 = const() {"value":0}
+  set_at_finish_tb115:usize = const() {"value":200}
+  _ = call(st_tb115,set_at_finish_tb115,set_finish_tb115) {"function":"table_write_word"}
+  action_tb115:u32 = const() {"value":1}
+  ret(action_tb115)
+block reject()
+  error_tb116:u32 = const() {"value":6}
+  ret(error_tb116)
+end
+fn table_init(st_tb117:mutbuf) -> (u32) effects(write,read,trap) entry(start)
+block start(st_tb117:mutbuf)
+  n_tb117:usize = buffer.len(st_tb117)
+size_tb117:usize = const() {"value":256}
+  valid_tb117:bool = compare.eq(n_tb117,size_tb117)
+  branch valid_tb117 zero(st_tb117) reject()
+block zero(st_tb118:mutbuf)
+index_tb118:usize = const() {"value":0}
+  jump loop(st_tb118,index_tb118)
+block loop(st_tb119:mutbuf,index_tb119:usize)
+limit_tb119:usize = const() {"value":256}
+  more_tb119:bool = compare.lt(index_tb119,limit_tb119)
+  branch more_tb119 byte(st_tb119,index_tb119) done(st_tb119)
+block byte(st_tb120:mutbuf,index_tb120:usize)
+zero_tb120:u8 = const() {"value":0}
+  _ = buffer.store(st_tb120,index_tb120,zero_tb120)
+one_tb120:usize = const() {"value":1}
+  next_tb120:usize = int.add.checked(index_tb120,one_tb120)
+  jump loop(st_tb120,next_tb120)
+block done(st_tb121:mutbuf)
+at_tb121:usize = const() {"value":0}
+one_tb121:u64 = const() {"value":1}
+  _ = call(st_tb121,at_tb121,one_tb121) {"function":"table_write_word"}
+status_tb121:u32 = const() {"value":0}
+  ret(status_tb121)
+block reject()
+status_tb122:u32 = const() {"value":6}
+  ret(status_tb122)
+end
+fn table_page_zero(page_tb123:mutbuf) -> (bool) effects(read,trap) entry(start)
+block start(page_tb123:mutbuf)
+index_tb123:usize = const() {"value":0}
+  jump loop(page_tb123,index_tb123)
+block loop(page_tb124:mutbuf,index_tb124:usize)
+limit_tb124:usize = const() {"value":256}
+  more_tb124:bool = compare.lt(index_tb124,limit_tb124)
+  branch more_tb124 byte(page_tb124,index_tb124) yes()
+block byte(page_tb125:mutbuf,index_tb125:usize)
+  ch_tb125:u8 = buffer.load(page_tb125,index_tb125)
+zero_tb125:u8 = const() {"value":0}
+  empty_tb125:bool = compare.eq(ch_tb125,zero_tb125)
+one_tb125:usize = const() {"value":1}
+  next_tb125:usize = int.add.checked(index_tb125,one_tb125)
+  branch empty_tb125 loop(page_tb125,next_tb125) no()
+block yes()
+result_tb126:bool = const() {"value":true}
+  ret(result_tb126)
+block no()
+result_tb127:bool = const() {"value":false}
+  ret(result_tb127)
+end
+fn table_pointer(value_tb128:u64,count_tb128:u64) -> (bool) effects(trap) entry(start)
+block start(value_tb128:u64,count_tb128:u64)
+zero_tb128:u64 = const() {"value":0}
+  null_tb128:bool = compare.eq(value_tb128,zero_tb128)
+  branch null_tb128 yes() nonzero(value_tb128,count_tb128)
+block nonzero(value_tb129:u64,count_tb129:u64)
+  okay_tb129:bool = call(value_tb129,count_tb129) {"function":"table_pointer_nonzero"}
+  ret(okay_tb129)
+block yes()
+okay_tb130:bool = const() {"value":true}
+  ret(okay_tb130)
+end
+fn table_pointer_nonzero(value_tb131:u64,count_tb131:u64) -> (bool) effects(trap) entry(start)
+block start(value_tb131:u64,count_tb131:u64)
+hi_tb131:u64 = const() {"value":9223372036854775808}
+  ge_tb131:bool = compare.ge(value_tb131,hi_tb131)
+  branch ge_tb131 offset(value_tb131,count_tb131,hi_tb131) no()
+block offset(value_tb132:u64,count_tb132:u64,hi_tb132:u64)
+  delta_tb132:u64 = int.sub.checked(value_tb132,hi_tb132)
+  valid_tb132:bool = compare.lt(delta_tb132,count_tb132)
+  ret(valid_tb132)
+block no()
+okay_tb133:bool = const() {"value":false}
+  ret(okay_tb133)
+end
+fn table_metadata(pg_tb134:mutbuf,scope_tb134:u64,owner_tb134:u64,hashed_tb134:u64,length_tb134:u64) -> (bool) effects(read,trap) entry(start)
+block start(pg_tb134:mutbuf,scope_tb134:u64,owner_tb134:u64,hashed_tb134:u64,length_tb134:u64)
+at_scope_tb134:usize = const() {"value":16}
+  value_scope_tb134:u64 = call(pg_tb134,at_scope_tb134) {"function":"table_read_word"}
+  okay_scope_tb134:bool = compare.eq(value_scope_tb134,scope_tb134)
+at_owner_tb134:usize = const() {"value":40}
+  value_owner_tb134:u64 = call(pg_tb134,at_owner_tb134) {"function":"table_read_word"}
+  okay_owner_tb134:bool = compare.eq(value_owner_tb134,owner_tb134)
+at_hash_tb134:usize = const() {"value":24}
+  value_hash_tb134:u64 = call(pg_tb134,at_hash_tb134) {"function":"table_read_word"}
+  okay_hash_tb134:bool = compare.eq(value_hash_tb134,hashed_tb134)
+at_length_tb134:usize = const() {"value":32}
+  value_length_tb134:u64 = call(pg_tb134,at_length_tb134) {"function":"table_read_word"}
+  okay_length_tb134:bool = compare.eq(value_length_tb134,length_tb134)
+  a_tb134:bool = bool.and(okay_scope_tb134,okay_owner_tb134)
+  b_tb134:bool = bool.and(okay_hash_tb134,okay_length_tb134)
+  okay_tb134:bool = bool.and(a_tb134,b_tb134)
+  ret(okay_tb134)
+end
+fn table_read_word(data_q67:mutbuf,base_q67:usize) -> (u64) effects(read,trap) entry(start)
+block start(data_q67:mutbuf,base_q67:usize)
+  z_q67:usize = const() {"value":0}
+  a_q67:u64 = const() {"value":0}
+  jump loop(data_q67,base_q67,z_q67,a_q67)
+block loop(data_q68:mutbuf,base_q68:usize,j_q68:usize,a_q68:u64)
+  eight_q68:usize = const() {"value":8}
+  more_q68:bool = compare.lt(j_q68,eight_q68)
+  branch more_q68 body(data_q68,base_q68,j_q68,a_q68) done(a_q68)
+block body(data_q69:mutbuf,base_q69:usize,j_q69:usize,a_q69:u64)
+  at_q69:usize = int.add.checked(base_q69,j_q69)
+  ch_q69:u8 = buffer.load(data_q69,at_q69)
+  value_q69:u64 = int.cast(ch_q69) {"mode":"wrap"}
+  index_q69:u64 = int.cast(j_q69) {"mode":"wrap"}
+  eight_q69:u64 = const() {"value":8}
+  bits_q69:u64 = int.mul.checked(index_q69,eight_q69)
+  part_q69:u64 = int.shl.checked(value_q69,bits_q69)
+  acc_q69:u64 = bit.or(a_q69,part_q69)
+  one_q69:usize = const() {"value":1}
+  next_q69:usize = int.add.checked(j_q69,one_q69)
+  jump loop(data_q69,base_q69,next_q69,acc_q69)
+block done(value_q70:u64)
+  ret(value_q70)
+end
+fn table_write_word(data_q71:mutbuf,base_q71:usize,value_q71:u64) -> () effects(write,trap) entry(start)
+block start(data_q71:mutbuf,base_q71:usize,value_q71:u64)
+  index0_q71:usize = const() {"value":0}
+  at0_q71:usize = int.add.checked(base_q71,index0_q71)
+  byte0_q71:u8 = int.cast(value_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at0_q71,byte0_q71)
+  index1_q71:usize = const() {"value":1}
+  at1_q71:usize = int.add.checked(base_q71,index1_q71)
+  shift1_q71:u64 = const() {"value":8}
+  part1_q71:u64 = int.shr.checked(value_q71,shift1_q71)
+  byte1_q71:u8 = int.cast(part1_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at1_q71,byte1_q71)
+  index2_q71:usize = const() {"value":2}
+  at2_q71:usize = int.add.checked(base_q71,index2_q71)
+  shift2_q71:u64 = const() {"value":16}
+  part2_q71:u64 = int.shr.checked(value_q71,shift2_q71)
+  byte2_q71:u8 = int.cast(part2_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at2_q71,byte2_q71)
+  index3_q71:usize = const() {"value":3}
+  at3_q71:usize = int.add.checked(base_q71,index3_q71)
+  shift3_q71:u64 = const() {"value":24}
+  part3_q71:u64 = int.shr.checked(value_q71,shift3_q71)
+  byte3_q71:u8 = int.cast(part3_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at3_q71,byte3_q71)
+  index4_q71:usize = const() {"value":4}
+  at4_q71:usize = int.add.checked(base_q71,index4_q71)
+  shift4_q71:u64 = const() {"value":32}
+  part4_q71:u64 = int.shr.checked(value_q71,shift4_q71)
+  byte4_q71:u8 = int.cast(part4_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at4_q71,byte4_q71)
+  index5_q71:usize = const() {"value":5}
+  at5_q71:usize = int.add.checked(base_q71,index5_q71)
+  shift5_q71:u64 = const() {"value":40}
+  part5_q71:u64 = int.shr.checked(value_q71,shift5_q71)
+  byte5_q71:u8 = int.cast(part5_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at5_q71,byte5_q71)
+  index6_q71:usize = const() {"value":6}
+  at6_q71:usize = int.add.checked(base_q71,index6_q71)
+  shift6_q71:u64 = const() {"value":48}
+  part6_q71:u64 = int.shr.checked(value_q71,shift6_q71)
+  byte6_q71:u8 = int.cast(part6_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at6_q71,byte6_q71)
+  index7_q71:usize = const() {"value":7}
+  at7_q71:usize = int.add.checked(base_q71,index7_q71)
+  shift7_q71:u64 = const() {"value":56}
+  part7_q71:u64 = int.shr.checked(value_q71,shift7_q71)
+  byte7_q71:u8 = int.cast(part7_q71) {"mode":"wrap"}
+  _ = buffer.store(data_q71,at7_q71,byte7_q71)
+  ret()
+end

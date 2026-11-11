@@ -1,0 +1,73 @@
+{
+  "status": "STATIC_MATH_HANDOFF_ONLY",
+  "native_runs_in_this_candidate": 0,
+  "non_overlap": "External Mac arm64 / independent environment audits mathematics, HIA source and ABI/failure branches only. Do not compile/execute native oracles; do not edit author candidate, Worker adapter, guest/controller or management keys.",
+  "previous_completed_history": "57d subcomponents only: binary64 kernel236 and complete decimal coefficient435; these do not qualify the new bridge",
+  "current_qualification": "HIA assembly/full verifier and Python AST only, no native build/run",
+  "mandatory_failure_rule": "Preserve first raw/source identities on failure; no denominator/deadline/input-budget reductions; smoke does not satisfy full180",
+  "bridge_scope": "native math converter candidate; normal Worker finitefloat profile not migrated",
+  "caps": "original8MiB profile;800prefix exact internal representation plus full scan/count/sticky; export256B,MAX_RANGES8 unchanged",
+  "NDU": "no probe or call; no paid model required",
+  "tokens": "unknown/not measured",
+  "primary_tasks": [
+    {
+      "id": "M1",
+      "task": "pure Python exact integer midpoint bound, open/closed prefix intervals, signs/negative-zero and overflow thresholds",
+      "command": "python3 verify_math.py --output /absolute/new/math-output",
+      "scope": "mathematical reference only; no native qualification"
+    },
+    {
+      "id": "S1",
+      "task": "Python AST + immutable HIA source audit; inspect native decimal/quotient/rounding control, opaque page ABI and error/cancel/partial-write branches",
+      "command": "python3 static_review.py --output /absolute/new/static-output",
+      "scope": "static source only"
+    },
+    {
+      "id": "S2_optional",
+      "task": "host HIA grammar/type/effect verification with explicit legacy seed",
+      "command": "python3 static_review.py --output /absolute/new/host-static-output --hia-static-verify",
+      "scope": "host static checking only, not normal required-mode or native result"
+    }
+  ],
+  "cloud_only_native_tasks": [
+    {
+      "id": "power5",
+      "tool": "qualify_hia_power5.py",
+      "observations": 77,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "shifted_limb",
+      "tool": "qualify_hia_rational_limb.py",
+      "compare": 128,
+      "subtract": 128,
+      "observations": 256,
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "quotient",
+      "tool": "qualify_hia_quotient.py",
+      "observations": 72,
+      "checks_per_observation": "exact quotient, remainder sticky, scale and IEEE bits",
+      "status": "NOT_RUN"
+    },
+    {
+      "id": "bridge_smoke",
+      "tool": "qualify_hia_decimal_bridge.py --smoke",
+      "observations": 10,
+      "status": "NOT_RUN",
+      "not_full_denominator": true
+    },
+    {
+      "id": "bridge_full",
+      "tool": "qualify_hia_decimal_bridge.py --mutant-sticky",
+      "observations": 180,
+      "extra": "5 fault cases + fresh-conversion recovery and real HIA one-line sticky mutant",
+      "includes": "lower exact/lower sticky/upper excluded ±midpoints;1MiB tails;3 exact8MiB boundary cases;one-byte-over-budget",
+      "status": "NOT_RUN"
+    }
+  ],
+  "external_native_execution": "PROHIBITED_FOR_THIS_HANDOFF: Mac arm64 cannot attest Linux x86_64 native behavior",
+  "external_success_cannot_change_native_denominators": true,
+  "transport": "v2 plain UTF8 JSON groups; no tar/base64 or native execution"
+}
