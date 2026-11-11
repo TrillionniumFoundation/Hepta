@@ -1,0 +1,118 @@
+{
+  "schema": "hia.namespace-inode-r2-source-delivery.v1",
+  "status": "NEW_UNEXECUTED_SOURCE_ONLY",
+  "ast_checks": 0,
+  "vm_entries": 0,
+  "b3_compilations": 0,
+  "native_entries": 0,
+  "files": [
+    {
+      "name": "namespace-inode-r2-generator.py",
+      "blob": "1de42ee81c2f39a67e8623dc5cc9332ffc203bb6",
+      "bytes": 24752,
+      "sha256": "3c51180bb529f8913b8b19ba7693406ad43b1cd860f776384dd2ec2dfeb943a7",
+      "target": "tools/generate_hia_agent_namespace_inode.py",
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-generator.py",
+      "mode": "100644",
+      "full_readback": true
+    },
+    {
+      "name": "namespace-inode-r2-protocol.py",
+      "blob": "ac776d974ac07df69f68fb5db8894fc56c434e1c",
+      "bytes": 16416,
+      "sha256": "179609bbb21e650ca8233147ed415b616f3477b2ce8e7830358c1a7903353497",
+      "target": "tests/test_hia_agent_namespace_inode.py",
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-protocol.py",
+      "mode": "100644",
+      "full_readback": true
+    },
+    {
+      "name": "namespace-inode-r2-abi.json",
+      "blob": "89d2bcdd886015719dbec8ac4ef2dabab7003e00",
+      "bytes": 11609,
+      "sha256": "883d53ccad65f48531c3d45202a8da7543359e87bd285a3c217bd6e947b37600",
+      "target": "docs/HIA_AGENT_NAMESPACE_INODE_ABI.json",
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-abi.json",
+      "mode": "100644",
+      "full_readback": true
+    },
+    {
+      "name": "namespace-inode-r2-validate.py",
+      "blob": "2e712c56ab88b037c8dfb2845df7c78d16b903da",
+      "bytes": 13814,
+      "sha256": "8c356067291b253de64dc15ab9353fe50b8ebb1515ac99d1f72908bd2d8489db",
+      "target": null,
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-validate.py",
+      "mode": "100644",
+      "full_readback": true
+    },
+    {
+      "name": "namespace-inode-r2-physical.py",
+      "blob": "79080feb118acf38cc3b4c59f91d5ab9c4f42a66",
+      "bytes": 26525,
+      "sha256": "77684c5c08a44902beee07968e8076502c4fc2c41e9b88b33a695db934f2e4f2",
+      "target": null,
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-physical.py",
+      "mode": "100644",
+      "full_readback": true
+    },
+    {
+      "name": "namespace-inode-r2-ci.py",
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-ci.py",
+      "blob": "b5d9024a9fdcf8ee078c57073c7144bfe4dafd92",
+      "bytes": 19706,
+      "sha256": "6758d1a7747a7ebafed9986dfdf0379b6705817a05bd9ea17022a0ef440e2ada",
+      "mode": "100644",
+      "full_readback": true
+    }
+  ],
+  "common_git_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+  "workflow": {
+    "job": "namespace_inode",
+    "python": "3.12.14",
+    "requires_common_exact_reference_checkout": true,
+    "artifact_download": {
+      "action": "actions/download-artifact@v4",
+      "repository": "TrillionniumFoundation/Hepta",
+      "run_id": 43105934854,
+      "artifact_ids": 13893997012,
+      "path": "${{ runner.temp }}/hia-namespace-inode-predecessor-408",
+      "github_token": "workflow GITHUB_TOKEN supplied to download action; not embedded in sources"
+    },
+    "step_environment": {
+      "HIA_NAMESPACE_PREDECESSOR_DIR": "${{ runner.temp }}/hia-namespace-inode-predecessor-408",
+      "HIA_CI_COMMON": "same pinned common absolute path",
+      "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-namespace-inode-recovery"
+    },
+    "command": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-ci.py",
+    "timeout_minutes": 45,
+    "layout": "Download direct content or one literal hia-namespace-carrier-recovery-43105934854-1 wrapper; only fixed hia-namespace-carrier-recovery directory, no arbitrary recursive discovery."
+  },
+  "gates": {
+    "predecessor": "All616inner SHA/bytes/modes + downloaded raw members + exact seal; source/ELF actual pins; no old kernel/carrier corpus rerun",
+    "new_generation": "Exact private authoring helpers + new generator, full generated source saved even if verification rejects; original128/1536/256/8192/16 compiler profile",
+    "new_protocol": "18 VM +18 paired actual-image method groups, exact complete return/output/workspace/canaries + readonly source + persistent same context. Synthetic FS receipts labeled private.",
+    "new_compile": "Retained exact B3, original10CPU/20wall/256MiB/1MiB code and workspace",
+    "new_physical": "9 actual native-inode image + fixedFS ELF/fcntl groups, including deferred aliases/LIFO, shared counts, local/foreign conflicts, two native processes, actual SQLite writer both directions, EBADF, deliberate unknown result and17 inodes; full FS trace replay",
+    "source_custody": "All submitted scripts, actual selected source/ELF/image and reference before/after pins; raw first failures preserved; no skip/xfail/xpass or empty-suite acceptance"
+  },
+  "scope": {
+    "physical_provider_router": "Python test router only; HIA determines masks/conflicts/errno/close order. A fixed whole namespace coordinator remains open.",
+    "ordinary_AgentStore_closed": false,
+    "migration_closed": false,
+    "busy_wait_policy_closed": false,
+    "root_uid_path_policy_closed": false,
+    "old_full_qualification": "FAIL/HOLD unchanged",
+    "main_ref_changed": false,
+    "old_counts_inherited": false
+  },
+  "history": {
+    "generator_r1": "5522e884e190199c9b0df9bacac746c6d5ac2c4a",
+    "abi_r1": "b4ac7590c5bb0c671954c8685eb9273f919ab53e",
+    "validator_r1": "c47f15e9bfd1a0f9a000e73d5adc94f21351d8e7",
+    "validator_r2": "aabc4f65ee8ab3225b5445e084bb035106beb582",
+    "ci_r1": "6c87c9d97e4e3b19b8c1345ded1b79875b5939ca",
+    "all_history_sources_unexecuted": true,
+    "changes": "r2 pending consistency; validator capacity keyword matches fixture; print exact failed-group traces; generation preserves rejected output"
+  }
+}

@@ -73,9 +73,12 @@ def service_call(s:readbuf, r:readbuf, w:mutbuf) -> u32:
             result = call_exception(w)
         else:
             return call_refuse(w, 5)
-        if result != 0:
+        if call_result_word(result) != 0:
             return result
     return call_refuse(w, 6)
+
+def call_result_word(value:u32) -> u64:
+    return value
 
 def call_initial(s:readbuf, r:readbuf, w:mutbuf) -> u64:
     if length(s) != 64 or word(s, 0) != CALL_SOURCE or length(r) != 256:

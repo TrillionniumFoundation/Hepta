@@ -197,13 +197,27 @@ elif sys.argv[2]=='data':
 elif sys.argv[2]=='source-bindings':
     from importlib import import_module
     from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
+    from hepta.hia_composite_functions_native import SOURCES as FUNCTION_SOURCES
+    kernels=('admit','records','advanced','terms','render')
+    assert set(FUNCTION_SOURCES)==set(kernels),FUNCTION_SOURCES
+    function_sources={'composite_function_'+name:FUNCTION_SOURCES[name] for name in kernels}
     names=[Path(name).stem for name in NATIVE_SOURCE_FILES]
+    assert len(names)==len(set(names))
     observed={}
     for name in names:
-        module=import_module('hepta.hia_'+name+'_native')
-        assert Path(sys.argv[1]) in module.SOURCE.parents,module.SOURCE
-        assert module.SOURCE.is_file(),module.SOURCE
-        observed[name]=str(module.SOURCE.relative_to(Path(sys.argv[1])/'hepta/_data'))
+        if name in function_sources:
+            owner='hepta.hia_composite_functions_native'
+            source=function_sources[name]
+        else:
+            owner='hepta.hia_'+name+'_native'
+            source=import_module(owner).SOURCE
+        assert Path(sys.argv[1]) in source.parents,source
+        assert source.is_file(),source
+        raw=source.read_bytes()
+        observed[name]={'path':str(source.relative_to(Path(sys.argv[1])/'hepta/_data')),
+                        'owner':owner,'bytes':len(raw),
+                        'sha256':__import__('hashlib').sha256(raw).hexdigest()}
+    assert set(function_sources)<=set(observed)
     print(__import__('json').dumps(observed,sort_keys=True))
 elif sys.argv[2] in ('native-Core','native-Core-whole'):
     import os
@@ -315,10 +329,22 @@ assert not blocked.intersection(sys.modules)
         result=self.invoke('source-bindings',b'')
         self.assertEqual(result.returncode,0,result.stderr)
         observed=json.loads(result.stdout)
-        self.assertEqual(set(observed.values()),set(NATIVE_SOURCE_FILES))
+        expected={Path(name).stem:name for name in NATIVE_SOURCE_FILES}
+        self.assertEqual(len(expected),len(NATIVE_SOURCE_FILES))
+        self.assertEqual(set(observed),set(expected))
+        self.assertEqual({row['path'] for row in observed.values()},set(NATIVE_SOURCE_FILES))
         self.assertEqual(len(observed),len(NATIVE_SOURCE_FILES))
-        for name in observed.values():
-            self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
+        shared={'composite_function_'+name for name in ('admit','records','advanced','terms','render')}
+        self.assertLessEqual(shared,set(observed))
+        for stem,row in observed.items():
+            name=expected[stem]
+            owner='hepta.hia_composite_functions_native' if stem in shared else 'hepta.hia_'+stem+'_native'
+            self.assertEqual(row['owner'],owner)
+            self.assertEqual(row['path'],name)
+            actual=(self.installed/'hepta/_data'/name).read_bytes()
+            self.assertEqual(actual,(ROOT/name).read_bytes())
+            self.assertEqual(row['bytes'],len(actual))
+            self.assertEqual(row['sha256'],sha256(actual).hexdigest())
 
     def test_actual_installed_native_Core_policies_preserve_body_guards_and_missing_source_refusal(self):
         from tests.test_hia_program import b,c,f,m,ret

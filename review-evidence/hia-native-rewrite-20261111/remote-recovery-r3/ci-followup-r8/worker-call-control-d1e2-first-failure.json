@@ -1,0 +1,75 @@
+{
+  "schema": "hia-worker-call-control-first-ci-failure-v1",
+  "head": "d1e2ffda9369afcd198210fba5878c7a7b9c7ea8",
+  "run": 43109366132,
+  "job": 130821003660,
+  "status": "FAIL",
+  "phase": "authoring public verify_program before B3 execution",
+  "environment": {
+    "python": "3.12.14",
+    "common_git_sha": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e"
+  },
+  "actual": {
+    "common_restore": "PASS",
+    "exact_worker_dependencies": "PASS",
+    "generation": "FAIL",
+    "bounded_B3_compiles": 0,
+    "native_control_entries": 0,
+    "planned_controls_not_run": 184,
+    "records_rerun": false,
+    "journal_semantic_rerun": false
+  },
+  "first_error": {
+    "class": "HIAProgramRejected",
+    "code": "E_HIA_TYPE",
+    "text": "E_HIA_TYPE: compare.ne: operand types must match ('equality', '=0')",
+    "generation_elapsed_ns": 617769026,
+    "stdout_bytes": 468,
+    "stdout_sha256": "541fe77557dc7e11bc65d37d97277b816fcce3b25570edb6c478d7b6ddef2a88",
+    "stderr_bytes": 2474,
+    "stderr_sha256": "b708a37c47d462bc7fdf75ae56596f6836ca66e02eaa306fc8bb148597f61b3a"
+  },
+  "static_cause": {
+    "source": {
+      "path": "tools/service_call_flow.py",
+      "bytes": 22309,
+      "sha256": "7897b16f86b92d4376cdd46741add8b4f8ae5135fd296e608da4a2c62db8d59b",
+      "gitsha": "312c8530ab7698cff33719879f778671d7b76abf"
+    },
+    "expression": "if result != 0",
+    "left_type": "u32 from call_start/lookup/alias/validation/business/finish/exception",
+    "right_type": "u64 for literal 0 in unchanged Builder.expr",
+    "reference_builder_git_sha": "540de9366827900d0b82b4893922ffd383c44fef",
+    "fix": "explicit call_result_word(value:u32)->u64 before comparing with zero; return/ABI and all control decisions unchanged",
+    "fixed_source": {
+      "path": "service_call_flow.py",
+      "bytes": 22385,
+      "sha256": "145095e106d630e38258d637e62c60f9856d47f47f928ed2f8a7f6e8859702ea",
+      "gitsha": "7f7366044e3feb6df78ced24ed814b9a7be3461a"
+    },
+    "fix_actual_execution": "NOT_YET_RUN"
+  },
+  "complete_original_job_log": {
+    "path": "worker-call-control-d1e2-first-failure.log",
+    "bytes": 50150,
+    "sha256": "60c4c746fcf6fc1afa1e4d452d626146680d8c71284b43a3e7d1cb8541a9eb9c",
+    "gitsha": "30014e8c2c5af20088dfc0403e191b098f11c546"
+  },
+  "runner_reported_tar": {
+    "bytes": 5282688,
+    "sha256": "bf7954a9e5f289cab00a8d0443edcef82a67842f210dd5d59ff8b847914ac262",
+    "members": 65,
+    "original_bytes": 40259212,
+    "member_index_bytes": 19265,
+    "member_index_sha256": "abab2db1f0834afe4e2f2bbb61a2e83c41d2bfee015f6853d67f1ce836018657",
+    "member_readback_reported": true
+  },
+  "artifact": {
+    "id": 13895981390,
+    "name": "hia-call-control-recovery-43109366132-1",
+    "bytes": 45478102,
+    "sha256": "c211d92df98fb79cacc7eec9c3c2b521efbc13a9ec8a52a5062ef4261adec3d8",
+    "independent_zip_byte_readback": false
+  },
+  "whole_worker_closed": false
+}
