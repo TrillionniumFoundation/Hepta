@@ -38,13 +38,17 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-one
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-three
 current single-image contracts include the original nineteen helper adapters
-and the current **agent-journal-native.v2** and **execution-budget-native.v1** owners.
+and the current **agent-journal-native.v2**, **execution-budget-native.v1**,
+**candidate-budget-native.v1** and **retirement-state-native.v1** owners.
 A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
 refuse. Multi-image owners require their own explicit custody integration.
+Retirement also maps its fixed 45-byte open syscall primitive from the installed
+Python source closure; that primitive transports the selected HIA policy's
+effect and is not another selectable policy image.
 
 The bundle binds every child manifest; each child binds its schema, packaged
 source, image and compiler digest. Only owned, bounded, ordinary files with
@@ -94,10 +98,21 @@ from the real native evaluation control.
 The installed-resource regression retains its real wheel installation and
 native helper calls with authoring modules unavailable.
 
+`tests/test_hia_candidate_budget_native.py` selects candidate counts, execution
+budgets, the v2 journal and retirement in one pinned bundle. It disables all four
+hosted policies, builds candidates through the original service, executes an
+actual native evaluation, and checks original SQLite counts across service and
+worker replay. A second control runs the original multiversion rollback test:
+the old native generation stays callable through its existing lease and retires
+when that lease exits. Those controls exercise the existing service and loader;
+they do not establish that either has been rewritten in HIA.
+
 The required CI and complete qualification runner select
 `HEPTA_HIA_WORKER_HELPERS_COLD_REPORT`, `HEPTA_HIA_WORKER_REQUEST_COLD_REPORT`
 `HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT` and `HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT`
 from the same current-source replay.
+The candidate composition step uses `HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT`
+to build all four selected state-owner images from that same replay.
 The helper CI step requires a complete nonempty run and no failures, errors,
 skips, expected failures or unexpected successes. Explicit development images
 and local B0/B1/B2 builds remain development observations; they cannot override

@@ -21,6 +21,7 @@ BUILDER_SCRIPTS = (
     'build_hia_agent_snapshot_json.py',
     'build_hia_agent_stdio.py',
     'build_hia_artifact_publication.py',
+    'build_hia_candidate_budget.py',
     'build_hia_capability_renaming.py',
     'build_hia_composite_constructor.py',
     'build_hia_composite_functions.py',

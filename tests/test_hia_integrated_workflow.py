@@ -238,6 +238,17 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
 
+    def test_candidate_budget_ci_requires_complete_bundle_composition_and_zero_anomalies(self):
+        name = 'Native candidate budgets and pinned state owner composition'
+        self._assert_complete_native_ci(name, 'PYCANDIDATE')
+        self.assertIn("loadTestsFromName('tests.test_hia_candidate_budget_native')", script(name))
+        self.assertIn('          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget',
+                      step(name))
+        self.assertIn('tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
+                      script('Core source and independent reference controls'))
+
 
 if __name__ == '__main__':
     unittest.main()

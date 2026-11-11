@@ -134,5 +134,19 @@ Without the explicit cold report, the native fixture builds a fresh B0/B1/B2
 fixed point and records `BOOTSTRAP_DEVELOPMENT_ONLY`. Those executions establish
 component behavior; they are not the later integrated source's cold release
 qualification. `HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE` retains raw build and installed
-observations in a newly created directory. Global source/CI registration and
-same-source qualification belong to the integrating candidate.
+observations in a newly created directory. An explicit
+`HEPTA_HIA_CANDIDATE_BUDGET_DEVELOPMENT_COMPILER` reuses a developer-supplied
+compiler and records `DEVELOPMENT_REUSED_COMPILER`, still with current-source
+cold qualification false. Supplying that option with a cold report refuses.
+
+The ordinary worker's pinned helper bundle explicitly admits this policy and
+the existing retirement policy alongside execution budgets and journal v2.
+The composition control disables all four hosted policies, imports two real
+candidates into their original contexts, executes a native evaluation and checks
+both SQLite budgets. Replaying the original candidate and evaluation requests
+after service and worker restart cannot consume another attempt or execute the
+child again. A separate original multiversion rollback/lease test proves the
+same bundle reaches the HIA retirement policy. The Core workflow and complete
+qualification runner register these controls with nonempty, complete, zero-skip
+gates; their release result still requires the integrated source's matching cold
+replay.
