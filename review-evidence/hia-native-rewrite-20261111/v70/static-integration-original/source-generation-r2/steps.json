@@ -1,0 +1,331 @@
+[
+  {
+    "command": [
+      "bash",
+      "--noprofile",
+      "--norc",
+      "-c",
+      "set -eu\nfor component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget; do\n  python -B -m \"tools.generate_hia_$component\"\ndone\n"
+    ],
+    "name": "actual-ci-hia-generators-precommit",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "bash",
+        "--noprofile",
+        "--norc",
+        "-c",
+        "set -eu\nfor component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger program_execution static_budget; do\n  python -B -m \"tools.generate_hia_$component\"\ndone\n"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/actual-ci-hia-generators-precommit.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/actual-ci-hia-generators-precommit.stdout": "75e8613e9a05e47b88edb2a9989d386322cc5fff1db32b518418ecaaed0b4008"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 21.09248429397121,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 5344,
+      "mode": 384,
+      "sha256": "75e8613e9a05e47b88edb2a9989d386322cc5fff1db32b518418ecaaed0b4008"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "tools/generate_hia_selfhost_contract.py"
+    ],
+    "name": "support-generate-1",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-generate-1.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-generate-1.stdout": "6fe9d76cccb72b81ab4df676bb475c0570d656dd7397fa6d2e09393387b74815"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 0.06428718008100986,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 170,
+      "mode": 384,
+      "sha256": "6fe9d76cccb72b81ab4df676bb475c0570d656dd7397fa6d2e09393387b74815"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "tests/test_hia_selfhost_language_coverage.py",
+      "--generate-inventory"
+    ],
+    "name": "language-inventory-generate",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "tests/test_hia_selfhost_language_coverage.py",
+        "--generate-inventory"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/language-inventory-generate.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/language-inventory-generate.stdout": "782dd934f9bc8bc50db078431d294f17306294910439eb5f672faa5945b09c70"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 1.0657224438618869,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 136,
+      "mode": 384,
+      "sha256": "782dd934f9bc8bc50db078431d294f17306294910439eb5f672faa5945b09c70"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "tools/generate_hia_selfhost_contract.py"
+    ],
+    "name": "support-generate-2",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-generate-2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-generate-2.stdout": "6fe9d76cccb72b81ab4df676bb475c0570d656dd7397fa6d2e09393387b74815"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 0.06440553581342101,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 170,
+      "mode": 384,
+      "sha256": "6fe9d76cccb72b81ab4df676bb475c0570d656dd7397fa6d2e09393387b74815"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "tools/generate_hia_selfhost_contract.py",
+      "--check"
+    ],
+    "name": "support-check",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py",
+        "--check"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-check.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/support-check.stdout": "51bcc90f821f7a58b13050533d6fb9665aab73cfdb821febf45252fc27e3ba72"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 0.06415924406610429,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 170,
+      "mode": 384,
+      "sha256": "51bcc90f821f7a58b13050533d6fb9665aab73cfdb821febf45252fc27e3ba72"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "-c",
+      "from tests.test_hia_selfhost_language_coverage import validate_inventory; import json; r=validate_inventory(); print(json.dumps({'validated': True, 'semantic_support_sha256': r['source']['semantic_support_sha256']}))"
+    ],
+    "name": "original-language-inventory-validation",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "-c",
+        "from tests.test_hia_selfhost_language_coverage import validate_inventory; import json; r=validate_inventory(); print(json.dumps({'validated': True, 'semantic_support_sha256': r['source']['semantic_support_sha256']}))"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/original-language-inventory-validation.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/original-language-inventory-validation.stdout": "c2de5ada6786afa836e39c9d0411358cd5b1a41f4c25f4b44d5500d1266ca569"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 1.0655993779655546,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 115,
+      "mode": 384,
+      "sha256": "c2de5ada6786afa836e39c9d0411358cd5b1a41f4c25f4b44d5500d1266ca569"
+    }
+  },
+  {
+    "command": [
+      "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+      "-B",
+      "tools/audit_hia_native_rewrite.py",
+      "--output",
+      "docs/HIA_NATIVE_REWRITE_INVENTORY.json"
+    ],
+    "name": "actual-static-inventory-generator",
+    "owner": {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qq/hia-native-prerequisites-20261111-dda7-r1/venv/bin/python",
+        "-B",
+        "tools/audit_hia_native_rewrite.py",
+        "--output",
+        "docs/HIA_NATIVE_REWRITE_INVENTORY.json"
+      ],
+      "cwd": "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1",
+      "logs": {
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/actual-static-inventory-generator.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qq/hia-native-self-rewrite-20261111-dda7/static-budget-integration-v70-r1/.git/hia-static-integration-recovery-r1/source-generation-r2/actual-static-inventory-generator.stdout": "5c062cb05aa3e7d627a55f8673b5815a5f30e16efb4c53da20ca6813b8f4ccea"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 2.166255598887801,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 1800
+    },
+    "passed": true,
+    "stderr": {
+      "bytes": 0,
+      "mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stdout": {
+      "bytes": 731,
+      "mode": 384,
+      "sha256": "5c062cb05aa3e7d627a55f8673b5815a5f30e16efb4c53da20ca6813b8f4ccea"
+    }
+  }
+]
