@@ -398,6 +398,13 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        selected = os.environ.get('HEPTA_HIA_ARTIFACT_PAGE_MANIFEST')
+        if selected:
+            from .hia_artifact_page_native import installed_artifact_page
+            return installed_artifact_page(selected).read(self, args)
+        return self._reference_hia_read(args)
+
+    def _reference_hia_read(self, args):
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0

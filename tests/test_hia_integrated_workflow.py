@@ -208,7 +208,13 @@ class CoreWorkflowContractTests(unittest.TestCase):
                      'hia-machine-plan-callers.json', 'hia-machine-plan-callers-evidence/',
                      'hia-json-wire-callers.json', 'hia-json-wire-callers-evidence/',
                      'hia-machine-encoding-callers-evidence/',
-                     'hia-json-wire-cache-fixture/', 'hia-cli-fixture/']:
+                     'hia-json-wire-cache-fixture/', 'hia-cli-fixture/',
+                     'hia-store-authority-components.json', 'hia-store-authority-component-evidence/',
+                     'hia-store-authority-callers.json', 'hia-store-authority-callers-evidence/',
+                     'hia-store-authority-caller-gate.json',
+                     'hia-artifact-read-components.json', 'hia-artifact-read-component-evidence/',
+                     'hia-artifact-read-callers.json', 'hia-artifact-read-callers-evidence/',
+                     'hia-artifact-read-caller-gate.json']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
