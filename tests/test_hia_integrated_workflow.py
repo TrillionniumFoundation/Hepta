@@ -59,22 +59,20 @@ class CoreWorkflowContractTests(unittest.TestCase):
                                         env=env, capture_output=True, timeout=20)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
 
-    def test_actual_native_ci_runner_rejects_failed_skipped_and_expected_failure_outcomes(self):
-        source = script('Native applications and actual Core memory controls')
-        code = source.split("<<'PYTEST'\n", 1)[1].rsplit('\nPYTEST', 1)[0]
-        for success, skips, expected_failures, expected in [(True, [], [], 0), (False, [], [], 1),
-                                                         (True, ['fixture skip'], [], 1),
-                                                         (True, [], ['fixture expected failure'], 1)]:
-            with self.subTest(success=success, skips=skips, expected_failures=expected_failures):
-                fixture = ('import sys,types\n'
-                           'result=types.SimpleNamespace(wasSuccessful=lambda: ' + repr(success) +
-                           ',skipped=' + repr(skips) + ',expectedFailures=' + repr(expected_failures) + ')\n'
-                           'sys.modules["unittest"]=types.SimpleNamespace('\
-                           'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'\
-                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:names))\n')
-                result = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
-                                        capture_output=True, timeout=10)
-                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+    def test_actual_native_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native applications and actual Core memory controls', 'PYTEST')
+
+    def test_actual_source_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci('Core source and independent reference controls', 'PY')
+
+    def test_worker_request_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native worker request admission and ordinary request continuity', 'PYREQUEST')
+
+    def test_release_install_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
+        self._assert_complete_native_ci(
+            'Native immutable release installation and recovery observations', 'PYINSTALL')
 
     def test_actual_native_ci_retains_original_applications_and_all_core_region_controls(self):
         source = script('Native applications and actual Core memory controls')
@@ -110,6 +108,15 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertIn('          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget',
                       step(name))
 
+    def test_retirement_ci_requires_complete_execution_and_zero_anomalies(self):
+        name = 'Native retained retirement and real resource release controls'
+        self._assert_complete_native_ci(name, 'PYRETIREMENT')
+        self.assertIn("loadTestsFromName('tests.test_hia_retirement_state_native')", script(name))
+        self.assertIn('          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_RETIREMENT_STATE_EVIDENCE: ${{ runner.temp }}/hia-retirement-state',
+                      step(name))
+
     def _assert_complete_native_ci(self, name, marker):
         source = script(name)
         code = source.split("<<'" + marker + "'\n", 1)[1].rsplit('\n' + marker, 1)[0]
@@ -130,7 +137,8 @@ class CoreWorkflowContractTests(unittest.TestCase):
                            'suite=types.SimpleNamespace(countTestCases=lambda: ' + repr(expected_count) + ')\n'
                            'sys.modules["unittest"]=types.SimpleNamespace('
                            'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
-                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromName=lambda name:suite))\n')
+                           'defaultTestLoader=types.SimpleNamespace(loadTestsFromName=lambda name:suite,'
+                           'loadTestsFromNames=lambda names:suite))\n')
                 child = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
                                        capture_output=True, timeout=10)
                 self.assertEqual(child.returncode, expected_status, child.stdout + child.stderr)

@@ -19,12 +19,12 @@ was `5831f52fada45e076f8f68f198a15c0585e6104f`; a candidate is not main adoption
 The exact current compiler/source identity is the checked
 [Selfhost-Core contract](HIA_SELFHOST_CORE_SUPPORT.json).
 
-All 96 current language sources use `.hepta`: 69 assembly sources and 27
+All 98 current language sources use `.hepta`: 71 assembly sources and 27
 structured Core sources. There are no active `.HIA`, `.hia`, `.hiaasm` or
 `.hia.json` files. Assembly retains its `hia-asm.v1` header, structured Core
 retains its explicit schema, and paired JSON projections use `.core.hepta`.
 The [87-file migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) preserves each
-renamed source byte for byte. The five later assembly sources are new inputs,
+renamed source byte for byte. The seven later assembly sources are new inputs,
 not entries fabricated into that historical rename map.
 Four existing structured examples whose names ended in plain `.json` are also
 renamed byte for byte. Their Python and Rust consumers use `.hepta`; the source
@@ -48,6 +48,8 @@ The `hia` executable and `hepta.hia.*` schema names are unchanged.
 | Nominal Core | Selected type/helper/function/constructor/outer owners; raw JSON codec | Complete default routing, diagnostics and foreign-object/state transfer |
 | Agent service | Selected native identity, request, journal and publication kernels | Ordinary worker, eleven-tool service, SQLite effects, recovery and version ownership |
 | Worker helper selection | One pinned bundle routes existing helpers and current journal v2 through ordinary callers | Worker transport, service methods and SQLite remain hosted |
+| Execution budgets | Native decimal accounting, claim/completion and unknown-outcome fencing use the original SQLite rows through both request journals | SQL durability, process execution and confirmed termination remain hosted |
+| Resource retirement | Native retained state owns identity observations, one-time release claims and retry decisions | Foreign handles, actual system calls, version transfer and durable recovery remain hosted |
 | Release selection | Native immutable installation, compare-and-swap activation, previous-release rollback and status | Actual worker cutover, active references, service restart and old-owner retirement |
 
 The selfhost compiler is a bounded Linux x86-64 profile. It is not a proof of
@@ -63,7 +65,7 @@ checks from the separately reviewed v67 integration source
 `5d5424a31caa33283a562defba9cb6b187deb99c`, adapting only physical source names.
 It does not overwrite either parallel candidate's native language semantics.
 
-- All 43 public builder scripts can resolve their own imports when invoked by
+- All 45 public builder scripts can resolve their own imports when invoked by
   absolute path from an unrelated directory with Python `-I` and no PYTHONPATH.
 - SHA builders require the shared strict cold/profile/compiler/full-source gate
   before creating output. The two SHA algorithms and native manifests are unchanged.
@@ -79,13 +81,37 @@ It does not overwrite either parallel candidate's native language semantics.
   their exact bytes, installed-release verifier, limits, refusal policy and
   durable record format. It adds activation, previous-release rollback and
   restart status without changing the ordinary worker or its slot/lease state.
+- The ordinary worker accepts one explicitly pinned bundle with 21 actual
+  single-image adapters, including the current journal v2 and execution budget.
+  It refuses ambient selectors, cross-process/thread reuse and post-effect
+  identity drift; recovery observes the original operation before retrying.
+- Native execution budgets preserve the original database/WAL namespace,
+  Decimal limits, request identities and uncertain cost through restart.
+- Retained retirement state is integrated into the original resource and
+  multiversion owners. The existing 69-case retained suite executes with the
+  old policy functions refused; foreign resources still have their actual
+  process owners.
+- Native publication verifies actual kernel memfd seals before execution,
+  including on Python builds that omit the symbolic Linux constants. Native
+  compiler publication also requires exact typed receipts and unchanged input
+  and compiler bytes under optimized Python.
+- Every Core CI unittest group requires a nonempty declared suite, exact
+  execution count and zero anomalies. Empty or incomplete success reports,
+  skips and expected failures cannot qualify a component. The existing test
+  modules, native requirements and resource limits are unchanged.
 
 The combined source has the distinct profile
-`selfhost-core-linux-x86_64-v68-native-source-build-release-selection`.
-The [development observations](../review-evidence/hia-native-rewrite-20261111/release-selection-v68-development/README.md)
-record 21 passing controls and four actual ptrace-environment failures. The
-failed fault-injection controls remain required in CI. These development runs
-do not supply a completed cold qualification for the integrated source.
+`selfhost-core-linux-x86_64-v69-native-worker-state-owners`.
+Component development records retain their exact source identities. They do
+not supply a completed cold qualification for a later integrated source.
+
+The earlier published `ec484121` candidate passed all jobs in
+[PR Core run 43037991627](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43037991627).
+The same source's [push run 43037976912](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43037976912)
+timed out at 180.195200988 seconds. Its timeout, partial nested result and
+successful owned cleanup remain separate observations. Four actual
+release-selection strace fault controls also passed on the matching source
+on `rog`; its development B0/B1/B2 fixture is not a cold qualification.
 
 Original cold limits remain 180 seconds for qualification and 3 seconds for
 owned cleanup. A timed-out run remains failed even when another host passes.
@@ -102,23 +128,31 @@ that obsolete candidate document is removed as well. This is retirement of
 unintegrated experiments, not a claim that they were rewritten in HIA.
 Their original source remains in the Git history of the published base.
 
-The active package has 156 Python modules, including the explicit
+The active package has 160 Python modules, including the explicit
 [native helper bundle adapter](HIA_NATIVE_HELPER_WORKER.md). This count is an inventory,
 not a native-completion percentage. Required hosted modules are retained until
 replacement and ordinary-operation equivalence are established.
 
-The two long historical status documents now point here and to their immutable
-original Git revisions. Current implementation status is maintained once.
-Original failure evidence, registered benchmarks, independent oracles, licences
-and fixed compiler fixtures remain available to the tests that consume them.
+Six superseded progress and deployment reports have been removed from the
+active documentation tree. Their exact earlier revisions are linked below.
+README points to this single current-state index. The duplicate active-module
+report is removed; the complete repository inventory is maintained once.
 
-The follow-up [AST and textual caller audit](HIA_ACTIVE_MODULE_AUDIT.json) found no further demonstrated unused
+The [AST and textual caller inventory](HIA_NATIVE_REWRITE_INVENTORY.json) found no further demonstrated unused
 production module. `__main__` is the module entry, `hia_agent_exec` is launched
 by the native program bridge, and `hia_core_api` is exercised in an isolated
-subprocess fixture. They must remain. Historical process logs and replay
-scripts still have fixed custody or test consumers. Repository suffix checks
+subprocess fixture. They must remain. Repository suffix checks
 cover tracked sources and package resources; ordinary file input remains
 content-based and can read a valid program supplied under another suffix.
+
+Seven superseded v60–v67 snapshot directories and seven old qualification,
+preparation and source-check scripts are also removed from the current tree:
+262 files, 52,712,062 bytes. The [retirement ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json)
+binds each retired path to its unchanged original Git object at `ec484121`.
+The current entry is `run_hia_qualification_v4.py` with its adjacent
+`workflow_process.py`. Current runtime, tests, CI and declared source inputs
+have no consumer of the retired physical files. Required NDU archives,
+registered research inputs and model provenance remain in their declared paths.
 
 The remaining directories have distinct current responsibilities:
 
@@ -200,11 +234,11 @@ conditions. `production_activated` remains false for this candidate.
 ## Parallel implementation inventory
 
 The v67 integration at `5d5424a3` is not the same source as PR #893 despite its
-similar profile label. It contains separate namespace, execution-budget,
-request-journal, retirement, individual nominal-operation and value-graph
-owners. PR #893 contains another journal owner, raw nominal JSON and native
-source-build components. Their shared build-custody fixes are integrated here;
-the remaining owners still require deliberate ABI/state/authority reconciliation.
+similar profile label. Its execution-budget and retirement owners are now
+integrated with the current request journal. Its separate namespace,
+request-journal, individual nominal-operation and value-graph owners still
+require deliberate ABI/state/authority reconciliation with the current nominal
+pipeline, raw JSON codec and native source-build components.
 Deleting either branch's unique implementation is not an integration strategy.
 The worker/helper integration reuses the reviewed helper block without
 modifying its original worktree. The independent slot/version/lease candidate

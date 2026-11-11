@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v68-native-source-build-release-selection'
+PROFILE = 'selfhost-core-linux-x86_64-v69-native-worker-state-owners'
 SOURCE_FILES = (
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
@@ -132,6 +132,9 @@ SOURCE_FILES = (
     'tests/test_hia_structure_traversal.py',
     'tests/test_hia_native_builder_source_binding.py',
     'tests/test_hia_standalone_builder_source_binding.py',
+    'tests/test_hia_compile_stage_custody.py',
+    'tools/run_hia_unittest_gate.py',
+    'tests/test_hia_unittest_gate.py',
     'tests/test_hia_sha256_builder_source_binding.py',
     'tests/test_hia_reference_fixture_efficiency.py',
     'docs/HIA_COMPOSITE_TYPES_NATIVE.md',

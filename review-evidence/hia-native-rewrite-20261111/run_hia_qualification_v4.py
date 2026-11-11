@@ -205,8 +205,14 @@ expected_raw=Path(EXPECTED).read_bytes()
 if sha256(expected_raw).hexdigest()!=EXPECTED_SHA256:
     raise SystemExit('pinned source snapshot changed before source reproduction')
 expected=json.loads(expected_raw)
-subprocess.run(['git','--no-replace-objects','clone','--quiet','--no-hardlinks',
-                '--no-checkout',SOURCE,COPY],check=True)
+# Transfer the exact commit and its complete tree through Git's object protocol.
+# A depth-one fetch excludes unrelated history, without shared/hardlinked
+# objects or changing any HEAD, tree, raw-blob or file-mode comparison below.
+subprocess.run(['git','--no-replace-objects','init','--quiet',COPY],check=True)
+subprocess.run(['git','--no-replace-objects','-C',COPY,'fetch','--quiet',
+                '--no-tags','--depth=1',SOURCE,expected['head']],check=True)
+if (Path(COPY)/'.git/objects/info/alternates').exists():
+    raise SystemExit('source reproduction must not borrow original Git objects')
 subprocess.run(['git','--no-replace-objects','-C',COPY,'checkout','--quiet',
                 '--detach',expected['head']],check=True)
 os.chdir(COPY)
@@ -226,6 +232,7 @@ if after!=expected or after['status']:
     raise SystemExit('generated source differs from the pinned HEAD/tree/blob/mode snapshot')
 receipt={'schema':'hepta.hia.complete-source-reproduction.v1',
          'status':'SOURCE_REPRODUCTION_PASS','generators':GENERATORS,
+         'git_history_scope':'exact immutable commit and its complete tracked source tree',
          'expected_snapshot_sha256':EXPECTED_SHA256,
          'before':before,'after':after,'identical_to_tested_source':True,
          'raw_git_tree_blobs_and_modes_checked':True}
