@@ -1,0 +1,37 @@
+{
+  "schema": "hia.native-source-binding-peer-review.v1",
+  "previous_static_commit": "947a5d9e170427fd10b5ee55b7ccf752a8b7370b",
+  "peer": "native_install_owner",
+  "finding": "isinstance can inspect an overridable instance __class__ on non-Native factory outputs; this conflicts with preserving the previously unobserved generic factory result.",
+  "repair": "issubclass(type(loaded), NativeHiaJsonImage) inspects the actual type and leaves a non-Native result's __class__ untouched.",
+  "control": "The existing source admission method calls the real uncached loader body with a complete valid manifest and a generic factory output whose __class__ property raises. It requires exact factory arguments, object identity, and zero property observations. No cache entries are modified and no native code is executed by this negative control.",
+  "status": "STATIC_CORRECTION_UNEXECUTED",
+  "all_original_component_method_ids_preserved": true,
+  "native_schema_and_hia_bytes_unchanged": true,
+  "files": [
+    {
+      "path": "hepta/hia_json_preflight_native.py",
+      "bytes": 8901,
+      "sha256": "6011fad1d2aeb1fa2deb5892c7625978c0a2398fd316b8bd53b51e9eeb7cea3f",
+      "git_blob": "7b49c4c8fff1f39ddb3958bd354a142d72fd1b6b"
+    },
+    {
+      "path": "hepta/hia_machine_x64.py",
+      "bytes": 15167,
+      "sha256": "545b1f8a1a302cb70d30e6432af2b565c9a787454f5286c467fe1a7f0bbaa121",
+      "git_blob": "18c19c5424406c246ce7ca979a83d91581b839e1"
+    },
+    {
+      "path": "tests/test_hia_machine_state_native.py",
+      "bytes": 32273,
+      "sha256": "be5e95aba3b83b8f019e434e4037e24656e17a7ec968703b7d84803789fc2e80",
+      "git_blob": "9d6ba1cb9fd69c5051c06ee5393071437ebc456d"
+    },
+    {
+      "path": "tests/test_hia_machine_instructions_native.py",
+      "bytes": 27570,
+      "sha256": "e52654d150eb74c5d6c2a174d501789b464d15aa94f0c1c588acd6abc9d3c613",
+      "git_blob": "c7af73cfe15c8db49aa9343e1cb2c95b40add7ff"
+    }
+  ]
+}
