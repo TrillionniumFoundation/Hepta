@@ -437,3 +437,109 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+
+  call_control:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:call-control]')
+    name: New complete worker call control with explicit foreign fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Reconstruct and execute independent full call control gates
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-call-control-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-call-draft/worker_call_control_ci_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-call-control-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-call-control-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-call-control-recovery
+            ${{ runner.temp }}/hia-call-control-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  b433_readback:
+    name: Read completed cold and projector evidence
+    if: contains(github.event.head_commit.message, '[hia-ci:b433-readback]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted readback source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download exact completed original cold artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13894063931'
+          run-id: '43107344590'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-b433-cold
+      - name: Download exact completed original private projector artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893949293'
+          run-id: '43107344619'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-b433-program
+      - name: Download exact completed candidate artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893874697'
+          run-id: '43107344619'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-b433-candidate
+      - name: Verify original evidence and print exact failure reports
+        shell: bash
+        env:
+          HIA_CANDIDATE_READBACK_DIR: ${{ runner.temp }}/hia-b433-candidate
+          HIA_COLD_READBACK_DIR: ${{ runner.temp }}/hia-b433-cold
+          HIA_PROGRAM_READBACK_DIR: ${{ runner.temp }}/hia-b433-program
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-b433-readback
+        run: >-
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_b433_original_evidence_r1.py
+          2>&1 | tee "$RUNNER_TEMP/hia-b433-readback-driver.log"
+      - name: Preserve complete original downloads and readback evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-b433-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-b433-readback
+            ${{ runner.temp }}/hia-b433-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

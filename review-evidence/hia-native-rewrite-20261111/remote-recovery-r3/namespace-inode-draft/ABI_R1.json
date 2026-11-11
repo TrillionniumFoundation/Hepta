@@ -1,0 +1,158 @@
+{
+  "schema": "hia.namespace-inode-owner-abi.v1",
+  "status": "NEW_AUTHORING_ONLY_ZERO_AST_VM_B3_NATIVE",
+  "source": {
+    "path": "tools/generate_hia_agent_namespace_inode.py",
+    "git_blob": "5522e884e190199c9b0df9bacac746c6d5ac2c4a",
+    "bytes": 23061,
+    "sha256": "9b9e5b9f24972d429490c6da903eb6443acc573e51ee86c11b36b114ac942258"
+  },
+  "role": "Process-local inode/WAL lock policy and deferred physical close below complete namespace operations; not a new public storage API.",
+  "scope_preserved": "Existing ten tables,31 SQL operations,five storage classes,arbitrary-precision TEXT clock values and all public limits remain unchanged and outside this component. No global descriptor/row/byte count quota.",
+  "dependencies": {
+    "values_sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50",
+    "object_builder_sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de",
+    "reference": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+    "filesystem_kernel_source_sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8",
+    "filesystem_image_sha256": "f1d81566c18556fcdddafb84546f4f6208b7a83f9351583e999e5ecb6379618c",
+    "provider": "Real selected HIANFR03 FS owner; stat15,fcntl17,close8. Typed peer frames below never authenticate a foreign process."
+  },
+  "references": [
+    {
+      "repo": "TrillionniumFoundation/Hepta",
+      "ref": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "path": "hepta/hia_agent_store.py",
+      "git_blob": "ce939c30102a16d0c0d9736774dca3c50d91f879",
+      "scope": "Root/path/UID and exact transaction semantics; only reread, not new execution."
+    },
+    {
+      "repo": "sqlite/sqlite",
+      "ref": "f3d536d37825302e31ed0eddd811c689f38f85a3",
+      "path": "src/os_unix.c",
+      "git_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2",
+      "scope": "SQLite3.46.1 source branch without SQLITE_ENABLE_SETLK_TIMEOUT; unixShmLock,unixShmSystemLock,robust_close,setPendingFd,closePendingFds. CI SQLite runtime may differ."
+    }
+  ],
+  "semantic_rules": [
+    "Same-process shared locks are tracked by each live connection. Repeating the same shared acquisition is a no-op.",
+    "A shared acquire with other shared holders needs no physical F_SETLK; releasing one shared holder does not physically unlock while another holds it.",
+    "Exclusive requests first check same-inode per-connection shared/exclusive masks. An in-process conflict returns SQLITE_BUSY without an OS lock request.",
+    "The eight lock bits are the existing SQLite WAL ABI at byte120..127, not a new namespace resource quota. Shared operations span exactly one bit; exclusive operations may span a contiguous range.",
+    "A completed known physical F_SETLK error maps to SQLITE_BUSY for every errno under the selected3.46.1 non-timeout source branch. Raw errno remains in the receipt. Failed unlock leaves all masks unchanged.",
+    "A logical connection must have released its own lock masks before RETIRE; this is an internal typed precondition, not public AgentStore.close. The future full coordinator must execute the complete close sequence.",
+    "RETIRE becomes logically unavailable immediately. If any same-inode masks remain, the physical descriptor is queued. When the group has no masks, queued descriptors are physically closed in reverse retirement order.",
+    "Each CLOSE token is removed before issuing exactly one physical request. Completed close errors are recorded and ignored for business success as robust_close does; close is never retried after EINTR or another known errno.",
+    "Unknown physical result or invalid/replayed framing permanently poisons this registry and retains the pending action metadata. It does not synthesize an unlock,close,rollback or durable commit.",
+    "UID0,device0,and inode0 are ordinary numeric values; root ownership/type policy is a separate stage and is not silently inferred from nonzero tests."
+  ],
+  "transport": {
+    "magic_ascii": "HIANIR01",
+    "bad_workspace_magic_ascii": "HIANIB01",
+    "header_bytes": 256,
+    "output_bytes": 256,
+    "workspace_header_bytes": 512,
+    "row_bytes": 96,
+    "statuses": {
+      "0": "complete",
+      "1": "typed physical peer request",
+      "2": "grow workspace before the first stat; re-enter same original source lease",
+      "4294967293": "permanent refusal"
+    },
+    "commands": {
+      "1": "initialize fresh registry with nonzero registry128-bit nonce and selected FS128-bit nonce plus already-observed FS call/sysseq watermarks",
+      "2": "register a live FS logical token; actual stat15 establishes device/inode/mode/UID before issuing a new registry handle",
+      "3": "acquire WAL shared/exclusive mask",
+      "4": "release WAL shared/exclusive mask",
+      "5": "retire a fully unlocked logical registry handle",
+      "6": "peer complete: original FS request256 bytes followed by the actual complete FS output buffer",
+      "7": "peer outcome unknown: exact active call/action, no payload; permanent refusal"
+    },
+    "input_qwords": [
+      "0 magic",
+      "1 command",
+      "2 registry nonce high",
+      "3 registry nonce low",
+      "4 monotonic caller sequence",
+      "5 peer action sequence (0 for new calls)",
+      "6 registry handle (0 for register)",
+      "7 expected physical op for ACK;0 for new",
+      "8 reserved0",
+      "9 new REGISTER FS token, or LOCK kind1shared/2exclusive; INIT FSnonce high",
+      "10 INIT FSnonce low, otherwise0",
+      "11 INIT previous FS call watermark, otherwise0",
+      "12 INIT previous FS sysseq watermark,otherwise0",
+      "13 WAL offset0..7",
+      "14 count1..8",
+      "15 nonzero immutable original source lease for commands2..5, echoed by ACK; INIT0",
+      "16 exact payload byte count",
+      "17..31 zero"
+    ],
+    "output_qwords": [
+      "0 magic",
+      "1 status",
+      "2..3 registry nonce",
+      "4 caller sequence",
+      "5 action",
+      "6 original logical handle",
+      "7 physical op",
+      "8 business code0success/1registration IO/5busy",
+      "9 raw errno",
+      "10 new/current logical result handle",
+      "11 source lease",
+      "12 tracked physical rows",
+      "13 next logical handle",
+      "14 phase",
+      "15 required workspace",
+      "16 provider FS token",
+      "17 actual F_RDLCK0/F_WRLCK1/F_UNLCK2",
+      "18 physical start120+offset forfcntl",
+      "19 physical count",
+      "20 first close error for this drain (audit only)",
+      "21 retiring handle for pendingclose",
+      "22 ABI1",
+      "23 poison reason",
+      "24..31 zero"
+    ],
+    "workspace_rows": {
+      "layout": [
+        "handle",
+        "FS logical token",
+        "device",
+        "inode",
+        "shared mask",
+        "exclusive mask",
+        "state0free/1live/2deferred",
+        "retirement sequence",
+        "zero",
+        "stat mode",
+        "stat UID",
+        "zero"
+      ],
+      "growth": "Sixteen rows per allocation request. This is allocation granularity; repeated growth has no record-count quota. All additions/multiplications are checked against u64 addressability before use.",
+      "handles": "Nonzero,monotonic,never reused; no claim that a numeric handle authenticates external input."
+    },
+    "peer_binding": [
+      "ACK includes the exact actual FS command buffer and exact completed output buffer. The FS request has selected FS nonce,operation,token/type/range and source lease equal to this registry action.",
+      "The completed FS reply must match that request's nonce/call/operation/source lease,have version3/phaseREADY/statusCOMPLETE and advance the observed FS call/sysseq watermarks.",
+      "All FS request reserved words and complete-reply reserved/shape words are checked. Stat success includes the full144-byte native struct; duplicate header dev/ino/mode/UID/GID/size/nlink fields must equal those actual payload bytes.",
+      "The caller must possess the real selected FS-session lease and pass the request/reply from the actual just-completed invocation. This component cannot prove origin from fabricated bytes; a fixed native coordinator/IO issuer still has to enforce that provenance.",
+      "Other physical I/O may advance the FS watermarks between registry calls,so matching actual call is strictly newer,not assumed adjacent. The fixed whole coordinator must prevent raw close/fcntl bypass for registered inodes. Arbitrary side-channel closes are not covered."
+    ]
+  },
+  "planned_verification": [
+    "First exact generation/VM gate,then new original-B3 compile under10CPU/20wall/256MiB/1MiB; no original FS execution counts inherited.",
+    "Whole return/output/workspace/guards for actual registry entries against retainedCoreVM,including full FS request/reply packets and source unchanged.",
+    "Actual nativeFS fstat registration,shared-holder noOS cases,exclusive contention,all errno unlock failure preservation,deferred same-inode aliasclose and LIFO drain/no retry.",
+    "Cross-session/action/call/operation/extent corruption; persistent poison; dynamic growth and stale-handle retirement; unsigned max arithmetic; UID0/control fixture distinct from actual runner UID.",
+    "Separate physical tests must keep a foreign actual fcntl observer blocked across deferred aliases and release it only after the last owned mask.",
+    "Full scalar/schema/row/log/transaction/migration/ordinary-worker work remains separately required."
+  ],
+  "open_scope": [
+    "No new tests or native execution have run for this source.",
+    "The standalone actualFS carrier cannot yet invoke this new policy owner; a fixed native coordinator/service framer still must be compiled and executed.",
+    "The10000ms planned SQLite busy-handler schedule is not in this registry. A separate HIA caller owns retry/wait and must not turn a known BUSY into an unknown result.",
+    "Shared-memory DMS byte128/F_GETLK,complete WAL-page validation/readers and old3.46.1 migration are not covered by byte120..127 policy. Current22-primitive FS owner lacks F_GETLK and needs a separately qualified extension before migration.",
+    "State-root Path.absolute/mkdir/resolve/UID policy,immutable commit/view/log composition and normal AgentStore/worker path remain open.",
+    "All originals and the former full qualification FAIL/HOLD remain unchanged."
+  ]
+}

@@ -180,7 +180,8 @@ def populate(context, mine, project, common):
         target.chmod(stat.S_IMODE(source.stat().st_mode))
         assert target.read_bytes() == raw
         copies.append(dict(source=str(source), target=str(target), bytes=len(raw), sha256=expected))
-    for relative in ("development/test_cli_entry_ci_r1.py",):
+    for relative in ("development/test_cli_entry_ci_r1.py",
+                     "development/diagnose_cli_entry_fault_r1.py"):
         source = DELIVERY / relative
         raw = source.read_bytes()
         common.PINS[source.resolve()] = raw
@@ -416,6 +417,21 @@ def main():
         caught = error
         details["failure"] = traceback.format_exc()
         print(details["failure"], file=sys.stderr, flush=True)
+        # Preserve the original failure. This separate debug-only ELF captures
+        # the actual rejecting mechanics/owner state, never a repaired outcome.
+        try:
+            build = project / "development/entry-independent-ci-build-r1"
+            if context is not None and (build / "bundle.json").is_file():
+                fault_out = project / "development/entry-actual-fault-r1"
+                common.run("cli-seven-image-actual-fault-capture", [
+                    sys.executable, "-B", project / "development/diagnose_cli_entry_fault_r1.py",
+                    "--bundle", build / "bundle.json", "--out", fault_out],
+                    cwd=project, timeout=60, env=env)
+                details["actual_fault_capture"] = json.loads((fault_out / "summary.json").read_bytes())
+        except BaseException as capture_error:
+            details["actual_fault_capture_error"] = traceback.format_exc()
+            print(details["actual_fault_capture_error"], file=sys.stderr, flush=True)
+            caught.add_note("Separate actual fault capture: " + repr(capture_error))
     finally:
         try:
             if mine.exists():
@@ -429,7 +445,7 @@ def main():
             else:
                 caught.add_note("CLI portable raw export failed: " + repr(error))
         try:
-            common.finish("cli-independent-entry-continuation-r3", status, details, roots=roots)
+            common.finish("cli-independent-entry-failure-diagnostic-r4", status, details, roots=roots)
         except BaseException as error:
             if caught is None:
                 raise

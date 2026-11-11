@@ -217,6 +217,14 @@ try:
     for path in sorted((REF/"examples/hia_program").glob("*.hia")):
         fixtures.append(("retained-"+path.stem,json.loads(read(path))))
     fixtures.append(("retained-recursive-composite-v2",json.loads(read(REF/"examples/hia_recursive_chain/composite_v2.json"))))
+    # Exact retained v4 fixtures exercise nested returned read and mutable loans.
+    fixture_path=REF/"tests/test_hia_composite_returned_loans.py"
+    assert sha256(read(fixture_path)).hexdigest()=="a30e88180ec24a0fab6ed4bf3be9a160bc662be2b7ba426933c8f7e86fef4ede"
+    from tests import test_hia_composite_returned_loans as returned_loan_fixtures
+    assert Path(returned_loan_fixtures.__file__).resolve()==fixture_path.resolve()
+    for loan_mode in ("read","mut"):
+        fixtures.append(("retained-composite-v4-pair-"+loan_mode,
+                         returned_loan_fixtures.pair_program(loan_mode)))
     large=copy.deepcopy(base);large["schema"]="hepta.hia.program.v8"
     large["functions"]=[]
     for i in range(1024):

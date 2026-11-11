@@ -1,0 +1,127 @@
+{
+  "schema": "hia-worker-complete-call-control-delivery-v1",
+  "status": "NEW_UNEXECUTED_DEVELOPMENT",
+  "production_body_revision": "r4",
+  "files": [
+    {
+      "path": "tools/service_call_flow.py",
+      "bytes": 22309,
+      "sha256": "7897b16f86b92d4376cdd46741add8b4f8ae5135fd296e608da4a2c62db8d59b",
+      "gitsha": "312c8530ab7698cff33719879f778671d7b76abf"
+    },
+    {
+      "path": "native-agent-service-call-next/tools/generate_hia_service_call.py",
+      "bytes": 4106,
+      "sha256": "f1f2aba87140d585ab20752b460132cf83adae466acecca89da6e3e6492a6f7b",
+      "gitsha": "592f43d64bcddc91ec5be9b13178a98518b3b164",
+      "status": "NEW_UNEXECUTED_DEVELOPMENT_DRAFT"
+    },
+    {
+      "path": "native-agent-service-call-next/tools/service_call_unwind.py",
+      "bytes": 3256,
+      "sha256": "45a4594fa537b4be7bec1e6417d671d7170cb8bf56b787f1ca070a3971e37f5e",
+      "gitsha": "9694c865285b6636cb4d52abbf67c25a12bd0c0a",
+      "status": "NEW_UNEXECUTED_DRAFT"
+    },
+    {
+      "path": "docs/HIA_SERVICE_CALL_CONTROL_DEVELOPMENT_R2.md",
+      "bytes": 12591,
+      "sha256": "0dedda6987c7dd3377ecfaab0363f0b16ecf63c147148f7d1d31755eee1f2f4d",
+      "gitsha": "52b11140fe54af366eb0e299910f0474bd141f63"
+    },
+    {
+      "path": "compile_call_control_ci_r3.py",
+      "bytes": 6163,
+      "sha256": "1f724b02392642ecd8f99c9a1403b7a36728bffe170f87cda762758a850020c9",
+      "gitsha": "cea0f3461738254a07834da83d27f79d1e0876d0"
+    },
+    {
+      "path": "development/test_call_control_ci_r3.py",
+      "bytes": 27861,
+      "sha256": "3b6075e50e7400cb2e988fe34e551fcfd4a6e95b3f9173b9743f75d39d478c59",
+      "gitsha": "278fff556e6613d27239885bd6ac96a8c5469c71"
+    },
+    {
+      "path": "worker_call_control_ci_r1.py",
+      "bytes": 6015,
+      "sha256": "85a795dfc3f964efdcdc61c4ce9f2778e1cd75f54c1b96457292f7b3a0306f7d",
+      "gitsha": "ba649710e89808af09d8b086c271ea5123abfa5a"
+    }
+  ],
+  "dependencies": {
+    "bridge_helper": {
+      "path": "tools/service_journal_bridge.py",
+      "bytes": 18860,
+      "sha256": "7097c244df5c8225d5a8c984a47bc3df5822f3c7e97f9968a6802cbff9e059bf",
+      "gitsha": "67bbe545e377755dbdd913a62397dbb4584d5dd1"
+    },
+    "dependency_index": {
+      "path": "worker_ci_dependencies_r4.json",
+      "bytes": 12173,
+      "sha256": "ac161a0eca2fc7de654a065099f1600909171125ec45e6deeb39dcdeced1fb9c",
+      "gitsha": "6f6915dbb0b6b96796ae88a7febab4c1e9f80310"
+    },
+    "restore": {
+      "path": "worker_ci_restore_r2.py",
+      "bytes": 8761,
+      "sha256": "bc44552bb7a61e983227b27da4adc321c435cf76e2d30ec4def6c1345bcafa10",
+      "gitsha": "3c4b0e5b979f8107065a7e0144faaf5d9ca0668d"
+    },
+    "common_git_sha": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "reference": [
+      {
+        "path": "hepta/hia_agent_journal_native.py",
+        "bytes": 22923,
+        "sha256": "1cbd3c43ad5439f6fcfa1455d0c10725d38f7ae2807e403d9d3f47cdba874d21",
+        "gitsha": "8ce760d5d6155aa69164b265b79253a76b5a937c"
+      },
+      {
+        "path": "hepta/hia_agent_store.py",
+        "bytes": 20250,
+        "sha256": "fae25d48a6de7187ed465287c1491af74214ac8bf3eae2af921bd100a247b822",
+        "gitsha": "ce939c30102a16d0c0d9736774dca3c50d91f879"
+      },
+      {
+        "path": "hepta/hia_agent_service.py",
+        "bytes": 100742,
+        "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330",
+        "gitsha": "2f56a5b4b02c54b9e56e53882db5cbd5687e4b4e"
+      }
+    ],
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+  },
+  "driver_contract": {
+    "common_env": "HIA_CI_COMMON",
+    "output_env": "HIA_CI_OUTPUT",
+    "restores_own_workdir": true,
+    "changes_refs": false,
+    "changes_workflows": false,
+    "generates_real_hia": true,
+    "compiler_limits": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_space_bytes": 268435456
+    },
+    "native_child_limits": {
+      "cpu_seconds": 90,
+      "address_space_bytes": 1073741824
+    },
+    "planned_actual_controls": 184,
+    "foreign_peers": "Explicit test fixtures, not production or native namespace evidence",
+    "records_rerun": false,
+    "journal_component_groups_rerun": false
+  },
+  "scope_open": [
+    "all actual general DataJSON/value peers",
+    "fresh reconstructed complete tool schema",
+    "actual namespace high-level peers",
+    "business owners",
+    "fixed native whole-call coordinator",
+    "ordinary 11-tool Worker/installed route"
+  ],
+  "superseded_unexecuted_compile_blobs": [
+    "38964651bb7e8a91a49899923711ff36ff050ed8",
+    "3e53397e7559f543303c93bb81c74296d9968589"
+  ],
+  "original_reference_kept": true
+}

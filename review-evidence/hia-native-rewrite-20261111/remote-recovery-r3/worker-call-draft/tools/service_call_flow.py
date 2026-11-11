@@ -284,22 +284,25 @@ def call_lookup(w:mutbuf) -> u32:
         if action == 11:
             return call_issue(w, P_REFUSAL, 999, UW_SCOPE_MAIN, get(w, C_JOURNAL), get(w, C_PROFILE), 0, 0, 0, 0)
         if action == 3:
-            return call_issue(w, P_REALTIME, 26, UW_SCOPE_MAIN, 0, 0, 0, 0, 0, 0)
+            return call_issue(w, P_INSERT, 26, UW_SCOPE_MAIN, 0, get(w, C_JOURNAL), get(w, C_TOOL), 0, 0, 0)
         if action == 4:
             return call_issue(w, P_CACHED, 32, UW_SCOPE_NATIVE, get(w, C_JOURNAL), get(w, C_ROW_RESPONSE), get(w, C_PROFILE), get(w, C_DIGITS), 0, 0)
         return call_refuse(w, 21)
     if phase == 26:
-        return call_issue(w, P_INSERT, 27, UW_SCOPE_MAIN, get(w, C_JOURNAL), get(w, C_TOOL), get(w, C_RESULTS), 0, 0, 0)
+        put(w, C_BINDS, get(w, C_RESULTS))
+        return call_issue(w, P_REALTIME, 27, UW_SCOPE_MAIN, 0, 0, 0, 0, 0, 0)
     if phase == 27:
-        return call_issue(w, P_SQL, 28, UW_SCOPE_MAIN, get(w, C_STORE), 8, get(w, C_RESULTS), 0, 0, 0)
+        return call_issue(w, P_INSERT, 28, UW_SCOPE_MAIN, 1, get(w, C_BINDS), get(w, C_RESULTS), 0, 0, 0)
     if phase == 28:
-        return call_journal(w, 2, 0, 29, UW_SCOPE_ACK)
+        return call_issue(w, P_SQL, 29, UW_SCOPE_MAIN, get(w, C_STORE), 8, get(w, C_RESULTS), 0, 0, 0)
     if phase == 29:
+        return call_journal(w, 2, 0, 30, UW_SCOPE_ACK)
+    if phase == 30:
         if call_journal_identity(w) == 0 or get(w, C_RESULTS) != 1:
             return call_refuse(w, 22)
         call_before_commit(w)
-        return call_issue(w, P_COMMIT, 30, UW_SCOPE_MAIN, get(w, C_STORE), 0, 0, 0, 0, 0)
-    if phase == 30:
+        return call_issue(w, P_COMMIT, 31, UW_SCOPE_MAIN, get(w, C_STORE), 0, 0, 0, 0, 0)
+    if phase == 31:
         call_after_commit(w)
         put(w, C_PHASE, 60)
         return 0

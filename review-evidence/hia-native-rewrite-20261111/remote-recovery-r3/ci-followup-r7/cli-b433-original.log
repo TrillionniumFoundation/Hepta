@@ -1,0 +1,476 @@
+﻿2026-11-11T21:55:53.1054194Z Current runner version: '2.338.2'
+2026-11-11T21:55:53.1074576Z ##[group]Runner Image Provisioner
+2026-11-11T21:55:53.1075391Z Hosted Compute Agent
+2026-11-11T21:55:53.1075926Z Version: 20261028.624
+2026-11-11T21:55:53.1076488Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T21:55:53.1077712Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T21:55:53.1078331Z Worker ID: {7a422128-a994-4cc5-a2c9-e19022ed6548}
+2026-11-11T21:55:53.1078982Z Region: westcentralus
+2026-11-11T21:55:53.1079502Z Cloud: Azure
+2026-11-11T21:55:53.1079983Z ##[endgroup]
+2026-11-11T21:55:53.1081189Z ##[group]Operating System
+2026-11-11T21:55:53.1081728Z Ubuntu
+2026-11-11T21:55:53.1082203Z 24.04.5
+2026-11-11T21:55:53.1082727Z LTS
+2026-11-11T21:55:53.1083188Z ##[endgroup]
+2026-11-11T21:55:53.1083744Z ##[group]Runner Image
+2026-11-11T21:55:53.1084317Z Image: ubuntu-24.04
+2026-11-11T21:55:53.1084793Z Version: 20261101.360.1
+2026-11-11T21:55:53.1085921Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-11T21:55:53.1087250Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-11T21:55:53.1088225Z ##[endgroup]
+2026-11-11T21:55:53.1089163Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T21:55:53.1090742Z Contents: read
+2026-11-11T21:55:53.1091243Z Metadata: read
+2026-11-11T21:55:53.1091827Z ##[endgroup]
+2026-11-11T21:55:53.1093811Z Secret source: Actions
+2026-11-11T21:55:53.1094694Z Cache mode: write
+2026-11-11T21:55:53.1095294Z Prepare workflow directory
+2026-11-11T21:55:53.1444611Z Prepare all required actions
+2026-11-11T21:55:53.1483247Z Getting action download info
+2026-11-11T21:55:53.4178830Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-11T21:55:53.5180385Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-11T21:55:53.6233175Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-11T21:55:53.8971085Z Complete job name: Corrected actual CLI seven-image entry only
+2026-11-11T21:55:53.9639848Z ##[group]Run actions/checkout@v4
+2026-11-11T21:55:53.9640495Z with:
+2026-11-11T21:55:53.9640836Z   fetch-depth: 0
+2026-11-11T21:55:53.9641221Z   persist-credentials: false
+2026-11-11T21:55:53.9641660Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T21:55:53.9644931Z   token: ***
+2026-11-11T21:55:53.9645281Z   ssh-strict: true
+2026-11-11T21:55:53.9645632Z   ssh-user: git
+2026-11-11T21:55:53.9645962Z   clean: true
+2026-11-11T21:55:53.9646313Z   sparse-checkout-cone-mode: true
+2026-11-11T21:55:53.9646739Z   fetch-tags: false
+2026-11-11T21:55:53.9647091Z   show-progress: true
+2026-11-11T21:55:53.9647631Z   lfs: false
+2026-11-11T21:55:53.9647964Z   submodules: false
+2026-11-11T21:55:53.9648319Z   set-safe-directory: true
+2026-11-11T21:55:53.9648721Z   allow-unsafe-pr-checkout: false
+2026-11-11T21:55:53.9649296Z env:
+2026-11-11T21:55:53.9649635Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:55:53.9650048Z ##[endgroup]
+2026-11-11T21:55:54.1509617Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-11T21:55:54.1511735Z ##[group]Getting Git version info
+2026-11-11T21:55:54.1512534Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:55:54.1513499Z [command]/usr/bin/git version
+2026-11-11T21:55:54.1608362Z git version 2.56.0
+2026-11-11T21:55:54.1635413Z ##[endgroup]
+2026-11-11T21:55:54.1646061Z Temporarily overriding HOME='/home/runner/work/_temp/4670944b-702e-49af-9a29-d437c49b0f66' before making global git config changes
+2026-11-11T21:55:54.1648051Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T21:55:54.1649622Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T21:55:54.1677774Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:55:54.1679678Z ##[group]Initializing the repository
+2026-11-11T21:55:54.1684625Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-11T21:55:54.1783971Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T21:55:54.1785907Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T21:55:54.1787750Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T21:55:54.1792592Z hint: call:
+2026-11-11T21:55:54.1793248Z hint:
+2026-11-11T21:55:54.1794019Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T21:55:54.1794931Z hint:
+2026-11-11T21:55:54.1795801Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T21:55:54.1797064Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T21:55:54.1798373Z hint:
+2026-11-11T21:55:54.1799042Z hint: 	git branch -m <name>
+2026-11-11T21:55:54.1799734Z hint:
+2026-11-11T21:55:54.1800710Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T21:55:54.1802301Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-11T21:55:54.1805215Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:55:54.1850651Z ##[endgroup]
+2026-11-11T21:55:54.1851738Z ##[group]Disabling automatic garbage collection
+2026-11-11T21:55:54.1854396Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T21:55:54.1889422Z ##[endgroup]
+2026-11-11T21:55:54.1890383Z ##[group]Setting up auth
+2026-11-11T21:55:54.1897391Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:55:54.1945165Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:55:54.2257397Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:55:54.2297956Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:55:54.2509352Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:55:54.2545120Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:55:54.2746259Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T21:55:54.2787897Z ##[endgroup]
+2026-11-11T21:55:54.2788554Z ##[group]Fetching the repository
+2026-11-11T21:55:54.2797285Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2026-11-11T21:56:37.3143560Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:56:37.3145228Z  * [new branch]        codex/hia-608-independent-owner-audit-20261111-e26e -> origin/codex/hia-608-independent-owner-audit-20261111-e26e
+2026-11-11T21:56:37.3148929Z  * [new branch]        codex/hia-6e-ci-originals-20261111-e26e -> origin/codex/hia-6e-ci-originals-20261111-e26e
+2026-11-11T21:56:37.3150142Z  * [new branch]        codex/hia-artifact-page-draft-checkpoint-20261111-e26e -> origin/codex/hia-artifact-page-draft-checkpoint-20261111-e26e
+2026-11-11T21:56:37.3151524Z  * [new branch]        codex/hia-cold-prefix-native-observer-r1-20261111-e26e -> origin/codex/hia-cold-prefix-native-observer-r1-20261111-e26e
+2026-11-11T21:56:37.3152936Z  * [new branch]        codex/hia-cold-throughput-evidence-20261111-e26e -> origin/codex/hia-cold-throughput-evidence-20261111-e26e
+2026-11-11T21:56:37.3154202Z  * [new branch]        codex/hia-core-json-front-v68-20261111-7420 -> origin/codex/hia-core-json-front-v68-20261111-7420
+2026-11-11T21:56:37.3155334Z  * [new branch]        codex/hia-d2-ci-originals-20261111-e26e -> origin/codex/hia-d2-ci-originals-20261111-e26e
+2026-11-11T21:56:37.3156903Z  * [new branch]        codex/hia-desktop-development-preparation-20261111-e26e -> origin/codex/hia-desktop-development-preparation-20261111-e26e
+2026-11-11T21:56:37.3158313Z  * [new branch]        codex/hia-git-object-package-20261111-e26e -> origin/codex/hia-git-object-package-20261111-e26e
+2026-11-11T21:56:37.3159360Z  * [new branch]        codex/hia-hepta-suffix-20261111-7420 -> origin/codex/hia-hepta-suffix-20261111-7420
+2026-11-11T21:56:37.3160576Z  * [new branch]        codex/hia-instructions-actions-r5-result-43091589236-1 -> origin/codex/hia-instructions-actions-r5-result-43091589236-1
+2026-11-11T21:56:37.3161974Z  * [new branch]        codex/hia-instructions-actions-r5-run-20261111-e26e -> origin/codex/hia-instructions-actions-r5-run-20261111-e26e
+2026-11-11T21:56:37.3163059Z  * [new branch]        codex/hia-journal-ack-review-20261111-e26e -> origin/codex/hia-journal-ack-review-20261111-e26e
+2026-11-11T21:56:37.3164091Z  * [new branch]        codex/hia-linked-native-observer-20261111-e26e -> origin/codex/hia-linked-native-observer-20261111-e26e
+2026-11-11T21:56:37.3165234Z  * [new branch]        codex/hia-machine-elf-authoring-20261111-e26e -> origin/codex/hia-machine-elf-authoring-20261111-e26e
+2026-11-11T21:56:37.3166427Z  * [new branch]        codex/hia-machine-elf-reconstructed-static-20261111-e26e -> origin/codex/hia-machine-elf-reconstructed-static-20261111-e26e
+2026-11-11T21:56:37.3167984Z  * [new branch]        codex/hia-machine-instructions-generated-r5-20261111-e26e -> origin/codex/hia-machine-instructions-generated-r5-20261111-e26e
+2026-11-11T21:56:37.3169341Z  * [new branch]        codex/hia-machine-instructions-native-20261111-e26e -> origin/codex/hia-machine-instructions-native-20261111-e26e
+2026-11-11T21:56:37.3170506Z  * [new branch]        codex/hia-machine-state-native-20261111-e26e -> origin/codex/hia-machine-state-native-20261111-e26e
+2026-11-11T21:56:37.3171554Z  * [new branch]        codex/hia-native-artifact-read-20261111-e26e -> origin/codex/hia-native-artifact-read-20261111-e26e
+2026-11-11T21:56:37.3172794Z  * [new branch]        codex/hia-native-budget-cleanup-20261111-ddc2 -> origin/codex/hia-native-budget-cleanup-20261111-ddc2
+2026-11-11T21:56:37.3174136Z  * [new branch]        codex/hia-native-cli-control-recovery-20261111-e26e -> origin/codex/hia-native-cli-control-recovery-20261111-e26e
+2026-11-11T21:56:37.3174866Z  * [new branch]        codex/hia-native-closure-20261111-e26e -> origin/codex/hia-native-closure-20261111-e26e
+2026-11-11T21:56:37.3175467Z  * [new branch]        codex/hia-native-core-emitter-20261111-e26e -> origin/codex/hia-native-core-emitter-20261111-e26e
+2026-11-11T21:56:37.3176114Z  * [new branch]        codex/hia-native-core-lowering-20261111-e26e -> origin/codex/hia-native-core-lowering-20261111-e26e
+2026-11-11T21:56:37.3176810Z  * [new branch]        codex/hia-native-core-lowering-product-20261111-e26e -> origin/codex/hia-native-core-lowering-product-20261111-e26e
+2026-11-11T21:56:37.3177807Z  * [new branch]        codex/hia-native-evidence-v63-20261111-e26e -> origin/codex/hia-native-evidence-v63-20261111-e26e
+2026-11-11T21:56:37.3178901Z  * [new branch]        codex/hia-native-integration-20261111-7420 -> origin/codex/hia-native-integration-20261111-7420
+2026-11-11T21:56:37.3179848Z  * [new branch]        codex/hia-native-integration-v67-20261111-dda7 -> origin/codex/hia-native-integration-v67-20261111-dda7
+2026-11-11T21:56:37.3180637Z  * [new branch]        codex/hia-native-integration-v68-20261111-dda7 -> origin/codex/hia-native-integration-v68-20261111-dda7
+2026-11-11T21:56:37.3181302Z  * [new branch]        codex/hia-native-integration-v69-20261111-dda7 -> origin/codex/hia-native-integration-v69-20261111-dda7
+2026-11-11T21:56:37.3181925Z  * [new branch]        codex/hia-native-json-wire-20261111-e26e -> origin/codex/hia-native-json-wire-20261111-e26e
+2026-11-11T21:56:37.3182558Z  * [new branch]        codex/hia-native-machine-encoding-20261111-e26e -> origin/codex/hia-native-machine-encoding-20261111-e26e
+2026-11-11T21:56:37.3183245Z  * [new branch]        codex/hia-native-machine-plan-v65-20261111-e26e -> origin/codex/hia-native-machine-plan-v65-20261111-e26e
+2026-11-11T21:56:37.3184113Z  * [new branch]        codex/hia-native-recovery-v66-20261111-dda7 -> origin/codex/hia-native-recovery-v66-20261111-dda7
+2026-11-11T21:56:37.3184757Z  * [new branch]        codex/hia-native-self-rewrite-20261111-dda7 -> origin/codex/hia-native-self-rewrite-20261111-dda7
+2026-11-11T21:56:37.3185373Z  * [new branch]        codex/hia-native-source-build-20261111-7420 -> origin/codex/hia-native-source-build-20261111-7420
+2026-11-11T21:56:37.3186169Z  * [new branch]        codex/hia-native-source-package-20261111-e26e -> origin/codex/hia-native-source-package-20261111-e26e
+2026-11-11T21:56:37.3187287Z  * [new branch]        codex/hia-native-stack-integration-r1-20261111-e26e -> origin/codex/hia-native-stack-integration-r1-20261111-e26e
+2026-11-11T21:56:37.3188564Z  * [new branch]        codex/hia-native-state-owner-20261111-e26e -> origin/codex/hia-native-state-owner-20261111-e26e
+2026-11-11T21:56:37.3189291Z  * [new branch]        codex/hia-native-store-authority-20261111-e26e -> origin/codex/hia-native-store-authority-20261111-e26e
+2026-11-11T21:56:37.3269566Z  * [new branch]        codex/hia-native-v65-state-observer-20261111-9acdfa -> origin/codex/hia-native-v65-state-observer-20261111-9acdfa
+2026-11-11T21:56:37.3271110Z  * [new branch]        codex/hia-native-v66-integration-checkpoint-20261111-e26e -> origin/codex/hia-native-v66-integration-checkpoint-20261111-e26e
+2026-11-11T21:56:37.3272239Z  * [new branch]        codex/hia-native-v66-linked-observer-20261111-9acdfa -> origin/codex/hia-native-v66-linked-observer-20261111-9acdfa
+2026-11-11T21:56:37.3272972Z  * [new branch]        codex/hia-native-v66-source-controls-20261111-e26e -> origin/codex/hia-native-v66-source-controls-20261111-e26e
+2026-11-11T21:56:37.3273710Z  * [new branch]        codex/hia-native-v67-call-fixed-point-20261111-9acdfa -> origin/codex/hia-native-v67-call-fixed-point-20261111-9acdfa
+2026-11-11T21:56:37.3274645Z  * [new branch]        codex/hia-native-wire-entry-20261111-e26e -> origin/codex/hia-native-wire-entry-20261111-e26e
+2026-11-11T21:56:37.3275330Z  * [new branch]        codex/hia-native-wire-interruption-20261111-e26e -> origin/codex/hia-native-wire-interruption-20261111-e26e
+2026-11-11T21:56:37.3276019Z  * [new branch]        codex/hia-native-wire-key-cache-20261111-e26e -> origin/codex/hia-native-wire-key-cache-20261111-e26e
+2026-11-11T21:56:37.3276680Z  * [new branch]        codex/hia-native-wire-lifecycle-20261111-e26e -> origin/codex/hia-native-wire-lifecycle-20261111-e26e
+2026-11-11T21:56:37.3277409Z  * [new branch]        codex/hia-native-wire-r7-cloud-development-20261111-e26e -> origin/codex/hia-native-wire-r7-cloud-development-20261111-e26e
+2026-11-11T21:56:37.3278555Z  * [new branch]        codex/hia-native-worker-report-next-20261111-e26e -> origin/codex/hia-native-worker-report-next-20261111-e26e
+2026-11-11T21:56:37.3279239Z  * [new branch]        codex/hia-nominal-json-native-20261111-7420 -> origin/codex/hia-nominal-json-native-20261111-7420
+2026-11-11T21:56:37.3279915Z  * [new branch]        codex/hia-nominal-tokens-native-20261111-7420 -> origin/codex/hia-nominal-tokens-native-20261111-7420
+2026-11-11T21:56:37.3280581Z  * [new branch]        codex/hia-preflight-diagnostics-20261111-e26e -> origin/codex/hia-preflight-diagnostics-20261111-e26e
+2026-11-11T21:56:37.3281567Z  * [new branch]        codex/hia-qualification-v7-evidence-20261111-e26e -> origin/codex/hia-qualification-v7-evidence-20261111-e26e
+2026-11-11T21:56:37.3282619Z  * [new branch]        codex/hia-source-custody-v67-608157e5-20261111 -> origin/codex/hia-source-custody-v67-608157e5-20261111
+2026-11-11T21:56:37.3283652Z  * [new branch]        codex/hia-static-budget-recovery-v69-20261111-dda7 -> origin/codex/hia-static-budget-recovery-v69-20261111-dda7
+2026-11-11T21:56:37.3284752Z  * [new branch]        codex/hia-store-page-integration-20261111-e26e -> origin/codex/hia-store-page-integration-20261111-e26e
+2026-11-11T21:56:37.3286057Z  * [new branch]        codex/hia-strict-code-callers-20261111-e26e -> origin/codex/hia-strict-code-callers-20261111-e26e
+2026-11-11T21:56:37.3286708Z  * [new branch]        codex/hia-support-domain-docs-20261111-f9aa -> origin/codex/hia-support-domain-docs-20261111-f9aa
+2026-11-11T21:56:37.3287349Z  * [new branch]        codex/hia-three-loop-closure-20261111-1ac5 -> origin/codex/hia-three-loop-closure-20261111-1ac5
+2026-11-11T21:56:37.3288343Z  * [new branch]        codex/hia-three-loop-receipt-closure-20261111-f9aa -> origin/codex/hia-three-loop-receipt-closure-20261111-f9aa
+2026-11-11T21:56:37.3289008Z  * [new branch]        codex/hia-v67-all-originals-20261111-e26e -> origin/codex/hia-v67-all-originals-20261111-e26e
+2026-11-11T21:56:37.3289631Z  * [new branch]        codex/hia-v67-full-controller-20261111-e26e -> origin/codex/hia-v67-full-controller-20261111-e26e
+2026-11-11T21:56:37.3290277Z  * [new branch]        codex/hia-v67-ndu-fixture-supply-20261111-e26e -> origin/codex/hia-v67-ndu-fixture-supply-20261111-e26e
+2026-11-11T21:56:37.3290980Z  * [new branch]        codex/hia-v67-official-source-ingress-20261111-e26e -> origin/codex/hia-v67-official-source-ingress-20261111-e26e
+2026-11-11T21:56:37.3291659Z  * [new branch]        codex/hia-v8-independent-review-20261111-e26e -> origin/codex/hia-v8-independent-review-20261111-e26e
+2026-11-11T21:56:37.3292325Z  * [new branch]        codex/hia-worker-exception-context-20261111-e26e -> origin/codex/hia-worker-exception-context-20261111-e26e
+2026-11-11T21:56:37.3292997Z  * [new branch]        evidence/hia-receipt-closure-20261111-f9aa -> origin/evidence/hia-receipt-closure-20261111-f9aa
+2026-11-11T21:56:37.3293866Z  * [new branch]        evidence/hia-three-loop-20261111-1ac5 -> origin/evidence/hia-three-loop-20261111-1ac5
+2026-11-11T21:56:37.3294588Z  * [new branch]        main       -> origin/main
+2026-11-11T21:56:37.3295277Z  * [new branch]        recovery/hia-function-9acdfa-20261111 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:37.3296437Z  * [new branch]        review/library-hia-rational-static-20261110 -> origin/review/library-hia-rational-static-20261110
+2026-11-11T21:56:37.3298366Z [command]/usr/bin/git branch --list --remote origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:37.3299044Z   origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:37.3299919Z [command]/usr/bin/git rev-parse refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:37.3300557Z b433d998a8bb37dd9204170cb7dd090209ca6489
+2026-11-11T21:56:37.3301617Z ##[endgroup]
+2026-11-11T21:56:37.3302168Z ##[group]Determining the checkout info
+2026-11-11T21:56:37.3302759Z ##[endgroup]
+2026-11-11T21:56:37.3303001Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T21:56:37.3309047Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T21:56:37.3342066Z ##[group]Checking out the ref
+2026-11-11T21:56:37.3345389Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:38.0536409Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-11T21:56:38.0539139Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-11T21:56:38.0640001Z ##[endgroup]
+2026-11-11T21:56:38.0684737Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T21:56:38.0715164Z b433d998a8bb37dd9204170cb7dd090209ca6489
+2026-11-11T21:56:38.0723429Z ##[group]Removing auth
+2026-11-11T21:56:38.0726340Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:56:38.0759595Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:56:38.0966173Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:56:38.0994440Z http.https://github.com/.extraheader
+2026-11-11T21:56:38.1000288Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T21:56:38.1035932Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:56:38.1241124Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:56:38.1273625Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:56:38.1473981Z ##[endgroup]
+2026-11-11T21:56:38.1695686Z ##[group]Run actions/checkout@v4
+2026-11-11T21:56:38.1695951Z with:
+2026-11-11T21:56:38.1696179Z   ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-11T21:56:38.1696470Z   path: ci-reference-source
+2026-11-11T21:56:38.1696718Z   fetch-depth: 1
+2026-11-11T21:56:38.1696940Z   persist-credentials: false
+2026-11-11T21:56:38.1697218Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T21:56:38.1699496Z   token: ***
+2026-11-11T21:56:38.1699711Z   ssh-strict: true
+2026-11-11T21:56:38.1699928Z   ssh-user: git
+2026-11-11T21:56:38.1700139Z   clean: true
+2026-11-11T21:56:38.1700368Z   sparse-checkout-cone-mode: true
+2026-11-11T21:56:38.1700614Z   fetch-tags: false
+2026-11-11T21:56:38.1700829Z   show-progress: true
+2026-11-11T21:56:38.1701059Z   lfs: false
+2026-11-11T21:56:38.1701291Z   submodules: false
+2026-11-11T21:56:38.1701515Z   set-safe-directory: true
+2026-11-11T21:56:38.1701769Z   allow-unsafe-pr-checkout: false
+2026-11-11T21:56:38.1702015Z env:
+2026-11-11T21:56:38.1702265Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:38.1702506Z ##[endgroup]
+2026-11-11T21:56:38.2375610Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-11T21:56:38.2380143Z ##[group]Getting Git version info
+2026-11-11T21:56:38.2380804Z Working directory is '/home/runner/work/Hepta/Hepta/ci-reference-source'
+2026-11-11T21:56:38.2410139Z [command]/usr/bin/git version
+2026-11-11T21:56:38.2446464Z git version 2.56.0
+2026-11-11T21:56:38.2462052Z ##[endgroup]
+2026-11-11T21:56:38.2474203Z Temporarily overriding HOME='/home/runner/work/_temp/8710b99d-fc1a-4869-9b42-8110fb443e3a' before making global git config changes
+2026-11-11T21:56:38.2475489Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T21:56:38.2478619Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-11T21:56:38.2510324Z ##[group]Initializing the repository
+2026-11-11T21:56:38.2514310Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-11T21:56:38.2564182Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T21:56:38.2565052Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T21:56:38.2565669Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T21:56:38.2566420Z hint: call:
+2026-11-11T21:56:38.2566917Z hint:
+2026-11-11T21:56:38.2567670Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T21:56:38.2568122Z hint:
+2026-11-11T21:56:38.2568540Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T21:56:38.2569116Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T21:56:38.2569641Z hint:
+2026-11-11T21:56:38.2569968Z hint: 	git branch -m <name>
+2026-11-11T21:56:38.2570318Z hint:
+2026-11-11T21:56:38.2570755Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T21:56:38.2571524Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/ci-reference-source/.git/
+2026-11-11T21:56:38.2573154Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:56:38.2604885Z ##[endgroup]
+2026-11-11T21:56:38.2605352Z ##[group]Disabling automatic garbage collection
+2026-11-11T21:56:38.2608605Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T21:56:38.2637408Z ##[endgroup]
+2026-11-11T21:56:38.2637991Z ##[group]Setting up auth
+2026-11-11T21:56:38.2643589Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:56:38.2673487Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:56:38.2892280Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:56:38.2931411Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:56:38.3178750Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:56:38.3219486Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:56:38.3423312Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T21:56:38.3465061Z ##[endgroup]
+2026-11-11T21:56:38.3465692Z ##[group]Fetching the repository
+2026-11-11T21:56:38.3473407Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-11T21:56:40.6652743Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:56:40.6653408Z  * branch            0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5 -> FETCH_HEAD
+2026-11-11T21:56:40.6659092Z ##[endgroup]
+2026-11-11T21:56:40.6659533Z ##[group]Determining the checkout info
+2026-11-11T21:56:40.6660153Z ##[endgroup]
+2026-11-11T21:56:40.6665217Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T21:56:40.6713570Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T21:56:40.6753625Z ##[group]Checking out the ref
+2026-11-11T21:56:40.6753998Z [command]/usr/bin/git checkout --progress --force 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-11T21:56:40.9474761Z Note: switching to '0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5'.
+2026-11-11T21:56:40.9475013Z 
+2026-11-11T21:56:40.9475185Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-11T21:56:40.9475564Z changes and commit them, and you can discard any commits you make in this
+2026-11-11T21:56:40.9475959Z state without impacting any branches by switching back to a branch.
+2026-11-11T21:56:40.9476184Z 
+2026-11-11T21:56:40.9476358Z If you want to create a new branch to retain commits you create, you may
+2026-11-11T21:56:40.9476705Z do so (now or later) by using -c with the switch command. Example:
+2026-11-11T21:56:40.9476904Z 
+2026-11-11T21:56:40.9476999Z   git switch -c <new-branch-name>
+2026-11-11T21:56:40.9477134Z 
+2026-11-11T21:56:40.9477220Z Or undo this operation with:
+2026-11-11T21:56:40.9477358Z 
+2026-11-11T21:56:40.9477626Z   git switch -
+2026-11-11T21:56:40.9477768Z 
+2026-11-11T21:56:40.9478016Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-11T21:56:40.9478385Z 
+2026-11-11T21:56:40.9478691Z HEAD is now at 0ef9541 Keep native cold binding and call-graph evidence in one CI environment
+2026-11-11T21:56:40.9543160Z ##[endgroup]
+2026-11-11T21:56:40.9545755Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T21:56:40.9574749Z 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+2026-11-11T21:56:40.9582265Z ##[group]Removing auth
+2026-11-11T21:56:40.9585054Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:56:40.9617794Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:56:40.9824672Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:56:40.9852613Z http.https://github.com/.extraheader
+2026-11-11T21:56:40.9859988Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T21:56:40.9903564Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:56:41.0105169Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:56:41.0142547Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:56:41.0361282Z ##[endgroup]
+2026-11-11T21:56:41.0558987Z ##[group]Run actions/setup-python@v5
+2026-11-11T21:56:41.0559216Z with:
+2026-11-11T21:56:41.0559394Z   python-version: 3.12.14
+2026-11-11T21:56:41.0559590Z   check-latest: false
+2026-11-11T21:56:41.0561642Z   token: ***
+2026-11-11T21:56:41.0561838Z   update-environment: true
+2026-11-11T21:56:41.0562047Z   allow-prereleases: false
+2026-11-11T21:56:41.0562238Z   freethreaded: false
+2026-11-11T21:56:41.0562405Z env:
+2026-11-11T21:56:41.0562568Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:41.0562762Z ##[endgroup]
+2026-11-11T21:56:41.1616317Z ##[group]Installed versions
+2026-11-11T21:56:41.1707070Z Version 3.12.14 was not found in the local cache
+2026-11-11T21:56:41.1862823Z (node:2485) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:56:41.1863365Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:56:42.1435061Z Version 3.12.14 is available for downloading
+2026-11-11T21:56:42.1436376Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-11T21:56:42.8419246Z Extract downloaded archive
+2026-11-11T21:56:42.8534696Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/c8ab3f04-2df8-44bf-a4f5-a08be9ae4f48 -f /home/runner/work/_temp/f4aba2fd-fe16-4a1c-85b1-1666edd6452e
+2026-11-11T21:56:44.5008891Z Execute installation script
+2026-11-11T21:56:44.5106582Z Check if Python hostedtoolcache folder exist...
+2026-11-11T21:56:44.5107113Z Create Python 3.12.14 folder
+2026-11-11T21:56:44.5119633Z Copy Python binaries to hostedtoolcache folder
+2026-11-11T21:56:44.8756539Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-11T21:56:44.8793153Z Upgrading pip...
+2026-11-11T21:56:46.3385108Z Collecting pip
+2026-11-11T21:56:46.4267842Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-11T21:56:46.4501222Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-11T21:56:46.5560327Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 28.7 MB/s eta 0:00:00
+2026-11-11T21:56:46.5560662Z 
+2026-11-11T21:56:46.5707581Z Installing collected packages: pip
+2026-11-11T21:56:46.5708494Z Attempting uninstall: pip
+2026-11-11T21:56:46.5724254Z Found existing installation: pip 25.0.1
+2026-11-11T21:56:46.5973243Z Uninstalling pip-25.0.1:
+2026-11-11T21:56:46.6015607Z Successfully uninstalled pip-25.0.1
+2026-11-11T21:56:47.4734815Z Successfully installed pip-26.3
+2026-11-11T21:56:47.5130957Z Create complete file
+2026-11-11T21:56:47.5163115Z Successfully set up CPython (3.12.14)
+2026-11-11T21:56:47.5163722Z ##[endgroup]
+2026-11-11T21:56:47.5337740Z ##[group]Run python -m pip install z3-solver==4.15.4.0
+2026-11-11T21:56:47.5354272Z [36;1mpython -m pip install z3-solver==4.15.4.0[0m
+2026-11-11T21:56:47.5377171Z shell: /usr/bin/bash -e {0}
+2026-11-11T21:56:47.5377388Z env:
+2026-11-11T21:56:47.5377809Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:47.5378075Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:47.5378427Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T21:56:47.5378956Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:47.5379258Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:47.5379555Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:47.5379858Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T21:56:47.5380114Z ##[endgroup]
+2026-11-11T21:56:48.3391520Z Collecting z3-solver==4.15.4.0
+2026-11-11T21:56:48.4425230Z   Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (602 bytes)
+2026-11-11T21:56:48.4719226Z Downloading z3_solver-4.15.4.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (29.3 MB)
+2026-11-11T21:56:48.9214800Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 29.3/29.3 MB 72.9 MB/s  0:00:00
+2026-11-11T21:56:48.9838734Z Installing collected packages: z3-solver
+2026-11-11T21:56:49.3759873Z Successfully installed z3-solver-4.15.4.0
+2026-11-11T21:56:49.4216066Z ##[group]Run python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-driver.log"
+2026-11-11T21:56:49.4217056Z [36;1mpython -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-driver.log"[0m
+2026-11-11T21:56:49.4237193Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T21:56:49.4237647Z env:
+2026-11-11T21:56:49.4237828Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:49.4238083Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:49.4238431Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T21:56:49.4238767Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:49.4239063Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:49.4239390Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:49.4239686Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T21:56:49.4239989Z   HIA_CI_OUTPUT: /home/runner/work/_temp/hia-cli-recovery
+2026-11-11T21:56:49.4240500Z   HIA_CI_COMMON: /home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+2026-11-11T21:56:49.4240961Z ##[endgroup]
+2026-11-11T21:56:50.6065532Z {"label": "checkout-pinned-baseline", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 767227946, "child_cpu_seconds": 0.742045, "children_cumulative_maxrss_kib": 76540, "stdout_bytes": 88, "stdout_sha256": "594f75c379807db304f1716bc5a8f3ec537fa7622a59e469fc2a34e4adbe70cd", "stderr_bytes": 44, "stderr_sha256": "68ae5f70c237ae7992fb3f4387fee163afa3b015e6423d519f5c78049b084fd3"}
+2026-11-11T21:59:49.8935940Z {"label": "restore-exact-published-root-archives", "timeout_seconds": 600, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 178523632614, "child_cpu_seconds": 128.962874, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 6090, "stdout_sha256": "54c2b0b613169a5f4372de9a718a57bb1e053933903bde5037937d5b7fc5a217", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T21:59:49.9633394Z {"label": "import-exact-reference-objects", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 65158006, "child_cpu_seconds": 0.032531999999974914, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 0, "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "stderr_bytes": 133, "stderr_sha256": "56ff0a3b92ba81bbe09cc20fbb17de2c81d8212ddaa1a45c8b84ebd39b30e6b0"}
+2026-11-11T21:59:51.4846749Z {"label": "restore-exact-reference", "timeout_seconds": 300, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 1519928184, "child_cpu_seconds": 1.443673000000004, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 910, "stdout_sha256": "4be641d4beb84c1b4af5f3dbac20555f333e1cd0c79852ad7ffef1bb48af5edb", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T21:59:58.6599336Z HIA_SOURCE_EXPORT {"bytes": 13815, "content": "\"\"\"Shared HIA authoring for the complete GraphLease bounded-wire owner.\n\nThe Python module only authors fixed HIA functions and constants. It never\nreceives a foreign value or chooses a serialization result.\n\"\"\"\nCONSTANTS = {\n    'GRAPH_MAGIC': int.from_bytes(b'HIAGRF01','little'),\n    'COMMAND_MAGIC': int.from_bytes(b'HIAGWC01','little'),\n    'EVENT_MAGIC': int.from_bytes(b'HIAGWE01','little'),\n    'STATE_MAGIC': int.from_bytes(b'HIAGWS01','little'),\n    'BAD': 0xfffffffd, 'MAX': (1 << 64)-1,\n    'MIN_WORK': 32768, 'FRAME_BASE': 16384, 'FLOAT_BASE': 8192,\n    'LITERAL_BASE': 1024,\n}\n_NAMES = ('MAGIC','PHASE','ERROR','BAD','NEED','LEASE','SEQ','ROOT','MAXIMUM',\n          'FLAGS','DIGITS','NODES','EDGES','SCALARS','TOTAL','EDGEBASE','DATABASE',\n          'CUR','DEPTH','LEVEL','STAGE','VISITED','QUEUED','ARENA','BUDGET',\n          'KEYBASE','HASHBASE','HASHMASK','KEYINDEX','KEYMARK','TMPKIND',\n          'TMPOFF','TMPSIZE','CHARS','OUTLEN','OUTBASE','NEXT','SCANEND','CAUSE')\nCONSTANTS.update({'S_'+name:256+8*i for i,name in enumerate(_NAMES)})\n\nCOMMON = r'''\ndef read(s:readbuf, at:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(s, at + i) << (i * 8))\n        i = i + 1\n    return value\n\ndef get(w:mutbuf, at:u64) -> u64:\n    value = 0\n    i = 0\n    while i < 8:\n        value = value | (byte(w, at + i) << (i * 8))\n        i = i + 1\n    return value\n\ndef put(w:mutbuf, at:u64, value:u64) -> u64:\n    i = 0\n    while i < 8:\n        store(w, at + i, (value >> (i * 8)) & 255)\n        i = i + 1\n    return 0\n\ndef abi(w:mutbuf, reason:u64) -> u64:\n    if get(w, S_BAD) == 0:\n        put(w, S_BAD, reason)\n    return 0\n\ndef error(w:mutbuf, code:u64, cause:u64) -> u64:\n    if get(w, S_ERROR) == 0:\n        put(w, S_ERROR, code)\n        put(w, S_CAUSE, cause)\n    return 0\n\ndef event(w:mutbuf, action:u64) -> u32:\n    put(w, 0, EVENT_MAGIC)\n    put(w, 8, action)\n    put(w, 16, get(w, S_LEASE))\n    put(w, 24, get(w, S_SEQ))\n    put(w, 32, get(w, S_ROOT))\n    put(w, 40, get(w, S_MAXIMUM))\n    put(w, 48, get(w, S_FLAGS))\n    put(w, 56, get(w, S_DIGITS))\n    put(w, 64, get(w, S_ERROR))\n    put(w, 72, get(w, S_CAUSE))\n    put(w, 80, get(w, S_NEED))\n    put(w, 88, choose(action == 0, get(w, S_OUTBASE), 0))\n    put(w, 96, choose(action == 0, get(w, S_OUTLEN), 0))\n    put(w, 104, choose(action == 2, 2, 0))\n    put(w, 112, get(w, S_PHASE))\n    put(w, 120, get(w, S_BAD))\n    return 128\n\ndef refused(w:mutbuf, reason:u64) -> u32:\n    abi(w, reason)\n    put(w, S_PHASE, 99)\n    event(w, 3)\n    return BAD\n\ndef pending(w:mutbuf) -> u32:\n    if get(w, S_BAD) != 0:\n        return refused(w, get(w, S_BAD))\n    if get(w, S_ERROR) != 0:\n        put(w, S_PHASE, 99)\n        return event(w, 3)\n    if get(w, S_NEED) > length(w):\n        return event(w, 1)\n    return refused(w, 90)\n\ndef reserve(w:mutbuf, size:u64) -> u64:\n    at = get(w, S_ARENA)\n    if size > MAX - at:\n        return abi(w, 2)\n    end = at + size\n    if end > length(w):\n        put(w, S_NEED, end)\n        return 0\n    put(w, S_ARENA, end)\n    return at\n\ndef graph(s:readbuf, r:readbuf, w:mutbuf) -> u64:\n    if get(w, S_BAD) != 0 or get(w, S_PHASE) >= 90:\n        return 0\n    if length(s) < 64 or length(r) != 64:\n        return 0\n    if read(s, 0) != GRAPH_MAGIC or read(s, 8) == 0 or read(s, 56) != 0:\n        return 0\n    nodes = read(s, 16)\n    edges = read(s, 32)\n    if nodes == 0 or nodes > (MAX - 64) >> 6:\n        return 0\n    edgebase = 64 + nodes * 64\n    if edges > (MAX - edgebase) >> 3:\n        return 0\n    database = edgebase + edges * 8\n    if database > length(s) or read(s, 48) != length(s):\n        return 0\n    if read(s, 40) != length(s) - database:\n        return 0\n    if read(s, 24) == 0 or read(s, 24) > nodes:\n        return 0\n    if read(r, 0) != COMMAND_MAGIC or read(r, 8) != read(s, 8):\n        return 0\n    if read(r, 16) == 0 or read(r, 24) == 0 or read(r, 24) > nodes:\n        return 0\n    if read(r, 40) > 3 or read(r, 56) != 0:\n        return 0\n    if get(w, S_MAGIC) == 0:\n        fill_range(w, 256, 512, 0)\n        put(w, S_MAGIC, STATE_MAGIC)\n        put(w, S_PHASE, 1)\n        put(w, S_LEASE, read(r, 8))\n        put(w, S_SEQ, read(r, 16))\n        put(w, S_ROOT, read(r, 24))\n        put(w, S_MAXIMUM, read(r, 32))\n        put(w, S_FLAGS, read(r, 40))\n        put(w, S_DIGITS, read(r, 48))\n        put(w, S_NODES, nodes)\n        put(w, S_EDGES, edges)\n        put(w, S_SCALARS, read(s, 40))\n        put(w, S_TOTAL, length(s))\n        put(w, S_EDGEBASE, edgebase)\n        put(w, S_DATABASE, database)\n        put(w, S_CUR, read(r, 24))\n        put(w, S_QUEUED, 1)\n        put(w, S_ARENA, MIN_WORK)\n        maximum = read(r, 32)\n        if maximum > 8388608:\n            error(w, 1, 0)\n        put(w, S_BUDGET, choose(maximum < 262144, maximum, 262144))\n    else:\n        if get(w, S_MAGIC) != STATE_MAGIC or get(w, S_PHASE) >= 90:\n            return 0\n        if get(w, S_LEASE) != read(r, 8) or get(w, S_SEQ) != read(r, 16):\n            return 0\n        if get(w, S_ROOT) != read(r, 24) or get(w, S_MAXIMUM) != read(r, 32):\n            return 0\n        if get(w, S_FLAGS) != read(r, 40) or get(w, S_DIGITS) != read(r, 48):\n            return 0\n        if get(w, S_NODES) != nodes or get(w, S_EDGES) != edges:\n            return 0\n        if get(w, S_SCALARS) != read(s, 40) or get(w, S_TOTAL) != length(s):\n            return 0\n    put(w, S_NEED, 0)\n    return 1\n\ndef node(s:readbuf, w:mutbuf, identifier:u64) -> u64:\n    if identifier == 0 or identifier > get(w, S_NODES):\n        return abi(w, 3)\n    at = 64 + (identifier - 1) * 64\n    kind = read(s, at)\n    if kind > 9 or read(s, at + 56) != 0:\n        return abi(w, 4)\n    if kind == 5 or kind == 6 or kind == 7:\n        if read(s, at + 8) != 0 or read(s, at + 16) != 0:\n            return abi(w, 5)\n        if read(s, at + 40) == 0 or read(s, at + 48) != 0:\n            return abi(w, 6)\n        first = read(s, at + 24)\n        count = read(s, at + 32)\n        if kind == 6:\n            if count > MAX >> 1:\n                return abi(w, 7)\n            count = count * 2\n        if first > get(w, S_EDGES) or count > get(w, S_EDGES) - first:\n            return abi(w, 8)\n        return at\n    if read(s, at + 24) != 0 or read(s, at + 32) != 0 or read(s, at + 40) != 0:\n        return abi(w, 9)\n    begin = read(s, at + 8)\n    size = read(s, at + 16)\n    aux = read(s, at + 48)\n    if kind == 0 or kind == 1 or kind == 8:\n        if begin != 0 or size != 0:\n            return abi(w, 10)\n        if kind == 1:\n            if aux > 1:\n                return abi(w, 11)\n        elif aux != 0:\n            return abi(w, 12)\n        return at\n    if begin < get(w, S_DATABASE) or begin > length(s) or size > length(s) - begin:\n        return abi(w, 13)\n    if kind == 2:\n        if aux > 1 or (size == 0 and aux != 0):\n            return abi(w, 14)\n        if size > 0 and byte(s, begin + size - 1) == 0:\n            return abi(w, 15)\n    elif kind == 3:\n        if size != 8 or aux != 0:\n            return abi(w, 16)\n    elif kind == 9 and aux != 0:\n        return abi(w, 17)\n    return at\n\ndef edge(s:readbuf, w:mutbuf, at:u64, index:u64) -> u64:\n    total = read(s, at + 32)\n    if read(s, at) == 6:\n        total = total * 2\n    if index >= total:\n        return abi(w, 18)\n    value = read(s, get(w, S_EDGEBASE) + (read(s, at + 24) + index) * 8)\n    if value == 0 or value > get(w, S_NODES):\n        return abi(w, 19)\n    return value\n\ndef bit_length(s:readbuf, at:u64) -> u64:\n    size = read(s, at + 16)\n    if size == 0:\n        return 0\n    result = (size - 1) * 8\n    value = byte(s, read(s, at + 8) + size - 1)\n    while value != 0:\n        value = value >> 1\n        result = result + 1\n    return result\n\ndef unit(s:readbuf, w:mutbuf, at:u64, end:u64) -> u64:\n    if at >= end:\n        abi(w, 20)\n        return MAX\n    first = byte(s, at)\n    if first < 128:\n        put(w, S_NEXT, at + 1)\n        return first\n    count = 0\n    point = 0\n    minimum = 0\n    if first >= 194 and first <= 223:\n        count = 2\n        point = first & 31\n        minimum = 128\n    elif first >= 224 and first <= 239:\n        count = 3\n        point = first & 15\n        minimum = 2048\n    elif first >= 240 and first <= 244:\n        count = 4\n        point = first & 7\n        minimum = 65536\n    else:\n        abi(w, 21)\n        return MAX\n    if count > end - at:\n        abi(w, 22)\n        return MAX\n    i = 1\n    while i < count:\n        value = byte(s, at + i)\n        if value < 128 or value > 191:\n            abi(w, 23)\n            return MAX\n        point = (point << 6) | (value & 63)\n        i = i + 1\n    if point < minimum or point > 1114111:\n        abi(w, 24)\n        return MAX\n    put(w, S_NEXT, at + count)\n    return point\n\ndef string_size(s:readbuf, w:mutbuf, at:u64) -> u64:\n    maximum = get(w, S_MAXIMUM)\n    if maximum < 2 or read(s, at + 48) > maximum - 2:\n        return error(w, 2, 0)\n    pos = read(s, at + 8)\n    end = pos + read(s, at + 16)\n    size = 2\n    chars = 0\n    while pos < end:\n        point = unit(s, w, pos, end)\n        if point == MAX:\n            return 0\n        chars = chars + 1\n        width = 1\n        if point < 32:\n            width = choose(point == 8 or point == 9 or point == 10 or point == 12 or point == 13, 2, 6)\n        elif point == 34 or point == 92:\n            width = 2\n        elif point < 128:\n            width = choose(point == 127 and (get(w, S_FLAGS) & 1) != 0, 6, 1)\n        elif point >= 55296 and point <= 57343:\n            return error(w, 3, 0)\n        elif (get(w, S_FLAGS) & 1) != 0:\n            width = choose(point <= 65535, 6, 12)\n        else:\n            width = get(w, S_NEXT) - pos\n        size = size + width\n        if size > maximum:\n            return error(w, 2, 0)\n        pos = get(w, S_NEXT)\n    if chars != read(s, at + 48):\n        return abi(w, 25)\n    return 1\n\ndef literal(w:mutbuf, kind:u64) -> u64:\n    value = 1819047278\n    size = 4\n    if kind == 1:\n        value = 435728179558\n        size = 5\n    elif kind == 2:\n        value = 1702195828\n    i = 0\n    while i < size:\n        store(w, LITERAL_BASE + i, (value >> (i * 8)) & 255)\n        i = i + 1\n    put(w, S_TMPKIND, 2)\n    put(w, S_TMPOFF, LITERAL_BASE)\n    put(w, S_TMPSIZE, size)\n    return 1\n\ndef integer_text(s:readbuf, w:mutbuf, at:u64) -> u64:\n    size = read(s, at + 16)\n    digit_limit = get(w, S_DIGITS)\n    bits = bit_length(s, at)\n    if digit_limit != 0 and digit_limit <= MAX >> 2:\n        if bits > digit_limit * 4:\n            return error(w, 15, 1)\n    if size > (MAX - 64) >> 3:\n        return abi(w, 26)\n    base = reserve(w, size * 7 + 64)\n    if base == 0:\n        return 0\n    begin = read(s, at + 8)\n    i = 0\n    while i < size:\n        store(w, base + i, byte(s, begin + i))\n        i = i + 1\n    reverse = base + size + 16\n    used = size\n    digits = 0\n    while used != 0:\n        carry = 0\n        i = used\n        while i > 0:\n            i = i - 1\n            value = carry * 256 + byte(w, base + i)\n            quotient = (value * 52429) >> 19\n            carry = value - quotient * 10\n            store(w, base + i, quotient)\n        while used > 0 and byte(w, base + used - 1) == 0:\n            used = used - 1\n        store(w, reverse + digits, 48 + carry)\n        digits = digits + 1\n    if digits == 0:\n        store(w, reverse, 48)\n        digits = 1\n    if digit_limit != 0 and digits > digit_limit:\n        return error(w, 15, 1)\n    text = reverse + size * 3 + 8\n    cursor = 0\n    if read(s, at + 48) != 0:\n        store(w, text, 45)\n        cursor = 1\n    i = digits\n    while i > 0:\n        i = i - 1\n        store(w, text + cursor, byte(w, reverse + i))\n        cursor = cursor + 1\n    put(w, S_TMPKIND, 2)\n    put(w, S_TMPOFF, text)\n    put(w, S_TMPSIZE, cursor)\n    return 1\n\ndef floating(s:readbuf, w:mutbuf, at:u64, key:u64) -> u64:\n    bits = read(s, read(s, at + 8))\n    if ((bits >> 52) & 2047) == 2047:\n        if key != 0:\n            return error(w, 10, 0)\n        return error(w, 15, 1)\n    fill_range(w, FLOAT_BASE, 8192, 0)\n    size = fp_render_binary64(w, bits)\n    if size == 0 or size > 32:\n        return abi(w, 27)\n    put(w, S_TMPKIND, 2)\n    put(w, S_TMPOFF, FLOAT_BASE + 6144)\n    put(w, S_TMPSIZE, size)\n    return 1\n\ndef key_text(s:readbuf, w:mutbuf, at:u64) -> u64:\n    kind = read(s, at)\n    if kind == 4:\n        if string_size(s, w, at) == 0:\n            return 0\n        put(w, S_TMPKIND, 1)\n        put(w, S_TMPOFF, read(s, at + 8))\n        put(w, S_TMPSIZE, read(s, at + 16))\n        return 1\n    if kind == 0:\n        literal(w, 0)\n    elif kind == 1:\n        literal(w, read(s, at + 48) + 1)\n    elif kind == 2:\n        if bit_length(s, at) > get(w, S_MAXIMUM) * 4:\n            return error(w, 9, 0)\n        if integer_text(s, w, at) == 0:\n            return 0\n    elif kind == 3:\n        if floating(s, w, at, 1) == 0:\n            return 0\n    else:\n        return error(w, 8, 0)\n    if get(w, S_MAXIMUM) < 2 or get(w, S_TMPSIZE) > get(w, S_MAXIMUM) - 2:\n        return error(w, 11, 0)\n    return 1\n\ndef text_byte(s:readbuf, w:mutbuf, kind:u64, at:u64, i:u64) -> u64:\n    if kind == 1:\n        return byte(s, at + i)\n    return byte(w, at + i)\n\ndef text_hash(s:readbuf, w:mutbuf, kind:u64, at:u64, size:u64) -> u64:\n    result = 14695981039346656037\n    i = 0\n    while i < size:\n        result = (result ^ text_byte(s, w, kind, at, i)) * 1099511628211\n        i = i + 1\n    return result\n\ndef text_equal(s:readbuf, w:mutbuf, record:u64) -> u64:\n    size = get(w, S_TMPSIZE)\n    if get(w, record + 24) != size:\n        return 0\n    i = 0\n    while i < size:\n        a = text_byte(s, w, get(w, S_TMPKIND), get(w, S_TMPOFF), i)\n        b = text_byte(s, w, get(w, record + 8), get(w, record + 16), i)\n        if a != b:\n            return 0\n        i = i + 1\n    return 1\n'''\n\n", "git_blob": "0711ccf18b3838e53b47821c464c3492b802eff6", "path": "tools/generate_hia_graph_wire_common.py", "sha256": "32ceeceb285f9d3d3250a920c40ebd7bac8e1a44460c5321d714f6f5a0da2b3c"}
+2026-11-11T21:59:58.6647731Z HIA_SOURCE_EXPORT {"bytes": 9783, "content": "\"\"\"Mechanical GraphLease capture and actual two-image test executor.\n\nCapture preserves object representations and references only. It deliberately\ndoes not perform a JSON size/admission/canonicalization decision. A complete\ncapture is not proof of the public incremental-capture resource boundary.\n\"\"\"\nfrom pathlib import Path\nfrom hashlib import sha256\nimport ctypes, json, struct, sys\nfrom unittest.mock import patch\n\nROOT=Path(__file__).resolve().parents[1]\nBASE=Path('/workspace/scratch/9acdfa9f5639/Hepta-agent-edit-native')\nsys.path.insert(0,str(BASE))\nfrom hepta.hia_json_preflight_native import NativeHiaJsonImage\nfrom hepta.hia_program_tools import bounded_json_wire\n\nMAGIC=lambda word:int.from_bytes(word,'little')\nGRAPH=MAGIC(b'HIAGRF01');COMMAND=MAGIC(b'HIAGWC01');EVENT=MAGIC(b'HIAGWE01')\nBAD=0xfffffffd\nCANARY=b'\\xb9'*32\nERRORS={\n1:'invalid JSON output byte budget',\n2:'JSON string exceeds byte budget before encoding',\n3:'unpaired Unicode surrogate in UTF-8 JSON',\n4:'JSON input exceeds nesting depth before encoding',\n5:'JSON input exceeds node/byte budget',\n6:'JSON container exceeds queued-node/byte budget',\n7:'cyclic JSON container',\n8:'unsupported JSON object key',\n9:'JSON key exceeds numeric byte budget',\n10:'nonfinite JSON object key',\n11:'JSON key exceeds byte budget',\n12:'JSON object key collision after JSON conversion',\n13:'JSON integer exceeds byte budget',\n14:'non-JSON in-process value',\n15:'invalid bounded JSON',\n16:'JSON encoding exceeds byte budget',\n}\n\ndef capture(root,lease=19):\n    objects=[];ids={}\n    def add(value):\n        key=id(value)\n        if key not in ids:\n            ids[key]=len(objects)+1\n            objects.append(value)\n        return ids[key]\n    rootid=add(root)\n    records=[];edges=[];pool=bytearray()\n    position=0\n    while position<len(objects):\n        value=objects[position];kind=type(value)\n        record=[0]*8\n        raw=None\n        if value is None:\n            record[0]=0\n        elif kind is bool:\n            record[0]=1;record[6]=int(value)\n        elif kind is int:\n            record[0]=2;record[6]=int(value<0)\n            magnitude=abs(value);raw=magnitude.to_bytes((magnitude.bit_length()+7)//8,'little')\n        elif kind is float:\n            record[0]=3;raw=struct.pack('<d',value)\n        elif kind is str:\n            record[0]=4;record[6]=len(value);raw=value.encode('utf-8','surrogatepass')\n        elif kind in (list,dict,tuple):\n            record[0]={list:5,dict:6,tuple:7}[kind]\n            record[3]=len(edges);record[4]=len(value);record[5]=position+1\n            if kind is dict:\n                items=list(value.items())\n                for key,child in items:\n                    edges.extend((add(key),add(child)))\n            else:\n                for child in tuple(value):\n                    edges.append(add(child))\n        elif kind is bytes:\n            record[0]=9;raw=value\n        else:\n            record[0]=8\n        if raw is not None:\n            record[1]=len(pool);record[2]=len(raw);pool.extend(raw)\n        records.append(record);position+=1\n    data=64+len(records)*64+len(edges)*8\n    for record in records:\n        if record[0] in (2,3,4,9):\n            record[1]+=data\n    header=(GRAPH,lease,len(records),rootid,len(edges),len(pool),data+len(pool),0)\n    return (struct.pack('<8Q',*header)+b''.join(struct.pack('<8Q',*row) for row in records)\n            +b''.join(struct.pack('<Q',value) for value in edges)+bytes(pool))\n\n\nclass Actual:\n    def __init__(self,out,bundle=None):\n        self.out=Path(out);self.pins={};self.entries={'scan':0,'emit':0}\n        bundle=Path(bundle or ROOT/'development/compile-r3/bundle.json')\n        def read(path):\n            path=Path(path).resolve();raw=path.read_bytes()\n            if path in self.pins:assert self.pins[path]==raw\n            self.pins[path]=raw;return raw\n        rows=json.loads(read(bundle))\n        assert rows['status']=='PASS'\n        assert rows['scope']=='SOURCE_BOUND_GRAPH_WIRE_DEVELOPMENT_NOT_PUBLIC_ADMISSION_OR_COLD'\n        images={}\n        for role,row in rows['components'].items():\n            assert row['schema']=='hepta.hia.graph-json-wire-'+role+'-native.v1'\n            assert row['compiler_sha256']=='0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8'\n            source=read(row['source_path']);current=read(ROOT/('examples/hia_bootstrap/graph_json_wire_'+role+'.hiaasm'))\n            image=read(row['image_path'])\n            assert source==current and sha256(source).hexdigest()==row['source_sha256']\n            assert sha256(image).hexdigest()==row['image_sha256']\n            images[role]=(image,row['image_sha256'])\n        self.readback()\n        self.out.mkdir(parents=True,exist_ok=False)\n        self.images={key:NativeHiaJsonImage(*value) for key,value in images.items()}\n        self.log=(self.out/'entries.jsonl').open('w')\n        self.sources=(self.out/'inputs');self.sources.mkdir()\n        self.digests={}\n        (self.out/'source-before.json').write_text(json.dumps({str(p):sha256(raw).hexdigest() for p,raw in self.pins.items()},indent=2,sort_keys=True)+'\\n')\n\n    def readback(self):\n        for p,raw in self.pins.items():assert p.read_bytes()==raw\n\n    def raw(self,data,extension):\n        digest=sha256(data).hexdigest()\n        if digest not in self.digests:\n            name=digest+extension\n            (self.sources/name).write_bytes(data);self.digests[digest]=name\n        return self.digests[digest]\n\n    def call(self,role,source,command,work,size,case):\n        s=ctypes.create_string_buffer(source+CANARY)\n        r=ctypes.create_string_buffer(command+CANARY)\n        ret=self.images[role]._entry(s,len(source),r,len(command),work,size)\n        self.entries[role]+=1\n        event=struct.unpack_from('<16Q',work,0)\n        assert ctypes.string_at(s,len(source)+32)==source+CANARY\n        assert ctypes.string_at(r,len(command)+32)==command+CANARY\n        assert ctypes.string_at(ctypes.addressof(work)+size,32)==CANARY\n        row={'case':case,'role':role,'return':ret,'event':event,'workspace_bytes':size,\n             'graph':self.raw(source,'.graph'),'command':self.raw(command,'.command'),\n             'input_and_canaries_unchanged':True}\n        self.log.write(json.dumps(row,sort_keys=True)+'\\n');self.log.flush()\n        return ret,event\n\n    def serialize_graph(self,source,maximum,*,flags=3,digits=None,case='case'):\n        if digits is None:digits=sys.get_int_max_str_digits()\n        lease=struct.unpack_from('<Q',source,8)[0]\n        root=struct.unpack_from('<Q',source,24)[0]\n        command=struct.pack('<8Q',COMMAND,lease,1,root,maximum,flags,digits,0)\n        size=32768;work=ctypes.create_string_buffer(size+32)\n        ctypes.memset(ctypes.addressof(work)+size,0xb9,32)\n        role='scan';grows=0;steps=0\n        with patch('hepta.hia_program_tools.bounded_json_wire',side_effect=AssertionError('host wire disabled')):\n            while True:\n                steps+=1\n                assert steps<1000\n                ret,event=self.call(role,source,command,work,size,case)\n                assert ret==128,{'return':ret,'event':event,'case':case}\n                assert event[0]==EVENT and event[2:8]==(lease,1,root,maximum,flags,digits)\n                if event[1]==1:\n                    needed=event[10]\n                    assert needed>size\n                    new_size=max(needed,size*2)\n                    replacement=ctypes.create_string_buffer(new_size+32)\n                    ctypes.memmove(replacement,work,size)\n                    ctypes.memset(ctypes.addressof(replacement)+new_size,0xb9,32)\n                    work=replacement;size=new_size;grows+=1\n                    continue\n                if event[1]==2:\n                    assert role=='scan' and event[13]==2 and event[8:10]==(0,0)\n                    role='emit';continue\n                if event[1]==3:\n                    assert event[8] in ERRORS\n                    result={'error':'E_HIA_EDIT: '+ERRORS[event[8]],'cause_kind':event[9]}\n                    break\n                assert event[1]==0 and role=='emit' and event[8:10]==(0,0)\n                assert event[11]<=size and event[12]<=size-event[11]\n                raw=ctypes.string_at(ctypes.addressof(work)+event[11],event[12])\n                result={'wire':raw}\n                break\n        result['grows']=grows;result['calls']=steps\n        return result\n\n    def check(self,value,maximum=1048576,*,ensure_ascii=True,sort_keys=True,case='case'):\n        graph=capture(value)\n        expected=None\n        try:\n            expected={'wire':bounded_json_wire(value,maximum,ensure_ascii=ensure_ascii,sort_keys=sort_keys)}\n        except Exception as exc:\n            expected={'error':str(exc),'class':type(exc).__name__}\n        actual=self.serialize_graph(graph,maximum,flags=int(ensure_ascii)+2*int(sort_keys),case=case)\n        if 'wire' in expected:\n            assert actual.get('wire')==expected['wire'],(case,expected,actual)\n            expected_path=self.raw(expected['wire'],'.expected-wire')\n            actual_path=self.raw(actual['wire'],'.actual-wire')\n        else:\n            assert actual.get('error')==expected['error'],(case,expected,actual)\n            expected_path=actual_path=None\n        return {'case':case,'status':'PASS','grows':actual['grows'],'calls':actual['calls'],\n                'expected_class':expected.get('class'),'error':expected.get('error'),\n                'expected_wire':expected_path,'actual_wire':actual_path,\n                'wire_bytes':len(expected['wire']) if 'wire' in expected else None}\n\n    def close(self):\n        self.log.close();self.readback()\n        (self.out/'source-after.json').write_text(json.dumps({str(p):sha256(raw).hexdigest() for p,raw in self.pins.items()},indent=2,sort_keys=True)+'\\n')\n\n", "git_blob": "eaf060c8c6870cad0a85a23f6b94ffa39308c45c", "path": "development/graph_harness_r3.py", "sha256": "75fe54554a93e19e30251073ac225deff944d6673d87ccc2b597e47a19e8be7c"}
+2026-11-11T21:59:59.4286359Z {"label": "cli-generate-capture", "timeout_seconds": 60, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 666531264, "child_cpu_seconds": 0.6444850000000031, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 293, "stdout_sha256": "7da91c4cfe2b044373050b905f34836552a07462df26c533497a7da34c28edf9", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T22:00:00.3253660Z {"label": "cli-generate-pretty", "timeout_seconds": 60, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 616517674, "child_cpu_seconds": 0.6132530000000074, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 242, "stdout_sha256": "1e7582b1dd3a6d2efb7a8938e5ce9adf91087d9b1bab83b294f81d016675fe2e", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T22:00:01.3665503Z {"label": "cli-generate-file", "timeout_seconds": 60, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 716683813, "child_cpu_seconds": 0.7100229999999925, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 240, "stdout_sha256": "f6051be19786ed42d12cb9e5ae1885811e799e562cb3b203d806c1164315a6d7", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T22:00:04.8750141Z {"label": "cli-seven-image-build", "timeout_seconds": 180, "status": "PASS", "returncode": 0, "timed_out": false, "elapsed_ns": 3123731395, "child_cpu_seconds": 2.5432519999999954, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 16795, "stdout_sha256": "4a2c449af81a4a7a04bdf3bb9e8f41dd91346435c882944b42cdb03e49f30a7c", "stderr_bytes": 0, "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+2026-11-11T22:00:06.4944273Z {"label": "cli-seven-image-actual-entry", "timeout_seconds": 300, "status": "FAIL", "returncode": 1, "timed_out": false, "elapsed_ns": 1618289574, "child_cpu_seconds": 1.493774000000009, "children_cumulative_maxrss_kib": 299764, "stdout_bytes": 1142, "stdout_sha256": "6c81f454fc1b4712cc199d54a379b943bc85e1038c4a81c519a24f9be4ff3309", "stderr_bytes": 1008, "stderr_sha256": "6e84252efc9eddb728d3de689d0c73939e8d56e2d96c058af77b05583df72513"}
+2026-11-11T22:00:06.4945640Z Traceback (most recent call last):
+2026-11-11T22:00:06.4968335Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/cli-recovery/workspace/native-hia-cli-next/development/test_cli_entry_ci_r1.py", line 331, in <module>
+2026-11-11T22:00:06.4969287Z     main()
+2026-11-11T22:00:06.4970181Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/cli-recovery/workspace/native-hia-cli-next/development/test_cli_entry_ci_r1.py", line 255, in main
+2026-11-11T22:00:06.4971079Z     compare(label, argv, fx)
+2026-11-11T22:00:06.4971956Z   File "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/cli-recovery/workspace/native-hia-cli-next/development/test_cli_entry_ci_r1.py", line 215, in compare
+2026-11-11T22:00:06.4973073Z     assert actual == expected, (label, expected[0], actual[0], digest(expected[1]), digest(actual[1]),
+2026-11-11T22:00:06.4973650Z            ^^^^^^^^^^^^^^^^^^
+2026-11-11T22:00:06.4975191Z AssertionError: ('smoke-file-refusal', 2, 126, '3ec2bbea8996732622af11df112a85cfa2249ed06fe95a0181a86d6cefd412cd', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+2026-11-11T22:00:06.4976646Z 
+2026-11-11T22:00:06.4976798Z Traceback (most recent call last):
+2026-11-11T22:00:06.4977920Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py", line 405, in main
+2026-11-11T22:00:06.4979132Z     common.run("cli-seven-image-actual-entry", [
+2026-11-11T22:00:06.4980005Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-11T22:00:06.4980946Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-11T22:00:06.4981577Z RuntimeError: Independent recovery step failed: cli-seven-image-actual-entry
+2026-11-11T22:00:06.4981990Z 
+2026-11-11T22:00:09.9756339Z {"all_original_and_tar_member_bytes_sha256_modes_readback": true, "archive": "/home/runner/work/_temp/hia-cli-recovery/evidence.tar.xz", "bytes": 6584072, "member_index_bytes": 111049, "member_index_sha256": "83357a655b612c84ddfe9da02df74013d0127f3e95dabaae9ef2cf535ebd463a", "members": 294, "original_bytes": 54437924, "schema": "hia-independent-ci-artifact-custody-v1", "scope": "cli-independent-entry-continuation-r3", "sha256": "c8c0875d2c40e0dc807bb3ba3fcd8e37e7a5311fe317201bb43c2be2b6e5864f", "status": "FAIL", "whole_stack_closed": false}
+2026-11-11T22:00:09.9778611Z Traceback (most recent call last):
+2026-11-11T22:00:09.9779449Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py", line 441, in <module>
+2026-11-11T22:00:09.9780221Z     main()
+2026-11-11T22:00:09.9781254Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py", line 438, in main
+2026-11-11T22:00:09.9782084Z     raise caught
+2026-11-11T22:00:09.9782942Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py", line 405, in main
+2026-11-11T22:00:09.9788264Z     common.run("cli-seven-image-actual-entry", [
+2026-11-11T22:00:09.9789060Z   File "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py", line 91, in run
+2026-11-11T22:00:09.9790008Z     raise RuntimeError("Independent recovery step failed: "+label)
+2026-11-11T22:00:09.9790569Z RuntimeError: Independent recovery step failed: cli-seven-image-actual-entry
+2026-11-11T22:00:09.9990087Z ##[error]Process completed with exit code 1.
+2026-11-11T22:00:10.0071042Z ##[group]Run actions/upload-artifact@v4
+2026-11-11T22:00:10.0071269Z with:
+2026-11-11T22:00:10.0071446Z   name: hia-cli-recovery-43107344619-1
+2026-11-11T22:00:10.0071801Z   path: /home/runner/work/_temp/hia-cli-recovery
+/home/runner/work/_temp/hia-cli-driver.log
+
+2026-11-11T22:00:10.0072150Z   if-no-files-found: error
+2026-11-11T22:00:10.0072352Z   retention-days: 90
+2026-11-11T22:00:10.0072528Z   compression-level: 0
+2026-11-11T22:00:10.0072711Z   overwrite: false
+2026-11-11T22:00:10.0072883Z   include-hidden-files: false
+2026-11-11T22:00:10.0073074Z env:
+2026-11-11T22:00:10.0073248Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T22:00:10.0073491Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T22:00:10.0073826Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T22:00:10.0074150Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T22:00:10.0074445Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T22:00:10.0074771Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T22:00:10.0075062Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T22:00:10.0075313Z ##[endgroup]
+2026-11-11T22:00:10.1520144Z (node:2680) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T22:00:10.1521057Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T22:00:10.1660347Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-11T22:00:10.1662302Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-11T22:00:10.1663409Z With the provided path, there will be 46 files uploaded
+2026-11-11T22:00:10.1666971Z Artifact name is valid!
+2026-11-11T22:00:10.1667765Z Root directory input is valid!
+2026-11-11T22:00:10.4618304Z Beginning upload of artifact content to blob storage
+2026-11-11T22:00:10.5698841Z (node:2680) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-11T22:00:11.2007999Z Uploaded bytes 8388608
+2026-11-11T22:00:11.2687711Z Uploaded bytes 16777216
+2026-11-11T22:00:11.2701546Z Uploaded bytes 25165824
+2026-11-11T22:00:11.3173946Z Uploaded bytes 33554432
+2026-11-11T22:00:11.4089269Z Uploaded bytes 41943040
+2026-11-11T22:00:11.5209321Z Uploaded bytes 45341894
+2026-11-11T22:00:11.5774486Z Finished uploading artifact content to blob storage!
+2026-11-11T22:00:11.5775267Z SHA256 digest of uploaded artifact zip is aca846546780272a94fe63bd28529789a52a578ec432711e5ab095fd4c21c2a7
+2026-11-11T22:00:11.5776200Z Finalizing artifact upload
+2026-11-11T22:00:11.9595520Z Artifact hia-cli-recovery-43107344619-1.zip successfully finalized. Artifact ID 13894912278
+2026-11-11T22:00:11.9596547Z Artifact hia-cli-recovery-43107344619-1 has been successfully uploaded! Final size is 45341894 bytes. Artifact ID is 13894912278
+2026-11-11T22:00:11.9601235Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43107344619/artifacts/13894912278
+2026-11-11T22:00:11.9837767Z Post job cleanup.
+2026-11-11T22:00:12.0552096Z [command]/usr/bin/git version
+2026-11-11T22:00:12.0588469Z git version 2.56.0
+2026-11-11T22:00:12.0616456Z Temporarily overriding HOME='/home/runner/work/_temp/7d0fd9c5-0ce0-4332-8dd3-e697c7427411' before making global git config changes
+2026-11-11T22:00:12.0617778Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T22:00:12.0621011Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta/ci-reference-source
+2026-11-11T22:00:12.0653970Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T22:00:12.0685248Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T22:00:12.0969645Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T22:00:12.1001409Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T22:00:12.1225328Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T22:00:12.1264298Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T22:00:12.1615084Z Post job cleanup.
+2026-11-11T22:00:12.2428319Z [command]/usr/bin/git version
+2026-11-11T22:00:12.2463456Z git version 2.56.0
+2026-11-11T22:00:12.2496287Z Temporarily overriding HOME='/home/runner/work/_temp/fdba0b5d-6f23-4793-a968-44ab32105ed9' before making global git config changes
+2026-11-11T22:00:12.2497083Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T22:00:12.2502384Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T22:00:12.2539352Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T22:00:12.2571228Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T22:00:12.2846101Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T22:00:12.2908772Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T22:00:12.3114525Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T22:00:12.3154428Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T22:00:12.3492032Z Cleaning up orphan processes
+2026-11-11T22:00:12.3861739Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

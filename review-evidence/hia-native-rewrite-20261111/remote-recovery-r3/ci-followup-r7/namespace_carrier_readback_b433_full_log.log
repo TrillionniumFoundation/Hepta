@@ -1,0 +1,2294 @@
+﻿2026-11-11T21:55:52.8843836Z Current runner version: '2.338.2'
+2026-11-11T21:55:52.8864452Z ##[group]Runner Image Provisioner
+2026-11-11T21:55:52.8865151Z Hosted Compute Agent
+2026-11-11T21:55:52.8865750Z Version: 20261028.624
+2026-11-11T21:55:52.8866295Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T21:55:52.8867025Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T21:55:52.8867619Z Worker ID: {94bd4ef0-216f-4929-8334-ae839f8cb9d6}
+2026-11-11T21:55:52.8868183Z Region: westus3
+2026-11-11T21:55:52.8869070Z Cloud: Azure
+2026-11-11T21:55:52.8869545Z ##[endgroup]
+2026-11-11T21:55:52.8870921Z ##[group]Operating System
+2026-11-11T21:55:52.8871480Z Ubuntu
+2026-11-11T21:55:52.8871936Z 24.04.5
+2026-11-11T21:55:52.8872427Z LTS
+2026-11-11T21:55:52.8872890Z ##[endgroup]
+2026-11-11T21:55:52.8873593Z ##[group]Runner Image
+2026-11-11T21:55:52.8874117Z Image: ubuntu-24.04
+2026-11-11T21:55:52.8874619Z Version: 20261101.360.1
+2026-11-11T21:55:52.8875742Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-11T21:55:52.8877090Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-11T21:55:52.8877918Z ##[endgroup]
+2026-11-11T21:55:52.8878865Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T21:55:52.8880717Z Actions: read
+2026-11-11T21:55:52.8881268Z Contents: read
+2026-11-11T21:55:52.8881813Z Metadata: read
+2026-11-11T21:55:52.8882296Z ##[endgroup]
+2026-11-11T21:55:52.8884157Z Secret source: Actions
+2026-11-11T21:55:52.8885142Z Cache mode: write
+2026-11-11T21:55:52.8885755Z Prepare workflow directory
+2026-11-11T21:55:52.9202472Z Prepare all required actions
+2026-11-11T21:55:52.9244043Z Getting action download info
+2026-11-11T21:55:53.2194846Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-11T21:55:53.3110917Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-11T21:55:53.4176767Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+2026-11-11T21:55:54.0215235Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-11T21:55:54.2818326Z Complete job name: Read exact completed filesystem carrier evidence
+2026-11-11T21:55:54.3507765Z ##[group]Run actions/checkout@v4
+2026-11-11T21:55:54.3508450Z with:
+2026-11-11T21:55:54.3508824Z   persist-credentials: false
+2026-11-11T21:55:54.3509288Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T21:55:54.3512649Z   token: ***
+2026-11-11T21:55:54.3513012Z   ssh-strict: true
+2026-11-11T21:55:54.3513542Z   ssh-user: git
+2026-11-11T21:55:54.3513891Z   clean: true
+2026-11-11T21:55:54.3514263Z   sparse-checkout-cone-mode: true
+2026-11-11T21:55:54.3514693Z   fetch-depth: 1
+2026-11-11T21:55:54.3515050Z   fetch-tags: false
+2026-11-11T21:55:54.3515422Z   show-progress: true
+2026-11-11T21:55:54.3515794Z   lfs: false
+2026-11-11T21:55:54.3516135Z   submodules: false
+2026-11-11T21:55:54.3516526Z   set-safe-directory: true
+2026-11-11T21:55:54.3516937Z   allow-unsafe-pr-checkout: false
+2026-11-11T21:55:54.3517526Z env:
+2026-11-11T21:55:54.3517873Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:55:54.3518290Z ##[endgroup]
+2026-11-11T21:55:54.5846638Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-11T21:55:54.5848122Z ##[group]Getting Git version info
+2026-11-11T21:55:54.5848737Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:55:54.5849539Z [command]/usr/bin/git version
+2026-11-11T21:55:54.6026249Z git version 2.56.0
+2026-11-11T21:55:54.6045024Z ##[endgroup]
+2026-11-11T21:55:54.6057827Z Temporarily overriding HOME='/home/runner/work/_temp/01e49926-8f0b-4c5a-9c62-553ff81d759f' before making global git config changes
+2026-11-11T21:55:54.6059580Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T21:55:54.6061720Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T21:55:54.6104135Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-11T21:55:54.6108380Z ##[group]Initializing the repository
+2026-11-11T21:55:54.6112353Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-11T21:55:54.6337096Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T21:55:54.6338550Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T21:55:54.6339712Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T21:55:54.6340640Z hint: call:
+2026-11-11T21:55:54.6341131Z hint:
+2026-11-11T21:55:54.6341772Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T21:55:54.6342531Z hint:
+2026-11-11T21:55:54.6343377Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T21:55:54.6344567Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T21:55:54.6345495Z hint:
+2026-11-11T21:55:54.6346017Z hint: 	git branch -m <name>
+2026-11-11T21:55:54.6346625Z hint:
+2026-11-11T21:55:54.6347418Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T21:55:54.6349857Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-11T21:55:54.6366481Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:55:54.6409626Z ##[endgroup]
+2026-11-11T21:55:54.6410286Z ##[group]Disabling automatic garbage collection
+2026-11-11T21:55:54.6415204Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T21:55:54.6456311Z ##[endgroup]
+2026-11-11T21:55:54.6457446Z ##[group]Setting up auth
+2026-11-11T21:55:54.6462599Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:55:54.6498239Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:55:54.6977954Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:55:54.7013880Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:55:54.7217679Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:55:54.7254861Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:55:54.7458177Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T21:55:54.7499272Z ##[endgroup]
+2026-11-11T21:55:54.7508527Z ##[group]Fetching the repository
+2026-11-11T21:55:54.7509879Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b433d998a8bb37dd9204170cb7dd090209ca6489:refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:08.2887570Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T21:56:08.2888267Z  * [new ref]         b433d998a8bb37dd9204170cb7dd090209ca6489 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:08.2890907Z ##[endgroup]
+2026-11-11T21:56:08.2891548Z ##[group]Determining the checkout info
+2026-11-11T21:56:08.2893308Z ##[endgroup]
+2026-11-11T21:56:08.2898347Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T21:56:08.2948118Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T21:56:08.2987045Z ##[group]Checking out the ref
+2026-11-11T21:56:08.2988067Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T21:56:08.9671550Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-11T21:56:08.9674575Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-11T21:56:08.9758483Z ##[endgroup]
+2026-11-11T21:56:08.9805024Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T21:56:08.9836127Z b433d998a8bb37dd9204170cb7dd090209ca6489
+2026-11-11T21:56:08.9844057Z ##[group]Removing auth
+2026-11-11T21:56:08.9847184Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:56:08.9880691Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:56:09.0088077Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:56:09.0117111Z http.https://github.com/.extraheader
+2026-11-11T21:56:09.0123916Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T21:56:09.0159453Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:56:09.0362447Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:56:09.0395578Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:56:09.0595932Z ##[endgroup]
+2026-11-11T21:56:09.0881462Z ##[group]Run actions/setup-python@v5
+2026-11-11T21:56:09.0881713Z with:
+2026-11-11T21:56:09.0881892Z   python-version: 3.12.14
+2026-11-11T21:56:09.0882098Z   check-latest: false
+2026-11-11T21:56:09.0884515Z   token: ***
+2026-11-11T21:56:09.0884720Z   update-environment: true
+2026-11-11T21:56:09.0884956Z   allow-prereleases: false
+2026-11-11T21:56:09.0885152Z   freethreaded: false
+2026-11-11T21:56:09.0885324Z env:
+2026-11-11T21:56:09.0885497Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:09.0885702Z ##[endgroup]
+2026-11-11T21:56:09.2002998Z ##[group]Installed versions
+2026-11-11T21:56:09.2019333Z Version 3.12.14 was not found in the local cache
+2026-11-11T21:56:09.2291572Z (node:2208) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:56:09.2292511Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:56:10.3571278Z Version 3.12.14 is available for downloading
+2026-11-11T21:56:10.3572236Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-11T21:56:10.9134435Z Extract downloaded archive
+2026-11-11T21:56:10.9251029Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/ddb58ba3-a1d8-4eb5-802b-bf7af7f63782 -f /home/runner/work/_temp/e26e3ac9-9002-4583-ad5f-6169b843cf43
+2026-11-11T21:56:12.5744699Z Execute installation script
+2026-11-11T21:56:12.5842896Z Check if Python hostedtoolcache folder exist...
+2026-11-11T21:56:12.5843449Z Create Python 3.12.14 folder
+2026-11-11T21:56:12.5854329Z Copy Python binaries to hostedtoolcache folder
+2026-11-11T21:56:12.9486974Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-11T21:56:12.9523614Z Upgrading pip...
+2026-11-11T21:56:14.7747309Z Collecting pip
+2026-11-11T21:56:14.8201384Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-11T21:56:14.8334432Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-11T21:56:15.0917278Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 7.3 MB/s eta 0:00:00
+2026-11-11T21:56:15.0917654Z 
+2026-11-11T21:56:15.1660696Z Installing collected packages: pip
+2026-11-11T21:56:15.1661260Z Attempting uninstall: pip
+2026-11-11T21:56:15.1687821Z Found existing installation: pip 25.0.1
+2026-11-11T21:56:15.1942136Z Uninstalling pip-25.0.1:
+2026-11-11T21:56:15.1984441Z Successfully uninstalled pip-25.0.1
+2026-11-11T21:56:15.9800167Z Successfully installed pip-26.3
+2026-11-11T21:56:16.0271436Z Create complete file
+2026-11-11T21:56:16.0306249Z Successfully set up CPython (3.12.14)
+2026-11-11T21:56:16.0307322Z ##[endgroup]
+2026-11-11T21:56:16.0505668Z ##[group]Run actions/download-artifact@v4
+2026-11-11T21:56:16.0505912Z with:
+2026-11-11T21:56:16.0506085Z   artifact-ids: 13893997012
+2026-11-11T21:56:16.0506279Z   run-id: 43105934854
+2026-11-11T21:56:16.0508500Z   github-token: ***
+2026-11-11T21:56:16.0508723Z   path: /home/runner/work/_temp/hia-carrier-408
+2026-11-11T21:56:16.0508973Z   merge-multiple: false
+2026-11-11T21:56:16.0509184Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T21:56:16.0509407Z env:
+2026-11-11T21:56:16.0509576Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:16.0509827Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:16.0510186Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T21:56:16.0510533Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:16.0510852Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:16.0511142Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:16.0511468Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T21:56:16.0511726Z ##[endgroup]
+2026-11-11T21:56:16.1729004Z Downloading artifacts by ID
+2026-11-11T21:56:16.1732748Z Fetching artifact list for workflow run 43105934854 in repository TrillionniumFoundation/Hepta
+2026-11-11T21:56:16.1806820Z (node:2268) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:56:16.1807530Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:56:16.1974906Z (node:2268) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-11T21:56:16.5881605Z Found 3 artifact(s)
+2026-11-11T21:56:16.5882295Z Preparing to download the following artifacts:
+2026-11-11T21:56:16.5883000Z - hia-namespace-carrier-recovery-43105934854-1 (ID: 13893997012, Size: 66539778, Expected Digest: sha256:ba4cdad194fb9a6cccf0cbed20250c32513746bde155502c8d999f56cd54fae8)
+2026-11-11T21:56:16.5910959Z Downloading artifact '13893997012' from 'TrillionniumFoundation/Hepta'
+2026-11-11T21:56:16.9207941Z Redirecting to blob download url: https://productionresultssa30.blob.core.windows.net/actions-results/a347feaa-9008-8abc-a25f-900f1d123681/workflow-job-run-0b06863e-d35b-5fd4-823b-7c2e0679a0a6/artifacts/e682e357b4c7501dcb02a3bb5f2c43f480632baeef00f4f75977ae568665b07e.zip
+2026-11-11T21:56:16.9209770Z Starting download of artifact to: /home/runner/work/_temp/hia-carrier-408/hia-namespace-carrier-recovery-43105934854-1
+2026-11-11T21:56:17.1706292Z (node:2268) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-11-11T21:56:18.8134181Z SHA256 digest of downloaded artifact is ba4cdad194fb9a6cccf0cbed20250c32513746bde155502c8d999f56cd54fae8
+2026-11-11T21:56:18.8134902Z Artifact download completed successfully.
+2026-11-11T21:56:18.8135155Z Total of 1 artifact(s) downloaded
+2026-11-11T21:56:18.8141202Z Download artifact has finished successfully
+2026-11-11T21:56:18.8301831Z ##[group]Run python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-carrier-readback-r1.py 2>&1 | tee "$RUNNER_TEMP/hia-carrier-408-readback-driver.log"
+2026-11-11T21:56:18.8302941Z [36;1mpython -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-carrier-readback-r1.py 2>&1 | tee "$RUNNER_TEMP/hia-carrier-408-readback-driver.log"[0m
+2026-11-11T21:56:18.8325269Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-11T21:56:18.8325552Z env:
+2026-11-11T21:56:18.8325731Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:18.8325986Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:18.8326501Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T21:56:18.8326827Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:18.8327130Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:18.8327471Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:18.8327770Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T21:56:18.8328121Z   HIA_NAMESPACE_CARRIER_READBACK_DIR: /home/runner/work/_temp/hia-carrier-408
+2026-11-11T21:56:18.8328483Z   HIA_CI_OUTPUT: /home/runner/work/_temp/hia-carrier-408-readback
+2026-11-11T21:56:18.8328746Z ##[endgroup]
+2026-11-11T21:56:19.5244046Z {"after_errors": [], "artifact_id": 13893997012, "artifact_test_observations": {"actual_primitive_acks": 89, "executable": {"bytes": 181257, "image_offset": 3648, "kernel_bytes": 177609, "layout": {"end": 3472, "entry": 0, "image_table": 3456, "relocation_count": 0, "source_sha256": "fb28a7a44448c06fb12654ae8bf6b06fb19be30a4fb7556cf0a7c038b522b90e", "template_bytes": 3472, "template_sha256": "9cbdbd1fa15927a9c394f573a993e3ae3b102986bac6404745edf307dd10b8e2"}, "mode": 493, "path": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/hia-namespace-filesystem", "sha256": "1a83b401f48b03f36cc9fb7da2fac8fc28a3ea5f8c5c364dffbd2787eac8f7f6", "template_bytes": 3472}, "native_entries": 208, "observations": {"actual_alias_close_drops_lock": true, "actual_raw_fd_zero": true, "actual_uid": 1001, "actual_wal_byte120_both_directions": true, "actual_wal_shared_inode": {"device": 66305, "inode": 12066860}, "all22_actual_primitives": true, "inode_registry_policy_still_required": true, "parent_death_child_termination": true, "truncated_transport_process_lock_released": true}, "packer_entries": 8, "process_traces": 12, "sqlite": {"compile_options": ["ATOMIC_INTRINSICS=1", "COMPILER=gcc-13.3.0", "DEFAULT_AUTOVACUUM", "DEFAULT_CACHE_SIZE=-2000", "DEFAULT_FILE_FORMAT=4", "DEFAULT_JOURNAL_SIZE_LIMIT=-1", "DEFAULT_MMAP_SIZE=0", "DEFAULT_PAGE_SIZE=4096", "DEFAULT_PCACHE_INITSZ=20", "DEFAULT_RECURSIVE_TRIGGERS", "DEFAULT_SECTOR_SIZE=4096", "DEFAULT_SYNCHRONOUS=2", "DEFAULT_WAL_AUTOCHECKPOINT=1000", "DEFAULT_WAL_SYNCHRONOUS=2", "DEFAULT_WORKER_THREADS=0", "DIRECT_OVERFLOW_READ", "ENABLE_COLUMN_METADATA", "ENABLE_DBSTAT_VTAB", "ENABLE_FTS3", "ENABLE_FTS3_PARENTHESIS", "ENABLE_FTS3_TOKENIZER", "ENABLE_FTS4", "ENABLE_FTS5", "ENABLE_LOAD_EXTENSION", "ENABLE_MATH_FUNCTIONS", "ENABLE_PREUPDATE_HOOK", "ENABLE_RTREE", "ENABLE_SESSION", "ENABLE_STMTVTAB", "ENABLE_UNLOCK_NOTIFY", "ENABLE_UPDATE_DELETE_LIMIT", "HAVE_ISNAN", "LIKE_DOESNT_MATCH_BLOBS", "MALLOC_SOFT_LIMIT=1024", "MAX_ATTACHED=10", "MAX_COLUMN=2000", "MAX_COMPOUND_SELECT=500", "MAX_DEFAULT_PAGE_SIZE=32768", "MAX_EXPR_DEPTH=1000", "MAX_FUNCTION_ARG=127", "MAX_LENGTH=1000000000", "MAX_LIKE_PATTERN_LENGTH=50000", "MAX_MMAP_SIZE=0x7fff0000", "MAX_PAGE_COUNT=0xfffffffe", "MAX_PAGE_SIZE=65536", "MAX_SCHEMA_RETRY=25", "MAX_SQL_LENGTH=1000000000", "MAX_TRIGGER_DEPTH=1000", "MAX_VARIABLE_NUMBER=250000", "MAX_VDBE_OP=250000000", "MAX_WORKER_THREADS=8", "MUTEX_PTHREADS", "SECURE_DELETE", "SOUNDEX", "SYSTEM_MALLOC", "TEMP_STORE=1", "THREADSAFE=1", "USE_URI"], "source_id": "2024-01-30 16:01:20 e876e51a0ed5c5b3126f52e532044363a014bc594cfefa87ffb5b82257ccalt1", "version": "3.45.1"}, "tests": {"errors": [], "expected_failures": [], "failures": [], "skipped": [], "test_ids": ["__main__.main.<locals>.ActualCarrier.test_01_all_twenty_two_actual_primitives", "__main__.main.<locals>.ActualCarrier.test_02_known_errno_preserves_context", "__main__.main.<locals>.ActualCarrier.test_03_more_than_one_slot_page_and_close_once", "__main__.main.<locals>.ActualCarrier.test_04_actual_permanent_rejection_no_syscall", "__main__.main.<locals>.ActualCarrier.test_05_truncated_transport_releases_actual_process_lock", "__main__.main.<locals>.ActualCarrier.test_06_real_sqlite_wal_writer_byte120_both_directions", "__main__.main.<locals>.ActualCarrier.test_07_closing_alias_drops_posix_inode_lock", "__main__.main.<locals>.ActualCarrier.test_08_raw_symlink_and_parent_path_observations", "__main__.main.<locals>.ActualCarrier.test_09_parent_death_terminates_owned_native_child", "__main__.main.<locals>.ActualCarrier.test_10_empty_close_all_permanently_closed"], "tests_loaded": 10, "tests_run": 10, "unexpected_successes": []}, "vm_replay_entries": 208}, "compressed_zip": {"bytes": 66539778, "sha256": "ba4cdad194fb9a6cccf0cbed20250c32513746bde155502c8d999f56cd54fae8"}, "compressed_zip_scope": "GitHub artifact declaration/download action only; this reader verifies downloaded members and pinned inner archive, not ZIP bytes.", "downloaded_member_drift": [], "downloaded_members_unchanged": true, "head": "408c130d129992b7d1ef31d3e1e625b1c56af422", "members_replayed": 616, "native_entries_executed_by_this_reader": 0, "ordinary_AgentStore_closed": false, "original_ROG_full": "FAIL/HOLD unchanged", "original_seal_after": {"custody.json": {"bytes": 595, "mode": 420, "sha256": "4552563916a3da9a868364b300cedc8f1cb18619b74d84f32f4c29f4bfa468ae"}, "evidence-members.json": {"bytes": 258697, "mode": 420, "sha256": "5f9cf8136f94a70adbdb463c0cc638dda64bbd170c20d6037074fc9f0e46da68"}, "evidence.tar.xz": {"bytes": 11695096, "mode": 420, "sha256": "497b7f8fb97085e6c20953180d05afacd0846f0f30eed2111196cc3f17108ccf"}}, "original_seal_before": {"custody.json": {"bytes": 595, "mode": 420, "sha256": "4552563916a3da9a868364b300cedc8f1cb18619b74d84f32f4c29f4bfa468ae"}, "evidence-members.json": {"bytes": 258697, "mode": 420, "sha256": "5f9cf8136f94a70adbdb463c0cc638dda64bbd170c20d6037074fc9f0e46da68"}, "evidence.tar.xz": {"bytes": 11695096, "mode": 420, "sha256": "497b7f8fb97085e6c20953180d05afacd0846f0f30eed2111196cc3f17108ccf"}}, "original_seal_unchanged": true, "original_summary_files": {"carrier-build-original.json": {"bytes": 28352, "sha256": "48e33d786e4c61e055b37320a6e50592edbffa5907cf8151e94b1922664af713"}, "carrier-native-original.json": {"bytes": 52227, "sha256": "50ea2284915059a42ae68e924103d7e2db015cf92d0e745d5c61668f98138543"}}, "predecessor_observations": {"inherited_as_new": false, "native_entries": 519, "vm_entries": 1038}, "raw_bytes_replayed": 54360446, "reader_source_unchanged": true, "run_id": 43105934854, "schema": "hia.namespace-carrier-independent-readback.v1", "script": {"bytes": 12924, "sha256": "cd2f99540d0246d8a1d73c27a372750756286de94a388b9e700438485e2a5d04"}, "status": "PASS", "tests_reexecuted_by_this_reader": 0, "vm_entries_executed_by_this_reader": 0}
+2026-11-11T21:56:19.5269204Z BEGIN_ORIGINAL_JSON carrier-build-original.json 28352 48e33d786e4c61e055b37320a6e50592edbffa5907cf8151e94b1922664af713
+2026-11-11T21:56:19.5269874Z {
+2026-11-11T21:56:19.5270107Z   "actual_carrier_processes": 0,
+2026-11-11T21:56:19.5270410Z   "compile_receipt": {
+2026-11-11T21:56:19.5270666Z     "abi_status": 0,
+2026-11-11T21:56:19.5271123Z     "artifact_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+2026-11-11T21:56:19.5271669Z     "case": "namespace-native-packer",
+2026-11-11T21:56:19.5272003Z     "core_u32": 71199,
+2026-11-11T21:56:19.5272294Z     "forbidden_compiler_modules_loaded": [],
+2026-11-11T21:56:19.5272641Z     "format": "flat-x86-64",
+2026-11-11T21:56:19.5273104Z     "image_sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b",
+2026-11-11T21:56:19.5273960Z     "input_bytes": 69968,
+2026-11-11T21:56:19.5274422Z     "input_sha256": "8b4548e492739e5784953cc4cb99e06c9701db8085064f90148fe60f67d2ab51",
+2026-11-11T21:56:19.5274931Z     "limits": {
+2026-11-11T21:56:19.5275178Z       "address_bytes": 268435456,
+2026-11-11T21:56:19.5275491Z       "core_dumpable": false,
+2026-11-11T21:56:19.5275799Z       "cpu_seconds": 10,
+2026-11-11T21:56:19.5276130Z       "output_capacity": 1048576,
+2026-11-11T21:56:19.5276441Z       "stack_bytes": 8388608,
+2026-11-11T21:56:19.5276765Z       "workspace_bytes": 1048576
+2026-11-11T21:56:19.5277063Z     },
+2026-11-11T21:56:19.5277467Z     "loader_operations": "copy; sealed shared loader or RW-to-RX mmap; fixed ABI call",
+2026-11-11T21:56:19.5278140Z     "native_elapsed_ns": 53971683,
+2026-11-11T21:56:19.5278633Z     "output_sha256": "84955697f1d5bc514cf1bb280e2c0415f0ec8bb59a7a3ec531c20c43897e817e",
+2026-11-11T21:56:19.5279117Z     "output_unchanged": false,
+2026-11-11T21:56:19.5279436Z     "produced_bytes": 71199,
+2026-11-11T21:56:19.5280342Z     "produced_image": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/compile/namespace-native-packer.image.bin",
+2026-11-11T21:56:19.5281496Z     "produced_sha256": "fcbe919b4cc4c8aa3f8fd7b813562fb5b0dd4f215d4ee06122d0446de44484a4",
+2026-11-11T21:56:19.5282064Z     "result_u64": 71199,
+2026-11-11T21:56:19.5282360Z     "return_encoding": "zero-extended-u32",
+2026-11-11T21:56:19.5282875Z     "runner_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+2026-11-11T21:56:19.5283723Z     "source_sha256": "8b4548e492739e5784953cc4cb99e06c9701db8085064f90148fe60f67d2ab51",
+2026-11-11T21:56:19.5284272Z     "source_unchanged": true,
+2026-11-11T21:56:19.5284675Z     "status": "returned",
+2026-11-11T21:56:19.5284959Z     "wall_elapsed_ns": 137231425,
+2026-11-11T21:56:19.5285268Z     "workspace_header": {
+2026-11-11T21:56:19.5285536Z       "0": 69968,
+2026-11-11T21:56:19.5285775Z       "1024": 19,
+2026-11-11T21:56:19.5286002Z       "104": 0,
+2026-11-11T21:56:19.5286239Z       "112": 1508,
+2026-11-11T21:56:19.5286464Z       "16": 0,
+2026-11-11T21:56:19.5286674Z       "224": 528,
+2026-11-11T21:56:19.5286902Z       "24": 69968,
+2026-11-11T21:56:19.5287122Z       "248": 16581,
+2026-11-11T21:56:19.5287332Z       "40": 0,
+2026-11-11T21:56:19.5287530Z       "48": 2,
+2026-11-11T21:56:19.5287729Z       "56": 71199,
+2026-11-11T21:56:19.5287960Z       "64": 19,
+2026-11-11T21:56:19.5288176Z       "72": 18,
+2026-11-11T21:56:19.5288405Z       "8": 0,
+2026-11-11T21:56:19.5288639Z       "80": 57,
+2026-11-11T21:56:19.5288859Z       "88": 56,
+2026-11-11T21:56:19.5289083Z       "96": 4
+2026-11-11T21:56:19.5289283Z     }
+2026-11-11T21:56:19.5289473Z   },
+2026-11-11T21:56:19.5289669Z   "executable": {
+2026-11-11T21:56:19.5289897Z     "bytes": 181257,
+2026-11-11T21:56:19.5290153Z     "image_offset": 3648,
+2026-11-11T21:56:19.5290441Z     "kernel_bytes": 177609,
+2026-11-11T21:56:19.5290695Z     "layout": {
+2026-11-11T21:56:19.5290898Z       "end": 3472,
+2026-11-11T21:56:19.5291126Z       "entry": 0,
+2026-11-11T21:56:19.5291354Z       "image_table": 3456,
+2026-11-11T21:56:19.5291602Z       "relocation_count": 0,
+2026-11-11T21:56:19.5292085Z       "source_sha256": "fb28a7a44448c06fb12654ae8bf6b06fb19be30a4fb7556cf0a7c038b522b90e",
+2026-11-11T21:56:19.5292622Z       "template_bytes": 3472,
+2026-11-11T21:56:19.5293115Z       "template_sha256": "9cbdbd1fa15927a9c394f573a993e3ae3b102986bac6404745edf307dd10b8e2"
+2026-11-11T21:56:19.5293774Z     },
+2026-11-11T21:56:19.5293992Z     "mode": 493,
+2026-11-11T21:56:19.5294680Z     "path": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/hia-namespace-filesystem",
+2026-11-11T21:56:19.5295675Z     "sha256": "1a83b401f48b03f36cc9fb7da2fac8fc28a3ea5f8c5c364dffbd2787eac8f7f6",
+2026-11-11T21:56:19.5296195Z     "template_bytes": 3472
+2026-11-11T21:56:19.5296459Z   },
+2026-11-11T21:56:19.5296890Z   "kernel_image_sha256": "f1d81566c18556fcdddafb84546f4f6208b7a83f9351583e999e5ecb6379618c",
+2026-11-11T21:56:19.5297810Z   "kernel_source_sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8",
+2026-11-11T21:56:19.5298365Z   "packer_controls": [
+2026-11-11T21:56:19.5298613Z     {
+2026-11-11T21:56:19.5298839Z       "actual_return": 181257,
+2026-11-11T21:56:19.5299145Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5299449Z       "expected_return": 181257,
+2026-11-11T21:56:19.5299731Z       "guards": true,
+2026-11-11T21:56:19.5300168Z       "input_sha256": "a75bded093e732833249e15d55745c903a69fc5c094834716f41e35f79a7bb56",
+2026-11-11T21:56:19.5300685Z       "label": "normal",
+2026-11-11T21:56:19.5300948Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5301575Z       "output_sha256": "1a83b401f48b03f36cc9fb7da2fac8fc28a3ea5f8c5c364dffbd2787eac8f7f6",
+2026-11-11T21:56:19.5302105Z       "source_unchanged": true,
+2026-11-11T21:56:19.5302387Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5302650Z     },
+2026-11-11T21:56:19.5302865Z     {
+2026-11-11T21:56:19.5303103Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5303546Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5303863Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5304168Z       "guards": true,
+2026-11-11T21:56:19.5304628Z       "input_sha256": "7383a9c3b1b021dc23bd3e7c99d8c13874d8113b61f04238af5993eb3de010f8",
+2026-11-11T21:56:19.5305150Z       "label": "magic",
+2026-11-11T21:56:19.5305417Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5305940Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5306493Z       "source_unchanged": true,
+2026-11-11T21:56:19.5306810Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5307111Z     },
+2026-11-11T21:56:19.5307315Z     {
+2026-11-11T21:56:19.5307541Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5307850Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5308160Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5308467Z       "guards": true,
+2026-11-11T21:56:19.5308924Z       "input_sha256": "7c78548615bf3cb73969a2875d641a906c628354aa959c57880d74fe407951dd",
+2026-11-11T21:56:19.5309446Z       "label": "version",
+2026-11-11T21:56:19.5309724Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5310212Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5310756Z       "source_unchanged": true,
+2026-11-11T21:56:19.5311064Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5311359Z     },
+2026-11-11T21:56:19.5311573Z     {
+2026-11-11T21:56:19.5311800Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5312109Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5312442Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5312749Z       "guards": true,
+2026-11-11T21:56:19.5313306Z       "input_sha256": "998cb65643661c97dfbc8814dbf36e0d73434c41ebd34468d1b8afe8b112cac2",
+2026-11-11T21:56:19.5313796Z       "label": "empty-image",
+2026-11-11T21:56:19.5314070Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5314465Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5314815Z       "source_unchanged": true,
+2026-11-11T21:56:19.5315023Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5315218Z     },
+2026-11-11T21:56:19.5315359Z     {
+2026-11-11T21:56:19.5315521Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5315731Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5315941Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5316145Z       "guards": true,
+2026-11-11T21:56:19.5316447Z       "input_sha256": "bcfa9372f42c62bdfc05d3b4445c9fbcf32672dfe3340d99e6ad1792cb5c2816",
+2026-11-11T21:56:19.5316794Z       "label": "large-image",
+2026-11-11T21:56:19.5316993Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5317299Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5317634Z       "source_unchanged": true,
+2026-11-11T21:56:19.5317928Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5318544Z     },
+2026-11-11T21:56:19.5318755Z     {
+2026-11-11T21:56:19.5318991Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5319305Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5319552Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5319824Z       "guards": true,
+2026-11-11T21:56:19.5320269Z       "input_sha256": "9354e2c9a7404b6264e503c0dc212f2926f988936b42e93b1079f143c3515169",
+2026-11-11T21:56:19.5320763Z       "label": "total-length",
+2026-11-11T21:56:19.5320970Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5321290Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5321752Z       "source_unchanged": true,
+2026-11-11T21:56:19.5321960Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5322159Z     },
+2026-11-11T21:56:19.5322311Z     {
+2026-11-11T21:56:19.5322469Z       "actual_return": 4294967295,
+2026-11-11T21:56:19.5322678Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5322889Z       "expected_return": 4294967295,
+2026-11-11T21:56:19.5323091Z       "guards": true,
+2026-11-11T21:56:19.5323560Z       "input_sha256": "c4648eb6b89383a6b2a8ac80c0c34a586b1fba482bab61acd285b3475b4c4ba0",
+2026-11-11T21:56:19.5323932Z       "label": "reserved",
+2026-11-11T21:56:19.5324131Z       "output_bytes": 181257,
+2026-11-11T21:56:19.5342161Z       "output_sha256": "e1d40e2ce859f8399bf491a8ddbd37ca754bd49aa2d6c1829cb7f796b73e71a3",
+2026-11-11T21:56:19.5342527Z       "source_unchanged": true,
+2026-11-11T21:56:19.5342739Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5342940Z     },
+2026-11-11T21:56:19.5343086Z     {
+2026-11-11T21:56:19.5343455Z       "actual_return": 4294967294,
+2026-11-11T21:56:19.5343680Z       "exact_output_equal": true,
+2026-11-11T21:56:19.5343885Z       "expected_return": 4294967294,
+2026-11-11T21:56:19.5344088Z       "guards": true,
+2026-11-11T21:56:19.5344374Z       "input_sha256": "a75bded093e732833249e15d55745c903a69fc5c094834716f41e35f79a7bb56",
+2026-11-11T21:56:19.5344715Z       "label": "short-output",
+2026-11-11T21:56:19.5344917Z       "output_bytes": 181256,
+2026-11-11T21:56:19.5345229Z       "output_sha256": "dc96eeca43a546a9d1582491060cd4ce6cafa934a0fa46671065b904f586e640",
+2026-11-11T21:56:19.5345573Z       "source_unchanged": true,
+2026-11-11T21:56:19.5345787Z       "workspace_unchanged": true
+2026-11-11T21:56:19.5345980Z     }
+2026-11-11T21:56:19.5346121Z   ],
+2026-11-11T21:56:19.5346276Z   "packer_entries": 8,
+2026-11-11T21:56:19.5346594Z   "packer_image_sha256": "fcbe919b4cc4c8aa3f8fd7b813562fb5b0dd4f215d4ee06122d0446de44484a4",
+2026-11-11T21:56:19.5346946Z   "physical_store_closed": false,
+2026-11-11T21:56:19.5347156Z   "profile": {
+2026-11-11T21:56:19.5347320Z     "blocks": 57,
+2026-11-11T21:56:19.5347485Z     "functions": 19,
+2026-11-11T21:56:19.5347659Z     "max_block_params": 6,
+2026-11-11T21:56:19.5347842Z     "max_blocks": 30,
+2026-11-11T21:56:19.5348008Z     "ops": 1508
+2026-11-11T21:56:19.5348158Z   },
+2026-11-11T21:56:19.5348361Z   "scope": "NEW_PRIVATE_FS_CARRIER_BUILD_NOT_ORDINARY_STORE",
+2026-11-11T21:56:19.5348612Z   "source_after": {
+2026-11-11T21:56:19.5349124Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-build.py": {
+2026-11-11T21:56:19.5349620Z       "bytes": 17349,
+2026-11-11T21:56:19.5349785Z       "mode": 420,
+2026-11-11T21:56:19.5350055Z       "sha256": "512589f00c0c9bcdc95b06001ec87c350d3d3a5949ea6efbece9af6254fa520e"
+2026-11-11T21:56:19.5350355Z     },
+2026-11-11T21:56:19.5350785Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-executor.S": {
+2026-11-11T21:56:19.5351265Z       "bytes": 20200,
+2026-11-11T21:56:19.5351432Z       "mode": 420,
+2026-11-11T21:56:19.5351700Z       "sha256": "fb28a7a44448c06fb12654ae8bf6b06fb19be30a4fb7556cf0a7c038b522b90e"
+2026-11-11T21:56:19.5352014Z     },
+2026-11-11T21:56:19.5352668Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-packer.py": {
+2026-11-11T21:56:19.5353323Z       "bytes": 4507,
+2026-11-11T21:56:19.5353498Z       "mode": 420,
+2026-11-11T21:56:19.5353772Z       "sha256": "f3c1d1208f59bdecd97075c339fbb3093bc01940d639d3ecde2bea9ab397b0bb"
+2026-11-11T21:56:19.5354068Z     },
+2026-11-11T21:56:19.5354411Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/compiler/B3.image.bin": {
+2026-11-11T21:56:19.5354801Z       "bytes": 669556,
+2026-11-11T21:56:19.5354972Z       "mode": 420,
+2026-11-11T21:56:19.5355223Z       "sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
+2026-11-11T21:56:19.5355628Z     },
+2026-11-11T21:56:19.5355937Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/context.json": {
+2026-11-11T21:56:19.5356295Z       "bytes": 7943,
+2026-11-11T21:56:19.5356456Z       "mode": 420,
+2026-11-11T21:56:19.5356728Z       "sha256": "44a2e11dfb1929e2bb7b095bd32a0a2e7ddde1eda581dee276570b21445ea479"
+2026-11-11T21:56:19.5357022Z     },
+2026-11-11T21:56:19.5357597Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/immutable/verified-predecessor-597/run/namespace-fs-r3/validation-r1/compile/namespace-filesystem-r3.image.bin": {
+2026-11-11T21:56:19.5358195Z       "bytes": 177609,
+2026-11-11T21:56:19.5358367Z       "mode": 420,
+2026-11-11T21:56:19.5358636Z       "sha256": "f1d81566c18556fcdddafb84546f4f6208b7a83f9351583e999e5ecb6379618c"
+2026-11-11T21:56:19.5358932Z     },
+2026-11-11T21:56:19.5359436Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/immutable/verified-predecessor-597/run/namespace-fs-r3/validation-r1/result.json": {
+2026-11-11T21:56:19.5359969Z       "bytes": 28598,
+2026-11-11T21:56:19.5360139Z       "mode": 420,
+2026-11-11T21:56:19.5360407Z       "sha256": "bad895907fc8f3432849078389b4c00270548bf6f9aeb1860535798f00240b95"
+2026-11-11T21:56:19.5360702Z     },
+2026-11-11T21:56:19.5361161Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/examples/hia_bootstrap/agent_namespace_filesystem_r3.hiaasm": {
+2026-11-11T21:56:19.5361660Z       "bytes": 119707,
+2026-11-11T21:56:19.5361838Z       "mode": 420,
+2026-11-11T21:56:19.5362097Z       "sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8"
+2026-11-11T21:56:19.5362403Z     },
+2026-11-11T21:56:19.5362816Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/tools/generate_hia_agent_namespace_objects.py": {
+2026-11-11T21:56:19.5363467Z       "bytes": 27802,
+2026-11-11T21:56:19.5363644Z       "mode": 420,
+2026-11-11T21:56:19.5363918Z       "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"
+2026-11-11T21:56:19.5364214Z     },
+2026-11-11T21:56:19.5364630Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/tools/generate_hia_agent_namespace_store.py": {
+2026-11-11T21:56:19.5365098Z       "bytes": 11623,
+2026-11-11T21:56:19.5365269Z       "mode": 420,
+2026-11-11T21:56:19.5365525Z       "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"
+2026-11-11T21:56:19.5365813Z     },
+2026-11-11T21:56:19.5366156Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/__init__.py": {
+2026-11-11T21:56:19.5366613Z       "bytes": 93,
+2026-11-11T21:56:19.5366790Z       "mode": 420,
+2026-11-11T21:56:19.5367055Z       "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+2026-11-11T21:56:19.5367360Z     },
+2026-11-11T21:56:19.5367731Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/artifact_publication.py": {
+2026-11-11T21:56:19.5368155Z       "bytes": 6374,
+2026-11-11T21:56:19.5368325Z       "mode": 420,
+2026-11-11T21:56:19.5368585Z       "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+2026-11-11T21:56:19.5368884Z     },
+2026-11-11T21:56:19.5369352Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_agent_assembly.py": {
+2026-11-11T21:56:19.5369768Z       "bytes": 15216,
+2026-11-11T21:56:19.5369939Z       "mode": 420,
+2026-11-11T21:56:19.5370192Z       "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+2026-11-11T21:56:19.5370476Z     },
+2026-11-11T21:56:19.5370831Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_capability_flow.py": {
+2026-11-11T21:56:19.5371238Z       "bytes": 3064,
+2026-11-11T21:56:19.5371399Z       "mode": 420,
+2026-11-11T21:56:19.5371658Z       "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+2026-11-11T21:56:19.5372044Z     },
+2026-11-11T21:56:19.5372420Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_canonical_native.py": {
+2026-11-11T21:56:19.5372846Z       "bytes": 3570,
+2026-11-11T21:56:19.5373013Z       "mode": 420,
+2026-11-11T21:56:19.5373439Z       "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+2026-11-11T21:56:19.5373734Z     },
+2026-11-11T21:56:19.5374076Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode.py": {
+2026-11-11T21:56:19.5374597Z       "bytes": 2342,
+2026-11-11T21:56:19.5374773Z       "mode": 420,
+2026-11-11T21:56:19.5375024Z       "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+2026-11-11T21:56:19.5375316Z     },
+2026-11-11T21:56:19.5375763Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode_native.py": {
+2026-11-11T21:56:19.5376256Z       "bytes": 6765,
+2026-11-11T21:56:19.5376454Z       "mode": 420,
+2026-11-11T21:56:19.5376799Z       "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+2026-11-11T21:56:19.5377176Z     },
+2026-11-11T21:56:19.5377621Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight.py": {
+2026-11-11T21:56:19.5378065Z       "bytes": 9696,
+2026-11-11T21:56:19.5378286Z       "mode": 420,
+2026-11-11T21:56:19.5378711Z       "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+2026-11-11T21:56:19.5379193Z     },
+2026-11-11T21:56:19.5379826Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight_native.py": {
+2026-11-11T21:56:19.5380542Z       "bytes": 8267,
+2026-11-11T21:56:19.5380790Z       "mode": 420,
+2026-11-11T21:56:19.5381203Z       "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+2026-11-11T21:56:19.5381689Z     },
+2026-11-11T21:56:19.5382286Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_machine_x64.py": {
+2026-11-11T21:56:19.5382959Z       "bytes": 11057,
+2026-11-11T21:56:19.5383332Z       "mode": 420,
+2026-11-11T21:56:19.5383742Z       "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+2026-11-11T21:56:19.5384214Z     },
+2026-11-11T21:56:19.5384752Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_opcodes.py": {
+2026-11-11T21:56:19.5385391Z       "bytes": 19813,
+2026-11-11T21:56:19.5385636Z       "mode": 420,
+2026-11-11T21:56:19.5386033Z       "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+2026-11-11T21:56:19.5386496Z     },
+2026-11-11T21:56:19.5387039Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py": {
+2026-11-11T21:56:19.5387679Z       "bytes": 45247,
+2026-11-11T21:56:19.5387919Z       "mode": 420,
+2026-11-11T21:56:19.5388323Z       "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+2026-11-11T21:56:19.5388780Z     },
+2026-11-11T21:56:19.5389345Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_tools.py": {
+2026-11-11T21:56:19.5390015Z       "bytes": 22198,
+2026-11-11T21:56:19.5390435Z       "mode": 420,
+2026-11-11T21:56:19.5390831Z       "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+2026-11-11T21:56:19.5391297Z     },
+2026-11-11T21:56:19.5391829Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_schema.py": {
+2026-11-11T21:56:19.5392459Z       "bytes": 5652,
+2026-11-11T21:56:19.5392689Z       "mode": 420,
+2026-11-11T21:56:19.5393090Z       "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+2026-11-11T21:56:19.5393704Z     },
+2026-11-11T21:56:19.5394264Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_sha256_native.py": {
+2026-11-11T21:56:19.5395076Z       "bytes": 2313,
+2026-11-11T21:56:19.5395313Z       "mode": 420,
+2026-11-11T21:56:19.5395702Z       "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+2026-11-11T21:56:19.5396161Z     },
+2026-11-11T21:56:19.5396765Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py": {
+2026-11-11T21:56:19.5397468Z       "bytes": 81729,
+2026-11-11T21:56:19.5397713Z       "mode": 420,
+2026-11-11T21:56:19.5398123Z       "sha256": "e4cff0c45d9138ff50b32ef2f6c0c768583ac88b634f2b932411e4ecb2b50ed0"
+2026-11-11T21:56:19.5398602Z     },
+2026-11-11T21:56:19.5399182Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_cases.py": {
+2026-11-11T21:56:19.5399864Z       "bytes": 2782,
+2026-11-11T21:56:19.5400103Z       "mode": 420,
+2026-11-11T21:56:19.5400521Z       "sha256": "abaef65d2d979ff8f8f67b0a233c6e63db995026ca6130178ded66e7f6d141be"
+2026-11-11T21:56:19.5401009Z     },
+2026-11-11T21:56:19.5401605Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_chain_elf.py": {
+2026-11-11T21:56:19.5402275Z       "bytes": 6721,
+2026-11-11T21:56:19.5402487Z       "mode": 420,
+2026-11-11T21:56:19.5402873Z       "sha256": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00"
+2026-11-11T21:56:19.5403494Z     },
+2026-11-11T21:56:19.5404073Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_child.py": {
+2026-11-11T21:56:19.5404757Z       "bytes": 6791,
+2026-11-11T21:56:19.5404995Z       "mode": 420,
+2026-11-11T21:56:19.5405396Z       "sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29"
+2026-11-11T21:56:19.5405869Z     },
+2026-11-11T21:56:19.5406443Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_cli.py": {
+2026-11-11T21:56:19.5407126Z       "bytes": 4124,
+2026-11-11T21:56:19.5407361Z       "mode": 420,
+2026-11-11T21:56:19.5407754Z       "sha256": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f"
+2026-11-11T21:56:19.5408223Z     },
+2026-11-11T21:56:19.5408803Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_contract.py": {
+2026-11-11T21:56:19.5409455Z       "bytes": 84554,
+2026-11-11T21:56:19.5409669Z       "mode": 420,
+2026-11-11T21:56:19.5410000Z       "sha256": "0a8c200d85919707f770a8cb8e6787c08f8d3c2a6d1979b38b7b156d624417de"
+2026-11-11T21:56:19.5410286Z     },
+2026-11-11T21:56:19.5410639Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_effects.py": {
+2026-11-11T21:56:19.5411043Z       "bytes": 13948,
+2026-11-11T21:56:19.5411199Z       "mode": 420,
+2026-11-11T21:56:19.5411441Z       "sha256": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf"
+2026-11-11T21:56:19.5411718Z     },
+2026-11-11T21:56:19.5412069Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_exports.py": {
+2026-11-11T21:56:19.5412473Z       "bytes": 6932,
+2026-11-11T21:56:19.5412634Z       "mode": 420,
+2026-11-11T21:56:19.5412880Z       "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+2026-11-11T21:56:19.5413476Z     },
+2026-11-11T21:56:19.5413853Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_keywords.py": {
+2026-11-11T21:56:19.5414265Z       "bytes": 14062,
+2026-11-11T21:56:19.5414432Z       "mode": 420,
+2026-11-11T21:56:19.5414698Z       "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+2026-11-11T21:56:19.5414989Z     },
+2026-11-11T21:56:19.5415332Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_limits.py": {
+2026-11-11T21:56:19.5415731Z       "bytes": 1853,
+2026-11-11T21:56:19.5415888Z       "mode": 420,
+2026-11-11T21:56:19.5416274Z       "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+2026-11-11T21:56:19.5416557Z     },
+2026-11-11T21:56:19.5416927Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_multi_results.py": {
+2026-11-11T21:56:19.5417356Z       "bytes": 21747,
+2026-11-11T21:56:19.5417521Z       "mode": 420,
+2026-11-11T21:56:19.5417789Z       "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f"
+2026-11-11T21:56:19.5418081Z     },
+2026-11-11T21:56:19.5418430Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_names.py": {
+2026-11-11T21:56:19.5418833Z       "bytes": 40371,
+2026-11-11T21:56:19.5419002Z       "mode": 420,
+2026-11-11T21:56:19.5419257Z       "sha256": "4a249ef86348109b774eb7618f2971303a13b491cbf8d0e126be132faa83297a"
+2026-11-11T21:56:19.5419555Z     },
+2026-11-11T21:56:19.5419911Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_owned_elf.py": {
+2026-11-11T21:56:19.5420331Z       "bytes": 7494,
+2026-11-11T21:56:19.5420503Z       "mode": 420,
+2026-11-11T21:56:19.5420759Z       "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+2026-11-11T21:56:19.5421040Z     },
+2026-11-11T21:56:19.5421419Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_returned_loans.py": {
+2026-11-11T21:56:19.5421843Z       "bytes": 11401,
+2026-11-11T21:56:19.5421999Z       "mode": 420,
+2026-11-11T21:56:19.5422252Z       "sha256": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb"
+2026-11-11T21:56:19.5422543Z     },
+2026-11-11T21:56:19.5422890Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_signed.py": {
+2026-11-11T21:56:19.5423511Z       "bytes": 3642,
+2026-11-11T21:56:19.5423698Z       "mode": 420,
+2026-11-11T21:56:19.5423948Z       "sha256": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555"
+2026-11-11T21:56:19.5424240Z     },
+2026-11-11T21:56:19.5424590Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_traps.py": {
+2026-11-11T21:56:19.5424998Z       "bytes": 10231,
+2026-11-11T21:56:19.5425160Z       "mode": 420,
+2026-11-11T21:56:19.5425417Z       "sha256": "9f13ce716c8a7018f53e0586a568b322384be83c8199175af597692723ee67c0"
+2026-11-11T21:56:19.5425704Z     },
+2026-11-11T21:56:19.5426062Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/qualify_hia_selfhost.py": {
+2026-11-11T21:56:19.5426464Z       "bytes": 64275,
+2026-11-11T21:56:19.5426627Z       "mode": 420,
+2026-11-11T21:56:19.5426876Z       "sha256": "2674bbc29a67214c16595a226a0dfb28d3dcf56e238058d45e618dd42925cb76"
+2026-11-11T21:56:19.5427161Z     }
+2026-11-11T21:56:19.5427308Z   },
+2026-11-11T21:56:19.5427457Z   "source_before": {
+2026-11-11T21:56:19.5427938Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-build.py": {
+2026-11-11T21:56:19.5428442Z       "bytes": 17349,
+2026-11-11T21:56:19.5428604Z       "mode": 420,
+2026-11-11T21:56:19.5428865Z       "sha256": "512589f00c0c9bcdc95b06001ec87c350d3d3a5949ea6efbece9af6254fa520e"
+2026-11-11T21:56:19.5429285Z     },
+2026-11-11T21:56:19.5429717Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-executor.S": {
+2026-11-11T21:56:19.5430191Z       "bytes": 20200,
+2026-11-11T21:56:19.5430359Z       "mode": 420,
+2026-11-11T21:56:19.5430618Z       "sha256": "fb28a7a44448c06fb12654ae8bf6b06fb19be30a4fb7556cf0a7c038b522b90e"
+2026-11-11T21:56:19.5430908Z     },
+2026-11-11T21:56:19.5431332Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-packer.py": {
+2026-11-11T21:56:19.5431802Z       "bytes": 4507,
+2026-11-11T21:56:19.5432067Z       "mode": 420,
+2026-11-11T21:56:19.5432333Z       "sha256": "f3c1d1208f59bdecd97075c339fbb3093bc01940d639d3ecde2bea9ab397b0bb"
+2026-11-11T21:56:19.5432630Z     },
+2026-11-11T21:56:19.5432969Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/compiler/B3.image.bin": {
+2026-11-11T21:56:19.5433540Z       "bytes": 669556,
+2026-11-11T21:56:19.5433711Z       "mode": 420,
+2026-11-11T21:56:19.5433967Z       "sha256": "35ee92b7258134b0bdf517448b51cfdef4c191a510af26ae581b81ad2924ee5b"
+2026-11-11T21:56:19.5434256Z     },
+2026-11-11T21:56:19.5434561Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/context.json": {
+2026-11-11T21:56:19.5434915Z       "bytes": 7943,
+2026-11-11T21:56:19.5435077Z       "mode": 420,
+2026-11-11T21:56:19.5435334Z       "sha256": "44a2e11dfb1929e2bb7b095bd32a0a2e7ddde1eda581dee276570b21445ea479"
+2026-11-11T21:56:19.5435623Z     },
+2026-11-11T21:56:19.5436195Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/immutable/verified-predecessor-597/run/namespace-fs-r3/validation-r1/compile/namespace-filesystem-r3.image.bin": {
+2026-11-11T21:56:19.5436801Z       "bytes": 177609,
+2026-11-11T21:56:19.5436964Z       "mode": 420,
+2026-11-11T21:56:19.5437220Z       "sha256": "f1d81566c18556fcdddafb84546f4f6208b7a83f9351583e999e5ecb6379618c"
+2026-11-11T21:56:19.5437509Z     },
+2026-11-11T21:56:19.5437971Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/immutable/verified-predecessor-597/run/namespace-fs-r3/validation-r1/result.json": {
+2026-11-11T21:56:19.5438482Z       "bytes": 28598,
+2026-11-11T21:56:19.5438650Z       "mode": 420,
+2026-11-11T21:56:19.5438891Z       "sha256": "bad895907fc8f3432849078389b4c00270548bf6f9aeb1860535798f00240b95"
+2026-11-11T21:56:19.5439172Z     },
+2026-11-11T21:56:19.5439612Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/examples/hia_bootstrap/agent_namespace_filesystem_r3.hiaasm": {
+2026-11-11T21:56:19.5440102Z       "bytes": 119707,
+2026-11-11T21:56:19.5440266Z       "mode": 420,
+2026-11-11T21:56:19.5440510Z       "sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8"
+2026-11-11T21:56:19.5440786Z     },
+2026-11-11T21:56:19.5441187Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/tools/generate_hia_agent_namespace_objects.py": {
+2026-11-11T21:56:19.5441635Z       "bytes": 27802,
+2026-11-11T21:56:19.5441795Z       "mode": 420,
+2026-11-11T21:56:19.5442054Z       "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"
+2026-11-11T21:56:19.5442337Z     },
+2026-11-11T21:56:19.5442743Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/tools/generate_hia_agent_namespace_store.py": {
+2026-11-11T21:56:19.5443374Z       "bytes": 11623,
+2026-11-11T21:56:19.5443541Z       "mode": 420,
+2026-11-11T21:56:19.5443791Z       "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"
+2026-11-11T21:56:19.5444080Z     },
+2026-11-11T21:56:19.5444404Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/__init__.py": {
+2026-11-11T21:56:19.5444782Z       "bytes": 93,
+2026-11-11T21:56:19.5444934Z       "mode": 420,
+2026-11-11T21:56:19.5445320Z       "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+2026-11-11T21:56:19.5445619Z     },
+2026-11-11T21:56:19.5445978Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/artifact_publication.py": {
+2026-11-11T21:56:19.5446393Z       "bytes": 6374,
+2026-11-11T21:56:19.5446556Z       "mode": 420,
+2026-11-11T21:56:19.5446808Z       "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+2026-11-11T21:56:19.5447091Z     },
+2026-11-11T21:56:19.5447437Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_agent_assembly.py": {
+2026-11-11T21:56:19.5447838Z       "bytes": 15216,
+2026-11-11T21:56:19.5448091Z       "mode": 420,
+2026-11-11T21:56:19.5448347Z       "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+2026-11-11T21:56:19.5448649Z     },
+2026-11-11T21:56:19.5449004Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_capability_flow.py": {
+2026-11-11T21:56:19.5449419Z       "bytes": 3064,
+2026-11-11T21:56:19.5449588Z       "mode": 420,
+2026-11-11T21:56:19.5449844Z       "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+2026-11-11T21:56:19.5450128Z     },
+2026-11-11T21:56:19.5450510Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_canonical_native.py": {
+2026-11-11T21:56:19.5450932Z       "bytes": 3570,
+2026-11-11T21:56:19.5451094Z       "mode": 420,
+2026-11-11T21:56:19.5451337Z       "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+2026-11-11T21:56:19.5451620Z     },
+2026-11-11T21:56:19.5451961Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode.py": {
+2026-11-11T21:56:19.5452357Z       "bytes": 2342,
+2026-11-11T21:56:19.5452514Z       "mode": 420,
+2026-11-11T21:56:19.5452767Z       "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+2026-11-11T21:56:19.5453063Z     },
+2026-11-11T21:56:19.5453528Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode_native.py": {
+2026-11-11T21:56:19.5453945Z       "bytes": 6765,
+2026-11-11T21:56:19.5454108Z       "mode": 420,
+2026-11-11T21:56:19.5454383Z       "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+2026-11-11T21:56:19.5454677Z     },
+2026-11-11T21:56:19.5455026Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight.py": {
+2026-11-11T21:56:19.5455430Z       "bytes": 9696,
+2026-11-11T21:56:19.5455600Z       "mode": 420,
+2026-11-11T21:56:19.5455863Z       "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+2026-11-11T21:56:19.5456151Z     },
+2026-11-11T21:56:19.5456515Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight_native.py": {
+2026-11-11T21:56:19.5456931Z       "bytes": 8267,
+2026-11-11T21:56:19.5457093Z       "mode": 420,
+2026-11-11T21:56:19.5457341Z       "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+2026-11-11T21:56:19.5457628Z     },
+2026-11-11T21:56:19.5457962Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_machine_x64.py": {
+2026-11-11T21:56:19.5458356Z       "bytes": 11057,
+2026-11-11T21:56:19.5458530Z       "mode": 420,
+2026-11-11T21:56:19.5458782Z       "sha256": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+2026-11-11T21:56:19.5459069Z     },
+2026-11-11T21:56:19.5459401Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_opcodes.py": {
+2026-11-11T21:56:19.5459792Z       "bytes": 19813,
+2026-11-11T21:56:19.5459956Z       "mode": 420,
+2026-11-11T21:56:19.5460207Z       "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+2026-11-11T21:56:19.5460495Z     },
+2026-11-11T21:56:19.5460929Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py": {
+2026-11-11T21:56:19.5461325Z       "bytes": 45247,
+2026-11-11T21:56:19.5461494Z       "mode": 420,
+2026-11-11T21:56:19.5461747Z       "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+2026-11-11T21:56:19.5462036Z     },
+2026-11-11T21:56:19.5462508Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_tools.py": {
+2026-11-11T21:56:19.5462912Z       "bytes": 22198,
+2026-11-11T21:56:19.5463080Z       "mode": 420,
+2026-11-11T21:56:19.5463427Z       "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+2026-11-11T21:56:19.5463821Z     },
+2026-11-11T21:56:19.5464155Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_schema.py": {
+2026-11-11T21:56:19.5464546Z       "bytes": 5652,
+2026-11-11T21:56:19.5464713Z       "mode": 420,
+2026-11-11T21:56:19.5464978Z       "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+2026-11-11T21:56:19.5465277Z     },
+2026-11-11T21:56:19.5465625Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_sha256_native.py": {
+2026-11-11T21:56:19.5466020Z       "bytes": 2313,
+2026-11-11T21:56:19.5466182Z       "mode": 420,
+2026-11-11T21:56:19.5466428Z       "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+2026-11-11T21:56:19.5466711Z     },
+2026-11-11T21:56:19.5467077Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py": {
+2026-11-11T21:56:19.5467490Z       "bytes": 81729,
+2026-11-11T21:56:19.5467659Z       "mode": 420,
+2026-11-11T21:56:19.5467917Z       "sha256": "e4cff0c45d9138ff50b32ef2f6c0c768583ac88b634f2b932411e4ecb2b50ed0"
+2026-11-11T21:56:19.5468210Z     },
+2026-11-11T21:56:19.5468552Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_cases.py": {
+2026-11-11T21:56:19.5468958Z       "bytes": 2782,
+2026-11-11T21:56:19.5469120Z       "mode": 420,
+2026-11-11T21:56:19.5469378Z       "sha256": "abaef65d2d979ff8f8f67b0a233c6e63db995026ca6130178ded66e7f6d141be"
+2026-11-11T21:56:19.5469679Z     },
+2026-11-11T21:56:19.5470037Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_chain_elf.py": {
+2026-11-11T21:56:19.5470453Z       "bytes": 6721,
+2026-11-11T21:56:19.5470615Z       "mode": 420,
+2026-11-11T21:56:19.5470871Z       "sha256": "b928ce29d26ecf24c390b70c924ee57957550f20696e1537657364a084421f00"
+2026-11-11T21:56:19.5471151Z     },
+2026-11-11T21:56:19.5471497Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_child.py": {
+2026-11-11T21:56:19.5471892Z       "bytes": 6791,
+2026-11-11T21:56:19.5472052Z       "mode": 420,
+2026-11-11T21:56:19.5472302Z       "sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29"
+2026-11-11T21:56:19.5472581Z     },
+2026-11-11T21:56:19.5472920Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_cli.py": {
+2026-11-11T21:56:19.5473406Z       "bytes": 4124,
+2026-11-11T21:56:19.5473566Z       "mode": 420,
+2026-11-11T21:56:19.5473818Z       "sha256": "bad278f878746841f284a290bcaef473b309b4eb13ef126f81e7de0c88c6d02f"
+2026-11-11T21:56:19.5474102Z     },
+2026-11-11T21:56:19.5474454Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_contract.py": {
+2026-11-11T21:56:19.5474855Z       "bytes": 84554,
+2026-11-11T21:56:19.5475022Z       "mode": 420,
+2026-11-11T21:56:19.5475276Z       "sha256": "0a8c200d85919707f770a8cb8e6787c08f8d3c2a6d1979b38b7b156d624417de"
+2026-11-11T21:56:19.5475556Z     },
+2026-11-11T21:56:19.5475905Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_effects.py": {
+2026-11-11T21:56:19.5476309Z       "bytes": 13948,
+2026-11-11T21:56:19.5476590Z       "mode": 420,
+2026-11-11T21:56:19.5476843Z       "sha256": "7e4297659c6108767e593e43c36f247fb8dfd1b192b95e80ccea72ca0b9709cf"
+2026-11-11T21:56:19.5477124Z     },
+2026-11-11T21:56:19.5477472Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_exports.py": {
+2026-11-11T21:56:19.5477879Z       "bytes": 6932,
+2026-11-11T21:56:19.5478036Z       "mode": 420,
+2026-11-11T21:56:19.5478284Z       "sha256": "d429d405c30cdfda9c9ed8141591c9803cf2a5670459d7eecf34e85230537382"
+2026-11-11T21:56:19.5478569Z     },
+2026-11-11T21:56:19.5478921Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_keywords.py": {
+2026-11-11T21:56:19.5479425Z       "bytes": 14062,
+2026-11-11T21:56:19.5479590Z       "mode": 420,
+2026-11-11T21:56:19.5479858Z       "sha256": "bdf6d9f8747ff0ae037e6b28b59dee38dbab91fedf30c443e2d09ea88f468bd7"
+2026-11-11T21:56:19.5480159Z     },
+2026-11-11T21:56:19.5480514Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_limits.py": {
+2026-11-11T21:56:19.5480927Z       "bytes": 1853,
+2026-11-11T21:56:19.5481084Z       "mode": 420,
+2026-11-11T21:56:19.5481340Z       "sha256": "e232997b64253b8f8150785b8947f78d91dfe93a0b41537edc54eaeede52a055"
+2026-11-11T21:56:19.5481627Z     },
+2026-11-11T21:56:19.5481996Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_multi_results.py": {
+2026-11-11T21:56:19.5482418Z       "bytes": 21747,
+2026-11-11T21:56:19.5482581Z       "mode": 420,
+2026-11-11T21:56:19.5482847Z       "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f"
+2026-11-11T21:56:19.5483250Z     },
+2026-11-11T21:56:19.5483605Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_names.py": {
+2026-11-11T21:56:19.5484005Z       "bytes": 40371,
+2026-11-11T21:56:19.5484161Z       "mode": 420,
+2026-11-11T21:56:19.5484411Z       "sha256": "4a249ef86348109b774eb7618f2971303a13b491cbf8d0e126be132faa83297a"
+2026-11-11T21:56:19.5484694Z     },
+2026-11-11T21:56:19.5485052Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_owned_elf.py": {
+2026-11-11T21:56:19.5485464Z       "bytes": 7494,
+2026-11-11T21:56:19.5485630Z       "mode": 420,
+2026-11-11T21:56:19.5485886Z       "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff"
+2026-11-11T21:56:19.5486177Z     },
+2026-11-11T21:56:19.5486551Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_returned_loans.py": {
+2026-11-11T21:56:19.5486976Z       "bytes": 11401,
+2026-11-11T21:56:19.5487136Z       "mode": 420,
+2026-11-11T21:56:19.5487388Z       "sha256": "2c71acbaf736dc5a01d9fc7c12cab40c451bc1f5ae686c2def30521ac0136ddb"
+2026-11-11T21:56:19.5487677Z     },
+2026-11-11T21:56:19.5488026Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_signed.py": {
+2026-11-11T21:56:19.5488425Z       "bytes": 3642,
+2026-11-11T21:56:19.5488593Z       "mode": 420,
+2026-11-11T21:56:19.5488849Z       "sha256": "eb3140aed200e975f613b68b9e4d386dd3a8343596439dfa747646e93c40b555"
+2026-11-11T21:56:19.5489131Z     },
+2026-11-11T21:56:19.5489472Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/hia_selfhost_traps.py": {
+2026-11-11T21:56:19.5489867Z       "bytes": 10231,
+2026-11-11T21:56:19.5490027Z       "mode": 420,
+2026-11-11T21:56:19.5490270Z       "sha256": "9f13ce716c8a7018f53e0586a568b322384be83c8199175af597692723ee67c0"
+2026-11-11T21:56:19.5490547Z     },
+2026-11-11T21:56:19.5490900Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/qualify_hia_selfhost.py": {
+2026-11-11T21:56:19.5491302Z       "bytes": 64275,
+2026-11-11T21:56:19.5491466Z       "mode": 420,
+2026-11-11T21:56:19.5491825Z       "sha256": "2674bbc29a67214c16595a226a0dfb28d3dcf56e238058d45e618dd42925cb76"
+2026-11-11T21:56:19.5492121Z     }
+2026-11-11T21:56:19.5492265Z   },
+2026-11-11T21:56:19.5492423Z   "source_pins_unchanged": true,
+2026-11-11T21:56:19.5492628Z   "sqlite_migration_closed": false,
+2026-11-11T21:56:19.5492843Z   "status": "PASS_BUILD_ONLY"
+2026-11-11T21:56:19.5493031Z }
+2026-11-11T21:56:19.5493297Z END_ORIGINAL_JSON carrier-build-original.json
+2026-11-11T21:56:19.5493745Z BEGIN_ORIGINAL_JSON carrier-native-original.json 52227 50ea2284915059a42ae68e924103d7e2db015cf92d0e745d5c61668f98138543
+2026-11-11T21:56:19.5494152Z {
+2026-11-11T21:56:19.5494303Z   "actual_primitive_acks": 89,
+2026-11-11T21:56:19.5494505Z   "legacy_sqlite3461_claimed": false,
+2026-11-11T21:56:19.5494808Z   "migration_closed": false,
+2026-11-11T21:56:19.5494996Z   "native_entries": 208,
+2026-11-11T21:56:19.5495175Z   "observations": {
+2026-11-11T21:56:19.5495355Z     "actual_alias_close_drops_lock": true,
+2026-11-11T21:56:19.5495573Z     "actual_raw_fd_zero": true,
+2026-11-11T21:56:19.5495766Z     "actual_uid": 1001,
+2026-11-11T21:56:19.5495964Z     "actual_wal_byte120_both_directions": true,
+2026-11-11T21:56:19.5496202Z     "actual_wal_shared_inode": {
+2026-11-11T21:56:19.5496396Z       "device": 66305,
+2026-11-11T21:56:19.5496570Z       "inode": 12066860
+2026-11-11T21:56:19.5496739Z     },
+2026-11-11T21:56:19.5496907Z     "all22_actual_primitives": true,
+2026-11-11T21:56:19.5497143Z     "inode_registry_policy_still_required": true,
+2026-11-11T21:56:19.5497389Z     "parent_death_child_termination": true,
+2026-11-11T21:56:19.5497641Z     "truncated_transport_process_lock_released": true
+2026-11-11T21:56:19.5497872Z   },
+2026-11-11T21:56:19.5498034Z   "physical_store_closed": false,
+2026-11-11T21:56:19.5498250Z   "process_traces_replayed": 12,
+2026-11-11T21:56:19.5498467Z   "public_root_policy_closed": false,
+2026-11-11T21:56:19.5498674Z   "replay": [
+2026-11-11T21:56:19.5498830Z     {
+2026-11-11T21:56:19.5498991Z       "actual_primitive_acks": 30,
+2026-11-11T21:56:19.5499253Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5499557Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5500151Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_01_all_twenty_two_actual_primitives/native",
+2026-11-11T21:56:19.5500700Z       "fatal_records": [],
+2026-11-11T21:56:19.5500896Z       "growth_continuations": 6,
+2026-11-11T21:56:19.5501104Z       "ledger_bytes": 19110,
+2026-11-11T21:56:19.5501414Z       "ledger_sha256": "c230b304ba030fb21ca0ff9bc567472396b8df4646090ae539bb87a1e1bbc66b",
+2026-11-11T21:56:19.5501747Z       "native_entries": 68,
+2026-11-11T21:56:19.5501942Z       "no_field_masks": true,
+2026-11-11T21:56:19.5502137Z       "primitive_events": [
+2026-11-11T21:56:19.5502315Z         {
+2026-11-11T21:56:19.5502470Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5502758Z           "ack_sha256": "767d73630fddc83ae6f5e75615949a3721d53c211133668a3c4b49cf73cb2f59",
+2026-11-11T21:56:19.5503082Z           "operation": 16,
+2026-11-11T21:56:19.5503363Z           "raw_return": 1001,
+2026-11-11T21:56:19.5503560Z           "sequence": 1,
+2026-11-11T21:56:19.5503744Z           "syscall_number": 107
+2026-11-11T21:56:19.5503929Z         },
+2026-11-11T21:56:19.5504074Z         {
+2026-11-11T21:56:19.5504230Z           "ack_bytes": 272,
+2026-11-11T21:56:19.5504530Z           "ack_sha256": "9de56a51c5a57f2ccf95bc7811429efc761fad49dbfa00e8d168dd1101b11c0a",
+2026-11-11T21:56:19.5504850Z           "operation": 12,
+2026-11-11T21:56:19.5505028Z           "raw_return": 0,
+2026-11-11T21:56:19.5505203Z           "sequence": 2,
+2026-11-11T21:56:19.5505385Z           "syscall_number": 228
+2026-11-11T21:56:19.5505573Z         },
+2026-11-11T21:56:19.5505726Z         {
+2026-11-11T21:56:19.5505876Z           "ack_bytes": 387,
+2026-11-11T21:56:19.5506161Z           "ack_sha256": "b7951fbad113429720057de5a9ec377f0c09b38c46a0f1c573c7711e291a1ea1",
+2026-11-11T21:56:19.5506485Z           "operation": 20,
+2026-11-11T21:56:19.5506781Z           "raw_return": 131,
+2026-11-11T21:56:19.5506968Z           "sequence": 3,
+2026-11-11T21:56:19.5507148Z           "syscall_number": 79
+2026-11-11T21:56:19.5507327Z         },
+2026-11-11T21:56:19.5507475Z         {
+2026-11-11T21:56:19.5507628Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5507935Z           "ack_sha256": "9760c2ce3a6890bc417921085e3c39c198bee1d3e27139c6107a55f996ffcfb4",
+2026-11-11T21:56:19.5508245Z           "operation": 13,
+2026-11-11T21:56:19.5508418Z           "raw_return": 0,
+2026-11-11T21:56:19.5508593Z           "sequence": 4,
+2026-11-11T21:56:19.5508770Z           "syscall_number": 35
+2026-11-11T21:56:19.5509041Z         },
+2026-11-11T21:56:19.5509185Z         {
+2026-11-11T21:56:19.5509334Z           "ack_bytes": 288,
+2026-11-11T21:56:19.5509618Z           "ack_sha256": "1c9e2b395773bf097b65ac29e3bd7fb3c16698a31e2d3eed0110fb8c3174948c",
+2026-11-11T21:56:19.5509929Z           "operation": 14,
+2026-11-11T21:56:19.5510112Z           "raw_return": 32,
+2026-11-11T21:56:19.5510290Z           "sequence": 5,
+2026-11-11T21:56:19.5510465Z           "syscall_number": 318
+2026-11-11T21:56:19.5510645Z         },
+2026-11-11T21:56:19.5510788Z         {
+2026-11-11T21:56:19.5510940Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5511220Z           "ack_sha256": "0bfc8c80574f7a28d895e036c5d5f382819ce8fb1344b3f102ec5817eb82d6c5",
+2026-11-11T21:56:19.5511530Z           "operation": 1,
+2026-11-11T21:56:19.5511709Z           "raw_return": 0,
+2026-11-11T21:56:19.5511883Z           "sequence": 6,
+2026-11-11T21:56:19.5512056Z           "syscall_number": 257
+2026-11-11T21:56:19.5512239Z         },
+2026-11-11T21:56:19.5512379Z         {
+2026-11-11T21:56:19.5512530Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5512810Z           "ack_sha256": "57b230c8cd852e98df52925dd29ddcefae1b49e46a468bf9ac5455a5d0d94ffc",
+2026-11-11T21:56:19.5513224Z           "operation": 3,
+2026-11-11T21:56:19.5513401Z           "raw_return": 8,
+2026-11-11T21:56:19.5513568Z           "sequence": 7,
+2026-11-11T21:56:19.5513743Z           "syscall_number": 18
+2026-11-11T21:56:19.5513923Z         },
+2026-11-11T21:56:19.5514065Z         {
+2026-11-11T21:56:19.5514212Z           "ack_bytes": 264,
+2026-11-11T21:56:19.5514505Z           "ack_sha256": "c337cc5e99dc2b8f21cd67727280ad8ab821855a738580a62d77c30c740eb001",
+2026-11-11T21:56:19.5514811Z           "operation": 2,
+2026-11-11T21:56:19.5514984Z           "raw_return": 8,
+2026-11-11T21:56:19.5515159Z           "sequence": 8,
+2026-11-11T21:56:19.5515332Z           "syscall_number": 17
+2026-11-11T21:56:19.5515503Z         },
+2026-11-11T21:56:19.5515646Z         {
+2026-11-11T21:56:19.5515790Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5516087Z           "ack_sha256": "a10f5cced2dd00aacdac2d4cd1bcfcf3ac2f5e7d3822716203c17e7ebd052ed5",
+2026-11-11T21:56:19.5516406Z           "operation": 2,
+2026-11-11T21:56:19.5516584Z           "raw_return": 0,
+2026-11-11T21:56:19.5516756Z           "sequence": 9,
+2026-11-11T21:56:19.5516933Z           "syscall_number": 17
+2026-11-11T21:56:19.5517110Z         },
+2026-11-11T21:56:19.5517255Z         {
+2026-11-11T21:56:19.5517406Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5517689Z           "ack_sha256": "6680fd0fcc31471b17f3cbcd7f6ba180a20e23ea30216ed2599f8eebd90bd487",
+2026-11-11T21:56:19.5518001Z           "operation": 3,
+2026-11-11T21:56:19.5518180Z           "raw_return": 0,
+2026-11-11T21:56:19.5518356Z           "sequence": 10,
+2026-11-11T21:56:19.5518540Z           "syscall_number": 18
+2026-11-11T21:56:19.5518717Z         },
+2026-11-11T21:56:19.5518855Z         {
+2026-11-11T21:56:19.5519004Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5519284Z           "ack_sha256": "2183d312f779a72a5296ea13c55ff589af6cccb38bf2a78ab640f46376f8a72b",
+2026-11-11T21:56:19.5519593Z           "operation": 5,
+2026-11-11T21:56:19.5519767Z           "raw_return": 0,
+2026-11-11T21:56:19.5519939Z           "sequence": 11,
+2026-11-11T21:56:19.5520111Z           "syscall_number": 77
+2026-11-11T21:56:19.5520286Z         },
+2026-11-11T21:56:19.5520427Z         {
+2026-11-11T21:56:19.5520695Z           "ack_bytes": 400,
+2026-11-11T21:56:19.5520979Z           "ack_sha256": "baf60fd5258ac7c1517a8ddb81d5c7138530dcc64a143e65c28fba3c956745aa",
+2026-11-11T21:56:19.5521291Z           "operation": 4,
+2026-11-11T21:56:19.5521462Z           "raw_return": 0,
+2026-11-11T21:56:19.5521638Z           "sequence": 12,
+2026-11-11T21:56:19.5521811Z           "syscall_number": 5
+2026-11-11T21:56:19.5521992Z         },
+2026-11-11T21:56:19.5522134Z         {
+2026-11-11T21:56:19.5522284Z           "ack_bytes": 400,
+2026-11-11T21:56:19.5522569Z           "ack_sha256": "169a98eb7f496bc7c53599fbedef1aa10198eb8afcaf378f4a5cf7a2b8c482e1",
+2026-11-11T21:56:19.5522997Z           "operation": 15,
+2026-11-11T21:56:19.5523267Z           "raw_return": 0,
+2026-11-11T21:56:19.5523446Z           "sequence": 13,
+2026-11-11T21:56:19.5523655Z           "syscall_number": 5
+2026-11-11T21:56:19.5523834Z         },
+2026-11-11T21:56:19.5523982Z         {
+2026-11-11T21:56:19.5524137Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5524427Z           "ack_sha256": "7f3269a9c72e81b185fc47c61ec2921770bc37389cc40b3d89c2d4628c593b2b",
+2026-11-11T21:56:19.5524738Z           "operation": 21,
+2026-11-11T21:56:19.5524916Z           "raw_return": 0,
+2026-11-11T21:56:19.5525090Z           "sequence": 14,
+2026-11-11T21:56:19.5525276Z           "syscall_number": 91
+2026-11-11T21:56:19.5525456Z         },
+2026-11-11T21:56:19.5525598Z         {
+2026-11-11T21:56:19.5525749Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5526032Z           "ack_sha256": "3dbd8edf7e9e2e0da2db870682c0169593ad893315511dd61bf7832d0d853ba7",
+2026-11-11T21:56:19.5526337Z           "operation": 6,
+2026-11-11T21:56:19.5526515Z           "raw_return": 0,
+2026-11-11T21:56:19.5526690Z           "sequence": 15,
+2026-11-11T21:56:19.5526863Z           "syscall_number": 74
+2026-11-11T21:56:19.5527044Z         },
+2026-11-11T21:56:19.5527194Z         {
+2026-11-11T21:56:19.5527345Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5527624Z           "ack_sha256": "31dee22a66d22b410e1b938ebdb3ec12bc4e69997a17846503d83203b4ae9ed1",
+2026-11-11T21:56:19.5527937Z           "operation": 11,
+2026-11-11T21:56:19.5528114Z           "raw_return": 0,
+2026-11-11T21:56:19.5528288Z           "sequence": 16,
+2026-11-11T21:56:19.5528461Z           "syscall_number": 73
+2026-11-11T21:56:19.5528636Z         },
+2026-11-11T21:56:19.5528779Z         {
+2026-11-11T21:56:19.5528928Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5529210Z           "ack_sha256": "ef8f26c7a2b2d0eef775b3821bae8eb13466258430bf0e99c99849e1b6407208",
+2026-11-11T21:56:19.5529539Z           "operation": 11,
+2026-11-11T21:56:19.5529719Z           "raw_return": 0,
+2026-11-11T21:56:19.5529896Z           "sequence": 17,
+2026-11-11T21:56:19.5530075Z           "syscall_number": 73
+2026-11-11T21:56:19.5530255Z         },
+2026-11-11T21:56:19.5530398Z         {
+2026-11-11T21:56:19.5530546Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5530833Z           "ack_sha256": "3383d285446f39f87f2163905a90caddf5784beefd637dfd7e053a41a039f9e6",
+2026-11-11T21:56:19.5531153Z           "operation": 17,
+2026-11-11T21:56:19.5531403Z           "raw_return": 0,
+2026-11-11T21:56:19.5531773Z           "sequence": 18,
+2026-11-11T21:56:19.5532060Z           "syscall_number": 72
+2026-11-11T21:56:19.5532577Z         },
+2026-11-11T21:56:19.5532830Z         {
+2026-11-11T21:56:19.5533071Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5533710Z           "ack_sha256": "44eede210fcc6b5c4a1035b637c684b012ecfa1506634620d8c2f66ba859dcbd",
+2026-11-11T21:56:19.5534133Z           "operation": 17,
+2026-11-11T21:56:19.5534449Z           "raw_return": 0,
+2026-11-11T21:56:19.5534731Z           "sequence": 19,
+2026-11-11T21:56:19.5535001Z           "syscall_number": 72
+2026-11-11T21:56:19.5535362Z         },
+2026-11-11T21:56:19.5535613Z         {
+2026-11-11T21:56:19.5535888Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5536289Z           "ack_sha256": "a748219951ec7bb7ee9af635c53238036715d7d72d9c4510d5c9457ec4f8ce0c",
+2026-11-11T21:56:19.5536752Z           "operation": 7,
+2026-11-11T21:56:19.5537200Z           "raw_return": 0,
+2026-11-11T21:56:19.5537493Z           "sequence": 20,
+2026-11-11T21:56:19.5537803Z           "syscall_number": 264
+2026-11-11T21:56:19.5538109Z         },
+2026-11-11T21:56:19.5538387Z         {
+2026-11-11T21:56:19.5538689Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5539082Z           "ack_sha256": "8b9bb8fa5c52a5d5f07ac12199813a70c8ce732ed7fc5424a1b179ba869b98d2",
+2026-11-11T21:56:19.5546979Z           "operation": 22,
+2026-11-11T21:56:19.5547193Z           "raw_return": 0,
+2026-11-11T21:56:19.5547382Z           "sequence": 21,
+2026-11-11T21:56:19.5547571Z           "syscall_number": 268
+2026-11-11T21:56:19.5547976Z         },
+2026-11-11T21:56:19.5548122Z         {
+2026-11-11T21:56:19.5548282Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5548590Z           "ack_sha256": "4ce10ea6f7f3d440a441e73c3a6eb27dd4158d44f350b81c1cf77cac09499d33",
+2026-11-11T21:56:19.5548922Z           "operation": 1,
+2026-11-11T21:56:19.5549114Z           "raw_return": 4,
+2026-11-11T21:56:19.5549296Z           "sequence": 22,
+2026-11-11T21:56:19.5549470Z           "syscall_number": 257
+2026-11-11T21:56:19.5549654Z         },
+2026-11-11T21:56:19.5549802Z         {
+2026-11-11T21:56:19.5549953Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5550241Z           "ack_sha256": "71703a94a9a8d6641245c95f458b312dbefcf22b5ed0b6889c72f9ef606b1fde",
+2026-11-11T21:56:19.5550561Z           "operation": 10,
+2026-11-11T21:56:19.5550737Z           "raw_return": 0,
+2026-11-11T21:56:19.5550905Z           "sequence": 23,
+2026-11-11T21:56:19.5551081Z           "syscall_number": 258
+2026-11-11T21:56:19.5551265Z         },
+2026-11-11T21:56:19.5551414Z         {
+2026-11-11T21:56:19.5551566Z           "ack_bytes": 400,
+2026-11-11T21:56:19.5551860Z           "ack_sha256": "824ba06f2a79c372ca6d517194a2e9825c80a46aabdb7ef1c2d84b0b437db644",
+2026-11-11T21:56:19.5552180Z           "operation": 18,
+2026-11-11T21:56:19.5552359Z           "raw_return": 0,
+2026-11-11T21:56:19.5552546Z           "sequence": 24,
+2026-11-11T21:56:19.5552728Z           "syscall_number": 262
+2026-11-11T21:56:19.5552907Z         },
+2026-11-11T21:56:19.5553046Z         {
+2026-11-11T21:56:19.5553317Z           "ack_bytes": 263,
+2026-11-11T21:56:19.5553612Z           "ack_sha256": "78d6308c1966511e531b4f1f3c640dc4e829a9fca760be9c71018f3e754d4d9b",
+2026-11-11T21:56:19.5553923Z           "operation": 19,
+2026-11-11T21:56:19.5554094Z           "raw_return": 7,
+2026-11-11T21:56:19.5554264Z           "sequence": 25,
+2026-11-11T21:56:19.5554440Z           "syscall_number": 267
+2026-11-11T21:56:19.5554613Z         },
+2026-11-11T21:56:19.5554759Z         {
+2026-11-11T21:56:19.5554904Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5555186Z           "ack_sha256": "3f4615e9ea30e5643e8aecc5171d9329e0ca22287cc934f6f8639b05298e6626",
+2026-11-11T21:56:19.5555495Z           "operation": 8,
+2026-11-11T21:56:19.5555667Z           "raw_return": 0,
+2026-11-11T21:56:19.5555837Z           "sequence": 26,
+2026-11-11T21:56:19.5556019Z           "syscall_number": 3
+2026-11-11T21:56:19.5556197Z         },
+2026-11-11T21:56:19.5556342Z         {
+2026-11-11T21:56:19.5556488Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5556772Z           "ack_sha256": "8cf21a7f4a3dfb60398be2d21f7e2e9d0a5c288e85f0f1f1058a930c5a861927",
+2026-11-11T21:56:19.5557081Z           "operation": 9,
+2026-11-11T21:56:19.5557255Z           "raw_return": 0,
+2026-11-11T21:56:19.5557427Z           "sequence": 27,
+2026-11-11T21:56:19.5557604Z           "syscall_number": 263
+2026-11-11T21:56:19.5557778Z         },
+2026-11-11T21:56:19.5557912Z         {
+2026-11-11T21:56:19.5558054Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5558331Z           "ack_sha256": "fb942a869e8a0ada1447e6cf37063eec1fdee827866330c2b797e57f266dde72",
+2026-11-11T21:56:19.5558642Z           "operation": 9,
+2026-11-11T21:56:19.5558814Z           "raw_return": 0,
+2026-11-11T21:56:19.5558987Z           "sequence": 28,
+2026-11-11T21:56:19.5559159Z           "syscall_number": 263
+2026-11-11T21:56:19.5559329Z         },
+2026-11-11T21:56:19.5559579Z         {
+2026-11-11T21:56:19.5559731Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5560011Z           "ack_sha256": "fdb731ec1f381e7824d9d69e3e0c422d1900213021f01cd2d766e76ed3202bd8",
+2026-11-11T21:56:19.5560313Z           "operation": 9,
+2026-11-11T21:56:19.5560482Z           "raw_return": 0,
+2026-11-11T21:56:19.5560655Z           "sequence": 29,
+2026-11-11T21:56:19.5560821Z           "syscall_number": 263
+2026-11-11T21:56:19.5560999Z         },
+2026-11-11T21:56:19.5561133Z         {
+2026-11-11T21:56:19.5561278Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5561562Z           "ack_sha256": "6d651ece0a8fbbfe54be18d735cc26f04bd1f05dbe047961d0567ba1373dbf6b",
+2026-11-11T21:56:19.5561990Z           "operation": 8,
+2026-11-11T21:56:19.5562175Z           "raw_return": 0,
+2026-11-11T21:56:19.5562354Z           "sequence": 30,
+2026-11-11T21:56:19.5562531Z           "syscall_number": 3
+2026-11-11T21:56:19.5562710Z         }
+2026-11-11T21:56:19.5562851Z       ],
+2026-11-11T21:56:19.5563015Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5563318Z         "1": 2,
+2026-11-11T21:56:19.5563470Z         "10": 1,
+2026-11-11T21:56:19.5563618Z         "11": 2,
+2026-11-11T21:56:19.5563761Z         "12": 1,
+2026-11-11T21:56:19.5563900Z         "13": 1,
+2026-11-11T21:56:19.5564045Z         "14": 1,
+2026-11-11T21:56:19.5564186Z         "15": 1,
+2026-11-11T21:56:19.5564325Z         "16": 1,
+2026-11-11T21:56:19.5564467Z         "17": 2,
+2026-11-11T21:56:19.5564612Z         "18": 1,
+2026-11-11T21:56:19.5564755Z         "19": 1,
+2026-11-11T21:56:19.5564899Z         "2": 2,
+2026-11-11T21:56:19.5565045Z         "20": 1,
+2026-11-11T21:56:19.5565193Z         "21": 1,
+2026-11-11T21:56:19.5565334Z         "22": 1,
+2026-11-11T21:56:19.5565475Z         "3": 2,
+2026-11-11T21:56:19.5565617Z         "4": 1,
+2026-11-11T21:56:19.5565759Z         "5": 1,
+2026-11-11T21:56:19.5565899Z         "6": 1,
+2026-11-11T21:56:19.5566041Z         "7": 1,
+2026-11-11T21:56:19.5566183Z         "8": 2,
+2026-11-11T21:56:19.5566327Z         "9": 3
+2026-11-11T21:56:19.5566475Z       },
+2026-11-11T21:56:19.5566628Z       "requests": 32,
+2026-11-11T21:56:19.5566832Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5567063Z       "status": "PASS",
+2026-11-11T21:56:19.5567242Z       "trace_bytes": 688413,
+2026-11-11T21:56:19.5567545Z       "trace_sha256": "49df3b5f0ddf6aa6ae575f40038a8d604cb6422b586b10c799f71d649ce945b7",
+2026-11-11T21:56:19.5567866Z       "vm_entries": 68
+2026-11-11T21:56:19.5568027Z     },
+2026-11-11T21:56:19.5568171Z     {
+2026-11-11T21:56:19.5568334Z       "actual_primitive_acks": 4,
+2026-11-11T21:56:19.5568589Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5568891Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5569484Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_02_known_errno_preserves_context/native",
+2026-11-11T21:56:19.5570025Z       "fatal_records": [],
+2026-11-11T21:56:19.5570217Z       "growth_continuations": 2,
+2026-11-11T21:56:19.5570415Z       "ledger_bytes": 1859,
+2026-11-11T21:56:19.5570713Z       "ledger_sha256": "d3cbc987391311a0f10dfa01f59441776d9a36086bb7b1155b496ad631439c20",
+2026-11-11T21:56:19.5571040Z       "native_entries": 12,
+2026-11-11T21:56:19.5571223Z       "no_field_masks": true,
+2026-11-11T21:56:19.5571410Z       "primitive_events": [
+2026-11-11T21:56:19.5571579Z         {
+2026-11-11T21:56:19.5571732Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5572017Z           "ack_sha256": "39e0671f876ca327e5f7cd720dd760fdf9ca1b2c00179a2837fba426749790c5",
+2026-11-11T21:56:19.5572340Z           "operation": 1,
+2026-11-11T21:56:19.5572529Z           "raw_return": 18446744073709551614,
+2026-11-11T21:56:19.5572739Z           "sequence": 1,
+2026-11-11T21:56:19.5572917Z           "syscall_number": 257
+2026-11-11T21:56:19.5573093Z         },
+2026-11-11T21:56:19.5573330Z         {
+2026-11-11T21:56:19.5573476Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5573861Z           "ack_sha256": "f2c381f0187cedefed726b25db64c6c9f087888936047b5a95a2936ccee862a8",
+2026-11-11T21:56:19.5574196Z           "operation": 1,
+2026-11-11T21:56:19.5574375Z           "raw_return": 0,
+2026-11-11T21:56:19.5574550Z           "sequence": 2,
+2026-11-11T21:56:19.5574725Z           "syscall_number": 257
+2026-11-11T21:56:19.5574904Z         },
+2026-11-11T21:56:19.5575047Z         {
+2026-11-11T21:56:19.5575194Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5575478Z           "ack_sha256": "53c7e926c64afc140175ad11fbff4e7e7eb69d597d88b276fa34437c5abddc20",
+2026-11-11T21:56:19.5575806Z           "operation": 3,
+2026-11-11T21:56:19.5576068Z           "raw_return": 20,
+2026-11-11T21:56:19.5576241Z           "sequence": 3,
+2026-11-11T21:56:19.5576415Z           "syscall_number": 18
+2026-11-11T21:56:19.5576593Z         },
+2026-11-11T21:56:19.5576727Z         {
+2026-11-11T21:56:19.5576864Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5577144Z           "ack_sha256": "12582dbbe27eea0bfce30e95619e22f4e7a53e03bdca8f4dd78fdfe40aeafd35",
+2026-11-11T21:56:19.5577459Z           "operation": 8,
+2026-11-11T21:56:19.5577626Z           "raw_return": 0,
+2026-11-11T21:56:19.5577794Z           "sequence": 4,
+2026-11-11T21:56:19.5577962Z           "syscall_number": 3
+2026-11-11T21:56:19.5578129Z         }
+2026-11-11T21:56:19.5578261Z       ],
+2026-11-11T21:56:19.5578413Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5578602Z         "1": 2,
+2026-11-11T21:56:19.5578746Z         "3": 1,
+2026-11-11T21:56:19.5578884Z         "8": 1
+2026-11-11T21:56:19.5579026Z       },
+2026-11-11T21:56:19.5579165Z       "requests": 6,
+2026-11-11T21:56:19.5579357Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5579580Z       "status": "PASS",
+2026-11-11T21:56:19.5579751Z       "trace_bytes": 35201,
+2026-11-11T21:56:19.5580037Z       "trace_sha256": "68c4fe471c82e008af16026b660c46987944b9d2584061bcd3e7e8b18027255d",
+2026-11-11T21:56:19.5580342Z       "vm_entries": 12
+2026-11-11T21:56:19.5580498Z     },
+2026-11-11T21:56:19.5580637Z     {
+2026-11-11T21:56:19.5580786Z       "actual_primitive_acks": 34,
+2026-11-11T21:56:19.5581042Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5581331Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5581931Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_03_more_than_one_slot_page_and_close_once/native",
+2026-11-11T21:56:19.5582475Z       "fatal_records": [],
+2026-11-11T21:56:19.5582662Z       "growth_continuations": 3,
+2026-11-11T21:56:19.5582851Z       "ledger_bytes": 8795,
+2026-11-11T21:56:19.5583316Z       "ledger_sha256": "5c3c7cd1fbc337ec5754ac8113cf855cdc1cf57466c2223766ede71f36088ff9",
+2026-11-11T21:56:19.5583644Z       "native_entries": 56,
+2026-11-11T21:56:19.5583824Z       "no_field_masks": true,
+2026-11-11T21:56:19.5584009Z       "primitive_events": [
+2026-11-11T21:56:19.5584175Z         {
+2026-11-11T21:56:19.5584326Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5584628Z           "ack_sha256": "1e03c18e73dde7b81843de302f87a220e120466f99fd146e9117adef661c054a",
+2026-11-11T21:56:19.5584938Z           "operation": 1,
+2026-11-11T21:56:19.5585114Z           "raw_return": 0,
+2026-11-11T21:56:19.5585290Z           "sequence": 1,
+2026-11-11T21:56:19.5585457Z           "syscall_number": 257
+2026-11-11T21:56:19.5585631Z         },
+2026-11-11T21:56:19.5585771Z         {
+2026-11-11T21:56:19.5585914Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5586187Z           "ack_sha256": "246b1c367f59b5323237476c1461a0b15d95ab2515e9ee96a1d6ff903382b26c",
+2026-11-11T21:56:19.5586495Z           "operation": 1,
+2026-11-11T21:56:19.5586665Z           "raw_return": 4,
+2026-11-11T21:56:19.5586832Z           "sequence": 2,
+2026-11-11T21:56:19.5586997Z           "syscall_number": 257
+2026-11-11T21:56:19.5587170Z         },
+2026-11-11T21:56:19.5587300Z         {
+2026-11-11T21:56:19.5587439Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5587808Z           "ack_sha256": "818497c5a02b665ce4d15988309670dfbb3bd70a69837e932d2ea61646df98ab",
+2026-11-11T21:56:19.5588126Z           "operation": 1,
+2026-11-11T21:56:19.5588297Z           "raw_return": 5,
+2026-11-11T21:56:19.5588469Z           "sequence": 3,
+2026-11-11T21:56:19.5588636Z           "syscall_number": 257
+2026-11-11T21:56:19.5588810Z         },
+2026-11-11T21:56:19.5588948Z         {
+2026-11-11T21:56:19.5589093Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5589382Z           "ack_sha256": "4b5d57eefaeedfa96a441ef947b386ba66efb03db9d6bf19499fe432280aff0c",
+2026-11-11T21:56:19.5589696Z           "operation": 1,
+2026-11-11T21:56:19.5589953Z           "raw_return": 6,
+2026-11-11T21:56:19.5590119Z           "sequence": 4,
+2026-11-11T21:56:19.5590287Z           "syscall_number": 257
+2026-11-11T21:56:19.5590459Z         },
+2026-11-11T21:56:19.5590591Z         {
+2026-11-11T21:56:19.5590731Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5590910Z           "ack_sha256": "e9d128fd4a29b6940fa0dfab21702c07ea4a87363c6cf96cb5e01c219b5e53cc",
+2026-11-11T21:56:19.5590984Z           "operation": 1,
+2026-11-11T21:56:19.5591051Z           "raw_return": 7,
+2026-11-11T21:56:19.5591124Z           "sequence": 5,
+2026-11-11T21:56:19.5591197Z           "syscall_number": 257
+2026-11-11T21:56:19.5591256Z         },
+2026-11-11T21:56:19.5591319Z         {
+2026-11-11T21:56:19.5591384Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5591564Z           "ack_sha256": "eb74aa1ef69f83b99319ec3721c8c5d94638b1e8e7f8ec8871e771da0d37c543",
+2026-11-11T21:56:19.5591631Z           "operation": 1,
+2026-11-11T21:56:19.5591701Z           "raw_return": 8,
+2026-11-11T21:56:19.5591769Z           "sequence": 6,
+2026-11-11T21:56:19.5591842Z           "syscall_number": 257
+2026-11-11T21:56:19.5591904Z         },
+2026-11-11T21:56:19.5591960Z         {
+2026-11-11T21:56:19.5592027Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5592190Z           "ack_sha256": "6978823ec5cde2481aa9b15499de061e8710a874e056874ac9684e0264ca4550",
+2026-11-11T21:56:19.5592264Z           "operation": 1,
+2026-11-11T21:56:19.5592332Z           "raw_return": 9,
+2026-11-11T21:56:19.5592399Z           "sequence": 7,
+2026-11-11T21:56:19.5592467Z           "syscall_number": 257
+2026-11-11T21:56:19.5592523Z         },
+2026-11-11T21:56:19.5592583Z         {
+2026-11-11T21:56:19.5592647Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5592813Z           "ack_sha256": "f2a255182148d0011ba0fe412deea7850788b17e46a6ed7372e3271df9adfc55",
+2026-11-11T21:56:19.5592880Z           "operation": 1,
+2026-11-11T21:56:19.5592952Z           "raw_return": 10,
+2026-11-11T21:56:19.5593016Z           "sequence": 8,
+2026-11-11T21:56:19.5593089Z           "syscall_number": 257
+2026-11-11T21:56:19.5593288Z         },
+2026-11-11T21:56:19.5593347Z         {
+2026-11-11T21:56:19.5593415Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5593584Z           "ack_sha256": "8d3ec494f11f2e3e084266b9ed7376d1e23178e9b83fa4c6140e6ccfc6f89e0d",
+2026-11-11T21:56:19.5593655Z           "operation": 1,
+2026-11-11T21:56:19.5593724Z           "raw_return": 11,
+2026-11-11T21:56:19.5593792Z           "sequence": 9,
+2026-11-11T21:56:19.5593863Z           "syscall_number": 257
+2026-11-11T21:56:19.5593920Z         },
+2026-11-11T21:56:19.5593983Z         {
+2026-11-11T21:56:19.5594047Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5594214Z           "ack_sha256": "b865b974b7e32155a4612b7d7a32158ef748f240a11127a3775e466ce67884cc",
+2026-11-11T21:56:19.5594279Z           "operation": 1,
+2026-11-11T21:56:19.5594349Z           "raw_return": 12,
+2026-11-11T21:56:19.5594421Z           "sequence": 10,
+2026-11-11T21:56:19.5594488Z           "syscall_number": 257
+2026-11-11T21:56:19.5594552Z         },
+2026-11-11T21:56:19.5594613Z         {
+2026-11-11T21:56:19.5594680Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5594850Z           "ack_sha256": "e8d170b4dca3e1ebe315a210c447d1aa3fe2a201139e1f0619eb8f8f1187436a",
+2026-11-11T21:56:19.5594918Z           "operation": 1,
+2026-11-11T21:56:19.5594982Z           "raw_return": 13,
+2026-11-11T21:56:19.5595184Z           "sequence": 11,
+2026-11-11T21:56:19.5595257Z           "syscall_number": 257
+2026-11-11T21:56:19.5595317Z         },
+2026-11-11T21:56:19.5595377Z         {
+2026-11-11T21:56:19.5595441Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5595615Z           "ack_sha256": "021610e006c7740caae89b24fe506371474ef87983f007a2541c3220cc2e6950",
+2026-11-11T21:56:19.5595682Z           "operation": 1,
+2026-11-11T21:56:19.5595752Z           "raw_return": 14,
+2026-11-11T21:56:19.5595821Z           "sequence": 12,
+2026-11-11T21:56:19.5595886Z           "syscall_number": 257
+2026-11-11T21:56:19.5595948Z         },
+2026-11-11T21:56:19.5596094Z         {
+2026-11-11T21:56:19.5596165Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5596335Z           "ack_sha256": "3d1fdb78424f5e00ea52439ae8704e322992a1884a5e92b1030a82538ec91009",
+2026-11-11T21:56:19.5596409Z           "operation": 1,
+2026-11-11T21:56:19.5596474Z           "raw_return": 15,
+2026-11-11T21:56:19.5596542Z           "sequence": 13,
+2026-11-11T21:56:19.5596616Z           "syscall_number": 257
+2026-11-11T21:56:19.5596674Z         },
+2026-11-11T21:56:19.5596737Z         {
+2026-11-11T21:56:19.5596803Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5596975Z           "ack_sha256": "aa334c667cee69d9e06699c653c1094bcf34d4fc447a287f88b12f61c5a72877",
+2026-11-11T21:56:19.5597039Z           "operation": 1,
+2026-11-11T21:56:19.5597106Z           "raw_return": 16,
+2026-11-11T21:56:19.5597171Z           "sequence": 14,
+2026-11-11T21:56:19.5597235Z           "syscall_number": 257
+2026-11-11T21:56:19.5597295Z         },
+2026-11-11T21:56:19.5597353Z         {
+2026-11-11T21:56:19.5597418Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5597579Z           "ack_sha256": "10982168f14fa661426c89437fe9e7e9146116786c688c4bb21898efeb28bec8",
+2026-11-11T21:56:19.5597644Z           "operation": 1,
+2026-11-11T21:56:19.5597710Z           "raw_return": 17,
+2026-11-11T21:56:19.5597773Z           "sequence": 15,
+2026-11-11T21:56:19.5597843Z           "syscall_number": 257
+2026-11-11T21:56:19.5597899Z         },
+2026-11-11T21:56:19.5597961Z         {
+2026-11-11T21:56:19.5598022Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5598190Z           "ack_sha256": "590b5246787e59e57085b6b73b2d25ff91da367c33a9793b05a813c6fc25bfd9",
+2026-11-11T21:56:19.5598257Z           "operation": 1,
+2026-11-11T21:56:19.5598325Z           "raw_return": 18,
+2026-11-11T21:56:19.5598393Z           "sequence": 16,
+2026-11-11T21:56:19.5598459Z           "syscall_number": 257
+2026-11-11T21:56:19.5598521Z         },
+2026-11-11T21:56:19.5598576Z         {
+2026-11-11T21:56:19.5598644Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5598808Z           "ack_sha256": "a1bd6bc4038151a7a0f730c908066bca6a18ac613ca47931a1711ef64555424c",
+2026-11-11T21:56:19.5598878Z           "operation": 1,
+2026-11-11T21:56:19.5598946Z           "raw_return": 19,
+2026-11-11T21:56:19.5599008Z           "sequence": 17,
+2026-11-11T21:56:19.5599077Z           "syscall_number": 257
+2026-11-11T21:56:19.5599133Z         },
+2026-11-11T21:56:19.5599196Z         {
+2026-11-11T21:56:19.5599260Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5599431Z           "ack_sha256": "35a3eac0ed10a5ed1880c8d0e210820b8d455163e49ec987eb072f7ccbfe5fc4",
+2026-11-11T21:56:19.5599495Z           "operation": 8,
+2026-11-11T21:56:19.5599562Z           "raw_return": 0,
+2026-11-11T21:56:19.5599628Z           "sequence": 18,
+2026-11-11T21:56:19.5599697Z           "syscall_number": 3
+2026-11-11T21:56:19.5599758Z         },
+2026-11-11T21:56:19.5599815Z         {
+2026-11-11T21:56:19.5599880Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5600055Z           "ack_sha256": "6322d9dc42dfda3bc4706dadaa4fdcbf24768c210fe2b06c6decb43f43ef30dc",
+2026-11-11T21:56:19.5600123Z           "operation": 8,
+2026-11-11T21:56:19.5600190Z           "raw_return": 0,
+2026-11-11T21:56:19.5600253Z           "sequence": 19,
+2026-11-11T21:56:19.5600324Z           "syscall_number": 3
+2026-11-11T21:56:19.5600382Z         },
+2026-11-11T21:56:19.5600440Z         {
+2026-11-11T21:56:19.5600583Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5600762Z           "ack_sha256": "963f7f2e6a2594dc05de080edeeab54d5c135cd26d266b2f0445eff9766d15c9",
+2026-11-11T21:56:19.5600832Z           "operation": 8,
+2026-11-11T21:56:19.5600900Z           "raw_return": 0,
+2026-11-11T21:56:19.5600967Z           "sequence": 20,
+2026-11-11T21:56:19.5601034Z           "syscall_number": 3
+2026-11-11T21:56:19.5601093Z         },
+2026-11-11T21:56:19.5601149Z         {
+2026-11-11T21:56:19.5601215Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5601394Z           "ack_sha256": "de7ffe62c1f88cead0651dfd6cb2eb45af3ade2fc61e46e04ef27aed703e070f",
+2026-11-11T21:56:19.5601461Z           "operation": 8,
+2026-11-11T21:56:19.5601594Z           "raw_return": 0,
+2026-11-11T21:56:19.5601660Z           "sequence": 21,
+2026-11-11T21:56:19.5601728Z           "syscall_number": 3
+2026-11-11T21:56:19.5601785Z         },
+2026-11-11T21:56:19.5601845Z         {
+2026-11-11T21:56:19.5601907Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5602079Z           "ack_sha256": "25cabb3f2300d4cec86b72663f1d6f8482829e51c2529ab0a2e4818cec2ef8a7",
+2026-11-11T21:56:19.5602147Z           "operation": 8,
+2026-11-11T21:56:19.5602211Z           "raw_return": 0,
+2026-11-11T21:56:19.5602277Z           "sequence": 22,
+2026-11-11T21:56:19.5602342Z           "syscall_number": 3
+2026-11-11T21:56:19.5602402Z         },
+2026-11-11T21:56:19.5602458Z         {
+2026-11-11T21:56:19.5602522Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5602693Z           "ack_sha256": "965e2a82ae20c7b162abbe4e7ce7ed175091dd74846c9f28c72ffa75ba4d3134",
+2026-11-11T21:56:19.5602761Z           "operation": 8,
+2026-11-11T21:56:19.5602828Z           "raw_return": 0,
+2026-11-11T21:56:19.5602894Z           "sequence": 23,
+2026-11-11T21:56:19.5602966Z           "syscall_number": 3
+2026-11-11T21:56:19.5603024Z         },
+2026-11-11T21:56:19.5603087Z         {
+2026-11-11T21:56:19.5603240Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5603416Z           "ack_sha256": "4e417ecfa549097969a886d55545e178d437a46d11f652e5dd487d86da027c46",
+2026-11-11T21:56:19.5603487Z           "operation": 8,
+2026-11-11T21:56:19.5603552Z           "raw_return": 0,
+2026-11-11T21:56:19.5603619Z           "sequence": 24,
+2026-11-11T21:56:19.5603686Z           "syscall_number": 3
+2026-11-11T21:56:19.5603750Z         },
+2026-11-11T21:56:19.5603807Z         {
+2026-11-11T21:56:19.5603874Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5604047Z           "ack_sha256": "c7d8acb9c3bb4c2adf9a77159731196d848f8c81a899dcc5078414c0d8476c19",
+2026-11-11T21:56:19.5604114Z           "operation": 8,
+2026-11-11T21:56:19.5604180Z           "raw_return": 0,
+2026-11-11T21:56:19.5604243Z           "sequence": 25,
+2026-11-11T21:56:19.5604315Z           "syscall_number": 3
+2026-11-11T21:56:19.5604372Z         },
+2026-11-11T21:56:19.5604432Z         {
+2026-11-11T21:56:19.5604494Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5604663Z           "ack_sha256": "ab1f254840aa81279c4ba7009e8b387ea8b9a689279621bb4f14c5710521d768",
+2026-11-11T21:56:19.5604732Z           "operation": 8,
+2026-11-11T21:56:19.5604795Z           "raw_return": 0,
+2026-11-11T21:56:19.5604860Z           "sequence": 26,
+2026-11-11T21:56:19.5604923Z           "syscall_number": 3
+2026-11-11T21:56:19.5604983Z         },
+2026-11-11T21:56:19.5605039Z         {
+2026-11-11T21:56:19.5605105Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5605281Z           "ack_sha256": "22f55aec6b848364483ebcbad22fe7b5dec9a75ad7a7e51490ad6e04c8d00bfe",
+2026-11-11T21:56:19.5605346Z           "operation": 8,
+2026-11-11T21:56:19.5605414Z           "raw_return": 0,
+2026-11-11T21:56:19.5605484Z           "sequence": 27,
+2026-11-11T21:56:19.5605553Z           "syscall_number": 3
+2026-11-11T21:56:19.5605615Z         },
+2026-11-11T21:56:19.5605680Z         {
+2026-11-11T21:56:19.5605751Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5605928Z           "ack_sha256": "8f0c50eba7f082203b49ebdc59c99554853d83cc4121eeb95504ea04dffa4b60",
+2026-11-11T21:56:19.5606000Z           "operation": 8,
+2026-11-11T21:56:19.5606164Z           "raw_return": 0,
+2026-11-11T21:56:19.5606236Z           "sequence": 28,
+2026-11-11T21:56:19.5606303Z           "syscall_number": 3
+2026-11-11T21:56:19.5606366Z         },
+2026-11-11T21:56:19.5606424Z         {
+2026-11-11T21:56:19.5606496Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5606669Z           "ack_sha256": "85ad9fa326b541e77372bdc37a24a1d605404cd103e8181a59d1828d8a82f706",
+2026-11-11T21:56:19.5606736Z           "operation": 8,
+2026-11-11T21:56:19.5606807Z           "raw_return": 0,
+2026-11-11T21:56:19.5606873Z           "sequence": 29,
+2026-11-11T21:56:19.5606945Z           "syscall_number": 3
+2026-11-11T21:56:19.5607005Z         },
+2026-11-11T21:56:19.5607156Z         {
+2026-11-11T21:56:19.5607223Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5607396Z           "ack_sha256": "0a1b9928f0d25337d189edd426cb573009744ee3547fe6e587cd9e5b96d915ed",
+2026-11-11T21:56:19.5607469Z           "operation": 8,
+2026-11-11T21:56:19.5607534Z           "raw_return": 0,
+2026-11-11T21:56:19.5607610Z           "sequence": 30,
+2026-11-11T21:56:19.5607681Z           "syscall_number": 3
+2026-11-11T21:56:19.5607745Z         },
+2026-11-11T21:56:19.5607803Z         {
+2026-11-11T21:56:19.5607873Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5608043Z           "ack_sha256": "0a8c9c7b44160e4526a06946e456019a10abdd1c6f2e4c3d6c74d8a060394afd",
+2026-11-11T21:56:19.5608111Z           "operation": 8,
+2026-11-11T21:56:19.5608183Z           "raw_return": 0,
+2026-11-11T21:56:19.5608249Z           "sequence": 31,
+2026-11-11T21:56:19.5608322Z           "syscall_number": 3
+2026-11-11T21:56:19.5608380Z         },
+2026-11-11T21:56:19.5608442Z         {
+2026-11-11T21:56:19.5608512Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5608685Z           "ack_sha256": "d4c71c215573df9ac868e0f3aaf7334a501bf14fba4d544804e63c1883c5891f",
+2026-11-11T21:56:19.5608757Z           "operation": 8,
+2026-11-11T21:56:19.5608824Z           "raw_return": 0,
+2026-11-11T21:56:19.5608895Z           "sequence": 32,
+2026-11-11T21:56:19.5608963Z           "syscall_number": 3
+2026-11-11T21:56:19.5609025Z         },
+2026-11-11T21:56:19.5609084Z         {
+2026-11-11T21:56:19.5609152Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5609326Z           "ack_sha256": "570e8e0dd430010f10abba811a608ae68eda2245b4972e2a35e3a70dd5c53100",
+2026-11-11T21:56:19.5609395Z           "operation": 8,
+2026-11-11T21:56:19.5609464Z           "raw_return": 0,
+2026-11-11T21:56:19.5609529Z           "sequence": 33,
+2026-11-11T21:56:19.5609600Z           "syscall_number": 3
+2026-11-11T21:56:19.5609659Z         },
+2026-11-11T21:56:19.5609724Z         {
+2026-11-11T21:56:19.5609794Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5609962Z           "ack_sha256": "e6b73764b51ed8df6a534cc683494357044c6d0a498f7f89f264e5820d3c0101",
+2026-11-11T21:56:19.5610038Z           "operation": 8,
+2026-11-11T21:56:19.5610105Z           "raw_return": 0,
+2026-11-11T21:56:19.5610176Z           "sequence": 34,
+2026-11-11T21:56:19.5610243Z           "syscall_number": 3
+2026-11-11T21:56:19.5610306Z         }
+2026-11-11T21:56:19.5610374Z       ],
+2026-11-11T21:56:19.5610457Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5610523Z         "1": 17,
+2026-11-11T21:56:19.5610584Z         "8": 17
+2026-11-11T21:56:19.5610647Z       },
+2026-11-11T21:56:19.5610712Z       "requests": 19,
+2026-11-11T21:56:19.5610814Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5610884Z       "status": "PASS",
+2026-11-11T21:56:19.5610958Z       "trace_bytes": 195949,
+2026-11-11T21:56:19.5611143Z       "trace_sha256": "7c5e98f8b6245325ce42912c61d151b4e16f26404ecabf1ee233ec7e235113d3",
+2026-11-11T21:56:19.5611211Z       "vm_entries": 56
+2026-11-11T21:56:19.5611277Z     },
+2026-11-11T21:56:19.5611336Z     {
+2026-11-11T21:56:19.5611417Z       "actual_primitive_acks": 0,
+2026-11-11T21:56:19.5611547Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5611651Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5612187Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_04_actual_permanent_rejection_no_syscall/short-input",
+2026-11-11T21:56:19.5612261Z       "fatal_records": [],
+2026-11-11T21:56:19.5612342Z       "growth_continuations": 0,
+2026-11-11T21:56:19.5612410Z       "ledger_bytes": 478,
+2026-11-11T21:56:19.5612605Z       "ledger_sha256": "984dd602941dbb297cc3f8fe1cf38cc2240d08bee95dacf72a8f98d133550470",
+2026-11-11T21:56:19.5612673Z       "native_entries": 3,
+2026-11-11T21:56:19.5612749Z       "no_field_masks": true,
+2026-11-11T21:56:19.5612823Z       "primitive_events": [],
+2026-11-11T21:56:19.5612905Z       "primitive_operation_counts": {},
+2026-11-11T21:56:19.5613045Z       "requests": 3,
+2026-11-11T21:56:19.5613229Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5613304Z       "status": "PASS",
+2026-11-11T21:56:19.5613372Z       "trace_bytes": 5505,
+2026-11-11T21:56:19.5613555Z       "trace_sha256": "46f0aa0450002a527b93cfcb0b93b477762ff82f6426313c529ec74df70f6079",
+2026-11-11T21:56:19.5613628Z       "vm_entries": 3
+2026-11-11T21:56:19.5613687Z     },
+2026-11-11T21:56:19.5613753Z     {
+2026-11-11T21:56:19.5613829Z       "actual_primitive_acks": 0,
+2026-11-11T21:56:19.5613957Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5614053Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5614499Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_04_actual_permanent_rejection_no_syscall/reserved-input",
+2026-11-11T21:56:19.5614572Z       "fatal_records": [],
+2026-11-11T21:56:19.5614649Z       "growth_continuations": 0,
+2026-11-11T21:56:19.5614725Z       "ledger_bytes": 491,
+2026-11-11T21:56:19.5614900Z       "ledger_sha256": "a03071660f33cd284890866632ee39c9ad30a13d643ba14bb1c3b108a495aa55",
+2026-11-11T21:56:19.5614972Z       "native_entries": 3,
+2026-11-11T21:56:19.5615043Z       "no_field_masks": true,
+2026-11-11T21:56:19.5615122Z       "primitive_events": [],
+2026-11-11T21:56:19.5615206Z       "primitive_operation_counts": {},
+2026-11-11T21:56:19.5615272Z       "requests": 3,
+2026-11-11T21:56:19.5615363Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5615428Z       "status": "PASS",
+2026-11-11T21:56:19.5615499Z       "trace_bytes": 5760,
+2026-11-11T21:56:19.5615679Z       "trace_sha256": "b8db0a2f44f321ebbf93c6c4f59799201ad4f6fcb216eccb5a29a466d8f06a8a",
+2026-11-11T21:56:19.5615752Z       "vm_entries": 3
+2026-11-11T21:56:19.5615816Z     },
+2026-11-11T21:56:19.5615877Z     {
+2026-11-11T21:56:19.5615955Z       "actual_primitive_acks": 1,
+2026-11-11T21:56:19.5616077Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5616177Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5616609Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_04_actual_permanent_rejection_no_syscall/replayed-call",
+2026-11-11T21:56:19.5616684Z       "fatal_records": [],
+2026-11-11T21:56:19.5616762Z       "growth_continuations": 1,
+2026-11-11T21:56:19.5616830Z       "ledger_bytes": 864,
+2026-11-11T21:56:19.5617009Z       "ledger_sha256": "393a2932ae53a60da31c3dc66bf08d98e0c2a25bc3986325696bb563d9e9ac84",
+2026-11-11T21:56:19.5617078Z       "native_entries": 6,
+2026-11-11T21:56:19.5617153Z       "no_field_masks": true,
+2026-11-11T21:56:19.5617223Z       "primitive_events": [
+2026-11-11T21:56:19.5617290Z         {
+2026-11-11T21:56:19.5617361Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5617534Z           "ack_sha256": "767d73630fddc83ae6f5e75615949a3721d53c211133668a3c4b49cf73cb2f59",
+2026-11-11T21:56:19.5617613Z           "operation": 16,
+2026-11-11T21:56:19.5617679Z           "raw_return": 1001,
+2026-11-11T21:56:19.5617748Z           "sequence": 1,
+2026-11-11T21:56:19.5617822Z           "syscall_number": 107
+2026-11-11T21:56:19.5617886Z         }
+2026-11-11T21:56:19.5617944Z       ],
+2026-11-11T21:56:19.5618125Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5618192Z         "16": 1
+2026-11-11T21:56:19.5618253Z       },
+2026-11-11T21:56:19.5618323Z       "requests": 4,
+2026-11-11T21:56:19.5618410Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5618482Z       "status": "PASS",
+2026-11-11T21:56:19.5618551Z       "trace_bytes": 11856,
+2026-11-11T21:56:19.5618728Z       "trace_sha256": "1e852d8991ac88343948351b4afd352e3f6a64a904bcd4205ce818ea19a0b26f",
+2026-11-11T21:56:19.5618797Z       "vm_entries": 6
+2026-11-11T21:56:19.5618855Z     },
+2026-11-11T21:56:19.5618914Z     {
+2026-11-11T21:56:19.5618987Z       "actual_primitive_acks": 2,
+2026-11-11T21:56:19.5619196Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5619292Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5619739Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_05_truncated_transport_releases_actual_process_lock/native",
+2026-11-11T21:56:19.5619811Z       "fatal_records": [
+2026-11-11T21:56:19.5619871Z         {
+2026-11-11T21:56:19.5619942Z           "code": 111,
+2026-11-11T21:56:19.5620013Z           "entry_serial": 6,
+2026-11-11T21:56:19.5620085Z           "offset": 16434
+2026-11-11T21:56:19.5620143Z         }
+2026-11-11T21:56:19.5620206Z       ],
+2026-11-11T21:56:19.5620278Z       "growth_continuations": 1,
+2026-11-11T21:56:19.5620352Z       "ledger_bytes": 980,
+2026-11-11T21:56:19.5620531Z       "ledger_sha256": "26e64bf174bece05f47f652b8931554b2d86b33a29a90db2076ba0236aae3840",
+2026-11-11T21:56:19.5620598Z       "native_entries": 6,
+2026-11-11T21:56:19.5620675Z       "no_field_masks": true,
+2026-11-11T21:56:19.5620744Z       "primitive_events": [
+2026-11-11T21:56:19.5620807Z         {
+2026-11-11T21:56:19.5620872Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5621051Z           "ack_sha256": "1e03c18e73dde7b81843de302f87a220e120466f99fd146e9117adef661c054a",
+2026-11-11T21:56:19.5621125Z           "operation": 1,
+2026-11-11T21:56:19.5621191Z           "raw_return": 0,
+2026-11-11T21:56:19.5621260Z           "sequence": 1,
+2026-11-11T21:56:19.5621328Z           "syscall_number": 257
+2026-11-11T21:56:19.5621392Z         },
+2026-11-11T21:56:19.5621449Z         {
+2026-11-11T21:56:19.5621518Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5621687Z           "ack_sha256": "7fa5a6a5ff59f2220796fc075f2466ce0b301c040a120432858e92f6a7afcec7",
+2026-11-11T21:56:19.5621757Z           "operation": 17,
+2026-11-11T21:56:19.5621828Z           "raw_return": 0,
+2026-11-11T21:56:19.5621893Z           "sequence": 2,
+2026-11-11T21:56:19.5621977Z           "syscall_number": 72
+2026-11-11T21:56:19.5622036Z         }
+2026-11-11T21:56:19.5622100Z       ],
+2026-11-11T21:56:19.5622181Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5622250Z         "1": 1,
+2026-11-11T21:56:19.5622317Z         "17": 1
+2026-11-11T21:56:19.5622376Z       },
+2026-11-11T21:56:19.5622444Z       "requests": 3,
+2026-11-11T21:56:19.5622534Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5622607Z       "status": "PASS",
+2026-11-11T21:56:19.5622677Z       "trace_bytes": 16498,
+2026-11-11T21:56:19.5622861Z       "trace_sha256": "8aab427fde9d1fb76192c42bb104b7335a258db2c7a35a48ae29a5cc60646978",
+2026-11-11T21:56:19.5622931Z       "vm_entries": 6
+2026-11-11T21:56:19.5622989Z     },
+2026-11-11T21:56:19.5623052Z     {
+2026-11-11T21:56:19.5623125Z       "actual_primitive_acks": 6,
+2026-11-11T21:56:19.5623335Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5623430Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5623910Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_06_real_sqlite_wal_writer_byte120_both_directions/native",
+2026-11-11T21:56:19.5623986Z       "fatal_records": [],
+2026-11-11T21:56:19.5624060Z       "growth_continuations": 2,
+2026-11-11T21:56:19.5624233Z       "ledger_bytes": 2490,
+2026-11-11T21:56:19.5624416Z       "ledger_sha256": "3730539d302aacc57b14a16929c0334b7f8d35ff7d1e5c332bff8fbde4eb6cb8",
+2026-11-11T21:56:19.5624492Z       "native_entries": 16,
+2026-11-11T21:56:19.5624563Z       "no_field_masks": true,
+2026-11-11T21:56:19.5624638Z       "primitive_events": [
+2026-11-11T21:56:19.5624702Z         {
+2026-11-11T21:56:19.5624769Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5624939Z           "ack_sha256": "1e03c18e73dde7b81843de302f87a220e120466f99fd146e9117adef661c054a",
+2026-11-11T21:56:19.5625006Z           "operation": 1,
+2026-11-11T21:56:19.5625075Z           "raw_return": 0,
+2026-11-11T21:56:19.5625231Z           "sequence": 1,
+2026-11-11T21:56:19.5625309Z           "syscall_number": 257
+2026-11-11T21:56:19.5625370Z         },
+2026-11-11T21:56:19.5625433Z         {
+2026-11-11T21:56:19.5625503Z           "ack_bytes": 400,
+2026-11-11T21:56:19.5625677Z           "ack_sha256": "2063dd81e50a78b7f80623f1b10104cfdc3839d3f05021f9e8492cf2ebc89bde",
+2026-11-11T21:56:19.5625753Z           "operation": 4,
+2026-11-11T21:56:19.5625821Z           "raw_return": 0,
+2026-11-11T21:56:19.5625895Z           "sequence": 2,
+2026-11-11T21:56:19.5625962Z           "syscall_number": 5
+2026-11-11T21:56:19.5626029Z         },
+2026-11-11T21:56:19.5626094Z         {
+2026-11-11T21:56:19.5626160Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5626335Z           "ack_sha256": "e5493bb5f9aa952ada86925871d446b9be4d0d3c8742f90739fa11c6e64ac767",
+2026-11-11T21:56:19.5626404Z           "operation": 17,
+2026-11-11T21:56:19.5626490Z           "raw_return": 18446744073709551605,
+2026-11-11T21:56:19.5626556Z           "sequence": 3,
+2026-11-11T21:56:19.5626636Z           "syscall_number": 72
+2026-11-11T21:56:19.5626701Z         },
+2026-11-11T21:56:19.5626763Z         {
+2026-11-11T21:56:19.5626832Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5627003Z           "ack_sha256": "b48f353bfc6c314ae33d19e48c192458dc6dc3a79c2467ae4a6eb00f1a632aeb",
+2026-11-11T21:56:19.5627079Z           "operation": 17,
+2026-11-11T21:56:19.5627144Z           "raw_return": 0,
+2026-11-11T21:56:19.5627218Z           "sequence": 4,
+2026-11-11T21:56:19.5627286Z           "syscall_number": 72
+2026-11-11T21:56:19.5627351Z         },
+2026-11-11T21:56:19.5627417Z         {
+2026-11-11T21:56:19.5627479Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5627654Z           "ack_sha256": "2c94cef1e8d2f2be96776b25ac885b63f5522c49d37a13f034aa6be4204e4ec1",
+2026-11-11T21:56:19.5627721Z           "operation": 17,
+2026-11-11T21:56:19.5627793Z           "raw_return": 0,
+2026-11-11T21:56:19.5627858Z           "sequence": 5,
+2026-11-11T21:56:19.5627930Z           "syscall_number": 72
+2026-11-11T21:56:19.5627995Z         },
+2026-11-11T21:56:19.5628050Z         {
+2026-11-11T21:56:19.5628118Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5628286Z           "ack_sha256": "bac81f1768b45919239ce3e001f18e5f3b7f95b7c6dc7265313a0deaa20f9ecf",
+2026-11-11T21:56:19.5628356Z           "operation": 8,
+2026-11-11T21:56:19.5628424Z           "raw_return": 0,
+2026-11-11T21:56:19.5628497Z           "sequence": 6,
+2026-11-11T21:56:19.5628565Z           "syscall_number": 3
+2026-11-11T21:56:19.5628629Z         }
+2026-11-11T21:56:19.5628692Z       ],
+2026-11-11T21:56:19.5628770Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5628942Z         "1": 1,
+2026-11-11T21:56:19.5629005Z         "17": 3,
+2026-11-11T21:56:19.5629071Z         "4": 1,
+2026-11-11T21:56:19.5629130Z         "8": 1
+2026-11-11T21:56:19.5629194Z       },
+2026-11-11T21:56:19.5629268Z       "requests": 8,
+2026-11-11T21:56:19.5629364Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5629438Z       "status": "PASS",
+2026-11-11T21:56:19.5629509Z       "trace_bytes": 51056,
+2026-11-11T21:56:19.5629686Z       "trace_sha256": "d022e311d8160885c31ba86d824342d7e4918b0d907ca4dc3013da042dcc347b",
+2026-11-11T21:56:19.5629756Z       "vm_entries": 16
+2026-11-11T21:56:19.5629820Z     },
+2026-11-11T21:56:19.5629879Z     {
+2026-11-11T21:56:19.5630038Z       "actual_primitive_acks": 5,
+2026-11-11T21:56:19.5630167Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5630265Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5630698Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_07_closing_alias_drops_posix_inode_lock/native",
+2026-11-11T21:56:19.5630772Z       "fatal_records": [],
+2026-11-11T21:56:19.5630852Z       "growth_continuations": 1,
+2026-11-11T21:56:19.5630927Z       "ledger_bytes": 1957,
+2026-11-11T21:56:19.5631108Z       "ledger_sha256": "446148e70718e532f33bab9c608e5f7d1a96c3a30ad6cc4eede5d0ae0f23adab",
+2026-11-11T21:56:19.5631250Z       "native_entries": 13,
+2026-11-11T21:56:19.5631322Z       "no_field_masks": true,
+2026-11-11T21:56:19.5631396Z       "primitive_events": [
+2026-11-11T21:56:19.5631455Z         {
+2026-11-11T21:56:19.5631523Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5631695Z           "ack_sha256": "1e03c18e73dde7b81843de302f87a220e120466f99fd146e9117adef661c054a",
+2026-11-11T21:56:19.5631772Z           "operation": 1,
+2026-11-11T21:56:19.5631844Z           "raw_return": 0,
+2026-11-11T21:56:19.5631913Z           "sequence": 1,
+2026-11-11T21:56:19.5631988Z           "syscall_number": 257
+2026-11-11T21:56:19.5632047Z         },
+2026-11-11T21:56:19.5632111Z         {
+2026-11-11T21:56:19.5632177Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5632344Z           "ack_sha256": "7fa5a6a5ff59f2220796fc075f2466ce0b301c040a120432858e92f6a7afcec7",
+2026-11-11T21:56:19.5632414Z           "operation": 17,
+2026-11-11T21:56:19.5632479Z           "raw_return": 0,
+2026-11-11T21:56:19.5632550Z           "sequence": 2,
+2026-11-11T21:56:19.5632622Z           "syscall_number": 72
+2026-11-11T21:56:19.5632684Z         },
+2026-11-11T21:56:19.5632742Z         {
+2026-11-11T21:56:19.5632812Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5632977Z           "ack_sha256": "8f6269d503637757b829416750deb01c18fe40e88e840109963791f22e76ce58",
+2026-11-11T21:56:19.5633047Z           "operation": 1,
+2026-11-11T21:56:19.5633114Z           "raw_return": 4,
+2026-11-11T21:56:19.5633304Z           "sequence": 3,
+2026-11-11T21:56:19.5633378Z           "syscall_number": 257
+2026-11-11T21:56:19.5633441Z         },
+2026-11-11T21:56:19.5633506Z         {
+2026-11-11T21:56:19.5633572Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5633761Z           "ack_sha256": "12582dbbe27eea0bfce30e95619e22f4e7a53e03bdca8f4dd78fdfe40aeafd35",
+2026-11-11T21:56:19.5633832Z           "operation": 8,
+2026-11-11T21:56:19.5633899Z           "raw_return": 0,
+2026-11-11T21:56:19.5633966Z           "sequence": 4,
+2026-11-11T21:56:19.5634040Z           "syscall_number": 3
+2026-11-11T21:56:19.5634104Z         },
+2026-11-11T21:56:19.5634162Z         {
+2026-11-11T21:56:19.5634228Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5634401Z           "ack_sha256": "f517866178fa26fd0926bcc83ca9652297832c55e53c425b85cfa3be6437c24c",
+2026-11-11T21:56:19.5634466Z           "operation": 8,
+2026-11-11T21:56:19.5634535Z           "raw_return": 0,
+2026-11-11T21:56:19.5634600Z           "sequence": 5,
+2026-11-11T21:56:19.5634672Z           "syscall_number": 3
+2026-11-11T21:56:19.5634731Z         }
+2026-11-11T21:56:19.5634794Z       ],
+2026-11-11T21:56:19.5634873Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5634938Z         "1": 2,
+2026-11-11T21:56:19.5635000Z         "17": 1,
+2026-11-11T21:56:19.5635058Z         "8": 2
+2026-11-11T21:56:19.5635119Z       },
+2026-11-11T21:56:19.5635181Z       "requests": 7,
+2026-11-11T21:56:19.5635276Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5635342Z       "status": "PASS",
+2026-11-11T21:56:19.5635412Z       "trace_bytes": 38241,
+2026-11-11T21:56:19.5635601Z       "trace_sha256": "cd2cf7872efada218abfc1fd109f495ce694354b81a07f9cec9664ea7ec020de",
+2026-11-11T21:56:19.5635667Z       "vm_entries": 13
+2026-11-11T21:56:19.5635730Z     },
+2026-11-11T21:56:19.5635790Z     {
+2026-11-11T21:56:19.5635867Z       "actual_primitive_acks": 6,
+2026-11-11T21:56:19.5636090Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5636199Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5636637Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_08_raw_symlink_and_parent_path_observations/native",
+2026-11-11T21:56:19.5636709Z       "fatal_records": [],
+2026-11-11T21:56:19.5636786Z       "growth_continuations": 3,
+2026-11-11T21:56:19.5636854Z       "ledger_bytes": 2698,
+2026-11-11T21:56:19.5637042Z       "ledger_sha256": "186ed9e937d58cfee5401bca84db8c368135c4e8a5b0d4258d866b6ca2bd96b5",
+2026-11-11T21:56:19.5637229Z       "native_entries": 17,
+2026-11-11T21:56:19.5637305Z       "no_field_masks": true,
+2026-11-11T21:56:19.5637378Z       "primitive_events": [
+2026-11-11T21:56:19.5637439Z         {
+2026-11-11T21:56:19.5637508Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5637682Z           "ack_sha256": "1e03c18e73dde7b81843de302f87a220e120466f99fd146e9117adef661c054a",
+2026-11-11T21:56:19.5637755Z           "operation": 1,
+2026-11-11T21:56:19.5637821Z           "raw_return": 0,
+2026-11-11T21:56:19.5637894Z           "sequence": 1,
+2026-11-11T21:56:19.5637961Z           "syscall_number": 257
+2026-11-11T21:56:19.5638027Z         },
+2026-11-11T21:56:19.5638086Z         {
+2026-11-11T21:56:19.5638151Z           "ack_bytes": 270,
+2026-11-11T21:56:19.5638324Z           "ack_sha256": "2e06b771ef2e25063c5c4ee244597004c3032e79fae1aedc32d2d3bee0c889b9",
+2026-11-11T21:56:19.5638391Z           "operation": 2,
+2026-11-11T21:56:19.5638465Z           "raw_return": 14,
+2026-11-11T21:56:19.5638534Z           "sequence": 2,
+2026-11-11T21:56:19.5638613Z           "syscall_number": 17
+2026-11-11T21:56:19.5638677Z         },
+2026-11-11T21:56:19.5638735Z         {
+2026-11-11T21:56:19.5638804Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5638977Z           "ack_sha256": "663c08d15ea0ad1f5c802fda5fd79377c276d920ff2fc7b37dbdda9bc9fe2e0b",
+2026-11-11T21:56:19.5639053Z           "operation": 8,
+2026-11-11T21:56:19.5639120Z           "raw_return": 0,
+2026-11-11T21:56:19.5639192Z           "sequence": 3,
+2026-11-11T21:56:19.5639266Z           "syscall_number": 3
+2026-11-11T21:56:19.5639328Z         },
+2026-11-11T21:56:19.5639396Z         {
+2026-11-11T21:56:19.5639461Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5639633Z           "ack_sha256": "6121ca52f517862491b8a806a68a644d56caa3bd199791f22a1fb46bc3438682",
+2026-11-11T21:56:19.5639701Z           "operation": 1,
+2026-11-11T21:56:19.5639786Z           "raw_return": 18446744073709551576,
+2026-11-11T21:56:19.5639855Z           "sequence": 4,
+2026-11-11T21:56:19.5639934Z           "syscall_number": 257
+2026-11-11T21:56:19.5639998Z         },
+2026-11-11T21:56:19.5640059Z         {
+2026-11-11T21:56:19.5640132Z           "ack_bytes": 400,
+2026-11-11T21:56:19.5640297Z           "ack_sha256": "5fc50f96be70339b71917d14268d5db21b09d501a42125948f19d5a1386c4f73",
+2026-11-11T21:56:19.5640373Z           "operation": 18,
+2026-11-11T21:56:19.5640441Z           "raw_return": 0,
+2026-11-11T21:56:19.5640510Z           "sequence": 5,
+2026-11-11T21:56:19.5640586Z           "syscall_number": 262
+2026-11-11T21:56:19.5640647Z         },
+2026-11-11T21:56:19.5640711Z         {
+2026-11-11T21:56:19.5640777Z           "ack_bytes": 270,
+2026-11-11T21:56:19.5640945Z           "ack_sha256": "264e24900215d93e4b48cae212b2e2067ab4925f35b1a76ea8698cb653bc49d9",
+2026-11-11T21:56:19.5641011Z           "operation": 19,
+2026-11-11T21:56:19.5641084Z           "raw_return": 14,
+2026-11-11T21:56:19.5641146Z           "sequence": 6,
+2026-11-11T21:56:19.5641220Z           "syscall_number": 267
+2026-11-11T21:56:19.5641284Z         }
+2026-11-11T21:56:19.5641343Z       ],
+2026-11-11T21:56:19.5641427Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5641486Z         "1": 2,
+2026-11-11T21:56:19.5641552Z         "18": 1,
+2026-11-11T21:56:19.5641612Z         "19": 1,
+2026-11-11T21:56:19.5641679Z         "2": 1,
+2026-11-11T21:56:19.5641819Z         "8": 1
+2026-11-11T21:56:19.5641883Z       },
+2026-11-11T21:56:19.5641954Z       "requests": 8,
+2026-11-11T21:56:19.5642044Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5642120Z       "status": "PASS",
+2026-11-11T21:56:19.5642188Z       "trace_bytes": 53050,
+2026-11-11T21:56:19.5642367Z       "trace_sha256": "8012fabe78e1a05c97209534a8d662f4f7460966f5020fda6020de835bbef5b1",
+2026-11-11T21:56:19.5642433Z       "vm_entries": 17
+2026-11-11T21:56:19.5642499Z     },
+2026-11-11T21:56:19.5642564Z     {
+2026-11-11T21:56:19.5642637Z       "actual_primitive_acks": 1,
+2026-11-11T21:56:19.5642765Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5642929Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5643473Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_09_parent_death_terminates_owned_native_child/native",
+2026-11-11T21:56:19.5643550Z       "fatal_records": [],
+2026-11-11T21:56:19.5643637Z       "growth_continuations": 1,
+2026-11-11T21:56:19.5643711Z       "ledger_bytes": 626,
+2026-11-11T21:56:19.5643906Z       "ledger_sha256": "5904461a920ec9a36da68192ed8ced69ca71e4eb812d11e94e0dfa94df3f9edf",
+2026-11-11T21:56:19.5643980Z       "native_entries": 4,
+2026-11-11T21:56:19.5644056Z       "no_field_masks": true,
+2026-11-11T21:56:19.5644135Z       "primitive_events": [
+2026-11-11T21:56:19.5644197Z         {
+2026-11-11T21:56:19.5644272Z           "ack_bytes": 256,
+2026-11-11T21:56:19.5644457Z           "ack_sha256": "767d73630fddc83ae6f5e75615949a3721d53c211133668a3c4b49cf73cb2f59",
+2026-11-11T21:56:19.5644530Z           "operation": 16,
+2026-11-11T21:56:19.5644606Z           "raw_return": 1001,
+2026-11-11T21:56:19.5644673Z           "sequence": 1,
+2026-11-11T21:56:19.5644750Z           "syscall_number": 107
+2026-11-11T21:56:19.5644812Z         }
+2026-11-11T21:56:19.5644876Z       ],
+2026-11-11T21:56:19.5644963Z       "primitive_operation_counts": {
+2026-11-11T21:56:19.5645027Z         "16": 1
+2026-11-11T21:56:19.5645090Z       },
+2026-11-11T21:56:19.5645157Z       "requests": 2,
+2026-11-11T21:56:19.5645256Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5645323Z       "status": "PASS",
+2026-11-11T21:56:19.5645399Z       "trace_bytes": 8008,
+2026-11-11T21:56:19.5645584Z       "trace_sha256": "96de30eb8e0216b3fd114cbcf47b79b4beeb24b72c8f041a109b6ca859c64f44",
+2026-11-11T21:56:19.5645658Z       "vm_entries": 4
+2026-11-11T21:56:19.5645722Z     },
+2026-11-11T21:56:19.5645783Z     {
+2026-11-11T21:56:19.5645865Z       "actual_primitive_acks": 0,
+2026-11-11T21:56:19.5645990Z       "actual_syscall_payloads_are_observed_not_synthetic": true,
+2026-11-11T21:56:19.5646101Z       "all_return_output_workspace_bytes_equal": true,
+2026-11-11T21:56:19.5646528Z       "directory": "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/cases/test_10_empty_close_all_permanently_closed/native",
+2026-11-11T21:56:19.5646606Z       "fatal_records": [],
+2026-11-11T21:56:19.5646686Z       "growth_continuations": 0,
+2026-11-11T21:56:19.5646755Z       "ledger_bytes": 594,
+2026-11-11T21:56:19.5646940Z       "ledger_sha256": "e07337cf165957743145be139d0f1f987a90aa99703cf42b2cfce51d15916f44",
+2026-11-11T21:56:19.5647007Z       "native_entries": 4,
+2026-11-11T21:56:19.5647084Z       "no_field_masks": true,
+2026-11-11T21:56:19.5647157Z       "primitive_events": [],
+2026-11-11T21:56:19.5647247Z       "primitive_operation_counts": {},
+2026-11-11T21:56:19.5647315Z       "requests": 4,
+2026-11-11T21:56:19.5647404Z       "scope": "EXACT_NATIVE_ENTRY_COREVM_REPLAY",
+2026-11-11T21:56:19.5647477Z       "status": "PASS",
+2026-11-11T21:56:19.5647543Z       "trace_bytes": 7680,
+2026-11-11T21:56:19.5647726Z       "trace_sha256": "bf40b0f26519c9ea41d6cd3653360a488c06db16ca65ff5aeac484a5736a2de9",
+2026-11-11T21:56:19.5647792Z       "vm_entries": 4
+2026-11-11T21:56:19.5647859Z     }
+2026-11-11T21:56:19.5647922Z   ],
+2026-11-11T21:56:19.5648150Z   "scope": "NEW_ACTUAL_FS_CARRIER_COMPONENT_NOT_ORDINARY_STORE",
+2026-11-11T21:56:19.5648227Z   "source_after": {
+2026-11-11T21:56:19.5648620Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-client.py": {
+2026-11-11T21:56:19.5648694Z       "bytes": 11458,
+2026-11-11T21:56:19.5648761Z       "mode": 420,
+2026-11-11T21:56:19.5648932Z       "sha256": "00981a3f7bbd195dd5522858d6c032e19a4789900317ff8637be1d811a77893d"
+2026-11-11T21:56:19.5648996Z     },
+2026-11-11T21:56:19.5649364Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-native.py": {
+2026-11-11T21:56:19.5649522Z       "bytes": 27798,
+2026-11-11T21:56:19.5649586Z       "mode": 420,
+2026-11-11T21:56:19.5649754Z       "sha256": "791b61c98d2a7e365cf681b3e3837786dd8e808ba31fef6e33aced23b980399c"
+2026-11-11T21:56:19.5649816Z     },
+2026-11-11T21:56:19.5650187Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-replay.py": {
+2026-11-11T21:56:19.5650259Z       "bytes": 7961,
+2026-11-11T21:56:19.5650322Z       "mode": 420,
+2026-11-11T21:56:19.5650484Z       "sha256": "d81356c9bdee5889f562720048b1ac654cfd74f02cb16bb61ff55f1e675c3881"
+2026-11-11T21:56:19.5650546Z     },
+2026-11-11T21:56:19.5650868Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/hia-namespace-filesystem": {
+2026-11-11T21:56:19.5650940Z       "bytes": 181257,
+2026-11-11T21:56:19.5651006Z       "mode": 493,
+2026-11-11T21:56:19.5651179Z       "sha256": "1a83b401f48b03f36cc9fb7da2fac8fc28a3ea5f8c5c364dffbd2787eac8f7f6"
+2026-11-11T21:56:19.5651239Z     },
+2026-11-11T21:56:19.5651515Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/summary.json": {
+2026-11-11T21:56:19.5651580Z       "bytes": 28352,
+2026-11-11T21:56:19.5651653Z       "mode": 420,
+2026-11-11T21:56:19.5651812Z       "sha256": "48e33d786e4c61e055b37320a6e50592edbffa5907cf8151e94b1922664af713"
+2026-11-11T21:56:19.5651873Z     },
+2026-11-11T21:56:19.5652175Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/parent-death-helper.py": {
+2026-11-11T21:56:19.5652241Z       "bytes": 603,
+2026-11-11T21:56:19.5652308Z       "mode": 420,
+2026-11-11T21:56:19.5652467Z       "sha256": "6c0621169d1bd6ac4aa4d6fa415efa14972a4b8c28d0fee2a730c077d3cf0a14"
+2026-11-11T21:56:19.5652530Z     },
+2026-11-11T21:56:19.5652758Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/context.json": {
+2026-11-11T21:56:19.5652826Z       "bytes": 7943,
+2026-11-11T21:56:19.5652892Z       "mode": 420,
+2026-11-11T21:56:19.5653055Z       "sha256": "44a2e11dfb1929e2bb7b095bd32a0a2e7ddde1eda581dee276570b21445ea479"
+2026-11-11T21:56:19.5653117Z     },
+2026-11-11T21:56:19.5653607Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/examples/hia_bootstrap/agent_namespace_filesystem_r3.hiaasm": {
+2026-11-11T21:56:19.5653681Z       "bytes": 119707,
+2026-11-11T21:56:19.5653749Z       "mode": 420,
+2026-11-11T21:56:19.5653911Z       "sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8"
+2026-11-11T21:56:19.5653979Z     },
+2026-11-11T21:56:19.5654230Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/__init__.py": {
+2026-11-11T21:56:19.5654298Z       "bytes": 93,
+2026-11-11T21:56:19.5654360Z       "mode": 420,
+2026-11-11T21:56:19.5654528Z       "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+2026-11-11T21:56:19.5654594Z     },
+2026-11-11T21:56:19.5654876Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/artifact_publication.py": {
+2026-11-11T21:56:19.5654946Z       "bytes": 6374,
+2026-11-11T21:56:19.5655009Z       "mode": 420,
+2026-11-11T21:56:19.5655262Z       "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+2026-11-11T21:56:19.5655324Z     },
+2026-11-11T21:56:19.5655599Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_agent_assembly.py": {
+2026-11-11T21:56:19.5655670Z       "bytes": 15216,
+2026-11-11T21:56:19.5655733Z       "mode": 420,
+2026-11-11T21:56:19.5655893Z       "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+2026-11-11T21:56:19.5655953Z     },
+2026-11-11T21:56:19.5656226Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_bounded_memory.py": {
+2026-11-11T21:56:19.5656387Z       "bytes": 2744,
+2026-11-11T21:56:19.5656455Z       "mode": 420,
+2026-11-11T21:56:19.5656625Z       "sha256": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d"
+2026-11-11T21:56:19.5656685Z     },
+2026-11-11T21:56:19.5656963Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_capability_flow.py": {
+2026-11-11T21:56:19.5657028Z       "bytes": 3064,
+2026-11-11T21:56:19.5657096Z       "mode": 420,
+2026-11-11T21:56:19.5657251Z       "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+2026-11-11T21:56:19.5657315Z     },
+2026-11-11T21:56:19.5657605Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_core_admission_native.py": {
+2026-11-11T21:56:19.5657671Z       "bytes": 3295,
+2026-11-11T21:56:19.5657740Z       "mode": 420,
+2026-11-11T21:56:19.5657906Z       "sha256": "20905facd961c5e6d5d88cda368ea1fabe90ea4adb31ba197b81fdd6cfba25cd"
+2026-11-11T21:56:19.5657974Z     },
+2026-11-11T21:56:19.5658271Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_function_shape_native.py": {
+2026-11-11T21:56:19.5658341Z       "bytes": 3975,
+2026-11-11T21:56:19.5658408Z       "mode": 420,
+2026-11-11T21:56:19.5658566Z       "sha256": "fde29f99e10c25f62d742ddd7c7079e882351f5ca21ad846be9bcf22c2ec86e9"
+2026-11-11T21:56:19.5658631Z     },
+2026-11-11T21:56:19.5658923Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_instruction_policy_native.py": {
+2026-11-11T21:56:19.5658991Z       "bytes": 3144,
+2026-11-11T21:56:19.5659054Z       "mode": 420,
+2026-11-11T21:56:19.5659220Z       "sha256": "def1fefdc407b78e98b408891e8781b5b2b33630770ba69aafccb92eff724845"
+2026-11-11T21:56:19.5659282Z     },
+2026-11-11T21:56:19.5659560Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_canonical_native.py": {
+2026-11-11T21:56:19.5659629Z       "bytes": 3570,
+2026-11-11T21:56:19.5659694Z       "mode": 420,
+2026-11-11T21:56:19.5659846Z       "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+2026-11-11T21:56:19.5659905Z     },
+2026-11-11T21:56:19.5660164Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode.py": {
+2026-11-11T21:56:19.5660234Z       "bytes": 2342,
+2026-11-11T21:56:19.5660292Z       "mode": 420,
+2026-11-11T21:56:19.5660449Z       "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+2026-11-11T21:56:19.5660508Z     },
+2026-11-11T21:56:19.5660784Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode_native.py": {
+2026-11-11T21:56:19.5660854Z       "bytes": 6765,
+2026-11-11T21:56:19.5660917Z       "mode": 420,
+2026-11-11T21:56:19.5661080Z       "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+2026-11-11T21:56:19.5661139Z     },
+2026-11-11T21:56:19.5661413Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight.py": {
+2026-11-11T21:56:19.5661481Z       "bytes": 9696,
+2026-11-11T21:56:19.5661548Z       "mode": 420,
+2026-11-11T21:56:19.5661712Z       "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+2026-11-11T21:56:19.5661769Z     },
+2026-11-11T21:56:19.5662130Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight_native.py": {
+2026-11-11T21:56:19.5662197Z       "bytes": 8267,
+2026-11-11T21:56:19.5662265Z       "mode": 420,
+2026-11-11T21:56:19.5662422Z       "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+2026-11-11T21:56:19.5662490Z     },
+2026-11-11T21:56:19.5662744Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_opcodes.py": {
+2026-11-11T21:56:19.5662810Z       "bytes": 19813,
+2026-11-11T21:56:19.5662875Z       "mode": 420,
+2026-11-11T21:56:19.5663030Z       "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+2026-11-11T21:56:19.5663308Z     },
+2026-11-11T21:56:19.5663555Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py": {
+2026-11-11T21:56:19.5663623Z       "bytes": 45247,
+2026-11-11T21:56:19.5663690Z       "mode": 420,
+2026-11-11T21:56:19.5663849Z       "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+2026-11-11T21:56:19.5663912Z     },
+2026-11-11T21:56:19.5664187Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_runtime.py": {
+2026-11-11T21:56:19.5664257Z       "bytes": 29957,
+2026-11-11T21:56:19.5664319Z       "mode": 420,
+2026-11-11T21:56:19.5664479Z       "sha256": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+2026-11-11T21:56:19.5664540Z     },
+2026-11-11T21:56:19.5664824Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_shape_native.py": {
+2026-11-11T21:56:19.5664897Z       "bytes": 2705,
+2026-11-11T21:56:19.5664960Z       "mode": 420,
+2026-11-11T21:56:19.5665122Z       "sha256": "0bd9dbf935c992b18a26990a58b0b8d2fa2bc8230a32cbc7c40727c2b5905054"
+2026-11-11T21:56:19.5665181Z     },
+2026-11-11T21:56:19.5665449Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_tools.py": {
+2026-11-11T21:56:19.5665518Z       "bytes": 22198,
+2026-11-11T21:56:19.5665579Z       "mode": 420,
+2026-11-11T21:56:19.5665743Z       "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+2026-11-11T21:56:19.5665803Z     },
+2026-11-11T21:56:19.5666053Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_schema.py": {
+2026-11-11T21:56:19.5666117Z       "bytes": 5652,
+2026-11-11T21:56:19.5666183Z       "mode": 420,
+2026-11-11T21:56:19.5666349Z       "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+2026-11-11T21:56:19.5666413Z     },
+2026-11-11T21:56:19.5666672Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_sha256_native.py": {
+2026-11-11T21:56:19.5666738Z       "bytes": 2313,
+2026-11-11T21:56:19.5666806Z       "mode": 420,
+2026-11-11T21:56:19.5666958Z       "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+2026-11-11T21:56:19.5667024Z     }
+2026-11-11T21:56:19.5667089Z   },
+2026-11-11T21:56:19.5667155Z   "source_before": {
+2026-11-11T21:56:19.5667537Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-client.py": {
+2026-11-11T21:56:19.5667602Z       "bytes": 11458,
+2026-11-11T21:56:19.5667670Z       "mode": 420,
+2026-11-11T21:56:19.5667822Z       "sha256": "00981a3f7bbd195dd5522858d6c032e19a4789900317ff8637be1d811a77893d"
+2026-11-11T21:56:19.5667888Z     },
+2026-11-11T21:56:19.5668254Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-native.py": {
+2026-11-11T21:56:19.5668320Z       "bytes": 27798,
+2026-11-11T21:56:19.5668386Z       "mode": 420,
+2026-11-11T21:56:19.5668546Z       "sha256": "791b61c98d2a7e365cf681b3e3837786dd8e808ba31fef6e33aced23b980399c"
+2026-11-11T21:56:19.5668610Z     },
+2026-11-11T21:56:19.5669065Z     "/home/runner/work/Hepta/Hepta/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-carrier-replay.py": {
+2026-11-11T21:56:19.5669138Z       "bytes": 7961,
+2026-11-11T21:56:19.5669209Z       "mode": 420,
+2026-11-11T21:56:19.5669366Z       "sha256": "d81356c9bdee5889f562720048b1ac654cfd74f02cb16bb61ff55f1e675c3881"
+2026-11-11T21:56:19.5669431Z     },
+2026-11-11T21:56:19.5669738Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/hia-namespace-filesystem": {
+2026-11-11T21:56:19.5669808Z       "bytes": 181257,
+2026-11-11T21:56:19.5669871Z       "mode": 493,
+2026-11-11T21:56:19.5670143Z       "sha256": "1a83b401f48b03f36cc9fb7da2fac8fc28a3ea5f8c5c364dffbd2787eac8f7f6"
+2026-11-11T21:56:19.5670208Z     },
+2026-11-11T21:56:19.5670476Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-build-r1/summary.json": {
+2026-11-11T21:56:19.5670546Z       "bytes": 28352,
+2026-11-11T21:56:19.5670612Z       "mode": 420,
+2026-11-11T21:56:19.5670772Z       "sha256": "48e33d786e4c61e055b37320a6e50592edbffa5907cf8151e94b1922664af713"
+2026-11-11T21:56:19.5670832Z     },
+2026-11-11T21:56:19.5671135Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/carrier-native-r1/parent-death-helper.py": {
+2026-11-11T21:56:19.5671205Z       "bytes": 603,
+2026-11-11T21:56:19.5671269Z       "mode": 420,
+2026-11-11T21:56:19.5671436Z       "sha256": "6c0621169d1bd6ac4aa4d6fa415efa14972a4b8c28d0fee2a730c077d3cf0a14"
+2026-11-11T21:56:19.5671495Z     },
+2026-11-11T21:56:19.5671720Z     "/home/runner/work/_temp/hia-namespace-carrier-recovery/namespace-fixed-carrier/context.json": {
+2026-11-11T21:56:19.5671793Z       "bytes": 7943,
+2026-11-11T21:56:19.5671856Z       "mode": 420,
+2026-11-11T21:56:19.5672026Z       "sha256": "44a2e11dfb1929e2bb7b095bd32a0a2e7ddde1eda581dee276570b21445ea479"
+2026-11-11T21:56:19.5672086Z     },
+2026-11-11T21:56:19.5672460Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-ci-fs-r3/working-source/examples/hia_bootstrap/agent_namespace_filesystem_r3.hiaasm": {
+2026-11-11T21:56:19.5672525Z       "bytes": 119707,
+2026-11-11T21:56:19.5672595Z       "mode": 420,
+2026-11-11T21:56:19.5672752Z       "sha256": "7e19f56989fda5170b42e045701707cd771b2cd184f8e47b904a7df5070086c8"
+2026-11-11T21:56:19.5672812Z     },
+2026-11-11T21:56:19.5673059Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/__init__.py": {
+2026-11-11T21:56:19.5673122Z       "bytes": 93,
+2026-11-11T21:56:19.5673290Z       "mode": 420,
+2026-11-11T21:56:19.5673449Z       "sha256": "43cd8172431b605cf0dde08fded7f88fce808aab7018b2b0158334c114ff7fec"
+2026-11-11T21:56:19.5673520Z     },
+2026-11-11T21:56:19.5673808Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/artifact_publication.py": {
+2026-11-11T21:56:19.5673874Z       "bytes": 6374,
+2026-11-11T21:56:19.5673938Z       "mode": 420,
+2026-11-11T21:56:19.5674093Z       "sha256": "09e17b2982a990706e8ee2ee23d3c009b1d2753261c5da2cf76927529122360d"
+2026-11-11T21:56:19.5674156Z     },
+2026-11-11T21:56:19.5674424Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_agent_assembly.py": {
+2026-11-11T21:56:19.5674495Z       "bytes": 15216,
+2026-11-11T21:56:19.5674562Z       "mode": 420,
+2026-11-11T21:56:19.5674710Z       "sha256": "e37095496bf159ad573a31214d4d73e916648b4f0664edb541014f54681fbc03"
+2026-11-11T21:56:19.5674771Z     },
+2026-11-11T21:56:19.5675029Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_bounded_memory.py": {
+2026-11-11T21:56:19.5675105Z       "bytes": 2744,
+2026-11-11T21:56:19.5675167Z       "mode": 420,
+2026-11-11T21:56:19.5675330Z       "sha256": "3413e3f7dfb77b7672eba6b99b1a2320cb6bd61c3842f37976ee4507ed1a4a3d"
+2026-11-11T21:56:19.5675393Z     },
+2026-11-11T21:56:19.5675767Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_capability_flow.py": {
+2026-11-11T21:56:19.5675835Z       "bytes": 3064,
+2026-11-11T21:56:19.5675898Z       "mode": 420,
+2026-11-11T21:56:19.5676056Z       "sha256": "305b5f747761f72c57dd5ff726ef6ef1350242cbdd5524931b7548eb5d7a5587"
+2026-11-11T21:56:19.5676116Z     },
+2026-11-11T21:56:19.5676403Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_core_admission_native.py": {
+2026-11-11T21:56:19.5676471Z       "bytes": 3295,
+2026-11-11T21:56:19.5676534Z       "mode": 420,
+2026-11-11T21:56:19.5676700Z       "sha256": "20905facd961c5e6d5d88cda368ea1fabe90ea4adb31ba197b81fdd6cfba25cd"
+2026-11-11T21:56:19.5676851Z     },
+2026-11-11T21:56:19.5677145Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_function_shape_native.py": {
+2026-11-11T21:56:19.5677209Z       "bytes": 3975,
+2026-11-11T21:56:19.5677278Z       "mode": 420,
+2026-11-11T21:56:19.5677447Z       "sha256": "fde29f99e10c25f62d742ddd7c7079e882351f5ca21ad846be9bcf22c2ec86e9"
+2026-11-11T21:56:19.5677505Z     },
+2026-11-11T21:56:19.5677804Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_instruction_policy_native.py": {
+2026-11-11T21:56:19.5677869Z       "bytes": 3144,
+2026-11-11T21:56:19.5677934Z       "mode": 420,
+2026-11-11T21:56:19.5678096Z       "sha256": "def1fefdc407b78e98b408891e8781b5b2b33630770ba69aafccb92eff724845"
+2026-11-11T21:56:19.5678162Z     },
+2026-11-11T21:56:19.5678445Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_canonical_native.py": {
+2026-11-11T21:56:19.5678510Z       "bytes": 3570,
+2026-11-11T21:56:19.5678582Z       "mode": 420,
+2026-11-11T21:56:19.5678727Z       "sha256": "d83227dfa6431884656355d42d2312107e4dff2495464368a276754e3ffb2c0b"
+2026-11-11T21:56:19.5678795Z     },
+2026-11-11T21:56:19.5679051Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode.py": {
+2026-11-11T21:56:19.5679122Z       "bytes": 2342,
+2026-11-11T21:56:19.5679188Z       "mode": 420,
+2026-11-11T21:56:19.5679344Z       "sha256": "7abc295b7a64502f71e410dce8903a917d431527b3fb627958cd08e3b23f43d4"
+2026-11-11T21:56:19.5679405Z     },
+2026-11-11T21:56:19.5679682Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_decode_native.py": {
+2026-11-11T21:56:19.5679750Z       "bytes": 6765,
+2026-11-11T21:56:19.5679810Z       "mode": 420,
+2026-11-11T21:56:19.5679969Z       "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+2026-11-11T21:56:19.5680031Z     },
+2026-11-11T21:56:19.5680297Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight.py": {
+2026-11-11T21:56:19.5680371Z       "bytes": 9696,
+2026-11-11T21:56:19.5680433Z       "mode": 420,
+2026-11-11T21:56:19.5680596Z       "sha256": "a416fd10b755bbc0ae106e57076a940ee9c4732bd6a156ccf6bd50872d7b6f30"
+2026-11-11T21:56:19.5680655Z     },
+2026-11-11T21:56:19.5680944Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_json_preflight_native.py": {
+2026-11-11T21:56:19.5681096Z       "bytes": 8267,
+2026-11-11T21:56:19.5681289Z       "mode": 420,
+2026-11-11T21:56:19.5681575Z       "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+2026-11-11T21:56:19.5681670Z     },
+2026-11-11T21:56:19.5687990Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_opcodes.py": {
+2026-11-11T21:56:19.5688089Z       "bytes": 19813,
+2026-11-11T21:56:19.5688162Z       "mode": 420,
+2026-11-11T21:56:19.5688343Z       "sha256": "7c3e1a531b790883da2f74ca0e06e37b18073a594063afb9aeb07be9bd34fd65"
+2026-11-11T21:56:19.5688418Z     },
+2026-11-11T21:56:19.5688694Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program.py": {
+2026-11-11T21:56:19.5688764Z       "bytes": 45247,
+2026-11-11T21:56:19.5688831Z       "mode": 420,
+2026-11-11T21:56:19.5689150Z       "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+2026-11-11T21:56:19.5689215Z     },
+2026-11-11T21:56:19.5689498Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_runtime.py": {
+2026-11-11T21:56:19.5689568Z       "bytes": 29957,
+2026-11-11T21:56:19.5689632Z       "mode": 420,
+2026-11-11T21:56:19.5689798Z       "sha256": "ce39be78627f253447f1d4e4b3272ba6689c594c31b22e3be204b1fcfea2ca56"
+2026-11-11T21:56:19.5689857Z     },
+2026-11-11T21:56:19.5690174Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_shape_native.py": {
+2026-11-11T21:56:19.5690334Z       "bytes": 2705,
+2026-11-11T21:56:19.5690399Z       "mode": 420,
+2026-11-11T21:56:19.5690569Z       "sha256": "0bd9dbf935c992b18a26990a58b0b8d2fa2bc8230a32cbc7c40727c2b5905054"
+2026-11-11T21:56:19.5690630Z     },
+2026-11-11T21:56:19.5690911Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_program_tools.py": {
+2026-11-11T21:56:19.5690976Z       "bytes": 22198,
+2026-11-11T21:56:19.5691042Z       "mode": 420,
+2026-11-11T21:56:19.5691208Z       "sha256": "a1b42262d8a00fbce9057e40dd081210ad274ecad8fc0c126ffafe8c3568436a"
+2026-11-11T21:56:19.5691265Z     },
+2026-11-11T21:56:19.5691516Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_schema.py": {
+2026-11-11T21:56:19.5691582Z       "bytes": 5652,
+2026-11-11T21:56:19.5691645Z       "mode": 420,
+2026-11-11T21:56:19.5691807Z       "sha256": "b6bd0864fbe2a90e8f2f705da1d81c8b1afae001d8608f54f8f1fca477cdf253"
+2026-11-11T21:56:19.5691870Z     },
+2026-11-11T21:56:19.5692133Z     "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/hepta/hia_sha256_native.py": {
+2026-11-11T21:56:19.5692197Z       "bytes": 2313,
+2026-11-11T21:56:19.5692260Z       "mode": 420,
+2026-11-11T21:56:19.5692409Z       "sha256": "0dfa57492162f8009d2a25c4933a948e02e695a77c443c745633312d1fd16cd1"
+2026-11-11T21:56:19.5692472Z     }
+2026-11-11T21:56:19.5692530Z   },
+2026-11-11T21:56:19.5692614Z   "source_pins_unchanged": true,
+2026-11-11T21:56:19.5692681Z   "sqlite": {
+2026-11-11T21:56:19.5692753Z     "compile_options": [
+2026-11-11T21:56:19.5692830Z       "ATOMIC_INTRINSICS=1",
+2026-11-11T21:56:19.5692902Z       "COMPILER=gcc-13.3.0",
+2026-11-11T21:56:19.5692980Z       "DEFAULT_AUTOVACUUM",
+2026-11-11T21:56:19.5693058Z       "DEFAULT_CACHE_SIZE=-2000",
+2026-11-11T21:56:19.5693248Z       "DEFAULT_FILE_FORMAT=4",
+2026-11-11T21:56:19.5693336Z       "DEFAULT_JOURNAL_SIZE_LIMIT=-1",
+2026-11-11T21:56:19.5693407Z       "DEFAULT_MMAP_SIZE=0",
+2026-11-11T21:56:19.5693488Z       "DEFAULT_PAGE_SIZE=4096",
+2026-11-11T21:56:19.5693561Z       "DEFAULT_PCACHE_INITSZ=20",
+2026-11-11T21:56:19.5693643Z       "DEFAULT_RECURSIVE_TRIGGERS",
+2026-11-11T21:56:19.5693715Z       "DEFAULT_SECTOR_SIZE=4096",
+2026-11-11T21:56:19.5693792Z       "DEFAULT_SYNCHRONOUS=2",
+2026-11-11T21:56:19.5693877Z       "DEFAULT_WAL_AUTOCHECKPOINT=1000",
+2026-11-11T21:56:19.5693959Z       "DEFAULT_WAL_SYNCHRONOUS=2",
+2026-11-11T21:56:19.5694033Z       "DEFAULT_WORKER_THREADS=0",
+2026-11-11T21:56:19.5694106Z       "DIRECT_OVERFLOW_READ",
+2026-11-11T21:56:19.5694181Z       "ENABLE_COLUMN_METADATA",
+2026-11-11T21:56:19.5694247Z       "ENABLE_DBSTAT_VTAB",
+2026-11-11T21:56:19.5694314Z       "ENABLE_FTS3",
+2026-11-11T21:56:19.5694389Z       "ENABLE_FTS3_PARENTHESIS",
+2026-11-11T21:56:19.5694460Z       "ENABLE_FTS3_TOKENIZER",
+2026-11-11T21:56:19.5694524Z       "ENABLE_FTS4",
+2026-11-11T21:56:19.5694586Z       "ENABLE_FTS5",
+2026-11-11T21:56:19.5694656Z       "ENABLE_LOAD_EXTENSION",
+2026-11-11T21:56:19.5694725Z       "ENABLE_MATH_FUNCTIONS",
+2026-11-11T21:56:19.5694797Z       "ENABLE_PREUPDATE_HOOK",
+2026-11-11T21:56:19.5694862Z       "ENABLE_RTREE",
+2026-11-11T21:56:19.5694933Z       "ENABLE_SESSION",
+2026-11-11T21:56:19.5694999Z       "ENABLE_STMTVTAB",
+2026-11-11T21:56:19.5695069Z       "ENABLE_UNLOCK_NOTIFY",
+2026-11-11T21:56:19.5695248Z       "ENABLE_UPDATE_DELETE_LIMIT",
+2026-11-11T21:56:19.5695316Z       "HAVE_ISNAN",
+2026-11-11T21:56:19.5695392Z       "LIKE_DOESNT_MATCH_BLOBS",
+2026-11-11T21:56:19.5695462Z       "MALLOC_SOFT_LIMIT=1024",
+2026-11-11T21:56:19.5695535Z       "MAX_ATTACHED=10",
+2026-11-11T21:56:19.5695602Z       "MAX_COLUMN=2000",
+2026-11-11T21:56:19.5695681Z       "MAX_COMPOUND_SELECT=500",
+2026-11-11T21:56:19.5695760Z       "MAX_DEFAULT_PAGE_SIZE=32768",
+2026-11-11T21:56:19.5695830Z       "MAX_EXPR_DEPTH=1000",
+2026-11-11T21:56:19.5695903Z       "MAX_FUNCTION_ARG=127",
+2026-11-11T21:56:19.5695972Z       "MAX_LENGTH=1000000000",
+2026-11-11T21:56:19.5696139Z       "MAX_LIKE_PATTERN_LENGTH=50000",
+2026-11-11T21:56:19.5696210Z       "MAX_MMAP_SIZE=0x7fff0000",
+2026-11-11T21:56:19.5696287Z       "MAX_PAGE_COUNT=0xfffffffe",
+2026-11-11T21:56:19.5696358Z       "MAX_PAGE_SIZE=65536",
+2026-11-11T21:56:19.5696429Z       "MAX_SCHEMA_RETRY=25",
+2026-11-11T21:56:19.5696503Z       "MAX_SQL_LENGTH=1000000000",
+2026-11-11T21:56:19.5696579Z       "MAX_TRIGGER_DEPTH=1000",
+2026-11-11T21:56:19.5696657Z       "MAX_VARIABLE_NUMBER=250000",
+2026-11-11T21:56:19.5696725Z       "MAX_VDBE_OP=250000000",
+2026-11-11T21:56:19.5696798Z       "MAX_WORKER_THREADS=8",
+2026-11-11T21:56:19.5696866Z       "MUTEX_PTHREADS",
+2026-11-11T21:56:19.5696936Z       "SECURE_DELETE",
+2026-11-11T21:56:19.5697003Z       "SOUNDEX",
+2026-11-11T21:56:19.5697071Z       "SYSTEM_MALLOC",
+2026-11-11T21:56:19.5697143Z       "TEMP_STORE=1",
+2026-11-11T21:56:19.5697209Z       "THREADSAFE=1",
+2026-11-11T21:56:19.5697274Z       "USE_URI"
+2026-11-11T21:56:19.5697333Z     ],
+2026-11-11T21:56:19.5697559Z     "source_id": "2024-01-30 16:01:20 e876e51a0ed5c5b3126f52e532044363a014bc594cfefa87ffb5b82257ccalt1",
+2026-11-11T21:56:19.5697633Z     "version": "3.45.1"
+2026-11-11T21:56:19.5697693Z   },
+2026-11-11T21:56:19.5697763Z   "status": "PASS",
+2026-11-11T21:56:19.5697826Z   "tests": {
+2026-11-11T21:56:19.5697894Z     "errors": [],
+2026-11-11T21:56:19.5697967Z     "expected_failures": [],
+2026-11-11T21:56:19.5698036Z     "failures": [],
+2026-11-11T21:56:19.5698099Z     "skipped": [],
+2026-11-11T21:56:19.5698164Z     "test_ids": [
+2026-11-11T21:56:19.5698345Z       "__main__.main.<locals>.ActualCarrier.test_01_all_twenty_two_actual_primitives",
+2026-11-11T21:56:19.5698509Z       "__main__.main.<locals>.ActualCarrier.test_02_known_errno_preserves_context",
+2026-11-11T21:56:19.5698693Z       "__main__.main.<locals>.ActualCarrier.test_03_more_than_one_slot_page_and_close_once",
+2026-11-11T21:56:19.5698870Z       "__main__.main.<locals>.ActualCarrier.test_04_actual_permanent_rejection_no_syscall",
+2026-11-11T21:56:19.5699080Z       "__main__.main.<locals>.ActualCarrier.test_05_truncated_transport_releases_actual_process_lock",
+2026-11-11T21:56:19.5699284Z       "__main__.main.<locals>.ActualCarrier.test_06_real_sqlite_wal_writer_byte120_both_directions",
+2026-11-11T21:56:19.5699458Z       "__main__.main.<locals>.ActualCarrier.test_07_closing_alias_drops_posix_inode_lock",
+2026-11-11T21:56:19.5699643Z       "__main__.main.<locals>.ActualCarrier.test_08_raw_symlink_and_parent_path_observations",
+2026-11-11T21:56:19.5699833Z       "__main__.main.<locals>.ActualCarrier.test_09_parent_death_terminates_owned_native_child",
+2026-11-11T21:56:19.5700002Z       "__main__.main.<locals>.ActualCarrier.test_10_empty_close_all_permanently_closed"
+2026-11-11T21:56:19.5700062Z     ],
+2026-11-11T21:56:19.5700134Z     "tests_loaded": 10,
+2026-11-11T21:56:19.5700203Z     "tests_run": 10,
+2026-11-11T21:56:19.5700277Z     "unexpected_successes": []
+2026-11-11T21:56:19.5700338Z   },
+2026-11-11T21:56:19.5700402Z   "vm_entries": 208
+2026-11-11T21:56:19.5700468Z }
+2026-11-11T21:56:19.5700577Z END_ORIGINAL_JSON carrier-native-original.json
+2026-11-11T21:56:19.5745635Z ##[group]Run actions/upload-artifact@v4
+2026-11-11T21:56:19.5745717Z with:
+2026-11-11T21:56:19.5745815Z   name: hia-carrier-readback-43107344619-1
+2026-11-11T21:56:19.5746107Z   path: /home/runner/work/_temp/hia-carrier-408-readback
+/home/runner/work/_temp/hia-carrier-408-readback-driver.log
+
+2026-11-11T21:56:19.5746186Z   if-no-files-found: error
+2026-11-11T21:56:19.5746261Z   retention-days: 90
+2026-11-11T21:56:19.5746332Z   compression-level: 0
+2026-11-11T21:56:19.5746403Z   overwrite: false
+2026-11-11T21:56:19.5746484Z   include-hidden-files: false
+2026-11-11T21:56:19.5746547Z env:
+2026-11-11T21:56:19.5746632Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-11T21:56:19.5746755Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:19.5746910Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-11T21:56:19.5747022Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:19.5747294Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:19.5747401Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-11T21:56:19.5747521Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-11T21:56:19.5747587Z ##[endgroup]
+2026-11-11T21:56:19.7085092Z (node:2289) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:56:19.7085683Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:56:19.7158191Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-11T21:56:19.7161588Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-11T21:56:19.7162434Z With the provided path, there will be 12 files uploaded
+2026-11-11T21:56:19.7166048Z Artifact name is valid!
+2026-11-11T21:56:19.7166872Z Root directory input is valid!
+2026-11-11T21:56:20.0668844Z Beginning upload of artifact content to blob storage
+2026-11-11T21:56:20.1146291Z (node:2289) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-11T21:56:21.0209662Z Uploaded bytes 8388608
+2026-11-11T21:56:21.1849659Z Uploaded bytes 12510447
+2026-11-11T21:56:21.2469770Z Finished uploading artifact content to blob storage!
+2026-11-11T21:56:21.2470522Z SHA256 digest of uploaded artifact zip is e7a73193bce916e1bfa413057be24687ea83c819db5369426ace806b0cff9c47
+2026-11-11T21:56:21.2471619Z Finalizing artifact upload
+2026-11-11T21:56:21.6058365Z Artifact hia-carrier-readback-43107344619-1.zip successfully finalized. Artifact ID 13894133009
+2026-11-11T21:56:21.6059423Z Artifact hia-carrier-readback-43107344619-1 has been successfully uploaded! Final size is 12510447 bytes. Artifact ID is 13894133009
+2026-11-11T21:56:21.6064234Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43107344619/artifacts/13894133009
+2026-11-11T21:56:21.6235196Z Post job cleanup.
+2026-11-11T21:56:21.7201418Z (node:2302) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T21:56:21.7202066Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T21:56:21.7370249Z Post job cleanup.
+2026-11-11T21:56:21.8079825Z [command]/usr/bin/git version
+2026-11-11T21:56:21.8117434Z git version 2.56.0
+2026-11-11T21:56:21.8150356Z Temporarily overriding HOME='/home/runner/work/_temp/5cd0558f-afa4-4d78-82ab-33f74402675d' before making global git config changes
+2026-11-11T21:56:21.8151357Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T21:56:21.8155176Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T21:56:21.8190303Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T21:56:21.8222793Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T21:56:21.8489183Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T21:56:21.8524839Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T21:56:21.8753285Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T21:56:21.8801846Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T21:56:21.9146603Z Cleaning up orphan processes
+2026-11-11T21:56:21.9496549Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/download-artifact@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

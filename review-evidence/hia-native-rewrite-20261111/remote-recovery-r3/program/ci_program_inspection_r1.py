@@ -36,18 +36,21 @@ try:
       ("compile-program-projector",R3+"program/compile_program_inspection_r1.py",
        "974d1ec32b22143270319c0fb46c8a5ebdd9304b",common.BASE/"compile_program_inspection_r1.py",120),
       ("actual-native-program-projection",R3+"program/test_program_inspection_r1.py",
-       "931645f910ffa029f587390d3bc0a681175d65e3",root/"development/test_program_inspection_r1.py",180),
+       "36ca97a32b3154e18319a58991181796a62b6625",root/"development/test_program_inspection_r1.py",180),
     ]
     for label,relative,expected,destination,timeout in programs:
         script=common.materialize(relative,expected,destination)
-        common.run(label,[sys.executable,"-B",script],timeout=timeout)
         report_path={
             "generate-program-projector":root/"development/source-r1.json",
             "compile-program-projector":root/"development/compile-r1/summary.json",
             "actual-native-program-projection":root/"development/native-projection-r1/summary.json"}[label]
-        report=json.loads(report_path.read_bytes())
-        print("HIA_PROGRAM_STAGE "+json.dumps(dict(label=label,report={
-            k:v for k,v in report.items() if k not in ("case_results","protocol_results")}),sort_keys=True),flush=True)
+        try:
+            common.run(label,[sys.executable,"-B",script],timeout=timeout)
+        finally:
+            if report_path.is_file():
+                report=json.loads(report_path.read_bytes())
+                print("HIA_PROGRAM_STAGE "+json.dumps(dict(label=label,report={
+                    k:v for k,v in report.items() if k not in ("case_results","protocol_results")}),sort_keys=True),flush=True)
     build=json.loads((root/"development/compile-r1/summary.json").read_bytes())
     native=json.loads((root/"development/native-projection-r1/summary.json").read_bytes())
     assert build["status"]==native["status"]=="PASS"
