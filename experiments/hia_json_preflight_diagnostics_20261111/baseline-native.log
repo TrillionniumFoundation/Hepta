@@ -1,0 +1,50 @@
+test_existing_api_dispatch_and_unchanged_original_regressions (tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests.test_existing_api_dispatch_and_unchanged_original_regressions) ... FAIL
+
+======================================================================
+FAIL: test_existing_api_dispatch_and_unchanged_original_regressions (tests.test_hia_json_preflight_native.JsonPreflightHiaNativeTests.test_existing_api_dispatch_and_unchanged_original_regressions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/hia-preflight-diagnostics-93/tests/test_hia_json_preflight_native.py", line 236, in test_existing_api_dispatch_and_unchanged_original_regressions
+    self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
+AssertionError: 1 != 0 : test_depth_limit_exactly_matches_root_zero_valuation (tests.test_hia_json_preflight.HIAPreflightTests.test_depth_limit_exactly_matches_root_zero_valuation) ... ok
+test_early_duplicate_decoded_keys (tests.test_hia_json_preflight.HIAPreflightTests.test_early_duplicate_decoded_keys) ... ok
+test_early_node_limit_refuses_before_any_full_json_load (tests.test_hia_json_preflight.HIAPreflightTests.test_early_node_limit_refuses_before_any_full_json_load) ... ok
+test_invalid_grammar_and_float_rejection (tests.test_hia_json_preflight.HIAPreflightTests.test_invalid_grammar_and_float_rejection) ... ok
+test_long_spans_preserve_budget_and_duplicate_error_order (tests.test_hia_json_preflight.HIAPreflightTests.test_long_spans_preserve_budget_and_duplicate_error_order) ... ok
+test_long_strings_keep_exact_escape_and_unicode_refusals (tests.test_hia_json_preflight.HIAPreflightTests.test_long_strings_keep_exact_escape_and_unicode_refusals) ... FAIL
+test_only_ascii_digits_and_json_whitespace_form_spans (tests.test_hia_json_preflight.HIAPreflightTests.test_only_ascii_digits_and_json_whitespace_form_spans) ... FAIL
+test_randomized_grammar_and_budget_equivalence_to_stdlib (tests.test_hia_json_preflight.HIAPreflightTests.test_randomized_grammar_and_budget_equivalence_to_stdlib) ... ok
+test_valid_json_and_scalar_shape_coverage (tests.test_hia_json_preflight.HIAPreflightTests.test_valid_json_and_scalar_shape_coverage) ... ok
+
+======================================================================
+FAIL: test_long_strings_keep_exact_escape_and_unicode_refusals (tests.test_hia_json_preflight.HIAPreflightTests.test_long_strings_keep_exact_escape_and_unicode_refusals)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/hia-preflight-diagnostics-93/tests/test_hia_json_preflight.py", line 82, in test_long_strings_keep_exact_escape_and_unicode_refusals
+    self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+AssertionError: 'HIA JSON preflight: invalid JSON syntax or Unicode' != 'HIA JSON preflight: unterminated JSON string'
+- HIA JSON preflight: invalid JSON syntax or Unicode
++ HIA JSON preflight: unterminated JSON string
+
+
+======================================================================
+FAIL: test_only_ascii_digits_and_json_whitespace_form_spans (tests.test_hia_json_preflight.HIAPreflightTests.test_only_ascii_digits_and_json_whitespace_form_spans)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/e26ed3e2edcf/hia-preflight-diagnostics-93/tests/test_hia_json_preflight.py", line 115, in test_only_ascii_digits_and_json_whitespace_form_spans
+    self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+AssertionError: 'HIA JSON preflight: invalid JSON syntax or Unicode' != 'HIA JSON preflight: expected JSON integer or literal'
+- HIA JSON preflight: invalid JSON syntax or Unicode
++ HIA JSON preflight: expected JSON integer or literal
+
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.074s
+
+FAILED (failures=2)
+
+
+----------------------------------------------------------------------
+Ran 1 test in 6.184s
+
+FAILED (failures=1)
