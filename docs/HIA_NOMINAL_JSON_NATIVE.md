@@ -211,3 +211,77 @@ fields, rereads all consumed files, and publishes a `MATCHING_SOURCE_COLD` build
 record. Complete source-contract registration and installed-package inclusion
 of `examples/hia_bootstrap/nominal_json.hepta` are required before that integrated
 qualification; this isolated component commit does not claim those gates passed.
+
+## Existing constructor ingress is a separate gate
+
+The raw codec's depth-128 Agent envelope is wider than the existing public
+program envelope. hepta.hia_program._decode applies MAX_DEPTH = 64 before
+elaborate_program, whose contract requires a detached and structurally bounded
+document. A public input can therefore use at most 66 container frames after
+the constructor wrapper, including a last empty container at depth 64.
+
+The constructor imports tools.generate_hia_instruction_policy.py::validate:
+its typed-packet limit is 1,048,576 nodes and 128 container frames. Raw values,
+object keys and the wrapper require at most 524,289 typed nodes. The extra two
+wrapper nodes do not exhaust that allowance. Some valid depth-128 raw trees
+exceed the 128-container transport allowance after wrapping; the owner returns
+an ABI refusal, which the existing bridge exposes as an E_HIA_TYPE transport
+failure. The public program route already rejects those trees at its earlier
+Core64 gate with E_HIA_LIMIT. No constructor limit is increased by this codec.
+
+The dedicated constructor-ingress probe executes the real owner/render images,
+compares new packets with the retained transport, checks all composite v1-v4
+first type requests and v1 legacy mode, and checks the byte/node/depth boundaries.
+Its scope ends at ingress and the first type request. It does not complete type
+service or constructor initialization, and does not remove the Python callbacks.
+Packet equality and first-continuation equality do not establish full public
+normalizer or diagnostic equivalence.
+
+A future raw normalizer must preserve ordering: full input-byte/UTF-8 checks,
+then the Core64 preflight, then integer materialization policy and construction.
+Running the current scanning preflight directly before UTF-8 validation can let
+a depth error beat a later malformed UTF-8 byte. Running the entire raw128 codec
+first can let an integer digit error beat a later Core64 depth error. Neither
+ordering is a valid replacement for the existing public raw program boundary.
+
+### Recorded ingress observations
+
+The dedicated bootstrap-development run passed all four tests in 7.512 seconds.
+It recorded fourteen old/new packet comparisons through the actual owner; the
+five composite-profile/legacy cases also consumed the actual render stream.
+The full 8 MiB input and both maximum-node representations reached the existing
+semantic shape refusal, not a transport-budget failure. The two over-deep
+wrapped raw inputs returned the existing ABI status 0xfffffff1, while the
+public Core64 gate rejected them earlier with E_HIA_LIMIT. This is development
+evidence only; matching-source cold and full initializer results are separate.
+
+### Remaining continuation owners
+
+The existing eleven images comprise one type kernel, one task-helper kernel,
+two constructor kernels, five function kernels, and two outer kernels. Their
+nominal decisions are already implemented in HIA, but these current Python
+interfaces still own payload objects and retained state:
+
+| Boundary | Remaining current host work |
+|---|---|
+| Constructor commands/results | ObjectTokenDecoder, detached source offsets, original-object custody, request dispatch, type IDs/origins, and the final six-item owner-state mirror |
+| NativeCompositeTypeSession | json.dumps of commands; JSON descriptor DAG validation; construction of _Type objects; session _types/_ids/_descriptors; origin and parameter payload materialization |
+| NativeTaskHelpers | Traversal of type flat/state/result/variant fields to construct its typed packet; JSON helper-result materialization |
+| NativeFunctionSession | Registry/source snapshots; parameters, resolve, partial, task-protocol and helper callbacks; helper-cache updates; issued Python function identities; delegated exception retention |
+| NativeOuterInvocation | Type/function/helper arena leases; _LeasedHelpers; binding native object handles to Python dictionaries; streamed full-Core object materialization |
+
+The first complete replacement slice is constructor initialization across all
+composite versions and legacy v1. It requires a native token/source-reference
+renderer, all five constructor type-service commands, strict native response
+correlation, a retained descriptor-ID registry, and the original 128 MiB type
+arena. It must retain exact final and failure-prefix state, delegated diagnostic
+identity, and the stage-dependent lifetime of the type arena. A successful first
+type request alone is insufficient. Function partial/task/helper callbacks and
+outer retained-object handles are later users of those same native facilities,
+not grounds for omitting any constructor command or composite version.
+
+The initial raw bytes API can be qualified separately while the existing public
+routes remain. Any later public replacement must retain the byte/UTF-8/Core64/
+integer-policy error order and original diagnostics, plus downstream primitive
+Core verification. Fixed native image dispatch does not by itself replace the
+host payload adapters listed above.
