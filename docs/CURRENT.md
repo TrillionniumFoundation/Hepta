@@ -89,6 +89,11 @@ It does not overwrite either parallel candidate's native language semantics.
   candidate attempt budget and retirement state.
   It refuses ambient selectors, cross-process/thread reuse and post-effect
   identity drift; recovery observes the original operation before retrying.
+- The selected snapshot now matches the descriptor ABI actually requested by
+  ordinary buffer callers. The selected patch image registers exactly the CLI
+  and Agent factory views of its captured bytes, with source/schema equality
+  checked before mapping. Unknown factories and missing adjacent admission
+  continue to refuse. These correct two actual ordinary-caller binding failures.
 - Native execution budgets preserve the original database/WAL namespace,
   Decimal limits, request identities and uncertain cost through restart.
 - Native candidate budgets retain `main.contexts.attempts`, the public 4,096

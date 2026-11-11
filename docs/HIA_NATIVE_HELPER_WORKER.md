@@ -57,6 +57,17 @@ rejects final-component symlinks and records file identity and bytes. Core
 patch additionally requires its exact adjacent admission manifest in the
 same bundle before any selected adapter is imported or mapped.
 
+`HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST` selects the descriptor snapshot ABI used
+by ordinary `buffer_size` and `buffer_bytes` calls, including descriptor
+admission and materialization. The raw JSON snapshot program has its own
+standalone interface and is not interchangeable with that descriptor ABI.
+The Core patch image has two explicitly registered factory views:
+`NativeCorePatch` for ordinary CLI patch calls and `NativeAgentCandidatePatch`
+for ordinary Agent candidate calls. Both use the same captured image bytes;
+their source and schema must match before either executable mapping is made.
+Each view retains its exact manifest/source/schema/factory key. An unlisted
+subclass cannot acquire the selected image through a general loader fallback.
+
 This pins executable code chosen by the operator. It does not authenticate a
 cold qualification receipt or prove the selected program correct. Production
 builders separately require the matching complete-source cold admission.
@@ -97,6 +108,14 @@ budget accounting outcome is an explicitly labeled host fixture, separate
 from the real native evaluation control.
 The installed-resource regression retains its real wheel installation and
 native helper calls with authoring modules unavailable.
+
+`NativeWorkerCallerViewTests` exercises the original buffer callers and both
+patch views in one real bundle. It checks descriptor boundaries and refusals,
+all four Agent patch forms with the hosted payload owners disabled, a stale
+patch that publishes no candidate, and durable replay without a second native
+patch execution. It also refuses unlisted factories and a missing or misplaced
+adjacent admission manifest. The explicit development-image mode is mutually
+exclusive with a requested matching-source cold report.
 
 `tests/test_hia_candidate_budget_native.py` selects candidate counts, execution
 budgets, the v2 journal and retirement in one pinned bundle. It disables all four
