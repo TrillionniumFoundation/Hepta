@@ -129,14 +129,26 @@ B0. Reports therefore record `external_assembler_after_B0: true` and
 only into explicitly named qualification artifacts; it is not part of the
 successor compiler or the production runtime.
 
-## The chosen Core subset
+## Current bounded compiler profile
 
-The flat-image input is ordinary HIA assembly with the fixed header
-`hia-asm.v1 hepta.hia.program.v8 selfhost`. Explicit `selfhost_elf` selects the
-bounded ELF object profile described below. Function names are unique Core ASCII
-identifiers of at most 128 bytes; the first definition supplies the public ABI.
-Block names are unique bounded ASCII identifiers within each function; the
-entry remains the first block in source, with at most256blocks per function.
+This section describes the current machine-readable compiler contract. The
+version-specific paragraphs and sections below retain the scope and evidence of
+their named versions; an earlier version's exclusions are historical, not the
+current support boundary. The [support contract](HIA_SELFHOST_CORE_SUPPORT.json)
+distinguishes the fixed compiler entry ABI, internal calls and explicit scalar
+exports. This bounded compiler does not replace the complete Core checker.
+
+The flat-image input is ordinary HIA assembly with the header
+`hia-asm.v1 hepta.hia.program.v8 selfhost` in the legacy compiler-entry example.
+Ordinary module labels without explicit exports also select flat output. Explicit
+`selfhost_elf` selects the bounded ELF object profile described below, while an
+explicit scalar export list selects ELF independently of the ordinary module name.
+Function names are unique Core ASCII identifiers of at most 128 bytes; the first
+definition supplies the legacy entry ABI, and explicit exports select their named
+scalar wrappers.
+Block names are unique bounded ASCII identifiers within each function. The
+declared entry may appear at any source position, as introduced in v28, with
+at most 256 blocks per function.
 SSA and formal names use the same bounded ASCII identifier spelling, with at most
 2,048 distinct names per function. The entry block must exactly reproduce the
 signature names and types; each body definition is unique in its function.
@@ -147,13 +159,28 @@ admit an adjacent minus sign and enforce their mathematical width bounds. The gr
 explicit JSON attribute forms that these operations require.
 The existing assembly grammar's adjacency rules are retained: a declaration or
 edge name, opcode, `ret`, `effects`, or `entry` directly precedes its opening
-parenthesis; `entry(bN)` and `->` remain contiguous. Required separators before
+parenthesis; `entry(label)` and `->` remain contiguous. Required separators before
 effect/entry clauses, between branch targets and before instruction attributes
 cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 
+For example, the existing `nonfirst_entry_source()` qualification fixture declares
+its entry last and returns `7`. Its entry parameters still reproduce the function
+signature exactly:
+
+```text
+hia-asm.v1 hepta.hia.program.v8 selfhost
+fn f0(v0:readbuf,v1:mutbuf,v2:mutbuf) -> (u32) effects() entry(later)
+block earlier()
+  v3:u32 = const() {"value":7}
+  ret(v3)
+block later(v0:readbuf,v1:mutbuf,v2:mutbuf)
+  jump earlier()
+end
+```
+
 | Area | Accepted constructs |
 |---|---|
-| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` |
+| Values | All Core integers (`u8/u16/u32/u64/usize`, `i8/i16/i32/i64/isize`), `bool`, `unit`, borrowed `readbuf` and `mutbuf`; owned `buffer` and `chain` only in `selfhost_elf` or explicit scalar-export ELF |
 | Constants | Typed signed/unsigned integer literals, `true` / `false` booleans and `null` for `unit` |
 | Integer operations | `int.add.wrap`, `int.sub.wrap`, `int.mul.wrap`, `int.add.checked`, `int.sub.checked`, `int.mul.checked`, `int.div.checked`, `int.rem.checked`, `int.neg.checked`, `bit.not`, `bit.and`, `bit.or`, `bit.xor`, checked left/right shifts |
 | Conditions | Signed/unsigned `compare.eq`, `ne`, `lt`, `le`, `gt`, `ge`; boolean `compare.eq` / `compare.ne`; `bool.and`, `bool.or`, `bool.not` |
@@ -163,7 +190,7 @@ cannot be removed. Optional spaces inside parameter/argument lists remain valid.
 | Local loans | `borrow.read` from shared or mutable views; `borrow.mut` from mutable views; `loan.end` for live local childless loans; exact root/parent flow through branches and loops |
 | Owned buffers, ELF only | `buffer.new`, `buffer.try_new`, `owner.move`, `owner.drop`; borrowing and linear transfer of owned buffers |
 | Owned chains, ELF only | `chain.empty`, `chain.try_push`, `chain.pop`, `chain.is_empty`, `chain.head_read`, `chain.head_mut`; typed move/drop and closed head-loan graphs |
-| Calls | Scalar-return direct `call`, exact signatures, acyclic non-self call graph; direct self calls in the checked tail form below |
+| Calls | Direct `call` with zero to three scalar, owned or parameter-bound borrowed results, exact signatures and an acyclic non-self call graph; direct self calls immediately return their exact result tuple in order |
 | Control flow | `ret`, `jump`, `branch` with explicit, typed block arguments |
 | Effects | Any ordered duplicate-free subset of `alloc,read,write,trap`, including `effects()`; required operation and full callee effects must be declared |
 
@@ -202,20 +229,31 @@ qualification caller to provide live, disjoint allocations and does not add a
 public arbitrary-pointer validation interface. The Core compiler itself checks
 its source/output extents and required workspace before parsing.
 
-Internal functions return zero to three scalars or owned buffer/chain values; returned loans are excluded.
+Internal functions return zero to three scalar, owned buffer/chain or
+parameter-bound borrowed values. Returned loans require the explicit formal-origin
+contract introduced in v23; the complete result tuple must match each call and
+return. More than three internal results remains outside this compiler profile.
+For a result tuple containing a borrowed view followed by a scalar,
+`return_loans(["input",null])` binds the view to the borrowed formal `input`;
+the origin must retain sufficient permission through calls and control flow.
+Direct self calls must be followed immediately by the exact result tuple in
+order, including `ret()` for a zero-result call, and reuse the declared entry.
 The flat profile has no owned types or allocator imports. The explicit ELF
 profile adds the four owned-buffer and six chain operations described below, using the closed
 `calloc/free` import set. Callbacks, arbitrary pointers, non-tail or mutual
 recursion, exceptions, indirect branches and arbitrary host imports remain
-excluded. The fixed exported function `f0` accepts exactly three buffers
+excluded. The legacy compiler entrypoint `f0` accepts exactly three buffers
 `(readbuf, mutbuf, mutbuf)` and returns `u32`. Private helper functions can have
 scalar and borrowed-buffer parameters, and ELF helpers can consume owned buffers and chains.
+Explicit scalar exports have a separate public ABI: zero to sixteen non-unit
+scalar parameters and zero or one scalar/unit result. The three-result internal
+call limit does not broaden either public entry ABI.
 
 The native verifier checks grammar, literal widths, unique SSA definitions,
 block-local scope, operation arity/types, buffer permissions, call signatures,
 edge signatures, existing targets and graph reachability. Inbound edges to
-`b0` are forbidden. The native HIA checker records the complete directed call
-graph, rejects missing targets, and marks functions whose non-self callees are
+the declared entry block are forbidden. The native HIA checker records the
+complete directed call graph, rejects missing targets, and marks functions whose non-self callees are
 already acyclic. After at most one pass per function, every function must be
 marked. Backward calls are admitted when they do not create a cycle. A direct
 self call is excluded from that graph only after the parser enforces the exact
@@ -237,8 +275,8 @@ The bounds are part of the compiler profile:
 | Functions | 128 |
 | Blocks per function / all functions | 256 / 1,536 |
 | Function or block parameters / call or edge arguments | 16 |
-| SSA variable index per function | 2,047 |
-| Instruction results / function results | 3 / 1; two for `buffer.try_new`, three for `chain.try_push` and `chain.pop` |
+| Internal SSA variable index per function | 2,047 |
+| Instruction results / internal function results | 3 / 3; exported functions retain their separate ABI restrictions |
 | Instructions across the module | 8,192 |
 | Core JSON structural nodes | 262,144 |
 | Relative relocations | 12,000 |
@@ -258,15 +296,16 @@ the root object, schema, module and function-list nodes. More than 262,144 nodes
 is rejected before any output write. The maximum instruction count does not
 bypass the general Core's structural budget.
 
-The unchanged grammar also bounds canonical Core JSON bytes. Conservative
-budgets of 1,024 bytes for the root and each function's own fields, 2,048 bytes
-per block excluding its operations, and 512 bytes per operation give at most
-7,472,128 bytes, below the general Core's 8 MiB limit. These bounds use the
-fixed identifier lengths, 16-argument/parameter limit, single optional attribute
-and unsigned 64-bit literal limit. `buffer.try_new` has two results and one
-argument; `chain.try_push` and `chain.pop` have three results and at most two
-arguments. None has attributes, and all remain within the same conservative
-512-byte per-operation bound; other instructions have at most one result.
+The current grammar also bounds canonical Core JSON bytes. Reserving the entire
+1 MiB assembly payload for identifier and literal bytes, plus 1,024 bytes for the
+root, 1,024 per function, 1,024 per block and 512 per instruction gives at most
+6,947,840 bytes, below the general Core's 8 MiB limit. ASCII identifiers need no
+JSON escaping. These bounds retain the 16-argument/parameter limit, at most three
+instruction results, one optional attribute and 64-bit integer magnitudes.
+`buffer.try_new` has two results and one argument; `chain.try_push` and
+`chain.pop` have three results and at most two arguments. Direct calls may also
+have up to three results. All fit the same conservative structural allowance
+after source payload bytes have been counted separately.
 The text frontend's separate general-purpose presentation limits are not
 reimplemented as a dependency of the native compiler.
 
@@ -278,16 +317,19 @@ limits, or child deadlines. The v5 compiler contained 3,044 instructions.
 v6 retained these limits and all exact capacity fixtures while adding the tail
 self-call checker and lowering. v8 retains the same limits while adding three
 unsigned integer operations and scalar selection. The current instruction count is recorded by
-the authoring aid and each B0/generation receipt. Returned resources,
-non-tail/mutual recursion, arbitrary identifiers and general external linking
-remain outside the current profile. The v12 owned-buffer and v13 chain
-extensions retain these capacity limits.
+the authoring aid and each B0/generation receipt. Those early profiles excluded
+returned resources, non-tail/mutual recursion, arbitrary identifiers and general
+external linking; later sections describe the subsequent result and identifier
+extensions. The v12 owned-buffer and v13 chain extensions retained these capacity
+limits.
 
 The relocation table remains 12,000 records in the same workspace layout.
 An instruction contributes at most one call relocation, a block at most two
-edge relocations, and the wrapper one call. The optional shared chain destructor
-adds exactly two allocator calls. Since v28, each function can add one initial
-entry jump: `1 + 8192 + 2*1536 + 128 + 2 = 11395` (formerly 11267).
+edge relocations, and each public scalar wrapper one call. The optional shared
+chain destructor adds exactly two allocator calls. Since v28, each function can
+add one initial entry jump. With up to 128 explicit exports, the current upper
+bound is `128 + 8192 + 2*1536 + 128 + 2 = 11522`. The historical legacy
+single-wrapper bounds were 11395 at v28 and 11267 before the entry-order extension.
 Each source chain drop calls that single helper; its two free sites are not
 duplicated per source instruction.
 Relocations are counted during preflight as well as emission. Every displacement
@@ -330,6 +372,10 @@ python tools/replay_hia_selfhost_upgrade.py \
 ```
 
 ### v6 direct tail self calls
+
+This section records the v6 single-scalar-result form and its original evidence.
+The current zero-to-three result tuple and declared-entry rules are summarized
+above; the later result and entry-order extensions preserve same-frame lowering.
 
 A direct call to the current function is admitted only when it is the last
 instruction of its block and the immediately following terminator is
@@ -1102,8 +1148,9 @@ result pointer and reuse the same frame.
 full-width buffer descriptors, three-owner tuples, scalar/owner ordering,
 backward transfers, empty/fallible allocation, a nonempty returned chain and
 owner-carrying self tails. Unsafe lifetime variants remain rejection controls.
-Returned borrowed views still require a provenance contract not implemented by
-this native subset. Neither this change nor a bootstrap fixed point establishes
+At v21, returned borrowed views still required a provenance contract that was
+not yet implemented; v23 adds the bounded formal-origin contract below.
+Neither this change nor a bootstrap fixed point establishes
 a rewrite of the full HIA toolchain or an all-input refinement proof.
 
 ## v22 explicit terminal Core errors
@@ -1284,11 +1331,13 @@ and CFG is still checked by the complete original passes. No instruction or
 constant is accepted because discovery skipped its text. Duplicate, undefined,
 malformed, oversized and reserved labels are rejected transactionally. Source
 order assigns indices, preserving all existing CFG/capability/relocation checks.
-The entry must still be the first block; a valid-Core later-entry program is
-retained as an explicit unsupported-profile control, not silently accepted.
+In the v27 profile, the entry still had to be the first block; a valid-Core
+later-entry program was retained as an explicit unsupported-profile control.
+The v28 extension below removes that restriction and retains the same program
+as a positive control.
 
 The compiler's obsolete numeric-name reader is removed after every use migrated
-to exact identifiers. The current compiler fits118functions/1287blocks/7678ops.
+to exact identifiers. That v27 compiler fit 118 functions, 1,287 blocks and 7,678 operations.
 Independent controls include actual equal-hash aaB/aba branch targets with
 different results, contextual block/end/ret labels and typed keyword SSA names,
 128byte labels, complete256block and1536total-block graphs, forward-source
@@ -1319,8 +1368,8 @@ formals and then jump to a nonfirst entry; self-tail calls jump to that same
 entry after complete parallel argument staging, without a new frame/prologue.
 The worklist permits ordinary source-block zero and excludes exactly the entry.
 
-An additional possible jump per function raises the conservative relocation
-derivation to11395, still below the UNCHANGED12000record limit. The canonical
+At v28, an additional possible jump per function raised the legacy single-wrapper
+relocation derivation to 11,395, still below the unchanged 12,000-record limit. The canonical
 Core byte bound now explicitly includes the complete1MiB source payload for
 arbitrary128byte ASCII identifiers, rather than assuming old numeric spellings:
 1MiB+1024+128*1024+1536*1024+8192*512=6947840bytes, below Core's8MiB limit.
