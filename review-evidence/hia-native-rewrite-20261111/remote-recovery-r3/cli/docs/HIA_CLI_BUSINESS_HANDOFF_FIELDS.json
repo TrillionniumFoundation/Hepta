@@ -1,0 +1,487 @@
+{
+  "schema": "hepta.hia.cli-business-field-index.development.v1",
+  "scope": "Request-only handoff17. No business ACK implementation or installed activation.",
+  "source": {
+    "path": "hepta/cli.py",
+    "sha256": "32bd495c8927286005fd6f2eeb224ea6df9752fe15e3ca8a18ce45836c2a0904",
+    "line_index": [
+      {
+        "line": 13,
+        "text": "def agent_capabilities():"
+      },
+      {
+        "line": 31,
+        "text": "def output_json(value):"
+      },
+      {
+        "line": 34,
+        "text": "def publish_json_view(value, destination):"
+      },
+      {
+        "line": 54,
+        "text": "def hia_main(argv=None):"
+      },
+      {
+        "line": 84,
+        "text": "if args.hia_action==\"capabilities\":"
+      },
+      {
+        "line": 85,
+        "text": "output_json(agent_capabilities())"
+      },
+      {
+        "line": 89,
+        "text": "if args.hia_action == 'catalog':"
+      },
+      {
+        "line": 91,
+        "text": "output_json(opcode_catalog(args.schema))"
+      },
+      {
+        "line": 93,
+        "text": "if args.hia_action in {'import-assembly', 'render-assembly', 'check-assembly'}:"
+      },
+      {
+        "line": 94,
+        "text": "from .hia_agent_assembly import assemble_program, render_assembly, diagnose_assembly"
+      },
+      {
+        "line": 95,
+        "text": "raw = read_bounded(args.input)"
+      },
+      {
+        "line": 96,
+        "text": "if args.hia_action == 'check-assembly':"
+      },
+      {
+        "line": 97,
+        "text": "result = diagnose_assembly(raw)"
+      },
+      {
+        "line": 98,
+        "text": "output_json(result)"
+      },
+      {
+        "line": 100,
+        "text": "if args.hia_action == 'import-assembly':"
+      },
+      {
+        "line": 101,
+        "text": "program = assemble_program(raw)"
+      },
+      {
+        "line": 102,
+        "text": "output_json(publish_program(program, args.output) if args.output else program.as_dict())"
+      },
+      {
+        "line": 104,
+        "text": "program = verify_program(raw)"
+      },
+      {
+        "line": 105,
+        "text": "text = render_assembly(program)"
+      },
+      {
+        "line": 122,
+        "text": "output_json({'schema': 'hepta.hia.assembly-output.v1', 'ok': True, 'output': str(target), 'core_sha256': program.sha256, 'publication': receipt, 'deployment_authority': False})"
+      },
+      {
+        "line": 126,
+        "text": "program = verify_program(read_bounded(args.input))"
+      },
+      {
+        "line": 127,
+        "text": "if args.hia_action == 'edit-batch-query':"
+      },
+      {
+        "line": 129,
+        "text": "query = prepare_batch(program, decode_json(read_bounded(args.selections)))"
+      },
+      {
+        "line": 130,
+        "text": "output_json(publish_json_view(query, args.output) if args.output else query)"
+      },
+      {
+        "line": 132,
+        "text": "if args.hia_action == 'edit-batch-apply':"
+      },
+      {
+        "line": 134,
+        "text": "revised, receipt = apply_batch(program, read_bounded(args.query, limit=MAX_QUERY_BYTES), read_bounded(args.response, limit=MAX_RESPONSE_BYTES))"
+      },
+      {
+        "line": 140,
+        "text": "output_json(receipt)"
+      },
+      {
+        "line": 142,
+        "text": "if args.hia_action == 'edit-query':"
+      },
+      {
+        "line": 145,
+        "text": "output_json(publish_json_view(query, args.output) if args.output else query)"
+      },
+      {
+        "line": 147,
+        "text": "if args.hia_action == 'edit-apply':"
+      },
+      {
+        "line": 149,
+        "text": "revised, receipt = apply_edit(program, decode_json(read_bounded(args.query)), read_bounded(args.response, limit=MAX_RESPONSE_BYTES))"
+      },
+      {
+        "line": 155,
+        "text": "output_json(receipt)"
+      },
+      {
+        "line": 157,
+        "text": "if args.hia_action == 'normalize':"
+      },
+      {
+        "line": 158,
+        "text": "output_json(publish_program(program, args.output) if args.output else program.as_dict())"
+      },
+      {
+        "line": 160,
+        "text": "if args.hia_action == 'verify':"
+      },
+      {
+        "line": 161,
+        "text": "output_json({**program.report(), 'status': 'standalone_core_checked', 'native_executed': False})"
+      },
+      {
+        "line": 163,
+        "text": "if args.hia_action == 'inspect':"
+      },
+      {
+        "line": 164,
+        "text": "output_json(inspect_program(program))"
+      },
+      {
+        "line": 166,
+        "text": "if args.hia_action == 'build':"
+      },
+      {
+        "line": 167,
+        "text": "from .hia_program_native import build_program_machine"
+      },
+      {
+        "line": 168,
+        "text": "result = build_program_machine(program, args.output, kind='object', linker='cc')"
+      },
+      {
+        "line": 169,
+        "text": "output_json(result)"
+      },
+      {
+        "line": 171,
+        "text": "if args.hia_action == 'impact':"
+      },
+      {
+        "line": 173,
+        "text": "_revised, receipt, impact = analyze_patch_impact(program, read_bounded(args.request))"
+      },
+      {
+        "line": 174,
+        "text": "output_json({'schema': 'hepta.hia.impact-query.v1', 'ok': True, 'status': 'verified_unpublished', 'patch': receipt, 'impact': impact})"
+      },
+      {
+        "line": 176,
+        "text": "if args.hia_action == 'patch':"
+      },
+      {
+        "line": 177,
+        "text": "revised, receipt = apply_program_patch(program, read_bounded(args.request))"
+      },
+      {
+        "line": 183,
+        "text": "output_json(receipt)"
+      },
+      {
+        "line": 188,
+        "text": "output_json({\"ok\":False,\"status\":\"error\",\"diagnostics\":[{\"code\":\"E_DRIVER\",\"message\":str(error),\"phase\":\"driver\"}]})"
+      }
+    ]
+  },
+  "field_table": {
+    "slot": 6,
+    "offset": 1024,
+    "stride": 32,
+    "count": 16,
+    "words": [
+      "defined-for-action",
+      "owner",
+      "offset",
+      "bytes"
+    ],
+    "owner0": "absent (allowed optional field)",
+    "owner1": "immutable argv packet in slot4",
+    "owner2": "immutable completed parser workspace in slot6",
+    "text_encoding": "UTF-8 surrogatepass; byte offsets",
+    "empty_is_not_absent": true
+  },
+  "fields": [
+    {
+      "index": 0,
+      "name": "hia_action",
+      "actions": "1..15",
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 1,
+      "name": "input",
+      "actions": "3..15",
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 2,
+      "name": "output",
+      "actions": [
+        3,
+        4,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15
+      ],
+      "required_for": [
+        9
+      ],
+      "default": null
+    },
+    {
+      "index": 3,
+      "name": "schema",
+      "actions": [
+        2
+      ],
+      "required": false,
+      "default": "LATEST_CORE_SCHEMA (resolved from exact source at build)"
+    },
+    {
+      "index": 4,
+      "name": "backend",
+      "actions": [
+        9
+      ],
+      "required": false,
+      "default": "native"
+    },
+    {
+      "index": 5,
+      "name": "kind",
+      "actions": [
+        9
+      ],
+      "required": false,
+      "default": "object"
+    },
+    {
+      "index": 6,
+      "name": "target",
+      "actions": [
+        9
+      ],
+      "required": false,
+      "default": "x86_64-unknown-linux-gnu"
+    },
+    {
+      "index": 7,
+      "name": "request",
+      "actions": [
+        10,
+        11
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 8,
+      "name": "function",
+      "actions": [
+        12
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 9,
+      "name": "block",
+      "actions": [
+        12
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 10,
+      "name": "value",
+      "actions": [
+        12
+      ],
+      "required": true,
+      "default": null,
+      "note": "prepare_edit output name; raw string, not an integer"
+    },
+    {
+      "index": 11,
+      "name": "fields",
+      "actions": [
+        12
+      ],
+      "required": true,
+      "default": null,
+      "note": "HIA business owner performs exact str.split(','); empty yields one empty field"
+    },
+    {
+      "index": 12,
+      "name": "selections",
+      "actions": [
+        14
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 13,
+      "name": "query",
+      "actions": [
+        13,
+        15
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 14,
+      "name": "response",
+      "actions": [
+        13,
+        15
+      ],
+      "required": true,
+      "default": null
+    },
+    {
+      "index": 15,
+      "name": "reserved",
+      "actions": [],
+      "required": false,
+      "default": null
+    }
+  ],
+  "actions": [
+    {
+      "id": 1,
+      "name": "capabilities"
+    },
+    {
+      "id": 2,
+      "name": "catalog"
+    },
+    {
+      "id": 3,
+      "name": "import-assembly"
+    },
+    {
+      "id": 4,
+      "name": "render-assembly"
+    },
+    {
+      "id": 5,
+      "name": "check-assembly"
+    },
+    {
+      "id": 6,
+      "name": "verify"
+    },
+    {
+      "id": 7,
+      "name": "inspect"
+    },
+    {
+      "id": 8,
+      "name": "normalize"
+    },
+    {
+      "id": 9,
+      "name": "build"
+    },
+    {
+      "id": 10,
+      "name": "patch"
+    },
+    {
+      "id": 11,
+      "name": "impact"
+    },
+    {
+      "id": 12,
+      "name": "edit-query"
+    },
+    {
+      "id": 13,
+      "name": "edit-apply"
+    },
+    {
+      "id": 14,
+      "name": "edit-batch-query"
+    },
+    {
+      "id": 15,
+      "name": "edit-batch-apply"
+    }
+  ],
+  "presentation": {
+    "json": "json.dumps(... ensure_ascii=False, indent=2, sort_keys=True) + LF",
+    "json_output_byte_quota": null,
+    "error_json": {
+      "code": "E_DRIVER",
+      "phase": "driver",
+      "status": "error",
+      "ok": false,
+      "exit": 2
+    },
+    "caught": [
+      "OSError",
+      "ValueError",
+      "UnicodeError",
+      "subprocess.SubprocessError"
+    ],
+    "parser": "outside business try; argparse exact status/stdout/stderr"
+  },
+  "handoff": {
+    "event_magic": "HIACDE01",
+    "opcode": 17,
+    "lease": 1,
+    "words4_to11": [
+      "action",
+      "sourceSlot11",
+      "sourceOffset",
+      "sourceBytes",
+      "argvSlot4",
+      "argvCapacity",
+      "parserSlot6",
+      "parserCapacity"
+    ],
+    "source_slots_readonly": [
+      4,
+      6,
+      11
+    ],
+    "fd_already_closed": true,
+    "response": "UNIMPLEMENTED; fixed executor exits126; no fabricated response"
+  },
+  "remaining": {
+    "A": "Root: verify/inspect/normalize, shared metadata",
+    "B": "OPEN: strict assembly import/render/diagnose",
+    "C": "OPEN: object build/link/result",
+    "D": "OPEN: legacy patch/impact",
+    "E": "Root: four edit services; original file/admission order"
+  }
+}
