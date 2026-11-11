@@ -179,7 +179,7 @@ class CoreLoweringSourceTests(unittest.TestCase):
             self.assertEqual(foreign.marker, (None, None, 7))
             with self.assertRaises(FileNotFoundError):
                 backend.emit_program_machine(program)
-            with self.assertRaisesRegex(backend.HIAProgramNativeRejected, 'target'):
+            with self.assertRaisesRegex(backend.HIAProgramNativeRejected, 'E_HIA_PROGRAM_TARGET'):
                 backend.emit_program_machine(program, target='not-the-accepted-target')
         self.assertIn('value', wanted)
 

@@ -289,8 +289,9 @@ def main():
                                 helper_guard(legacy, getattr(backend, legacy))))
                     else:
                         stack.enter_context(patch.dict(os.environ, {
-                            SELECTOR: '', 'HEPTA_HIA_CORE_LOWERING_COLD_REPORT': '',
-                            'HEPTA_HIA_CORE_LOWERING_DEVELOPMENT_MANIFEST': str(manifest),
+                            SELECTOR: '',
+                            'HEPTA_HIA_CORE_LOWERING_COLD_REPORT': str(args.cold_report.resolve()) if args.cold_report else '',
+                            'HEPTA_HIA_CORE_LOWERING_DEVELOPMENT_MANIFEST': '' if args.cold_report else str(manifest),
                             'HEPTA_HIA_CORE_LOWERING_FIXTURE_EVIDENCE': str(directory / 'component-fixture')}))
                     at = time.monotonic()
                     with (directory / (label + '.unittest.log')).open('x') as log:

@@ -1,0 +1,17 @@
+{
+  "schema": "hepta.hia.core-lowering-static-review-correction.v1",
+  "parent_candidate": "582e0d6445fb9c5c0de58757ac8101ec2ef0a76b",
+  "status": "STATIC_CORRECTION_NOT_EXECUTED",
+  "file": "tests/test_hia_core_lowering_native.py",
+  "finding": "The new early-target assertion used lower-case 'target', while the unchanged retained error is E_HIA_PROGRAM_TARGET: direct machine backend supports only x86_64 Linux.",
+  "change": "Match the existing exact structured error code E_HIA_PROGRAM_TARGET. Product source, original API error, and all original tests remain byte-identical.",
+  "old_assertion": "with self.assertRaisesRegex(backend.HIAProgramNativeRejected, 'target'):",
+  "new_assertion": "with self.assertRaisesRegex(backend.HIAProgramNativeRejected, 'E_HIA_PROGRAM_TARGET'):",
+  "native_or_tests_executed": false,
+  "second_correction": {
+    "file": "tools/qualify_hia_core_lowering_callers.py",
+    "finding": "The initial unexecuted qualifier reused its cold-built manifest through the component fixture's explicit DEVELOPMENT branch.",
+    "change": "When --cold-report is requested, the component receives that exact cold report and no development selector; its existing strict builder executes. Development reuse remains only in explicit --development-manifest mode.",
+    "extra_observations": "No old execution was relabelled; this is a pre-execution qualification-scope correction."
+  }
+}
