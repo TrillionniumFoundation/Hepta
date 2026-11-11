@@ -3,7 +3,7 @@ use hia_core_shadow::{execute_owned, execute_scalar, verify, verify_owned};
 use serde_json::{json, Value};
 
 fn example() -> Value {
-    serde_json::from_slice(include_bytes!("../../../examples/hia_program/parameter_loan_return_v8.hia")).unwrap()
+    serde_json::from_slice(include_bytes!("../../../examples/hia_program/parameter_loan_return_v8.hepta")).unwrap()
 }
 
 #[test]
