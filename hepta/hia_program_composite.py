@@ -427,6 +427,18 @@ def _ret(values):
 
 class _Elaborator:
     def __init__(self, document, *, legacy=False):
+        from .hia_composite_constructor_native import selected_composite_constructor
+        constructor = selected_composite_constructor()
+        if constructor is None:
+            self._reference_initialize(document, legacy=legacy)
+            return
+        constructor.initialize(self, document, legacy=legacy)
+        from .hia_composite_functions_native import selected_composite_functions
+        function_owner = selected_composite_functions()
+        self._native_function_session = (None if function_owner is None else
+            function_owner.session(self, legacy=legacy))
+
+    def _reference_initialize(self, document, *, legacy=False):
         _keys(document, {"schema", "module", "types", "functions"}, "nominal program")
         if type(document["schema"]) is not str or document["schema"] not in COMPOSITE_SCHEMAS:
             _reject("unsupported nominal program schema", "E_HIA_SCHEMA")

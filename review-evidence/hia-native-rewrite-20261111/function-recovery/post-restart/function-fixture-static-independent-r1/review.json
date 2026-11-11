@@ -1,0 +1,41 @@
+{
+  "author_notified": true,
+  "configuration_and_cold_gates": [
+    "partial development manifests rejected before building or cache lookup",
+    "any cold selection conflicts with any development selection",
+    "all selected cold paths resolve to one report",
+    "cold build uses all current source bytes, exact 11 successful checks, supported profile and fixed-point compiler identity through unchanged strict builders",
+    "scope and paths form the fixture cache key; development bootstrap never emits a cold qualification receipt"
+  ],
+  "findings": [
+    {
+      "finding": "The bytes passed to compile_stage and the later source_sha256 manifest are from separate source reads; no frozen before/after binding is enforced in this development branch. A source drift between these reads could label an image compiled from A as source B. Cold builder already checks its source readback.",
+      "id": "bootstrap-source-readback",
+      "location": "_bootstrap_development",
+      "recommendation": "freeze source bytes before compile, bind manifest/receipt to those bytes, and re-read all original source/compiler files before exposing fixture cache",
+      "severity": "development fixture provenance gap; not an observed qualification failure"
+    },
+    {
+      "finding": "Fixture pins hash current disk files but do not compare each image digest to its component manifest at pin publication. installed_* may return an already immutable cached mapping without rereading image bytes, so an image drift predating first fixture creation can become the recorded disk pin. The executable mapping itself remains pinned.",
+      "id": "first-custody-manifest-image-binding",
+      "location": "_build_fixture/_custody_paths",
+      "recommendation": "verify every component image payload against manifest.image_sha256 and the loaded image.image_sha256 before recording pins; then check frozen pins on every reuse",
+      "severity": "development fixture disk-custody gap; no executable replacement claim"
+    }
+  ],
+  "native_test_claimed": false,
+  "reviewed_pins": {
+    "tests/hia_composite_function_fixture.py": "e91cc02043c821ecdd2e74f9d4edcceacd7ef77a5c2154aa3ce0a86b16d6679d",
+    "tests/test_hia_composite_functions_native.py": "9bf811c3bfa97e280828b30445554fa6646725eda3a4825ec7e685c14ac80abf"
+  },
+  "schema": "hepta.hia.function-fixture-static-review.v1",
+  "scope": "SOURCE_ONLY_STATIC_REVIEW; no native images loaded/executed, no qualification rerun",
+  "sdist_wheel": [
+    "actual setup.py sdist .tar.gz is consumed by pip wheel",
+    "all required resource payloads are read back from sdist",
+    "installed package runs under -I -S in a separate directory with PATH and PYTHONPATH empty",
+    "authoring tools forbidden and retained semantic helpers poisoned in installed child",
+    "source/image custody mutation tests retained"
+  ],
+  "source_modified": false
+}

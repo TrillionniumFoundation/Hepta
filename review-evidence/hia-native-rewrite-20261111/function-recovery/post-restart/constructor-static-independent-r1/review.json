@@ -1,0 +1,83 @@
+{
+  "all_seven_files_before_after_equal": true,
+  "files": {
+    "docs/HIA_COMPOSITE_CONSTRUCTOR_NATIVE_DESIGN.md": {
+      "bytes": 6345,
+      "sha256": "a8447ece6ef27fd191ca19dc958758b794f7c566efedf3bd040d035a00a22fb8"
+    },
+    "examples/hia_bootstrap/composite_constructor_owner.hiaasm": {
+      "bytes": 115087,
+      "sha256": "c01618dc9cb53b31a3abee03d35b2a6b65c1285048c48207a18ab785010221f0"
+    },
+    "examples/hia_bootstrap/composite_constructor_render.hiaasm": {
+      "bytes": 21066,
+      "sha256": "b95106f35e7bad6fdbd29dd24a1a71f88f575472bae5ecda2a5bc329454e23ec"
+    },
+    "hepta/hia_composite_constructor_errors.py": {
+      "bytes": 1106,
+      "sha256": "d19bd1da6a08a4e78994fb97005061279569c2bb865486f8707927b281a583db"
+    },
+    "hepta/hia_composite_constructor_native.py": {
+      "bytes": 18683,
+      "sha256": "a96f0d973c5c7ab678786a9f2cac18ce48f871375b9622076da65c73f49b5cbc"
+    },
+    "hepta/hia_program_composite.py": {
+      "bytes": 67980,
+      "sha256": "e8b63fb1234cdc3084913011654f1b4a5204ab36762deca4ef01d767054c2d33"
+    },
+    "tools/generate_hia_composite_constructor.py": {
+      "bytes": 21440,
+      "sha256": "ea8466a12ea42f0a819352c8220deaecebcf836df406c32a74965cd7debb8a6f"
+    }
+  },
+  "finding": {
+    "description": "Unknown nonterminal phase123456 accepted by actual frame validator; it checks terminal phase2000 but no nonterminal enum nor phase/pending correlation",
+    "evidence": "unknown-phase-probe.json",
+    "file": "hepta/hia_composite_constructor_native.py",
+    "method": "NativeConstructorInvocation._frame",
+    "probe_scope": "synthetic frame only; not an image/native semantic differential",
+    "recommended_change": "Reject phase outside externally emitted phases10/30/41/50/81/82/2000, bind each pending kind to its expected resume phase, preserve valid continuations and terminal state",
+    "severity": "protocol validation gap"
+  },
+  "not_claimed": [
+    "Complete semantic equivalence",
+    "Constructor cold/default qualification",
+    "Whole-native closure",
+    "Source mutation atomicity beyond the documented detached-input contract"
+  ],
+  "schema": "hepta.hia.constructor-static-independent-review.v1",
+  "scope": "DEVELOPMENT_ONLY_STATIC_REVIEW_AND_ONE_SYNTHETIC_FRAME_PROBE; no native execution or qualification",
+  "source_revision": "author source-r1",
+  "static_verified": [
+    {
+      "evidence": "generator begin_constructor/response(kind1)/ctor_run(phase10), adapter _mirror(stage0..3)",
+      "finding": "schema/legacy/module errors publish no owner attrs; type-init errors publish document/counters/profile only; function-inventory errors publish selected type owner and loan flag but no inventories; stage3 includes all five inventories",
+      "subject": "owner attribute partial states"
+    },
+    {
+      "evidence": "begin_function; ctor_run phases30,40,41,50,60",
+      "finding": "exact fields/name/duplicate precede parameters; returns-list check follows parameter success; every return resolves before stored-loan refusal; v4 origins commit before effects and before function/signature commit",
+      "subject": "ordered function admission"
+    },
+    {
+      "evidence": "ctor_run phases80,81,82; next_definition",
+      "finding": "complete function registry is available first; task declarations are resolved and checked in original type declaration order including unused tasks; first delegated error stops continuation",
+      "subject": "task declarations"
+    },
+    {
+      "evidence": "_custody_index; _stream chooses original index only for final state; commit_function uses ir_source(fn); _mirror document identity and full wire reread",
+      "finding": "final document/functions refer to original already-detached caller tree; typed requests use detached_packet_index; issued descriptors checked bidirectionally in the same native type session",
+      "subject": "object identities"
+    },
+    {
+      "evidence": "unchanged source MAX_BYTES8MiB/MAX_NODES262144/MAX_DEPTH64/MAX_FUNCTIONS1024; constructor192MiB workspace/64MiB transport/64KiB output chunks; typed144IDs/512slots",
+      "finding": "no public gate increase found; source transport envelope fits the validator depth128; complete derived arena upper bound and near-ceiling real-native tests remain author acceptance work",
+      "subject": "budgets"
+    },
+    {
+      "evidence": "elaborate_program docstring; constructor design transport section",
+      "finding": "public bounded exact JSON trees with bool legacy only; float/tuple/custom objects rejected upstream, so broader arbitrary private-call equivalence is not asserted",
+      "subject": "input scope"
+    }
+  ]
+}

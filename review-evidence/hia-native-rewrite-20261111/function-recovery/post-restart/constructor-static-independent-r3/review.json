@@ -1,0 +1,99 @@
+{
+  "adapter_sha256": "2a4642a50aa99a8ddea9881b76fb6a8ddb716ce4c338f1e981b634f42b26e021",
+  "cases": [
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "unknown_phase",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: invalid continuation frame or state correlation"
+    },
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "crossed_phase_response",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: response changed the issued request phase or identity"
+    },
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "changed_profile_response",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: continuation changed the issued profile"
+    },
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "new_request_before_response",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: request kind changed its resume phase or sequence"
+    },
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "duplicate_response",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: response changed the issued request phase or identity"
+    },
+    {
+      "accepted": false,
+      "broken": true,
+      "case": "completion_before_response",
+      "code": "E_HIA_TYPE",
+      "text": "E_HIA_TYPE: native composite constructor transport: completion changed the issued request identity"
+    },
+    {
+      "accepted": true,
+      "case": "valid_full_sequence",
+      "final_frame": [
+        3544423428599662920,
+        2,
+        0,
+        2000,
+        3,
+        4,
+        2,
+        0
+      ]
+    },
+    {
+      "accepted": true,
+      "case": "early_semantic_refusal",
+      "final_frame": [
+        3544423428599662920,
+        2,
+        1,
+        2000,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "accepted": true,
+      "case": "delegated_type_initialization_refusal",
+      "final_frame": [
+        3544423428599662920,
+        2,
+        999,
+        2000,
+        1,
+        4,
+        1,
+        0
+      ]
+    }
+  ],
+  "fix_verified": true,
+  "previous_findings": [
+    "r1 unknown phase accepted",
+    "r2 response phase not tied to issued request"
+  ],
+  "raw_author_r3_log": "/workspace/scratch/9acdfa9f5639/hia-constructor-native-development/frame-r3.log",
+  "schema": "hepta.hia.constructor-frame-fix-independent-review.v1",
+  "scope": "ACTUAL_ADAPTER_FRAME_SYNTHETIC_SEQUENCES_ONLY; no native images loaded/executed",
+  "semantic_native_equivalence_claimed": false,
+  "source_before_after_equal": true
+}
