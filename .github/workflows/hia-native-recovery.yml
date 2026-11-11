@@ -1075,7 +1075,7 @@ jobs:
         shell: bash
         env:
           PYTHONDONTWRITEBYTECODE: '1'
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_exact_c442_cold_r1.py --zip "$RUNNER_TEMP/c442-cold-original.zip" --output "$RUNNER_TEMP/hia-cold-current-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-cold-current-readback-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_exact_c442_cold_r2.py --zip "$RUNNER_TEMP/c442-cold-original.zip" --output "$RUNNER_TEMP/hia-cold-current-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-cold-current-readback-driver.log"
       - name: Retain original archive and complete readback
         if: always()
         uses: actions/upload-artifact@v4
@@ -1134,3 +1134,49 @@ jobs:
           if-no-files-found: error
           retention-days: 90
           compression-level: 0
+
+  cli_entry_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:cli-entry-readback]')
+    name: Read exact 193 CLI entries and 176 reference equivalents
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original archive bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13899330292/zip > "$RUNNER_TEMP/fc457-cli-original.zip"
+      - name: Verify original ZIP and read all original CLI case outputs
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_exact_fc457_cli_r1.py --kind cli --zip "$RUNNER_TEMP/fc457-cli-original.zip" --output "$RUNNER_TEMP/hia-cli-entry-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-cli-entry-readback-driver.log"
+      - name: Retain original archive and complete readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cli-entry-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/fc457-cli-original.zip
+            ${{ runner.temp }}/hia-cli-entry-readback-output
+            ${{ runner.temp }}/hia-cli-entry-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+

@@ -137,6 +137,25 @@ def main():
         checked_source=read(root/"tools/cli_business_executor.S")
         assert generated.encode()==checked_source
         save(out/"composition.json",composition)
+        # Preserve the actual forward-equate failure as an independent as-only
+        # negative control. The old source is never executed or used for packing.
+        old_asm=read(root/"reference/finite-executor-forward-equate-r2.S")
+        old_line=(b"    /* Resume is the actual operation-18 ACK plus the exact HIA reply view. */\n"
+                  b"    mov rax,svc_ACK\n")
+        new_line=(b"    /* The parent ACK is already defined; avoid a forward absolute-equate\n"
+                  b"     * operand that GNU as selects as a 32-bit displacement before resolution. */\n"
+                  b"    mov rax,ACK\n")
+        assert old_asm.count(old_line)==1 and old_asm.replace(old_line,new_line,1)==checked_source
+        negative=out/"forward-equate-original-negative";negative.mkdir()
+        (negative/"source.S").write_bytes(old_asm)
+        command=["as","--64",str(negative/"source.S"),"-o",str(negative/"carrier.o")]
+        result_as=subprocess.run(command,capture_output=True,timeout=20)
+        (negative/"stdout.bin").write_bytes(result_as.stdout)
+        (negative/"stderr.bin").write_bytes(result_as.stderr)
+        save(negative/"process.json",dict(argv=command,exit=result_as.returncode,
+            stdout_bytes=len(result_as.stdout),stderr_bytes=len(result_as.stderr),
+            original_source_sha256=digest(old_asm),repaired_source_sha256=digest(checked_source)))
+        assert result_as.returncode!=0 and b"value of 3130414443414948 too large for field of 4 bytes" in result_as.stderr
         template=out/"template";template.mkdir()
         prefix,tables,assembly=packer_author.template(root/"tools/cli_business_executor.S",template)
         (out/"prefix.bin").write_bytes(prefix)

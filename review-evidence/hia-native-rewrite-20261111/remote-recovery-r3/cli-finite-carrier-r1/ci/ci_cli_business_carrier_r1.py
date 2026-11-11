@@ -10,12 +10,12 @@ FILES={
     "sha256": "717d3bbd4bfc22bcca68aea7375787bfe9b0a355d74279c7258437dda2a4851b"
   },
   "tools/compose_cli_business_executor.py": {
-    "bytes": 21032,
-    "sha256": "38db577e4a95c06059ecf010eb770d7c3ca24dd47c355797e2069601bbfc64bb"
+    "bytes": 21105,
+    "sha256": "8a347ba260b3f92eaa622ea9187393ee36cad676ef5d85058f40d060a9985a11"
   },
   "tools/cli_business_executor.S": {
-    "bytes": 56987,
-    "sha256": "90cd4a88f9cd09674076f078d9d30b6b9a593ba5e369a43f5231ad2686ed828c"
+    "bytes": 57060,
+    "sha256": "f06b915cdfb415894e05c8c4a3e7bbdba9fe9c0bc5b8791878516f91cdfa66de"
   },
   "tools/generate_hia_cli_business_packer.py": {
     "bytes": 6690,
@@ -26,8 +26,8 @@ FILES={
     "sha256": "fd66d47a9675567df0b1a2dc42cd33c40a3dba0ca85bfebfe9d29ec112703a67"
   },
   "tests/test_hia_cli_finite_carrier.py": {
-    "bytes": 21326,
-    "sha256": "545b3bf99173124487866f46f946fb969c92e25f6517a2e0fb7f00845645dcd3"
+    "bytes": 22843,
+    "sha256": "00e4466e70e2407b0fafc66fee99a0e43d1ea24ec516c912cff97f407f2266c3"
   },
   "reference/cli-executor-r4.S": {
     "bytes": 14594,
@@ -44,6 +44,10 @@ FILES={
   "docs/HIA_CLI_BUSINESS_CONTEXT_ABI.md": {
     "bytes": 16750,
     "sha256": "711ffce73e36df623cb5351118d2a5be276e319b03271b1a405ed25e66987c2a"
+  },
+  "reference/finite-executor-forward-equate-r2.S": {
+    "bytes": 56987,
+    "sha256": "90cd4a88f9cd09674076f078d9d30b6b9a593ba5e369a43f5231ad2686ed828c"
   }
 }
 def digest(raw):return sha256(raw).hexdigest()

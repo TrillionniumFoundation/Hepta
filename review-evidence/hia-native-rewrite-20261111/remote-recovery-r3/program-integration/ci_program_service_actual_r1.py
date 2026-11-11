@@ -1,7 +1,7 @@
 """New A service integration through the actual fixed native context carrier."""
 from pathlib import Path
 from hashlib import sha1,sha256
-import importlib.util,json,os,sys,traceback
+import base64,importlib.util,json,os,sys,traceback
 sys.dont_write_bytecode=True
 COMMON=Path(os.environ["HIA_CI_COMMON"]).resolve()
 common_raw=COMMON.read_bytes()
@@ -19,15 +19,15 @@ CARRIER=[
   },
   {
     "path": "tools/compose_cli_business_executor.py",
-    "gitsha": "bf075234ad6bf9cd8327962c035b25f1ae97f4ec",
-    "bytes": 21032,
-    "sha256": "38db577e4a95c06059ecf010eb770d7c3ca24dd47c355797e2069601bbfc64bb"
+    "gitsha": "1be58c4f8acc866f25c2ba5ef634880bbb3cc6a9",
+    "bytes": 21105,
+    "sha256": "8a347ba260b3f92eaa622ea9187393ee36cad676ef5d85058f40d060a9985a11"
   },
   {
     "path": "tools/cli_business_executor.S",
-    "gitsha": "363a543e944fb20a41bde01785d11193d3571913",
-    "bytes": 56987,
-    "sha256": "90cd4a88f9cd09674076f078d9d30b6b9a593ba5e369a43f5231ad2686ed828c"
+    "gitsha": "ac4afce606abaca91b9b63c8ab8c7c3eb34ede0c",
+    "bytes": 57060,
+    "sha256": "f06b915cdfb415894e05c8c4a3e7bbdba9fe9c0bc5b8791878516f91cdfa66de"
   },
   {
     "path": "tools/generate_hia_cli_business_packer.py",
@@ -107,6 +107,34 @@ try:
     context=common.prepare()
     base=Path(context["base"]);workspace=Path(context["workspace"])
     mine=base/"program-integration-recovery";mine.mkdir()
+    # Read-only recovery of the exact retained edit authoring needed for E.
+    # These copies are never imported and do not change the A qualification.
+    authoring_root=mine/"retained-edit-authoring";authoring_root.mkdir()
+    candidates=set()
+    query_root=workspace/"native-edit-controller-next/development/query-compile-r1/source"
+    if query_root.exists():
+        candidates.update(query_root.rglob("*.py"))
+    query_tools=workspace/"native-edit-controller-next/tools"
+    if query_tools.exists():
+        candidates.update(p for p in query_tools.glob("*.py") if "query" in p.name)
+    candidate_root=workspace/"native-edit-candidate-next/development"
+    for name in ("agent_edit_apply_candidate_limit.authoring.py","source-r1.json"):
+        path=candidate_root/name
+        if path.is_file():candidates.add(path)
+    original_rows=[];seen_authoring=set()
+    for path in sorted(candidates):
+        raw=path.read_bytes();relative=str(path.relative_to(workspace))
+        common.PINS[path.resolve()]=raw
+        identity=dict(path=relative,bytes=len(raw),sha256=sha256(raw).hexdigest(),
+            gitsha=sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest())
+        target=authoring_root/relative;target.parent.mkdir(parents=True,exist_ok=True)
+        with target.open("xb") as stream:stream.write(raw)
+        assert target.read_bytes()==raw
+        original_rows.append(identity)
+        if identity["sha256"] not in seen_authoring:
+            seen_authoring.add(identity["sha256"])
+            print("HIA_EDIT_RETAINED_SOURCE "+json.dumps(dict(identity,base64=base64.b64encode(raw).decode()),sort_keys=True),flush=True)
+    (authoring_root/"index.json").write_text(json.dumps(original_rows,sort_keys=True,indent=2)+"\n")
     project=mine/"workspace/native-cli-program-service-integration-r1";project.mkdir(parents=True)
     for row in CARRIER:
         common.materialize(R3+"cli-finite-carrier-r1/"+row["path"],row["gitsha"],project/row["path"])

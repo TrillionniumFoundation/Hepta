@@ -1029,8 +1029,9 @@ business_command_install:
     mov rdi,[rbx+svc_CMDMAP]
     cmp qword ptr [r15+BUS_VERB],1
     je business_initial_command
-    /* Resume is the actual operation-18 ACK plus the exact HIA reply view. */
-    mov rax,svc_ACK
+    /* The parent ACK is already defined; avoid a forward absolute-equate
+     * operand that GNU as selects as a 32-bit displacement before resolution. */
+    mov rax,ACK
     mov [rdi],rax
     mov rax,[rbx+svc_LEASE]
     mov [rdi+8],rax

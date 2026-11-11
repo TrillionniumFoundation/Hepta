@@ -1,0 +1,59 @@
+{
+  "schema": "hia-cli-finite-carrier-observed-forward-equate-fix-r1",
+  "status": "ACTUAL_ORIGINAL_AS_FAILURE_REPAIR_NOT_YET_EXECUTED",
+  "original": {
+    "head": "fc4579420727cfcca72b59e226a6f3af885679f4",
+    "run": 43115476503,
+    "job": 130842226803,
+    "source": {
+      "bytes": 56987,
+      "sha256": "90cd4a88f9cd09674076f078d9d30b6b9a593ba5e369a43f5231ad2686ed828c"
+    },
+    "as_exit": 1,
+    "native_entries": 0,
+    "hialimit_compiles": 0,
+    "error": "source.S:1033: Error: value of 3130414443414948 too large for field of 4 bytes at 00000000000010d3"
+  },
+  "artifact": {
+    "id": 13898716303,
+    "zip_bytes": 43825383,
+    "zip_sha256": "3216496273aa03e5fc6f8ab862f2301f83784e54c9770cf0e91044ba3b742611",
+    "archive_bytes": 5246196,
+    "archive_sha256": "4d63228bc6cf4c6d242d9eb26907c404d7b9b303e6aba3aeae0ffd6eaeaed0a1",
+    "member_index_bytes": 22240,
+    "member_index_sha256": "a29b28f4b961d9265ba41f2f19b988d2c003d42dc3f71ed45d7e428c727ac73d",
+    "members": 63,
+    "original_bytes": 39954294
+  },
+  "change": "One parent-extension mov now refers to the already-defined parent ACK equate of the same 64-bit value. The forward svc_ACK equate appears later. The original bounded child machine is byte-for-byte unchanged in authoring.",
+  "test": "Retain full original as stdout/stderr and failure; next actual gate first replays original as-only failure then preserves zero-relocation/new-source assembly gate and all eighteen existing actual ELF cases.",
+  "preserved": {
+    "actual_test_cases": 18,
+    "private_mechanics": 14,
+    "issued_program_cases": 4,
+    "compile_cpu_seconds": 10,
+    "compile_wall_seconds": 20,
+    "compile_address_space_bytes": 268435456,
+    "elf_cpu_seconds": 90,
+    "elf_address_space_bytes": 1073741824,
+    "elf_wall_seconds": 120
+  },
+  "new": {
+    "source": {
+      "bytes": 57060,
+      "sha256": "f06b915cdfb415894e05c8c4a3e7bbdba9fe9c0bc5b8791878516f91cdfa66de"
+    },
+    "composer": {
+      "bytes": 21105,
+      "sha256": "8a347ba260b3f92eaa622ea9187393ee36cad676ef5d85058f40d060a9985a11"
+    },
+    "test": {
+      "bytes": 22843,
+      "sha256": "00e4466e70e2407b0fafc66fee99a0e43d1ea24ec516c912cff97f407f2266c3"
+    },
+    "driver": {
+      "bytes": 5904,
+      "sha256": "0a49629c8badf4d0d4084874994d2ab9937657882b2a97f8c63fcdc6ad06e28d"
+    }
+  }
+}
