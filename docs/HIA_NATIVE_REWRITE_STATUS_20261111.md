@@ -48,6 +48,28 @@ repair explanation are in
 All component development passes remain separate from exact-source cold
 qualification. A later successful run does not erase an earlier failed run.
 
+The first local combined source control at `f6893c2691e4038f924e44950c4ced845532ad0b`
+reproduced all 53 generators but ended HOLD: 39 methods with one stale workflow
+module-list failure. Its controller also mistakenly included the original cold
+self-test. That method passed, but its final temporary cold evidence was not
+retained; a live 28-phase snapshot is explicitly partial. The original report's
+source-only scope flag is corrected by its adjacent `SCOPE_CORRECTION.md`, not
+silently rewritten or promoted to a retained cold pass.
+
+The repaired source gate at `d03a2968cc7f79a11d5ca8714ccb89a0bdd46001`
+preserves the old five modules and requires both new modules, their cold/fixture
+bindings and all new evidence paths. Its separate source-only execution passed
+all 53 generators and 38 intended source methods in 77.79428683700098 seconds,
+with zero anomalies and all 682 declared-source-plus-contract bytes unchanged.
+The cold self-test remains in the unchanged full regression. These originals
+are under `experiments/hia_v67_qualification_runner_20261111/`.
+
+The checked-in `HIA_NATIVE_REWRITE_INVENTORY.json` still identifies its older
+snapshot in its own `git_head` field. It is historical evidence, not the
+complete inventory of this staged candidate. A new full inventory requires
+the complete exact-commit source checkout and is tracked independently from
+the declared compiler-source contract above.
+
 ### New native owners and precise retained responsibilities
 
 | Owner | Implemented HIA responsibility | Retained production responsibility |
