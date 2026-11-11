@@ -44,6 +44,71 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def validate_complete_output_observation(receipt, actual, *, image_bytes, input_bytes, expected):
+    """Bind a finite whole-program observation to its actual byte-ABI result.
+
+    A correct low u32 and output buffer do not imply ABI success: the upper
+    status word must also be zero. These are observation checks, not a proof of
+    the complete generated program or its surrounding compiler context.
+    """
+    require(type(receipt) is dict and type(actual) is bytes
+            and type(image_bytes) is bytes and type(input_bytes) is bytes
+            and type(expected) is int and 0 <= expected < 1 << 64,
+            "invalid complete-program observation inputs")
+    image_sha, input_sha = digest(image_bytes), digest(input_bytes)
+    low_return = expected & 0xffffffff
+    require(receipt.get("status") == "returned"
+            and type(receipt.get("abi_status")) is int and receipt["abi_status"] == 0
+            and type(receipt.get("result_u64")) is int and receipt["result_u64"] == low_return
+            and type(receipt.get("core_u32")) is int and receipt["core_u32"] == low_return
+            and receipt.get("return_encoding") == "zero-extended-u32"
+            and receipt.get("format") == "flat-x86-64"
+            and receipt.get("source_unchanged") is True
+            and receipt.get("forbidden_compiler_modules_loaded") == []
+            and receipt.get("image_sha256") == image_sha
+            and receipt.get("artifact_sha256") == image_sha
+            and receipt.get("source_sha256") == input_sha
+            and receipt.get("input_sha256") == input_sha
+            and type(receipt.get("input_bytes")) is int and receipt["input_bytes"] == len(input_bytes)
+            and actual == expected.to_bytes(8, "little")
+            and receipt.get("output_sha256") == digest(actual),
+            "complete-program native observation violates its ABI or byte identities")
+    limits = receipt.get("limits")
+    require(type(limits) is dict and type(limits.get("output_capacity")) is int
+            and limits["output_capacity"] == 8 and type(limits.get("workspace_bytes")) is int
+            and limits["workspace_bytes"] == 0,
+            "complete-program native observation used a different buffer contract")
+
+
+def replay_complete_output_observation(directory, label, witness, *, image_bytes, input_bytes, expected):
+    """Rebind the retained raw child output and invocation receipt separately."""
+    directory = Path(directory)
+    actual_input = (directory / (label + ".input.bin")).read_bytes()
+    actual_output = (directory / (label + ".output.bin")).read_bytes()
+    raw = json.loads((directory / (label + ".stdout.log")).read_bytes())
+    receipt = json.loads((directory / (label + ".receipt.json")).read_bytes())
+    require(actual_input == input_bytes, "retained complete-program input differs")
+    validate_complete_output_observation(receipt, actual_output, image_bytes=image_bytes,
+                                         input_bytes=input_bytes, expected=expected)
+    # invoke() adds custody metadata to the original child's JSON. Neither a
+    # summary row nor that augmented receipt may replace the raw observation.
+    required_raw = {"status", "abi_status", "result_u64", "core_u32", "return_encoding",
+        "source_unchanged", "forbidden_compiler_modules_loaded", "image_sha256",
+        "source_sha256", "output_sha256", "limits"}
+    def wire(value):
+        # JSON booleans and integers compare equal in Python; an original
+        # observation's field types are part of its retained identity too.
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    require(type(raw) is dict and required_raw <= raw.keys()
+            and all(key in receipt for key in raw)
+            and wire(raw) == wire({key: receipt[key] for key in raw})
+            and receipt.get("case") == label
+            and type(witness) is dict and wire(witness.get("receipt")) == wire(receipt)
+            and witness.get("observed_output_sha256") == digest(actual_output)
+            and witness.get("finite_observation_only") is True,
+            "retained complete-program raw output, receipt or witness differs")
+
+
 def source_inventory():
     files = [*(ROOT / "hepta").glob("*.py"), *(ROOT / "tools").glob("*.py"),
              ROOT / "docs/HIA_SELFHOST_CORE_SUPPORT.json"]
@@ -209,7 +274,8 @@ def qualify_case(typ, output, seed, linker):
     directory.mkdir()
     source = select_source(typ)
     image, build = compile_stage(directory, "actual-c1-output", seed, source, image_format="seed-shared")
-    site = select_fragment(source, image.read_bytes())
+    image_bytes = image.read_bytes()
+    site = select_fragment(source, image_bytes)
     save(directory / "source-binding.json", site)
     disassembly = disassembly_witness(image, site, directory)
     whole_program_observations = []
@@ -219,9 +285,8 @@ def qualify_case(typ, output, seed, linker):
         receipt, actual = invoke(directory, "whole-output-case-" + str(index), image, data,
                                  capacity=8, workspace_size=0)
         expected = int(case["expected"])
-        require(receipt.get("status") == "returned" and receipt.get("core_u32") == expected & 0xffffffff
-                and actual == expected.to_bytes(8, "little") and receipt.get("source_unchanged"),
-                "actual complete generated program differs on a finite dynamic select case")
+        validate_complete_output_observation(receipt, actual, image_bytes=image_bytes,
+                                             input_bytes=data, expected=expected)
         whole_program_observations.append({"case": case, "receipt": receipt,
             "observed_output_sha256": digest(actual), "finite_observation_only": True})
     save(directory / "whole-output-finite-witnesses.json", whole_program_observations)
