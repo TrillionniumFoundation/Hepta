@@ -16,7 +16,8 @@ from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 if __package__ in {None,''}:sys.path.insert(0,str(ROOT))
 from tools.qualify_hia_machine_state_callers import (
-    ORIGINAL_MODULES,flatten,strict_pass,source_pins,copy_manifest)
+    ORIGINAL_MODULES,flatten,strict_pass,source_pins,copy_manifest,
+    _require,cold_accounting_context,capture_native_group,record_native_return,finish_native_accounting)
 COMPONENT_MODULES=('tests.test_hia_machine_instructions_native',)
 
 def main():
@@ -46,20 +47,35 @@ def main():
     started=time.monotonic()
     instruction_entries,state_entries,encoding_entries,per_test=Counter(),Counter(),Counter(),Counter()
     active_test=['outside-test']
+    active_group=['outside-group']
+    group_bindings,normal_returns,image_identity_changes={},{},[]
+    cold_context=None
     original_run,original_state,original_encode=(
         NativeMachineInstructions.run,NativeMachineState.run,NativeMachineEncoding.encode)
     def tracked_run(owner,receiver,mode,*arguments):
+        image_before=getattr(owner,'image_sha256',None)
         if hasattr(owner,'image_sha256'):
             instruction_entries[MODES[mode-1]]+=1
             per_test[active_test[0]]+=1
-        return original_run(owner,receiver,mode,*arguments)
+        value=original_run(owner,receiver,mode,*arguments)
+        record_native_return(normal_returns,image_identity_changes,active_group[0],
+            'instructions',owner,image_before,MODES[mode-1])
+        return value
     def tracked_state(owner,receiver,mode,*arguments):
+        image_before=getattr(owner,'image_sha256',None)
         if hasattr(owner,'image_sha256'):
             state_entries[STATE_MODES[mode-1]]+=1
-        return original_state(owner,receiver,mode,*arguments)
+        value=original_state(owner,receiver,mode,*arguments)
+        record_native_return(normal_returns,image_identity_changes,active_group[0],
+            'state',owner,image_before,STATE_MODES[mode-1])
+        return value
     def tracked_encode(owner,command,**values):
+        image_before=getattr(owner,'image_sha256',None)
         if hasattr(owner,'image_sha256'):encoding_entries[command]+=1
-        return original_encode(owner,command,**values)
+        value=original_encode(owner,command,**values)
+        record_native_return(normal_returns,image_identity_changes,active_group[0],
+            'encoding',owner,image_before,command)
+        return value
     def forbidden(name):
         def fail(*arguments,**keywords):
             report['retained_owner_entries'].append(name)
@@ -67,6 +83,7 @@ def main():
         return fail
     inputs=[]
     try:
+        cold_context=cold_accounting_context(args.cold_report)
         if args.cold_report:
             from tools.build_hia_machine_instructions import build
             from tools.build_hia_machine_state import build as build_state
@@ -105,6 +122,7 @@ def main():
             for label,modules,expected_count,guard in (
                 ('component',COMPONENT_MODULES,12,False),
                 ('original-callers',ORIGINAL_MODULES,51,True)):
+                active_group[0]=label
                 loader=unittest.TestLoader()
                 suite=loader.loadTestsFromNames(modules)
                 loaded=[test.id() for test in flatten(suite)]
@@ -119,6 +137,8 @@ def main():
                     raise AssertionError('complete unchanged method denominator did not load')
                 with ExitStack() as guards:
                     if guard:
+                        capture_native_group(group_bindings,label,{'instructions':manifest,
+                            'state':state_manifest,'encoding':encoding_manifest},cold_context,before)
                         guards.enter_context(patch.dict(os.environ,{
                             SELECTOR:str(manifest),STATE_SELECTOR:str(state_manifest),
                             ENCODING_SELECTOR:str(encoding_manifest)}))
@@ -135,9 +155,19 @@ def main():
                     else:
                         guards.enter_context(patch.dict(os.environ,{
                             SELECTOR:'',STATE_SELECTOR:'',ENCODING_SELECTOR:'',
-                            'HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT':'',
-                            'HEPTA_HIA_MACHINE_INSTRUCTIONS_DEVELOPMENT_BUNDLE':str(bundle),
+                            'HEPTA_HIA_MACHINE_INSTRUCTIONS_COLD_REPORT':str(args.cold_report.resolve()) if args.cold_report else '',
+                            'HEPTA_HIA_MACHINE_INSTRUCTIONS_DEVELOPMENT_BUNDLE':'' if args.cold_report else str(bundle),
                             'HEPTA_HIA_MACHINE_INSTRUCTIONS_FIXTURE_EVIDENCE':str(directory/'component-fixture')}))
+                        component=sys.modules[COMPONENT_MODULES[0]].MachineInstructionsNativeTests
+                        original_setup=component.setUpClass
+                        def setup(cls):
+                            original_setup()
+                            _require(cls.scope==('MATCHING_SOURCE_COLD_BUILD' if args.cold_report
+                                                else 'EXPLICIT_DEVELOPMENT_ONLY'),
+                                     'native instruction component selected the wrong scope')
+                            capture_native_group(group_bindings,label,{'instructions':cls.manifest,
+                                'state':cls.state_manifest,'encoding':cls.encoding_manifest},cold_context,before)
+                        guards.enter_context(patch.object(component,'setUpClass',classmethod(setup)))
                     at=time.monotonic()
                     with (directory/(label+'.unittest.log')).open('x') as stream:
                         result=unittest.TextTestRunner(stream=stream,verbosity=2,resultclass=Result).run(suite)
@@ -158,10 +188,9 @@ def main():
     report['native_state_entries']=dict(state_entries)
     report['native_byte_command_entries']=dict(encoding_entries)
     report['per_test_native_instruction_entries']=dict(per_test)
-    report['source_after']=source_pins()
-    report['source_stable']=before==report['source_after']
-    report['manifest_images_bundle_stable']=bool(inputs) and all(path.read_bytes()==raw for path,raw in inputs)
-    if not report['source_stable'] or not report['manifest_images_bundle_stable']:report['status']='FAIL'
+    finish_native_accounting(report,group_bindings,normal_returns,image_identity_changes,
+        {'instructions':MODES,'state':STATE_MODES,'encoding':COMMANDS},cold_context,
+        args.cold_report,before,inputs)
     report['seconds']=time.monotonic()-started
     (directory/'report.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
     print(json.dumps({key:report[key] for key in ('schema','scope','status','source_stable','manifest_images_bundle_stable','seconds')}|
