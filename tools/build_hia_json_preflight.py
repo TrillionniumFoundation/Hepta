@@ -62,7 +62,8 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
+    candidates = {'machine-encoding': ('machine_encoding', 'machine-encoding'),
+                  'machine-plan': ('machine_plan', 'machine-plan'),
                   'agent-journal': ('agent_journal', 'agent-journal'),
                   'worker-request': ('worker_request', 'worker-request'),
                   'core-admission': ('core_admission', 'core-admission'),
@@ -112,7 +113,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != raw or current_sources() != sources):
         raise ValueError('native candidate build inputs changed')
-    protocol_version = '2' if candidate == 'agent-journal' else '1'
+    protocol_version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
     manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
@@ -128,8 +129,10 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         'hia_json_canonical_wire_implemented': candidate == 'canonical',
         'hia_primitive_Core_representation_frontend': candidate == 'core-frontend',
         'hia_workspace_JSON_graph_and_Core_materialization': candidate == 'core-workspace-json',
-        'foreign_object_bridge_is_python': candidate in ('decode', 'machine-plan'),
+        'foreign_object_bridge_is_python': candidate in ('decode', 'machine-plan', 'machine-encoding'),
         'hia_machine_plan_validation_and_witness': candidate == 'machine-plan',
+        'hia_machine_instruction_bytes': candidate == 'machine-encoding',
+        'host_Code_state_operand_admission_and_ELF_writer_retained': candidate == 'machine-encoding',
         'whole_stack_rewritten_in_hia': False}, indent=2, sort_keys=True) + '\n')
     return path
 

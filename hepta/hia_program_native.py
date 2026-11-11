@@ -76,7 +76,8 @@ def _implementation_hash():
     for name in (
         "hia_schema.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
         "hia_json_preflight.py", "hia_program_composite.py", "hia_program_native.py",
-        "hia_machine_x64.py", "hia_machine_elf.py", "hia_machine_plan.py", "hia_machine_plan_native.py",
+        "hia_machine_x64.py", "hia_machine_encoding_native.py", "hia_machine_elf.py",
+        "hia_machine_plan.py", "hia_machine_plan_native.py",
         "hia_instruction_policy_native.py", "hia_json_preflight_native.py",
         "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
         "hia_heap_bound.py", "artifact_publication.py",
@@ -86,6 +87,8 @@ def _implementation_hash():
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
     from .hia_machine_plan import native_implementation_identity
     digest.update(b'native-machine-plan\0' + native_implementation_identity() + b'\0')
+    from .hia_machine_x64 import native_implementation_identity as encoding_identity
+    digest.update(b'native-machine-encoding\0' + encoding_identity() + b'\0')
     return digest.hexdigest()
 
 
@@ -679,10 +682,19 @@ def validate_block_layout_plan(program, machine_plan):
 
 
 def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_buffer_exports=()):
-    """Recheck immutable Core and emit deterministic native object bytes."""
-    from .hia_program import VerifiedProgram, verify_program
+    """Pin one instruction-byte owner while rechecking and emitting immutable Core."""
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
+    from .hia_machine_x64 import native_encoding_scope
+    with native_encoding_scope():
+        return _emit_program_machine_with_encoding(
+            program, target=target, machine_plan=machine_plan,
+            foreign_buffer_exports=foreign_buffer_exports)
+
+
+def _emit_program_machine_with_encoding(program, *, target, machine_plan, foreign_buffer_exports):
+    """Recheck immutable Core and emit deterministic native object bytes."""
+    from .hia_program import VerifiedProgram, verify_program
     before = _implementation_hash()
     if not isinstance(program, VerifiedProgram):
         _reject("an immutable VerifiedProgram from verify_program is required")

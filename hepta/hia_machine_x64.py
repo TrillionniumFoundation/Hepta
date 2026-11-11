@@ -6,6 +6,9 @@ the executable/disassembly tests check its admitted instruction surface.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+import os
 import re
 import struct
 
@@ -22,6 +25,41 @@ _CONDITIONS = {
 }
 _SYMBOL = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,191}\Z")
 MAX_CODE_BYTES = 64 * 1024 * 1024
+
+
+_UNSELECTED = object()
+_NATIVE_OWNER = ContextVar('hia_machine_encoding_native_owner', default=_UNSELECTED)
+_NATIVE_SELECTOR = 'HEPTA_HIA_MACHINE_ENCODING_MANIFEST'
+
+
+def _selected_owner():
+    owner = _NATIVE_OWNER.get()
+    if owner is not _UNSELECTED:
+        return owner
+    path = os.environ.get(_NATIVE_SELECTOR)
+    if not path:
+        return None
+    from .hia_machine_encoding_native import installed_machine_encoding
+    return installed_machine_encoding(path)
+
+
+@contextmanager
+def native_encoding_scope():
+    """Pin one explicit selection, including no selection, across a whole emit."""
+    token = _NATIVE_OWNER.set(_selected_owner())
+    try:
+        yield
+    finally:
+        _NATIVE_OWNER.reset(token)
+
+
+def native_implementation_identity():
+    owner = _selected_owner()
+    if owner is None:
+        return b''
+    from hashlib import sha256
+    from .hia_machine_encoding_native import SOURCE
+    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' + owner.image_sha256).encode('ascii')
 
 
 class MachineEncodingError(ValueError):
@@ -54,6 +92,16 @@ class Code:
     implicit indexed addressing. ``finalize`` does not mutate the image and
     therefore produces identical bytes on repeated calls.
     """
+
+    def __new__(cls, *args, **kwargs):
+        # Existing subclasses keep their own virtual instruction methods.
+        # Only an ordinary Code construction selects this explicit byte owner.
+        if cls is Code:
+            owner = _selected_owner()
+            if owner is not None:
+                from .hia_machine_encoding_native import selected_code_class
+                return object.__new__(selected_code_class(owner))
+        return object.__new__(cls)
 
     def __init__(self, *, scratch_registers=None, move_immediate="movabs", alu_immediate="imm32"):
         # Both registers are explicit scratch operands, never implicit ISA or
