@@ -1,0 +1,210 @@
+"""Reproduce all 59 frozen generators and source accounting; no native image runs."""
+from __future__ import annotations
+import ast
+import json
+from pathlib import Path
+import subprocess
+import sys
+import time
+import traceback
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from author_common import (BASE_COMMIT, BASE_TREE, BASE_LEAF_COUNT, GOOD_AUTHOR_STATUS,
+    atomic_report, base_entries, blob, check_unchanged_outside, create, digest, git,
+    index_snapshot, load_policy, read_regular, require, save_new)
+
+root = Path(sys.argv[1]).resolve(strict=True)
+source = Path(sys.argv[2]).resolve(strict=True)
+control = Path(__file__).resolve().parent
+policy = load_policy(control)
+started = time.monotonic()
+report = {
+    "schema": "hia.native-stack.complete-source-reproduction.v1",
+    "status": "STARTED", "scope": "ISOLATED_SOURCE_REPRODUCTION_AND_SYNTHETIC_CONTROLS_ONLY",
+    "commands": [], "native_compilation_executed": False, "product_tests_executed": False,
+    "matching_current_cold": False, "whole_native_delivery": False,
+    "python": sys.version, "executable": sys.executable,
+    "base_product_commit": BASE_COMMIT, "base_product_tree": BASE_TREE,
+}
+
+def run(label, arguments):
+    at = time.monotonic()
+    out, err = (root / "commands" / (label + suffix) for suffix in (".stdout", ".stderr"))
+    create(out, b"")
+    create(err, b"")
+    item = {"label": label, "argv": arguments, "cwd": str(source), "returncode": None,
+            "timeout_seconds": 120}
+    try:
+        with out.open("ab", buffering=0) as stdout, err.open("ab", buffering=0) as stderr:
+            completed = subprocess.run(arguments, cwd=source, stdin=subprocess.DEVNULL,
+                stdout=stdout, stderr=stderr, timeout=120, close_fds=True)
+        item["returncode"] = completed.returncode
+        require(completed.returncode == 0, label + " returned " + str(completed.returncode))
+    except BaseException:
+        item["exception"] = traceback.format_exc()
+        raise
+    finally:
+        item["seconds"] = time.monotonic() - at
+        for key, path in (("stdout", out), ("stderr", err)):
+            raw, _ = read_regular(path)
+            item[key] = {"path": path.relative_to(root).as_posix(), "bytes": len(raw),
+                         "sha256": digest(raw)}
+        report["commands"].append(item)
+        atomic_report(root / "worker-report.json", report)
+
+try:
+    require(tuple(sys.version_info[:3]) == (3, 14, 4), "fixed Python version differs")
+    base = base_entries(source)
+    require(git(source, "write-tree").decode().strip() == BASE_TREE, "initial index differs")
+    baseline = index_snapshot(source)
+    require(len(baseline) == BASE_LEAF_COUNT
+        and [{k: r[k] for k in ("path", "mode", "git_blob")} for r in baseline] == base,
+        "full baseline source bytes/modes differ")
+    save_new(root / "base-source-leaves.json", baseline)
+    parsed = []
+    for name in policy["parse_paths"]:
+        raw, _ = read_regular(source / name)
+        ast.parse(raw.decode("utf-8"), filename=name)
+        parsed.append(name)
+    report["parsed_python_files"] = parsed
+    require(len(policy["generators"]) == len(set(policy["generators"])) == 59,
+            "original 55 plus four new generator denominator differs")
+    for component in policy["generators"]:
+        run("generate-" + component,
+            [sys.executable, "-B", "-m", "tools.generate_hia_" + component])
+    reproduced = index_snapshot(source)
+    require(reproduced == baseline, "a generator changed canonical source bytes or modes")
+    report["all_59_generators_reproduced_canonical_source"] = True
+    report["generated_source_changes"] = []
+    # Coverage reads the current profile; the second contract regeneration binds
+    # the final coverage bytes. Both original checks then run on the same source.
+    run("generate-contract-before-coverage",
+        [sys.executable, "-B", "-m", "tools.generate_hia_selfhost_contract"])
+    run("generate-coverage",
+        [sys.executable, "-B", "tests/test_hia_selfhost_language_coverage.py", "--generate-inventory"])
+    run("generate-contract",
+        [sys.executable, "-B", "-m", "tools.generate_hia_selfhost_contract"])
+    run("check-contract",
+        [sys.executable, "-B", "-m", "tools.generate_hia_selfhost_contract", "--check"])
+    run("check-source-scope", [sys.executable, "-B", "tools/check_hia_core_only.py"])
+    run("check-accounting-controls", [sys.executable, "-I", "-S", "-B",
+        str(control / "accounting-controls/check_accounting_controls.py"),
+        "--source", str(source), "--output", str(root / "accounting-controls")])
+    control_raw, _ = read_regular(root / "accounting-controls/report.json")
+    result = json.loads(control_raw)
+    expected = policy["accounting_test_ids"]
+    require(result["status"] == "CONTROL_ONLY_PASS"
+        and result["scope"] == "SYNTHETIC_RECEIPT_AND_SOURCE_CONTROLS_ONLY"
+        and result["product_execution"] is False
+        and result["cold_qualification"] is False
+        and result["compiler_or_native_image_executed"] is False
+        and result["loaded_ids"] == result["executed_ids"] == expected
+        and result["tests_run"] == len(expected) == 11 and result["loader_errors"] == []
+        and all(result[key] == [] for key in
+            ("failures", "errors", "skipped", "expectedFailures", "unexpectedSuccesses"))
+        and result["source_stable"] is True,
+        "complete eleven source/accounting controls did not pass")
+    report["accounting_controls"] = {
+        "report_path": "accounting-controls/report.json",
+        "bytes": len(control_raw), "sha256": digest(control_raw),
+        "loaded_ids": result["loaded_ids"], "executed_ids": result["executed_ids"],
+        "tests_run": result["tests_run"], "scope": result["scope"],
+        "all_five_anomalies_zero": True,
+    }
+    run("check-compiler-gate-controls", [sys.executable, "-I", "-S", "-B",
+        str(control / "gate_controls.py"), "--source", str(source),
+        "--output", str(root / "compiler-gate-controls")])
+    gate_raw, _ = read_regular(root / "compiler-gate-controls/report.json")
+    gate_controls = json.loads(gate_raw)
+    require(gate_controls["status"] == "CONTROL_ONLY_PASS"
+        and gate_controls["scope"] == "SYNTHETIC_COMPILER_GATE_CONTROLS_ONLY"
+        and gate_controls["loaded_ids"] == gate_controls["executed_ids"] == policy["compiler_gate_test_ids"]
+        and gate_controls["tests_run"] == len(policy["compiler_gate_test_ids"])
+        and gate_controls["tests_run"] > 0 and gate_controls["loader_errors"] == []
+        and gate_controls["source_stable"] is True
+        and all(gate_controls[key] == [] for key in
+            ("failures", "errors", "skipped", "expectedFailures", "unexpectedSuccesses"))
+        and all(gate_controls[key] is False for key in
+            ("product_execution", "cold_qualification", "compiler_or_native_image_executed")),
+        "complete compiler-gate source controls did not pass")
+    report["compiler_gate_controls"] = {
+        "report_path": "compiler-gate-controls/report.json",
+        "bytes": len(gate_raw), "sha256": digest(gate_raw),
+        "loaded_ids": gate_controls["loaded_ids"], "executed_ids": gate_controls["executed_ids"],
+        "tests_run": gate_controls["tests_run"], "scope": gate_controls["scope"],
+        "all_five_anomalies_zero": True,
+    }
+    run("check-integration-source-controls", [sys.executable, "-I", "-S", "-B",
+        str(control / "integration_controls.py"), "--source", str(source),
+        "--output", str(root / "integration-source-controls")])
+    integration_raw, _ = read_regular(root / "integration-source-controls/report.json")
+    integration_controls = json.loads(integration_raw)
+    require(integration_controls["status"] == "CONTROL_ONLY_PASS"
+        and integration_controls["scope"] == "ORIGINAL_SOURCE_WORKFLOW_RESOURCE_AND_RELEASE_CONTROLS_ONLY"
+        and integration_controls["loaded_ids"] == integration_controls["executed_ids"] ==
+            policy["integration_control_test_ids"]
+        and integration_controls["tests_run"] == len(policy["integration_control_test_ids"]) == 24
+        and integration_controls["loader_errors"] == [] and integration_controls["source_stable"] is True
+        and all(integration_controls[key] == [] for key in
+            ("failures", "errors", "skipped", "expectedFailures", "unexpectedSuccesses"))
+        and all(integration_controls[key] is False for key in
+            ("product_execution", "cold_qualification", "compiler_or_native_image_executed")),
+        "complete original integration source controls did not pass")
+    report["integration_source_controls"] = {
+        "report_path": "integration-source-controls/report.json",
+        "bytes": len(integration_raw), "sha256": digest(integration_raw),
+        "loaded_ids": integration_controls["loaded_ids"],
+        "executed_ids": integration_controls["executed_ids"],
+        "tests_run": integration_controls["tests_run"],
+        "scope": integration_controls["scope"], "all_five_anomalies_zero": True,
+    }
+    output_paths = sorted(policy["candidate_paths"])
+    require(output_paths == ["docs/HIA_SELFHOST_CORE_SUPPORT.json",
+                             "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"],
+            "only two reviewed derived JSON outputs may change")
+    run("stage-candidate", ["/usr/bin/git", "add", "--", *output_paths])
+    tree = git(source, "write-tree").decode().strip()
+    changed = git(source, "diff", "--name-only", BASE_TREE, tree, "--").decode().splitlines()
+    require(set(changed) <= set(output_paths), "unapproved generated output change")
+    leaves = index_snapshot(source)
+    require(len(leaves) == BASE_LEAF_COUNT, "candidate source denominator changed")
+    check_unchanged_outside(base, leaves, set(output_paths))
+    save_new(root / "candidate-source-leaves.json", leaves)
+    report.update(candidate_index_tree=tree, candidate_changed_paths=changed,
+                  candidate_source_leaves=len(leaves),
+                  all_non_generated_source_bytes_preserved=True,
+                  all_59_generators=list(policy["generators"]))
+    report["source_identity_binding"] = {
+        "actual_HEAD": git(source, "rev-parse", "HEAD").decode().strip(),
+        "base_product_commit": BASE_COMMIT, "base_product_index_tree": BASE_TREE,
+        "actual_materialized_index_tree": tree,
+        "not_claimed_checked_out_canonical_candidate_commit": True}
+    sys.path.insert(0, str(source))
+    from tools.hia_selfhost_contract import file_digests, CONTRACT_PATH
+    pins = file_digests(source)
+    require(len(pins) == policy["expected_bound_source_files"],
+            "final complete declared-source denominator differs")
+    pins[CONTRACT_PATH] = digest(read_regular(source / CONTRACT_PATH)[0])
+    save_new(root / "candidate-source-pins.json", pins)
+    report["candidate_source_pins"] = len(pins)
+    report["status"] = GOOD_AUTHOR_STATUS
+except BaseException:
+    report["status"] = "HOLD"
+    report["exception"] = traceback.format_exc()
+finally:
+    try:
+        report["base_head_after"] = git(source, "rev-parse", "HEAD").decode().strip()
+        require(report["base_head_after"] == BASE_COMMIT, "base HEAD changed")
+        policy_after = load_policy(control)
+        require(policy_after == policy, "frozen policy changed during source reproduction")
+        report["frozen_inputs_preserved"] = True
+    except BaseException:
+        report["status"] = "HOLD"
+        report["final_identity_error"] = traceback.format_exc()
+    report["seconds"] = time.monotonic() - started
+    atomic_report(root / "worker-report.json", report)
+    print(json.dumps({k: report.get(k) for k in (
+        "schema", "status", "scope", "seconds", "candidate_index_tree",
+        "candidate_source_leaves", "candidate_source_pins", "exception")},
+        sort_keys=True), flush=True)
+raise SystemExit(0 if report["status"] == GOOD_AUTHOR_STATUS else 1)
