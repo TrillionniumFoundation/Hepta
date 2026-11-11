@@ -29,20 +29,67 @@ The native formatter selector is captured and admitted at the original final
 wire entry point. Arbitrary untrusted observers or corrupted private
 continuations are outside the native ABI trust boundary.
 
-## Development checks and outstanding work
+## Protocol and preserved order
 
-The first actual development policy image passed four independent comparisons
-against the retained worker: success, an extra manifest field changing, a caught
-service exception and an uncaught service exception. The comparison covered
-output and stderr bytes, return or exception, and construction/call/close/after
-order. These four checks are not a substitute for the dedicated suite, installed
-resource tests, source-bound cold build or whole-project regression.
+The policy entry uses `HIAWKR01`, a 112-byte initialization packet and sequenced
+continuation replies. Replies have eight unsigned 64-bit header slots, followed
+only by the requested codepoint/magnitude chunk or stored dictionary hash. The
+program checks opcode, sequence, error tag and exact packet extent before
+consumption. Each string/magnitude observation is at most 1024 words. The
+workspace is private and initialized by the adapter; arbitrary corrupted
+continuations and fabricated object facts are not an untrusted-input sandbox.
 
-The structured manifest comparison currently uses the observed runtime recursion
-limit to bound native frames. Ordinary installation manifests contain three
-string hashes. Exact CPython recursion-resource behavior for pathological cyclic
-or deeply nested extension manifests remains to be independently checked; this
-checkpoint does not claim arbitrary Python graph refinement at that boundary.
+Native virtual handles occupy the high half of the unsigned 64-bit namespace.
+HIA owns their kind, pair table, UTF-32 literals, slices and concatenations.
+Foreign values retain their original low handles, so sharing and cycles are not
+lost during transport. Python can materialize native scalar text for requested
+attribute names and text IO, but cannot materialize a virtual dictionary.
+
+The policy keeps initial installation observation outside the protected worker
+region; checks administrator worker/backend/catalog pins before stdin; marks
+service entry immediately before resolving and calling `service.call`; and
+closes the service after either a successful call or an exception. A close
+exception overrides the pending call exception. Only successful call and close
+permit the final installation observation. A changed complete manifest is
+adopted before stale/UNKNOWN routing. Report catalog identity remains the
+request value, while worker/backend identities use the adopted manifest.
+
+Correlation checks exact dictionary type and presence of the four original
+fields without reading their values. An entered-service exception is replaced
+with UNKNOWN before reading any of its properties. Otherwise the error callback
+order is UUID, code, message, retry; slicing is by 4096 Unicode codepoints,
+typename fallback is untruncated, and report fields are read after those
+callbacks. Uncorrelated empty messages remain a single stderr newline. Error
+callbacks, report graph validation and output IO remain outside the original
+catch region. The caught classes remain ValueError/OSError/TypeError/
+OverflowError/RecursionError; other exceptions propagate after required close.
+
+## Development checks and unresolved scope
+
+The dedicated development runs exercised 17 distinct test methods: 13 methods
+in one source/native run and four additional composition/SQLite/wheel methods.
+Both runs had zero failures, errors or skips. They cover independent Core VM
+execution of the virtual report, actual native byte/order comparisons, 160
+seeded numeric/container comparisons, effectful leaf/key observations, 35
+foreign exception location/class controls, callback mutations, 4095/4096/4097
+codepoint boundaries, complete report byte/node/depth budgets, protocol
+refusals/canaries, source/manifest rebinding, independent request selection,
+actual SQLite close/reopen replay/conflict/running UNKNOWN, and an actual wheel
+ordinary entry with no authoring import or retained report owner. These are
+development controls, not matching-source cold or whole-project qualification.
+
+One concrete extension-domain mismatch remains open. The current native frame
+budget comes from `sys.getrecursionlimit()`, which is not CPython's builtin
+comparison C recursion budget. On the observed CPython 3.12.14 build, with that
+limit set to 1000, independently constructed extension lists at depth 1000
+compare successfully in the retained worker but reach the candidate's native
+frame limit and return UNKNOWN. Depths 128, 500, 700, 749, 750, 900 and 999 matched
+in the retained observations. CPython's separate C recursion/stack policy must
+not be replaced by a guessed version table or a hosted whole-manifest fallback.
+Ordinary `installation_manifest()` returns exactly three hash strings and does
+not produce this extension shape. Arbitrary foreign recursive resource
+exhaustion is explicitly not closed, and this candidate does not claim all
+Python graph resource behavior to be equivalent.
 
 The builder's `--development` mode records `DEVELOPMENT_ONLY_NOT_MATCHING_SOURCE_COLD`.
 Production qualification must use `--cold-report` for the current source closure.
