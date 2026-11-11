@@ -1,0 +1,9 @@
+# Reconstructed component checkpoint r4
+
+This checkpoint preserves completed, newly identified development work and original failures. It does not close the native product, install a production selector, or remove the retained stack.
+
+* Core final-budget r1: two complete raw archives with external member manifests. The root independently read all 4,042 files, compared every byte digest, length and mode, and checked both archives. The component includes 391 fresh native cases (3,124 visitor and 371 native issuer entries), 432 independent structural/byte controls, and exact node/depth/8 MiB boundaries. Complete driver composition and cold qualification are separate. The immutable issuer lease and immediate discard of a too-short poisoned workspace remain fixed-driver obligations.
+* Namespace rows reconstructed r1: seven frozen sources, actual ROG preparation failure and narrow generated-mode correction. This archive has zero VM/native semantic executions and does not replace the old unavailable transaction or row run. A subsequent new VM run was started separately and is not included here.
+* Root v67: the original complete 331-test source gate passed with all five anomaly categories empty and unchanged 644-file source closure. GitHub run 43020215648 rejected the original workflow before any job because one step repeated env. The new control reproduces the refusal; merging the environment preserves both the original cold binding and new evidence path. Five workflow controls and all 50 preparation steps then pass. The new source head is 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5; its complete source and cold/retained jobs were still running at this checkpoint. The earlier failure and pre-refresh contract failure logs are original and retained.
+
+The services file is a new, ungenerated/uncompiled authoring draft and makes no native execution claim. Earlier lost originals retain their recorded unavailable status.
