@@ -297,6 +297,49 @@ class WireNativeTests(unittest.TestCase):
         for maximum in (True, None, -1, MAXIMUM + 1, 1 << 100):
             self.assert_same(None, maximum)
 
+    def test_virtual_parent_nodes_share_foreign_graph_depth_and_node_budgets(self):
+        class Virtual:
+            ROOT = (1 << 63) + 1
+            NESTED = ROOT + 1
+            def __init__(self, value):
+                self.foreign = ForeignGraphObserver()
+                self.value_handle = self.foreign.register(value)
+                self.outer_key = self.foreign.register('outer')
+                self.inner_key = self.foreign.register('value')
+            def summary(self, handle):
+                if handle in (self.ROOT, self.NESTED): return 7, 1, 0, 0
+                return self.foreign.summary(handle)
+            def child(self, handle, index, part):
+                if handle == self.ROOT:
+                    assert index == 0
+                    return self.outer_key if part == 0 else self.NESTED
+                if handle == self.NESTED:
+                    assert index == 0
+                    return self.inner_key if part == 0 else self.value_handle
+                return self.foreign.child(handle, index, part)
+            def points(self, *args): return self.foreign.points(*args)
+            def limbs(self, *args): return self.foreign.limbs(*args)
+        cases = [({'z': [1.25, '雪'], 'a': None}, 4096), (None, 2), (None, 3)]
+        nested = 0
+        for _ in range(127): nested = [nested]
+        cases.append((nested, 4096))
+        for value, maximum in cases:
+            observer = Virtual(value)
+            expected = outcome(lambda: bounded_json_wire({'outer': {'value': value}}, maximum,
+                                                         ensure_ascii=False, sort_keys=True))
+            actual = outcome(lambda: self.image.encode_observed(observer, observer.ROOT, maximum))
+            self.assertEqual(actual, expected)
+
+    def test_exact_full_graph_node_ceiling_and_no_early_transport_expansion(self):
+        value = [None] * 262143
+        expected = bounded_json_wire(value, MAXIMUM, ensure_ascii=False)
+        self.assertEqual(self.image.encode(value, MAXIMUM), expected)
+        observer = ForeignGraphObserver()
+        root = observer.register([None] * 262144)
+        with patch.object(observer, 'child', side_effect=AssertionError('pre-expanded rejected fanout')):
+            result = outcome(lambda: self.image.encode_observed(observer, root, MAXIMUM))
+        self.assertEqual(result, ('HIAEditRejected', 'E_HIA_EDIT: JSON container exceeds queued-node/byte budget'))
+
     def test_installed_wheel_resource_identity_and_no_retained_encoder(self):
         directory = Path(tempfile.mkdtemp(prefix='installed-', dir=self.folder))
         source = directory / 'source'
