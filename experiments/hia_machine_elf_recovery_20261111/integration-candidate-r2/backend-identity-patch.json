@@ -1,0 +1,14 @@
+[
+  [
+    "\"hia_machine_x64.py\", \"hia_machine_encoding_native.py\", \"hia_machine_elf.py\",",
+    "\"hia_machine_x64.py\", \"hia_machine_encoding_native.py\", \"hia_machine_elf.py\",\n        \"hia_machine_elf_native.py\","
+  ],
+  [
+    "    digest.update(b'native-machine-encoding\\0' + encoding_identity() + b'\\0')\n    return digest.hexdigest()",
+    "    digest.update(b'native-machine-encoding\\0' + encoding_identity() + b'\\0')\n    from .hia_machine_elf import native_implementation_identity as elf_identity\n    digest.update(b'native-machine-elf\\0' + elf_identity() + b'\\0')\n    return digest.hexdigest()"
+  ],
+  [
+    "    from .hia_machine_x64 import native_encoding_scope\n    with native_encoding_scope():",
+    "    from .hia_machine_x64 import native_encoding_scope\n    from .hia_machine_elf import native_elf_scope\n    with native_encoding_scope(), native_elf_scope():"
+  ]
+]

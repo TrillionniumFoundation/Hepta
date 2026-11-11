@@ -140,18 +140,54 @@ def write_elf_object(code, symbols, relocations, *, text_alignment=16):
     return bytes(image)
 
 
-# Reconstructed explicit development selector. The entire original 608 module
-# above remains byte-for-byte unchanged and is the complete oracle.
+# The complete original writer above remains the independent oracle and the
+# unselected owner. An explicit image selection never falls back after refusal.
 _reference_write_elf_object = write_elf_object
+
+from contextlib import contextmanager
+from contextvars import ContextVar
+import os
+
+_ELF_UNSELECTED = object()
+_ELF_OWNER = ContextVar('hia_machine_elf_native_owner', default=_ELF_UNSELECTED)
+_ELF_SELECTOR = 'HEPTA_HIA_MACHINE_ELF_MANIFEST'
+
+
+def _selected_elf_owner():
+    owner = _ELF_OWNER.get()
+    if owner is not _ELF_UNSELECTED:
+        return owner
+    manifest = os.environ.get(_ELF_SELECTOR)
+    if manifest is None:
+        return None
+    from .hia_machine_elf_native import installed_machine_elf
+    return installed_machine_elf(manifest)
+
+
+@contextmanager
+def native_elf_scope():
+    """Pin the explicit owner, including no selection, through one whole emit."""
+    token = _ELF_OWNER.set(_selected_elf_owner())
+    try:
+        yield
+    finally:
+        _ELF_OWNER.reset(token)
+
+
+def native_implementation_identity():
+    owner = _selected_elf_owner()
+    if owner is None:
+        return b''
+    from hashlib import sha256
+    from .hia_machine_elf_native import SOURCE
+    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' +
+            owner.image_sha256).encode('ascii')
 
 
 def write_elf_object(code, symbols, relocations, *, text_alignment=16):
-    """Choose the explicit HIA candidate, retaining the ordinary default owner."""
-    import os
-    manifest = os.environ.get('HEPTA_HIA_MACHINE_ELF_MANIFEST')
-    if manifest is None:
+    """Use the explicit HIA object owner or the unchanged unselected writer."""
+    owner = _selected_elf_owner()
+    if owner is None:
         return _reference_write_elf_object(
             code, symbols, relocations, text_alignment=text_alignment)
-    from .hia_machine_elf_native import installed_machine_elf
-    return installed_machine_elf(manifest).write(
-        code, symbols, relocations, text_alignment=text_alignment)
+    return owner.write(code, symbols, relocations, text_alignment=text_alignment)

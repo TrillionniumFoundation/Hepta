@@ -179,9 +179,9 @@ class ElfSession:
         previous.close()
 
     def step(self):
-        if self.finished or self.pending:
-            raise RuntimeError('native ELF continuation is not ready for a step')
         try:
+            if self.finished or self.pending:
+                raise RuntimeError('native ELF continuation is not ready for a step')
             while True:
                 source = ctypes.c_char_p(self._payload)
                 status = self.image._entry(source, len(self._payload),
@@ -215,10 +215,10 @@ class ElfSession:
             raise
 
     def observe(self):
-        if self.finished or not self.pending:
-            raise RuntimeError('native ELF foreign effect is not pending')
-        self.pending = False
         try:
+            if self.finished or not self.pending:
+                raise RuntimeError('native ELF foreign effect is not pending')
+            self.pending = False
             op, a, b, c, d = struct.unpack_from('<5Q', self.work, REQUEST)
             self.calls[op] += 1
             self.image.calls[op] += 1
