@@ -6,7 +6,42 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## v65 source-bound observations and retained fixture correction
+## v65 corrected source observations and compiler-path fixture repair
+
+Commit `e80eacab2f85ad9c1217d7464ab9d8a940935090`, tree
+`7e7091f5044a0e83fba3f7ed7c347a5663cc4e73`, passed both jobs of GitHub
+run `42984401718`. Its source job passed 351 tests in 422.559 seconds.
+Its native job passed a fresh 105.989258-second cold replay (all eleven
+checks, 5,049 nested checks and 38 phase archives), 1,242 language controls,
+and 706 unittest executions across nineteen groups. These groups overlap
+source controls and are not a count of unique tests. Artifact `13839103463`
+was downloaded and verified: 59,667,124 bytes, SHA-256
+`c2174bcc30f9e8fc5de96f9e6607eced26ab978ac13694f32fd4a26d10521b11`.
+The same source passed an independent `ai395` cold replay in 71.480926 seconds,
+with the original 180-second qualification and three-second cleanup budgets.
+
+The independent complete retained discovery of this source is **HOLD**, not
+passed: all 4,188 tests ran in 1,579.995599 seconds, with one error and zero
+failures, skips, expected failures or unexpected successes. The sole error
+was `ArtifactPublicationKernelTests.test_copied_empty_PATH_link_verify_withdraw_and_kernel_object`:
+its literal `/usr/bin/clang-20` executable was absent on that host. The exact
+Clang 20.1.8 prerequisite was present and validated in a private prefix. The
+error occurred before compiling the independent machine-code object.
+Source and prerequisite inputs remained unchanged and owned cleanup completed.
+Original summary SHA-256:
+`d70f624a0fb6b3306acb8790c71cd48009fa09f85b5d9cd27470bee1716d5e0d`;
+original result SHA-256:
+`b74e15f82f9de0bfa09d91aba538b77f453fafb7708c5c31fe7738542bb2f8cc`.
+
+The subsequent fixture repair resolves the required `clang-20` executable
+from the qualified test environment and uses that exact path for both real
+compilation and linking. It still fails if the required compiler is absent;
+all object-byte, publication, empty-PATH execution and return-code assertions
+remain unchanged. No system-path shim, test exclusion or success relabelling
+is introduced. This repair changes the complete source identity and requires
+its own fresh cold and full qualification before a pass can be claimed.
+
+## v65 source-bound observations and retained historical fixture correction
 
 Candidate `2ecda852a3eb69d27e25802daab26856a18db033`, tree
 `13def5861bea96793809ccd4118eddf5eebfe134`, passed a fresh source-only cold replay
