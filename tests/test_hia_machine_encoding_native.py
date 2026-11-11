@@ -27,7 +27,9 @@ DEVELOPMENT = 'HEPTA_HIA_MACHINE_ENCODING_DEVELOPMENT_MANIFEST'
 COLD = 'HEPTA_HIA_MACHINE_ENCODING_COLD_REPORT'
 EVIDENCE = 'HEPTA_HIA_MACHINE_ENCODING_FIXTURE_EVIDENCE'
 
-RETAINED_METHODS = {'__init__': '06a754ed0699cc7559aed24727073cb39f07542c1c202651a3a5f106dbeb9189', '_reg': 'ee1514db9f10bc5e444d0e0ab4aa410e9e063caa1977e05ecf420de3d7d2cb95', 'align': '8dabb955a3d0a44078a86b7253d4e6456ac4b92d3deec0a33f06f3da1dfbf44d', 'offset': '08cfa71290284c3ed0a077c20610c68e2bc2a5afddfffc119bed168d26800da6', 'emit': 'a3be9f9c11529f973e77b4a213022af6100f32c717242d99e207e2f8bd2e58d2', '_rr': '4887f81b2db0ebb10ccafc37d4dd02fcd62b2c79256fe96547485ffdf723c387', '_mem': '2d7ac9ef9c8ea8ea271d8a8dbcc1a99fa7d02d7742ad797c586aee8c8d8ad380', 'label': '6dde375b2687b4c6a7c3dfc243d56573f32b50afdab5f5742c665d5d49f4653b', '_branch': '4086d91e4900dac8bf32c2d6b1f392c3f04ac55d43bec1a9226828b673a93682', 'jmp': '34091e001e04afc45bfa2978f8382187c83bd0986800f3dc4ff0967b7a14be6c', 'jcc': '4eba97e1fe9e563b4f2914ab06732c227bc435517b3f199d28676a77149af917', 'call': '09e7340731d460c0dda2c1bc4421f3b2fc94a2a8affb5339c046576586a2e357', 'mov_rr': '2d30fe916599df338ded49b556af7cb7cf7a61de8a311341dcdce43648fcb98c', 'mov_imm': '40eccb9ed9f0de65207a8a1544589298f990d438b57c5e17596e9f1582bf5ff4', 'load': '6f1a06d5a06e596d75c5cc654b4b0445c152ba9c122aa5049f28fe55c9a23195', 'store': '1f5176bfddeee0ff1d7939169818e372255166087c40e337b228d087717b0014', 'lea': '1cb3a569b71fc7229201e41240d347c75c81d3d3dfa183d50635a3398c1797b8', 'load_u8': 'd055b57d21b5fd5d2cd8035dcab9c0c72eebcc56bce44e83015eaa95b35052c6', 'store_u8': 'f011bb9eda71eed462479884537ebcf3beb5e4f8a7c78835eb74227158f2c972', 'add': '483bd9b922f6886caf6848d7d06fd344274d0f03e5938d5849bfda34777e256f', 'sub': 'abeb10b5f15a03bf3bee690bca24008ac556c950caef5270376da688532d258a', 'and_': 'd5850518214c25f6de2f4aff396221c5db991427ca7ad7734fb27229c4df7b25', 'or_': 'a6b918ce50e95d0b1e831fe3010d3b99d60b242b3dbffab85a7fe23bf601dfa4', 'xor': '3ede04a6be3bb4954037adc1ee13a9fedc5f4007c1d2b268e0cf61ee16f49b6e', 'cmp': '7ad79441494484123d7fa1c0efb277499da4d9d9b176285fe9e602a96a119f36', 'test': 'cb61e6c5afd38e188603d837ea60f5a6afdd1f89e67c0b16a6bc9a555c00cb55', 'alu_imm': '7d5eea1aaaea03d15d2d8f8f8186232c76b1c2011ce71b2acf71aa41619a5e4a', 'shift': '38af858a0e50411d3f3e2ae24c7888fb770af55b8ca221f4d3489f72f99eded1', 'shift_imm': 'b042dfd1169fa057819459cc8dbf346a119527501e26c6fac068d1bd6dee2207', 'shift_cl': '924f5728aa4cdff056e94e8bcbe5fb366a990cf38aacb114db85b3538c8fc052', 'shl': '1dd611872f33c8e3a34549f00a82dd024dd6c1c77574d7bf323fa609582e8fb5', 'shr': 'f9f95943c455fbb18093944ec373986951578d3dfd74cccea38bf571d282748b', 'sar': '51124352f0976b2e8faf6ba20df149566cd99f247d6b230957ca7e5cbe058e28', 'imul': '58cbcede149ae2f52c9cc48c7aac7e75787165d310eaed5921f4931b8ca368c9', 'imul_rr': '24e5a91307ec68b1f27f7e6136715de7a85c7fe58550ab3723f84e94c5902b8f', '_unary': '8ccabb2fe3af1cb6676d28b2274d9a89c2a01e592ef9021f207ebbd7bbc756d0', 'mul': '26c6b7a56bef06ca6f5fdc48d35506b2a4fe1b5a66e2b1be004b4170a178abed', 'imul_full': '07d711a9014c48b4aa8caf83e1de3d8c454541b3d96b95fadde8ea9e246f29c5', 'div': '5d92339f021bffe83a959761031a54b7962be691ffdd5967e2b56394540e3470', 'idiv': '3048b4065586360287a1c6a86c21277a0854ce08db3a1c7ff3cd92d2cc538944', 'neg': 'c40c6f8c826f9fbe6073420b457e894b75c07ce533da223acdf8a703ce93d5e7', 'bitnot': '47ea883dd51d53b2974d48db91f62d53b0df4b5f8a3c48f2ed69d73cd59faa77', 'cqo': 'd9d334ce522a7f8426449137484d517747a3bc013fb40e5d5ea1bc4188b61571', 'setcc': 'e7e8144ee550df15bf9a2d54743374184eb7f368ce2203c3d0540158ddb3657f', 'cmov': '2265378ecde6587d13b7add2ccf4ae83a2e19f825ce0df02794c113dd8dbf5ab', 'push': 'e539a298f0b32a365e4e61bfa42648f531afd22d89e3e6970a63bb49bb96d365', 'pop': '5129698488e7694af014d9fabb2a7567b33077d2c2ef4d1196c167f9d353fd03', 'ret': 'e2c98093e5c993841a1b1cf084b1e61711c371505e5958172c770f5eea22cc02', 'leave': 'dc4194b74e7a8ea385140173daaaaf76e0859dcc8633e709ea939899b1492a8b', 'ud2': 'c0e15647e904cc669d3e41927578a2c3aec9bd3d4b4d2175d533e6768e2a4528', 'finalize': '5b046a2db7b01cd0d5f747425b0dc90825a14e64042c741c1619ea961d260cbd'}
+# Byte-identical e09 source; parse both sides in the current interpreter.
+# ast.dump intentionally changed empty-field presentation in CPython 3.13+.
+RETAINED_SOURCE_SHA256 = '8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9'
 
 def cases():
     rows = []
@@ -122,11 +124,21 @@ def observe_foreign_alu(factory, values, immediate, rebind):
 
 class MachineEncodingSourceTests(unittest.TestCase):
     def test_retained_reference_methods_are_unchanged(self):
-        tree = ast.parse(inspect.getsource(reference))
-        original = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'Code')
-        actual = {node.name: sha256(ast.dump(node, include_attributes=False).encode()).hexdigest()
-                  for node in original.body if isinstance(node, ast.FunctionDef)}
-        self.assertEqual({name: actual[name] for name in RETAINED_METHODS}, RETAINED_METHODS)
+        frozen = (Path(__file__).with_name('fixtures') / 'hia_machine_x64_e09.py.txt').read_bytes()
+        self.assertEqual(sha256(frozen).hexdigest(), RETAINED_SOURCE_SHA256)
+        def code_class(source):
+            return next(node for node in ast.parse(source).body
+                        if isinstance(node, ast.ClassDef) and node.name == 'Code')
+        expected = code_class(frozen)
+        actual = code_class(inspect.getsource(reference))
+        additions = [node for node in actual.body
+                     if isinstance(node, ast.FunctionDef) and node.name == '__new__']
+        self.assertEqual(len(additions), 1)
+        self.assertFalse(any(isinstance(node, ast.FunctionDef) and node.name == '__new__'
+                             for node in expected.body))
+        actual.body = [node for node in actual.body if node not in additions]
+        self.assertEqual(ast.dump(actual, include_attributes=False),
+                         ast.dump(expected, include_attributes=False))
 
     def test_generated_HIA_and_independent_Core_observations(self):
         from tools.generate_hia_machine_encoding import document
