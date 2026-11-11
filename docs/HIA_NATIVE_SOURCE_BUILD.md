@@ -91,9 +91,11 @@ from a sealed executable descriptor, preventing a temporary pathname replacement
 from selecting another program. Final publication writes captured executable
 bytes to an `O_TMPFILE` anonymous inode and links that retained descriptor into a
 captured destination directory without replacing an existing entry. It never
-selects code by a replaceable staging pathname. The success receipt is emitted
-after the published inode and bytes are checked and records their device, inode,
-mode, size and hash. Publication/receipt failure withdraws only entries still
+selects code by a replaceable staging pathname. The native-produced source kit is also passed as captured bytes to this
+publication function. It receives its own retained anonymous descriptor and
+`0400` no-replace link. The success receipt is emitted after both published
+files have been read back through their descriptors; it records each actual
+device, inode, mode, size and hash. The executable remains `0500`. Publication/receipt failure withdraws only entries still
 bound to the invocation's own inode. This bootstrap publication requires Linux
 `O_TMPFILE` support on the output filesystem and fails closed without it.
 The published source kit is produced by the native builder, and native repacking
@@ -132,3 +134,11 @@ commit `20838a0a3e35493f4d96c74c3fca7ef86e4c529a`. Public source manifests, the
 source contract, inventories and CI registrations are intentionally integrated
 by the main development task, followed by a new complete cold qualification.
 Earlier lost-worktree results are not evidence for this implementation.
+
+The v67 integration additionally validates a normal captured sourcekit/executable
+publication: it reads the two actual files and receipt, checks their inode, mode,
+size and complete hashes, and uses the published executable to repack the
+published kit back to identical ELF bytes. This is a positive product-integrity
+control. It does not claim an observed sourcekit substitution counterexample.
+The private publisher retains its original three positional arguments; the
+sourcekit is an optional keyword for existing executable-only test callers.

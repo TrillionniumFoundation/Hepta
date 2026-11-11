@@ -1,7 +1,7 @@
 # Installed native source custody
 
 Every native image adapter with an owned HIA source uses the same explicit
-checkout-or-package resource path. All current source assets are listed
+checkout-or-package resource path. All current adapter source assets are listed
 in `NATIVE_SOURCE_FILES`, copied byte-for-byte into the wheel, included explicitly
 in the sdist, and included in the installed worker identity. A missing packaged
 source fails custody; there is no cwd, HOME or alternate-checkout fallback.
@@ -54,3 +54,30 @@ changed source, invalid manifests and a changed image in a fresh process refuse;
 type declarations, layouts and symbolic partial obligations come from HIA.
 Nominal operation lowering and the remaining worker responsibilities stay with
 their existing owners. This source addition does not activate a default image.
+
+## Standalone source builder and raw nominal input codec
+
+The raw nominal JSON adapter owns `nominal_json.hepta` through the same
+`NATIVE_SOURCE_FILES` binding. Its isolated installed control forbids checkout
+build imports and the host payload parser/transport, compares complete wrapper
+packet bytes, and requires missing or changed source to refuse. This is the
+explicit codec API; the public normalizer and its diagnostic strings remain
+with their existing owners.
+
+`SOURCE_BUILD_FILES` separately lists the source-builder policy, compiler and
+packer. These three `.hepta` files are build inputs, not Python native-image
+adapters. The sdist includes their exact bytes; wheel construction copies them
+into `hepta/_data`, and installed identity/custody covers them. The installed
+control feeds these actual package bytes to an explicitly bootstrapped native
+`hia-source-build`, executes `build`, then executes `pack` on its six-entry
+source/image result and compares the complete reconstructed ELF. It also
+requires all three missing/changed input controls to refuse. The same real
+sdist/wheel fixture is reused for these controls.
+
+With a matching-source cold report, both component fixtures call their strict
+builders with the report's actual nested compiler in separate output directories.
+Without that report they explicitly perform fresh native bootstrap development.
+Neither path installs a default executable, removes the Python wheel/bootstrap
+boundary, or qualifies the whole native stack. The source builder accepts the
+existing assembly compiler profile; JSON Core documents with `.hepta` suffixes
+remain outside that compiler's input profile.

@@ -85,17 +85,20 @@ def _run_captured(executable, operation, wire, directory):
         os.close(fd)
 
 
-def _publish_captured(directory, executable, report):
-    """Publish a captured anonymous inode, never a replaceable source pathname.
+def _publish_captured(directory, executable, report, *, sourcekit=None):
+    """Publish captured output bytes from retained anonymous descriptors.
 
     O_TMPFILE plus /proc/self/fd and an explicit destination dirfd makes Python
     issue linkat(AT_SYMLINK_FOLLOW). The input inode is selected by our retained
     descriptor, and the destination is created without replacement. Success
-    metadata is written only after that exact inode and its bytes are verified.
+    metadata is written only after every requested inode and its bytes are
+    verified. The optional keyword keeps existing executable-only callers valid.
     """
+    if sourcekit is not None and (type(sourcekit) is not bytes or not 0 < len(sourcekit) <= 64 << 20):
+        raise ValueError('captured sourcekit must contain bounded exact bytes')
     dfd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
-    fd = receipt_fd = -1
-    linked = False
+    fd = receipt_fd = sourcekit_fd = -1
+    linked = sourcekit_linked = False
     directory_stat = os.fstat(dfd)
     def same_inode(left, right):
         return (left.st_dev, left.st_ino) == (right.st_dev, right.st_ino)
@@ -116,6 +119,16 @@ def _publish_captured(directory, executable, report):
                 or os.pread(fd, len(executable) + 1, 0) != executable):
             raise ValueError('published executable descriptor or bytes changed')
         return image_stat
+    def verify_sourcekit():
+        kit_stat = os.fstat(sourcekit_fd)
+        named_stat = os.stat('sourcekit.bin', dir_fd=dfd, follow_symlinks=False)
+        if (not same_inode(kit_stat, named_stat) or not stat.S_ISREG(named_stat.st_mode)
+                or kit_stat.st_size != len(sourcekit) or stat.S_IMODE(kit_stat.st_mode) != 0o400
+                or kit_stat.st_nlink != 1
+                or not same_inode(directory_stat, os.stat(directory, follow_symlinks=False))
+                or os.pread(sourcekit_fd, len(sourcekit) + 1, 0) != sourcekit):
+            raise ValueError('published sourcekit descriptor or bytes changed')
+        return kit_stat
     def remove_owned(name, owned_fd):
         if owned_fd < 0:
             return
@@ -132,21 +145,45 @@ def _publish_captured(directory, executable, report):
         os.fsync(fd)
         if os.pread(fd, len(executable) + 1, 0) != executable or os.fstat(fd).st_nlink != 0:
             raise ValueError('anonymous publication inode differs from captured executable')
+        if sourcekit is not None:
+            sourcekit_fd = os.open('.', os.O_TMPFILE | os.O_RDWR | os.O_CLOEXEC, 0o600, dir_fd=dfd)
+            write_all(sourcekit_fd, sourcekit)
+            os.fchmod(sourcekit_fd, 0o400)
+            os.fsync(sourcekit_fd)
+            if (os.pread(sourcekit_fd, len(sourcekit) + 1, 0) != sourcekit
+                    or os.fstat(sourcekit_fd).st_nlink != 0):
+                raise ValueError('anonymous publication inode differs from captured sourcekit')
         os.link('/proc/self/fd/' + str(fd), 'hia-source-build',
                 dst_dir_fd=dfd, follow_symlinks=True)
         linked = True
+        if sourcekit is not None:
+            os.link('/proc/self/fd/' + str(sourcekit_fd), 'sourcekit.bin',
+                    dst_dir_fd=dfd, follow_symlinks=True)
+            sourcekit_linked = True
         image_stat = verify_current()
         binding = {'device': image_stat.st_dev, 'inode': image_stat.st_ino,
                    'mode': stat.S_IMODE(image_stat.st_mode), 'size': image_stat.st_size,
                    'sha256': sha256(executable).hexdigest(),
                    'directory_device': directory_stat.st_dev, 'directory_inode': directory_stat.st_ino,
                    'source': 'O_TMPFILE retained descriptor', 'no_replace': True}
-        serialized = (json.dumps({**report, 'publication': binding}, indent=2, sort_keys=True) + '\n').encode()
+        recorded = {**report, 'publication': binding}
+        if sourcekit is not None:
+            kit_stat = verify_sourcekit()
+            kit_binding = {'device': kit_stat.st_dev, 'inode': kit_stat.st_ino,
+                           'mode': stat.S_IMODE(kit_stat.st_mode), 'size': kit_stat.st_size,
+                           'sha256': sha256(sourcekit).hexdigest(),
+                           'directory_device': directory_stat.st_dev, 'directory_inode': directory_stat.st_ino,
+                           'source': 'O_TMPFILE retained descriptor', 'no_replace': True}
+            recorded.update(sourcekit_path='sourcekit.bin', sourcekit_sha256=kit_binding['sha256'],
+                            sourcekit_publication=kit_binding)
+        serialized = (json.dumps(recorded, indent=2, sort_keys=True) + '\n').encode()
         receipt_fd = os.open('build.json', os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
                              0o400, dir_fd=dfd)
         write_all(receipt_fd, serialized)
         os.fsync(receipt_fd)
         verify_current()
+        if sourcekit is not None:
+            verify_sourcekit()
         receipt_stat = os.fstat(receipt_fd)
         if (not same_inode(receipt_stat, os.stat('build.json', dir_fd=dfd, follow_symlinks=False))
                 or receipt_stat.st_nlink != 1 or stat.S_IMODE(receipt_stat.st_mode) != 0o400
@@ -156,12 +193,16 @@ def _publish_captured(directory, executable, report):
         return binding
     except BaseException:
         remove_owned('build.json', receipt_fd)
+        if sourcekit_linked:
+            remove_owned('sourcekit.bin', sourcekit_fd)
         if linked:
             remove_owned('hia-source-build', fd)
         raise
     finally:
         if receipt_fd >= 0:
             os.close(receipt_fd)
+        if sourcekit_fd >= 0:
+            os.close(sourcekit_fd)
         if fd >= 0:
             os.close(fd)
         os.close(dfd)
@@ -214,8 +255,6 @@ def build(output: Path, compiler: Path, cold_report: Path):
             or current_sources() != admitted):
         raise ValueError('source builder inputs changed before publication')
     executable = output / 'hia-source-build'
-    with (output / 'sourcekit.bin').open('xb') as stream:
-        stream.write(built.stdout)
     report = {
         'schema': 'hepta.hia.source-build-bootstrap.v1',
         'status': 'NATIVE_SOURCE_BUILDER_BUILT',
@@ -237,7 +276,7 @@ def build(output: Path, compiler: Path, cold_report: Path):
         'host_bootstrap_and_cold_custody_driver': True,
         'all_input_equivalence_proved': False, 'whole_native_delivery_qualified': False,
     }
-    _publish_captured(output, executable_bytes, report)
+    _publish_captured(output, executable_bytes, report, sourcekit=built.stdout)
     return executable
 
 

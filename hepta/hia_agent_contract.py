@@ -27,6 +27,7 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/nominal_json.hepta',
     'examples/hia_bootstrap/agent_journal.hepta',
     'examples/hia_bootstrap/worker_request.hepta',
     'examples/hia_bootstrap/agent_identity.hepta',
@@ -66,6 +67,15 @@ NATIVE_SOURCE_FILES = (
 )
 
 
+# Standalone source-builder inputs are package data, not runtime image adapters.
+# The executable is explicitly bootstrapped and selected outside wheel setup.
+SOURCE_BUILD_FILES = (
+    'examples/hia_bootstrap/source_build_policy.hepta',
+    'examples/hia_bootstrap/selfhost.hepta',
+    'examples/hia_bootstrap/source_build_packer.hepta',
+)
+
+
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
 PUBLICATION_BUILD_FILES = (
@@ -95,7 +105,7 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *PUBLICATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),

@@ -2,10 +2,10 @@
 from pathlib import Path
 from hashlib import sha256
 import json,os,shutil,subprocess,sys,tarfile,tempfile,unittest,zipfile
-from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES,installation_manifest
+from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,PUBLICATION_BUILD_FILES,installation_manifest
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
-RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
+RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+PUBLICATION_BUILD_FILES
 BUNDLED_SOURCE_BINDINGS={
     'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
     'composite_function_records':('hepta.hia_composite_functions_native','records'),
@@ -89,6 +89,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
         seed,_=build_seed(cls.native);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.native,'B1',seed,compiler,image_format='seed-shared')
         second,_=compile_stage(cls.native,'B2',first,compiler);assert first.read_bytes()==second.read_bytes()
+        cls.compiler=second
         image,_=compile_stage(cls.native,'identity',second,SOURCE.read_bytes())
         cls.manifest=cls.native/'manifest.json';cls.manifest.write_text(json.dumps(dict(schema=SCHEMA,source_sha256=sha256(SOURCE.read_bytes()).hexdigest(),image_path=image.name,image_sha256=sha256(image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
         from hepta.hia_agent_slice_native import SOURCE as SLICE_SOURCE,SCHEMA as SLICE_SCHEMA
@@ -152,6 +153,54 @@ class AgentInstalledResourceTests(unittest.TestCase):
                 status='NATIVE_ARTIFACT_PUBLICATION_BUILT',profile=PROFILE,source_manifest=current_sources(),operations=OPERATIONS,
                 executable_path='hia-artifact',executable_sha256=sha256(code).hexdigest(),
                 source_sha256={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in SOURCES},development_only=True)))
+        # Reuse this actual sdist/wheel and genuine compiler for the two new
+        # components. A configured cold path must use each strict real builder.
+        from hepta.hia_nominal_json_native import SOURCE as NOMINAL_SOURCE,SCHEMA as NOMINAL_SCHEMA
+        nominal_cold=os.environ.get('HEPTA_HIA_NOMINAL_JSON_COLD_REPORT')
+        if nominal_cold:
+            from tools.build_hia_nominal_json import build as build_nominal
+            outer=json.loads(Path(nominal_cold).read_bytes())
+            nested=json.loads(Path(outer['nested_report']).read_bytes())
+            qualified=Path(nested['generations'][-1]['produced_image'])
+            assert qualified.read_bytes()==second.read_bytes()
+            cls.nominal_manifest=build_nominal(cls.native/'nominal-cold',qualified,Path(nominal_cold))
+        else:
+            nominal_image,_=compile_stage(cls.native,'nominal-json',second,NOMINAL_SOURCE.read_bytes())
+            cls.nominal_manifest=cls.native/'nominal-manifest.json'
+            cls.nominal_manifest.write_text(json.dumps(dict(schema=NOMINAL_SCHEMA,
+                source_sha256=sha256(NOMINAL_SOURCE.read_bytes()).hexdigest(),image_path=nominal_image.name,
+                image_sha256=sha256(nominal_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        cls.source_build=cls.native/'source-build'
+        source_build_cold=os.environ.get('HEPTA_HIA_SOURCE_BUILD_COLD_REPORT')
+        if source_build_cold:
+            from tools.build_hia_source_build import build as build_sources
+            outer=json.loads(Path(source_build_cold).read_bytes())
+            nested=json.loads(Path(outer['nested_report']).read_bytes())
+            qualified=Path(nested['generations'][-1]['produced_image'])
+            assert qualified.read_bytes()==second.read_bytes()
+            cls.source_builder=build_sources(cls.source_build,qualified,Path(source_build_cold))
+        else:
+            # Actual bootstrap development, with no fabricated cold receipt.
+            from tools.qualify_hia_selfhost import invoke
+            from tools.generate_hia_source_build import PACK_MAGIC
+            from tests.test_hia_source_build import vm_packer,expected_elf
+            import struct
+            vm_packer()
+            cls.source_build.mkdir()
+            images=[]
+            for name in ('source_build_policy','source_build_packer'):
+                image,_=compile_stage(cls.source_build,name,second,
+                    (ROOT/'examples/hia_bootstrap'/(name+'.hepta')).read_bytes())
+                images.append(image)
+            policy,packer=images
+            parts=(policy.read_bytes(),second.read_bytes(),packer.read_bytes())
+            packet=struct.pack('<4Q',PACK_MAGIC,*map(len,parts))+b''.join(parts)
+            receipt,raw=invoke(cls.source_build,'bootstrap-pack',packer,packet)
+            assert receipt['status']=='returned' and type(receipt['core_u32']) is int
+            code=raw[:receipt['core_u32']]
+            assert code==expected_elf(parts)
+            cls.source_builder=cls.source_build/'hia-source-build'
+            cls.source_builder.write_bytes(code);cls.source_builder.chmod(0o500)
         prefix=CHILD.split('from hepta.cli import')[0]
         cls.child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+'\nBUNDLED_SOURCE_BINDINGS='+repr(BUNDLED_SOURCE_BINDINGS)+'\n'+'''
 from pathlib import Path
@@ -220,6 +269,47 @@ elif sys.argv[2]=='data':
     from hepta.hia_agent_binary64_native import SOURCE as FLOAT_SOURCE
     assert Path(sys.argv[1]) in FLOAT_SOURCE.parents,FLOAT_SOURCE
     print(json.dumps(store.decode_data(sys.stdin.buffer.read()),ensure_ascii=False,sort_keys=True))
+elif sys.argv[2] in ('source-build','nominal-json'):
+    import importlib.abc,struct,subprocess
+    class NoBuildTools(importlib.abc.MetaPathFinder):
+        def find_spec(self,fullname,path=None,target=None):
+            if fullname=='tools' or fullname.startswith('tools.'):
+                raise AssertionError('installed runtime tried to import checkout build tools')
+    sys.meta_path.insert(0,NoBuildTools())
+    if sys.argv[2]=='nominal-json':
+        from hepta.hia_nominal_json_native import SOURCE,installed_nominal_json
+        assert SOURCE==Path(sys.argv[1])/'hepta/_data/examples/hia_bootstrap/nominal_json.hepta'
+        image=installed_nominal_json(sys.argv[3])
+        import json
+        from hepta import hia_instruction_policy_native as old_transport
+        old_transport.transport=absent
+        json.loads=absent;json.load=absent;json.dumps=absent;json.JSONDecoder.raw_decode=absent
+        packet=image.constructor_packet(sys.stdin.buffer.read(),integer_digit_limit=4300)
+        sys.stdout.buffer.write(packet)
+    else:
+        from hepta.hia_agent_contract import SOURCE_BUILD_FILES
+        from hepta.artifact_publication_native import _installed_source_custody
+        from hepta.hia_json_preflight_native import _source_resource_path
+        _,source_pins=_installed_source_custody(Path(sys.argv[1]))
+        from hashlib import sha256
+        entries=[]
+        for name in SOURCE_BUILD_FILES:
+            source=_source_resource_path(name)
+            assert source==Path(sys.argv[1])/'hepta/_data'/name
+            assert source.suffix=='.hepta'
+            raw=source.read_bytes();label=source.name.encode('ascii')
+            assert sha256(raw).hexdigest()==source_pins[name]
+            entries.append(struct.pack('<3Q',len(label),0o400,len(raw))+label+raw)
+        wire=struct.pack('<3Q',int.from_bytes(b'HIAREL01','little'),len(entries),0)+b''.join(entries)
+        executable=Path(sys.argv[3]);before=executable.read_bytes()
+        built=subprocess.run([str(executable),'build'],input=wire,capture_output=True,env={'PATH':''},timeout=20)
+        assert built.returncode==0 and not built.stderr,(built.returncode,built.stderr)
+        packed=subprocess.run([str(executable),'pack'],input=built.stdout,capture_output=True,env={'PATH':''},timeout=20)
+        assert packed.returncode==0 and not packed.stderr,(packed.returncode,packed.stderr)
+        assert packed.stdout==before and executable.read_bytes()==before
+        _installed_source_custody(Path(sys.argv[1]))
+        sys.stdout.buffer.write(packed.stdout)
+    assert not any(n=='tools' or n.startswith('tools.') for n in sys.modules)
 elif sys.argv[2]=='source-bindings':
     from importlib import import_module
     from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
@@ -268,8 +358,8 @@ assert not blocked.intersection(sys.modules)
     @classmethod
     def tearDownClass(cls):cls.temp.cleanup()
     @classmethod
-    def invoke(cls,state,request,extra=()):
-        return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=15,cwd=cls.folder,
+    def invoke(cls,state,request,extra=(),timeout=15):
+        return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=timeout,cwd=cls.folder,
             env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest),
                  'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST':str(cls.data_manifest),
                  'HEPTA_HIA_AGENT_BINARY64_MANIFEST':str(cls.float_manifest),
@@ -279,6 +369,53 @@ assert not blocked.intersection(sys.modules)
         case=self.folder/label;case.mkdir()
         (case/'stage').write_bytes(b'installed\x00native\xff')
         return case
+
+    def test_installed_source_builder_uses_exact_wheel_inputs_for_native_build_and_pack(self):
+        before=self.source_builder.read_bytes()
+        result=self.invoke('source-build',b'',(str(self.source_builder),),timeout=60)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stderr,b'')
+        self.assertEqual(result.stdout,before)
+        self.assertEqual(self.source_builder.read_bytes(),before)
+
+    def test_installed_source_builder_refuses_missing_or_changed_package_inputs(self):
+        for name in SOURCE_BUILD_FILES:
+            source=self.installed/'hepta/_data'/name
+            original=source.read_bytes()
+            held=source.with_suffix('.held')
+            for action in ('missing','changed'):
+                with self.subTest(source=name,action=action):
+                    if action=='missing':source.rename(held)
+                    else:source.write_bytes(original+b'\n')
+                    try:
+                        result=self.invoke('source-build',b'',(str(self.source_builder),))
+                        self.assertNotEqual(result.returncode,0)
+                        self.assertEqual(result.stdout,b'')
+                    finally:
+                        if action=='missing':held.rename(source)
+                        else:source.write_bytes(original)
+
+    def test_installed_nominal_packet_has_no_host_payload_parser_or_missing_source_fallback(self):
+        from hepta.hia_instruction_policy_native import transport
+        raw=b'{"z":[null,true,-0,18446744073709551616],"a":"\\ud83d\\ude00"}'
+        expected=transport([json.loads(raw),False])
+        result=self.invoke('nominal-json',raw,(str(self.nominal_manifest),))
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(result.stderr,b'')
+        self.assertEqual(result.stdout,expected)
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/nominal_json.hepta'
+        original=source.read_bytes();held=source.with_suffix('.held')
+        for action in ('missing','changed'):
+            with self.subTest(action=action):
+                if action=='missing':source.rename(held)
+                else:source.write_bytes(original+b'\n')
+                try:
+                    refused=self.invoke('nominal-json',raw,(str(self.nominal_manifest),))
+                    self.assertNotEqual(refused.returncode,0)
+                    self.assertEqual(refused.stdout,b'')
+                finally:
+                    if action=='missing':held.rename(source)
+                    else:source.write_bytes(original)
 
     def test_actual_installed_native_publication_and_store_without_tools_or_host_payload_fallback(self):
         for mode in ('publication','artifact-store'):

@@ -186,11 +186,11 @@ class WorkerRequestNativeTests(unittest.TestCase):
         self.assertFalse((self.case / 'state').exists())
 
     def test_installed_wheel_resource_and_request_without_authoring_modules(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, PUBLICATION_BUILD_FILES
         source = self.case / 'wheel-source'
         source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
-        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
             destination = source / name
             destination.parent.mkdir(parents=True, exist_ok=True)

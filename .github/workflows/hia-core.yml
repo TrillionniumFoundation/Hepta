@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal source_build nominal_json; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -25,6 +25,8 @@ jobs:
           import unittest
           names = (
               'tests.test_hia_core_only',
+              'tests.test_hia_complete_output_observation',
+              'tests.test_hia_agent_identity_source_binding',
               'tests.test_hia_source_suffix',
               'tests.test_hia_original_select_fragments.SourceSuffixConsumerTests',
               'tests.test_hia_evidence_archive',
@@ -101,6 +103,8 @@ jobs:
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
               'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
               'tests.test_hia_release_install.ReleaseInstallerSourceTests',
+              'tests.test_hia_source_build.SourceBuilderSourceTests',
+              'tests.test_hia_nominal_json_native.NominalJSONSourceTests',
               'tests.test_hia_agent_journal_native.JournalSourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
@@ -181,6 +185,8 @@ jobs:
           PYTEST
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:
@@ -322,6 +328,39 @@ jobs:
         env:
           HEPTA_HIA_RELEASE_INSTALL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS: ${{ runner.temp }}/hia-release-install
+      - name: Native assembly source build and self-repacking
+        run: |
+          python -B - <<'PYSOURCEBUILD'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_source_build')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYSOURCEBUILD
+        env:
+          HEPTA_HIA_SOURCE_BUILD_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS: ${{ runner.temp }}/hia-source-build
+      - name: Native raw JSON nominal packets and actual constructor ingress
+        run: |
+          python -B - <<'PYNOMINALJSON'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromNames((
+              'tests.test_hia_nominal_json_native',
+              'tests.test_hia_nominal_json_constructor_ingress'))
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYNOMINALJSON
+        env:
+          HEPTA_HIA_NOMINAL_JSON_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_NOMINAL_JSON_EVIDENCE: ${{ runner.temp }}/hia-nominal-json
+          HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE: ${{ runner.temp }}/hia-nominal-json-ingress
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -339,4 +378,7 @@ jobs:
             ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/
+            ${{ runner.temp }}/hia-source-build/
+            ${{ runner.temp }}/hia-nominal-json/
+            ${{ runner.temp }}/hia-nominal-json-ingress/
             ${{ runner.temp }}/hia-journal-callers.json

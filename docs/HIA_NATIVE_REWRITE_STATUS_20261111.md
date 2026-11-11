@@ -1,5 +1,149 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
+## Current v67 integration: native assembly build and raw nominal input
+
+The current candidate integrates two new owners on source freeze
+`20838a0a3e35493f4d96c74c3fca7ef86e4c529a` (tree
+`6684d35b089e5aeb9877662db0d88f13c022447b`). Its support profile is
+`selfhost-core-linux-x86_64-v67-native-source-build-and-nominal-json`.
+This is a source/support declaration. The integrated candidate still requires
+its own frozen-source cold replay, installed-package controls and complete
+retained regression; the earlier source freeze cannot qualify changed code.
+
+The static inventory now contains 90 physical `.hepta` sources: 67 assembly
+sources and 23 structured Core JSON sources. The production package contains
+157 Python source files, including the new opaque-byte codec bridge. The shared
+suffix does not make structured JSON input acceptable to the assembly compiler.
+The original 87-file rename mapping remains historical and is not expanded to
+pretend the three newly authored sources were renamed files.
+
+### Delivered component scope and development evidence
+
+The native assembly source builder was developed in commit
+`48172b70ebafceb6315d882c3d479bc85f5d1cc4` and adds seven files: the HIA policy and
+ELF packer, their generator, a fixed Linux syscall adapter, the explicit bootstrap
+builder, component tests and [the source-build contract](HIA_NATIVE_SOURCE_BUILD.md).
+The resulting `hia-source-build` executes bundle admission, the actual embedded
+HIA compiler and native ELF packing without Python, libc, an assembler or a
+child compiler at runtime. It accepts the existing bounded assembly compiler
+profile, at most 128 sources, and 64 MiB input/output bundles. A source and its
+compiled image each retain the existing 1 MiB bound. Three-image `pack` is opaque;
+six-entry source/image `pack` recompiles and compares all three role pairs before
+producing an executable. No input image is executed to validate itself.
+
+Its fresh development run passed 21 tests in 36.475 seconds. That run includes
+independent VM controls, real B1/B2/B3 byte equality, two native self-rebuild
+rounds, modified-source causality, copied-executable execution with empty PATH,
+real final-publication race controls, full-capacity refusal and an actual EPIPE
+after a nonempty stdout prefix. It records 57 native observations. These are
+component development observations, not a completed v67 cold qualification.
+Bootstrap compilation, source/image custody and creation of the initial
+executable still have an explicit hosted tool boundary.
+
+The raw nominal JSON codec was developed in commit
+`3d5e97ae10e6e637dc739a8406271c724d8fc4dc` and adds six files: one HIA source,
+generator, strict builder, opaque-byte bridge, component tests and
+[the raw packet contract](HIA_NOMINAL_JSON_NATIVE.md). HIA validates the complete
+UTF-8/JSON input and emits the existing typed packet directly. It preserves
+source object insertion order, arbitrary-precision decimal integer spelling
+under the explicit digit policy, and exact wire-node sizes. The original raw
+8 MiB / 262,144-value / depth-128 input bounds remain; the constructor wrapper's
+41 bytes, two nodes and one depth level do not reduce those raw budgets.
+
+The codec's fresh development run passed two source/VM and twelve native tests,
+with 2,226 recorded differential observations. Its native source is
+`c198752a724c9d393479df942ad033c0dffc18f18bf59bc77878a2159930f354`; its 210,059-byte
+image is `e58adf67cd845302bb352d3bb514243dd8a28af4ca97d62429df0f4a08ada7f8`.
+The earlier candidate's actual native compile failure is retained: a 19-argument
+join exceeded the existing 16-argument profile. Separating validation, subtree
+lengths and emission fixed that source without broadening the compiler.
+The additional constructor-ingress commit
+`56009ba270c8e03e754d903de4ea0dcdcd9cc473` adds a dedicated test file and the
+component contract explanation. Its four tests passed in 7.512 seconds and
+recorded 14 owner-ingress comparisons, including five first-request render
+cases. They exercise the real retained owner and renderer only through admission
+and its first type-service request; they do not claim complete constructor
+initialization or continuation service.
+
+The integrated qualification routes require a real matching-source cold report
+and call the strict component builders with that report's actual nested
+compiler, in separate output directories. They do not substitute development
+manifests. The installed-resource controls reuse one actual sdist-to-wheel
+fixture. `NATIVE_SOURCE_FILES` adds the codec source; `SOURCE_BUILD_FILES` holds
+the standalone policy, compiler and packer as data. The latter group has no
+invented Python image adapter. Isolated installed execution uses package-owned
+source bytes, forbids `tools` imports, and checks native build/pack reconstruction
+and missing/changed resources. This does not install or select a default native
+CLI through the Python wheel.
+
+### What the previous exact-source qualification established
+
+Source freeze `20838a0a3e35493f4d96c74c3fca7ef86e4c529a` completed all 344 selected
+source tests with no errors, failures or skips. Its cold replay passed all 11
+checks in 73.422361068 seconds, retained the 180-second execution and 3-second
+cleanup bounds, and confirmed owned-process cleanup through ECHILD. Original
+compiler generations share SHA-256
+`0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8`;
+modified generations M2 and M3 share
+`d606beeaf5503627138073970ea4537975a53fd657c07f89e36cc36d25610ac2`.
+Its language run passed 1,242 checks across two compilers, including the
+positive, refusal and trap families. All 26 pre-regression stages completed;
+the native-applications suite itself ran 245 tests. These are exact-source
+component results, not 26 unittest tests or a full-regression pass.
+
+The same freeze's complete retained regression executed all 4,146 discovered
+tests and ended with four errors, zero assertion failures and zero skips. Its
+terminal result is **HOLD**, not a full-regression pass. The errors exposed two
+historical-source reader defects after suffix migration: the v2 maintenance
+protocol still required the original v1 protocol hash, and immutable admission
+controls retained their original logical filenames. Their correction restores
+historical bytes and projects only the exact registered names at the reading
+boundary; general candidate-name admission and Core verification remain strict.
+The original logs and receipts remain unchanged and retain their original
+source identity. Passing directed fixes will not retroactively turn that
+original HOLD into a PASS.
+The unchanged terminal result and the separate component counts are preserved
+in [the original HOLD record](../review-evidence/hia-native-rewrite-20261111/suffix-20838-r2/HOLD.json)
+and its adjacent hash-bound evidence files. The source test receipt is
+`95ff3f9a903a7d7ee8f448c5f7154565a6e8526186f20109776e5afd1f831de7`,
+the cold receipt is
+`79fff18e26f4a8dcd4e624e71565078d9ed1e4083b34dfa620796cfddfc04060`,
+the language receipt is
+`595ad0b60e2d6200c2c8995c50cc58ad6c6379030c1c1eb3d217e9849cee5c44`,
+and the 245-test native-applications receipt is
+`5094b976330ab3ed14ccf3787f1c3877f231b211b00e7fde19399408bf1a3b69`.
+
+The candidate also retains the narrow qualification/identity fixes and their
+[actual observation records](../review-evidence/hia-native-rewrite-20261111/v67/qualification-hardening/manifest.json).
+They strengthen complete native-output observation and require the Agent
+identity builder to bind the complete matching cold source map. The new focused
+tests distinguish four actual native ABI observations from five explicit
+stub-based custody controls. A 25-test directed regression passed; this is
+separate from the integrated candidate's pending cold and complete regression.
+The source-builder bootstrap publication now binds the actual sourcekit file
+and executable through retained descriptors, with a normal generated-output
+readback and native self-repack control. This records product integrity without
+claiming an observed sourcekit substitution counterexample.
+
+
+### Owners still required before old-stack retirement
+
+`whole_native_delivery_qualified` remains false. The raw codec exposes a new
+fixed-status API and does not reproduce every public diagnostic message/span.
+It does not replace the public normalizer, constructor type-service continuation,
+streamed nominal output materialization, function/outer bridges or their complete
+state transfer. The assembly source builder does not implement general project
+build/normalization, default CLI activation, installed-worker migration or live
+service retirement. Python authoring, bootstrap/custody, package construction,
+Agent request authority and other retained owners still exist. No old complete
+implementation is deleted or reported as retired by this integration.
+
+## Historical v66 source transition and earlier audit
+
+The following earlier audit retains its original source identities and historical
+observations. Its references to a then-pending qualification describe that earlier
+stage; the exact-source outcome above records the later completed run.
+
 The current v66 source migration builds on verified remote commit
 `4161e8d12d87906fde144f039da07908ad52d98a`. Its 87 active HIA sources now use
 `.hepta`: 64 assembly sources and 23 structured Core JSON sources. Paired JSON

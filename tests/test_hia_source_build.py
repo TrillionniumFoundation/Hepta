@@ -445,6 +445,34 @@ class SourceBuilderNativeTests(unittest.TestCase):
             self.assertEqual(prior.read_bytes(), b'preexisting bytes must survive')
             self.assertEqual({p.name for p in directory.iterdir()}, {existing})
 
+    def test_normal_sourcekit_and_executable_publication_bind_actual_files(self):
+        from tools.build_hia_source_build import _publish_captured
+        import stat
+        sourcekit = self.run_app(self.input_bundle)
+        binding = _publish_captured(self.case, self.original_app,
+                                    {'status': 'test publication'}, sourcekit=sourcekit)
+        report = json.loads((self.case / 'build.json').read_bytes())
+        self.assertEqual(report['publication'], binding)
+        self.assertEqual(report['sourcekit_path'], 'sourcekit.bin')
+        for name, key, data, mode in (('hia-source-build', 'publication', self.original_app, 0o500),
+                                      ('sourcekit.bin', 'sourcekit_publication', sourcekit, 0o400)):
+            path = self.case / name
+            info = path.stat()
+            actual = report[key]
+            self.assertEqual(path.read_bytes(), data)
+            self.assertEqual((actual['device'], actual['inode']), (info.st_dev, info.st_ino))
+            self.assertEqual((actual['size'], actual['mode']), (len(data), mode))
+            self.assertEqual(stat.S_IMODE(info.st_mode), mode)
+            self.assertEqual(actual['sha256'], sha256(data).hexdigest())
+            self.assertEqual(actual['source'], 'O_TMPFILE retained descriptor')
+            self.assertIs(actual['no_replace'], True)
+        self.assertEqual(report['sourcekit_sha256'], sha256(sourcekit).hexdigest())
+        self.assertEqual(self.run_app((self.case / 'sourcekit.bin').read_bytes(), 'pack',
+                                      app=self.case / 'hia-source-build'), self.original_app)
+        self.observations.append({'normal_captured_output_publications': {
+            name: report[name] for name in ('publication', 'sourcekit_publication')},
+            'actual_published_sourcekit_native_repack_equal': True})
+
     def test_modified_compiler_M1_differs_M2_equals_M3(self):
         from tools.qualify_hia_selfhost import mutate_compiler
         # The existing qualified mutation changes emitted wrapper stack space
