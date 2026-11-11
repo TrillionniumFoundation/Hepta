@@ -1,0 +1,81 @@
+{
+  "reviewer": "/root/cold_ci_closure",
+  "reviews": [
+    {
+      "boundary": "Ingress-only; output remains pending real guardian natural exit, identity readback and ECHILD. Later source preparation and qualification have separate gates.",
+      "checks": [
+        "Exactly two pinned fdb40f public GET requests, no retry or redirect acceptance",
+        "HTTP200/identity encoding/exact URL/size/SHA256/Git blob required",
+        "30 second socket timeout and 240 second checked transfer deadline inside unchanged 900 second external guardian",
+        "Exclusive no-follow partial files, full hash/readback/fsync, hardlink no replacement, private 0400/nlink1 final readback",
+        "Unresolved prior upload is neither committed nor aborted nor accessed",
+        "Old12pins and original guardian/owner/workflow bytes preserved",
+        "Package-preparation bootstrap delta is exactly two fixed input paths; unchanged preparer still requires its original full source gates"
+      ],
+      "helper_delta_observation": "--- 4d909\n+++ ee230\n@@ -11,8 +11,8 @@\n PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')\n B3 = Path('/home/qian-qi/he26v65r2/q/cold.cold/qualification.evidence/B3.image.bin')\n B3_SHA = '0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8'\n-ARCHIVE = Path('/home/qian-qi/he26v66devr2-source-package.tar.xz')\n-MANIFEST = Path('/home/qian-qi/he26v66devr2-source-package.manifest.json')\n+ARCHIVE = Path('/home/qian-qi/he26v66devr2-ingress-r1/inputs/e09-program-and-declared-source.tar.xz')\n+MANIFEST = Path('/home/qian-qi/he26v66devr2-ingress-r1/inputs/canonical-e09-development-package.json')\n ARCHIVE_SHA = 'f0f0a0fd570fa2d260d95f25193b1d9571d9614bbc7ab1c22607f23112ae5428'\n MANIFEST_SHA = '7a45af0a08d837c3ecba97cd47b54e1a3eb8838c838d03a14a82d58df3e799af'\n STABLE_KEY = 'hia-e26e-desktop-e09-package-development-prepare-r2'\n\n{\"name\": \"guardian.py\", \"bytes\": 10257, \"sha256\": \"d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023\"}\n{\"name\": \"process_owner_impl.py\", \"bytes\": 17601, \"sha256\": \"36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2\"}\n{\"name\": \"workflow_process.py\", \"bytes\": 3268, \"sha256\": \"f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80\"}\n{\"name\": \"old-input-pins.json\", \"bytes\": 1583, \"sha256\": \"abff0927d89f94bfdac0d600315e45dca0ceb719b7d3c28c0af17a7e270c1ffc\"}\n",
+      "network_executed": false,
+      "product_tests_executed": false,
+      "reviewed": [
+        {
+          "bytes": 8726,
+          "name": "download_public_source.py",
+          "sha256": "8af5f677e1ff95d6fe27d29fbb5580f93c73e7957e5787b2141aa2373ceec538"
+        },
+        {
+          "bytes": 5250,
+          "name": "bootstrap.py",
+          "sha256": "ded17fa685d9e8d8ba2790e324d9d09187e2133d07e52d40f81b09337360a0d0"
+        },
+        {
+          "bytes": 8579,
+          "name": "package_prepare_bootstrap.py",
+          "sha256": "ee2304160f1df248820d00491d4e43064570f331724e2e764b2c0b600be6801e"
+        }
+      ],
+      "source_preparation_executed": false,
+      "status": "CLEAR_STATIC_SCOPE",
+      "topic": "public-source-ingress"
+    },
+    {
+      "actual_full_diff": "{\"bytes\": 24601, \"sha256\": \"49d9f659eb45f4959365055268a38c42a39da040f8c781e1e6554eab7ecc20c4\", \"git_blob_sha1\": \"68f88a0f77de4c7cd8cd174d4ed7dacf6f326afe\"}\n--- 59936c46\n+++ 49d9f659\n@@ -28,9 +28,9 @@\n     \"examples/hia_bootstrap/json_wire.hiaasm\": \"51fb939f26716b14e4bcd2b4cf602e2b79c8fbb1\",\n }\n RECOVERY_FILES = {\n-    \"generate_hia_json_wire.r7.reconstructed.py.txt\":\n+    \"generate_hia_json_wire.py\":\n         (\"tools/generate_hia_json_wire.py\", \"f4e2648158896f26e46a2e8a7a0b22f94de50e7e\"),\n-    \"test_hia_json_wire_native.r7.reconstructed.py.txt\":\n+    \"test_hia_json_wire_native.py\":\n         (\"tests/test_hia_json_wire_native.py\", \"f4ece1f7d8e61d4e19c98b43a44843525a6b8eb8\"),\n }\n CORE_IDS = [\n@@ -394,7 +394,6 @@\n         report[\"status\"] = \"HOLD\"\n         report[\"exception\"] = {\"type\": type(exc).__name__, \"message\": str(exc), \"trace\": traceback.format_exc()}\n     finally:\n-        report[\"finished_utc\"] = datetime.now(timezone.utc).isoformat()\n         report[\"unexecuted_steps\"] = [name for name in PLANNED if name not in [step[\"name\"] for step in report[\"steps\"]]]\n         try:\n             after = snapshot()\n@@ -403,8 +402,14 @@\n             report[\"source_after_snapshot\"] = identity(after_path)\n             if \"candidate\" in locals():\n                 report[\"candidate_source_stable_at_end\"] = after == candidate\n+                if not report[\"candidate_source_stable_at_end\"]:\n+                    report[\"status\"] = \"HOLD\"\n+                    report[\"terminal_gate_error\"] = \"candidate source changed at final observation\"\n         except BaseException as exc:\n             report[\"source_after_snapshot_error\"] = {\"type\": type(exc).__name__, \"message\": str(exc)}\n+            report[\"status\"] = \"HOLD\"\n+            report[\"terminal_gate_error\"] = \"final source observation failed\"\n+        report[\"finished_utc\"] = datetime.now(timezone.utc).isoformat()\n         save()\n         print(json.dumps({\"status\": report[\"status\"], \"report\": str(report_path)}), flush=True)\n     return 0 if report[\"status\"] == \"PASS_LIMITED_DEVELOPMENT_CONTROLS\" else 1\n\n",
+      "boundary": "Later launch configuration still must bind devr2 paths and original guardian; no qualification inference.",
+      "bytes": 24601,
+      "commit": "f5a5b3b453004bac50262d1f558e960b1f6155a2",
+      "git_blob": "68f88a0f77de4c7cd8cd174d4ed7dacf6f326afe",
+      "native_or_budget_execution": false,
+      "original_sha256": "59936c464d63fcbba0aeb34366791e2ffded2f65082a4c43be5afc5159c16a0d",
+      "sha256": "49d9f659eb45f4959365055268a38c42a39da040f8c781e1e6554eab7ecc20c4",
+      "status": "CLEAR_STATIC_EXAMINED_DELTA",
+      "tests_rerun": false,
+      "topic": "wire-package-inner-final-delta"
+    },
+    {
+      "boundaries": [
+        "Public operand admission, register/condition lookup, emit capacity/storage, labels/relocations, private hooks and class identity remain foreign.",
+        "No whole backend, selector, cold or release claim.",
+        "Root separately reports an actual post-construction foreign alu_immediate truth-count difference; this numeric byte mapping review does not close that foreign-object issue."
+      ],
+      "checks": [
+        "37 command mappings compared with original Code",
+        "RR operand direction, REX register extensions and rsp/r12 SIB",
+        "mov32_if_exact, signed imm32/imm8 groups, shift groups, unary groups",
+        "load_u8/store_u8 width and low-byte REX",
+        "setcc second register observation and two emits",
+        "branch prefix/fixup/zero_rel32 partial-write ordering",
+        "finalize copies storage without mutating self.data",
+        "align admitted powers-of-two modulo and maximum63-byte output capacity"
+      ],
+      "source_modified": false,
+      "source_path": "/workspace/scratch/hia-machine-encoder-native-20261111/source/experiments/hia_machine_encoding_next_20261111",
+      "source_sha256": {
+        "bridge": "661c455c310d9971f5899ffdf399f508015e9c20e3ada41a7edb1e191769f165",
+        "generator": "c8badfc2b4af90c12b41206ba51a20b30579b54eb5f9881e478f88c6af9b7558",
+        "original_code": "8795fb4e5034673401f5f6a5a60e57872c48a3982dbdcb4d3b8198ee7b3f41a9"
+      },
+      "status": "CLEAR_STATIC_ADMITTED_NUMERIC_BYTE_PACKING_SCOPE",
+      "tests_rerun": false,
+      "topic": "x64-machine-byte-owner"
+    }
+  ],
+  "schema": "hia.independent.cli-track-peer-reviews.v1"
+}
