@@ -1,0 +1,47 @@
+{
+  "schema": "hia.evidence-publication-automatic-ci-scope-correction.v1",
+  "status": "CORRECTION_RETAINED",
+  "previous_wording": "No new product execution was started.",
+  "correct_scope": "No h remote product job was started or replayed by terminal readback. However publishing evidence refs caused the unchanged unfiltered push workflow to launch extra GitHub Core CI runs.",
+  "automatic_runs": [
+    {
+      "run": 43083500067,
+      "event": "push",
+      "head": "f53540a5798d1e15d510678706b462f3e202b186",
+      "tree": "1c6eddc08a0b5fb4f417331d4cf9a1dc172f9cfd",
+      "status": "completed",
+      "conclusion": "failure",
+      "source_job": 130741828589,
+      "source_conclusion": "success",
+      "native_job": 130741828826,
+      "native_conclusion": "failure",
+      "failed_step": "cold",
+      "later_native_steps": "skipped",
+      "original_run_blob": "b7f2d3fddff6fa03f4558ade1feba63bd8818143",
+      "original_jobs_blob": "ef5bc89970e0ead62bb01e4f49dfddd5f1f39895"
+    },
+    {
+      "run": 43084835552,
+      "event": "push",
+      "head": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+      "tree": "cd4efae11dd0e80e3ea317b5a5546c5725f25291",
+      "status_at_snapshot": "in_progress",
+      "conclusion": null,
+      "source_job": 130746391687,
+      "native_job": 130746392193,
+      "cold_step_at_snapshot": "success",
+      "full_native_job_complete": false,
+      "original_run_blob": "43d83656cee7a970d2459b94329562e06db44402",
+      "original_jobs_blob": "f4dcf44287209a5e8829eefbf48466925fed7131"
+    }
+  ],
+  "not_exact608_commit_runs": true,
+  "no_result_promoted_or_selected_as_608_qualification": true,
+  "existing_runs_replayed_or_cancelled": false,
+  "mitigation": "All subsequent pure evidence or unexecuted draft commits include [skip ci]. Existing workflow bytes are preserved.",
+  "unknowns": [
+    "Complete terminal result and logs for6156 automatic run",
+    "Full original logs/artifact of f535 automatic failure"
+  ],
+  "previous_reports_rewritten": false
+}

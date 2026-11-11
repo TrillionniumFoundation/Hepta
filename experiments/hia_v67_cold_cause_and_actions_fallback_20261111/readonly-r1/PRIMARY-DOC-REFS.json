@@ -1,0 +1,27 @@
+{
+  "schema": "hia.primary-documentation-reference-list.v1",
+  "read_date_utc": "2026-11-11",
+  "references": [
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows",
+      "claim": "Create events use the created branch/tag ref. Push uses the event ref's workflow; some other events require the default branch."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs",
+      "claim": "Commit skip instructions suppress push/pull_request workflows, not create."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/concepts/security/github_token",
+      "claim": "Repository GITHUB_TOKEN push/create operations do not recursively trigger workflows. Current documentation separately lists dispatch and certain PR events; this proposal uses none of those."
+    },
+    {
+      "url": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+      "claim": "Explicit permissions set omitted scopes to none; the proposal requests only contents write where publishing is needed."
+    },
+    {
+      "url": "https://docs.github.com/en/rest/actions/artifacts",
+      "claim": "Cross-run artifact API retrieval needs Actions read; initial authoring-only proposal does not require it."
+    }
+  ],
+  "references_are_documentation_not_repository_execution_evidence": true
+}

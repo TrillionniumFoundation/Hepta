@@ -1,0 +1,68 @@
+{
+  "schema": "hia.v67.cold-causal-readonly-audit.v1",
+  "status": "MEASURED_PREFIX_BOUNDARY_AND_STATIC_CANDIDATES_NO_SPEEDUP_CLAIM",
+  "source_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+  "source_pins_blob": "fa2b0932eba6916ea90e3403bade9341e526bdb1",
+  "original_run": "1a1cbbebbe7-2564-c93",
+  "original_result": "HOLD_COLD_180_TIMEOUT",
+  "cold_raw_blob": "0450c8fdd35e41c897b33c59fbe917eab339e26e",
+  "complete_terminal_custody_commit": "6156635db138a571d57feaedd4bcc3e19bf89eea",
+  "phase_timing_originals_blob": "e39fdb2ddaa75203d5cf453a7b15038bb7d90753",
+  "measured": {
+    "cold_wall_seconds": 180.594321347,
+    "source_tests": 354,
+    "completed_phases": 26,
+    "required_phases": 38,
+    "first_phase_start_seconds_from_inner_owner": 73.137309847,
+    "last_completed_archive_seconds": 155.768825958,
+    "chain_original_worker_seconds": 24.79939996,
+    "chain_modified_worker_seconds": 24.911511095,
+    "max_post_worker_to_archive_seconds": 6.76235986
+  },
+  "prephase_order": [
+    "17 fresh before-B0 Core reference workers, at most two",
+    "Independent VM reference for native and linked observers",
+    "B0 host seed",
+    "B1/B2/B3 and M1/M2/M3 sequential actual native generations",
+    "Build the actual HIA observers",
+    "Ordinary sample/call-depth/rejection/boundary observations",
+    "38 independently owned phase workers"
+  ],
+  "static_candidates": [
+    {
+      "id": "post_generation_ordinary_flat_observer",
+      "path": "tools/qualify_hia_selfhost.py",
+      "facts": "NATIVE_OBSERVER and NATIVE_LINKED_OBSERVER are assigned only in qualification_phase(). In qualify(), ordinary flat invocations after all six generations and both observer builds still launch the stdlib Python child.",
+      "permitted_candidate": "Explicitly bind the already built HIA observer only for that ordinary post-chain prefix, with restoration. Keep B0, B1..M3, special allocator, all real inputs/outputs, fresh children, original timeout/limits and denominators.",
+      "not_yet_known": "Actual prefix receipt count, total wall, and measured improvement; no source edit or new product execution."
+    },
+    {
+      "id": "discarded_exact_bytes_frame",
+      "path": "tools/hia_selfhost_native_observer.py",
+      "facts": "invoke first calls frame for validation and discards the full byte frame, then calls frame again for actual transport.",
+      "permitted_candidate": "Separately remove only redundant exact immutable-byte allocation, retaining validation timing and full transmitted bytes. Check bytes-subclass observation semantics and original tests before editing.",
+      "speedup_measured": false
+    }
+  ],
+  "archive_findings": {
+    "path": "tools/hia_evidence_archive.py",
+    "source": "One archiver and at most two pending sealed stages; separate archive queue can cause back-pressure.",
+    "post_worker_interval_includes_queue": true,
+    "archive_cpu_time_measured": false,
+    "required_checks": [
+      "Every original member byte hash before archival",
+      "Every ZIP member independently decompressed/hash/mode verified",
+      "Original source inode/byte reread before retirement",
+      "Held archive inode and published full-container digest binding"
+    ],
+    "changes_proposed": false
+  },
+  "unknowns": [
+    "17 original reference worker timing receipts not yet retrieved",
+    "B0/observer original receipts read operation admitted but not yet assembled",
+    "Main prefix actual per-invocation costs not yet retrieved",
+    "No independent phase ZIP replay by this metadata audit",
+    "No hardware, CPU throttling, memory pressure or pure compression cause established"
+  ],
+  "new_native_or_compiler_job_launched": false
+}
