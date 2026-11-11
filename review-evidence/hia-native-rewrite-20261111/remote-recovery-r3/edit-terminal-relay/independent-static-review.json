@@ -1,0 +1,30 @@
+{
+  "schema": "hia-edit-terminal-relay-independent-static-r1",
+  "status": "NO_ADDITIONAL_CONFIRMED_SOURCE_BLOCKER",
+  "source_blob": "450cf56591acceacfdd3949649d9442180f6babf",
+  "test_blob_reviewed": "60ef6bb74ab92c366ecdf94c6eb9ad1ec6e25b5c",
+  "native_entries": 0,
+  "original_executor_blob": "8163cf41059b38260f66dbc5a89d5676b1f7f121",
+  "findings": [
+    {
+      "kind": "PROTOCOL_REVISION_REQUIRED",
+      "message": "Actual carrier terminal_event requires event[3] equal to its current sequence. An additional SWITCH increments that sequence; keep original test bytes and allow only the precise per-case +1 sequence revision."
+    },
+    {
+      "kind": "TEST_LITERAL_CORRECTION",
+      "message": "Original executor accepts HIAEIN01 (0x31304e4945414948) and HIAEJN01 (0x31304e4a45414948). New test HIAEDN01 is a typo; correct only that literal."
+    }
+  ],
+  "source_checks": [
+    "Exact old 56/57/59 HIA regeneration precedes edits.",
+    "Only edit_terminal plus root edit_main dispatch change; all other original function ASTs are compared.",
+    "Original root terminal body is preserved as edit_public_terminal.",
+    "Original source SHA/byte bindings and compiler profile gates remain."
+  ],
+  "comparison_contract": [
+    "Record each case's expected sequence delta and reason.",
+    "Unknown stage must fail; stage 8 needs exact-reference base admission to disambiguate.",
+    "Rewrite only byte offset 24..31; compare all other complete stdout/stderr bytes and exit status.",
+    "This review neither executes the new relay nor claims the old 87-byte-exact stderr test passes."
+  ]
+}

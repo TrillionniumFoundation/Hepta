@@ -26,7 +26,7 @@ ERRORS=r'''
 def sv_decimal_size(value:u64) -> u64:
     size = 1
     while value >= 10:
-        value = value / 10
+        value = value // 10
         size = size + 1
     return size
 
@@ -36,7 +36,7 @@ def sv_write_decimal(w:mutbuf, start:u64, value:u64) -> u64:
     while index != 0:
         index = index - 1
         store(w, start + index, 48 + (value % 10))
-        value = value / 10
+        value = value // 10
     return size
 
 def sv_add_size(w:mutbuf, first:u64, second:u64) -> u64:

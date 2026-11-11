@@ -1,0 +1,215 @@
+{
+  "schema": "hia.namespace-fixed-fencing.abi.v1",
+  "status": "NEW_SOURCE_ONLY_PENDING_FIRST_GENERATION_AND_EXECUTION",
+  "scope": "Private fixed native FS/inode/fencing continuation; not ordinary AgentStore, root admission, DMS128 or migration",
+  "roles": {
+    "1": {
+      "name": "filesystem-r4",
+      "abi_magic": "HIANFR03",
+      "source_bytes": 123055,
+      "source_sha256": "31d1edeb1ce78271be610eaf486cfb16e19d5f08e512066b3ca55416becca0e2",
+      "image_bytes": 182406,
+      "image_sha256": "c90d3b239420b28d4e07f505913669371e14a8cb1b8306523942e1287c54d133",
+      "predecessor_run": 43115476503,
+      "artifact": 13898836544
+    },
+    "2": {
+      "name": "inode-r2",
+      "abi_magic": "HIANIR01",
+      "source_bytes": 132728,
+      "source_sha256": "ea3e6ba9ad56f677cf41f927ee968cf54dd33fc000744151b2fed6e31b53a066",
+      "image_bytes": 200565,
+      "image_sha256": "c8fa89d7e3f0112a3efb2dbedd4c9c0be3332544675523108e41daf75efee1e8",
+      "predecessor_run": 43113333444,
+      "artifact": 13896704251
+    },
+    "3": {
+      "name": "fencing-r2",
+      "abi_magic": "HIANFC01",
+      "generator_blob": "65df8a50f30ab5574c36d5fedaab91d78939f64c",
+      "generated_source": null,
+      "image": null,
+      "new_actual_compile_required": true
+    }
+  },
+  "core_decisions_owned_by_HIA": [
+    "FS/init then inode/init order",
+    "OPEN then actual-stat inode registration",
+    "LOCK/UNLOCK/RETIRE and private child selection",
+    "all saved request/nonce/call/action correlation and terminal status",
+    "failed-stat orphan retention while any tracked inode mask is held",
+    "orphan LIFO consume-before-one-close and first-close-errno recording",
+    "all dynamic workspace requirements and permanent rejection"
+  ],
+  "fixed_mechanics": [
+    "three disjoint guarded mappings/contexts with source/output/workspace RO between calls",
+    "actual Linux syscalls from the unchanged passed 23-primitive FS body",
+    "private USER and CHILD source channels",
+    "actual u32 return, role, per-role serial and full source/output/workspace extent capture",
+    "GROW preserves the exact immutable current input and never re-enters a producer",
+    "static RX ELF plus RW data; no W+X mapping",
+    "PDEATHSIG plus actual-parent race check",
+    "partial transport I/O and transport-only EINTR retries",
+    "fatal process exit releases kernel descriptors; no synthesized successful peer reply"
+  ],
+  "external_transport": {
+    "input": "u64le raw byte length followed by a raw 256B USER command and optional body",
+    "output": "u64le full logical output capacity followed by every output byte",
+    "raw_fd_not_an_external_authority": true,
+    "externally_supplied_CHILD_headers": "always wrapped as USER and rejected by HIA"
+  },
+  "private_channel": {
+    "bytes": 64,
+    "magic": "HIANFX01",
+    "fields": [
+      "magic",
+      "origin 1 USER / 2 CHILD",
+      "role 0 USER / 1 FS / 2 inode",
+      "actual child u32 result (0 for USER)",
+      "actual original child input bytes / USER raw bytes",
+      "actual child full output capacity (0 for USER)",
+      "actual child full workspace capacity (0 for USER)",
+      "actual child entry serial (0 for USER)"
+    ],
+    "payload": "USER raw bytes or CHILD exact issued input + complete actual output + complete actual workspace",
+    "authority": "Issued only by fixed dispatcher. Header agreement alone does not authenticate arbitrary external frames."
+  },
+  "user_command": {
+    "bytes": 256,
+    "fields": {
+      "0": "HIANFC01",
+      "1": "1 INIT / 2 OP",
+      "4": "monotonic caller sequence",
+      "5": "1 OPEN / 2 LOCK / 3 UNLOCK / 4 RETIRE",
+      "6": "inode logical handle; zero for OPEN",
+      "7": "OPEN flags or lock kind 1 shared / 2 exclusive",
+      "8": "OPEN mode or WAL offset0..7",
+      "9": "lock count1..8",
+      "10": "nonzero source lease for OP",
+      "11": "body bytes; raw path for OPEN",
+      "2..3": "session nonce128",
+      "12..31": "zero"
+    },
+    "init": "Only nonce may be nonzero in addition to magic/command; no namespace primitive executes."
+  },
+  "output": {
+    "bytes": 256,
+    "tag_word": 1,
+    "tags": {
+      "0": "COMPLETE",
+      "1": "CALL_CHILD",
+      "2": "GROW",
+      "4294967293": "PERMANENT_REFUSAL"
+    },
+    "common_payload_bytes_word": 16,
+    "complete": {
+      "4": "caller sequence",
+      "5": "outer operation",
+      "6": "business status 0 success / 1 IO / 5 busy",
+      "7": "actual known errno",
+      "8": "logical result handle",
+      "9": "source lease",
+      "10": "first orphan close errno",
+      "11": "remaining orphan count",
+      "12": "tracked inode rows",
+      "2..3": "nonce"
+    },
+    "call_child": {
+      "6": "role",
+      "7": "action serial",
+      "8": "issued source bytes, same asword16",
+      "16": "issued source bytes"
+    },
+    "grow": {
+      "9": "required workspace",
+      "10": "required output",
+      "11": "phase3 USER / phase4 completed CHILD"
+    },
+    "refusal_reason_word": 12
+  },
+  "workspace": {
+    "fixed_bytes": 1536,
+    "fields": {
+      "0": "magic/poison",
+      "8": "phase 1 ready / 2 pending / 3 USER growth / 4 CHILD growth / 5 poisoned",
+      "32": "caller sequence",
+      "40": "outer operation",
+      "48": "source lease",
+      "56": "pending role",
+      "64": "monotonic action",
+      "72": "saved child source bytes",
+      "120": "pending inode-requested FS operation",
+      "128": "original USER bytes",
+      "136": "saved child capacity",
+      "176": "current OPEN token",
+      "184": "original logical handle",
+      "192": "flow",
+      "208": "inode action",
+      "248": "first orphan close errno",
+      "1088": "first poison reason",
+      "16..24": "nonce",
+      "80..96": "FS call, syscall sequence, actual native entry serial",
+      "104..112": "inode call and actual native entry serial",
+      "144..152": "inode snapshot capacity/actual bytes",
+      "160..168": "orphan token capacity/count",
+      "216..240": "required capacities and pending growth",
+      "256..319": "saved immutable CHILD wrapper during GROW",
+      "320..575": "saved USER header",
+      "576..831": "last exact FS request header",
+      "832..1087": "saved terminal header during orphan drain"
+    },
+    "dynamic_layout": [
+      "orphan tokens, 8B each",
+      "complete inode workspace snapshot",
+      "original USER bytes",
+      "exact issued child source"
+    ],
+    "growth": "Natural checked-u64 and actual allocation limits only; no new global file/row/value quota."
+  },
+  "flows": {
+    "10": "FS init",
+    "20": "inode init",
+    "30": "FS open",
+    "40": "inode registration",
+    "50": "inode user op",
+    "60": "FS from inode yield",
+    "70": "inode ACK continuation",
+    "90": "orphan close"
+  },
+  "lifetime": {
+    "deferred_aliases": "Inherited actual inode HIA owner; close only after the inode group has no masks.",
+    "failed_stat_orphans": "Retain all orphan FStokens until no tracked mask remains; close LIFO, remove token before request, never retry close on errno.",
+    "retire_precondition": "Private inode owner requires the retiring logical row to have no owned masks. This is not a reduced public AgentStore close API.",
+    "unknown": "Missing actual child completion produces no synthetic ACK; fatal process termination ends all OS ownership.",
+    "not_yet_supported": [
+      "DMS128 process-shared initialization/lifetime",
+      "original Path.absolute/mkdir/resolve/UID/mode root admission",
+      "SQLite database and WAL migration",
+      "complete ten-table namespace and all31 operation ordinary service"
+    ]
+  },
+  "development_validation": {
+    "original_compiler_limits": {
+      "cpu_seconds": 10,
+      "wall_seconds": 20,
+      "address_bytes": 268435456,
+      "output_capacity_bytes": 1048576,
+      "workspace_bytes": 1048576
+    },
+    "retained_profile": {
+      "functions": 128,
+      "blocks": 1536,
+      "max_blocks_per_function": 256,
+      "ops": 8192,
+      "max_block_params": 16
+    },
+    "new_protocol_methods": 16,
+    "full_byte_paired": "return + all output + all workspace + source readonly + guard bytes; no field masks",
+    "new_actual_packer_controls": 14,
+    "new_actual_physical_methods": 12,
+    "actual_physical_injected_fault_scope": "strace changes actual fstat/close returns in explicitly named fault controls; not claimed spontaneous kernel errors.",
+    "three_role_replay": "Every actual entry is recomputed on retained CoreVM and child wrapper equals the completed actual role/source/output/workspace. No cached correctness result.",
+    "prior_counts_inherited": false,
+    "whole_stack_closed": false
+  }
+}

@@ -137,6 +137,23 @@ def source_program(role):
     module=ast.Module(body=selected,type_ignores=[])
     return ast.unparse(ast.fix_missing_locations(Expand().visit(module)))+'\n'
 
+class SchemaBuilder(CopyBuilder):
+    """Map only the formatter's exact u64 divide/remainder-by-ten expressions.
+
+    These are existing checked HIA operations. The retained shared Builder and
+    every runtime budget remain unchanged; no Python numeric evaluation occurs.
+    """
+    def expr(self, expression):
+        if isinstance(expression, ast.BinOp) and isinstance(expression.op, (ast.FloorDiv, ast.Mod)):
+            assert isinstance(expression.right, ast.Constant) and type(expression.right.value) is int
+            assert expression.right.value == 10, ast.dump(expression)
+            left = self.expr(expression.left)
+            right = self.expr(expression.right)
+            assert left[1] == right[1] == 'u64'
+            operation = 'int.div.checked' if isinstance(expression.op, ast.FloorDiv) else 'int.rem.checked'
+            return self.op(operation, [left, right], 'u64')
+        return super().expr(expression)
+
 def document(role):
     nodes=ast.parse(source_program(role)).body
     names={node.name:'f'+str(i+1) for i,node in enumerate(nodes)}
@@ -150,7 +167,7 @@ def document(role):
             dict(op='call',args=['v0','v3','v2','v4'],out=[dict(name='v5',type='u32')],attrs=dict(function=names['sv_entry'])),
             dict(op='loan.end',args=['v3'],out=[],attrs={})],term=dict(op='ret',values=['v5']))])]
     for node in nodes:
-        builder=CopyBuilder(node,names,signatures,total);builder.statements(node.body)
+        builder=SchemaBuilder(node,names,signatures,total);builder.statements(node.body)
         functions.append(dict(name=names[node.name],params=[builder.param(v) for v in builder.params],
             returns=[builder.returns],effects=['read','write','trap'],entry='b0',blocks=builder.blocks))
     value=compact_authoring_cfg(dict(schema='hepta.hia.program.v8',

@@ -69,9 +69,9 @@ CARRIER=[
 INPUTS={
   "parent": {
     "path": "program_service_real_parent.py",
-    "gitsha": "89454281cf76c9b696756f344cf7648c3892f0d4",
-    "bytes": 5908,
-    "sha256": "4b38eeb115ba9d18b2410c7aa49802eaab2ee5aa250406b2cad8aa323533b033"
+    "gitsha": "7511890030c3285d99e0c3803dd3b6a561c91cdc",
+    "bytes": 6525,
+    "sha256": "b43d9b7d399431595d7949f525f5ab7fd2c0b1600b04b92746182ab7eceac56a"
   },
   "assets": {
     "path": "read_program_service_assets_r1.py",
@@ -162,15 +162,20 @@ try:
         script=common.materialize(R3+"program-service/"+row["path"],row["gitsha"],mine/row["path"])
         common.run("new-A-service-"+name,[sys.executable,"-B",script],timeout=300 if name=="generator" else 120)
     output=project/"development/actual-r1"
-    common.run("real-A-native-context-integration",[
-        sys.executable,"-B",project/"tests/test_program_service_actual_r1.py",
-        "--source",context["source"],"--reference",context["reference"],
-        "--compiler",context["compiler"],"--roles",project/"reference/program-roles.json",
-        "--assets",mine/"assets/assets.json",
-        "--service-manifest",service/"development/compile-r1/program-service.manifest.json",
-        "--out",output],cwd=project,timeout=1200,
-        env=dict(PYTHONDONTWRITEBYTECODE="1",
-            PYTHONPATH=str(project.parent/"Hepta-agent-edit-native")+":"+context["reference"]))
+    try:
+        common.run("real-A-native-context-integration",[
+            sys.executable,"-B",project/"tests/test_program_service_actual_r1.py",
+            "--source",context["source"],"--reference",context["reference"],
+            "--compiler",context["compiler"],"--roles",project/"reference/program-roles.json",
+            "--assets",mine/"assets/assets.json",
+            "--service-manifest",service/"development/compile-r1/program-service.manifest.json",
+            "--out",output],cwd=project,timeout=1200,
+            env=dict(PYTHONDONTWRITEBYTECODE="1",
+                PYTHONPATH=str(project.parent/"Hepta-agent-edit-native")+":"+context["reference"]))
+    finally:
+        if (output/"summary.json").is_file():
+            observed=json.loads((output/"summary.json").read_bytes())
+            print("HIA_A_REAL_ATTEMPT_ORIGINAL_SUMMARY "+json.dumps({k:v for k,v in observed.items() if k!="cases_detail"},sort_keys=True),flush=True)
     result=json.loads((output/"summary.json").read_bytes())
     assert result["status"]=="PASS" and result["source_pins_unchanged"]
     assert (result["cases"],result["accepted_cases"],result["rejected_cases"],

@@ -1368,7 +1368,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-worker-complete-schema-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-schema-r1/worker_complete_schema_ci_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-complete-schema-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-complete-schema-r1/worker_complete_schema_ci_r2.py 2>&1 | tee "$RUNNER_TEMP/hia-worker-complete-schema-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -1381,3 +1381,217 @@ jobs:
           retention-days: 90
           compression-level: 0
 
+
+  edit_terminal_relay:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:edit-terminal-relay]')
+    name: Actual HIA edit return through root and 87 plus 2 complete cases
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-edit-terminal-relay-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/edit-terminal-relay/ci_edit_terminal_relay_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-edit-terminal-relay-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-edit-terminal-relay-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-edit-terminal-relay-recovery
+            ${{ runner.temp }}/hia-edit-terminal-relay-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+  namespace_fencing:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-fencing]')
+    name: Actual fixed HIA FS inode and fencing coordination
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Install mandatory syscall trace controller
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends strace
+          strace --version
+      - name: Download exact actual GETLK predecessor
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13898836544'
+          run-id: '43115476503'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-fencing-getlk-predecessor
+      - name: Download exact actual inode predecessor
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13896704251'
+          run-id: '43113333444'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-fencing-inode-predecessor
+      - name: Execute new bounded independent component qualification
+        shell: bash
+        env:
+          HIA_NAMESPACE_GETLK_PREDECESSOR_DIR: ${{ runner.temp }}/hia-fencing-getlk-predecessor
+          HIA_NAMESPACE_INODE_PREDECESSOR_DIR: ${{ runner.temp }}/hia-fencing-inode-predecessor
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-fencing-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-fencing-r2-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-fencing-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-fencing-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-fencing-recovery
+            ${{ runner.temp }}/hia-namespace-fencing-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+  a_follow12_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:a-follow12-readback]')
+    name: Read exact A Core cases and first Composite issuer compile failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact follow12 A attempt
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13900586328'
+          run-id: '43119383155'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-A-follow12-download
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/program-integration/read_follow12_A_compile_failure_r1.py --download "$RUNNER_TEMP/hia-A-follow12-download" --out "$RUNNER_TEMP/hia-A-follow12-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-a-follow12-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-a-follow12-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-A-follow12-download
+            ${{ runner.temp }}/hia-A-follow12-readback-output
+            ${{ runner.temp }}/hia-a-follow12-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  publication_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:publication-readback]')
+    name: Read exact native publication transactions and syscall counts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted diagnostic or reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download original publication ZIP bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13900605840/zip > "$RUNNER_TEMP/hia-publication-follow12.zip"
+      - name: Execute bounded independent evidence task
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli-publication-r1/ci/read_publication_follow12_original_r1.py --zip "$RUNNER_TEMP/hia-publication-follow12.zip" --out "$RUNNER_TEMP/hia-publication-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-publication-readback-driver.log"
+      - name: Retain original input and complete new evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-publication-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-publication-follow12.zip
+            ${{ runner.temp }}/hia-publication-readback-output
+            ${{ runner.temp }}/hia-publication-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

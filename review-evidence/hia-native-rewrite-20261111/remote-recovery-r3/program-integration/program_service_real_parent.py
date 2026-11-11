@@ -19,12 +19,22 @@ def source(program,action,digits=4300):
     cursor=20000
     for slot,raw in payloads.items():
         name="input_data_"+str(slot)
+        # Bound each literal initializer independently of input content.
+        # This changes no issued byte or service command. The original B3
+        # per-block scalar limits still apply to every generated helper.
+        pieces=[]
+        for first in range(0,len(raw),128):
+            helper=name+"_part_"+str(first//128);pieces.append(helper)
+            lines=["def "+helper+"(w:mutbuf) -> u64:"]
+            for at in range(first,min(first+128,len(raw)),8):
+                part=raw[at:at+8]
+                if len(part)==8:
+                    lines.append("    put(w, "+str(cursor+at)+", "+str(int.from_bytes(part,"little"))+")")
+                else:
+                    lines.extend("    store(w, "+str(cursor+at+i)+", "+str(c)+")" for i,c in enumerate(part))
+            lines.append("    return 0");data_functions.append("\n".join(lines)+"\n")
         lines=["def "+name+"(w:mutbuf) -> u64:"]
-        for at in range(0,len(raw),8):
-            part=raw[at:at+8]
-            if len(part)==8:lines.append("    put(w, "+str(cursor+at)+", "+str(int.from_bytes(part,"little"))+")")
-            else:
-                lines.extend("    store(w, "+str(cursor+at+i)+", "+str(c)+")" for i,c in enumerate(part))
+        lines.extend("    "+helper+"(w)" for helper in pieces)
         lines.append("    return 0");data_functions.append("\n".join(lines)+"\n")
         f.event("grow-"+str(slot),f"grow(o, w, {slot}, {max(1,len(raw))}, @NEXT@)")
         f.add("copy-"+str(slot),name+"(w)\n"+f"return copy(o, w, 2, {cursor}, {slot}, 0, {len(raw)}, @NEXT@)")

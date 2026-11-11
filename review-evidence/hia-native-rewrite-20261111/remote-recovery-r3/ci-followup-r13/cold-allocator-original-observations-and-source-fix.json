@@ -1,0 +1,285 @@
+{
+  "schema": "hia-c442-trap-timeout-independent-source-review-v1",
+  "status": "OBSERVED_FAILURE_AND_MINIMAL_UNEXECUTED_FIX",
+  "original_head": "c4424483c586a7f91f3311cae6107966cdcf4d4a",
+  "original_run": 43113333402,
+  "original_native_job": 130834816288,
+  "original_artifact": {
+    "id": 13898190121,
+    "bytes": 54152870,
+    "sha256": "cea6392d44930dc0ad0e304dbdb292cb977167af144c06df893e722dcd33bed1"
+  },
+  "independent_readback": {
+    "head": "722ebd53f80a86c527b816d60caca7a9d5faa1f9",
+    "run": 43119383155,
+    "job": 130855636615,
+    "full_log": {
+      "path": "original-follow12-cold-readback-job130855636615.log",
+      "bytes": 434006,
+      "sha256": "31d940c6608583380ac40041a3e1e54cde4279c29fb09acc8865239734253863",
+      "gitsha": "c0f9df6cd933dd020335dcfb5cceb253fcb01f37"
+    },
+    "originals_reassembled": 29,
+    "original_bytes": 183677,
+    "complete_sha256_verified": true,
+    "native_entries": 0,
+    "qualification_reruns": 0
+  },
+  "observations": {
+    "parent_status": "QUALIFICATION_FAILED",
+    "parent_returncode": 1,
+    "parent_timed_out": false,
+    "parent_exit_observed_before_deadline": true,
+    "parent_cleanup_complete": true,
+    "qualification_seconds": 180,
+    "phase_count": 38,
+    "phase_exceptions": 2,
+    "failures": [
+      {
+        "member": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-allocator/chain-allocator-required-payload-null-trap-0-successor-run.receipt.json",
+        "status": "timeout",
+        "wall_limit_seconds": 20,
+        "wall_elapsed_ns": 20021809837,
+        "runner_sha256": "bf6ffb0727d404531d5d2313d736bfbca151d9a9fb9de8b40530fa0a6dec98a3",
+        "image_sha256": "13e0bf047dd7eea8160e3375dff61d93919af608c49ffa93f8d13a6af536324a",
+        "output_hex": "a5a5a5a5a5a5a5a5",
+        "allocation_attempts": 1,
+        "forced_failures": 1,
+        "allocations": 0,
+        "frees": 0
+      },
+      {
+        "member": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-allocator/chain-allocator-required-payload-null-trap-0-successor-run.receipt.json",
+        "status": "timeout",
+        "wall_limit_seconds": 20,
+        "wall_elapsed_ns": 20021307587,
+        "runner_sha256": "bf6ffb0727d404531d5d2313d736bfbca151d9a9fb9de8b40530fa0a6dec98a3",
+        "image_sha256": "b6129fb09f2fde85847bb55ee5938018d0ec5c48d769c3ffd2304b923734b5e9",
+        "output_hex": "a5a5a5a5a5a5a5a5",
+        "allocation_attempts": 1,
+        "forced_failures": 1,
+        "allocations": 0,
+        "frees": 0
+      }
+    ],
+    "source_comparison": {
+      "allocator_child_gitsha": "a11c0e8441542c836732f96b3cf88cf92872c5e2",
+      "allocator_child_sha256": "bf6ffb0727d404531d5d2313d736bfbca151d9a9fb9de8b40530fa0a6dec98a3",
+      "allocator_RLIMIT_CORE_zero": true,
+      "allocator_explicit_dumpable_disable": false,
+      "ordinary_child_gitsha": "2ecbf3a04680eceee0537cb3d621073bac9c52f4",
+      "ordinary_child_sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+      "ordinary_explicit_dumpable_disable_and_readback": true
+    },
+    "other_observed_traps": {
+      "cases": 16,
+      "ordinary_helper": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29",
+      "signals": [
+        -4,
+        -6
+      ],
+      "wall_ns_min": 25426301,
+      "wall_ns_max": 27212970
+    }
+  },
+  "inference": {
+    "confirmed_gap": "The allocator-specific disposable child lacks the ordinary child's PR_SET_DUMPABLE=0 and PR_GET_DUMPABLE readback.",
+    "candidate_mechanism": "Linux piped core collection can wait on an external collector despite RLIMIT_CORE=0.",
+    "historical_root_cause_proven": false,
+    "missing_observations": [
+      "original host core_pattern/core_pipe_limit",
+      "original timed-out child state/kernel wait channel",
+      "original last delivered signal or syscall trace"
+    ],
+    "not_a_180_second_timeout": true,
+    "later_fc457_qualification_is_separate": true
+  },
+  "primary_references": [
+    {
+      "url": "https://docs.kernel.org/admin-guide/sysctl/kernel.html",
+      "section": "core_pattern/core_pipe_limit",
+      "scope": "piped core collection can wait for collector exit"
+    },
+    {
+      "url": "https://www.kernel.org/pub/linux/docs/man-pages/book/man-pages-6.8.pdf",
+      "section": "core(5)",
+      "scope": "RLIMIT_CORE is ignored for a piped core program"
+    }
+  ],
+  "fix": {
+    "file": {
+      "path": "tools/hia_selfhost_chain_allocator_child.py",
+      "bytes": 4178,
+      "sha256": "c40e809af7d213daacb2bf066b5177784aa09c9b5c1b528ee76353b1e5c4fb9e",
+      "gitsha": "188c22a42ecd2da42ab6d536e861849cc741c035"
+    },
+    "current_branch_original_checked": true,
+    "original_current_blob": "a11c0e8441542c836732f96b3cf88cf92872c5e2",
+    "scope": "Copy the existing ordinary-child prctl gate verbatim immediately after RLIMIT_CORE=0.",
+    "shared_builder_changed": false,
+    "signal_handler_added": false,
+    "trap_expectations_unchanged": [
+      -4,
+      -6
+    ],
+    "limits_unchanged": {
+      "wall_seconds": 20,
+      "cpu_seconds": 10,
+      "address_space_bytes": 268435456,
+      "stack_bytes": 8388608,
+      "file_size_bytes": 16777216,
+      "nofile": 32,
+      "outer_qualification_seconds": 180,
+      "outer_cleanup_seconds": 3
+    },
+    "native_validation": "NOT_RUN_NEW_FIX",
+    "original_failure_preserved": true
+  },
+  "originals": [
+    {
+      "path": "hia-cold.json",
+      "bytes": 69101,
+      "sha256": "b3c6107cff111cf9ef0c1b272db16f63e94f141db27fb89c8440ec09704b6148"
+    },
+    {
+      "path": "hia-cold.cold/process-owner.json",
+      "bytes": 1408,
+      "sha256": "c663b29c9a766659f8edceae160f3e1b3047089faaf9acd0defa4ac768133641"
+    },
+    {
+      "path": "hia-cold.cold/request.json",
+      "bytes": 66254,
+      "sha256": "8c67d794d7c539a651757bc6a0d1a45f06f68baa1a70cb318683b802d84d02c0"
+    },
+    {
+      "path": "hia-cold.cold/stderr.log",
+      "bytes": 3236,
+      "sha256": "14e6509f2225ffaa6ff46585ab0f674779e64cc644ea2427ef5143634ad15dca"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-modified.process.json",
+      "bytes": 713,
+      "sha256": "f51e6a6116b6b1e300a53502d148e62a01f4ffde7b77ed53b7bf4a16d6097fe9"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-modified.request.json",
+      "bytes": 1369,
+      "sha256": "bf1024bcaecac1a694d41c5f4757f002c0c2a5742f001d19f87d68fda9595c69"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-modified.stderr.log",
+      "bytes": 2419,
+      "sha256": "fc466a4e503047eb9d96b6ffd7be99c1da5f20e0685bb8ee63ff243597fc0cec"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-original.process.json",
+      "bytes": 713,
+      "sha256": "4150d6b1bb92851210ef3cbe54142f394d871799bb1486467df29c2c1bc7984e"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-original.request.json",
+      "bytes": 1369,
+      "sha256": "e9df130817c10082416749be53d1b98e177dc5c2093fc04293207ea98317201e"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-chain-original.stderr.log",
+      "bytes": 2419,
+      "sha256": "4ee8c6f2d88224a0cd0534bcb767c844a5c0005f497609f660b297c025bec135"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-index.json",
+      "bytes": 19900,
+      "sha256": "d2e32cf01bdca21cc6eb93fd5983699b88738e39bdcdd05dd271218e49cb799a"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-allocator/chain-allocator-required-payload-null-trap-0-successor-run.receipt.json",
+      "bytes": 1496,
+      "sha256": "9f58cd2d68cdacc4cca534b603900899461a0544f3921451e14cda8dca231e5f"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-mut-0-direct-run.receipt.json",
+      "bytes": 737,
+      "sha256": "37bee1390cc650e9ab35b0cdbb2eebcc0f691cdfb34742459df42a75195b8312"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-mut-0-run.receipt.json",
+      "bytes": 734,
+      "sha256": "af79894c337ebf6df0c1bb0c7678ee99852755834640988ec4b2e4ef15179137"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-mut-1-direct-run.receipt.json",
+      "bytes": 738,
+      "sha256": "261448b12b8cf3bb883589a0dc6dea5b8a86f72699a2d16d1eae420ee2aac171"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-mut-1-run.receipt.json",
+      "bytes": 735,
+      "sha256": "6dcd78ff31d01c649b5c7e3ec0f62a6e511ff06143ac24e2a3535ac32cc8b2e2"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-read-0-direct-run.receipt.json",
+      "bytes": 738,
+      "sha256": "43e6cc942f95d5ec4df1690de06398229b3c819887243d898ca21fe8de73db3f"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-read-0-run.receipt.json",
+      "bytes": 735,
+      "sha256": "dc42bce96b6847283156e247a29b9cdc0b0c60126e208acc0668603b72032732"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-read-1-direct-run.receipt.json",
+      "bytes": 739,
+      "sha256": "84e5fb175f08fcc3dd0553683cfe691d772451be495ca59dac8d40f0dac5ffec"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-elf/empty-head-read-1-run.receipt.json",
+      "bytes": 736,
+      "sha256": "fb3ca88251b70ad3e5bbc902bdcf9f02a174dab6fc4153d1b3173026afdabcc4"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-allocator/chain-allocator-required-payload-null-trap-0-successor-run.receipt.json",
+      "bytes": 1496,
+      "sha256": "ebb34cdd9177866f9bc919fcab1b68cf5a43df1826fab5f340ff96e7444b8de2"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-mut-0-direct-run.receipt.json",
+      "bytes": 737,
+      "sha256": "d50d1484e7dd357aa74837a1be2e7051354199b29551016141bf0dfd47c105eb"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-mut-0-run.receipt.json",
+      "bytes": 734,
+      "sha256": "6239cbca1abdbd209a669abbb5dbaa8b6efb2d91f9638a245552442e5c81bbdb"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-mut-1-direct-run.receipt.json",
+      "bytes": 738,
+      "sha256": "9868e6726f41f09e43c29da3befa0f3bdb1bcdbabd3be2f3093ebbfaea704e09"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-mut-1-run.receipt.json",
+      "bytes": 735,
+      "sha256": "02b929b8970aa48cf48157cadca9ccfee7b2df97057b51c121dc80846fa41076"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-read-0-direct-run.receipt.json",
+      "bytes": 738,
+      "sha256": "12452213ef0e14c17e3ed995d40c74186cf2b7750b93cf2745a92b4dc6c321dd"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-read-0-run.receipt.json",
+      "bytes": 735,
+      "sha256": "83f5b7aa99f027eb531911ce2d81905f56aabbbe2f392da9237fc4afa63551a9"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-read-1-direct-run.receipt.json",
+      "bytes": 739,
+      "sha256": "27ccab1351bdb9595c625c2451c8c9edfb80469e5260abf91f03978254e3a9a9"
+    },
+    {
+      "path": "hia-cold.cold/qualification.evidence/phase-runs/chain-original/original-chain-elf/empty-head-read-1-run.receipt.json",
+      "bytes": 736,
+      "sha256": "cc5c39de4ec699cd21e1630195066064c7fdfce51ba2e31cab981d28cb4325ff"
+    }
+  ]
+}

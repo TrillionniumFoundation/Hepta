@@ -1,0 +1,125 @@
+{
+  "schema": "hia-complete-schema-first-generation-failure-v1",
+  "head": "722ebd53f80a86c527b816d60caca7a9d5faa1f9",
+  "run": 43119383155,
+  "job": 130855636683,
+  "status": "FAIL",
+  "scope": "NEW_SCHEMA_GENERATION_AND_ORIGINAL_BOUNDED_COMPILATION",
+  "original_full_log": {
+    "path": "original-follow12-schema-job130855636683.log",
+    "bytes": 58357,
+    "sha256": "53f52f11494c2c73e7a8b401c954c44646a7ec75c4ffda2d22b7e5dd4f4d7f12",
+    "gitsha": "ae1a9a8c72a02b643b18fc3bdf0780634cb49fdc"
+  },
+  "artifact": {
+    "id": 13899458654,
+    "bytes": 53394095,
+    "sha256": "5d58194e105ba1bf6f904b8da5dd658e35ab72107e56f0c057cf054378c7b7a2"
+  },
+  "inner": {
+    "bytes": 5778076,
+    "sha256": "a3517a53413a736b583253581451540bc1f6307bdfa081218a25437a468d6547",
+    "members": 137,
+    "original_bytes": 47923292,
+    "member_index_sha256": "265f4e5522c8311afb48e523abbe8c337f4f3ddf94daef91874544cdff347eaf"
+  },
+  "actual_result_projected_from_original_log": [
+    {
+      "actual_successful_process": false,
+      "event": "COMPLETE_SCHEMA_PANEL",
+      "label": "worker-complete-schema-generation-and-original-bounded-B3",
+      "original_summary": {
+        "actual_compiles": 4,
+        "attempts": [
+          {
+            "manifest": {
+              "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+              "counts": {
+                "blocks": 954,
+                "functions": 63,
+                "instructions": 3209,
+                "max_block_parameters": 10,
+                "max_function_blocks": 79
+              },
+              "image_bytes": 260706,
+              "image_path": "/home/runner/work/_temp/hia-worker-complete-schema-recovery/complete-schema-compile/schema_scalar.image.bin",
+              "image_sha256": "8440aa54d01e7406be38a502072d890e98b05af1e1f8398b08a08981efe376bd",
+              "receipt_path": "/home/runner/work/_temp/hia-worker-complete-schema-recovery/complete-schema-compile/schema_scalar.receipt.json",
+              "role": "schema_scalar",
+              "source_bytes": 190205,
+              "source_path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/worker-recovery/work-r2/native-agent-schema-complete-next/examples/hia_bootstrap/schema_scalar.hiaasm",
+              "source_sha256": "2805ad32e5ef028b953b04fbafab432fc835f3847ee530334cb9ce474f47cf6d"
+            },
+            "role": "schema_scalar",
+            "status": "PASS"
+          },
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_logic",
+            "status": "FAIL"
+          },
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_containers",
+            "status": "FAIL"
+          },
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_errors",
+            "status": "FAIL"
+          }
+        ],
+        "compiler_limits": {
+          "address_space_bytes": 268435456,
+          "cpu_seconds": 10,
+          "wall_seconds": 20
+        },
+        "elapsed_ns": 4235793618,
+        "failures": [
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_logic",
+            "status": "FAIL"
+          },
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_containers",
+            "status": "FAIL"
+          },
+          {
+            "error": "<class 'ast.Div'>",
+            "error_class": "KeyError",
+            "role": "schema_errors",
+            "status": "FAIL"
+          }
+        ],
+        "native_entries": 0,
+        "production_activation": false,
+        "scope": "COMPLETE_SCHEMA_AND_REAL_WIRE_PATTERN_PEERS_DEVELOPMENT",
+        "source_unchanged": true,
+        "status": "FAIL",
+        "whole_worker_closed": false
+      }
+    }
+  ],
+  "not_run": [
+    "schema semantic",
+    "schema numeric",
+    "schema vocabulary",
+    "schema large",
+    "schema protocol"
+  ],
+  "fix": {
+    "runtime_changes": "Use existing checked HIA u64 division and remainder by constant 10 in formatter.",
+    "authoring_changes": "Only private SchemaBuilder subclass maps FloorDiv/Mod with u64 operands and a statically asserted constant divisor 10; retained shared Builder untouched.",
+    "native_result": "UNEXECUTED_NEW_REVISION",
+    "limits_changed": false,
+    "tests_changed": false
+  },
+  "whole_worker_closed": false
+}

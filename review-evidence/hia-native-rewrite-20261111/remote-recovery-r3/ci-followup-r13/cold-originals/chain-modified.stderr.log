@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/runner/work/_temp/hia-cold.cold/source/tools/qualify_hia_selfhost.py", line 955, in <module>
+    main()
+    ~~~~^^
+  File "/home/runner/work/_temp/hia-cold.cold/source/tools/qualify_hia_selfhost.py", line 940, in main
+    report = qualification_phase(arguments.phase_request)
+  File "/home/runner/work/_temp/hia-cold.cold/source/tools/qualify_hia_selfhost.py", line 574, in qualification_phase
+    allocator = qualify_chain_allocator(directory / (label + "-chain-allocator"), compiler)
+  File "/home/runner/work/_temp/hia-cold.cold/source/tools/qualify_hia_selfhost_chain_flow.py", line 279, in qualify
+    arm_record["pass"] = validate_native(observed, case, direct=direct)
+                         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/_temp/hia-cold.cold/source/tools/qualify_hia_selfhost_chain_flow.py", line 209, in validate_native
+    raise AssertionError({"case": case["id"], "direct": direct, "native": observed})
+AssertionError: {'case': 'chain-allocator-required-payload-null-trap-0', 'direct': False, 'native': {'status': 'timeout', 'wall_limit_seconds': 20, 'wall_elapsed_ns': 20021809837, 'argv': ['/opt/hostedtoolcache/Python/3.14.10/x64/bin/python', '-I', '-B', '/home/runner/work/_temp/hia-cold.cold/source/tools/hia_selfhost_chain_allocator_child.py', '/home/runner/work/_temp/hia-cold.cold/qualification.evidence/phase-runs/chain-modified/modified-chain-allocator/chain-allocator-required-payload-null-trap-0-successor-run.request.json'], 'runner_sha256': 'bf6ffb0727d404531d5d2313d736bfbca151d9a9fb9de8b40530fa0a6dec98a3', 'image_sha256': '13e0bf047dd7eea8160e3375dff61d93919af608c49ffa93f8d13a6af536324a', 'native_linkage': 'explicit ld --wrap ordinary calloc/malloc/free witness', 'output_hex': 'a5a5a5a5a5a5a5a5', 'allocator': {'allocation_attempts': 1, 'calloc_calls': 1, 'malloc_calls': 0, 'forced_failures': 1, 'allocations': 0, 'frees': 0, 'live_allocations': 0, 'live_bytes': 0, 'peak_bytes': 0, 'foreign_frees': 0, 'record_overflow': 0, 'zero_size_calls': 0, 'unexpected_libc_null': 0, 'event_count': 1, 'failure_index': 1, 'ready_magic': 5208766201261541710, 'events': [{'operation': 'calloc', 'bytes': 8, 'logical_allocation_id': 0, 'success': False, 'allocation_attempt': 1}], 'events_replay_consistent': True, 'counter_file_sha256': 'e01754019a736f289eda272d041086ae3a1f0cea63b5db38c0c78bf08c540a9b'}}}
