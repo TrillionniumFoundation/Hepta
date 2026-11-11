@@ -45,6 +45,36 @@ def vm_pack(wire,capacity):
 
 
 class CoreWorkspacePipelineSourceTests(unittest.TestCase):
+    def test_actual_kernel_code_seals_without_named_fcntl_constants(self):
+        import fcntl
+        from tools.compile_hia_core_workspace import _seal_code_descriptor
+        absent={'F_ADD_SEALS','F_GET_SEALS','F_SEAL_WRITE','F_SEAL_GROW','F_SEAL_SHRINK','F_SEAL_SEAL'}
+        descriptor=os.memfd_create('hia-workspace-seal-control',os.MFD_ALLOW_SEALING)
+        try:
+            os.write(descriptor,b'actual kernel seal control')
+            remaining={name:value for name,value in vars(fcntl).items() if name not in absent}
+            with patch.dict(fcntl.__dict__,remaining,clear=True):
+                _seal_code_descriptor(descriptor)
+            self.assertEqual(fcntl.fcntl(descriptor,1034)&15,15)
+            with self.assertRaises(PermissionError):os.write(descriptor,b'forbidden')
+        finally:os.close(descriptor)
+
+    def test_incomplete_or_untyped_kernel_seal_readback_refuses(self):
+        import fcntl
+        from tools.compile_hia_core_workspace import _seal_code_descriptor
+        actual=fcntl.fcntl
+        for observed in (0,7,True,15.0):
+            with self.subTest(observed=observed):
+                descriptor=os.memfd_create('hia-workspace-seal-refusal',os.MFD_ALLOW_SEALING)
+                try:
+                    os.write(descriptor,b'actual kernel seal control')
+                    def readback(fd,command,*arguments):
+                        return observed if command==1034 else actual(fd,command,*arguments)
+                    with patch.object(fcntl,'fcntl',side_effect=readback):
+                        with self.assertRaisesRegex(OSError,'complete kernel seals'):
+                            _seal_code_descriptor(descriptor)
+                finally:os.close(descriptor)
+
     def test_incomplete_builder_refuses_before_output_creation_and_no_mixed_selection(self):
         from tools.build_hia_core_workspace_pipeline import build
         from tools.compile_hia_core_workspace import compile_workspace
@@ -112,6 +142,52 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
             'source_sha256':cls.source_pins,'image_sha256':{n:sha256(v).hexdigest() for n,v in images.items()},
             'compiler_image_sha256':cls.compiler.image_sha256,'executable_sha256':sha256(packed).hexdigest(),
             'bundle_limit':BUNDLE_LIMIT,'compiler_caps_unchanged':True,'whole_native_delivery_qualified':False},indent=2)+'\n')
+        cls.qualified_manifest=None
+
+    def qualified_public_bridge(self):
+        from tools.build_hia_core_workspace_pipeline import build
+        cls=type(self)
+        if cls.qualified_manifest is None:
+            selected=os.environ.get('HEPTA_HIA_CORE_MODULE_GRAPH_COLD_REPORT')
+            if not selected:self.skipTest('native public workspace custody requires matching cold report')
+            cold=Path(selected);report=json.loads(cold.read_bytes())
+            nested=json.loads(Path(report['nested_report']).read_bytes())
+            compiler=Path(nested['generations'][-1]['produced_image'])
+            executable=build(cls.folder/'qualified-public-bridge',compiler,cold)
+            cls.qualified_manifest=executable.parent/'build.json'
+        return cls.qualified_manifest
+
+    def test_public_pipeline_seals_actual_native_code_without_named_constants(self):
+        import fcntl
+        from tools.compile_hia_core_workspace import compile_pipeline
+        manifest=self.qualified_public_bridge();wire=json.dumps(project()).encode()
+        expected=self.run_cli(wire);self.assertEqual((expected.returncode,expected.stderr),(0,b''))
+        absent={'F_ADD_SEALS','F_GET_SEALS','F_SEAL_WRITE','F_SEAL_GROW','F_SEAL_SHRINK','F_SEAL_SEAL'}
+        remaining={name:value for name,value in vars(fcntl).items() if name not in absent}
+        with patch.dict(fcntl.__dict__,remaining,clear=True):
+            image=compile_pipeline(wire,manifest,self.folder/'sealed-public-output')
+        self.assertEqual(image.read_bytes(),expected.stdout)
+        receipt=json.loads((image.parent/'workspace.receipt.json').read_bytes())
+        self.assertIs(receipt['sealed_code_descriptor'],True)
+
+    def test_public_pipeline_refuses_incomplete_seals_before_exec_and_closes_fd(self):
+        import fcntl
+        from tools.compile_hia_core_workspace import compile_pipeline
+        manifest=self.qualified_public_bridge();opened=[];actual_create=os.memfd_create;actual_fcntl=fcntl.fcntl
+        def create(*arguments,**keywords):
+            descriptor=actual_create(*arguments,**keywords);opened.append(descriptor);return descriptor
+        def incomplete(fd,command,*arguments):
+            return 7 if command==1034 else actual_fcntl(fd,command,*arguments)
+        output=self.folder/'refused-public-output'
+        with patch.object(os,'memfd_create',side_effect=create),patch.object(fcntl,'fcntl',side_effect=incomplete), \
+             patch('subprocess.run',side_effect=AssertionError('execution before complete kernel seals')) as execute:
+            with self.assertRaisesRegex(OSError,'complete kernel seals'):
+                compile_pipeline(json.dumps(project()).encode(),manifest,output)
+            execute.assert_not_called()
+        self.assertEqual(len(opened),1)
+        for descriptor in opened:
+            with self.assertRaises(OSError):os.fstat(descriptor)
+        self.assertFalse(output.exists())
 
     @classmethod
     def tearDownClass(cls):

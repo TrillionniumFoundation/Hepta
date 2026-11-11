@@ -103,6 +103,10 @@ It does not overwrite either parallel candidate's native language semantics.
   including on Python builds that omit the symbolic Linux constants. Native
   compiler publication also requires exact typed receipts and unchanged input
   and compiler bytes under optimized Python.
+- The public workspace compilation bridge also verifies complete kernel seals
+  before executing its captured HIA pipeline. Missing symbolic Python constants
+  use the Linux UAPI values; incomplete seal readback refuses execution and
+  closes the owned descriptor before any output is published.
 - Every Core CI unittest group requires a nonempty declared suite, exact
   execution count and zero anomalies. Empty or incomplete success reports,
   skips and expected failures cannot qualify a component. The existing test
