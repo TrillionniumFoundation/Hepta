@@ -206,7 +206,9 @@ class CoreWorkflowContractTests(unittest.TestCase):
                      'hia-native-components.json', 'hia-json-wire-fixture/', 'hia-json-wire-entry-fixture/',
                      'hia-worker-report-fixture/', 'hia-machine-plan-fixture/',
                      'hia-machine-plan-callers.json', 'hia-machine-plan-callers-evidence/',
-                     'hia-json-wire-callers.json', 'hia-json-wire-callers-evidence/']:
+                     'hia-json-wire-callers.json', 'hia-json-wire-callers-evidence/',
+                     'hia-machine-encoding-callers-evidence/',
+                     'hia-json-wire-cache-fixture/', 'hia-cli-fixture/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
@@ -216,12 +218,18 @@ class CoreWorkflowContractTests(unittest.TestCase):
         code = script(name).split("<<'PYNATIVEOWNERS'\n", 1)[1].rsplit('\nPYNATIVEOWNERS', 1)[0]
         assignment = next(n for n in ast.parse(code).body if isinstance(n, ast.Assign))
         self.assertEqual(ast.literal_eval(assignment.value.args[0]), (
-            'tests.test_hia_json_wire_native', 'tests.test_hia_json_wire_entry',
+            'tests.test_hia_json_wire_native', 'tests.test_hia_json_wire_cache',
+            'tests.test_hia_json_wire_entry',
             'tests.test_hia_worker_report_native',
-            'tests.test_hia_machine_plan_native', 'tests.test_hia_selfhost_linked_observer'))
-        for component in ('JSON_WIRE', 'WORKER_REPORT', 'MACHINE_PLAN'):
+            'tests.test_hia_machine_plan_native', 'tests.test_hia_selfhost_linked_observer',
+            'tests.test_hia_cli_native'))
+        for component in ('JSON_WIRE', 'WORKER_REPORT', 'MACHINE_PLAN', 'CLI'):
             self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
                           step(name))
+        for component, directory in (('JSON_WIRE_CACHE', 'hia-json-wire-cache-fixture'),
+                                     ('CLI', 'hia-cli-fixture')):
+            self.assertIn('          HEPTA_HIA_' + component + '_FIXTURE_EVIDENCE: '
+                          '${{ runner.temp }}/' + directory, step(name))
         fixture = '''import unittest
 class Fixture(unittest.TestCase):
     def test_first(self):

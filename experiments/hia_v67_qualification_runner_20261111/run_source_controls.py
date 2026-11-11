@@ -31,7 +31,7 @@ GROUPS = (
     'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
     'tests.test_hia_cli_native.CliSourceTests',
     'tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests',
-    'tests.test_hia_selfhost_contract',
+    'tests.test_hia_selfhost_contract.SelfhostContractTests',
 )
 
 
