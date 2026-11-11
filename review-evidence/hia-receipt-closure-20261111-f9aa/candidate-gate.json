@@ -1,6 +1,6 @@
 {
   "schema": "hepta.hia.fixed-candidate-closure-ledger.v1",
-  "recorded_at": "2026-11-11 12:42:54 UTC",
+  "recorded_at": "2026-11-11 13:32:05 UTC",
   "decision": "HOLD",
   "candidate": {
     "hepta": {
@@ -19,7 +19,14 @@
     "tree": "98d96c88d54082637c27f1cbfae61a66d0dd81e7",
     "pr": 120,
     "change": "include-hidden-files: true within the existing seven explicit upload roots",
-    "qualification": "PENDING_SEPARATE_RUNS"
+    "qualification": "HOLD",
+    "archive_integrity": "PASS",
+    "source_files_present": 637,
+    "source_files_declared": 637,
+    "source_supplements_used": false,
+    "full_rust_ci": "PASS",
+    "original_joint_run": 43022234643,
+    "original_joint_attempt": 1
   },
   "scope": {
     "whole_worker_native": false,
@@ -148,8 +155,18 @@
         "id": 13854688251,
         "bytes": 47624762,
         "sha256": "426d6a2439aba21ff4c391e9e50783554dee4c4e2f58cf447b3eaf194898fdfd",
-        "verification": "API and original upload log; full archive custody pending"
-      }
+        "verification": "Full SHA256 and CRC independently checked on desktop and cloud; 637 source exports and 34 report/phase-ZIP hashes verified; exact Git blob read back.",
+        "members": 4441,
+        "local_sha256_and_crc_verified": true,
+        "retained_git_blob": "77e4ae08fab033866aaaf05598525b8e588fe73d",
+        "path": "core-pr-attempt2/artifact-13854688251.original.zip"
+      },
+      "wall_elapsed_seconds": 180.14656781,
+      "cleanup_elapsed_seconds": 0.080203272,
+      "cleanup_complete": true,
+      "nested_phases_completed": 34,
+      "nested_phases_total": 38,
+      "nested_phase_exceptions": 0
     },
     {
       "repo": "hepta-runtime",
@@ -216,8 +233,17 @@
         "id": 13853837009,
         "bytes": 64675363,
         "sha256": "d56dbb51331bbab23883c586aea29cdfa014d4676e429e1de82c27d29cac9645",
-        "verification": "Original logs and artifact metadata; full archive readback pending"
-      }
+        "verification": "Full original archive verified and retained; four missing source workflow bytes are separately pinned Git supplements.",
+        "members": 1584,
+        "local_sha256_and_crc_verified": true,
+        "manifest_source_files": 637,
+        "archived_source_files": 633,
+        "missing_hidden_workflows": 4,
+        "separate_exact_git_source_supplement": true
+      },
+      "cold_wall_elapsed_seconds": 170.448923344,
+      "mcp_calls": 39,
+      "transport_sessions": 4
     },
     {
       "repo": "hepta-runtime",
@@ -279,8 +305,94 @@
       "event": "push",
       "attempt": 1,
       "gate": "full_ci",
-      "conclusion": null,
-      "status": "in_progress"
+      "conclusion": "success",
+      "status": "completed",
+      "actual_source": "7924a0c3545125f7a1c3c888adc63f6515668063",
+      "exact_head": {
+        "all_features": {
+          "passed": 2400,
+          "failed": 0,
+          "skipped": 40
+        },
+        "no_default_features": {
+          "passed": 2371,
+          "failed": 0,
+          "skipped": 28
+        },
+        "python": {
+          "passed": 817,
+          "failed": 0,
+          "skipped": 1
+        }
+      },
+      "prospective_merge": "conditionally skipped for push event"
+    },
+    {
+      "repo": "hepta-runtime",
+      "run": 43022234643,
+      "event": "pull_request",
+      "attempt": 1,
+      "gate": "joint_native_archive_followup",
+      "runtime_source": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+      "hepta_source": "7c20b6cfc792f0147b5418968f94734b8890fcca",
+      "conclusion": "failure",
+      "qualification_status": "HOLD",
+      "source_controls": [
+        20,
+        20
+      ],
+      "cold_checks": [
+        6,
+        11
+      ],
+      "cold_status": "FAIL",
+      "cold_wall_elapsed_seconds": 180.187798546,
+      "qualification_budget_seconds": 180,
+      "cleanup_budget_seconds": 3,
+      "cleanup_elapsed_seconds": 0.084347305,
+      "cleanup_complete": true,
+      "language_cases": [
+        1242,
+        1242
+      ],
+      "native_status": "HOLD",
+      "native_checks": {},
+      "native_error": "unchanged-budget cold qualification is incomplete; native integration remains HOLD",
+      "artifact": {
+        "id": 13855932062,
+        "bytes": 58784411,
+        "sha256": "12a73eea08bde925f801050530817b66ee67c5624d81ee2dd332f68e327b07c1",
+        "members": 6209,
+        "local_sha256_and_crc_verified": true,
+        "manifest_source_files": 637,
+        "archived_source_files": 637,
+        "missing_source_files": 0,
+        "source_hash_mismatches": 0,
+        "separate_source_supplement": false,
+        "retained_git_blob": "1223f6afa8257b40bd75b1e3aaaed22e2ef91d5f"
+      }
+    },
+    {
+      "repo": "hepta-runtime",
+      "run": 43022176834,
+      "event": "push",
+      "attempt": 1,
+      "gate": "full_ci_archive_followup",
+      "runtime_source": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+      "status": "completed",
+      "conclusion": "success",
+      "actual_job_counts": "See Runtime ci-review/runtime-a0dcdda-full-ci-review.json; all source IDs and test skips are retained."
+    },
+    {
+      "repo": "hepta-runtime",
+      "run": 43022234635,
+      "event": "pull_request",
+      "attempt": 1,
+      "gate": "full_ci_archive_followup",
+      "runtime_source": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+      "status": "completed",
+      "conclusion": "success",
+      "actual_job_counts": "See Runtime ci-review/runtime-a0dcdda-full-ci-review.json; all source IDs and test skips are retained."
     }
   ],
   "retry_policy": {
@@ -290,9 +402,114 @@
     "original_attempts_preserved": true
   },
   "blockers": [
-    "Core PR cold deadline failed on original attempt and one controlled diagnostic attempt; stable 180-second closure is not established.",
-    "The full hosted JSON/journal worker and live Runtime cutover are outside the completed native-helper qualification.",
-    "The exact source archive omissions require separate source supplements; archival follow-up #120 is separately qualified."
+    "Core PR cold exceeded the unchanged 180-second deadline on original attempt 1 and one bounded diagnostic attempt 2; the archival follow-up also failed its original cold deadline.",
+    "Stable completion under the existing cold budget is not established; available stage timings and matching software/source identities do not isolate a causal performance defect.",
+    "Whole-worker native status, production cutover, whole-language compiler refinement, the original strict Agent four-claim gate, fresh-agent learning and net performance benefit remain unestablished."
   ],
-  "counting": "Independent, focused, CI and peer-review test counts overlap. They are not summed into a unique-test total."
+  "counting": "Independent, focused, CI and peer-review test counts overlap. They are not summed into a unique-test total.",
+  "all_started_qualification_and_ci_runs_terminal": true,
+  "documentation_followup": {
+    "pr": 892,
+    "commit": "c0fec2a233c64e492f633eb86235438b699d99f1",
+    "tree": "1a30d23cd4673389e7f61d1eff834591e3343a0a",
+    "scope": "Two documentation files; precise Core/direct/selfhost/standalone domains; no execution qualification claimed",
+    "independent_review": "No material blocker; direct public parameters clarified to non-unit integer/bool scalars."
+  },
+  "compiler_extension_contract": {
+    "status": "PASS_REGISTERED_FINITE_UPGRADE_DOMAIN",
+    "property": "exact old-source output preservation and registered new-source observations",
+    "counts": {
+      "distinct_local_fragment_smt_obligations": 25,
+      "new_source_admission_deltas": 5,
+      "new_whole_program_finite_observations": 64,
+      "old_native_runtime_observations": 18,
+      "old_refusal_observations": 4,
+      "old_source_images_compared": 2,
+      "projected_fragment_native_observations": 200
+    },
+    "unique_smt_query_hashes": 8,
+    "original_agent_four_claim_gate": "HOLD",
+    "adoption_authorized": false,
+    "agent_proof_receipt_issued": false,
+    "evaluation_performed": false,
+    "unproved_obligations": [
+      "other source bytes or runtime inputs",
+      "all of the old grammar",
+      "all newly valid select programs",
+      "all workspace/capacity/resource states",
+      "general compiler or complete generated-program machine refinement",
+      "historical checker implementation identity",
+      "original strict Agent acceptance",
+      "original provider transcript and complete costs"
+    ],
+    "report": "ci-originals/hepta-7c20-extension-github-original-report.json",
+    "counting_note": "25 local obligation instances use 8 distinct query hashes; complete-program and projection observations remain separate."
+  },
+  "runtime_full_ci": {
+    "candidates": [
+      {
+        "commit": "7924a0c3545125f7a1c3c888adc63f6515668063",
+        "runs": [
+          43016838002,
+          43016940004
+        ]
+      },
+      {
+        "commit": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+        "runs": [
+          43022176834,
+          43022234635
+        ]
+      }
+    ],
+    "executed_jobs": 6,
+    "all_features_per_job": {
+      "passed": 2400,
+      "failed": 0,
+      "skipped": 40
+    },
+    "no_default_features_per_job": {
+      "passed": 2371,
+      "failed": 0,
+      "skipped": 28
+    },
+    "python_exact_head_per_job": {
+      "passed": 817,
+      "failed": 0,
+      "skipped": 1
+    },
+    "python_prospective_merge_per_job": {
+      "passed": 750,
+      "failed": 0,
+      "skipped": 0
+    },
+    "release_runtime_sha256": "1a2ed2585ea78fa841b2adbf89fc06f15b9d1fa83dbff62cd94f8a90b6f17964",
+    "actual_release_mcp_cancel_and_same_owner_recovery": "PASS in each executed job",
+    "source_scope": "Stacked PR heads and their prospective merges, not default-branch integration",
+    "tests_retried": 0
+  },
+  "evidence": {
+    "hepta_original_archives_retained_at": "075d81109926dd4a3c6fbd28bcc210e07dc6db7a",
+    "runtime_original_archives_retained_at": "9e15796d6512dfee40f977654dcffceda95e1eba",
+    "runtime_full_ci_reviews_commit": "86fe5592cf89e0370865db80106bc67b4cc423af",
+    "raw_archives_modified": false,
+    "original_failure_reports_modified": false,
+    "first_runtime_archive_completeness_failure_retained": true,
+    "evidence_only_ci": {
+      "run": 43021548283,
+      "head": "0fddabae2bfc08380468a73524f4d105a5f95b55",
+      "disposition": "cancelled",
+      "reason": "Global push workflow on an evidence-only commit; no source candidate qualification claimed. Subsequent evidence/documentation commits use skip ci."
+    }
+  },
+  "resolved_archive_gap": {
+    "original_candidate": "7924a0c3545125f7a1c3c888adc63f6515668063",
+    "original_archive_sources": 633,
+    "declared_sources": 637,
+    "original_missing_hidden_workflows": 4,
+    "exact_git_supplements_retained": true,
+    "fixed_candidate": "a0dcdda1991ec536d5e2d252c006a778993fa566",
+    "fixed_original_archive_sources": 637,
+    "verification": "Complete original ZIP with no supplements; qualification remains HOLD for its separate cold failure."
+  }
 }
