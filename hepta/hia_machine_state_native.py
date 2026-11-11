@@ -80,15 +80,19 @@ class MachineStateSession:
         try:
             status = self.image._entry(raw, len(raw), self.output, len(self.output),
                                        self.workspace, len(self.workspace))
+            self.image.transitions[self.mode] += 1
+            if status == 1:
+                self.pending = True
+            else:
+                self.finished = True
+            return status
         except BaseException:
+            # A native transition may already have happened. Diagnostic
+            # bookkeeping must not leave a resumable or repeatable session.
             self.finished = True
+            self.pending = False
+            self.prepared = False
             raise
-        self.image.transitions[self.mode] += 1
-        if status == 1:
-            self.pending = True
-        else:
-            self.finished = True
-        return status
 
     def observe(self):
         if self.finished or not self.pending:

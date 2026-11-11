@@ -32,6 +32,8 @@ _NATIVE_OWNER = ContextVar('hia_machine_encoding_native_owner', default=_UNSELEC
 _NATIVE_SELECTOR = 'HEPTA_HIA_MACHINE_ENCODING_MANIFEST'
 _NATIVE_STATE_OWNER = ContextVar('hia_machine_state_native_owner', default=_UNSELECTED)
 _NATIVE_STATE_SELECTOR = 'HEPTA_HIA_MACHINE_STATE_MANIFEST'
+_NATIVE_INSTRUCTION_OWNER = ContextVar('hia_machine_instructions_native_owner', default=_UNSELECTED)
+_NATIVE_INSTRUCTION_SELECTOR = 'HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST'
 
 
 def _selected_owner():
@@ -58,16 +60,32 @@ def _selected_state_owner(encoding):
     return installed_machine_state(path)
 
 
+def _selected_instruction_owner(encoding, state):
+    owner = _NATIVE_INSTRUCTION_OWNER.get()
+    if owner is not _UNSELECTED:
+        return owner
+    path = os.environ.get(_NATIVE_INSTRUCTION_SELECTOR)
+    if not path:
+        return None
+    if encoding is None or state is None:
+        raise MachineEncodingError('native instruction control requires native Code state and instruction bytes')
+    from .hia_machine_instructions_native import installed_machine_instructions
+    return installed_machine_instructions(path)
+
+
 @contextmanager
 def native_encoding_scope():
     """Pin one explicit selection, including no selection, across a whole emit."""
     owner = _selected_owner()
     state = _selected_state_owner(owner)
+    instructions = _selected_instruction_owner(owner, state)
     token = _NATIVE_OWNER.set(owner)
     state_token = _NATIVE_STATE_OWNER.set(state)
+    instruction_token = _NATIVE_INSTRUCTION_OWNER.set(instructions)
     try:
         yield
     finally:
+        _NATIVE_INSTRUCTION_OWNER.reset(instruction_token)
         _NATIVE_STATE_OWNER.reset(state_token)
         _NATIVE_OWNER.reset(token)
 
@@ -75,6 +93,7 @@ def native_encoding_scope():
 def native_implementation_identity():
     owner = _selected_owner()
     state = _selected_state_owner(owner)
+    instructions = _selected_instruction_owner(owner, state)
     if owner is None:
         return b''
     from hashlib import sha256
@@ -83,6 +102,9 @@ def native_implementation_identity():
     if state is not None:
         from .hia_machine_state_native import SOURCE as STATE_SOURCE
         identity += ':machine-state:' + sha256(STATE_SOURCE.read_bytes()).hexdigest() + ':' + state.image_sha256
+    if instructions is not None:
+        from .hia_machine_instructions_native import SOURCE as INSTRUCTION_SOURCE
+        identity += ':machine-instructions:' + sha256(INSTRUCTION_SOURCE.read_bytes()).hexdigest() + ':' + instructions.image_sha256
     return identity.encode('ascii')
 
 
@@ -123,9 +145,10 @@ class Code:
         if cls is Code:
             owner = _selected_owner()
             state = _selected_state_owner(owner)
+            instructions = _selected_instruction_owner(owner, state)
             if owner is not None:
                 from .hia_machine_encoding_native import selected_code_class
-                return object.__new__(selected_code_class(owner, state))
+                return object.__new__(selected_code_class(owner, state, instructions))
         return object.__new__(cls)
 
     def __init__(self, *, scratch_registers=None, move_immediate="movabs", alu_immediate="imm32"):
