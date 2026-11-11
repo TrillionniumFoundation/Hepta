@@ -1,0 +1,95 @@
+{
+  "controls": [
+    {
+      "actual_guardian_executed": true,
+      "events": [
+        "qualification_started",
+        "owned_child_observed",
+        "qualification_exit_observed",
+        "owned_child_reaped"
+      ],
+      "expected": true,
+      "guardian_status": "EXTERNAL_OWNED_PROCESS_COMPLETED",
+      "name": "normal",
+      "natural_completion_accepted": true,
+      "receipt": "/tmp/hia-v67-ndu-fixture-supply-r1/local-controls-r1/normal/guardian.json",
+      "receipt_sha256": "b54a5322d6eecad1b6a0c0d0f14bfcd5d5a8e45e56304ce080e53a2cef14655a",
+      "wrapper_returncode": 0
+    },
+    {
+      "actual_guardian_executed": true,
+      "events": [
+        "qualification_started",
+        "owned_child_observed",
+        "qualification_exit_observed",
+        "owned_child_observed",
+        "owned_child_sigkill",
+        "owned_child_reaped",
+        "owned_child_reaped"
+      ],
+      "expected": false,
+      "guardian_status": "EXTERNAL_OWNED_PROCESS_COMPLETED",
+      "name": "live_setsid_descendant",
+      "natural_completion_accepted": false,
+      "receipt": "/tmp/hia-v67-ndu-fixture-supply-r1/local-controls-r1/live_setsid_descendant/guardian.json",
+      "receipt_sha256": "5da1955589292ab4547246efc029576edaf50c7680b5f4a0356911c78ad76eda",
+      "wrapper_returncode": 0
+    },
+    {
+      "actual_guardian_executed": false,
+      "name": "overflow",
+      "natural_completion_accepted": false,
+      "receipt_mutation_control": true
+    },
+    {
+      "actual_guardian_executed": false,
+      "name": "missing_echild",
+      "natural_completion_accepted": false,
+      "receipt_mutation_control": true
+    },
+    {
+      "actual_guardian_executed": false,
+      "name": "remaining_child",
+      "natural_completion_accepted": false,
+      "receipt_mutation_control": true
+    },
+    {
+      "actual_guardian_executed": false,
+      "name": "owner_exception",
+      "natural_completion_accepted": false,
+      "receipt_mutation_control": true
+    },
+    {
+      "actual_guardian_executed": false,
+      "name": "signal",
+      "natural_completion_accepted": false,
+      "receipt_mutation_control": true
+    },
+    {
+      "name": "existing_destination_refused",
+      "original_bytes_preserved": true
+    },
+    {
+      "name": "wrong_digest_refused",
+      "original_bytes_preserved": true
+    }
+  ],
+  "desktop_accessed": false,
+  "product_qualification_claimed": false,
+  "real_guardian_runs": 2,
+  "rust_built": false,
+  "schema": "hia.v67.ndu-supply-control-observations.v1",
+  "source_sha256": {
+    "bootstrap.py": "caff48a0f36499aebcd68455fba147cd17a2ee29ba78b7080ddae013419445ea",
+    "check_supply_control.py": "f4594c7812be153040f4b1c7a0b0e3e0c600c52a952072dbb7f0fd6c8fdc3353",
+    "common.py": "2668c3c4da5234ca854c275faf9d36420f607bc218c6d250a61f466b0a5f60e0",
+    "driver.py": "38efd8ee2f153c665380deaff0598a1b014af6423db58b7bee12ae976b5bc97c",
+    "guardian.py": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+    "process_owner_impl.py": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "producer.py": "e7ff8586c2c06d05cf579029bab905c35a437c1c5ae3136a2ad7734e3f47e452",
+    "verify_terminal.py": "eaefb14925041211a84a6d69e7121ebfc188ec6a0e54a4751c426e722ee97259",
+    "workflow_process.py": "f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80"
+  },
+  "status": "PASS",
+  "tests_run": 9
+}

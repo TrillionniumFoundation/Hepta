@@ -1,0 +1,18 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "-I",
+    "-S",
+    "-B",
+    "-c",
+    "import os,time\nr,w=os.pipe()\npid=os.fork()\nif pid==0:\n os.close(r);os.setsid();os.write(w,b\"1\");os.close(w);time.sleep(30);os._exit(0)\nos.close(w);os.read(r,1);os.close(r);print(\"leader exits with live setsid child\",pid,flush=True)\n"
+  ],
+  "controller_seconds": 3,
+  "cwd": "/tmp/hia-v67-ndu-fixture-supply-r1/local-controls-r1/live_setsid_descendant",
+  "schema": "hia-external-guardian-request.v1",
+  "source_identities": {
+    "/tmp/hia-v67-ndu-fixture-supply-r1/guardian.py": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+    "/tmp/hia-v67-ndu-fixture-supply-r1/process_owner_impl.py": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "/tmp/hia-v67-ndu-fixture-supply-r1/workflow_process.py": "f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80"
+  }
+}
