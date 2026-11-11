@@ -12,7 +12,7 @@ import struct
 
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_patch.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_patch.hepta')
 SCHEMA = 'hepta.hia.core-patch-native.v1'
 SELECTOR = 'HEPTA_HIA_CORE_PATCH_MANIFEST'
 MAGIC = int.from_bytes(b'HIAPAT01', 'little')

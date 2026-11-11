@@ -1,9 +1,25 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
-The current v65 integration combines returned-loan origins, complete nominal
-constructor/function/outer-program lowering, native worker-request and journal decisions, immutable
-release publication and bounded cold-evidence scheduling. Its audited baseline,
-new source-bound observations and remaining delivery owners are recorded in
+The current v66 source migration builds on verified remote commit
+`4161e8d12d87906fde144f039da07908ad52d98a`. Its 87 active HIA sources now use
+`.hepta`: 64 assembly sources and 23 structured Core JSON sources. Paired JSON
+projections use `.core.hepta`. The complete mapping and unchanged content
+contracts are documented in [source naming](HIA_SOURCE_SUFFIX.md) and
+[the rename inventory](HIA_SOURCE_SUFFIX_MIGRATION.json).
+
+The earlier local continuation was lost before its additional native ports
+were synchronized. This branch was rebuilt from the verified remote baseline;
+those unsynchronized components are not included or claimed as delivered.
+New suffix admission and historical-consumer controls require a fresh frozen
+source qualification. Historical passing runs below do not qualify this tree.
+The v4 qualification runner binds complete Git identities, regenerates every
+workflow-listed source, checks exact suite counts, runs retained native groups
+and requests the entire retained regression with `--full`.
+
+The inherited v65 integration combines returned-loan origins, complete nominal
+constructor/function/outer-program lowering, native worker-request and journal
+decisions, immutable release publication and bounded cold-evidence scheduling.
+Its source-bound observations and remaining delivery owners are recorded in
 [the continuation audit](HIA_NATIVE_CLOSURE_20261111.md). The earlier experiments
 and failures below retain their original source identities.
 

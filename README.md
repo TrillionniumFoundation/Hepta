@@ -5,13 +5,19 @@ control flow, types, capabilities, ownership and borrowed resources before
 machine-code generation. There is no high-level source language or migration
 frontend in this tree.
 
+All retained HIA source files use the lowercase `.hepta` suffix. Assembly keeps
+the `hia-asm.v1` header; structured Core keeps its explicit primitive or composite
+schema. Paired JSON projections use `.core.hepta` to avoid filename collisions.
+The `hia` command and `hepta.hia.*` protocol schemas retain their names.
+See [source naming and migration](docs/HIA_SOURCE_SUFFIX.md).
+
 ## Agent entry
 
 ```sh
 python -m pip install .
 hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hiaasm
-hia verify examples/hia_program/counter.hia
+hia check-assembly examples/hia_bootstrap/bytesum.hepta
+hia verify examples/hia_program/counter.hepta
 ```
 
 The `hia` entry is currently a Python-hosted bridge. The independently built

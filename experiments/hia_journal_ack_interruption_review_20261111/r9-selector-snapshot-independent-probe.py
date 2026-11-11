@@ -37,9 +37,9 @@ SOURCE_FILES = ['hepta/hia_agent_journal_native.py',
     'hepta/hia_agent_service.py', 'hepta/hia_agent_store.py',
     'hepta/hia_agent_data_json_native.py', 'hepta/hia_json_decode_native.py',
     'hepta/hia_json_preflight_native.py', 'hepta/hia_agent_binary64_native.py',
-    'examples/hia_bootstrap/agent_journal.hiaasm',
-    'examples/hia_bootstrap/agent_data_json.hiaasm',
-    'examples/hia_bootstrap/json_preflight.hiaasm']
+    'examples/hia_bootstrap/agent_journal.hepta',
+    'examples/hia_bootstrap/agent_data_json.hepta',
+    'examples/hia_bootstrap/json_preflight.hepta']
 
 def pins():
     return {name: {'bytes': (ROOT/name).stat().st_size,
@@ -66,7 +66,7 @@ request = json.loads((JOURNAL.parent / 'agent-journal.request.json').read_bytes(
 compiler = Path(request['image'])
 compiler_sha = sha256(compiler.read_bytes()).hexdigest()
 assert compiler_sha == request['image_sha256'] == journal_record['compiler_sha256']
-assert before['examples/hia_bootstrap/agent_journal.hiaasm']['sha256'] == journal_record['source_sha256']
+assert before['examples/hia_bootstrap/agent_journal.hepta']['sha256'] == journal_record['source_sha256']
 builds = {}
 for name, (module, _selector, _factory) in MODULES.items():
     folder = OUT / ('build-'+name)

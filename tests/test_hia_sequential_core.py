@@ -17,7 +17,7 @@ from tools import qualify_hia_sequential_core as proof
 
 
 def selected_module():
-    return json.loads((proof.ROOT / "formal/selected_sequential_u32.hia.json").read_bytes())
+    return json.loads((proof.ROOT / "formal/selected_sequential_u32.core.hepta").read_bytes())
 
 
 @unittest.skipUnless(importlib.util.find_spec("z3"), "actual pinned Z3 is required")
@@ -69,7 +69,7 @@ class SequentialCoreProofTests(unittest.TestCase):
         self.assertEqual(result["obligations"][0]["totality"]["counterexample"]["observation"]["code"], "overflow")
 
     def test_mutated_actual_llvm_return_is_refuted_after_core_totality_passes(self):
-        source = json.loads((proof.ROOT / "formal/selected_u32_dead_literal.hia.json").read_bytes())
+        source = json.loads((proof.ROOT / "formal/selected_u32_dead_literal.core.hepta").read_bytes())
         emitted = emit_program_llvm(verify_program(source))
         changed = emitted.text.replace(" = add i32 ", " = sub i32 ", 1)
         self.assertNotEqual(changed, emitted.text)
@@ -133,7 +133,7 @@ class SequentialCoreProofTests(unittest.TestCase):
             output = Path(temp) / "proof"
             result = proof.qualify(source, output)
             self.assertTrue(result["passed"], result)
-            self.assertEqual(sha256((output/"core.hia.json").read_bytes()).hexdigest(), result["core_sha256"])
+            self.assertEqual(sha256((output/"core.core.hepta").read_bytes()).hexdigest(), result["core_sha256"])
             self.assertEqual(sha256((output/"program.ll").read_bytes()).hexdigest(), result["llvm_sha256"])
             for index in range(len(result["obligations"])):
                 solver = z3.Solver()

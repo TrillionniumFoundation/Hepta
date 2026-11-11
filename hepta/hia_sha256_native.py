@@ -12,7 +12,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/sha256.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/sha256.hepta')
 SCHEMA='hepta.hia.sha256-native.v1'
 MAX_BYTES=8<<20
 WORKSPACE_BYTES=1088

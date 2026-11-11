@@ -19,7 +19,7 @@ from tools.generate_hia_sha256 import source_program as hash_source
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 PRIVATE_BYTES = 16384
-SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hiaasm'
+SOURCE_PATH = 'examples/hia_bootstrap/worker_request.hepta'
 
 ENTRY = r'''
 def worker_request(s:readbuf, o:mutbuf, w:mutbuf) -> u32:

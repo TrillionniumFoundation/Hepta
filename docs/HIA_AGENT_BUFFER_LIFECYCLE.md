@@ -125,7 +125,7 @@ live production deployment or a remote MCP endpoint qualified.
 ~~~sh
 python -B -m unittest tests.test_hia_agent_buffer_lifecycle -v
 python -B tools/qualify_hia_agent_buffer_lifecycle.py \
-  --compiler-source examples/hia_bootstrap/selfhost.hiaasm \
+  --compiler-source examples/hia_bootstrap/selfhost.hepta \
   --expected-source-sha256 ACTUAL_COMPILER_SHA256 \
   --output /tmp/new-compiler-lifecycle
 ~~~

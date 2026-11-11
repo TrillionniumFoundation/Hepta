@@ -72,7 +72,7 @@ class JsonCanonicalHiaNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-canonical-native-')
         folder = Path(cls.temporary.name)
         seed, _ = build_seed(folder)
-        source = (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(folder, 'B2', first, source)
         assert first.read_bytes() == second.read_bytes()
@@ -85,11 +85,11 @@ class JsonCanonicalHiaNativeTests(unittest.TestCase):
                 'image_path':image.name,'image_sha256':sha256(image.read_bytes()).hexdigest(),
                 'compiler_sha256':sha256(second.read_bytes()).hexdigest()}))
         manifest(cls.manifest, image, SOURCE, SCHEMA)
-        decode_source=ROOT/'examples/hia_bootstrap/json_decode.hiaasm'
+        decode_source=ROOT/'examples/hia_bootstrap/json_decode.hepta'
         decode, _ = compile_stage(folder,'json-decode',second,decode_source.read_bytes())
         cls.decode_manifest=folder/'decode.json'
         manifest(cls.decode_manifest,decode,decode_source,'hepta.hia.json-decode-native.v1')
-        preflight_source=ROOT/'examples/hia_bootstrap/json_preflight.hiaasm'
+        preflight_source=ROOT/'examples/hia_bootstrap/json_preflight.hepta'
         preflight, _ = compile_stage(folder,'json-preflight',second,preflight_source.read_bytes())
         cls.preflight_manifest=folder/'preflight.json'
         manifest(cls.preflight_manifest,preflight,preflight_source,'hepta.hia.json-preflight-native.v1')
@@ -213,7 +213,7 @@ class JsonCanonicalHiaNativeTests(unittest.TestCase):
                 (decode,installed_decoder,self.decode_manifest),
                 (preflight,preflight.installed_preflight,self.preflight_manifest)):
             original=select(str(manifest))
-            bad=manifest.with_name(module.__name__.split('.')[-1]+'-drift.hiaasm')
+            bad=manifest.with_name(module.__name__.split('.')[-1]+'-drift.hepta')
             bad.write_bytes(b'not-the-source')
             with patch.object(module,'SOURCE',bad),self.assertRaisesRegex(ValueError,'source identity'):
                 select(str(manifest))

@@ -449,7 +449,7 @@ def publish_program(document, destination):
         _reject("output parent must not traverse symlinks")
     payload = verified.canonical_bytes
     with tempfile.TemporaryDirectory(prefix=".hia-publish-", dir=destination.parent) as folder:
-        stage = Path(folder) / "program.hia"
+        stage = Path(folder) / "program.hepta"
         with stage.open("xb") as stream:
             stream.write(payload)
             stream.flush()

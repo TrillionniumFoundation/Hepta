@@ -30,7 +30,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='sha256'
             or len(qualification['generation_sha256'])!=3
             or any(value!=compiler_sha for value in qualification['generation_sha256'])):
         raise ValueError('a completed matching native cold qualification is required')
-    source_path=ROOT/('examples/hia_bootstrap/'+candidate+'.hiaasm')
+    source_path=ROOT/('examples/hia_bootstrap/'+candidate+'.hepta')
     source=source_path.read_bytes()
     output.mkdir(mode=0o700)
     image,receipt=compile_stage(output,candidate,compiler,source)

@@ -11,7 +11,7 @@ import re
 
 ROOT=Path(__file__).resolve().parents[2]
 STUDY_RELATIVE=Path("experiments/hia_agent_assembly_v4_20261030")
-FILES={"hia":("api.hia.json","client.hia.json"),"assembly":("api.hiaasm","client.hiaasm"),"rust":("api.rs","client.rs")}
+FILES={"hia":("api.core.hepta","client.core.hepta"),"assembly":("api.hepta","client.hepta"),"rust":("api.rs","client.rs")}
 
 
 def read(path):

@@ -79,7 +79,7 @@ class ExportNativeTests(unittest.TestCase):
         cls.temporary=tempfile.TemporaryDirectory(prefix='hia-native-exports-')
         cls.folder=Path(cls.temporary.name);cls.serial=0
         seed,_=build_seed(cls.folder)
-        compiler=(Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        compiler=(Path(__file__).resolve().parents[1]/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         cls.first,_=compile_stage(cls.folder,'B1',seed,compiler,image_format='seed-shared')
         cls.second,_=compile_stage(cls.folder,'B2',cls.first,compiler)
         assert cls.first.read_bytes()==cls.second.read_bytes()

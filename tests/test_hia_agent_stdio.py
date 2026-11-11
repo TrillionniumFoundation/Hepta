@@ -186,8 +186,8 @@ class AgentStdioNativeTests(unittest.TestCase):
         assert all(h==sha256(cls.compiler.read_bytes()).hexdigest() for h in outer['generation_sha256'])
         cls.executables={profile:build(cls.root/profile,cls.compiler,cls.cold,output_profile=profile)
                          for profile in ('flat','elf','exec')}
-        source=DISPATCH.parents[2]/'examples/hia_bootstrap/selfhost.hiaasm'
-        cls.assembly=(source.parent/'bytesum.hiaasm').read_bytes()
+        source=DISPATCH.parents[2]/'examples/hia_bootstrap/selfhost.hepta'
+        cls.assembly=(source.parent/'bytesum.hepta').read_bytes()
         cls.sample=assemble_program(cls.assembly).as_dict()
 
     def invoke(self,command,payload=b'',profile='flat',**kwargs):
@@ -387,7 +387,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_original_modified_compiler_chains_are_genuine_and_separate(self):
         from tools.qualify_hia_selfhost import compile_stage,mutate_compiler
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         for index,source in enumerate((original,mutate_compiler(original))):
             wire=json.dumps(assemble_program(source).as_dict(),separators=(',',':')).encode()
             p=self.invoke(['compile'],wire)
@@ -405,7 +405,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_raw_assembly_produces_original_and_modified_executable_selfhost_chains(self):
         from tools.qualify_hia_selfhost import mutate_compiler
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         fixed_points=[]
         for index,raw in enumerate((original,mutate_compiler(original))):
             source=raw.replace(b'v8 selfhost\n',b'v8 selfhost_exec\n',1)
@@ -463,7 +463,7 @@ class AgentStdioNativeTests(unittest.TestCase):
 
     def test_real_partial_stdout_is_prefix_then_io_failure_not_publication(self):
         import fcntl
-        original=(DISPATCH.parent/'selfhost.hiaasm').read_bytes()
+        original=(DISPATCH.parent/'selfhost.hepta').read_bytes()
         wire=json.dumps(assemble_program(original).as_dict(),separators=(',',':')).encode()
         for action,payload in (('compile',wire),('assemble',original)):
             read_fd,write_fd=os.pipe()

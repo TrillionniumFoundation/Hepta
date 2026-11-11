@@ -86,7 +86,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
         wheel,=(cls.folder/'wheels').glob('*.whl');cls.wheel=wheel;cls.installed=cls.folder/'installed'
         build('install',['-m','pip','install','--no-deps','--no-index','--target',cls.installed,wheel])
         cls.native=cls.folder/'native';cls.native.mkdir()
-        seed,_=build_seed(cls.native);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        seed,_=build_seed(cls.native);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.native,'B1',seed,compiler,image_format='seed-shared')
         second,_=compile_stage(cls.native,'B2',first,compiler);assert first.read_bytes()==second.read_bytes()
         image,_=compile_stage(cls.native,'identity',second,SOURCE.read_bytes())
@@ -334,7 +334,7 @@ assert not blocked.intersection(sys.modules)
         result=self.invoke('printing',b'')
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual(result.stdout,'{"large":1e+16,"ratio":1.25,"text":"中","tiny":5e-324,"zero":-0.0}'.encode())
-        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64_format.hiaasm'
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64_format.hepta'
         held=source.with_suffix('.held');source.rename(held)
         try:
             result=self.invoke('printing',b'')
@@ -365,7 +365,7 @@ assert not blocked.intersection(sys.modules)
         self.assertEqual(refused.stdout,b'')
         self.assertIn(b'E_HIA_TYPE',refused.stderr)
         doc['functions'][0]['blocks'][0]['ops'][0]['out'][0]['type']='u32'
-        resource=self.installed/'hepta/_data/examples/hia_bootstrap/program_shape.hiaasm'
+        resource=self.installed/'hepta/_data/examples/hia_bootstrap/program_shape.hepta'
         held=resource.with_suffix('.held');resource.rename(held)
         try:
             refused=self.invoke('native-Core',wire(doc),manifests)
@@ -388,7 +388,7 @@ assert not blocked.intersection(sys.modules)
         self.assertEqual(refused.stdout,b'')
         self.assertIn(b'E_HIA_TYPE',refused.stderr)
         doc['functions'][0]['blocks'][0]['ops'][0]['out'][0]['type']='u32'
-        resource=self.installed/'hepta/_data/examples/hia_bootstrap/core_admission.hiaasm'
+        resource=self.installed/'hepta/_data/examples/hia_bootstrap/core_admission.hepta'
         held=resource.with_suffix('.held');resource.rename(held)
         try:
             refused=self.invoke('native-Core-whole',wire(doc),manifests)
@@ -397,7 +397,7 @@ assert not blocked.intersection(sys.modules)
         finally:held.rename(resource)
 
     def test_installed_binary64_source_has_no_decimal_converter_or_checkout_fallback(self):
-        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64.hiaasm'
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_binary64.hepta'
         held=source.with_suffix('.held');source.rename(held)
         try:
             result=self.invoke('data',b'1.25e-3')
@@ -413,7 +413,7 @@ assert not blocked.intersection(sys.modules)
         self.assertEqual(value['ratio'],0.00125)
         self.assertEqual(value['negative_zero'].hex(),'-0x0.0p+0')
         self.assertEqual(value['n'],18446744073709551616)
-        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_data_json.hiaasm'
+        source=self.installed/'hepta/_data/examples/hia_bootstrap/agent_data_json.hepta'
         held=source.with_suffix('.held');source.rename(held)
         try:
             rejected=self.invoke('data',wire)
@@ -441,21 +441,21 @@ assert not blocked.intersection(sys.modules)
         self.assertEqual(result.stderr,b'');self.assertEqual(json.loads(result.stdout),expected)
 
     def test_missing_slice_source_refuses_before_state_without_checkout_fallback(self):
-        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_slice.hiaasm';hold=p.with_suffix('.held');p.rename(hold)
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_slice.hepta';hold=p.with_suffix('.held');p.rename(hold)
         try:
             state=self.folder/'missing-slice';result=self.invoke(state,wire(self.request))
             self.assertNotEqual(result.returncode,0);self.assertEqual(result.stdout,b'');self.assertFalse(state.exists())
         finally:hold.rename(p)
 
     def test_missing_native_source_fails_before_service_no_source_fallback(self):
-        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hiaasm';hold=p.with_suffix('.held');p.rename(hold)
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hepta';hold=p.with_suffix('.held');p.rename(hold)
         try:
             state=self.folder/'missing';r=self.invoke(state,wire(self.request))
             self.assertNotEqual(r.returncode,0);self.assertEqual(r.stdout,b'');self.assertFalse(state.exists())
         finally:hold.rename(p)
 
     def test_tampered_native_source_fails_before_service(self):
-        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hiaasm';raw=p.read_bytes();p.write_bytes(raw+b'\n')
+        p=self.installed/'hepta/_data/examples/hia_bootstrap/agent_identity.hepta';raw=p.read_bytes();p.write_bytes(raw+b'\n')
         try:
             state=self.folder/'tampered';r=self.invoke(state,wire(self.request))
             self.assertNotEqual(r.returncode,0);self.assertEqual(r.stdout,b'');self.assertFalse(state.exists())

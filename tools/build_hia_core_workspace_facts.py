@@ -10,8 +10,8 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.hia_selfhost_contract import CONTRACT_PATH,PROFILE,validate_contract
 import struct
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_facts.hiaasm'
-PACKER=ROOT/'examples/hia_bootstrap/core_workspace_facts_packer.hiaasm'
+SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_facts.hepta'
+PACKER=ROOT/'examples/hia_bootstrap/core_workspace_facts_packer.hepta'
 
 
 def build(output,compiler,cold_report):

@@ -18,8 +18,8 @@ from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
-DISPATCH = ROOT/'examples/hia_bootstrap/agent_stdio_dispatch.hiaasm'
-PACKER = ROOT/'examples/hia_bootstrap/agent_stdio_packer.hiaasm'
+DISPATCH = ROOT/'examples/hia_bootstrap/agent_stdio_dispatch.hepta'
+PACKER = ROOT/'examples/hia_bootstrap/agent_stdio_packer.hepta'
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='flat'):
@@ -27,7 +27,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         raise ValueError('unknown Agent stdio output profile')
     compiler_bytes, cold_bytes = compiler.read_bytes(), cold_report.read_bytes()
     sources = {path: path.read_bytes() for path in
-               (DISPATCH, PACKER, ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm')}
+               (DISPATCH, PACKER, ROOT/'examples/hia_bootstrap/core_json_frontend.hepta')}
     admitted_sources = admit_cold_build(compiler_bytes, cold_bytes)
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')

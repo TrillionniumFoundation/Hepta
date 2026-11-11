@@ -13,7 +13,7 @@ from tools.generate_hia_selfhost import document
 assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=R,text=True).strip()=='79b53adaab0dd8d6869f6682e4a30810fc501156'
 assert not subprocess.check_output(['git','status','--porcelain'],cwd=R)
 assert not D.exists();D.mkdir(mode=0o700)
-source=(R/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes();checked=assemble_program(source).as_dict();_,names=document()
+source=(R/'examples/hia_bootstrap/selfhost.hepta').read_bytes();checked=assemble_program(source).as_dict();_,names=document()
 functions={f['name']:f for f in checked['functions']}
 M=z.Array('caller_bytes',z.BitVecSort(64),z.BitVecSort(8));at=z.BitVec('private_word_offset',64);value=z.BitVec('private_value',64)
 u64=lambda n:z.BitVecVal(n&((1<<64)-1),64)

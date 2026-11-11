@@ -183,7 +183,7 @@ class TaskHelpersNativeTests(unittest.TestCase):
         else:
             from tools.qualify_hia_selfhost import build_seed, compile_stage
             seed, _ = build_seed(cls.folder)
-            source = SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            source = SOURCE.with_name('selfhost.hepta').read_bytes()
             first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
             compiler, _ = compile_stage(cls.folder, 'B2', first, source)
             assert first.read_bytes() == compiler.read_bytes()
@@ -441,7 +441,7 @@ int main(void){
 
     def test_installed_wheel_complete_helpers_without_checkout_or_reference_owner(self):
         from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        self.assertIn('examples/hia_bootstrap/task_helpers.hiaasm', NATIVE_SOURCE_FILES)
+        self.assertIn('examples/hia_bootstrap/task_helpers.hepta', NATIVE_SOURCE_FILES)
         source = self.folder / 'wheel-source'; source.mkdir()
         shutil.copytree(ROOT / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
         names = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
@@ -491,7 +491,7 @@ else:
                 expected = verify_core(document).canonical_bytes
             result = run('accept')
             self.assertEqual((result.returncode, result.stdout, result.stderr), (0, expected, b''))
-        resource = installed / 'hepta/_data/examples/hia_bootstrap/task_helpers.hiaasm'
+        resource = installed / 'hepta/_data/examples/hia_bootstrap/task_helpers.hepta'
         original = resource.read_bytes()
         for missing in (False, True):
             try:

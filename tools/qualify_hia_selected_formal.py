@@ -29,7 +29,7 @@ from tools.evidence_checks import normalized_errors, strict_equal
 
 SCHEMA = "hepta.hia.selected-formal.v1"
 MODEL = ROOT / "formal/HiaSelectedCore.lean"
-SELECTED = ROOT / "formal/selected_u32_bias.hia.json"
+SELECTED = ROOT / "formal/selected_u32_bias.core.hepta"
 THEOREMS = frozenset({"run_append", "selected_program_correct"})
 MUTATIONS = ("first_add_becomes_sub", "return_first_argument")
 CLAIMS = {
@@ -223,8 +223,8 @@ def qualify(lean, output_directory, *, core_path=SELECTED, clang=None):
     support_identity = _support_identity(executable)
     output = Path(output_directory).absolute()
     output.mkdir(parents=True, exist_ok=False)
-    (output / "source.hia.json").write_bytes(source_bytes)
-    (output / "program.hia.json").write_bytes(checked.canonical_bytes)
+    (output / "source.core.hepta").write_bytes(source_bytes)
+    (output / "program.core.hepta").write_bytes(checked.canonical_bytes)
     (output / "positive.lean").write_text(generated, encoding="utf-8")
     _json(output / "instruction-map.json", mapping)
     _json(output / "lean-support-files.json", support_identity)
@@ -244,7 +244,7 @@ def qualify(lean, output_directory, *, core_path=SELECTED, clang=None):
         report["theorems"] = theorem_dependencies(positive["stdout"] + positive["stderr"])
         for name, document in mutation_documents(checked.as_dict()).items():
             mutant, broken, _ = export_program(document)
-            (output / (name + ".hia.json")).write_bytes(mutant.canonical_bytes)
+            (output / (name + ".core.hepta")).write_bytes(mutant.canonical_bytes)
             (output / (name + ".lean")).write_text(broken, encoding="utf-8")
             observation = _run_lean(executable, output / (name + ".lean"))
             log = observation["stdout"] + observation["stderr"]
@@ -280,10 +280,10 @@ def validate_report(report, directory):
     directory = Path(directory)
     require(type(report) is dict and report.get("schema") == SCHEMA and report.get("ok") is True
             and report.get("status") == "passed", "selected formal status differs")
-    checked, generated, mapping = export_program((directory / "source.hia.json").read_bytes())
-    require((directory / "program.hia.json").read_bytes() == checked.canonical_bytes
+    checked, generated, mapping = export_program((directory / "source.core.hepta").read_bytes())
+    require((directory / "program.core.hepta").read_bytes() == checked.canonical_bytes
             and report.get("core_sha256") == checked.sha256
-            and report.get("source_sha256") == digest((directory / "source.hia.json").read_bytes())
+            and report.get("source_sha256") == digest((directory / "source.core.hepta").read_bytes())
             and (directory / "positive.lean").read_text() == generated
             and report.get("generated_lean_sha256") == digest(generated.encode()), "actual Core/Lean source binding differs")
     require(json.loads((directory / "instruction-map.json").read_text()) == mapping
@@ -312,7 +312,7 @@ def validate_report(report, directory):
                 and entry["returncode"] == 1 and "error:" in log
                 and entry.get("core_sha256") == mutant.sha256
                 and entry.get("generated_lean_sha256") == digest(broken.encode())
-                and (directory / (name + ".hia.json")).read_bytes() == mutant.canonical_bytes
+                and (directory / (name + ".core.hepta")).read_bytes() == mutant.canonical_bytes
                 and (directory / (name + ".lean")).read_text() == broken
                 and entry.get("output_sha256") == digest(log.encode())
                 and theorem_dependencies(log, broken=True) == entry.get("theorems")

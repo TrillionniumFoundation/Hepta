@@ -5,7 +5,7 @@ Frozen analyzer source: `d246aecf3cd1b96e818bd4e53ffe0408fb1fbd93`, tree
 clean source checkout and matching before/after dependency snapshots.
 
 The exact preexisting migration Core is retained at
-`tests/fixtures/hia_payload_bound/legacy_core.hia.json`, SHA-256
+`tests/fixtures/hia_payload_bound/legacy_core.core.hepta`, SHA-256
 `1044e28ea68a18d6a0681cff9cd5f835e26e91c9a669dab01256b9592f64ca51` (143,935
 bytes). This is a fresh analysis of those Core bytes, not a rerun or relabeling
 of their earlier C/C++ migration qualification.

@@ -11,7 +11,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_facts.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_workspace_facts.hepta')
 SCHEMA = 'hepta.hia.core-workspace-facts-native.v1'
 MAX_BYTES = 8 << 20
 ARENA_BYTES = (64 << 20) + 4096

@@ -543,7 +543,7 @@ def document(kernel):
 if __name__ == '__main__':
     root = Path(__file__).resolve().parents[1]
     for kernel in ('owner', 'render'):
-        target = root / ('examples/hia_bootstrap/composite_constructor_' + kernel + '.hiaasm')
+        target = root / ('examples/hia_bootstrap/composite_constructor_' + kernel + '.hepta')
         target.write_text(render_assembly(document(kernel)))
         print(target.name, target.stat().st_size)
     (root / 'hepta/hia_composite_constructor_errors.py').write_text(

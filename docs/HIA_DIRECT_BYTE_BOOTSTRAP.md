@@ -83,7 +83,7 @@ from hepta.hia_agent_assembly import assemble_program
 from hepta.hia_native_byte_runner import invoke_byte_program
 
 program = assemble_program(
-    Path("examples/hia_bootstrap/components.hiaasm").read_bytes()
+    Path("examples/hia_bootstrap/components.hepta").read_bytes()
 )
 result = invoke_byte_program(
     program, "lex_assembly",
@@ -102,7 +102,7 @@ has no completed output and is never converted to success.
 ## What is actually implemented in HIA
 
 The checked-in
-[`components.hiaasm`](../examples/hia_bootstrap/components.hiaasm) is the complete
+[`components.hepta`](../examples/hia_bootstrap/components.hepta) is the complete
 source of 30 HIA functions. The Python authoring script can reproduce that source
 but does not participate in the native lexer/parser/emitter calls.
 
@@ -159,7 +159,7 @@ That packaging remains an explicit host dependency.
 
 ## Finite-component scope and later self-hosting
 
-The table below describes `components.hiaasm` and its original finite compiler.
+The table below describes `components.hepta` and its original finite compiler.
 The separate [fixed-Core self-hosting compiler](HIA_SELF_HOSTING_CORE.md) now
 implements native HIA parsing, semantic validation and x86 generation for all
 constructs in its own full source. Its separate qualification runs B0 through

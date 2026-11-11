@@ -11,7 +11,7 @@ from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/instruction_policy.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/instruction_policy.hepta')
 SCHEMA='hepta.hia.instruction-policy-native.v1'
 SELECTOR='HEPTA_HIA_INSTRUCTION_POLICY_MANIFEST'
 ERROR_CODES={0xfffffffb:'E_HIA_FORMAT',0xfffffff9:'E_HIA_TYPE',0xfffffff8:'E_HIA_LOAN',

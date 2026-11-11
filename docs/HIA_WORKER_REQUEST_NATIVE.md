@@ -2,7 +2,7 @@
 
 The explicit `HEPTA_HIA_WORKER_REQUEST_MANIFEST` selection moves the complete
 request-payload admission in `hia_agent_worker` into the checked-in
-`examples/hia_bootstrap/worker_request.hiaasm`. A selected missing, changed or
+`examples/hia_bootstrap/worker_request.hepta`. A selected missing, changed or
 invalid source/image is refused; there is no hosted admission retry.
 
 HIA owns UTF-8/JSON parsing, duplicate-key and structural limits, decoded string

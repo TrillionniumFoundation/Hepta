@@ -5,7 +5,7 @@ into executable HIA. It does not replace SQLite, the full AgentStore, or the
 eleven business-method implementations. The retained call owner remains the
 default until a separately qualified installation is explicitly selected.
 
-The checked-in source is **examples/hia_bootstrap/agent_journal.hiaasm**,
+The checked-in source is **examples/hia_bootstrap/agent_journal.hepta**,
 authored by **tools/generate_hia_agent_journal.py**. It composes the existing HIA
 JSON arena, exact binary64 canonicalization and SHA-256 algorithms. There is no
 generated lookup table of past requests or Python-computed replay decision.

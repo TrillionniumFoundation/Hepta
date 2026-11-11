@@ -235,7 +235,7 @@ def cross_result_evidence():
         ndu.append({'group':group,'common_summary_fields_equal':shared,'policy_episodes':expected_episodes,'native_policy_outputs':count,'claimed_new_performance_advantage':False})
     REPORT['ndu_summary_reconciliation']=ndu
     # One exact captured Core connects native migration, static payload and Rust shadow evidence.
-    fixture=ROOT/'tests/fixtures/hia_payload_bound/legacy_core.hia.json'; core_digest=digest(fixture.read_bytes())
+    fixture=ROOT/'tests/fixtures/hia_payload_bound/legacy_core.core.hepta'; core_digest=digest(fixture.read_bytes())
     payload=load(ROOT/'experiments/hia_next_payload_bound/legacy-analysis.json')
     check(payload['input_file_sha256']==payload['analysis']['core_sha256']==core_digest,'payload input/Core digest differs')
     body=dict(payload['analysis']); claimed=body.pop('sha256')

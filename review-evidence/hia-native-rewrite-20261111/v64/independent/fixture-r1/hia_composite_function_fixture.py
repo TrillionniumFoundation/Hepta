@@ -201,7 +201,7 @@ def source_rows():
 def _bootstrap_development(folder):
     from tools.qualify_hia_selfhost import build_seed
     rows = source_rows()
-    compiler_source = TYPE_SOURCE.with_name('selfhost.hiaasm')
+    compiler_source = TYPE_SOURCE.with_name('selfhost.hepta')
     frozen = {path: path.read_bytes() for path in (compiler_source, *(p for _, p, _ in rows))}
     source = frozen[compiler_source]
     seed, seed_receipt = build_seed(folder, source=source)

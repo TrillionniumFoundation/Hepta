@@ -131,14 +131,14 @@ def main():
     args=p.parse_args();args.output.mkdir(exist_ok=False,parents=True)
     for key in list(os.environ):
         if key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST'):os.environ.pop(key)
-    source_paths=('examples/hia_bootstrap/core_patch.hiaasm','examples/hia_bootstrap/core_admission.hiaasm',
+    source_paths=('examples/hia_bootstrap/core_patch.hepta','examples/hia_bootstrap/core_admission.hepta',
                   'hepta/hia_agent_candidate_native.py','hepta/hia_agent_service.py')
     captured={name:sha256((ROOT/name).read_bytes()).hexdigest() for name in source_paths}
     patch_bytes=args.patch_image.read_bytes();admission_bytes=args.admission_image.read_bytes()
     receipts={}
     for label,path,data,source in (
-        ('patch',args.patch_receipt,patch_bytes,'examples/hia_bootstrap/core_patch.hiaasm'),
-        ('admission',args.admission_receipt,admission_bytes,'examples/hia_bootstrap/core_admission.hiaasm')):
+        ('patch',args.patch_receipt,patch_bytes,'examples/hia_bootstrap/core_patch.hepta'),
+        ('admission',args.admission_receipt,admission_bytes,'examples/hia_bootstrap/core_admission.hepta')):
         receipt=json.loads(path.read_bytes())
         assert receipt['status']=='returned' and receipt['abi_status']==0,receipt
         assert receipt['source_sha256']==captured[source] and receipt['source_unchanged'] is True,receipt

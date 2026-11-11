@@ -70,7 +70,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
         cls.witnesses=witnesses()
         from tools.qualify_hia_selfhost import build_seed,compile_stage
         cls.temp=tempfile.TemporaryDirectory(prefix='hia-agent-identity-');cls.folder=Path(cls.temp.name)
-        seed,_=build_seed(cls.folder);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        seed,_=build_seed(cls.folder);compiler=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.folder,'B1',seed,compiler,image_format='seed-shared')
         second,_=compile_stage(cls.folder,'B2',first,compiler)
         assert first.read_bytes()==second.read_bytes()

@@ -22,6 +22,6 @@ def document():
 
 
 if __name__ == '__main__':
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_admission_cli_packer.hiaasm'
+    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_admission_cli_packer.hepta'
     path.write_text(render_assembly(document()))
     print(path.name, path.stat().st_size)

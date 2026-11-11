@@ -20,8 +20,8 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def build(output:Path,compiler:Path,cold_report:Path)->Path:
     pins={p:p.read_bytes() for p in (compiler,cold_report,
-        ROOT/'examples/hia_bootstrap/elf_static_linker.hiaasm',
-        ROOT/'examples/hia_bootstrap/native_filter_packer.hiaasm')}
+        ROOT/'examples/hia_bootstrap/elf_static_linker.hepta',
+        ROOT/'examples/hia_bootstrap/native_filter_packer.hepta')}
     admitted_sources=admit_cold_build(pins[compiler],pins[cold_report])
     output.mkdir(mode=0o700)
     manifests={name:build_application(output/name,compiler,cold_report,candidate=name)

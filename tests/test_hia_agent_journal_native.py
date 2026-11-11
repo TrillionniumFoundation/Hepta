@@ -554,7 +554,7 @@ class JournalNativeTests(unittest.TestCase):
                     image = case / record['image_path']
                     image.write_bytes((original_manifest.parent / record['image_path']).read_bytes())
                     manifest.write_bytes(original_manifest.read_bytes())
-                    source = case / 'source.hiaasm';source.write_bytes(module.SOURCE.read_bytes())
+                    source = case / 'source.hepta';source.write_bytes(module.SOURCE.read_bytes())
                     service = HIAAgentService(case / 'state')
                     args = {'request_key': 'selector-drift'}
                     digest = sha256(independent_wire({'tool': 'hia_artifact', 'arguments': args})).hexdigest()
@@ -675,7 +675,7 @@ s.call('hia_artifact',json.loads(sys.argv[3]))
             service = HIAAgentService(self.case / 'state')
             self.addCleanup(service.close)
             before = rows(service)
-            with patch('hepta.hia_agent_journal_native.SOURCE', self.case / 'missing.hiaasm'):
+            with patch('hepta.hia_agent_journal_native.SOURCE', self.case / 'missing.hepta'):
                 rejected = service.call('hia_describe', {})
             self.assertEqual(rejected['error']['code'], 'E_HIA_JOURNAL_NATIVE')
             self.assertEqual(rows(service), before)
@@ -773,7 +773,7 @@ os.environ[SELECTOR]=sys.argv[2]
 service=HIAAgentService(pathlib.Path(sys.argv[3])/'state')
 first=service.call('hia_describe',{'section':'manifest'})
 assert first['status']=='completed',first
-assert '_data/examples/hia_bootstrap/agent_journal.hiaasm' in SOURCE.as_posix()
+assert '_data/examples/hia_bootstrap/agent_journal.hepta' in SOURCE.as_posix()
 before=service.store.db.execute('SELECT count(*) FROM costs').fetchone()[0]
 old=SOURCE.read_bytes()
 SOURCE.write_bytes(old+b'\n')

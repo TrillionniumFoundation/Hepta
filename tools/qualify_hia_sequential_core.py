@@ -161,7 +161,7 @@ def qualify(document, output, *, timeout_ms=10000):
     output.mkdir(parents=True, exist_ok=False)
     report, checked, emitted = _evaluate(document, timeout_ms=timeout_ms)
     if checked is not None:
-        (output / "core.hia.json").write_bytes(checked.canonical_bytes)
+        (output / "core.core.hepta").write_bytes(checked.canonical_bytes)
     if emitted is not None:
         (output / "program.ll").write_text(emitted.text, encoding="utf-8")
     for index, row in enumerate(report["obligations"]):

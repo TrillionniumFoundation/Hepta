@@ -51,12 +51,12 @@ class FunctionSourceTests(unittest.TestCase):
         for fault in (None, 'source', 'seed'):
             with self.subTest(fault=fault), tempfile.TemporaryDirectory() as directory:
                 folder = Path(directory)
-                types, helpers = folder / 'types.hiaasm', folder / 'helpers.hiaasm'
-                sources = {name: folder / (name + '.hiaasm') for name in KERNELS}
-                constructors = {name: folder / ('constructor-' + name + '.hiaasm')
+                types, helpers = folder / 'types.hepta', folder / 'helpers.hepta'
+                sources = {name: folder / (name + '.hepta') for name in KERNELS}
+                constructors = {name: folder / ('constructor-' + name + '.hepta')
                                 for name in fixture.CONSTRUCTOR_KERNELS}
-                outers = {name: folder / ('outer-' + name + '.hiaasm') for name in fixture.OUTER_KERNELS}
-                compiler_source = folder / 'selfhost.hiaasm'
+                outers = {name: folder / ('outer-' + name + '.hepta') for name in fixture.OUTER_KERNELS}
+                compiler_source = folder / 'selfhost.hepta'
                 for path in (types, helpers, compiler_source, *sources.values(),
                              *constructors.values(), *outers.values()):
                     path.write_bytes(('non-executable source ' + path.name).encode())
@@ -370,7 +370,7 @@ class CompleteNativeFunctionTests(unittest.TestCase):
         from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
         resource_names = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
         for name in KERNELS:
-            self.assertIn('examples/hia_bootstrap/composite_function_' + name + '.hiaasm', resource_names)
+            self.assertIn('examples/hia_bootstrap/composite_function_' + name + '.hepta', resource_names)
         with tempfile.TemporaryDirectory(prefix='hia-function-wheel-') as directory:
             folder = Path(directory)
             source = folder / 'source'; source.mkdir()
@@ -447,7 +447,7 @@ sys.stdout.buffer.write(result.canonical_bytes)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertEqual(run.stdout, expected)
             for name in KERNELS:
-                matches = list(installed.rglob('composite_function_' + name + '.hiaasm'))
+                matches = list(installed.rglob('composite_function_' + name + '.hepta'))
                 self.assertEqual(len(matches), 1)
                 source_path = matches[0]; original = source_path.read_bytes()
                 try:

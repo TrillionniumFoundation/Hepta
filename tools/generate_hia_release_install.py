@@ -524,7 +524,7 @@ def packer_source():
 
 def main():
     for name, source in [('release_install_policy', policy_source()), ('release_install_packer', packer_source())]:
-        path = ROOT/'examples/hia_bootstrap'/f'{name}.hiaasm'
+        path = ROOT/'examples/hia_bootstrap'/f'{name}.hepta'
         path.write_text(render_assembly(document(source, name)))
         print(path.name, path.stat().st_size)
 

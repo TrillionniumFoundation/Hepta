@@ -1,6 +1,6 @@
 # HIA JSON preflight candidate — not whole-stack closure
 
-`examples/hia_bootstrap/json_preflight.hiaasm` implements an iterative JSON
+`examples/hia_bootstrap/json_preflight.hepta` implements an iterative JSON
 syntax/budget scanner in ordinary HIA Core. The native selfhost compiler consumes
 that source and emits the actual executable scanner. Python AST authoring is a
 development aid, not a JSON parser invoked by the generated scanner.

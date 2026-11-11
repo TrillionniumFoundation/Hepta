@@ -13,7 +13,7 @@ from tools.build_hia_json_preflight import build as build_candidate
 
 def build(output: Path, compiler: Path, cold_report: Path):
     pins = {p: p.read_bytes() for p in (compiler, cold_report,
-        ROOT/'examples/hia_bootstrap/agent_slice.hiaasm')}
+        ROOT/'examples/hia_bootstrap/agent_slice.hepta')}
     result = build_candidate(output, compiler, cold_report, candidate='agent-slice')
     metadata = json.loads(result.read_bytes())
     image = result.parent/metadata['image_path']

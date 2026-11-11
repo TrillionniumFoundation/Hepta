@@ -18,9 +18,9 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCES = (
-    'examples/hia_bootstrap/release_install_policy.hiaasm',
-    'examples/hia_bootstrap/release_install_packer.hiaasm',
-    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'examples/hia_bootstrap/release_install_policy.hepta',
+    'examples/hia_bootstrap/release_install_packer.hepta',
+    'examples/hia_bootstrap/sha256_stream.hepta',
     'tools/generate_hia_release_install.py',
     'tools/hia_release_install_syscalls.S',
     'tools/build_hia_release_install.py',

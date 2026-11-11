@@ -81,8 +81,8 @@ def make_fixtures():
             if b and (a,b)!=(MIN,-1) and [a,b] not in public + hidden:
                 hidden.append([a,b])
         task = {"id": name, "function": function, "specification": description,
-                "original_assembly": {"target.hiaasm": assembly["before"]},
-                "correct_assembly": {"target.hiaasm": assembly["after"]},
+                "original_assembly": {"target.hepta": assembly["before"]},
+                "correct_assembly": {"target.hepta": assembly["after"]},
                 "original_rust": {"target.rs": old_rust}, "correct_rust": {"target.rs": new_rust},
                 "public_cases": public, "hidden_cases": hidden,
                 "provenance": {"upstream_repository": "https://github.com/nothings/stb",

@@ -16,8 +16,8 @@ python -B -m tools.build_hia_agent_stdio \
 /new/private/agent/hia-native capabilities
 /new/private/agent/hia-native verify < program.core.json
 /new/private/agent/hia-native compile < program.core.json > program.image.bin
-/new/private/agent/hia-native render-assembly < program.core.json > program.hiaasm
-/new/private/agent/hia-native assemble < program.hiaasm > program.image.bin
+/new/private/agent/hia-native render-assembly < program.core.json > program.hepta
+/new/private/agent/hia-native assemble < program.hepta > program.image.bin
 ```
 
 The build/custody driver is still Python. Actual HIA code compiles the command

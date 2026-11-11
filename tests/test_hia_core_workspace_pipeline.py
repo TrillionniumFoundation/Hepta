@@ -18,7 +18,7 @@ from tests.test_hia_core_module_graph_native import project
 from tests.test_hia_program import b,c,f,i,ret
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm'
+SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_pipeline_packer.hepta'
 
 
 def frame(workspace,admission,frontend,compiler,profile=1):
@@ -86,7 +86,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         cls.temporary=None
         if root:cls.folder=Path(root);cls.folder.mkdir(mode=0o700)
         else:cls.temporary=tempfile.TemporaryDirectory(prefix='hia-workspace-pipeline-');cls.folder=Path(cls.temporary.name)
-        seed,_=build_seed(cls.folder);source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        seed,_=build_seed(cls.folder);source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
         compiler,_=compile_stage(cls.folder,'B2',first,source);assert first.read_bytes()==compiler.read_bytes()
         def load(path):
@@ -94,7 +94,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         cls.compiler=load(compiler);images={}
         for name,path in [('workspace','core_workspace_json'),('admission','core_admission'),('frontend','core_json_frontend'),
                           ('packer','core_workspace_pipeline_packer'),('linker','elf_static_linker')]:
-            image,_=compile_stage(cls.folder,name,compiler,(ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes())
+            image,_=compile_stage(cls.folder,name,compiler,(ROOT/'examples/hia_bootstrap'/ (path+'.hepta')).read_bytes())
             images[name]=image.read_bytes()
         cls.packer=NativeHiaJsonImage(images['packer'],sha256(images['packer']).hexdigest())
         cls.linker=NativeHiaJsonImage(images['linker'],sha256(images['linker']).hexdigest())
@@ -105,7 +105,7 @@ class CoreWorkspacePipelineNativeTests(unittest.TestCase):
         size,packed=cls.call(cls.packer,frame(*parts),BUNDLE_LIMIT,0)
         assert size==len(wanted) and packed==wanted
         cls.executable=cls.folder/'hia-workspace-compile';cls.executable.write_bytes(packed);cls.executable.chmod(0o700)
-        cls.source_pins={name:sha256((ROOT/'examples/hia_bootstrap'/ (path+'.hiaasm')).read_bytes()).hexdigest()
+        cls.source_pins={name:sha256((ROOT/'examples/hia_bootstrap'/ (path+'.hepta')).read_bytes()).hexdigest()
             for name,path in [('workspace','core_workspace_json'),('admission','core_admission'),('frontend','core_json_frontend'),
                               ('packer','core_workspace_pipeline_packer'),('compiler','selfhost')]}
         (cls.folder/'development-build.json').write_text(json.dumps({'status':'DEVELOPMENT_NOT_COLD_QUALIFICATION',

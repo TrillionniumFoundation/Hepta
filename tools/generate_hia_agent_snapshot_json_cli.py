@@ -14,7 +14,7 @@ def document():
 
 
 def main():
-    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_snapshot_json_packer.hiaasm'
+    path = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_snapshot_json_packer.hepta'
     path.write_text(render_assembly(document())); print(path.name, path.stat().st_size)
 
 

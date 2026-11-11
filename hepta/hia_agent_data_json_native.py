@@ -12,7 +12,7 @@ from .hia_agent_store import _agent_resource_path
 from .hia_json_decode_native import NativeJsonDecoder, HEADER, RECORD, MAGIC as INTEGER_MAGIC, materialize
 from .hia_json_preflight_native import MAX_NODES, _installed_json_image
 
-SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_data_json.hiaasm')
+SOURCE = _agent_resource_path('examples/hia_bootstrap/agent_data_json.hepta')
 SCHEMA = 'hepta.hia.agent-data-json-native.v1'
 MAGIC = int.from_bytes(b'HIADATA1', 'little')
 SELECTOR = 'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST'

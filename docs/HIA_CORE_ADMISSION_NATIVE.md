@@ -1,6 +1,6 @@
 # Explicit whole primitive Core admission candidate
 
-`core_admission.hiaasm` admits a complete raw primitive Core JSON document,
+`core_admission.hepta` admits a complete raw primitive Core JSON document,
 schemas v1–v8. It embeds declaration, SSA, CFG and public-export checks, then
 checks every function body: all 50 opcode contracts, exact scalar literals,
 callee signatures/effects, owner consumption, borrow permissions and parent

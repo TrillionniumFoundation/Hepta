@@ -141,7 +141,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             assert report['generation_sha256']==[sha256(cls.compiler.read_bytes()).hexdigest()]*3
         else:
             seed,_=build_seed(cls.folder)
-            source=(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+            source=(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes()
             first,_=compile_stage(cls.folder,'B1',seed,source,image_format='seed-shared')
             second,_=compile_stage(cls.folder,'B2',first,source)
             assert first.read_bytes()==second.read_bytes()
@@ -375,10 +375,10 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
         from hepta.hia_core_json_frontend_native import NativeCoreJsonFrontend
         frontend_image,_=compile_stage(self.folder,'core-frontend',self.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes())
         frontend=NativeCoreJsonFrontend(frontend_image.read_bytes(),sha256(frontend_image.read_bytes()).hexdigest())
         linker_image,_=compile_stage(self.folder,'native-linker',self.compiler,
-            (ROOT/'examples/hia_bootstrap/elf_static_linker.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/elf_static_linker.hepta').read_bytes())
         linker=NativeHiaJsonImage(linker_image.read_bytes(),sha256(linker_image.read_bytes()).hexdigest())
         from tools.generate_hia_elf_linker import MAGIC as LINK_MAGIC,WORKSPACE_BYTES
         for increment in (1,7):
@@ -405,7 +405,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
             if evidence:
                 retained=Path(evidence)/('project-'+str(increment));retained.mkdir(parents=True)
                 payloads={'workspace.json':json.dumps(workspace,sort_keys=True).encode(),
-                          'linked-core.json':verified.canonical_bytes,'program.hiaasm':rendered,
+                          'linked-core.json':verified.canonical_bytes,'program.hepta':rendered,
                           'program.o':obj,'program.elf':out.raw[:size]}
                 for name,raw in payloads.items():(retained/name).write_bytes(raw)
                 (retained/'execution.json').write_text(json.dumps({
@@ -424,7 +424,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
         from hepta.object_symbols import inspect_object_symbols
         from hepta.hia_program import execute_program
         frontend_image,_=compile_stage(self.folder,'public-abi-frontend',self.compiler,
-            (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes())
+            (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes())
         frontend=NativeCoreJsonFrontend(frontend_image.read_bytes(),sha256(frontend_image.read_bytes()).hexdigest())
         longest='public_'+('x'*121)
         self.assertEqual(len(longest),128)
@@ -470,7 +470,7 @@ class CoreModuleGraphNativeTests(unittest.TestCase):
                 if retained:
                     folder=Path(retained)/label;folder.mkdir(parents=True)
                     payloads={'workspace.json':json.dumps(workspace,sort_keys=True).encode(),
-                        'linked-core.json':verified.canonical_bytes,'program.hiaasm':rendered,
+                        'linked-core.json':verified.canonical_bytes,'program.hepta':rendered,
                         'program.o':obj.read_bytes(),'library.so':library.read_bytes()}
                     for name,data in payloads.items():(folder/name).write_bytes(data)
                     (folder/'public-abi.json').write_text(json.dumps({

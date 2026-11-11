@@ -161,7 +161,7 @@ def build(task, language, text, folder, clang, rustc, *, enforce_contract=True):
         record["compiler"] = compiler
         binary = folder / "candidate"
         if language == "hia":
-            core = folder / "candidate.hia.json"; core.write_bytes(parsed.canonical_bytes)
+            core = folder / "candidate.core.hepta"; core.write_bytes(parsed.canonical_bytes)
             record.update(core_path=str(core), core_sha256=parsed.sha256)
             record["native_receipt"] = build_program_native(parsed, folder / "candidate.o", clang=clang, kind="object")
             (folder / "driver.c").write_text(previous.C_DRIVER)

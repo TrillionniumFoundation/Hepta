@@ -7,7 +7,7 @@ from hepta.hia_program import execute_program
 from tools.generate_hia_artifact_publication import document
 from tools.hia_selfhost_bulk import Body
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=ROOT/'examples/hia_bootstrap/artifact_publication_policy.hiaasm'
+SOURCE=ROOT/'examples/hia_bootstrap/artifact_publication_policy.hepta'
 
 
 def observe(wire, output_bytes, workspace, offsets=(), workspace_offsets=()):
@@ -136,12 +136,12 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
             observe(b'abc',b'abc',fields(p0=3,p16=3,p24=3))
             vm_pack(b'\xc3',b'\xc3')
             seed,_=build_seed(cls.folder)
-            first,_=compile_stage(cls.folder,'B1',seed,(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes(),image_format='seed-shared')
-            second,_=compile_stage(cls.folder,'B2',first,(ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes())
+            first,_=compile_stage(cls.folder,'B1',seed,(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes(),image_format='seed-shared')
+            second,_=compile_stage(cls.folder,'B2',first,(ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes())
             assert first.read_bytes()==second.read_bytes()
             images={}
             for name in ('artifact_publication_policy','artifact_publication_packer','sha256_stream'):
-                images[name],_=compile_stage(cls.folder,name,second,(ROOT/'examples/hia_bootstrap'/(name+'.hiaasm')).read_bytes())
+                images[name],_=compile_stage(cls.folder,name,second,(ROOT/'examples/hia_bootstrap'/(name+'.hepta')).read_bytes())
             policy=images['artifact_publication_policy'].read_bytes();sha=images['sha256_stream'].read_bytes()
             frame=struct.pack('<3Q',MAGIC,len(policy),len(sha))+policy+sha
             result,raw=invoke(cls.folder,'pack',images['artifact_publication_packer'],frame)
@@ -178,11 +178,15 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
         self.app=old
         # A real machine-code object, produced and linked by external independent
         # compilers, witnesses bytes relevant to downstream native artifacts.
+        compiler=shutil.which(os.environ.get('CLANG') or os.environ.get('HEPTA_CLANG') or 'clang-20')
+        self.assertIsNotNone(compiler,'qualified Clang 20 is required')
+        version=subprocess.run([compiler,'--version'],check=True,capture_output=True,text=True)
+        self.assertRegex(version.stdout,r'\bclang version 20\.')
         source=self.case/'real.c';source.write_text('int answer(void){return 42;}\n')
-        obj=self.case/'real.o';subprocess.run(['/usr/bin/clang-20','-c',str(source),'-o',str(obj)],check=True,capture_output=True)
+        obj=self.case/'real.o';subprocess.run([compiler,'-c',str(source),'-o',str(obj)],check=True,capture_output=True)
         self.run_app(stage=obj,wire=obj.read_bytes());self.assertEqual(self.dest.read_bytes(),obj.read_bytes())
         main=self.case/'main.c';main.write_text('int answer(void);int main(void){return answer();}\n')
-        exe=self.case/'real';subprocess.run(['/usr/bin/clang-20',str(main),str(self.dest),'-o',str(exe)],check=True,capture_output=True)
+        exe=self.case/'real';subprocess.run([compiler,str(main),str(self.dest),'-o',str(exe)],check=True,capture_output=True)
         self.assertEqual(subprocess.run([str(exe)],env={'PATH':''},timeout=10).returncode,42)
 
     def test_refuses_missing_extra_changed_bytes_same_path_and_existing_entries(self):
@@ -306,10 +310,10 @@ def vm_pack(policy,sha):
     source=('hia-asm.v1 hepta.hia.program.v8 packer_reference\n'
         'fn observe() -> (u32,u8) effects(alloc,read,write,trap) entry(b0)\nblock b0()\n'+b.text()+
         '  ret('+result+','+mismatch+')\nend\n'+reference+
-        (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hiaasm').read_text().split('\n',1)[1])
+        (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hepta').read_text().split('\n',1)[1])
     actual=execute_program(assemble_program(source),'observe',[],max_steps=2000000)
     assert actual['status']=='returned' and actual['values']==[len(wanted),0],actual
-    assert (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hiaasm').read_text()==render_assembly(document(packer_source(),'artifact_publication_packer'))
+    assert (ROOT/'examples/hia_bootstrap/artifact_publication_packer.hepta').read_text()==render_assembly(document(packer_source(),'artifact_publication_packer'))
 
 
 if __name__=='__main__':unittest.main()

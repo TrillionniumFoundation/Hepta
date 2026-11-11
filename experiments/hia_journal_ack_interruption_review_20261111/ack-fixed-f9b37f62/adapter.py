@@ -18,7 +18,7 @@ from .hia_agent_store import AgentRejected, _agent_resource_path, wire
 from .hia_json_decode_native import arena_sizes
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/agent_journal.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/agent_journal.hepta')
 SCHEMA = 'hepta.hia.agent-journal-native.v1'
 SELECTOR = 'HEPTA_HIA_AGENT_JOURNAL_MANIFEST'
 MAX_BYTES = 8 << 20

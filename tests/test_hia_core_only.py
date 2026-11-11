@@ -60,9 +60,29 @@ class CoreOnlyTests(unittest.TestCase):
             for name in ['pyproject.toml','docs/HIA_CORE_ONLY_SCOPE.json']:
                 target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
                 shutil.copyfile(ROOT/name,target)
-            (root/'docs/START.md').write_text('Run `hepta hia build input.json`.\n')
-            with self.assertRaisesRegex(ValueError,'removed CLI instruction'):
-                check(root)
+            for command in ('hepta hia build input.hepta', 'hepta check input.hepta',
+                            'hepta build input.hepta', 'hepta run input.hepta',
+                            'hepta lower input.hepta', 'hepta\thia\tbuild input.hepta',
+                            './hepta check input.hepta', '/usr/bin/hepta lower input.hepta'):
+                (root/'docs/START.md').write_text('Run '+command+'.\n')
+                with self.subTest(command=command), self.assertRaisesRegex(ValueError,'removed CLI instruction'):
+                    check(root)
+
+    def test_current_source_suffix_and_adjacent_HIA_commands_do_not_restore_old_CLI(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for name in ('pyproject.toml', 'docs/HIA_CORE_ONLY_SCOPE.json',
+                         'examples/hia_bootstrap/bytesum.hepta',
+                         'tests/fixtures/hia_artifact_session/byte_sum.core.hepta'):
+                target=root/name;target.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,target)
+            (root/'docs/START.md').write_text(
+                'hia check-assembly examples/hia_bootstrap/bytesum.hepta\n'
+                'hia verify tests/fixtures/hia_artifact_session/byte_sum.core.hepta\n'
+                'After verifying bytesum.hepta check the diagnostics.\n')
+            result=check(root)
+            self.assertEqual(result['status'],'PASS')
+            self.assertEqual(result['hia_source_files'],2)
 
     def test_actual_tree_has_no_high_level_source_or_import(self):
         self.assertEqual(check()['status'],'PASS')
@@ -82,7 +102,7 @@ class CoreOnlyTests(unittest.TestCase):
         with self.assertRaises(RouteRejected):admit_route('removed-source',b'not Core')
         from hepta.hia_agent_assembly import assemble_program
         from hepta.hia_program_runtime import execute_program
-        text=(ROOT/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()
+        text=(ROOT/'examples/hia_bootstrap/bytesum.hepta').read_bytes()
         program=assemble_program(text)
         self.assertTrue(program.report()['ok'])
 

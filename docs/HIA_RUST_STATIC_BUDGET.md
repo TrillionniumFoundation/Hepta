@@ -75,7 +75,7 @@ existing contract.
 
 ```sh
 cargo build --locked --offline --manifest-path rust/hia-core-shadow/Cargo.toml
-rust/hia-core-shadow/target/debug/hia-core-shadow --owned-static-budget < program.hia.json
+rust/hia-core-shadow/target/debug/hia-core-shadow --owned-static-budget < program.core.hepta
 ```
 
 The producer emits `hepta.hia.rust-static-budget.v1`, binding the canonical

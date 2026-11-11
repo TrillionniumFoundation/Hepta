@@ -96,13 +96,13 @@ class HIAProgramToolsTests(unittest.TestCase):
     def test_publication_is_a_complete_verified_new_snapshot(self):
         document = verify_program(scalar_program())
         with tempfile.TemporaryDirectory() as folder:
-            output = Path(folder) / "program.hia"
+            output = Path(folder) / "program.hepta"
             receipt = publish_program(document, output)
             self.assertEqual(verify_program(read_bounded(output)).sha256, document.sha256)
             self.assertEqual(receipt["publication"]["sha256"], document.sha256)
             with self.assertRaisesRegex(HIAEditRejected, "new file"):
                 publish_program(document, output)
-            alias = Path(folder) / "alias.hia"
+            alias = Path(folder) / "alias.hepta"
             alias.symlink_to(output)
             with self.assertRaises(ValueError):
                 publish_program(document, alias)
@@ -112,7 +112,7 @@ class HIAProgramToolsTests(unittest.TestCase):
 
     def test_cli_verify_run_inspect_and_patch_need_no_rust_or_high_level_source(self):
         with tempfile.TemporaryDirectory() as folder:
-            source, request, output = (Path(folder) / n for n in ["input.hia", "edit.json", "new.hia"])
+            source, request, output = (Path(folder) / n for n in ["input.hepta", "edit.json", "new.hepta"])
             source.write_text(json.dumps(scalar_program()))
             request.write_text(json.dumps(add_two_patch(scalar_program())))
             env = {**os.environ, "RUSTC": "/does/not/exist", "PYTHONDONTWRITEBYTECODE": "1"}
@@ -132,7 +132,7 @@ class HIAProgramToolsTests(unittest.TestCase):
         document = scalar_program()
         document["functions"][0]["blocks"][0]["term"]["values"] = ["undefined"]
         with tempfile.TemporaryDirectory() as folder:
-            source = Path(folder) / "bad.hia"
+            source = Path(folder) / "bad.hepta"
             source.write_text(json.dumps(document))
             result = subprocess.run([sys.executable, "-m", "tools.hia_core_reference", "verify", str(source)],
                                     capture_output=True, text=True, timeout=20)
@@ -141,7 +141,7 @@ class HIAProgramToolsTests(unittest.TestCase):
 
     def test_cli_trap_and_budget_are_distinct_structured_outcomes(self):
         with tempfile.TemporaryDirectory() as folder:
-            source = Path(folder) / "input.hia"
+            source = Path(folder) / "input.hepta"
             source.write_text(json.dumps(scalar_program()))
             for arguments, extra, expected in (("[4294967295]", [], "trapped"),
                     ("[0]", ["--max-steps", "1"], "budget_exceeded")):

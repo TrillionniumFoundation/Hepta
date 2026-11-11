@@ -337,7 +337,7 @@ def build(suite,snapshot,output):
                             core=local_path(built["core_path"])
                             demand(identity(core)["sha256"]==built["core_sha256"],"candidate Core hash differs from BUILD")
                             if cell["language"]=="assembly":
-                                source=f'hia-asm.v1 hepta.hia.program.v6 {task["id"]}\nexports(entrypoint)\n'+supplied_files["api.hiaasm"]+"\n"+supplied_files["client.hiaasm"]
+                                source=f'hia-asm.v1 hepta.hia.program.v6 {task["id"]}\nexports(entrypoint)\n'+supplied_files["api.hepta"]+"\n"+supplied_files["client.hepta"]
                                 assembly=built["patch_receipt"]["assembly"]
                                 demand(hashlib.sha256(source.encode()).hexdigest()==assembly["source_text_sha256"],"assembly source binding differs")
                                 demand(assemble_program(source).canonical_bytes==core.read_bytes()
@@ -346,7 +346,7 @@ def build(suite,snapshot,output):
                                        and assembly["implicit_repairs"] is False and assembly["deployment_authority"] is False,"assembly lowering differs from submitted source")
                             else:
                                 functions={f["name"]:f for f in read(core)["functions"]}
-                                demand(functions=={task["provider"]:supplied_files["api.hia.json"],"entrypoint":supplied_files["client.hia.json"]},"candidate Core functions differ from submission")
+                                demand(functions=={task["provider"]:supplied_files["api.core.hepta"],"entrypoint":supplied_files["client.core.hepta"]},"candidate Core functions differ from submission")
                             receipt=built.get("native_receipt")
                             if receipt is not None:
                                 demand(receipt["core_sha256"]==receipt["input_sha256"]==built["core_sha256"],"native object and Core identity differ")

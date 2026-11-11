@@ -346,7 +346,7 @@ def document(source, module):
 
 def main():
     for name,source in [('agent_stdio_dispatch',dispatcher_source()),('agent_stdio_packer',packer_source())]:
-        path=ROOT/'examples/hia_bootstrap'/f'{name}.hiaasm'
+        path=ROOT/'examples/hia_bootstrap'/f'{name}.hepta'
         path.write_text(render_assembly(document(source,name)))
         print(path.name,path.stat().st_size)
 

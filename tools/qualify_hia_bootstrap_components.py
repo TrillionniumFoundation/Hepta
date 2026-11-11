@@ -29,7 +29,7 @@ def source_manifest():
              "hepta/hia_machine_plan.py", "hepta/hia_machine_x64.py", "hepta/hia_machine_elf.py",
              "hepta/hia_program.py", "hepta/hia_agent_assembly.py", "hepta/hia_agent_runner.py",
              "hepta/clang_capture.py", "hepta/hia_agent_store.py",
-             "examples/hia_bootstrap/components.hiaasm", "docs/HIA_DIRECT_BYTE_BOOTSTRAP.md",
+             "examples/hia_bootstrap/components.hepta", "docs/HIA_DIRECT_BYTE_BOOTSTRAP.md",
              "tools/generate_hia_bootstrap_components.py", "tools/qualify_hia_bootstrap_components.py",
              "tests/test_hia_native_byte_abi.py", "tests/test_hia_bootstrap_components.py"]
     return {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in names}
@@ -93,7 +93,7 @@ def qualify(output):
         good = good and native_value == value and code == b"\x48\xb8" + value.to_bytes(8, "little") + b"\xc3"
         literal_results.append(bool(good))
         stem = "constant-" + str(value)
-        (evidence_dir / (stem + ".hiaasm")).write_bytes(text)
+        (evidence_dir / (stem + ".hepta")).write_bytes(text)
         (evidence_dir / (stem + ".text.bin")).write_bytes(code)
         observations.append({"case": stem, **compact_observation(assembled),
                              "source_sha256": sha256(text).hexdigest(), "machine_text_hex": code.hex(),

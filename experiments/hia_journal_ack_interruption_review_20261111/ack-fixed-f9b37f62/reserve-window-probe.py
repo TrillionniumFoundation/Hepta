@@ -41,7 +41,7 @@ class FaultDB:
 DEST.mkdir(exist_ok=False)
 manifest = json.loads(MANIFEST.read_bytes())
 image = installed_agent_journal(str(MANIFEST))
-assert sha256((ROOT / 'examples/hia_bootstrap/agent_journal.hiaasm').read_bytes()).hexdigest() == manifest['source_sha256']
+assert sha256((ROOT / 'examples/hia_bootstrap/agent_journal.hepta').read_bytes()).hexdigest() == manifest['source_sha256']
 assert image.image_sha256 == manifest['image_sha256']
 observations = []
 for kind in (KeyboardInterrupt,):

@@ -14,7 +14,7 @@ from .hia_program_shape_native import ERROR_CODES as DECLARATION_ERRORS, ERROR_M
 
 from .hia_json_preflight_native import _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/core_admission.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/core_admission.hepta')
 SCHEMA = 'hepta.hia.core-admission-native.v1'
 SELECTOR = 'HEPTA_HIA_CORE_ADMISSION_MANIFEST'
 ERROR_CODES = {**DECLARATION_ERRORS, 0xfffffff0: 'E_HIA_OPCODE',

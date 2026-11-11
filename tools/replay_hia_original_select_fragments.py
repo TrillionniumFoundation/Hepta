@@ -47,6 +47,7 @@ def replay(source, expected_manifest_sha256, output):
             and report["whole_compiler_or_original_agent_delta_proved"] is False
             and [row["type"] for row in report["cases"]] == list(WIDTHS), "retained scope or case inventory differs")
     require(report["exact_frozen_input_sha256"] == HASHES, "frozen input identities differ")
+    # The retained manifest names historical members, whose names and bytes stay fixed.
     for name, expected in HASHES.items():
         suffix = ".patch" if name == "patch" else ".hiaasm"
         require(digest((source / "frozen-inputs" / (name + suffix)).read_bytes()) == expected,

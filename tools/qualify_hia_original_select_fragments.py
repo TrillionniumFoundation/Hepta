@@ -143,6 +143,8 @@ def projection_object(site):
 
 
 def freeze_inputs(paths, output):
+    # These filenames and patch members belong to immutable historical evidence.
+    # Keep .hiaasm in this external reconstruction; current sources use .hepta.
     frozen = output / "frozen-inputs"
     frozen.mkdir()
     data = {}

@@ -251,7 +251,7 @@ def _run(output, *, clang, rustc, expected_head, native_commands):
 
     before, after, wrong = transition_program(), transition_program(1), transition_program(2)
     for name, document in (("baseline", before), ("candidate", after), ("wrong", wrong)):
-        _write(output / (name + ".hia.json"), document)
+        _write(output / (name + ".core.hepta"), document)
         (output / (name + ".ll")).write_text(emit_program_llvm(verify_program(document)).text)
     states, publications, controls, probes = [], [], [], []
     reference_states = {"c": PROTOCOL["initial_state"], "rust": PROTOCOL["initial_state"]}

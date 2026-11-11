@@ -86,7 +86,7 @@ try:
  run('core-installed-selected-agent',[P,'-B',E/'run_core_integrated_unittests_strict_02.py','-v',*agent_modules],environment=selected)
  run('core-installed-isolated-worker',[P,'-B',E/'exercise_agent_core_retained_regression_worker_05.py'])
  from hepta.hia_agent_assembly import assemble_program
- document=assemble_program((R/'examples/hia_bootstrap/bytesum.hiaasm').read_bytes()).as_dict();payload=json.dumps(document,separators=(',',':')).encode()
+ document=assemble_program((R/'examples/hia_bootstrap/bytesum.hepta').read_bytes()).as_dict();payload=json.dumps(document,separators=(',',':')).encode()
  from tools.build_hia_agent_stdio import build
  installed=RAW/'installed-native';installed.mkdir();profile_rows={}
  for index,profile in enumerate(['flat','elf','exec']):
@@ -116,7 +116,7 @@ try:
  from tests.test_hia_agent_entry import CHILD,fixture
  guard=RAW/'import-guard';guard.mkdir();(guard/'sitecustomize.py').write_text(CHILD.split('from hepta.cli import')[0])
  installed_env={**env,'PATH':'','PYTHONPATH':str(guard)+os.pathsep+str(target)};entry=target/'bin/hia'
- sourcefile=RAW/'installed-input.hia';sourcefile.write_text(json.dumps(fixture()));query=RAW/'query.json';response=RAW/'response.json';revised=RAW/'revised.hia';obj=RAW/'installed.o';response.write_text('{"op":"int.sub.wrap"}')
+ sourcefile=RAW/'installed-input.hepta';sourcefile.write_text(json.dumps(fixture()));query=RAW/'query.json';response=RAW/'response.json';revised=RAW/'revised.hepta';obj=RAW/'installed.o';response.write_text('{"op":"int.sub.wrap"}')
  for label,args in [('capabilities',['capabilities']),('verify',['verify',sourcefile]),('edit-query',['edit-query',sourcefile,'--function','calculate','--block','entry','--value','y','--fields','op','-o',query]),('edit-apply',['edit-apply',sourcefile,'--query',query,'--response',response,'-o',revised]),('build',['build',revised,'-o',obj])]:
   run('core-installed-hosted-'+label,[entry,*args],cwd=RAW,environment=installed_env)
  from hepta.hia_program_runtime import execute_program
@@ -124,7 +124,7 @@ try:
  run('core-installed-selected-native-install',[P,'-B',E/'exercise_agent_core_retained_regression_selected_05.py'])
  run('core-installed-B3-native-graph',[P,'-B',E/'exercise_agent_core_retained_regression_selected_graph_05.py'])
  run('core-installed-final-tree-check',[P,'-B','tools/check_hia_core_only.py'])
- assert not git('diff','f1bea765d6dee078faeaa2d7ea3f3f992785b617',HEAD,'--','examples/hia_bootstrap',':(exclude)examples/hia_bootstrap/agent_identity.hiaasm',':(exclude)examples/hia_bootstrap/agent_slice.hiaasm')
+ assert not git('diff','f1bea765d6dee078faeaa2d7ea3f3f992785b617',HEAD,'--','examples/hia_bootstrap',':(exclude)examples/hia_bootstrap/agent_identity.hepta',':(exclude)examples/hia_bootstrap/agent_slice.hepta')
  report.update(status='PASS',git_clean_after=not git('status','--porcelain','--untracked-files=all'),installed_hosted_entry_requires_python=True,installed_scalar_identity_component_qualified=True,installed_wheel_sha256=sha256(wheel.read_bytes()).hexdigest(),existing_native_compiler_frontend_stdio_linker_bytes_unchanged=True)
 except BaseException as error:
  report.update(status='FAIL',exception=repr(error));raise

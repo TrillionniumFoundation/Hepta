@@ -92,7 +92,7 @@ def audit_run(folder, revision, current=False):
             assert candidate == location / 'candidate'
             language = built['language']
             names = ('api.rs', 'client.rs', 'audit.rs', 'utility.rs') if language == 'rust' else (
-                'api.hia.json', 'client.hia.json', 'audit.hia.json', 'utility.hia.json')
+                'api.core.hepta', 'client.core.hepta', 'audit.core.hepta', 'utility.core.hepta')
             files = {name: (candidate / name).read_bytes().decode() if language == 'rust'
                      else load(candidate / name) for name in names}
             assert digest({name: files[name] for name in names[:2]}) == built['receipt']['replacement_sha256']
@@ -112,7 +112,7 @@ def audit_run(folder, revision, current=False):
                 assert structural['structured_editor']['whole_functions_supplied_by_model'] == 0
                 assert not structural['structured_editor']['source_published']
                 core = Path(built['core_path'])
-                assert core == candidate / 'candidate.hia.json'
+                assert core == candidate / 'candidate.core.hepta'
                 assert identity(core)['sha256'] == built['core_sha256'] == built['native_compile']['core_sha256']
                 item['core'] = identity(core)
             if built['native_built']:

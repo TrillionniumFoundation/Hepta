@@ -209,8 +209,8 @@ def validate_composite_receipt(report):
     root, clang = Path(report["workdir"]), report["compiler"]["path"]
     if digest_executable(Path(clang)) != report["compiler"]["sha256"]:
         raise ValueError("Composite compiler identity changed")
-    source = verify_core((root / "input.hia.json").read_bytes())
-    normalized = verify_core((root / "normalized.hia.json").read_bytes())
+    source = verify_core((root / "input.core.hepta").read_bytes())
+    normalized = verify_core((root / "normalized.core.hepta").read_bytes())
     if (source.sha256 != report["core_sha256"] or source.input_sha256 != report["input_sha256"]
             or source.canonical_bytes != normalized.canonical_bytes
             or sorted(source.scalar_entrypoints) != EXPORTS or sorted(normalized.scalar_entrypoints) != EXPORTS):
@@ -250,7 +250,7 @@ def validate_composite_receipt(report):
     if [x["name"] for x in report["static_rejections"]] != [x[0] for x in statics]:
         raise ValueError("Static resource rejection denominator differs")
     for row, (name, document) in zip(report["static_rejections"], statics):
-        path = root / ("reject-" + name + ".hia.json")
+        path = root / ("reject-" + name + ".core.hepta")
         if row["input"] != str(path) or json.loads(path.read_bytes()) != document or row["rejected"] is not True:
             raise ValueError("Retained static negative control differs")
         try:
@@ -266,8 +266,8 @@ def validate_composite_receipt(report):
     for row, (name, document, mode) in zip(report["protocol_traps"], protocols):
         folder = root / name
         expected = verify_core(document)
-        actual = verify_core((folder / "input.hia.json").read_bytes())
-        core = verify_core((folder / "normalized.hia.json").read_bytes())
+        actual = verify_core((folder / "input.core.hepta").read_bytes())
+        core = verify_core((folder / "normalized.core.hepta").read_bytes())
         if (row["mode"] != mode or actual != expected or core.canonical_bytes != expected.canonical_bytes
                 or (folder / "driver.c").read_text() != protocol_driver(mode)
                 or digest(folder / "program.ll") != emit_program_llvm(expected).sha256
@@ -311,9 +311,9 @@ def qualify(workdir, *, clang="clang"):
         compiler = Path(selected).resolve(strict=True); clang = str(compiler)
         report["compiler"] = {"path": clang, "sha256": digest_executable(compiler)}
         program = verify_core(combined_program())
-        (root / "input.hia.json").write_bytes(program.structured_bytes)
-        (root / "normalized.hia.json").write_bytes(program.canonical_bytes)
-        normalized = verify_core((root / "normalized.hia.json").read_bytes())
+        (root / "input.core.hepta").write_bytes(program.structured_bytes)
+        (root / "normalized.core.hepta").write_bytes(program.canonical_bytes)
+        normalized = verify_core((root / "normalized.core.hepta").read_bytes())
         if sorted(program.scalar_entrypoints) != EXPORTS or program.canonical_bytes != normalized.canonical_bytes:
             raise ValueError("Source-free normalize/reload changed public core")
         report.update(input_sha256=program.input_sha256, core_sha256=program.sha256,
@@ -336,7 +336,7 @@ def qualify(workdir, *, clang="clang"):
                                        "link_process": linked, "run_process": executed,
                                        "references": references, "observed": _observed(report, executed)}
         for label, document in static_controls():
-            path = root / ("reject-" + label + ".hia.json"); _write(path, document)
+            path = root / ("reject-" + label + ".core.hepta"); _write(path, document)
             try:
                 verify_core(path.read_bytes())
             except HIAProgramRejected as exc:
@@ -358,8 +358,8 @@ def qualify(workdir, *, clang="clang"):
                                            "observed": _observed(report, executed)}
         for label, document, mode in protocol_controls():
             folder = root / label; folder.mkdir()
-            core = verify_core(document); (folder / "input.hia.json").write_bytes(core.structured_bytes)
-            (folder / "normalized.hia.json").write_bytes(core.canonical_bytes)
+            core = verify_core(document); (folder / "input.core.hepta").write_bytes(core.structured_bytes)
+            (folder / "normalized.core.hepta").write_bytes(core.canonical_bytes)
             try:
                 execute_program(core, "task_case", [mode])
             except HIAProgramTrap as exc:

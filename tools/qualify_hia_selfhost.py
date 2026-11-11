@@ -28,8 +28,8 @@ if __package__ in {None, ""}:
 from tools.hia_selfhost_contract import CONTRACT_PATH, file_digests, validate_contract
 from tools.hia_selfhost_cases import (backward_bytesum_source, backward_chain_source,
                                      call_graph_invalid_sources, recursion_refusals)
-SOURCE = ROOT / "examples/hia_bootstrap/selfhost.hiaasm"
-SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
+SOURCE = ROOT / "examples/hia_bootstrap/selfhost.hepta"
+SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hepta"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
@@ -457,7 +457,7 @@ def _phase_manifest_digest(manifest):
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
-             "modified_source": directory / "modified-selfhost.hiaasm"}
+             "modified_source": directory / "modified-selfhost.hepta"}
     if family in PHASE_REFERENCE_FILES:
         paths["reference"] = directory / PHASE_REFERENCE_FILES[family]
     if family == "elf":
@@ -812,7 +812,7 @@ def qualify(output):
               "B1_B2_B3_byte_identical": len({x["produced_sha256"] for x in stages}) == 1,
               "no_host_compiler_modules_in_successors": all(not x["forbidden_compiler_modules_loaded"] for x in stages)}
     changed = mutate_compiler(source)
-    (directory / "modified-selfhost.hiaasm").write_bytes(changed)
+    (directory / "modified-selfhost.hepta").write_bytes(changed)
     modified_stages = []
     for label in ("M1", "M2", "M3"):
         previous, receipt = compile_stage(directory, label, previous, changed)

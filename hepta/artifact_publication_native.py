@@ -11,9 +11,9 @@ from pathlib import Path
 
 NATIVE_PUBLICATION_OPERATIONS = ('publish','verify','withdraw','store-put','store-get','store-hash')
 NATIVE_PUBLICATION_SOURCES = (
-    'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
-    'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
-    'examples/hia_bootstrap/sha256_stream.hiaasm',
+    'examples/hia_bootstrap/artifact_publication_policy.hepta',
+    'examples/hia_bootstrap/artifact_publication_packer.hepta',
+    'examples/hia_bootstrap/sha256_stream.hepta',
     'tools/hia_artifact_publication_syscalls.S',
     'tools/generate_hia_artifact_publication.py',
 )

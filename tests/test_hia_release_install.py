@@ -19,8 +19,8 @@ from tools.generate_hia_release_install import BUNDLE_MAGIC, MAGIC, policy_sourc
 from tools.hia_selfhost_bulk import Body
 
 ROOT = Path(__file__).resolve().parents[1]
-POLICY = ROOT/'examples/hia_bootstrap/release_install_policy.hiaasm'
-PACKER = ROOT/'examples/hia_bootstrap/release_install_packer.hiaasm'
+POLICY = ROOT/'examples/hia_bootstrap/release_install_policy.hepta'
+PACKER = ROOT/'examples/hia_bootstrap/release_install_packer.hepta'
 
 
 def bundle(files):
@@ -147,7 +147,7 @@ class ReleaseInstallerSourceTests(unittest.TestCase):
         self.assertEqual(PACKER.read_text(), render_assembly(document(packer_source(), 'release_install_packer')))
 
     def test_independent_vm_package_and_rejection(self):
-        raw = bundle([('hia-native', 0o500, b'\x7fELF\x00'), ('source.hiaasm', 0o400, b'' )])
+        raw = bundle([('hia-native', 0o500, b'\x7fELF\x00'), ('source.hepta', 0o400, b'' )])
         self.assertEqual(len(reference_unpack(raw)), 2)
         result, observed = observe(raw, fields(p0=2), workspace_offsets=range(24, 32))
         self.assertEqual((result, struct.unpack('<Q', observed)[0]), (0, 2))
@@ -225,14 +225,14 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
             vm_pack()
             seed, _ = build_seed(cls.folder)
             first, _ = compile_stage(cls.folder, 'B1', seed,
-                                     (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes(), image_format='seed-shared')
+                                     (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes(), image_format='seed-shared')
             second, _ = compile_stage(cls.folder, 'B2', first,
-                                      (ROOT/'examples/hia_bootstrap/selfhost.hiaasm').read_bytes())
+                                      (ROOT/'examples/hia_bootstrap/selfhost.hepta').read_bytes())
             assert first.read_bytes() == second.read_bytes()
             images = {}
             for name in ('release_install_policy', 'release_install_packer', 'sha256_stream'):
                 images[name], _ = compile_stage(cls.folder, name, second,
-                                                (ROOT/'examples/hia_bootstrap'/f'{name}.hiaasm').read_bytes())
+                                                (ROOT/'examples/hia_bootstrap'/f'{name}.hepta').read_bytes())
             policy, sha = images['release_install_policy'].read_bytes(), images['sha256_stream'].read_bytes()
             result, raw = invoke(cls.folder, 'pack', images['release_install_packer'],
                                  struct.pack('<3Q', MAGIC, len(policy), len(sha))+policy+sha)
@@ -268,7 +268,7 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         self.case.mkdir(mode=0o700)
         self.root = self.case/'releases'
         self.root.mkdir(mode=0o700)
-        self.wire = bundle([('app', 0o500, b'\x00native\xff\n'*211), ('source.hiaasm', 0o400, b'')])
+        self.wire = bundle([('app', 0o500, b'\x00native\xff\n'*211), ('source.hepta', 0o400, b'')])
 
     def run_app(self, operation='install', *, wire=None, code=0, root=None, digest=None, prefix=(), executable=None, umask=-1):
         wire = self.wire if wire is None else wire
@@ -301,13 +301,13 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         self.run_app(code=14)
         self.assertEqual(release.stat().st_ino, before.st_ino)
         self.assertFalse(json.loads(self.run_app('verify').stdout)['published'])
-        other = bundle([('app', 0o500, b'next'), ('source.hiaasm', 0o400, b'new')])
+        other = bundle([('app', 0o500, b'next'), ('source.hepta', 0o400, b'new')])
         self.run_app(wire=other)
         self.assertEqual((release/'app').read_bytes(), reference_unpack(self.wire)[b'app'][1])
 
     def test_installed_copy_operates_under_empty_path_with_no_host_stack(self):
         wire = bundle([('hia-release', 0o500, self.app.read_bytes()),
-                       ('release-policy.hiaasm', 0o400, POLICY.read_bytes())])
+                       ('release-policy.hepta', 0o400, POLICY.read_bytes())])
         self.run_app(wire=wire)
         installed = self.root/sha256(wire).hexdigest()/'hia-release'
         self.run_app('verify', wire=wire, executable=installed)
@@ -367,7 +367,7 @@ class ReleaseInstallerKernelTests(unittest.TestCase):
         release = self.root/sha256(self.wire).hexdigest()
         self.assertEqual(release.stat().st_mode & 0o7777,0o500)
         self.assertEqual((release/'app').stat().st_mode & 0o7777,0o500)
-        self.assertEqual((release/'source.hiaasm').stat().st_mode & 0o7777,0o400)
+        self.assertEqual((release/'source.hepta').stat().st_mode & 0o7777,0o400)
 
     def test_inventory_modes_symlinks_hardlinks_and_content_corruption(self):
         self.run_app()

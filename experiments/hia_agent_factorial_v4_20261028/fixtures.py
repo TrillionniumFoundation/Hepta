@@ -10,7 +10,7 @@ from tools.provider_adapter.llama_cpp_engine import canonical
 
 HERE = Path(__file__).resolve().parent
 PARAMS = [("a", "u32"), ("b", "u32"), ("c", "u32")]
-EDITABLE = {"hia": ("api.hia.json", "client.hia.json"), "rust": ("api.rs", "client.rs")}
+EDITABLE = {"hia": ("api.core.hepta", "client.core.hepta"), "rust": ("api.rs", "client.rs")}
 MAX32 = 2**32 - 1
 
 
@@ -118,7 +118,7 @@ def document(task, files, *, probe_contract=True):
     probe = (basic_client("span", upgraded=False, probe=True)
              if not probe_contract and task["provider"] == "span" else task["probe_hia"])
     return {"schema": "hepta.hia.program.v6", "module": task["id"], "exports": ["entrypoint", "provider_probe"],
-            "functions": [all_files[n] for n in ("api.hia.json", "client.hia.json", "audit.hia.json", "utility.hia.json")] + [probe]}
+            "functions": [all_files[n] for n in ("api.core.hepta", "client.core.hepta", "audit.core.hepta", "utility.core.hepta")] + [probe]}
 
 
 def make_fixtures():
@@ -192,10 +192,10 @@ def make_fixtures():
             r_audit = c_good.replace("entrypoint", "provider_probe")
         task = {"id": ident, "category": category, "provider": name, "specification": spec,
                 "provider_params": [[p["name"], p["type"]] for p in good["params"]], "provider_returns": good["returns"],
-                "original_hia": {"api.hia.json": old, "client.hia.json": client_old},
-                "correct_hia": {"api.hia.json": good, "client.hia.json": client_good},
+                "original_hia": {"api.core.hepta": old, "client.core.hepta": client_old},
+                "correct_hia": {"api.core.hepta": good, "client.core.hepta": client_good},
                 "original_rust": {"api.rs": r_old, "client.rs": c_old}, "correct_rust": {"api.rs": r_good, "client.rs": c_good},
-                "unchanged_hia": {"audit.hia.json": audit_tag, "utility.hia.json": utility},
+                "unchanged_hia": {"audit.core.hepta": audit_tag, "utility.core.hepta": utility},
                 "unchanged_rust": {"audit.rs": "pub fn audit_tag(c:u32)->u32 { c & 7 }", "utility.rs": "pub fn utility(x:u32)->u32 { x & 255 }"},
                 "probe_hia": audit, "probe_rust": r_audit,
                 "public_cases": public}
@@ -230,8 +230,8 @@ def prompt(task, arm):
         context = {"physical_files": source}
     else:
         context = {"editable_files": source, "unchanged_interfaces": [
-            {"file": "audit.hia.json" if language == "hia" else "audit.rs", "function": "audit_tag(c:u32)->u32", "calls": [], "role": "unrelated audit helper; retained unchanged"},
-            {"file": "utility.hia.json" if language == "hia" else "utility.rs", "function": "utility(x:u32)->u32", "calls": [], "role": "unrelated pure helper; retained unchanged"}],
+            {"file": "audit.core.hepta" if language == "hia" else "audit.rs", "function": "audit_tag(c:u32)->u32", "calls": [], "role": "unrelated audit helper; retained unchanged"},
+            {"file": "utility.core.hepta" if language == "hia" else "utility.rs", "function": "utility(x:u32)->u32", "calls": [], "role": "unrelated pure helper; retained unchanged"}],
             "reverification": "All four files and provider/caller signatures remain subject to whole-program admission and actual compilation."}
     rules = ("Each HIA file is one complete function object, preserving its name and required signature. The host atomically replaces both definitions and verifies the full Core. int.cast must use attrs {\"mode\":\"wrap\"} or checked. const has attrs.value. select args are condition,true,false; comparisons return bool. Arithmetic .wrap is modulo result width. call has attrs.function and one out per result. buffer.new takes usize length and returns buffer; borrow.mut/read return mutbuf/readbuf; buffer.store takes view,index:u-size,value:u8; buffer.load returns u8; loan.end ends a view; owner.drop consumes a buffer. End loans before moving/dropping an owner; returning buffer transfers it. No loops, recursion, extra functions, external calls or effects outside alloc/read/write/trap; max 16 blocks/128 operations per function. Only scalar, buffer, mutbuf, readbuf types."
              if language == "hia" else

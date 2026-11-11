@@ -27,7 +27,7 @@ which binaries were subsequently executed and observed.
 
 ## Fixed corpus and denominators
 
-`examples/hia_program/returned_loans_cross_target_v8.hia` contains 38 functions
+`examples/hia_program/returned_loans_cross_target_v8.hepta` contains 38 functions
 and 19 scalar exports. It preserves the existing returned-loan test programs
 with globally distinct names. Its calls cover read/mutable forwarding, direct
 child returns, CFG renaming, recursion, shared multiple results, independent

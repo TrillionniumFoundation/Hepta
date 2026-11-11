@@ -209,7 +209,7 @@ else:
         self.assertEqual((result.returncode,result.stderr),(0,b''),result.stdout+result.stderr)
         response = json.loads(result.stdout)
         self.assertEqual(self.payloads(response),(expected.canonical_bytes,wire(diagnostics)))
-        resource = installed/'hepta/_data/examples/hia_bootstrap/core_patch.hiaasm'
+        resource = installed/'hepta/_data/examples/hia_bootstrap/core_patch.hepta'
         original = resource.read_bytes()
         try:
             resource.unlink()

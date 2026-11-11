@@ -18,7 +18,7 @@ from hepta.hia_agent_store import wire
 DEST.mkdir(exist_ok=False)
 image = installed_agent_journal(str(MANIFEST))
 manifest = json.loads(MANIFEST.read_bytes())
-assert sha256((ROOT / 'examples/hia_bootstrap/agent_journal.hiaasm').read_bytes()).hexdigest() == manifest['source_sha256']
+assert sha256((ROOT / 'examples/hia_bootstrap/agent_journal.hepta').read_bytes()).hexdigest() == manifest['source_sha256']
 payloads = {
     'invalid-start': b'"\xff"',
     'invalid-continuation': b'"\xe2("',

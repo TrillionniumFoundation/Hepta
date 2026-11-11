@@ -18,8 +18,8 @@ from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT=Path(__file__).resolve().parents[1]
-SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_materialize.hiaasm'
-PACKER=ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hiaasm'
+SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_materialize.hepta'
+PACKER=ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hepta'
 
 
 def build(output,compiler,cold_report):

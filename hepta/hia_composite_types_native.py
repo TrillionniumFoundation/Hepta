@@ -21,7 +21,7 @@ from .hia_json_preflight_native import (NativeHiaJsonImage, _installed_json_imag
 from .hia_program import HIAProgramRejected
 
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/composite_types.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/composite_types.hepta')
 SCHEMA = 'hepta.hia.composite-types-native.v1'
 SELECTOR = 'HEPTA_HIA_COMPOSITE_TYPES_MANIFEST'
 MAGIC = int.from_bytes(b'HIATYP01', 'little')

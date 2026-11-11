@@ -117,7 +117,7 @@ class AgentDataJsonNativeTests(unittest.TestCase):
             cls.temporary = tempfile.TemporaryDirectory(prefix='hia-agent-data-json-')
             cls.folder = Path(cls.temporary.name)
         seed, _ = build_seed(cls.folder)
-        source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(cls.folder, 'B2', first, source)
         assert first.read_bytes() == second.read_bytes()
@@ -186,7 +186,7 @@ class AgentDataJsonNativeTests(unittest.TestCase):
         from hepta.hia_agent_store import decode_data
         with patch.dict(os.environ, {SELECTOR: str(bad)}):
             with self.assertRaises(ValueError): decode_data(b'1.0')
-        copied = self.folder / 'source-copy.hiaasm'; copied.write_bytes(SOURCE.read_bytes())
+        copied = self.folder / 'source-copy.hepta'; copied.write_bytes(SOURCE.read_bytes())
         with patch('hepta.hia_agent_data_json_native.SOURCE', copied):
             self.assertEqual(installed_agent_data_json(str(self.manifest)).decode(b'1.0'), 1.0)
             copied.write_bytes(b'changed source')

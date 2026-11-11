@@ -59,7 +59,7 @@ def _source_resource_path(name):
     return resource_root / name
 
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/json_preflight.hepta')
 
 
 def scratch_sizes(size: int, maximum: int, depth: int) -> tuple[int, int]:

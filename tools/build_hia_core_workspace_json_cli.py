@@ -10,12 +10,12 @@ from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKER_SOURCE = ROOT / 'examples/hia_bootstrap/core_workspace_json_packer.hiaasm'
+PACKER_SOURCE = ROOT / 'examples/hia_bootstrap/core_workspace_json_packer.hepta'
 
 
 def build(output, compiler, cold_report):
     inputs = {p: p.read_bytes() for p in [compiler, cold_report, PACKER_SOURCE,
-        ROOT / 'examples/hia_bootstrap/core_workspace_json.hiaasm']}
+        ROOT / 'examples/hia_bootstrap/core_workspace_json.hepta']}
     qualification = json.loads(inputs[cold_report])
     if type(qualification) is not dict or qualification.get('status') != 'COLD_SELFHOST_REPLAY_PASS':
         raise ValueError('a completed matching native cold qualification is required')

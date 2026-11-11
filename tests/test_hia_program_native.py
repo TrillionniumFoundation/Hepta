@@ -205,7 +205,7 @@ print("direct object, common Core API and CLI: no LLVM, no process")
         self.assertIn("direct-llvm", backends)
 
     def test_all_versioned_agent_core_examples_are_emitted_without_llvm(self):
-        paths = sorted((ROOT / "examples/hia_program").glob("*.hia"))
+        paths = sorted((ROOT / "examples/hia_program").glob("*.hepta"))
         self.assertGreaterEqual(len(paths), 10)
         for path in paths:
             with self.subTest(path=path.name):

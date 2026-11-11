@@ -64,7 +64,7 @@ class CoreAdmissionCliNativeTests(unittest.TestCase):
             assert report['generation_sha256'] == [sha256(compiler.read_bytes()).hexdigest()] * 3
         else:
             seed, _ = build_seed(cls.folder)
-            source = SOURCE.with_name('selfhost.hiaasm').read_bytes()
+            source = SOURCE.with_name('selfhost.hepta').read_bytes()
             first, _ = compile_stage(cls.folder, 'B1', seed, source, image_format='seed-shared')
             compiler, _ = compile_stage(cls.folder, 'B2', first, source)
             assert first.read_bytes() == compiler.read_bytes()

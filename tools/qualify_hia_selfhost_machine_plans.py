@@ -162,8 +162,8 @@ def run(directory, repetitions=7):
         with phase("source_and_core_registration"):
             compiler_source, sample_source = SOURCE.read_bytes(), SAMPLE.read_bytes()
             checked = assemble_program(compiler_source)
-            (directory / "compiler.hiaasm").write_bytes(compiler_source)
-            (directory / "sample.hiaasm").write_bytes(sample_source)
+            (directory / "compiler.hepta").write_bytes(compiler_source)
+            (directory / "sample.hepta").write_bytes(sample_source)
             (directory / "compiler.core.json").write_bytes(checked.canonical_bytes)
             report["core_sha256"] = checked.sha256
             report["workload"] = {"compiler": {"sha256": digest(compiler_source), "bytes": len(compiler_source)},

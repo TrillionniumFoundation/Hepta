@@ -33,7 +33,7 @@ PROTOCOL = "hepta.hia.module-upgrade.next-20261028.v1"
 LIMIT = 1536
 ATTEMPTS = 2
 MAX64 = 2**64 - 1
-FILE_NAMES = {"hia": ("api.hia.json", "client.hia.json"), "rust": ("api.rs", "client.rs")}
+FILE_NAMES = {"hia": ("api.core.hepta", "client.core.hepta"), "rust": ("api.rs", "client.rs")}
 
 
 def save(path, value):
@@ -112,8 +112,8 @@ def fixtures():
         {"id": "wire_length_v2", "provider": "wire_length",
          "specification": "Upgrade the packet-header provider from wire_length(u16)->u32 to wire_length(u32)->u64, preserving every length bit. Update its consumer so the low eight tag bits occupy bits 32..39 and the complete u32 length occupies bits 0..31. The consumer must call the provider without a u16 truncation. Its public entrypoint(tag:u32,length:u32,reserved:u32)->u64 stays unchanged; reserved is ignored.",
          "provider_params": [["length", "u32"]], "provider_returns": ["u64"],
-         "original_hia": {"api.hia.json": old_header, "client.hia.json": header_client(False)},
-         "correct_hia": {"api.hia.json": new_header, "client.hia.json": header_client(True)},
+         "original_hia": {"api.core.hepta": old_header, "client.core.hepta": header_client(False)},
+         "correct_hia": {"api.core.hepta": new_header, "client.core.hepta": header_client(True)},
          "original_rust": {"api.rs": "pub fn wire_length(length:u16)->u32 { length as u32 }\n",
              "client.rs": "use crate::api;\npub fn entrypoint(tag:u32,length:u32,reserved:u32)->u64 { let _ = reserved; (((tag & 255) as u64) << 16) | (api::wire_length(length as u16) as u64) }\n"},
          "correct_rust": {"api.rs": "pub fn wire_length(length:u32)->u64 { length as u64 }\n",
@@ -125,8 +125,8 @@ def fixtures():
          "specification": "Upgrade the window provider from advance(offset:u32,amount:u32)->u32 to advance(offset:u32,amount:u32,capacity:u32)->(bool,u32). Compute the mathematical end without u32 overflow. Valid means end <= capacity; the returned end is meaningful only when valid. Update the consumer call, tuple unpacking and failure handling. The unchanged public entrypoint(offset:u32,amount:u32,capacity:u32)->u64 returns end when valid and 18446744073709551615 otherwise. It must call the provider exactly once.",
          "provider_params": [["offset", "u32"], ["amount", "u32"], ["capacity", "u32"]],
          "provider_returns": ["bool", "u32"],
-         "original_hia": {"api.hia.json": old_window, "client.hia.json": window_client(False)},
-         "correct_hia": {"api.hia.json": new_window, "client.hia.json": window_client(True)},
+         "original_hia": {"api.core.hepta": old_window, "client.core.hepta": window_client(False)},
+         "correct_hia": {"api.core.hepta": new_window, "client.core.hepta": window_client(True)},
          "original_rust": {"api.rs": "pub fn advance(offset:u32,amount:u32)->u32 { offset.wrapping_add(amount) }\n",
              "client.rs": "use crate::api;\npub fn entrypoint(offset:u32,amount:u32,capacity:u32)->u64 { let _ = capacity; api::advance(offset,amount) as u64 }\n"},
          "correct_rust": {"api.rs": "pub fn advance(offset:u32,amount:u32,capacity:u32)->(bool,u32) { let end = (offset as u64) + (amount as u64); (end <= capacity as u64, end as u32) }\n",
@@ -158,7 +158,7 @@ def fixtures():
 
 def document(task, files):
     return {"schema": "hepta.hia.program.v6", "module": task["id"], "exports": ["entrypoint"],
-            "functions": [files["api.hia.json"], files["client.hia.json"]]}
+            "functions": [files["api.core.hepta"], files["client.core.hepta"]]}
 
 
 def prompt(task, language):
@@ -252,7 +252,7 @@ def rust_safety_check(task, files, enforce_contract):
         returns = task["provider_returns"][0] if len(task["provider_returns"]) == 1 else "(" + ",".join(task["provider_returns"]) + ")"
         if not compact.startswith("pubfn" + task["provider"] + "(" + params + ")->" + returns + "{"):
             raise ValueError("E_UPGRADE_PROVIDER_INTERFACE")
-        expected = task["original_hia"]["client.hia.json"]
+        expected = task["original_hia"]["client.core.hepta"]
         public_params = ",".join(p["name"] + ":" + p["type"] for p in expected["params"])
         client = re.sub(r"\s+", "", normalized_files["client.rs"]).replace("usecrate::api;", "")
         if not client.startswith("pubfnentrypoint(" + public_params + ")->u64{"):
@@ -276,11 +276,11 @@ def parse_files(task, language, text, *, enforce_contract=True):
         raise ValueError("E_UPGRADE_HIA_FUNCTION_OBJECT")
     candidate, receipt = apply_program_patch(original, {"schema": "hepta.hia.patch.v2",
         "expected_sha256": original.sha256, "interface_policy": "migrate",
-        "edits": [{"action": "replace_function", "function": task["provider"], "definition": files["api.hia.json"]},
-                  {"action": "replace_function", "function": "entrypoint", "definition": files["client.hia.json"]}]})
+        "edits": [{"action": "replace_function", "function": task["provider"], "definition": files["api.core.hepta"]},
+                  {"action": "replace_function", "function": "entrypoint", "definition": files["client.core.hepta"]}]})
     definition = candidate.as_dict()
     provider, consumer = definition["functions"]
-    expected_consumer = task["original_hia"]["client.hia.json"]
+    expected_consumer = task["original_hia"]["client.core.hepta"]
     if consumer["params"] != expected_consumer["params"] or consumer["returns"] != ["u64"]:
         raise ValueError("E_UPGRADE_PUBLIC_INTERFACE")
     calls = []
@@ -453,8 +453,8 @@ def build(task, language, text, directory, clang, rustc, *, enforce_contract=Tru
         record["compiler_before"] = compiler
         binary = folder / "candidate"
         if language == "hia":
-            (folder / "program.hia").write_bytes(parsed.canonical_bytes)
-            record.update(core_path=str(folder / "program.hia"), core_sha256=parsed.sha256)
+            (folder / "program.hepta").write_bytes(parsed.canonical_bytes)
+            record.update(core_path=str(folder / "program.hepta"), core_sha256=parsed.sha256)
             record["native_receipt"] = build_program_native(parsed, folder / "program.o", clang=clang, kind="object")
             (folder / "driver.c").write_text(C_DRIVER)
             argv = [clang, "-O2", str(folder / "driver.c"), str(folder / "program.o"), "-o", str(binary)]

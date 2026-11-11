@@ -20,7 +20,7 @@ from tools.generate_hia_worker_request import (
 )
 from tools.generate_hia_json_preflight import SOURCE as PREFLIGHT_SOURCE
 
-SOURCE_PATH = 'examples/hia_bootstrap/agent_journal.hiaasm'
+SOURCE_PATH = 'examples/hia_bootstrap/agent_journal.hepta'
 PRIVATE_BYTES = 32768
 TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context',
          'hia_inspect', 'hia_candidate', 'hia_verify', 'hia_emit',

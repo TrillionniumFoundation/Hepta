@@ -22,7 +22,7 @@ checks the original functions and updated remainder's Core call-graph inlining
 and primitive representation with the existing 10-second all-input validator;
 this does not prove C-to-Core refinement. The new floor function's complete
 inlining did not prove within that budget. Its proposed rewrite is not used as
-an authorized executable. `floor_reference.hiaasm` is instead a separately
+an authorized executable. `floor_reference.hepta` is instead a separately
 authored widened quotient/remainder repair, admitted by the canonical verifier
 and the independent finite native/VM controls. This reference choice is fixed
 before any model request, independent of subsequent solver outcomes.

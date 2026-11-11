@@ -2,7 +2,7 @@
 
 This is a real, deliberately bounded self-hosting compiler for a fixed subset of
 `hia-asm.v1` / `hepta.hia.program.v8`. The complete compiler is
-`examples/hia_bootstrap/selfhost.hiaasm`. Its scanner, parser, semantic verifier,
+`examples/hia_bootstrap/selfhost.hepta`. Its scanner, parser, semantic verifier,
 control-flow checker, x86-64 encoder and relocation writer are HIA functions.
 It accepts that entire source file as ordinary input bytes and produces the next
 compiler as executable machine bytes. The old `compile_constant` component and
@@ -554,7 +554,7 @@ must differ from the original fixed point. This is a code-generation change
 propagating across compiler generations, not just a source-comment change.
 
 Both original and modified compilers also compile and execute
-`examples/hia_bootstrap/bytesum.hiaasm`. That separate program exercises a loop,
+`examples/hia_bootstrap/bytesum.hepta`. That separate program exercises a loop,
 branch arguments, a forward function call, byte loads and stores, casts,
 wrapping `u32` multiplication and XOR. Its results are checked against an
 independent host integer oracle, including empty input and repeated byte ranges.

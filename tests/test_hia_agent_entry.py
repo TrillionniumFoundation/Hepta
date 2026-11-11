@@ -57,7 +57,7 @@ class AgentEntryTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="hia-agent-entry-")
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.source = self.root / "program.hia"
+        self.source = self.root / "program.hepta"
         self.source.write_text(json.dumps(fixture()))
 
     def invoke(self, *args, compat=False):
@@ -98,10 +98,10 @@ class AgentEntryTests(unittest.TestCase):
 
     def test_assembly_roundtrip_uses_only_core(self):
         from hepta.hia_agent_assembly import render_assembly
-        assembly = self.root / "program.hiaasm"
+        assembly = self.root / "program.hepta"
         assembly.write_text(render_assembly(fixture()))
         self.assertTrue(self.accepted("check-assembly", assembly)["accepted"])
-        imported = self.root / "imported.hia"
+        imported = self.root / "imported.hepta"
         self.accepted("import-assembly", assembly, "-o", imported)
         self.assertTrue(self.accepted("verify", imported)["ok"])
         self.accepted("inspect", imported)
@@ -109,7 +109,7 @@ class AgentEntryTests(unittest.TestCase):
     def test_local_edit_executes_changed_result_and_preserves_caller(self):
         from hepta.hia_program_runtime import execute_program
         query = self.query()
-        response, target = self.root / "response.json", self.root / "changed.hia"
+        response, target = self.root / "response.json", self.root / "changed.hepta"
         response.write_text('{"op":"int.sub.wrap"}')
         report = self.accepted("edit-apply", self.source, "--query", query,
                                "--response", response, "-o", target)
@@ -125,7 +125,7 @@ class AgentEntryTests(unittest.TestCase):
 
     def test_stale_and_invalid_edits_publish_nothing(self):
         query = self.query()
-        response, target = self.root / "response.json", self.root / "forbidden.hia"
+        response, target = self.root / "response.json", self.root / "forbidden.hepta"
         response.write_text('{"op":"owner.drop"}')
         result = self.invoke("edit-apply", self.source, "--query", query,
                              "--response", response, "-o", target)

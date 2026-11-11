@@ -72,7 +72,7 @@ class NextAgentTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 upgrade.parse_files(task, "rust", json.dumps(payload))
         files = deepcopy(task["correct_hia"])
-        files["client.hia.json"]["returns"] = ["u32"]
+        files["client.core.hepta"]["returns"] = ["u32"]
         with self.assertRaises(ValueError):
             upgrade.parse_files(task, "hia", json.dumps({"files": files}))
 
@@ -133,7 +133,7 @@ class NextAgentTests(unittest.TestCase):
             task = tasks[item["task"]]
             core, _ = upgrade.parse_files(task, "hia", json.dumps({"files": item["files"]}))
             with tempfile.TemporaryDirectory() as directory:
-                path = Path(directory) / "program.hia"; path.write_bytes(core.canonical_bytes)
+                path = Path(directory) / "program.hepta"; path.write_bytes(core.canonical_bytes)
                 rows = upgrade.hia_provider_audit({"core_path": str(path), "core_sha256": core.sha256,
                     "audit_task": task["id"], "audit_provider": task["provider"]}, task["public_cases"])
             self.assertEqual([row["entry_vm"]["result"] for row in rows], task["public_expected"])

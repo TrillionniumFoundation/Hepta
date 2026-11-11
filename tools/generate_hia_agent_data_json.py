@@ -108,6 +108,6 @@ def document():
 
 
 if __name__ == '__main__':
-    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_data_json.hiaasm'
+    target = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/agent_data_json.hepta'
     target.write_text(render_assembly(document()))
     print(target.name, target.stat().st_size)

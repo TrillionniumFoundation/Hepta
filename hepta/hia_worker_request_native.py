@@ -17,7 +17,7 @@ from .hia_agent_store import AgentRejected
 from .hia_json_decode_native import arena_sizes
 from .hia_json_preflight_native import NativeHiaJsonImage, _installed_json_image, _source_resource_path
 
-SOURCE = _source_resource_path('examples/hia_bootstrap/worker_request.hiaasm')
+SOURCE = _source_resource_path('examples/hia_bootstrap/worker_request.hepta')
 SCHEMA = 'hepta.hia.worker-request-native.v1'
 SELECTOR = 'HEPTA_HIA_WORKER_REQUEST_MANIFEST'
 MAX_BYTES = 8 * 1024 * 1024

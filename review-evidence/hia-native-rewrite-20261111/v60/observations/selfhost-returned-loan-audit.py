@@ -19,14 +19,14 @@ from tools.qualify_hia_selfhost import invoke
 
 OUT.mkdir(exist_ok=False)
 paths = ['tools/generate_hia_selfhost.py', 'tools/hia_selfhost_multi_results.py',
-         'tools/hia_selfhost_returned_loans.py', 'examples/hia_bootstrap/selfhost.hiaasm',
+         'tools/hia_selfhost_returned_loans.py', 'examples/hia_bootstrap/selfhost.hepta',
          'tools/generate_hia_agent_stdio.py', 'tools/hia_selfhost_child.py']
 before = {p: sha256((ROOT / p).read_bytes()).hexdigest() for p in paths}
 b3_receipt = json.loads(B3.with_name('B3.receipt.json').read_bytes())
 b3_sha = sha256(B3.read_bytes()).hexdigest()
 assert b3_receipt['produced_sha256'] == b3_sha
-assert b3_receipt['input_sha256'] == before['examples/hia_bootstrap/selfhost.hiaasm']
-assert B3.with_name('B3.input.bin').read_bytes() == (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+assert b3_receipt['input_sha256'] == before['examples/hia_bootstrap/selfhost.hepta']
+assert B3.with_name('B3.input.bin').read_bytes() == (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
 
 
 def source(types, *, valid, parent='mutbuf'):

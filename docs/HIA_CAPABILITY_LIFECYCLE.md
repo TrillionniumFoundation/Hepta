@@ -91,7 +91,7 @@ that the Python checker refines the model for every program.
 ## Fixed cohort and negative controls
 
 The default cohort contains the existing stored-loan record and returned-view
-fixtures, plus `examples/hia_program/capability_lifecycle.hia`. The new primitive
+fixtures, plus `examples/hia_program/capability_lifecycle.hepta`. The new primitive
 fixture exercises nested mutable/read borrowing, sibling read loans,
 `buffer.try_new`, and empty-chain allocation/release.
 
@@ -126,7 +126,7 @@ Use an absolute path to the SHA-pinned Lean 4.19.0 and a fresh output directory:
 > Removed source/mixed-campaign reproduction command; its harness is not
 > delivered. No historical result is promoted to current qualification.
 
-`--program /absolute/program.hia` selects explicit primitive Core v1–v8 using
+`--program /absolute/program.hepta` selects explicit primitive Core v1–v8 using
 the existing bounded regular-file reader. It still inventories all operations
 but requires a nonempty supported subset. Output mutations that the custom
 artifact cannot exercise are not invented; its report lists the controls

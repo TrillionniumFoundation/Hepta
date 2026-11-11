@@ -2167,7 +2167,7 @@ def document(*, compact=True):
 
 def main():
     doc,names=document()
-    output=ROOT/'examples/hia_bootstrap/selfhost.hiaasm'
+    output=ROOT/'examples/hia_bootstrap/selfhost.hepta'
     output.write_text(render_assembly(doc))
     print(json.dumps({'bytes':output.stat().st_size,'functions':names,'operations':sum(len(b['ops']) for f in doc['functions'] for b in f['blocks']),'blocks':sum(len(f['blocks']) for f in doc['functions'])},sort_keys=True))
 

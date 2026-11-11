@@ -36,7 +36,7 @@ specs=[('agent_journal','agent-journal','hepta.hia.agent-journal-native.v2','jou
 manifests={};builds={}
 for stem,label,schema,foldername in specs:
  folder=out/foldername;folder.mkdir(mode=0o700,exist_ok=True)
- source=(checkout/'examples/hia_bootstrap'/f'{stem}.hiaasm').read_bytes()
+ source=(checkout/'examples/hia_bootstrap'/f'{stem}.hepta').read_bytes()
  image,receipt=compile_stage(folder,label,compiler,source)
  manifest={'schema':schema,'source_sha256':sha256(source).hexdigest(),'image_path':image.name,
            'image_sha256':sha256(image.read_bytes()).hexdigest(),'compiler_sha256':compiler_sha}

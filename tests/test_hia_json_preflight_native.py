@@ -16,7 +16,7 @@ from hepta.hia_json_preflight_native import NativeJsonPreflight, scratch_sizes, 
 from tools.generate_hia_json_preflight import document
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'examples/hia_bootstrap/json_preflight.hiaasm'
+SOURCE = ROOT / 'examples/hia_bootstrap/json_preflight.hepta'
 
 
 def reference(wire, nodes=262144, depth=128):
@@ -128,7 +128,7 @@ class JsonPreflightHiaNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-json-native-')
         directory = Path(cls.temporary.name)
         seed, _ = build_seed(directory)
-        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(directory, 'B1', seed, compiler_source, image_format='seed-shared')
         second, _ = compile_stage(directory, 'B2', first, compiler_source)
         assert first.read_bytes() == second.read_bytes()

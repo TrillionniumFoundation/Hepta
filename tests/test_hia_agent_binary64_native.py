@@ -92,7 +92,7 @@ class AgentBinary64NativeTests(unittest.TestCase):
             cls.temporary = tempfile.TemporaryDirectory(prefix='hia-agent-binary64-')
             cls.folder = Path(cls.temporary.name)
         seed, _ = build_seed(cls.folder)
-        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        compiler_source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(cls.folder, 'B1', seed, compiler_source, image_format='seed-shared')
         second, _ = compile_stage(cls.folder, 'B2', first, compiler_source)
         assert first.read_bytes() == second.read_bytes()

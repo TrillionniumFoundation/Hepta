@@ -34,21 +34,21 @@ def hostile_candidates():
     for language in ("hia", "rust"):
         files = copy.deepcopy(task["correct_" + language])
         if language == "hia":
-            files["client.hia.json"]["blocks"][0]["ops"][0]["args"] = ["b", "a"]
+            files["client.core.hepta"]["blocks"][0]["ops"][0]["args"] = ["b", "a"]
         else:
             files["client.rs"] = files["client.rs"].replace("api::average(a,b)", "api::average(b,a)")
         rows.append(("wrong_arguments", language, files))
         files = copy.deepcopy(task["correct_" + language])
         if language == "hia":
-            files["api.hia.json"]["blocks"][0]["ops"] = [op("const", [], "answer", "u64", value=0)]
-            files["client.hia.json"] = inline_average(files["client.hia.json"])
+            files["api.core.hepta"]["blocks"][0]["ops"] = [op("const", [], "answer", "u64", value=0)]
+            files["client.core.hepta"] = inline_average(files["client.core.hepta"])
         else:
             files["api.rs"] = "pub fn average(a:u32,b:u32)->u64 { let _=a; let _=b; 0 }"
             files["client.rs"] = "use crate::api; pub fn entrypoint(a:u32,b:u32,c:u32)->u64 { let _=api::average(a,b); (((a as u64)+(b as u64))/2) ^ (((c & 255) as u64)<<40) }"
         rows.append(("wrong_provider_bypassed", language, files))
         files = copy.deepcopy(task["correct_" + language])
         if language == "hia":
-            original = files["client.hia.json"]
+            original = files["client.core.hepta"]
             called = copy.deepcopy(original["blocks"][0]); called["id"] = "called"
             bypassed = inline_average(original)["blocks"][0]
             bypassed["id"] = "bypassed"; bypassed["ops"].pop(0)

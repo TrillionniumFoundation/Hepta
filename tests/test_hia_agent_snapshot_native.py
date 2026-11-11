@@ -97,7 +97,7 @@ class AgentSnapshotNativeTests(unittest.TestCase):
         cls.temporary = tempfile.TemporaryDirectory(prefix='hia-agent-snapshot-')
         folder = Path(cls.temporary.name)
         seed, _ = build_seed(folder)
-        source = (ROOT / 'examples/hia_bootstrap/selfhost.hiaasm').read_bytes()
+        source = (ROOT / 'examples/hia_bootstrap/selfhost.hepta').read_bytes()
         first, _ = compile_stage(folder, 'B1', seed, source, image_format='seed-shared')
         second, _ = compile_stage(folder, 'B2', first, source)
         assert first.read_bytes() == second.read_bytes()

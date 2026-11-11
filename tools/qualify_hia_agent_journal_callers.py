@@ -140,7 +140,7 @@ def main():
         source_names = ['hepta/hia_agent_journal_native.py', 'hepta/hia_agent_service.py',
                         'hepta/hia_agent_store.py', 'hepta/hia_agent_contract.py',
                         'tools/generate_hia_agent_journal.py', 'tools/qualify_hia_agent_journal_callers.py',
-                        'examples/hia_bootstrap/agent_journal.hiaasm']
+                        'examples/hia_bootstrap/agent_journal.hepta']
         report = {
             'schema': 'hepta.hia.agent-journal-selected-callers.v1',
             'status': status, 'scope': scope,

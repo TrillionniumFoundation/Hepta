@@ -18,11 +18,11 @@ from hepta.hia_json_preflight_native import NativeHiaJsonImage
 
 ROOT=Path(__file__).resolve().parents[1]
 SCHEMA='hepta.hia.core-workspace-pipeline-build.v2'
-SOURCES=('examples/hia_bootstrap/core_workspace_json.hiaasm',
-         'examples/hia_bootstrap/core_admission.hiaasm',
-         'examples/hia_bootstrap/core_json_frontend.hiaasm',
-         'examples/hia_bootstrap/core_workspace_pipeline_packer.hiaasm',
-         'examples/hia_bootstrap/selfhost.hiaasm')
+SOURCES=('examples/hia_bootstrap/core_workspace_json.hepta',
+         'examples/hia_bootstrap/core_admission.hepta',
+         'examples/hia_bootstrap/core_json_frontend.hepta',
+         'examples/hia_bootstrap/core_workspace_pipeline_packer.hepta',
+         'examples/hia_bootstrap/selfhost.hepta')
 
 
 def current_sources():

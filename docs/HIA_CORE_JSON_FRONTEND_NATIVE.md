@@ -1,7 +1,7 @@
 # Native HIA JSON Core representation frontend
 
 This is a real HIA program, not a Python JSON-to-assembly translator at runtime.
-`examples/hia_bootstrap/core_json_frontend.hiaasm` contains 40 functions. The
+`examples/hia_bootstrap/core_json_frontend.hepta` contains 40 functions. The
 native frontend decodes JSON into the HIA arena, checks closed representation
 shapes and identifier spellings, emits assembly, and reuses the existing native
 HIA compiler for semantic/resource verification and code generation.

@@ -99,7 +99,7 @@ def qualify(directory, compiler):
         for case in all_cases:
             label = case["id"]
             source = case["source"].encode()
-            (directory / (label + ".hiaasm")).write_bytes(source)
+            (directory / (label + ".hepta")).write_bytes(source)
             ref = reference(case)
             obj, compilation = compile_stage(directory, label + "-object", compiler, source, output_extension=".o")
             inventory = inspect_owned_object(obj.read_bytes())
@@ -156,7 +156,7 @@ def qualify(directory, compiler):
         report["source_files"] = {path: digest((ROOT / path).read_bytes()) for path in (
             "tools/generate_hia_selfhost.py", "tools/hia_selfhost_owned_elf.py", "tools/hia_selfhost_owned_elf_cases.py",
             "tools/hia_selfhost_owned_flow_cases.py",
-            "tools/qualify_hia_selfhost_owned_elf.py", "examples/hia_bootstrap/selfhost.hiaasm")}
+            "tools/qualify_hia_selfhost_owned_elf.py", "examples/hia_bootstrap/selfhost.hepta")}
         (directory / "qualification.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
     return report
 

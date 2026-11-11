@@ -225,7 +225,7 @@ def native_oracle(task, candidate, language, *, clang, rustc, artifact_directory
         directory = Path(td)
         if language == "hia":
             from hepta.hia_program_llvm import emit_program_llvm
-            (directory / "candidate.hia").write_bytes(candidate.canonical_bytes)
+            (directory / "candidate.hepta").write_bytes(candidate.canonical_bytes)
             (directory / "candidate.ll").write_text(emit_program_llvm(candidate).text)
             output = directory / "candidate.so"
             compiled = build_program_native(candidate, output, clang=clang)

@@ -18,9 +18,9 @@ from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / 'examples/hia_bootstrap/core_patch.hiaasm'
-ADMISSION = ROOT / 'examples/hia_bootstrap/core_admission.hiaasm'
-PACKER = ROOT / 'examples/hia_bootstrap/core_patch_cli_packer.hiaasm'
+SOURCE = ROOT / 'examples/hia_bootstrap/core_patch.hepta'
+ADMISSION = ROOT / 'examples/hia_bootstrap/core_admission.hepta'
+PACKER = ROOT / 'examples/hia_bootstrap/core_patch_cli_packer.hepta'
 SCHEMA = 'hepta.hia.core-patch-cli-build.v1'
 REQUIRED_CHECKS = {'export_manifest_matches_qualification', 'isolated_python_without_site',
     'nested_full_qualification_pass', 'nested_process_exit_zero', 'no_ancestor_git_identity',

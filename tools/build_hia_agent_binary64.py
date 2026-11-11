@@ -7,7 +7,7 @@ from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contrac
 from tools.qualify_hia_selfhost import compile_stage
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = 'examples/hia_bootstrap/agent_binary64.hiaasm'
+SOURCE = 'examples/hia_bootstrap/agent_binary64.hepta'
 
 
 def build(output, compiler, cold_report):

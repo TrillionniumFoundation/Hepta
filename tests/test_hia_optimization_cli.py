@@ -25,7 +25,7 @@ class CLIInputs(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix="hia-optimization-cli-")
         self.addCleanup(self.temporary.cleanup)
         self.directory = Path(self.temporary.name)
-        self.before = self.write("before.hia.json", scalar_program())
+        self.before = self.write("before.core.hepta", scalar_program())
 
     def write(self, name, value):
         path = self.directory / name
@@ -46,7 +46,7 @@ class OptionalProofCLITests(CLIInputs):
         self.assertEqual(report["status"], "standalone_core_checked")
 
     def test_missing_z3_returns_nonzero_unknown_translation(self):
-        after = self.write("after.hia.json", scalar_program(None))
+        after = self.write("after.core.hepta", scalar_program(None))
         with patch.dict(sys.modules, {"z3": None}):
             code, report = self.call([ "verify-translation", str(self.before), str(after),
                                      "--function", "calculate", "--json"])
@@ -55,7 +55,7 @@ class OptionalProofCLITests(CLIInputs):
         self.assertFalse(report["claims"]["all_input_behavior_equivalence_proved"])
 
     def test_translation_input_uses_existing_nofollow_bounded_reader(self):
-        after = self.write("after.hia.json", scalar_program(None))
+        after = self.write("after.core.hepta", scalar_program(None))
         alias = self.directory / "alias.json"
         alias.symlink_to(after)
         code, report = self.call([ "verify-translation", str(self.before), str(alias),
@@ -67,7 +67,7 @@ class OptionalProofCLITests(CLIInputs):
 @unittest.skipUnless(_Z3, "actual Z3 is required")
 class TranslationCLITests(CLIInputs):
     def test_proved_equivalence_has_zero_exit_and_exact_input_identities(self):
-        after = self.write("after.hia.json", scalar_program(None))
+        after = self.write("after.core.hepta", scalar_program(None))
         code, report = self.call([ "verify-translation", str(self.before), str(after),
                                  "--function", "calculate", "--timeout-ms", "2000", "--json"])
         self.assertEqual(code, 0)
@@ -77,13 +77,13 @@ class TranslationCLITests(CLIInputs):
         self.assertFalse(report["claims"]["backend_refinement_proved"])
 
     def test_counterexample_and_unknown_are_both_nonzero(self):
-        after = self.write("different.hia.json", scalar_program(value=1))
+        after = self.write("different.core.hepta", scalar_program(value=1))
         code, report = self.call([ "verify-translation", str(self.before), str(after),
                                  "--function", "calculate"])
         self.assertEqual(code, 1)
         self.assertEqual(report["status"], "disproved")
         self.assertIsNotNone(report["counterexample"])
-        loop = self.write("loop.hia.json", cyclic_program())
+        loop = self.write("loop.core.hepta", cyclic_program())
         code, report = self.call([ "verify-translation", str(loop), str(loop),
                                  "--function", "calculate"])
         self.assertEqual(code, 1)

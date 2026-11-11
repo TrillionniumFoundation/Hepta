@@ -19,14 +19,14 @@ from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hiaasm'
+SOURCE = ROOT/'examples/hia_bootstrap/core_json_cli_packer.hepta'
 
 
 def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='flat') -> Path:
     if type(output_profile) is not str or output_profile not in ('flat','elf','exec'):
         raise ValueError('unknown native JSON CLI output profile')
     compiler_raw, cold_raw, packer_source = compiler.read_bytes(), cold_report.read_bytes(), SOURCE.read_bytes()
-    frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes()
+    frontend_source = (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes()
     admitted_sources = admit_cold_build(compiler_raw, cold_raw)
     output.mkdir(mode=0o700)
     frontend_manifest = build_frontend(output/'frontend', compiler, cold_report, candidate='core-frontend')
@@ -46,7 +46,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     inspection = inspect_executable(executable_bytes)
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
             or SOURCE.read_bytes() != packer_source or frontend.read_bytes() != frontend_raw
-            or (ROOT/'examples/hia_bootstrap/core_json_frontend.hiaasm').read_bytes() != frontend_source
+            or (ROOT/'examples/hia_bootstrap/core_json_frontend.hepta').read_bytes() != frontend_source
             or sha256(frontend_raw).hexdigest() != metadata['image_sha256']
             or current_sources() != admitted_sources):
         raise ValueError('native JSON CLI build inputs changed')

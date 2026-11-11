@@ -1,7 +1,7 @@
 # Installed native source custody
 
 Every native image adapter with an owned HIA source uses the same explicit
-checkout-or-package resource path. All twenty-four current source assets are listed
+checkout-or-package resource path. All current source assets are listed
 in `NATIVE_SOURCE_FILES`, copied byte-for-byte into the wheel, included explicitly
 in the sdist, and included in the installed worker identity. A missing packaged
 source fails custody; there is no cwd, HOME or alternate-checkout fallback.
@@ -21,7 +21,7 @@ remove the previous implementation.
 
 The optional artifact publisher/store additionally packages four explicit build
 inputs (policy/packer HIA, syscall adapter assembly and generator source). The
-streaming SHA HIA source is already in the twenty-four adapter resources. These
+streaming SHA HIA source is already in the complete adapter resource list. These
 four files are custody data, not installed/importable build-tool modules.
 
 Checkout admission still validates the complete actual source tree. Installed

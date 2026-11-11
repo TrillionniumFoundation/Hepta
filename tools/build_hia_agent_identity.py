@@ -22,7 +22,7 @@ def build(output:Path,compiler:Path,cold_report:Path)->Path:
             or type(report.get('generation_sha256'))is not list or len(report['generation_sha256'])!=3
             or any(v!=compiler_sha for v in report['generation_sha256'])):
         raise ValueError('a completed matching native cold qualification is required')
-    source_path=ROOT/'examples/hia_bootstrap/agent_identity.hiaasm';source=source_path.read_bytes()
+    source_path=ROOT/'examples/hia_bootstrap/agent_identity.hepta';source=source_path.read_bytes()
     output.mkdir(mode=0o700)
     image,receipt=compile_stage(output,'agent-identity',compiler,source)
     if source_path.read_bytes()!=source or compiler.read_bytes()!=compiler_bytes or cold_report.read_bytes()!=cold:

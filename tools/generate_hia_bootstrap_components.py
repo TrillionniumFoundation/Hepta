@@ -1,7 +1,7 @@
 """Author the checked HIA source for two real bootstrap components.
 
 This file is an authoring aid for the B0 seed, not a parser/generator used by the
-native components.  The checked-in .hiaasm file is their executable source.
+native components.  The checked-in .hepta file is their executable source.
 The components deliberately do not claim to compile their own complete source.
 """
 from __future__ import annotations
@@ -397,7 +397,7 @@ def component_document():
 def main():
     program = verify_program(component_document())
     source = render_assembly(program)
-    output = Path(__file__).resolve().parents[1] / "examples" / "hia_bootstrap" / "components.hiaasm"
+    output = Path(__file__).resolve().parents[1] / "examples" / "hia_bootstrap" / "components.hepta"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(source, encoding="utf-8")
     print(f"{len(source.encode())} source bytes; {len(program.as_dict()['functions'])} HIA functions")

@@ -19,8 +19,8 @@ from tools.provider_adapter.llama_cpp_engine import canonical
 
 MAX64 = 2**64 - 1
 ARMS = ("hia", "assembly", "rust")
-FILE_NAMES = {"hia": ("api.hia.json", "client.hia.json"),
-              "assembly": ("api.hiaasm", "client.hiaasm"), "rust": ("api.rs", "client.rs")}
+FILE_NAMES = {"hia": ("api.core.hepta", "client.core.hepta"),
+              "assembly": ("api.hepta", "client.hepta"), "rust": ("api.rs", "client.rs")}
 PARAMS = [("a", "u32"), ("b", "u32"), ("c", "u32")]
 
 
@@ -76,7 +76,7 @@ def assembly_to_json(task, text):
         if len(headers) != 1 or re.match(r"fn\s+" + re.escape(function_name) + r"\(", headers[0]) is None:
             raise ValueError("E_ASSEMBLY_STUDY_FILE_FUNCTION")
     module = f'hia-asm.v1 hepta.hia.program.v6 {task["id"]}\nexports(entrypoint)\n'
-    module += files["api.hiaasm"] + "\n" + files["client.hiaasm"]
+    module += files["api.hepta"] + "\n" + files["client.hepta"]
     checked = assemble_program(module)
     functions = checked.as_dict()["functions"]
     if [fn["name"] for fn in functions] != [task["provider"], "entrypoint"]:

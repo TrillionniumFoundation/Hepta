@@ -71,7 +71,7 @@ def produce(family):
     started = time.monotonic_ns()
     module, symbol = BUILDERS[family]
     builder = getattr(importlib.import_module(module), symbol)
-    reference = (builder((ROOT / "examples/hia_bootstrap/bytesum.hiaasm").read_bytes())
+    reference = (builder((ROOT / "examples/hia_bootstrap/bytesum.hepta").read_bytes())
                  if family == "core" else builder())
     validate_contract()
     if digest(snapshot()) != identity:

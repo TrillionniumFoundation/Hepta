@@ -100,7 +100,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     compiler_bytes = compiler.read_bytes()
     compiler_sha = sha256(compiler_bytes).hexdigest()
     sources = admit_cold_build(compiler_bytes, raw)
-    source_path = ROOT / ('examples/hia_bootstrap/' + source_name + '.hiaasm')
+    source_path = ROOT / ('examples/hia_bootstrap/' + source_name + '.hepta')
     if source_path.relative_to(ROOT).as_posix() not in sources:
         raise ValueError('cold qualification source identity does not match current source')
     source = source_path.read_bytes()
