@@ -26,6 +26,12 @@ introduced to opt into the cache. Opaque values and string subclasses still
 receive their original HIA type rejection. Exact strings are immutable, and
 the observer retains strong references with nonreused handles.
 
+The low-level private capability argument is used by protocol tests with
+truthful observers. It does not establish a no-hook guarantee for manually
+corrupted internal registry dictionaries, monkeypatched `struct`/builtins,
+or other arbitrary hosted-runtime mutation. Those extensions remain outside
+this fresh ordinary-observer capability.
+
 HIA owns cache lookup, capacity, slot collisions, UTF-8 copying, and admission.
 It saves only the bytes of a key whose original mode-1 preflight has already
 completed successfully, including the original per-string byte budget and
@@ -48,7 +54,11 @@ replies and state writes. HIAWIR03 uses a 112-byte initial frame with the same
 first thirteen words and capability word 1 at byte 104. It requires renderer
 fact 0. Replies must retain the session's version. Truncated/extra frames,
 unknown capability values, a mixed reply version, and an inconsistent workspace
-length are protocol refusals before a foreign observation.
+length are protocol refusals before a foreign observation. The initial
+workspace must be fresh and completely zeroed; resetting only its magic is
+not a supported new-session operation. Initialization nevertheless clears
+`CACHE_BASE` before selecting either version, so HIAWIR02 cannot accidentally
+reuse a stale capability pointer.
 
 The new protocol adds exactly 163840 workspace bytes before the existing
 8192-byte HIA binary64 formatter workspace. Header word 648 points to the cache;

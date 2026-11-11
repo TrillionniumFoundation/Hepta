@@ -14,7 +14,9 @@ from unittest.mock import patch
 
 from hepta import hia_json_wire_native as native
 from hepta import hia_program_tools as program_tools
-from tests.test_hia_json_wire_native import WireNativeTests, outcome
+from tests import test_hia_json_wire_native as base_tests
+
+outcome = base_tests.outcome
 
 
 def run_observed(image, value, maximum=4096, *, cache, ensure_ascii=False,
@@ -44,11 +46,11 @@ class WireCacheNativeTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Preserve the normal source-admitted cold/development fixture split.
-        WireNativeTests.setUpClass.__func__(cls)
+        base_tests.WireNativeTests.setUpClass.__func__(cls)
 
     @classmethod
     def tearDownClass(cls):
-        WireNativeTests.tearDownClass.__func__(cls)
+        base_tests.WireNativeTests.tearDownClass.__func__(cls)
 
     def compare(self, value, maximum=4096, **options):
         old = outcome(lambda: program_tools._reference_bounded_json_wire(value, maximum, **options))
@@ -194,6 +196,15 @@ class WireCacheNativeTests(unittest.TestCase):
         packet = bytearray(value.observe())
         struct.pack_into('<Q', packet, 0, native.MAGIC)
         self.assertEqual(value.step(bytes(packet)), 199)
+
+        # A zero initial magic never authorizes a stale optional cache pointer
+        # on the legacy protocol. Full new sessions still require zeroed state.
+        observer = native.ForeignGraphObserver()
+        legacy = native.WireSession(self.image, observer, observer.register({'a': 1}),
+                                    128, ensure_ascii=False, sort_keys=True)
+        struct.pack_into('<Q', legacy.workspace, 648, (1 << 64) - 1)
+        self.assertEqual(legacy.run(), b'{"a":1}')
+        self.assertEqual(struct.unpack_from('<Q', legacy.workspace, 648)[0], 0)
 
         for maximum in (0, 1, 2, 16, 128):
             value = session(maximum)

@@ -49,15 +49,12 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if get(w, 0) == 0:
         if length(s) != 104 and length(s) != 112:
             return 199
-        protocol = read64(s, 0)
-        cached = 0
-        if protocol == MAGIC:
+        if read64(s, 0) == MAGIC:
             if length(s) != 104:
                 return 199
-        elif protocol == CACHED_MAGIC:
+        elif read64(s, 0) == CACHED_MAGIC:
             if length(s) != 112 or read64(s, 104) != 1:
                 return 199
-            cached = 1
         else:
             return 199
         if read64(s, 8) != 0 or read64(s, 16) != 0:
@@ -79,7 +76,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 118
         if read64(s, 96) == 2:
             return 119
-        if cached != 0 and read64(s, 96) != 0:
+        if read64(s, 0) == CACHED_MAGIC and read64(s, 96) != 0:
             return 199
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
@@ -91,13 +88,13 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         temp_a = table + slots * 8
         temp_b = temp_a + maximum + 64
         limbs = temp_b + maximum + 64
-        cache_base = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64
-        required = cache_base + 8192 + cached * CACHE_BYTES
+        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) == CACHED_MAGIC, CACHE_BYTES, 0)
         if length(w) != required or length(o) < maximum:
             return 199
-        put(w, 0, protocol)
-        if cached != 0:
-            put(w, CACHE_BASE, cache_base)
+        put(w, 0, read64(s, 0))
+        put(w, CACHE_BASE, 0)
+        if read64(s, 0) == CACHED_MAGIC:
+            put(w, CACHE_BASE, required - 8192 - CACHE_BYTES)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
         put(w, ASCII, ascii_flag)
