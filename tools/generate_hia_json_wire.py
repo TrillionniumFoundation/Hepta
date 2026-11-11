@@ -393,7 +393,8 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         return ask(w, 4, get(w, N_H), get(w, N_INDEX), choose(remaining < 1024, remaining, 1024), 0, 23)
     if phase == 23:
         index = 0
-        while index < read64(s, 24):
+        reply_count = read64(s, 24)
+        while index < reply_count:
             put32(w, get(w, LIMB_BASE) + (get(w, N_INDEX) + index) * 4, read32(s, 56 + index * 4))
             index = index + 1
         put(w, N_INDEX, get(w, N_INDEX) + index)
@@ -403,7 +404,8 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
         # This seam is the existing finite native binary64 formatter, whose
         # contract returns ASCII JSON-number text of at most 32 characters.
         index = 0
-        while index < read64(s, 24):
+        reply_count = read64(s, 24)
+        while index < reply_count:
             value = byte(s, 56 + index)
             if value > 127:
                 return 199
@@ -427,7 +429,8 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 31:
         index = 0
         mode = get(w, T_MODE)
-        while index < read64(s, 24):
+        reply_count = read64(s, 24)
+        while index < reply_count:
             point = read32(s, 56 + index * 4)
             if point > 1114111 or (mode == 4 and point > 127):
                 return 199
@@ -625,48 +628,60 @@ def hex4(o:mutbuf, w:mutbuf, value:u64) -> u64:
 
 def read64(s:readbuf, at:u64) -> u64:
     value = 0
-    index = 0
-    while index < 8:
-        value = value | (byte(s, at + index) << (index * 8))
-        index = index + 1
+    value = value | (byte(s, at + 0) << 0)
+    value = value | (byte(s, at + 1) << 8)
+    value = value | (byte(s, at + 2) << 16)
+    value = value | (byte(s, at + 3) << 24)
+    value = value | (byte(s, at + 4) << 32)
+    value = value | (byte(s, at + 5) << 40)
+    value = value | (byte(s, at + 6) << 48)
+    value = value | (byte(s, at + 7) << 56)
     return value
 
 def read32(s:readbuf, at:u64) -> u64:
     value = 0
-    index = 0
-    while index < 4:
-        value = value | (byte(s, at + index) << (index * 8))
-        index = index + 1
+    value = value | (byte(s, at + 0) << 0)
+    value = value | (byte(s, at + 1) << 8)
+    value = value | (byte(s, at + 2) << 16)
+    value = value | (byte(s, at + 3) << 24)
     return value
 
 def get(w:mutbuf, at:u64) -> u64:
     value = 0
-    index = 0
-    while index < 8:
-        value = value | (byte(w, at + index) << (index * 8))
-        index = index + 1
+    value = value | (byte(w, at + 0) << 0)
+    value = value | (byte(w, at + 1) << 8)
+    value = value | (byte(w, at + 2) << 16)
+    value = value | (byte(w, at + 3) << 24)
+    value = value | (byte(w, at + 4) << 32)
+    value = value | (byte(w, at + 5) << 40)
+    value = value | (byte(w, at + 6) << 48)
+    value = value | (byte(w, at + 7) << 56)
     return value
 
 def put(w:mutbuf, at:u64, value:u64) -> u64:
-    index = 0
-    while index < 8:
-        store(w, at + index, (value >> (index * 8)) & 255)
-        index = index + 1
+    store(w, at + 0, (value >> 0) & 255)
+    store(w, at + 1, (value >> 8) & 255)
+    store(w, at + 2, (value >> 16) & 255)
+    store(w, at + 3, (value >> 24) & 255)
+    store(w, at + 4, (value >> 32) & 255)
+    store(w, at + 5, (value >> 40) & 255)
+    store(w, at + 6, (value >> 48) & 255)
+    store(w, at + 7, (value >> 56) & 255)
     return 0
 
 def get32(w:mutbuf, at:u64) -> u64:
     value = 0
-    index = 0
-    while index < 4:
-        value = value | (byte(w, at + index) << (index * 8))
-        index = index + 1
+    value = value | (byte(w, at + 0) << 0)
+    value = value | (byte(w, at + 1) << 8)
+    value = value | (byte(w, at + 2) << 16)
+    value = value | (byte(w, at + 3) << 24)
     return value
 
 def put32(w:mutbuf, at:u64, value:u64) -> u64:
-    index = 0
-    while index < 4:
-        store(w, at + index, (value >> (index * 8)) & 255)
-        index = index + 1
+    store(w, at + 0, (value >> 0) & 255)
+    store(w, at + 1, (value >> 8) & 255)
+    store(w, at + 2, (value >> 16) & 255)
+    store(w, at + 3, (value >> 24) & 255)
     return 0
 
 def widen(value:u32) -> u64:
@@ -1027,7 +1042,8 @@ def sort_step(s:readbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 133:
         target = choose(get(w, CMP_SIDE) == 0, get(w, TEMP_A), get(w, TEMP_B))
         index = 0
-        while index < read64(s, 24):
+        reply_count = read64(s, 24)
+        while index < reply_count:
             put32(w, target + (get(w, CMP_INDEX) + index) * 4, read32(s, 56 + index * 4))
             index = index + 1
         put(w, CMP_INDEX, get(w, CMP_INDEX) + index)
@@ -1117,7 +1133,66 @@ def source_program():
     class Constants(ast.NodeTransformer):
         def visit_Name(self, node):
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
+
+    class FixedWordReads(ast.NodeTransformer):
+        """Expand entry-loop buffer-name/literal-address reads in place.
+
+        Dynamic addresses retain their helpers. No read moves out of its
+        expression or short-circuit branch, and bytes keep their original
+        low-to-high order and individual bounds traps. Restrict this to the
+        continuation receive/dispatch paths executed for every reply. Whole
+        program expansion exceeds the unchanged assembly line budget, and
+        expanding the one-time initialization as well exceeds the unchanged
+        native compiler's per-function value-slot budget.
+        """
+        def visit_FunctionDef(self, node):
+            if node.name != 'json_wire':
+                return node
+            initialization = None
+            for statement in node.body:
+                if (isinstance(statement, ast.If)
+                        and ast.dump(statement.test, include_attributes=False) == ast.dump(
+                            ast.parse('get(w, 0) == 0', mode='eval').body, include_attributes=False)):
+                    if initialization is not None:
+                        raise ValueError('ambiguous JSON wire initialization branch')
+                    initialization = statement
+            if initialization is None:
+                raise ValueError('missing JSON wire initialization branch')
+            body = []
+            for statement in node.body:
+                if statement is initialization:
+                    statement.test = self.visit(statement.test)
+                    statement.orelse = [self.visit(child) for child in statement.orelse]
+                    body.append(statement)
+                else:
+                    body.append(self.visit(statement))
+            node.body = body
+            return node
+
+        def visit_Call(self, node):
+            node = self.generic_visit(node)
+            widths = {'get': 8, 'read64': 8, 'get32': 4, 'read32': 4}
+            if (not isinstance(node.func, ast.Name) or node.func.id not in widths
+                    or len(node.args) != 2 or node.keywords
+                    or not isinstance(node.args[0], ast.Name)
+                    or not isinstance(node.args[1], ast.Constant)
+                    or type(node.args[1].value) is not int):
+                return node
+            width = widths[node.func.id]
+            offset = node.args[1].value
+            if not 0 <= offset <= (1 << 64) - width:
+                return node
+            value = ast.Constant(0)
+            for index in range(width):
+                address = ast.Constant(offset + index)
+                byte = ast.Call(ast.Name('byte', ast.Load()),
+                                [ast.Name(node.args[0].id, ast.Load()), address], [])
+                shifted = ast.BinOp(byte, ast.LShift(), ast.Constant(index * 8))
+                value = ast.BinOp(value, ast.BitOr(), shifted)
+            return ast.copy_location(value, node)
+
     tree = Constants().visit(ast.parse(SOURCE + ENCODER))
+    tree = FixedWordReads().visit(tree)
     return ast.unparse(ast.fix_missing_locations(tree)) + '\n' + format_program()
 
 

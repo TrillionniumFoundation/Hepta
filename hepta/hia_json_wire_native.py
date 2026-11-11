@@ -148,6 +148,14 @@ class ForeignGraphObserver:
 
     def points(self, handle, start, count):
         value = self.value(handle)
+        if (type(value) is str and type(start) is int and type(count) is int
+                and 0 <= start <= len(value) and 0 <= count <= len(value) - start):
+            # Convert only the window already requested by HIA. UTF-32LE with
+            # surrogatepass is a mechanical codepoint representation, not JSON
+            # admission or escaping. Keep the original indexing path for
+            # subtypes and out-of-range direct observer calls.
+            raw = value[start:start + count].encode('utf-32-le', 'surrogatepass')
+            return struct.unpack('<' + 'I' * count, raw)
         return tuple(ord(value[index]) for index in range(start, start + count))
 
     def limbs(self, handle, start, count):
@@ -238,7 +246,12 @@ class WireSession:
         if self.finished:
             raise RuntimeError('native JSON wire session is terminal')
         raw = self.packet if packet is None else packet
-        source = ctypes.create_string_buffer(raw, max(1, len(raw)))
+        # Exact bytes remain strongly referenced throughout this synchronous
+        # call and ctypes transports their address as c_void_p. The verified
+        # HIA parameter is readbuf; no input copy or writable view is needed.
+        # Preserve the original conversion/length observations for other
+        # explicitly supplied packet types, including bytes subclasses.
+        source = raw if type(raw) is bytes else ctypes.create_string_buffer(raw, max(1, len(raw)))
         status = self.image._entry(source, len(raw), self.output, self.output_size,
                                    self.workspace, len(self.workspace))
         if status != 1:
