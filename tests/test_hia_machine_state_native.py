@@ -181,7 +181,7 @@ class MachineStateSourceTests(unittest.TestCase):
         from tools.generate_hia_machine_state import document
         document_value = document()
         self.assertEqual(render_assembly(document_value).encode(), SOURCE.read_bytes())
-        self.assertEqual(assemble_program(SOURCE.read_text()), document_value)
+        self.assertEqual(assemble_program(SOURCE.read_text()).as_dict(), document_value)
         self.assertLessEqual(len(SOURCE.read_bytes()), 1 << 20)
         self.assertLessEqual(len(SOURCE.read_text().splitlines()), 16384)
         self.assertLessEqual(len(document_value['functions']), 128)
