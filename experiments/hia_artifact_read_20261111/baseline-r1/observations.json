@@ -1,0 +1,847 @@
+{
+  "cases": [
+    {
+      "case": "select-bind",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "missing"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": "E_HIA_CURSOR",
+            "message": "cursor is not bound to this exact artifact",
+            "type": "AgentRejected"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='missing'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          },
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              512
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-old",
+              "sha256": "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              "uri": "hia://old"
+            },
+            "content": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "encoding": "utf8",
+            "next_cursor": "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "INSERT OR IGNORE INTO cursors VALUES ('page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',512)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "insert-bind",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              512
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-mutated",
+              "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uri": "hia://old"
+            },
+            "content": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "encoding": "utf8",
+            "next_cursor": "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "sql": [
+          "INSERT OR IGNORE INTO cursors VALUES ('page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',512)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+              "artifact-mutated",
+              "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              512
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-mutated",
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            512
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-mutated",
+              "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "uri": "hia://old"
+            },
+            "content": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "encoding": "utf8",
+            "next_cursor": "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-mutated",
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            512
+          ]
+        ],
+        "sql": [
+          "INSERT OR IGNORE INTO cursors VALUES ('page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b','artifact-mutated','ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',512)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-none",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            null
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "native artifact-page input is outside its declared public product profile",
+            "type": "ValueError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            null
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            null
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "unsupported operand type(s) for +: 'NoneType' and 'int'",
+            "type": "TypeError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            null
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-real",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0.5
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "native artifact-page input is outside its declared public product profile",
+            "type": "ValueError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0.5
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0.5
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "slice indices must be integers or None or have an __index__ method",
+            "type": "TypeError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0.5
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-text",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "bad"
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "native artifact-page input is outside its declared public product profile",
+            "type": "ValueError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "bad"
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "bad"
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "can only concatenate str (not \"int\") to str",
+            "type": "TypeError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "bad"
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-blob",
+      "matches": false,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "626164"
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "native artifact-page input is outside its declared public product profile",
+            "type": "ValueError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "626164"
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "626164"
+          ]
+        ],
+        "result": {
+          "exception": {
+            "code": null,
+            "message": "can't concat int to bytes",
+            "type": "TypeError"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            "626164"
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-zero-control",
+      "matches": true,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          },
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              512
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-old",
+              "sha256": "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              "uri": "hia://old"
+            },
+            "content": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "encoding": "utf8",
+            "next_cursor": "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "INSERT OR IGNORE INTO cursors VALUES ('page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',512)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          },
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              512
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-old",
+              "sha256": "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              "uri": "hia://old"
+            },
+            "content": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+            "encoding": "utf8",
+            "next_cursor": "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            0
+          ],
+          [
+            "page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            512
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "INSERT OR IGNORE INTO cursors VALUES ('page-9bbcf039d1b013b256baf60f3f20e329456cbd22ac9fd1ab1f77c228da52ce2b','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',512)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    },
+    {
+      "case": "offset-negative-control",
+      "matches": true,
+      "native": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          },
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              -1
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ],
+          [
+            "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-old",
+              "sha256": "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              "uri": "hia://old"
+            },
+            "content": "",
+            "encoding": "utf8",
+            "next_cursor": "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ],
+          [
+            "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "INSERT OR IGNORE INTO cursors VALUES ('page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',-1)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      },
+      "reference": {
+        "events": [
+          "store.get",
+          "execute.lookup",
+          {
+            "execute": "SELECT * FROM cursors WHERE id=?",
+            "parameters": [
+              "cursor-good"
+            ]
+          },
+          "execute.lookup",
+          {
+            "execute": "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+            "parameters": [
+              "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+              "artifact-old",
+              "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              -1
+            ]
+          }
+        ],
+        "reopened": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ],
+          [
+            "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ]
+        ],
+        "result": {
+          "returned": {
+            "artifact": {
+              "id": "artifact-old",
+              "sha256": "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+              "uri": "hia://old"
+            },
+            "content": "",
+            "encoding": "utf8",
+            "next_cursor": "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf"
+          }
+        },
+        "rows": [
+          [
+            "cursor-good",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ],
+          [
+            "page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf",
+            "artifact-old",
+            "277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14",
+            -1
+          ]
+        ],
+        "sql": [
+          "SELECT * FROM cursors WHERE id='cursor-good'",
+          "INSERT OR IGNORE INTO cursors VALUES ('page-168a29e1b50b82857b32f441f52b764da048aa0b42ff0bee17dc781580f7c5cf','artifact-old','277f872a2452b2107bf050002df32bb79ec2603a8e741d45abc4e01d4690dd14',-1)",
+          "SELECT * FROM cursors ORDER BY id"
+        ]
+      }
+    }
+  ],
+  "matching": 2,
+  "old_42_case_state_unchanged": true,
+  "policy_image": "f2aaee2be275fb3f8831ae994e4c03f0ec6a12c53892fe8840eb4a4fa8270d3d",
+  "schema": "hia.artifact-read-original-page-counterexamples.v1",
+  "scope": "NEW_FINITE_CONTROLS_OF_OLD_PUBLISHED_PAGE_IMAGE_NOT_A_RESUMED_42_CASE_RUN",
+  "total": 8,
+  "wire_image": "5eba1c2bc33693692f038bdea7f775f1d49b8203aa22d15bb2a981531baa62dc"
+}
