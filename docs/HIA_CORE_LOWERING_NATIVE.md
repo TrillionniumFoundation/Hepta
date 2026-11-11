@@ -185,3 +185,46 @@ No retained implementation is removed and no default selection is enabled.
 ## Instruction owner integration boundary
 
 The ordinary-entry draft additionally preserves the exact 7186dee24f33173c25f2246a6dfe15eeda053992 machine-state and instruction-control source. The backend identity includes hia_machine_state_native.py, hia_machine_instructions_native.py and hia_json_wire_native.py alongside both Core-lowering bridges. The existing native_encoding_scope implementation and its independently selected Code owners remain unchanged. The complete original Function and helper oracle is still the exact 608 source; these bodies did not change in 7186. This source merge does not inherit native/caller qualification for the new composition. Its private v72 contract definition still requires actual regeneration and source-bound validation before any cold-built claim.
+
+## Original-source recovery and execution accounting
+
+The 32 original r3 HIA files were recovered from the same e86 custody archive:
+2,218,343 compressed bytes with SHA256
+400f59e67817fb9a6fc3ce744b4bb93c64957d932272880af7bb382325a2c450.
+All 58 members were independently checked against their original byte, size,
+mode and uid/gid records. The 32 source files total 5,546,188 bytes and were
+published without regeneration in 028058563592a853c7b4eeea145b35f5545aaa94.
+The original read timeouts, partial transfers and subsequent complete recovery
+remain in that commit's custody history. This establishes source custody only.
+
+The selected-caller producer distinguishes invocation attempts from ordinary
+method returns and actual native step returns. Its native_step_returns ledger
+records the group, original mode and mode number, actual control-unit index,
+unit name, admitted image, ABI and bundle digests, returned status and count.
+A row is added only after LoweringSession.step completes the actual HIA entry
+and admits its output frame. Status1 can request a later rejection primitive;
+it is not a claim that the method or product succeeded. The original _reject
+method therefore need not return normally. All 27 public policy modes must have
+actual native step returns across the complete 12 + 51 + 50 run, and each of its
+three groups must have actual returns. The unchanged 28th private diagnostic
+mode is outside that 27-mode requirement.
+
+Control-unit index 0 denotes core_lowering_000. The complete bundle includes the
+literal pool at bundle index 0, so a control unit's bundle_image_index is its
+unit_index plus 1. All 32 source/image bindings remain independently admitted,
+including the pool.
+
+The producer separately retains before/after original bytes for the caller
+bundle and the component's fresh qualified bundle. It captures the latter after
+unittest has performed its one real setUpClass, before the first method, without
+calling setup again. Cold mode requires both actual build.json receipts and
+both sets of 32 images/manifests. The original machine and general Core groups
+use the caller bundle. Development mode is explicitly separate and may reuse
+the selected development bundle for the component; it never claims a fresh
+cold build. These revised producer controls have not yet been executed.
+
+### Development phase isolation
+
+The caller driver accepts `--development-group component|original-machine|original-core` only with an explicit development manifest. A supplied cold report rejects that option before creating output. The selected group still loads and executes its entire original 12, 51, or 50 method set, preserves all five anomaly refusals, and records the same native return and input-identity observations. Its successful status is `DEVELOPMENT_GROUP_PASS`, its scope is `EXPLICIT_DEVELOPMENT_GROUP_ONLY`, and it explicitly does not claim complete three-group qualification. This permits three independent process owners with the original 180-second boundary each. A separate development aggregate must bind all three reports to the same candidate and original compiled bundle, require all 113 original methods and the 27 public modes in the union of actual native returns, and preserve every phase's original receipt. The ordinary default and cold invocation still require all three groups in one report and retain their existing complete-coverage requirements.
+
+The ABI contains 28 modes: 22 `_Function` methods, five shared helpers, and the independent `_native_globals` fixture mode. The 27 public product control modes remain the required cross-group union. The existing component literal-owner method separately invokes mode 28 and compares its entire returned structure with the original constants; the component and complete reports additionally require its actual HIA step-return observation. It is not silently removed from the ABI or relabeled as an ordinary product call.

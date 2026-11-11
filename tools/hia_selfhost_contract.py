@@ -15,6 +15,16 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v74-native-stack-development'
 SOURCE_FILES = (
+    'tools/hia_compiler_owner_gates.py',
+    'tools/qualify_hia_compiler_owner_ci.py',
+    'tests/test_hia_compiler_owner_gates.py',
+    'docs/HIA_COMPILER_OWNER_QUALIFICATION_GATES.json',
+    'experiments/hia_native_successor_runner_20261111/run_hia_qualification_v9.py',
+    'experiments/hia_native_successor_runner_20261111/guardian.py',
+    'experiments/hia_native_successor_runner_20261111/process_owner_impl.py',
+    'experiments/hia_native_successor_runner_20261111/workflow_process.py',
+    'experiments/hia_native_successor_runner_20261111/qualification_prerequisites.py',
+    'experiments/hia_native_successor_runner_20261111/native_owner_gates.py',
     'tools/generate_hia_machine_elf.py',
     'examples/hia_bootstrap/machine_elf.hiaasm',
     'hepta/hia_machine_elf_native.py',
@@ -632,6 +642,28 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'complete_compiler_owner_qualification_requirements': {
+            "reader": "tools/hia_compiler_owner_gates.py",
+            "ci_adapter": "tools/qualify_hia_compiler_owner_ci.py",
+            "complete_runner": "experiments/hia_native_successor_runner_20261111/run_hia_qualification_v9.py",
+            "prior_exact_gate_count": 21,
+            "prior_reader": "tools.hia_store_page_gates.require_successor_gates",
+            "additional_exact_gate_keys": ["machine_state_complete_component", "machine_state_selected_original_callers", "machine_instructions_complete_component", "machine_instructions_selected_original_callers", "core_lowering_complete_component", "core_lowering_selected_original_machine_callers", "core_lowering_selected_original_core_callers", "machine_elf_complete_module", "machine_elf_selected_original_callers"],
+            "required_total_gate_count": 30,
+            "complete_old_gate_projection_preserved": True,
+            "current_source_cold_and_original_input_bindings_required": True,
+            "attempted_calls_are_not_successful_return_coverage": True,
+            "core_public_control_modes": 27,
+            "core_private_abi_fixture_modes": ["_native_globals"],
+            "development_groups_accepted_as_complete_qualification": False,
+            "default_core_three_groups_required": [12, 51, 50],
+            "cold_limits": {"qualification_seconds": 180, "workers": 2, "phases": 38},
+            "retained_discovery_seconds": 5400,
+            "outer_guardian_seconds": 10800,
+            "current_source_qualification_pass_claimed": False,
+            "default_activation_claimed": False,
+            "old_owner_retirement_claimed": False,
+        },
         'ordinary_machine_elf_control': {
             'source': 'examples/hia_bootstrap/machine_elf.hiaasm',
             'manifest_schema': 'hepta.hia.machine-elf-native.v1',

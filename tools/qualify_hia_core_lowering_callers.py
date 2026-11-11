@@ -196,13 +196,27 @@ def main():
     selection.add_argument('--cold-report', type=Path)
     selection.add_argument('--development-manifest', type=Path)
     parser.add_argument('--evidence', type=Path, required=True)
+    parser.add_argument('--development-group', choices=('component', 'original-machine', 'original-core'),
+                        help='Run exactly one complete development group; never establishes whole qualification.')
     args = parser.parse_args()
+    if args.development_group and args.cold_report:
+        parser.error('--development-group is forbidden with --cold-report')
     directory = args.evidence.resolve()
     directory.mkdir(parents=True, exist_ok=False)
     report = {
         'schema': 'hepta.hia.core-lowering-selected-callers.v1', 'status': 'STARTED',
-        'scope': 'MATCHING_SOURCE_COLD_SELECTED_CALLERS' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY',
+        'scope': ('EXPLICIT_DEVELOPMENT_GROUP_ONLY' if args.development_group else
+                  'MATCHING_SOURCE_COLD_SELECTED_CALLERS' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY'),
+        'development_group': args.development_group,
+        'complete_three_groups_required_for_qualification': True,
+        'complete_three_groups_executed': False,
         'groups': [], 'retained_owner_entries': [], 'python': sys.version,
+        'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v1',
+        'native_step_return_semantics': 'Actual admitted HIA unit entry and output framing returned status0/1/2; not method or product success.',
+        'native_mode_entries_are_attempts': True,
+        'public_control_mode_count': 27, 'abi_control_mode_count': 28,
+        'private_fixture_modes': ['_native_globals'],
+        'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_lowering_000; bundle_image_index is unit_index+1; complete bundle index0 is core_lowering_pool.',
         'component_denominator': 12, 'original_machine_denominator': 51,
         'original_core_denominator': 50, 'original_methods_modified': False,
         'hosted_primitive_kinds': 18, 'Emitter_control_still_hosted': True,
@@ -211,19 +225,90 @@ def main():
     started = time.monotonic()
     before = source_pins()
     report['source_before'] = before
-    inputs = []
+    inputs, component_inputs = [], []
+    report['group_bundle_roles'] = {
+        'component': 'component', 'original-machine': 'caller', 'original-core': 'caller'}
+    report['bundle_observations'] = {}
+    expected_groups = ({args.development_group} if args.development_group else
+                       {'component', 'original-machine', 'original-core'})
+    expected_roles = {'caller', 'component'} if 'component' in expected_groups else {'caller'}
+    report['expected_groups'] = sorted(expected_groups)
+    report['expected_bundle_roles'] = sorted(expected_roles)
+    def observed_inputs(manifest_path):
+        values = bundle_files(manifest_path)
+        build_receipt = manifest_path.parent / 'build.json'
+        if args.cold_report or build_receipt.is_file():
+            values.append((build_receipt, build_receipt.read_bytes()))
+        return values
+    def bindings(values):
+        return [{'path': str(path), 'bytes': len(raw), 'sha256': sha256(raw).hexdigest()}
+                for path, raw in values]
+    def describe_bundle(manifest_path, owner, values, scope):
+        loaded = owner._admitted_bundle
+        return {
+            'scope': scope, 'manifest': str(manifest_path),
+            'manifest_sha256': sha256(manifest_path.read_bytes()).hexdigest(),
+            'abi_sha256': loaded.abi_sha256,
+            'bundle_sha256': loaded.bundle_sha256,
+            'unit_names': list(loaded.names),
+            'unit_image_sha256': [image.image_sha256 for image in loaded.images],
+            'source_sha256': dict(loaded.source_hashes),
+            'input_bindings_before': bindings(values),
+        }
     entries, actual_steps, per_test = Counter(), Counter(), Counter()
+    mode_returns, group_attempts, step_returns = Counter(), Counter(), Counter()
     current = ['outside-test']
+    current_group = ['outside-group']
+    # Cache only immutable instrumentation descriptions, never a semantic
+    # decision or foreign observation. Values retain each actual owner so ids
+    # cannot be reused while a ledger description survives.
+    owner_mode_records = {}
     original_invoke, original_step = NativeCoreLowering.invoke, LoweringSession.step
     def invoke(owner, name, arguments):
-        if hasattr(owner, '_admitted_bundle'):
+        admitted = hasattr(owner, '_admitted_bundle')
+        if admitted:
             entries[name] += 1
             per_test[current[0]] += 1
-        return original_invoke(owner, name, arguments)
+            group_attempts[(current_group[0], name)] += 1
+        result = original_invoke(owner, name, arguments)
+        if admitted:
+            mode_returns[(current_group[0], name)] += 1
+        return result
     def step(session, packet):
+        owner = session.owner
+        admitted = hasattr(owner, '_admitted_bundle')
+        record = None
+        if admitted:
+            saved = getattr(session, '_qualification_step_records', None)
+            if saved is None or saved[0] != current_group[0]:
+                number = int.from_bytes(session.initial[24:32], 'little')
+                key = (id(owner), current_group[0], number)
+                cached = owner_mode_records.get(key)
+                if cached is None:
+                    loaded = owner._admitted_bundle
+                    names = [name for name, mode in owner.modes.items()
+                             if mode['number'] == number]
+                    if len(names) != 1 or len(owner.images) + 1 != len(loaded.images):
+                        raise AssertionError('native ledger mode/image inventory differs')
+                    records = []
+                    for index, image in enumerate(owner.images):
+                        if image is not loaded.images[index + 1]:
+                            raise AssertionError('native ledger image is not the admitted unit')
+                        records.append((current_group[0], names[0], number, index,
+                            loaded.names[index + 1], image.image_sha256,
+                            loaded.abi_sha256, loaded.bundle_sha256))
+                    cached = (owner, tuple(records))
+                    owner_mode_records[key] = cached
+                saved = (current_group[0], cached[1])
+                session._qualification_step_records = saved
+            record = saved[1][session.unit]
+        # Record only after the actual entry and its bridge frame admission
+        # return normally. A later HIA-selected RAISE observation can still
+        # reject the method; it must not be mislabeled a successful method.
         result = original_step(session, packet)
-        if hasattr(session.owner, '_admitted_bundle'):
+        if admitted:
             actual_steps[str(result)] += 1
+            step_returns[(*record, result)] += 1
         return result
     def forbid(name):
         def reject(*arguments, **keywords):
@@ -250,7 +335,10 @@ def main():
             report['original_development_manifest'] = str(source_manifest)
             report['original_development_manifest_sha256'] = sha256(source_manifest.read_bytes()).hexdigest()
         native = installed_core_lowering(str(manifest), vars(backend))
-        inputs = bundle_files(manifest)
+        inputs = observed_inputs(manifest)
+        report['bundle_observations']['caller'] = describe_bundle(
+            manifest, native, inputs,
+            'MATCHING_SOURCE_COLD_BUILD' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY')
         report.update(manifest=str(manifest), manifest_sha256=sha256(manifest.read_bytes()).hexdigest(),
                       abi_sha256=native._admitted_bundle.abi_sha256,
                       complete_image_sha256=[image.image_sha256 for image in native._admitted_bundle.images],
@@ -261,6 +349,9 @@ def main():
                 ('component', COMPONENT_MODULES, 12, None, False),
                 ('original-machine', ORIGINAL_MODULES, 51, ORIGINAL_IDS, True),
                 ('original-core', CORE_MODULES, 50, CORE_IDS, True)):
+                if label not in expected_groups:
+                    continue
+                current_group[0] = label
                 loader = unittest.TestLoader()
                 suite = loader.loadTestsFromNames(modules)
                 loaded = [test.id() for test in flatten(suite)]
@@ -269,6 +360,18 @@ def main():
                     def startTest(self, test):
                         current[0] = test.id()
                         executed.append(test.id())
+                        # unittest has completed this class's single actual
+                        # setUpClass before startTest. Capture its build once
+                        # before any method; never call setUpClass again.
+                        if label == 'component' and not component_inputs and hasattr(type(test), 'manifest'):
+                            component_manifest = Path(type(test).manifest).resolve(strict=True)
+                            expected_component = (directory / 'component-fixture' / 'qualified' / 'manifest.json'
+                                                  if args.cold_report else manifest)
+                            if component_manifest != expected_component.resolve(strict=True):
+                                raise AssertionError('component selected the wrong fresh bundle')
+                            component_inputs.extend(observed_inputs(component_manifest))
+                            report['bundle_observations']['component'] = describe_bundle(
+                                component_manifest, type(test).owner, component_inputs, type(test).scope)
                         super().startTest(test)
                 row = {'label': label, 'modules': list(modules), 'expected_methods': count,
                        'loaded_ids': loaded, 'loader_errors': list(loader.errors),
@@ -305,10 +408,23 @@ def main():
                 if not row['strict_pass']:
                     raise AssertionError('complete caller group failed: ' + label)
         required = set(native.modes) - {'_native_globals'}
-        if (report['retained_owner_entries'] or not required <= set(entries)
-                or not actual_steps['0'] or not actual_steps['1'] or not actual_steps['2']):
-            raise AssertionError('complete HIA lowering policy/continuation ownership was not observed')
-        report['status'] = 'PASS'
+        observed_modes = {row[1] for row, count in step_returns.items() if count > 0}
+        observed_groups = {row[0] for row, count in step_returns.items() if count > 0}
+        if report['retained_owner_entries'] or observed_groups != expected_groups or not step_returns:
+            raise AssertionError('selected complete group did not enter actual HIA lowering')
+        report['private_fixture_mode_has_actual_step_returns'] = '_native_globals' in observed_modes
+        if 'component' in expected_groups and not report['private_fixture_mode_has_actual_step_returns']:
+            raise AssertionError('ABI mode28 native global fixture did not return an actual HIA step')
+        report['all_required_modes_attempted'] = required <= set(entries)
+        report['all_required_modes_have_actual_step_returns'] = required <= observed_modes
+        report['all_native_step_statuses_observed'] = all(actual_steps[str(v)] for v in (0, 1, 2))
+        if not args.development_group:
+            if (not report['all_required_modes_attempted']
+                    or not report['all_required_modes_have_actual_step_returns']
+                    or not report['all_native_step_statuses_observed']):
+                raise AssertionError('complete actual HIA lowering policy/continuation ownership was not observed')
+            report['complete_three_groups_executed'] = True
+        report['status'] = 'DEVELOPMENT_GROUP_PASS' if args.development_group else 'PASS'
     except BaseException:
         report['status'] = 'FAIL'
         report['exception'] = traceback.format_exc()
@@ -316,10 +432,33 @@ def main():
         report['native_mode_entries'] = dict(entries)
         report['actual_native_step_statuses'] = dict(actual_steps)
         report['per_test_native_mode_entries'] = dict(per_test)
+        report['group_native_mode_attempts'] = [
+            {'group': group, 'mode': mode, 'count': count}
+            for (group, mode), count in sorted(group_attempts.items())]
+        report['native_mode_normal_returns'] = [
+            {'group': group, 'mode': mode, 'count': count}
+            for (group, mode), count in sorted(mode_returns.items())]
+        report['native_step_returns'] = [
+            {'group': row[0], 'mode': row[1], 'mode_number': row[2],
+             'unit_index': row[3], 'bundle_image_index': row[3] + 1, 'unit_name': row[4],
+             'image_sha256': row[5], 'abi_sha256': row[6],
+             'bundle_sha256': row[7], 'status': row[8], 'count': count}
+            for row, count in sorted(step_returns.items())]
         try:
             report['source_after'] = source_pins()
             report['source_stable'] = before == report['source_after']
-            report['manifest_images_bundle_stable'] = bool(inputs) and all(p.read_bytes() == raw for p, raw in inputs)
+            for role, values in (('caller', inputs), ('component', component_inputs)):
+                observation = report['bundle_observations'].get(role)
+                if observation is not None:
+                    after = [(path, path.read_bytes()) for path, _ in values]
+                    observation['input_bindings_after'] = bindings(after)
+                    observation['stable'] = bool(values) and all(
+                        old_path == new_path and old_raw == new_raw
+                        for (old_path, old_raw), (new_path, new_raw) in zip(values, after))
+                report[role + '_bundle_stable'] = bool(
+                    observation is not None and observation.get('stable'))
+            report['manifest_images_bundle_stable'] = all(
+                report[role + '_bundle_stable'] for role in expected_roles)
             if not report['source_stable'] or not report['manifest_images_bundle_stable']:
                 report['status'] = 'FAIL'
         except BaseException:
@@ -329,7 +468,7 @@ def main():
         (directory / 'report.json').write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
         print(json.dumps({k: report.get(k) for k in ('schema', 'scope', 'status', 'seconds',
             'source_stable', 'manifest_images_bundle_stable', 'exception')}, sort_keys=True))
-    return 0 if report['status'] == 'PASS' else 1
+    return 0 if report['status'] in {'PASS', 'DEVELOPMENT_GROUP_PASS'} else 1
 
 
 if __name__ == '__main__':
