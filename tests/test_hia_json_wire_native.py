@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import ctypes
+import gc
 from hashlib import sha256
 import json
 import math
@@ -16,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import weakref
 import zipfile
 
 from hepta.hia_json_wire_native import (
@@ -304,6 +306,53 @@ class WireNativeTests(unittest.TestCase):
             self.assertEqual(raw.raw[-16:], b'\xa5' * 16)
         for maximum in (True, None, -1, MAXIMUM + 1, 1 << 100):
             self.assert_same(None, maximum)
+
+    def test_private_buffer_lifetime_after_observer_exceptions_and_reentry(self):
+        # The foreign callback can retain an exception traceback, and callers
+        # can retain exported buffers after dropping the session. Neither
+        # lifetime may trigger an early unmap or corrupt a separate session.
+        for failure, expected in ((ValueError, HIAEditRejected),
+                                  (RuntimeError, RuntimeError),
+                                  (KeyboardInterrupt, KeyboardInterrupt),
+                                  (MemoryError, MemoryError)):
+            class FailingObserver(ForeignGraphObserver):
+                def points(self, *args):
+                    raise failure('observer failure')
+            observer = FailingObserver()
+            session = WireSession(self.image, observer, observer.register('outer'), MAXIMUM,
+                                  ensure_ascii=False, sort_keys=True)
+            output, workspace = session.output, session.workspace
+            for buffer in (output, workspace):
+                self.assertEqual(buffer[0], b'\0')
+                self.assertEqual(buffer[-1], b'\0')
+            with self.assertRaises(expected) as caught:
+                session.run()
+            before = (ctypes.string_at(output, 16), ctypes.string_at(workspace, 16))
+            reference = weakref.ref(session)
+            del session
+            gc.collect()
+            self.assertEqual((ctypes.string_at(output, 16), ctypes.string_at(workspace, 16)), before)
+            del caught
+            gc.collect()
+            self.assertIsNone(reference())
+            self.assertEqual(self.image.encode({'fresh': 'call'}, MAXIMUM), b'{"fresh":"call"}')
+            self.assertEqual((ctypes.string_at(output, 16), ctypes.string_at(workspace, 16)), before)
+            del output, workspace
+            gc.collect()
+
+        image, nested = self.image, []
+        class ReentrantObserver(ForeignGraphObserver):
+            entered = False
+            def points(self, *args):
+                if not self.entered:
+                    self.entered = True
+                    nested.append(image.encode({'inner': [1, '雪']}, MAXIMUM))
+                return super().points(*args)
+        observer = ReentrantObserver()
+        root = observer.register({'z': [True, 5], 'a': 'outer'})
+        self.assertEqual(image.encode_observed(observer, root, MAXIMUM),
+                         b'{"a":"outer","z":[true,5]}')
+        self.assertEqual(nested, [b'{"inner":[1,"\xe9\x9b\xaa"]}'])
 
     def test_virtual_parent_nodes_share_foreign_graph_depth_and_node_budgets(self):
         class Virtual:
