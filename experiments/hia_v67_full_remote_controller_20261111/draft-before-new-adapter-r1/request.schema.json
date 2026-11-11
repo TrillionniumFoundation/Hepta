@@ -1,0 +1,383 @@
+{
+  "$id": "hia.v67.full-qualification-launch.v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "archive_bytes": {
+          "const": 300074958
+        },
+        "archive_path": {
+          "pattern": "^/",
+          "type": "string"
+        },
+        "archive_sha256": {
+          "const": "837e8fecfa42012d0749ef7464a083e8a46743e49915ee0b99ebb6bf00df45c2"
+        },
+        "artifact_id": {
+          "const": 13870963554
+        },
+        "manifest_sha256": {
+          "const": "cec14d50ede38a6bcd11595476975cc376b3606d211098a565a5b1593249e3af"
+        },
+        "member_prefix": {
+          "const": "package/"
+        },
+        "package_files": {
+          "additionalProperties": false,
+          "properties": {
+            "export-report.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "manifest.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "source-package.py": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "source-state-after.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "source-state-before.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "source.pack": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "export-report.json",
+            "manifest.json",
+            "source-package.py",
+            "source-state-after.json",
+            "source-state-before.json",
+            "source.pack"
+          ],
+          "type": "object"
+        },
+        "receipt_files": {
+          "additionalProperties": false,
+          "properties": {
+            "IDENTITY.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            },
+            "reconstruction.json": {
+              "additionalProperties": false,
+              "properties": {
+                "bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "bytes",
+                "sha256"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "IDENTITY.json",
+            "reconstruction.json"
+          ],
+          "type": "object"
+        },
+        "run_attempt": {
+          "const": 1
+        },
+        "workflow_run_id": {
+          "const": 43055736977
+        }
+      },
+      "required": [
+        "archive_bytes",
+        "archive_path",
+        "archive_sha256",
+        "artifact_id",
+        "manifest_sha256",
+        "member_prefix",
+        "package_files",
+        "receipt_files",
+        "run_attempt",
+        "workflow_run_id"
+      ],
+      "type": "object"
+    },
+    "control_files": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minProperties": 13,
+      "propertyNames": {
+        "pattern": "^[a-zA-Z0-9_.-]+$"
+      },
+      "type": "object"
+    },
+    "frozen": {
+      "const": true
+    },
+    "host": {
+      "const": "desktop"
+    },
+    "limits": {
+      "const": {
+        "cold_phases": 38,
+        "cold_seconds": 180,
+        "cold_workers": 2,
+        "controller_seconds": 10800,
+        "full_suite_seconds": 5400,
+        "minimum_free_bytes": 8589934592,
+        "minimum_free_inodes": 100000,
+        "preparation_seconds": 900,
+        "source_materialization_seconds": 900
+      }
+    },
+    "pending": {
+      "const": []
+    },
+    "readonly_inputs": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minProperties": 14,
+      "propertyNames": {
+        "pattern": "^/"
+      },
+      "type": "object"
+    },
+    "root": {
+      "const": "/home/qian-qi/he26v67r1"
+    },
+    "runtime": {
+      "additionalProperties": false,
+      "properties": {
+        "prerequisite_root": {
+          "const": "/home/qian-qi/hia-e26e-v64-prerequisites"
+        },
+        "python": {
+          "const": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python"
+        },
+        "python_guardian": {
+          "const": "/home/qian-qi/hia-e26e-python314-linux-completion-r2/guard/guardian.json"
+        },
+        "python_guardian_sha256": {
+          "const": "f4115e59f8a6eb22db8a002960fbca83e248e071e5694d89e93371b2262b036d"
+        },
+        "python_preparation": {
+          "const": "/home/qian-qi/hia-e26e-python314-linux-completion-r2/python-linux-preparation.json"
+        },
+        "python_preparation_sha256": {
+          "const": "f834e072227ed59f06d347772b8db126c1910c574e660d66f9d15c1c1ec43967"
+        },
+        "python_sha256": {
+          "const": "b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493"
+        },
+        "python_version": {
+          "const": [
+            3,
+            14,
+            4
+          ]
+        }
+      },
+      "required": [
+        "prerequisite_root",
+        "python",
+        "python_guardian",
+        "python_guardian_sha256",
+        "python_preparation",
+        "python_preparation_sha256",
+        "python_sha256",
+        "python_version"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "hia.v67.full-qualification-launch.v1"
+    },
+    "scope": {
+      "const": "FULL_RETAINED_QUALIFICATION_OF_EXACT_SOURCE_NOT_WHOLE_NATIVE_DELIVERY"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "cold_source_count": {
+          "const": 682
+        },
+        "commit": {
+          "const": "608157e52b0b94e0d294f6b99c4e809869f183aa"
+        },
+        "contract_bytes": {
+          "const": 143277
+        },
+        "contract_sha256": {
+          "const": "3c54c3ed427d6172e4684b7fc96c6a45f7738dc36f5560b527b7421af582c075"
+        },
+        "coverage_bytes": {
+          "const": 176638
+        },
+        "coverage_sha256": {
+          "const": "9f5b2b7f14856e91915b8af980e378d4585f234dfb220df3be7c4eb12fd2c28d"
+        },
+        "declared_source_count": {
+          "const": 681
+        },
+        "leaf_count": {
+          "const": 3925
+        },
+        "profile": {
+          "const": "selfhost-core-linux-x86_64-v67-cli-machine-bytes-cached-wire"
+        },
+        "tree": {
+          "const": "e7c29a60796a1a78946a2c667aa80df86529e532"
+        }
+      },
+      "required": [
+        "cold_source_count",
+        "commit",
+        "contract_bytes",
+        "contract_sha256",
+        "coverage_bytes",
+        "coverage_sha256",
+        "declared_source_count",
+        "leaf_count",
+        "profile",
+        "tree"
+      ],
+      "type": "object"
+    },
+    "stable_key": {
+      "const": "hia-e26e-desktop-v67-608157e5-full-qualification-r1"
+    }
+  },
+  "required": [
+    "artifact",
+    "control_files",
+    "frozen",
+    "host",
+    "limits",
+    "pending",
+    "readonly_inputs",
+    "root",
+    "runtime",
+    "schema",
+    "scope",
+    "source",
+    "stable_key"
+  ],
+  "title": "Externally pinned exact-source full qualification request",
+  "type": "object"
+}
