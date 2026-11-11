@@ -1,0 +1,15 @@
+# Reconstructed development and restored original evidence
+
+This additive recovery checkpoint does not activate production, change main, relax any gate or remove a retained owner. Executor switch 2 and unavailable original Stage12/helper/transaction drafts remain recorded in parent f941b19f. New runs use new identities.
+
+The exact e2f392e source was recovered and all 2796 Git blobs, byte counts and modes were checked. Published candidate 5bd14b2cddcab29fb286b028c2e6ae0b10feee65 changes the actual HIA call-graph loop only at a fully checked fixed point, adds complete graph controls, and preserves 180 seconds, two workers, all 38 phases and strict no-skip gates. Its 50 source-reproduction steps passed and 644 closure files were frozen. The complete source and cold gates were pending at this seal. The first preparation failed on the language-inventory digest ordering; those original controls remain in the new archive.
+
+The new v67 archive has 1540 regular members and preserves 306328424 original bytes. Fresh native graph comparison passed 96 cases / 192 actual entries. Fresh complete-compiler comparison passed 14 cases / 28 actual entries, comparing every one-MiB output and workspace byte. These are new originals, not recreated outputs of the lost run. Source, raw frames, every returned byte, failed preparation and successful regeneration controls are retained with complete member identity readback.
+
+The complete d5 ROG top-level archive is the same original 362848-byte object and was restored from retained original SDK pages without running qualification again. It records 28 successful steps and 4134 retained tests with zero failure/error/skip/xfail/xpass. All 117 archive members were independently reread; 116 are original top-level files and the last is their custody record. Nested cold phase directories are excluded by that original seal; no nested replay is claimed. The separate new canonical d5 source export was a read-only backup, not qualification, and checked all 2790 source files before and after.
+
+The new lowering main-controller r2 archive has 136 members, including its initial authoring failure and exact repaired source, actual bounded native compilation, and 50 image entries / 22 private protocol controls. Those controls use an explicit synthetic constructor handoff. Zero complete function/outer semantic pipeline cases are claimed; services, streams and full composition are still under development.
+
+The Core-final authoring/proof files and reconstructed contract are preserved as source drafts in this checkpoint. Their subsequent completed native qualification is not included here. The two helper transport fragments were exactly restored against previously recorded source SHA-256 values, but the missing common/request implementation and unavailable 1564-member helper archive are not declared restored.
+
+The previous e2f GitHub cold failure and its separately passing local cold attempt remain distinct from current candidate qualification. Earlier failure and interruption evidence remains in recovery history. Whole-stack closure is OPEN.
