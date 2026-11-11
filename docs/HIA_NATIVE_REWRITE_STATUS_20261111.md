@@ -42,6 +42,37 @@ executable. Default activation and whole-stack retirement remain open.
 
 ### Earlier exact-source observations and required follow-up
 
+The stage-4 candidate is commit
+`eef68334b078eb9fcc414f441c35687e33585bba`, with 636 cold-source files.
+GitHub run `42995591456` executed the complete 327-test source group and
+reported three import errors: its retained archive-queue controls referred to
+`_PhaseArchivePool` and `_PendingPhaseArchive`, but integration had omitted
+their matching qualification implementation. This is an integration defect,
+not an environment refusal. The candidate remains failed. The continuation
+restores the original bounded archive implementation from commit
+`3ed860043d537305b20aea3abb39c0daa2d2b966` without removing any test. One archive
+thread holds at most two pending seals; the two native-oracle workers and the
+180-second deadline remain unchanged. A phase stays pending until all original
+bytes have been archived and verified. All 38 phases remain required.
+The repaired stage-5 source then executed all 77 workflow test entries and
+327 tests locally, with zero failures, errors, skips, expected failures or
+unexpected successes. Its 636-file source map was unchanged before and after
+the 397.659118098-second controller run. Independent review found no scheduling
+blocker and confirmed the unchanged external deadline and two native workers.
+This source result does not replace a fresh cold or full-native qualification.
+
+The same stage-4 GitHub cold run timed out at 180.146844994 seconds. Its 34
+completed phases contain 3,758 true checks, but the names phases remained
+unfinished and exports had not completed. A separate local stage-4 cold run
+timed out at 180.352510184 seconds. Both failures retain the complete available
+original bytes and their source bindings; neither authorizes a native build.
+Independent stage-4 development validation did pass all 18 observer tests and
+the two actual installed constructor/outer tests. It compiled the current
+B0/B1/B2 chain and all eleven nominal images, observed both installation
+directories honoring TMPDIR, and retained all 28 isolated installed children
+(two accepted and 26 original tamper refusals). Those 20 tests are not a full
+source, cold or whole-stack qualification.
+
 GitHub run `42986320732` tested exact v64 main. Its 307 source tests and separate
 four-language CodeQL run passed, but cold qualification timed out at
 180.141377508 seconds under the unchanged 180-second limit. All 34 completed
@@ -57,6 +88,12 @@ NVMe temporary directory. This continuation removes those two hardcoded
 locations so standard `TMPDIR` selection applies. Package/resource, isolation,
 old-owner refusal and tamper assertions remain unchanged. The original failed
 run is retained; changing a fixture directory does not retroactively pass it.
+That original ROG run subsequently completed all 23 steps and remained HOLD.
+Its full retained group executed 3,872 tests with 27 errors and no failures or
+skips. Two errors were the installation paths above; 25 were Rust class setup
+errors because offline Cargo lacked the locked `cfg-if 1.0.5` archive. Those
+classes did not execute. The exact locked dependency cache is being repaired
+before a new-source full run; no old result is relabeled.
 
 The frozen v65 stage-3 draft passed all 46 generators and 43 focused source/VM
 checks. An initial stale support hash caused by generating the coverage
