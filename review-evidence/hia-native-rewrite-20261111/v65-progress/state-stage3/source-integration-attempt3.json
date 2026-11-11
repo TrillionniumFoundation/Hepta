@@ -1,0 +1,47 @@
+{
+  "base": "5831f52fada45e076f8f68f198a15c0585e6104f",
+  "log_sha256": "92c6c84bf56dd811bb2c637a7c4dcb2c7c881e933ca97353599470fff35f4d1b",
+  "passed": true,
+  "remediation": "Regenerate support identity after the generated language coverage inventory; attempt2 generated coverage after support and left its hash stale. No production semantics or assertions changed.",
+  "schema": "hepta.hia.agent-state-source-integration.v1",
+  "scope": "SOURCE_AND_INDEPENDENT_VM_NOT_NATIVE_OR_COLD_QUALIFICATION",
+  "seconds": 24.59474260099887,
+  "steps": [
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py",
+        "--check"
+      ],
+      "returncode": 0
+    },
+    {
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+        "-B",
+        "-m",
+        "unittest",
+        "tests.test_hia_worker_request_native.WorkerRequestSourceTests",
+        "tests.test_hia_release_install.ReleaseInstallerSourceTests",
+        "tests.test_hia_agent_journal_native.JournalSourceTests",
+        "tests.test_hia_composite_native_composition.SourceTests",
+        "tests.test_hia_json_preflight",
+        "tests.test_hia_json_preflight_native.JsonPreflightHiaSourceTests",
+        "tests.test_hia_agent_installed_resources.AgentInstalledResourceSourceTests",
+        "tests.test_hia_integrated_workflow",
+        "tests.test_hia_selfhost_contract.SelfhostContractTests",
+        "-v"
+      ],
+      "returncode": 0
+    }
+  ]
+}
