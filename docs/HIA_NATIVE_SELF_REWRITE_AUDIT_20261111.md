@@ -74,6 +74,75 @@ backend and installation remain separate owners. Correctly checking generated
 Core is necessary but insufficient: the tests also compare exact normalization,
 independent results, resource effects and refusal/counter behavior.
 
+### Enum construction and complete record operations
+
+The next native owners cover [enum construction and tag reading](HIA_ENUM_OPERATIONS_NATIVE.md),
+[record construction, unpacking and projection](HIA_RECORD_OPERATIONS_NATIVE.md),
+and [all six partial-record and borrow operations](HIA_RECORD_TRANSITIONS_NATIVE.md).
+Together they move eleven complete operation branches into HIA. The earlier
+native match owner remains responsible for enum control flow.
+
+HIA performs field and variant policy, nominal type equality, ordered linear
+consumption, partial-record state transitions, field and loan offsets, padding,
+fresh names and complete Core/alias construction. Each adapter returns complete
+objects and observable partial state. Native continuations call the existing
+type owner at the original points, preserving cache changes, first errors and
+consumption even when an operation fails. Selected failures do not retry the
+hosted reference. Type, enum, record and match owners have composed execution
+controls with their reference branches disabled.
+
+This does not complete nominal function orchestration,
+ordinary calls, primitive lowering, edges/returns or whole-program aggregation.
+The retained four public composite schemas and public input/expansion limits
+remain unchanged. Larger private transport buffers preserve the original
+accepted argument and descriptor inventories; each owner documents its bound.
+
+### Complete task operation callers
+
+[All seven ordinary task operations](HIA_TASK_OPERATIONS_NATIVE.md) now have a
+selected HIA owner: create, state, start, poll, cancel, join and close. HIA owns
+argument and output admission, ordered consumption, fresh names, complete Core
+calls, and the original continuation points into type and helper owners. The
+adapter transports held descriptors and applies complete native results,
+including prefix effects before a later helper refusal. The original branches
+remain independent references. Development evidence includes 18 passing tests,
+all native nominal owners composed with references disabled, the 512-slot task
+boundary, VM execution, real allocator failures and installed-image custody.
+The first fixture-only capacity mismatch is retained in the original evidence;
+it was corrected to account for a preceding protocol slot, not by changing a
+production limit. Whole-source qualification is still required for this version.
+
+### Retained resource retirement state
+
+[The native retirement policy](HIA_RETIREMENT_STATE_NATIVE.md) retains one HIA
+state block for an original path identity and its cleanup effects. HIA owns
+one-time close claims, identity observations, deletion eligibility, retries and
+completion predicates. The foreign adapter retains actual descriptors, loader
+objects, exception diagnostics and syscall execution. Multiversion generation
+transfer, capacity accounting and the durable service journal remain hosted.
+
+Independent review found a real replayable directory-observation token in an
+early executable. Parent review also found descriptor and directory-construction
+handoff windows. Their original observations are retained; the revised owner
+consumes observation tokens and preserves uncertain foreign resources in
+observable process-local quarantine. Actual runtime failure paths, reentrancy,
+descriptor reuse and the existing retirement/publication/multiversion suites
+are qualification requirements, in addition to isolated policy tests.
+
+This is an in-process retirement owner with a 4096-byte captured-path profile.
+It is not release garbage collection, a cross-process handle manager or a
+durable recovery journal. A source/image failure cannot authorize cleanup by
+reconstructing native policy from hosted flags.
+
+### Native compiler traversal
+
+The HIA compiler now scans the complete issued SSA-name range and avoids
+rescanning immutable call edges of functions already established as ready.
+All initialization, invalid-target checks, bounded passes and final cycle
+refusals remain. [The compiler document](HIA_SELF_HOSTING_CORE.md) describes the
+invariants. The separate bulk-initialization experiment was reverted. No source,
+workspace, compiler capacity or cold-replay time limit was enlarged.
+
 ### Native release selection and rollback
 
 [The native release-selection application](HIA_RELEASE_SELECTION_NATIVE.md)
@@ -99,7 +168,7 @@ failure, with actual syscall fault controls required on a capable host.
 
 | Owner | Current responsibility | Requirement before retirement |
 | --- | --- | --- |
-| Nominal elaborator | Record/partial-record and ordinary operation lowering, nominal SSA, calls/edges/returns, final origin binding and exports | Complete HIA producer with retained four-schema meaning, result, refusal, resource and state controls |
+| Nominal elaborator | Nominal SSA, ordinary calls/primitive operations, edges/returns, final origin binding and exports; explicit native record/enum/task owners now available | Complete HIA producer with retained four-schema meaning, result, refusal, resource and state controls |
 | General compiler/backend | Retained profiles beyond the selfhost compiler's bounded arguments/results/functions/blocks, target and object/linking support | Native producers for every retained profile and independent target execution |
 | `HIAAgentService` | Eleven-tool authority, contexts, verification, emission/evaluation, adoption and rollback | Complete ordinary native request/report/service behavior and installed identity |
 | `AgentStore` | SQLite/WAL, namespaces/refs, intent/completion, costs, slots, versions, leases and uncertain operations | Native transaction/state owner with same-key conflict, crash/restart and original-operation continuity |
@@ -132,10 +201,15 @@ service was used to turn that failure into a successful observation.
 ## Qualification and retirement rule
 
 The common profile for these changes is
-`selfhost-core-linux-x86_64-v64-native-match-selection-build-custody`.
+`selfhost-core-linux-x86_64-v65-native-records-retirement`.
 Its generated source closure must be frozen before cold replay, language and
 native applications run. A previous compiler hash, green older workflow or
 development image does not qualify this combined source.
+
+[The retained execution status](HIA_NATIVE_REWRITE_STATUS_20261111.md) identifies
+the exact earlier v64 tree that passed the complete 4,089-test regression and
+its original failed cold observations. Those results are not relabelled as
+qualification of the changed v65 source.
 
 For each production owner, retirement requires the complete replacement,
 ordinary installed caller use, matching source qualification and relevant

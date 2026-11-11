@@ -28,7 +28,8 @@ from .hia_program import integer_range, scalar_value_valid, verify_program
 from .hia_program_llvm import TARGET, build_program_native, emit_program_llvm
 from .hia_program_runtime import execute_program
 from .hia_translation_validation import QUALIFIED_CORE_SCHEMAS
-from .hia_native_retirement import NativeRetirement, PathIdentityPin, observe_directory, remove_directory
+from .hia_native_retirement import (NativeRetirement, PathIdentityPin, observe_directory,
+                                    remove_directory, require_new_retirement_custody)
 from .native_mapping_identity import NativeMappingRejected, verify_loaded_symbols
 
 
@@ -496,10 +497,20 @@ class ScalarMultiversionRuntime:
         self._cleanup_attempts = 0
         self._directory_cleanup = {"status": "not_attempted"}
         self._next, self._epoch, self._current, self._closed = 1, 0, None, False
-        self._directory = Path(tempfile.mkdtemp(prefix="hia-multiversion-", dir=directory))
+        retirement_image = require_new_retirement_custody()
+        if retirement_image is None:
+            self._directory = Path(tempfile.mkdtemp(prefix="hia-multiversion-", dir=directory))
+        else:
+            # Prepare the exact native state before creating a filesystem
+            # resource. Its immutable image remains the original owner even
+            # if ambient source/selection changes after this admission.
+            parent = Path(tempfile.gettempdir() if directory is None else directory).absolute()
+            self._directory = parent / ("hia-multiversion-" + os.urandom(16).hex())
         self._directory_inode = None
-        self._directory_pin = PathIdentityPin(self._directory, directory=True)
+        self._directory_pin = PathIdentityPin._from_admitted_image(self._directory, True, retirement_image)
         try:
+            if retirement_image is not None:
+                self._directory.mkdir(mode=0o700)
             directory_info = self._directory.lstat()
             self._directory_inode = (directory_info.st_dev, directory_info.st_ino)
             self._directory_pin.acquire(self._directory_inode)

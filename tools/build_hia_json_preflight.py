@@ -64,6 +64,10 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     from tools.hia_selfhost_contract import PROFILE
     candidates = {'worker-request': ('worker_request', 'worker-request'),
                   'enum-match': ('enum_match', 'enum-match'),
+                  'enum-operations': ('enum_operations', 'enum-operations'),
+                  'record-operations': ('record_operations', 'record-operations'),
+                  'record-transitions': ('record_transitions', 'record-transitions'),
+                  'task-operations': ('task_operations', 'task-operations'),
                   'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
                   'task-helpers': ('task_helpers', 'task-helpers'),
@@ -74,6 +78,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'function-shape': ('function_shape', 'function-shape'),
                   'capability-renaming': ('capability_renaming', 'capability-renaming'),
                   'agent-slice': ('agent_slice', 'agent-slice'),
+                  'retirement-state': ('retirement_state', 'retirement-state'),
                   'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
                   'core-module-graph': ('core_module_graph', 'core-module-graph'),
                   'preflight': ('json_preflight', 'json-preflight'),

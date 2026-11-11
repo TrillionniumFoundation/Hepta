@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -91,6 +91,15 @@ jobs:
               'tests.test_hia_standalone_builder_source_binding',
               'tests.test_hia_enum_match_native.EnumMatchSourceTests',
               'tests.test_hia_enum_match_native.EnumMatchAdapterTests',
+              'tests.test_hia_enum_operations_native.EnumOperationsSourceTests',
+              'tests.test_hia_enum_operations_native.EnumOperationsAdapterTests',
+              'tests.test_hia_record_operations_native.RecordOperationsSourceTests',
+              'tests.test_hia_record_operations_native.RecordOperationsAdapterTests',
+              'tests.test_hia_record_transitions_native.RecordTransitionsSourceTests',
+              'tests.test_hia_record_transitions_native.RecordTransitionsAdapterTests',
+              'tests.test_hia_retirement_state_native.RetirementStateSourceTests',
+              'tests.test_hia_task_operations_native.TaskOperationsSourceTests',
+              'tests.test_hia_task_operations_native.TaskOperationsAdapterTests',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
               'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
@@ -236,7 +245,11 @@ jobs:
               'tests.test_hia_composite_signatures_native',
               'tests.test_hia_task_helpers_native',
               'tests.test_hia_composite_native_composition',
-              'tests.test_hia_enum_match_native'))
+              'tests.test_hia_enum_match_native',
+              'tests.test_hia_enum_operations_native',
+              'tests.test_hia_record_operations_native',
+              'tests.test_hia_record_transitions_native',
+              'tests.test_hia_task_operations_native'))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYTYPES
@@ -244,6 +257,20 @@ jobs:
           HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_ENUM_MATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ENUM_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RECORD_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_RECORD_TRANSITIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_TASK_OPERATIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native retained retirement state and actual resource custody
+        run: |
+          python -B - <<'PYRETIRE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_retirement_state_native')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
+          PYRETIRE
+        env:
+          HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native worker request admission and ordinary request continuity
         run: |
           python -B - <<'PYREQUEST'

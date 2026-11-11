@@ -1413,3 +1413,36 @@ successors, after independent references complete before B0. These are finite
 execution checks, not an all-input proof. The host linker, Python authoring,
 reference verifier, release and wider runtime authorities remain; a general
 module graph/linker and whole-stack rewrite are still open.
+
+## v65 bounded scans over live compiler state
+
+The native compiler now avoids two kinds of redundant verifier traversal.
+Neither change adds a supported source form or enlarges a source, output,
+workspace, function, block, instruction, SSA, call-depth or time limit.
+
+Every usable SSA name is interned densely in the current function's name table.
+Its issued index is strictly below the current name count. Definition replay,
+borrow-conflict checks, loan transfers and owner release therefore scan that
+entire issued range instead of also scanning unused entries up to 2048. The
+original initialization of the complete private arrays is retained. Definitions
+and capabilities outside the issued range cannot be live; an invalid name still
+fails at the unchanged lookup or admission boundary. The maximum valid issued
+index remains 2047. This is not a change to alias or resource policy.
+
+Call-graph readiness is monotonic after signature and body discovery. A ready
+function has already checked all 128 possible edge slots and established that
+every recorded callee is ready. Its immutable edges need no further traversal.
+Unready functions still check the complete edge range, including out-of-range
+targets, in the original order on each bounded pass. The readiness table is
+cleared before discovery; the same number of passes and final cycle-refusal
+check remain. Undefined-target and cycle refusal codes are unchanged.
+
+Development comparisons retained the predecessor and candidate images, actual
+input/output bytes, return status and observed workspace header. They include
+zero and nonzero initial scratch, original and changed compiler source,
+maximum-function and reverse-order maximum-block programs, boundary names,
+invalid edges and borrowed/owned resource cases. Development timings vary with
+the host and do not establish an overall cold-replay speedup. Current-source
+cold replay, original and modified fixed points, all existing qualification
+families and language controls remain required. A separate bulk-initialization
+experiment was reverted and is not part of this implementation.

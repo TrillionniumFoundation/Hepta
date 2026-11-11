@@ -871,187 +871,14 @@ class _Elaborator:
                 op, args, attrs = ins["op"], ins["args"], ins["attrs"]
                 actual = [value(name) for name in args]
                 declared = self.parameters(ins["out"])
-                if op == "record.begin":
-                    _keys(attrs, set(), op)
-                    if (actual or len(declared) != 1
-                            or declared[0][1].kind != "partial_record"):
-                        _reject("record.begin requires one empty partial-record output", "E_HIA_TYPE")
-                    out, typ = declared[0]
-                    if typ.fields:
-                        _reject("record.begin cannot initialize a field", "E_HIA_INIT")
-                    env[out] = _Value(typ, self.zeros(("buffer",), ops))
-                elif op == "record.take":
-                    _keys(attrs, {"field"}, op)
-                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
-                        _reject("record.take requires one record", "E_HIA_TYPE")
-                    item = actual[0]
-                    offset, typ = record_field(item, attrs["field"])
-                    base = item.typ.record if item.typ.kind == "partial_record" else item.typ
-                    remainder = self.types.partial_record(base,
-                        [field for field, _ in item.typ.fields if field != attrs["field"]])
-                    out, rest = outputs(ins, [typ, remainder])
-                    consume(args[0])
-                    token = item.names[:1] if item.typ.kind == "partial_record" else self.zeros(("buffer",), ops)
-                    selected = item.names[offset:offset + len(typ.flat)]
-                    env[out] = _Value(typ, move_field(selected, typ))
-                    before = item.names[1:offset] if item.typ.kind == "partial_record" else item.names[:offset]
-                    env[rest] = _Value(remainder, token + before + item.names[offset + len(typ.flat):])
-                elif op == "record.insert":
-                    _keys(attrs, {"field"}, op)
-                    if len(actual) != 2 or actual[0].typ.kind != "partial_record":
-                        _reject("record.insert requires partial record and field value", "E_HIA_TYPE")
-                    item, supplied = actual
-                    _name(attrs["field"], "initialized record field")
-                    base = item.typ.record
-                    all_fields = dict(base.fields)
-                    if attrs["field"] not in all_fields:
-                        _reject("unknown nominal field", "E_HIA_TYPE")
-                    if attrs["field"] in dict(item.typ.fields):
-                        _reject("record field is already initialized", "E_HIA_INIT")
-                    if supplied.typ != all_fields[attrs["field"]]:
-                        _reject("inserted record field type differs", "E_HIA_TYPE")
-                    initialized = set(dict(item.typ.fields)) | {attrs["field"]}
-                    typ = self.types.partial_record(base,
-                        [field for field, _ in base.fields if field in initialized])
-                    out = outputs(ins, [typ])[0]
-                    consume(args[0])
-                    consume(args[1])
-                    fields, offset = {}, 1
-                    for field, field_type in item.typ.fields:
-                        fields[field] = item.names[offset:offset + len(field_type.flat)]
-                        offset += len(field_type.flat)
-                    fields[attrs["field"]] = supplied.names
-                    env[out] = _Value(typ, item.names[:1] + tuple(
-                        name for field, _ in typ.fields for name in fields[field]))
-                elif op == "record.finish":
-                    _keys(attrs, set(), op)
-                    if len(actual) != 1 or actual[0].typ.kind != "partial_record":
-                        _reject("record.finish requires one partial record", "E_HIA_TYPE")
-                    item = actual[0]
-                    if item.typ.fields != item.typ.record.fields:
-                        _reject("record.finish requires every field initialized", "E_HIA_INIT")
-                    out = outputs(ins, [item.typ.record])[0]
-                    consume(args[0])
-                    ops.append(_ins("owner.drop", item.names[:1]))
-                    env[out] = _Value(item.typ.record, item.names[1:])
-                elif op == "record.abandon":
-                    _keys(attrs, set(), op)
-                    if len(actual) != 1 or actual[0].typ.kind != "partial_record":
-                        _reject("record.abandon requires one partial record", "E_HIA_TYPE")
-                    item = actual[0]
-                    if item.typ.fields:
-                        _reject("record.abandon requires every field moved out", "E_HIA_INIT")
-                    outputs(ins, [])
-                    consume(args[0])
-                    ops.append(_ins("owner.drop", item.names[:1]))
-                elif op == "record.make":
-                    _keys(attrs, set(), op)
-                    if len(declared) != 1 or declared[0][1].kind != "record":
-                        _reject("record.make needs one nominal record output", "E_HIA_TYPE")
-                    out, typ = declared[0]
-                    if tuple(v.typ for v in actual) != tuple(t for _, t in typ.fields):
-                        _reject("record fields differ from nominal declaration", "E_HIA_TYPE")
-                    for name in args:
-                        consume(name)
-                    env[out] = _Value(typ, tuple(x for v in actual for x in v.names),
-                                      external=all(v.external or not v.typ.linear for v in actual) and not typ.owns)
-                elif op == "record.unpack":
-                    _keys(attrs, set(), op)
-                    if len(actual) != 1 or actual[0].typ.kind != "record":
-                        _reject("record.unpack requires a record", "E_HIA_TYPE")
-                    item = actual[0]
-                    names = outputs(ins, [t for _, t in item.typ.fields])
-                    consume(args[0])
-                    offset = 0
-                    for name, (_, typ) in zip(names, item.typ.fields):
-                        env[name] = _Value(typ, item.names[offset:offset + len(typ.flat)], item.external)
-                        offset += len(typ.flat)
-                elif op == "record.get":
-                    _keys(attrs, {"field"}, op)
-                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
-                        _reject("record.get requires a record", "E_HIA_TYPE")
-                    offset, typ = record_field(actual[0], attrs["field"])
-                    if typ.linear:
-                        _reject("linear fields require consuming record.unpack/take", "E_HIA_RESOURCE")
-                    name = outputs(ins, [typ])[0]
-                    env[name] = _Value(typ, actual[0].names[offset:offset + len(typ.flat)])
-                elif op == "record.borrow":
-                    # Borrow the *original* primitive field capability. The
-                    # aggregate remains live; there is no copied owner or
-                    # forged descriptor, and the primitive checker enforces
-                    # exclusivity, parent suspension and eventual loan end.
-                    _keys(attrs, {"field", "mode"}, op)
-                    if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
-                        _reject("record.borrow requires a record", "E_HIA_TYPE")
-                    if type(attrs["mode"]) is not str or attrs["mode"] not in {"read", "mut"}:
-                        _reject("record.borrow mode must be read or mut", "E_HIA_LOAN")
-                    offset, typ = record_field(actual[0], attrs["field"])
-                    if typ.kind != "primitive" or typ.key not in BYTE_RESOURCES:
-                        _reject("record.borrow requires a primitive owner/view field",
-                                "E_HIA_TYPE")
-                    loan_type = self.types.resolve("mutbuf" if attrs["mode"] == "mut" else "readbuf")
-                    name = outputs(ins, [loan_type])[0]
-                    env[name] = _Value(loan_type, (name,))
-                    ops.append(_ins("borrow." + attrs["mode"],
-                                    [actual[0].names[offset]], [(name, loan_type.key)]))
-                elif op == "enum.make":
-                    _keys(attrs, {"variant"}, op)
-                    if len(declared) != 1 or declared[0][1].kind != "enum":
-                        _reject("enum.make needs an enum output", "E_HIA_TYPE")
-                    out, typ = declared[0]
-                    _name(attrs["variant"], "constructed variant")
-                    variants = dict(typ.variants)
-                    if attrs["variant"] not in variants or tuple(v.typ for v in actual) != tuple(t for _, t in variants[attrs["variant"]]):
-                        _reject("enum payload differs from selected variant", "E_HIA_TYPE")
-                    for name in args:
-                        consume(name)
-                    tag = self.constant(ops, "u32", [v for v, _ in typ.variants].index(attrs["variant"]))
-                    flat = [tag]
-                    for variant, fields in typ.variants:
-                        if variant == attrs["variant"]:
-                            flat.extend(x for v in actual for x in v.names)
-                        else:
-                            flat.extend(self.zeros(tuple(p for _, t in fields for p in t.flat), ops))
-                    env[out] = _Value(typ, tuple(flat))
-                elif op == "enum.tag":
-                    _keys(attrs, set(), op)
-                    if len(actual) != 1 or actual[0].typ.kind != "enum":
-                        _reject("enum.tag requires an enum", "E_HIA_TYPE")
-                    name = outputs(ins, [self.types.resolve("u32")])[0]
-                    env[name] = _Value(self.types.resolve("u32"), actual[0].names[:1])
+                if op in {"record.begin", "record.take", "record.insert", "record.finish", "record.abandon", "record.borrow"}:
+                    self.lower_record_transition(ins, actual, declared, env, ops, consume, outputs, record_field, move_field)
+                elif op in {"record.make", "record.unpack", "record.get"}:
+                    self.lower_record_operation(ins, actual, declared, env, ops, consume, outputs, record_field)
+                elif op in {"enum.make", "enum.tag"}:
+                    self.lower_enum_operation(ins, actual, declared, env, ops, consume, outputs)
                 elif op.startswith("task."):
-                    _keys(attrs, set(), op)
-                    if op == "task.create":
-                        if len(declared) != 1 or declared[0][1].kind != "task" or len(actual) != 1:
-                            _reject("task.create needs state and one task output", "E_HIA_TYPE")
-                        out, typ = declared[0]
-                        self.check_task(typ)
-                        if actual[0].typ != typ.state:
-                            _reject("task state type differs from protocol", "E_HIA_TYPE")
-                        consume(args[0])
-                        tag = self.constant(ops, "u8", 0)
-                        token = self.zeros(("buffer",), ops)
-                        env[out] = _Value(typ, (tag,) + token + actual[0].names + self.zeros(typ.result.flat, ops))
-                    else:
-                        if len(actual) != 1 or actual[0].typ.kind != "task":
-                            _reject("task operation requires one task", "E_HIA_TYPE")
-                        typ = actual[0].typ
-                        if op == "task.state":
-                            name = outputs(ins, [self.types.resolve("u8")])[0]
-                            env[name] = _Value(self.types.resolve("u8"), actual[0].names[:1])
-                        elif op in {"task.start", "task.poll", "task.cancel", "task.join", "task.close"}:
-                            operation = op[5:]
-                            expected = [typ.result] if operation == "join" else [] if operation == "close" else [typ]
-                            names = outputs(ins, expected)
-                            consume(args[0])
-                            flat_out = []
-                            for name, outtyp in zip(names, expected):
-                                parts = tuple(self.fresh() for _ in outtyp.flat)
-                                env[name] = _Value(outtyp, parts)
-                                flat_out.extend(zip(parts, outtyp.flat))
-                            ops.append(_ins("call", actual[0].names, flat_out, function=self.helper(typ, operation)))
-                        else:
-                            _reject("unknown task operation", "E_HIA_OPCODE")
+                    self.lower_task_operation(ins, actual, declared, env, ops, consume, outputs)
                 elif op == "call":
                     _keys(attrs, {"function"}, op)
                     callee = _name(attrs["function"], "callee")
@@ -1125,6 +952,260 @@ class _Elaborator:
                 for typ, origin in zip(self.signatures[fn["name"]][1], self.return_origins[fn["name"]])
                 for _ in typ.flat]
         return lowered
+
+    def lower_task_operation(self, ins, actual, declared, env, ops, consume, outputs):
+        from .hia_task_operations_native import selected_task_operations
+        selected = selected_task_operations()
+        if selected is None:
+            return self._reference_task_operation(ins, actual, declared, env, ops, consume, outputs)
+        def apply(result):
+            self.serial = result.serial
+            ops.extend(result.ops)
+            for item, consumed in result.states:
+                item.consumed = consumed
+            env.update(result.bindings)
+        def helper(typ, operation):
+            name = self.helper(typ, operation)
+            return name, self.serial
+        return selected.lower(ins["op"], ins["args"], ins["attrs"], actual, declared, self.serial,
+            apply=apply, check_task=self.check_task, resolve_type=self.types.resolve,
+            reparse_outputs=lambda: self.parameters(ins["out"]), helper=helper)
+
+    def _reference_task_operation(self, ins, actual, declared, env, ops, consume, outputs):
+        op, args, attrs = ins["op"], ins["args"], ins["attrs"]
+        _keys(attrs, set(), op)
+        if op == "task.create":
+            if len(declared) != 1 or declared[0][1].kind != "task" or len(actual) != 1:
+                _reject("task.create needs state and one task output", "E_HIA_TYPE")
+            out, typ = declared[0]
+            self.check_task(typ)
+            if actual[0].typ != typ.state:
+                _reject("task state type differs from protocol", "E_HIA_TYPE")
+            consume(args[0])
+            tag = self.constant(ops, "u8", 0)
+            token = self.zeros(("buffer",), ops)
+            env[out] = _Value(typ, (tag,) + token + actual[0].names + self.zeros(typ.result.flat, ops))
+        else:
+            if len(actual) != 1 or actual[0].typ.kind != "task":
+                _reject("task operation requires one task", "E_HIA_TYPE")
+            typ = actual[0].typ
+            if op == "task.state":
+                name = outputs(ins, [self.types.resolve("u8")])[0]
+                env[name] = _Value(self.types.resolve("u8"), actual[0].names[:1])
+            elif op in {"task.start", "task.poll", "task.cancel", "task.join", "task.close"}:
+                operation = op[5:]
+                expected = [typ.result] if operation == "join" else [] if operation == "close" else [typ]
+                names = outputs(ins, expected)
+                consume(args[0])
+                flat_out = []
+                for name, outtyp in zip(names, expected):
+                    parts = tuple(self.fresh() for _ in outtyp.flat)
+                    env[name] = _Value(outtyp, parts)
+                    flat_out.extend(zip(parts, outtyp.flat))
+                ops.append(_ins("call", actual[0].names, flat_out, function=self.helper(typ, operation)))
+            else:
+                _reject("unknown task operation", "E_HIA_OPCODE")
+
+    def lower_record_transition(self, ins, actual, declared, env, ops, consume, outputs, record_field, move_field):
+        from .hia_record_transitions_native import selected_record_transitions
+        selected = selected_record_transitions()
+        if selected is None:
+            return self._reference_record_transition(ins, actual, declared, env, ops, consume, outputs, record_field, move_field)
+        lowered = selected.lower(ins["op"], ins["args"], ins["attrs"], actual, declared, self.serial,
+            partial_record=self.types.partial_record, resolve_type=self.types.resolve,
+            reparse_outputs=lambda: self.parameters(ins["out"]))
+        self.serial = lowered.serial
+        ops.extend(lowered.ops)
+        for item, consumed in lowered.states:
+            item.consumed = consumed
+        env.update(lowered.bindings)
+        lowered.admit()
+
+    def _reference_record_transition(self, ins, actual, declared, env, ops, consume, outputs, record_field, move_field):
+        op, args, attrs = ins["op"], ins["args"], ins["attrs"]
+        if op == "record.begin":
+            _keys(attrs, set(), op)
+            if (actual or len(declared) != 1
+                    or declared[0][1].kind != "partial_record"):
+                _reject("record.begin requires one empty partial-record output", "E_HIA_TYPE")
+            out, typ = declared[0]
+            if typ.fields:
+                _reject("record.begin cannot initialize a field", "E_HIA_INIT")
+            env[out] = _Value(typ, self.zeros(("buffer",), ops))
+        elif op == "record.take":
+            _keys(attrs, {"field"}, op)
+            if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
+                _reject("record.take requires one record", "E_HIA_TYPE")
+            item = actual[0]
+            offset, typ = record_field(item, attrs["field"])
+            base = item.typ.record if item.typ.kind == "partial_record" else item.typ
+            remainder = self.types.partial_record(base,
+                [field for field, _ in item.typ.fields if field != attrs["field"]])
+            out, rest = outputs(ins, [typ, remainder])
+            consume(args[0])
+            token = item.names[:1] if item.typ.kind == "partial_record" else self.zeros(("buffer",), ops)
+            selected = item.names[offset:offset + len(typ.flat)]
+            env[out] = _Value(typ, move_field(selected, typ))
+            before = item.names[1:offset] if item.typ.kind == "partial_record" else item.names[:offset]
+            env[rest] = _Value(remainder, token + before + item.names[offset + len(typ.flat):])
+        elif op == "record.insert":
+            _keys(attrs, {"field"}, op)
+            if len(actual) != 2 or actual[0].typ.kind != "partial_record":
+                _reject("record.insert requires partial record and field value", "E_HIA_TYPE")
+            item, supplied = actual
+            _name(attrs["field"], "initialized record field")
+            base = item.typ.record
+            all_fields = dict(base.fields)
+            if attrs["field"] not in all_fields:
+                _reject("unknown nominal field", "E_HIA_TYPE")
+            if attrs["field"] in dict(item.typ.fields):
+                _reject("record field is already initialized", "E_HIA_INIT")
+            if supplied.typ != all_fields[attrs["field"]]:
+                _reject("inserted record field type differs", "E_HIA_TYPE")
+            initialized = set(dict(item.typ.fields)) | {attrs["field"]}
+            typ = self.types.partial_record(base,
+                [field for field, _ in base.fields if field in initialized])
+            out = outputs(ins, [typ])[0]
+            consume(args[0])
+            consume(args[1])
+            fields, offset = {}, 1
+            for field, field_type in item.typ.fields:
+                fields[field] = item.names[offset:offset + len(field_type.flat)]
+                offset += len(field_type.flat)
+            fields[attrs["field"]] = supplied.names
+            env[out] = _Value(typ, item.names[:1] + tuple(
+                name for field, _ in typ.fields for name in fields[field]))
+        elif op == "record.finish":
+            _keys(attrs, set(), op)
+            if len(actual) != 1 or actual[0].typ.kind != "partial_record":
+                _reject("record.finish requires one partial record", "E_HIA_TYPE")
+            item = actual[0]
+            if item.typ.fields != item.typ.record.fields:
+                _reject("record.finish requires every field initialized", "E_HIA_INIT")
+            out = outputs(ins, [item.typ.record])[0]
+            consume(args[0])
+            ops.append(_ins("owner.drop", item.names[:1]))
+            env[out] = _Value(item.typ.record, item.names[1:])
+        elif op == "record.abandon":
+            _keys(attrs, set(), op)
+            if len(actual) != 1 or actual[0].typ.kind != "partial_record":
+                _reject("record.abandon requires one partial record", "E_HIA_TYPE")
+            item = actual[0]
+            if item.typ.fields:
+                _reject("record.abandon requires every field moved out", "E_HIA_INIT")
+            outputs(ins, [])
+            consume(args[0])
+            ops.append(_ins("owner.drop", item.names[:1]))
+        elif op == "record.borrow":
+            # Borrow the *original* primitive field capability. The
+            # aggregate remains live; there is no copied owner or
+            # forged descriptor, and the primitive checker enforces
+            # exclusivity, parent suspension and eventual loan end.
+            _keys(attrs, {"field", "mode"}, op)
+            if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
+                _reject("record.borrow requires a record", "E_HIA_TYPE")
+            if type(attrs["mode"]) is not str or attrs["mode"] not in {"read", "mut"}:
+                _reject("record.borrow mode must be read or mut", "E_HIA_LOAN")
+            offset, typ = record_field(actual[0], attrs["field"])
+            if typ.kind != "primitive" or typ.key not in BYTE_RESOURCES:
+                _reject("record.borrow requires a primitive owner/view field",
+                        "E_HIA_TYPE")
+            loan_type = self.types.resolve("mutbuf" if attrs["mode"] == "mut" else "readbuf")
+            name = outputs(ins, [loan_type])[0]
+            env[name] = _Value(loan_type, (name,))
+            ops.append(_ins("borrow." + attrs["mode"],
+                            [actual[0].names[offset]], [(name, loan_type.key)]))
+
+    def lower_record_operation(self, ins, actual, declared, env, ops, consume, outputs, record_field):
+        from .hia_record_operations_native import selected_record_operations
+        selected = selected_record_operations()
+        if selected is None:
+            return self._reference_record_operation(ins, actual, declared, env, ops, consume, outputs, record_field)
+        lowered = selected.lower(ins["op"], ins["args"], ins["attrs"], actual, declared, self.serial,
+            reparse_outputs=lambda: self.parameters(ins["out"]))
+        self.serial = lowered.serial
+        ops.extend(lowered.ops)
+        for item, consumed in lowered.states:
+            item.consumed = consumed
+        env.update(lowered.bindings)
+        lowered.admit()
+
+    def _reference_record_operation(self, ins, actual, declared, env, ops, consume, outputs, record_field):
+        op, args, attrs = ins["op"], ins["args"], ins["attrs"]
+        if op == "record.make":
+            _keys(attrs, set(), op)
+            if len(declared) != 1 or declared[0][1].kind != "record":
+                _reject("record.make needs one nominal record output", "E_HIA_TYPE")
+            out, typ = declared[0]
+            if tuple(v.typ for v in actual) != tuple(t for _, t in typ.fields):
+                _reject("record fields differ from nominal declaration", "E_HIA_TYPE")
+            for name in args:
+                consume(name)
+            env[out] = _Value(typ, tuple(x for v in actual for x in v.names),
+                              external=all(v.external or not v.typ.linear for v in actual) and not typ.owns)
+        elif op == "record.unpack":
+            _keys(attrs, set(), op)
+            if len(actual) != 1 or actual[0].typ.kind != "record":
+                _reject("record.unpack requires a record", "E_HIA_TYPE")
+            item = actual[0]
+            names = outputs(ins, [t for _, t in item.typ.fields])
+            consume(args[0])
+            offset = 0
+            for name, (_, typ) in zip(names, item.typ.fields):
+                env[name] = _Value(typ, item.names[offset:offset + len(typ.flat)], item.external)
+                offset += len(typ.flat)
+        elif op == "record.get":
+            _keys(attrs, {"field"}, op)
+            if len(actual) != 1 or actual[0].typ.kind not in {"record", "partial_record"}:
+                _reject("record.get requires a record", "E_HIA_TYPE")
+            offset, typ = record_field(actual[0], attrs["field"])
+            if typ.linear:
+                _reject("linear fields require consuming record.unpack/take", "E_HIA_RESOURCE")
+            name = outputs(ins, [typ])[0]
+            env[name] = _Value(typ, actual[0].names[offset:offset + len(typ.flat)])
+
+    def lower_enum_operation(self, ins, actual, declared, env, ops, consume, outputs):
+        from .hia_enum_operations_native import selected_enum_operations
+        selected = selected_enum_operations()
+        if selected is None:
+            return self._reference_enum_operation(ins, actual, declared, env, ops, consume, outputs)
+        lowered = selected.lower(ins["op"], ins["args"], ins["attrs"], actual, declared, self.serial,
+            tag_outputs=lambda: (self.types.resolve("u32"), self.parameters(ins["out"])),
+            tag_binding=lambda: self.types.resolve("u32"))
+        self.serial = lowered.serial
+        ops.extend(lowered.ops)
+        for item, consumed in lowered.states:
+            item.consumed = consumed
+        env.update(lowered.bindings)
+        lowered.admit()
+
+    def _reference_enum_operation(self, ins, actual, declared, env, ops, consume, outputs):
+        op, args, attrs = ins["op"], ins["args"], ins["attrs"]
+        if op == "enum.make":
+            _keys(attrs, {"variant"}, op)
+            if len(declared) != 1 or declared[0][1].kind != "enum":
+                _reject("enum.make needs an enum output", "E_HIA_TYPE")
+            out, typ = declared[0]
+            _name(attrs["variant"], "constructed variant")
+            variants = dict(typ.variants)
+            if attrs["variant"] not in variants or tuple(v.typ for v in actual) != tuple(t for _, t in variants[attrs["variant"]]):
+                _reject("enum payload differs from selected variant", "E_HIA_TYPE")
+            for name in args:
+                consume(name)
+            tag = self.constant(ops, "u32", [v for v, _ in typ.variants].index(attrs["variant"]))
+            flat = [tag]
+            for variant, fields in typ.variants:
+                if variant == attrs["variant"]:
+                    flat.extend(x for v in actual for x in v.names)
+                else:
+                    flat.extend(self.zeros(tuple(p for _, t in fields for p in t.flat), ops))
+            env[out] = _Value(typ, tuple(flat))
+        elif op == "enum.tag":
+            _keys(attrs, set(), op)
+            if len(actual) != 1 or actual[0].typ.kind != "enum":
+                _reject("enum.tag requires an enum", "E_HIA_TYPE")
+            name = outputs(ins, [self.types.resolve("u32")])[0]
+            env[name] = _Value(self.types.resolve("u32"), actual[0].names[:1])
 
     def lower_enum_match(self, term, env, signatures, current, result, value, edge):
         from .hia_enum_match_native import selected_enum_match

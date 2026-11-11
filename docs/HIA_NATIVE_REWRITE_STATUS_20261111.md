@@ -1,3 +1,101 @@
+# Native rewrite execution status — 2026-11-11
+
+The working continuation is [PR #889](https://github.com/TrillionniumFoundation/Hepta/pull/889).
+The complete HIA-native product and deletion of all former production owners
+remain unfinished. The source audit and remaining ownership boundaries are in
+[the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
+inventory, not a native-completion percentage.
+
+## Qualified v64 source
+
+The following results belong to commit
+`f313af44978c4d21e3e59806c6eb8b388109c29d`, source tree
+`b8758007d44cadf204641d825e18b327940fa1fe`, profile
+`selfhost-core-linux-x86_64-v64-native-match-selection-build-custody`.
+They do not qualify subsequent compiler, nominal-operation or retirement changes.
+
+| Observation | Actual result and scope |
+| --- | --- |
+| GitHub PR run `42970506711` | Both source and native jobs passed. The tested merge commit `66d5af7e223a98f8776a49addfd1ea5cbc9da181` was separately checked to have exactly the source tree above. |
+| PR fresh cold replay | All 11 checks passed in 108.772 seconds; 5,049 nested checks and all 38 phase archives completed. Original B1/B2/B3 equality and the modified-source fixed point passed. |
+| PR language controls | 1,242/1,242 checks passed. |
+| PR native unittest groups | 608 executions passed across 18 groups, including 25 release-selection cases. Groups overlap some source controls, so this is not a count of unique product tests. |
+| Local exact-source source controls | 323/323 passed, with no skips or expected failures and unchanged tracked bytes before/after. |
+| Independent `rog` fresh cold | All 11 checks passed in 86.249 seconds, with matching compiler generations. |
+| Independent `rog` complete retained discovery | 4,089/4,089 tests passed in 1,697.631 seconds; zero errors, failures, skips, expected failures or unexpected successes. Source and prerequisite inputs were unchanged. The original 5,400-second outer limit was retained and the owned process-group cleanup completed. |
+
+The complete retained discovery includes its ordinary genuine cold-replay test,
+which passed original and modified fixed-point reconstruction. The external
+runner's `cold_replay_reexecuted: false` means it did not add another standalone
+cold gate before unittest discovery; it does not mean that this retained test
+was removed, mocked or skipped. Every cold execution retains the original
+180-second qualification and separate three-second cleanup limits.
+
+The original full-regression summary SHA-256 is
+`ab415c92c648de480f80c9eb563813819a5b837d46a8c551c96f60bb379754d0`;
+the original unittest result SHA-256 is
+`bd417a477814ab736c12e779e92b7bfbec4df83caa3f7f8badabbd4fee587783`.
+These identities describe the original retained observations, not newly
+constructed substitute receipts.
+
+GitHub's successful native artifact `13834066003` was downloaded and checked:
+59,268,051 bytes, SHA-256
+`032433d4493ad36c33f4b5d3cf9cd4aa5fac036c84afdeca85652144b5a36ffd`.
+It contains the cold and language reports, compiler images, phase archives
+and native release observations. The independent retained-regression archive
+contains selected original reports, logs and the three compiler generations;
+its inventory records preparation command-alias symlinks without following them.
+Generic Cargo build cache is not claimed as retained qualification evidence.
+
+## Failed observations remain failed
+
+The local second cold replay and separate push run `42970496364` each reached
+the unchanged 180-second deadline. They remain failed observations with their
+original logs and cleanup results. Passing PR and independent-host runs do not
+change those outcomes or establish a universal wall-clock bound across hosts.
+
+The original release-selection development candidate accepted surplus empty
+arguments to `status`; a later candidate fixed actual-argument-count admission.
+The first combined selection test run also found an evidence-directory fixture
+collision, which was fixed with separate per-class directories. Original logs
+are retained separately from corrected runs.
+
+Cloud syscall fault injection initially failed at the actual ptrace permission
+boundary. The same development image subsequently passed the ten-case real
+kernel/fault group on `ai395`; current-source CI ran the complete 25-case
+selection group. The permission failure was not counted as a passed or skipped
+native control. Remote preparation's original shared-memory quota failure and
+two later evidence-archive script failures also remain recorded independently
+from the successful qualification they preceded or followed.
+
+## Next source profile
+
+The v65 work adds complete enum construction/tag lowering, ordinary record
+construction/unpacking/projection, partial-record transitions and field borrow,
+all seven ordinary task operations, a retained native retirement policy, and two bounded native compiler traversal
+changes. Its source closure, installed resources, cold replay and affected
+native tests must be qualified together. Development images and the v64 results
+above do not establish that qualification.
+
+Native retirement is an in-process owner of cleanup decisions and state. It
+does not replace the AgentStore journal, the multiversion generation/capacity
+owner, the deployed runtime, or a release-consumer registry. A quarantined
+uncertain resource is not released through a guessed or replayed effect.
+The retirement candidate passed 29 development tests, including a nested
+unchanged 69-test retirement/publication/multiversion suite with hosted policy
+disabled. Independent review passed eleven actual-machine fault and custody
+scenarios. A final test-only opcode tracing adjustment passed its two affected
+controls in a fresh process. Original replay, attachment and interrupted-open
+failures remain preserved. This evidence does not qualify the combined v65
+source or establish durable recovery across process death.
+
+The remaining ordinary CLI, Agent service/journal, compiler profiles and
+deployment owners keep whole-native delivery and old-stack deletion incomplete.
+
+## Earlier retained status entries
+
+The following original entries are retained as historical observations. The current continuation and source identities are stated above.
+
 # HIA native rewrite: current source, implementation and remaining owners
 
 Further continuation is recorded in the

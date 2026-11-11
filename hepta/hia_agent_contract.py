@@ -29,6 +29,7 @@ DISCOVERY_FILES = (
 NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',
+    'examples/hia_bootstrap/retirement_state.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
@@ -54,6 +55,10 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_types.hiaasm',
     'examples/hia_bootstrap/task_helpers.hiaasm',
     'examples/hia_bootstrap/enum_match.hiaasm',
+    'examples/hia_bootstrap/enum_operations.hiaasm',
+    'examples/hia_bootstrap/record_operations.hiaasm',
+    'examples/hia_bootstrap/record_transitions.hiaasm',
+    'examples/hia_bootstrap/task_operations.hiaasm',
 )
 
 

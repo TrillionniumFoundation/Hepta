@@ -774,8 +774,10 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             # Clear only this block's definitions before replay so neither
             # variable() nor loan_live() can observe a future instruction's
             # stale capability. define() keeps its ordinary strict check.
+            # Every usable SSA index was interned densely below name_count.
+            # Entries above it have no definition in this function.
             i = 0
-            while i < 2048:
+            while i < get(w, 480):
                 if get(w, VBASE + i * 16 + 8) == bid + 1:
                     put(w, VBASE + i * 16, 0)
                 i = i + 1
@@ -812,17 +814,22 @@ def check_calls(w:mutbuf) -> u64:
     while step < n:
         f = 0
         while f < n:
-            ready = 1
-            target = 0
-            while target < 128:
-                if byte(w, CBASE + f * 128 + target) != 0:
-                    if target >= n:
-                        return fail(w, 55)
-                    if get(w, CSTATE + target * 8) == 0:
-                        ready = 0
-                target = target + 1
-            if ready == 1:
-                put(w, CSTATE + f * 8, 1)
+            # A ready function has already checked every immutable edge and
+            # all its callees. Readiness is monotonic; the table is cleared
+            # before signature discovery. Unready functions retain the full
+            # edge range check and the original bounded fixed-point order.
+            if get(w, CSTATE + f * 8) == 0:
+                ready = 1
+                target = 0
+                while target < 128:
+                    if byte(w, CBASE + f * 128 + target) != 0:
+                        if target >= n:
+                            return fail(w, 55)
+                        if get(w, CSTATE + target * 8) == 0:
+                            ready = 0
+                    target = target + 1
+                if ready == 1:
+                    put(w, CSTATE + f * 8, 1)
             f = f + 1
         step = step + 1
     f = 0
@@ -1474,7 +1481,7 @@ def loan_access(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0 or get(w, 280) == 0:
         return 0
     i = 0
-    while i < 2048:
+    while i < get(w, 480):
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24 + 8) == v + 1:
             return fail(w, 62)
         i = i + 1
@@ -1525,7 +1532,7 @@ def loan_borrow(w:mutbuf, a:u64, t:u64) -> u64:
         return 0
     i = 0
     root = get(w, CAPBASE + a * 24)
-    while i < 2048:
+    while i < get(w, 480):
         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == root:
             if loan_ancestor(w, i, a) == 0:
                 if t == 7 or get(w, VBASE + i * 16) == 7:
@@ -1638,7 +1645,7 @@ def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     parent = 0
     packed = 0
     origin = 0
-    while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
+    while i < get(w, 480) and (get(w, 280) != 0 or get(w, 352) != 0):
         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
         i = i + 1
@@ -1686,7 +1693,7 @@ def owner_free(w:mutbuf, v:u64) -> u64:
     if get(w, 264) == 0:
         return 0
     i = 0
-    while i < 2048:
+    while i < get(w, 480):
         if i != v and loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == v:
             return fail(w, 62)
         i = i + 1
