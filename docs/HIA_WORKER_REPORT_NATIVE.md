@@ -103,6 +103,15 @@ is not represented as equivalent to successful retained comparison. An
 independent control checks both the public builtin path and this refusal even
 on a runtime where private iteration is available.
 
+The public-iterator change has three focused local controls and nine actual
+CPython 3.14.4 controls using the transferred worker policy/wire images and
+source subset. The latter reused a separate, read-only 416 source tree for
+foreign service/store dependencies; all uploaded pins and that tree's HEAD
+remained unchanged, and the remote job exited 0. This is a portability witness,
+not a complete checkout or installed-wheel qualification on that interpreter.
+Exact logs, uploaded bytes and terminal process receipts are retained under
+`experiments/hia_worker_report_development_20261111/portable-r2`.
+
 The builder's `--development` mode records `DEVELOPMENT_ONLY_NOT_MATCHING_SOURCE_COLD`.
 Production qualification must use `--cold-report` for the current source closure.
 No deployment, default selector activation or deletion of retained owners is part
