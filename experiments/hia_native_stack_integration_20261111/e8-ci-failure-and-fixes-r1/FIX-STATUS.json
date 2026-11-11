@@ -1,0 +1,25 @@
+{
+  "schema": "hia.native-stack-integration-test-fixes-draft.v1",
+  "status": "STATIC_UNPARSED_UNEXECUTED",
+  "base_commit": "e8b5deb277b40ccff8c3375f62b5c132717cdbed",
+  "files": [
+    {
+      "path": "tests/test_hia_agent_installed_resources.py",
+      "bytes": 32488,
+      "sha256": "d44670443b98a8d137accf7dcf279e3794bc3b9f01aa4753b1810ebd6bdf5284"
+    },
+    {
+      "path": "tests/test_hia_selfhost_contract.py",
+      "bytes": 12601,
+      "sha256": "bf9a59eab699974ff1e0426d5e80915c0c0a05412aab11f92b672c26f515ab75"
+    }
+  ],
+  "changes": [
+    "Existing source and installed resource assertions require the ABI plus exactly 32 units from checked_abi/source_names and the actual resource resolver. Ordinary and other bundled bridge checks remain intact; every installed resource byte is still compared with source.",
+    "Existing release assertion checks the exact union of explicit BOOTSTRAP_FILES and automatically discovered production Python against the complete declared contract plus generated contract, covering ABI data under hepta/ and allowing explicit Python overlap."
+  ],
+  "all_original_test_ids_preserved": true,
+  "product_limits_changed": false,
+  "qualification_claimed": false,
+  "workflow_fixture_fixes_pending_from_cold_agent": true
+}
