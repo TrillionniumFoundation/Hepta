@@ -57,6 +57,8 @@ The [pinned helper bundle](docs/HIA_NATIVE_HELPER_WORKER.md) selects existing
 kernels and that journal through ordinary worker callers. Selected
 [execution budgets](docs/HIA_EXECUTION_BUDGET_NATIVE.md) preserve the original
 SQLite accounting and unknown-outcome fencing. Selected
+[candidate attempt budgets](docs/HIA_CANDIDATE_BUDGET_NATIVE.md) preserve the
+original context counter, request replay and committed charges. Selected
 [retirement state](docs/HIA_RETIREMENT_STATE_NATIVE.md) owns release decisions
 while the original process retains actual foreign resources and system calls.
 The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
