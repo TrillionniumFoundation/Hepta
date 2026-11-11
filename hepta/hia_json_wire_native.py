@@ -219,7 +219,12 @@ def _private_zeroed_buffer(size):
 
 
 class WireSession:
-    """Opaque HIA continuation plus protocol transport, independently testable."""
+    """Opaque HIA continuation plus protocol transport, independently testable.
+
+    Each native observation request can invoke its foreign callback once. An
+    observation is consumed before callback entry, including callbacks that
+    raise; terminal or repeated observations never replay a foreign effect.
+    """
     def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
                  float_renderer=None, _renderer_profile=None):
         self.image, self.observer = image, observer
@@ -241,10 +246,14 @@ class WireSession:
         self.packet = struct.pack('<13Q', MAGIC, 0, 0, root, kind, sign, bits, low,
                                   ascii_kind, ascii_value, sort_kind, sort_value, renderer_fact)
         self.finished = False
+        self._observation_pending = False
 
     def step(self, packet=None):
         if self.finished:
             raise RuntimeError('native JSON wire session is terminal')
+        # A new step supersedes the preceding request even if packet transport
+        # itself fails. Only an actual native request enables a callback.
+        self._observation_pending = False
         raw = self.packet if packet is None else packet
         # Exact bytes remain strongly referenced throughout this synchronous
         # call and ctypes transports their address as c_void_p. The verified
@@ -254,11 +263,17 @@ class WireSession:
         source = raw if type(raw) is bytes else ctypes.create_string_buffer(raw, max(1, len(raw)))
         status = self.image._entry(source, len(raw), self.output, self.output_size,
                                    self.workspace, len(self.workspace))
+        self._observation_pending = status == 1
         if status != 1:
             self.finished = True
         return status
 
     def observe(self):
+        if self.finished:
+            raise RuntimeError('native JSON wire session is terminal')
+        if not self._observation_pending:
+            raise RuntimeError('native JSON wire has no unconsumed observation')
+        self._observation_pending = False
         opcode, sequence = struct.unpack_from('<2Q', self.workspace, 8)
         handle, index, count, part = struct.unpack_from('<4Q', self.workspace, 200)
         a = b = c = d = 0
