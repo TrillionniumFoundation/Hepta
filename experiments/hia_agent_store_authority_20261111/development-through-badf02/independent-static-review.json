@@ -1,0 +1,89 @@
+{
+  "candidate_revision": "r4 / HIASTA02 / native schema v2",
+  "examined_findings": [
+    {
+      "area": "get observation order",
+      "finding": "The continuation reobserves row sha256 for selected file read, hosted stable-read argument, and final hash comparison; metadata is read only after byte verification. The three original SHA observations remain separate."
+    },
+    {
+      "area": "foreign binding order",
+      "finding": "The r4 opcodes 63 through 68 bind db.execute, file helper/path, decode_data, reject, and get_json before argument observations at their original expression positions; profile and artifact INSERT bind SQL before row field and wire observations."
+    },
+    {
+      "area": "nested method dispatch",
+      "finding": "The adapter invokes actual store._ref/get/json/get_json rather than inlining subclass methods. Each entry independently selects its authority owner, as the document explicitly states."
+    },
+    {
+      "area": "native publisher",
+      "finding": "The original admission and file operations are foreign calls. HIA decides hash-versus-hosted route, existing-content lookup, receipt comparison, issuance, INSERT, and metadata decoding; a mismatched publication receipt precedes issuance/INSERT."
+    },
+    {
+      "area": "effect lifecycle",
+      "finding": "Pending observation is consumed before callback/SQL. BaseException from observation or entry marks the session terminal; no finally stage emits a result after an effect failure. Malformed/terminal native status closes the exposed session."
+    },
+    {
+      "area": "selection refusal",
+      "finding": "The installed-image loader is called without a catch/fallback branch for a nonempty selected path. Dedicated source/image/missing-path controls are present, but this review did not execute them."
+    }
+  ],
+  "new_blockers_in_examined_declared_scope": [],
+  "observed_utc": "2026-11-11T16:07:22.209922+00:00",
+  "retained_six_method_ast_equal_after_name_normalization": {
+    "check_profile": true,
+    "get": true,
+    "profile": true,
+    "put": true,
+    "ref": true,
+    "resolve_uri": true
+  },
+  "reviewer": "cold_ci_closure",
+  "schema": "hia.agent-store-authority.independent-static-review.v1",
+  "scope": "Read-only source and AST review; no native, Core, SQL or product tests were executed by this reviewer.",
+  "scope_boundaries": [
+    "There is no outer-call ContextVar snapshot. If foreign code changes the selector during a selected operation, a later nested public entry observes the new value and may select its retained owner. This is explicitly declared per-entry selection, not a promise of one immutable owner across the whole outer call.",
+    "keys() field-shape admission, SQLite execution/transactions, hosted immutable-file publication when unselected, codecs/hash owners, UUID, foreign attribute/item dispatch and rich-comparison leaves remain external.",
+    "Shared equality has documented recursive-resource, foreign-key/interpreter, allocation/finalizer and adversarial private-state limitations. No whole-Python-input equivalence is asserted.",
+    "No performance, matching-source cold, full-caller, crash-durability, installed-wheel or native test pass is independently established by this static review."
+  ],
+  "source_files": {
+    "docs/HIA_AGENT_STORE_AUTHORITY_NATIVE.md": {
+      "bytes": 6830,
+      "sha256": "ecc967f034b18a8b95fb97fcf29d3d004405cc81645bf5912667c78a69eb5c27"
+    },
+    "hepta/hia_agent_store.py": {
+      "bytes": 21838,
+      "sha256": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579"
+    },
+    "hepta/hia_agent_store_authority_native.py": {
+      "bytes": 13331,
+      "sha256": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a"
+    },
+    "hepta/hia_json_wire_native.py": {
+      "bytes": 18433,
+      "sha256": "b6034104addb305f30181632284c8eac18ff8871b13c22e18b3bf68ad3638216"
+    },
+    "hepta/hia_worker_report_native.py": {
+      "bytes": 20011,
+      "sha256": "e2f92ad1f15357f9a2c4fa5873d5d5dc301d8b8463cac886c33e8877a0c823cc"
+    },
+    "tests/fixtures/hia_agent_store_f689.py.txt": {
+      "bytes": 20156,
+      "sha256": "043250991c58bedceb670e88e51339323f21f45b725b3df455706fc37d6585e9"
+    },
+    "tests/test_hia_agent_store_authority_native.py": {
+      "bytes": 31014,
+      "sha256": "afcfaa1b5c548866ac7ef7c44a0a71c6f2ce5675a593e49b0440eb6bc7ea326c"
+    },
+    "tools/generate_hia_agent_store_authority.py": {
+      "bytes": 22082,
+      "sha256": "907b7bb7024012e7486d68d3960cb80cff579c06cfce2ed3645428b3bd8e99a8"
+    },
+    "tools/generate_hia_worker_report.py": {
+      "bytes": 31550,
+      "sha256": "61ffcb573c2c316fa2708a593a415dd430af9136ad1f52b00afb0f8782d9ced8"
+    }
+  },
+  "source_modified": false,
+  "source_root": "/tmp/hia-e26e-agent-store-authority-r1/source",
+  "status": "NARROW_STATIC_CLEAR_WITH_DECLARED_BOUNDARIES"
+}

@@ -1,0 +1,97 @@
+{
+  "caller_report_sha256": "552b9e38448e26e8bd280919521f6346874247216fdef4a5c8327a0bb86ee8bf",
+  "caller_status": "FAIL_OR_INCOMPLETE",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "-B",
+    "-m",
+    "tools.qualify_hia_agent_store_authority_callers",
+    "--manifest",
+    "/tmp/hia-e26e-agent-store-authority-r1/initial-development-r4/image/manifest.json",
+    "--development",
+    "--output",
+    "/tmp/hia-e26e-agent-store-authority-r1/original-callers-r1/callers.json",
+    "--evidence-dir",
+    "/tmp/hia-e26e-agent-store-authority-r1/original-callers-r1/fixtures"
+  ],
+  "lifecycle": {
+    "child_enumeration": "bounded proc PPID scan; final kernel waitid ECHILD required",
+    "cleanup": {
+      "attempted": true,
+      "complete": true,
+      "deadline_exceeded": false,
+      "elapsed_ns": 958979,
+      "errors": [],
+      "leader_reaped": true,
+      "observed_echild": true,
+      "remaining_direct_children": [],
+      "started_ns": 14968856365534
+    },
+    "cleanup_seconds": 3,
+    "direct_and_adopted_children": [
+      {
+        "pgid": 3,
+        "pid": 4,
+        "ppid": 3,
+        "sid": 3,
+        "start_ticks": 1488588
+      }
+    ],
+    "event_overflow": false,
+    "events": [
+      {
+        "kind": "qualification_started",
+        "monotonic_ns": 14885885916428,
+        "pid": 4
+      },
+      {
+        "kind": "owned_child_observed",
+        "monotonic_ns": 14885885961807,
+        "pgid": 3,
+        "pid": 4,
+        "ppid": 3,
+        "sid": 3,
+        "start_ticks": 1488588
+      },
+      {
+        "kind": "qualification_exit_observed",
+        "monotonic_ns": 14968856360937,
+        "pid": 4,
+        "si_code": 1,
+        "si_status": 1
+      },
+      {
+        "kind": "owned_child_reaped",
+        "monotonic_ns": 14968856882946,
+        "pid": 4,
+        "returncode": 1,
+        "start_ticks": 1488588
+      }
+    ],
+    "exit_observed_before_deadline": true,
+    "historical_descendant_inventory_complete": false,
+    "implementation_sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+    "interrupted_signals": [],
+    "parent_pid": 2,
+    "platform": "linux",
+    "qualification_pid": 4,
+    "qualification_seconds": 180,
+    "qualification_started": true,
+    "receipt_sha256": "d7bf7ccb017d1f0aed8b20f6b88047c4bfacce959f300bec4dbd2fd2fc82997e",
+    "request_sha256": "69920813b50c831f9f7d0d9a04c8e9ce83fe88cfc2a7fa0212f5a269ab00b03b",
+    "returncode": 1,
+    "schema": "hepta.hia.selfhost-process-owner.v1",
+    "status": "QUALIFICATION_FAILED",
+    "subreaper_enabled": true,
+    "supervisor_pid": 3,
+    "supervisor_returncode": 1,
+    "timed_out": false
+  },
+  "schema": "hepta.hia.agent-store-authority-original-callers-control.v1",
+  "scope": "DEVELOPMENT_ONLY_ORIGINAL_FIVE_MODULES_NO_EXCLUSIONS",
+  "source_commit": "e44cc73692328f5b8ba0999ba8e928cf0e60cefa",
+  "source_tree": "e339434e6c4dc993f5bb8424d86ad58876493fd9",
+  "status": "HOLD",
+  "tests_run": 67,
+  "wall_seconds": 83.03232152199962
+}

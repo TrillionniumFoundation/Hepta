@@ -1,0 +1,912 @@
+{
+  "actual_native_modes": {
+    "check_profile": 2528,
+    "get": 5524,
+    "profile": 526,
+    "put": 2828,
+    "ref": 8353,
+    "resolve_uri": 2
+  },
+  "actual_native_step_returns": {
+    "1": 452229,
+    "2": 19755
+  },
+  "agent_tools_with_native_store": {
+    "hia_adopt": 13,
+    "hia_artifact": 319,
+    "hia_candidate": 82,
+    "hia_context": 66,
+    "hia_describe": 71,
+    "hia_emit": 63,
+    "hia_evaluate": 15,
+    "hia_inspect": 4,
+    "hia_read": 228,
+    "hia_rollback": 6,
+    "hia_verify": 103
+  },
+  "agent_tools_without_native_store": {
+    "hia_adopt": 2,
+    "hia_artifact": 20,
+    "hia_candidate": 3,
+    "hia_context": 2,
+    "hia_describe": 2,
+    "hia_emit": 2,
+    "hia_evaluate": 1,
+    "hia_read": 1,
+    "hia_rollback": 1,
+    "hia_verify": 3
+  },
+  "all_eleven_agent_tools_exercised": true,
+  "all_six_store_modes_entered_native": true,
+  "chosen_test_ids": [
+    "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+    "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+  ],
+  "default_whole_regression_claimed": false,
+  "errors": [],
+  "evidence_dir": "/tmp/hia-e26e-agent-store-authority-r1/original-callers-r2/fixtures",
+  "evidence_dir_retained": true,
+  "executable": "/tmp/hia-e26e-agent-store-authority-r1/venv/bin/python",
+  "executed_test_ids": [
+    "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+    "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+  ],
+  "expected_failures": [],
+  "explicit_development_exclusions": {},
+  "failures": [],
+  "field_shape_codecs_and_unselected_file_publication_remain_independent": true,
+  "image_sha256": "075eb02cd35079ee7bf8dd332582f2172c08c94b1eb1fd1a92acb99b37edfb7e",
+  "independent_uri_control": {
+    "failure": null,
+    "native": {
+      "after": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "before": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "files": {
+        "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b": {
+          "hex": "5552492d636f6e74726f6c00ff",
+          "mode": 256
+        }
+      },
+      "known": {
+        "id": "a-00000000000000000000000000000002",
+        "sha256": "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+        "uri": "hia://artifacts/00000000000000000000000000000003"
+      },
+      "metadata": {
+        "authority": "retained-issuance"
+      },
+      "read_hex": "5552492d636f6e74726f6c00ff",
+      "reference": {
+        "id": "a-00000000000000000000000000000002",
+        "sha256": "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+        "uri": "hia://artifacts/00000000000000000000000000000003"
+      },
+      "reopened": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "sql": [
+        "SELECT * FROM artifacts WHERE content_key='2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0'",
+        "INSERT OR IGNORE INTO artifacts VALUES ('a-00000000000000000000000000000002','5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b','hia://artifacts/00000000000000000000000000000003','data','{\"authority\":\"retained-issuance\"}','2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0')",
+        "SELECT * FROM artifacts WHERE content_key='2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0'",
+        "SELECT * FROM artifacts ORDER BY rowid",
+        "SELECT * FROM artifacts WHERE uri='hia://artifacts/00000000000000000000000000000003'",
+        "SELECT * FROM artifacts WHERE id='a-00000000000000000000000000000002'",
+        "SELECT * FROM artifacts WHERE id='a-00000000000000000000000000000002'",
+        "SELECT * FROM artifacts WHERE uri='never-issued://opaque-value'",
+        "SELECT * FROM artifacts ORDER BY rowid"
+      ],
+      "unknown": {
+        "code": "E_HIA_ARTIFACT_IDENTITY",
+        "message": "resource URI was not issued in this runtime namespace",
+        "phase": "admission",
+        "retry_action": "correct_input"
+      },
+      "uuid_values": [
+        1,
+        2,
+        3
+      ]
+    },
+    "part_of_original_loaded_ids": false,
+    "reference": {
+      "after": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "before": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "files": {
+        "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b": {
+          "hex": "5552492d636f6e74726f6c00ff",
+          "mode": 256
+        }
+      },
+      "known": {
+        "id": "a-00000000000000000000000000000002",
+        "sha256": "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+        "uri": "hia://artifacts/00000000000000000000000000000003"
+      },
+      "metadata": {
+        "authority": "retained-issuance"
+      },
+      "read_hex": "5552492d636f6e74726f6c00ff",
+      "reference": {
+        "id": "a-00000000000000000000000000000002",
+        "sha256": "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+        "uri": "hia://artifacts/00000000000000000000000000000003"
+      },
+      "reopened": [
+        [
+          "a-00000000000000000000000000000002",
+          "5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b",
+          "hia://artifacts/00000000000000000000000000000003",
+          "data",
+          "{\"authority\":\"retained-issuance\"}",
+          "2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0"
+        ]
+      ],
+      "sql": [
+        "SELECT * FROM artifacts WHERE content_key='2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0'",
+        "INSERT OR IGNORE INTO artifacts VALUES ('a-00000000000000000000000000000002','5bb00a5a4f0baf4ca13e65c2015adc15eb59d09c3f8f5e5d7d860f3e34b2c69b','hia://artifacts/00000000000000000000000000000003','data','{\"authority\":\"retained-issuance\"}','2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0')",
+        "SELECT * FROM artifacts WHERE content_key='2086f810f94bce7d0f27b1bd57de7c4e8ead90f95657fe37c51c39c2961e66c0'",
+        "SELECT * FROM artifacts ORDER BY rowid",
+        "SELECT * FROM artifacts WHERE uri='hia://artifacts/00000000000000000000000000000003'",
+        "SELECT * FROM artifacts WHERE id='a-00000000000000000000000000000002'",
+        "SELECT * FROM artifacts WHERE id='a-00000000000000000000000000000002'",
+        "SELECT * FROM artifacts WHERE uri='never-issued://opaque-value'",
+        "SELECT * FROM artifacts ORDER BY rowid"
+      ],
+      "unknown": {
+        "code": "E_HIA_ARTIFACT_IDENTITY",
+        "message": "resource URI was not issued in this runtime namespace",
+        "phase": "admission",
+        "retry_action": "correct_input"
+      },
+      "uuid_values": [
+        1,
+        2,
+        3
+      ]
+    },
+    "status": "PASS"
+  },
+  "loaded_test_ids": [
+    "tests.test_hia_agent_native_tools.AgentStoreDirectoryPermissionTests.test_preexisting_world_writable_artifact_directory_is_rejected",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission",
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected",
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process",
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property",
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source",
+    "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots",
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_cli_requires_explicit_campaign_before_any_transport_or_evidence",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_existing_output_is_preserved_and_refused_before_dispatch",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_invalid_campaign_cannot_start_a_transport_or_use_an_arbitrary_slot",
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute"
+  ],
+  "manifest": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "agent-store-authority.image.bin",
+    "image_sha256": "075eb02cd35079ee7bf8dd332582f2172c08c94b1eb1fd1a92acb99b37edfb7e",
+    "schema": "hepta.hia.agent-store-authority-native.v2",
+    "source_sha256": "1139933d65d9970c69db57c16dc428ed132f14a8eede6b7de493174e5e560241"
+  },
+  "manifest_path": "/tmp/hia-e26e-agent-store-authority-r1/initial-development-r4/image/manifest.json",
+  "matching_cold_source_closure_stable": null,
+  "modules": [
+    "tests.test_hia_agent_native_tools",
+    "tests.test_hia_agent_native_proof_contract",
+    "tests.test_hia_agent_native_lease_snapshot",
+    "tests.test_hia_agent_native_machine_choices",
+    "tests.test_hia_agent_native_campaign"
+  ],
+  "per_test_entries": {
+    "independent-uri-control": {
+      "get": 2,
+      "put": 1,
+      "ref": 4,
+      "resolve_uri": 2
+    },
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_committed_but_lost_reply_retains_original_intent_for_recovery": {
+      "check_profile": 1,
+      "get": 2,
+      "profile": 8,
+      "put": 29,
+      "ref": 31
+    },
+    "tests.test_hia_agent_native_campaign.QualificationCampaignTests.test_two_campaigns_share_store_but_not_slot_and_reconnect_does_not_reexecute": {
+      "check_profile": 272,
+      "get": 762,
+      "profile": 17,
+      "put": 136,
+      "ref": 898
+    },
+    "tests.test_hia_agent_native_lease_snapshot.LeaseSnapshotTests.test_caller_mutation_during_native_call_cannot_relabel_result_or_buffers": {
+      "check_profile": 106,
+      "get": 249,
+      "profile": 8,
+      "put": 64,
+      "ref": 313
+    },
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor": {
+      "check_profile": 71,
+      "get": 151,
+      "profile": 8,
+      "put": 55,
+      "ref": 206
+    },
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout": {
+      "check_profile": 28,
+      "get": 48,
+      "profile": 8,
+      "put": 40,
+      "ref": 88
+    },
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused": {
+      "check_profile": 48,
+      "get": 74,
+      "profile": 8,
+      "put": 40,
+      "ref": 114
+    },
+    "tests.test_hia_agent_native_machine_choices.ExplicitMachineChoicesTests.test_separate_checks_and_assumptions_remain_in_verification_receipt": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 39,
+      "ref": 67
+    },
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor": {
+      "check_profile": 71,
+      "get": 151,
+      "profile": 8,
+      "put": 55,
+      "ref": 206
+    },
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_one_plan_receipt_cannot_authorize_different_layout": {
+      "check_profile": 28,
+      "get": 48,
+      "profile": 8,
+      "put": 40,
+      "ref": 88
+    },
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused": {
+      "check_profile": 48,
+      "get": 74,
+      "profile": 8,
+      "put": 40,
+      "ref": 114
+    },
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_register_lifetimes_are_retained_without_claiming_identical_slots": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 39,
+      "ref": 67
+    },
+    "tests.test_hia_agent_native_machine_choices.ScalarRegisterChoicesTests.test_unknown_value_register_assignment_is_refused_through_domain_tools": {
+      "check_profile": 16,
+      "get": 26,
+      "profile": 8,
+      "put": 36,
+      "ref": 62
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_a_matching_workload_example_does_not_hide_a_counterexample": {
+      "check_profile": 16,
+      "get": 31,
+      "profile": 8,
+      "put": 41,
+      "ref": 72
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_actual_object_encoding_proof_exposes_same_implementation_limit": {
+      "check_profile": 53,
+      "get": 122,
+      "profile": 8,
+      "put": 45,
+      "ref": 167
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_admission_is_self_contained_even_when_detached_from_response": {
+      "check_profile": 16,
+      "get": 33,
+      "profile": 8,
+      "put": 38,
+      "ref": 71
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_legacy_result_cannot_bypass_the_current_output_contract": {
+      "check_profile": 13,
+      "get": 22,
+      "profile": 8,
+      "put": 38,
+      "ref": 60
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_cached_valid_shape_cannot_change_the_retained_checker_conclusion": {
+      "check_profile": 19,
+      "get": 37,
+      "profile": 8,
+      "put": 41,
+      "ref": 78
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_canonical_lowering_unsupported_keeps_explicit_open_obligations": {
+      "check_profile": 20,
+      "get": 36,
+      "profile": 8,
+      "put": 38,
+      "ref": 74
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_reemitted_bytes_are_refuted_without_a_semantic_safety_claim": {
+      "check_profile": 24,
+      "get": 51,
+      "profile": 8,
+      "put": 42,
+      "ref": 93
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_changed_subject_profile_checker_assumptions_and_obligations_are_rejected": {
+      "check_profile": 109,
+      "get": 211,
+      "profile": 8,
+      "put": 50,
+      "ref": 261
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_compositional_proof_names_the_actual_solver_and_excluded_vm_ticks": {
+      "check_profile": 19,
+      "get": 39,
+      "profile": 8,
+      "put": 41,
+      "ref": 80
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_conditional_machine_plan_preserves_scope_at_emission": {
+      "check_profile": 40,
+      "get": 74,
+      "profile": 8,
+      "put": 46,
+      "ref": 120
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_discovery_teaches_scope_before_verification": {
+      "get": 4,
+      "profile": 8,
+      "put": 28,
+      "ref": 32
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_exact_verification_replay_preserves_the_original_scoped_result": {
+      "check_profile": 16,
+      "get": 32,
+      "profile": 8,
+      "put": 38,
+      "ref": 70
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_finite_domain_is_complete_despite_single_case_workload": {
+      "check_profile": 19,
+      "get": 40,
+      "profile": 8,
+      "put": 41,
+      "ref": 81
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_incomplete_reference_enumeration_remains_unknown_with_full_scope": {
+      "check_profile": 19,
+      "get": 39,
+      "profile": 8,
+      "put": 41,
+      "ref": 80
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_missing_scope_fields_and_legacy_receipts_are_rejected_by_emission": {
+      "check_profile": 77,
+      "get": 135,
+      "profile": 8,
+      "put": 46,
+      "ref": 181
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_rebound_assumptions_or_evidence_cannot_be_substituted": {
+      "check_profile": 37,
+      "get": 68,
+      "profile": 8,
+      "put": 46,
+      "ref": 114
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_reflexivity_retains_both_exact_program_references": {
+      "check_profile": 19,
+      "get": 42,
+      "profile": 8,
+      "put": 41,
+      "ref": 83
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_required_acceptance_claims_reject_valid_status_with_missing_scope": {
+      "check_profile": 36,
+      "get": 72,
+      "profile": 8,
+      "put": 46,
+      "ref": 118
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_turn_unsupported_lowering_into_a_proof": {
+      "check_profile": 25,
+      "get": 44,
+      "profile": 8,
+      "put": 40,
+      "ref": 84
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_restamping_metadata_cannot_upgrade_incomplete_evidence": {
+      "check_profile": 24,
+      "get": 47,
+      "profile": 8,
+      "put": 43,
+      "ref": 90
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_unsupported_scope_cannot_satisfy_a_required_lowering_property": {
+      "check_profile": 38,
+      "get": 68,
+      "profile": 8,
+      "put": 44,
+      "ref": 112
+    },
+    "tests.test_hia_agent_native_proof_contract.ProofContractTests.test_verification_replay_rejects_changed_installed_checker_source": {
+      "check_profile": 13,
+      "get": 22,
+      "profile": 8,
+      "put": 38,
+      "ref": 60
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_discovery_is_readable_and_source_bound": {
+      "get": 34,
+      "profile": 14,
+      "put": 34,
+      "ref": 68
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_exact_request_replay_survives_restart_and_changed_body_rejects": {
+      "check_profile": 1,
+      "get": 29,
+      "profile": 15,
+      "put": 56,
+      "ref": 85
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_file_capture_enforces_roots_regular_identity_and_expected_hash": {
+      "check_profile": 5,
+      "get": 7,
+      "profile": 8,
+      "put": 29,
+      "ref": 36
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_high_escape_pages_obey_serialized_response_bound": {
+      "check_profile": 1,
+      "get": 7,
+      "profile": 8,
+      "put": 29,
+      "ref": 36
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_issued_reference_fields_and_actual_bytes_are_verified": {
+      "check_profile": 1,
+      "get": 5,
+      "profile": 8,
+      "put": 29,
+      "ref": 34
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_process_killed_after_effect_leaves_unknown_intent_and_never_replays": {
+      "get": 2,
+      "profile": 8,
+      "put": 28,
+      "ref": 30
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_unknown_fields_stale_catalog_and_profile_do_not_gain_admission": {
+      "check_profile": 1,
+      "get": 1,
+      "profile": 8,
+      "put": 28,
+      "ref": 29
+    },
+    "tests.test_hia_agent_native_tools.ArtifactContractTests.test_utf8_pagination_preserves_bytes_and_rejects_cross_artifact_cursor": {
+      "check_profile": 2,
+      "get": 23,
+      "profile": 8,
+      "put": 30,
+      "ref": 53
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_allocation_resource_trace_difference_is_not_value_equivalence": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 41,
+      "ref": 69
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_changed_cfg_and_alpha_names_do_not_implicitly_expand_validator_domain": {
+      "check_profile": 19,
+      "get": 33,
+      "profile": 8,
+      "put": 42,
+      "ref": 75
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_encoding_receipt_for_another_candidate_does_not_authorize_evaluation": {
+      "check_profile": 79,
+      "get": 169,
+      "profile": 8,
+      "put": 62,
+      "ref": 231
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_equivalence_search_uses_remaining_frozen_context_budget": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 41,
+      "ref": 69
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_invalid_candidate_is_repaired_with_an_explicit_new_request": {
+      "check_profile": 16,
+      "get": 27,
+      "profile": 8,
+      "put": 39,
+      "ref": 66
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_matching_return_values_do_not_hide_different_first_trap": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 41,
+      "ref": 69
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_patch_binds_canonical_base_and_whole_candidate_is_rechecked": {
+      "check_profile": 13,
+      "get": 26,
+      "profile": 8,
+      "put": 38,
+      "ref": 64
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_stale_context_and_foreign_validation_profile_are_rejected": {
+      "check_profile": 13,
+      "get": 20,
+      "profile": 8,
+      "put": 35,
+      "ref": 55
+    },
+    "tests.test_hia_agent_native_tools.CandidateAndVerificationTests.test_unknown_or_refuted_equivalence_cannot_be_reported_as_core_admission": {
+      "check_profile": 16,
+      "get": 28,
+      "profile": 8,
+      "put": 43,
+      "ref": 71
+    },
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_explicit_layout_changes_bytes_preserves_observations_and_core_anchor": {
+      "check_profile": 71,
+      "get": 151,
+      "profile": 8,
+      "put": 55,
+      "ref": 206
+    },
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_one_plan_receipt_cannot_authorize_different_layout": {
+      "check_profile": 28,
+      "get": 48,
+      "profile": 8,
+      "put": 40,
+      "ref": 88
+    },
+    "tests.test_hia_agent_native_tools.MachinePlanTests.test_plan_with_duplicate_missing_unknown_blocks_and_machine_bytes_is_refused": {
+      "check_profile": 48,
+      "get": 74,
+      "profile": 8,
+      "put": 40,
+      "ref": 114
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_all_eleven_tools_and_full_u8_native_workload": {
+      "check_profile": 129,
+      "get": 333,
+      "profile": 8,
+      "put": 67,
+      "ref": 400
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner": {
+      "check_profile": 56,
+      "get": 109,
+      "profile": 8,
+      "put": 58,
+      "ref": 167
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_fresh_context_can_advance_existing_slot_and_stale_error_is_readable": {
+      "check_profile": 200,
+      "get": 488,
+      "profile": 8,
+      "put": 81,
+      "ref": 569
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable": {
+      "check_profile": 96,
+      "get": 219,
+      "profile": 8,
+      "put": 61,
+      "ref": 280
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_published_version_lease_survives_rollback_and_release_is_checked": {
+      "check_profile": 116,
+      "get": 265,
+      "profile": 8,
+      "put": 63,
+      "ref": 328
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_real_native_wrong_answer_is_incorrect_and_cannot_be_adopted": {
+      "check_profile": 96,
+      "get": 219,
+      "profile": 8,
+      "put": 61,
+      "ref": 280
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline": {
+      "check_profile": 77,
+      "get": 172,
+      "profile": 8,
+      "put": 61,
+      "ref": 233
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_tool_object_emission_needs_no_llvm_import_or_external_process": {
+      "check_profile": 14,
+      "get": 24,
+      "profile": 8,
+      "put": 38,
+      "ref": 62
+    },
+    "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_u64_generation_boundary_rejects_out_of_range_strings": {
+      "check_profile": 9,
+      "get": 15,
+      "profile": 8,
+      "put": 32,
+      "ref": 47
+    }
+  },
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "retained_owner_entries": [],
+  "retained_owner_forbidden": true,
+  "schema": "hepta.hia.agent-store-authority-selected-callers.v1",
+  "scope": "DEVELOPMENT_SELECTED_CALLERS_NOT_COLD_QUALIFICATION",
+  "skipped": [],
+  "source_after_sha256": {
+    "examples/hia_bootstrap/agent_store_authority.hiaasm": "1139933d65d9970c69db57c16dc428ed132f14a8eede6b7de493174e5e560241",
+    "hepta/hia_agent_store.py": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+    "hepta/hia_agent_store_authority_native.py": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a",
+    "hepta/hia_json_wire_native.py": "b6034104addb305f30181632284c8eac18ff8871b13c22e18b3bf68ad3638216",
+    "hepta/hia_worker_report_native.py": "e2f92ad1f15357f9a2c4fa5873d5d5dc301d8b8463cac886c33e8877a0c823cc",
+    "tools/generate_hia_agent_store_authority.py": "907b7bb7024012e7486d68d3960cb80cff579c06cfce2ed3645428b3bd8e99a8",
+    "tools/generate_hia_worker_report.py": "61ffcb573c2c316fa2708a593a415dd430af9136ad1f52b00afb0f8782d9ced8",
+    "tools/qualify_hia_agent_store_authority_callers.py": "47c07f35a4f40c461255488bce452f958816a178111453a01e0b9f1c28305eb9"
+  },
+  "source_manifest": null,
+  "source_manifest_image_stable": true,
+  "source_sha256": {
+    "examples/hia_bootstrap/agent_store_authority.hiaasm": "1139933d65d9970c69db57c16dc428ed132f14a8eede6b7de493174e5e560241",
+    "hepta/hia_agent_store.py": "822a493b7c6096934af384099eaadd5c4467c6d89193dc3f695887aca256e579",
+    "hepta/hia_agent_store_authority_native.py": "d8a565fb52df4c3f14bec06679eebeacf99b3868e6c16e5d05f8ce9c6c1d923a",
+    "hepta/hia_json_wire_native.py": "b6034104addb305f30181632284c8eac18ff8871b13c22e18b3bf68ad3638216",
+    "hepta/hia_worker_report_native.py": "e2f92ad1f15357f9a2c4fa5873d5d5dc301d8b8463cac886c33e8877a0c823cc",
+    "tools/generate_hia_agent_store_authority.py": "907b7bb7024012e7486d68d3960cb80cff579c06cfce2ed3645428b3bd8e99a8",
+    "tools/generate_hia_worker_report.py": "61ffcb573c2c316fa2708a593a415dd430af9136ad1f52b00afb0f8782d9ced8",
+    "tools/qualify_hia_agent_store_authority_callers.py": "47c07f35a4f40c461255488bce452f958816a178111453a01e0b9f1c28305eb9"
+  },
+  "sqlite_durability_replaced": false,
+  "status": "PASS",
+  "subprocess_entries_in_parent_counters": false,
+  "subprocess_environment_is_controlled_by_original_tests": true,
+  "tests_chosen": 67,
+  "tests_loaded": 67,
+  "tests_run": 67,
+  "tools_without_store_operations_do_not_require_a_native_store_entry": true,
+  "unexpected_successes": [],
+  "wall_seconds": 84.2523988360008
+}
