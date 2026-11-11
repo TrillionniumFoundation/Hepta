@@ -342,19 +342,26 @@ class AgentStore:
             );
         """)
         self.database_sidecars = None
-        if budget_admission is not None:
-            # Bind the official WAL namespace before the budget adapter opens
-            # its dedicated connection to this same durable journal.
-            self.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
-            sidecars = {}
-            for suffix in ('-wal', '-shm'):
-                sidecar = Path(str(database) + suffix).lstat()
-                if (not stat.S_ISREG(sidecar.st_mode) or sidecar.st_uid != os.geteuid()
-                        or sidecar.st_mode & 0o022):
-                    reject('E_HIA_STORE', 'journal sidecar must be an owned private ordinary file')
-                sidecars[suffix] = (sidecar.st_dev, sidecar.st_ino)
-            self.database_sidecars = sidecars
-        self.execution_budgets = execution_budget_store(self, budget_admission)
+        try:
+            if budget_admission is not None:
+                # Bind the official WAL namespace before the budget adapter opens
+                # its dedicated connection to this same durable journal.
+                self.db.execute('SELECT name FROM sqlite_master LIMIT 1').fetchone()
+                sidecars = {}
+                for suffix in ('-wal', '-shm'):
+                    sidecar = Path(str(database) + suffix).lstat()
+                    if (not stat.S_ISREG(sidecar.st_mode) or sidecar.st_uid != os.geteuid()
+                            or sidecar.st_mode & 0o022):
+                        reject('E_HIA_STORE', 'journal sidecar must be an owned private ordinary file')
+                    sidecars[suffix] = (sidecar.st_dev, sidecar.st_ino)
+                self.database_sidecars = sidecars
+            self.execution_budgets = execution_budget_store(self, budget_admission)
+        except BaseException as error:
+            try:
+                self.db.close()
+            except BaseException as failure:
+                error.add_note('AgentStore construction cleanup failed: ' + type(failure).__name__)
+            raise
 
     @contextmanager
     def transaction(self):

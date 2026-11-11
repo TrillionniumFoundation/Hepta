@@ -437,6 +437,69 @@ raise SystemExit('process-cut fixture did not reach the actual commit')
             driver.consume(context, 1)
         self.assertEqual(store.db.execute('SELECT attempts FROM contexts WHERE id=?', (context,)).fetchone()[0], 0)
 
+    def test_failed_service_construction_closes_both_actual_sqlite_connections(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta import hia_candidate_budget_native as native
+        root = self.directory()
+        bad_root = root / 'ordinary-file'; bad_root.write_bytes(b'not a directory')
+        original = native.NativeCandidateBudgetStore
+        observed = []
+        def capture(*args, **kwargs):
+            value = original(*args, **kwargs)
+            observed.append(value)
+            return value
+        with self.selected(), patch.object(native, 'NativeCandidateBudgetStore', side_effect=capture):
+            with self.assertRaises(AgentRejected):
+                HIAAgentService(root / 'bad-artifact-root', artifact_roots=(bad_root,))
+            with patch.object(HIAAgentService, '_profiles', side_effect=OSError('injected profile initialization failure')):
+                with self.assertRaisesRegex(OSError, 'profile initialization failure'):
+                    HIAAgentService(root / 'bad-profile')
+        self.assertEqual(len(observed), 2)
+        for owner in observed:
+            self.assertTrue(owner.closed)
+            with self.assertRaises(sqlite3.ProgrammingError):
+                owner.db.execute('SELECT 1')
+            with self.assertRaises(sqlite3.ProgrammingError):
+                owner.store.db.execute('SELECT 1')
+
+    def test_execution_budget_connection_admission_failure_closes_official_connection(self):
+        from hepta import hia_execution_budget_native as native
+        from tools.qualify_hia_selfhost import compile_stage
+        case = self.directory()
+        if self.cold:
+            from tools.build_hia_execution_budget import build
+            manifest = build(case / 'qualified-execution-budget', self.compiler, self.cold)
+        else:
+            image, _receipt = compile_stage(case, 'execution-budget', self.compiler, native.SOURCE.read_bytes())
+            manifest = case / 'execution-manifest.json'
+            manifest.write_text(json.dumps({'schema': native.SCHEMA,
+                'source_sha256': sha256(native.SOURCE.read_bytes()).hexdigest(),
+                'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
+                'compiler_sha256': sha256(self.compiler.read_bytes()).hexdigest()}) + '\n')
+        connections = []
+        original_connect, original_check = sqlite3.connect, native.NativeExecutionBudgetStore.check
+        def connect(*args, **kwargs):
+            connection = original_connect(*args, **kwargs)
+            connections.append(connection)
+            return connection
+        calls = 0
+        def actual_wal_drift(owner):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                wal = Path(str(owner.path) + '-wal')
+                wal.rename(case / 'original-open-wal')
+            return original_check(owner)
+        with patch.dict(os.environ, {native.SELECTOR: str(manifest)}), patch.object(
+                sqlite3, 'connect', side_effect=connect), patch.object(
+                native.NativeExecutionBudgetStore, 'check', actual_wal_drift):
+            with self.assertRaises(FileNotFoundError):
+                AgentStore(case / 'state')
+        self.assertEqual(len(connections), 2)
+        for connection in connections:
+            with self.assertRaises(sqlite3.ProgrammingError):
+                connection.execute('SELECT 1')
+
     def test_installed_sdist_wheel_ordinary_budget_without_authoring_or_reference(self):
         from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, PUBLICATION_BUILD_FILES
         case = self.directory()

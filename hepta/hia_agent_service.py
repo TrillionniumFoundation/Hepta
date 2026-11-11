@@ -87,16 +87,22 @@ class HIAAgentService:
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root)
+        self._candidate_budget = None
         try:
             self._candidate_budget = (NativeCandidateBudgetStore(self.store, candidate_budget_image)
                                       if candidate_budget_image is not None else None)
-        except BaseException:
-            self.store.close()
+            self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
+            if any(not root.is_dir() for root in self.artifact_roots):
+                reject("E_HIA_PROFILE", "configured artifact roots must be directories")
+            self._profiles()
+        except BaseException as error:
+            cleanups = ([self._candidate_budget.close] if self._candidate_budget is not None else [])
+            for cleanup in [*cleanups, self.store.close]:
+                try:
+                    cleanup()
+                except BaseException as failure:
+                    error.add_note('service construction cleanup failed: ' + type(failure).__name__)
             raise
-        self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
-        if any(not root.is_dir() for root in self.artifact_roots):
-            reject("E_HIA_PROFILE", "configured artifact roots must be directories")
-        self._profiles()
 
     def close(self):
         try:

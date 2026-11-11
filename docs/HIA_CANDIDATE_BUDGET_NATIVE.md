@@ -101,6 +101,24 @@ sdist, wheel and installed source identity. The runtime imports no authoring
 tools. The same packaging registration also retains the execution-budget
 dependency's previously omitted sdist source.
 
+Runtime selection retains the project's existing **operator-trusted image**
+boundary. The five-field manifest binds the selected schema, actual source and
+image bytes and records a compiler digest; the runtime does not authenticate a
+cold report or prove that compiler digest came from a qualified build. The
+strict builder is the qualification gate. A correctly formed development
+manifest can be explicitly selected for testing, as this component's native
+fixture does. Runtime hash admission by itself therefore never establishes
+cold qualification, all-input equivalence or production approval.
+
+If later service construction fails while checking artifact roots or installing
+profiles, both the new candidate connection and the original AgentStore are
+explicitly closed. The primary construction error remains the reported error;
+any cleanup error is attached to it, without retrying an uncertain close.
+The dependency's `AgentStore` construction likewise closes its official
+connection if native execution-budget sidecar or connection admission fails.
+The regression changes the actual opened WAL pathname during native connection
+admission and verifies that both real SQLite connections become closed.
+
 The independent Core VM checks full native state/output bytes before the native
 seed. Actual native tests cover the public 4,096 boundary; 261 independent
 count/maximum comparisons against the original SQL; two contending connections;
