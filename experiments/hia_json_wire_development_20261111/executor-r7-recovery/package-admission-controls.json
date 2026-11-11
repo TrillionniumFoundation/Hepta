@@ -1,0 +1,56 @@
+{
+  "schema": "hepta.hia.wire-package-controller-admission-controls.v1",
+  "scope": "ACTUAL_MANIFEST_AND_MATERIALIZED_FILE_INTEGRITY_CONTROLS_NO_NATIVE_PRODUCT_RUN",
+  "controller_sha256": "59936c464d63fcbba0aeb34366791e2ffded2f65082a4c43be5afc5159c16a0d",
+  "source_manifest_sha256": "7a45af0a08d837c3ecba97cd47b54e1a3eb8838c838d03a14a82d58df3e799af",
+  "full_canonical_members_before_after": 1666,
+  "complete_declared_source_count": 661,
+  "cases": [
+    {
+      "case": "exact-member",
+      "accepted": true
+    },
+    {
+      "case": "changed-byte",
+      "accepted": false,
+      "error": "initial materialized source differs from canonical package"
+    },
+    {
+      "case": "changed-mode",
+      "accepted": false,
+      "error": "initial materialized source differs from canonical package"
+    },
+    {
+      "case": "extra-file",
+      "accepted": false,
+      "error": "unexpected source member: extra"
+    },
+    {
+      "case": "missing-file",
+      "accepted": false,
+      "error": "materialized source member set mismatch"
+    },
+    {
+      "case": "linked-file",
+      "accepted": false,
+      "error": "nonregular or hardlinked source member: .gitattributes"
+    },
+    {
+      "case": "hardlinked-file",
+      "accepted": false,
+      "error": "nonregular or hardlinked source member: .gitattributes"
+    },
+    {
+      "case": "extra-directory",
+      "accepted": false,
+      "error": "unexpected or linked source directory: extra"
+    },
+    {
+      "case": "changed-manifest-bytes",
+      "accepted": false,
+      "error": "canonical source manifest pin mismatch"
+    }
+  ],
+  "status": "PASS",
+  "case_count": 9
+}
