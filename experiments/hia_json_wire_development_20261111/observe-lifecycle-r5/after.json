@@ -1,0 +1,124 @@
+{
+  "schema": "hepta.hia.wire-native-observe-lifecycle.v1",
+  "scope": "NEW_ACTUAL_R5_PUBLIC_SESSION_CONTROLS_NOT_R7_NOT_COLD_QUALIFICATION",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+  "manifest": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "json-wire.image.bin",
+    "image_sha256": "46e03185fc7f25771514f41dee552c2fb7106ffbe36ed81d415259cf5ba0f907",
+    "schema": "hepta.hia.json-wire-native.v1",
+    "source_sha256": "a8fca6a58ecaa7e6f4faa0fa6a509ba8fe1748640799b8827a2e0f48ba16c8a9"
+  },
+  "pins_before": {
+    "source": "a8fca6a58ecaa7e6f4faa0fa6a509ba8fe1748640799b8827a2e0f48ba16c8a9",
+    "adapter": "d5e278483a8f19f5a1152502a0a1e46a30511daabbc2fd63a230619001a9ae49",
+    "manifest": "0a135350b2270118ccd0d806fb9851af8fafd0f187fbfcc2be930d8e8b771092",
+    "image": "46e03185fc7f25771514f41dee552c2fb7106ffbe36ed81d415259cf5ba0f907"
+  },
+  "all_pins_unchanged": true,
+  "cases": [
+    {
+      "case": "before-first-native-request",
+      "before": 0,
+      "after": 0,
+      "observation": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "native JSON wire has no unconsumed observation"
+      },
+      "unexpected_callback_replay": false,
+      "events": []
+    },
+    {
+      "case": "repeat-observe-before-reply-consumption",
+      "before": 1,
+      "after": 1,
+      "first": {
+        "kind": "returned",
+        "packet_hex": "4849415749523032010000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "observation": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "native JSON wire has no unconsumed observation"
+      },
+      "unexpected_callback_replay": false,
+      "events": [
+        {
+          "operation": "summary",
+          "handle": 1
+        }
+      ]
+    },
+    {
+      "case": "observe-after-terminal-bad-sequence",
+      "terminal_status": 199,
+      "finished": true,
+      "before": 1,
+      "after": 1,
+      "observation": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "native JSON wire session is terminal"
+      },
+      "unexpected_callback_replay": false,
+      "events": [
+        {
+          "operation": "summary",
+          "handle": 1
+        }
+      ]
+    },
+    {
+      "case": "repeat-observe-after-foreign-exception",
+      "before": 1,
+      "after": 1,
+      "first": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "intentional foreign summary failure"
+      },
+      "observation": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "native JSON wire has no unconsumed observation"
+      },
+      "unexpected_callback_replay": false,
+      "events": [
+        {
+          "operation": "summary",
+          "handle": 1
+        }
+      ]
+    },
+    {
+      "case": "observe-after-successful-completion",
+      "wire_hex": "6e756c6c",
+      "finished": true,
+      "before": 2,
+      "after": 2,
+      "observation": {
+        "kind": "raised",
+        "type": "RuntimeError",
+        "message": "native JSON wire session is terminal"
+      },
+      "unexpected_callback_replay": false,
+      "events": [
+        {
+          "operation": "summary",
+          "handle": 1
+        },
+        {
+          "operation": "summary",
+          "handle": 1
+        }
+      ]
+    }
+  ],
+  "case_count": 5,
+  "replayed_cases": [],
+  "status": "NO_REPLAY_IN_FIVE_CONTROLS",
+  "wall_seconds": 0.0007391080007437267,
+  "old_local_r7_session_96283": "UNKNOWN"
+}

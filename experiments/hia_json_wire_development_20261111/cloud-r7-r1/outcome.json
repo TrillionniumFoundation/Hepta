@@ -1,0 +1,152 @@
+{
+  "schema": "hepta.hia.wire-r7-cloud-development-outcome.v1",
+  "scope": "NEW_CLOUD_CPYTHON312_DEVELOPMENT_NOT_OLD_LOCAL_SESSION_NOT_DESKTOP_NOT_COLD",
+  "status": "HOLD",
+  "guardian_status": "HOLD",
+  "guardian_lifecycle_status": "QUALIFICATION_FAILED",
+  "returncode": 1,
+  "cleanup": {
+    "attempted": true,
+    "complete": true,
+    "deadline_exceeded": false,
+    "elapsed_ns": 706167,
+    "errors": [],
+    "leader_reaped": true,
+    "observed_echild": true,
+    "remaining_direct_children": [],
+    "started_ns": 6430334542676
+  },
+  "event_overflow": false,
+  "owned_child_sigkill": [],
+  "guardian_input_identity_preserved": true,
+  "inner_status": "HOLD",
+  "inner_exception": {
+    "message": "original-budgets failed; no retry or threshold change",
+    "trace": "Traceback (most recent call last):\n  File \"/tmp/hia-wire-e26e-r7-local-r1/control/run_wire_r7_development_package_r2.py\", line 373, in main\n    run(\"original-budgets\", [sys.executable, \"-B\", str(historical / \"wire-entry-budget-recheck.py\"),\n  File \"/tmp/hia-wire-e26e-r7-local-r1/control/run_wire_r7_development_package_r2.py\", line 234, in run\n    require(not item[\"wrapper_timed_out\"] and item[\"returncode\"] == 0,\n  File \"/tmp/hia-wire-e26e-r7-local-r1/control/run_wire_r7_development_package_r2.py\", line 61, in require\n    raise RuntimeError(message)\nRuntimeError: original-budgets failed; no retry or threshold change\n",
+    "type": "RuntimeError"
+  },
+  "steps": [
+    {
+      "name": "generate",
+      "returncode": 0,
+      "wall_seconds": 1.519462910000584,
+      "wrapper_timed_out": false
+    },
+    {
+      "name": "compile-development",
+      "returncode": 0,
+      "wall_seconds": 0.7209006769999178,
+      "wrapper_timed_out": false
+    },
+    {
+      "name": "core-controls",
+      "returncode": 0,
+      "wall_seconds": 9.763110010999299,
+      "wrapper_timed_out": false
+    },
+    {
+      "name": "packet-comparison",
+      "returncode": 0,
+      "wall_seconds": 0.11451584399947023,
+      "wrapper_timed_out": false
+    },
+    {
+      "name": "original-budgets",
+      "returncode": 1,
+      "wall_seconds": 21.293012428999646,
+      "wrapper_timed_out": false
+    }
+  ],
+  "candidate_source_sha256": {
+    "examples/hia_bootstrap/json_wire.hiaasm": "08e8e2c3f41fbd4a61380435bb476e2c0caafc1c02f228f574f14bf419c87d35",
+    "tests/test_hia_json_wire_native.py": "32590845dc0db21fde5874a782205b68ee839f745bb5703c6163f9bb9aacb2c6",
+    "tools/generate_hia_json_wire.py": "aa2abd140d0237048531c89206c3d079266caf2b9213a44bd051efb3f2307118"
+  },
+  "development_manifest": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "json-wire.image.bin",
+    "image_sha256": "353e1d1da14b5c323d6ff7fe7af1e2c5d9dc7f3fd02d0b51e61c244563b7251d",
+    "schema": "hepta.hia.json-wire-native.v1",
+    "source_sha256": "08e8e2c3f41fbd4a61380435bb476e2c0caafc1c02f228f574f14bf419c87d35"
+  },
+  "candidate_source_stable_at_end": true,
+  "core": {
+    "status": "PASS",
+    "tests_run": 3,
+    "loaded_test_ids": [
+      "tests.test_hia_json_wire_native.WireSourceTests.test_generated_source_and_lazy_exact_type_observer",
+      "tests.test_hia_json_wire_native.WireSourceTests.test_word_helpers_preserve_bounds_and_partial_byte_stores",
+      "tests.test_hia_json_wire_native.WireSourceTests.test_inlined_field_stores_keep_evaluation_and_partial_write_order"
+    ],
+    "executed_test_ids": [
+      "tests.test_hia_json_wire_native.WireSourceTests.test_generated_source_and_lazy_exact_type_observer",
+      "tests.test_hia_json_wire_native.WireSourceTests.test_word_helpers_preserve_bounds_and_partial_byte_stores",
+      "tests.test_hia_json_wire_native.WireSourceTests.test_inlined_field_stores_keep_evaluation_and_partial_write_order"
+    ]
+  },
+  "packets": {
+    "status": "PASS",
+    "cases_run": 19,
+    "steps": 228
+  },
+  "budgets": {
+    "errors": [],
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "executed_test_ids": [
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline"
+    ],
+    "expected_failures": [],
+    "failures": [
+      {
+        "test": "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+        "trace": "Traceback (most recent call last):\n  File \"/tmp/hia-wire-e26e-r7-local-r1/source/tests/test_hia_agent_native_tools.py\", line 571, in test_native_timeout_is_incomplete_terminated_and_not_adoptable\n    self.assertLess(time.monotonic() - started, 5)\nAssertionError: 7.024678764999408 not less than 5\n"
+      }
+    ],
+    "host_encoder_entries": [],
+    "loaded_test_ids": [
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable",
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline"
+    ],
+    "manifest": {
+      "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "image_path": "json-wire.image.bin",
+      "image_sha256": "353e1d1da14b5c323d6ff7fe7af1e2c5d9dc7f3fd02d0b51e61c244563b7251d",
+      "schema": "hepta.hia.json-wire-native.v1",
+      "source_sha256": "08e8e2c3f41fbd4a61380435bb476e2c0caafc1c02f228f574f14bf419c87d35"
+    },
+    "manifest_path": "/tmp/hia-wire-e26e-r7-local-r1/evidence/wire/manifest.json",
+    "native_return_counts": {
+      "1": 1142770,
+      "2": 7458
+    },
+    "original_budget_and_assertions_unchanged": true,
+    "per_test_native_wire_calls": {
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_expired_evaluation_is_rejected_before_any_reference_or_native_runner": 2761,
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_native_timeout_is_incomplete_terminated_and_not_adoptable": 3879,
+      "tests.test_hia_agent_native_tools.NativeLifecycleTests.test_reference_loop_cannot_restart_or_overrun_frozen_context_deadline": 818
+    },
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "retained_owner_entries": [],
+    "schema": "hepta.hia.json-wire-original-budget-recheck.v1",
+    "scope": "DEVELOPMENT_FOCUSED_ORIGINAL_TESTS_NOT_COLD_QUALIFICATION",
+    "skipped": [],
+    "source_sha256": {
+      "examples/hia_bootstrap/json_wire.hiaasm": "08e8e2c3f41fbd4a61380435bb476e2c0caafc1c02f228f574f14bf419c87d35",
+      "hepta/hia_agent_store.py": "043250991c58bedceb670e88e51339323f21f45b725b3df455706fc37d6585e9",
+      "hepta/hia_json_wire_native.py": "1404d8b7bb7dd0c138e4ad64f9901f8cb6ecc613dd8652872589d387f57bdcf8",
+      "hepta/hia_program_tools.py": "953bcc57375f34210c319852091ce5a3a5a1479a723e388a4c989898911bf99c",
+      "tests/test_hia_agent_native_tools.py": "fe9f54d7132432bc7514ee58451111897ac06907f44e724c502f51028da5d901"
+    },
+    "source_stable": true,
+    "status": "FAIL",
+    "tests_run": 3,
+    "unexpected_successes": [],
+    "wall_seconds": 21.049993057000393,
+    "whole_89_qualification_claimed": false
+  },
+  "old_local_session_96283": "UNKNOWN",
+  "no_retry_performed": true
+}

@@ -20,6 +20,8 @@ SOURCE = _source_resource_path('examples/hia_bootstrap/json_wire.hiaasm')
 SCHEMA = 'hepta.hia.json-wire-native.v1'
 SELECTOR = 'HEPTA_HIA_JSON_WIRE_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
+CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
+KEY_CACHE_BYTES = 1024 * 160
 MAXIMUM = 8 << 20
 NONE, BOOL, INT, FLOAT, STRING, LIST, TUPLE, DICT, OPAQUE = range(9)
 SUMMARY, CHILD, POINTS, LIMBS, DIGIT_LIMIT, FORMAT_FLOAT = range(1, 7)
@@ -34,6 +36,7 @@ ORDINARY_PROFILE = {
     'arbitrary_renderer_callbacks': 'explicit_native_profile_refusal',
     'unselected_owner': 'retained_reference',
     'entire_python_call_domain_replaced': False,
+    'immutable_key_cache': 'HIAWIR03_only_for_fresh_stable_builtin_observer_without_renderer',
 }
 
 REASONS = {
@@ -170,7 +173,47 @@ class ForeignGraphObserver:
         return struct.unpack_from('<' + 'I' * count, raw, start * 4)
 
 
-def buffer_sizes(maximum):
+_BUILTIN_OBSERVER_CLASS = ForeignGraphObserver
+_BUILTIN_OBSERVER_METHODS = {
+    name: (getattr(ForeignGraphObserver, name), getattr(ForeignGraphObserver, name).__code__)
+    for name in ('__init__', 'register', 'value', 'summary', 'child', 'points', 'limbs')
+}
+_BUILTIN_DIGIT_LIMIT = sys.get_int_max_str_digits
+
+
+def _immutable_key_capability(observer, renderer):
+    """Observe a narrow, stable builtin transport capability; do not walk data.
+
+    The ordinary entry creates this observer immediately before the session.
+    Exact builtin strings cannot change after HIA admits their codepoints.
+    Custom/virtual observers, replaced methods or instance fields, and every
+    explicit renderer stay on the original uncached observation protocol.
+    The capability assumes no asynchronous mutation of the interpreter's
+    transport definitions during one synchronous session.
+    """
+    if (renderer is not None or ForeignGraphObserver is not _BUILTIN_OBSERVER_CLASS
+            or type(observer) is not _BUILTIN_OBSERVER_CLASS
+            or sys.get_int_max_str_digits is not _BUILTIN_DIGIT_LIMIT):
+        return False
+    methods = type.__getattribute__(_BUILTIN_OBSERVER_CLASS, '__dict__')
+    if any(name in methods for name in ('__new__', '__getattribute__', '__getattr__')):
+        return False
+    for name, (method, code) in _BUILTIN_OBSERVER_METHODS.items():
+        if methods.get(name) is not method or method.__code__ is not code:
+            return False
+    fields = object.__getattribute__(observer, '__dict__')
+    # Check exact string keys before set/dict membership, so even an explicitly
+    # supplied low-level instance cannot add a key with an equality/hash hook.
+    keys = tuple(fields)
+    if any(type(key) is not str for key in keys):
+        return False
+    expected = {'_objects', '_identities', '_dict_cursors', '_magnitudes'}
+    if set(keys) != expected or any(type(fields[name]) is not dict for name in expected):
+        return False
+    return True
+
+
+def buffer_sizes(maximum, *, key_cache=False):
     """Physical allocation mirrors the published ABI; HIA admits the budget."""
     physical = maximum if type(maximum) is int and 0 <= maximum <= MAXIMUM else 0
     budget = min(physical, 262144)
@@ -179,6 +222,8 @@ def buffer_sizes(maximum):
         slots *= 2
     size = (32768 + (budget + 130) * 24 + budget * 64 + slots * 8
             + (physical + 64) * 2 + ((physical * 4 + 31) // 32) * 4 + 64 + 8192)
+    if key_cache is True:
+        size += KEY_CACHE_BYTES
     return physical, size
 
 
@@ -221,10 +266,12 @@ def _private_zeroed_buffer(size):
 class WireSession:
     """Opaque HIA continuation plus protocol transport, independently testable."""
     def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
-                 float_renderer=None, _renderer_profile=None):
+                 float_renderer=None, _renderer_profile=None, _builtin_keys=False):
         self.image, self.observer = image, observer
         self.float_renderer = float_renderer
-        output_size, workspace_size = buffer_sizes(maximum)
+        self.key_cache = _builtin_keys is True and _immutable_key_capability(observer, float_renderer)
+        self._protocol_magic = CACHED_MAGIC if self.key_cache else MAGIC
+        output_size, workspace_size = buffer_sizes(maximum, key_cache=self.key_cache)
         self.output_size = output_size
         self.output = _private_zeroed_buffer(max(1, output_size))
         self.workspace = _private_zeroed_buffer(workspace_size)
@@ -238,13 +285,19 @@ class WireSession:
         ascii_kind, ascii_value = _flag_fact(ensure_ascii)
         sort_kind, sort_value = _flag_fact(sort_keys)
         renderer_fact = int(float_renderer is not None) if _renderer_profile is None else _renderer_profile
-        self.packet = struct.pack('<13Q', MAGIC, 0, 0, root, kind, sign, bits, low,
+        self.packet = struct.pack('<13Q', self._protocol_magic, 0, 0, root, kind, sign, bits, low,
                                   ascii_kind, ascii_value, sort_kind, sort_value, renderer_fact)
+        if self.key_cache:
+            self.packet += struct.pack('<Q', 1)
         self.finished = False
+        self._observation_pending = False
 
     def step(self, packet=None):
         if self.finished:
             raise RuntimeError('native JSON wire session is terminal')
+        # A new step supersedes the preceding request even if packet transport
+        # itself fails. Only an actual native request enables a callback.
+        self._observation_pending = False
         raw = self.packet if packet is None else packet
         # Exact bytes remain strongly referenced throughout this synchronous
         # call and ctypes transports their address as c_void_p. The verified
@@ -254,11 +307,17 @@ class WireSession:
         source = raw if type(raw) is bytes else ctypes.create_string_buffer(raw, max(1, len(raw)))
         status = self.image._entry(source, len(raw), self.output, self.output_size,
                                    self.workspace, len(self.workspace))
+        self._observation_pending = status == 1
         if status != 1:
             self.finished = True
         return status
 
     def observe(self):
+        if self.finished:
+            raise RuntimeError('native JSON wire session is terminal')
+        if not self._observation_pending:
+            raise RuntimeError('native JSON wire has no unconsumed observation')
+        self._observation_pending = False
         opcode, sequence = struct.unpack_from('<2Q', self.workspace, 8)
         handle, index, count, part = struct.unpack_from('<4Q', self.workspace, 200)
         a = b = c = d = 0
@@ -283,7 +342,7 @@ class WireSession:
             a = len(payload)
         else:
             raise RuntimeError('native JSON wire requested an unknown observation')
-        self.packet = struct.pack('<7Q', MAGIC, sequence, opcode, a, b, c, d) + payload
+        self.packet = struct.pack('<7Q', self._protocol_magic, sequence, opcode, a, b, c, d) + payload
         return self.packet
 
     def run(self):
@@ -326,7 +385,8 @@ class NativeJsonWire(NativeHiaJsonImage):
                    1 if type(float_renderer) is SelectedBinary64Renderer else 2)
         return WireSession(self, observer, observer.register(value), maximum,
                            ensure_ascii=ensure_ascii, sort_keys=sort_keys,
-                           float_renderer=float_renderer, _renderer_profile=profile).run()
+                           float_renderer=float_renderer, _renderer_profile=profile,
+                           _builtin_keys=True).run()
 
 
 def installed_json_wire(path):

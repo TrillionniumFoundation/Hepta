@@ -14,12 +14,16 @@ language semantics, ordinary callers, installation and recovery.
 
 ## Current continuation status
 
-The current v66 candidate adds the native foreign-graph wire, worker control and
-report owner, machine-plan validator/witness and linked qualification observer.
-Their exact responsibilities, development evidence, unresolved compatibility
-boundaries and remaining product owners are recorded in the
-[current status ledger](HIA_NATIVE_REWRITE_STATUS_20261111.md#current-v66-candidate-and-exact-v65-outcomes).
-All historical results below retain their original source identity.
+The current v67 integration adds native ordinary CLI control/presentation,
+instruction-byte encoding and bounded immutable wire-key caching to the v66
+wire, worker, plan and linked-observer owners. Their exact responsibilities,
+actual installed/development results, original d2/6e CI failures and remaining
+production owners are in the
+[current status ledger](HIA_NATIVE_REWRITE_STATUS_20261111.md#current-v67-integration-and-exact-source-results).
+The CLI's 15 business bodies, backend mutable state/object pipeline, AgentStore
+SQL/service authority, build/recovery and deployed Rust owner remain hosted.
+The current integration requires its own unchanged cold and full qualification;
+all historical results below retain their original source identity.
 
 Frozen combined v65 commit `4161e8d12d87906fde144f039da07908ad52d98a`
 passed its GitHub push HIA workflow, including a 144.808616222-second cold run.

@@ -108,6 +108,79 @@ class WireSourceTests(unittest.TestCase):
                             expected_bytes[offset:offset + available] = value.to_bytes(8, 'little')[:available]
                         self.assertEqual(owner.data, expected_bytes)
 
+    def test_inlined_field_stores_keep_evaluation_and_partial_write_order(self):
+        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_program_runtime import HIAProgramTrap, _Machine, _Owner, _View
+        from tools.generate_hia_json_wire import source_program
+        program = assemble_program(SOURCE.read_bytes())
+        names = {node.name: 'f' + str(index)
+                 for index, node in enumerate(ast.parse(source_program()).body)}
+        functions = {fn['name']: fn for fn in program.as_dict()['functions']}
+        mask = (1 << 64) - 1
+
+        def read(data, offset):
+            if offset > len(data) or len(data) - offset < 8:
+                raise IndexError
+            return int.from_bytes(data[offset:offset + 8], 'little')
+
+        def write(data, offset, value):
+            for index, byte in enumerate((value & mask).to_bytes(8, 'little')):
+                data[offset + index] = byte
+
+        def check(name, initial, output, scalars, operation):
+            expected, expected_output = bytearray(initial), bytearray(output)
+            try:
+                returned = operation(expected, expected_output)
+                trapped = False
+            except (IndexError, OverflowError):
+                trapped = True
+            owner, out = _Owner(-1, bytearray(initial)), _Owner(-2, bytearray(output))
+            args = ([_View(out, True), _View(owner, True)] if name == 'emit'
+                    else [_View(owner, True)]) + scalars
+            machine = _Machine(program, 100000, 64 << 20, None, 128)
+            if trapped:
+                with self.assertRaises(HIAProgramTrap) as caught:
+                    machine.invoke(functions[names[name]], args)
+                self.assertEqual(caught.exception.code, 'bounds')
+            else:
+                self.assertEqual(machine.invoke(functions[names[name]], args), [returned])
+            self.assertEqual(owner.data, expected)
+            self.assertEqual(out.data, expected_output)
+
+        for length in (0, 15, 16, 23, 24, 25, 31, 32, 199, 200, 207,
+                       208, 215, 216, 223, 224, 231, 232, 512):
+            def request(data, output):
+                sequence = (read(data, 16) + 1) & mask
+                for offset, value in ((16, sequence), (8, 7), (200, 11),
+                                      (208, 13), (216, 17), (224, 19), (24, 31)):
+                    write(data, offset, value)
+                return 1
+            with self.subTest(helper='ask', length=length):
+                check('ask', b'\xff' * length, b'', [7, 11, 13, 17, 19, 31], request)
+
+        for name, lengths in (('text_byte', (0, 39, 40, 471, 472, 479, 480, 487, 488, 512)),
+                              ('emit', (0, 39, 40, 111, 112, 119, 120, 512))):
+            for length in lengths:
+                for count in (0, 2, mask):
+                    for target in (0, max(0, length - 1), length, mask):
+                        initial = bytearray(b'\xa5' * length)
+                        for offset, value in ((32, 2), (112 if name == 'emit' else 472, count),
+                                              (480, target)):
+                            if offset + 8 <= length:
+                                write(initial, offset, value)
+                        def append(data, output):
+                            offset = 112 if name == 'emit' else 472
+                            current = read(data, offset)
+                            if current < read(data, 32):
+                                if name == 'emit':
+                                    output[current] = 0x7f
+                                else:
+                                    data[(read(data, 480) + current) & mask] = 0x7f
+                            write(data, offset, current + 1)
+                            return 0
+                        with self.subTest(helper=name, length=length, count=count, target=target):
+                            check(name, initial, b'\x5a', [0x7f], append)
+
     def test_independent_core_vm_drives_foreign_observations(self):
         # The same authoring is executed by the independent Core interpreter;
         # no flat native executable or native compiler participates.
@@ -356,6 +429,50 @@ class WireNativeTests(unittest.TestCase):
             self.assertEqual(raw.raw[-16:], b'\xa5' * 16)
         for maximum in (True, None, -1, MAXIMUM + 1, 1 << 100):
             self.assert_same(None, maximum)
+
+    def test_observations_are_once_per_request_and_never_after_terminal(self):
+        class Observer(ForeignGraphObserver):
+            def __init__(self, fail_once=False):
+                super().__init__()
+                self.calls = 0
+                self.fail_once = fail_once
+
+            def summary(self, handle):
+                self.calls += 1
+                if self.fail_once and self.calls == 1:
+                    raise RuntimeError('intentional foreign summary failure')
+                return super().summary(handle)
+
+        def create(fail_once=False):
+            observer = Observer(fail_once)
+            session = WireSession(self.image, observer, observer.register(None), 32,
+                                  ensure_ascii=False, sort_keys=True)
+            return session, observer
+
+        for case in ('before-request', 'repeat', 'bad-ack', 'foreign-error', 'completed'):
+            with self.subTest(case=case):
+                session, observer = create(case == 'foreign-error')
+                if case == 'completed':
+                    self.assertEqual(session.run(), b'null')
+                    self.assertTrue(session.finished)
+                    self.assertEqual(observer.calls, 2)  # Both HIA traversals.
+                elif case != 'before-request':
+                    self.assertEqual(session.step(), 1)
+                    if case == 'foreign-error':
+                        with self.assertRaisesRegex(RuntimeError, 'intentional foreign summary failure'):
+                            session.observe()
+                    else:
+                        packet = bytearray(session.observe())
+                        if case == 'bad-ack':
+                            struct.pack_into('<Q', packet, 8, 0)
+                            self.assertEqual(session.step(bytes(packet)), 199)
+                            self.assertTrue(session.finished)
+                    self.assertEqual(observer.calls, 1)
+                before = observer.calls
+                with self.assertRaises(RuntimeError):
+                    session.observe()
+                self.assertEqual(observer.calls, before)
+
 
     def test_private_buffer_lifetime_after_observer_exceptions_and_reentry(self):
         # The foreign callback can retain an exception traceback, and callers

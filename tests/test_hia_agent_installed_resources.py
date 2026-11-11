@@ -7,6 +7,8 @@ from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
 BUNDLED_SOURCE_BINDINGS={
+    'cli_control':('hepta.hia_cli_native','control'),
+    'cli_format':('hepta.hia_cli_native','format'),
     'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
     'composite_function_records':('hepta.hia_composite_functions_native','records'),
     'composite_function_advanced':('hepta.hia_composite_functions_native','advanced'),

@@ -1,14 +1,12 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
-The current v66 candidate adds native foreign-graph wire encoding, worker
-control/report decisions, machine-plan validation and a linked qualification
-observer to the v65 integration. The earlier integration contains returned-loan
-origins, complete nominal constructor/function/outer-program lowering, native
-worker-request and journal decisions, immutable release publication and bounded
-cold-evidence scheduling. Its audited baseline, source-bound observations and
-remaining delivery owners are recorded in
-[the continuation audit](HIA_NATIVE_CLOSURE_20261111.md). The earlier experiments
-and failures below retain their original source identities.
+The current v67 integration adds native ordinary CLI control/presentation,
+instruction-byte encoding and a bounded immutable wire-key cache to the v66
+owners. Each is explicitly selected and keeps a source-bound installed-resource
+contract. None replaces all hosted business, state, backend or deployment
+owners. The audited baseline and earlier observations remain in
+[the continuation audit](HIA_NATIVE_CLOSURE_20261111.md); all historical
+experiments and failures below retain their original source identities.
 
 Baseline audited on 2026-11-10 America/New_York:
 `c2d937e5eec734af5c1d5d0519afc7e3a91df58a`.
@@ -23,7 +21,87 @@ are real implementations. The installed `hia` entry, Agent request authority,
 build/install ownership and other retained components still contain Python.
 Removing those owners now would remove supported behavior, not finish its port.
 
-## Current v66 candidate and exact v65 outcomes
+## Current v67 integration and exact-source results
+
+The last published combined encoding source is
+`6e048234e19e4dbf02d1cf5040831fba07748f02`, tree
+`440f3fcb9014b2af6c788f78b993af6b25730d46`. Its complete recursive tree has
+3,611 leaves, 1,241 Python files, 160 production `hepta` Python modules,
+63 bootstrap HIA assembly files, 73 HIA assembly files overall and 12 HIA JSON
+programs. Those exact-source counts are not the counts of this later staged
+integration or a semantic completion percentage. The CLI adds another hosted
+adapter while moving its parser/control and formatter decisions into HIA.
+
+| Frozen source / observation | Actual result | Remaining qualification boundary |
+| --- | --- | --- |
+| `d2c22d0c4caea145295a8213c6c718eb55546ec9`, [CI 43024566228](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43024566228) | 346 source tests passed; cold 139.322747176 s, 11 checks, 38 phases and 5,051 nested checks; original 44 plan and 94 journal callers passed | Complete 89 wire callers failed one original lifecycle assertion: 7.074126838999746 s exceeded its unchanged 5 s limit. Entire run failed |
+| `6e048234e19e4dbf02d1cf5040831fba07748f02`, [CI 43038321007](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43038321007) | 51 generators reproduced bytes; 350 source tests ran with one AST-guard failure; original cold report passed in 132.140118786 s with 11 true checks and 5,051 true nested checks | The same guard failed in the nine-method native encoding component group. The qualifier correctly stopped before its 51 original callers; the later complete wire step did not run. Entire run failed |
+| Wire cache/lifecycle product `f6a79203c4c6b9fcb1f3e39ebc827f022c9c14f4`, preserved by `514a13be3c4f956a8efa95bbfeb8bc43be896e49` | Four complete modules, 50/50 tests, 61.349942 s; separately, all three original budget tests passed in 18.783 s total | Explicit development compiler reuse. The individual original 3/5 s limits were unchanged; the later combined-source 89-caller gate is still required |
+| CLI `30a513ce68e97a21e96b2d80b1a3f079f3bb843a` | Complete 17-method local module passed in 13.991315411 s, zero anomalies and unchanged source/compiler; actual wheel installation and isolated ordinary entry passed | CPython 3.12.14 development execution. Current-source cold, CPython 3.14 and complete retained regression remain separate gates |
+| Encoding reference repair `38dbc37edd1ad6467d519804c70d10a483d9da95` | All four original source methods passed on CPython 3.12.14, zero anomalies, 1.6819196899996314 s | Repairs the test's interpreter-dependent AST serialization; does not relabel either failed 6e job or establish a 3.14/cold pass |
+
+The d2 full original artifact is durably retained in
+`experiments/hia_v66_d2_ci_originals_20261111/`, including its original failed
+5-second assertion. The 6e original source/native logs, API observations and
+repair explanation are in
+`experiments/hia_machine_encoding_next_20261111/ci-6e-source-failure/`.
+All component development passes remain separate from exact-source cold
+qualification. A later successful run does not erase an earlier failed run.
+
+### New native owners and precise retained responsibilities
+
+| Owner | Implemented HIA responsibility | Retained production responsibility |
+| --- | --- | --- |
+| Ordinary CLI | All 15 action selections; version-specific negative argument recognition; option/help/error and Unicode/color/wrapping decisions; phase and acknowledgement control; native presentation | All 15 action business bodies, IO/publication, pretty JSON materialization, foreign objects and installed Python bridge |
+| Instruction-byte encoder | 37 x86-64 commands under the HIAX6402 protocol; exact machine bytes, displacement/immediate packing and native refusal before writes | Operand/register admission and foreign effects; mutable `Code` storage, labels/fixups/relocations; complete Core lowering, object/linking and execution ownership |
+| Wire-key cache | HIAWIR03 exact immutable-key reuse after successful mode-1 preflight, 1,024 bounded slots and native uncached fallback; no cached values | Actual foreign-object observation and IO; custom observers and explicit formatters retain their previous path; arbitrary internal/runtime mutation is not certified |
+| Qualification controller | Additional source/cold/image/installed-wheel admission for CLI and encoding, plus complete cache tests | Hosted validation machinery, not product migration. All original source, caller and regression gates remain mandatory |
+
+The CLI installed control uses an actual wheel and the declared packaging
+resources, then `-I -S -B`, empty PATH/PYTHONPATH and disabled retained
+CLI/parser/authoring entries. It executes both actual HIA images, eight ordinary
+calls and nine missing/changed resource or invalid-bundle refusals. Its wheel
+SHA-256 is `21122532b6123705364317b2c171295a6e345e6aab671f38a08aecbdeacaf413`.
+These observations establish that explicit development path only.
+
+The earlier CPython 3.14.4 desktop CLI run actually failed two original
+subcases, `verify -1.` and `verify -1e2`. The repair implements the two
+interpreters' different original negative-number rules in HIA and keeps the
+original assertions. The subsequent desktop start lost its transport
+acknowledgement and remains UNKNOWN; no new-key replay or invented job result
+is used. Its independent local 16-method pass and the later 17-method wheel
+pass are separate observations.
+
+The page-capacity development run completed five differential cases, including
+full 64 MiB ASCII and invalid-last-byte inputs, before executor continuity was
+lost. Its final 42-case report and original process-cleanup attestation do not
+exist. The run remains HOLD/UNKNOWN_EXECUTOR_CONTINUITY; the five observations
+do not qualify the unexecuted cases or establish SQL crash durability.
+
+### Gates before any supported-owner retirement
+
+The v8 external runner retains the original 10,800-second guardian, 180-second
+cold limit, two workers, all 38 phases, all original compiler limits and the
+94/44/89 journal/plan/wire caller denominators. The new encoding gate requires
+all 9 + 51 original methods, and CLI requires all 17 methods plus actual
+installed fixture custody. Every loaded test ID must execute with zero failures,
+errors, skips, expected failures and unexpected successes. Synthetic controller
+controls validate this admission code; they are not native execution evidence.
+
+Full-source preparation retains the exact Git commit bytes, real parent
+headers, complete tree/blob object closure and a genuine shallow HEAD boundary.
+It verifies actual source bytes/modes and the unchanged qualification runner's
+local-clone reproduction. This transport does not create an alternative
+commit identity or turn a partial source archive into a full source checkout.
+
+Complete standalone normalization/backend state and ELF production, AgentStore
+SQL/service authority, evaluation/adoption/proofs, all CLI business bodies,
+build/recovery/default activation and the separate Rust `hepta-runtime` remain
+open. The old supported production owners remain until those replacements,
+ordinary callers, installed recovery and actual cutover close. No owner is
+deleted on the strength of a scoped kernel, development run or inventory count.
+
+## Historical v66 candidate and exact v65 outcomes
 
 The last frozen combined source is `4161e8d12d87906fde144f039da07908ad52d98a`,
 tree `1c6ab0228f012429149997d1f731833739f433eb`. Its 634 declared source files

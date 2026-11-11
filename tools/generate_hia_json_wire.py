@@ -14,10 +14,11 @@ from tools.generate_hia_worker_request import format_program
 
 SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hiaasm'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
+CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
 # Header slots are part of the versioned continuation protocol. Arrays follow
 # the fixed header; the last 8192 bytes are the independently authored printer.
 FIELDS = {
-    'MAGIC': MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
+    'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
     'MAX': 32, 'BUDGET': 40, 'ASCII': 48, 'SORT': 56, 'RENDERER': 64,
     'ROOT': 72, 'NODES': 80, 'QUEUED': 88, 'SP': 96, 'ACTIVE': 104,
     'OUT': 112, 'H': 120, 'DEPTH': 128, 'KIND': 136, 'SIZE': 144,
@@ -36,6 +37,8 @@ FIELDS = {
     'SORT_PN': 560, 'SORT_QN': 568, 'SORT_TAIL': 576, 'SORT_NEW': 584,
     'SORT_MERGES': 592, 'CMP_LEFT': 600, 'CMP_RIGHT': 608, 'CMP_SIDE': 616,
     'CMP_INDEX': 624, 'CMP_LESS': 632, 'CMP_LEN': 640,
+    'CACHE_BASE': 648, 'CACHE_HITS': 656, 'CACHE_MISSES': 664,
+    'CACHE_STORES': 672, 'CACHE_BYTES': 163840,
     'ACTIVE_BASE': 1024, 'FRAME_BASE': 4096,
 }
 
@@ -44,7 +47,17 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 32768 + 8192:
         return 199
     if get(w, 0) == 0:
-        if length(s) != 104 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
+        if length(s) != 104 and length(s) != 112:
+            return 199
+        if read64(s, 0) == MAGIC:
+            if length(s) != 104:
+                return 199
+        elif read64(s, 0) == CACHED_MAGIC:
+            if length(s) != 112 or read64(s, 104) != 1:
+                return 199
+        else:
+            return 199
+        if read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
         if read64(s, 32) != 2 or read64(s, 40) != 0 or read64(s, 48) > 24 or read64(s, 56) > 8388608:
             return 100
@@ -63,6 +76,8 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 118
         if read64(s, 96) == 2:
             return 119
+        if read64(s, 0) == CACHED_MAGIC and read64(s, 96) != 0:
+            return 199
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
         while slots < budget * 2:
@@ -73,10 +88,13 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         temp_a = table + slots * 8
         temp_b = temp_a + maximum + 64
         limbs = temp_b + maximum + 64
-        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192
+        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) == CACHED_MAGIC, CACHE_BYTES, 0)
         if length(w) != required or length(o) < maximum:
             return 199
-        put(w, 0, MAGIC)
+        put(w, 0, read64(s, 0))
+        put(w, CACHE_BASE, 0)
+        if read64(s, 0) == CACHED_MAGIC:
+            put(w, CACHE_BASE, required - 8192 - CACHE_BYTES)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
         put(w, ASCII, ascii_flag)
@@ -94,10 +112,10 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         push(w, read64(s, 24), 0, 0)
         put(w, PHASE, 1)
     else:
-        if get(w, 0) != MAGIC or get(w, AWAIT) == 0 or length(s) < 56:
+        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
             return 199
         opcode = get(w, AWAIT)
-        if read64(s, 0) != MAGIC or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
+        if read64(s, 0) != get(w, 0) or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
             return 199
         expected = 56
         if opcode == 3 or opcode == 4:
@@ -333,6 +351,53 @@ def text_begin(w:mutbuf, handle:u64, size:u64, mode:u64, target:u64, next:u64) -
     put(w, T_TARGET, target)
     put(w, T_RETURN, next)
     put(w, PHASE, 30)
+    if get(w, CACHE_BASE) != 0 and (mode == 1 or mode == 2) and size <= 32:
+        return key_cache_restore(w)
+    return 0
+
+def key_cache_restore(w:mutbuf) -> u64:
+    # This capability applies only to stable exact-builtin observations. A
+    # cache entry is created after the original key preflight has succeeded.
+    # Aliases keep a strong reference and a session-unique nonzero handle.
+    slot = get(w, CACHE_BASE) + (get(w, T_H) & 1023) * 160
+    if get(w, slot) == get(w, T_H) and get(w, slot + 8) == get(w, T_SIZE):
+        count = get(w, slot + 16)
+        if count > 128:
+            return 199
+        index = 0
+        target = get(w, T_TARGET)
+        while index < count:
+            store(w, target + index, byte(w, slot + 32 + index))
+            index = index + 1
+        put(w, T_POS, get(w, T_SIZE))
+        put(w, T_COUNT, count)
+        if get(w, T_MODE) == 1:
+            put(w, T_WIDTH, get(w, slot + 24))
+        put(w, N_COUNT, count)
+        put(w, PHASE, get(w, T_RETURN))
+        put(w, CACHE_HITS, get(w, CACHE_HITS) + 1)
+    else:
+        put(w, CACHE_MISSES, get(w, CACHE_MISSES) + 1)
+    return 0
+
+def key_cache_save(w:mutbuf) -> u64:
+    # Occupied/colliding slots are a miss, never a new admission refusal.
+    slot = get(w, CACHE_BASE) + (get(w, T_H) & 1023) * 160
+    if get(w, slot) != 0:
+        return 0
+    count = get(w, T_COUNT)
+    if count > 128:
+        return 199
+    index = 0
+    source = get(w, T_TARGET)
+    while index < count:
+        store(w, slot + 32 + index, byte(w, source + index))
+        index = index + 1
+    put(w, slot + 8, get(w, T_SIZE))
+    put(w, slot + 16, count)
+    put(w, slot + 24, get(w, T_WIDTH))
+    put(w, slot, get(w, T_H))
+    put(w, CACHE_STORES, get(w, CACHE_STORES) + 1)
     return 0
 
 def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
@@ -422,6 +487,10 @@ def normalize(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 30:
         remaining = get(w, T_SIZE) - get(w, T_POS)
         if remaining == 0:
+            if get(w, CACHE_BASE) != 0 and get(w, T_MODE) == 1 and get(w, T_SIZE) <= 32:
+                saved = key_cache_save(w)
+                if saved != 0:
+                    return saved
             put(w, N_COUNT, get(w, T_COUNT))
             put(w, PHASE, get(w, T_RETURN))
             return 0
@@ -1135,17 +1204,32 @@ def source_program():
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
     class FixedWordReads(ast.NodeTransformer):
-        """Expand entry-loop buffer-name/literal-address reads in place.
+        """Expand hot buffer-name/literal-address reads in place.
 
         Dynamic addresses retain their helpers. No read moves out of its
         expression or short-circuit branch, and bytes keep their original
         low-to-high order and individual bounds traps. Restrict this to the
-        continuation receive/dispatch paths executed for every reply. Whole
+        continuation receive/dispatch and observed string processing. Whole
         program expansion exceeds the unchanged assembly line budget, and
         expanding the one-time initialization as well exceeds the unchanged
         native compiler's per-function value-slot budget.
         """
         def visit_FunctionDef(self, node):
+            if node.name in {'text_begin', 'text_byte', 'emit', 'commit_fragment', 'escaped'}:
+                return self.generic_visit(node)
+            if node.name == 'normalize':
+                # The actual continuation profile identifies string replies
+                # as the hot path. Keep all other normalization branches
+                # byte-for-byte at the authoring-AST level.
+                for statement in node.body:
+                    if (isinstance(statement, ast.If)
+                            and isinstance(statement.test, ast.Compare)
+                            and ast.dump(statement.test, include_attributes=False) in {
+                                ast.dump(ast.parse('phase == 30', mode='eval').body, include_attributes=False),
+                                ast.dump(ast.parse('phase == 31', mode='eval').body, include_attributes=False),
+                            }):
+                        self.generic_visit(statement)
+                return node
             if node.name != 'json_wire':
                 return node
             initialization = None
@@ -1191,8 +1275,49 @@ def source_program():
                 value = ast.BinOp(value, ast.BitOr(), shifted)
             return ast.copy_location(value, node)
 
+    class FixedWordStores(ast.NodeTransformer):
+        """Inline ignored fixed-field stores in the observed hot helpers.
+
+        Evaluate the value once before the first byte, as the original call
+        does, then keep all eight byte writes and their partial-store traps
+        in low-to-high order. Dynamic addresses and value-returning calls
+        retain the original helper. This is a call expansion, not a state
+        cache or a combined foreign observation.
+        """
+        def visit_FunctionDef(self, node):
+            if node.name not in {'ask', 'text_byte', 'emit'}:
+                return node
+            self.names = {child.id for child in ast.walk(node) if isinstance(child, ast.Name)}
+            self.counter = 0
+            return self.generic_visit(node)
+
+        def visit_Expr(self, node):
+            node = self.generic_visit(node)
+            call = node.value
+            if (not isinstance(call, ast.Call) or not isinstance(call.func, ast.Name)
+                    or call.func.id != 'put' or len(call.args) != 3 or call.keywords
+                    or not isinstance(call.args[0], ast.Name)
+                    or not isinstance(call.args[1], ast.Constant)
+                    or type(call.args[1].value) is not int
+                    or not 0 <= call.args[1].value <= (1 << 64) - 8):
+                return node
+            while True:
+                name = 'wire_store_value_' + str(self.counter)
+                self.counter += 1
+                if name not in self.names:
+                    self.names.add(name)
+                    break
+            result = [ast.Assign([ast.Name(name, ast.Store())], call.args[2])]
+            for index in range(8):
+                shifted = ast.BinOp(ast.Name(name, ast.Load()), ast.RShift(), ast.Constant(index * 8))
+                value = ast.BinOp(shifted, ast.BitAnd(), ast.Constant(255))
+                result.append(ast.Expr(ast.Call(ast.Name('store', ast.Load()),
+                    [ast.Name(call.args[0].id, ast.Load()), ast.Constant(call.args[1].value + index), value], [])))
+            return [ast.copy_location(statement, node) for statement in result]
+
     tree = Constants().visit(ast.parse(SOURCE + ENCODER))
     tree = FixedWordReads().visit(tree)
+    tree = FixedWordStores().visit(tree)
     return ast.unparse(ast.fix_missing_locations(tree)) + '\n' + format_program()
 
 
