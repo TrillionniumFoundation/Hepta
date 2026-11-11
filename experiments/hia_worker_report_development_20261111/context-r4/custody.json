@@ -1,0 +1,46 @@
+{
+  "schema": "hia.worker-context-reset-custody.v1",
+  "observed_utc": "2026-11-11 10:09:11 UTC",
+  "source_commit": "b6c36189fb45adcf26c2528346d14021b9873b05",
+  "original_run": {
+    "status": "PASS",
+    "tests_run": 33,
+    "scope": "DEVELOPMENT_NOT_MATCHING_SOURCE_COLD",
+    "wire_methods": 13,
+    "worker_methods": 20,
+    "log_sha256": "b64b5b41547f152bf71c358f6c4db1942edb9ad7d3e1c33f1e1876f9658690a2",
+    "report_sha256": "a2511a078599bc098166d2bad110d767884ec8be96f0e1e53f7cdac9c0e5e2d7",
+    "log_and_report_original_bytes_survived": true
+  },
+  "lost_before_upload": {
+    "archive_and_retained_fixture_tree": true,
+    "file_members": 973,
+    "manifest_members": 1,
+    "payload_bytes": 49279942,
+    "preset3_archive_bytes": 9630072,
+    "preset3_archive_sha256": "681b930523ed54b921dceee3da273a8b1caeab5b773a903fa13ffc52136249b1",
+    "compact_archive_bytes": 3461052,
+    "compact_archive_sha256": null,
+    "tar_stream_sha256": "5e5fdaf9c25bc64b94fbf138df7cc2788d5c68633182c648dd22c53e5a22d956",
+    "member_readback_before_reset": "SHA256/size/mode/uid/gid and exact inventory were checked; recompressed tar stream SHA matched.",
+    "full_member_manifest_survived": false,
+    "reason": "Cloud environment became unavailable and reset /tmp before these original files were uploaded."
+  },
+  "preserved_scope": "The new surviving-originals archive contains only files actually read after recovery, including original failure/fixed observations, logs, complete loaded/executed-ID report, r3 development bundle and compiler. It is not the lost 973-member archive.",
+  "recreated_originals": false,
+  "remote_context_r3": {
+    "key": "hia-e26e-worker-context-cpython314-r3-v1",
+    "scope": "UNKNOWN_NOT_PASS_OR_FAIL",
+    "process_start_response": {
+      "content": [
+        {
+          "type": "text",
+          "text": "tool call error: tool call failed for `codex_apps/h.process_start`\n\nCaused by:\n    Mcp error: -32603: MCP request timed out"
+        }
+      ],
+      "isError": true
+    },
+    "followup_file_info": "Controlled file_info returned PermissionError('var'); this is not evidence that the remote probe failed or that its audit does not exist.",
+    "earlier_bare_h_view": "Not accepted as a configured-desktop file existence observation."
+  }
+}
