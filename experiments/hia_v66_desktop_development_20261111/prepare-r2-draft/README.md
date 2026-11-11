@@ -1,0 +1,11 @@
+# Exact source-package development preparation, pending review
+
+Private root: /home/qian-qi/he26v66devr2. Stable operation key: hia-e26e-desktop-e09-package-development-prepare-r2. This controller has not been dispatched. It performs no Git or network operation and no product test. The source package is canonical fdb40f161907d0c4722ea14ca933945d33ec4990, preserving exact e09 commit/tree bytes for all 1666 declared members; it does not materialize a Git object database, and preserves the stale checked support/coverage documents.
+
+Two fully verified, create-only uploaded inputs must already exist: /home/qian-qi/he26v66devr2-source-package.tar.xz and /home/qian-qi/he26v66devr2-source-package.manifest.json. Bootstrap checks their full SHA and sizes, all twelve retained pins, original B3, Python binary, all control and recovery source hashes, create-only root, owned parent without group/other write, and the unchanged 8 GiB / 100k inode gate before creating the root. The payload stays below 1 MiB.
+
+The original guardian/lifecycle/workflow helper bytes are unchanged. The guardian owns the entire 1800-second preparation and its input identities; final acceptance also rejects any owned_child_sigkill, overflow, interruption, owner error, incomplete cleanup, missing ECHILD or missing leader reaping. Hard guardian SIGKILL/host loss/privileged interference remain outside the cleanup claim.
+
+The driver verifies every tar member's canonical path, regular type, mode, UID/GID 0, mtime 0, size, Git blob SHA1 and SHA256. It rejects duplicates, missing/extra members, file/directory collisions, path traversal and symlinks; extraction is manual into new regular files. Three independent byte copies are verified against the complete exact manifest. Baseline /s is sealed read-only; /wire-r7/s and /cli/s remain independently writable. Complete per-file scan receipts are written under preparation-evidence, and the compact preparation report references their SHA.
+
+The peer's old d391 inner controller is preserved in the prior checkpoint and is not run or rewritten. Its replacement will accept --source-manifest and must independently verify the complete source population before the same development controls. This preparer does not dispatch that replacement. Final full root he26v66r2 is untouched.
