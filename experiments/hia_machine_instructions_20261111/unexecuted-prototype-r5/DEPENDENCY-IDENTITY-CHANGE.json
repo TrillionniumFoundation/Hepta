@@ -1,0 +1,15 @@
+{
+  "schema": "hia.native-machine-bridge-identity-change.v1",
+  "status": "STATIC_UNEXECUTED",
+  "baseline": "0d653c0987e941c7f6afb4db67e23fccf854f4e0",
+  "actual_baseline_missing_selected_dependencies": [
+    "hepta/hia_machine_state_native.py",
+    "hepta/hia_machine_instructions_native.py",
+    "hepta/hia_json_wire_native.py"
+  ],
+  "change": "Include the three actual Python bridge/private-buffer dependency files in backend implementation hashing.",
+  "controls": "Within existing state and instruction identity methods, perturb one requested source read at a time and require a different actual implementation key. Source files remain unchanged on disk.",
+  "methods_added": 0,
+  "old_native_implementation_hash_bodies_outside_dependency_tuple_changed": false,
+  "formal_or_development_execution": false
+}
