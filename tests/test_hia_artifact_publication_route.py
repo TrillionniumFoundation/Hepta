@@ -6,6 +6,35 @@ from hepta.artifact_publication import publish_verified,verify_published,withdra
 
 
 class PublicationRouteSourceTests(unittest.TestCase):
+    def test_actual_kernel_requires_all_executable_seals(self):
+        from hepta.artifact_publication_native import _require_sealed_executable
+        import errno,fcntl
+        for seals in (0,1,2,4,8,7,11,13,14,15):
+            with self.subTest(seals=seals):
+                fd=os.memfd_create('hia-publication-seal-control',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
+                try:
+                    os.write(fd,b'original')
+                    if seals:fcntl.fcntl(fd,1033,seals)
+                    self.assertEqual(fcntl.fcntl(fd,1034),seals)
+                    if seals!=15:
+                        with self.assertRaisesRegex(PublicationRejected,'complete kernel seals'):
+                            _require_sealed_executable(fd)
+                        continue
+                    _require_sealed_executable(fd)
+                    for effect in (lambda:os.write(fd,b'changed'),lambda:os.ftruncate(fd,0),
+                                   lambda:os.ftruncate(fd,64)):
+                        with self.assertRaises(OSError) as error:effect()
+                        self.assertEqual(error.exception.errno,errno.EPERM)
+                    self.assertEqual(os.pread(fd,64,0),b'original')
+                finally:os.close(fd)
+
+    def test_actual_descriptor_without_seal_support_refuses(self):
+        from hepta.artifact_publication_native import _require_sealed_executable
+        read_fd,write_fd=os.pipe()
+        try:
+            with self.assertRaises(OSError):_require_sealed_executable(read_fd)
+        finally:os.close(read_fd);os.close(write_fd)
+
     def test_explicit_selection_routes_all_operations_and_never_falls_back(self):
         receipt={'sha256':'a'*64,'bytes':3}
         with patch.dict(os.environ,{'HEPTA_HIA_ARTIFACT_PUBLICATION_MANIFEST':'explicit-build.json'}),\
@@ -68,8 +97,9 @@ class PublicationRouteNativeTests(unittest.TestCase):
             original_run=subprocess.run
             def sealed_run(argv,*args,**kwargs):
                 self.assertTrue(argv[0].startswith('/proc/self/fd/'))
-                fd=int(argv[0].rsplit('/',1)[1]);seals=fcntl.fcntl(fd,fcntl.F_GET_SEALS)
-                required=fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL
+                fd=int(argv[0].rsplit('/',1)[1]);seals=fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))
+                required=(getattr(fcntl,'F_SEAL_WRITE',8)|getattr(fcntl,'F_SEAL_GROW',4)
+                          |getattr(fcntl,'F_SEAL_SHRINK',2)|getattr(fcntl,'F_SEAL_SEAL',1))
                 self.assertEqual(seals&required,required)
                 with self.assertRaises(OSError):os.write(fd,b'X')
                 # Replace the admitted on-disk path before exec: only the

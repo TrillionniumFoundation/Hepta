@@ -18,6 +18,17 @@ NATIVE_PUBLICATION_SOURCES = (
     'tools/generate_hia_artifact_publication.py',
 )
 
+# Linux UAPI values also cover Python builds that omit the fcntl names.
+_EXECUTABLE_SEALS = (getattr(fcntl,'F_SEAL_WRITE',0x0008)
+    |getattr(fcntl,'F_SEAL_GROW',0x0004)|getattr(fcntl,'F_SEAL_SHRINK',0x0002)
+    |getattr(fcntl,'F_SEAL_SEAL',0x0001))
+
+
+def _require_sealed_executable(fd):
+    observed=fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))
+    if type(observed) is not int or observed&_EXECUTABLE_SEALS!=_EXECUTABLE_SEALS:
+        _reject('E_PUBLISH_NATIVE_CUSTODY','selected executable lacks complete kernel seals')
+
 
 def _installed_source_custody(root):
     """Bind installed production bytes/assets to their owned full build contract.
@@ -126,8 +137,8 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
             written=os.write(fd,view)
             if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
             view=view[written:]
-        fcntl.fcntl(fd,fcntl.F_ADD_SEALS,
-            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)
+        fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),_EXECUTABLE_SEALS)
+        _require_sealed_executable(fd)
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],

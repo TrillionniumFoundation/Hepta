@@ -1,0 +1,22 @@
+test_actual_kernel_requires_all_executable_seals (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_kernel_requires_all_executable_seals) ... ok
+test_actual_non_memfd_cannot_supply_executable_seal_evidence (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_non_memfd_cannot_supply_executable_seal_evidence) ... ERROR
+test_explicit_selection_routes_all_operations_and_never_falls_back (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_explicit_selection_routes_all_operations_and_never_falls_back) ... ok
+test_missing_or_malformed_selected_manifest_fails_before_effects (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_missing_or_malformed_selected_manifest_fails_before_effects) ... ok
+
+======================================================================
+ERROR: test_actual_non_memfd_cannot_supply_executable_seal_evidence (tests.test_hia_artifact_publication_route.PublicationRouteSourceTests.test_actual_non_memfd_cannot_supply_executable_seal_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/a4f12e842e52/Hepta-publication-seals/tests/test_hia_artifact_publication_route.py", line 34, in test_actual_non_memfd_cannot_supply_executable_seal_evidence
+    with self.assertRaises(OSError):_require_sealed_executable(regular.fileno())
+                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/a4f12e842e52/Hepta-publication-seals/hepta/artifact_publication_native.py", line 30, in _require_sealed_executable
+    _reject('E_PUBLISH_NATIVE_CUSTODY','selected executable lacks complete kernel seals')
+  File "/workspace/scratch/a4f12e842e52/Hepta-publication-seals/hepta/artifact_publication_native.py", line 67, in _reject
+    raise PublicationRejected(code+': '+message)
+hepta.artifact_publication.PublicationRejected: E_PUBLISH_NATIVE_CUSTODY: selected executable lacks complete kernel seals
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.261s
+
+FAILED (errors=1)
