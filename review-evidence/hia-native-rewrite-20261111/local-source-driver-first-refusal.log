@@ -1,0 +1,33 @@
+Note: switching to 'f174f9b970e227a2c6d3b98ea115cedba7f4e316'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Traceback (most recent call last):
+  File "/workspace/scratch/623459b0e1bc/run_hia_source_checks.py", line 45, in <module>
+    owner = run_owned([sys.executable, '-B', '-c', code], cwd=copy, env=env,
+                      stdout_path=out/'stdout.log', stderr_path=out/'stderr.log',
+                      receipt_path=out/'owner.json', qualification_seconds=1800,
+                      cleanup_seconds=3)
+  File "/workspace/scratch/623459b0e1bc/v58-source-replay/source/tools/hia_selfhost_process_owner.py", line 265, in run_owned
+    require(type(value) in (int, float) and math.isfinite(value) and 0 < value <= maximum
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            and int(value * 1e9) > 0,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+            "fixed process/cleanup budget exceeded")
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/scratch/623459b0e1bc/v58-source-replay/source/tools/hia_selfhost_process_owner.py", line 36, in require
+    raise OwnerFailure(message)
+tools.hia_selfhost_process_owner.OwnerFailure: fixed process/cleanup budget exceeded

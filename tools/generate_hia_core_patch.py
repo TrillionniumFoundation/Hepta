@@ -14,6 +14,7 @@ from tools.generate_hia_sha256 import source_program as sha_source
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 
 MAGIC = int.from_bytes(b'HIAPAT01', 'little')
+RESULT_MAGIC = int.from_bytes(b'HIAPAR01', 'little')
 KEYS = ('schema', 'expected_sha256', 'interface_policy', 'edits', 'action',
         'function', 'definition', 'block', 'index', 'operation', 'term',
         'functions', 'name', 'params', 'returns', 'effects', 'return_loans',
@@ -28,7 +29,12 @@ def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 8192 or length(o) < 8192 or length(s) > 16777219:
         return 4294967293
     mode = get(w, 0)
-    if mode > 1:
+    declared = 0
+    if mode == 2:
+        declared = get(w, 8)
+        if declared < 1 or declared > 2:
+            return 4294967293
+    if mode > 2:
         return 4294967293
     put(o, 48, 524289)
     put(o, 56, 129)
@@ -56,6 +62,9 @@ def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if scratch > length(w) or length(w) - scratch < 8192:
         return 4294967293
     put(w, 40, scratch)
+    put(w, scratch + 1280, mode)
+    put(w, scratch + 1288, declared)
+    put(w, scratch + 1296, 0)
     put(w, 48, 0)
     put(w, 56, 32)
     render_fragment(s, o, w, base)
@@ -72,6 +81,11 @@ def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return size
     if tree_limit(w, base, 64) == 0 or tree_limit(w, request, 128) == 0:
         return 4294967294
+    if mode == 2:
+        if declared == 1 and text_is(w, field(w, request, K_schema), L_patch_v1) == 0:
+            return 4294967281
+        if declared == 2 and text_is(w, field(w, request, K_schema), L_patch_v2) == 0:
+            return 4294967281
     schema = 0
     policy = 0
     if text_is(w, field(w, request, K_schema), L_patch_v1) != 0:
@@ -122,6 +136,8 @@ def patch_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     render_fragment(s, o, w, base)
     if get(w, 48) != 0 or get(w, 56) > 8388640:
         return 4294967294
+    if mode == 2:
+        return patch_result(o, w, schema, policy, applied, expected)
     put(o, 0, MAGIC)
     put(o, 8, schema)
     put(o, 16, policy)
@@ -236,11 +252,16 @@ def edit_materialize(s:readbuf, o:mutbuf, w:mutbuf, functions:u64, edit:u64, pol
         replacement = field(w, edit, K_definition)
         if kind(w, replacement) != 6 or same_text(w, name, field(w, replacement, K_name)) == 0:
             return 4294967286
-        if policy == 0:
-            if action == 2:
+        changed = 0
+        if action == 2:
+            changed = 1
+        elif policy == 0 or get(w, scratch + 1280) == 2:
+            changed = choose(same_interface(s, o, w, fn, replacement) == 0, 1, 0)
+        if changed != 0:
+            if policy == 0:
                 return 4294967282
-            if same_interface(s, o, w, fn, replacement) == 0:
-                return 4294967282
+            if get(w, scratch + 1280) == 2:
+                remember_change(w, name)
         if action == 2:
             append_node(w, functions, replacement)
         else:
@@ -447,6 +468,118 @@ def same_interface(s:readbuf, o:mutbuf, w:mutbuf, a:u64, b:u64) -> u64:
         return default_loans(w, x, field(w, b, K_returns))
     return equal_json(s, o, w, x, y)
 
+def text_less(w:mutbuf, a:u64, b:u64) -> u64:
+    left = get(w, 64 + a * 56 + 24)
+    right = get(w, 64 + b * 56 + 24)
+    i = 0
+    while i < count(w, a) and i < count(w, b):
+        x = byte(w, left + i)
+        y = byte(w, right + i)
+        if x < y:
+            return 1
+        if x > y:
+            return 0
+        i = i + 1
+    return choose(count(w, a) < count(w, b), 1, 0)
+
+def remember_change(w:mutbuf, name:u64) -> u64:
+    scratch = get(w, 40)
+    size = get(w, scratch + 1296)
+    if size >= 64:
+        put(w, 48, 4294967294)
+        return 0
+    index = size
+    moving = True
+    while index > 0 and moving:
+        previous = get(w, scratch + 4096 + (index - 1) * 8)
+        if text_less(w, name, previous) != 0:
+            put(w, scratch + 4096 + index * 8, previous)
+            index = index - 1
+        else:
+            moving = False
+    put(w, scratch + 4096 + index * 8, name)
+    put(w, scratch + 1296, size + 1)
+    return 0
+
+def receipt_digest(o:mutbuf, w:mutbuf) -> u64:
+    start = get(w, 40) + 1088
+    i = 0
+    while i < 32:
+        value = byte(w, start + i)
+        append_byte(o, w, hex_digit(value >> 4))
+        append_byte(o, w, hex_digit(value & 15))
+        i = i + 1
+    return 0
+
+def receipt_count(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    tens = 0
+    while value >= 10:
+        value = value - 10
+        tens = tens + 1
+    if tens != 0:
+        append_byte(o, w, tens + 48)
+    append_byte(o, w, value + 48)
+    return 0
+
+def receipt_changes(o:mutbuf, w:mutbuf) -> u64:
+    scratch = get(w, 40)
+    append_byte(o, w, 91)
+    i = 0
+    while i < get(w, scratch + 1296):
+        if i != 0:
+            append_byte(o, w, 44)
+        name = get(w, scratch + 4096 + i * 8)
+        append_string(o, w, get(w, 64 + name * 56 + 24), count(w, name))
+        i = i + 1
+    append_byte(o, w, 93)
+    return 0
+
+def receipt_claims(o:mutbuf, w:mutbuf, schema:u64) -> u64:
+    emit_text(o, w, ',"claims":{"behavior_equivalence_proved":false,')
+    if schema == 2:
+        emit_text(o, w, '"external_callers_revalidated":false,"interface_preserved":')
+        if get(w, get(w, 40) + 1296) == 0:
+            emit_text(o, w, 'true,')
+        else:
+            emit_text(o, w, 'false,')
+    emit_text(o, w, '"native_executed":false,"whole_module_rechecked":true}')
+    return 0
+
+def patch_result(o:mutbuf, w:mutbuf, schema:u64, policy:u64, edits:u64, expected:u64) -> u32:
+    # This receipt remains private until the caller admits the whole candidate.
+    # No image header, digest or receipt grants semantic/publication authority.
+    candidate_end = get(w, 56)
+    digest_fragment(o, w, candidate_end - 32)
+    emit_text(o, w, '{"after_sha256":"')
+    receipt_digest(o, w)
+    emit_text(o, w, '","before_sha256":')
+    append_string(o, w, get(w, 64 + expected * 56 + 24), 64)
+    receipt_claims(o, w, schema)
+    emit_text(o, w, ',"edit_domain":"independently_verified_normalized_core","edits":')
+    receipt_count(o, w, edits)
+    emit_text(o, w, ',"interface_changes":')
+    receipt_changes(o, w)
+    if schema == 2:
+        emit_text(o, w, ',"interface_policy":"')
+        if policy == 0:
+            emit_text(o, w, 'preserve')
+        else:
+            emit_text(o, w, 'migrate')
+        append_byte(o, w, 34)
+    emit_text(o, w, ',"ok":true,"original_input_sha256":')
+    append_string(o, w, get(w, 64 + expected * 56 + 24), 64)
+    emit_text(o, w, ',"schema":"hepta.hia.patch-result.v')
+    append_byte(o, w, schema + 48)
+    emit_text(o, w, '","status":"verified_unpublished"}')
+    size = get(w, 56)
+    if get(w, 48) != 0 or size - candidate_end > 8388608:
+        return 4294967294
+    put(o, 0, RESULT_MAGIC)
+    put(o, 8, candidate_end - 32)
+    put(o, 16, size - candidate_end)
+    put(o, 24, 0)
+    return size
+
 def hash_get(w:mutbuf, index:u64) -> u64:
     return get(w, get(w, 40) + index)
 
@@ -458,8 +591,18 @@ def hash_put(w:mutbuf, index:u64, value:u64) -> u64:
 def source_program():
     constants = {'K_'+key:1 << i for i,key in enumerate(KEYS)}
     constants['MAGIC'] = MAGIC
+    constants['RESULT_MAGIC'] = RESULT_MAGIC
     literals = {'L_'+key:packed(value) for key,value in LITERALS.items()}
     class Expand(ast.NodeTransformer):
+        def visit_Expr(self, node):
+            if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                    and node.value.func.id == 'emit_text'):
+                output, workspace, literal = node.value.args
+                assert isinstance(literal, ast.Constant) and type(literal.value) is str
+                return [ast.Expr(value=ast.Call(func=ast.Name(id='emit', ctx=ast.Load()),
+                    args=[output, workspace, *(ast.Constant(value) for value in packed(literal.value[i:i+24]))],
+                    keywords=[])) for i in range(0, len(literal.value), 24)]
+            return self.generic_visit(node)
         def visit_Name(self, node):
             return ast.Constant(constants[node.id]) if node.id in constants else node
         def visit_Call(self, node):
@@ -473,7 +616,7 @@ def source_program():
     # Reuse the exact JSON/key/Unicode/sorting algorithms. Only this envelope's
     # outer framing budget is larger; subtree ceilings are checked separately.
     keep = {'kind','count','child','field','shape','same','text_is','render_fragment',
-            'append_byte','hex_digit','append_string','next_node','key_less','sort_object'}
+            'append_byte','hex_digit','append_string','next_node','key_less','sort_object','emit'}
     helper_nodes = [node for node in ast.parse(frontend_source()).body if node.name in keep]
     helper_text = ast.unparse(ast.fix_missing_locations(ast.Module(body=helper_nodes,type_ignores=[])))
     helper_text = helper_text.replace('index >= 1048576', 'index >= 16777248')

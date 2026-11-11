@@ -20,6 +20,9 @@ HIA-native stdio application supports `capabilities`, `verify`, `compile`,
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
 The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
 snapshot-bound edits with native whole-Core checks of both base and candidate.
+The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
+constructs the complete diagnostic bytes. Its explicit ordinary Agent route
+consumes and stores opaque payload bytes, preserving the existing request journal.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.
@@ -39,4 +42,5 @@ are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
 Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
+Native rewrite: [current implementation and remaining owners](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
 Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

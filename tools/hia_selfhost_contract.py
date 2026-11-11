@@ -13,8 +13,14 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v58-native-core-patch-and-loan-closure'
+PROFILE = 'selfhost-core-linux-x86_64-v59-native-agent-patch-results'
 SOURCE_FILES = (
+    'tools/generate_hia_core_patch_result_cli.py',
+    'tools/build_hia_core_patch_result_cli.py',
+    'examples/hia_bootstrap/core_patch_result_cli_packer.hiaasm',
+    'tests/test_hia_core_patch_result_cli.py',
+    'tests/test_hia_agent_candidate_native.py',
+    'docs/HIA_CORE_PATCH_RESULT_CLI.md',
     'tools/generate_hia_core_patch.py',
     'examples/hia_bootstrap/core_patch.hiaasm',
     'tests/test_hia_core_patch_native.py',
@@ -432,6 +438,23 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'agent_candidate_patch_result': {
+            'source': 'examples/hia_bootstrap/core_patch.hiaasm',
+            'standalone_packer': 'examples/hia_bootstrap/core_patch_result_cli_packer.hiaasm',
+            'command': 'hia-patch-result v1|v2 < [BASE, PATCH] JSON envelope',
+            'selection': 'explicit HEPTA_HIA_CORE_PATCH_MANIFEST in ordinary hia_candidate patch requests; no fallback',
+            'pipeline': ['canonical base extraction', 'native full primitive Core base admission',
+                         'native patch and complete diagnostics', 'native full primitive Core candidate admission'],
+            'result_frame': 'HIAPAR01; candidate length; diagnostics length; zero reserved; two opaque JSON payloads',
+            'maximum_result_bytes': 16777248,
+            'host_payload_decode_verify_interface_diff_or_receipt_construction': False,
+            'candidate_program_executed': False,
+            'request_ref_metadata_journal_and_publication_are_hosted': True,
+            'completed_response_replay_precedes_image_admission': True,
+            'unfinished_request_intent_remains_unknown': True,
+            'whole_Agent_replaced': False,
+            'whole_native_delivery_qualified': False,
+        },
         'core_patch_application': {
             'source': 'examples/hia_bootstrap/core_patch.hiaasm',
             'standalone_packer': 'examples/hia_bootstrap/core_patch_cli_packer.hiaasm',

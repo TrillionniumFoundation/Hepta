@@ -32,18 +32,23 @@ def request_wire(program, request):
     return envelope(verify_program(program).canonical_bytes, wire(request))
 
 
-def interpreted(raw, *, extract=False):
+def interpreted(raw, *, extract=False, result_schema=None):
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program_runtime import _Machine, _Owner, _View
     checked = assemble_program(SOURCE.read_bytes())
     out_size, arena_size = scratch_sizes(len(raw))
+    if result_schema is not None:
+        from hepta.hia_agent_candidate_native import MAX_RESULT
+        out_size = MAX_RESULT
     arena = bytearray(arena_size)
-    struct.pack_into('<Q', arena, 0, int(not extract))
+    struct.pack_into('<Q', arena, 0, int(not extract) if result_schema is None else 2)
+    if result_schema is not None:
+        struct.pack_into('<Q', arena, 8, result_schema)
     roots = [_Owner(-1, bytearray(raw)), _Owner(-2, bytearray(out_size)), _Owner(-3, arena)]
     machine = _Machine(checked, 20_000_000, 256 << 20, None, 256)
     result = machine.invoke(checked.as_dict()['functions'][0],
         [_View(roots[0], False), _View(roots[1], True), _View(roots[2], True)])[0]
-    return result, bytes(roots[1].data[:result]) if result not in ERROR_MESSAGES else None
+    return result, bytes(roots[1].data[:result]) if result < 0xffffffe0 else None
 
 
 def four_kinds():
@@ -70,7 +75,7 @@ class CorePatchSourceTests(unittest.TestCase):
         from hepta.hia_agent_assembly import render_assembly, assemble_program
         from tools.generate_hia_core_patch import document
         self.assertEqual(SOURCE.read_text(), render_assembly(document()))
-        self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']), 51)
+        self.assertEqual(len(assemble_program(SOURCE.read_bytes()).as_dict()['functions']), 59)
         program, cases = four_kinds()
         raw = request_wire(program, cases[0])
         expected = verify_program(program).canonical_bytes
@@ -95,6 +100,22 @@ class CorePatchSourceTests(unittest.TestCase):
         request = add_two_patch(program)
         request['edits'][0]['index'] = False
         self.assertEqual(interpreted(request_wire(program, request))[0], 0xfffffff4)
+
+    def test_mode2_independent_VM_returns_exact_sorted_migration_diagnostics(self):
+        from hepta.hia_agent_candidate_native import result_payloads
+        from hepta.hia_agent_store import wire as canonical_wire
+        program = scalar_program()
+        request = {**add_two_patch(program), 'schema':PATCH_SCHEMA_V2,
+                   'interface_policy':'migrate', 'edits':[]}
+        for name in ('zeta','alpha'):
+            definition = copy.deepcopy(program['functions'][0])
+            definition['name'] = name
+            request['edits'].append({'action':'add_function','function':name,'definition':definition})
+        expected, receipt = apply_program_patch(program, request)
+        code, output = interpreted(request_wire(program,request), result_schema=2)
+        self.assertEqual(code,32+len(expected.canonical_bytes)+len(canonical_wire(receipt)))
+        self.assertEqual(result_payloads(output),(expected.canonical_bytes,canonical_wire(receipt)))
+        self.assertEqual(receipt['interface_changes'],['alpha','zeta'])
 
 
 class CorePatchNativeTests(unittest.TestCase):

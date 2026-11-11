@@ -36,3 +36,13 @@ Actual isolated wheel tests block all `tools` imports, use empty PATH, exercise
 native publish/verify/withdraw and put/get/dedup/restart, and retain body/source
 refusals. Python custody, object encoding, SQLite and the journal remain hosted;
 this is not native-only installation or default activation.
+
+The ordinary `hia_candidate` patch branch now uses the selected patch manifest
+to obtain both candidate and complete diagnostic bytes from HIA. An actual
+isolated wheel test disables the hosted program loader, payload checker, patch
+editor and receipt construction while running that ordinary request. Missing
+installed source, invalid manifests and changed image bytes in a fresh process
+refuse. Existing pinned RX images retain their documented immutable lifetime.
+Context, issued refs, attempts, SQLite intent/response commits and artifact
+publication retain their existing owners. Four real process-kill cut points
+cover unfinished intents and exact completed-response replay.

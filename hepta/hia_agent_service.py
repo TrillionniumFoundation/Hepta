@@ -535,7 +535,7 @@ class HIAAgentService:
     def _hia_candidate(self, args):
         from .hia_agent_assembly import assemble_program
         from .hia_program_tools import apply_program_patch
-        change, base = args["change"], None
+        change, base, native_payloads = args["change"], None, None
         if change["kind"] == "import":
             data, _ = self.store.get(change["source"])
             program = assemble_program(data) if change["format"] == "hia-asm.v1" else verify_program(decode_json(data))
@@ -543,14 +543,24 @@ class HIAAgentService:
                            "input_sha256": program.input_sha256, "core_sha256": program.sha256}
         else:
             base = change["base_program"]
-            original = self._program(base)
-            patch, _ = self.store.get_json(change["patch"])
-            if patch.get("schema") != change["patch_schema"]:
-                reject("E_HIA_PATCH_SCHEMA", "patch artifact differs from declared patch schema")
-            program, diagnostics = apply_program_patch(original, patch)
-        candidate = self.store.put(program.canonical_bytes, "core", {"context": args["context"]})
+            selected = os.environ.get('HEPTA_HIA_CORE_PATCH_MANIFEST')
+            if selected:
+                from .hia_agent_candidate_native import apply_candidate_patch
+                original_bytes, _ = self.store.get(base)
+                patch_bytes, _ = self.store.get(change["patch"])
+                native_payloads = apply_candidate_patch(selected, original_bytes, patch_bytes, change["patch_schema"])
+            else:
+                original = self._program(base)
+                patch, _ = self.store.get_json(change["patch"])
+                if patch.get("schema") != change["patch_schema"]:
+                    reject("E_HIA_PATCH_SCHEMA", "patch artifact differs from declared patch schema")
+                program, diagnostics = apply_program_patch(original, patch)
+        candidate = self.store.put(native_payloads[0] if native_payloads is not None else program.canonical_bytes,
+                                   "core", {"context": args["context"]})
+        diagnostic_artifact = (self.store.put(native_payloads[1], "candidate-diagnostics") if native_payloads is not None
+                               else self.store.json(diagnostics, "candidate-diagnostics"))
         return {"candidate": candidate, "base_program": base,
-            "diagnostics": self.store.json(diagnostics, "candidate-diagnostics"), "core_admitted": True,
+            "diagnostics": diagnostic_artifact, "core_admitted": True,
             "behavior_equivalence_proved": False, "adopted": False}
 
     def _behavior_equivalence(self, original, revised, timeout_ms):

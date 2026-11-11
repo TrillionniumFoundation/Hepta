@@ -24,8 +24,8 @@ accounting, not a claim that every line received a semantic proof.
 
 The baseline contains 2,388 Git blobs, 1,039 Python files (including tests and
 research), 144 production Python modules, 46 HIA assembly files and 12 Core JSON
-source files. The new patch adapter adds a hosted custody module while moving
-the actual transformation into HIA. File-count ratios are not a useful measure
+source files. The patch and raw Agent result adapters add hosted custody modules
+while moving transformation and diagnostic construction into HIA. File-count ratios are not a useful measure
 of semantic completion; the current exact counts are in the inventory.
 
 Baseline Actions run `42891040706` was independently read, including original
@@ -94,6 +94,59 @@ The host adapter still materializes its existing Python result object and owns
 its surrounding transaction. This preserves the existing ordinary caller while
 the complete native Agent is still being built.
 
+### Raw ordinary Agent patch results
+
+The explicitly selected ordinary `hia_candidate` patch branch now passes the
+authorized base and patch bytes directly to HIA. It does not construct Python
+Core/patch objects, call the hosted verifier/editor or compute signatures and
+receipts in Python. HIA returns the canonical candidate and complete existing
+diagnostic bytes; full native Core admission still precedes and follows editing.
+The existing store receives two opaque payloads and retains ref/context authority.
+
+The independent [patch-result executable](HIA_CORE_PATCH_RESULT_CLI.md) exposes
+the same calculation as `hia-patch-result v1|v2`. It writes a bounded `HIAPAR01`
+frame only after both admissions. Candidate execution is still false; an editor
+running natively does not mean the edited program has been executed. Original
+artifact hashes remain distinct from canonical snapshot hashes. Existing v1/v2
+receipt fields, interface sorting and default returned-loan equivalence remain.
+
+Independent development controls compared 540 native cases (198 accepted and
+342 refused), 11 actual Agent/SQLite cases and 10 HIA-packed CLI controls, with
+no remaining difference in their covered behavior. The focused nine-test Agent
+suite passed, including a real isolated installed wheel and four real SIGKILL
+cut points: committed intent, published candidate, published diagnostics and
+committed terminal response. The first three remain unknown after restart;
+the last replays the retained response. A completed replay precedes any new
+image admission. This verifies compatibility with the existing hosted journal;
+it does not replace that journal with a native implementation.
+
+The original local ptrace failures, a corrected `return_loans` test-fixture typo
+and an initially incorrect cache-invalidation test remain in the evidence.
+Development tests are not substituted for matching-source cold qualification.
+
+### Qualification observations
+
+The first published v58 tree was exactly
+`243ca1d7d25ba485681488ea330ff81167e0fff1`, committed as
+`f174f9b970e227a2c6d3b98ea115cedba7f4e316`. Its Actions run `42933658467`
+passed all 11 cold checks; the downloaded archive's SHA-256 and all 548 cold
+source-manifest entries were independently matched to that exact commit.
+The workflow failed because the language inventory retained the old profile
+and support digest. Commit `ecf6886f43e325c411be38fea172bba0d79d7230` regenerates
+both the inventory and its source contract. The failed workflow and original
+logs are retained, without turning skipped later stages into passes.
+Its new run `42934701069` passed both jobs: 222 source tests, 424 native component
+test invocations, 1,242 language checks and 10 assertions, plus the 11 cold
+checks. That exact v58 qualification does not qualify later v59 source edits.
+
+Two local cold attempts reached the unchanged 180-second limit and confirmed
+their owned process-tree cleanup. The h execution connector subsequently
+returned internal errors even for controller-only and known-state reads; the
+uncertain remote source operation was not replayed with a new key. Whole retained
+repository qualification and current live-runtime identity remain open until
+those exact operations and their prerequisites can be observed. Later CI and
+qualification records must identify their own complete source and result scope.
+
 ## Remaining implementation owners
 
 | Area | Native implementation present | Work required before retiring the remaining owner |
@@ -101,7 +154,7 @@ the complete native Agent is still being built.
 | Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` | Full retained language/composite lowering, general linking and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
 | Primitive Core admission | Declarations, 50 opcodes, SSA/CFG, calls/effects, ownership and loans; standalone checker | Nominal/composite normalization, complete object/diagnostic custody and independently justified equivalence for retained semantics |
 | Workspace/project build | Native module graph, naming/privacy, Core materialization and semantic compiler pipeline | Complete project build, library resolution, installation/upgrade/recovery and file/process ownership without hosted orchestration |
-| Agent editing | Native slice/snapshot/data helpers and full snapshot-bound patch application | Remaining query, batch/impact/receipt orchestration, durable publication and ordinary full worker protocol |
+| Agent editing | Native slice/snapshot/data helpers, snapshot-bound patches, complete patch diagnostics and explicit ordinary raw-byte candidate route | Remaining query, batch/impact orchestration, composite/import paths, default installation and ordinary full worker protocol |
 | Agent state | Native artifact hashing, no-replace file publication and content byte store | Metadata/ref encoding and issuance, namespace/kind authority, SQLite transactions/WAL, request intents, locks, costs, leases, slots, versions and uncertain-operation recovery |
 | Runtime and proof | Native kernels and selected runtime/verification applications | Complete retained runtime/library ownership, independent VM/reference roles, proof computation/certificates, exact unknown/refuted/timeout semantics and other target qualification |
 | Authoring and packaging | Checked-in HIA source, native compiler and application packers | Replace remaining Python generation/build/custody entry points, native installer and reproducible clean-machine rebuild without importing the retired stack |
@@ -115,6 +168,62 @@ No live worker, service, state root, release pin or request was migrated by this
 source continuation.
 
 ## Retirement and completion criteria
+
+### Composite and compiler prerequisites
+
+`hepta/hia_program.py::verify_program` invokes
+`hepta/hia_program_composite.py::elaborate_program` before primitive native
+admission. `_Types` still owns nominal declarations, generic binding, finite
+layout, by-value cycles, stored loans and partial-declaration obligations.
+`_Elaborator` still owns nominal SSA, record/enum transformations, inactive-slot
+cleanup, task helpers, partial tokens, original-field returned-loan origins and
+export eligibility. Composite v1 lowers to primitive v6, v2/v3 to v7 and v4 to
+v8; changing those schemas would change the retained language.
+
+A complete next type-layout slice must preserve all four composite versions,
+including unused declarations and generic/partial obligations: 128 definitions,
+128 instantiations, depth 32, 64 fields, 32 variants and 512 flat slots per type.
+The current native JSON compiler frontend accepts v8; its 16 arguments, three
+results, 128 functions and 256 blocks per function are smaller than some legal
+normalized programs and the complete primitive checker's profile. Type-layout
+replacement, full normalization and full compilation therefore need distinct
+acceptance gates. A safe but incorrectly lowered program can pass primitive
+admission while violating the structured source's meaning.
+
+The retained composite ABI/qualification/bulk/returned-loan/partial tests and
+historical `composite-native-72.log` contain actual allocator, refusal, wrong-result
+and cross-target controls. They execute normalized code produced through hosted
+normalization/emission; their historical results do not make those producers
+native or qualify the current complete retained suite.
+
+### Build and installed-runtime prerequisites
+
+`pyproject.toml` still installs the `hia-core` Python distribution with
+`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 23 kernel HIA
+sources and the publisher's declared assets, but it is not a complete native
+self-rebuild kit: the selfhost source, general stdio/result packers, their build
+drivers and default installed native executables are not supplied through that
+kernel resource mechanism. The worker request/report entry and its subprocess
+custody remain hosted. A native installer must own compiler/packer/source pins,
+default selection, executable publication and upgrade/recovery before that
+delivery path can replace the Python entry.
+
+The current B0 path is hosted assembly, machine emission and linking through
+`assemble_program`, `emit_program_machine` and `compile_program_machine` with
+`ld`. B1 onward performs real native HIA compilation, while the generation and
+qualification drivers still use Python and its native mapping bridge. A native
+delivery needs an explicitly retained bootstrap trust root and native build
+orchestration; deleting the current seed/build drivers first would remove the
+present clean-machine reconstruction path.
+
+Builder qualification scopes also differ. The new patch/result builders bind
+the complete current contract and cold source manifest. The shared
+`tools/build_hia_json_preflight.py::build` path checks cold schema/status/checks
+and compiler-generation hashes but does not compare the current full profile
+and source manifest. That path establishes a qualified compiler plus the
+current kernel/image source binding; it must not be described as equivalent to
+whole current-application qualification. This distinction remains an installer
+and build-contract obligation.
 
 The obsolete high-level source language and compatibility entry were already
 removed from the active repository. Remaining hosted components retain actual
