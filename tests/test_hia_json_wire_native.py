@@ -27,6 +27,7 @@ from hepta.hia_program_tools import bounded_json_wire, HIAEditRejected
 ROOT = Path(__file__).resolve().parents[1]
 COLD = 'HEPTA_HIA_JSON_WIRE_COLD_REPORT'
 DEVELOPMENT = 'HEPTA_HIA_JSON_WIRE_DEVELOPMENT_MANIFEST'
+FIXTURE_EVIDENCE = 'HEPTA_HIA_JSON_WIRE_FIXTURE_EVIDENCE'
 
 
 def outcome(operation):
@@ -93,8 +94,17 @@ class WireNativeTests(unittest.TestCase):
         cold, development = os.environ.get(COLD), os.environ.get(DEVELOPMENT)
         if cold and development:
             raise AssertionError('development image cannot override current cold evidence')
-        cls.temp = tempfile.TemporaryDirectory(prefix='hia-json-wire-tests-')
-        cls.folder = Path(cls.temp.name)
+        if not cold and not development:
+            raise unittest.SkipTest('requires explicit JSON wire cold report or development manifest')
+        cls.temp = None
+        evidence = os.environ.get(FIXTURE_EVIDENCE)
+        if evidence:
+            cls.folder = Path(evidence).absolute()
+            cls.folder.mkdir(mode=0o700, parents=True)
+        else:
+            cls.temp = tempfile.TemporaryDirectory(prefix='hia-json-wire-tests-')
+            cls.folder = Path(cls.temp.name)
+            cls.addClassCleanup(cls.temp.cleanup)
         if cold:
             from tools.build_hia_json_wire import build
             report = json.loads(Path(cold).read_bytes())
@@ -109,9 +119,6 @@ class WireNativeTests(unittest.TestCase):
             if sha256(cls.compiler.read_bytes()).hexdigest() != json.loads(cls.manifest.read_bytes())['compiler_sha256']:
                 raise AssertionError('development compiler receipt changed')
             cls.scope = 'EXPLICIT_DEVELOPMENT_ONLY'
-        else:
-            cls.temp.cleanup()
-            raise unittest.SkipTest('requires explicit JSON wire cold report or development manifest')
         cls.image = installed_json_wire(str(cls.manifest))
         # Reuse an explicitly admitted current-source cold builder when cold is
         # selected; a development compiler reuse stays visibly development.
@@ -134,7 +141,8 @@ class WireNativeTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        cls.temp.cleanup()
+        if cls.temp is not None:
+            cls.temp.cleanup()
 
     def assert_same(self, value, maximum=4096, *, ensure_ascii=False, sort_keys=True, renderer=False):
         callback = (lambda number: self.format_image.render(number).decode('ascii')) if renderer else None

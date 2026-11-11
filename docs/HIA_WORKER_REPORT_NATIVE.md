@@ -44,13 +44,19 @@ continuations and fabricated object facts are not an untrusted-input sandbox.
 
 HIA also chooses the active handled-exception handle for every foreign effect.
 The adapter temporarily activates exactly that object, restores the raw
-traceback/context fields altered by activation, and restores the caller's prior
+traceback and ambient context-chain links altered by activation, and restores the caller's prior
 handled-exception context after the effect. This keeps `sys.exception()` and
 the actual exception chain visible during close and error callbacks. An UNKNOWN
 replacement changes the reported exception value, while the original handled
 exception remains active until the handler ends. Final report construction and
 wire encoding run after that interval. Version 1 lacked this preservation; its
 eight original context counterexamples remain evidence, not passing controls.
+The first version 2 adapter also lost a foreign callback's ambient-chain
+mutation when CPython broke a cycle during the next activation. Four actual
+ordinary-worker counterexamples are retained separately. The corrected bridge
+snapshots raw links with identity-based cycle detection and restores them
+before the requested callback, never after it; real callback mutations and new
+traceback frames therefore remain observable.
 
 Native virtual handles occupy the high half of the unsigned 64-bit namespace.
 HIA owns their kind, pair table, UTF-32 literals, slices and concatenations.
@@ -90,6 +96,17 @@ refusals/canaries, source/manifest rebinding, independent request selection,
 actual SQLite close/reopen replay/conflict/running UNKNOWN, and an actual wheel
 ordinary entry with no authoring import or retained report owner. These are
 development controls, not matching-source cold or whole-project qualification.
+
+Native fixture output normally uses an automatically cleaned temporary
+directory. `HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE` instead names a new
+create-only directory which remains after success or failure. It retains the
+matching-source build when selected, request composition image, SQLite state,
+manifest binding fixtures, built wheel and extracted installation. The wheel's
+reproducible source/build staging copy is still removed before extraction to
+limit disk use. An externally selected development bundle is referenced rather
+than copied. The source-only negative builder's temporary directory and the
+independent VM child's in-memory state are not included in this fixture tree;
+their test output must be captured by the caller.
 
 One concrete extension-domain mismatch remains open. The current native frame
 budget comes from `sys.getrecursionlimit()`, which is not CPython's builtin

@@ -84,3 +84,12 @@ checks lazy observations and numeric error order, exercises exact 8 MiB extents,
 and checks protocol sequence/extent refusals, output canaries and installed
 wheel resource identity. Its results are evidence for the exercised controls,
 not an all-input equivalence proof or whole-stack native completion.
+
+`HEPTA_HIA_JSON_WIRE_FIXTURE_EVIDENCE` can name a new create-only directory for
+the native test class. It retains the matching-source wire build when selected,
+binary64 formatter build and wheel/source/extracted installation fixtures,
+including partial files if setup or a test fails. Without that variable the
+class uses an automatically cleaned temporary directory. Externally selected
+development images are referenced, not copied, and the independent Core VM
+child has no persistent workspace in this directory. Test stdout/stderr and
+the external development bundle remain separate evidence inputs.

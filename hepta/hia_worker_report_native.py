@@ -35,33 +35,56 @@ _TRACEBACK = BaseException.__dict__['__traceback__']
 _CONTEXT = BaseException.__dict__['__context__']
 
 
+def _activation_state(exception):
+    """Snapshot raw links a synthetic raise may change while breaking cycles.
+
+    A previous foreign callback can connect the caller's active exception chain
+    back to the exception being activated. CPython may cut that ambient link,
+    so saving only the activated object's context would lose a real mutation.
+    Identity traversal also bounds already cyclic chains without user hooks.
+    """
+    links, seen = [], set()
+    current = sys.exception()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        context = _CONTEXT.__get__(current, BaseException)
+        links.append((current, context))
+        current = context
+    if id(exception) not in seen:
+        links.append((exception, _CONTEXT.__get__(exception, BaseException)))
+    return _TRACEBACK.__get__(exception, BaseException), links
+
+
+def _restore_activation(exception, state):
+    traceback, links = state
+    _TRACEBACK.__set__(exception, traceback)
+    for current, context in links:
+        _CONTEXT.__set__(current, context)
+
+
 def _with_foreign_exception(exception, operation):
     """Execute one HIA-requested effect with its requested handled exception.
 
     Raising an existing object activates sys.exception() but would append an
-    artificial traceback frame and may replace its existing context. Restore
-    those raw fields before the actual effect. Leaving this except scope
-    restores whatever handled exception the caller already had.
+    artificial traceback frame and may change an ambient context-chain link.
+    Restore those raw fields before the actual effect. Leaving this except
+    scope restores whatever handled exception the caller already had.
     """
-    traceback = _TRACEBACK.__get__(exception, BaseException)
-    context = _CONTEXT.__get__(exception, BaseException)
+    state = _activation_state(exception)
     try:
         raise exception
     except BaseException:
-        _TRACEBACK.__set__(exception, traceback)
-        _CONTEXT.__set__(exception, context)
+        _restore_activation(exception, state)
         return operation()
 
 
 def _reraise_foreign(exception):
     """Propagate the observed foreign chain without replacing its context."""
-    traceback = _TRACEBACK.__get__(exception, BaseException)
-    context = _CONTEXT.__get__(exception, BaseException)
+    state = _activation_state(exception)
     try:
         raise exception
     except BaseException:
-        _TRACEBACK.__set__(exception, traceback)
-        _CONTEXT.__set__(exception, context)
+        _restore_activation(exception, state)
         raise
 
 

@@ -32,6 +32,7 @@ from hepta.hia_worker_report_native import (
 ROOT = Path(__file__).resolve().parents[1]
 COLD = 'HEPTA_HIA_WORKER_REPORT_COLD_REPORT'
 DEVELOPMENT = 'HEPTA_HIA_WORKER_REPORT_DEVELOPMENT_MANIFEST'
+FIXTURE_EVIDENCE = 'HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE'
 IDENTITIES = {'worker_sha256': 'a' * 64, 'backend_sha256': 'b' * 64, 'catalog_sha256': 'c' * 64}
 
 
@@ -223,8 +224,17 @@ class WorkerReportNativeTests(unittest.TestCase):
         cold, development = os.environ.get(COLD), os.environ.get(DEVELOPMENT)
         if cold and development:
             raise AssertionError('development cannot override current cold selection')
-        cls.temporary = tempfile.TemporaryDirectory(prefix='hia-worker-report-tests-')
-        cls.folder = Path(cls.temporary.name)
+        if not cold and not development:
+            raise unittest.SkipTest('requires explicit worker report cold report or development bundle')
+        cls.temporary = None
+        evidence = os.environ.get(FIXTURE_EVIDENCE)
+        if evidence:
+            cls.folder = Path(evidence).absolute()
+            cls.folder.mkdir(mode=0o700, parents=True)
+        else:
+            cls.temporary = tempfile.TemporaryDirectory(prefix='hia-worker-report-tests-')
+            cls.folder = Path(cls.temporary.name)
+            cls.addClassCleanup(cls.temporary.cleanup)
         if cold:
             from tools.build_hia_worker_report import build
             report = json.loads(Path(cold).read_bytes())
@@ -240,14 +250,12 @@ class WorkerReportNativeTests(unittest.TestCase):
             if sha256(cls.compiler.read_bytes()).hexdigest() != expected:
                 raise AssertionError('development compiler identity drifted')
             cls.scope = 'EXPLICIT_DEVELOPMENT_ONLY'
-        else:
-            cls.temporary.cleanup()
-            raise unittest.SkipTest('requires explicit worker report cold report or development bundle')
         cls.owner = installed_worker_report(str(cls.manifest))
 
     @classmethod
     def tearDownClass(cls):
-        cls.temporary.cleanup()
+        if cls.temporary is not None:
+            cls.temporary.cleanup()
 
     def same(self, configure=lambda fixture: None):
         old, new = Fixture(), Fixture()
@@ -560,6 +568,60 @@ class WorkerReportNativeTests(unittest.TestCase):
             for ambient in (False, True):
                 with self.subTest(case=case, ambient=ambient):
                     self.assertEqual(observe(True, case, ambient), observe(False, case, ambient))
+
+    def test_foreign_callback_ambient_chain_mutations_survive_next_activation(self):
+        context = BaseException.__dict__['__context__']
+        def observe(native, mutation, indirect, callback_raises):
+            fixture, observations = Fixture(), []
+            ambient, middle = OSError('ambient'), RuntimeError('middle')
+            original = None
+            def label(value):
+                return ('A' if value is ambient else 'B' if value is middle else
+                        'E' if value is original else None if value is None else type(value).__name__)
+            def mark(stage):
+                observations.append((stage, label(sys.exception()),
+                    label(context.__get__(ambient, BaseException)),
+                    label(context.__get__(middle, BaseException)),
+                    label(context.__get__(original, BaseException))))
+            def mutate():
+                context.__set__(ambient, middle if indirect else original)
+                if indirect:
+                    context.__set__(middle, original)
+            class Error(ValueError):
+                @property
+                def code(self):
+                    if mutation == 'code': mutate()
+                    mark('code')
+                    return 'OBSERVED'
+                def __str__(self):
+                    mark('message')
+                    if callback_raises:
+                        raise SystemExit('callback-after-mutation')
+                    return 'original-message'
+                @property
+                def retry_action(self):
+                    mark('retry'); return 'stop'
+            original = Error('original')
+            fixture.construct_error = original
+            fixture.on_output = lambda: mark('output')
+            def identifier():
+                if mutation == 'uuid': mutate()
+                mark('uuid'); return uuid.UUID(int=1)
+            fixture.extra_patches.append(patch.object(worker.uuid, 'uuid4', identifier))
+            try:
+                raise ambient
+            except OSError:
+                result = fixture.run(self.manifest if native else None)
+                mark('returned')
+            for exception in (ambient, middle, original):
+                context.__set__(exception, None)
+            return result, observations
+        for mutation in ('uuid', 'code'):
+            for indirect in (False, True):
+                for callback_raises in (False, True):
+                    with self.subTest(mutation=mutation, indirect=indirect, callback_raises=callback_raises):
+                        self.assertEqual(observe(True, mutation, indirect, callback_raises),
+                                         observe(False, mutation, indirect, callback_raises))
 
     def test_parent_graph_byte_depth_and_node_budgets(self):
         # The response alone fits; including the report's nine fields crosses
