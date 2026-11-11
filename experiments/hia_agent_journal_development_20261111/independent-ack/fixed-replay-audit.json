@@ -1,0 +1,41 @@
+{
+  "adapter_sha256": "f9b37f62cb3bbdd1a16b3947f8024c69fba2f9aff1a380213f4b565adb86d6ee",
+  "base_source_commit": "330ce4c5600c22985d1a7bad1b9199751a15fcc0",
+  "cases": {
+    "method_ack_boundaries": 24,
+    "sql_insert_to_ack": 2,
+    "sql_update_to_ack": 10
+  },
+  "checks": {
+    "actual_retry_unknown_without_effect_reentry": true,
+    "actual_sqlite_closed_reopened": true,
+    "expected_exception_types_preserved": true,
+    "no_false_completed_response_or_cost": true,
+    "no_native_call_after_non_domain_sql_interruption": true,
+    "ordinary_sqlite_domain_rejection_and_cached_response_unchanged": true,
+    "same_original_controls": true,
+    "selected_reference_owner_forbidden": true
+  },
+  "hia_source_sha256": "3d3f682df81b6bcef40d61fd21d464e0c20ca521b02011cd572fa16f44e0c2f0",
+  "image_sha256": "3c631631a0b69558dea132a5e4901d50605b887b20251025ec94c4906544130d",
+  "reports": {
+    "baseexception": {
+      "path": "/workspace/scratch/e26ed3e2edcf/journal-ack-fixed-baseexception-observations/audit.json",
+      "sha256": "a4d1d656ce41aa15e37b1aa520c55e05dd9bcf4eafefc401623dc7224a3f5dc0"
+    },
+    "reserve-window": {
+      "path": "/workspace/scratch/e26ed3e2edcf/journal-ack-fixed-reserve-window-observations/audit.json",
+      "sha256": "bdce37384e016bba9cdd94289b157192f4e57b21c3caeffd250619e52d4cdcb5"
+    },
+    "sql-window": {
+      "path": "/workspace/scratch/e26ed3e2edcf/journal-ack-fixed-sql-window-observations/audit.json",
+      "sha256": "067aad0916c1500a88f93ce9e112ed2f22fea538208e5953460c08c4216067a8"
+    }
+  },
+  "schema": "hepta.hia.independent-journal-ack-fix-replay.v1",
+  "scope": "Only the source-bound old r3 HIA image plus this exact adapter. New cached UTF8/diagnostic kernel, full suite and unified source qualification remain separate gates.",
+  "source_changes": [
+    "hepta/hia_agent_journal_native.py"
+  ],
+  "status": "INDEPENDENT_DEVELOPMENT_FAULT_REPLAY_PASS"
+}
