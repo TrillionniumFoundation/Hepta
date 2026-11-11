@@ -1,0 +1,45 @@
+{
+  "schema": "hia.native-image-source-admission-static-repair.v1",
+  "status": "STATIC_UNEXECUTED",
+  "base_product_commit": "7186dee24f33173c25f2246a6dfe15eeda053992",
+  "base_product_tree": "25f984b7dc88eb55fb34e1fb1561bcf5d0529304",
+  "source_files": [
+    {
+      "path": "hepta/hia_json_preflight_native.py",
+      "bytes": 8895,
+      "sha256": "56cfac8db0fa9f81f97cc92bec74e846c26a62ac74427a9fd8b6e6e6ad7245c1",
+      "git_blob": "3eddbd5ff54269f33a3a7e3bd8bdf67f5bfadd52"
+    },
+    {
+      "path": "hepta/hia_machine_x64.py",
+      "bytes": 15167,
+      "sha256": "545b1f8a1a302cb70d30e6432af2b565c9a787454f5286c467fe1a7f0bbaa121",
+      "git_blob": "18c19c5424406c246ce7ca979a83d91581b839e1"
+    },
+    {
+      "path": "tests/test_hia_machine_state_native.py",
+      "bytes": 30709,
+      "sha256": "dfd80c1db85f324ff99be2b0a575866a2932905c690328a5251f1006c4717a36",
+      "git_blob": "5ea19d6c083d548b5b38d834f07bc6a5f408962b"
+    },
+    {
+      "path": "tests/test_hia_machine_instructions_native.py",
+      "bytes": 27570,
+      "sha256": "e52654d150eb74c5d6c2a174d501789b464d15aa94f0c1c588acd6abc9d3c613",
+      "git_blob": "c7af73cfe15c8db49aa9343e1cb2c95b40add7ff"
+    }
+  ],
+  "finding": "Previously a scope-pinned owner identity concatenated the current source digest with the prior image digest, without retaining and comparing the digest admitted together with the executable mapping. A source change after selection but before the initial implementation hash could therefore be described using an unmatched source/image pair.",
+  "finding_evidence": "Static source inspection; no reproduced runtime claim in this revision.",
+  "repair": "Actual NativeHiaJsonImage instances receive one source digest from the already strict _load_manifest admission. A read-only admitted_source_sha256 property exposes it. Rebinding an existing image to a different source digest refuses. All three machine owner identities compare current source bytes against this admitted value.",
+  "generic_factory_compatibility": "Non-NativeHiaJsonImage factory outputs retain their prior behavior.",
+  "cache_semantics": "Same _load_manifest cache key, maximum and immutable mapped-image semantics; warm selection still rereads source.",
+  "new_controls": "Private source files drift after actual scope selection and before the first implementation hash. Both state and instruction component methods require refusal before Emitter.render, including the real native byte owner. All original 12 method IDs in each component and all 51 callers remain unchanged.",
+  "hia_source_changed": false,
+  "compiler_or_verifier_changed": false,
+  "global_contract_regeneration_required": true,
+  "python_parse_or_tests_executed": false,
+  "matching_current_cold": false,
+  "whole_native_delivery": false,
+  "older_attempts_retained": true
+}
