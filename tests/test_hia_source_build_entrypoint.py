@@ -38,6 +38,7 @@ BUILDER_SCRIPTS = (
     'build_hia_core_workspace_json_cli.py',
     'build_hia_core_workspace_pipeline.py',
     'build_hia_elf_linker.py',
+    'build_hia_execution_budget.py',
     'build_hia_function_shape.py',
     'build_hia_instruction_policy.py',
     'build_hia_json_canonical.py',

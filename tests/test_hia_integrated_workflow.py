@@ -98,8 +98,21 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertEqual(len(names), len(required))
 
     def test_journal_ci_requires_complete_nonempty_execution_and_zero_anomalies(self):
-        source = script('Native request journal decisions and actual SQL crash controls')
-        code = source.split("<<'PYJOURNAL'\n", 1)[1].rsplit('\nPYJOURNAL', 1)[0]
+        self._assert_complete_native_ci(
+            'Native request journal decisions and actual SQL crash controls', 'PYJOURNAL')
+
+    def test_execution_budget_ci_requires_both_journals_and_zero_anomalies(self):
+        name = 'Native execution budgets and both request-journal lifecycles'
+        self._assert_complete_native_ci(name, 'PYBUDGET')
+        self.assertIn("loadTestsFromName('tests.test_hia_execution_budget_native')", script(name))
+        self.assertIn('          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                      step(name))
+        self.assertIn('          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget',
+                      step(name))
+
+    def _assert_complete_native_ci(self, name, marker):
+        source = script(name)
+        code = source.split("<<'" + marker + "'\n", 1)[1].rsplit('\n' + marker, 1)[0]
         clean = dict(testsRun=2, errors=[], failures=[], skipped=[],
                      expectedFailures=[], unexpectedSuccesses=[])
         cases = [('complete', 2, clean, True, 0),
