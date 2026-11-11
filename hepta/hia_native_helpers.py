@@ -30,7 +30,7 @@ MAX_SOURCE_BYTES = 8 << 20
 HELPERS = {
     "HEPTA_HIA_WORKER_REQUEST_MANIFEST": ("hia_worker_request_native", "NativeWorkerRequest"),
     "HEPTA_HIA_AGENT_IDENTITY_MANIFEST": ("hia_agent_identity_native", "NativeAgentIdentity"),
-    "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_json_native", "NativeAgentSnapshotJson"),
+    "HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST": ("hia_agent_snapshot_native", "NativeAgentSnapshot"),
     "HEPTA_HIA_AGENT_DATA_JSON_MANIFEST": ("hia_agent_data_json_native", "NativeAgentDataJson"),
     "HEPTA_HIA_AGENT_BINARY64_MANIFEST": ("hia_agent_binary64_native", "NativeAgentBinary64"),
     "HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST": ("hia_agent_binary64_format_native", "NativeAgentBinary64Format"),
@@ -51,6 +51,14 @@ HELPERS = {
     "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
     "HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST": ("hia_candidate_budget_native", "NativeCandidateBudgetImage"),
     "HEPTA_HIA_RETIREMENT_STATE_MANIFEST": ("hia_retirement_state_native", "NativeRetirementImage"),
+}
+# The ordinary CLI and Agent use different methods on the same patch image.
+# Admit only these named views of its captured bytes, never arbitrary subclasses
+# or a factory chosen by a manifest. All views retain exact four-part cache keys.
+FACTORY_VIEWS = {
+    "HEPTA_HIA_CORE_PATCH_MANIFEST": (
+        ("hia_agent_candidate_native", "NativeAgentCandidatePatch"),
+    ),
 }
 _ACTIVE = None
 _SCOPE_LOCK = threading.Lock()
@@ -174,11 +182,22 @@ class NativeHelpersBinding:
                 raise ValueError("native helper source identity mismatch")
             if sha256(image.raw).hexdigest() != record["image_sha256"]:
                 raise ValueError("native helper executable identity mismatch")
-            mapped = factory(image.raw, record["image_sha256"])
-            key = (str(manifest_path.resolve(strict=True)), str(module.SOURCE.resolve(strict=True)), module.SCHEMA, factory)
-            if key in self.images:
+            factories = [factory]
+            for view_module_name, view_factory_name in FACTORY_VIEWS.get(selector, ()):
+                view_module = importlib.import_module("." + view_module_name, __package__)
+                if (view_module.SOURCE.resolve(strict=True) != module.SOURCE.resolve(strict=True)
+                        or view_module.SCHEMA != module.SCHEMA):
+                    raise ValueError("native helper factory view identity differs from its captured image")
+                factories.append(getattr(view_module, view_factory_name))
+            keys = [(str(manifest_path.resolve(strict=True)),
+                     str(module.SOURCE.resolve(strict=True)), module.SCHEMA, view)
+                    for view in factories]
+            if len(set(keys)) != len(keys) or any(key in self.images for key in keys):
                 raise ValueError("duplicate native helper image binding")
-            self.images[key] = mapped
+            # Every declared view is checked before its first executable mapping.
+            # Both factories receive the same captured, hash-verified bytes.
+            for key, view in zip(keys, factories):
+                self.images[key] = view(image.raw, record["image_sha256"])
             self.selections[selector] = str(manifest_path)
             self.snapshots.extend(((manifest, MAX_MANIFEST_BYTES), (source, MAX_SOURCE_BYTES), (image, MAX_IMAGE_BYTES)))
         self.check_files()

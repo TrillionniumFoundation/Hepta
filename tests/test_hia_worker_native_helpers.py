@@ -5,7 +5,7 @@ images. Explicit development manifests and local seed builds remain developer
 observations, not a completed cold replay or a whole-language compiler proof.
 """
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 from copy import deepcopy
 from hashlib import sha256
 import json
@@ -68,6 +68,43 @@ class WorkerHelperSourceTests(unittest.TestCase):
         self.assertEqual(journal_schema, 'hepta.hia.agent-journal-native.v2')
         from hepta.hia_execution_budget_native import SCHEMA as budget_schema
         self.assertEqual(budget_schema, 'hepta.hia.execution-budget-native.v1')
+        # The ordinary buffer caller requests this descriptor ABI. The raw JSON
+        # snapshot is a separate standalone image, with no selector in that caller.
+        from hepta.hia_agent_snapshot_native import NativeAgentSnapshot
+        module_name, factory_name = HELPERS['HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST']
+        self.assertIs(getattr(importlib.import_module('hepta.' + module_name), factory_name),
+                      NativeAgentSnapshot)
+
+    def test_patch_factory_view_identity_refuses_before_any_mapping(self):
+        import hepta.hia_agent_candidate_native as candidate
+        import hepta.hia_core_admission_native as admission
+        import hepta.hia_core_patch_native as core_patch
+        with tempfile.TemporaryDirectory(prefix='hia-view-source-control-') as temporary:
+            folder = Path(temporary)
+            # These are deliberately non-executable bytes. This control must
+            # refuse the mismatched view contract before any factory runs.
+            image = folder / 'unmapped.bin'
+            image.write_bytes(b'pre-mapping source control; not native code')
+            entries = []
+            for module, filename in ((core_patch, 'manifest.json'),
+                                     (admission, 'admission-manifest.json')):
+                manifest = folder / filename
+                manifest.write_bytes(encoded({'schema': module.SCHEMA,
+                    'source_sha256': sha256(module.SOURCE.read_bytes()).hexdigest(),
+                    'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
+                    'compiler_sha256': '0' * 64}))
+                entries.append({'selector': module.SELECTOR, 'manifest_path': str(manifest),
+                                'manifest_sha256': sha256(manifest.read_bytes()).hexdigest()})
+            bundle = folder / 'bundle.json'
+            bundle.write_bytes(encoded({'schema': SCHEMA, 'target': TARGET, 'abi': ABI,
+                                        'helpers': entries}))
+            for field, wrong in (('SCHEMA', 'unregistered-view-schema'),
+                                 ('SOURCE', admission.SOURCE)):
+                with self.subTest(field=field), patch.object(candidate, field, wrong), \
+                        patch.object(core_patch.NativeCorePatch, '__init__',
+                                     side_effect=AssertionError('mapped before view identity check')):
+                    with self.assertRaisesRegex(ValueError, 'factory view identity'):
+                        NativeHelpersBinding(str(bundle), sha256(bundle.read_bytes()).hexdigest())
 
     def test_unselected_scope_rejects_nested_and_foreign_thread_requests(self):
         with native_helpers_scope():
@@ -837,6 +874,238 @@ print(json.dumps({'artifact_response':first,'budget':after,'helper_sha256':sys.a
             self.assertIs(report['budget_outcome_is_explicit_fixture'], True)
         finally:
             fixture.tearDownClass()
+
+
+class NativeWorkerCallerViewTests(unittest.TestCase):
+    """Real ordinary buffer and Agent patch calls through one pinned bundle."""
+
+    @classmethod
+    def setUpClass(cls):
+        from hepta.hia_agent_snapshot_native import SOURCE as snapshot_source, SCHEMA as snapshot_schema
+        development = os.environ.get('HEPTA_HIA_WORKER_CALLER_VIEWS_DEVELOPMENT_DIR')
+        cold = os.environ.get(COLD)
+        if development and cold:
+            raise AssertionError('development caller images cannot override a requested cold report')
+        temporary = tempfile.TemporaryDirectory(prefix='hia-caller-view-images-')
+        cls.addClassCleanup(temporary.cleanup)
+        folder = Path(temporary.name)
+        if development:
+            # Explicit real-image custody only. No current-source cold claim is
+            # inferred from these earlier artifacts or from their compiler hash.
+            supplied = Path(development).resolve(strict=True)
+            snapshot = supplied / 'descriptor-snapshot/manifest.json'
+            patch_manifest = supplied / 'patch/manifest.json'
+            admission_manifest = supplied / 'patch/admission-manifest.json'
+        elif cold:
+            from tools.build_hia_json_preflight import build
+            from tools.build_hia_core_patch_cli import build as build_patch
+            compiler = selected_compiler(cold)
+            snapshot = build(folder / 'snapshot', compiler, Path(cold), candidate='agent-snapshot')
+            build_patch(folder / 'patch', compiler, Path(cold))
+            patch_manifest = folder / 'patch/manifest.json'
+            admission_manifest = folder / 'patch/admission-manifest.json'
+        else:
+            # Preserve the existing explicit local seed development path. The
+            # patch fixture observes the independent VM before its real B0/B1/B2.
+            from tests.test_hia_core_patch_native import CorePatchNativeTests
+            from tools.qualify_hia_selfhost import compile_stage
+            fixture = type('_CallerPatchFixture', (), {})
+            CorePatchNativeTests.setUpClass.__func__(fixture)
+            cls.addClassCleanup(fixture.temp.cleanup)
+            patch_manifest, admission_manifest = fixture.manifest, fixture.admission_manifest
+            image, receipt = compile_stage(folder, 'snapshot', fixture.compiler, snapshot_source.read_bytes())
+            snapshot = folder / 'manifest.json'
+            snapshot.write_bytes(encoded({'schema': snapshot_schema,
+                'source_sha256': sha256(snapshot_source.read_bytes()).hexdigest(),
+                'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
+                'compiler_sha256': sha256(fixture.compiler.read_bytes()).hexdigest()}))
+            (folder / 'development-compile.json').write_bytes(encoded(receipt))
+        import hepta.hia_agent_snapshot_native as snapshot_module
+        import hepta.hia_core_patch_native as patch_module
+        import hepta.hia_core_admission_native as admission_module
+        cls.assets = {}
+        for name, module, manifest in (
+                ('snapshot', snapshot_module, snapshot),
+                ('patch', patch_module, patch_manifest),
+                ('admission', admission_module, admission_manifest)):
+            record = json.loads(manifest.read_bytes())
+            image = manifest.parent / record['image_path']
+            raw = image.read_bytes()
+            assert record['schema'] == module.SCHEMA
+            assert record['source_sha256'] == sha256(module.SOURCE.read_bytes()).hexdigest()
+            assert record['image_sha256'] == sha256(raw).hexdigest()
+            cls.assets[name] = record, raw
+
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='hia-caller-view-case-')
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        clean = {key: value for key, value in os.environ.items()
+                 if not (key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST'))}
+        environment = patch.dict(os.environ, clean, clear=True)
+        environment.start()
+        self.addCleanup(environment.stop)
+        self.manifests = {}
+        for name, (record, raw) in self.assets.items():
+            folder = self.root / ('snapshot' if name == 'snapshot' else 'patch')
+            folder.mkdir(exist_ok=True)
+            (folder / record['image_path']).write_bytes(raw)
+            manifest = folder / ('admission-manifest.json' if name == 'admission' else 'manifest.json')
+            manifest.write_bytes(encoded(record))
+            self.manifests[name] = manifest
+        self.value = {'schema': SCHEMA, 'target': TARGET, 'abi': ABI, 'helpers': [
+            {'selector': selector, 'manifest_path': str(self.manifests[name]),
+             'manifest_sha256': sha256(self.manifests[name].read_bytes()).hexdigest()}
+            for name, selector in (('patch', 'HEPTA_HIA_CORE_PATCH_MANIFEST'),
+                                   ('admission', 'HEPTA_HIA_CORE_ADMISSION_MANIFEST'),
+                                   ('snapshot', 'HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST'))]}
+        self.bundle = self.root / 'bundle.json'
+        self.bundle.write_bytes(encoded(self.value))
+
+    def scope(self):
+        return native_helpers_scope(str(self.bundle), sha256(self.bundle.read_bytes()).hexdigest())
+
+    @contextmanager
+    def service_session(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from tools.hia_agent_native_qualification import Session, ToolClient, exhaustive_u8_workload
+        with self.scope():
+            self.service = HIAAgentService(self.root / 'state')
+            try:
+                session = Session(ToolClient(self.service.call), prefix=self._testMethodName)
+                session.freeze(exhaustive_u8_workload())
+                yield session
+            finally:
+                self.service.close()
+
+    def arguments(self, session, program, request, *, declared_schema=None):
+        return session.arguments(change={'kind': 'patch',
+            'base_program': session.artifact(program), 'patch': session.artifact(request),
+            'patch_schema': request['schema'] if declared_schema is None else declared_schema})
+
+    def test_original_buffer_callers_execute_native_boundaries_and_refusals(self):
+        from hepta.hia_agent_buffers import buffer_size, buffer_bytes
+        from hepta.hia_agent_snapshot_native import MAX_EXTENT
+        from hepta.hia_agent_store import AgentRejected
+        with self.scope(), \
+                patch('hepta.hia_agent_buffers._buffer_size_reference', side_effect=AssertionError('host size policy')), \
+                patch('hepta.hia_agent_buffers._buffer_bytes_reference', side_effect=AssertionError('host materializer')):
+            for value, expected in (({'bytes_hex': ''}, b''),
+                    ({'bytes_hex': '012aff'}, bytes.fromhex('012aff')),
+                    ({'byte_length': 0, 'fill_byte': 255}, b''),
+                    ({'byte_length': MAX_EXTENT, 'fill_byte': 255}, b'\xff' * MAX_EXTENT)):
+                with self.subTest(descriptor=value):
+                    self.assertEqual(buffer_size(value), len(expected))
+                    self.assertEqual(buffer_bytes(value), expected)
+            for value in ({'bytes_hex': '0'}, {'bytes_hex': 'AA'},
+                    {'byte_length': True, 'fill_byte': 0},
+                    {'byte_length': MAX_EXTENT + 1, 'fill_byte': 0},
+                    {'byte_length': -1, 'fill_byte': 0},
+                    {'byte_length': 1, 'fill_byte': 256}, {'extra': 0}, []):
+                with self.subTest(refused=value):
+                    for function in (buffer_size, buffer_bytes):
+                        with self.assertRaises(AgentRejected) as caught:
+                            function(value)
+                        self.assertEqual(caught.exception.code, 'E_HIA_ARGUMENTS')
+
+    def test_two_exact_patch_views_execute_cli_and_original_service_payloads(self):
+        from hepta.hia_agent_candidate_native import NativeAgentCandidatePatch, installed_agent_candidate_patch
+        from hepta.hia_core_patch_native import NativeCorePatch, installed_core_patch
+        from hepta.hia_program_tools import apply_program_patch
+        from hepta.hia_agent_store import wire
+        from tests.test_hia_agent_candidate_native import AgentCandidateNativeTests
+        from tests.test_hia_core_patch_native import four_kinds
+        program, requests = four_kinds()
+        expected = [apply_program_patch(program, request) for request in requests]
+        calls = []
+        original = NativeAgentCandidatePatch.result
+        def observed(image, *args, **kwargs):
+            calls.append('native-agent-result')
+            return original(image, *args, **kwargs)
+        with self.service_session() as session:
+            primary = installed_core_patch(str(self.manifests['patch']))
+            agent = installed_agent_candidate_patch(str(self.manifests['patch']))
+            self.assertIs(type(primary), NativeCorePatch)
+            self.assertIs(type(agent), NativeAgentCandidatePatch)
+            self.assertIsNot(primary, agent)
+            self.assertEqual(bytes(primary._mapping), bytes(agent._mapping))
+            # The ordinary CLI patch consumer still uses its original view.
+            self.assertEqual(apply_program_patch(program, requests[0])[0].canonical_bytes,
+                             expected[0][0].canonical_bytes)
+            with patch.object(NativeAgentCandidatePatch, 'result', observed):
+                for request, (wanted, diagnostic) in zip(requests, expected):
+                    args = self.arguments(session, program, request)
+                    payloads = (wire(program), wire(request), wanted.canonical_bytes, wire(diagnostic))
+                    with AgentCandidateNativeTests.forbid_payload_owners(self, payloads):
+                        response = self.service.call('hia_candidate', args)
+                    self.assertEqual(response['status'], 'completed', response)
+                    result = response['result']
+                    actual, metadata = self.service.store.get(result['candidate'], kind='core')
+                    details, _ = self.service.store.get(result['diagnostics'], kind='candidate-diagnostics')
+                    self.assertEqual((actual, details), (wanted.canonical_bytes, wire(diagnostic)))
+                    self.assertEqual(metadata, {'context': session.context})
+                    self.assertTrue(result['core_admitted'])
+                    self.assertFalse(result['adopted'])
+        self.assertEqual(calls, ['native-agent-result'] * len(requests))
+
+    def test_original_service_refusal_is_durable_without_candidate_or_host_fallback(self):
+        from hepta.hia_agent_candidate_native import NativeAgentCandidatePatch
+        from hepta.hia_core_patch_native import NativeCorePatch
+        from tests.test_hia_agent_candidate_native import AgentCandidateNativeTests
+        from tests.test_hia_program_tools import scalar_program, add_two_patch
+        program = scalar_program()
+        request = add_two_patch(program)
+        request['expected_sha256'] = '0' * 64
+        calls = []
+        original = NativeCorePatch.transform
+        def observed(image, *args, **kwargs):
+            calls.append('native-extract')
+            return original(image, *args, **kwargs)
+        with self.service_session() as session:
+            args = self.arguments(session, program, request)
+            before = self.service.store.db.execute(
+                "SELECT COUNT(*) FROM artifacts WHERE kind IN ('core','candidate-diagnostics')").fetchone()[0]
+            with patch.object(NativeCorePatch, 'transform', observed), \
+                    AgentCandidateNativeTests.forbid_payload_owners(self):
+                response = self.service.call('hia_candidate', args)
+            self.assertEqual(response['status'], 'rejected', response)
+            self.assertIn('snapshot', response['error']['message'].lower())
+            self.assertEqual(calls, ['native-extract'])
+            self.assertEqual(self.service.store.db.execute(
+                "SELECT COUNT(*) FROM artifacts WHERE kind IN ('core','candidate-diagnostics')").fetchone()[0], before)
+            attempts = self.service.store.db.execute('SELECT attempts FROM contexts WHERE id=?',
+                                                    (session.context['id'],)).fetchone()[0]
+            with patch.object(NativeAgentCandidatePatch, 'result', side_effect=AssertionError('replayed patch')), \
+                    patch.object(NativeCorePatch, 'transform', side_effect=AssertionError('replayed extract')):
+                self.assertEqual(self.service.call('hia_candidate', args), response)
+            self.assertEqual(self.service.store.db.execute('SELECT attempts FROM contexts WHERE id=?',
+                (session.context['id'],)).fetchone()[0], attempts)
+
+    def test_unknown_factories_and_wrong_adjacent_admission_never_use_general_loader(self):
+        from hepta.hia_agent_candidate_native import NativeAgentCandidatePatch
+        from hepta.hia_core_patch_native import SOURCE as patch_source, SCHEMA as patch_schema
+        from hepta.hia_json_preflight_native import _installed_json_image
+        class UnlistedPatchView(NativeAgentCandidatePatch):
+            pass
+        with self.scope(), patch('hepta.hia_json_preflight_native._load_manifest',
+                                 side_effect=AssertionError('unlisted factory reached general loader')):
+            with self.assertRaisesRegex(ValueError, 'outside the pinned'):
+                _installed_json_image(str(self.manifests['patch']), patch_source, patch_schema, UnlistedPatchView)
+        for missing in (True, False):
+            value = deepcopy(self.value)
+            if missing:
+                value['helpers'] = [row for row in value['helpers']
+                                    if row['selector'] != 'HEPTA_HIA_CORE_ADMISSION_MANIFEST']
+            else:
+                wrong = self.root / 'wrong-admission.json'
+                wrong.write_bytes(self.manifests['admission'].read_bytes())
+                value['helpers'][1]['manifest_path'] = str(wrong)
+            self.bundle.write_bytes(encoded(value))
+            with patch('hepta.hia_native_helpers.importlib.import_module',
+                       side_effect=AssertionError('dependency refusal happened after import')):
+                with self.assertRaisesRegex(ValueError, 'exact adjacent admission'):
+                    with self.scope():
+                        self.fail('unbound adjacent admission accepted')
 
 
 if __name__ == "__main__":
