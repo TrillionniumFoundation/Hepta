@@ -55,22 +55,26 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         status = widen(decode_json(s, w, o))
         if status >= 4294967292:
             return status
-        index = 0
-        while index < get(w, 8):
-            record = 64 + index * 56
-            kind = get(w, record)
-            start = get(w, record + 24)
-            size = get(w, record + 32)
-            if kind == 3:
-                count = size
-                if byte(s, start) == 45:
-                    count = count - 1
-                if digits != 0 and count > digits:
-                    return 4294967280
-            if kind == 7:
-                if widen(decimal_convert(s, w, start, size)) != 8:
-                    return 4294967280
-            index = index + 1
+        # Cached JSON is materialized by the existing foreign numeric bridge.
+        # Its lazy selected-converter and conversion error order are preserved.
+        # Identity and terminal canonical bytes still use the HIA numeric core.
+        if stage != 3:
+            index = 0
+            while index < get(w, 8):
+                record = 64 + index * 56
+                kind = get(w, record)
+                start = get(w, record + 24)
+                size = get(w, record + 32)
+                if kind == 3:
+                    count = size
+                    if byte(s, start) == 45:
+                        count = count - 1
+                    if digits != 0 and count > digits:
+                        return 4294967280
+                if kind == 7:
+                    if widen(decimal_convert(s, w, start, size)) != 8:
+                        return 4294967280
+                index = index + 1
         parsed = True
     else:
         if stage != 9 and length(s) != 0:
@@ -108,7 +112,7 @@ def dispatch(s:readbuf, o:mutbuf, w:mutbuf, stage:u64) -> u64:
         put(w, p + 8, 6)
         if get(w, p + 16) == 7:
             if get(w, 64) != 6:
-                return 4294967293
+                return refuse(w, 16 + get(w, 64))
             status = field(w, 0, 5)
             if string_is(w, status, 1) == 1:
                 return instruction(w, 6)

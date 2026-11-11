@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+import math
+import os
 import struct
 import sys
 
@@ -102,7 +104,7 @@ class JournalSession:
         state = ctypes.string_at(ctypes.addressof(output) + HEADER_OFFSET, STATE_BYTES)
         word = lambda offset: struct.unpack_from('<Q', state, offset)[0]
         actions = {0: {CONTINUE, LOOKUP, ALIAS, REFUSE}, 1: {RESERVE, CACHE, REFUSE},
-                   2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY}, 4: {CONTINUE},
+                   2: {CONTINUE}, 3: {REPLAY, VERIFY_REPLAY, REFUSE}, 4: {CONTINUE},
                    5: {CONTINUE, ATOMIC}, 6: {NONE, JOURNAL}, 7: {NONE},
                    8: {NONE, FINAL}, 9: {BOUND, REFUSE}}
         if (word(0) != MAGIC or code not in actions[stage] or word(48) != code
@@ -118,7 +120,7 @@ class JournalSession:
                 or code not in {FINAL, JOURNAL} and (word(288) or word(272) or word(280) or word(264))):
             raise RuntimeError('invalid native journal write instruction')
         arena = b''
-        if code in {REPLAY, VERIFY_REPLAY}:
+        if stage == 3:
             extent = struct.unpack_from('<Q', scratch, 32)[0]
             if not 64 <= extent <= scratch_size - PRIVATE_BYTES:
                 raise RuntimeError('invalid native journal arena extent')
@@ -140,11 +142,39 @@ class JournalSession:
         return self._run(2)
 
     def cached(self, raw):
-        if type(raw) is not str:
+        if type(raw) not in (bytes, str):
             raise AgentRejected('E_HIA_JSON', 'JSON data must be UTF-8 bytes or text')
-        payload = raw.encode('utf-8')
+        payload = raw if type(raw) is bytes else raw.encode('utf-8')
+        if len(payload) > MAX_BYTES:
+            raise AgentRejected('E_HIA_JSON', 'JSON data exceeds 8 MiB')
         result = self._run(3, payload)
-        return result, materialize_data(result.arena, payload)
+        # Preserve decode_data's lazy numeric-object conversion and diagnostic
+        # precedence. This bridge does not parse syntax or decide replay.
+        selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
+        converter = None
+        def floating(text):
+            nonlocal converter
+            if selected:
+                from .hia_agent_binary64_native import installed_agent_binary64
+                try:
+                    if converter is None:
+                        converter = installed_agent_binary64(selected)
+                    return converter.convert(text)
+                except ValueError as exc:
+                    raise AgentRejected('E_HIA_JSON', str(exc)) from exc
+            number = float(text)
+            if not math.isfinite(number):
+                raise AgentRejected('E_HIA_JSON', 'nonfinite JSON number')
+            return number
+        value = materialize_data(result.arena, payload, parse_float=floating)
+        if result.action == REFUSE:
+            kinds = {16: 'NoneType', 17: 'bool', 18: 'bool', 19: 'int',
+                     20: 'str', 21: 'list', 23: 'float'}
+            kind = kinds.get(self._word(56))
+            if kind is None:
+                raise RuntimeError('invalid native cached-object refusal')
+            raise AttributeError("'" + kind + "' object has no attribute 'get'")
+        return result, value
 
     def aliased(self):
         return self._run(4)
@@ -201,6 +231,17 @@ def call_with_native_journal(service, tool, arguments, manifest):
     started = hosted.time.monotonic_ns()
     request_id = 'unadmitted-' + hosted.uuid.uuid4().hex
     context_id, response = None, None
+    native_failed = False
+    def native_step(operation, *arguments):
+        nonlocal native_failed
+        try:
+            return operation(*arguments)
+        except RuntimeError:
+            # A newly introduced native protocol failure must not finalize a
+            # completed response after its enclosing SQL transaction rolls back.
+            # Do not invoke the failed image again or issue any terminal writes.
+            native_failed = True
+            raise
     try:
         session = installed_agent_journal(manifest).session()
     except (ValueError, OSError) as exc:
@@ -208,7 +249,7 @@ def call_with_native_journal(service, tool, arguments, manifest):
     try:
         # Existing foreign snapshot and its error order remain explicit.
         arguments = hosted.decode_data(wire(arguments))
-        step = session.prepare(wire({'tool': tool, 'arguments': arguments}))
+        step = native_step(session.prepare, wire({'tool': tool, 'arguments': arguments}))
         request_id = session.request_id
         if step.action == REFUSE:
             session.raise_refusal()
@@ -217,22 +258,22 @@ def call_with_native_journal(service, tool, arguments, manifest):
             arguments = {'catalog_sha256': service.catalog_sha256,
                          'artifact': service.store.resolve_uri(arguments['uri']),
                          'max_bytes': arguments.get('max_bytes', 65536)}
-            session.aliased()
+            native_step(session.aliased)
             tool = session.tool
         if step.action == LOOKUP:
             with service.store.transaction():
                 previous = service.store.db.execute(
                     'SELECT * FROM requests WHERE key=?', (session.key,)).fetchone()
-                row = session.lookup(previous)
+                row = native_step(session.lookup, previous)
                 if row.action == REFUSE:
                     session.raise_refusal()
                 if row.action == RESERVE:
                     service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
                         (session.key, session.request_digest, tool, 'running', None, str(hosted.time.time_ns())))
                     # SQL succeeded; acknowledgement precedes COMMIT, as before.
-                    session.reserved()
+                    native_step(session.reserved)
                 elif row.action == CACHE:
-                    replay, cached = session.cached(previous['response'])
+                    replay, cached = native_step(session.cached, previous['response'])
                     if replay.action == VERIFY_REPLAY:
                         service._replay_verification(cached, arguments)
                     return cached
@@ -246,19 +287,19 @@ def call_with_native_journal(service, tool, arguments, manifest):
             context_id = arguments['context']['id']
             if tool not in {'hia_inspect', 'hia_rollback'}:
                 service._budget(context, candidate=tool == 'hia_candidate')
-        mode = session.effect()
+        mode = native_step(session.effect)
         if mode.action == ATOMIC:
             with service.store.transaction():
                 result = getattr(service, '_' + tool)(arguments)
                 response = {'contract_version': hosted.VERSION, 'request_id': request_id,
                             'status': 'completed', 'result': result}
                 hosted.validate(response, service.tools[tool]['outputSchema'], 'result')
-                instruction = session.inline(response)
+                instruction = native_step(session.inline, response)
                 if instruction.action == JOURNAL:
                     service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
                                              (instruction.response.decode('utf-8'), session.key))
                     # UPDATE succeeded; acknowledgement still precedes COMMIT.
-                    session.committed_inline()
+                    native_step(session.committed_inline)
         else:
             result = getattr(service, '_' + tool)(arguments)
             response = {'contract_version': hosted.VERSION, 'request_id': request_id,
@@ -267,13 +308,14 @@ def call_with_native_journal(service, tool, arguments, manifest):
     except (ValueError, TypeError, OSError, OverflowError, RecursionError, hosted.sqlite3.Error) as exc:
         response = service._error(request_id, exc)
     finally:
-        instruction = session.finish(response)
-        if instruction.flags & COST_WRITE:
-            service.store.db.execute(
-                'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
-                (context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started),
-                 instruction.status, instruction.cost_details.decode('utf-8')))
-        if instruction.flags & JOURNAL_WRITE:
-            service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
-                                    (instruction.response.decode('utf-8'), session.key))
+        if not native_failed:
+            instruction = session.finish(response)
+            if instruction.flags & COST_WRITE:
+                service.store.db.execute(
+                    'INSERT INTO costs (context_id,tool,request_id,wall_ns,status,details) VALUES (?,?,?,?,?,?)',
+                    (context_id, str(tool), request_id, str(hosted.time.monotonic_ns() - started),
+                     instruction.status, instruction.cost_details.decode('utf-8')))
+            if instruction.flags & JOURNAL_WRITE:
+                service.store.db.execute("UPDATE requests SET state='completed',response=? WHERE key=?",
+                                        (instruction.response.decode('utf-8'), session.key))
     return response
