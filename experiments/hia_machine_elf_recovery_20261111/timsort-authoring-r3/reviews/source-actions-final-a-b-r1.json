@@ -1,0 +1,82 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "date": "2026-11-11",
+  "reviewer": "native_install_owner",
+  "status": "CLEAR_FOR_EXAMINED_STATIC_WIRING",
+  "product_executed": false,
+  "python_parse_executed": false,
+  "author_control_commit": "ef00e6bfc0c656dad1c4e79efa844a36a66ec74b",
+  "author_control_tree": "3742a769c6220fb9750d9bd5c4be1de0b3e7bcaa",
+  "workflow_commit": "7f18fa89d96b217ad57328496c3c38daf0fa50a6",
+  "workflow_tree": "d0dc2679ad26de9e19b26d3dec9291a85a86a711",
+  "scope": "Incremental final 18 source-only gate controls and fixed A/B policy/workflow pins, following the separately preserved template-r2 failure-custody review.",
+  "files": {
+    "gate_controls.py": {
+      "bytes": 4582,
+      "sha256": "9bc64d8818d5a709fb67e6ba0259f98ef1bb07fe99af9f160197550842a81ea3",
+      "git_blob_sha1": "716b88ad866e2cf3e3713535c9be6ab6714f8ded"
+    },
+    "source_worker.py": {
+      "bytes": 10227,
+      "sha256": "e9a0ed6f2a2afea3301adcd80ff1c48905f5dbdf15867f5d470e1eb99f19658f",
+      "git_blob_sha1": "493d04cee7b1c6b0c16312ad0d38169f37b61095"
+    },
+    "publisher.py": {
+      "bytes": 38591,
+      "sha256": "602c0ddc9d791ec47114f45f0b5b02b9b25b7286c6835de8fc87e27812dbacda",
+      "git_blob_sha1": "3eaf4dfe64edcf7d25715fe0b358444653f444c3"
+    },
+    "policy.json": {
+      "bytes": 48682,
+      "sha256": "1f303bde4706955310a9bc4fc29d3af9b99d047232da46c913d4711b4288ef5c",
+      "git_blob_sha1": "adf64b7ad279b0619f93f113f95fe3f50b62561a"
+    },
+    "author_common.py": {
+      "bytes": 8134,
+      "sha256": "569b7bb806657f731ea1a54c360fd8d0f7be9638846a3941e2eb50fcfd75cff8",
+      "git_blob_sha1": "798c8a8059aba9073660bbddb5f81869af7c4fc9"
+    },
+    "author_driver.py": {
+      "bytes": 21043,
+      "sha256": "0ea15a0c2295a83ff3f31c049168fcd493bf00e7a50be6bdf0bfc84c9a8d0fe7",
+      "git_blob_sha1": "ac9699f6dfc0b1fa842d23453ed6ca637d8cd49a"
+    },
+    ".github/workflows/hia-native-stack-source-isolated.yml": {
+      "bytes": 7725,
+      "sha256": "90dcc3fdc4334fb7645840347f9c869698ff255932cabe374235301b7ecbfb28",
+      "git_blob_sha1": "19ffd87378cb53c555fdcab0f7e73f5c3ef8124c"
+    },
+    "complete_gate_source_tests": {
+      "bytes": 31520,
+      "sha256": "8b66136acf68caaf3d1fe132fe85c4d3b8fc0f99a7fbaa8799423f15f7de2a67",
+      "git_blob_sha1": "3d3d04db2e2c1e95232bd34d535b4e1ba24ab83e"
+    }
+  },
+  "exact_text_comparisons": {
+    "workflow_bytes": 7725,
+    "workflow_sha256": "90dcc3fdc4334fb7645840347f9c869698ff255932cabe374235301b7ecbfb28",
+    "workflow_blob": "19ffd87378cb53c555fdcab0f7e73f5c3ef8124c",
+    "workflow_exact_template_substitution": true,
+    "common_exact_template_substitution": true,
+    "gate_ids_equal_source": true,
+    "gate_count": 18,
+    "source_commit": "04ba46ad16310ebbfbf327a143b577445d40ba7d",
+    "source_tree": "3a2b11189ccb661aaff175474a001c741c24959f",
+    "bound_count": 779,
+    "source_leaves": 4023
+  },
+  "observations": [
+    "The 18 frozen IDs exactly match all test methods in the inspected source-only/toy gate test module; loaded IDs, executed IDs and count must match without loader errors or any of the five anomaly categories.",
+    "The new runner keeps explicit source-only scope and rejects drift or final snapshot errors. It does not execute a native image or treat toy receipts as product qualification.",
+    "The worker and publisher independently bind the actual 18-control report bytes, complete IDs, five zero-anomaly categories, source before/after and explicit non-product flags.",
+    "The existing 59 generators and 11 accounting controls remain required. Original 180/3 owner and 120 subprocess bounds are unchanged.",
+    "The actual B workflow is byte-identical to the reviewed template after only the six fixed substitutions; the actual common module is likewise the reviewed template with final fixed pins.",
+    "Policy binds exact source 04ba46ad16310ebbfbf327a143b577445d40ba7d/tree3a2b11189ccb661aaff175474a001c741c24959f, all 4023 leaves, 779 unique bound sources and the expected v74 profile.",
+    "The fixed author is read-only with respect to GitHub. The separately fixed publisher receives write authority only for publication and cannot execute candidate code. A failed candidate clears product-source publication slots while retaining observed filesystem and captured failure evidence."
+  ],
+  "limitations": [
+    "No Python parser, Actions job, publication workflow or product execution was run by this reviewer.",
+    "The prior template-r2 review is separate, preserved in commit 15ec6b1ffd2bb74eb0dd88c8c94602723f3ed678; this receipt does not rewrite its source identity.",
+    "Triggering and authoritative outcome of the actual workflow remain the parent agent's independently retained operation."
+  ]
+}

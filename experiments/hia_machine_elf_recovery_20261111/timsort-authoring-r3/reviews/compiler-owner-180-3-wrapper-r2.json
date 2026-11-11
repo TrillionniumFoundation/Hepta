@@ -1,0 +1,39 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "date": "2026-11-11",
+  "reviewer": "native_install_owner",
+  "status": "CLEAR_FOR_EXAMINED_STATIC_WIRING",
+  "product_executed": false,
+  "python_parse_executed": false,
+  "source_commit": "c593dcce627bce44ba0e8177cdd9aba22f414fb0",
+  "scope": "Only the new original-180s/3s process-owner wrapper and its artifact reader; independent from the earlier ELF producer/reader review.",
+  "files": {
+    "tools/hia_compiler_owner_gates.py": {
+      "bytes": 66955,
+      "sha256": "c72e5ada081138651bbe76ecf3ce2eb7185103292b289f3228209eed4af709e9",
+      "git_blob_sha1": "4a2695aff6953b0b0312d001e933b8dbb42e4256"
+    },
+    "tools/qualify_hia_compiler_owner_ci.py": {
+      "bytes": 13598,
+      "sha256": "0c133bb93ebeff0df5f97e9f46cbde67b4cc12ca108ffab3650ce50a5f57c15b",
+      "git_blob_sha1": "c9b52faea0034ccdbed65054e7b8cca90ab7d58c"
+    }
+  },
+  "original_owner": {
+    "bytes": 17601,
+    "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+  },
+  "observations": [
+    "The fixed commands for five product groups enter the existing run_owned implementation with timeout_seconds=180 and cleanup_seconds=3; the request, child stdout/stderr, original receipt and returned API object are retained separately.",
+    "The artifact reader independently binds the exact request bytes, command, cwd, paths, environment, original process-owner implementation, 180/3 limits and source/cold identities.",
+    "Admission requires zero return code, complete cleanup, ECHILD, reaped leader, no remaining direct children, no cleanup errors, no interrupt/owner error/overflow and only natural lifecycle events; a killed live descendant cannot become a passing product receipt.",
+    "The returned API object is compared with the original receipt after removing only supervisor_returncode and receipt_sha256. These are exactly the two fields the original run_owned API appends on a valid normal return.",
+    "The adapter rechecks owner evidence after the complete product-artifact read and requires source/receipt identities to remain stable.",
+    "The preexisting complete test denominators and explicit whole-native-delivery false fields remain unchanged."
+  ],
+  "limitations": [
+    "This review did not parse or execute the new code, any native image, tests, process controller or remote action.",
+    "It does not substitute for the 18 focused source/toy controls, future actual five-group execution or full product qualification.",
+    "The prior ELF reader review for blobs 6b24226d1e1dcd90260350d17e6d7c13ea5f9dfc and bc6f4d973da23e25ff7ac80f95ce789314b1dd4d remains separately identified in commit 15ec6b1ffd2bb74eb0dd88c8c94602723f3ed678."
+  ]
+}
