@@ -1,0 +1,137 @@
+{
+  "schema": "HIA_NAMESPACE_ROOT_LOCK_READONLY_CONSTRAINTS_1",
+  "scope": "READ_ONLY_SOURCE_REVIEW_NO_NEW_NATIVE_OR_VM_EXECUTION",
+  "environment": "local environment unavailable; no new ROG job or ref mutation",
+  "source": {
+    "hepta": {
+      "head": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "path": "hepta/hia_agent_store.py",
+      "git_blob": "ce939c30102a16d0c0d9736774dca3c50d91f879",
+      "lines": [
+        264,
+        350
+      ]
+    },
+    "sqlite": {
+      "tag": "version-3.46.1",
+      "git_commit": "f3d536d37825302e31ed0eddd811c689f38f85a3",
+      "fossil_manifest": "c9c2ab54ba1f5f46360f1b4f35d849cd3f080e6fc2b6c60e91b16c63f69a1e33",
+      "files": [
+        {
+          "path": "src/main.c",
+          "git_blob": "bff801a87df602d85ce671f5f78a8238ea875bf1"
+        },
+        {
+          "path": "src/os_unix.c",
+          "git_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2"
+        },
+        {
+          "path": "src/wal.c",
+          "git_blob": "fd2eabfd963c6b07ace6d9a6fde8824a26e36d4e"
+        },
+        {
+          "path": "src/btree.c",
+          "git_blob": "62b89897967cdba22595d9ae02a26d7bd00a8fa9"
+        },
+        {
+          "path": "src/pager.c",
+          "git_blob": "268dc7db31963d81d9f42e3a831595d663e005b7"
+        }
+      ]
+    }
+  },
+  "constraints": [
+    {
+      "id": "ROOT_ORDER",
+      "requirement": "Path(root).absolute -> mkdir(0700, parents=True, exist_ok=True) -> final supplied symlink rejection -> resolve -> actual stat uid==actual geteuid and mode&0022==0 -> artifacts mkdir0700 -> symlink rejection -> lstat directory/uid/mode -> existing database lstat ordinary/uid/mode -> sqlite connect isolation_level=None timeout10 check_same_thread=False -> chmod0600 -> Row -> WAL -> FULL -> RLock -> complete10table schema",
+      "source": "hia_agent_store.py:267-334",
+      "limits": "Canonical path/parent symlink behavior must be preserved; a new owner cannot reject all parent symlinks or accept a final root symlink by accident."
+    },
+    {
+      "id": "UID_ZERO",
+      "requirement": "Effective uid0 is a valid actual value; capture actual fstat uid and geteuid independently. No caller uid or zero-as-unissued sentinel.",
+      "source": "hia_agent_store.py:275,282,288"
+    },
+    {
+      "id": "BUSY_SLEEP_ACCOUNTING",
+      "requirement": "10000ms busy parameter is planned sleep budget, not elapsed monotonic deadline. delays(ms)=[1,2,5,10,15,20,25,25,25,50,50,100]; prior totals=[0,1,3,8,18,33,53,78,103,128,178,228]. From count12: delay100 and prior228+100*(count-11). Clip final delay to10000-prior; stop only if<=0. One more lock attempt follows each successful busy callback.",
+      "source": "src/main.c:1725-1786,1847-1858",
+      "correction": "Previous design prose suggesting monotonic hard10s deadline is superseded by this actual-source finding. Clock observation may measure but must not change branch decisions."
+    },
+    {
+      "id": "SLEEP_EINTR",
+      "requirement": "For compiled nanosleep branch, unixSleep calls nanosleep once with remainder=NULL, ignores return and reports requested microseconds. Do not silently restart interrupted sleep, extend to elapsed10s, or substitute a new error.",
+      "source": "src/os_unix.c:6854-6878",
+      "limit": "Compile configuration must be rechecked against actual selected baseline before executing equivalence tests; fallback usleep/whole-second branches differ."
+    },
+    {
+      "id": "BEGIN_RETRY_SCOPE",
+      "requirement": "btreeBeginTrans repeats only primary BUSY and prior transaction NONE. Fresh no-transaction BUSY_SNAPSHOT becomes BUSY; existing read transaction upgrade cannot be treated as a new timed wait. Rejected attempt releases unused reader state before retry.",
+      "source": "src/btree.c:3652-3699; src/pager.c:5904-5921; src/wal.c:3656-3702"
+    },
+    {
+      "id": "WAL_LOCK_NOT_FLOCK",
+      "requirement": "Actual default Unix WAL writer uses fcntl F_SETLK WRLCK on shm lock byte0 plus base120, plus per-inode intra-process shared/exclusive ownership table. A lock on another new filename or a flock does not fence existing WAL writers.",
+      "source": "src/os_unix.c:4386-4387,4429-4483,5009-5201; src/wal.c:294-299; sqlite.h.in SQLITE_SHM_NLOCK8"
+    },
+    {
+      "id": "WAL_ERROR_SCOPE",
+      "requirement": "unixShmSystemLock maps any failed osSetPosixAdvisoryLock to BUSY in default non-SETLK_TIMEOUT branch. Do not substitute generic sqliteErrorFromPosixError's errno table for this WAL path.",
+      "source": "src/os_unix.c:4469-4483",
+      "limit": "Not a statement that every filesystem error is BUSY; apply only to this exact WAL system-lock site."
+    },
+    {
+      "id": "WRITER_SNAPSHOT",
+      "requirement": "After actual write lock, compare original read hdr to current wal-index hdr; stale view releases write lock and reports BUSY_SNAPSHOT. New immutable commit's stale-base check must remain after real writer acquisition and before DATA changes.",
+      "source": "src/wal.c:3678-3702; frozen native commit design"
+    },
+    {
+      "id": "CONTEXTMANAGER",
+      "requirement": "BEGIN occurs before try/yield. BEGIN failure does not run ROLLBACK. Body BaseException triggers ROLLBACK and rollback exception may replace it. COMMIT is in else and COMMIT failure does not trigger implicit rollback/retry.",
+      "source": "hia_agent_store.py:337-347"
+    },
+    {
+      "id": "MIGRATION_HOLD",
+      "requirement": "New native lock and immutable heads do not authorize old SQLite removal. Need complete old-writer fence/drain, real data/schema/rowid/sqlite_sequence migration and full public tests; no newly invented store-wide quotas.",
+      "source": "source inference from actual old WAL locking and current namespace owner plan"
+    }
+  ],
+  "execution": {
+    "new_native_entries": 0,
+    "new_vm_entries": 0,
+    "new_qualification_jobs": 0,
+    "ref_updates": 0
+  },
+  "recoverable": [
+    {
+      "kind": "completed_local_archive_not_yet_new_remote_readback",
+      "path": "/workspace/scratch/hia-audit-runtime-recovery-20261111/namespace-reconstruction/filesystem-r2-complete-01/namespace-filesystem-r2-development.tar.xz",
+      "bytes": 838288,
+      "sha256": "27c68a4bf1bbe5674927a3cac13178e07c3afff33b53666279903192c660d1e1",
+      "members": 207,
+      "status": "Parent received paths/pins before environment failure; R15 publication confirmation pending."
+    },
+    {
+      "kind": "completed_local_review",
+      "path": "/workspace/scratch/hia-audit-runtime-recovery-20261111/inspection-service-static-review-r1/review.json",
+      "bytes": 17478,
+      "sha256": "60c2e1ddd32772596f3e57585ebe2ba1b0c303a473c6e0bae548719b26ef130d",
+      "status": "Parent read report and is fixing independent r2; local availability unknown after environment failure."
+    },
+    {
+      "kind": "reconstructable_exact_tool_input",
+      "path": "tools/generate_hia_agent_namespace_filesystem_v2.py",
+      "status": "apply_patch returned success; exact source text retained in transcript; only generated HIA103674B observed; no manifest/native/VM evidence."
+    },
+    {
+      "kind": "reconstructable_exact_tool_input",
+      "path": "docs/HIA_AGENT_NAMESPACE_ROOT_LOCK.md",
+      "status": "apply_patch returned success; transcript exact draft recoverable; replace hard-deadline prose in a new revision, do not silently reclassify old draft."
+    },
+    {
+      "kind": "unverified_pending_write",
+      "path": "namespace-reconstruction/filesystem-v2/validate_identity_r1.py",
+      "status": "Complete proposed text retained in apply_patch transcript; cell g4:192 remained running then await terminated during explicit unavailable environment. File write UNKNOWN; 0 tests started."
+    }
+  ]
+}

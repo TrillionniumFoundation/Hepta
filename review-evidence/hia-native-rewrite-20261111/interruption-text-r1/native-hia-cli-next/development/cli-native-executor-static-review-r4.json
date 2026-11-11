@@ -1,0 +1,40 @@
+{
+  "schema": "HIA_CLI_FIXED_EXECUTOR_STATIC_REVIEW_1",
+  "scope": "NEW_UNEXECUTED_SOURCE_ONLY_NO_ASSEMBLY_NO_NATIVE_NO_VM",
+  "repository": "TrillionniumFoundation/Hepta",
+  "initial_blob": "7d13a2bf3f7ee518cd952d5497fc9ff701d3ca1c",
+  "initial_bytes": 14101,
+  "final_blob": "b53e3af30c3e877f9cc6d9f2b2faee6ea20466cd",
+  "final_bytes": 14594,
+  "read_scope": "All 729 initial lines; exact final added/removed hunks and relevant surrounding ownership definitions.",
+  "positive": [
+    "Raw argc/envp C-string lengths, counts and total-size arithmetic checked; entire captured source protected readonly after second pass and exact extent match.",
+    "CALL first/second input rights restored to actual original state after successful native return; fatal standalone exit is explicit, not reusable nested cleanup.",
+    "FD0 allowed; CLOSE clears owned fd before kernel call and does not retry close/EINTR.",
+    "Partial stdout/stderr writes and write EINTR retry are mechanical, with returned count<=requested."
+  ],
+  "findings": [
+    {
+      "id": "CLI_STATIC_1",
+      "initial": "Terminal stdout written before stderr extent/readonly validation.",
+      "final": "Both entire views/ranges/readonly bits now validated before either stream write; source-level gap repaired.",
+      "status": "STATIC_FIXED_NOT_EXECUTED"
+    },
+    {
+      "id": "CLI_STATIC_2",
+      "initial": "Writable CALL workspace and RWW second could select reserved controller slot2.",
+      "final": "Workspace>=4, RWW second exact dedicated128B slot3; RRW inputs may still use permitted readonly internal views. FSTAT/READ writable target>=4 also added.",
+      "status": "STATIC_FIXED_NOT_EXECUTED"
+    }
+  ],
+  "reviewer_correction": "Initial message incorrectly called slot3 the current event mapping. Re-reading _start proves event r12/FRAMEMAP is separate; slot3 is dedicated RWW output. That part was withdrawn, not treated as a counterexample.",
+  "limits": [
+    "No assembled executable or actual run exists for these new sources in this review.",
+    "No claim of full ordinary CLI/native business-service closure; opcode17 remains explicitly unconnected.",
+    "No full HIA parser/formatter/file-owner policy review; only fixed mechanical routing and buffer/FD lifetime."
+  ],
+  "new_native_entries": 0,
+  "new_vm_entries": 0,
+  "new_qualification_jobs": 0,
+  "ref_updates": 0
+}
