@@ -1,0 +1,26 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/qian-qi/he26instructionsr1/source/tools/generate_hia_machine_instructions.py", line 684, in <module>
+    path.write_text(render_assembly(document()))
+                                    ~~~~~~~~^^
+  File "/home/qian-qi/he26instructionsr1/source/tools/generate_hia_machine_instructions.py", line 681, in document
+    return compact_authoring_cfg({'schema':'hepta.hia.program.v8','module':'machine_instructions','functions':functions})
+  File "/home/qian-qi/he26instructionsr1/source/tools/generate_hia_selfhost.py", line 2063, in compact_authoring_cfg
+    verify_program(document)
+    ~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/qian-qi/he26instructionsr1/source/hepta/hia_program.py", line 959, in verify_program
+    _verify_function(data["schema"], fn, block_maps[fn["name"]], interfaces)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26instructionsr1/source/hepta/hia_program.py", line 912, in _verify_function
+    check.instruction(ins)
+    ~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/qian-qi/he26instructionsr1/source/hepta/hia_program.py", line 681, in instruction
+    actual = [self.value(a) for a in args]
+              ~~~~~~~~~~^^^
+  File "/home/qian-qi/he26instructionsr1/source/hepta/hia_program.py", line 634, in value
+    _reject(f"{self.fn['name']}/{self.block['id']}: undefined/nonlocal value {name}", "E_HIA_SSA")
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26instructionsr1/source/hepta/hia_program.py", line 61, in _reject
+    raise HIAProgramRejected(message, code)
+hepta.hia_program.HIAProgramRejected: E_HIA_SSA: f6/b29: undefined/nonlocal value v246
