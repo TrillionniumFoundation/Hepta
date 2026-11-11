@@ -1,0 +1,44 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "date": "2026-11-11",
+  "reviewer": "native_install_owner",
+  "status": "CLEAR_FOR_EXAMINED_TEST_FIXTURE_DELTA",
+  "baseline": "e8b5deb277b40ccff8c3375f62b5c132717cdbed",
+  "files": [
+    {
+      "name": "workflow-old",
+      "bytes": 18140,
+      "sha256": "8e31c55956fdc0d55d1a52b31d55b3efbdc2a8cf8779c030118b660b23fa8cda",
+      "git_blob_sha1": "48a751a6a3392e23ad61b26142724446981f23aa"
+    },
+    {
+      "name": "store-old",
+      "bytes": 19002,
+      "sha256": "1bf6919d1612cfe991cb8de0fef591d9859bd0886bbb8c47e43304eb27560ae5",
+      "git_blob_sha1": "41f3b88febcc9709181d4213f9d3c1f47d94d22e"
+    },
+    {
+      "name": "workflow-new",
+      "bytes": 18846,
+      "sha256": "0f208a923889fb541bb77a47218ea6adba94faa76df04365d608c58f568aaaac",
+      "git_blob_sha1": "bebb6d65b929ebaf623139d64dbf7f17e7124653"
+    },
+    {
+      "name": "store-new",
+      "bytes": 20387,
+      "sha256": "ffbddc9b7581f074124147242c9e83290daa32bde01566c91ee627d3e146c9b0",
+      "git_blob_sha1": "ff507dd0197bcbecd63a3a980f15cd3a9962ef80"
+    }
+  ],
+  "scope": "Exactly two existing test-method fixture/assertion updates; no production implementation, original test denominator or product budget change.",
+  "observations": [
+    "The complete before/after file diff changes only the source-generator shell fixture method and the Store/page workflow generator-order assertion method.",
+    "The shell fixture creates the two scripts actually invoked after source generation, commits them with its controlled fixture, and retains clean/mutation/first-failure expected return codes0/1/7 and timeout20.",
+    "The additional stdout assertion pins contract, coverage--generate-inventory, contract, contract--check in the actual e8 workflow order. A first generator failure must emit none of these later fixture messages.",
+    "The generator assertion retains all previous method assertions, uniqueness and the exact original55-generator prefix. Its four-member suffix exactly matches actual e8 hia-core.yml:machine_state,machine_instructions,machine_elf,core_lowering.",
+    "Other test-method bytes are unchanged. The change does not execute real contract generation through the toy shell fixture or replace the actual source-production gates."
+  ],
+  "source_parse_executed": false,
+  "test_executed": false,
+  "remote_operation_requested": false
+}
