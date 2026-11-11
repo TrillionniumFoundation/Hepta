@@ -35,6 +35,7 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 # Explicit per-phase transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
+NATIVE_LINKED_OBSERVER = None
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -139,6 +140,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
             output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost':
+        from tools.hia_selfhost_native_observer import invoke as observe_native
+        return observe_native(directory,label,NATIVE_LINKED_OBSERVER,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes,
+            image_format='linked-selfhost')
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")
@@ -456,6 +463,7 @@ def _phase_manifest_digest(manifest):
 
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
+             "linked_observer": directory / "linked-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
              "modified_source": directory / "modified-selfhost.hiaasm"}
     if family in PHASE_REFERENCE_FILES:
@@ -485,7 +493,7 @@ def qualification_phase(request_path):
             or request["compiler_label"] not in {"original", "modified"}):
         raise ValueError("unknown qualification phase request")
     family, label = request["family"], request["compiler_label"]
-    expected_inputs = {"native_observer", "compiler", "source", "sample", "modified_source"}
+    expected_inputs = {"native_observer", "linked_observer", "compiler", "source", "sample", "modified_source"}
     if family in PHASE_REFERENCE_FILES:
         expected_inputs.add("reference")
     if family == "elf":
@@ -503,8 +511,10 @@ def qualification_phase(request_path):
     # The module imported by family helpers must share this explicit binding.
     import tools.qualify_hia_selfhost as runtime
     runtime.NATIVE_OBSERVER = Path(request['inputs']['native_observer']['path'])
-    global NATIVE_OBSERVER
+    runtime.NATIVE_LINKED_OBSERVER = Path(request['inputs']['linked_observer']['path'])
+    global NATIVE_OBSERVER, NATIVE_LINKED_OBSERVER
     NATIVE_OBSERVER = runtime.NATIVE_OBSERVER
+    NATIVE_LINKED_OBSERVER = runtime.NATIVE_LINKED_OBSERVER
     compilers = ((label, compiler),)
     reference = json.loads(data["reference"]) if "reference" in data else None
     checks = {}
@@ -796,6 +806,10 @@ def qualify(output):
     native_observer_reference = observer_reference()
     (directory / 'independent-native-observer-reference.json').write_text(
         json.dumps(native_observer_reference,indent=2,sort_keys=True)+'\n')
+    from tools.hia_selfhost_linked_observer import independent_reference as linked_reference, build as build_linked_observer
+    linked_observer_reference = linked_reference()
+    (directory / 'independent-linked-observer-reference.json').write_text(
+        json.dumps(linked_observer_reference,indent=2,sort_keys=True)+'\n')
     seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
@@ -826,6 +840,10 @@ def qualify(output):
     checks['native_observer_independent_VM_reference_before_B0'] = native_observer_reference['before_B0']
     checks['native_observer_exact_HIA_emission'] = (
         digest(native_observer.read_bytes()) == native_observer_reference['expected_image_sha256'])
+    linked_observer, linked_observer_build = build_linked_observer(directory, original, linked_observer_reference)
+    checks['linked_observer_independent_VM_reference_before_B0'] = linked_observer_reference['before_B0']
+    checks['linked_observer_exact_HIA_emission'] = (
+        digest(linked_observer.read_bytes()) == linked_observer_build['actual_policy_vm_packing']['output_sha256'])
     observations = []
     for label, compiler in (("original", original), ("modified", previous)):
         executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
@@ -914,6 +932,8 @@ def qualify(output):
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"],
         "native_observer_build": native_observer_build,
+        "linked_observer_build": linked_observer_build,
+        "linked_observer_reference": linked_observer_reference,
         "native_observer_reference": native_observer_reference, "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
         "checkout": checkout_identity(),
@@ -960,7 +980,8 @@ def qualify(output):
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
-            "shared_ELF_and_generation_controls": "retained independent stdlib loader",
+            "phase_linked_ELF_transport": "fresh sealed HIA policy ELF; actual system dlopen/dlsym/dlclose",
+            "seed_generation_and_specialized_allocator_controls": "retained independent stdlib loaders",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
