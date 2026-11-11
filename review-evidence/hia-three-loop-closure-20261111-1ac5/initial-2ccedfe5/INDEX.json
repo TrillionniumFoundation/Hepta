@@ -1,0 +1,303 @@
+{
+  "schema": "hepta.hia.candidate-ci-observation.v1",
+  "observation_date": "2026-11-11",
+  "qualification_or_production_authority": false,
+  "whole_candidate_qualified": false,
+  "status": "HOLD_NATIVE_REGRESSION",
+  "scope": "Original 2ccedfe5 candidate only; no result transfer to successor candidates.",
+  "repository": "TrillionniumFoundation/Hepta",
+  "source": {
+    "head_commit": "2ccedfe5c30c328e8f499b108142ed3b220e2bf0",
+    "tree": "292a02814ef7bf18646e6703839031b458823ab3",
+    "base_commit": "5831f52fada45e076f8f68f198a15c0585e6104f",
+    "pr_merge_checkout": "782294abbc7d34d46f86c57b319f791e695de526",
+    "merge_tree_equals_head_tree": true,
+    "cold_source_files": 625,
+    "cold_source_manifests_identical": true
+  },
+  "budget": {
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "changed": false
+  },
+  "runs": [
+    {
+      "event": "pull_request",
+      "run_id": 43002266657,
+      "attempt": 1,
+      "source_job": {
+        "id": 130461032409,
+        "conclusion": "success",
+        "tests": 307,
+        "seconds": 458.324
+      },
+      "native_job": {
+        "id": 130461032046,
+        "conclusion": "failure",
+        "failed_step": "Native applications and actual Core memory controls",
+        "tests": 243,
+        "failures": 2,
+        "seconds": 212.998,
+        "later_native_groups": "skipped"
+      },
+      "cold": {
+        "status": "COLD_SELFHOST_REPLAY_PASS",
+        "wall_elapsed_ns": 128451089778,
+        "checks_passed": 11,
+        "checks_total": 11,
+        "completed_phases": 38,
+        "cleanup_complete": true,
+        "exit_observed_before_deadline": true,
+        "timed_out": false
+      },
+      "language": {
+        "status": "SELFHOST_LANGUAGE_COVERAGE_PASS",
+        "counts": {
+          "checked_arithmetic_traps_per_compiler": 150,
+          "checked_cast_traps_per_compiler": 36,
+          "checks_passed": 1242,
+          "checks_total": 1242,
+          "compilers": 2,
+          "positive_programs_per_compiler": 138,
+          "rejections_per_compiler": 274,
+          "scalar_witnesses": 1183,
+          "shift_traps_per_compiler": 20,
+          "traps_per_compiler": 206
+        },
+        "independent_assertions": 10,
+        "additional_native_execution_by_assertion_reader": false
+      },
+      "artifact": {
+        "id": 13847017397,
+        "sha256": "6e1a767e153df026582d4725592a739af6ff357b4d1837a6f882f43d9a731c46",
+        "bytes": 63885641,
+        "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/43002266657/artifacts/13847017397"
+      }
+    },
+    {
+      "event": "push",
+      "run_id": 43002260507,
+      "attempt": 1,
+      "source_job": {
+        "id": 130461010508,
+        "conclusion": "success",
+        "tests": 307,
+        "seconds": 345.523
+      },
+      "native_job": {
+        "id": 130461010815,
+        "conclusion": "failure",
+        "failed_step": "Native applications and actual Core memory controls",
+        "tests": 243,
+        "failures": 2,
+        "seconds": 257.297,
+        "later_native_groups": "skipped"
+      },
+      "cold": {
+        "status": "COLD_SELFHOST_REPLAY_PASS",
+        "wall_elapsed_ns": 159611606675,
+        "checks_passed": 11,
+        "checks_total": 11,
+        "completed_phases": 38,
+        "cleanup_complete": true,
+        "exit_observed_before_deadline": true,
+        "timed_out": false
+      },
+      "language": {
+        "status": "SELFHOST_LANGUAGE_COVERAGE_PASS",
+        "counts": {
+          "checked_arithmetic_traps_per_compiler": 150,
+          "checked_cast_traps_per_compiler": 36,
+          "checks_passed": 1242,
+          "checks_total": 1242,
+          "compilers": 2,
+          "positive_programs_per_compiler": 138,
+          "rejections_per_compiler": 274,
+          "scalar_witnesses": 1183,
+          "shift_traps_per_compiler": 20,
+          "traps_per_compiler": 206
+        },
+        "independent_assertions": 10,
+        "additional_native_execution_by_assertion_reader": false
+      },
+      "artifact": {
+        "id": 13847132816,
+        "sha256": "4318480faab20fb2a5a606add691e31cf6ef9e06c78ce93df405b6447ed3410f",
+        "bytes": 63910540,
+        "url": "https://github.com/TrillionniumFoundation/Hepta/actions/runs/43002260507/artifacts/13847132816"
+      }
+    }
+  ],
+  "failures": [
+    {
+      "test": "tests.test_hia_agent_installed_resources.AgentInstalledResourceTests.test_real_installed_native_worker_without_checkout_or_reference_predicates",
+      "source_line": 432,
+      "observed": "AssertionError: 2 != 0 : worker native helper selection must come only from its explicit pinned bundle"
+    },
+    {
+      "test": "tests.test_hia_agent_installed_resources.AgentInstalledResourceTests.test_tampered_discovery_doc_invalidates_worker_pin_before_state",
+      "source_line": 470,
+      "expected_error": "administrator source pin differs",
+      "observed": "worker native helper selection must come only from its explicit pinned bundle"
+    }
+  ],
+  "regression_fix": {
+    "path": "tests/test_hia_agent_installed_resources.py",
+    "blob": "9dc7e11d165a2a066af4c44e896f882ebb8b515c",
+    "preserved_controls": [
+      "actual sdist/wheel installation",
+      "isolated child without checkout imports",
+      "disabled host predicates",
+      "all original tamper/missing-resource refusals",
+      "original 15-second child budget"
+    ],
+    "local_validation": {
+      "python": "3.13.5",
+      "setuptools": "84.2.1",
+      "wheel": "0.48.0",
+      "pip": "26.2.2",
+      "tests": 17,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 21.609,
+      "exit_code": 0,
+      "fixture_file_blob_verified": true,
+      "method": "Execute exact patched fixture copy under patched_tests against all 625 verified pristine 2cc cold-export source files; restore two missing unmodified test fixture modules from exact 2cc source. No product/contract files modified.",
+      "does_not_qualify_new_source_candidate": true
+    },
+    "earlier_local_failure": {
+      "python": "3.12.14",
+      "tests": 17,
+      "failures": 1,
+      "errors": 3,
+      "seconds": 19.646,
+      "causes": [
+        "Bundled Python fcntl lacks F_ADD_SEALS",
+        "Cold source export omits two general test fixture modules"
+      ],
+      "original_log_retained": true
+    }
+  },
+  "performance_observation": {
+    "change_claimed": false,
+    "pr_time_until_first_phase_ns": 30858307483,
+    "push_time_until_first_phase_ns": 41098291371,
+    "phase_durations_are_concurrent_and_not_additive": true,
+    "slowest_family": "names",
+    "pr_slowest_phase_ns": 15970162059,
+    "push_slowest_phase_ns": 19154403640
+  },
+  "files": {
+    "pr-cold.json": {
+      "blob": "8cd3736a3362c9b6702f9d3d21ba31e4f679817c",
+      "sha256": "6068af13d05044077e60ed04499f609ed7d4b27175a22cfd7d6dc8af898aa1d3",
+      "bytes": 74993
+    },
+    "push-cold.json": {
+      "blob": "b0ce6d3232ef7713b0c96b3d93ac05add1d03501",
+      "sha256": "603233486c38619b2d7cfe862d93a3996f58e3cac1b90629148524461c865fab",
+      "bytes": 74993
+    },
+    "pr-process-owner.json": {
+      "blob": "cc378debeba2f1f2928846789876ec0e073d6717",
+      "sha256": "094c12747bd05e859bfb360656dac7c79606490c8cac498adda0ac33ef258793",
+      "bytes": 1411
+    },
+    "push-process-owner.json": {
+      "blob": "b8d836a396fe2fa679efb4a18cf7017fad950bd9",
+      "sha256": "0ee5d439eadb63123d00464b178b25116aaf2cd9de22fc9251129a915e1eb27d",
+      "bytes": 1411
+    },
+    "pr-language.assertions.json": {
+      "blob": "604f6472a012ecbb85d206e2ff0fd505555861f2",
+      "sha256": "83ffbd9be05ffb9e28971b45b981f78b5f21dc10ae55bc2c07178a82a62c30f5",
+      "bytes": 282
+    },
+    "push-language.assertions.json": {
+      "blob": "b73d14fcac8aa1f5c203c550196346536138e6c4",
+      "sha256": "c4752f5e4dc886be57fa98fedbd3f179433b6d9e8ecb1d05ca4ff32d6d093459",
+      "bytes": 282
+    },
+    "installed-fixture-local-original-failure.log": {
+      "blob": "e87080d80791dc5f635147db8bf8b634926ffe3c",
+      "sha256": "2c42af6b3e4f7ac49a0f348457d8794e620066940c93e2c06687dc4aa0bd2d40",
+      "bytes": 7978
+    },
+    "installed-fixture-local-py313-pass.log": {
+      "blob": "142da8b66a53f92e22bd75aeb33f8a266f51081c",
+      "sha256": "28c714d6f12f192f1ef2a868b9ebc8007d1ef8dc1d328ce55d5df0f22f485489",
+      "bytes": 4046
+    },
+    "pr-diagnostic-summary.json": {
+      "blob": "7504ace8e984259367fb79f77d8ba2ee8f941233",
+      "sha256": "d238ece387c155d8f99ceb599edd4b2f683050cd999fd365adc260fd6eaa86f4",
+      "bytes": 9725
+    },
+    "push-diagnostic-summary.json": {
+      "blob": "1cfbe4eab3ec1c4fd20809a7363d4a6898af0c1c",
+      "sha256": "a4b399692d2e4cb95f79f968c299fea3c239894904bdebb1293d752acc1b575d",
+      "bytes": 9743
+    },
+    "pr-language.json.gz": {
+      "blob": "38696ecd62c4290587e47b6a91f2f6e75081b9e4",
+      "bytes": 242783,
+      "sha256": "6465602683543e92c9c0c9c2bb92af2526af2ce0025dad957dbd33c3915ff074",
+      "encoding": "gzip",
+      "lossless_original": true,
+      "uncompressed_bytes": 3722266,
+      "uncompressed_sha256": "e720c10e7e515ff85389b5bea7335c1ce53388029c45363c153ea4593b51dde5"
+    },
+    "push-language.json.gz": {
+      "blob": "b2736430cb3fec80206ebf759cbc20da8d095776",
+      "bytes": 243006,
+      "sha256": "b2e95625c5faba32273dfdbf3380056508c2a09ac0e693b5397b71bc9d8f2bc3",
+      "encoding": "gzip",
+      "lossless_original": true,
+      "uncompressed_bytes": 3722333,
+      "uncompressed_sha256": "349dd4eb2dd9dec239532084d19ee35635d7e831df90fffdbf6f8ac2528d8576"
+    },
+    "pr-qualification.json.gz": {
+      "blob": "47be61cbf47cd878699f058d4979d40865eb618f",
+      "bytes": 2774494,
+      "sha256": "77ba9949af750ee7da6ae4e7a1ca83d7c9bf248a59ffd08c01e89bdd9f13cff1",
+      "encoding": "gzip",
+      "lossless_original": true,
+      "uncompressed_bytes": 53024259,
+      "uncompressed_sha256": "b973f5c5b89eb5ccea3e73895b6291ad75ff6325c3872aa95356781ea6054422"
+    },
+    "push-qualification.json.gz": {
+      "blob": "1dc131dcc1f53dc5586c20cdb9423b4bfff57440",
+      "bytes": 2775408,
+      "sha256": "c0a10797911daf700a354758df7d6ea7536071c3bf143c400e037bf72245556b",
+      "encoding": "gzip",
+      "lossless_original": true,
+      "uncompressed_bytes": 53025218,
+      "uncompressed_sha256": "dcda86b2302db5542432687548bb09263fa5d7552f8729e25c6f5ccd1bde4406"
+    },
+    "installed-fixture-local-exact-9dc-py313-pass.log": {
+      "blob": "859dcf839fae636a61f9a81ada0dca4e07e30277",
+      "sha256": "93f496833b07e13193f5c4adb027b1cdc7532b14e67234779bd43980df2e2d47",
+      "bytes": 4046
+    },
+    "pr-native-130461032046.log": {
+      "blob": "e35c52f6c01e5819fb8a763c384cc128db5859ff",
+      "characters": 106176,
+      "encoding": "utf-8"
+    },
+    "push-native-130461010815.log": {
+      "blob": "bc208a4b90665741d3b1c3f564d85fe0dfdac660",
+      "characters": 105370,
+      "encoding": "utf-8"
+    },
+    "pr-source-130461032409.log": {
+      "blob": "c526c21f7747e3b37d712b976dab075889145dce",
+      "characters": 102502,
+      "encoding": "utf-8"
+    },
+    "push-source-130461010508.log": {
+      "blob": "ef34aea93801e414413fe59d53a16574ae0e4ab5",
+      "characters": 101698,
+      "encoding": "utf-8"
+    }
+  }
+}
