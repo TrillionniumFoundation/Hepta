@@ -1,0 +1,156 @@
+name: HIA complete native-stack source reproduction r1
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  author:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-native-stack-source-r1-run-20261111-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out reviewed control A without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: __FINAL_CONTROL_COMMIT__
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Check out the exact product base and its actual Git objects
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: __FINAL_SOURCE_COMMIT__
+          path: source
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed authoring interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Record setup and verify frozen inputs before the authoring budget
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -I -S -B control/experiments/hia_native_stack_source_actions_20261111/control-r1/author_driver.py prepare --work-root "$RUNNER_TEMP/hia-native-stack-source-r1" --source "$GITHUB_WORKSPACE/source" --control-commit __FINAL_CONTROL_COMMIT__
+      - name: Reproduce all 59 generators once under the unchanged 180-second process owner
+        id: owned_author
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python -I -S -B control/experiments/hia_native_stack_source_actions_20261111/control-r1/author_driver.py run --work-root "$RUNNER_TEMP/hia-native-stack-source-r1" --source "$GITHUB_WORKSPACE/source" --control-commit __FINAL_CONTROL_COMMIT__
+      - name: Preserve original authoring bytes including any HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-native-stack-source-r1-author-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-native-stack-source-r1/'
+          if-no-files-found: warn
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 14
+
+  publish:
+    needs: author
+    if: >-
+      ${{ always() &&
+          github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-native-stack-source-r1-run-20261111-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Read only the reviewed publisher and policy from public fixed URLs
+        timeout-minutes: 3
+        run: |
+          python3 -I -S -B - <<'PY'
+          import ast, hashlib, json, os, urllib.request
+          from pathlib import Path
+          if os.environ.get("GITHUB_TOKEN"):
+              raise RuntimeError("publication token entered the public preparation step")
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, request, response, code, message, headers, new_url):
+                  return None
+          opener = urllib.request.build_opener(NoRedirect)
+          root = Path(os.environ["RUNNER_TEMP"]) / "hia-native-stack-source-publisher-control-r1"
+          root.mkdir(mode=0o700)
+          prefix = "https://raw.githubusercontent.com/TrillionniumFoundation/Hepta/__FINAL_CONTROL_COMMIT__/experiments/hia_native_stack_source_actions_20261111/control-r1/"
+          records = []
+          expected = [
+              ("publisher.py", __FINAL_PUBLISHER_BYTES__, "__FINAL_PUBLISHER_SHA256__"),
+              ("policy.json", __FINAL_POLICY_BYTES__, "__FINAL_POLICY_SHA256__"),
+          ]
+          for name, size, wanted in expected:
+              request = urllib.request.Request(prefix + name, headers={"Accept-Encoding": "identity"})
+              with opener.open(request, timeout=30) as response:
+                  if response.status != 200 or response.headers.get("Content-Encoding", "identity") != "identity":
+                      raise RuntimeError("unexpected public source response")
+                  raw = response.read(size + 1)
+              if len(raw) != size or hashlib.sha256(raw).hexdigest() != wanted:
+                  raise RuntimeError("reviewed public control bytes differ")
+              if name.endswith(".py"):
+                  ast.parse(raw.decode("utf-8"), filename=name)
+              else:
+                  json.loads(raw)
+              fd = os.open(root / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+              with os.fdopen(fd, "wb") as stream:
+                  stream.write(raw)
+                  stream.flush()
+                  os.fsync(stream.fileno())
+              records.append({"path": name, "url": prefix + name, "bytes": size, "sha256": wanted})
+          with (root / "download-receipt.json").open("x") as stream:
+              json.dump({"schema": "hia.native-stack-actions.publisher-control-read.v1",
+                         "records": records, "candidate_code_executed": False},
+                        stream, sort_keys=True, indent=2)
+              stream.write("\n")
+          PY
+      - name: Receive the original bundle without running candidate source
+        id: download_original
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: hia-native-stack-source-r1-author-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-native-stack-source-author-downloaded-r1/'
+      - name: Publish a new evidence ref once and verify all original bytes
+        if: always()
+        env:
+          GITHUB_TOKEN: '${{ github.token }}'
+          AUTHOR_JOB_RESULT: '${{ needs.author.result }}'
+        run: |
+          python3 -I -S -B "$RUNNER_TEMP/hia-native-stack-source-publisher-control-r1/publisher.py" --policy "$RUNNER_TEMP/hia-native-stack-source-publisher-control-r1/policy.json" --artifact "$RUNNER_TEMP/hia-native-stack-source-author-downloaded-r1" --output "$RUNNER_TEMP/hia-native-stack-source-publisher-originals-r1" --control-commit __FINAL_CONTROL_COMMIT__
+      - name: Preserve publisher acknowledgements and any publication HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-native-stack-source-r1-publisher-${{ github.run_id }}-1
+          path: |
+            ${{ runner.temp }}/hia-native-stack-source-publisher-originals-r1/
+            ${{ runner.temp }}/hia-native-stack-source-publisher-control-r1/download-receipt.json
+          if-no-files-found: warn
+          include-hidden-files: true
+          compression-level: 0
+          retention-days: 14

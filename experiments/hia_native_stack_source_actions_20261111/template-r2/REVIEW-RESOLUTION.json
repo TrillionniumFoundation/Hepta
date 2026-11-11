@@ -1,0 +1,53 @@
+{
+  "schema": "hia.native-stack-source-actions.peer-review-resolution.v1",
+  "status": "STATIC_UNPARSED_UNEXECUTED_AWAITING_SECOND_REVIEW",
+  "previous_templates_commit": "c8d158507b464921867aad1b3995434fd1a8cd36",
+  "findings": [
+    {
+      "id": "hold_product_slots",
+      "previous": "author_success False did not clear the candidate map",
+      "resolution": "Record the actual filesystem tree, clear candidate product slots and admission on every non-pass; originals remain under evidence."
+    },
+    {
+      "id": "capture_before_admission",
+      "previous": "strict filesystem row inspection stopped at an executable, hardlink or special member before retaining all regular changes",
+      "resolution": "Traverse after owned cleanup; independently preserve each changed regular file, record link/special metadata without opening or following, collect errors/refusals, write complete inventories before product admission; any capture failure is HOLD."
+    },
+    {
+      "id": "derived_contract_bindings",
+      "previous": "Exact pin list matched source snapshot but derived JSON was not independently compared by publisher",
+      "resolution": "Require exact regenerated contract source_identity.files map and both current profile values."
+    }
+  ],
+  "original_budgets_unchanged": {
+    "owner_seconds": 180,
+    "cleanup_seconds": 3,
+    "per_command_seconds": 120
+  },
+  "generators": 59,
+  "source_accounting_controls": 11,
+  "native_execution": false,
+  "final_source_and_policy_unfrozen": true,
+  "templates": {
+    "author_common.py": {
+      "bytes": 8076,
+      "sha256": "585b89fa016a9ea4ef8fda1e8dd9070cbf9392db25b64e0ed02095cec7dd909c"
+    },
+    "author_driver.py": {
+      "bytes": 21043,
+      "sha256": "0ea15a0c2295a83ff3f31c049168fcd493bf00e7a50be6bdf0bfc84c9a8d0fe7"
+    },
+    "source_worker.py": {
+      "bytes": 8703,
+      "sha256": "0c233d7a23ff2afdb666ae8c1a05fad00b4536a8c2f49d36452a91ce9c4c3b57"
+    },
+    "publisher.py": {
+      "bytes": 37413,
+      "sha256": "cec1389b80bbbc1bf38e53a5119aaca5c871ac80295ac17c64b8e33f02b0dafc"
+    },
+    "workflow.yml": {
+      "bytes": 7586,
+      "sha256": "a89c7e297a90249d726ea4b2c0fed81dd0410ab7cd13d1be36f5e9ccaaeb3b42"
+    }
+  }
+}
