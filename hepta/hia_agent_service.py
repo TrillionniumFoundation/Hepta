@@ -81,17 +81,35 @@ def _value_observation(observation):
 
 class HIAAgentService:
     def __init__(self, state_root, *, artifact_roots=()):
+        from .hia_candidate_budget_native import selected_candidate_budget, NativeCandidateBudgetStore
+        candidate_budget_image = selected_candidate_budget()
         self.catalog, self.catalog_sha256 = catalog()
         self.tools = {t["name"]: t for t in self.catalog["tools"]}
         self.identities = installation_manifest()
         self.store = AgentStore(state_root)
-        self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
-        if any(not root.is_dir() for root in self.artifact_roots):
-            reject("E_HIA_PROFILE", "configured artifact roots must be directories")
-        self._profiles()
+        self._candidate_budget = None
+        try:
+            self._candidate_budget = (NativeCandidateBudgetStore(self.store, candidate_budget_image)
+                                      if candidate_budget_image is not None else None)
+            self.artifact_roots = tuple(Path(root).absolute().resolve(strict=True) for root in artifact_roots)
+            if any(not root.is_dir() for root in self.artifact_roots):
+                reject("E_HIA_PROFILE", "configured artifact roots must be directories")
+            self._profiles()
+        except BaseException as error:
+            cleanups = ([self._candidate_budget.close] if self._candidate_budget is not None else [])
+            for cleanup in [*cleanups, self.store.close]:
+                try:
+                    cleanup()
+                except BaseException as failure:
+                    error.add_note('service construction cleanup failed: ' + type(failure).__name__)
+            raise
 
     def close(self):
-        self.store.close()
+        try:
+            if self._candidate_budget is not None:
+                self._candidate_budget.close()
+        finally:
+            self.store.close()
 
     def _profiles(self):
         from .hia_program_native import TARGET, PROFILE, SUPPORTED_OPCODES, CORE_SCHEMAS, IMPORTS
@@ -346,10 +364,18 @@ class HIAAgentService:
         if time.time_ns() - int(row["created_ns"]) > limits["max_total_wall_ms"] * 1_000_000:
             reject("E_HIA_BUDGET", "context total wall budget has expired", "context")
         if candidate:
-            changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
-                (context["ref"]["id"], limits["max_candidates"])).rowcount
-            if changed != 1:
-                reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
+            self._consume_attempt(context)
+
+    def _consume_attempt(self, context):
+        if self._candidate_budget is not None:
+            return self._candidate_budget.consume(context['ref']['id'], context['budget']['max_candidates'])
+        return self._reference_consume_attempt(context)
+
+    def _reference_consume_attempt(self, context):
+        changed = self.store.db.execute("UPDATE contexts SET attempts=attempts+1 WHERE id=? AND attempts<?",
+            (context["ref"]["id"], context['budget']['max_candidates'])).rowcount
+        if changed != 1:
+            reject("E_HIA_BUDGET", "candidate attempt budget exhausted", "context")
 
     def _remaining_ms(self, context):
         row = self.store.db.execute("SELECT created_ns FROM contexts WHERE id=?", (context["ref"]["id"],)).fetchone()
@@ -492,7 +518,7 @@ class HIAAgentService:
         context = {"id": "ctx-" + uuid.uuid4().hex, "sha256": manifest["sha256"]}
         self.store.db.execute("INSERT INTO contexts VALUES (?,?,?,?,0)",
             (context["id"], context["sha256"], wire(manifest).decode(), str(time.time_ns())))
-        self.store.db.execute("INSERT INTO execution_budgets VALUES (?,'0',NULL)", (context["id"],))
+        self.store.execution_budgets.create(context["id"])
         return {"context": context, "manifest": manifest, "sampled_at": sampled,
             "compiler_profile": args["compiler_profile"], "target_profile": args["target_profile"],
             "resource_reservation_held": False, "context_is_execution_authority": False}
@@ -1153,33 +1179,24 @@ class HIAAgentService:
             else:
                 normal.append((index, prepared))
         reference_ns = time.monotonic_ns() - reference_started
-        runs, native_ns, native_started = {}, 0, time.monotonic_ns()
+        runs, native_started = {}, time.monotonic_ns()
         owner = digest({"tool": "hia_evaluate", "key": args["request_key"]})
-        with self.store.transaction():
-            budget_row = self.store.db.execute("SELECT * FROM execution_budgets WHERE context_id=?", (args["context"]["id"],)).fetchone()
-            if budget_row is None:
-                reject("E_HIA_BUDGET", "context lacks an execution budget record", "execution")
-            if budget_row["owner"] is not None:
-                reject("E_HIA_BUDGET_BUSY", "context native budget has a live or uncertain owner; observe that operation", "execution", retry_action="stop")
-            used_native_ns = int(budget_row["used_native_ns"])
-            self.store.db.execute("UPDATE execution_budgets SET owner=? WHERE context_id=?", (owner, args["context"]["id"]))
-        native_budget_ms = max(0, context["budget"]["max_native_wall_ms"] - used_native_ns // 1_000_000)
+        budget_claim = self.store.execution_budgets.claim(args["context"]["id"], owner,
+            context["budget"]["max_native_wall_ms"], native_started)
         for label, data, metadata in (("baseline", baseline_bytes, baseline_meta), ("candidate", candidate_bytes, candidate_meta)):
             runs[label] = {"normal": None, "traps": [], "total_native_ns": "0"}
             if not complete:
                 continue
 
             def run(cases, warmup, repetitions):
-                remaining = min(native_budget_ms - (time.monotonic_ns() - native_started) // 1_000_000,
-                                remaining_total_ms())
-                return run_native_batch(data, metadata["signatures"], cases,
-                    warmup=int(warmup), repetitions=int(repetitions), timeout_ms=int(remaining),
+                return budget_claim.run(run_native_batch, data, metadata["signatures"], cases,
+                    now=time.monotonic_ns(), total_ms=remaining_total_ms(),
+                    warmup=int(warmup), repetitions=int(repetitions),
                     memory_bytes=uint64(context["budget"]["max_memory_bytes"], "max_memory_bytes"))
 
             if normal:
                 outcome = run([case for _, case in normal], workload["warmup_iterations"], workload["repetitions"])
                 runs[label]["normal"] = outcome
-                native_ns += int(outcome["wall_ns"])
                 if outcome["status"] != "returned":
                     correct = False
                     complete = False
@@ -1197,7 +1214,6 @@ class HIAAgentService:
             for index, case in trapping:
                 outcome = run([case], 0, 1)
                 runs[label]["traps"].append({"index": index, **outcome})
-                native_ns += int(outcome["wall_ns"])
                 observations[index][label + "_native"] = {"status": outcome["status"], "returncode": outcome["returncode"]}
                 if "buffers" in case["expected"]:
                     actual_buffers = outcome.get("buffer_snapshots", [{}])[0].get("buffers")
@@ -1212,8 +1228,8 @@ class HIAAgentService:
                         break
         # A nonterminal crash leaves the owner fenced and never refunds an
         # unknown native cost. Only the confirmed terminal path releases it.
-        self.store.db.execute("UPDATE execution_budgets SET owner=NULL,used_native_ns=? WHERE context_id=? AND owner=?",
-            (str(used_native_ns + native_ns), args["context"]["id"], owner))
+        budget_claim.complete()
+        native_ns = budget_claim.native_ns
         if complete:
             complete = len(observations) == len(workload["cases"]) and all(
                 "baseline_native" in row and "candidate_native" in row for row in observations)

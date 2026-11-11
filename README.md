@@ -53,6 +53,11 @@ admission while preserving the existing service's durable request identity.
 An explicit [native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) supplies
 reservation, replay, conflict and unknown decisions and canonical response/cost
 instructions; SQLite durability and tool effects retain their existing owners.
+The selected [native execution budget](docs/HIA_EXECUTION_BUDGET_NATIVE.md)
+and [native candidate-attempt budget](docs/HIA_CANDIDATE_BUDGET_NATIVE.md) operate
+through the ordinary service and both request journals, preserving the original
+database, request replay and unknown-outcome fencing. HIA owns their budget
+transitions; fixed SQL, context authority and the complete service remain hosted.
 The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
 checks and publishes a bounded immutable release from an operator-pinned bundle.
 It does not select the active worker or replace the service journal.
@@ -78,6 +83,6 @@ independent reference controls and resource refusal witnesses. Source contracts
 are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
-Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
+Repository layout, retained dependencies and cleanup: [current source tree](docs/CURRENT.md#repository-cleanup).
 Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
-Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).
+Runtime integration: [current entry and migration requirements](docs/CURRENT.md#runtime-integration).

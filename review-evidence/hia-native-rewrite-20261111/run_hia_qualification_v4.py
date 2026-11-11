@@ -75,7 +75,9 @@ development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_CONSTRUCTOR_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST',
-                         'HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST')
+                         'HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
     environment.pop(development_selector, None)
@@ -83,7 +85,10 @@ production_selectors = ('HEPTA_HIA_COMPOSITE_TYPES_MANIFEST',
                         'HEPTA_HIA_TASK_HELPERS_MANIFEST',
                         'HEPTA_HIA_COMPOSITE_FUNCTIONS_MANIFEST',
                         'HEPTA_HIA_COMPOSITE_CONSTRUCTOR_MANIFEST',
-                        'HEPTA_HIA_COMPOSITE_OUTER_MANIFEST')
+                        'HEPTA_HIA_COMPOSITE_OUTER_MANIFEST',
+                        'HEPTA_HIA_EXECUTION_BUDGET_MANIFEST',
+                        'HEPTA_HIA_CANDIDATE_BUDGET_MANIFEST',
+                        'HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
 discarded_production_selectors = [name for name in production_selectors if name in environment]
 for production_selector in production_selectors:
     environment.pop(production_selector, None)
@@ -94,7 +99,7 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
              'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
              'WORKER_REQUEST', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
-             'SOURCE_BUILD', 'NOMINAL_JSON'):
+             'SOURCE_BUILD', 'NOMINAL_JSON', 'EXECUTION_BUDGET', 'CANDIDATE_BUDGET'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
 suite_outcomes = {}
@@ -112,6 +117,8 @@ def run(name, args, *, timeout=1800):
     step_environment['HEPTA_HIA_RELEASE_INSTALL_OBSERVATIONS'] = str(out / (name + '-release-install'))
     step_environment['HEPTA_HIA_RELEASE_SELECTION_OBSERVATIONS'] = str(out / (name + '-release-selection'))
     step_environment['HEPTA_HIA_SOURCE_BUILD_OBSERVATIONS'] = str(out / (name + '-source-build'))
+    step_environment['HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE'] = str(out / (name + '-execution-budget'))
+    step_environment['HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE'] = str(out / (name + '-candidate-budget'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_EVIDENCE'] = str(out / (name + '-nominal-json'))
     step_environment['HEPTA_HIA_NOMINAL_JSON_INGRESS_EVIDENCE'] = str(out / (name + '-nominal-json-ingress'))
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
@@ -250,6 +257,8 @@ if cold_ok:
     groups = {
         'worker-request': ['tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review'],
         'agent-journal': ['tests.test_hia_agent_journal_native'],
+        'execution-budget': ['tests.test_hia_execution_budget_native'],
+        'candidate-budget': ['tests.test_hia_candidate_budget_native'],
         'release-install': ['tests.test_hia_release_install'],
         'release-selection': ['tests.test_hia_release_selection',
                               'tests.test_hia_release_selection_review'],

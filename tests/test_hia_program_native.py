@@ -438,7 +438,7 @@ f.argtypes=[getattr(ctypes,t) for t in types]; f.restype=None; f(*json.loads(sys
 
     def test_recursive_chain_and_composite_v7_have_real_dynamic_execution(self):
         for basename in ("core_v7","composite_v2"):
-            document=(ROOT/"examples/hia_recursive_chain"/(basename+".json")).read_bytes()
+            document=(ROOT/"examples/hia_recursive_chain"/(basename+".hepta")).read_bytes()
             program,library,_=self.build_fixture(document,basename)
             names={fn["name"]:fn for fn in program.as_dict()["functions"]}
             for name in ("chain_checksum","chain_cancel","chain_head_update","chain_stored_loan","chain_recover","chain_empty_payloads"):

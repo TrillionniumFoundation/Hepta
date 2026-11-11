@@ -18,6 +18,24 @@ FORBIDDEN_MODULES=frozenset({
     'hia_source_expressions_native','hia_source_parser_native','hia_type_parser_native',
 })
 
+# These trees contain current examples, test inputs and formal/benchmark
+# programs. Frozen experiment output and receipt trees retain their recorded
+# names; changing those names would not be a source migration.
+ACTIVE_SOURCE_ROOTS = frozenset({'examples', 'tests', 'formal', 'benchmarks'})
+CORE_SOURCE_SCHEMA = re.compile(r'hepta\.hia\.(?:program|composite)\.v[0-9]+\Z')
+
+
+def _is_active_json_source(path, relative):
+    if (not relative.parts or relative.parts[0] not in ACTIVE_SOURCE_ROOTS
+            or path.suffix.lower() != '.json' or not path.is_file() or path.is_symlink()):
+        return False
+    try:
+        document = json.loads(path.read_bytes())
+    except (OSError, ValueError, RecursionError):
+        return False
+    return (type(document) is dict and type(document.get('schema')) is str
+            and CORE_SOURCE_SCHEMA.fullmatch(document['schema']) is not None)
+
 def _checked_hia_sources(root, problems):
     """Check physical source files; archived path strings are not live sources."""
     sources = {}
@@ -28,6 +46,9 @@ def _checked_hia_sources(root, problems):
         lower = path.name.lower()
         if lower.endswith(('.hia', '.hiaasm', '.hia.json')):
             problems.append('legacy HIA source suffix: ' + str(relative) + ' (required .hepta)')
+            continue
+        if _is_active_json_source(path, relative):
+            problems.append('noncanonical HIA source suffix: ' + str(relative) + ' (required .hepta)')
             continue
         if not lower.endswith('.hepta'):
             continue

@@ -134,10 +134,10 @@ new wire format alone is not sufficient to inherit a cost or safety receipt.
 
 The two complete source fixtures are:
 
-- `examples/hia_recursive_chain/core_v7.json`: dynamic construction,
+- `examples/hia_recursive_chain/core_v7.hepta`: dynamic construction,
   cross-function transfer, traversal, iterative drop, head mutation, empty
   pop/trap, zero-byte payloads and recovery after a failed push.
-- `examples/hia_recursive_chain/composite_v2.json`: generic records and error
+- `examples/hia_recursive_chain/composite_v2.hepta`: generic records and error
   enums, locally stored reborrows, repeated cooperative polling, cancellation
   before/after a poll, and scalar result extraction.
 
