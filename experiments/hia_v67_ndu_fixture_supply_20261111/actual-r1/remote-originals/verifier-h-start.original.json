@@ -1,0 +1,41 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "from pathlib import Path\nfrom hashlib import sha256\nimport sys\nroot = Path('/home/qian-qi/he26v67fixturesr1/control')\npins = {'common.py':'850e8da5adcae0b0835719c37deacbc64833f453caf19574b997833530c7170a','verify_terminal.py':'f7a4ee8b896844a57e5699adc6d11276a59d059188b30c848c64aa3a71b7c4bd'}\nfor name, expected in pins.items():\n    if sha256((root/name).read_bytes()).hexdigest() != expected:\n        raise RuntimeError('reviewed read-only verifier bytes differ')\nsys.path.insert(0, str(root))\npath = root/'verify_terminal.py'\nexec(compile(path.read_bytes(), str(path), 'exec'), {'__name__':'__main__','__file__':str(path)})\n"
+    ],
+    "created_unix_ms": 1794418572816,
+    "cwd": "/home/qian-qi/he26v67fixturesr1",
+    "env_keys": [
+      "LANG",
+      "LC_ALL",
+      "PYTHONDONTWRITEBYTECODE",
+      "PYTHONUNBUFFERED"
+    ],
+    "executable": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "execution_mode": "operator",
+    "host": "desktop",
+    "id": "1a1cbae7e10-2564-c5b",
+    "idempotency_key": "hia-e26e-desktop-v67-608-ndu-supply-readonly-acceptance-r1",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1cbae7e10-2564-c5b",
+    "request_digest": "63190c5a2005b730695e1db4790ebf3d42c74691f26fd0b00d8e75432ba1daf1",
+    "request_fingerprint": 7140752265396467504,
+    "ssh_target": "desktop-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a1cbae7e10-2564-c5b"
+  },
+  "launch": {
+    "backend": "systemd",
+    "launcher_pid": null,
+    "ok": true,
+    "unit": "hepta-runtime-job-1a1cbae7e10-2564-c5b"
+  },
+  "local_record_pending": false,
+  "reused": false
+}

@@ -1,0 +1,43 @@
+{
+  "audit_recorded": true,
+  "job": {
+    "args": [
+      "-I",
+      "-S",
+      "-B",
+      "-c",
+      "\"\"\"Create a single private supply root and exec the unchanged outer guardian.\"\"\"\nimport argparse\nfrom hashlib import sha256\nimport json\nimport os\nfrom pathlib import Path\nimport stat\nimport sys\nimport types\n\n\ndef main():\n    parser = argparse.ArgumentParser(description=__doc__)\n    parser.add_argument('--payload-sha256', required=True)\n    args = parser.parse_args()\n    raw = sys.stdin.buffer.read((1 << 20) + 1)\n    if len(raw) > 1 << 20 or sha256(raw).hexdigest() != args.payload_sha256:\n        raise RuntimeError('exact complete launch payload is required')\n    def no_duplicates(items):\n        value = {}\n        for name, item in items:\n            if name in value:\n                raise RuntimeError('duplicate launch JSON key')\n            value[name] = item\n        return value\n    payload = json.loads(raw, object_pairs_hook=no_duplicates)\n    if set(payload) != {'schema', 'request', 'files'} or payload['schema'] != 'hia.v67.ndu-supply-bootstrap.v1':\n        raise RuntimeError('unknown bootstrap payload')\n    request = payload['request']\n    expected_names = {'bootstrap.py', 'common.py', 'driver.py', 'producer.py', 'verify_terminal.py',\n                      'source-inputs.json', 'guardian.py', 'process_owner_impl.py', 'workflow_process.py'}\n    if (request.get('schema') != 'hia.v67.ndu-supply-launch.v1' or request.get('frozen') is not True\n            or set(payload['files']) != expected_names or set(request['control_files']) != expected_names):\n        raise RuntimeError('complete frozen controller files required')\n    for name, content in payload['files'].items():\n        if type(content) is not str or sha256(content.encode()).hexdigest() != request['control_files'][name]:\n            raise RuntimeError('controller byte pin differs: ' + name)\n    if sys.argv[0] == '-c':\n        if sys.orig_argv.count('-c') != 1:\n            raise RuntimeError('ambiguous Python source argv')\n        executing = sys.orig_argv[sys.orig_argv.index('-c') + 1].encode()\n    else:\n        executing = Path(__file__).read_bytes()\n    if sha256(executing).hexdigest() != request['control_files']['bootstrap.py']:\n        raise RuntimeError('executed bootstrap is not the reviewed source')\n    # All helper bytes are already externally payload-bound before evaluating\n    # definitions. common.py does no I/O or process launch on import.\n    helper = types.ModuleType('fixed_supply_common')\n    helper.__file__ = '/home/qian-qi/he26v67fixturesr1/control/common.py'\n    exec(compile(payload['files']['common.py'], helper.__file__, 'exec'), helper.__dict__)\n    root = helper.ROOT\n    require = helper.require\n    cfg = json.loads(payload['files']['source-inputs.json'], object_pairs_hook=no_duplicates)\n    require(root == Path('/home/qian-qi/he26v67fixturesr1')\n            and request.get('root') == str(root) and cfg.get('root') == str(root)\n            and request.get('stable_key') == helper.KEY == cfg.get('stable_key')\n            and cfg.get('head') == helper.HEAD and cfg.get('tree') == helper.TREE\n            and cfg.get('source') == str(helper.SOURCE)\n            and cfg.get('limits') == {'controller_seconds': 3600, 'build_seconds': 900,\n                'workflow_seconds': 960, 'cargo_jobs': 2,\n                'minimum_free_bytes': 8 << 30, 'minimum_free_inodes': 100000},\n            'fixed source/root/key/supply bounds differ')\n    require(all(request['control_files'][name] == expected for name, expected in helper.FIXED_HELPERS.items()),\n            'unchanged original guardians and helper required')\n    require(sys.version_info[:3] == (3, 14, 4) and Path(sys.executable).resolve() == helper.PYTHON.resolve(),\n            'formal Python differs')\n    python_pin, _ = helper.stable_file(helper.PYTHON, helper.PYTHON_SHA, executable=True,\n                                      resolve=True, independent=False)\n    require(not os.path.lexists(root), 'new supply root exists; reconcile original operation, never replay')\n    require(not any(p.is_symlink() for p in (root.parent, *root.parent.parents)), 'symlink ancestor refused')\n    home = root.parent.lstat()\n    require(stat.S_ISDIR(home.st_mode) and home.st_uid == os.geteuid()\n            and not stat.S_IMODE(home.st_mode) & 0o022, 'operator home ownership/mode differs')\n    capacity = os.statvfs(root.parent)\n    require(capacity.f_bavail * capacity.f_frsize >= 8 << 30 and capacity.f_favail >= 100000,\n            'original storage/inode minimum not satisfied')\n    identities = {python_pin['resolved']: helper.PYTHON_SHA}\n    for path, digest in cfg['old_inputs'].items():\n        helper.stable_file(path, digest)\n        identities[path] = digest\n    os.umask(0o077)\n    root.mkdir(mode=0o700, exist_ok=False)\n    for name in ('control', 'guard'):\n        (root / name).mkdir(mode=0o700, exist_ok=False)\n    for name, content in payload['files'].items():\n        helper.create(root / 'control' / name, content.encode())\n        identities[str(root / 'control' / name)] = request['control_files'][name]\n    request_raw = helper.wire(request)\n    helper.create(root / 'control/request.json', request_raw)\n    identities[str(root / 'control/request.json')] = sha256(request_raw).hexdigest()\n    helper.create(root / 'control/bootstrap-stdin.json', raw)\n    identities[str(root / 'control/bootstrap-stdin.json')] = sha256(raw).hexdigest()\n    guardian_request = {'schema': 'hia-external-guardian-request.v1', 'controller_seconds': 3600,\n        'command': [str(helper.PYTHON), '-B', str(root / 'control/driver.py'),\n                    '--request-sha256', sha256(request_raw).hexdigest()],\n        'cwd': str(root), 'source_identities': identities}\n    guardian_raw = helper.wire(guardian_request)\n    helper.create(root / 'guard/request.json', guardian_raw)\n    helper.create(root / 'launch-intent.json', helper.wire({\n        'schema': 'hia.v67.ndu-supply-intent.v1', 'status': 'GUARDIAN_EXEC_REQUESTED_NOT_READY',\n        'root': str(root), 'stable_key': helper.KEY, 'head': helper.HEAD, 'tree': helper.TREE,\n        'payload_sha256': args.payload_sha256, 'request_sha256': sha256(request_raw).hexdigest(),\n        'guardian_request_sha256': sha256(guardian_raw).hexdigest(),\n        'control_files': request['control_files'], 'limits': cfg['limits'],\n        'qualification_executed': False, 'whole_native_delivery_qualified': False,\n        'old_formal_hold_replayed': False, 'old_targets_mutated': False,\n        'hard_sigkill_host_loss_cleanup_claimed': False,\n        'remaining_acceptance': 'actual three fixtures AND natural outer guardian with no kill/overflow/error',\n    }))\n    for directory in (root / 'control', root / 'guard', root, root.parent):\n        helper.sync_directory(directory)\n    os.environ.clear()\n    os.environ.update(helper.environment(cfg))\n    print(json.dumps({'stage': 'NDU_SUPPLY_GUARDIAN_EXEC', 'root': str(root),\n                      'stable_key': helper.KEY, 'controller_seconds': 3600}), flush=True)\n    os.execv(str(helper.PYTHON), [str(helper.PYTHON), '-B', str(root / 'control/guardian.py'),\n        '--config', str(root / 'guard/request.json'), '--config-sha256', sha256(guardian_raw).hexdigest(),\n        '--implementation', str(root / 'control/process_owner_impl.py')])\n\n\nif __name__ == '__main__':\n    main()\n",
+      "--payload-sha256",
+      "10fda79fca6fc7694554f318f8d3427f4166a669af2aec46ccfe1c819038ac29"
+    ],
+    "created_unix_ms": 1794418164018,
+    "cwd": "/home/qian-qi",
+    "env_keys": [
+      "LANG",
+      "LC_ALL",
+      "PYTHONDONTWRITEBYTECODE",
+      "PYTHONUNBUFFERED"
+    ],
+    "executable": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+    "execution_mode": "operator",
+    "host": "desktop",
+    "id": "1a1cba84132-2564-c3c",
+    "idempotency_key": "hia-e26e-desktop-v67-608-three-ndu-fixtures-supply-r1",
+    "launch_error": null,
+    "launch_state": "launched",
+    "remote_job_dir": "/home/qian-qi/.local/state/hepta-runtime-mac-worker/jobs/1a1cba84132-2564-c3c",
+    "request_digest": "fefc427be1abecb8460d81144c102f84262661de390864bfe6503de48c6df210",
+    "request_fingerprint": 18373633679599332536,
+    "ssh_target": "desktop-ts",
+    "system_jobctl": false,
+    "unit": "hepta-runtime-job-1a1cba84132-2564-c3c"
+  },
+  "launch": {
+    "backend": "systemd",
+    "launcher_pid": null,
+    "ok": true,
+    "unit": "hepta-runtime-job-1a1cba84132-2564-c3c"
+  },
+  "local_record_pending": false,
+  "reused": false
+}
