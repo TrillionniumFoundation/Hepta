@@ -102,7 +102,8 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
             or cold_report.read_bytes() != raw or current_sources() != sources):
         raise ValueError('native candidate build inputs changed')
-    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v1',
+    protocol_version = '2' if candidate == 'agent-journal' else '1'
+    manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'

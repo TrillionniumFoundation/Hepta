@@ -22,7 +22,8 @@ Python values and the mechanical SQL bridge.
 | Digest conflict before state inspection | HIA |
 | Reserve, completed replay and nonterminal unknown decisions | HIA |
 | Successful hia_verify replay route | HIA |
-| Cached JSON grammar, hierarchy and status routing | HIA |
+| Cached JSON grammar, hierarchy, syntax reasons and status routing | HIA |
+| Cached BLOB UTF-8 validation, first error span and reason | HIA |
 | Cached scalar values, lazy selected float conversion, Python objects | Foreign value bridge |
 | Response and cost-details canonical bytes and write instructions | HIA |
 | Transaction begin/commit/rollback, SELECT/INSERT/UPDATE and clocks | Hosted SQLite bridge |
@@ -66,6 +67,14 @@ transaction, SQLite rolls the effect back; an already committed running
 reservation remains unknown. Missing cost evidence is not a measured zero
 cost and does not establish complete accounting.
 
+The same fail-stop applies to non-domain exceptions throughout the call,
+including KeyboardInterrupt, SystemExit and MemoryError between a successful
+SQL operation and entry into its acknowledgement helper. The bridge preserves
+the original exception and does not enter the image from finally. Ordinary
+domain refusals and SQLite error responses retain their prior framing and
+transaction behavior. Every exception from an empty acknowledgement phase
+is a protocol failure, since that phase has no payload rejection domain.
+
 Every phase acknowledgement is checked by HIA. Repeated, premature and
 out-of-order acknowledgements refuse. A reservation acknowledgement is issued
 only after an observed successful SQL INSERT; a response acknowledgement is
@@ -88,6 +97,7 @@ agent_journal(input:readbuf, output:mutbuf, workspace:mutbuf) returns u32.
 | 7 | Empty; successful response UPDATE observed | Response acknowledgement |
 | 8 | Terminal response JSON, or empty | Cost/journal instructions, or no writes |
 | 9 | Exact installed catalog bytes | Bind the catalog SHA embedded in HIA |
+| 10 | Original cached SQLite BLOB bytes | UTF-8 admission, or exact byte span and codec reason |
 
 The session's 512-byte state is private to one call. The image carries it
 between phases; the host does not synthesize digest matches or replay states.
@@ -107,6 +117,16 @@ for identity and terminal canonical bytes. Cached numbers are materialized in
 source order by the existing foreign conversion bridge, preserving lazy
 converter selection and conversion-error priority.
 
+Stage 10 is a codec check before JSON size admission, so it can inspect a BLOB
+larger than 8 MiB without consuming the JSON arena or node budget. This preserves
+the original decode-before-size error order. The bridge constructs a
+UnicodeDecodeError from HIA's start, end and reason; it does not decode or scan
+the input. For cached grammar refusals, the image composes the shared HIA
+preflight reasons with an ordinary-number atom. The bridge maps fixed reason
+IDs to the existing diagnostic strings. The independently selected Agent-data
+arena retains its distinct generic-error and size-before-codec profile; the
+operator's selector is a raw protocol observation, not a parse decision.
+
 Response and cost-details output each have their own 8 MiB channel. Their
 combined size is not subject to a new 8 MiB limit. This avoids narrowing the
 retained service's separate serialization operations. Header extents, flags,
@@ -120,7 +140,7 @@ integer.
 ## Selection and installed identity
 
 **HEPTA_HIA_AGENT_JOURNAL_MANIFEST** selects an operator-owned manifest with
-schema hepta.hia.agent-journal-native.v1. The common immutable image loader
+schema hepta.hia.agent-journal-native.v2 and state magic HIAJRN02. The common immutable image loader
 checks the manifest shape, exact source SHA and image SHA. HIA then hashes
 and checks the actual installed catalog bytes on every selection, including
 warm-cache selections. A selected source/catalog/image admission failure does
@@ -148,7 +168,8 @@ The tests compare independent JSON/SHA oracles; exact ordinary rejection
 responses and request/cost rows against the retained owner; Unicode key and
 finite-number boundaries; actual artifact effects, restart and no-effect
 replay; a real killed process; real SQLite COMMIT failures; protocol failures
-before/after acknowledgements; cached BLOB/numeric/type/selector behavior;
+before/after acknowledgements, including BaseException subclasses; exact
+cached syntax, UTF-8 BLOB, numeric, type and selector behavior;
 buffer canaries; maximum-size separate output channels; and installed wheel
 source/catalog binding with tools and the retained call owner forbidden.
 
@@ -156,17 +177,19 @@ source/catalog binding with tools and the retained call owner forbidden.
 through existing Agent service, proof, lease, machine-choice and campaign
 suites. It forbids the retained call owner, records actual native stage
 returns, requires all eleven tools to enter the selected driver, and reports
-all failures, skips and explicit development exclusions. Cold runs cannot
+all loaded, chosen and executed test IDs, failures, skips, expected failures,
+unexpected successes and explicit development exclusions. PASS requires a
+nonempty chosen set, exact execution count and ID sequence, all eleven tools,
+and no failed, skipped or expected-failure outcomes. Cold runs cannot
 exclude tests. It does not relabel the ordinary default regression as
 selected-owner coverage. Subprocesses inherit the selector; their native
 entries are not silently counted as parent-process observations.
 
-Native malformed-JSON diagnostics currently retain the native parser's
-generic syntax wording. Detailed retained scanner wording for privately
-corrupted cached JSON is not yet reproduced. Therefore this component does
-**not** claim byte equivalence for every error in the entire JSON diagnostic
-domain. Ordinary caller error-order and exact-response tests have explicitly
-listed inputs; they do not prove all-input equivalence.
+Detailed syntax and byte-codec error controls compare the full returned wire,
+cost rows and unchanged cached data to the retained owner. These finite
+controls do not constitute an all-input equivalence proof. Development image
+results are bound to their exact source/image digests and do not replace a
+matching-source cold build or the ordinary default regression.
 
 The remaining state migration includes durable artifact/reference namespace
 ownership, context and budget transitions, slot/version/lease state,

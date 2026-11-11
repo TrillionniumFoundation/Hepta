@@ -9,6 +9,13 @@ development aid, not a JSON parser invoked by the generated scanner.
 
 - Linux x86-64 LP64 flat three-buffer ABI, u32 statuses:0accept,1syntax/Unicode,
   2node/depth budget,3unsupported buffers/profile,4duplicate decoded key.
+- Syntax status1 includes a diagnostic reason in private state byte32. HIA
+  chooses that reason at the first refusal; the foreign bridge only maps the
+  reason to fixed text. The ordinary `str` API retains the independent scanner's
+  exact missing/extra-value, integer/literal, separator, field, colon, escape,
+  control and surrogate messages, including their order relative to budgets
+  and duplicate keys. A selected native refusal never invokes the hosted
+  scanner to reconstruct its diagnostic. Other statuses leave reason0.
 - UTF-8 wire up to8MiB, node budget1..1048576, depth0..128. Root values have
   depth0; keys are not nodes. Fractions, exponents and nonfinite values refuse.
 - Strict UTF-8 scalar decoding and JSON escapes, including exact UTF-16 surrogate
@@ -69,3 +76,17 @@ unique keys, nested scopes, exact1Mnode/128depth/8MiBwire boundaries, scratch
 refusals, concurrent private state, source/image tampering and existing API
 selection. Source CI checks exact authoring regeneration; native CI executes the
 native test class. No skip or profile refusal is counted as accepted syntax.
+
+The child public-API regression run discovers every current test ID, requires a
+nonempty suite, compares the IDs with independent parent discovery and requires
+zero errors, failures, skips, expected failures and unexpected successes. The
+original nine controls retain their exact diagnostic assertions under native
+selection. Additional VM observations check actual HIA reason codes; native
+differential cases compare exception types and messages for malformed Unicode,
+escaped strings and grammar, with node/depth and duplicate-key precedence.
+
+The reason table is `SYNTAX_REASONS` in the foreign adapter. Invalid byte-level
+UTF-8 uses reason20 (`invalid JSON syntax or Unicode`); such bytes cannot arise
+from a successfully encoded Python `str`. This does not change the separate
+arena decoder's status or value layout. Its composed preflight can expose the
+same private reason on refusal; successful node-count export remains at byte64.

@@ -16,27 +16,41 @@ from hepta.hia_agent_assembly import render_assembly
 from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
 from tools.generate_hia_worker_request import (
     ENTRY as WORKER_ENTRY, canonical_program as worker_canonical,
-    data_source, decimal_program, format_program, hash_program, replace_once,
+    data_source, decimal_program, format_program, hash_program, replace_once, renamed,
 )
+from tools.generate_hia_json_preflight import SOURCE as PREFLIGHT_SOURCE
 
 SOURCE_PATH = 'examples/hia_bootstrap/agent_journal.hiaasm'
 PRIVATE_BYTES = 32768
 TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context',
          'hia_inspect', 'hia_candidate', 'hia_verify', 'hia_emit',
          'hia_evaluate', 'hia_adopt', 'hia_rollback', 'hia_resource_read')
-MAGIC = int.from_bytes(b'HIAJRN01', 'little')
+MAGIC = int.from_bytes(b'HIAJRN02', 'little')
 
 ENTRY = r'''
 def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(o) < 16777728 or length(w) < 4256 + 32768:
+        return 4294967293
+    stage = get(w, 0)
+    digits = get(w, 8)
+    p = length(w) - 32768
+    if get(w, p + 344) > 1:
+        return 4294967293
+    if stage == 10:
+        if get(w, p) != MAGIC_VALUE or get(w, p + 8) != 5:
+            return 4294967293
+        code = utf8_codec(s, o)
+        if code != 0:
+            return code
+        put(w, p + 48, 13)
+        copy_state(o, w)
+        return 13
     bound = (length(s) + 1) >> 1
     bound = bound + 1
     if bound > 262144:
         bound = 262144
     if length(s) > 8388608 or length(o) < 16777728 or length(w) < 64 + bound * 56 + length(s) + 32768:
         return 4294967293
-    stage = get(w, 0)
-    digits = get(w, 8)
-    p = length(w) - 32768
     if get(w, p + 336) > 262144 or length(w) < 64 + bound * 56 + length(s) + 32768 + get(w, p + 336):
         return 4294967293
     if get(w, p) == 0:
@@ -56,6 +70,8 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(o, 56, 128)
         status = widen(decode_json(s, w, o))
         if status >= 4294967292:
+            if stage == 3 and get(w, p + 344) == 0:
+                return cached_diagnostic(s, o, w)
             return status
         # Cached JSON is materialized by the existing foreign numeric bridge.
         # Its lazy selected-converter and conversion error order are preserved.
@@ -85,11 +101,71 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if parsed:
         restore_order(w)
         put(w, 56, 0)
+    copy_state(o, w)
+    return answer
+
+def copy_state(o:mutbuf, w:mutbuf) -> u64:
     index = 0
     while index < 512:
-        store(o, 16777216 + index, byte(w, p + index))
+        store(o, 16777216 + index, byte(w, length(w) - 32768 + index))
         index = index + 1
-    return answer
+    return 0
+
+def cached_diagnostic(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    put(w, 48, 262144)
+    put(w, 56, 128)
+    status = widen(diagnostic_preflight(s, o, w))
+    if status == 1:
+        put(o, 16777216, get(w, 32))
+        return 4294967272
+    if status == 2:
+        return 4294967270
+    if status == 4:
+        return 4294967269
+    return 4294967293
+
+def utf8_failure(o:mutbuf, start:u64, end:u64, reason:u64) -> u64:
+    put(o, 16777216, start)
+    put(o, 16777224, end)
+    put(o, 16777232, reason)
+    return 4294967271
+
+def utf8_codec(s:readbuf, o:mutbuf) -> u64:
+    index = 0
+    while index < length(s):
+        first = byte(s, index)
+        if first < 128:
+            index = index + 1
+        else:
+            width = 0
+            if first >= 194 and first <= 223:
+                width = 2
+            if first >= 224 and first <= 239:
+                width = 3
+            if first >= 240 and first <= 244:
+                width = 4
+            if width == 0:
+                return utf8_failure(o, index, index + 1, 1)
+            offset = 1
+            while offset < width:
+                if index + offset >= length(s):
+                    return utf8_failure(o, index, length(s), 3)
+                unit = byte(s, index + offset)
+                valid = unit >= 128 and unit <= 191
+                if offset == 1:
+                    if first == 224 and unit < 160:
+                        valid = False
+                    if first == 237 and unit > 159:
+                        valid = False
+                    if first == 240 and unit < 144:
+                        valid = False
+                    if first == 244 and unit > 143:
+                        valid = False
+                if valid == False:
+                    return utf8_failure(o, index, index + offset, 2)
+                offset = offset + 1
+            index = index + width
+    return 0
 
 def dispatch(s:readbuf, o:mutbuf, w:mutbuf, stage:u64) -> u64:
     p = length(w) - 32768
@@ -435,6 +511,52 @@ def bind_catalog(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
+def diagnostic_program():
+    # Keep the shared HIA grammar/reason owner. Extend only its integer atom
+    # with the complete fractional/exponent prefixes consumed by decode_data's
+    # historical token mask; incomplete suffixes remain for the grammar owner
+    # to diagnose at the same structural position.
+    tree = ast.parse(PREFLIGHT_SOURCE)
+    atom = next(node for node in tree.body if node.name == 'atom')
+    source = ast.unparse(atom)
+    source = replace_once(source, '    if ch == 48:\n        return index + 1\n',
+                          '    if ch == 48:\n        index = index + 1\n    else:\n')
+    before, tail = source.split('    going = True\n', 1)
+    loop, ending = tail.rsplit('    return index', 1)
+    if ending.strip():
+        raise ValueError('shared atom return changed')
+    source = before + '        going = True\n' + ''.join(
+        '    ' + line + '\n' for line in loop.splitlines()) + '''
+    if index + 1 < size and byte(s, index) == 46:
+        ch = byte(s, index + 1)
+        if ch >= 48 and ch <= 57:
+            index = index + 2
+            going = True
+            while going and index < size:
+                ch = byte(s, index)
+                if ch >= 48 and ch <= 57:
+                    index = index + 1
+                else:
+                    going = False
+    if index < size and (byte(s, index) == 101 or byte(s, index) == 69):
+        exponent = index + 1
+        if exponent < size and (byte(s, exponent) == 43 or byte(s, exponent) == 45):
+            exponent = exponent + 1
+        if exponent < size and byte(s, exponent) >= 48 and byte(s, exponent) <= 57:
+            index = exponent + 1
+            going = True
+            while going and index < size:
+                ch = byte(s, index)
+                if ch >= 48 and ch <= 57:
+                    index = index + 1
+                else:
+                    going = False
+    return index
+'''
+    tree.body[tree.body.index(atom)] = ast.parse(source).body[0]
+    return renamed(ast.unparse(tree), 'diagnostic_')
+
+
 def source_program():
     restore = WORKER_ENTRY[WORKER_ENTRY.index('\ndef restore_order('):WORKER_ENTRY.index('\ndef request_fields(')]
     return '\n'.join((
@@ -445,7 +567,7 @@ def source_program():
         literal('key_prefix', b'{"key":'), literal('key_tool', b',"tool":'),
         literal('cost_prefix', b'{"error":'), literal('null_literal', b'null'),
         literal('cost_suffix', b',"replayed":false}'),
-        restore, canonical_program(), data_source(),
+        restore, canonical_program(), data_source(), diagnostic_program(),
         decimal_program(), format_program(), hash_program(),
     ))
 

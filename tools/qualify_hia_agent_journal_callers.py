@@ -41,6 +41,13 @@ def flatten(suite):
             yield item
 
 
+def strict_pass(result, chosen_ids, executed_ids, all_tools):
+    return (bool(chosen_ids) and result.testsRun == len(chosen_ids)
+            and executed_ids == chosen_ids and all_tools
+            and not result.errors and not result.failures and not result.skipped
+            and not result.expectedFailures and not result.unexpectedSuccesses)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     selection = parser.add_mutually_exclusive_group(required=True)
@@ -81,10 +88,14 @@ def main():
         suites = [unittest.defaultTestLoader.loadTestsFromName(name)
                   for name in (args.module or DEFAULT_MODULES)]
         tests = list(flatten(unittest.TestSuite(suites)))
+        loaded_ids = [test.id() for test in tests]
         available = {test.id() for test in tests}
         if set(exclusions) - available:
             parser.error('exclusion does not identify an actually loaded test')
-        chosen = unittest.TestSuite(test for test in tests if test.id() not in exclusions)
+        chosen_tests = [test for test in tests if test.id() not in exclusions]
+        chosen_ids = [test.id() for test in chosen_tests]
+        chosen = unittest.TestSuite(chosen_tests)
+        executed_ids = []
         tools, stages, by_case = Counter(), Counter(), {}
         current = ['outside-test']
         original_driver, original_stage = native.call_with_native_journal, JournalSession._run
@@ -106,6 +117,7 @@ def main():
         class Result(unittest.TextTestResult):
             def startTest(self, test):
                 current[0] = test.id()
+                executed_ids.append(test.id())
                 super().startTest(test)
             def stopTest(self, test):
                 super().stopTest(test)
@@ -121,7 +133,7 @@ def main():
             result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(chosen)
         needed = set(TOOLS[:-1])
         all_tools = needed <= set(tools)
-        status = 'PASS' if result.wasSuccessful() and not result.skipped and all_tools else 'FAIL_OR_INCOMPLETE'
+        status = 'PASS' if strict_pass(result, chosen_ids, executed_ids, all_tools) else 'FAIL_OR_INCOMPLETE'
         source_names = ['hepta/hia_agent_journal_native.py', 'hepta/hia_agent_service.py',
                         'hepta/hia_agent_store.py', 'hepta/hia_agent_contract.py',
                         'tools/generate_hia_agent_journal.py', 'tools/qualify_hia_agent_journal_callers.py',
@@ -135,9 +147,14 @@ def main():
             'source_sha256': {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_names},
             'wall_seconds': time.monotonic() - started,
             'tests_run': result.testsRun,
+            'loaded_test_ids': loaded_ids, 'chosen_test_ids': chosen_ids,
+            'executed_test_ids': executed_ids,
+            'tests_loaded': len(loaded_ids), 'tests_chosen': len(chosen_ids),
             'failures': [{'test': test.id(), 'trace': trace} for test, trace in result.failures],
             'errors': [{'test': test.id(), 'trace': trace} for test, trace in result.errors],
             'skipped': [{'test': test.id(), 'reason': reason} for test, reason in result.skipped],
+            'expected_failures': [{'test': test.id(), 'trace': trace} for test, trace in result.expectedFailures],
+            'unexpected_successes': [test.id() for test in result.unexpectedSuccesses],
             'explicit_development_exclusions': exclusions,
             'retained_call_owner_forbidden': True,
             'selected_driver_calls': dict(tools), 'actual_native_stage_returns': dict(stages),

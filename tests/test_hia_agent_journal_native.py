@@ -46,6 +46,27 @@ def rows(service):
 
 
 class JournalSourceTests(unittest.TestCase):
+    def test_caller_gate_rejects_incomplete_and_expected_failure_results(self):
+        from tools.qualify_hia_agent_journal_callers import strict_pass
+        class Expected(unittest.TestCase):
+            @unittest.expectedFailure
+            def runTest(self):
+                self.fail('actual expected failure must not qualify native callers')
+        expected = Expected()
+        result = unittest.TestResult()
+        expected.run(result)
+        self.assertTrue(result.wasSuccessful())
+        self.assertFalse(strict_pass(result, [expected.id()], [expected.id()], True))
+        result = unittest.TestResult()
+        self.assertFalse(strict_pass(result, [], [], True))
+        result.testsRun = 1
+        self.assertTrue(strict_pass(result, ['case'], ['case'], True))
+        self.assertFalse(strict_pass(result, ['case', 'missing'], ['case'], True))
+        self.assertFalse(strict_pass(result, ['case'], ['different'], True))
+        self.assertFalse(strict_pass(result, ['case'], ['case'], False))
+        result.unexpectedSuccesses.append(expected)
+        self.assertFalse(strict_pass(result, ['case'], ['case'], True))
+
     def test_source_reproduces_and_original_owner_is_unchanged(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_agent_journal import document
@@ -351,10 +372,12 @@ class JournalNativeTests(unittest.TestCase):
 
     def test_native_protocol_failure_cannot_journal_a_rolled_back_success(self):
         from hepta.hia_agent_journal_native import JournalSession
-        for operation in ('reserved', 'inline', 'committed_inline'):
-            for after in (False, True):
-                with self.subTest(operation=operation, after=after), self.selected():
-                    service = HIAAgentService(self.case / ('ack-%s-%s' % (operation, after)))
+        import itertools
+        for operation, after, exception in itertools.product(
+                ('reserved', 'inline', 'committed_inline'), (False, True),
+                (RuntimeError, KeyboardInterrupt, SystemExit, MemoryError)):
+                with self.subTest(operation=operation, after=after, exception=exception.__name__), self.selected():
+                    service = HIAAgentService(self.case / ('ack-%s-%s-%s' % (operation, after, exception.__name__)))
                     self.addCleanup(service.close)
                     service.store.db.execute('CREATE TABLE effect_probe (value TEXT)')
                     def effect(_args):
@@ -364,12 +387,12 @@ class JournalNativeTests(unittest.TestCase):
                     def fail(session, *args):
                         if after:
                             original(session, *args)
-                        raise RuntimeError('injected native protocol acknowledgement failure')
+                        raise exception('injected native protocol acknowledgement failure')
                     args = {'catalog_sha256': service.catalog_sha256, 'request_key': 'native-ack'}
                     with patch('hepta.hia_agent_service.validate', return_value=None), \
                             patch.object(service, '_hia_adopt', side_effect=effect), \
                             patch.object(JournalSession, operation, fail):
-                        with self.assertRaisesRegex(RuntimeError, 'acknowledgement failure'):
+                        with self.assertRaisesRegex(exception, 'acknowledgement failure'):
                             service.call('hia_adopt', args)
                     state = rows(service)
                     self.assertEqual(list(service.store.db.execute('SELECT * FROM effect_probe')), [])
@@ -416,6 +439,63 @@ class JournalNativeTests(unittest.TestCase):
                             outcome = ('raised', type(exc).__name__, str(exc))
                     outcomes.append((outcome, rows(service)))
                 self.assertEqual(outcomes[0], outcomes[1], (number, missing_converter, payload))
+
+    def test_cached_syntax_UTF8_and_budget_errors_match_reference_exactly(self):
+        syntax = ['', ' ', '[', '{', '[1', '[1,', '[1,]', '[1 2]',
+                  '{1:2}', '{"a"}', '{"a":}', '{"a":1,}', '{"a":1 "b":2}',
+                  'true false', 'NaN', 'Infinity', '-', '+1', '.1', '01',
+                  '1.', '1e', '1e+', '-1.0e-', '[1.2e,0]', '{"x":1e+}',
+                  '"', '"abc', '"abc\\', '"\\x"', '"\\u"', '"\\u12"',
+                  '"\\uQQQQ"', '"\\ud800"', '"\\ud800\\u0041"', '"\\udc00"',
+                  '"a\x01b"', '"\\u𐐷', '"\\u𐐷ab"',
+                  '{"a":1,"\\u0061":2}', '[' * 129 + '0' + ']' * 129,
+                  '{"x":1e400,"x":0}', '{"x":' + '9' * 4301 + ',"x":0}']
+        payloads = syntax + [item.encode() for item in syntax[:30]] + [
+            b'"\xff"', b'"\xe2("', b'"\xe2\x82', b'"\xed\xa0\x80"',
+            b'bad JSON then \xff', b'\xff' + b' ' * (8 << 20),
+            b' ' * ((8 << 20) + 1)]
+        for index, payload in enumerate(payloads):
+            observations = []
+            for native in (False, True):
+                service = HIAAgentService(self.case / ('syntax-%s-%s' % (index, native)))
+                args = {'request_key': 'syntax-refusal'}
+                digest = sha256(independent_wire({'tool': 'hia_artifact', 'arguments': args})).hexdigest()
+                key = sha256(independent_wire({'tool': 'hia_artifact', 'key': args['request_key']})).hexdigest()
+                service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                    (key, digest, 'hia_artifact', 'completed', payload, '1'))
+                with ExitStack() as stack:
+                    stack.enter_context(patch('hepta.hia_agent_service.time.monotonic_ns', side_effect=[1, 9]))
+                    stack.enter_context(patch.object(service, '_hia_artifact',
+                        side_effect=AssertionError('malformed cached JSON reexecuted an effect')))
+                    if native:
+                        stack.enter_context(self.selected())
+                    response = service.call('hia_artifact', args) if native else service._reference_call('hia_artifact', args)
+                observed = rows(service)
+                self.assertEqual(observed['requests'][0][4], payload)
+                observations.append((wire(response), observed))
+                service.close()
+            self.assertEqual(observations[0], observations[1], (index, repr(payload[:100])))
+
+    def test_HIA_UTF8_codec_reports_python_byte_spans_without_host_decoding(self):
+        session = self.image.session()
+        session.prepare(independent_wire({'tool': 'hia_artifact', 'arguments': {'request_key': 'codec'}}))
+        session.lookup({'digest': session.request_digest, 'state': 'completed'})
+        payloads = [b'', b'ASCII\x00\x1f', '雪🧪'.encode(), b'\xc2\x80', b'\xf4\x8f\xbf\xbf']
+        payloads += [bytes([first]) for first in range(128, 256)]
+        payloads += [b'prefix' + bytes(seq) for seq in (
+            (0xe0, 0x9f, 0x80), (0xed, 0xa0, 0x80), (0xf0, 0x8f, 0x80, 0x80),
+            (0xf4, 0x90, 0x80, 0x80), (0xf0, 0x90), (0xf0, 0x90, 0x80),
+            (0xf0, 0x90, 0x20), (0xf0, 0x90, 0x80, 0x20), (0xe2, 0x82, 0x20))]
+        for payload in payloads:
+            try:
+                payload.decode('utf-8')
+            except UnicodeDecodeError as expected:
+                with self.assertRaises(UnicodeDecodeError) as actual:
+                    session._run(10, payload)
+                self.assertEqual(actual.exception.args, expected.args)
+                self.assertEqual(str(actual.exception), str(expected))
+            else:
+                self.assertEqual(session._run(10, payload).action, 13)
 
     def test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state(self):
         args = {'request_key': 'opaque-sqlite-columns'}
