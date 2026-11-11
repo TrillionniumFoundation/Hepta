@@ -13,31 +13,38 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--kernel", choices=("control", "format"), default="control")
     args = parser.parse_args()
     source = args.source.resolve(strict=True)
     output = args.output.resolve()
     output.mkdir(mode=0o700)
     relative = ("tools/generate_hia_cli_control.py", "tools/hia_cli_control_phases.py",
                 "tools/hia_cli_unicode_tables.json")
+    if args.kernel == "format":
+        relative += ("tools/generate_hia_cli_format.py",)
     def pins():
         return {name: sha256((source / name).read_bytes()).hexdigest() for name in relative}
     before = pins()
     report = {"schema": "hia.cli.source-generation-observation.v1",
               "scope": "NEW_RECOVERY_REVISION_SOURCE_AND_CORE_ONLY",
               "status": "HOLD", "source": str(source), "source_before": before,
+              "kernel": args.kernel, "base_commit": "e09c6faf5507fc4e38d8b7c36ba2650a1c0a10d6",
               "native_compile_performed": False, "native_execution_performed": False,
               "whole_native_delivery_qualified": False}
     started = time.monotonic_ns()
     try:
         sys.path.insert(0, str(source))
-        from tools import generate_hia_cli_control as generator
+        if args.kernel == "control":
+            from tools import generate_hia_cli_control as generator
+        else:
+            from tools import generate_hia_cli_format as generator
         from hepta.hia_agent_assembly import render_assembly
         program = generator.source_program()
         (output / "authoring.py").write_text(program)
         nodes = ast.parse(program).body
         document = generator.document()
         assembly = render_assembly(document)
-        (output / "cli_control.hiaasm").write_text(assembly)
+        (output / ("cli_" + args.kernel + ".hiaasm")).write_text(assembly)
         functions = []
         for index, function in enumerate(document["functions"]):
             names = {value["name"] for value in function["params"]}
