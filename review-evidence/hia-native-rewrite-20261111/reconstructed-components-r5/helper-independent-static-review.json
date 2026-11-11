@@ -1,0 +1,68 @@
+{
+  "claimed_public_acceptance_changes": false,
+  "findings": [
+    {
+      "result": "Exact 1-based mapping of all 16 flat primitive IDs equals frozen type transport; 0, >16 and malformed decimal IDs refuse. packet_text emits full names.",
+      "topic": "primitive conversion"
+    },
+    {
+      "result": "Counter/lease/command/sequence/id/descriptor extent are checked before capacity; first GROW pins response offset/extent/workspace length and counters. Descriptor cache/phase commit happens only after full copy and required shape/id validation; query is not reissued on a local replay.",
+      "topic": "QUERY GROW commit"
+    },
+    {
+      "result": "Actual metadata IR correlates source-index id/stream/extent/used/root and function request/serial/slots. Private issuer ownership and immutable same-borrow replay remain required; header equality alone does not authenticate externally substituted payload bytes.",
+      "topic": "source lease"
+    },
+    {
+      "result": "Both entry points check H_BROKEN first for complete workspaces. Request accepts only phase 1/2, reply only 9/19/20; DONE reaches 21. Replay after DONE or cross-stage request refuses; refused retains initial reason and poisons both images. Short workspace cannot contain poison; caller must dispose on BAD.",
+      "topic": "phase and poison"
+    },
+    {
+      "result": "Task and step QUERY resolution precede counter bound refusal; build stages preserve packet ordering and field/variant order without hosted selection. Helper header numeric error/final/name and actual 2MiB workspace correlate before DONE. Error does not fabricate a successful helper value.",
+      "topic": "semantic order"
+    },
+    {
+      "result": "128KiB helper packet and 4MiB helper output are existing bounded downstream ABI limits; descriptor arena uses offset-based GROW. A GROW retry requires the same private inputs; no payload digest claim was inferred from unchanged header checks.",
+      "topic": "capacity and provenance limits"
+    }
+  ],
+  "native_tests_run_by_this_review": 0,
+  "result": "NO_CONFIRMED_BLOCKING_ISSUE_IN_REVIEWED_SCOPE",
+  "reviewer": "audit_runtime",
+  "schema": "hia.independent-static-helper-transport-review.v1",
+  "scope": "Read-only review of six frozen production files and matching primitive definitions; no native execution; not full public integration or qualification",
+  "source_files_rechecked": [
+    {
+      "bytes": 8890,
+      "path": "tools/generate_hia_composite_helper_transport.py",
+      "sha256": "01b5092b6668a0d573977ec5440f3fb8d61c3c113a97fbb20f2cbb4f58f280f1"
+    },
+    {
+      "bytes": 10959,
+      "path": "tools/generate_hia_composite_helper_transport_common.py",
+      "sha256": "8d189db5e7144d8be16c3d6a976f3970adf2026dad8754498e91900fefca94da"
+    },
+    {
+      "bytes": 5678,
+      "path": "tools/generate_hia_composite_helper_transport_reply.py",
+      "sha256": "6b561699f47f8c0208f9fa7ad0327acb2003d55f43929a5fd9ec378e18b57c21"
+    },
+    {
+      "bytes": 13500,
+      "path": "tools/generate_hia_composite_helper_transport_request.py",
+      "sha256": "a1204e50c0cfbd91896fa20ce03d11951f762a841e9e79c52a9a66074136513c"
+    },
+    {
+      "bytes": 192352,
+      "path": "examples/hia_bootstrap/composite_helper_transport_reply.hiaasm",
+      "sha256": "511b0f053edfe29bccc508ac691c2678a1ad1072196ac7662536354024e4de57"
+    },
+    {
+      "bytes": 197924,
+      "path": "examples/hia_bootstrap/composite_helper_transport_request.hiaasm",
+      "sha256": "8eaafadb953c5f2bf81094800e3fb93773ec9b07a79a785ff3b4fc6c526eaec3"
+    }
+  ],
+  "source_manifest_sha256": "09a776716e07b6d1a47cf22cc858fe45da591ee0f6d2f88023c1c265565feb27",
+  "source_unchanged_after_review": true
+}
