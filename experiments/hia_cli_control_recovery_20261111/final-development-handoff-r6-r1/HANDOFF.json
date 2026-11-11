@@ -1,0 +1,612 @@
+{
+  "actual_installed_field": "original_manifest",
+  "base_commit": "e09c6faf5507fc4e38d8b7c36ba2650a1c0a10d6",
+  "complete_controller": {
+    "bytes": 11630,
+    "git_blob": "ec8f184774aa2522c034dc195077f5ab7332bd8b",
+    "path": "experiments/hia_cli_control_recovery_20261111/run_complete_development.py",
+    "sha256": "62da209a869c406b7828ca3a7b40e3540e2d8be9c84d0747b8f6add9f0237195"
+  },
+  "document": {
+    "bytes": 13491,
+    "git_blob": "499456528ea6104579f969b7451175e9435995a7",
+    "path": "docs/HIA_NATIVE_CLI_CONTROL_RECOVERY_20261111.md",
+    "sha256": "a9b15aa2ee995555e523a9e38a852a4272d49e69151d2679dd961b6e5f803a8b"
+  },
+  "document_commit": "bafce958102be9bf22ac592a9f2fc11e4860710b",
+  "document_tree": "e560506ec18c9a4888d0ef20653059641243436f",
+  "installed": {
+    "installed_execution": {
+      "bundle_sha256": "95c257090a298939576c3a2d7bbfc59683dacc8618bf0bcaa2a9d4e1531ae2b5",
+      "calls": [
+        {
+          "argv": [
+            "--version"
+          ],
+          "code": 0,
+          "kind": "exit",
+          "stderr": "",
+          "stdout": "hia 0.3.0\n"
+        },
+        {
+          "argv": [
+            "--help"
+          ],
+          "code": 0,
+          "kind": "exit",
+          "stderr": "",
+          "stdout": "usage: hia [-h] [--version]\n           {capabilities,catalog,import-assembly,render-assembly,check-assembly,verify,inspect,normalize,build,patch,impact,edit-query,edit-apply,edit-batch-query,edit-batch-apply}\n           ...\n\nHIA Core Agent interface\n\npositional arguments:\n  {capabilities,catalog,import-assembly,render-assembly,check-assembly,verify,inspect,normalize,build,patch,impact,edit-query,edit-apply,edit-batch-query,edit-batch-apply}\n\noptions:\n  -h, --help            show this help message and exit\n  --version             show program's version number and exit\n"
+        },
+        {
+          "argv": [
+            "verify",
+            "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/input.hia"
+          ],
+          "code": 0,
+          "kind": "return",
+          "stderr": "",
+          "stdout": "{\n  \"blocks_checked\": 2,\n  \"claims\": {\n    \"backend_refinement_proved\": false,\n    \"background_tasks_supported\": false,\n    \"concurrency_supported\": false,\n    \"cooperative_task_protocol_checked\": false,\n    \"escaping_loans_supported\": false,\n    \"foreign_code_supported\": false,\n    \"linear_resources_and_loan_provenance_checked\": true,\n    \"local_stored_loan_identity_checked\": false,\n    \"nominal_products_and_enums_checked\": false,\n    \"parameter_bound_loan_returns_supported\": true,\n    \"preemptive_or_async_cancellation_supported\": false,\n    \"record_field_borrow_provenance_checked\": false,\n    \"recursive_buffer_chains_supported\": true,\n    \"recursive_heap_adts_supported\": false,\n    \"typed_closed_ssa_checked\": true,\n    \"whole_language_soundness_proved\": false\n  },\n  \"functions_checked\": 2,\n  \"input_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n  \"native_executed\": false,\n  \"normalization\": {\n    \"core_profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n    \"core_schema\": \"hepta.hia.program.v8\",\n    \"core_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n    \"input_profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n    \"input_schema\": \"hepta.hia.program.v8\",\n    \"input_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n    \"primitive_core_rechecked\": true,\n    \"public_scalar_entrypoints\": [\n      \"calculate\",\n      \"caller\"\n    ],\n    \"source_ast_required\": false,\n    \"structured_elaboration_rechecked\": false\n  },\n  \"ok\": true,\n  \"profile\": \"closed-ssa-parameter-loan-returns-64-v8\",\n  \"program_sha256\": \"0f5faf4b67243bff78fbd0f5fa63e5acc9d6795a50d3d636835b2ea1a05fcbf6\",\n  \"schema\": \"hepta.hia.program-verification.v1\",\n  \"source_required\": false,\n  \"status\": \"standalone_core_checked\",\n  \"word_bits\": 64\n}\n"
+        },
+        {
+          "argv": [
+            "capabilities"
+          ],
+          "code": 0,
+          "kind": "return",
+          "stderr": "",
+          "stdout": "{\n  \"actions\": [\n    \"capabilities\",\n    \"catalog\",\n    \"import-assembly\",\n    \"render-assembly\",\n    \"check-assembly\",\n    \"verify\",\n    \"inspect\",\n    \"normalize\",\n    \"build\",\n    \"patch\",\n    \"impact\",\n    \"edit-query\",\n    \"edit-apply\",\n    \"edit-batch-query\",\n    \"edit-batch-apply\"\n  ],\n  \"audience\": \"ai-agent\",\n  \"build\": {\n    \"backend\": \"native\",\n    \"fallback\": false,\n    \"kind\": \"object\",\n    \"target\": \"x86_64-unknown-linux-gnu\"\n  },\n  \"edits\": {\n    \"entire_module_reverified\": true,\n    \"publication\": \"new_path_only\",\n    \"snapshot_bound\": true\n  },\n  \"entry\": \"hia\",\n  \"high_level_hepta\": \"removed\",\n  \"high_level_source_required\": false,\n  \"implementation\": \"python_host_bridge\",\n  \"inputs\": [\n    \"standalone-hia-json\",\n    \"explicit-hia-assembly\"\n  ],\n  \"language_core\": \"HIA\",\n  \"native_only_delivery_qualified\": false,\n  \"production_activated\": false,\n  \"schema\": \"hepta.hia.agent-entry.v1\"\n}\n"
+        },
+        {
+          "argv": [
+            "verify"
+          ],
+          "code": 2,
+          "kind": "exit",
+          "stderr": "usage: hia verify [-h] input\nhia verify: error: the following arguments are required: input\n",
+          "stdout": ""
+        },
+        {
+          "argv": [
+            "verify",
+            "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/input.missing"
+          ],
+          "code": 2,
+          "kind": "return",
+          "stderr": "",
+          "stdout": "{\n  \"diagnostics\": [\n    {\n      \"code\": \"E_DRIVER\",\n      \"message\": \"E_HIA_EDIT: cannot read ordinary input\",\n      \"phase\": \"driver\"\n    }\n  ],\n  \"ok\": false,\n  \"status\": \"error\"\n}\n"
+        },
+        {
+          "argv": [
+            "--version"
+          ],
+          "code": 0,
+          "kind": "exit",
+          "stderr": "",
+          "stdout": "hia 0.3.0\n"
+        },
+        {
+          "argv": [
+            "--version"
+          ],
+          "code": 0,
+          "kind": "exit",
+          "stderr": "",
+          "stdout": "hia 0.3.0\n"
+        }
+      ],
+      "console_entry_point": "hepta.cli:hia_main",
+      "empty_PATH": true,
+      "forbidden_entries": {
+        "retained_cli": [],
+        "retained_parser": [],
+        "tools": []
+      },
+      "installed_source_paths": {
+        "control": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_control.hiaasm",
+        "format": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_format.hiaasm"
+      },
+      "isolated_without_site": true,
+      "native_returns": {
+        "control": [
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          1,
+          1,
+          2,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          1,
+          2,
+          0,
+          0
+        ],
+        "format": [
+          3,
+          0,
+          3,
+          0,
+          3,
+          3,
+          3,
+          0,
+          3,
+          0,
+          3,
+          0,
+          3,
+          0
+        ]
+      },
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "refusals": [
+        {
+          "case": "changed-installed-control",
+          "message": "native HIA JSON source identity mismatch",
+          "type": "ValueError"
+        },
+        {
+          "case": "missing-installed-control",
+          "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_control.hiaasm'",
+          "type": "FileNotFoundError"
+        },
+        {
+          "case": "changed-installed-format",
+          "message": "native HIA JSON source identity mismatch",
+          "type": "ValueError"
+        },
+        {
+          "case": "missing-installed-format",
+          "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed/hepta/_data/examples/hia_bootstrap/cli_format.hiaasm'",
+          "type": "FileNotFoundError"
+        },
+        {
+          "case": "bundle-schema",
+          "message": "invalid native CLI bundle",
+          "type": "ValueError"
+        },
+        {
+          "case": "bundle-child-traversal",
+          "message": "invalid native CLI child identity",
+          "type": "ValueError"
+        },
+        {
+          "case": "bundle-child-hash",
+          "message": "native CLI child manifest identity mismatch",
+          "type": "ValueError"
+        },
+        {
+          "case": "missing-selected-bundle",
+          "message": "[Errno 2] No such file or directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/bundle/manifest.missing'",
+          "type": "FileNotFoundError"
+        },
+        {
+          "case": "empty-selected-bundle",
+          "message": "[Errno 21] Is a directory: '/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control'",
+          "type": "IsADirectoryError"
+        }
+      ],
+      "schema": "hepta.hia.cli-installed-execution.v1",
+      "source_sha256": {
+        "control": "c5cc2d52a5e3b9085954eb1f9e9dfb0b66f26673ced207a3fd89ba6696dff5dc",
+        "format": "ebd4610211909ad190976dbcbd603e93884b812fde34871a7e23de98548e8269"
+      },
+      "sources_and_bundle_restored": true,
+      "status": "PASS_INSTALLED_NATIVE_CLI_CONTROL",
+      "whole_native_delivery_qualified": false
+    },
+    "manifest": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/bundle/manifest.json",
+    "original_manifest": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/bundle/manifest.json",
+    "original_sources_preserved": true,
+    "packaging_uses_declared_resources_only": true,
+    "processes": [
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "pip",
+          "wheel",
+          "--no-cache-dir",
+          "--no-deps",
+          "--no-index",
+          "--no-build-isolation",
+          "--wheel-dir",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/wheels",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/source"
+        ],
+        "label": "wheel-build",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "c8dcbd949544bdae58790def618adb0840d0e024ea9ab6ebb564235a3074d8f9"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-B",
+          "-m",
+          "pip",
+          "install",
+          "--no-cache-dir",
+          "--no-deps",
+          "--no-index",
+          "--target",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/wheels/hia_core-0.3.0-py3-none-any.whl"
+        ],
+        "label": "wheel-install",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "cd2c971046f7654d9aca04f2b3243c8d18070c89d45f65275a9515b980cb6177"
+      },
+      {
+        "argv": [
+          "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+          "-I",
+          "-S",
+          "-B",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed-control.py",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/installed",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/bundle/manifest.json",
+          "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/input.hia"
+        ],
+        "label": "installed-execution",
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "9a89885ba6585ec79ff03010692f7be28229aebdcf53edcf3bacd0fb67a69904"
+      }
+    ],
+    "schema": "hepta.hia.cli-installed-control.v1",
+    "scope": "EXPLICIT_DEVELOPMENT_ONLY",
+    "source_sha256_after": {
+      "control": "c5cc2d52a5e3b9085954eb1f9e9dfb0b66f26673ced207a3fd89ba6696dff5dc",
+      "format": "ebd4610211909ad190976dbcbd603e93884b812fde34871a7e23de98548e8269"
+    },
+    "source_sha256_before": {
+      "control": "c5cc2d52a5e3b9085954eb1f9e9dfb0b66f26673ced207a3fd89ba6696dff5dc",
+      "format": "ebd4610211909ad190976dbcbd603e93884b812fde34871a7e23de98548e8269"
+    },
+    "status": "PASS_INSTALLED_NATIVE_CLI_CONTROL",
+    "wheel": {
+      "bytes": 2267029,
+      "path": "/workspace/scratch/hia-cli-control-revision2-20261111/complete-development-r6-r1/fixtures/installed-control/wheels/hia_core-0.3.0-py3-none-any.whl",
+      "sha256": "21122532b6123705364317b2c171295a6e345e6aab671f38a08aecbdeacaf413"
+    },
+    "whole_native_delivery_qualified": false
+  },
+  "original_development_manifest_field_used": false,
+  "original_failures_or_unknowns_relabelled": false,
+  "product_files": {
+    "examples/hia_bootstrap/cli_control.hiaasm": {
+      "bytes": 228996,
+      "git_blob": "89060ad08515930e37b9b1f65acedbd49de1913b",
+      "sha256": "c5cc2d52a5e3b9085954eb1f9e9dfb0b66f26673ced207a3fd89ba6696dff5dc"
+    },
+    "examples/hia_bootstrap/cli_format.hiaasm": {
+      "bytes": 291359,
+      "git_blob": "648bbf7634dba6d360e9c21ff738f86a89b5112d",
+      "sha256": "ebd4610211909ad190976dbcbd603e93884b812fde34871a7e23de98548e8269"
+    },
+    "hepta/cli.py": {
+      "bytes": 10886,
+      "git_blob": "95502e6e506e50de23e5bf803f4c572ad445168b",
+      "sha256": "273bf9217a8f222f694ca26b5a60e6d80120734477ade7a6653cff6fc4bde556"
+    },
+    "hepta/hia_cli_native.py": {
+      "bytes": 27104,
+      "git_blob": "16d3c8328c7ec5bd3dce37b1cd8ffa8c826d50f0",
+      "sha256": "365372dade64c0e814890f54e1bcc86698e16548b11270418c62bcd863f53d27"
+    },
+    "tests/test_hia_cli_native.py": {
+      "bytes": 49947,
+      "git_blob": "fa3f508afd2ad50bf255c39a4a7449498fb55cfd",
+      "sha256": "177da1a1ce8ec570131bffb376305d27bf3143d6db07b645d7b27d8cbb991a4b"
+    },
+    "tools/build_hia_cli_native.py": {
+      "bytes": 4805,
+      "git_blob": "79344cc1f326125741be01d61f6f4c8a5f412c2d",
+      "sha256": "b3bc0476d5139b9e936d84713d69f666c9d3d1e2a5efa32cb202d1b6f7092cbb"
+    },
+    "tools/generate_hia_cli_control.py": {
+      "bytes": 24199,
+      "git_blob": "1aeb250ed63e146ce056f6369fd5660e50e52c51",
+      "sha256": "803614a15315114e1fcd9e565b5ee6d823aeb37e7b2053dc3751bcaac3ed91ce"
+    },
+    "tools/generate_hia_cli_format.py": {
+      "bytes": 35539,
+      "git_blob": "cc41d32bfa2c3700353fe7107729d08e4b81dde7",
+      "sha256": "c01cef5b4c1a85cca9bbeb0fd26e28a966acaf903bcc811d71f560546596fbd1"
+    },
+    "tools/hia_cli_control_phases.py": {
+      "bytes": 16054,
+      "git_blob": "470f7d0689a9ae8be9e8d49b5ad0b5ace876e470",
+      "sha256": "8ee69d151e49ae99988ba73acb13089e7bc4cbfded5ce0b9310421631ba690ec"
+    },
+    "tools/hia_cli_unicode_tables.json": {
+      "bytes": 85878,
+      "git_blob": "4b05e624fed016fb7b7db998b27af8aa0e4e7ce9",
+      "sha256": "15b28c6a526a57431c4316366eee61e4c5a40c6e0a56aa9f6d39e72124d0c1d6"
+    }
+  },
+  "product_tests_rerun_for_retention": false,
+  "remaining_scope": [
+    "matching-source joint cold and CI",
+    "actual repaired Python 3.14.4 terminal evidence",
+    "actual Python 3.14.10 execution",
+    "remaining named action-body and foreign-effect owners",
+    "whole-native installed release and legacy removal"
+  ],
+  "remote_2963_custody": {
+    "archive": "/home/qian-qi/he26-cli-r4-retention-r1/originals/originals.tar.gz",
+    "archive_bytes": 1954685,
+    "archive_sha256": "3318a25076b486aefb298867e4fdfa06bc57dea25fa33ee386ddaa8a3a7a66c7",
+    "custody_scope": "Independent sibling receipt; archive bytes retained on desktop home, not duplicated into this commit. Original product HOLD unchanged. Wrapper job/publication acknowledgement remains UNKNOWN.",
+    "evidence_commit": "438d7d4c466e40ee2c80d7cdb35bdb26e58f32e3",
+    "independently_read_regular_bytes": 21680858,
+    "members": 603,
+    "regular_members": 535
+  },
+  "remote_2963_status": "Original real Python 3.14.4 16-method run HOLD with two unchanged negative-token subcase failures; preserved in ancestor 673c416ff6edb78926cae4a66f4ea83f4cb859dd.",
+  "remote_repaired_4c_request": {
+    "control_commit": "9a04a52b926ff4327b8d4adfe916e6e457f626c4",
+    "product_start_replayed": false,
+    "result_not_used_for_local_pass": true,
+    "source_commit": "4c674bc3bfbdb461291beb8118caa63fb242e2d1",
+    "stable_key": "hia-e26e-desktop-cli-4c674bc3-development-r5-r1",
+    "status_at_this_checkpoint": "UNKNOWN_AFTER_MCP_TIMEOUT_AND_CODE_MODE_GENERATION_CHANGE"
+  },
+  "runs": {
+    "r5": {
+      "anomalies": {
+        "errors": [],
+        "expected_failures": [],
+        "failures": [],
+        "skipped": [],
+        "unexpected_successes": []
+      },
+      "compiler_preserved": true,
+      "executed_test_ids": [
+        "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+        "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+        "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+        "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+        "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+        "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+        "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+        "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+        "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+        "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+        "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+        "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+        "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+        "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation"
+      ],
+      "loaded_test_ids": [
+        "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+        "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+        "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+        "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+        "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+        "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+        "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+        "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+        "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+        "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+        "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+        "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+        "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+        "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation"
+      ],
+      "main_process_native_returns": 1189,
+      "owned_elapsed_ns": 12085081694,
+      "owner_cleanup": {
+        "attempted": true,
+        "complete": true,
+        "deadline_exceeded": false,
+        "elapsed_ns": 8153237,
+        "errors": [],
+        "leader_reaped": true,
+        "observed_echild": true,
+        "remaining_direct_children": [],
+        "started_ns": 9913589712912
+      },
+      "owner_events": [
+        {
+          "kind": "qualification_started",
+          "monotonic_ns": 9901699347403,
+          "pid": 4
+        },
+        {
+          "kind": "owned_child_observed",
+          "monotonic_ns": 9901699389507,
+          "pgid": 3,
+          "pid": 4,
+          "ppid": 3,
+          "sid": 3,
+          "start_ticks": 990169
+        },
+        {
+          "kind": "qualification_exit_observed",
+          "monotonic_ns": 9913589631609,
+          "pid": 4,
+          "si_code": 1,
+          "si_status": 0
+        },
+        {
+          "kind": "owned_child_reaped",
+          "monotonic_ns": 9913597156035,
+          "pid": 4,
+          "returncode": 0,
+          "start_ticks": 990169
+        }
+      ],
+      "owner_status": "OWNED_PROCESS_COMPLETED",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "retention": {
+        "archive_bytes": 1044001,
+        "archive_sha256": "672e4dac8e4d34449af8e148e2e692d62c23f144db3b53eafc3c198763c697a7",
+        "directory_members": 59,
+        "every_regular_member_independently_read": true,
+        "independently_read_regular_bytes": 17095798,
+        "member_mode_uid_gid_and_mtime_preserved": true,
+        "members": 567,
+        "original_tree_preserved": true,
+        "regular_members": 507,
+        "status": "EXACT_MEMBER_READBACK_PASS",
+        "symlink_members": 1
+      },
+      "source_preserved": true,
+      "source_revision": "4c674bc3bfbdb461291beb8118caa63fb242e2d1",
+      "tests_run": 16
+    },
+    "r6": {
+      "anomalies": {
+        "errors": [],
+        "expected_failures": [],
+        "failures": [],
+        "skipped": [],
+        "unexpected_successes": []
+      },
+      "compiler_preserved": true,
+      "executed_test_ids": [
+        "tests.test_hia_cli_native.CliNativeTests.test_actual_installed_wheel_without_retained_cli_or_checkout_resources",
+        "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+        "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+        "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+        "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+        "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+        "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+        "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+        "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+        "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+        "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+        "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+        "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+        "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+        "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation"
+      ],
+      "loaded_test_ids": [
+        "tests.test_hia_cli_native.CliNativeTests.test_actual_installed_wheel_without_retained_cli_or_checkout_resources",
+        "tests.test_hia_cli_native.CliNativeTests.test_all_fifteen_real_actions_and_publication_branches",
+        "tests.test_hia_cli_native.CliNativeTests.test_argparse_order_abbreviation_clusters_repetition_and_sentinel",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_json_is_native_and_keeps_active_exception_context",
+        "tests.test_hia_cli_native.CliNativeTests.test_error_str_baseexception_preserves_object_context_and_closes",
+        "tests.test_hia_cli_native.CliNativeTests.test_existing_read_ceilings_and_unicode_error_publication",
+        "tests.test_hia_cli_native.CliNativeTests.test_external_baseexception_after_native_return_closes_permission",
+        "tests.test_hia_cli_native.CliNativeTests.test_help_wrapping_columns_and_exact_unicode_repr",
+        "tests.test_hia_cli_native.CliNativeTests.test_native_ack_refusal_and_no_replay_after_consumed_effect",
+        "tests.test_hia_cli_native.CliNativeTests.test_output_precedes_result_truth_and_query_read_errors",
+        "tests.test_hia_cli_native.CliNativeTests.test_parser_stream_write_failures_and_missing_stdout_match",
+        "tests.test_hia_cli_native.CliNativeTests.test_python_color_environment_precedence_and_colored_wrapping",
+        "tests.test_hia_cli_native.CliNativeTests.test_source_bundle_binding_and_selected_fail_closed",
+        "tests.test_hia_cli_native.CliNativeTests.test_unchanged_original_agent_entry_suite_with_native_selected",
+        "tests.test_hia_cli_native.CliSourceTests.test_complete_regeneration_and_unchanged_native_profile",
+        "tests.test_hia_cli_native.CliSourceTests.test_independent_core_vm_argument_and_error_formatter",
+        "tests.test_hia_cli_native.CliSourceTests.test_matching_cold_build_rejects_before_output_creation"
+      ],
+      "main_process_native_returns": 1189,
+      "owned_elapsed_ns": 13991315411,
+      "owner_cleanup": {
+        "attempted": true,
+        "complete": true,
+        "deadline_exceeded": false,
+        "elapsed_ns": 489550,
+        "errors": [],
+        "leader_reaped": true,
+        "observed_echild": true,
+        "remaining_direct_children": [],
+        "started_ns": 12032784171794
+      },
+      "owner_events": [
+        {
+          "kind": "qualification_started",
+          "monotonic_ns": 12018880209786,
+          "pid": 4
+        },
+        {
+          "kind": "owned_child_observed",
+          "monotonic_ns": 12018880248335,
+          "pgid": 3,
+          "pid": 4,
+          "ppid": 3,
+          "sid": 3,
+          "start_ticks": 1201887
+        },
+        {
+          "kind": "qualification_exit_observed",
+          "monotonic_ns": 12032784168319,
+          "pid": 4,
+          "si_code": 1,
+          "si_status": 0
+        },
+        {
+          "kind": "owned_child_reaped",
+          "monotonic_ns": 12032784534813,
+          "pid": 4,
+          "returncode": 0,
+          "start_ticks": 1201887
+        }
+      ],
+      "owner_status": "OWNED_PROCESS_COMPLETED",
+      "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+      "retention": {
+        "archive_bytes": 11429219,
+        "archive_sha256": "975b1604b6dedbd04d307fcd5073ee22b73f33d65b5d658acf4b29dd20263e20",
+        "directory_members": 91,
+        "every_regular_member_independently_read": true,
+        "independently_read_regular_bytes": 54889994,
+        "member_mode_uid_gid_and_mtime_preserved": true,
+        "members": 1456,
+        "original_tree_preserved": true,
+        "regular_members": 1364,
+        "status": "EXACT_MEMBER_READBACK_PASS",
+        "symlink_members": 1
+      },
+      "source_preserved": true,
+      "source_revision": "30a513ce68e97a21e96b2d80b1a3f079f3bb843a",
+      "tests_run": 17
+    }
+  },
+  "schema": "hia.cli.development-final-handoff.v1",
+  "shared_cli_resource_deltas": {
+    "MANIFEST.in": {
+      "bytes": 2965,
+      "git_blob": "d7188e318434c75445147c0f90b978f03488cefb",
+      "sha256": "65d9778f9131cbd5248f086b4da95a77ae95b5989d8b7f53e88eb0f7762d4b94"
+    },
+    "hepta/hia_agent_contract.py": {
+      "bytes": 18709,
+      "git_blob": "fba9a62681bf3148da30dc4fcded8ff9652eb90b",
+      "sha256": "813a65447479a7accea79b4da96d08b646b7e01f04f2330e9c326743e34fa7f8"
+    },
+    "tests/test_hia_agent_installed_resources.py": {
+      "bytes": 30994,
+      "git_blob": "e379a9ffba3b7b3a6fdfdbdaf41d087273edcc38",
+      "sha256": "3db9250615c22db48c5d39bb0ed72b3c612f789a77f6b34c1f0bacc667ff077e"
+    }
+  },
+  "status": "PASS_LOCAL_DEVELOPMENT_ONLY",
+  "tested_product_commit": "30a513ce68e97a21e96b2d80b1a3f079f3bb843a",
+  "tested_product_tree": "42b403c14436106712fb73eed9a737ac4fc21005",
+  "whole_native_delivery_qualified": false
+}
