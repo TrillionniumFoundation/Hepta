@@ -16,8 +16,11 @@ The host never builds a report dictionary or encodes the response separately.
 The Python boundary supplies exact builtin type, length, identity, child,
 codepoint, integer magnitude and IEEE observations. It also performs explicitly
 requested IO, attribute access, calls and opaque leaf comparison. CPython raw
-dictionary iteration and known-hash lookup preserve stored key hashes during
-manifest comparison; they do not decide manifest equality. Stateful foreign
+dictionary iteration and known-hash lookup preserve stored key hashes when that
+runtime observation is exported. A build without it uses public `PyDict_Next`
+and pure exact-builtin hash observations for str/bytes/int/float/bool/None keys.
+It refuses other key types without invoking an additional foreign `__hash__`.
+Neither observation decides manifest equality. Stateful foreign
 callbacks remain foreign effects and their order is controlled by HIA.
 
 Request admission retains its existing independent selection point after stdin.
@@ -90,6 +93,15 @@ Ordinary `installation_manifest()` returns exactly three hash strings and does
 not produce this extension shape. Arbitrary foreign recursive resource
 exhaustion is explicitly not closed, and this candidate does not claim all
 Python graph resource behavior to be equivalent.
+
+The observed pinned CPython 3.14.4 build does not export private `_PyDict_Next`.
+The adapter therefore uses public iteration for its ordinary string-key
+manifests. Foreign dictionary keys on a runtime without stored-hash iteration
+are a second explicit unsupported extension boundary; the adapter propagates a
+profile RuntimeError before additional foreign hashing or report output. This
+is not represented as equivalent to successful retained comparison. An
+independent control checks both the public builtin path and this refusal even
+on a runtime where private iteration is available.
 
 The builder's `--development` mode records `DEVELOPMENT_ONLY_NOT_MATCHING_SOURCE_COLD`.
 Production qualification must use `--cold-report` for the current source closure.

@@ -110,15 +110,44 @@ def _dict_primitives():
     """
     if sys.implementation.name != 'cpython':
         raise RuntimeError('native worker dictionary observations require CPython')
-    next_item = ctypes.pythonapi._PyDict_Next
+    next_item = getattr(ctypes.pythonapi, '_PyDict_Next', None)
+    stored_hash = next_item is not None
+    if next_item is None:
+        # Newer CPython builds do not export the private hash-bearing variant.
+        # Public PyDict_Next still avoids a Python iterator's mutation guard.
+        next_item = ctypes.pythonapi.PyDict_Next
     next_item.argtypes = [ctypes.py_object, ctypes.POINTER(ctypes.c_ssize_t),
-                          ctypes.POINTER(ctypes.py_object), ctypes.POINTER(ctypes.py_object),
-                          ctypes.POINTER(ctypes.c_ssize_t)]
+                          ctypes.POINTER(ctypes.py_object), ctypes.POINTER(ctypes.py_object)]
+    if stored_hash:
+        next_item.argtypes += [ctypes.POINTER(ctypes.c_ssize_t)]
     next_item.restype = ctypes.c_int
     lookup = ctypes.pythonapi._PyDict_GetItem_KnownHash
     lookup.argtypes = [ctypes.py_object, ctypes.py_object, ctypes.c_ssize_t]
     lookup.restype = ctypes.c_void_p
-    return next_item, lookup
+    return next_item, lookup, stored_hash
+
+
+def _pure_builtin_key_hash(key):
+    """A raw immutable builtin observation, never an arbitrary __hash__ call.
+
+    This deliberately does not walk tuple/frozenset keys to inspect their
+    descendants. Builds without stored-hash iteration retain an explicit
+    unsupported foreign-key boundary rather than add observable hash hooks.
+    """
+    kind = type(key)
+    if kind is str:
+        return str.__hash__(key)
+    if kind is bytes:
+        return bytes.__hash__(key)
+    if kind is int:
+        return int.__hash__(key)
+    if kind is float:
+        return float.__hash__(key)
+    if kind is bool:
+        return bool.__hash__(key)
+    if kind is type(None):
+        return type(None).__hash__(key)
+    raise RuntimeError('native worker runtime cannot observe the stored hash of this foreign dictionary key')
 
 
 class WorkerSession:
@@ -133,7 +162,7 @@ class WorkerSession:
             reg(args.expected_worker_sha256), reg(args.expected_backend_sha256),
             reg(args.expected_catalog_sha256), reg(identities), reg(worker.VERSION), reg(None), 0)
         self.finished = False
-        self._dict_next, self._dict_lookup = _dict_primitives()
+        self._dict_next, self._dict_lookup, self._dict_stored_hash = _dict_primitives()
 
     def step(self, packet=None):
         if self.finished:
@@ -247,10 +276,14 @@ class WorkerSession:
             elif opcode == 34:
                 position = ctypes.c_ssize_t(b)
                 key, item, stored_hash = ctypes.py_object(), ctypes.py_object(), ctypes.c_ssize_t()
-                x = int(self._dict_next(value(a), ctypes.byref(position), ctypes.byref(key),
-                                        ctypes.byref(item), ctypes.byref(stored_hash)))
+                arguments = (value(a), ctypes.byref(position), ctypes.byref(key), ctypes.byref(item))
+                x = int(self._dict_next(*arguments, ctypes.byref(stored_hash)) if self._dict_stored_hash
+                        else self._dict_next(*arguments))
                 if x:
-                    y, z = reg(key.value), reg(item.value)
+                    key_value, item_value = key.value, item.value
+                    if not self._dict_stored_hash:
+                        stored_hash.value = _pure_builtin_key_hash(key_value)
+                    y, z = reg(key_value), reg(item_value)
                 t = position.value
                 payload = struct.pack('<Q', stored_hash.value & ((1 << 64) - 1))
             elif opcode == 35:

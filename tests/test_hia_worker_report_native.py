@@ -341,7 +341,7 @@ class WorkerReportNativeTests(unittest.TestCase):
             with self.subTest(index=index, a=repr(a), b=repr(b)):
                 self.same(configure)
 
-    def test_foreign_leaf_effects_mutation_and_stored_key_hash_order(self):
+    def test_foreign_leaf_effects_and_list_mutation_order(self):
         def configure(f):
             class Leaf:
                 def __init__(self, label): self.label = label
@@ -352,15 +352,8 @@ class WorkerReportNativeTests(unittest.TestCase):
                     return True
                 def __ne__(self, other):
                     raise AssertionError('container child used inequality')
-            class Key:
-                def __hash__(self):
-                    f.events.append(('hash',))
-                    return 17
-                def __eq__(self, other):
-                    f.events.append(('key-equal',))
-                    return True
-            f.identities['extension'] = {Key(): Leaf('right')}
-            f.after['extension'] = {Key(): Leaf('left')}
+            f.identities['extension'] = {'key': Leaf('right')}
+            f.after['extension'] = {'key': Leaf('left')}
             f.events.clear()
         self.same(configure)
         def lists(f):
@@ -373,6 +366,44 @@ class WorkerReportNativeTests(unittest.TestCase):
             left.append(Leaf()); right.append(Leaf())
             f.after['extension'] = left; f.identities['extension'] = right
         self.same(lists)
+
+    def test_stored_hash_foreign_key_capability_and_public_builtin_profile(self):
+        from hepta.hia_worker_report_native import _dict_primitives
+        def foreign(f):
+            class Key:
+                def __hash__(self):
+                    f.events.append(('foreign-hash',)); return 17
+                def __eq__(self, other):
+                    f.events.append(('key-equal',)); return True
+            f.identities['extension'] = {Key(): 7}
+            f.after['extension'] = {Key(): 7}
+            f.events.clear()
+        if _dict_primitives()[2]:
+            actual, _ = self.same(foreign)
+            self.assertNotIn(('foreign-hash',), actual[3])
+        else:
+            f = Fixture(); foreign(f)
+            actual = f.run(self.manifest)
+            self.assertEqual(actual[0][0:2], ('raise', 'RuntimeError'))
+            self.assertIn('stored hash', actual[0][2])
+            self.assertNotIn(('foreign-hash',), actual[3])
+            self.assertEqual(actual[1], b'')
+        # Exercise the real public C function even on a runtime that exports
+        # the private one. This is a profile refusal, not a parity claim for
+        # foreign keys on runtimes lacking the stored-hash observation.
+        with patch.object(ctypes.pythonapi, '_PyDict_Next', None, create=True):
+            for key in ('snow-雪', b'bytes', 7, 1.25, False, None):
+                with self.subTest(public_key=repr(key)):
+                    def builtin(f, key=key):
+                        f.identities['extension'] = {key: [True, -0.0]}
+                        f.after['extension'] = {key: [1, 0]}
+                    self.same(builtin)
+            f = Fixture(); foreign(f)
+            actual = f.run(self.manifest)
+            self.assertEqual(actual[0][0:2], ('raise', 'RuntimeError'))
+            self.assertIn('stored hash', actual[0][2])
+            self.assertNotIn(('foreign-hash',), actual[3])
+            self.assertEqual(actual[1], b'')
 
     def test_error_callbacks_order_mutation_and_unicode_slice(self):
         def configure(f):
