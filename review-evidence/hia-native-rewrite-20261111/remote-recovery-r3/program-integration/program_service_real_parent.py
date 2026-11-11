@@ -21,12 +21,12 @@ def source(program,action,digits=4300):
         name="input_data_"+str(slot)
         # Bound each literal initializer independently of input content.
         # This changes no issued byte or service command. The original B3
-        # per-block scalar limits still apply to every generated helper.
+        # per-function 2048 SSA-name limit still applies to every helper.
         pieces=[]
-        for first in range(0,len(raw),128):
-            helper=name+"_part_"+str(first//128);pieces.append(helper)
+        for first in range(0,len(raw),1024):
+            helper=name+"_part_"+str(first//1024);pieces.append(helper)
             lines=["def "+helper+"(w:mutbuf) -> u64:"]
-            for at in range(first,min(first+128,len(raw)),8):
+            for at in range(first,min(first+1024,len(raw)),8):
                 part=raw[at:at+8]
                 if len(part)==8:
                     lines.append("    put(w, "+str(cursor+at)+", "+str(int.from_bytes(part,"little"))+")")

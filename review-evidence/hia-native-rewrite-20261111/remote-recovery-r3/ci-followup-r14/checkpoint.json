@@ -1,0 +1,172 @@
+{
+  "schema": "hia-native-recovery-ci-followup-r14",
+  "parent": "6c2e4763371bc079d14779cf3880e61c50b08188",
+  "previous_actual": {
+    "A": {
+      "run_id": 43121313060,
+      "job_id": 130862204450,
+      "status": "FAIL",
+      "completed_cases": 27,
+      "actual_native_processes": 27,
+      "actual_HIA_packer_entries": 27,
+      "failure_stage": "Private HIA issuer source profile; next program was not compiled or executed",
+      "failure_profile": {
+        "functions": 164,
+        "blocks": 393,
+        "ops": 7907,
+        "max_blocks": 108,
+        "max_params": 13
+      },
+      "original_function_limit": 128,
+      "input_bytes_test_cases_and_native_service_unchanged": true
+    },
+    "E_relay": {
+      "run_id": 43121313060,
+      "job_id": 130862204357,
+      "status": "FAIL",
+      "original_sources_regenerated_exactly": [
+        56
+      ],
+      "failure": "E_HIA_TYPE compare.ne mismatched u32 terminal result and u64 step result at the entry join",
+      "new_relay_compilations": 0,
+      "new_relay_native_entries": 0,
+      "all_original_bytes_unchanged": true
+    },
+    "Core": {
+      "run_id": 43121312854,
+      "source_job": 130862203167,
+      "native_job": 130862202808,
+      "status": "FAIL_BEFORE_QUALIFICATION",
+      "error": "Support contract differs from the current source closure",
+      "cause": "The valid allocator-child nondumpability source change was committed without regenerating its source_identity.files contract",
+      "current_cold_qualification_runs": 0,
+      "current_language_qualification_runs": 0,
+      "source_guard_reverted": false,
+      "all_limits_unchanged": true
+    },
+    "schema": {
+      "run_id": 43121313060,
+      "job_id": 130862204525,
+      "status": "FAIL",
+      "fresh_B3_compiles": 7,
+      "semantic": {
+        "cases": 348,
+        "native_entries": 3120,
+        "status": "PASS"
+      },
+      "numeric": {
+        "cases": 1282,
+        "native_entries": 7654,
+        "status": "PASS"
+      },
+      "vocabulary": {
+        "cases": 72,
+        "native_entries": 1211,
+        "status": "PASS"
+      },
+      "large": {
+        "status": "FAIL_PROCESS_KILLED",
+        "returncode": -9,
+        "CPU_limit_seconds": 90,
+        "terminal_summary": false,
+        "exact_last_native_entry": "UNKNOWN_NOT_IN_ORIGINAL_LOG"
+      },
+      "protocol": {
+        "status": "FAIL_BEFORE_FIRST_NATIVE_ENTRY",
+        "native_entries": 0,
+        "cause": "ctypes.memmove received bytearray in the test Buffer constructor"
+      },
+      "whole_worker_closed": false
+    },
+    "publication_original_readback": {
+      "actual_entry_records": 1045,
+      "actual_fixed_publication_carrier": false,
+      "all_11_malformed_replies_and_followups_permanent_BAD": true,
+      "all_29_final_native_views_match_saved_outcomes": true,
+      "all_zip_tar_bytes_sha256_modes_and_cas_verified": true,
+      "cas_logical_bytes": 61166062,
+      "cas_objects": 1848,
+      "commit": "722ebd53f80a86c527b816d60caca7a9d5faa1f9",
+      "job_id": 130855636695,
+      "native_ledger_matches_original_summary": true,
+      "new_native_entries": 0,
+      "new_reference_calls": 0,
+      "original_cases": 29,
+      "original_filesystem_syscalls": 914,
+      "original_hash_entries": 30,
+      "original_hash_requests": 10,
+      "original_private_controls": 11,
+      "original_publication_entries": 1015,
+      "original_summary_sha256": "6aae313f8163f2758ccd608e5e5861d5b80598cb097826ea48c75e042970b134",
+      "original_zip_unchanged": true,
+      "pin": {
+        "artifact_id": 13900605840,
+        "index_bytes": 870167,
+        "index_sha256": "716a7f4f93e4cc523935640cb8d0530695e53d3355fbc2aae0da78745b082798",
+        "members": 1939,
+        "original_bytes": 43063753,
+        "prefix": "hia-cli-publication-recovery",
+        "tar_bytes": 5642596,
+        "tar_sha256": "47d9a94ca9202141ef13d583ecfeb1bb604806ed03491eee555a440e1bc792b5",
+        "zip_bytes": 45088034,
+        "zip_files": 34,
+        "zip_sha256": "54fa2bc4dded871875ff3b01b7d5c886d4d45d09a8d032a680941d85387998bb"
+      },
+      "run_id": 43119383155,
+      "scope": "READ_ONLY_FOLLOW12_NATIVE_PUBLICATION_ORIGINALS",
+      "status": "PASS",
+      "tar_members": 1939,
+      "whole_cli_publication_closed": false,
+      "zip_members": 34
+    }
+  },
+  "new_sources": {
+    "A_issuer": {
+      "bytes": 6529,
+      "gitsha": "78f2c43943668192d2b3faf5aeb24c64151acfbe",
+      "sha256": "490473237fd922d4736ca3a237ae700ca6887dd1c436590a1177bf3635674d88",
+      "change": "Group unchanged literal initialization in 1024-byte helpers, 128 word stores per helper; no change to 2048 per-function SSA names or 128 function limits",
+      "private_test_owner_only": true
+    },
+    "E_relay": {
+      "bytes": 11280,
+      "gitsha": "662ff3330723881a455a87a279a356b83ad7ebd6",
+      "sha256": "bd93badd2dcafe80e32e9096f53b2c7e020f2f6b75c1ff9c244676bae57ce784",
+      "change": "Return the original u32 terminal event directly from the u32 root entry before the existing u64 step dispatch",
+      "test_revision": "Distinguish query domain1 stage7 from program-prefix domain2 stage7, and include original query renderer stage6. Full stdout, all other stderr bytes, exact extra sequence, exit and all input cases remain required.",
+      "all_original_owner_bodies_preserved_except_terminal_route": true
+    },
+    "support_contract": {
+      "bytes": 6557,
+      "gitsha": "cc6616b903a1cc8c6859d87e7d0dad7a5f400d92",
+      "sha256": "643be23461f7c964a1eba740e138b4a82c7631b7a49c015b82bc7cab8531919f",
+      "change": "Execute the exact original generator then --check in CI and preserve full generated bytes. Root will commit the actually generated file in the next checkpoint.",
+      "contract_hand_edited": false,
+      "current_stale_contract_failure_not_cleared": true,
+      "qualification_claim": false
+    },
+    "fixed_publication": {
+      "delivery_blob": "b41b3cb5f23d8f187f910404752657f8b2ad0567",
+      "root_verified_files": 11,
+      "bytes": 177873,
+      "planned_cases": 43,
+      "planned_HIA_packer_entries": 20,
+      "actual_entries_at_submission": 0,
+      "complete_Path_staging_closed": false
+    }
+  },
+  "selected_jobs": [
+    "program-integration",
+    "edit-terminal-relay",
+    "contract-regenerate",
+    "cli-fixed-publication"
+  ],
+  "closure": {
+    "whole_stack_closed": false,
+    "ordinary_installed_native_activation": false,
+    "old_owners_deleted": false,
+    "unchanged_main": "5831f52fada45e076f8f68f198a15c0585e6104f"
+  },
+  "limits_changed": false,
+  "historical_failures_erased": false
+}

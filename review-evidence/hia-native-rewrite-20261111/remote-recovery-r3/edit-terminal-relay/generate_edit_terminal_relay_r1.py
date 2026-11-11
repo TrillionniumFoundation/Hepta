@@ -147,8 +147,10 @@ try:
             loops=[n for n in entry.body if isinstance(n,ast.While)];assert len(loops)==1
             loop=loops[0];assert isinstance(loop.body[0],ast.Assign) and loop.body[0].targets[0].id=="phase"
             assert isinstance(loop.body[1],ast.If)
-            dispatch=ast.parse("if phase == 90000:\n    result = edit_public_terminal(o, w)\n").body[0]
-            dispatch.orelse=[loop.body[1]];loop.body[1]=dispatch
+            dispatch=ast.parse("if phase == 90000:\n    return edit_public_terminal(o, w)\n").body[0]
+            # The terminal returns u32 directly from the u32 entry. Never merge
+            # it into the original u64 step result at the SSA join.
+            loop.body.insert(1,dispatch)
         for fn in tree.body:
             if fn.name in old_functions and fn.name not in changed:
                 assert ast.dump(fn,include_attributes=False)==old_functions[fn.name],(role,fn.name)

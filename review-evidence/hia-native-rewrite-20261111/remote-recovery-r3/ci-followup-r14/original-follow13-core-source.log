@@ -1,0 +1,227 @@
+﻿2026-11-11T23:38:06.0110532Z Current runner version: '2.338.2'
+2026-11-11T23:38:06.0133657Z ##[group]Runner Image Provisioner
+2026-11-11T23:38:06.0134518Z Hosted Compute Agent
+2026-11-11T23:38:06.0135545Z Version: 20261028.624
+2026-11-11T23:38:06.0136213Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-11T23:38:06.0136888Z Build Date: 2026-10-28T21:51:42Z
+2026-11-11T23:38:06.0137590Z Worker ID: {dd08e9b0-bb12-4a27-867e-9836407b233c}
+2026-11-11T23:38:06.0138262Z Region: eastus3
+2026-11-11T23:38:06.0138785Z Cloud: Azure
+2026-11-11T23:38:06.0139339Z ##[endgroup]
+2026-11-11T23:38:06.0140681Z ##[group]Operating System
+2026-11-11T23:38:06.0141302Z Ubuntu
+2026-11-11T23:38:06.0141844Z 24.04.5
+2026-11-11T23:38:06.0142692Z LTS
+2026-11-11T23:38:06.0143311Z ##[endgroup]
+2026-11-11T23:38:06.0143889Z ##[group]Runner Image
+2026-11-11T23:38:06.0144490Z Image: ubuntu-24.04
+2026-11-11T23:38:06.0145443Z Version: 20261101.360.1
+2026-11-11T23:38:06.0146750Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-11T23:38:06.0148211Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-11T23:38:06.0149148Z ##[endgroup]
+2026-11-11T23:38:06.0150292Z ##[group]GITHUB_TOKEN Permissions
+2026-11-11T23:38:06.0152586Z Contents: read
+2026-11-11T23:38:06.0153146Z Metadata: read
+2026-11-11T23:38:06.0153665Z Packages: read
+2026-11-11T23:38:06.0154238Z ##[endgroup]
+2026-11-11T23:38:06.0156368Z Secret source: Actions
+2026-11-11T23:38:06.0157306Z Cache mode: write
+2026-11-11T23:38:06.0158193Z Prepare workflow directory
+2026-11-11T23:38:06.0573055Z Prepare all required actions
+2026-11-11T23:38:06.0642212Z Getting action download info
+2026-11-11T23:38:06.2905410Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-11T23:38:06.3888850Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-11T23:38:06.5885534Z Complete job name: source
+2026-11-11T23:38:06.6631037Z ##[group]Run actions/checkout@v4
+2026-11-11T23:38:06.6631804Z with:
+2026-11-11T23:38:06.6632466Z   repository: TrillionniumFoundation/Hepta
+2026-11-11T23:38:06.6636437Z   token: ***
+2026-11-11T23:38:06.6637192Z   ssh-strict: true
+2026-11-11T23:38:06.6637915Z   ssh-user: git
+2026-11-11T23:38:06.6638420Z   persist-credentials: true
+2026-11-11T23:38:06.6639019Z   clean: true
+2026-11-11T23:38:06.6639599Z   sparse-checkout-cone-mode: true
+2026-11-11T23:38:06.6640197Z   fetch-depth: 1
+2026-11-11T23:38:06.6640693Z   fetch-tags: false
+2026-11-11T23:38:06.6641208Z   show-progress: true
+2026-11-11T23:38:06.6642120Z   lfs: false
+2026-11-11T23:38:06.6642633Z   submodules: false
+2026-11-11T23:38:06.6643148Z   set-safe-directory: true
+2026-11-11T23:38:06.6643721Z   allow-unsafe-pr-checkout: false
+2026-11-11T23:38:06.6644624Z ##[endgroup]
+2026-11-11T23:38:06.9187879Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-11T23:38:06.9191121Z ##[group]Getting Git version info
+2026-11-11T23:38:06.9192481Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-11T23:38:06.9194373Z [command]/usr/bin/git version
+2026-11-11T23:38:06.9286599Z git version 2.56.0
+2026-11-11T23:38:06.9303666Z ##[endgroup]
+2026-11-11T23:38:06.9317005Z Temporarily overriding HOME='/home/runner/work/_temp/bc3c4185-9f25-443a-aa86-18165d14ef1b' before making global git config changes
+2026-11-11T23:38:06.9319483Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T23:38:06.9321576Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T23:38:06.9371305Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-11T23:38:06.9381605Z ##[group]Initializing the repository
+2026-11-11T23:38:06.9382965Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-11T23:38:06.9491604Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-11T23:38:06.9493619Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-11T23:38:06.9495966Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-11T23:38:06.9497429Z hint: call:
+2026-11-11T23:38:06.9498196Z hint:
+2026-11-11T23:38:06.9499126Z hint: 	git config --global init.defaultBranch <name>
+2026-11-11T23:38:06.9500300Z hint:
+2026-11-11T23:38:06.9501465Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-11T23:38:06.9503122Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-11T23:38:06.9504413Z hint:
+2026-11-11T23:38:06.9505391Z hint: 	git branch -m <name>
+2026-11-11T23:38:06.9506320Z hint:
+2026-11-11T23:38:06.9507468Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-11T23:38:06.9509465Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-11T23:38:06.9519557Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T23:38:06.9560114Z ##[endgroup]
+2026-11-11T23:38:06.9561705Z ##[group]Disabling automatic garbage collection
+2026-11-11T23:38:06.9563219Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-11T23:38:06.9593945Z ##[endgroup]
+2026-11-11T23:38:06.9595600Z ##[group]Setting up auth
+2026-11-11T23:38:06.9601184Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T23:38:06.9633717Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T23:38:07.0004260Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T23:38:07.0036985Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T23:38:07.0239104Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T23:38:07.0271173Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T23:38:07.0469665Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T23:38:07.0563405Z ##[endgroup]
+2026-11-11T23:38:07.0564668Z ##[group]Fetching the repository
+2026-11-11T23:38:07.0576385Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +6c2e4763371bc079d14779cf3880e61c50b08188:refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T23:38:16.0389256Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-11T23:38:16.0392547Z  * [new ref]         6c2e4763371bc079d14779cf3880e61c50b08188 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T23:38:16.0398120Z ##[endgroup]
+2026-11-11T23:38:16.0400403Z ##[group]Determining the checkout info
+2026-11-11T23:38:16.0402758Z ##[endgroup]
+2026-11-11T23:38:16.0403972Z [command]/usr/bin/git sparse-checkout disable
+2026-11-11T23:38:16.0457295Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-11T23:38:16.0490184Z ##[group]Checking out the ref
+2026-11-11T23:38:16.0496961Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-11T23:38:16.8697884Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-11T23:38:16.8706995Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-11T23:38:16.8758800Z ##[endgroup]
+2026-11-11T23:38:16.8808273Z [command]/usr/bin/git log -1 --format=%H
+2026-11-11T23:38:16.8835878Z 6c2e4763371bc079d14779cf3880e61c50b08188
+2026-11-11T23:38:16.9104436Z ##[group]Run actions/setup-python@v5
+2026-11-11T23:38:16.9105118Z with:
+2026-11-11T23:38:16.9105510Z   python-version: 3.14
+2026-11-11T23:38:16.9106070Z   check-latest: false
+2026-11-11T23:38:16.9108305Z   token: ***
+2026-11-11T23:38:16.9108629Z   update-environment: true
+2026-11-11T23:38:16.9108996Z   allow-prereleases: false
+2026-11-11T23:38:16.9109321Z   freethreaded: false
+2026-11-11T23:38:16.9109677Z ##[endgroup]
+2026-11-11T23:38:17.0425512Z ##[group]Installed versions
+2026-11-11T23:38:17.0539316Z (node:2341) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-11T23:38:17.0540499Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-11T23:38:17.0541329Z Successfully set up CPython (3.14.10)
+2026-11-11T23:38:17.0542303Z ##[endgroup]
+2026-11-11T23:38:17.0686997Z ##[group]Run set -eu
+2026-11-11T23:38:17.0687520Z [36;1mset -eu[0m
+2026-11-11T23:38:17.0689867Z [36;1mfor component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers; do[0m
+2026-11-11T23:38:17.0692191Z [36;1m  python -B -m "tools.generate_hia_$component"[0m
+2026-11-11T23:38:17.0692609Z [36;1mdone[0m
+2026-11-11T23:38:17.0693033Z [36;1mgit diff --exit-code[0m
+2026-11-11T23:38:17.0726731Z shell: /usr/bin/bash -e {0}
+2026-11-11T23:38:17.0727197Z env:
+2026-11-11T23:38:17.0727672Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:17.0728184Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T23:38:17.0728709Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:17.0729202Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:17.0729674Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:17.0730136Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T23:38:17.0730544Z ##[endgroup]
+2026-11-11T23:38:17.4460793Z core_workspace_pipeline_packer.hiaasm 23023
+2026-11-11T23:38:18.4020487Z core_workspace_facts.hiaasm 188592
+2026-11-11T23:38:18.6011441Z core_workspace_facts_packer.hiaasm 14276
+2026-11-11T23:38:20.3766728Z core_workspace_materialize.hiaasm 352913
+2026-11-11T23:38:20.5898074Z core_workspace_cli_packer.hiaasm 18054
+2026-11-11T23:38:20.8326981Z capability_renaming.hiaasm 26754
+2026-11-11T23:38:21.2277063Z core_module_graph.hiaasm 61238
+2026-11-11T23:38:22.5955475Z core_workspace_json.hiaasm 255746
+2026-11-11T23:38:22.7920676Z core_workspace_json_packer.hiaasm 14279
+2026-11-11T23:38:22.9667870Z agent_identity.hiaasm 9204
+2026-11-11T23:38:23.3833490Z agent_slice.hiaasm 66340
+2026-11-11T23:38:23.9251649Z elf_static_linker.hiaasm 96052
+2026-11-11T23:38:24.1215571Z native_filter_packer.hiaasm 14265
+2026-11-11T23:38:24.3267172Z core_json_cli_packer.hiaasm 17753
+2026-11-11T23:38:24.7106653Z agent_stdio_dispatch.hiaasm 30500
+2026-11-11T23:38:24.7107384Z agent_stdio_packer.hiaasm 32946
+2026-11-11T23:38:24.9334717Z agent_snapshot.hiaasm 19311
+2026-11-11T23:38:25.5700309Z agent_snapshot_json.hiaasm 114728
+2026-11-11T23:38:25.7773553Z agent_snapshot_json_packer.hiaasm 14271
+2026-11-11T23:38:26.0503525Z sha256_stream.hiaasm 30784
+2026-11-11T23:38:26.2602589Z native_observer_packer.hiaasm 20355
+2026-11-11T23:38:26.4949778Z sha256.hiaasm 24479
+2026-11-11T23:38:26.8738600Z json_preflight.hiaasm 56409
+2026-11-11T23:38:27.3585925Z json_decode.hiaasm 82026
+2026-11-11T23:38:27.9606837Z json_canonical.hiaasm 106345
+2026-11-11T23:38:28.8323698Z core_json_frontend.hiaasm 160831
+2026-11-11T23:38:31.0410951Z {"blocks": 1458, "bytes": 462153, "functions": {"account_nodes": "f44", "adjacent": "f28", "align8": "f42", "args": "f4", "bulk_buffer": "f49", "bulk_range_guard": "f48", "call_loan": "f106", "call_results": "f95", "cast_integer": "f89", "chain_bytes_drop": "f86", "chain_bytes_head": "f87", "chain_bytes_is_empty": "f88", "chain_bytes_pop": "f85", "chain_bytes_push": "f84", "chain_drop_call": "f80", "chain_drop_helper": "f81", "chain_instruction": "f83", "chain_store_transfer": "f82", "check_calls": "f12", "check_graph": "f11", "checked_integer": "f46", "cli_begin": "f107", "cli_finish": "f109", "cli_to": "f108", "compile": "f0", "copy_argument": "f16", "decimal": "f31", "define": "f8", "discover_blocks": "f119", "edge": "f5", "elf_begin": "f40", "elf_finish": "f41", "elf_section": "f43", "emit": "f25", "emit4": "f24", "emit8": "f23", "emit_bytes": "f45", "expect": "f27", "explicit_trap": "f102", "export_loader_hook": "f124", "export_wrapper": "f122", "exports_finish": "f123", "fail": "f35", "fix_all": "f22", "frame": "f15", "function_start": "f14", "get": "f37", "guard_failure": "f110", "identifier": "f111", "instruction": "f6", "instruction_ahead": "f117", "instruction_effects": "f92", "integer_type": "f96", "integer_width": "f99", "is_word": "f32", "keyword": "f33", "load_var": "f17", "loan_access": "f52", "loan_ancestor": "f53", "loan_argument": "f60", "loan_borrow": "f56", "loan_call": "f58", "loan_finish": "f57", "loan_incoming": "f59", "loan_live": "f51", "loan_operation": "f54", "loan_produce": "f55", "loan_transfer": "f61", "lookup_identifier": "f113", "match": "f34", "mem": "f20", "next_token": "f30", "normalize": "f19", "operation": "f7", "operation_dispatch": "f50", "owned_allocate_libc": "f74", "owned_branch": "f70", "owned_define_outputs": "f69", "owned_drop_libc": "f75", "owned_elf_finish": "f79", "owned_elf_relocations": "f78", "owned_immediate": "f72", "owned_import": "f73", "owned_instruction": "f77", "owned_move_buffer": "f76", "owned_patch": "f71", "owned_read_outputs": "f68", "owner_call_consume": "f65", "owner_consume": "f64", "owner_free": "f62", "owner_produce": "f63", "owner_type": "f67", "parse_block": "f3", "parse_effects": "f90", "parse_function": "f1", "parse_params": "f2", "put": "f36", "read_block_name": "f118", "read_exports": "f120", "read_function_name": "f114", "read_result_types": "f93", "read_return_loans": "f103", "read_type": "f10", "read_value_name": "f116", "relocation": "f21", "require_effects": "f91", "reserved_function": "f115", "resource_type": "f66", "return_results": "f94", "returned_consume": "f105", "returned_loan": "f104", "same_identifier": "f112", "scalar_literal": "f100", "scalar_type": "f98", "select_scalar": "f47", "separated": "f29", "signed_integer": "f101", "signed_type": "f97", "state_get32": "f39", "state_put32": "f38", "store_var": "f18", "validate_exports": "f121", "variable": "f9", "wrapper": "f13", "write4": "f26"}, "operations": 8092}
+2026-11-11T23:38:31.3754697Z agent_binary64.hiaasm 43647
+2026-11-11T23:38:31.8968582Z agent_data_json.hiaasm 88088
+2026-11-11T23:38:32.5245921Z instruction_policy.hiaasm 113005
+2026-11-11T23:38:33.5493802Z program_shape.hiaasm 184011
+2026-11-11T23:38:34.5079731Z function_shape.hiaasm 174684
+2026-11-11T23:38:36.0146480Z artifact_publication_policy.hiaasm 75050
+2026-11-11T23:38:36.0147536Z artifact_publication_packer.hiaasm 78361
+2026-11-11T23:38:36.2098717Z core_admission_cli_packer.hiaasm 14270
+2026-11-11T23:38:38.1475737Z core_admission.hiaasm 370674
+2026-11-11T23:38:38.5221934Z agent_binary64_format.hiaasm 50408
+2026-11-11T23:38:39.7800776Z core_patch.hiaasm 240523
+2026-11-11T23:38:40.0174832Z core_patch_cli_packer.hiaasm 24804
+2026-11-11T23:38:40.2511261Z core_patch_result_cli_packer.hiaasm 25183
+2026-11-11T23:38:42.1568763Z composite_types.hiaasm 375307
+2026-11-11T23:38:42.8822083Z task_helpers.hiaasm 122639
+2026-11-11T23:38:45.5359353Z ##[group]Run python -B tools/check_hia_core_only.py
+2026-11-11T23:38:45.5359823Z [36;1mpython -B tools/check_hia_core_only.py[0m
+2026-11-11T23:38:45.5375368Z shell: /usr/bin/bash -e {0}
+2026-11-11T23:38:45.5375803Z env:
+2026-11-11T23:38:45.5376351Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:45.5376877Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T23:38:45.5377419Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:45.5377872Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:45.5378335Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:45.5378785Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T23:38:45.5379171Z ##[endgroup]
+2026-11-11T23:38:52.2120562Z {"high_level_source_language": "removed", "package_python_files": 153, "python_source_files": 1069, "schema": "hepta.hia.core-only-source-check.v1", "source_manifest_sha256": "b664f05b9018c5233220d02a17158986db09f0bbc9d3a619241f4dfb6319a208", "status": "PASS", "whole_native_delivery_qualified": false}
+2026-11-11T23:38:52.2412068Z ##[group]Run python -B tools/generate_hia_selfhost_contract.py --check
+2026-11-11T23:38:52.2412673Z [36;1mpython -B tools/generate_hia_selfhost_contract.py --check[0m
+2026-11-11T23:38:52.2427021Z shell: /usr/bin/bash -e {0}
+2026-11-11T23:38:52.2427383Z env:
+2026-11-11T23:38:52.2427764Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:52.2428286Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-11T23:38:52.2428777Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:52.2429278Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:52.2429759Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-11T23:38:52.2430211Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-11T23:38:52.2430613Z ##[endgroup]
+2026-11-11T23:38:52.3732648Z Traceback (most recent call last):
+2026-11-11T23:38:52.3742869Z   File "/home/runner/work/Hepta/Hepta/tools/generate_hia_selfhost_contract.py", line 30, in <module>
+2026-11-11T23:38:52.3743509Z     main()
+2026-11-11T23:38:52.3743805Z     ~~~~^^
+2026-11-11T23:38:52.3744420Z   File "/home/runner/work/Hepta/Hepta/tools/generate_hia_selfhost_contract.py", line 20, in main
+2026-11-11T23:38:52.3745267Z     contract = validate_contract()
+2026-11-11T23:38:52.3745909Z   File "/home/runner/work/Hepta/Hepta/tools/hia_selfhost_contract.py", line 1052, in validate_contract
+2026-11-11T23:38:52.3746668Z     raise ValueError("Selfhost-Core support contract differs from the current source closure")
+2026-11-11T23:38:52.3747325Z ValueError: Selfhost-Core support contract differs from the current source closure
+2026-11-11T23:38:52.3827347Z ##[error]Process completed with exit code 1.
+2026-11-11T23:38:52.4122508Z Post job cleanup.
+2026-11-11T23:38:52.4988880Z [command]/usr/bin/git version
+2026-11-11T23:38:52.5027665Z git version 2.56.0
+2026-11-11T23:38:52.5063369Z Temporarily overriding HOME='/home/runner/work/_temp/d92da06d-5727-492e-bfc5-59495c734733' before making global git config changes
+2026-11-11T23:38:52.5065336Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-11T23:38:52.5068275Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-11T23:38:52.5333788Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-11T23:38:52.5406714Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-11T23:38:52.5708328Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-11T23:38:52.6126550Z http.https://github.com/.extraheader
+2026-11-11T23:38:52.6166477Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-11T23:38:52.6425517Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-11T23:38:52.6640055Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-11T23:38:52.6671449Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-11T23:38:52.7240266Z Cleaning up orphan processes
+2026-11-11T23:38:52.7569567Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

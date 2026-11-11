@@ -35,13 +35,13 @@ try:
       ("compile-original-latest-candidate",R2+"compile_candidate_snapshot_r1.py",
        "0a08bc8e9de12a7efbacaacb7c80967b740376f3",base/"compile_candidate_snapshot_r1.py",180,root/"development/compile-r1/summary.json"),
       ("generate-new-edit-terminal-relay",R3+"edit-terminal-relay/generate_edit_terminal_relay_r1.py",
-       "450cf56591acceacfdd3949649d9442180f6babf",base/"generate_edit_terminal_relay_r1.py",300,relay/"development/source-r1.json"),
+       "662ff3330723881a455a87a279a356b83ad7ebd6",base/"generate_edit_terminal_relay_r1.py",300,relay/"development/source-r1.json"),
       ("compile-three-new-edit-relay-owners",R3+"edit-terminal-relay/compile_edit_terminal_relay_r1.py",
        "46a3bda70e7e4f1a87fd352c4cb74a1d6e65dce0",base/"compile_edit_terminal_relay_r1.py",180,relay/"development/compile-r1/summary.json"),
       ("pack-actual-63-owner-relay-ELF",R3+"edit-terminal-relay/build_edit_terminal_relay_r1.py",
        "e6511390a9478934034e67c6107283574df2ab28",base/"build_edit_terminal_relay_r1.py",180,root/"development/build-r2/bundle.json"),
       ("actual-retained-all-87-edit-cases",R3+"edit-terminal-relay/test_edit_terminal_relay_retained_r1.py",
-       "5e7ad59999fd1742a11e5f75f6d319305c5f017b",root/"development/test_edit_terminal_relay_retained_r1.py",600,root/"development/relay-complete-replay-r1/summary.json"),
+       "0c283ef70be8702e19baa3d2d21ce6f1bdee9e5a",root/"development/test_edit_terminal_relay_retained_r1.py",600,root/"development/relay-complete-replay-r1/summary.json"),
       ("actual-full-8MiB-and-plus-one",R3+"candidate/test_snapshot_whole_boundary_r1.py",
        "1d634d00b005145980308089c57bb23a3eddf2d2",root/"development/test_snapshot_whole_boundary_r1.py",600,root/"development/snapshot-whole-boundary-r1/summary.json")]
     for label,path,pin,destination,timeout,summary_path in programs:

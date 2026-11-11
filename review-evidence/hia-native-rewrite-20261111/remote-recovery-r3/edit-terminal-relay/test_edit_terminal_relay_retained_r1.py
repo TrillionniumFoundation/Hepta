@@ -79,7 +79,7 @@ def expected_relay_terminal(raw,original_stderr):
     elif stage==31:
         assert domain==1 and header[0]==int.from_bytes(b"HIAEJN01","little")
         increment=0;reason="root_raw_query_decode_error"
-    elif stage in (7,10):
+    elif stage in (7,10) and domain==2:
         assert domain==2 and header[2]<5
         increment=0;reason="root_program_prefix_error"
     elif stage==0:
@@ -101,7 +101,8 @@ def expected_relay_terminal(raw,original_stderr):
         finally:
             sys.set_int_max_str_digits(previous_digits)
     else:
-        assert stage in (1,2,3,4,5,101,102,103,104,201,202,203,204,205,206,207),event
+        assert stage in (1,2,3,4,5,6,7,101,102,103,104,201,202,203,204,205,206,207),event
+        if stage in (6,7):assert domain==1,event
         increment=1;reason="query_or_apply_semantic_error"
     assert event[3] < (1<<64)-increment
     expected=bytearray(original_stderr)
