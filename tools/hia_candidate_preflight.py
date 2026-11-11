@@ -348,6 +348,8 @@ def validate_config(config, pins):
                 or inside(path, host.get("protected_path_prefixes", []))):
             raise ValueError("HIA profile path exceeds the configured host read policy")
     state, source = profile["state_root"], profile["working_directory"]
+    if NATIVE_HELPER_PIN in pins and inside(profile["native_helpers_manifest"], [state]):
+        raise ValueError("native helper manifest must be outside mutable state")
     if (state == "/" or not inside(state, host.get("allowed_write_path_prefixes", []))
             or inside(state, [source]) or inside(source, [state])):
         raise ValueError("HIA state requires a writable private root disjoint from source")

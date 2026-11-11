@@ -183,7 +183,7 @@ raise SystemExit(main(sys.argv[1:]))
                 self.assertEqual(run.stdout, b"")
                 self.assertFalse((self.root / "state").exists())
 
-    def test_bundle_target_abi_unknown_duplicate_and_transitive_helper_refuse(self):
+    def test_bundle_target_abi_unknown_and_duplicate_refuse(self):
         original = deepcopy(self.value)
         cases = []
         for field, value in [("target", "windows"), ("abi", "unknown"), ("helpers", [])]:
@@ -196,6 +196,24 @@ raise SystemExit(main(sys.argv[1:]))
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     NativeHelpersBinding(str(self.bundle), self.digest)
+
+    def test_core_patch_missing_or_wrong_adjacent_admission_refuses_before_mapping(self):
+        # The manifest content need not claim a valid patch image: admission
+        # must reject this incomplete set before it imports or maps any owner.
+        original = deepcopy(self.value)
+        for with_wrong_admission in (False, True):
+            self.value = deepcopy(original)
+            self.value["helpers"][0]["selector"] = "HEPTA_HIA_CORE_PATCH_MANIFEST"
+            if with_wrong_admission:
+                entry = deepcopy(original["helpers"][0])
+                entry["selector"] = "HEPTA_HIA_CORE_ADMISSION_MANIFEST"
+                self.value["helpers"].append(entry)
+            self.write_bundle()
+            with self.subTest(wrong_admission=with_wrong_admission):
+                with patch("hepta.hia_native_helpers.importlib.import_module",
+                           side_effect=AssertionError("incomplete set imported an owner")):
+                    with self.assertRaisesRegex(ValueError, "exact adjacent admission"):
+                        NativeHelpersBinding(str(self.bundle), self.digest)
 
     def test_wrong_manifest_source_and_image_identities_refuse(self):
         original = self.manifest.read_bytes()

@@ -9,6 +9,8 @@ on:
       - 'tools/generate_hia_agent_native_contract.py'
       - 'tests/test_hia_checker_identity*.py'
       - 'tests/test_hia_worker_native_helpers.py'
+      - 'tests/test_hia_original_select_extension.py'
+      - 'tools/qualify_hia_original_select_extension.py'
       - 'tests/test_hia_candidate*.py'
       - '.github/workflows/hia-candidate-bindings.yml'
   workflow_dispatch:
@@ -76,6 +78,7 @@ jobs:
               "tests.test_hia_agent_native_proof_contract",
               "tests.test_hia_agent_native_machine_validation",
               "tests.test_hia_worker_native_helpers",
+              "tests.test_hia_original_select_extension",
           )
           started = time.monotonic()
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))

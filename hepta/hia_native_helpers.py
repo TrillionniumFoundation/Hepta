@@ -122,16 +122,24 @@ class NativeHelpersBinding:
         self.snapshots = [(bundle, MAX_BUNDLE_BYTES)]
         self.selections = {}
         self.images = {}
-        self._manifests = {}
+        entries = {}
         for entry in value["helpers"]:
             if (type(entry) is not dict or set(entry) != {"selector", "manifest_path", "manifest_sha256"}
                     or type(entry["selector"]) is not str or entry["selector"] not in HELPERS
-                    or entry["selector"] in self.selections or not _digest(entry["manifest_sha256"])):
+                    or entry["selector"] in entries or not _digest(entry["manifest_sha256"])):
                 raise ValueError("unknown, duplicate or unpinned native helper selection")
-            selector = entry["selector"]
-            manifest_path = _path(entry["manifest_path"], bundle.path.parent)
+            entries[entry["selector"]] = (_path(entry["manifest_path"], bundle.path.parent), entry["manifest_sha256"])
+        # Refuse an incomplete transitive executable set before importing any
+        # selected adapter or creating any executable mapping.
+        patch_entry = entries.get("HEPTA_HIA_CORE_PATCH_MANIFEST")
+        admission_entry = entries.get("HEPTA_HIA_CORE_ADMISSION_MANIFEST")
+        if patch_entry is not None and (admission_entry is None
+                or admission_entry[0].resolve(strict=True) !=
+                patch_entry[0].resolve(strict=True).parent / "admission-manifest.json"):
+            raise ValueError("native Core patch requires its exact adjacent admission helper")
+        for selector, (manifest_path, manifest_sha256) in entries.items():
             manifest = _read(manifest_path, MAX_MANIFEST_BYTES)
-            if sha256(manifest.raw).hexdigest() != entry["manifest_sha256"]:
+            if sha256(manifest.raw).hexdigest() != manifest_sha256:
                 raise ValueError("native helper manifest identity mismatch")
             record = _decode(manifest.raw)
             module_name, factory_name = HELPERS[selector]
@@ -154,11 +162,7 @@ class NativeHelpersBinding:
                 raise ValueError("duplicate native helper image binding")
             self.images[key] = mapped
             self.selections[selector] = str(manifest_path)
-            self._manifests[selector] = manifest_path.resolve(strict=True)
             self.snapshots.extend(((manifest, MAX_MANIFEST_BYTES), (source, MAX_SOURCE_BYTES), (image, MAX_IMAGE_BYTES)))
-        patch_path = self._manifests.get("HEPTA_HIA_CORE_PATCH_MANIFEST")
-        if patch_path is not None and self._manifests.get("HEPTA_HIA_CORE_ADMISSION_MANIFEST") != patch_path.parent / "admission-manifest.json":
-            raise ValueError("native Core patch requires its exact adjacent admission helper")
         self.check_files()
 
     def check_files(self):

@@ -73,6 +73,9 @@ class NativeInventoryBoundary(unittest.TestCase):
         value["hia_worker"]["native_helpers_manifest"] = "/srv/private/helpers.json"
         with self.assertRaisesRegex(ValueError, "read policy"):
             preflight.validate_config(value, pins)
+        value["hia_worker"]["native_helpers_manifest"] = value["hia_worker"]["state_root"] + "/helpers.json"
+        with self.assertRaisesRegex(ValueError, "mutable state"):
+            preflight.validate_config(value, pins)
 
     def test_manifest_command_carries_both_explicit_selection_arguments(self):
         from tests.test_hia_candidate_preflight import PINS

@@ -15,6 +15,16 @@ ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
 PROFILE = 'selfhost-core-linux-x86_64-v64-native-composite-elaboration'
 SOURCE_FILES = (
+    'tools/hia_safe_core_cmovne_child.py',
+    'tools/qualify_hia_safe_core_cmovne.py',
+    'tools/replay_hia_original_select_fragments.py',
+    'tools/qualify_hia_original_select_fragments.py',
+    '.github/workflows/hia-compiler-extension.yml',
+    'docs/HIA_NATIVE_HELPER_WORKER.md',
+    'docs/HIA_COMPILER_EXTENSION_CONTRACT_20261111.md',
+    'tests/fixtures/hia_original_select_v1/bytesum.hiaasm',
+    'tests/test_hia_original_select_extension.py',
+    'tools/qualify_hia_original_select_extension.py',
     'tools/hia_candidate_preflight.py',
     'tools/generate_hia_agent_native_contract.py',
     'tests/test_hia_candidate_preflight.py',
