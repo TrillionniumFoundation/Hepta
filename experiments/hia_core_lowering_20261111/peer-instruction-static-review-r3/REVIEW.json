@@ -1,0 +1,105 @@
+{
+  "schema": "hepta.hia.machine-instructions-independent-static-review.v1",
+  "reviewer": "hia_remote_audit",
+  "source_commit": "8ab90e44a9155e0dc49f1a6468b43da671cb89e8",
+  "earlier_commit": "a22782eeb65fda89161d9729b4ce2ece5c3aef0d",
+  "scope": "READ_ONLY_SOURCE_REVIEW; no Python authoring, Core VM, native or product execution by reviewer",
+  "files": [
+    {
+      "path": "tools/generate_hia_machine_instructions.py",
+      "size": 22159,
+      "sha256": "3c36ec8187d442aa7cefde1d3d154fe13145d1ac6731d0de9d0d770a006e4253"
+    },
+    {
+      "path": "hepta/hia_machine_instructions_native.py",
+      "size": 7406,
+      "sha256": "d6473c97fe513cb65d6aa20980b6b4935b98c3f1892fca420da3d5701601255f"
+    },
+    {
+      "path": "hepta/hia_machine_state_native.py",
+      "size": 10317,
+      "sha256": "b5c514836333185061892189676b3549adc480bce3252823b880dd2b217bcaec"
+    },
+    {
+      "path": "hepta/hia_machine_encoding_native.py",
+      "size": 11754,
+      "sha256": "c50ca79b2735ab05a88baa45c0828d11f69c22a50271df3f4a48809e1b490579"
+    },
+    {
+      "path": "hepta/hia_machine_x64.py",
+      "size": 14982,
+      "sha256": "01b115c31813a95fa970af0b4a30739f7130218d0bf70698daa1a604951a33c1"
+    },
+    {
+      "path": "tests/test_hia_machine_instructions_native.py",
+      "size": 26733,
+      "sha256": "0b68ab7015d85bb6568f9f85f0f504602396294e02e1f90ea6030350d14a20f9"
+    },
+    {
+      "path": "tools/qualify_hia_machine_instructions_callers.py",
+      "size": 10925,
+      "sha256": "be1bd276e8f42312c86bdcfdec7c372ed8cf28153110f31ec842e4addb05b671"
+    },
+    {
+      "path": "tools/build_hia_machine_instructions.py",
+      "size": 2910,
+      "sha256": "667ab36b7e7ee6679147a771e3e0a573250a93a84018861ca622a44fe5e691f5"
+    },
+    {
+      "path": "tests/fixtures/hia_machine_encoding_instructions_0d653c.py.txt",
+      "size": 11539,
+      "sha256": "17489158acb535e83ff14b68edd87327ca02dd7273bdbadf07ea271f9162b3bb"
+    },
+    {
+      "path": "docs/HIA_MACHINE_INSTRUCTIONS_NATIVE.md",
+      "size": 3865,
+      "sha256": "6aab2df4770efeb2b2a7cc27ebded1221fbbe44c279f65d2bdff8ed902f8d9fe"
+    }
+  ],
+  "actual_static_checks": {
+    "exact_retained_class_bytes_equal": true,
+    "condition_table_equal": true,
+    "conditions": 30,
+    "test_methods": [
+      "test_generated_source_and_original_compiler_limits",
+      "test_complete_original_classes_and_fixture_bytes_are_retained",
+      "test_cold_admission_refuses_before_output",
+      "test_unselected_and_subclasses_preserve_existing_owner",
+      "test_all_original_instruction_cases_with_every_old_instruction_owner_forbidden",
+      "test_foreign_operand_truth_method_binding_and_append_order",
+      "test_original_word_displacement_condition_symbol_and_refusal_priority",
+      "test_actual_64MiB_and_original_mutable_state_boundaries",
+      "test_backend_identity_and_three_selectors_are_pinned_across_emit",
+      "test_malformed_ack_and_failed_append_cannot_be_replayed",
+      "test_warm_image_rechecks_package_source",
+      "test_actual_installed_wheel_uses_three_HIA_owners_without_authoring"
+    ]
+  },
+  "r3_generator_delta": "Exactly one expression was assigned to compact before the put call; no Builder/verifier/cap change.",
+  "examined": [
+    "41 mode to 37 command mapping; all 30 condition aliases exactly equal source literals",
+    "exact integer ranges including -2^63, -2^31, 0..63 counts and unbounded magnitude rejection",
+    "pair versus imul registration order; setcc retained second virtual registration",
+    "three ALU truth observations and exceptional signed-byte pack before emit binding",
+    "condition-before-register and prefix-before-target validation",
+    "append attribute binding before data length; tuple and relocation dictionary field order",
+    "same actual public mutable state and virtual aliases whose result is discarded",
+    "one-use foreign permission consumed before effect; malformed ACK does not consume workspace",
+    "12 dedicated methods including actual wheel source and 51 unchanged callers with old owners forbidden; no execution claim",
+    "three explicit source-bound owners and whole-emission ContextVar snapshot"
+  ],
+  "finding": {
+    "id": "POST_NATIVE_BOOKKEEPING_TERMINAL_WINDOW",
+    "classification": "STATIC_PROTOCOL_EDGE_CANDIDATE_NOT_ACTUAL_REPRODUCTION",
+    "location": "MachineStateSession.step inherited by instructions",
+    "details": "Actual _entry call is protected by BaseException closure, but following transitions Counter update and pending/finished writes are outside the try. An injected BaseException after native return can leave unfinished state. Ordinary run propagates it; no actual replay was demonstrated.",
+    "recommendation": "Cover actual native entry plus post-return bookkeeping in the same terminal guard, and inject KeyboardInterrupt/MemoryError after the actual call in the existing lifecycle method. Do not inherit prior state source qualification after changing it.",
+    "owner_acknowledged": true
+  },
+  "limitations": [
+    "Fixed stateless _bytes primitive is assumed. Arbitrary monkeypatched _bytes call kwargs/mode observations are not proved equivalent.",
+    "Shared private registries, arbitrary ambient monkeypatching, finalizer/recursion semantics remain outside all-input proof.",
+    "Raw observation values are trusted foreign primitive facts, not an adversarial IPC endpoint.",
+    "No new blocker found in the examined ordinary-domain control, but actual authoring/native/caller gates remain required."
+  ]
+}

@@ -132,11 +132,11 @@ def instruction_lines(instruction):
 def start_source(entries):
     groups = [list(entries.items())[i:i + 4] for i in range(0, len(entries), 4)]
     functions = []
-    dispatch = ['def start(s:readbuf, w:mutbuf) -> u32:']
+    dispatch = ['def start(s:readbuf, w:mutbuf) -> u64:']
     for group_index, group in enumerate(groups):
         dispatch += ['    if word(s, 24) <= ' + str(group[-1][1]['mode']) + ':',
                      '        return start_' + str(group_index) + '(s, w)']
-        lines = ['def start_' + str(group_index) + '(s:readbuf, w:mutbuf) -> u32:']
+        lines = ['def start_' + str(group_index) + '(s:readbuf, w:mutbuf) -> u64:']
         for name, entry in group:
             count = len(entry['parameters'])
             lines += ['    if word(s, 24) == ' + str(entry['mode']) + ':',
@@ -255,14 +255,14 @@ def unit_source(unit, selected, entries, total, workspace, output):
     main = main_source(unit, first, last, total, workspace, output)
     leaves = []
     for number, group in enumerate(chunks):
-        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u32:',
+        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',
                  '    pc = get(w, 24)']
         for instruction in group:
             lines.append('    if pc == ' + str(instruction['pc']) + ':')
             lines += ['        ' + line for line in instruction_lines(instruction)]
         lines.append('    return ' + str(ABI))
         leaves.append('\n'.join(lines))
-    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u32:',
+    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',
              '    pc = get(w, 24)']
     for number, group in enumerate(chunks):
         lines += ['    if pc <= ' + str(group[-1]['pc']) + ':',
@@ -270,7 +270,7 @@ def unit_source(unit, selected, entries, total, workspace, output):
     lines.append('    return ' + str(ABI))
     # Initial mode admission exists in unit zero only; other units cannot start.
     startup = start_source(entries) if unit == 0 else (
-        'def start(s:readbuf, w:mutbuf) -> u32:\n    return ' + str(ABI) + '\n')
+        'def start(s:readbuf, w:mutbuf) -> u64:\n    return ' + str(ABI) + '\n')
     return main + '\n' + startup + '\n' + '\n\n'.join(leaves + ['\n'.join(lines)]) + '\n' + helpers()
 
 

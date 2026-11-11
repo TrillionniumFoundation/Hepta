@@ -1,10 +1,13 @@
-# General Core function lowering: static work in progress
+# General Core function lowering: development work in progress
 
-This branch preserves an unexecuted authoring candidate for moving the complete
-`_Function` policy in `hepta.hia_program_native` into HIA. It does not provide a qualified or integrated native owner yet. The second
-static revision adds a HIA unit renderer and primitive continuation bridge, but
-neither has executed. No generated HIA, selector, build manifest, installed
-resources, source-bound cold run, or product result exists for this candidate. The ordinary product entry remains unchanged.
+This branch holds an unqualified authoring candidate for moving the complete
+`_Function` policy in `hepta.hia_program_native` into HIA. It is not integrated
+into the ordinary product entry. The first actual authoring run checked the
+original 22 methods and five helpers, then generated one literal-pool unit before
+the first control unit failed the unchanged Core type verifier. Revision 3
+corrects only the internal helper return types and remains unexecuted.
+No native compilation, Core VM, component/caller result, installed owner or
+matching-source cold qualification exists for this Core candidate.
 
 ## Exact source and proposed boundary
 
@@ -12,7 +15,7 @@ The independent base is commit
 `608157e52b0b94e0d294f6b99c4e809869f183aa`, tree
 `e7c29a60796a1a78946a2c667aa80df86529e532`.
 The complete original 47,839-byte module is retained at
-`tests/fixtures/hia_program_native_608.py.txt` as the independent oracle.
+the `tests/fixtures` directory, named `hia_program_native_608.py.txt`, as the independent oracle.
 
 The proposed owner is all 22 `_Function` methods and the five helpers
 `_reject`, `_words`, `_bounds`, `_normalize`, and `_prologue`.
@@ -62,10 +65,28 @@ The current candidate additionally uses the original frozenset kind for
 These are new static edits. The earlier requested source text is retained
 separately under `experiments/hia_core_lowering_20261111/static-wip-r1`; no prior observation is relabelled.
 
-There has been no Python syntax check, IR generation, HIA generation, Core VM
-execution, native compilation, component test, caller test, or cold/full
-qualification on this candidate. All such steps are pending. See the adjacent
-custody and recovered boundary records for the exact limits of this checkpoint.
+The first remote authoring request was never dispatched. The corrected r2
+request ran once on the pinned CPython 3.14.4 executable, with the original
+180-second guardian. All four new Python files passed syntax checks; the complete
+22-method class and five helper ASTs matched the retained oracle. It compiled
+28 modes into 1,922 control instructions with at most 510 object slots.
+The complete 3,925-leaf base and 3,936-leaf candidate byte/mode inventories
+matched before and after the attempt.
+
+Of 32 planned HIA units, the literal pool passed the public Core roundtrip.
+The first control unit failed with `E_HIA_TYPE` because a `u32` helper result
+was compared to a `u64` literal. The run finished HOLD after 22.007921965 seconds;
+the guardian naturally reaped the leader and observed ECHILD without timeout or
+live-child killing. The original report and logs are preserved in commit
+55e39d6a65ff848ee7596c548ddbf98e391bcbdf under the remote-authoring-r2 terminal
+directory. No native compiler or product test ran in that remote request.
+
+Separately, seven earlier pushes to this development branch triggered the old
+GitHub workflow. Those runs failed and are not native qualifications. In the
+latest run, 43085426169 at exact head 55e39d6, the source job rejected a document
+reference and the cold command rejected source-closure drift before writing a
+cold report. Its job logs and exact run identities are preserved separately.
+Future evidence and unexecuted source checkpoints use `[skip ci]`.
 
 ## Static revision 2
 
@@ -97,3 +118,14 @@ Source revision 2 also refuses value-context chained comparisons, which are
 absent from the current policy, rather than incorrectly normalizing arbitrary
 rich comparison results into booleans. Original source and all prior unknown
 write records remain unchanged in history.
+
+## Revision 3 type correction
+
+Internal startup, instruction-group and dispatch helpers now return `u64`,
+matching the existing word-sized status comparisons. The public lowering and
+literal-pool entries still return `u32`. Every defined internal status remains
+one of 0, 1, 2, 4 or the unchanged ABI refusal value; the final entry conversion
+does not add an admitted status. This is an authoring type correction, not a
+change to the verifier, compiler caps, packet, phase sequence or policy IR.
+The correction has not been generated or executed. The original failing source
+and the first unknown local write remain preserved.
