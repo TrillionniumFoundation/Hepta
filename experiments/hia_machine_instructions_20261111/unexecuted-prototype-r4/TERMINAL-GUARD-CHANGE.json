@@ -1,0 +1,15 @@
+{
+  "before": "        try:\n            status = self.image._entry(raw, len(raw), self.output, len(self.output),\n                                       self.workspace, len(self.workspace))\n        except BaseException:\n            self.finished = True\n            raise\n        self.image.transitions[self.mode] += 1\n        if status == 1:\n            self.pending = True\n        else:\n            self.finished = True\n        return status\n",
+  "after": "        try:\n            status = self.image._entry(raw, len(raw), self.output, len(self.output),\n                                       self.workspace, len(self.workspace))\n            self.image.transitions[self.mode] += 1\n            if status == 1:\n                self.pending = True\n            else:\n                self.finished = True\n            return status\n        except BaseException:\n            # A native transition may already have happened. Diagnostic\n            # bookkeeping must not leave a resumable or repeatable session.\n            self.finished = True\n            self.pending = False\n            self.prepared = False\n            raise\n",
+  "status": "STATIC_UNEXECUTED",
+  "original_state_gate_must_be_rerun": true,
+  "required_existing_gate": {
+    "component": 12,
+    "callers": 51
+  },
+  "new_instruction_gate": {
+    "component": 12,
+    "callers": 51
+  },
+  "both_generated_HIA_state_and_byte_sources_unchanged": true
+}
