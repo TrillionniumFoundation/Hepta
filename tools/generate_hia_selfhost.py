@@ -2130,6 +2130,22 @@ def compact_authoring_cfg(document):
     return result
 
 
+def _source_function_names(nodes):
+    """Number the actual authoring definitions without lowering their bodies."""
+    assert nodes[0].name == 'compile'
+    return {node.name: 'f' + str(index) for index, node in enumerate(nodes)}
+
+
+def function_names():
+    """Fresh source-order spellings; no generated Core or verified authority.
+
+    The names witness needs only this table. Its original and renamed source
+    programs still undergo every independent assembly, round trip and native
+    observation. Constructing an unused authoring CFG adds no such observation.
+    """
+    return _source_function_names(ast.parse(source_program()).body)
+
+
 def document(*, compact=True):
     nodes=ast.parse(source_program()).body
     # Source order deliberately contains backward direct calls. The HIA
@@ -2137,8 +2153,7 @@ def document(*, compact=True):
     # admits its non-self DAG and checked direct tail self calls. General
     # recursive cycles remain outside the native fixed profile.
     ordered=nodes
-    assert ordered[0].name=='compile'
-    names={n.name:'f'+str(i) for i,n in enumerate(ordered)}
+    names = _source_function_names(ordered)
     sigs={n.name:([a.annotation.id for a in n.args.args],n.returns.id) for n in ordered}
     total_calls = total_scalar_functions(ordered)
     functions=[]

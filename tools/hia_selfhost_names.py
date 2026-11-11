@@ -668,7 +668,7 @@ def independent_reference():
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import HIAProgramRejected
     from hepta.hia_program_runtime import _Machine, _Owner, _View
-    from tools.generate_hia_selfhost import document
+    from tools.generate_hia_selfhost import function_names
     from tools.qualify_hia_selfhost import SOURCE as COMPILER, mutate_compiler
     rows = []
     for row in [*cases(), *value_cases(), *block_cases(), *entry_order_cases()]:
@@ -696,7 +696,7 @@ def independent_reference():
             if row['general_core_expected'] != 'accepted':
                 raise AssertionError('invalid name was accepted by Core: ' + row['id'])
             rejected.append({**row, 'reference': {'status': 'accepted_general_core'}})
-    _, names = document(); mapping = {number: name for name, number in names.items()}
+    names = function_names(); mapping = {number: name for name, number in names.items()}
     canonical = COMPILER.read_bytes()
     alpha = {}
     for label, source in (('original', canonical), ('modified', mutate_compiler(canonical))):

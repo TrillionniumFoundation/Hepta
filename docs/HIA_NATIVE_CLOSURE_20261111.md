@@ -53,6 +53,28 @@ update or default-release activation was performed.
 
 ## Implemented native responsibilities
 
+### Current v65 source repair
+
+The current integration includes exact main `5831f52` with complete nominal
+constructor and outer-program lowering. At the merged `c4add225` source, all
+46 workflow generators reproduced every indexed file byte, and all 18 focused
+workflow/source/frame controls passed with identical loaded/executed IDs and no
+anomalies. These are source controls, not a native or cold qualification.
+
+The names reference no longer constructs and discards the complete compiler
+CFG merely to obtain its AST function-name map. Both the generator and the
+reference use the same exact name-index helper. All 154 public assembly calls,
+106 positive cases, 40 refusals and original reference bytes remain. The measured
+local reference reduction from 7.15068 to 6.01871 seconds is limited evidence;
+the full cold deadline remains 180 seconds with two workers and all 38 phases.
+
+The original `6994512` source-generation failure has been repaired by refreshing
+the language inventory and support contract in dependency order. Both original
+cold runs still stand as explicit timeout failures. Fixed desktop toolchains and
+six external fixtures are ready for a new exact-source run; readiness is not a
+test pass. Original observations are in
+[the source-repair evidence](../experiments/hia_v65_source_repair_20261111/README.md).
+
 ### Ordinary worker request payload
 
 [The request kernel](HIA_WORKER_REQUEST_NATIVE.md) implements ordinary JSON
@@ -256,8 +278,12 @@ An independent local audit had fully read the original v63 cold phase archives
 before a cloud interruption. Its reports and hashes survive; the transient
 phase ZIPs and original local compiler directory do not. Later interrupted
 local audits of the CI artifact produced no successful final audit. Both
-original CI ZIPs and the ROG final reports/logs/compiler archive have separately
-verified home copies. The [v63 evidence](../review-evidence/hia-native-closure-20261111/v63/README.md)
+original CI ZIPs and the ROG final reports/logs/compiler archive had separately
+verified home copies when those receipts were issued. A later live check found
+the two home ZIP paths absent, for an undetermined reason. Both original ZIPs
+still existed in their original ROG `/var/tmp` directories with matching full
+SHA-256 and size; a new create-only home preservation is tracked separately.
+The [v63 evidence](../review-evidence/hia-native-closure-20261111/v63/README.md)
 keeps these custody limits explicit.
 
 Main `f50b37543d1a379353267ce0ab7111242806b8b4` was subsequently merged,
@@ -270,7 +296,7 @@ original assertions; no native-specific generic-error exception is used to
 make the old tests pass. All fifteen affected composed HIA sources were
 regenerated.
 
-The next combined profile is
+The published combined v64 profile is
 `selfhost-core-linux-x86_64-v64-native-journal-diagnostics-function-lowering`.
 [The new request-journal component](HIA_AGENT_JOURNAL_NATIVE.md) owns request
 and key identity, tool/key admission, reservation/replay/conflict/unknown
@@ -334,14 +360,55 @@ also requires nonempty, complete execution and zero anomalous outcomes for
 this group. Its function kernels use the same new matching-source cold report
 as the other components. Incoming development and exact-`f50b375` results retain
 their original source identities and do not qualify this combined tree.
-Nominal constructor ordering, outer module/export construction, final primitive
-admission and general backends remain distinct migration responsibilities.
+At that stage, nominal constructor ordering, outer module/export construction,
+final primitive admission and general backends remained distinct migration responsibilities.
+
+### Exact v64 CI terminal and v65 integration
+
+Published `699451201f51fb4bdbd931568e64aa576143e807`, tree
+`9be8bd2dbfca0dd5a552a26218f97711425e577d`, failed both Core CI runs
+`42981052596` and `42981060503`. The PR checked out synthetic merge
+`17835ab6bc13b0814b753f8d6678531879d307ff`, with the same exact tree.
+All 44 HIA generators reproduced their sources. The later language-inventory
+regeneration exposed a stale semantic-support hash. A two-file regeneration
+repair then passed the actual complete source selection: 317/317 loaded and
+executed IDs, zero anomalous outcomes, Python 3.12.14, 409.8943568930008 seconds.
+That working-tree repair is a source control, not a fresh CI/native result.
+
+Both original cold artifacts record explicit qualification timeouts at the
+unchanged 180-second limit, with complete process-tree cleanup and kernel ECHILD.
+Thirty-four of thirty-eight phases completed, without phase exceptions;
+the original/modified names and exports phases remained incomplete. All six
+generation receipts exist and retain the expected original and modified fixed
+points. The unfinished nested qualification was correctly refused by the
+wrapper. None of those observations changes either terminal result to PASS.
+The original job/API observations and repair controls are retained in
+[the v64 CI evidence](../experiments/hia_v64_ci_terminal_20261111/README.md).
+
+Main then advanced to `5831f52fada45e076f8f68f198a15c0585e6104f`, tree
+`72084752441a61f879dbbcf363a8cade3ef2d6b1`. Its exact Git objects are merged
+here. Four additional HIA kernels now own constructor admission/signature
+ordering and complete outer function/helper aggregation, late limits, exports
+and primitive schema selection. Its installed-resource mapping also correctly
+resolves multiple kernels through their actual shared bridges. The incoming
+development, installed-runtime and original failed CI evidence retains its
+own source identity.
+
+The new combined profile is
+`selfhost-core-linux-x86_64-v65-native-journal-complete-nominal-lowering`.
+Its workflow preserves the existing journal, worker-request, release-install,
+type/helper/function and native-composition controls, and adds the five new
+constructor/outer/lifetime modules. All sixteen nominal modules must execute
+fully, with no skips or anomalous results, against one exact cold source.
+The two new generators join the existing forty-four. This integrated source
+still requires its own cold, component, ordinary-caller and full-regression
+qualification; preparing tools or external fixtures does not establish it.
 
 ## Remaining production owners and retirement gates
 
 | Owner | Current actual responsibility | Required closure before retirement |
 | --- | --- | --- |
-| `hia_program_composite._Elaborator` | Nominal constructor ordering, outer module/export construction and foreign object custody; complete function lowering, type/signature admission and all five task-helper bodies have explicit native selectors | Complete constructor and outer-module HIA owners for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
+| `hia_program_composite._Elaborator` | Five explicit native owners now cover types/signatures, helpers, complete functions, constructors and outer aggregation; bounded foreign-object custody and final primitive admission remain hosted | Matching-source complete semantic/refusal/installed controls, native standalone normalization and ordinary default integration |
 | General compiler/backend | Canonical machine plans, broader retained Core layouts, object/linking and target support beyond the selfhost profile | Native producers for every retained language and ABI target, with explicit profile boundaries, cross-target execution and source-matched qualification |
 | `HIAAgentService` and `AgentStore` | Tool methods, refs/namespaces, SQLite/WAL durability, cost persistence, slots, versions, leases, evaluation, adoption and rollback; an explicit HIA selector now owns ordinary request-journal decisions and canonical write instructions | Full native ordinary worker with same-key conflict, unknown outcomes, crash/restart, original-operation observation and state continuity |
 | Worker and foreign bridge | Administrator parsing, Python object materialization, service entry, installation readback and report serialization | Native complete request/report/service protocol with current code/profile pinning |

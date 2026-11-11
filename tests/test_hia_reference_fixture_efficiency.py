@@ -57,6 +57,39 @@ class SourceControlEquivalenceTests(unittest.TestCase):
 
 
 class ReferenceFixturePreservationTests(unittest.TestCase):
+    def test_function_name_table_matches_generated_and_checked_in_source_order(self):
+        from tools import generate_hia_selfhost as generator
+        from tools.qualify_hia_selfhost import SOURCE
+        generated, expected = generator.document()
+        actual = generator.function_names()
+        self.assertEqual(actual, expected)
+        self.assertEqual(list(actual.values()), [fn['name'] for fn in generated['functions']])
+        checked_in = assembly.assemble_program(SOURCE.read_bytes()).as_dict()
+        self.assertEqual(list(actual.values()), [fn['name'] for fn in checked_in['functions']])
+        # Each invocation reads current authoring text; no compiler document,
+        # admission, previous result or function-number table is cached.
+        import ast
+        source = generator.source_program()
+        nodes = ast.parse(source).body
+        expected_order = [node.name for node in nodes]
+        with patch.object(generator, 'Builder', side_effect=AssertionError('unused CFG built')), \
+                patch.object(generator, 'compact_authoring_cfg',
+                             side_effect=AssertionError('unused CFG verified')):
+            first = generator.function_names()
+            second = generator.function_names()
+        self.assertEqual(list(first), expected_order)
+        first['caller_edit'] = 'f999'
+        self.assertEqual(second, actual)
+        # Reordering source definitions must change their numbers exactly as
+        # document() would, including the original compile-first restriction.
+        changed = [nodes[0], nodes[-1], *nodes[1:-1]]
+        with patch.object(generator, 'source_program', return_value='\n'.join(ast.unparse(n) for n in changed)):
+            self.assertEqual(generator.function_names(),
+                             {n.name: 'f' + str(i) for i, n in enumerate(changed)})
+        with patch.object(generator, 'source_program', return_value='\n'.join(ast.unparse(n) for n in nodes[1:])):
+            with self.assertRaises(AssertionError):
+                generator.function_names()
+
     def test_complete_compiler_renames_keep_original_and_modified_bytes(self):
         # Captured from the original c80eb2e three-pass transformation, before
         # composing its fixture edits. These identities include all functions,

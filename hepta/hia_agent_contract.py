@@ -59,6 +59,10 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_function_advanced.hiaasm',
     'examples/hia_bootstrap/composite_function_terms.hiaasm',
     'examples/hia_bootstrap/composite_function_render.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_owner.hiaasm',
+    'examples/hia_bootstrap/composite_constructor_render.hiaasm',
+    'examples/hia_bootstrap/composite_outer_owner.hiaasm',
+    'examples/hia_bootstrap/composite_outer_render.hiaasm',
 )
 
 

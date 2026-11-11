@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions worker_request release_install agent_journal; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -90,6 +90,10 @@ jobs:
               'tests.test_hia_composite_functions_native.FunctionSourceTests',
               'tests.test_hia_composite_function_tokens.TokenCodecTests',
               'tests.test_hia_composite_function_protocol_audit.FunctionTokenProtocolAuditTests',
+              'tests.test_hia_composite_constructor_source.ConstructorSourceTests',
+              'tests.test_hia_composite_constructor_native.ConstructorFrameTests',
+              'tests.test_hia_composite_outer_source.OuterSourceTests',
+              'tests.test_hia_composite_outer_native.OuterFrameTests',
               'tests.test_hia_native_builder_source_binding',
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
@@ -226,7 +230,7 @@ jobs:
         env:
           HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
-      - name: Native composite types signatures helpers and complete function lowering
+      - name: Native complete nominal types helpers constructor functions and outer lowering
         run: |
           python -B - <<'PYTYPES'
           import unittest
@@ -241,7 +245,12 @@ jobs:
               'tests.test_hia_composite_function_protocol_audit',
               'tests.test_hia_composite_function_terms_native',
               'tests.test_hia_composite_functions_native',
-              'tests.test_hia_composite_public_lifecycle'))
+              'tests.test_hia_composite_public_lifecycle',
+              'tests.test_hia_composite_constructor_native',
+              'tests.test_hia_composite_constructor_integration',
+              'tests.test_hia_composite_outer_native',
+              'tests.test_hia_composite_outer_integration',
+              'tests.test_hia_composite_nominal_lifecycle'))
           expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           complete = result.testsRun == expected and expected > 0
@@ -253,6 +262,9 @@ jobs:
           HEPTA_HIA_COMPOSITE_TYPES_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_TASK_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_CONSTRUCTOR_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_OUTER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture
       - name: Native worker request admission and ordinary request continuity
         run: |
           python -B - <<'PYREQUEST'
@@ -322,6 +334,7 @@ jobs:
             ${{ runner.temp }}/hia-language.json
             ${{ runner.temp }}/hia-language.assertions.json
             ${{ runner.temp }}/hia-language.evidence/
+            ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-journal-callers.json

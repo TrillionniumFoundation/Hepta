@@ -31,9 +31,12 @@ parameter admission and task-protocol checks. A separately selected
 complete start, poll, cancel, join and close Core functions. The selected
 [complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
 nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
-entry-name loan binding in HIA. The ordinary elaborator consumes these results;
-constructor ordering, final program/export assembly and the durable Agent remain
-hosted owners. Native functions preserve the existing primitive Core recheck.
+entry-name loan binding in HIA. The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
+also moves constructor admission, ordered signatures, complete function/helper
+aggregation, late limits, exports and primitive schema selection into HIA.
+Its five explicit owners use eleven images; the surrounding bridge retains
+foreign-object and packet custody. The default route and durable Agent remain
+hosted. Native normalization preserves the existing primitive Core recheck.
 An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
 owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
 admission while preserving the existing service's durable request identity.

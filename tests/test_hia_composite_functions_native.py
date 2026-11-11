@@ -53,8 +53,12 @@ class FunctionSourceTests(unittest.TestCase):
                 folder = Path(directory)
                 types, helpers = folder / 'types.hiaasm', folder / 'helpers.hiaasm'
                 sources = {name: folder / (name + '.hiaasm') for name in KERNELS}
+                constructors = {name: folder / ('constructor-' + name + '.hiaasm')
+                                for name in fixture.CONSTRUCTOR_KERNELS}
+                outers = {name: folder / ('outer-' + name + '.hiaasm') for name in fixture.OUTER_KERNELS}
                 compiler_source = folder / 'selfhost.hiaasm'
-                for path in (types, helpers, compiler_source, *sources.values()):
+                for path in (types, helpers, compiler_source, *sources.values(),
+                             *constructors.values(), *outers.values()):
                     path.write_bytes(('non-executable source ' + path.name).encode())
                 original = types.read_bytes()
 
@@ -79,7 +83,8 @@ class FunctionSourceTests(unittest.TestCase):
                         produced_sha256=sha256(path.read_bytes()).hexdigest())
 
                 with ExitStack() as stack:
-                    for name, value in (('TYPE_SOURCE', types), ('HELPER_SOURCE', helpers), ('SOURCES', sources)):
+                    for name, value in (('TYPE_SOURCE', types), ('HELPER_SOURCE', helpers), ('SOURCES', sources),
+                                        ('CONSTRUCTOR_SOURCES', constructors), ('OUTER_SOURCES', outers)):
                         stack.enter_context(patch.object(fixture, name, value))
                     stack.enter_context(patch('tools.qualify_hia_selfhost.build_seed', new=seed))
                     stack.enter_context(patch('tools.qualify_hia_selfhost.compile_stage', new=compile_stage))
@@ -90,7 +95,7 @@ class FunctionSourceTests(unittest.TestCase):
                             fixture._bootstrap_development(folder)
                         self.assertFalse((folder / 'manifest.json').exists())
                     else:
-                        _, manifest, _ = fixture._bootstrap_development(folder)
+                        _, manifest, _, _, _ = fixture._bootstrap_development(folder)
                         self.assertEqual(json.loads(manifest.read_bytes())['source_sha256'],
                                          sha256(original).hexdigest())
 
@@ -101,10 +106,7 @@ class FunctionSourceTests(unittest.TestCase):
         # carry hashes only and cannot execute the non-code byte fixtures.
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
-            rows = [(name, SOURCES[name], 'hepta.hia.composite-function-' + name + '-native.v1')
-                    for name in KERNELS]
-            rows += [('types', fixture.TYPE_SOURCE, fixture.TYPE_SCHEMA),
-                     ('helpers', fixture.HELPER_SOURCE, fixture.HELPER_SCHEMA)]
+            rows = fixture.source_rows()
             manifests, images, loaded = {}, {}, {}
             for name, source, schema in rows:
                 image = folder / (name + '.bin'); image.write_bytes(('non-code ' + name).encode())
@@ -119,13 +121,24 @@ class FunctionSourceTests(unittest.TestCase):
                 kernels={name: manifests[name].name for name in KERNELS},
                 types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest(),
                 helpers_source_sha256=sha256(fixture.HELPER_SOURCE.read_bytes()).hexdigest())))
-            paths = tuple(map(str, (bundle, manifests['types'], manifests['helpers'])))
-            original = images['types'].read_bytes()
-            for when in ('before', 'during'):
-                images['types'].write_bytes(original)
-                with self.subTest(when=when), ExitStack() as stack:
+            constructor = folder / 'constructor.json'
+            constructor.write_text(json.dumps(dict(schema=fixture.CONSTRUCTOR_SCHEMA,
+                kernels={name: manifests['constructor-' + name].name for name in fixture.CONSTRUCTOR_KERNELS},
+                types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest())))
+            outer = folder / 'outer.json'
+            outer.write_text(json.dumps(dict(schema=fixture.OUTER_SCHEMA,
+                kernels={name: manifests['outer-' + name].name for name in fixture.OUTER_KERNELS},
+                types_source_sha256=sha256(fixture.TYPE_SOURCE.read_bytes()).hexdigest(),
+                helpers_source_sha256=sha256(fixture.HELPER_SOURCE.read_bytes()).hexdigest(),
+                function_sources_sha256={name: sha256(SOURCES[name].read_bytes()).hexdigest() for name in KERNELS})))
+            paths = tuple(map(str, (bundle, manifests['types'], manifests['helpers'], constructor, outer)))
+            originals = {name: path.read_bytes() for name, path in images.items()}
+            for changed, when in ((name, when) for name in images for when in ('before', 'during')):
+                for name, path in images.items():
+                    path.write_bytes(originals[name])
+                with self.subTest(image=changed, when=when), ExitStack() as stack:
                     if when == 'before':
-                        images['types'].write_bytes(b'changed non-code bytes')
+                        images[changed].write_bytes(b'changed non-code bytes')
                         stack.enter_context(patch.object(fixture, 'installed_composite_functions', new=absent))
                         message = 'image differs from its manifest'
                     else:
@@ -133,10 +146,16 @@ class FunctionSourceTests(unittest.TestCase):
                             new=lambda path: SimpleNamespace(images={name: loaded[name] for name in KERNELS})))
                         stack.enter_context(patch.object(fixture, 'installed_composite_types',
                             new=lambda path: loaded['types']))
-                        def load_helpers(path):
-                            images['types'].write_bytes(b'changed non-code bytes')
-                            return loaded['helpers']
-                        stack.enter_context(patch.object(fixture, 'installed_task_helpers', new=load_helpers))
+                        stack.enter_context(patch.object(fixture, 'installed_task_helpers',
+                            new=lambda path: loaded['helpers']))
+                        stack.enter_context(patch.object(fixture, 'installed_composite_constructor',
+                            new=lambda path: SimpleNamespace(images={name: loaded['constructor-' + name]
+                                for name in fixture.CONSTRUCTOR_KERNELS})))
+                        def load_outer(path):
+                            images[changed].write_bytes(b'changed non-code bytes')
+                            return SimpleNamespace(images={name: loaded['outer-' + name]
+                                for name in fixture.OUTER_KERNELS})
+                        stack.enter_context(patch.object(fixture, 'installed_composite_outer', new=load_outer))
                         message = 'fixture changed'
                     with self.assertRaisesRegex(ValueError, message):
                         fixture._build_fixture('DEVELOPMENT_ONLY', paths)
@@ -144,9 +163,10 @@ class FunctionSourceTests(unittest.TestCase):
     def test_fixture_rejects_mixed_or_partial_provenance_before_build(self):
         from tests.hia_composite_function_fixture import (
             COLD_KEYS, DEVELOPMENT_KEYS, composite_function_fixture, configuration)
-        development = dict(zip(DEVELOPMENT_KEYS, ('functions.json', 'types.json', 'helpers.json')))
-        invalid = [dict(list(development.items())[index] for index in range(3) if mask & (1 << index))
-                   for mask in range(1, 7)]
+        development = dict(zip(DEVELOPMENT_KEYS,
+            ('functions.json', 'types.json', 'helpers.json', 'constructor.json', 'outer.json')))
+        invalid = [dict(list(development.items())[index] for index in range(5) if mask & (1 << index))
+                   for mask in range(1, 31)]
         invalid += [{**development, key: 'cold.json'} for key in COLD_KEYS]
         invalid += [{COLD_KEYS[0]: 'first.json', COLD_KEYS[1]: 'second.json'}]
         for selected in invalid:
@@ -159,6 +179,69 @@ class FunctionSourceTests(unittest.TestCase):
         self.assertEqual(configuration(development)[0], 'DEVELOPMENT_ONLY')
         self.assertEqual(configuration(dict.fromkeys(COLD_KEYS, 'cold.json'))[0],
                          'MATCHING_SOURCE_COLD_BUILD')
+
+    def test_failed_build_raw_evidence_and_cleanup_never_replace_original_failure(self):
+        from tests import hia_composite_function_fixture as fixture
+        # No image is executed: these are explicit partial-build custody
+        # controls, with an injected failure before any manifest is admitted.
+        for mode in ('capture', 'capture-fails', 'cleanup-fails'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+                evidence = Path(directory) / 'evidence'
+                original = RuntimeError('original incomplete compiler build')
+                temporary = []
+                def failed(folder):
+                    temporary.append(folder)
+                    artifact = folder / 'partial-original.bin'
+                    artifact.write_bytes(b'explicit non-code failed-build control')
+                    artifact.chmod(0o600)
+                    raise original
+                stack.enter_context(patch.object(fixture, '_bootstrap_development', new=failed))
+                if mode == 'capture-fails':
+                    def capture_failed(*args):
+                        raise OSError('injected evidence copy failure')
+                    stack.enter_context(patch.object(fixture, '_copy_build_evidence', new=capture_failed))
+                if mode == 'cleanup-fails':
+                    cleanup = tempfile.TemporaryDirectory.cleanup
+                    def cleanup_failed(instance):
+                        cleanup(instance)
+                        raise OSError('injected cleanup failure after real removal')
+                    stack.enter_context(patch.object(tempfile.TemporaryDirectory, 'cleanup', new=cleanup_failed))
+                try:
+                    fixture._build_fixture('BOOTSTRAP_DEVELOPMENT_ONLY', (),
+                                           evidence_destination=str(evidence))
+                except RuntimeError as held:
+                    self.assertIs(held, original)
+                else:
+                    self.fail('failed compiler build published a fixture')
+                self.assertEqual(len(temporary), 1)
+                self.assertFalse(temporary[0].exists())
+                self.assertFalse((evidence / 'custody.json').exists())
+                if mode == 'capture-fails':
+                    self.assertFalse((evidence / 'failure-custody.json').exists())
+                    self.assertIn('failure evidence capture', original.__notes__[0])
+                else:
+                    value = json.loads((evidence / 'failure-custody.json').read_bytes())
+                    self.assertEqual(value['status'], 'BUILD_FAILED_RAW_ONLY')
+                    self.assertFalse(value['fixture_usable'])
+                    self.assertFalse(value['matching_source_cold_build_qualified'])
+                    self.assertEqual(value['files'][0]['mode'], 0o600)
+                    self.assertEqual((evidence / value['files'][0]['path']).read_bytes(),
+                                     b'explicit non-code failed-build control')
+                if mode == 'cleanup-fails':
+                    self.assertIn('temporary build cleanup', original.__notes__[0])
+
+    def test_warm_fixture_cannot_silently_discard_changed_evidence_destination(self):
+        from types import SimpleNamespace
+        from tests import hia_composite_function_fixture as fixture
+        cached = SimpleNamespace(evidence_destination='', check_custody=lambda: None)
+        with patch.dict(fixture._FIXTURES, {('BOOTSTRAP_DEVELOPMENT_ONLY', ()): cached}, clear=True), \
+                patch.dict(os.environ, dict.fromkeys((*fixture.DEVELOPMENT_KEYS, *fixture.COLD_KEYS,
+                                                      fixture.EVIDENCE_KEY), '')), \
+                patch.object(fixture, '_build_fixture', new=absent):
+            self.assertIs(fixture.composite_function_fixture(), cached)
+            with patch.dict(os.environ, {fixture.EVIDENCE_KEY: 'new-evidence-after-build'}):
+                with self.assertRaisesRegex(ValueError, 'evidence destination changed'):
+                    fixture.composite_function_fixture()
 
     def test_five_sources_reproduce_with_unchanged_compiler_limits(self):
         from hepta.hia_agent_assembly import render_assembly
