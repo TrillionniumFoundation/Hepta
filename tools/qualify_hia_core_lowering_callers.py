@@ -196,16 +196,26 @@ def main():
     selection.add_argument('--cold-report', type=Path)
     selection.add_argument('--development-manifest', type=Path)
     parser.add_argument('--evidence', type=Path, required=True)
+    parser.add_argument('--development-group', choices=('component', 'original-machine', 'original-core'),
+                        help='Run exactly one complete development group; never establishes whole qualification.')
     args = parser.parse_args()
+    if args.development_group and args.cold_report:
+        parser.error('--development-group is forbidden with --cold-report')
     directory = args.evidence.resolve()
     directory.mkdir(parents=True, exist_ok=False)
     report = {
         'schema': 'hepta.hia.core-lowering-selected-callers.v1', 'status': 'STARTED',
-        'scope': 'MATCHING_SOURCE_COLD_SELECTED_CALLERS' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY',
+        'scope': ('EXPLICIT_DEVELOPMENT_GROUP_ONLY' if args.development_group else
+                  'MATCHING_SOURCE_COLD_SELECTED_CALLERS' if args.cold_report else 'EXPLICIT_DEVELOPMENT_ONLY'),
+        'development_group': args.development_group,
+        'complete_three_groups_required_for_qualification': True,
+        'complete_three_groups_executed': False,
         'groups': [], 'retained_owner_entries': [], 'python': sys.version,
         'native_step_ledger_schema': 'hepta.hia.core-lowering-native-step-returns.v1',
         'native_step_return_semantics': 'Actual admitted HIA unit entry and output framing returned status0/1/2; not method or product success.',
         'native_mode_entries_are_attempts': True,
+        'public_control_mode_count': 27, 'abi_control_mode_count': 28,
+        'private_fixture_modes': ['_native_globals'],
         'native_step_unit_index_basis': 'owner.images excludes literal pool; unit_index0 is core_lowering_000; bundle_image_index is unit_index+1; complete bundle index0 is core_lowering_pool.',
         'component_denominator': 12, 'original_machine_denominator': 51,
         'original_core_denominator': 50, 'original_methods_modified': False,
@@ -219,6 +229,11 @@ def main():
     report['group_bundle_roles'] = {
         'component': 'component', 'original-machine': 'caller', 'original-core': 'caller'}
     report['bundle_observations'] = {}
+    expected_groups = ({args.development_group} if args.development_group else
+                       {'component', 'original-machine', 'original-core'})
+    expected_roles = {'caller', 'component'} if 'component' in expected_groups else {'caller'}
+    report['expected_groups'] = sorted(expected_groups)
+    report['expected_bundle_roles'] = sorted(expected_roles)
     def observed_inputs(manifest_path):
         values = bundle_files(manifest_path)
         build_receipt = manifest_path.parent / 'build.json'
@@ -334,6 +349,8 @@ def main():
                 ('component', COMPONENT_MODULES, 12, None, False),
                 ('original-machine', ORIGINAL_MODULES, 51, ORIGINAL_IDS, True),
                 ('original-core', CORE_MODULES, 50, CORE_IDS, True)):
+                if label not in expected_groups:
+                    continue
                 current_group[0] = label
                 loader = unittest.TestLoader()
                 suite = loader.loadTestsFromNames(modules)
@@ -393,12 +410,21 @@ def main():
         required = set(native.modes) - {'_native_globals'}
         observed_modes = {row[1] for row, count in step_returns.items() if count > 0}
         observed_groups = {row[0] for row, count in step_returns.items() if count > 0}
-        if (report['retained_owner_entries'] or not required <= set(entries)
-                or not required <= observed_modes
-                or observed_groups != {'component', 'original-machine', 'original-core'}
-                or not actual_steps['0'] or not actual_steps['1'] or not actual_steps['2']):
-            raise AssertionError('complete actual HIA lowering policy/continuation ownership was not observed')
-        report['status'] = 'PASS'
+        if report['retained_owner_entries'] or observed_groups != expected_groups or not step_returns:
+            raise AssertionError('selected complete group did not enter actual HIA lowering')
+        report['private_fixture_mode_has_actual_step_returns'] = '_native_globals' in observed_modes
+        if 'component' in expected_groups and not report['private_fixture_mode_has_actual_step_returns']:
+            raise AssertionError('ABI mode28 native global fixture did not return an actual HIA step')
+        report['all_required_modes_attempted'] = required <= set(entries)
+        report['all_required_modes_have_actual_step_returns'] = required <= observed_modes
+        report['all_native_step_statuses_observed'] = all(actual_steps[str(v)] for v in (0, 1, 2))
+        if not args.development_group:
+            if (not report['all_required_modes_attempted']
+                    or not report['all_required_modes_have_actual_step_returns']
+                    or not report['all_native_step_statuses_observed']):
+                raise AssertionError('complete actual HIA lowering policy/continuation ownership was not observed')
+            report['complete_three_groups_executed'] = True
+        report['status'] = 'DEVELOPMENT_GROUP_PASS' if args.development_group else 'PASS'
     except BaseException:
         report['status'] = 'FAIL'
         report['exception'] = traceback.format_exc()
@@ -431,8 +457,8 @@ def main():
                         for (old_path, old_raw), (new_path, new_raw) in zip(values, after))
                 report[role + '_bundle_stable'] = bool(
                     observation is not None and observation.get('stable'))
-            report['manifest_images_bundle_stable'] = (
-                report['caller_bundle_stable'] and report['component_bundle_stable'])
+            report['manifest_images_bundle_stable'] = all(
+                report[role + '_bundle_stable'] for role in expected_roles)
             if not report['source_stable'] or not report['manifest_images_bundle_stable']:
                 report['status'] = 'FAIL'
         except BaseException:
@@ -442,7 +468,7 @@ def main():
         (directory / 'report.json').write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
         print(json.dumps({k: report.get(k) for k in ('schema', 'scope', 'status', 'seconds',
             'source_stable', 'manifest_images_bundle_stable', 'exception')}, sort_keys=True))
-    return 0 if report['status'] == 'PASS' else 1
+    return 0 if report['status'] in {'PASS', 'DEVELOPMENT_GROUP_PASS'} else 1
 
 
 if __name__ == '__main__':

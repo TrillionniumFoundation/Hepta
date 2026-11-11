@@ -222,3 +222,9 @@ both sets of 32 images/manifests. The original machine and general Core groups
 use the caller bundle. Development mode is explicitly separate and may reuse
 the selected development bundle for the component; it never claims a fresh
 cold build. These revised producer controls have not yet been executed.
+
+### Development phase isolation
+
+The caller driver accepts `--development-group component|original-machine|original-core` only with an explicit development manifest. A supplied cold report rejects that option before creating output. The selected group still loads and executes its entire original 12, 51, or 50 method set, preserves all five anomaly refusals, and records the same native return and input-identity observations. Its successful status is `DEVELOPMENT_GROUP_PASS`, its scope is `EXPLICIT_DEVELOPMENT_GROUP_ONLY`, and it explicitly does not claim complete three-group qualification. This permits three independent process owners with the original 180-second boundary each. A separate development aggregate must bind all three reports to the same candidate and original compiled bundle, require all 113 original methods and the 27 public modes in the union of actual native returns, and preserve every phase's original receipt. The ordinary default and cold invocation still require all three groups in one report and retain their existing complete-coverage requirements.
+
+The ABI contains 28 modes: 22 `_Function` methods, five shared helpers, and the independent `_native_globals` fixture mode. The 27 public product control modes remain the required cross-group union. The existing component literal-owner method separately invokes mode 28 and compares its entire returned structure with the original constants; the component and complete reports additionally require its actual HIA step-return observation. It is not silently removed from the ABI or relabeled as an ordinary product call.
