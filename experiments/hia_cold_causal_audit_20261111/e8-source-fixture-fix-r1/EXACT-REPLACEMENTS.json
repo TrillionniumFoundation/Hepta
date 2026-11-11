@@ -1,0 +1,28 @@
+{
+  "schema": "hia.exact-source-replacements.v1",
+  "replacements": [
+    {
+      "path": "tests/test_hia_integrated_workflow.py",
+      "changes": [
+        {
+          "before": "                (root / 'tools').mkdir()\n                (root / 'marker').write_text('committed bytes')\n",
+          "after": "                (root / 'tools').mkdir()\n                (root / 'tests').mkdir()\n                (root / 'tools/generate_hia_selfhost_contract.py').write_text(\n                    \"import sys\\nprint('fixture-contract', *sys.argv[1:])\\n\")\n                (root / 'tests/test_hia_selfhost_language_coverage.py').write_text(\n                    \"import sys\\nprint('fixture-coverage', *sys.argv[1:])\\n\")\n                (root / 'marker').write_text('committed bytes')\n"
+        },
+        {
+          "before": "                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)\n\n    def test_actual_native_ci_runner",
+          "after": "                self.assertEqual(result.returncode, expected, result.stdout + result.stderr)\n                self.assertEqual(\n                    [line for line in result.stdout.splitlines() if line.startswith(b'fixture-')],\n                    [] if mode == 'failure' else [\n                        b'fixture-contract', b'fixture-coverage --generate-inventory',\n                        b'fixture-contract', b'fixture-contract --check'])\n\n    def test_actual_native_ci_runner"
+        }
+      ]
+    },
+    {
+      "path": "tests/test_hia_store_page_gates.py",
+      "changes": [
+        {
+          "before": "        self.assertEqual(generators[-2:], ['agent_store_authority', 'artifact_page'])\n",
+          "after": "        legacy_generators = [\n            'core_workspace_pipeline', 'core_workspace_facts', 'core_workspace_facts_cli',\n            'core_workspace_materialize', 'core_workspace_cli', 'capability_renaming',\n            'core_module_graph', 'core_workspace_json', 'core_workspace_json_cli',\n            'agent_identity', 'agent_slice', 'elf_linker', 'native_filter', 'core_json_cli',\n            'agent_stdio', 'agent_snapshot', 'agent_snapshot_json', 'agent_snapshot_json_cli',\n            'sha256_stream', 'native_observer', 'sha256', 'json_preflight', 'json_decode',\n            'json_canonical', 'core_json_frontend', 'selfhost', 'agent_binary64',\n            'agent_data_json', 'instruction_policy', 'program_shape', 'function_shape',\n            'artifact_publication', 'core_admission_cli', 'core_admission',\n            'agent_binary64_format', 'core_patch', 'core_patch_cli', 'core_patch_result_cli',\n            'composite_types', 'task_helpers', 'composite_functions', 'composite_constructor',\n            'composite_outer', 'worker_request', 'release_install', 'agent_journal', 'json_wire',\n            'worker_report', 'machine_plan', 'linked_observer', 'machine_encoding',\n            'cli_control', 'cli_format', 'agent_store_authority', 'artifact_page',\n        ]\n        self.assertEqual(generators[:55], legacy_generators)\n        self.assertEqual(generators[55:], [\n            'machine_state', 'machine_instructions', 'machine_elf', 'core_lowering'])\n"
+        }
+      ]
+    }
+  ],
+  "reverse_replacement_recovers_each_original_byte": true
+}
