@@ -131,7 +131,10 @@ class NativeEncodedCode(reference.Code):
         short_word = False
         if compact:
             if not -128 <= value <= 127:
-                raise struct.error('byte format requires -128 <= number <= 127')
+                # This branch cannot produce a byte. Preserve the host runtime's
+                # exact rejection object/message; admitted instruction bytes
+                # are still produced only by HIA below.
+                struct.pack('<b', value)
             short_word = True
         emit = self.emit
         short_opcode = bool(compact)
