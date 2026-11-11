@@ -1,5 +1,6 @@
 """Regression checks for the registered follow-up's actual evaluation boundaries."""
 from copy import deepcopy
+from hashlib import sha256
 import json
 import os
 import shutil
@@ -126,7 +127,7 @@ class NextAgentTests(unittest.TestCase):
             self.assertIn("u64", result["compile"]["stderr"])
 
     def test_same_core_vm_observes_unreachable_call_and_wrong_arguments(self):
-        controls = json.loads((run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes())
+        controls = upgrade.historical_admission_controls()
         tasks = {task["id"]: task for task in upgrade.fixtures()}
         for label in ("dead_provider_hia", "wrong_argument_hia"):
             item = next(row for row in controls if row["id"] == label)
@@ -145,11 +146,76 @@ class NextAgentTests(unittest.TestCase):
                 self.assertEqual([row["provider_calls_in_entry"] for row in rows], [1, 1, 1])
                 self.assertFalse(all(row["provider_arguments_match"] for row in rows))
 
+    def test_historical_controls_preserve_raw_bytes_and_pass_current_core_checks(self):
+        path = run_agent.HERE / "ADMISSION_CONTROLS.json"
+        raw = path.read_bytes()
+        self.assertEqual(sha256(raw).hexdigest(),
+                         "f30d0661b89ac7d21ceab3937ca7184911f640c2c99709a864dc8fe494202309")
+        original = json.loads(raw)
+        controls = upgrade.historical_admission_controls()
+        tasks = {task["id"]: task for task in upgrade.fixtures()}
+        self.assertEqual(len(controls), len(original))
+        for recorded, current in zip(original, controls):
+            with self.subTest(control=recorded["id"]):
+                self.assertEqual({k: v for k, v in recorded.items() if k != "files"},
+                                 {k: v for k, v in current.items() if k != "files"})
+                if recorded["language"] == "rust":
+                    self.assertEqual(recorded, current)
+                    continue
+                self.assertEqual(set(recorded["files"]), {"api.hia.json", "client.hia.json"})
+                self.assertEqual(set(current["files"]), set(upgrade.FILE_NAMES["hia"]))
+                self.assertEqual([recorded["files"][n] for n in ("api.hia.json", "client.hia.json")],
+                                 [current["files"][n] for n in upgrade.FILE_NAMES["hia"]])
+                if not recorded["id"].endswith("_correct"):
+                    continue
+                task = tasks[recorded["task"]]
+                core, receipt = upgrade.parse_files(task, "hia", json.dumps({"files": current["files"]}))
+                self.assertIsNotNone(receipt)
+                with tempfile.TemporaryDirectory() as directory:
+                    output = Path(directory) / "control.core.hepta"
+                    output.write_bytes(core.canonical_bytes)
+                    observed = upgrade.hia_provider_audit({"core_path": str(output), "core_sha256": core.sha256,
+                        "audit_task": task["id"], "audit_provider": task["provider"]}, task["public_cases"])
+                self.assertEqual([row["entry_vm"]["result"] for row in observed], task["public_expected"])
+                self.assertTrue(all(row["provider_arguments_match"] for row in observed))
+        self.assertEqual(path.read_bytes(), raw)
+
+    def test_historical_projection_does_not_relax_names_language_or_core_validation(self):
+        controls = json.loads((run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes())
+        recorded = next(row for row in controls if row["id"] == "wire_length_v2_hia_correct")
+        task = upgrade.fixtures()[0]
+        old = recorded["files"]
+        for files in ({"api.hia.json": old["api.hia.json"]},
+                      {**old, "extra.hia.json": {}},
+                      {"api.core.hepta": old["api.hia.json"], "client.hia.json": old["client.hia.json"]},
+                      {"API.hia.json": old["api.hia.json"], "client.hia.json": old["client.hia.json"]}):
+            with self.subTest(keys=list(files)), self.assertRaisesRegex(ValueError, "HISTORICAL_WORKSPACE_FILES"):
+                upgrade._historical_hia_file_pair(files)
+        with self.assertRaisesRegex(ValueError, "E_UPGRADE_WORKSPACE_FILES"):
+            upgrade.parse_files(task, "hia", json.dumps({"files": old}))
+        files = upgrade._historical_hia_file_pair(old)
+        files["api.core.hepta"] = "module legacy; fn wire_length() {}"
+        with self.assertRaisesRegex(ValueError, "E_UPGRADE_HIA_FUNCTION_OBJECT"):
+            upgrade.parse_files(task, "hia", json.dumps({"files": files}))
+        files = upgrade._historical_hia_file_pair(old)
+        files["api.core.hepta"]["blocks"][0]["ops"][0]["op"] = "unregistered.legacy.opcode"
+        with self.assertRaises(ValueError):
+            upgrade.parse_files(task, "hia", json.dumps({"files": files}))
+
+    def test_historical_reader_refuses_changed_fixture_bytes(self):
+        raw = (run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            location = Path(directory)
+            (location / "ADMISSION_CONTROLS.json").write_bytes(raw + b"\n")
+            with mock.patch.object(upgrade, "__file__", str(location / "upgrade_pilot.py")), \
+                    self.assertRaisesRegex(ValueError, "historical admission controls identity differs"):
+                upgrade.historical_admission_controls()
+
     def test_actual_rust_counter_refuses_correct_entry_with_dead_provider(self):
         rustc = os.environ.get("HEPTA_RUSTC") or shutil.which("rustc")
         if not rustc or not hasattr(os, "memfd_create"):
             self.skipTest("Rust compiler and Linux sealed-executable execution required")
-        controls = json.loads((run_agent.HERE / "ADMISSION_CONTROLS.json").read_bytes())
+        controls = upgrade.historical_admission_controls()
         item = next(row for row in controls if row["id"] == "dead_provider_rust")
         task = upgrade.fixtures()[1]
         with tempfile.TemporaryDirectory() as directory:

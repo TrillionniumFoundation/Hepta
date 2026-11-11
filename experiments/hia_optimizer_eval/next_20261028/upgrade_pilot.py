@@ -36,6 +36,27 @@ MAX64 = 2**64 - 1
 FILE_NAMES = {"hia": ("api.core.hepta", "client.core.hepta"), "rust": ("api.rs", "client.rs")}
 
 
+def _historical_hia_file_pair(files):
+    """Project the exact retained control container; do not relax parse_files."""
+    historical = ("api.hia.json", "client.hia.json")
+    if type(files) is not dict or set(files) != set(historical):
+        raise ValueError("E_UPGRADE_HISTORICAL_WORKSPACE_FILES")
+    return {current: copy.deepcopy(files[old])
+            for old, current in zip(historical, FILE_NAMES["hia"])}
+
+
+def historical_admission_controls():
+    """Read unchanged historical controls using the current source container names."""
+    raw = Path(__file__).with_name("ADMISSION_CONTROLS.json").read_bytes()
+    if hashlib.sha256(raw).hexdigest() != "f30d0661b89ac7d21ceab3937ca7184911f640c2c99709a864dc8fe494202309":
+        raise ValueError("historical admission controls identity differs")
+    controls = decode_json(raw)
+    for item in controls:
+        if item["language"] == "hia":
+            item["files"] = _historical_hia_file_pair(item["files"])
+    return controls
+
+
 def save(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)

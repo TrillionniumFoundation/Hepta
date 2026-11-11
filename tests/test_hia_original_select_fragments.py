@@ -99,21 +99,62 @@ class SourceSuffixConsumerTests(unittest.TestCase):
 
     def test_current_repository_protocol_paths_resolve_the_same_pinned_sources(self):
         from tools import qualify_hia_agent_repository_maintenance as maintenance
+        from tools import qualify_hia_agent_repository_maintenance_v2 as cohort
 
+        protocol_bytes = (maintenance.HERE / 'PROTOCOL.json').read_bytes()
+        cohort_bytes = (maintenance.HERE / 'PROTOCOL-v2.json').read_bytes()
+        self.assertEqual(sha256(protocol_bytes).hexdigest(),
+                         'a868c12fb48821aaa3335115253e30c2835ffb22a66a2234ef242af23a6e9a67')
+        self.assertEqual(sha256(cohort_bytes).hexdigest(),
+                         'ff7c31b35d2dfb12c76084ac4765cacc1bec7c4bb89527cbb0c8b8dd57647a92')
         config = maintenance.cfg()
+        inherited = cohort.protocol()
+        self.assertEqual(inherited['generation'], config['generation'])
+        self.assertEqual(inherited['model_order'],
+                         ['qwen_coder1_5b', 'qwen_coder7b', 'codex_gpt61_sol'])
         self.assertEqual(config['source_base'], '1b5e946c9889b1c19ae86235cb14dfb76da10777')
         self.assertEqual(len(config['tasks']), 2)
+        sources = maintenance.source_projections()
+        bindings = maintenance.bindings()
         for task in config['tasks']:
             with self.subTest(task=task['id']):
-                path = maintenance.ROOT / task['source_path']
+                raw, identity = maintenance.registered_source(task)
+                self.assertEqual(identity, sources[task['id']])
+                self.assertEqual(identity['source_path'], task['source_path'])
+                self.assertEqual(Path(task['source_path']).suffix, '.hia')
+                path = maintenance.ROOT / identity['resolved_source_path']
                 self.assertEqual(path.suffix, '.hepta')
-                raw = path.read_bytes()
+                self.assertEqual(raw, path.read_bytes())
+                self.assertEqual(bindings[identity['resolved_source_path']], task['source_sha256'])
+                self.assertNotIn(task['source_path'], bindings)
                 self.assertEqual(sha256(raw).hexdigest(), task['source_sha256'])
                 self.assertEqual(
                     sha1(b'blob ' + str(len(raw)).encode() + b'\0' + raw).hexdigest(),
                     task['source_git_blob'])
                 checked = maintenance.target(task)
                 self.assertIn(task['function'], [fn['name'] for fn in checked['functions']])
+        self.assertEqual((maintenance.HERE / 'PROTOCOL.json').read_bytes(), protocol_bytes)
+        self.assertEqual((maintenance.HERE / 'PROTOCOL-v2.json').read_bytes(), cohort_bytes)
+
+    def test_repository_projection_refuses_unregistered_names_and_changed_source_identity(self):
+        from tools import qualify_hia_agent_repository_maintenance as maintenance
+
+        task = maintenance.cfg()['tasks'][0]
+        for name in ('examples/hia_program/offset_copy_v5.hepta',
+                     'examples/hia_program/offset_copy_v5.hiaasm', '../offset_copy_v5.hia'):
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'unregistered repository source'):
+                maintenance.target({**task, 'source_path': name})
+        for key, length in (('source_sha256', 64), ('source_git_blob', 40)):
+            with self.subTest(identity=key), self.assertRaisesRegex(ValueError, 'pinned Git blob'):
+                maintenance.target({**task, key: '0' * length})
+        raw, identity = maintenance.registered_source(task)
+        with tempfile.TemporaryDirectory(prefix='hepta-projected-source-') as tmp:
+            root = Path(tmp)
+            projected = root / identity['resolved_source_path']
+            projected.parent.mkdir(parents=True)
+            projected.write_bytes(raw + b'\n')
+            with patch.object(maintenance, 'ROOT', root), self.assertRaisesRegex(ValueError, 'pinned Git blob'):
+                maintenance.target(task)
 
     def test_exact_historical_patch_members_reconstruct_in_both_qualifiers(self):
         from tools import qualify_hia_original_select_fragments as fragments

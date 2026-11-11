@@ -43,10 +43,20 @@ Immutable historical receipts, patch archives and their manifests retain their
 original bytes, filenames and hashes. A recorded `.hiaasm` path is evidence of
 the original run, not an active source entry. Historical fragment tools recreate
 those exact paths in separate temporary trees so original patches still apply.
-New counterexamples and active maintenance protocols use `.hepta`.
+New counterexamples use `.hepta`. The registered maintenance v1 protocol keeps
+its original bytes and logical `.hia` names, so the v2 inheritance SHA remains
+valid. The active consumer projects only its two registered names to the renamed
+`.hepta` sources and verifies both the original SHA-256 and Git blob identity.
+New control and run receipts record the logical name and resolved source name.
+
+The retained `ADMISSION_CONTROLS.json` also keeps its original filenames and
+bytes. Its dedicated reader projects the exact historical HIA file pair to the
+current `.core.hepta` pair; the regular candidate parser still requires the
+current filenames and the complete Core verification checks.
 
 Tests exercise real historical patch application, immutable archive manifests,
-and the maintenance protocol's SHA-256 and Git blob identities after migration.
+the actual v2-to-v1 protocol inheritance check, and the maintenance source's
+SHA-256 and Git blob identities after migration.
 Old passing receipts do not qualify this renamed source tree. New reports must
 bind the actual frozen commit and complete source manifest.
 
