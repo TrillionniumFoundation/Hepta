@@ -619,6 +619,15 @@ class _Function:
 
 
 class _Emitter:
+    def __new__(cls, document, allowed_exports, block_order=None,
+                foreign_buffer_exports=(), machine_plan=None):
+        if cls is _Emitter:
+            from .hia_core_lowering_selection import selected_core_lowering
+            owner = selected_core_lowering(globals())
+            if owner is not None:
+                return object.__new__(owner.emitter_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, document, allowed_exports, block_order=None, foreign_buffer_exports=(), machine_plan=None):
         from .hia_machine_plan import code_options
         self.document, self.allowed_exports = document, allowed_exports

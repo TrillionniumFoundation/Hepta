@@ -68,16 +68,17 @@ def build(output: Path, compiler: Path, cold_report: Path) -> Path:
     with manifest_path.open('xb') as stream:
         stream.write((json.dumps(bundle, sort_keys=True, indent=2) + '\n').encode())
     report = {
-        'schema': 'hepta.hia.core-lowering-build.v1', 'status': 'NATIVE_CANDIDATE_BUILT',
+        'schema': 'hepta.hia.core-lowering-build.v2', 'status': 'NATIVE_CANDIDATE_BUILT',
         'profile': PROFILE, 'source_manifest': sources,
         'cold_report_sha256': sha256(cold_bytes).hexdigest(),
         'compiler_sha256': compiler_sha, 'bundle': bundle,
         'abi_sha256': sha256(abi_raw).hexdigest(), 'units': receipts,
         'expected_unit_count': len(names), 'actual_unit_count': len(receipts),
-        'complete_Function_methods': 22, 'complete_shared_helpers': 5,
-        'hosted_object_primitive_kinds': 18,
+        'complete_Function_methods': 22, 'complete_Emitter_methods': 6,
+        'complete_shared_helpers': 5, 'hosted_object_primitive_kinds': 19,
         'ordinary_entry_requires_explicit_selector': True,
-        'module_Emitter_control_and_native_object_runtime_still_hosted': True,
+        'Emitter_control_owned_by_HIA': True,
+        'native_object_runtime_and_byte_wrapper_policy_still_hosted': True,
         'native_persistence_or_linking_claimed': False,
         'whole_stack_rewritten_in_hia': False, 'production_activated': False,
     }

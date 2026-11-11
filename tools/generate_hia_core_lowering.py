@@ -16,7 +16,7 @@ from tools.hia_core_lowering_ir import Ref, Raw, compile_policy
 ROOT = Path(__file__).resolve().parents[1]
 POLICY = ROOT / 'tools/hia_core_lowering_policy.py'
 ABI = 0xfffffffd
-MAGIC = int.from_bytes(b'HIALOW01', 'little')
+MAGIC = int.from_bytes(b'HIALOW02', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
 CHUNK = 64
 GROUP = 8
@@ -75,7 +75,7 @@ def effect_lines(instruction):
         'put(w, 48, ' + str(instruction['opcode']) + ')',
         'put(w, 56, ' + str(len(destinations)) + ')',
     ]
-    for i in range(3):
+    for i in range(4):
         offset = SLOTS + destinations[i].index * 8 if i < len(destinations) else 0
         lines.append('put(w, ' + str(64 + i * 8) + ', ' + str(offset) + ')')
     header = (MAGIC, None, instruction['opcode'], len(arguments), len(vector),
@@ -96,6 +96,20 @@ def instruction_lines(instruction):
     kind, pc = instruction['kind'], instruction['pc']
     if kind == 'effect':
         return effect_lines(instruction)
+    if kind == 'yield':
+        return [
+            'if get(w, 16) == 18446744073709551615:',
+            '    return ' + str(ABI),
+            'put(w, 16, get(w, 16) + 1)',
+            'put(o, 0, ' + str(MAGIC) + ')',
+            'put(o, 8, get(w, 16))',
+            'put(o, 16, 20)',
+            'put(o, 24, ' + value_text(instruction['value']) + ')',
+            'put(w, 24, ' + str(pc + 1) + ')',
+            'put(w, 96, ' + str((pc - 1) // CHUNK) + ')',
+            'put(w, 8, 4)',
+            'return 3',
+        ]
     if kind == 'return':
         return [
             'put(o, 0, ' + str(MAGIC) + ')',
@@ -142,7 +156,7 @@ def start_source(entries):
             lines += ['    if word(s, 24) == ' + str(entry['mode']) + ':',
                       '        if word(s, 32) != ' + str(count) + ':',
                       '            return ' + str(ABI)]
-            for i in range(4):
+            for i in range(6):
                 operator = '==' if i < count else '!='
                 lines += ['        if word(s, ' + str(40 + i * 8) + ') ' + operator + ' 0:',
                           '            return ' + str(ABI)]
@@ -161,6 +175,7 @@ def start_source(entries):
                 '        put(w, 72, 0)',
                 '        put(w, 80, 0)',
                 '        put(w, 88, 0)',
+                '        put(w, 96, 0)',
                 '        return 0',
             ]
         lines.append('    return ' + str(ABI))
@@ -178,7 +193,7 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return {ABI}
     if word(s, 0) != {MAGIC}:
         return {ABI}
-    i = 72
+    i = 88
     while i < 128:
         if word(s, i) != 0:
             return {ABI}
@@ -195,16 +210,16 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if command == 1:
             if get(w, 8) != 1 or word(s, 24) != get(w, 56):
                 return {ABI}
-            if word(s, 32) > 1 or word(s, 64) != 0:
+            if word(s, 32) > 1 or word(s, 72) != 0 or word(s, 80) != 0:
                 return {ABI}
             opcode = get(w, 48)
             if opcode != 9 and opcode != 10 and word(s, 32) != 0:
                 return {ABI}
             count = get(w, 56)
-            if count > 3:
+            if count > 4:
                 return {ABI}
             i = 0
-            while i < 3:
+            while i < 4:
                 if i < count:
                     if word(s, 40 + i * 8) == 0:
                         return {ABI}
@@ -221,9 +236,15 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             put(w, 40, word(s, 32))
             put(w, 8, 0)
         else:
-            if command != 2 or get(w, 8) != 2 or get(w, 88) != {unit} or word(s, 24) != {unit}:
+            if command == 2:
+                if get(w, 8) != 2:
+                    return {ABI}
+            else:
+                if command != 3 or get(w, 8) != 4:
+                    return {ABI}
+            if get(w, 96) != {unit} or word(s, 24) != {unit}:
                 return {ABI}
-            if word(s, 32) != 0 or word(s, 40) != 0 or word(s, 48) != 0 or word(s, 56) != 0 or word(s, 64) != 0:
+            if word(s, 32) != 0 or word(s, 40) != 0 or word(s, 48) != 0 or word(s, 56) != 0 or word(s, 64) != 0 or word(s, 72) != 0 or word(s, 80) != 0:
                 return {ABI}
             put(w, 8, 0)
     while True:
@@ -236,10 +257,10 @@ def lower(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             target = (pc - 1) >> 6
             put(w, 16, get(w, 16) + 1)
             put(w, 8, 2)
-            put(w, 88, target)
+            put(w, 96, target)
             put(o, 0, {MAGIC})
             put(o, 8, get(w, 16))
-            put(o, 16, 19)
+            put(o, 16, 21)
             put(o, 24, target)
             return 2
         result = dispatch(w, o)
@@ -353,7 +374,7 @@ def generated():
         sources.append((name, unit_source(unit, instructions[at:at + CHUNK], entries,
                                          len(instructions), workspace, output)))
     abi = {
-        'schema': 'hepta.hia.core-lowering-abi.v1',
+        'schema': 'hepta.hia.core-lowering-abi.v2',
         'protocol_magic': MAGIC,
         'pool_magic': POOL_MAGIC,
         'packet_bytes': 128,
@@ -362,6 +383,7 @@ def generated():
         'pool_bytes': len(wire),
         'literal_count': len(literals.values),
         'units': units,
+        'generator_modes': [name for name, entry in entries.items() if entry['generator']],
         'modes': {name: {'number': entry['mode'], 'arity': len(entry['parameters'])}
                   for name, entry in entries.items()},
     }

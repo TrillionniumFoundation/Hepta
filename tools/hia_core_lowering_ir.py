@@ -15,6 +15,7 @@ OPS = {
     'CALL': 6, 'PACK': 7, 'ITER': 8, 'NEXT': 9, 'TRUTH': 10,
     'BINARY': 11, 'UNARY': 12, 'COMPARE': 13, 'UNPACK': 14,
     'SLICE': 15, 'APPEND': 16, 'IMPORT': 17, 'RAISE': 18,
+    'GENERATOR': 19,
 }
 BINARY = {name: i for i, name in enumerate((
     'Add', 'Sub', 'Mult', 'FloorDiv', 'Div', 'Mod', 'Pow',
@@ -56,8 +57,9 @@ class Literals:
 
 
 class Function:
-    def __init__(self, name, node, literals):
+    def __init__(self, name, node, literals, generator_plans):
         self.name, self.node, self.literals = name, node, literals
+        self.generator_plans = generator_plans
         self.instructions = []
         self.locals = {}
         self.slot_count = 0
@@ -66,8 +68,8 @@ class Function:
         self.parameters = [a.arg for a in node.args.args]
         if node.args.posonlyargs or node.args.vararg or node.args.kwonlyargs or node.args.kwarg:
             raise ValueError('unsupported policy signature: ' + name)
-        if len(self.parameters) > 4:
-            raise ValueError('policy ABI accepts at most four bound arguments')
+        if len(self.parameters) > 6:
+            raise ValueError('policy ABI v2 accepts at most six bound arguments')
         for parameter in self.parameters:
             self.local(parameter)
         # Assignment establishes a Python local even before its first value.
@@ -113,7 +115,7 @@ class Function:
         self.instructions.append({'kind': 'jump', 'target': label})
 
     def effect(self, opcode, arguments, count=1, **extra):
-        if len(arguments) > 8 or not 0 <= count <= 3:
+        if len(arguments) > 8 or not 0 <= count <= 4:
             raise ValueError('foreign primitive exceeds the fixed HIA packet ABI')
         destinations = tuple(self.temporary() for _ in range(count))
         self.instructions.append({'kind': 'effect', 'opcode': OPS[opcode],
@@ -220,6 +222,8 @@ class Function:
                                vector=observed)
         if isinstance(node, (ast.ListComp, ast.DictComp)):
             return self.comprehension(node)
+        if isinstance(node, ast.GeneratorExp):
+            return self.generator_expression(node)
         if isinstance(node, ast.Call):
             if (isinstance(node.func, ast.Name) and node.func.id in ('sum', 'max', 'any')
                     and len(node.args) == 1 and isinstance(node.args[0], ast.GeneratorExp)):
@@ -228,15 +232,39 @@ class Function:
             if any(isinstance(v, ast.Starred) for v in node.args) or len(node.args) > 4:
                 raise ValueError('expanded or long call is outside the finite policy grammar')
             arguments = [self.expression(v) for v in node.args]
-            if len(node.keywords) > 1 or any(v.arg is None for v in node.keywords):
-                raise ValueError('expanded or multiple keyword call is outside the finite policy grammar')
+            if len(node.keywords) > 1:
+                raise ValueError('multiple keyword entries are outside the finite policy grammar')
             key, value = self.constant(None), self.constant(None)
             if node.keywords:
-                key = self.constant(node.keywords[0].arg)
+                # Raw handle zero is a protocol tag for one **mapping expansion.
+                # HIA still selects the original callee and evaluates the mapping
+                # at the original argument point; CPython performs only CALL_EX.
+                key = Raw(0) if node.keywords[0].arg is None else self.constant(node.keywords[0].arg)
                 value = self.expression(node.keywords[0].value)
             arguments += [self.constant(None)] * (4 - len(arguments))
             return self.effect('CALL', (callee, Raw(len(node.args)), *arguments, key, value))
         raise ValueError('unsupported policy expression: ' + ast.dump(node))
+
+    def generator_expression(self, node):
+        # The current complete emitter has exactly the two p["type"] extension
+        # generators. Refuse unreviewed captures rather than eagerly listing.
+        if len(node.generators) != 1:
+            raise ValueError('only the reviewed single-iterator generator is admitted')
+        loop = node.generators[0]
+        element = node.elt
+        if (loop.is_async or loop.ifs or not isinstance(loop.target, ast.Name)
+                or not isinstance(element, ast.Subscript)
+                or not isinstance(element.value, ast.Name)
+                or element.value.id != loop.target.id
+                or not isinstance(element.slice, ast.Constant)
+                or type(element.slice.value) is not str or element.slice.value != 'type'):
+            raise ValueError('generator body has unreviewed captures or operations')
+        # Generator expression creation evaluates its outer iter() immediately.
+        # Its HIA NEXT and ITEM body remain suspended until Python asks next().
+        iterator = self.effect('ITER', (self.expression(loop.iter),))
+        name = '_native_generator_' + str(len(self.generator_plans))
+        self.generator_plans.append({'name': name, 'target': loop.target, 'element': element})
+        return self.effect('GENERATOR', (self.constant(name), iterator))
 
     def assign(self, target, value):
         if isinstance(target, ast.Name):
@@ -248,7 +276,7 @@ class Function:
         elif isinstance(target, ast.Subscript):
             self.effect('SET_ITEM', (self.expression(target.value), self.expression(target.slice), value), count=0)
         elif isinstance(target, (ast.Tuple, ast.List)):
-            if not 1 <= len(target.elts) <= 3: raise ValueError('unpack arity outside packet profile')
+            if not 1 <= len(target.elts) <= 4: raise ValueError('unpack arity outside packet profile')
             pieces = self.effect('UNPACK', (value, Raw(len(target.elts))), count=len(target.elts))
             if len(target.elts) == 1: pieces = (pieces,)
             for child, piece in zip(target.elts, pieces): self.assign(child, piece)
@@ -358,10 +386,13 @@ class Function:
             elif isinstance(node, ast.Return):
                 self.instructions.append({'kind':'return','value':self.expression(node.value) if node.value is not None else self.constant(None)})
             elif isinstance(node, ast.ImportFrom):
-                if node.level != 1 or node.module != 'hia_machine_plan' or len(node.names) != 1 or node.names[0].name != 'VALUE_REGISTERS':
-                    raise ValueError('only the original explicit plan-register import is admitted')
-                value = self.effect('IMPORT', ())
-                self.move(self.local(node.names[0].asname or 'VALUE_REGISTERS'), value)
+                imports = {('hia_machine_plan', 'VALUE_REGISTERS'): 1,
+                           ('hia_machine_plan', 'code_options'): 2,
+                           ('hia_native_byte_abi', 'emit_wrapper'): 3}
+                if node.level != 1 or len(node.names) != 1 or (node.module, node.names[0].name) not in imports:
+                    raise ValueError('only the three original explicit imports are admitted')
+                value = self.effect('IMPORT', (Raw(imports[(node.module, node.names[0].name)]),))
+                self.move(self.local(node.names[0].asname or node.names[0].name), value)
             elif isinstance(node, ast.Raise):
                 if node.cause is not None or node.exc is None: raise ValueError('unsupported raise form')
                 self.effect('RAISE', (self.expression(node.exc),), count=0)
@@ -376,24 +407,50 @@ class Function:
         return self
 
 
+class GeneratorFunction(Function):
+    """One HIA-controlled lazy generator; the first iterator is already bound."""
+
+    is_generator = True
+
+    def __init__(self, plan, literals, generator_plans):
+        node = ast.parse('def ' + plan['name'] + '(iterator):\n    pass\n').body[0]
+        super().__init__(plan['name'], node, literals, generator_plans)
+        self.plan = plan
+
+    def compile(self):
+        head, found, done = self.label(), self.label(), self.label()
+        self.mark(head)
+        value = self.effect('NEXT', (self.locals['iterator'],))
+        self.instructions.append({'kind': 'flag', 'yes': found, 'no': done})
+        self.mark(found)
+        self.assign(self.plan['target'], value)
+        self.instructions.append({'kind': 'yield', 'value': self.expression(self.plan['element'])})
+        self.jump(head)
+        self.mark(done)
+        self.instructions.append({'kind': 'return', 'value': self.constant(None)})
+        return self
+
+
 def compile_policy(source):
     tree = ast.parse(source)
-    literals, functions = Literals(), []
+    literals, functions, generator_plans = Literals(), [], []
     for node in tree.body:
         if isinstance(node, ast.FunctionDef):
-            functions.append(Function(node.name, node, literals).compile())
-        elif isinstance(node, ast.ClassDef) and node.name == '_Function':
+            functions.append(Function(node.name, node, literals, generator_plans).compile())
+        elif isinstance(node, ast.ClassDef) and node.name in ('_Function', '_Emitter'):
             for method in node.body:
-                if not isinstance(method, ast.FunctionDef): raise ValueError('unsupported Function class body')
-                functions.append(Function('_Function.' + method.name, method, literals).compile())
+                if not isinstance(method, ast.FunctionDef): raise ValueError('unsupported lowering class body')
+                functions.append(Function(node.name + '.' + method.name, method, literals, generator_plans).compile())
         elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and type(node.value.value) is str:
             pass
         else:
             raise ValueError('policy contains an unreviewed top-level declaration')
+    for plan in generator_plans:
+        functions.append(GeneratorFunction(plan, literals, generator_plans).compile())
     instructions, entries, labels = [], {}, {}
     for mode, function in enumerate(functions, 1):
         entries[function.name] = {'mode':mode,'pc':len(instructions)+1,'parameters':function.parameters,
-                                  'slots':function.slot_count}
+                                  'slots':function.slot_count, 'generator':getattr(function, 'is_generator', False)}
         for instruction in function.instructions:
             if instruction['kind'] == 'mark': labels[instruction['label']] = len(instructions)+1
             else: instructions.append(dict(instruction, function=function.name, pc=len(instructions)+1))
