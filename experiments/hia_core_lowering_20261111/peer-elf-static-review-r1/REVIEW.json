@@ -1,0 +1,76 @@
+{
+  "schema": "hepta.hia.machine-elf-independent-static-review.v1",
+  "reviewer": "hia_remote_audit",
+  "candidate_commit": "d080129298af94cf7eaf4b0981aa5a0697ec4be3",
+  "candidate_tree": "66e3af214b224be3f6d15542e070f98646b943ba",
+  "status": "ONE_CONCRETE_STATIC_ORDERING_GAP_NO_EXECUTION",
+  "source_scope": "Reconstructed unexecuted candidate, not the historical tested d992/8ead source.",
+  "files": [
+    {
+      "path": "experiments/hia_machine_elf_recovery_20261111/static-wip-r1/authoring/tools/generate_hia_machine_elf.py",
+      "size": 42956,
+      "sha256": "8bcda88d89db86c43d970e052e77cfcf5a98ef1b063356f6aad9c75b490ec87e"
+    },
+    {
+      "path": "experiments/hia_machine_elf_recovery_20261111/static-wip-r1/authoring/hepta/hia_machine_elf_native.py",
+      "size": 12970,
+      "sha256": "498d643b9394c8b4f2777eb7c76583bad75e1c04d34fca82f6f8fb0ecb76cde7"
+    },
+    {
+      "path": "experiments/hia_machine_elf_recovery_20261111/static-wip-r1/oracle/hia_machine_elf_608.py.txt",
+      "size": 7026,
+      "sha256": "c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101"
+    },
+    {
+      "path": "experiments/hia_machine_elf_recovery_20261111/static-wip-r1/DESIGN.md",
+      "size": 5719,
+      "sha256": "776cffdffa419f43f7535a9bc85b41e51c3a04f6f1fdb784243cf8d0f88d9548"
+    },
+    {
+      "path": "experiments/hia_machine_elf_recovery_20261111/static-wip-r1/README.md",
+      "size": 4918,
+      "sha256": "2f7d905788c5f51f04ae7dfa11e83bbe14854134d7f414229babd578fec5b056"
+    }
+  ],
+  "finding": {
+    "id": "filter-before-key-projection",
+    "classification": "static semantic mismatch requiring fresh actual oracle trace; independently identified by owner as well",
+    "original": "sorted((x for x in definitions if not x['global']), key=lambda x:x['name']) fully consumes the filtering generator before the key function runs on the selected rows. The public filter has the same two-stage boundary.",
+    "candidate": "filter_symbols phases101/102/104/105 read one row's global/truth and immediately its name, then advance to the next row.",
+    "witness_order": {
+      "original": [
+        "global1",
+        "global2",
+        "name1",
+        "name2"
+      ],
+      "candidate": [
+        "global1",
+        "name1",
+        "global2",
+        "name2"
+      ]
+    },
+    "observable_boundary": "Exact dictionaries may retain custom equality/hash keys. A name lookup can observe or mutate a later global value. This is separate from comparison scheduling during sort and can occur with two rows and ordinary string sort keys.",
+    "correction_direction": "HIA first collects all filtered row handles, then traverses the selected array to capture key values, then sorts; repeat independently for local and public.",
+    "actual_probe_run": false
+  },
+  "examined_without_second_proven_gap": [
+    "alignment/code/inventory refusal priority and exact builtin kinds",
+    "actual set(row), foreign set comparison and dict(row) observation seams",
+    "symbol offset/size rereads before addition and duplicate marking before copy",
+    "relocation type/addend independent repeated lookups and __ne__ primitive",
+    "E8 first-byte rejection before offset+4/slice observation",
+    "relocation right-offset then left-offset subtraction ordering",
+    "table map lookup and both scalar-field observations before ordered struct conversions",
+    "single-use foreign permission consumed before effects; step post-call exception guard and run finally close",
+    "bounds on name prefixes and original full symbol/object limits"
+  ],
+  "limitations": [
+    "No Python parse, HIA generation, native image, SQL, linker, wheel or product execution was performed by this reviewer.",
+    "No old55/51 result is transferred to this reconstructed candidate.",
+    "Owner's declared CPython sort-comparison scheduling gap remains open.",
+    "Foreign destructor timing, arbitrary resource exhaustion and private-state tampering are not proved.",
+    "No complete all-input equivalence or qualification assertion."
+  ]
+}
