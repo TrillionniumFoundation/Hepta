@@ -1,4 +1,5 @@
 """Preserve source refusals and exact reference fixtures while reducing work."""
+from copy import deepcopy
 from hashlib import sha256
 import json
 import unittest
@@ -74,6 +75,84 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
                 self.assertEqual(len({row['id'] for row in rows}), count)
                 encoded = json.dumps(rows, sort_keys=True, separators=(',', ':')).encode()
                 self.assertEqual(sha256(encoded).hexdigest(), digest)
+
+
+class AssemblyConstructionBoundaryTests(unittest.TestCase):
+    def test_private_syntax_documents_are_fresh_and_grant_no_admission(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        from hepta.hia_program import VerifiedProgram
+        source = SOURCE.replace('ret(answer)', 'ret(missing)').encode()
+        with patch.object(assembly, 'verify_program', side_effect=AssertionError('construction admitted Core')):
+            first = assembly._parse_assembly_document(source)
+            second = assembly._parse_assembly_document(source)
+            before = deepcopy(first)
+            text = assembly._render_assembly_document(first)
+            self.assertEqual(first, before)
+        self.assertIs(type(first), dict)
+        self.assertNotIsInstance(first, VerifiedProgram)
+        self.assertEqual(text.encode(), source)
+        first['functions'][0]['params'][0]['name'] = 'changed'
+        first['functions'][0]['blocks'][0]['ops'][0]['attrs']['mode'] = 'checked'
+        self.assertEqual(second, before)
+        self.assertEqual(source, SOURCE.replace('ret(answer)', 'ret(missing)').encode())
+        with self.assertRaises(assembly.HIAAssemblyRejected) as caught:
+            assembly.assemble_program(text)
+        self.assertEqual((caught.exception.code, caught.exception.phase), ('E_HIA_SSA', 'core_verification'))
+        with self.assertRaises(assembly.HIAProgramRejected):
+            assembly.render_assembly(second)
+        forged = VerifiedProgram(json.dumps(second).encode())
+        with self.assertRaises(assembly.HIAProgramRejected):
+            assembly.render_assembly(forged)
+
+    def test_public_assemble_and_render_keep_each_complete_admission(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        reference = assembly.verify_program
+        with patch.object(assembly, 'verify_program', wraps=reference) as verifier:
+            checked = assembly.assemble_program(SOURCE)
+            self.assertEqual(verifier.call_count, 1)
+        for value in (checked, checked.as_dict()):
+            with self.subTest(kind=type(value).__name__), patch.object(
+                    assembly, 'verify_program', wraps=reference) as verifier:
+                self.assertEqual(assembly.render_assembly(value), SOURCE)
+                self.assertEqual(verifier.call_count, 2)
+        changed = SOURCE.replace('ret(answer)', 'ret(a64)')
+        with patch.object(assembly, '_render_assembly_document', return_value=changed), patch.object(
+                assembly, 'verify_program', wraps=reference) as verifier:
+            with self.assertRaises(assembly.HIAAssemblyRejected) as caught:
+                assembly.render_assembly(checked)
+            self.assertEqual(verifier.call_count, 2)
+        self.assertEqual((caught.exception.code, caught.exception.phase),
+                         ('E_HIA_ASSEMBLY_ROUNDTRIP', 'representation'))
+
+    def test_public_render_keeps_detached_input_during_spelling(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        document = assembly._parse_assembly_document(SOURCE)
+        # Caller-owned aliases cannot become the representation being emitted.
+        document['functions'][0]['blocks'][0]['params'] = document['functions'][0]['params']
+        render = assembly._render_assembly_document
+        def mutate_caller(data):
+            document['functions'][0]['params'][0]['name'] = 'changed_after_admission'
+            self.assertEqual(data['functions'][0]['params'][0]['name'], 'a')
+            return render(data)
+        with patch.object(assembly, '_render_assembly_document', side_effect=mutate_caller):
+            self.assertEqual(assembly.render_assembly(document), SOURCE)
+
+    def test_fixture_transformations_do_not_issue_verified_authority(self):
+        from tests.test_hia_agent_assembly import SOURCE
+        source = SOURCE.replace('exports(total)\n', '').encode()
+        original = bytes(source)
+        mapping = {'total': 'renamed'}
+        spellings = ['left', 'right', 'wide_left', 'wide_right', 'answer']
+        with patch.object(assembly, 'verify_program', side_effect=AssertionError('fixture admitted Core')):
+            function = names.renamed_source(source, mapping)
+            values = names.renamed_values(source, spellings)
+            blocks = names.renamed_blocks(source, ['start'])
+            reordered = names.reordered_blocks(source)
+        self.assertEqual((source, mapping, spellings),
+            (original, {'total': 'renamed'}, ['left', 'right', 'wide_left', 'wide_right', 'answer']))
+        for result in (function, values, blocks, reordered):
+            self.assertIs(type(result), bytes)
+            assembly.assemble_program(result)
 
 
 if __name__ == '__main__':

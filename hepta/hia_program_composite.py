@@ -441,6 +441,7 @@ class _Elaborator:
                       "partial_records": document["schema"] in {
                           COMPOSITE_SCHEMA_V3, COMPOSITE_SCHEMA_V4}}
         selected = selected_composite_types(document["types"], **type_flags)
+        self.native_types = selected
         self.types = selected if selected is not None else _Types(document["types"], **type_flags)
         self.parameter_loan_returns = document["schema"] == COMPOSITE_SCHEMA_V4
         functions = document["functions"]
@@ -544,6 +545,11 @@ class _Elaborator:
             _reject("nominal elaborated value-slot budget exceeded", "E_HIA_LIMIT")
 
     def parameters(self, value):
+        if self.native_types is not None:
+            return self.native_types.parameters(value)
+        return self._reference_parameters(value)
+
+    def _reference_parameters(self, value):
         if type(value) is not list:
             _reject("parameters must be a list", "E_HIA_FORMAT")
         result, seen = [], set()
@@ -596,6 +602,11 @@ class _Elaborator:
                 _reject("inactive padding contains a loan", "E_HIA_LOAN")
 
     def check_task(self, typ):
+        if self.native_types is not None:
+            return self.native_types.check_task(typ, self.signatures)
+        return self._reference_check_task(typ)
+
+    def _reference_check_task(self, typ):
         if typ.poll not in self.functions or typ.cancel not in self.functions:
             _reject("task protocol names a missing function", "E_HIA_CALL")
         params, returns = self.signatures[typ.poll]
@@ -613,6 +624,25 @@ class _Elaborator:
         return step
 
     def helper(self, typ, operation):
+        key = (typ.key, operation)
+        if key in self.helper_names:
+            return self.helper_names[key]
+        from .hia_task_helpers_native import selected_task_helpers
+        selected = selected_task_helpers()
+        if selected is None:
+            return self._reference_helper(typ, operation)
+        step = self.check_task(typ)
+        result = selected.generate(typ, step, operation, self.serial,
+            self.functions[typ.poll]["effects"], self.functions[typ.cancel]["effects"])
+        self.serial = result.serial
+        if result.name is not None:
+            self.helper_names[key] = result.name
+        result.admit()
+        self.helpers.append(result.helper)
+        return result.name
+
+
+    def _reference_helper(self, typ, operation):
         key = (typ.key, operation)
         if key in self.helper_names:
             return self.helper_names[key]

@@ -131,11 +131,13 @@ def _attrs(value, line):
     return attrs
 
 
-def assemble_program(source: str | bytes) -> VerifiedProgram:
-    """Translate explicit assembly to Core and reverify the entire program.
+def _parse_assembly_document(source: str | bytes) -> dict:
+    """Construct a fresh syntax document without granting Core authority.
 
-    v6/v7/v8 are the text targets. Historical schemas require their existing
-    explicit adapters, and nominal layouts require their existing elaborator.
+    The same source, syntax and attribute bounds apply. The returned mutable
+    document is not verified; public callers use assemble_program. Internal
+    fixture authors may transform it before their final independent admission.
+    No parsed document, VerifiedProgram or admission result is cached.
     """
     _, lines = _source(source)
     document = None
@@ -222,6 +224,16 @@ def assemble_program(source: str | bytes) -> VerifiedProgram:
         _reject("missing assembly header")
     if function is not None:
         _reject("unterminated function; explicit end required", line=len(lines))
+    return document
+
+
+def assemble_program(source: str | bytes) -> VerifiedProgram:
+    """Translate explicit assembly to Core and reverify the entire program.
+
+    v6/v7/v8 are the text targets. Historical schemas require their existing
+    explicit adapters, and nominal layouts require their existing elaborator.
+    """
+    document = _parse_assembly_document(source)
     try:
         return verify_program(document)
     except HIAProgramRejected as exc:
@@ -235,13 +247,13 @@ def _render_parameters(parameters):
     return ",".join(p["name"] + ":" + p["type"] for p in parameters)
 
 
-def render_assembly(document) -> str:
-    """Canonical compact text whose exact primitive Core round trip is checked."""
-    checked = verify_program(document)
-    data = checked.as_dict()
-    if checked.structured_bytes is not None or data["schema"] not in CORE_SCHEMAS:
-        raise HIAAssemblyRejected("render requires explicit primitive v6/v7/v8 Core; use the existing adapter first",
-                                  "E_HIA_ASSEMBLY_PROFILE", phase="representation")
+def _render_assembly_document(data: dict) -> str:
+    """Spell a construction document without claiming it is valid Core.
+
+    The input remains owned by the caller and is only read. This helper grants
+    no VerifiedProgram or execution authority and performs no admission. The
+    public renderer below still fully verifies both the input and round trip.
+    """
     lines = [f'{WIRE_HEADER} {data["schema"]} {data["module"]}']
     if "exports" in data:
         lines.append("exports(" + ",".join(data["exports"]) + ")")
@@ -273,7 +285,17 @@ def render_assembly(document) -> str:
                 text = "trap " + term["code"]
             lines.append("  " + text)
         lines.append("end")
-    rendered = "\n".join(lines) + "\n"
+    return "\n".join(lines) + "\n"
+
+
+def render_assembly(document) -> str:
+    """Canonical compact text whose exact primitive Core round trip is checked."""
+    checked = verify_program(document)
+    data = checked.as_dict()
+    if checked.structured_bytes is not None or data["schema"] not in CORE_SCHEMAS:
+        raise HIAAssemblyRejected("render requires explicit primitive v6/v7/v8 Core; use the existing adapter first",
+                                  "E_HIA_ASSEMBLY_PROFILE", phase="representation")
+    rendered = _render_assembly_document(data)
     if assemble_program(rendered).canonical_bytes != checked.canonical_bytes:
         raise HIAAssemblyRejected("renderer changed canonical Core", "E_HIA_ASSEMBLY_ROUNDTRIP",
                                   phase="representation")

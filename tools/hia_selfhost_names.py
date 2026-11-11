@@ -221,24 +221,22 @@ def name_hash(name):
 
 
 def renamed_source(source, mapping):
-    """Author a name-only fixture, independently reverified as ordinary Core."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+    """Author fixture bytes; the consuming reference separately admits Core."""
+    from hepta.hia_agent_assembly import _parse_assembly_document, _render_assembly_document
+    doc = _parse_assembly_document(source)
     for fn in doc['functions']:
         fn['name'] = mapping[fn['name']]
         for block in fn['blocks']:
             for op in block['ops']:
                 if op['op'] == 'call':
                     op['attrs']['function'] = mapping[op['attrs']['function']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return _render_assembly_document(doc).encode()
 
 
 def renamed_values(source, spellings=None):
-    """Rename every SSA definition/use/formal origin, then reverify real Core."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+    """Author SSA/formal-origin spellings for a separately admitted fixture."""
+    from hepta.hia_agent_assembly import _parse_assembly_document, _render_assembly_document
+    doc = _parse_assembly_document(source)
     for fi, fn in enumerate(doc['functions']):
         definitions = dict.fromkeys(p['name'] for b in fn['blocks']
             for p in [*b['params'], *[p for op in b['ops'] for p in op['out']]])
@@ -265,15 +263,13 @@ def renamed_values(source, spellings=None):
                 term['cond'] = mapping[term['cond']]
                 for arm in ('then', 'else'):
                     term[arm]['args'] = [mapping[x] for x in term[arm]['args']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return _render_assembly_document(doc).encode()
 
 
 def renamed_blocks(source, spellings=None):
-    """Reverify all label definitions, entry names and forward/backward edges."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+    """Author labels and edges; the completed fixture still needs admission."""
+    from hepta.hia_agent_assembly import _parse_assembly_document, _render_assembly_document
+    doc = _parse_assembly_document(source)
     for fi, fn in enumerate(doc['functions']):
         mapping = {block['id']: (spellings[i] if spellings is not None and i < len(spellings)
                                 else 'node_' + str(fi) + '_' + str(i))
@@ -287,15 +283,13 @@ def renamed_blocks(source, spellings=None):
             elif term['op'] == 'branch':
                 for arm in ('then', 'else'):
                     term[arm]['target'] = mapping[term[arm]['target']]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return _render_assembly_document(doc).encode()
 
 
 def reordered_blocks(source, position='last'):
     """Preserve the graph and every operation, placing each entry last."""
-    from hepta.hia_agent_assembly import assemble_program, render_assembly
-    doc = assemble_program(source).as_dict()
+    from hepta.hia_agent_assembly import _parse_assembly_document, _render_assembly_document
+    doc = _parse_assembly_document(source)
     for fn in doc['functions']:
         remaining = [b for b in fn['blocks'] if b['id'] != fn['entry']]
         entry = next(b for b in fn['blocks'] if b['id'] == fn['entry'])
@@ -308,9 +302,7 @@ def reordered_blocks(source, position='last'):
         else:
             raise ValueError('invalid entry declaration position')
         fn['blocks'] = remaining[:at] + [entry] + remaining[at:]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+    return _render_assembly_document(doc).encode()
 
 
 def nonfirst_entry_source():
@@ -379,8 +371,8 @@ def entry_order_refusals():
 def _block_spelling_seed():
     """Construct only the branch fixture shared by block-name controls.
 
-    This keeps both ordinary Core checks in renamed_values. Callers that need
-    one seed do not also author the unrelated maximal-CFG positive fixtures.
+    The consuming references keep their complete independent Core admissions.
+    Callers needing one seed do not also author unrelated maximal-CFG fixtures.
     """
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
@@ -466,7 +458,7 @@ def core_observed_case(name, source):
 
 def value_cases():
     # These are ordinary source fixtures, not cached VerifiedPrograms or VM
-    # results. Every selected rename and every reference still runs its checks.
+    # results. Every completed reference still performs its own full admission.
     named_cases = cases()
     base = [row for row in named_cases if row['program'] == 'named-pair-0']
     spellings = [
@@ -566,9 +558,9 @@ def cases():
     for row in loan_cases():
         if row['program'] not in {'loan-read-forward', 'loan-mut-cfg', 'loan-mut-tail'}:
             continue
-        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_agent_assembly import _parse_assembly_document
         mapping = {fn['name']: 'lease_' + str(i) for i, fn in enumerate(
-            assemble_program(row['source'].encode()).as_dict()['functions'])}
+            _parse_assembly_document(row['source'].encode())['functions'])}
         source = renamed_source(row['source'].encode(), mapping)
         rows.append({**row, 'id': 'named-' + row['id'], 'program': 'named-' + row['program'],
             'source': source.decode()})
