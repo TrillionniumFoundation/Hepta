@@ -1,0 +1,108 @@
+{
+  "schema": "hepta.hia.wire-package-controller-final-gate-controls.v1",
+  "scope": "SYNTHETIC_EXACT_FINAL_AST_CONTROLS_NOT_NATIVE_PRODUCT_EXECUTION",
+  "controller_sha256": "49d9f659eb45f4959365055268a38c42a39da040f8c781e1e6554eab7ecc20c4",
+  "old_controller_sha256": "59936c464d63fcbba0aeb34366791e2ffded2f65082a4c43be5afc5159c16a0d",
+  "recovery_filenames_match_outer": true,
+  "recovery_expected_blobs_unchanged": true,
+  "all_main_try_stage_and_semantic_gate_statements_unchanged": true,
+  "all_planned_phases_and_ids_unchanged": true,
+  "package_inventory_admission_functions_unchanged": true,
+  "cases": [
+    {
+      "case": "stable-pass",
+      "returncode": 0,
+      "report": {
+        "status": "PASS_LIMITED_DEVELOPMENT_CONTROLS",
+        "steps": [],
+        "unexecuted_steps": [],
+        "source_after_snapshot": {
+          "path": "/tmp/hia-wire-e26e-controller/terminal-gate-controls/stable-pass/source-after.json",
+          "bytes": 47,
+          "sha256": "7ffff9546fb76c4e48db4951a79eb8b64b7029ab65f487f28c0ba0c154268ccf",
+          "git_blob_sha1": "6ee62b268f819c5b22491350cd1c0de3be70e9df"
+        },
+        "candidate_source_stable_at_end": true,
+        "finished_utc": "2026-11-11T13:16:49.856360+00:00"
+      }
+    },
+    {
+      "case": "drift-after-pass",
+      "returncode": 1,
+      "report": {
+        "status": "HOLD",
+        "steps": [],
+        "unexecuted_steps": [],
+        "source_after_snapshot": {
+          "path": "/tmp/hia-wire-e26e-controller/terminal-gate-controls/drift-after-pass/source-after.json",
+          "bytes": 48,
+          "sha256": "cbaa5eba5f76bf3dcd6d76b262276cca0eb97a7a0188a828e080378d16723da8",
+          "git_blob_sha1": "2da63d74d3ba2c133e17213d912d9ea7d26e7b13"
+        },
+        "candidate_source_stable_at_end": false,
+        "terminal_gate_error": "candidate source changed at final observation",
+        "finished_utc": "2026-11-11T13:16:49.856494+00:00"
+      }
+    },
+    {
+      "case": "read-error-after-pass",
+      "returncode": 1,
+      "report": {
+        "status": "HOLD",
+        "steps": [],
+        "unexecuted_steps": [],
+        "source_after_snapshot_error": {
+          "type": "OSError",
+          "message": "synthetic final snapshot error"
+        },
+        "terminal_gate_error": "final source observation failed",
+        "finished_utc": "2026-11-11T13:16:49.856540+00:00"
+      }
+    },
+    {
+      "case": "existing-hold-stable",
+      "returncode": 1,
+      "report": {
+        "status": "HOLD",
+        "steps": [],
+        "exception": {
+          "type": "OriginalFailure",
+          "message": "preserve earlier failure"
+        },
+        "unexecuted_steps": [],
+        "source_after_snapshot": {
+          "path": "/tmp/hia-wire-e26e-controller/terminal-gate-controls/existing-hold-stable/source-after.json",
+          "bytes": 47,
+          "sha256": "7ffff9546fb76c4e48db4951a79eb8b64b7029ab65f487f28c0ba0c154268ccf",
+          "git_blob_sha1": "6ee62b268f819c5b22491350cd1c0de3be70e9df"
+        },
+        "candidate_source_stable_at_end": true,
+        "finished_utc": "2026-11-11T13:16:49.856659+00:00"
+      }
+    },
+    {
+      "case": "existing-hold-plus-drift",
+      "returncode": 1,
+      "report": {
+        "status": "HOLD",
+        "steps": [],
+        "exception": {
+          "type": "OriginalFailure",
+          "message": "preserve earlier failure"
+        },
+        "unexecuted_steps": [],
+        "source_after_snapshot": {
+          "path": "/tmp/hia-wire-e26e-controller/terminal-gate-controls/existing-hold-plus-drift/source-after.json",
+          "bytes": 48,
+          "sha256": "cbaa5eba5f76bf3dcd6d76b262276cca0eb97a7a0188a828e080378d16723da8",
+          "git_blob_sha1": "2da63d74d3ba2c133e17213d912d9ea7d26e7b13"
+        },
+        "candidate_source_stable_at_end": false,
+        "terminal_gate_error": "candidate source changed at final observation",
+        "finished_utc": "2026-11-11T13:16:49.856744+00:00"
+      }
+    }
+  ],
+  "case_count": 5,
+  "status": "PASS"
+}
