@@ -13,7 +13,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 from tools.generate_hia_worker_request import format_program
 
 SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hiaasm'
-MAGIC = int.from_bytes(b'HIAWIR01', 'little')
+MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 # Header slots are part of the versioned continuation protocol. Arrays follow
 # the fixed header; the last 8192 bytes are the independently authored printer.
 FIELDS = {
@@ -44,13 +44,25 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < 32768 + 8192:
         return 199
     if get(w, 0) == 0:
-        if length(s) != 88 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
+        if length(s) != 104 or read64(s, 0) != MAGIC or read64(s, 8) != 0 or read64(s, 16) != 0:
             return 199
         if read64(s, 32) != 2 or read64(s, 40) != 0 or read64(s, 48) > 24 or read64(s, 56) > 8388608:
             return 100
         maximum = read64(s, 56)
-        if read64(s, 64) > 1 or read64(s, 72) > 1 or read64(s, 80) > 1 or read64(s, 24) == 0:
+        if read64(s, 64) > 5 or read64(s, 80) > 5 or read64(s, 96) > 2 or read64(s, 24) == 0:
             return 199
+        if (read64(s, 64) == 0 and read64(s, 72) != 0) or (read64(s, 64) == 1 and read64(s, 72) > 1):
+            return 199
+        if (read64(s, 80) == 0 and read64(s, 88) != 0) or (read64(s, 80) == 1 and read64(s, 88) > 1):
+            return 199
+        ascii_flag = flag_truth(read64(s, 64), read64(s, 72))
+        sort_flag = flag_truth(read64(s, 80), read64(s, 88))
+        if ascii_flag == 2:
+            return 117
+        if sort_flag == 2:
+            return 118
+        if read64(s, 96) == 2:
+            return 119
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
         while slots < budget * 2:
@@ -67,9 +79,9 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         put(w, 0, MAGIC)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
-        put(w, ASCII, read64(s, 64))
-        put(w, SORT, read64(s, 72))
-        put(w, RENDERER, read64(s, 80))
+        put(w, ASCII, ascii_flag)
+        put(w, SORT, sort_flag)
+        put(w, RENDERER, read64(s, 96))
         put(w, ROOT, read64(s, 24))
         put(w, HASH_SLOTS, slots)
         put(w, STACK, stack)
@@ -113,6 +125,17 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
                 put(w, PHASE, 4294967295)
             return result
     return 199
+
+def flag_truth(kind:u64, value:u64) -> u64:
+    if kind == 0:
+        return 0
+    if kind == 1:
+        return value
+    if kind == 2 or kind == 4:
+        return choose(value == 0, 0, 1)
+    if kind == 3:
+        return choose((value & 9223372036854775807) == 0, 0, 1)
+    return 2
 
 def ask(w:mutbuf, opcode:u64, handle:u64, index:u64, count:u64, part:u64, phase:u64) -> u64:
     put(w, SEQ, get(w, SEQ) + 1)

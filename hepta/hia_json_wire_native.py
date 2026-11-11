@@ -17,10 +17,22 @@ from .hia_program_tools import HIAEditRejected
 SOURCE = _source_resource_path('examples/hia_bootstrap/json_wire.hiaasm')
 SCHEMA = 'hepta.hia.json-wire-native.v1'
 SELECTOR = 'HEPTA_HIA_JSON_WIRE_MANIFEST'
-MAGIC = int.from_bytes(b'HIAWIR01', 'little')
+MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 MAXIMUM = 8 << 20
 NONE, BOOL, INT, FLOAT, STRING, LIST, TUPLE, DICT, OPAQUE = range(9)
 SUMMARY, CHILD, POINTS, LIMBS, DIGIT_LIMIT, FORMAT_FLOAT = range(1, 7)
+ORDINARY_PROFILE = {
+    'schema': 'hepta.hia.ordinary-json-wire-product-profile.v1',
+    'selector': SELECTOR,
+    'option_exact_types': ['NoneType', 'bool', 'int', 'float', 'str', 'bytes', 'tuple', 'frozenset'],
+    'option_truth_owner': 'HIA_from_exact_type_and_magnitude_or_length_bits',
+    'ordinary_renderer': 'None_or_exact_SelectedBinary64Renderer_after_source_admission',
+    'budget_before_option_and_renderer_profile': True,
+    'foreign_truth_hooks_and_mutable_option_objects': 'explicit_native_profile_refusal',
+    'arbitrary_renderer_callbacks': 'explicit_native_profile_refusal',
+    'unselected_owner': 'retained_reference',
+    'entire_python_call_domain_replaced': False,
+}
 
 REASONS = {
     100: 'invalid JSON output byte budget',
@@ -40,7 +52,27 @@ REASONS = {
     114: 'JSON key exceeds byte budget',
     115: 'unpaired Unicode surrogate in UTF-8 JSON',
     116: 'JSON encoding exceeds byte budget',
+    117: 'native JSON wire requires an immutable builtin ensure_ascii option',
+    118: 'native JSON wire requires an immutable builtin sort_keys option',
+    119: 'native ordinary JSON wire requires an admitted HIA binary64 renderer',
 }
+
+
+class SelectedBinary64Renderer:
+    """A source-admitted HIA printer for the ordinary Agent wire selection.
+
+    Construction retains the existing eager formatter-admission point. Exact
+    type observation distinguishes this factory's printer from arbitrary
+    Python callbacks; HIA makes the ordinary-profile admission decision.
+    """
+    __slots__ = ('_image',)
+
+    def __init__(self, selected):
+        from .hia_agent_binary64_format_native import installed_agent_binary64_format
+        self._image = installed_agent_binary64_format(selected)
+
+    def __call__(self, number):
+        return self._image.render(number).decode('ascii')
 
 
 class GraphObserver(Protocol):
@@ -140,9 +172,26 @@ def buffer_sizes(maximum):
     return physical, size
 
 
+def _flag_fact(value):
+    """Observe immutable builtin truth inputs without evaluating truthiness."""
+    kind = type(value)
+    if value is None:
+        return 0, 0
+    if kind is bool:
+        return 1, int(value)
+    if kind is int:
+        return 2, int.bit_length(value)
+    if kind is float:
+        return 3, struct.unpack('<Q', struct.pack('<d', value))[0]
+    if kind is str or kind is bytes or kind is tuple or kind is frozenset:
+        return 4, len(value)
+    return 5, 0
+
+
 class WireSession:
     """Opaque HIA continuation plus protocol transport, independently testable."""
-    def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys, float_renderer=None):
+    def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
+                 float_renderer=None, _renderer_profile=None):
         self.image, self.observer = image, observer
         self.float_renderer = float_renderer
         output_size, workspace_size = buffer_sizes(maximum)
@@ -154,8 +203,13 @@ class WireSession:
             low = abs(maximum) & ((1 << 64) - 1)
         else:
             kind, sign, bits, low = OPAQUE, 0, 0, 0
-        self.packet = struct.pack('<11Q', MAGIC, 0, 0, root, kind, sign, bits, low,
-                                  int(bool(ensure_ascii)), int(bool(sort_keys)), int(float_renderer is not None))
+        # These are exact foreign type/value facts, not calls to __bool__.
+        # HIA admits maximum before deciding either option or renderer profile.
+        ascii_kind, ascii_value = _flag_fact(ensure_ascii)
+        sort_kind, sort_value = _flag_fact(sort_keys)
+        renderer_fact = int(float_renderer is not None) if _renderer_profile is None else _renderer_profile
+        self.packet = struct.pack('<13Q', MAGIC, 0, 0, root, kind, sign, bits, low,
+                                  ascii_kind, ascii_value, sort_kind, sort_value, renderer_fact)
         self.finished = False
 
     def step(self, packet=None):
@@ -229,6 +283,15 @@ class NativeJsonWire(NativeHiaJsonImage):
         return self.encode_observed(observer, observer.register(value), maximum,
                                     ensure_ascii=ensure_ascii, sort_keys=sort_keys,
                                     float_renderer=float_renderer)
+
+    def encode_ordinary(self, value, maximum, *, ensure_ascii=True, sort_keys=True, float_renderer=None):
+        """Ordinary product profile; arbitrary renderer callbacks are explicit refusals."""
+        observer = ForeignGraphObserver()
+        profile = (0 if float_renderer is None else
+                   1 if type(float_renderer) is SelectedBinary64Renderer else 2)
+        return WireSession(self, observer, observer.register(value), maximum,
+                           ensure_ascii=ensure_ascii, sort_keys=sort_keys,
+                           float_renderer=float_renderer, _renderer_profile=profile).run()
 
 
 def installed_json_wire(path):

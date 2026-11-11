@@ -1,14 +1,15 @@
 # HIA bounded foreign-object JSON wire
 
 This component replaces the graph admission and encoding decisions of
-`bounded_json_wire` when its explicit native API is used. It does not select
-itself as the default Agent serializer, replace SQLite, or qualify later source
-using an earlier cold compiler. Worker report integration is a separate change.
+`bounded_json_wire` when `HEPTA_HIA_JSON_WIRE_MANIFEST` explicitly selects its
+source-bound image, including ordinary `AgentStore.wire` and `digest` calls.
+The unselected entry retains the original implementation. This component does
+not replace SQLite or qualify later source using an earlier cold compiler.
 
 ## Ownership
 
 The HIA program requests observations of actual objects through the versioned
-`HIAWIR01` continuation protocol. It owns both traversals, node/depth/queued
+`HIAWIR02` continuation protocol. It owns both traversals, node/depth/queued
 budgets, active-container identity, exact object-key admission and converted-key
 collisions, integer byte and runtime digit-limit policy, dictionary sorting,
 Unicode escaping, arbitrary-precision integer decimal conversion, shortest
@@ -30,6 +31,40 @@ Registration retains object identity without examining descendants. There is no
 host JSON encoding, sorting, decimal integer conversion, recursion over the
 graph, or table of precomputed replay results. SQLite/service/report policy is
 outside this component.
+
+## Ordinary entry contract and remaining parameter domain
+
+The source-defined `ORDINARY_PROFILE` is also recorded in each new build
+receipt. It admits exact `NoneType`, `bool`, `int`, `float`, `str`, `bytes`,
+`tuple` and `frozenset` options for `ensure_ascii` and `sort_keys`. The bridge
+observes only exact type, bit length, IEEE bits or immutable length; HIA
+determines truth. This preserves hook-free non-boolean inputs without calling
+foreign `__bool__` or `__len__`. The 104-byte version 2 initialization packet
+carries those two type/value pairs. HIA rejects an invalid output budget before
+option or renderer profile admission. Version 1 evaluated options eagerly in
+Python and did not preserve that order; original controls are retained.
+
+Mutable option objects, subtypes and foreign truth hooks remain outside this
+profile and receive an explicit native refusal. Full foreign truthiness would
+need observations at every original DEL/non-ASCII string-preflight point,
+encoder-start ASCII choice and nonempty-dictionary sorting choice. A single
+eager truth value does not implement those callbacks. This work does not claim
+the whole Python `bounded_json_wire` parameter domain is replaced, and the
+retained implementation remains available through the unselected entry.
+
+The ordinary selected entry accepts either no external float renderer or an
+exact `SelectedBinary64Renderer`, whose constructor admits the explicitly
+selected HIA binary64 manifest. Arbitrary callback functions are explicitly
+refused before invocation; they cannot gain the pure-HIA label by returning
+similar-looking bytes. `AgentStore.wire` still admits its binary64 selector
+before entering the bounded-wire selector. Thus an invalid selected formatter
+retains its original priority over graph encoding. Source-bound image/cache
+semantics remain those of the existing native loaders.
+
+The lower-level `encode`/`encode_observed` interface retains its previously
+documented trusted pure-formatter seam for composed native owners such as the
+worker report. This does not retroactively extend older evidence to arbitrary
+callbacks or make the ordinary profile's refusals disappear.
 
 ## Foreign and virtual objects
 
@@ -93,3 +128,18 @@ class uses an automatically cleaned temporary directory. Externally selected
 development images are referenced, not copied, and the independent Core VM
 child has no persistent workspace in this directory. Test stdout/stderr and
 the external development bundle remain separate evidence inputs.
+
+`tests.test_hia_json_wire_entry` exercises the ordinary entry, immutable option
+facts, selected formatter ordering, fail-closed admission, ABI canaries and an
+installed wheel with authoring and the retained encoder forbidden. It uses the
+same cold/development selectors and an independent optional create-only
+`HEPTA_HIA_JSON_WIRE_ENTRY_FIXTURE_EVIDENCE` directory.
+
+`tools.qualify_hia_json_wire_native_callers` runs existing bounded-wire and ordinary
+Agent suites with the selector set and the retained decision owner forbidden.
+It records every loaded/chosen/executed test ID, all unittest anomalies,
+actual native step returns and service-tool calls containing native wire work.
+Qualified mode requires matching-source cold evidence, zero exclusions and all
+eleven Agent tools. `--evidence-dir` retains the actual built image and fixture
+directory. Explicit development exclusions remain visible and cannot turn a
+development run into qualification.

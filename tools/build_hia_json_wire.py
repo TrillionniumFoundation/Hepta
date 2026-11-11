@@ -13,6 +13,7 @@ from pathlib import Path
 
 from tools.build_hia_json_preflight import ROOT, admit_cold_build, current_sources
 from tools.qualify_hia_selfhost import compile_stage
+from hepta.hia_json_wire_native import ORDINARY_PROFILE
 
 SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hiaasm'
 SCHEMA = 'hepta.hia.json-wire-native.v1'
@@ -36,6 +37,7 @@ def _build(output, compiler, source, compiler_raw, *, scope, cold_report=None, c
         'cold_report_sha256': sha256(cold_raw).hexdigest() if cold_raw is not None else None,
         'native_compile_receipt': receipt, 'production_activated': False,
         'foreign_object_transport_is_python': True, 'whole_stack_native': False,
+        'ordinary_entry_profile': ORDINARY_PROFILE,
     }, sort_keys=True, indent=2) + '\n')
     return output / 'manifest.json'
 
