@@ -1135,17 +1135,32 @@ def source_program():
             return ast.copy_location(ast.Constant(FIELDS[node.id]), node) if node.id in FIELDS else node
 
     class FixedWordReads(ast.NodeTransformer):
-        """Expand entry-loop buffer-name/literal-address reads in place.
+        """Expand hot buffer-name/literal-address reads in place.
 
         Dynamic addresses retain their helpers. No read moves out of its
         expression or short-circuit branch, and bytes keep their original
         low-to-high order and individual bounds traps. Restrict this to the
-        continuation receive/dispatch paths executed for every reply. Whole
+        continuation receive/dispatch and observed string processing. Whole
         program expansion exceeds the unchanged assembly line budget, and
         expanding the one-time initialization as well exceeds the unchanged
         native compiler's per-function value-slot budget.
         """
         def visit_FunctionDef(self, node):
+            if node.name in {'text_begin', 'text_byte', 'emit', 'commit_fragment', 'escaped'}:
+                return self.generic_visit(node)
+            if node.name == 'normalize':
+                # The actual continuation profile identifies string replies
+                # as the hot path. Keep all other normalization branches
+                # byte-for-byte at the authoring-AST level.
+                for statement in node.body:
+                    if (isinstance(statement, ast.If)
+                            and isinstance(statement.test, ast.Compare)
+                            and ast.dump(statement.test, include_attributes=False) in {
+                                ast.dump(ast.parse('phase == 30', mode='eval').body, include_attributes=False),
+                                ast.dump(ast.parse('phase == 31', mode='eval').body, include_attributes=False),
+                            }):
+                        self.generic_visit(statement)
+                return node
             if node.name != 'json_wire':
                 return node
             initialization = None
@@ -1191,8 +1206,49 @@ def source_program():
                 value = ast.BinOp(value, ast.BitOr(), shifted)
             return ast.copy_location(value, node)
 
+    class FixedWordStores(ast.NodeTransformer):
+        """Inline ignored fixed-field stores in the observed hot helpers.
+
+        Evaluate the value once before the first byte, as the original call
+        does, then keep all eight byte writes and their partial-store traps
+        in low-to-high order. Dynamic addresses and value-returning calls
+        retain the original helper. This is a call expansion, not a state
+        cache or a combined foreign observation.
+        """
+        def visit_FunctionDef(self, node):
+            if node.name not in {'ask', 'text_byte', 'emit'}:
+                return node
+            self.names = {child.id for child in ast.walk(node) if isinstance(child, ast.Name)}
+            self.counter = 0
+            return self.generic_visit(node)
+
+        def visit_Expr(self, node):
+            node = self.generic_visit(node)
+            call = node.value
+            if (not isinstance(call, ast.Call) or not isinstance(call.func, ast.Name)
+                    or call.func.id != 'put' or len(call.args) != 3 or call.keywords
+                    or not isinstance(call.args[0], ast.Name)
+                    or not isinstance(call.args[1], ast.Constant)
+                    or type(call.args[1].value) is not int
+                    or not 0 <= call.args[1].value <= (1 << 64) - 8):
+                return node
+            while True:
+                name = 'wire_store_value_' + str(self.counter)
+                self.counter += 1
+                if name not in self.names:
+                    self.names.add(name)
+                    break
+            result = [ast.Assign([ast.Name(name, ast.Store())], call.args[2])]
+            for index in range(8):
+                shifted = ast.BinOp(ast.Name(name, ast.Load()), ast.RShift(), ast.Constant(index * 8))
+                value = ast.BinOp(shifted, ast.BitAnd(), ast.Constant(255))
+                result.append(ast.Expr(ast.Call(ast.Name('store', ast.Load()),
+                    [ast.Name(call.args[0].id, ast.Load()), ast.Constant(call.args[1].value + index), value], [])))
+            return [ast.copy_location(statement, node) for statement in result]
+
     tree = Constants().visit(ast.parse(SOURCE + ENCODER))
     tree = FixedWordReads().visit(tree)
+    tree = FixedWordStores().visit(tree)
     return ast.unparse(ast.fix_missing_locations(tree)) + '\n' + format_program()
 
 
