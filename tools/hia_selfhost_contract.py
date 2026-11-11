@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v61-native-request-release-install'
+PROFILE = 'selfhost-core-linux-x86_64-v62-native-request-release-origins'
 SOURCE_FILES = (
     'tools/generate_hia_worker_request.py',
     'examples/hia_bootstrap/worker_request.hiaasm',
@@ -30,6 +30,8 @@ SOURCE_FILES = (
     'tools/generate_hia_composite_types.py',
     'examples/hia_bootstrap/composite_types.hiaasm',
     'tests/test_hia_composite_types_native.py',
+    'tests/test_hia_composite_origins_native.py',
+    'tests/test_hia_structure_traversal.py',
     'tests/test_hia_native_builder_source_binding.py',
     'tests/test_hia_reference_fixture_efficiency.py',
     'docs/HIA_COMPOSITE_TYPES_NATIVE.md',
@@ -488,6 +490,30 @@ def support_contract(root=ROOT):
             'runtime_python_libc_or_child_required': False,
             'authoring_and_build_custody_are_hosted': True,
             'activation_worker_migration_and_retirement_implemented': False,
+        },
+        'composite_type_sessions': {
+            'source': 'examples/hia_bootstrap/composite_types.hiaasm',
+            'selection': 'explicit HEPTA_HIA_COMPOSITE_TYPES_MANIFEST; source/image-bound session; no fallback',
+            'schemas': ['hepta.hia.composite.v1', 'hepta.hia.composite.v2',
+                        'hepta.hia.composite.v3', 'hepta.hia.composite.v4'],
+            'native_owners': ['complete nominal declaration/reference/layout/partial-type sessions',
+                              'composite-v4 returned-loan formal names, record paths, offsets and permissions'],
+            'private_origins_frame': 'HIALOR01; exact return count; unchanged resolver counters; bounded origins JSON',
+            'public_program_limits_unchanged': True,
+            'maximum_private_command_bytes': 8388736,
+            'private_session_bytes': 134217728,
+            'maximum_result_bytes': 67108864,
+            'nominal_limits': {'definitions_and_instantiations': 128, 'depth': 32,
+                               'fields': 64, 'variants': 32, 'flat_slots': 512,
+                               'declaration_analysis_steps': 32768},
+            'origins_extra_public_parameter_limit': None,
+            'diagnostics': 'same categories and first-refusal ordering; native shape/name English context differs',
+            'host_boundaries': ['input snapshot and object transport', 'remaining nominal SSA/operation elaboration',
+                                'task helper generation and protocol admission', 'primitive verification',
+                                'build/install/default selection', 'durable Agent request authority'],
+            'default_changed': False,
+            'whole_nominal_elaborator_replaced': False,
+            'whole_native_delivery_qualified': False,
         },
         'agent_candidate_patch_result': {
             'source': 'examples/hia_bootstrap/core_patch.hiaasm',

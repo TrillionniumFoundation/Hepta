@@ -15,9 +15,12 @@ distinction between original observations and derived audit summaries.
 * `release-development/` retains actual remote kernel logs, fault/kill traces,
   permission failures and corrected observations. The ZIP includes earlier
   failed iterations. Its receipt explicitly says development only.
-* `joint/` retains the new combined-source cold wrapper and process receipt,
+* `joint/` retains the pre-merge v61 combined-source cold wrapper and process receipt,
   exact-source native builds and ordinary worker tests. The cold scope is the
   574 declared sources plus the contract, not the whole product.
+* `v62/` retains the merged-main qualification, the original disk-full failure,
+  new 577-entry cold success and independent archive replay, current native
+  component builds/tests and the targeted old/new host-function differential.
 
 Recorded absolute paths are original observations; copying a report does not
 make those historical paths available in a new checkout. SHA-256 pins refer to

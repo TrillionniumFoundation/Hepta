@@ -170,19 +170,45 @@ def _structure(value):
     container fanout before extending the work stack. This is a size gate,
     not a replacement for the canonical HIA typed SSA/ownership verifier.
     """
-    pending = [(value, 0, False)]
+    # Repeated immutable keys/strings need the same arithmetic, not a second
+    # character scan. This bounded table belongs to this one full traversal;
+    # every occurrence still consumes its own nodes/bytes. A smaller remaining
+    # budget always goes through the original helper, preserving its exact
+    # lower-bound/escape/surrogate rejection order. No admission is memoized.
+    string_sizes = {}
+
+    def string_bytes(value, remaining):
+        # Do not hash a caller's oversized string just to look it up. Preserve
+        # the original constant-time lower-bound refusal before any full scan.
+        if len(value) + 2 > remaining:
+            return _json_string_bytes(value, remaining)
+        size = string_sizes.get(value)
+        if size is not None and size <= remaining:
+            return size
+        size = _json_string_bytes(value, remaining)
+        if len(string_sizes) < 1024:
+            string_sizes[value] = size
+        return size
+
+    # Keep node references directly, rather than allocating a task tuple for
+    # every scalar. A private marker closes each active container and restores
+    # its depth; it cannot be confused with any caller-provided JSON value.
+    leaving = object()
+    pending = [value]
     active = set()
-    count, queued, size = 0, 1, 0
+    count, queued, size, depth = 0, 1, 0, 0
     while pending:
-        current, depth, leaving = pending.pop()
-        if leaving:
-            active.remove(id(current))
+        current = pending.pop()
+        if current is leaving:
+            depth = pending.pop()
+            active.remove(id(pending.pop()))
             continue
         queued -= 1
         count += 1
         if count > MAX_NODES or depth > MAX_DEPTH:
             _reject("program exceeds structural budget", "E_HIA_LIMIT")
-        if type(current) in (dict, list):
+        kind = type(current)
+        if kind in (dict, list):
             identity = id(current)
             if identity in active:
                 _reject("cyclic HIA JSON structure", "E_HIA_FORMAT")
@@ -192,22 +218,26 @@ def _structure(value):
                 _reject("program exceeds queued-node budget", "E_HIA_LIMIT")
             queued += children
             size += 2 + max(0, children - 1)  # container plus commas
-            if type(current) is dict:
+            if kind is dict:
                 size += children  # colons
                 for key in current:
                     if type(key) is not str:
                         _reject("non-string JSON key", "E_HIA_FORMAT")
-                    size += _json_string_bytes(key, MAX_BYTES - size)
+                    size += string_bytes(key, MAX_BYTES - size)
                 values = current.values()
             else:
                 values = current
-            pending.append((current, depth, True))
-            pending.extend((child, depth + 1, False) for child in values)
-        elif type(current) is str:
-            size += _json_string_bytes(current, MAX_BYTES - size)
-        elif type(current) is bool:
+            # Retain the original container until its active-path scope ends.
+            # Children are still captured before descent, in the same order;
+            # the stack therefore visits them right to left as before.
+            pending.extend((current, depth, leaving))
+            pending.extend(values)
+            depth += 1
+        elif kind is str:
+            size += string_bytes(current, MAX_BYTES - size)
+        elif kind is bool:
             size += 4 if current else 5
-        elif type(current) is int:
+        elif kind is int:
             # Fail without converting a potentially enormous host integer
             # into a decimal string merely to discover it exceeds 8 MiB.
             if current.bit_length() > MAX_BYTES * 4:
@@ -233,18 +263,20 @@ def _bounded_detached_snapshot(root):
     A nested caller tree is not claimed to be atomically snapshotted.
     Every supported capture is independently rechecked by _structure.
     """
-    pending = [(root, None, None, 0, False)]
+    # Frames contain only active containers. Their iterators traverse the
+    # bounded, already captured child references, never the live caller tree.
+    # No per-leaf (node, parent, slot, depth, leaving) tasks or reversed
+    # enumerate lists are needed. Retaining each original container also
+    # prevents its identity being recycled while it remains on the active path.
+    frames = []
     active = set()
     count, queued = 0, 1
     result = None
-    while pending:
-        node, parent, slot, depth, leaving = pending.pop()
-        if leaving:
-            active.remove(id(node))
-            continue
+    node, parent, slot = root, None, None
+    while True:
         queued -= 1
         count += 1
-        if count > MAX_NODES or depth > MAX_DEPTH:
+        if count > MAX_NODES or len(frames) > MAX_DEPTH:
             _reject("caller-owned tree exceeds snapshot budget", "E_HIA_LIMIT")
         kind = type(node)
         if kind in (dict, list):
@@ -282,13 +314,7 @@ def _bounded_detached_snapshot(root):
             else:
                 parent[slot] = copy
             queued += len(children)
-            pending.append((node, None, None, depth, True))
-            if kind is dict:
-                pending.extend((child, copy, key, depth + 1, False)
-                               for key, child in reversed(children))
-            else:
-                pending.extend((child, copy, index, depth + 1, False)
-                               for index, child in reversed(list(enumerate(children))))
+            frames.append((node, iter(children) if kind is dict else enumerate(children), copy))
         else:
             if kind not in (str, int, bool) and node is not None:
                 _reject("unsupported caller-owned JSON node", "E_HIA_FORMAT")
@@ -296,7 +322,16 @@ def _bounded_detached_snapshot(root):
                 result = node
             else:
                 parent[slot] = node
-    return result
+        while frames:
+            original, children, parent = frames[-1]
+            try:
+                slot, node = next(children)
+                break
+            except StopIteration:
+                active.remove(id(original))
+                frames.pop()
+        else:
+            return result
 
 def _decode(value):
     if isinstance(value, VerifiedProgram):

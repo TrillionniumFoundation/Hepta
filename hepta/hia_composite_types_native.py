@@ -1,7 +1,8 @@
 """Explicit HIA nominal-type sessions and descriptor-only object transport.
 
 The HIA image owns declarations, reference resolution, layout, exact type
-interning, partial records, symbolic loan analysis and their stateful budgets.
+interning, partial records, symbolic loan analysis, returned-loan origins and
+their stateful budgets.
 This bridge never invokes the hosted type resolver.  The surrounding nominal
 elaborator, primitive verifier, JSON object custody and installation remain
 separate owners.
@@ -24,6 +25,7 @@ SOURCE = _source_resource_path('examples/hia_bootstrap/composite_types.hiaasm')
 SCHEMA = 'hepta.hia.composite-types-native.v1'
 SELECTOR = 'HEPTA_HIA_COMPOSITE_TYPES_MANIFEST'
 MAGIC = int.from_bytes(b'HIATYP01', 'little')
+ORIGINS_MAGIC = int.from_bytes(b'HIALOR01', 'little')
 HEADER_BYTES = 64
 MAX_COMMAND_BYTES = (8 << 20) + 128
 OUTPUT_BYTES = 64 << 20
@@ -72,6 +74,14 @@ ERRORS = {
     34: ('E_HIA_TYPE', 'partial type requires a nominal record in composite v3/v4'),
     35: ('E_HIA_LIMIT', 'generic/partial instantiation budget exceeded'),
     36: ('E_HIA_LIMIT', 'flattened partial-record layout exceeds budget'),
+    37: ('E_HIA_LOAN', 'nominal return_loans must match return arity'),
+    38: ('E_HIA_LOAN', 'nonloan nominal result requires a null origin'),
+    39: ('E_HIA_LOAN', 'returned loan names no original parameter'),
+    40: ('E_HIA_LOAN', 'returned-loan origin requires an incoming loan-only parameter'),
+    41: ('E_HIA_LIMIT', 'returned-loan field path exceeds finite budget'),
+    42: ('E_HIA_LOAN', 'returned-loan path must traverse record fields'),
+    43: ('E_HIA_LOAN', 'returned-loan path names no record field'),
+    44: ('E_HIA_LOAN', 'returned-loan field must be an incoming loan with sufficient permission'),
 }
 
 
@@ -242,7 +252,25 @@ class NativeCompositeTypeSession:
             self._ids[id(typ)] = identifier
             self._descriptors[identifier] = descriptor
 
-    def _command(self, command, *, result=True):
+    @staticmethod
+    def _origin_payload(payload, *, count, names):
+        """Validate the result ABI, without resolving paths or permissions."""
+        value = json.loads(payload, object_pairs_hook=_pairs, parse_constant=_constant)
+        if (type(value) is not dict or set(value) != {'origins'}
+                or type(value['origins']) is not list or len(value['origins']) != count):
+            raise ValueError('invalid origins envelope or count')
+        result = []
+        for origin in value['origins']:
+            if origin is None:
+                result.append(None)
+            elif (type(origin) is list and len(origin) == 2 and type(origin[0]) is str
+                    and origin[0] in names and type(origin[1]) is int and 0 <= origin[1] < 512):
+                result.append((origin[0], origin[1]))
+            else:
+                raise ValueError('invalid original-parameter origin')
+        return tuple(result)
+
+    def _command(self, command, *, result=True, origins=False):
         with self._lock:
             if self._closed or self._broken:
                 self._refuse_abi('session is closed or has a failed transport')
@@ -253,6 +281,9 @@ class NativeCompositeTypeSession:
                 self._refuse_abi('invalid command JSON: ' + str(exc))
             if len(raw) > MAX_COMMAND_BYTES:
                 self._refuse_abi('command exceeds the bounded transport')
+            if origins:
+                origin_count = len(command['returns'])
+                origin_names = frozenset(name for name, _ in command['params'])
             source = ctypes.create_string_buffer(raw, max(1, len(raw)))
             extent = self._image._entry(source, len(raw), self._output, OUTPUT_BYTES,
                                          self._state, SESSION_BYTES)
@@ -260,19 +291,31 @@ class NativeCompositeTypeSession:
                 self._refuse_abi('invalid native frame extent/status ' + str(extent))
             magic, error, identifier, size, cached, active, steps, reserved = struct.unpack_from(
                 '<8Q', self._output)
-            if magic != MAGIC or reserved or HEADER_BYTES + size != extent:
+            if magic != (ORIGINS_MAGIC if origins else MAGIC) or reserved or HEADER_BYTES + size != extent:
                 self._refuse_abi('invalid native frame header')
             if error and (error not in ERRORS or identifier != 0):
                 self._refuse_abi('unrecognized/inconsistent native semantic status ' + str(error))
+            counters = {'cache_count': cached, 'active_count': active,
+                        'partial_declaration_steps': steps}
+            if origins and (counters != self._observations
+                    or (error and error not in {1, 5, 6, *range(37, 45)})
+                    or identifier != (0 if error else origin_count)):
+                self._refuse_abi('invalid native origins status or changed resolver state')
             try:
-                self._materialize(ctypes.string_at(ctypes.addressof(self._output) + HEADER_BYTES, size))
+                payload = ctypes.string_at(ctypes.addressof(self._output) + HEADER_BYTES, size)
+                if origins:
+                    origin_result = self._origin_payload(payload,
+                        count=0 if error else origin_count, names=origin_names)
+                else:
+                    self._materialize(payload)
             except (ValueError, TypeError, KeyError, UnicodeError, RecursionError) as exc:
-                self._refuse_abi('invalid native descriptors: ' + str(exc))
-            self._observations = {'cache_count': cached, 'active_count': active,
-                                  'partial_declaration_steps': steps}
+                self._refuse_abi('invalid native payload: ' + str(exc))
+            self._observations = counters
             if error:
                 code, message = ERRORS[error]
                 raise HIAProgramRejected(message, code)
+            if origins:
+                return origin_result
             if (result and identifier not in self._types) or (not result and identifier != 0):
                 self._refuse_abi('invalid native result identity')
             return self._types[identifier] if result else None
@@ -286,6 +329,26 @@ class NativeCompositeTypeSession:
             if identifier is None or self._types[identifier] is not base:
                 self._refuse_abi('partial base does not belong to this session')
             return self._command({'op': 'partial', 'base': identifier, 'initialized': list(initialized)})
+
+    def loan_origins(self, function, params, returns):
+        """Transport resolved formal identities and the source annotations.
+
+        Every type object must have been materialized by this exact session.
+        The HIA owner decides whether annotations are required, validates their
+        inventory and names, and computes paths, slot offsets and permissions.
+        """
+        with self._lock:
+            def identifier(typ):
+                value = self._ids.get(id(typ))
+                if value is None or self._types[value] is not typ:
+                    self._refuse_abi('origin type does not belong to this session')
+                return value
+            command = {'op': 'origins',
+                'params': [[name, identifier(typ)] for name, typ in params],
+                'returns': [identifier(typ) for typ in returns]}
+            if 'return_loans' in function:
+                command['return_loans'] = function['return_loans']
+            return self._command(command, origins=True)
 
 
 def installed_composite_types(manifest):

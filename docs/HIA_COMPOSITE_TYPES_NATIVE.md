@@ -15,12 +15,17 @@ descriptors. Python transports that graph into the existing immutable `_Type`
 data objects. It does not resolve a submitted type again or recompute its layout,
 linearity, identity, cache membership or symbolic proof result.
 
+The same explicitly selected session also owns the complete v4
+`_Elaborator.loan_origins` decision: annotation inventory and order, original
+formal lookup, record-field traversal, flattened offsets and loan permission.
 The remaining nominal elaborator still lowers operations, constructs helpers,
-checks task protocols against function signatures and binds returned-loan
-origins. The primitive verifier still admits the resulting Core program.
+checks task protocols against function signatures and binds the HIA-computed
+original formal/offset pairs to generated entry slots. The primitive verifier
+still admits the resulting Core program.
 Request/JSON custody, the worker, storage, build/install control and default
 delivery remain separate responsibilities. This selection replaces the type
-owner; it does not declare the entire composite elaborator or product native.
+owner and the returned-loan origin decision; it does not declare the entire
+composite elaborator or product native.
 
 ## Selection and source binding
 
@@ -161,12 +166,106 @@ The exact command shapes are:
 {"op":"init","definitions":[],"recursive_chain":true,"partial_records":true}
 {"op":"resolve","ref":{"name":"Box","args":["buffer"]}}
 {"op":"partial","base":17,"initialized":["value"]}
+{"op":"origins","params":[["views",17]],"returns":[14],"return_loans":[{"param":"views","fields":["reader"]}]}
 ```
 
 `base` is an exact completed type ID previously produced by that session. The
 adapter rejects a `_Type` from another session instead of reinterpreting its
 numeric ID. Ordinary elaboration calls `resolve(ref)` and
 `partial_record(base, initialized)` in their existing order.
+
+### Returned-loan origin command
+
+After resolving a composite v4 function's formals and results in their existing
+order, ordinary elaboration sends their exact completed session IDs and the
+original `return_loans` value to `origins`. An absent annotation property stays
+absent in the command; it is not replaced by an allocated default list. An
+explicit JSON null stays null. The HIA implementation makes all decisions
+previously made by `_Elaborator.loan_origins`, including the distinction between
+those cases. The hosted helper remains the unselected reference and is never a
+fallback after a selected failure.
+
+The private parameter representation is an array of `[name, type_id]` pairs.
+Those formal names have already passed ordinary parameter admission, including
+uniqueness. The HIA command still rejects duplicate names, invalid formal names,
+nonintegral IDs, zero/out-of-range IDs and IDs of incomplete types as fatal
+transport errors. The adapter refuses types from other sessions and copied or
+forged `_Type` objects before entering the image. Neither raw IDs nor session
+tokens enter public normalized Core or structured bytes.
+
+For each result, HIA first checks whether an annotation is allowed or required.
+For a borrowed result it checks the exact `param`/`fields` object inventory,
+validates the original formal's name, looks it up, rejects owned or unsupported
+source kinds, and then checks the field-path list and its existing depth limit
+of 32. Fields are visited in source-path order; preceding declaration fields
+contribute their flattened widths, including zero-width fields. The terminal
+value must be a primitive incoming read or mutable loan, with sufficient
+permission for the result. The earlier ordinary restriction on stored borrowed
+return values remains in the elaborator, and the primitive verifier still
+independently checks actual returned ancestry and call/CFG permissions.
+
+The result uses the same 64-byte header layout with magic `HIALOR01`. Word 2
+is the number of returned entries, or zero on semantic refusal. Its payload is
+exactly `{"origins":[null,["original_formal",offset],...]}`. Offsets are integers
+from 0 through 511. A semantic refusal returns an empty `origins` array and the
+existing diagnostic category. The adapter checks the exact envelope, count,
+formal-name correlation, integer offsets, magic, reserved word and error table.
+It converts pairs to tuples without walking a type layout, interpreting a path
+or checking permission again. Missing/corrupt frames poison the adapter session.
+
+An origins command changes no type, cache, active set or partial-analysis work
+counter. Its frame must report the same counters as the previous type command;
+the adapter rejects any discrepancy. Semantic refusals leave the session usable
+and preserve prior unsuccessful active instantiations. The input is serialized
+into private bytes before native entry, preserving ordinary detached JSON
+custody even if the caller later changes its annotation objects.
+
+No new public quota is introduced. Replacing each original type reference with
+an ID of at most three digits cannot increase its byte size, and replacing each
+formal object with a pair saves bytes without adding value nodes. Removing the
+rest of the already admitted program more than pays for the command envelope.
+The annotation value is copied unchanged and optional defaults are not expanded.
+More precisely, let `P` and `R` include the encoded parameter/result arrays, and
+let `A` be the encoded annotation value when present. Compact framing has these
+sizes, excluding those arrays/value:
+
+| Container | No `return_loans` | With `return_loans` |
+| --- | ---: | ---: |
+| Private origins command | 37 bytes | 53 bytes |
+| Smallest reachable function object | 66 bytes | 82 bytes |
+| Smallest reachable complete v4 program | 140 bytes | 156 bytes |
+
+The function lower bound even permits `effects`, `entry` and `blocks` to be
+the one-byte invalid value `0`: those values have not yet been checked when
+origins runs. Function/module names require at least three encoded bytes;
+types and functions have already passed their earlier inventory checks. Each
+parameter object becomes a pair with at least 14 fewer bytes. Every already
+resolved type reference occupies at least three encoded bytes, and its ID at
+most three. Thus the private command is at least 103 bytes smaller than the
+public document, including when the eventual origin diagnostic is a refusal.
+It cannot exceed the existing 8 MiB plus 128-byte private bound.
+
+If `NP`, `NR` and optional `NA` include the respective value-node counts, the
+command has at most `2 + NP + NR (+ NA)` nodes and the complete original program
+at least `10 + NP + NR (+ NA)`. Parameter object/pair containers each contribute
+one node, with their names and types/IDs contributing at least two more;
+replacing reference subtrees with IDs cannot add nodes. The command therefore
+stays below the public 262,144-node bound. Its parameter, result and annotation
+paths remove two container levels, so their nesting depth also decreases.
+The actual native regression exercises an exact 8 MiB public document whose
+malformed annotation reaches the origins command and retains `E_HIA_FORMAT`,
+plus a valid function with 2,049 mostly zero-width formals. Even a conservative
+137 output bytes per admitted JSON value node stays below 37 MiB, within the
+existing 64 MiB output buffer.
+
+Original formal lookup uses exact strings and a private 131,072-slot hash
+table. Each formal pair consumes three JSON value nodes, so the 262,144-node
+command limit permits fewer than 87,381 formals: the table cannot fill for an
+admitted command. Hash collisions are resolved by exact name comparison. The
+table occupies workspace bytes `[132710400, 133758976)`, within the existing
+128 MiB session and separate from all traversal stacks and persistent type or
+memo records. It is cleared for each origins command. Session words at offsets
+176 and 184 hold only the current result's temporary name node and offset.
 
 | Source schema | `recursive_chain` | `partial_records` |
 | --- | --- | --- |
@@ -269,6 +368,22 @@ selected run. Existing partial-record rejection and frozen-fingerprint cases
 also exercise that ordinary route. A real wheel is installed outside the
 checkout, imports of `tools` are forbidden, and selected missing/changed source,
 invalid manifests and fresh corrupted images must refuse.
+
+The focused origins suite compares the actual HIA image against the retained
+hosted helper for absent/null annotations, exact object inventories, error
+ordering, generic record paths, permissions, source kinds, zero-width DAGs,
+32-deep paths, the 511-offset boundary and deterministic randomized paths.
+Transport controls cover forged and unfinished IDs, cross-session objects,
+duplicate formals, name-hash collisions, malformed frames, input immutability,
+post-snapshot source alias mutation and unchanged counters after both acceptance
+and refusal. Ordinary returned-loan programs and the installed-wheel control
+run with both hosted `_Types` and hosted `loan_origins` disabled. Canonical and
+structured bytes remain equal to the independent unselected results.
+Equivalence of refusals means the diagnostic category and checking order.
+Native errors 1, 5 and 6 use the ABI's compact shape/name messages, so their
+English text can differ from the hosted helper's contextual labels such as
+`nominal returned-loan origin` or `returned-loan field`. The suite does not
+claim byte-for-byte equality of all exception messages.
 
 `HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST` is a test-only mechanism to
 reuse a current-source development image. It cannot be combined with

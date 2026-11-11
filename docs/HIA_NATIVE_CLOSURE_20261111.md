@@ -36,6 +36,14 @@ these incomplete entries or skipped downstream suites is a pass. All 562 declare
 source entries were independently matched to the frozen Git objects. The raw
 artifact digest is `c1d137bf8f54afaff613e725c152e84ecb19cab20fd03f94531e8392ffef11ec`.
 
+Later main also preserves a separate ROG qualification of exactly that same
+`c80eb2e` source: **3,931 retained regression tests** passed without errors,
+failures, skips or expected failures, and its cold replay passed. The
+[original full readback](../review-evidence/hia-native-rewrite-20261111/v61/c80-qualification/full-readback.json)
+records the exact tree, all source identities and each step. This independent
+machine run does not erase the GitHub timeout, and neither baseline result
+qualifies the later merged v62 source.
+
 A current Runtime discovery read and exact manifest-byte hash check found
 different worker/backend identities from the frozen main source. The live
 backend profile still reports `self_hosted: false`. This is an observation of
@@ -111,7 +119,7 @@ independently replayed. This isolated result does not qualify the later combined
 source. Combined-source results belong to the matching contract and retained
 evidence for this continuation.
 
-## Combined-source observations
+## Combined v61 observations before merging later main
 
 The combined v61 candidate passed a fresh source-only cold replay with
 CPython 3.14.10: **11/11 wrapper checks, 38/38 sealed phases and 5,049/5,049
@@ -141,11 +149,64 @@ snapshots and derived summaries. Original absolute paths inside retained
 reports are left unchanged. Historical failures are preserved alongside fixes;
 development and isolated-repair results are not relabelled as combined runs.
 
+The full pre-merge source runner regenerated all 41 components without changing
+bytes and ran 267 tests. Its workflow shell fixture had three failed subcases
+because this local Python 3.14 installation lacked a `python` alias beside
+`sys.executable`. The original failure is retained. Providing a private alias to
+the same interpreter made all four workflow controls pass; no source gate was
+relaxed. The subsequent v62 source suite is a separate current-source run.
+
+## Integration of later main
+
+While this continuation was running, main advanced to
+`647885c5c3ff067b6477011123335ad5a1aef78e`. Its complete Git commit and tree
+identities were verified and merged, preserving the native composite-v4
+returned-loan origin decisions, the independent controls and evidence, and the
+equivalent structural-traversal changes. The combined current profile is
+`selfhost-core-linux-x86_64-v62-native-request-release-origins`.
+All earlier v61 observations above remain attached to their earlier sources;
+they do not qualify this new merged profile.
+
+The first v62 attempt failed after 40.074269915 seconds because the shared
+filesystem ran out of free blocks while creating the seed's temporary link
+directory. Its wrapper and original `Errno 28` traceback are retained. Completed
+historical cold directories were losslessly archived and every regular file's
+bytes, mode, UID and GID independently read back before releasing their unpacked
+copies. No production source or other worktree was removed.
+
+A fresh v62-r2 run then passed **11/11 wrapper checks, 38/38 phases and
+5,049/5,049 checks in 168.469563822 seconds**, with CPython 3.14.10. It binds
+576 declared sources plus the contract. A separate standard-library audit
+rehashes those 577 entries before and after replay, verifies all six actual
+compiler images and phase/process relationships, and reads all 42,661 members
+of the 38 ZIP archives through EOF. The independently read payload bytes total
+2,396,852,094; manifests add 6,952,530 bytes. Both compiler fixed points remain
+valid, and the owned process tree finishes before the unchanged deadline.
+
+The matching v62 application builds reproduce the request and release image
+hashes above. The ordinary worker and independent review pass **18/18** tests
+under CPython 3.14.10. The complete composite-type and returned-loan-origin
+suites pass **28/28** under CPython 3.12.14, including real installed-wheel
+normalization. Neither suite has skips or expected failures. Their independent
+interpreter identities are retained in `v62/` evidence; GitHub's Python 3.14
+workflow remains a separate gate.
+
+The v62 language run also passes **1,242/1,242** checks under both original and
+modified compilers, followed by **10/10** assertions over that actual report.
+All 41 source generators reproduce their checked-in bytes exactly after the
+merge. These checks preserve the existing admitted profile and explicitly do
+not establish the unavailable whole-v8 or whole-product claims.
+
+The complete current source-control suite passes **283/283 tests** under
+CPython 3.14.10, with no failures, errors, skips or expected failures. Its
+before/after declared-source hashes remain identical. The unit runner took
+394.074 seconds; preparation plus execution took 402.205244260 seconds.
+
 ## Remaining production owners and retirement gates
 
 | Owner | Current actual responsibility | Required closure before retirement |
 | --- | --- | --- |
-| `hia_program_composite._Elaborator` | Nominal SSA, record/enum operations, task helpers, partial tokens, returned-loan origin lowering and export eligibility | Complete HIA lowering for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
+| `hia_program_composite._Elaborator` | Nominal SSA, record/enum operations, task helpers, partial tokens, binding native loan origins to generated entry slots and export eligibility | Complete HIA lowering for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
 | General compiler/backend | Canonical machine plans, broader retained Core layouts, object/linking and target support beyond the selfhost profile | Native producers for every retained language and ABI target, with explicit profile boundaries, cross-target execution and source-matched qualification |
 | `HIAAgentService` and `AgentStore` | Tool methods, refs/namespaces, SQLite/WAL transactions, intents/completions, costs, slots, versions, leases, evaluation, adoption and rollback | Full native ordinary worker with same-key conflict, unknown outcomes, crash/restart, original-operation observation and state continuity |
 | Worker and foreign bridge | Administrator parsing, Python object materialization, service entry, installation readback and report serialization | Native complete request/report/service protocol with current code/profile pinning |

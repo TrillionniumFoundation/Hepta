@@ -59,6 +59,61 @@ class HIAPreflightTests(unittest.TestCase):
             with self.subTest(text=text), self.assertRaises(ValueError):
                 self.admit(text)
 
+    def test_long_strings_keep_exact_escape_and_unicode_refusals(self):
+        prefix = 'ordinary ASCII and Greek Ω and astral 𐐷 ' * 2048
+        for suffix in ('"', '\\n"', '\\u0041"', '\\uD800\\uDC00"', '\\\\"', '\\""'):
+            with self.subTest(suffix=suffix):
+                self.admit('"' + prefix + suffix, nodes=1, depth=0)
+        bad_suffixes = (
+            ('', 'unterminated JSON string'),
+            ('\x1f"', 'unescaped control or isolated Unicode surrogate'),
+            ('\ud800"', 'unescaped control or isolated Unicode surrogate'),
+            ('\udfff"', 'unescaped control or isolated Unicode surrogate'),
+            ('\\', 'unterminated JSON escape'),
+            ('\\x"', 'invalid JSON escape'),
+            ('\\u00G0"', 'invalid Unicode escape'),
+            ('\\uD800"', 'unpaired high Unicode surrogate'),
+            ('\\uD800\\u0041"', 'unpaired high Unicode surrogate'),
+            ('\\uDC00"', 'unpaired low Unicode surrogate'),
+        )
+        for suffix, reason in bad_suffixes:
+            with self.subTest(suffix=repr(suffix)), self.assertRaises(ValueError) as caught:
+                self.admit('"' + prefix + suffix, nodes=1, depth=0)
+            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+
+    def test_long_spans_preserve_budget_and_duplicate_error_order(self):
+        key = 'long-key-Ω' * 4096
+        escaped = json.dumps(key, ensure_ascii=True)
+        wire = '{' + json.dumps(key, ensure_ascii=False) + ':0,' + escaped + ':"\ud800"}'
+        with self.assertRaises(ValueError) as caught:
+            self.admit(wire, nodes=2, depth=1)
+        self.assertEqual(str(caught.exception),
+                         'HIA JSON preflight: duplicate decoded object key')
+        wire = '[' + json.dumps(key, ensure_ascii=False) + ',"\ud800"]'
+        with self.assertRaises(OverflowError):
+            self.admit(wire, nodes=2, depth=1)
+        with self.assertRaises(OverflowError):
+            self.admit(wire, nodes=3, depth=0)
+        with self.assertRaisesRegex(ValueError, 'isolated Unicode surrogate'):
+            self.admit(wire, nodes=3, depth=1)
+
+    def test_only_ascii_digits_and_json_whitespace_form_spans(self):
+        space = ' \t\r\n' * 4096
+        digits = '1234567890' * 4096
+        self.admit(space + '-' + digits + space, nodes=1, depth=0)
+        for wire, reason in (
+            (space + '٠', 'expected JSON integer or literal'),
+            (space + '１', 'expected JSON integer or literal'),
+            (space + '\u00a0' + '0', 'expected JSON integer or literal'),
+            (space + '0' + '\u00a0', 'extra JSON data'),
+            (space + digits + '１', 'extra JSON data'),
+            (space + '0' + digits, 'extra JSON data'),
+            (space + '-' + space + '1', 'expected JSON integer or literal'),
+        ):
+            with self.subTest(reason=reason), self.assertRaises(ValueError) as caught:
+                self.admit(wire, nodes=1, depth=0)
+            self.assertEqual(str(caught.exception), 'HIA JSON preflight: ' + reason)
+
     def test_randomized_grammar_and_budget_equivalence_to_stdlib(self):
         rng = random.Random(1776)
         def value(depth=0):

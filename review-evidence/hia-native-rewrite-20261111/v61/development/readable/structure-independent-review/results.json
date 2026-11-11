@@ -1,0 +1,148 @@
+{
+  "candidate_file": "/workspace/scratch/9acdfa9f5639/Hepta-structure-candidate/hepta/hia_program.py",
+  "candidate_sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+  "baseline_commit": "c80eb2ecc5d08421a3d124c879edb33cefff2267",
+  "production_modified": false,
+  "targeted_cases": 14,
+  "all_equal": true,
+  "records": [
+    {
+      "case": "mutation_between_separate_alias_visits",
+      "result": {
+        "returned": [
+          [
+            "old"
+          ],
+          [
+            "changed"
+          ]
+        ]
+      }
+    },
+    {
+      "case": "captured_parent_edge_and_new_nested_cycle",
+      "result": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: cyclic caller-owned HIA tree",
+        "causes": []
+      }
+    },
+    {
+      "case": "deep_empty_sibling_scope_0",
+      "owner": "structure",
+      "result_kind": "returned"
+    },
+    {
+      "case": "deep_empty_sibling_scope_0",
+      "owner": "snapshot",
+      "result_kind": "returned"
+    },
+    {
+      "case": "deep_empty_sibling_scope_1",
+      "owner": "structure",
+      "result_kind": "returned"
+    },
+    {
+      "case": "deep_empty_sibling_scope_1",
+      "owner": "snapshot",
+      "result_kind": "returned"
+    },
+    {
+      "case": "deep_empty_sibling_scope_2",
+      "owner": "structure",
+      "result_kind": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: only bounded integer JSON values are supported",
+        "causes": []
+      }
+    },
+    {
+      "case": "deep_empty_sibling_scope_2",
+      "owner": "snapshot",
+      "result_kind": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: unsupported caller-owned JSON node",
+        "causes": []
+      }
+    },
+    {
+      "case": "deep_empty_sibling_scope_3",
+      "owner": "structure",
+      "result_kind": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: unpaired Unicode surrogate",
+        "causes": []
+      }
+    },
+    {
+      "case": "deep_empty_sibling_scope_3",
+      "owner": "snapshot",
+      "result_kind": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: unsupported caller-owned JSON node",
+        "causes": []
+      }
+    },
+    {
+      "case": "ascii_exact",
+      "result": {
+        "returned": 8388608
+      },
+      "memo_lookups": [
+        {
+          "characters": 8388606,
+          "remaining": 8388608
+        }
+      ],
+      "python_string_allocation_bytes": 8388647
+    },
+    {
+      "case": "ascii_one_over",
+      "result": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_LIMIT",
+        "message": "E_HIA_LIMIT: program exceeds byte budget before encoding",
+        "causes": []
+      },
+      "memo_lookups": [],
+      "python_string_allocation_bytes": 8388648
+    },
+    {
+      "case": "astral_char_lower_bound_only",
+      "result": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_LIMIT",
+        "message": "E_HIA_LIMIT: program exceeds byte budget before encoding",
+        "causes": []
+      },
+      "memo_lookups": [
+        {
+          "characters": 8388606,
+          "remaining": 8388608
+        }
+      ],
+      "python_string_allocation_bytes": 33554484
+    },
+    {
+      "case": "surrogate_first_near_bound",
+      "result": {
+        "exception": "HIAProgramRejected",
+        "code": "E_HIA_FORMAT",
+        "message": "E_HIA_FORMAT: unpaired Unicode surrogate",
+        "causes": []
+      },
+      "memo_lookups": [
+        {
+          "characters": 8388606,
+          "remaining": 8388608
+        }
+      ],
+      "python_string_allocation_bytes": 16777270
+    }
+  ]
+}

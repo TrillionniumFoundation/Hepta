@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 from hepta import hia_program_composite as composite
 from hepta.hia_program import HIAProgramRejected, verify_core
-from hepta.hia_composite_types_native import (SOURCE, SCHEMA, SELECTOR, MAGIC,
+from hepta.hia_composite_types_native import (SOURCE, SCHEMA, SELECTOR, MAGIC, ORIGINS_MAGIC,
     HEADER_BYTES, MAX_COMMAND_BYTES, OUTPUT_BYTES, SESSION_BYTES, PRIMITIVES, ERRORS,
     NativeCompositeTypes, NativeCompositeTypeSession, _NativeTypeIdentity,
     installed_composite_types)
@@ -208,6 +208,7 @@ class CompositeTypesSourceTests(unittest.TestCase):
         from tools import generate_hia_composite_types as author
         self.assertEqual(SOURCE.read_text(), render_assembly(author.document()))
         self.assertEqual(ERRORS, author.ERRORS)
+        self.assertEqual(ORIGINS_MAGIC, author.ORIGINS_MAGIC)
         self.assertEqual(PRIMITIVES, author.PRIMITIVES)
         self.assertEqual((OUTPUT_BYTES, SESSION_BYTES), (author.OUTPUT_BYTES, author.WORKSPACE_BYTES))
         self.assertEqual(MAX_COMMAND_BYTES, author.MAX_COMMAND_BYTES)
@@ -607,7 +608,7 @@ class CompositeTypesNativeTests(unittest.TestCase):
             '--target', str(installed), str(wheel)], cwd=self.folder, capture_output=True, timeout=120,
             env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        document = partial_fixtures.nested_record_program()
+        document = loan_fixtures.pair_program('mut')
         with patch.dict(os.environ, {SELECTOR: ''}):
             expected = verify_core(document).canonical_bytes
         data = self.folder / 'installed-input.json'; data.write_bytes(wire(document))
@@ -625,6 +626,7 @@ from hepta.hia_composite_types_native import SOURCE
 assert Path(sys.argv[1]) in SOURCE.parents
 def absent(*args,**kwargs):raise AssertionError('host nominal type owner called')
 composite._Types=absent
+composite._Elaborator.loan_origins=absent
 try:result=verify_core(Path(sys.argv[2]).read_bytes())
 except HIAProgramRejected:
     if sys.argv[3]=='refuse':print('REFUSED')

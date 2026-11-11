@@ -230,7 +230,8 @@ if cold_ok:
         'patch': ['tests.test_hia_core_patch_native', 'tests.test_hia_core_patch_cli'],
         'agent-candidate': ['tests.test_hia_agent_candidate_native'],
         'patch-result-cli': ['tests.test_hia_core_patch_result_cli'],
-        'composite-types': ['tests.test_hia_composite_types_native'],
+        'composite-types': ['tests.test_hia_composite_types_native',
+                            'tests.test_hia_composite_origins_native'],
     }
     for name, names in groups.items():
         ok = suite(name, names) and ok
