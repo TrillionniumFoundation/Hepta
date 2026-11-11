@@ -1,0 +1,3109 @@
+{
+  "actual_retained_nul_threshold": 17691,
+  "elapsed_ns": 78886685274,
+  "expected_case_count": 42,
+  "failures": [],
+  "observations": [
+    {
+      "case": "empty",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 0,
+      "full_input_observation_chunks": 0,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native_ns": 998670,
+      "native_return_codes": {
+        "1": 14,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 80301,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 0,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        }
+      ]
+    },
+    {
+      "case": "public-minimum",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-89c6a83b8f71687adacc4a3ea1112cc346eadcdd99e04b6788dc8b8a32d7470e",
+          "a-fixture",
+          "6896d9ea3f73a4434f5832bc65714e7d066f177373f36f34dc8a6f735daa41b1",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 4096,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "6896d9ea3f73a4434f5832bc65714e7d066f177373f36f34dc8a6f735daa41b1",
+      "native_ns": 3038594,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 341636,
+      "result": {
+        "content_points": 512,
+        "content_sha256": "32beecb58a128af8248504600bd203dcc676adf41045300485655e6b8780a01d",
+        "content_utf8_bytes": 512,
+        "encoding": "utf8",
+        "next_cursor": "page-89c6a83b8f71687adacc4a3ea1112cc346eadcdd99e04b6788dc8b8a32d7470e"
+      },
+      "source_bytes": 4096,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-89c6a83b8f71687adacc4a3ea1112cc346eadcdd99e04b6788dc8b8a32d7470e",
+            "a-fixture",
+            "6896d9ea3f73a4434f5832bc65714e7d066f177373f36f34dc8a6f735daa41b1",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1032,
+      "wire_calls": [
+        {
+          "bytes": 514,
+          "sha256": "0feb7144fb7b889faed62b7facb7d2c195268e366697baf3807a4a99f7b677e9"
+        },
+        {
+          "bytes": 514,
+          "sha256": "0feb7144fb7b889faed62b7facb7d2c195268e366697baf3807a4a99f7b677e9"
+        },
+        {
+          "bytes": 518,
+          "sha256": "aea56aab9704b49612f571d92d991326849d8953911af42e38cd7d29c4881234"
+        },
+        {
+          "bytes": 142,
+          "sha256": "89c6a83b8f71687adacc4a3ea1112cc346eadcdd99e04b6788dc8b8a32d7470e"
+        }
+      ]
+    },
+    {
+      "case": "public-maximum",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-dc7adb20bd82b3e80ed6c74c40bab443e7a4b395f114dbdbd71cd187c5c82e7b",
+          "a-fixture",
+          "b80935d45c7fcb544ad1b841005e50e452239aef65d3e0b6c07976a50f356c69",
+          65536
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 2,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 70000,
+      "full_input_observation_chunks": 2,
+      "input_sha256": "b80935d45c7fcb544ad1b841005e50e452239aef65d3e0b6c07976a50f356c69",
+      "native_ns": 104355077,
+      "native_return_codes": {
+        "1": 21,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 17216382,
+      "result": {
+        "content_points": 65536,
+        "content_sha256": "156c38442089c1323d3e3ba549a6ac24341c47e8b6367bec4740c9b8c865826e",
+        "content_utf8_bytes": 65536,
+        "encoding": "utf8",
+        "next_cursor": "page-dc7adb20bd82b3e80ed6c74c40bab443e7a4b395f114dbdbd71cd187c5c82e7b"
+      },
+      "source_bytes": 70000,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-dc7adb20bd82b3e80ed6c74c40bab443e7a4b395f114dbdbd71cd187c5c82e7b",
+            "a-fixture",
+            "b80935d45c7fcb544ad1b841005e50e452239aef65d3e0b6c07976a50f356c69",
+            65536
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 131080,
+      "wire_calls": [
+        {
+          "bytes": 65538,
+          "sha256": "512a3feaf391a57f681a3216a9cfb27eb8dd63a0b4fb0c95e55a6dcb293f7090"
+        },
+        {
+          "bytes": 65538,
+          "sha256": "512a3feaf391a57f681a3216a9cfb27eb8dd63a0b4fb0c95e55a6dcb293f7090"
+        },
+        {
+          "bytes": 65542,
+          "sha256": "645c9cdd47218b3ebd89cfe64d2050d853087e618f800086ce27a6d2e86fb2aa"
+        },
+        {
+          "bytes": 144,
+          "sha256": "dc7adb20bd82b3e80ed6c74c40bab443e7a4b395f114dbdbd71cd187c5c82e7b"
+        }
+      ]
+    },
+    {
+      "case": "max-artifact-ascii",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-ecb9e60a5a2d6dc7e6e81eebd00773f08ad5f35e27bff340e1b1a9b98183e88f",
+          "a-fixture",
+          "dbfaca2662cb70b69dfefd5ac95d1f54a73663092d46cefdc9609dc695a12c98",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1024,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 67108864,
+      "full_input_observation_chunks": 1024,
+      "input_sha256": "dbfaca2662cb70b69dfefd5ac95d1f54a73663092d46cefdc9609dc695a12c98",
+      "native_ns": 14533132348,
+      "native_return_codes": {
+        "1": 1043,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 132491900,
+      "result": {
+        "content_points": 512,
+        "content_sha256": "32beecb58a128af8248504600bd203dcc676adf41045300485655e6b8780a01d",
+        "content_utf8_bytes": 512,
+        "encoding": "utf8",
+        "next_cursor": "page-ecb9e60a5a2d6dc7e6e81eebd00773f08ad5f35e27bff340e1b1a9b98183e88f"
+      },
+      "source_bytes": 67108864,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-ecb9e60a5a2d6dc7e6e81eebd00773f08ad5f35e27bff340e1b1a9b98183e88f",
+            "a-fixture",
+            "dbfaca2662cb70b69dfefd5ac95d1f54a73663092d46cefdc9609dc695a12c98",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1032,
+      "wire_calls": [
+        {
+          "bytes": 514,
+          "sha256": "0feb7144fb7b889faed62b7facb7d2c195268e366697baf3807a4a99f7b677e9"
+        },
+        {
+          "bytes": 514,
+          "sha256": "0feb7144fb7b889faed62b7facb7d2c195268e366697baf3807a4a99f7b677e9"
+        },
+        {
+          "bytes": 518,
+          "sha256": "aea56aab9704b49612f571d92d991326849d8953911af42e38cd7d29c4881234"
+        },
+        {
+          "bytes": 142,
+          "sha256": "ecb9e60a5a2d6dc7e6e81eebd00773f08ad5f35e27bff340e1b1a9b98183e88f"
+        }
+      ]
+    },
+    {
+      "case": "max-artifact-invalid-last",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-8c94fdfba2882b5feea164d0ecb9ad81305e1409fcedfb171fbe029b508c8478",
+          "a-fixture",
+          "b1fe4d1352a0fad43e9653e141f64a8a8fb50af69de03f054e204b60c52609ec",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1024,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 67108864,
+      "full_input_observation_chunks": 1024,
+      "input_sha256": "b1fe4d1352a0fad43e9653e141f64a8a8fb50af69de03f054e204b60c52609ec",
+      "native_ns": 14663137438,
+      "native_return_codes": {
+        "1": 1043,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 147621330,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "aa4a445c70e78814e0d9cb9665987f495422ac312e39f598e9dc920f89e93695",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-8c94fdfba2882b5feea164d0ecb9ad81305e1409fcedfb171fbe029b508c8478"
+      },
+      "source_bytes": 67108864,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-8c94fdfba2882b5feea164d0ecb9ad81305e1409fcedfb171fbe029b508c8478",
+            "a-fixture",
+            "b1fe4d1352a0fad43e9653e141f64a8a8fb50af69de03f054e204b60c52609ec",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "f57c945240951f9c503a3437a55d2a49d1da1802284e19d7e61a74be4f3783ed"
+        },
+        {
+          "bytes": 686,
+          "sha256": "f57c945240951f9c503a3437a55d2a49d1da1802284e19d7e61a74be4f3783ed"
+        },
+        {
+          "bytes": 690,
+          "sha256": "068cda88081e71c6f7009fab886ad578d04c4b5d001ad9c5a0baa9f58c585057"
+        },
+        {
+          "bytes": 142,
+          "sha256": "8c94fdfba2882b5feea164d0ecb9ad81305e1409fcedfb171fbe029b508c8478"
+        }
+      ]
+    },
+    {
+      "case": "max-artifact-utf8-four",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-ac7d8dd316731d749f2347975901a17d8c0021fa458c22a21bf6c51bddbce926",
+          "a-fixture",
+          "0b86f92c7c8f38c7cddb17bc55c3207a28305bf9df6763819064adc31c3eb039",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1024,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 67108864,
+      "full_input_observation_chunks": 1024,
+      "input_sha256": "0b86f92c7c8f38c7cddb17bc55c3207a28305bf9df6763819064adc31c3eb039",
+      "native_ns": 45471494899,
+      "native_return_codes": {
+        "1": 1043,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 106888637,
+      "result": {
+        "content_points": 128,
+        "content_sha256": "7886f3aeb3bee26876ed051ce8bdb65bc1307d38c9b2b603aa13ba275449b8e2",
+        "content_utf8_bytes": 512,
+        "encoding": "utf8",
+        "next_cursor": "page-ac7d8dd316731d749f2347975901a17d8c0021fa458c22a21bf6c51bddbce926"
+      },
+      "source_bytes": 67108864,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-ac7d8dd316731d749f2347975901a17d8c0021fa458c22a21bf6c51bddbce926",
+            "a-fixture",
+            "0b86f92c7c8f38c7cddb17bc55c3207a28305bf9df6763819064adc31c3eb039",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1032,
+      "wire_calls": [
+        {
+          "bytes": 514,
+          "sha256": "8514c1b0928a9d5f1926507dc27b136bd92519739c5887909f2671d449f6b462"
+        },
+        {
+          "bytes": 514,
+          "sha256": "8514c1b0928a9d5f1926507dc27b136bd92519739c5887909f2671d449f6b462"
+        },
+        {
+          "bytes": 518,
+          "sha256": "32100d7b873d0a1bd2d2c8ab6f9bf9bf53659868e9b467e5676c89bef3b68581"
+        },
+        {
+          "bytes": 142,
+          "sha256": "ac7d8dd316731d749f2347975901a17d8c0021fa458c22a21bf6c51bddbce926"
+        }
+      ]
+    },
+    {
+      "case": "utf8-stream-page-two",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-14e0d81a1bf3b0b8e42e0567aa7b2b3eea7f26127b74e6e5f1d1fe510436614c",
+          "a-fixture",
+          "6af5eeac080e269944416aca0a5af2f846c0df03f0e5e890e36eb9c27a02e44b",
+          65535
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 2,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65538,
+      "full_input_observation_chunks": 2,
+      "input_sha256": "6af5eeac080e269944416aca0a5af2f846c0df03f0e5e890e36eb9c27a02e44b",
+      "native_ns": 129286310,
+      "native_return_codes": {
+        "1": 21,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 17250180,
+      "result": {
+        "content_points": 65535,
+        "content_sha256": "51fecdc444f8748f49729feb8fb3c4fdcb84bd15b31e805c3f2280154a2489aa",
+        "content_utf8_bytes": 65535,
+        "encoding": "utf8",
+        "next_cursor": "page-14e0d81a1bf3b0b8e42e0567aa7b2b3eea7f26127b74e6e5f1d1fe510436614c"
+      },
+      "source_bytes": 65538,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-14e0d81a1bf3b0b8e42e0567aa7b2b3eea7f26127b74e6e5f1d1fe510436614c",
+            "a-fixture",
+            "6af5eeac080e269944416aca0a5af2f846c0df03f0e5e890e36eb9c27a02e44b",
+            65535
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 131078,
+      "wire_calls": [
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65541,
+          "sha256": "253ea225bda5b5e2e79970181e2000c7e828ac2446105dd8d43b58ee8e31a52d"
+        },
+        {
+          "bytes": 144,
+          "sha256": "14e0d81a1bf3b0b8e42e0567aa7b2b3eea7f26127b74e6e5f1d1fe510436614c"
+        }
+      ]
+    },
+    {
+      "case": "utf8-stream-page-three",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-4957d48489691dc456482ec2a7298ab98f7a4c5885c8766f1aaab499795d16b4",
+          "a-fixture",
+          "b24303c5673332c9537f2080701e06c5f6f488d71715f4e9ea135ef7c3878144",
+          65535
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 2,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65539,
+      "full_input_observation_chunks": 2,
+      "input_sha256": "b24303c5673332c9537f2080701e06c5f6f488d71715f4e9ea135ef7c3878144",
+      "native_ns": 106116295,
+      "native_return_codes": {
+        "1": 21,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 17965972,
+      "result": {
+        "content_points": 65535,
+        "content_sha256": "51fecdc444f8748f49729feb8fb3c4fdcb84bd15b31e805c3f2280154a2489aa",
+        "content_utf8_bytes": 65535,
+        "encoding": "utf8",
+        "next_cursor": "page-4957d48489691dc456482ec2a7298ab98f7a4c5885c8766f1aaab499795d16b4"
+      },
+      "source_bytes": 65539,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-4957d48489691dc456482ec2a7298ab98f7a4c5885c8766f1aaab499795d16b4",
+            "a-fixture",
+            "b24303c5673332c9537f2080701e06c5f6f488d71715f4e9ea135ef7c3878144",
+            65535
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 131078,
+      "wire_calls": [
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65541,
+          "sha256": "253ea225bda5b5e2e79970181e2000c7e828ac2446105dd8d43b58ee8e31a52d"
+        },
+        {
+          "bytes": 144,
+          "sha256": "4957d48489691dc456482ec2a7298ab98f7a4c5885c8766f1aaab499795d16b4"
+        }
+      ]
+    },
+    {
+      "case": "utf8-stream-page-four",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-5a249f3489af2d9c8d65682bfa58345eb9b9ec19b363b5296f5dfed2d3f32ad5",
+          "a-fixture",
+          "fd627a6e15161e917bef58fc2a780a045c6ae21ba502b59832f4233bf26f21a9",
+          65535
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 2,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65540,
+      "full_input_observation_chunks": 2,
+      "input_sha256": "fd627a6e15161e917bef58fc2a780a045c6ae21ba502b59832f4233bf26f21a9",
+      "native_ns": 99892722,
+      "native_return_codes": {
+        "1": 21,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 16681179,
+      "result": {
+        "content_points": 65535,
+        "content_sha256": "51fecdc444f8748f49729feb8fb3c4fdcb84bd15b31e805c3f2280154a2489aa",
+        "content_utf8_bytes": 65535,
+        "encoding": "utf8",
+        "next_cursor": "page-5a249f3489af2d9c8d65682bfa58345eb9b9ec19b363b5296f5dfed2d3f32ad5"
+      },
+      "source_bytes": 65540,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-5a249f3489af2d9c8d65682bfa58345eb9b9ec19b363b5296f5dfed2d3f32ad5",
+            "a-fixture",
+            "fd627a6e15161e917bef58fc2a780a045c6ae21ba502b59832f4233bf26f21a9",
+            65535
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 131078,
+      "wire_calls": [
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65537,
+          "sha256": "f7a1c65b1664097a172d681dd51605a08c12f6714f17abf87c5ee34b1242159e"
+        },
+        {
+          "bytes": 65541,
+          "sha256": "253ea225bda5b5e2e79970181e2000c7e828ac2446105dd8d43b58ee8e31a52d"
+        },
+        {
+          "bytes": 144,
+          "sha256": "5a249f3489af2d9c8d65682bfa58345eb9b9ec19b363b5296f5dfed2d3f32ad5"
+        }
+      ]
+    },
+    {
+      "case": "page-begins-in-continuation",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-a5c5685d1adb6361c6a4ca04b9ac0ea273a6cf45d8ca90d15582b0c0324cac55",
+          "a-fixture",
+          "bd313def34b3797b9175b95083ed4dcd5faf18057ec52121ac304342f312f9b7",
+          2
+        ],
+        [
+          "page-original",
+          "a-fixture",
+          "bd313def34b3797b9175b95083ed4dcd5faf18057ec52121ac304342f312f9b7",
+          2
+        ]
+      ],
+      "effect_requests": {
+        "1": 9,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 2
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "bd313def34b3797b9175b95083ed4dcd5faf18057ec52121ac304342f312f9b7",
+      "native_ns": 2114257,
+      "native_return_codes": {
+        "1": 37,
+        "2": 1
+      },
+      "offset": 2,
+      "raw_limit": 512,
+      "reference_ns": 128254,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": "page-a5c5685d1adb6361c6a4ca04b9ac0ea273a6cf45d8ca90d15582b0c0324cac55"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ],
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-a5c5685d1adb6361c6a4ca04b9ac0ea273a6cf45d8ca90d15582b0c0324cac55",
+            "a-fixture",
+            "bd313def34b3797b9175b95083ed4dcd5faf18057ec52121ac304342f312f9b7",
+            2
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        },
+        {
+          "bytes": 140,
+          "sha256": "a5c5685d1adb6361c6a4ca04b9ac0ea273a6cf45d8ca90d15582b0c0324cac55"
+        }
+      ]
+    },
+    {
+      "case": "zero-private-limit",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-a029ee67140db0f5560759810d0ddfb0bbee016e37920fa9ddb1b3f4fc29887f",
+          "a-fixture",
+          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+          0
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 3,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "native_ns": 1604487,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 0,
+      "reference_ns": 85940,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": "page-a029ee67140db0f5560759810d0ddfb0bbee016e37920fa9ddb1b3f4fc29887f"
+      },
+      "source_bytes": 3,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-a029ee67140db0f5560759810d0ddfb0bbee016e37920fa9ddb1b3f4fc29887f",
+            "a-fixture",
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            0
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        },
+        {
+          "bytes": 140,
+          "sha256": "a029ee67140db0f5560759810d0ddfb0bbee016e37920fa9ddb1b3f4fc29887f"
+        }
+      ]
+    },
+    {
+      "case": "one-byte-private-limit",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-c79e09ffcc7da5aa3602a9f643c5af51c7662838b1cb38e4782b2bccd80104d3",
+          "a-fixture",
+          "790ca89ecb5ae62a587e4cf2c7804e9b74bbd018fbc5818b2b8d90c22f601cda",
+          0
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 3,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "790ca89ecb5ae62a587e4cf2c7804e9b74bbd018fbc5818b2b8d90c22f601cda",
+      "native_ns": 3222253,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 1,
+      "reference_ns": 97858,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": "page-c79e09ffcc7da5aa3602a9f643c5af51c7662838b1cb38e4782b2bccd80104d3"
+      },
+      "source_bytes": 3,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-c79e09ffcc7da5aa3602a9f643c5af51c7662838b1cb38e4782b2bccd80104d3",
+            "a-fixture",
+            "790ca89ecb5ae62a587e4cf2c7804e9b74bbd018fbc5818b2b8d90c22f601cda",
+            0
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        },
+        {
+          "bytes": 140,
+          "sha256": "c79e09ffcc7da5aa3602a9f643c5af51c7662838b1cb38e4782b2bccd80104d3"
+        }
+      ]
+    },
+    {
+      "case": "nul-public-max-two-shrinks",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-6780bfc896037630baa1d21464064a3e3f382b1b61850d9cd08a351064877e6c",
+          "a-fixture",
+          "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+          16384
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 9,
+        "12": 3,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65536,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+      "native_ns": 739238335,
+      "native_return_codes": {
+        "1": 28,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 128122569,
+      "result": {
+        "content_points": 16384,
+        "content_sha256": "4fe7b59af6de3b665b67788cc2f99892ab827efae3a467342b3bb4e3bc8e5bfe",
+        "content_utf8_bytes": 16384,
+        "encoding": "utf8",
+        "next_cursor": "page-6780bfc896037630baa1d21464064a3e3f382b1b61850d9cd08a351064877e6c"
+      },
+      "source_bytes": 65536,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-6780bfc896037630baa1d21464064a3e3f382b1b61850d9cd08a351064877e6c",
+            "a-fixture",
+            "de2f256064a0af797747c2b97505dc0b9f3df0de4f489eac731c23ae9ca9cc31",
+            16384
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 213000,
+      "wire_calls": [
+        {
+          "bytes": 393218,
+          "sha256": "321fab3e5b3c931fcffbc17c6c32d0dfa18f560f103fe693da4e45f04591fbc8"
+        },
+        {
+          "bytes": 393218,
+          "sha256": "321fab3e5b3c931fcffbc17c6c32d0dfa18f560f103fe693da4e45f04591fbc8"
+        },
+        {
+          "bytes": 458758,
+          "sha256": "1a42c6bee071f332fd9dd9382f613981b5a5bed58a3372cf7935ea3673656eff"
+        },
+        {
+          "bytes": 196610,
+          "sha256": "1012b5e9f4c0a51826a6a730a5c75b430c50d5ee6a1fdfbe3bd49368c544b723"
+        },
+        {
+          "bytes": 196610,
+          "sha256": "1012b5e9f4c0a51826a6a730a5c75b430c50d5ee6a1fdfbe3bd49368c544b723"
+        },
+        {
+          "bytes": 229382,
+          "sha256": "3485449c2c2eb09fe1f1c706c69b71207f5f308b3b3e19792db57d92a8e44782"
+        },
+        {
+          "bytes": 98306,
+          "sha256": "c53035929449390c61f0b78ab37b698a03bcf1d5d0db7f8a238e8f543a668f34"
+        },
+        {
+          "bytes": 98306,
+          "sha256": "c53035929449390c61f0b78ab37b698a03bcf1d5d0db7f8a238e8f543a668f34"
+        },
+        {
+          "bytes": 114694,
+          "sha256": "6ed1d36d242644fdc87bec9e4430a29e14d2a000c36692cf48cceb1dbfbc7b1a"
+        },
+        {
+          "bytes": 144,
+          "sha256": "6780bfc896037630baa1d21464064a3e3f382b1b61850d9cd08a351064877e6c"
+        }
+      ]
+    },
+    {
+      "case": "quote-backslash-max",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-bfa7ef4f2cac6feec86999b3b30d4fdc497758ca849b812d812797a2447cb65d",
+          "a-fixture",
+          "bfac92f051b61981d70df1b3ae1f896fd3b6b0b2bb1e7d8fc2c24a1f56e680b9",
+          32768
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 6,
+        "12": 2,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65536,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "bfac92f051b61981d70df1b3ae1f896fd3b6b0b2bb1e7d8fc2c24a1f56e680b9",
+      "native_ns": 198078839,
+      "native_return_codes": {
+        "1": 24,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 28007099,
+      "result": {
+        "content_points": 32768,
+        "content_sha256": "91fd0ae660e51944800b37fb5d580ad1392941f2bbba870192cac8d2b6b4e44c",
+        "content_utf8_bytes": 32768,
+        "encoding": "utf8",
+        "next_cursor": "page-bfa7ef4f2cac6feec86999b3b30d4fdc497758ca849b812d812797a2447cb65d"
+      },
+      "source_bytes": 65536,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-bfa7ef4f2cac6feec86999b3b30d4fdc497758ca849b812d812797a2447cb65d",
+            "a-fixture",
+            "bfac92f051b61981d70df1b3ae1f896fd3b6b0b2bb1e7d8fc2c24a1f56e680b9",
+            32768
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 196616,
+      "wire_calls": [
+        {
+          "bytes": 131074,
+          "sha256": "62fde6114016ec9d8395724e0f3fb936ca4f3a607040269a543c87016eeb710d"
+        },
+        {
+          "bytes": 131074,
+          "sha256": "62fde6114016ec9d8395724e0f3fb936ca4f3a607040269a543c87016eeb710d"
+        },
+        {
+          "bytes": 262150,
+          "sha256": "07a5b56e18234fbb7e8995bf8a042e8706e1f6d37cb543d70733a36437af1c64"
+        },
+        {
+          "bytes": 65538,
+          "sha256": "e1451f5b21cd35e8aae6f5e5e1c555b8f162b90c70f4f193ff24cf686ab78833"
+        },
+        {
+          "bytes": 65538,
+          "sha256": "e1451f5b21cd35e8aae6f5e5e1c555b8f162b90c70f4f193ff24cf686ab78833"
+        },
+        {
+          "bytes": 131078,
+          "sha256": "8529845890e6ff8fa9849047dfd84dd713cf7f66b116fe357e07312a06363b97"
+        },
+        {
+          "bytes": 144,
+          "sha256": "bfa7ef4f2cac6feec86999b3b30d4fdc497758ca849b812d812797a2447cb65d"
+        }
+      ]
+    },
+    {
+      "case": "mixed-control-max",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-dbc4cc4241998d168a6c9fa1542d02c612638250f875eb1049b71fd60aac68ca",
+          "a-fixture",
+          "c74bc3be0d00f1fe28535c8474e4653b32bc5d937afdb499bb769bb991bc18df",
+          16384
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 9,
+        "12": 3,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 65536,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "c74bc3be0d00f1fe28535c8474e4653b32bc5d937afdb499bb769bb991bc18df",
+      "native_ns": 296151569,
+      "native_return_codes": {
+        "1": 28,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 45087382,
+      "result": {
+        "content_points": 16384,
+        "content_sha256": "92b3f72f9f5813dfb55d4a645b0fde75860e19fb229151d52df3ad6765c1d243",
+        "content_utf8_bytes": 16384,
+        "encoding": "utf8",
+        "next_cursor": "page-dbc4cc4241998d168a6c9fa1542d02c612638250f875eb1049b71fd60aac68ca"
+      },
+      "source_bytes": 65536,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-dbc4cc4241998d168a6c9fa1542d02c612638250f875eb1049b71fd60aac68ca",
+            "a-fixture",
+            "c74bc3be0d00f1fe28535c8474e4653b32bc5d937afdb499bb769bb991bc18df",
+            16384
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 122888,
+      "wire_calls": [
+        {
+          "bytes": 196610,
+          "sha256": "aafe8755c860c49bdf133394bd39f3c330043389d044b1ea5be0640d739c06d9"
+        },
+        {
+          "bytes": 196610,
+          "sha256": "aafe8755c860c49bdf133394bd39f3c330043389d044b1ea5be0640d739c06d9"
+        },
+        {
+          "bytes": 294918,
+          "sha256": "8372ea7b5d3d24d201e49c23bb422116d15a72779ea2e9a09b6efddb362a463e"
+        },
+        {
+          "bytes": 98306,
+          "sha256": "d5a5dc3e536536e4a3545d7723f3919cf5660a0dc71c4fc40d9ca85dc72ed8f8"
+        },
+        {
+          "bytes": 98306,
+          "sha256": "d5a5dc3e536536e4a3545d7723f3919cf5660a0dc71c4fc40d9ca85dc72ed8f8"
+        },
+        {
+          "bytes": 147462,
+          "sha256": "8782a673fba40e1a3a1676245d8bd39c0b51f8c253ae005709615c22c995fcb5"
+        },
+        {
+          "bytes": 49154,
+          "sha256": "84ab044a166e810266b8973813e79f3053c21e360076f0c0ff323bea70afec1f"
+        },
+        {
+          "bytes": 49154,
+          "sha256": "84ab044a166e810266b8973813e79f3053c21e360076f0c0ff323bea70afec1f"
+        },
+        {
+          "bytes": 73734,
+          "sha256": "5d34758ae9a717b668cd84d3047ccebe93e756e30ddb67e8049daa4d3b145423"
+        },
+        {
+          "bytes": 144,
+          "sha256": "dbc4cc4241998d168a6c9fa1542d02c612638250f875eb1049b71fd60aac68ca"
+        }
+      ]
+    },
+    {
+      "case": "binary-max",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 65536,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "7daca2095d0438260fa849183dfc67faa459fdf4936e1bc91eec6b281b27e4c2",
+      "native_ns": 166234481,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 27024964,
+      "result": {
+        "content_points": 87384,
+        "content_sha256": "fa2a8ebb8b426644911e6914c4f02ff3760425f5a3ba5ecb7dc507fb944fbb4e",
+        "content_utf8_bytes": 87384,
+        "encoding": "base64",
+        "next_cursor": null
+      },
+      "source_bytes": 65536,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 174776,
+      "wire_calls": [
+        {
+          "bytes": 87386,
+          "sha256": "c345ca05d0440f89ce831cbf55871dd6682100fa7bc04e02ff1988a47c412e37"
+        },
+        {
+          "bytes": 87386,
+          "sha256": "c345ca05d0440f89ce831cbf55871dd6682100fa7bc04e02ff1988a47c412e37"
+        },
+        {
+          "bytes": 87390,
+          "sha256": "87e889f56c0518d708809b83487fe1e00dc5a5a62ef9b1b649cc43db090eaf9a"
+        }
+      ]
+    },
+    {
+      "case": "malformed-00",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 512,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "364f8991ff5c77ca5f70e10de75db2dab41d9f3a80b8556fe820b48c9be9059a",
+      "native_ns": 2406730,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 347977,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "ed7fdb45c4cb336dff137fada85c3212237e12b3b7b8c95110edcfa7551b58df",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": null
+      },
+      "source_bytes": 512,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "e139bba3a2311023d37cef92d03a5d475b5656974bfae5f2e92accb9edbf1379"
+        },
+        {
+          "bytes": 686,
+          "sha256": "e139bba3a2311023d37cef92d03a5d475b5656974bfae5f2e92accb9edbf1379"
+        },
+        {
+          "bytes": 690,
+          "sha256": "832dc7feee07c740043054e5542c8a8b230320dd3e2e9bbdac06a2f42343840b"
+        }
+      ]
+    },
+    {
+      "case": "malformed-01",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-e79e7c9e159ab35fec77ce24b847a8220c9694b987223a4c11d013492f817549",
+          "a-fixture",
+          "ed5ff2ccb1ef79a1776b7bfadb733c07073b9e81cf06bb1b75288e2868d4bd1d",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 513,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "ed5ff2ccb1ef79a1776b7bfadb733c07073b9e81cf06bb1b75288e2868d4bd1d",
+      "native_ns": 2983011,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 305902,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "12468f5a5c56eee814d8580a235c8d30e33914bcc3535ec192e409ad3141fb8e",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-e79e7c9e159ab35fec77ce24b847a8220c9694b987223a4c11d013492f817549"
+      },
+      "source_bytes": 513,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-e79e7c9e159ab35fec77ce24b847a8220c9694b987223a4c11d013492f817549",
+            "a-fixture",
+            "ed5ff2ccb1ef79a1776b7bfadb733c07073b9e81cf06bb1b75288e2868d4bd1d",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "9f4d75e325d9f0f8186e3098c0c642fbb3b8c7d27e56fc8ed04c26ca9c4b5590"
+        },
+        {
+          "bytes": 686,
+          "sha256": "9f4d75e325d9f0f8186e3098c0c642fbb3b8c7d27e56fc8ed04c26ca9c4b5590"
+        },
+        {
+          "bytes": 690,
+          "sha256": "dd28ef38bb8a3c18aa66e3dfa2e4e1320eb77a7669e15eec775c2e8372851000"
+        },
+        {
+          "bytes": 142,
+          "sha256": "e79e7c9e159ab35fec77ce24b847a8220c9694b987223a4c11d013492f817549"
+        }
+      ]
+    },
+    {
+      "case": "malformed-02",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-9b81f07084ac43680c16075441def82b614741b7f28bd58bc3c77f084a410a57",
+          "a-fixture",
+          "55ef1dedc9c54fbac5cc0d36cc3b92ffc6ee831a58af55242218e435d52ca6dd",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 513,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "55ef1dedc9c54fbac5cc0d36cc3b92ffc6ee831a58af55242218e435d52ca6dd",
+      "native_ns": 5762225,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 485184,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "9c14d87ab95c4d488a9b50f03e9b0b16d9a1fb1291bb79a5921a36a8e077b16d",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-9b81f07084ac43680c16075441def82b614741b7f28bd58bc3c77f084a410a57"
+      },
+      "source_bytes": 513,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-9b81f07084ac43680c16075441def82b614741b7f28bd58bc3c77f084a410a57",
+            "a-fixture",
+            "55ef1dedc9c54fbac5cc0d36cc3b92ffc6ee831a58af55242218e435d52ca6dd",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "7e83ed9935615b5ff150786ed186d632f2ba16b690e9d467e4489e98df059d4b"
+        },
+        {
+          "bytes": 686,
+          "sha256": "7e83ed9935615b5ff150786ed186d632f2ba16b690e9d467e4489e98df059d4b"
+        },
+        {
+          "bytes": 690,
+          "sha256": "912eda56229380a65c0e96b354adef9019a67c2e9e9989e8fb48c3e48d2948bd"
+        },
+        {
+          "bytes": 142,
+          "sha256": "9b81f07084ac43680c16075441def82b614741b7f28bd58bc3c77f084a410a57"
+        }
+      ]
+    },
+    {
+      "case": "malformed-03",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 512,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "7f8b7cc3b59cd7a54a61a1b5ca0d91ae62e623acbf0136e30c1358f22580f122",
+      "native_ns": 2554193,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 324761,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "a4e1a9355f607ee78300aad3ffe861c6bdf50d4c357e26cc343fbd6d5b2b8836",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": null
+      },
+      "source_bytes": 512,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "19892f95b8bff417707b4d3128db72f1c306f9025deb4252b1648d432a5bd879"
+        },
+        {
+          "bytes": 686,
+          "sha256": "19892f95b8bff417707b4d3128db72f1c306f9025deb4252b1648d432a5bd879"
+        },
+        {
+          "bytes": 690,
+          "sha256": "ae6a16e5bcbc3ee020ce77bd8a74fe152ca83a6f568cfc528c5351e88181a8ca"
+        }
+      ]
+    },
+    {
+      "case": "malformed-04",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-e7d9ff8ffde9e9b58f896ee84daaf591269561bc2d63fc754a402a8272f671a1",
+          "a-fixture",
+          "d0b559592fc67c3b9eda27e0a7bbb5fceb0e939320737546e421437298b83ded",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 514,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "d0b559592fc67c3b9eda27e0a7bbb5fceb0e939320737546e421437298b83ded",
+      "native_ns": 3629459,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 386314,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "5fa9053c3aaae0b5c7f2b9a512ad2a642d422e2ec0da23bd889c7c10fd91891e",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-e7d9ff8ffde9e9b58f896ee84daaf591269561bc2d63fc754a402a8272f671a1"
+      },
+      "source_bytes": 514,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-e7d9ff8ffde9e9b58f896ee84daaf591269561bc2d63fc754a402a8272f671a1",
+            "a-fixture",
+            "d0b559592fc67c3b9eda27e0a7bbb5fceb0e939320737546e421437298b83ded",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "7f6e9973f1a901342d8e741b8e6ba4dbb9503d64b10a081169483ea450f677cd"
+        },
+        {
+          "bytes": 686,
+          "sha256": "7f6e9973f1a901342d8e741b8e6ba4dbb9503d64b10a081169483ea450f677cd"
+        },
+        {
+          "bytes": 690,
+          "sha256": "e0cbcbe5aa626147e83e22ee323a0d8b65943b78f2ffb7fddcf81244597ceda1"
+        },
+        {
+          "bytes": 142,
+          "sha256": "e7d9ff8ffde9e9b58f896ee84daaf591269561bc2d63fc754a402a8272f671a1"
+        }
+      ]
+    },
+    {
+      "case": "malformed-05",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-64535dc2d0cda70cc118056d8baafb2c067b9138520396bad6710d69c65cfb56",
+          "a-fixture",
+          "029d79d4e366fa08a7734b5164ea6d2975ae639b9d4c76e53f94acac22773987",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 514,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "029d79d4e366fa08a7734b5164ea6d2975ae639b9d4c76e53f94acac22773987",
+      "native_ns": 3323607,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 261495,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "fb471f20469647ff5020175c6ab2774b64bfab299bdf25d580a778387b1c4f22",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-64535dc2d0cda70cc118056d8baafb2c067b9138520396bad6710d69c65cfb56"
+      },
+      "source_bytes": 514,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-64535dc2d0cda70cc118056d8baafb2c067b9138520396bad6710d69c65cfb56",
+            "a-fixture",
+            "029d79d4e366fa08a7734b5164ea6d2975ae639b9d4c76e53f94acac22773987",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "59a162ff10d99665be1fd69dd78fb3af8f4ab3c45bf4c0e847b4fc1c680905fa"
+        },
+        {
+          "bytes": 686,
+          "sha256": "59a162ff10d99665be1fd69dd78fb3af8f4ab3c45bf4c0e847b4fc1c680905fa"
+        },
+        {
+          "bytes": 690,
+          "sha256": "2f66dba90ca4ec76c5f1698719dca5ee2cfb3851df35bb1daff353da52cb1121"
+        },
+        {
+          "bytes": 142,
+          "sha256": "64535dc2d0cda70cc118056d8baafb2c067b9138520396bad6710d69c65cfb56"
+        }
+      ]
+    },
+    {
+      "case": "malformed-06",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-17882c1ad43c0f3e81c6eda62bfc4d07d459a1cb0368349e62fe9af32a673fbb",
+          "a-fixture",
+          "ef5b8c94adfa8b7ac8f64b2c2c8d53ba5cc91508260290b0f31194fc2d24e8eb",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 515,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "ef5b8c94adfa8b7ac8f64b2c2c8d53ba5cc91508260290b0f31194fc2d24e8eb",
+      "native_ns": 3642168,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 407336,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "6bce7edad7db650ca1224d3a11ae51f4a055f0f96ad099ac945af39081b54f0a",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-17882c1ad43c0f3e81c6eda62bfc4d07d459a1cb0368349e62fe9af32a673fbb"
+      },
+      "source_bytes": 515,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-17882c1ad43c0f3e81c6eda62bfc4d07d459a1cb0368349e62fe9af32a673fbb",
+            "a-fixture",
+            "ef5b8c94adfa8b7ac8f64b2c2c8d53ba5cc91508260290b0f31194fc2d24e8eb",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "b74cfbc8f6534e9ecdafb8163e256dddeaf9904820991184c6cecf1bd5d3f8a6"
+        },
+        {
+          "bytes": 686,
+          "sha256": "b74cfbc8f6534e9ecdafb8163e256dddeaf9904820991184c6cecf1bd5d3f8a6"
+        },
+        {
+          "bytes": 690,
+          "sha256": "e6635fd908b3b4c26601d709d57c3a5da4ce3ac33149de207681ac431fc9b2f2"
+        },
+        {
+          "bytes": 142,
+          "sha256": "17882c1ad43c0f3e81c6eda62bfc4d07d459a1cb0368349e62fe9af32a673fbb"
+        }
+      ]
+    },
+    {
+      "case": "malformed-07",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-f9fac3ef4d20b16e326e8c276780189b37c510d040a2eed2ab39a1222952412a",
+          "a-fixture",
+          "0d5bb5ce0d8b4d125e9bce2150e53c39fce0091dc14f970aa73920ad65b8adf0",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 515,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "0d5bb5ce0d8b4d125e9bce2150e53c39fce0091dc14f970aa73920ad65b8adf0",
+      "native_ns": 3526834,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 377261,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "7c51c6033669c239de04c825beb7ed437db7ac2b7c41fd7e9fe47701514c7f6c",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-f9fac3ef4d20b16e326e8c276780189b37c510d040a2eed2ab39a1222952412a"
+      },
+      "source_bytes": 515,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-f9fac3ef4d20b16e326e8c276780189b37c510d040a2eed2ab39a1222952412a",
+            "a-fixture",
+            "0d5bb5ce0d8b4d125e9bce2150e53c39fce0091dc14f970aa73920ad65b8adf0",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "480913df23fb8665762f58a07bb3394a22b175aba0d13bd6ecd9e2dcd5ff8145"
+        },
+        {
+          "bytes": 686,
+          "sha256": "480913df23fb8665762f58a07bb3394a22b175aba0d13bd6ecd9e2dcd5ff8145"
+        },
+        {
+          "bytes": 690,
+          "sha256": "fb59e8a00cbabb4a75159f5ef675a6fe5bfea014033f7835f85ace50f062b482"
+        },
+        {
+          "bytes": 142,
+          "sha256": "f9fac3ef4d20b16e326e8c276780189b37c510d040a2eed2ab39a1222952412a"
+        }
+      ]
+    },
+    {
+      "case": "malformed-08",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-1ef9b4ad6e6ebb1ce2b099e029165cb8a0fbcd466cf06b1ace027346fe078571",
+          "a-fixture",
+          "acbf14efffd32a959ff0c2efa172455471c8fad70ce45d87e2a36f427a032009",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 515,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "acbf14efffd32a959ff0c2efa172455471c8fad70ce45d87e2a36f427a032009",
+      "native_ns": 4834923,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 319373,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "fa58fff0ef1663e4bb64c6dad95eb952bd785fa88b421f16d23f3c6495b01589",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-1ef9b4ad6e6ebb1ce2b099e029165cb8a0fbcd466cf06b1ace027346fe078571"
+      },
+      "source_bytes": 515,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-1ef9b4ad6e6ebb1ce2b099e029165cb8a0fbcd466cf06b1ace027346fe078571",
+            "a-fixture",
+            "acbf14efffd32a959ff0c2efa172455471c8fad70ce45d87e2a36f427a032009",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "59c61147f097983cd20be311acfa7882335ecca57115b485540711c63b3fec29"
+        },
+        {
+          "bytes": 686,
+          "sha256": "59c61147f097983cd20be311acfa7882335ecca57115b485540711c63b3fec29"
+        },
+        {
+          "bytes": 690,
+          "sha256": "1aa67a7b3794b9b4bf1be1026479a0ef0cb943cc95cb78c5c02efe232b1fcf9d"
+        },
+        {
+          "bytes": 142,
+          "sha256": "1ef9b4ad6e6ebb1ce2b099e029165cb8a0fbcd466cf06b1ace027346fe078571"
+        }
+      ]
+    },
+    {
+      "case": "malformed-09",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 512,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "ed53e9e71cdf1d77f2af4bb958e624a5f417b2c521d59e8ba046b26696917cae",
+      "native_ns": 2572841,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 1855827,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "4acd53fa9865938dea14b0a1c11be671be89f397e05e5e0a5173cdfb15801d78",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": null
+      },
+      "source_bytes": 512,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "3564936812a2a04e7773689796fbed98fd7d708d60726682222c9f2fd7b90583"
+        },
+        {
+          "bytes": 686,
+          "sha256": "3564936812a2a04e7773689796fbed98fd7d708d60726682222c9f2fd7b90583"
+        },
+        {
+          "bytes": 690,
+          "sha256": "9f76a27802fee3b61b74331900abf9d0c024af28bb5f7adc63795d47abc77565"
+        }
+      ]
+    },
+    {
+      "case": "malformed-10",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 512,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "b248e13f480c6af3ab2d839ef27f68ffa6bb6bade90aa03d41c22080b9028321",
+      "native_ns": 2889631,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 306404,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "0646a1069a3907cc56fc0690b837a603d67d86d4dd69defc827ae4898660edd3",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": null
+      },
+      "source_bytes": 512,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "e310558fab429a6165407acbf5a8ea95c06cf241563e70b9c8d9e2d4adcd0de5"
+        },
+        {
+          "bytes": 686,
+          "sha256": "e310558fab429a6165407acbf5a8ea95c06cf241563e70b9c8d9e2d4adcd0de5"
+        },
+        {
+          "bytes": 690,
+          "sha256": "ec57b794f0b0b8f94ba320f765d6f2f3deba576b56bd461b1a52ac366ba9f06b"
+        }
+      ]
+    },
+    {
+      "case": "malformed-11",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-7d846d5166e4587c3640e99b4cf0a814eda3f413cc12eac961124d3195ee9d47",
+          "a-fixture",
+          "f93b26e9655dd1653d839d846ddee81e3408eeab2f30a6ba3c3999d364e9e327",
+          512
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 513,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "f93b26e9655dd1653d839d846ddee81e3408eeab2f30a6ba3c3999d364e9e327",
+      "native_ns": 4348527,
+      "native_return_codes": {
+        "1": 20,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 470682,
+      "result": {
+        "content_points": 684,
+        "content_sha256": "f282933c9f0282653e64d24f90307681ed4e3f1f93e990926b2c889c9033b1bd",
+        "content_utf8_bytes": 684,
+        "encoding": "base64",
+        "next_cursor": "page-7d846d5166e4587c3640e99b4cf0a814eda3f413cc12eac961124d3195ee9d47"
+      },
+      "source_bytes": 513,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-7d846d5166e4587c3640e99b4cf0a814eda3f413cc12eac961124d3195ee9d47",
+            "a-fixture",
+            "f93b26e9655dd1653d839d846ddee81e3408eeab2f30a6ba3c3999d364e9e327",
+            512
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 1376,
+      "wire_calls": [
+        {
+          "bytes": 686,
+          "sha256": "f4bae9b84f89a2e9f7c1472977fca1f6464daa3b01ac2d0a514c28639ec6476b"
+        },
+        {
+          "bytes": 686,
+          "sha256": "f4bae9b84f89a2e9f7c1472977fca1f6464daa3b01ac2d0a514c28639ec6476b"
+        },
+        {
+          "bytes": 690,
+          "sha256": "86baefb19ffb772713f6369ee474ba685ebc505c564d81cbc07fb9ef5bbf1ae4"
+        },
+        {
+          "bytes": 142,
+          "sha256": "7d846d5166e4587c3640e99b4cf0a814eda3f413cc12eac961124d3195ee9d47"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset--9223372036854775808",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-4bc9698e10d3341f91486962111b6f94e7a97e5469e95207e13f51332cd5872b",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -9223372036854775808
+        ],
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -9223372036854775808
+        ]
+      ],
+      "effect_requests": {
+        "1": 9,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 2
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 5015896,
+      "native_return_codes": {
+        "1": 37,
+        "2": 1
+      },
+      "offset": -9223372036854775808,
+      "raw_limit": 512,
+      "reference_ns": 131478,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": "page-4bc9698e10d3341f91486962111b6f94e7a97e5469e95207e13f51332cd5872b"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ],
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-4bc9698e10d3341f91486962111b6f94e7a97e5469e95207e13f51332cd5872b",
+            "a-fixture",
+            "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+            -9223372036854775808
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        },
+        {
+          "bytes": 159,
+          "sha256": "4bc9698e10d3341f91486962111b6f94e7a97e5469e95207e13f51332cd5872b"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset--100",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-b0380165b6b4bd434cc0cb8c39680c9b7d03360a454eeb2eb0750f44560ff409",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -95
+        ],
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -100
+        ]
+      ],
+      "effect_requests": {
+        "1": 9,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 2
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 1652559,
+      "native_return_codes": {
+        "1": 37,
+        "2": 1
+      },
+      "offset": -100,
+      "raw_limit": 512,
+      "reference_ns": 773099,
+      "result": {
+        "content_points": 5,
+        "content_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+        "content_utf8_bytes": 5,
+        "encoding": "utf8",
+        "next_cursor": "page-b0380165b6b4bd434cc0cb8c39680c9b7d03360a454eeb2eb0750f44560ff409"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ],
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-b0380165b6b4bd434cc0cb8c39680c9b7d03360a454eeb2eb0750f44560ff409",
+            "a-fixture",
+            "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+            -95
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 18,
+      "wire_calls": [
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 11,
+          "sha256": "8531d9fe58df1b92d7093539afb9e8dbac82b45b17b8be4b96e71da9b5820a35"
+        },
+        {
+          "bytes": 142,
+          "sha256": "b0380165b6b4bd434cc0cb8c39680c9b7d03360a454eeb2eb0750f44560ff409"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset--5",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          0
+        ],
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -5
+        ]
+      ],
+      "effect_requests": {
+        "1": 9,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 2
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 6412910,
+      "native_return_codes": {
+        "1": 37,
+        "2": 1
+      },
+      "offset": -5,
+      "raw_limit": 512,
+      "reference_ns": 97277,
+      "result": {
+        "content_points": 5,
+        "content_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+        "content_utf8_bytes": 5,
+        "encoding": "utf8",
+        "next_cursor": "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ],
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1",
+            "a-fixture",
+            "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+            0
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 18,
+      "wire_calls": [
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 11,
+          "sha256": "8531d9fe58df1b92d7093539afb9e8dbac82b45b17b8be4b96e71da9b5820a35"
+        },
+        {
+          "bytes": 140,
+          "sha256": "f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset--1",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          0
+        ],
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          -1
+        ]
+      ],
+      "effect_requests": {
+        "1": 9,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 2
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 3622438,
+      "native_return_codes": {
+        "1": 37,
+        "2": 1
+      },
+      "offset": -1,
+      "raw_limit": 512,
+      "reference_ns": 111779,
+      "result": {
+        "content_points": 1,
+        "content_sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+        "content_utf8_bytes": 1,
+        "encoding": "utf8",
+        "next_cursor": "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ],
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1",
+            "a-fixture",
+            "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+            0
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 10,
+      "wire_calls": [
+        {
+          "bytes": 3,
+          "sha256": "8c8656c5d114d7f8b2a412d2d5fd03accce3ed050624a0493734591a9666b110"
+        },
+        {
+          "bytes": 3,
+          "sha256": "8c8656c5d114d7f8b2a412d2d5fd03accce3ed050624a0493734591a9666b110"
+        },
+        {
+          "bytes": 7,
+          "sha256": "81f1dcda9422cc388a3505588cedd7afbae3f8a23b9d6b4e2f091822301d0d48"
+        },
+        {
+          "bytes": 140,
+          "sha256": "f59b816f739a48b6adde0b6375ef4e42719cc150e5f56d845440a2a51e6221d1"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset-0",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          0
+        ]
+      ],
+      "effect_requests": {
+        "1": 7,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 2319448,
+      "native_return_codes": {
+        "1": 32,
+        "2": 1
+      },
+      "offset": 0,
+      "raw_limit": 512,
+      "reference_ns": 67091,
+      "result": {
+        "content_points": 5,
+        "content_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+        "content_utf8_bytes": 5,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 18,
+      "wire_calls": [
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 7,
+          "sha256": "cb23dd4317a1e244dfffdb37412194357e55aa1efbf2fc1662f5bdfc28e37033"
+        },
+        {
+          "bytes": 11,
+          "sha256": "8531d9fe58df1b92d7093539afb9e8dbac82b45b17b8be4b96e71da9b5820a35"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset-1",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          1
+        ]
+      ],
+      "effect_requests": {
+        "1": 7,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 1128507,
+      "native_return_codes": {
+        "1": 32,
+        "2": 1
+      },
+      "offset": 1,
+      "raw_limit": 512,
+      "reference_ns": 65530,
+      "result": {
+        "content_points": 4,
+        "content_sha256": "aaaaf2863e043b9df604158ad5c16ff1adaf3fd7e9fcea5dcb322b6762b3b59a",
+        "content_utf8_bytes": 4,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 16,
+      "wire_calls": [
+        {
+          "bytes": 6,
+          "sha256": "29b4b36df16a35c1fe6daa19d0d5c343310dbb3ec7b46122eccb8d041c1e07e1"
+        },
+        {
+          "bytes": 6,
+          "sha256": "29b4b36df16a35c1fe6daa19d0d5c343310dbb3ec7b46122eccb8d041c1e07e1"
+        },
+        {
+          "bytes": 10,
+          "sha256": "62802b0e13093a9824b5a3f8967f5d639cd8cee1e01d56e7d52911b5d72ec847"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset-4",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          4
+        ]
+      ],
+      "effect_requests": {
+        "1": 7,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 868003,
+      "native_return_codes": {
+        "1": 32,
+        "2": 1
+      },
+      "offset": 4,
+      "raw_limit": 512,
+      "reference_ns": 223819,
+      "result": {
+        "content_points": 1,
+        "content_sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+        "content_utf8_bytes": 1,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 10,
+      "wire_calls": [
+        {
+          "bytes": 3,
+          "sha256": "8c8656c5d114d7f8b2a412d2d5fd03accce3ed050624a0493734591a9666b110"
+        },
+        {
+          "bytes": 3,
+          "sha256": "8c8656c5d114d7f8b2a412d2d5fd03accce3ed050624a0493734591a9666b110"
+        },
+        {
+          "bytes": 7,
+          "sha256": "81f1dcda9422cc388a3505588cedd7afbae3f8a23b9d6b4e2f091822301d0d48"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset-5",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          5
+        ]
+      ],
+      "effect_requests": {
+        "1": 7,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 859740,
+      "native_return_codes": {
+        "1": 32,
+        "2": 1
+      },
+      "offset": 5,
+      "raw_limit": 512,
+      "reference_ns": 181905,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        }
+      ]
+    },
+    {
+      "case": "signed-offset-9223372036854775807",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          9223372036854775807
+        ]
+      ],
+      "effect_requests": {
+        "1": 7,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 8,
+        "8": 4,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 5,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 1080404,
+      "native_return_codes": {
+        "1": 32,
+        "2": 1
+      },
+      "offset": 9223372036854775807,
+      "raw_limit": 512,
+      "reference_ns": 62344,
+      "result": {
+        "content_points": 0,
+        "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "content_utf8_bytes": 0,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 8,
+      "wire_calls": [
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 2,
+          "sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+        },
+        {
+          "bytes": 6,
+          "sha256": "8bacbf15a33959ee066af7a77e9ef87e393725f4d28307d3f1496fb2c47b0d36"
+        }
+      ]
+    },
+    {
+      "case": "cursor-missing",
+      "cursor_mode": "missing",
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 2,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "7": 1,
+        "16": 1
+      },
+      "full_input_observation_bytes": 0,
+      "full_input_observation_chunks": 0,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 6458258,
+      "native_return_codes": {
+        "1": 7,
+        "100": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 46531,
+      "result": {
+        "code": "E_HIA_CURSOR",
+        "message": "cursor is not bound to this exact artifact",
+        "type": "AgentRejected"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": null,
+      "wire_calls": []
+    },
+    {
+      "case": "cursor-wrong-id",
+      "cursor_mode": "wrong-id",
+      "cursor_rows": [
+        [
+          "page-original",
+          "other-artifact",
+          "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+          0
+        ]
+      ],
+      "effect_requests": {
+        "1": 4,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "7": 3,
+        "16": 1
+      },
+      "full_input_observation_bytes": 0,
+      "full_input_observation_chunks": 0,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 507027,
+      "native_return_codes": {
+        "1": 11,
+        "100": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 33271,
+      "result": {
+        "code": "E_HIA_CURSOR",
+        "message": "cursor is not bound to this exact artifact",
+        "type": "AgentRejected"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": null,
+      "wire_calls": []
+    },
+    {
+      "case": "cursor-wrong-sha",
+      "cursor_mode": "wrong-sha",
+      "cursor_rows": [
+        [
+          "page-original",
+          "a-fixture",
+          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          0
+        ]
+      ],
+      "effect_requests": {
+        "1": 6,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "7": 5,
+        "8": 4,
+        "16": 1
+      },
+      "full_input_observation_bytes": 0,
+      "full_input_observation_chunks": 0,
+      "input_sha256": "36bbe50ed96841d10443bcb670d6554f0a34b761be67ec9c4a8ad2c0c44ca42c",
+      "native_ns": 628200,
+      "native_return_codes": {
+        "1": 19,
+        "100": 1
+      },
+      "offset": null,
+      "raw_limit": 512,
+      "reference_ns": 32109,
+      "result": {
+        "code": "E_HIA_CURSOR",
+        "message": "cursor is not bound to this exact artifact",
+        "type": "AgentRejected"
+      },
+      "source_bytes": 5,
+      "sql_calls": [
+        [
+          "SELECT * FROM cursors WHERE id=?",
+          [
+            "page-original"
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": null,
+      "wire_calls": []
+    },
+    {
+      "case": "nul-budget-17691",
+      "cursor_mode": null,
+      "cursor_rows": [],
+      "effect_requests": {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 3,
+        "12": 1,
+        "15": 2
+      },
+      "full_input_observation_bytes": 17691,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "1c8bc8ccb3d7a2d27a480328c47d7289ae809fa688bde1b9707e104499f48081",
+      "native_ns": 101057573,
+      "native_return_codes": {
+        "1": 15,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 29743025,
+      "result": {
+        "content_points": 17691,
+        "content_sha256": "1c8bc8ccb3d7a2d27a480328c47d7289ae809fa688bde1b9707e104499f48081",
+        "content_utf8_bytes": 17691,
+        "encoding": "utf8",
+        "next_cursor": null
+      },
+      "source_bytes": 17691,
+      "sql_calls": [],
+      "status": "PASS",
+      "wire_budget": 229991,
+      "wire_calls": [
+        {
+          "bytes": 106148,
+          "sha256": "b282c7bd2fe0ca327468e6f3f197e7c5dd4dd0c3e94c663448f8860d573f40a1"
+        },
+        {
+          "bytes": 106148,
+          "sha256": "b282c7bd2fe0ca327468e6f3f197e7c5dd4dd0c3e94c663448f8860d573f40a1"
+        },
+        {
+          "bytes": 123843,
+          "sha256": "d7eb149de3a45ae5eb7ca5a4c13cfb80cc8ab220907adda4c72eaf384b921ccc"
+        }
+      ]
+    },
+    {
+      "case": "nul-budget-17692",
+      "cursor_mode": null,
+      "cursor_rows": [
+        [
+          "page-f0ab441a753a0f15c87610de3b08b6cd95c0f76203312e36cb57ff87fb44a3dc",
+          "a-fixture",
+          "14fdcdccbbc58f3bb7fc98e480acec48121dc267e4bfcdb4e6b1dd2b130a69df",
+          8846
+        ]
+      ],
+      "effect_requests": {
+        "1": 3,
+        "2": 1,
+        "3": 1,
+        "5": 1,
+        "6": 1,
+        "7": 3,
+        "10": 1,
+        "11": 6,
+        "12": 2,
+        "13": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1
+      },
+      "full_input_observation_bytes": 17692,
+      "full_input_observation_chunks": 1,
+      "input_sha256": "14fdcdccbbc58f3bb7fc98e480acec48121dc267e4bfcdb4e6b1dd2b130a69df",
+      "native_ns": 199328514,
+      "native_return_codes": {
+        "1": 24,
+        "2": 1
+      },
+      "offset": null,
+      "raw_limit": 65536,
+      "reference_ns": 28227733,
+      "result": {
+        "content_points": 8846,
+        "content_sha256": "35bf1d320b9f6b18de04b96253cf5d1311407cbe95759c051da50b03c79c5c86",
+        "content_utf8_bytes": 8846,
+        "encoding": "utf8",
+        "next_cursor": "page-f0ab441a753a0f15c87610de3b08b6cd95c0f76203312e36cb57ff87fb44a3dc"
+      },
+      "source_bytes": 17692,
+      "sql_calls": [
+        [
+          "INSERT OR IGNORE INTO cursors VALUES (?,?,?,?)",
+          [
+            "page-f0ab441a753a0f15c87610de3b08b6cd95c0f76203312e36cb57ff87fb44a3dc",
+            "a-fixture",
+            "14fdcdccbbc58f3bb7fc98e480acec48121dc267e4bfcdb4e6b1dd2b130a69df",
+            8846
+          ]
+        ]
+      ],
+      "status": "PASS",
+      "wire_budget": 115006,
+      "wire_calls": [
+        {
+          "bytes": 106154,
+          "sha256": "4b03eda7a83f415d47f916959070d735aaa04d1b4a9840e7bf801393d2e10f1a"
+        },
+        {
+          "bytes": 106154,
+          "sha256": "4b03eda7a83f415d47f916959070d735aaa04d1b4a9840e7bf801393d2e10f1a"
+        },
+        {
+          "bytes": 123850,
+          "sha256": "88648c6839bdbb53e9b3c3bc860beae24827bec14b28d8538b21d8e055f627bb"
+        },
+        {
+          "bytes": 53078,
+          "sha256": "09a070f3559e6dad4caffc9c0b1f3d364663f22127e78086be8c452d9115690e"
+        },
+        {
+          "bytes": 53078,
+          "sha256": "09a070f3559e6dad4caffc9c0b1f3d364663f22127e78086be8c452d9115690e"
+        },
+        {
+          "bytes": 61928,
+          "sha256": "20329a69ed16d057706b0ede3cb9d95d432e4a0d5dae1cf9bc756bc5c377ec6a"
+        },
+        {
+          "bytes": 143,
+          "sha256": "f0ab441a753a0f15c87610de3b08b6cd95c0f76203312e36cb57ff87fb44a3dc"
+        }
+      ]
+    }
+  ],
+  "policy_image": "51012d82dd8f04243efba542cf2e67e63f9bdae4f2ff7981d9e8623471b8d4b0",
+  "schema": "hia.artifact-page.native-boundaries.v1",
+  "scope": "NEW_FULL_PAGE_BOUNDARY_RUN_NOT_MATCHING_SOURCE_COLD",
+  "source_after": {
+    "examples/hia_bootstrap/artifact_page.hiaasm": "54ff3e9bab9dcf3077ac0a749d9a6dfa6ead8054c7c039e4fd5057319bfe4f16",
+    "examples/hia_bootstrap/json_wire.hiaasm": "898bab701879950055bed4d377ca0fd334ba2e313537b3a27945eebd029a1fe5",
+    "hepta/hia_agent_service.py": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4",
+    "hepta/hia_artifact_page_native.py": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814",
+    "tools/generate_hia_artifact_page.py": "c2c33093f21c7783ab47d2e7071e3fbb4f6286d16c1f5ff55720c96bad39aaf9"
+  },
+  "source_before": {
+    "examples/hia_bootstrap/artifact_page.hiaasm": "54ff3e9bab9dcf3077ac0a749d9a6dfa6ead8054c7c039e4fd5057319bfe4f16",
+    "examples/hia_bootstrap/json_wire.hiaasm": "898bab701879950055bed4d377ca0fd334ba2e313537b3a27945eebd029a1fe5",
+    "hepta/hia_agent_service.py": "1d8180c6a3d009350edeec5b055b9f35dbfcc84ae38d8dcd0a8cf110ad4c59c4",
+    "hepta/hia_artifact_page_native.py": "fae7a042f41488d7e02530d8d81fd695efe21b8a9671d2e448a4820f8da6c814",
+    "tools/generate_hia_artifact_page.py": "c2c33093f21c7783ab47d2e7071e3fbb4f6286d16c1f5ff55720c96bad39aaf9"
+  },
+  "source_preserved": true,
+  "sqlite_scope": "actual in-memory SQL semantics, no storage durability claim",
+  "status": "DEVELOPMENT_BOUNDARIES_PASS",
+  "whole_native_delivery_qualified": false,
+  "wire_image": "5eba1c2bc33693692f038bdea7f775f1d49b8203aa22d15bb2a981531baa62dc"
+}
