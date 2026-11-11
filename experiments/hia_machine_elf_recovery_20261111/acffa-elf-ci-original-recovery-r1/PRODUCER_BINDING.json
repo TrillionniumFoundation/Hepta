@@ -1,0 +1,89 @@
+{
+  "schema": "hia.acffa.elf.failure-member-producer-binding.v1",
+  "source_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
+  "source_tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
+  "producers": [
+    {
+      "path": "tools/qualify_hia_machine_elf.py",
+      "bytes": 16712,
+      "sha256": "e7c3421851cf3a5f4b829e4b8ee23987c66df011f85e1a31399322c9ab7b7b8d",
+      "git_blob_sha1": "9e0e31839059744cde533fc33ed1f261b8700fb3"
+    },
+    {
+      "path": "tools/build_hia_machine_elf.py",
+      "bytes": 5528,
+      "sha256": "15befacdb9fc37e1cd01728e4f1ca41f59cc7c18eda3cffed1fb550f27b9d0cd",
+      "git_blob_sha1": "c102668c6802a5aa1e6b8ad17280b522b053565a"
+    },
+    {
+      "path": "tools/qualify_hia_compiler_owner_ci.py",
+      "bytes": 13598,
+      "sha256": "0c133bb93ebeff0df5f97e9f46cbde67b4cc12ca108ffab3650ce50a5f57c15b",
+      "git_blob_sha1": "c9b52faea0034ccdbed65054e7b8cca90ab7d58c"
+    },
+    {
+      "path": "tools/hia_compiler_owner_gates.py",
+      "bytes": 66955,
+      "sha256": "c72e5ada081138651bbe76ecf3ce2eb7185103292b289f3228209eed4af709e9",
+      "git_blob_sha1": "4a2695aff6953b0b0312d001e933b8dbb42e4256"
+    },
+    {
+      "path": ".github/workflows/hia-core.yml",
+      "bytes": 34747,
+      "sha256": "268602ba9fc9bc9bb6b4eeb73502808fc58dc45d7ffcbf77f72fd016cf52e843",
+      "git_blob_sha1": "7d98ad3e0af6314dcec8cc2b1b91202f510a67b8"
+    }
+  ],
+  "member_groups": [
+    {
+      "members": [
+        "hia-machine-elf-caller-gate.json"
+      ],
+      "source": ".github/workflows/hia-core.yml",
+      "producer": "tools/qualify_hia_compiler_owner_ci.py:main/write_new output"
+    },
+    {
+      "members": [
+        "hia-machine-elf-callers-owner/run-result.json",
+        "hia-machine-elf-callers-owner/process-owner.json",
+        "hia-machine-elf-callers-owner/process-owner.json.request.json",
+        "hia-machine-elf-callers-owner/stdout.log",
+        "hia-machine-elf-callers-owner/stderr.log",
+        "hia-machine-elf-callers-owner/process-owner.json.stdout.log",
+        "hia-machine-elf-callers-owner/process-owner.json.stderr.log"
+      ],
+      "source": "tools/qualify_hia_compiler_owner_ci.py:execute_owned_product; tools/hia_compiler_owner_gates.py:inspect_owned_product",
+      "producer": "Original run_owned180/3 owns child logs and request/process-owner/supervisor logs; final run-result is always written"
+    },
+    {
+      "members": [
+        "hia-machine-elf-callers-evidence/report.json",
+        "hia-machine-elf-callers-evidence/qualified/manifest.json",
+        "hia-machine-elf-callers-evidence/qualified/build.json"
+      ],
+      "source": "tools/qualify_hia_machine_elf.py:qualify; tools/build_hia_machine_elf.py:_build",
+      "producer": "report.json always in qualifier finally when entered; qualified manifest/build may be absent on earlier failure"
+    },
+    {
+      "members": [
+        "hia-cold.json",
+        "hia-cold.cold/process-owner.json",
+        "hia-cold.cold/qualification.json",
+        "hia-cold.cold/qualification.evidence/B3.receipt.json"
+      ],
+      "source": ".github/workflows/hia-core.yml and actual original cold producer interface inherited from reviewed23226",
+      "producer": "Exact completed cold wrapper/owner/nested/B3 receipt; no inner archive or source payload replay"
+    },
+    {
+      "members": [
+        "hia-machine-elf-component-gate.json",
+        "hia-machine-elf-component-evidence/report.json"
+      ],
+      "source": "tools/qualify_hia_compiler_owner_ci.py:execute_elf_component and main",
+      "producer": "PriorStep37 component gate/report; no result inferred from this path list"
+    }
+  ],
+  "unexecuted_capture": true,
+  "no_missing_member_synthesized": true,
+  "original_51_module_pins_match_actual_acffa": true
+}

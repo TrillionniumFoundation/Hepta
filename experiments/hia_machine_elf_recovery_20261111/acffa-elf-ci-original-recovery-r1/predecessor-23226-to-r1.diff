@@ -1,0 +1,793 @@
+--- 23226/e8-ci-original-recovery-control-r1/recover_ci_originals.py
++++ acffa-elf-ci-original-recovery-r1/recover_ci_originals.py
+ """Recover two fixed original CI artifacts without executing project code.
+ 
+ The complete ZIP is independently hashed twice after its one GET. Only the
++frozen list of original JSON and log members is decompressed and retained. The remaining ZIP
+-frozen list of JSON members is decompressed and retained. The remaining ZIP
+ payload and the nested phase archives are not independently replayed.
+ Signed transport URLs remain in private input files and never enter receipts.
+ """
+...
+ import urllib.request
+ import zipfile
+ 
++ROOT = Path('/home/qian-qi/he26-acffa-elf-ci-originals-r1')
++KEY = 'hia-e26e-desktop-acffa-two-elf-ci-originals-recovery-r1'
++PIN_SHA = '91bb6f6a1d138a7118f0d38ba473aecc3689ec803f4300fda7d7beb1a2755b86'
+-ROOT = Path('/home/qian-qi/he26-e8-ci-originals-r1')
+-KEY = 'hia-e26e-desktop-e8-two-ci-originals-recovery-r1'
+-PIN_SHA = 'e059ee85f8c9d56fff90582484e0587fdb6dea6064695b5b90c313f774d9dfc0'
+ CHUNK = 1 << 20
+ 
+ 
+...
+ 
+ def observations(folder, rows, pins):
+     by_name = {x['original_name']: x for x in rows}
+-    prefix = 'hia-cold.cold/qualification.evidence/'
+     def document(name):
++        row = by_name.get(name)
++        if row is None:
++            return None
+-        row = by_name[name]
+         raw = read_small(folder / row['retained_file'], row['sha256'],
+                          pins['bounds']['json_observation_bytes'])
+         value = json.loads(raw)
+         require(type(value) is dict, 'expected original JSON object')
+         return value
++
+     cold = document('hia-cold.json')
++    require(cold is not None and cold.get('schema') == 'hepta.hia.selfhost-cold-replay.v1',
++            'original cold schema differs')
+-    require(cold.get('schema') == 'hepta.hia.selfhost-cold-replay.v1', 'cold schema differs')
+     source = cold.get('source_manifest')
+     require(type(source) is dict and len(source) == pins['source']['cold_source_count'],
++            'actual cold source denominator differs')
+-            'original cold source count differs from canonical source')
+     canonical = json.dumps(source, sort_keys=True, separators=(',', ':')).encode()
+     require(sha256(canonical).hexdigest() == pins['source']['source_manifest_canonical_sha256']
+             and source.get('docs/HIA_SELFHOST_CORE_SUPPORT.json') == pins['source']['contract_sha256'],
++            'original cold mapping differs from canonical acffa source')
++    nested = by_name.get('hia-cold.cold/qualification.json')
++    if nested is not None:
++        require(cold.get('nested_report_sha256') == nested['sha256'],
++                'nested cold report raw identity differs')
++    gate = document('hia-machine-elf-caller-gate.json')
++    require(gate is not None and gate.get('schema') == 'hepta.hia.compiler-owner-gate.v1'
++            and gate.get('owner') == 'elf' and gate.get('operation') == 'owned-callers',
++            'actual ELF caller gate identity differs')
++    product = document('hia-machine-elf-callers-evidence/report.json')
++    owner = document('hia-machine-elf-callers-owner/process-owner.json')
++    request = document('hia-machine-elf-callers-owner/process-owner.json.request.json')
++    returned = document('hia-machine-elf-callers-owner/run-result.json')
++    manifest = document('hia-machine-elf-callers-evidence/qualified/manifest.json')
++    build = document('hia-machine-elf-callers-evidence/qualified/build.json')
++    component_gate = document('hia-machine-elf-component-gate.json')
++    component = document('hia-machine-elf-component-evidence/report.json')
++    generation = document('hia-cold.cold/qualification.evidence/B3.receipt.json')
+-            'declared original cold source map differs from canonical source')
+-    owner = document('hia-cold.cold/process-owner.json')
+-    raw_owner = by_name['hia-cold.cold/process-owner.json']
+-    wrapper_owner = dict(cold['process_owner'])
+-    require(wrapper_owner.pop('receipt_sha256', None) == raw_owner['sha256'],
+-            'cold owner original SHA differs')
+-    supervisor_returncode = wrapper_owner.pop('supervisor_returncode', None)
+-    require(wrapper_owner == owner, 'cold owner disk/API projection differs')
+-    nested = by_name['hia-cold.cold/qualification.json']
+-    require(cold.get('nested_report_sha256') == nested['sha256'],
+-            'nested report raw-byte binding differs')
+-    phase_index = document(prefix + 'phase-index.json')
+-    phases = phase_index.get('phases')
+-    require(type(phases) is list and
+-            [(x.get('family'), x.get('compiler_label')) for x in phases] ==
+-            [(f, label) for f in pins['phase_families'] for label in ('original', 'modified')],
+-            'phase index original family/label denominator differs')
+-    generations = {}
+-    for label in ('B1', 'B2', 'B3', 'M1', 'M2', 'M3'):
+-        original = document(prefix + label + '.receipt.json')
+-        generations[label] = {key: original.get(key) for key in
+-            ('status', 'abi_status', 'produced_bytes', 'produced_sha256',
+-             'image_sha256', 'artifact_sha256', 'wall_elapsed_ns', 'elapsed_ns')}
+-    require([generations[x]['produced_sha256'] for x in ('B1', 'B2', 'B3')] ==
+-            cold.get('generation_sha256'), 'original compiler generations differ')
+-    require([generations[x]['produced_sha256'] for x in ('M1', 'M2', 'M3')] ==
+-            cold.get('modified_generation_sha256'), 'modified compiler generations differ')
+-    language = {}
+-    for name in ('hia-language.json', 'hia-language.assertions.json'):
+-        row = by_name[name]
+-        if row['bytes'] <= pins['bounds']['json_observation_bytes']:
+-            value = document(name)
+-            checks = value.get('checks')
+-            language[name] = {'schema': value.get('schema'), 'status': value.get('status'),
+-                'checks_total': len(checks) if type(checks) is dict else None,
+-                'checks_true': sum(v is True for v in checks.values()) if type(checks) is dict else None}
+-        else:
+-            language[name] = {'full_raw_bytes_preserved': True, 'JSON_summary_deferred_due_to_bound': True}
+-    checks = cold.get('checks')
+-    return {'cold_original_status': cold.get('status'), 'cold_original_checks': checks,
+-            'cold_wall_elapsed_ns': cold.get('wall_elapsed_ns'),
+-            'cold_declared_source_count': len(source),
+-            'source_manifest_matches_canonical_mapping': True,
+-            'exported_source_file_payloads_independently_read': False,
+-            'cold_owner_original_status': owner.get('status'),
+-            'cold_owner_supervisor_returncode': supervisor_returncode,
+-            'cold_owner_cleanup': owner.get('cleanup'),
+-            'cold_owner_events': owner.get('events'),
+-            'phase_index': {'schema': phase_index.get('schema'),
+-                'completed': phase_index.get('completed'), 'exceptions': phase_index.get('exceptions'),
+-                'phases': phases},
+-            'compiler_generation_receipts': generations, 'language': language,
+-            'original_statuses_reclassified': False,
+-            'original_checks_independently_rerun': False}
+ 
++    def project(value, keys):
++        return None if value is None else {key: value.get(key) for key in keys}
++    result = {
++        'schema': 'hia.acffa.elf-original-CI-observations.v1',
++        'canonical_source_manifest_sha256': sha256(canonical).hexdigest(),
++        'source_manifest_matches_canonical_mapping': True,
++        'cold': project(cold, ('schema', 'status', 'checks', 'wall_elapsed_ns',
++                              'nested_report_sha256', 'generation_sha256')),
++        'B3_receipt': project(generation, ('status', 'abi_status', 'produced_bytes',
++                                           'produced_sha256', 'artifact_sha256')),
++        'gate': project(gate, ('schema', 'owner', 'operation', 'status', 'error',
++                              'final_identity_error', 'source_preserved',
++                              'cold_inputs_preserved', 'seconds', 'gates')),
++        'product_report_present': product is not None,
++        'product': project(product, ('schema', 'status', 'scope', 'failure',
++            'source_failure', 'tests_loaded', 'tests_run', 'expected_count',
++            'expected_test_ids', 'loaded_test_ids', 'executed_test_ids', 'loader_errors',
++            'anomaly_counts', 'failures', 'errors', 'retained_writer_calls',
++            'native_operation_counts', 'source_stable', 'bundle_stable',
++            'cold_report_sha256', 'manifest_sha256', 'image_sha256', 'seconds')),
++        'owner_receipt_present': owner is not None,
++        'owner': project(owner, ('schema', 'status', 'returncode', 'timed_out',
++            'qualification_seconds', 'cleanup_seconds', 'qualification_started',
++            'exit_observed_before_deadline', 'subreaper_enabled', 'event_overflow',
++            'interrupted_signals', 'owner_error', 'cleanup', 'events')),
++        'request': project(request, ('schema', 'command', 'cwd',
++                                    'qualification_seconds', 'cleanup_seconds')),
++        'returned_owner_wrapper': project(returned, ('schema', 'status', 'error',
++            'final_identity_error', 'source_preserved', 'cold_inputs_preserved')),
++        'build': project(build, ('schema', 'status', 'scope', 'failure',
++            'compiler_sha256', 'cold_report_sha256', 'build_inputs_stable',
++            'manifest_sha256', 'native_compile_receipt')),
++        'manifest': manifest,
++        'component_gate': project(component_gate, ('schema', 'owner', 'operation',
++            'status', 'error', 'source_preserved', 'cold_inputs_preserved', 'seconds')),
++        'component_report': project(component, ('schema', 'status', 'tests_run',
++            'loaded_test_ids', 'executed_test_ids', 'anomaly_counts', 'source_preserved',
++            'cold_inputs_preserved', 'builds_preserved', 'seconds')),
++        'original_statuses_reclassified': False,
++        'original_checks_independently_rerun': False,
++        'exported_source_file_payloads_independently_read': False,
++    }
++    if returned is not None and owner is not None:
++        value = returned.get('returned_owner')
++        if type(value) is dict:
++            projected = {key: item for key, item in value.items()
++                         if key not in ('supervisor_returncode', 'receipt_sha256')}
++            result['returned_owner_raw_binding'] = {
++                'supervisor_returncode': value.get('supervisor_returncode'),
++                'receipt_sha_matches': value.get('receipt_sha256') ==
++                    by_name['hia-machine-elf-callers-owner/process-owner.json']['sha256'],
++                'full_original_projection_equal': projected == owner,
++            }
++    return result
+ 
+ def inspect(path, pin, pins):
+     folder = ROOT / 'selected' / str(pin['id'])
+...
+         before = os.fstat(source.fileno())
+         with zipfile.ZipFile(source, 'r') as archive:
+             rows, infos, declared_bytes = catalog(archive, pin, pins['bounds'])
++            require(len(pins['selected_members']) == pins['selected_count'] == 17
++                    and len(set(pins['selected_members'])) == 17,
++                    'fixed requested member denominator differs')
++            missing = []
+-            require(len(pins['selected_members']) == pins['selected_count'] == 147,
+-                    'fixed selected member denominator differs')
+             for number, name in enumerate(pins['selected_members']):
++                if name not in infos or infos[name].is_dir():
++                    missing.append(name)
++                    continue
+-                require(name in infos and not infos[name].is_dir(), 'required original JSON member missing: ' + name)
+                 info = infos[name]
+                 selected_bytes += info.file_size
+                 require(selected_bytes <= pins['bounds']['selected_total_bytes_per_artifact'],
+                         'selected total expansion limit exceeded')
++                target = folder / ('%04d.raw' % number)
+-                target = folder / ('%04d.json' % number)
+                 selected.append(retain_member(archive, info, target, pins['bounds']['selected_member_bytes']))
+             read_names = {x['original_name'] for x in selected}
+             for row in rows:
+...
+                          'artifact': pin, 'entries': rows, 'entry_count': len(rows),
+                          'declared_uncompressed_bytes': declared_bytes,
+                          'selected_uncompressed_bytes_read': selected_bytes,
++                         'requested_members': pins['selected_members'],
++                         'missing_requested_members': missing,
+                          'archive_comment_hex': archive.comment.hex(),
+                          'central_directory_paths_types_checked': True,
+                          'unselected_member_CRC_or_payload_SHA_checked': False}
+...
+     # observation refusal preserves the originals and the independently read archive.
+     custody = bundle_selected(folder, selected, directory_record)
+     selected_record = read_file_hash(folder / 'SELECTED.json')
++    stage_report = {'schema': 'hia.acffa.elf.original-CI-artifact-readback.v1',
+-    stage_report = {'schema': 'hia.e8.original-CI-artifact-readback.v1',
+                     'artifact': pin, 'directory': directory_record, 'selected': selected_record,
++                    'requested_member_count': pins['selected_count'],
+                     'selected_member_count': len(selected), 'selected_raw_bytes': selected_bytes,
++                    'selected_member_names': [row['original_name'] for row in selected],
++                    'missing_requested_members': missing,
+                     'selected_custody': custody, 'header_observations': None,
+                     'inner_phase_ZIPs_replayed': False, 'project_code_executed': False}
+     create(folder / 'CUSTODY.json', wire(stage_report))
++    require(not set(pins['required_members']).intersection(missing),
++            'required original gate/cold record missing; available originals retained')
+     stage_report['header_observations'] = observations(folder, selected, pins)
+     create(folder / 'OBSERVATIONS.json', wire(stage_report['header_observations']))
+     return stage_report
+...
+ def main():
+     os.umask(0o077)
+     started = time.monotonic_ns()
++    report = {'schema': 'hia.acffa.elf.two-original-CI-recovery.v1', 'status': 'RECOVERY_HOLD',
+-    report = {'schema': 'hia.e8.two-original-CI-recovery.v1', 'status': 'RECOVERY_HOLD',
+               'root': str(ROOT), 'stable_key': KEY, 'pins_sha256': PIN_SHA,
+               'GET_attempts': [], 'artifacts': [], 'qualification_executed': False,
+               'project_code_executed': False, 'old_runs_replayed': False,
+...
+         require(pins['root'] == str(ROOT) and pins['stable_key'] == KEY, 'fixed recovery root/key differs')
+         private_raw = read_small(ROOT / 'control/request.private.json')
+         private = json.loads(private_raw)
++        require(private.get('schema') == 'hia.acffa.elf.ci-original-private-request.v1'
+-        require(private.get('schema') == 'hia.e8.ci-original-private-request.v1'
+                 and private.get('stable_key') == KEY
+                 and private.get('artifact_pins_sha256') == PIN_SHA, 'private request identity differs')
+         transports = private['transports']
+
+--- 23226/e8-ci-original-recovery-control-r1/bootstrap.py
++++ acffa-elf-ci-original-recovery-r1/bootstrap.py
+ import sys
+ 
+ 
++ROOT = Path('/home/qian-qi/he26-acffa-elf-ci-originals-r1')
+-ROOT = Path('/home/qian-qi/he26-e8-ci-originals-r1')
+ PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')
+ PYTHON_SHA = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
++KEY = 'hia-e26e-desktop-acffa-two-elf-ci-originals-recovery-r1'
+-KEY = 'hia-e26e-desktop-e8-two-ci-originals-recovery-r1'
+ FIXED = {
+     'guardian.py': 'd0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023',
+     'process_owner_impl.py': '36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2',
++    'artifact-pins.json': '91bb6f6a1d138a7118f0d38ba473aecc3689ec803f4300fda7d7beb1a2755b86',
++    'recover_ci_originals.py': '24d8aadb1ab9630e8168c0b61c10e0934b7ad22d5cf58b92b56a7af1e88519c6',
++    'verify_terminal.py': '60e3aab39b2a099a3d69b47d8b704d066cf7791162c18fa896a2951397e73144',
+-    'artifact-pins.json': 'e059ee85f8c9d56fff90582484e0587fdb6dea6064695b5b90c313f774d9dfc0',
+-    'recover_ci_originals.py': '685476ed4637759898b02d4ca620462922a03c35a7329e21971bf6fbfc2802cd',
+-    'verify_terminal.py': '59e18e5856f4a5d0f3f1f2bb85e6b6391a892d2c40f11c25788183694bb61d4c',
+ }
+ 
+ 
+...
+     raw = sys.stdin.buffer.read((1 << 20) + 1)
+     require(len(raw) <= 1 << 20 and sha256(raw).hexdigest() == sys.argv[1], 'complete stdin binding differs')
+     payload = json.loads(raw)
++    require(payload.get('schema') == 'hia.acffa.elf.ci-original-bootstrap.v1', 'payload schema differs')
+-    require(payload.get('schema') == 'hia.e8.ci-original-bootstrap.v1', 'payload schema differs')
+     request = payload['request']
++    require(request.get('schema') == 'hia.acffa.elf.ci-original-private-request.v1'
+-    require(request.get('schema') == 'hia.e8.ci-original-private-request.v1'
+             and request.get('stable_key') == KEY and request.get('artifact_pins_sha256') == FIXED['artifact-pins.json'],
+             'private ingress request differs')
+     expected_names = set(FIXED) | {'bootstrap.py'}
+...
+     config_raw = wire(config)
+     create(ROOT / 'guard/request.json', config_raw)
+     create(ROOT / 'launch-intent.json', wire({
++        'schema': 'hia.acffa.elf.ci-original-recovery-intent.v1',
+-        'schema': 'hia.e8.ci-original-recovery-intent.v1',
+         'stable_key': KEY, 'status': 'GUARDIAN_EXEC_REQUESTED_NOT_VERIFIED',
++        'root': str(ROOT), 'host': 'desktop', 'artifact_ids': [13901601239, 13900618647],
++        'source_commit': 'acffa9262f31d073f8f0a6f0201eae201039f619',
++        'source_tree': '22a095436c94efc87b1a89aca912c8caab2eed80',
+-        'root': str(ROOT), 'host': 'desktop', 'artifact_ids': [13897193263, 13896304830],
+-        'source_commit': 'e8b5deb277b40ccff8c3375f62b5c132717cdbed',
+-        'source_tree': 'd6d8c491b9c6a19e481f99b16119d50eb858b99f',
+         'stdin_payload_sha256': sha256(raw).hexdigest(),
+         'private_request_sha256': sha256(request_raw).hexdigest(),
+         'guardian_request_sha256': sha256(config_raw).hexdigest(),
+
+--- 23226/e8-ci-original-recovery-control-r1/verify_terminal.py
++++ acffa-elf-ci-original-recovery-r1/verify_terminal.py
+ from pathlib import Path
+ import stat
+ 
++ROOT = Path('/home/qian-qi/he26-acffa-elf-ci-originals-r1')
++KEY = 'hia-e26e-desktop-acffa-two-elf-ci-originals-recovery-r1'
+-ROOT = Path('/home/qian-qi/he26-e8-ci-originals-r1')
+-KEY = 'hia-e26e-desktop-e8-two-ci-originals-recovery-r1'
+ PYTHON = '/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python'
++PIN_SHA = '91bb6f6a1d138a7118f0d38ba473aecc3689ec803f4300fda7d7beb1a2755b86'
+-PIN_SHA = 'e059ee85f8c9d56fff90582484e0587fdb6dea6064695b5b90c313f774d9dfc0'
+ OWNER_SHA = '36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2'
+ PYTHON_REAL = '/home/qian-qi/hia-e26e-python314-linux-r1/install/bin/python3.14'
+ PYTHON_SHA = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
+...
+     'artifact-pins.json': PIN_SHA,
+     'guardian.py': 'd0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023',
+     'process_owner_impl.py': OWNER_SHA,
++    'recover_ci_originals.py': '24d8aadb1ab9630e8168c0b61c10e0934b7ad22d5cf58b92b56a7af1e88519c6',
+-    'recover_ci_originals.py': '685476ed4637759898b02d4ca620462922a03c35a7329e21971bf6fbfc2802cd',
+ }
+ NATURAL_EVENTS = {'qualification_started', 'owned_child_observed',
+                   'qualification_exit_observed', 'owned_child_reaped'}
+...
+ 
+ 
+ def accept(report, guardian, pins):
++    require(report.get('schema') == 'hia.acffa.elf.two-original-CI-recovery.v1'
+-    require(report.get('schema') == 'hia.e8.two-original-CI-recovery.v1'
+             and report.get('status') == 'ORIGINALS_AND_SELECTED_REPORTS_VERIFIED_PENDING_NATURAL_GUARDIAN'
+             and report.get('stable_key') == KEY and report.get('root') == str(ROOT)
+             and report.get('pins_sha256') == PIN_SHA, 'original recovery report differs')
+...
+                 and before.get('bytes') == pin['bytes'] and before.get('sha256') == pin['sha256']
+                 and before.get('actual_bytes_independently_read') == pin['bytes'],
+                 'two original full readbacks differ')
++        names = item.get('selected_member_names')
++        missing = item.get('missing_requested_members')
++        require(type(names) is list and type(missing) is list
++                and all(type(name) is str for name in names + missing)
++                and len(set(names)) == len(names) and len(set(missing)) == len(missing)
++                and not set(names).intersection(missing)
++                and set(names) | set(missing) == set(pins['selected_members'])
++                and names == [name for name in pins['selected_members'] if name not in missing]
++                and set(pins['required_members']) <= set(names),
++                'complete requested-member present/missing accounting differs')
++        require(item.get('artifact') == pin
++                and item.get('requested_member_count') == pins['selected_count'] == 17
++                and item.get('selected_member_count') == len(names)
+-        require(item.get('artifact') == pin and item.get('selected_member_count') == pins['selected_count']
+                 and item.get('inner_phase_ZIPs_replayed') is False
+                 and item.get('project_code_executed') is False, 'selected custody scope differs')
+         custody = item.get('selected_custody', {})
++        require(custody.get('member_count') == len(names) + 2
+-        require(custody.get('member_count') == pins['selected_count'] + 2
+                 and custody.get('all_member_SHA_and_CRC_verified') is True
+                 and custody.get('raw_files_included_without_transformation') is True,
+                 'selected archive readback incomplete')
+...
+     require(type(controls) is dict and set(controls) == set(FIXED) | {'bootstrap.py', 'verify_terminal.py'}
+             and all(controls[name] == value for name, value in FIXED.items()),
+             'fixed control population or identity differs')
++    require(private.get('schema') == 'hia.acffa.elf.ci-original-private-request.v1'
+-    require(private.get('schema') == 'hia.e8.ci-original-private-request.v1'
+             and private.get('stable_key') == KEY
+             and private.get('artifact_pins_sha256') == PIN_SHA
+             and report.get('private_request_sha256') == sha256(private_raw).hexdigest(),
+...
+         expected_logs[str(path)] = sha256(read(path)).hexdigest()
+     require(guardian.get('logs') == expected_logs, 'actual original child logs differ')
+     accept(report, guardian, pins)
++    print(json.dumps({'schema': 'hia.acffa.elf.CI-original-custody-acceptance.v1',
+-    print(json.dumps({'schema': 'hia.e8.CI-original-custody-acceptance.v1',
+         'status': 'TWO_ORIGINAL_ZIPS_AND_SELECTED_REPORTS_RETAINED_NOT_QUALIFICATION',
+         'report': report_record, 'guardian': guardian_record, 'guardian_request': config_record,
+         'artifact_ids': [x['id'] for x in pins['artifacts']],
++        'scope': 'Exact ZIP bytes plus all present requested JSON/log raw bytes and full ZIP directory metadata',
++        'missing_requested_members': {str(item['artifact']['id']): item['missing_requested_members']
++                                      for item in report['artifacts']},
++        'original_product_statuses_reclassified': False,
+-        'scope': 'Exact ZIP bytes plus selected JSON raw bytes and full ZIP directory metadata',
+         'unselected_inner_phase_archives_replayed': False, 'qualification_executed': False},
+         sort_keys=True))
+ 
+
+--- 23226/e8-ci-original-recovery-control-r1/artifact-pins.json
++++ acffa-elf-ci-original-recovery-r1/artifact-pins.json
+ {
+-  "schema": "hia.e8.ci-original-recovery-pins.v1",
+-  "root": "/home/qian-qi/he26-e8-ci-originals-r1",
+-  "stable_key": "hia-e26e-desktop-e8-two-ci-originals-recovery-r1",
+   "artifacts": [
+     {
++      "bytes": 599292165,
++      "checkout_commit": "acffa9262f31d073f8f0a6f0201eae201039f619",
++      "checkout_tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
++      "event": "push",
++      "id": 13901601239,
++      "job_id": 130849577269,
+-      "id": 13897193263,
+-      "run_id": 43112711459,
+       "run_attempt": 1,
++      "run_id": 43117621509,
++      "sha256": "260c85bd99c210b86673fce91eceb1eb0b9baac0bd6a89b4762d71e50ab115a8",
++      "workflow_terminal": "failure"
+-      "event": "push",
+-      "checkout_commit": "e8b5deb277b40ccff8c3375f62b5c132717cdbed",
+-      "checkout_tree": "d6d8c491b9c6a19e481f99b16119d50eb858b99f",
+-      "bytes": 66778949,
+-      "sha256": "59e57cfa2309a15d15b38b50ffb1e020012ea4f1d6f1b27820614f080beccae2"
+     },
+     {
++      "bytes": 599316030,
++      "checkout_commit": "9796578f490cb9ed2720fd6b0fb6d1a42cc25987",
++      "checkout_tree": "22a095436c94efc87b1a89aca912c8caab2eed80",
++      "event": "pull_request",
++      "id": 13900618647,
++      "job_id": 130849613150,
+-      "id": 13896304830,
+-      "run_id": 43112721008,
+       "run_attempt": 1,
++      "run_id": 43117632066,
++      "sha256": "67ec792422a5474f76c1d4e6093cf6a870e6e7745dc30c8efc9256d7eac68116",
++      "workflow_terminal": "failure"
+-      "event": "pull_request",
+-      "checkout_commit": "3badd0d2bf1fa49bbd4255a06d3a8ca07d00d6ae",
+-      "checkout_tree": "d6d8c491b9c6a19e481f99b16119d50eb858b99f",
+-      "bytes": 66800149,
+-      "sha256": "d3ca5e27407efe58cce2b8aa0225c779211d1900ee6c9900fc724368cc273332"
+     }
+   ],
++  "bounds": {
++    "json_observation_bytes": 4194304,
++    "selected_member_bytes": 134217728,
++    "selected_total_bytes_per_artifact": 268435456,
++    "zip_declared_total_uncompressed_bytes": 17179869184,
++    "zip_directory_metadata_bytes": 16777216,
++    "zip_entries": 100000
++  },
++  "claims": {
++    "each_complete_zip_hashed_twice_after_single_GET": true,
++    "old_runs_replayed": false,
++    "original_statuses_reclassified": false,
++    "project_code_executed": false,
++    "qualification_executed": false,
++    "selected_present_member_full_CRC_and_SHA_checked": true,
++    "unselected_member_CRC_or_payload_SHA_checked": false,
++    "whole_source_file_payloads_independently_read": false
+-  "source": {
+-    "head": "e8b5deb277b40ccff8c3375f62b5c132717cdbed",
+-    "tree": "d6d8c491b9c6a19e481f99b16119d50eb858b99f",
+-    "profile": "selfhost-core-linux-x86_64-v74-native-stack-development",
+-    "cold_source_count": 780,
+-    "contract_sha256": "76d63a85ae875b81542ed8a8479a1a33d5bfad027897eaf0e89b130b3cb145fc",
+-    "source_manifest_canonical_sha256": "40b611bac78893eedf4820d65a092d39bc510c8c90e664bec79a741a8991de97"
+   },
++  "required_members": [
++    "hia-machine-elf-caller-gate.json",
++    "hia-cold.json"
++  ],
++  "root": "/home/qian-qi/he26-acffa-elf-ci-originals-r1",
++  "schema": "hia.acffa.elf.ci-original-artifact-pins.v1",
++  "selected_count": 17,
+   "selected_members": [
++    "hia-machine-elf-caller-gate.json",
++    "hia-machine-elf-callers-owner/run-result.json",
++    "hia-machine-elf-callers-owner/process-owner.json",
++    "hia-machine-elf-callers-owner/process-owner.json.request.json",
++    "hia-machine-elf-callers-owner/stdout.log",
++    "hia-machine-elf-callers-owner/stderr.log",
++    "hia-machine-elf-callers-owner/process-owner.json.stdout.log",
++    "hia-machine-elf-callers-owner/process-owner.json.stderr.log",
++    "hia-machine-elf-callers-evidence/report.json",
++    "hia-machine-elf-callers-evidence/qualified/manifest.json",
++    "hia-machine-elf-callers-evidence/qualified/build.json",
+     "hia-cold.json",
+-    "hia-language.json",
+-    "hia-language.assertions.json",
+     "hia-cold.cold/process-owner.json",
+     "hia-cold.cold/qualification.json",
+-    "hia-cold.cold/qualification.evidence/phase-index.json",
+-    "hia-cold.cold/qualification.evidence/B0.receipt.json",
+-    "hia-cold.cold/qualification.evidence/B1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/B2.receipt.json",
+     "hia-cold.cold/qualification.evidence/B3.receipt.json",
++    "hia-machine-elf-component-gate.json",
++    "hia-machine-elf-component-evidence/report.json"
+-    "hia-cold.cold/qualification.evidence/M1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/M2.receipt.json",
+-    "hia-cold.cold/qualification.evidence/M3.receipt.json",
+-    "hia-cold.cold/qualification.evidence/native-observer-build.json",
+-    "hia-cold.cold/qualification.evidence/linked-observer-build.json",
+-    "hia-cold.cold/qualification.evidence/independent-native-observer-reference.json",
+-    "hia-cold.cold/qualification.evidence/independent-linked-observer-reference.json",
+-    "hia-cold.cold/qualification.evidence/phase-capacity-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-capacity-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-cfg-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-cfg-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-elf-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-elf-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-chain-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-chain-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-owned-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-owned-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-bulk-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-bulk-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-loan-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-loan-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-resource-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-resource-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-tail-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-tail-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-select-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-select-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-effects-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-effects-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-multi-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-multi-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-keyword-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-keyword-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-signed-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-signed-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-scalar-casts-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-scalar-casts-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-explicit-traps-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-explicit-traps-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-cli-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-cli-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-names-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-names-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-exports-original.process.json",
+-    "hia-cold.cold/qualification.evidence/phase-exports-modified.process.json",
+-    "hia-cold.cold/qualification.evidence/reference-exports.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-names.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-cli.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-explicit-traps.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-resource.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-bulk.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-loan.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-cfg.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-capacity.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-tail.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-select.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-effects.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-multi.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-keyword.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-signed.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-scalar-casts.worker.json",
+-    "hia-cold.cold/qualification.evidence/reference-core.worker.json",
+-    "hia-cold.cold/qualification.evidence/original-bytesum.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-sample-0.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-sample-1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-sample-2.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-bytesum.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-sample-0.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-sample-1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-sample-2.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-unknown-opcode.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-missing-end.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-overflow-u64.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-overflow-u32.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-duplicate-ssa.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-out-of-scope.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-absent-block.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-edge-type.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-call-type.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-recursive-call-signature.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-mutable-alias.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-readonly-jump-alias.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-readonly-branch-alias.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-readonly-write.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-unreachable-block.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-duplicate-function.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-quoted-declaration.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-unquoted-call.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-leading-zero.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-invalid-byte.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-empty-source.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-function-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-block-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-effects-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-entry-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-entry-open-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-entry-close-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-arrow-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-return-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-edge-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-branch-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-opcode-adjacency.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-constant-attribute-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-call-attribute-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-cast-attribute-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-effects-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/reject-entry-separation.receipt.json",
+-    "hia-cold.cold/qualification.evidence/readonly-call-code.receipt.json",
+-    "hia-cold.cold/qualification.evidence/readonly-call.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-backward-bytesum.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-backward-sample-0.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-backward-sample-1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-backward-sample-2.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-full-call-depth.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-full-call-depth-run.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-backward-signature.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-missing-in-range-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-out-of-range-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-overflow-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-non-tail-direct-recursion.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-mutual-recursion.receipt.json",
+-    "hia-cold.cold/qualification.evidence/original-reject-unreachable-cycle.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-backward-bytesum.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-backward-sample-0.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-backward-sample-1.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-backward-sample-2.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-full-call-depth.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-full-call-depth-run.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-backward-signature.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-missing-in-range-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-out-of-range-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-overflow-callee.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-non-tail-direct-recursion.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-mutual-recursion.receipt.json",
+-    "hia-cold.cold/qualification.evidence/modified-reject-unreachable-cycle.receipt.json",
+-    "hia-cold.cold/qualification.evidence/short-output.receipt.json",
+-    "hia-cold.cold/qualification.evidence/short-workspace.receipt.json"
+   ],
++  "selection_policy": "Preserve all present requested raw members. Explicitly list every missing requested member. Missing optional downstream originals do not erase available failure evidence or synthesize a product result; the original complete ZIP remains byte sealed.",
++  "source": {
++    "cold_source_count": 780,
++    "contract_sha256": "745f466a9f695d698ec5d6004e781183924cc7590153f85a911004fa2dd9e074",
++    "head": "acffa9262f31d073f8f0a6f0201eae201039f619",
++    "profile": "selfhost-core-linux-x86_64-v74-native-stack-development",
++    "source_manifest_canonical_sha256": "659b872c3452736f2362cb7f8055347ab20c8bbdda0608007169fe282cc44a03",
++    "tree": "22a095436c94efc87b1a89aca912c8caab2eed80"
++  },
++  "stable_key": "hia-e26e-desktop-acffa-two-elf-ci-originals-recovery-r1",
+-  "selected_count": 147,
+-  "phase_families": [
+-    "capacity",
+-    "cfg",
+-    "elf",
+-    "chain",
+-    "owned",
+-    "bulk",
+-    "loan",
+-    "resource",
+-    "tail",
+-    "select",
+-    "effects",
+-    "multi",
+-    "keyword",
+-    "signed",
+-    "scalar-casts",
+-    "explicit-traps",
+-    "cli",
+-    "names",
+-    "exports"
+-  ],
+-  "reference_families": [
+-    "exports",
+-    "names",
+-    "cli",
+-    "explicit-traps",
+-    "resource",
+-    "bulk",
+-    "loan",
+-    "cfg",
+-    "capacity",
+-    "tail",
+-    "select",
+-    "effects",
+-    "multi",
+-    "keyword",
+-    "signed",
+-    "scalar-casts",
+-    "core"
+-  ],
+-  "prefix_case_labels": [
+-    "original-bytesum",
+-    "original-sample-0",
+-    "original-sample-1",
+-    "original-sample-2",
+-    "modified-bytesum",
+-    "modified-sample-0",
+-    "modified-sample-1",
+-    "modified-sample-2",
+-    "reject-unknown-opcode",
+-    "reject-missing-end",
+-    "reject-overflow-u64",
+-    "reject-overflow-u32",
+-    "reject-duplicate-ssa",
+-    "reject-out-of-scope",
+-    "reject-absent-block",
+-    "reject-edge-type",
+-    "reject-call-type",
+-    "reject-recursive-call-signature",
+-    "reject-mutable-alias",
+-    "reject-readonly-jump-alias",
+-    "reject-readonly-branch-alias",
+-    "reject-readonly-write",
+-    "reject-unreachable-block",
+-    "reject-duplicate-function",
+-    "reject-quoted-declaration",
+-    "reject-unquoted-call",
+-    "reject-leading-zero",
+-    "reject-invalid-byte",
+-    "reject-empty-source",
+-    "reject-function-adjacency",
+-    "reject-block-adjacency",
+-    "reject-effects-adjacency",
+-    "reject-entry-adjacency",
+-    "reject-entry-open-adjacency",
+-    "reject-entry-close-adjacency",
+-    "reject-arrow-adjacency",
+-    "reject-return-adjacency",
+-    "reject-edge-adjacency",
+-    "reject-branch-separation",
+-    "reject-opcode-adjacency",
+-    "reject-constant-attribute-separation",
+-    "reject-call-attribute-separation",
+-    "reject-cast-attribute-separation",
+-    "reject-effects-separation",
+-    "reject-entry-separation",
+-    "readonly-call-code",
+-    "readonly-call",
+-    "original-backward-bytesum",
+-    "original-backward-sample-0",
+-    "original-backward-sample-1",
+-    "original-backward-sample-2",
+-    "original-full-call-depth",
+-    "original-full-call-depth-run",
+-    "original-reject-backward-signature",
+-    "original-reject-missing-in-range-callee",
+-    "original-reject-out-of-range-callee",
+-    "original-reject-overflow-callee",
+-    "original-reject-non-tail-direct-recursion",
+-    "original-reject-mutual-recursion",
+-    "original-reject-unreachable-cycle",
+-    "modified-backward-bytesum",
+-    "modified-backward-sample-0",
+-    "modified-backward-sample-1",
+-    "modified-backward-sample-2",
+-    "modified-full-call-depth",
+-    "modified-full-call-depth-run",
+-    "modified-reject-backward-signature",
+-    "modified-reject-missing-in-range-callee",
+-    "modified-reject-out-of-range-callee",
+-    "modified-reject-overflow-callee",
+-    "modified-reject-non-tail-direct-recursion",
+-    "modified-reject-mutual-recursion",
+-    "modified-reject-unreachable-cycle",
+-    "short-output",
+-    "short-workspace"
+-  ],
+   "transport": {
++    "allowed_host_suffix": ".oaiusercontent.com",
++    "combined_checked_transfer_seconds": 720,
++    "guardian_seconds": 900,
++    "h_seconds": 960,
+     "maximum_GETs_per_artifact": 1,
+     "redirects_allowed": false,
+     "retries": 0,
++    "socket_seconds": 30
+-    "allowed_host_suffix": ".oaiusercontent.com",
+-    "socket_seconds": 30,
+-    "combined_checked_transfer_seconds": 720,
+-    "guardian_seconds": 900,
+-    "h_seconds": 960
+-  },
+-  "bounds": {
+-    "zip_entries": 100000,
+-    "zip_declared_total_uncompressed_bytes": 17179869184,
+-    "selected_member_bytes": 134217728,
+-    "selected_total_bytes_per_artifact": 268435456,
+-    "json_observation_bytes": 4194304,
+-    "zip_directory_metadata_bytes": 16777216
+-  },
+-  "claims": {
+-    "original_artifact_bytes_preserved": true,
+-    "selected_JSON_raw_bytes_to_be_preserved": true,
+-    "unselected_member_payloads_independently_decompressed": false,
+-    "inner_stage_ZIP_members_independently_replayed": false,
+-    "source_code_imported": false,
+-    "project_code_executed": false,
+-    "qualification_executed": false,
+-    "original_run_outcomes_changed": false
+   }
+ }
+ 
+
