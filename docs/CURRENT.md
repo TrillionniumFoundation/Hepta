@@ -120,6 +120,83 @@ scripts still have fixed custody or test consumers. Repository suffix checks
 cover tracked sources and package resources; ordinary file input remains
 content-based and can read a valid program supplied under another suffix.
 
+The remaining directories have distinct current responsibilities:
+
+| Path | Responsibility | Cleanup boundary |
+| --- | --- | --- |
+| `hepta/` | Ordinary CLI, Agent service, verifier and selected native adapters | Hosted production owners remain required until their ordinary callers have qualified native replacements. |
+| `examples/hia_bootstrap/` | Checked `.hepta` compiler, library and standalone application inputs | These are build and installed-resource inputs, including files named as examples; they are not disposable demos. |
+| `tools/`, `setup.py`, `pyproject.toml`, `MANIFEST.in` | Bootstrap, source regeneration, qualification and explicit package construction | Build/reference tools are separate from native runtime execution. Removing them requires a replacement build and qualification path. |
+| `tests/`, `formal/`, `benchmarks/` | Regression callers, independent checks and registered comparison inputs | Keep the existing coverage and negative controls when replacing an implementation. |
+| `experiments/`, `review-evidence/`, `evidence/` | Frozen source observations, original failures and retained fixtures | Some are read by current tests and source contracts. They are not installed as package modules, and wholesale deletion would break retained checks. |
+| `rust/` | Explicit reference and research implementations | These are distinct supported profiles; their removal requires an explicit scope change and replacement of their callers. |
+
+`setup.py` packages the `hepta` modules and only the resources declared by the
+Agent contract. It does not install the experiment or review-evidence trees as
+product modules. Build outputs and Python caches are already excluded by
+`.gitignore`; cleanup of another worktree's running qualification output is not
+part of source retirement.
+
+The cleanup leaves original failure evidence, registered benchmarks, independent
+oracles, licences and fixed compiler fixtures unchanged. The separate
+[611-file historical evidence index](HIA_ARCHIVE_PATH_MIGRATIONS.md#current-materialization-limit)
+has an existing working-tree materialization gap: the published base and cleanup
+worktree both report 574 missing paths. Explicit verification of its
+[original Git snapshot](HIA_ARCHIVE_PATH_MIGRATIONS.md#verify-historical-bytes-without-restoring-old-files)
+now checks all 611 files and 26,120,286 bytes against the original hashes without
+restoring old files. Current-path mode still fails on missing paths and never
+falls back to history; the two observations remain distinct.
+
+### Earlier reports
+
+These links preserve earlier observations at immutable commits. Their test
+counts, source identities, deployment pins and limitations belong to those
+observations, not to the current checkout.
+
+| Earlier report | Preserved revision |
+| --- | --- |
+| Native closure progress, 2026-11-11 | [Original report at `5b4e3fc2`](https://github.com/TrillionniumFoundation/Hepta/blob/5b4e3fc2d0271ee955000f445cc078aa85abe01c/docs/HIA_NATIVE_CLOSURE_20261111.md) |
+| Native rewrite progress, 2026-11-11 | [Original report at `5b4e3fc2`](https://github.com/TrillionniumFoundation/Hepta/blob/5b4e3fc2d0271ee955000f445cc078aa85abe01c/docs/HIA_NATIVE_REWRITE_STATUS_20261111.md) |
+| Product closure candidate, 2026-11-07 | [Retained report at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_PRODUCT_CLOSURE_20261107.md) |
+| Product follow-through and original failures, 2026-11-07 | [Retained report at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_PRODUCT_FOLLOWTHROUGH_20261107.md) |
+| Runtime compatibility observation, 2026-11-10 | [Retained audit at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md) |
+| Core-only cleanup and its fixed-source acceptance, 2026-11-10 | [Retained report at `ec484121`](https://github.com/TrillionniumFoundation/Hepta/blob/ec4841212fa97ae98c576b48f8ba1b4815df6122/docs/HIA_REPOSITORY_CLEANUP_20261110.md) |
+
+## Runtime integration
+
+The ordinary installed command is still `hia = hepta.cli:hia_main`. The
+[ordinary worker](../hepta/hia_agent_worker.py) implements the eleven-tool
+request/report service through hosted transport, durable store and selected
+native adapters. The separate five-command
+[native stdio application](HIA_AGENT_STDIO_NATIVE.md) implements another
+protocol. Installing its executable does not replace the ordinary worker.
+
+The [Agent runtime contract](HIA_AGENT_NATIVE_RUNTIME_CONTRACT.md) and
+[installed-resource contract](HIA_NATIVE_INSTALLED_SOURCE_BINDINGS.md) describe
+the current source interfaces. A dated deployment observation or a matching
+catalog hash does not identify the code currently executing on a machine.
+Runtime migration must therefore establish all of the following on the actual
+selected installation:
+
+1. Build and install from one frozen source, then read the actual worker,
+   backend, catalog and native-resource identities from that installation.
+2. Bind native-helper selection to the administrator-owned runtime profile and
+   allowed resources. Ambient environment variables and model arguments do not
+   authorize executable replacement.
+3. Verify the original request/report protocol and all ordinary tools through
+   the real process owner, including diagnostic and rejection behavior.
+4. Preserve the existing durable stores, original request identities, unknown
+   outcomes, in-flight operations and active version references across restart,
+   adoption and rollback. An old operation remains bound to its original code
+   identity; changed pins do not authorize replay under a new request key.
+5. Read back the running worker identity after cutover and exercise recovery.
+   A release-selector record or a filesystem pointer alone does not prove
+   which image an existing process is using.
+
+The [release selector](HIA_RELEASE_SELECTION_NATIVE.md) has its own durable
+activation and rollback protocol. It does not establish these service migration
+conditions. `production_activated` remains false for this candidate.
+
 ## Parallel implementation inventory
 
 The v67 integration at `5d5424a3` is not the same source as PR #893 despite its
