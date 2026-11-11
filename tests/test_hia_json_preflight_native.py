@@ -230,11 +230,43 @@ class JsonPreflightHiaNativeTests(unittest.TestCase):
             dispatch('0', max_nodes=1048577, max_depth=129)
             with self.assertRaises(ValueError):
                 dispatch('"\ud800"', max_nodes=64, max_depth=8)
-            child = subprocess.run([sys.executable, '-m', 'unittest', '-v',
-                                    'tests.test_hia_json_preflight'], cwd=ROOT,
+            def test_ids(suite):
+                for child in suite:
+                    if isinstance(child, unittest.TestSuite):
+                        yield from test_ids(child)
+                    else:
+                        yield child.id()
+
+            expected_ids = list(test_ids(unittest.defaultTestLoader.loadTestsFromName(
+                'tests.test_hia_json_preflight')))
+            self.assertGreater(len(expected_ids), 0)
+            script = '''import json, unittest
+suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_json_preflight')
+def ids(items):
+    for item in items:
+        if isinstance(item, unittest.TestSuite):
+            yield from ids(item)
+        else:
+            yield item.id()
+test_ids = list(ids(suite))
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+counts = dict(tests=result.testsRun, errors=len(result.errors),
+              failures=len(result.failures), skipped=len(result.skipped),
+              expected_failures=len(result.expectedFailures),
+              unexpected_successes=len(result.unexpectedSuccesses))
+passed = (result.wasSuccessful() and 0 < counts['tests'] == len(test_ids)
+          and not any(value for key, value in counts.items() if key != 'tests'))
+print(json.dumps(dict(test_ids=test_ids, counts=counts, passed=passed)), flush=True)
+raise SystemExit(0 if passed else 1)
+'''
+            child = subprocess.run([sys.executable, '-B', '-c', script], cwd=ROOT,
                                    capture_output=True, text=True, timeout=60)
             self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
-            self.assertIn('Ran 6 tests', child.stderr)
+            observed = json.loads(child.stdout)
+            self.assertEqual(observed['test_ids'], expected_ids)
+            self.assertEqual(observed['counts'], dict(tests=len(expected_ids), errors=0,
+                failures=0, skipped=0, expected_failures=0, unexpected_successes=0))
+            self.assertIs(observed['passed'], True)
             with patch.dict(os.environ, {'HEPTA_HIA_JSON_PREFLIGHT_MANIFEST': str(self.manifest) + '.missing'}):
                 with self.assertRaises(FileNotFoundError):
                     dispatch('0', max_nodes=8, max_depth=8)

@@ -57,6 +57,14 @@ activation, package installation, portability and removal of the reference are
 still OPEN. Finite differential tests do not prove worst-case cost or all-input
 refinement; this candidate is not advertised as a hardened public code sandbox.
 
+Status 1 retains the native adapter's exact diagnostic
+`HIA JSON preflight: invalid JSON syntax or Unicode`. The independent Python
+scanner has more specific English reasons for malformed tokens. Shared API
+regressions assert each route's existing exact diagnostic and still exercise
+the selected native path; unencodable Python strings retain the reference
+behavior described above. They do not require a status-only ABI to synthesize
+the reference scanner's internal diagnostic branches.
+
 ## Independent regression authorities
 
 The old Python scanner remains an independent reference. A scalar VM wrapper
@@ -68,4 +76,7 @@ bytes and quoted single bytes, Unicode boundaries/escaped equivalents, dense
 unique keys, nested scopes, exact1Mnode/128depth/8MiBwire boundaries, scratch
 refusals, concurrent private state, source/image tampering and existing API
 selection. Source CI checks exact authoring regeneration; native CI executes the
-native test class. No skip or profile refusal is counted as accepted syntax.
+complete native test module, including the ordinary public dispatch regression.
+The nested regression reports every current test ID, its full test count and
+zero errors, failures, skips, expected failures or unexpected successes. No skip
+or profile refusal is counted as accepted syntax.

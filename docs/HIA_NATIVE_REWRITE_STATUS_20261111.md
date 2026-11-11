@@ -411,6 +411,85 @@ failures or unexpected successes. The 570-entry source closure remained unchange
 before and after those tests. These development results do not promote the
 pre-fix local timeout or the older GitHub timeout into a pass.
 
+### Exact-source v61/v62 failures and JSON dispatch regression correction
+
+The complete retained qualification of published v61 commit
+`647885c5c3ff067b6477011123335ad5a1aef78e` ended in **HOLD**. Its first
+21 steps passed, including all 11 cold checks in 95.954178227 seconds, but its
+full retained suite reported 3,954 tests, one failure, zero errors, zero skips,
+zero expected failures and zero unexpected successes in 1,733.781273 seconds.
+The final report SHA-256 is
+`902409a9ed1c792f66eb264566b985ad9db6359d325fc49b66706f015e74536e`.
+Both complete source snapshots independently match all 2,587 Git blobs and
+modes of that commit. The successful earlier steps do not turn that full-suite
+failure into a pass or qualify later source.
+
+The failure was in the original-regression subprocess of
+`JsonPreflightHiaNativeTests.test_existing_api_dispatch_and_unchanged_original_regressions`.
+Two added host-scanner tests expected detailed reference-scanner English after
+selecting the unchanged native scanner, whose existing syntax/Unicode ABI
+returns the generic diagnostic. The subprocess also still asserted the older
+literal `Ran 6 tests`, although the module contains nine tests. The native
+adapter, generated HIA scanner and its generator are byte-identical across
+c80, v61 and v62; this observation is a test-contract discrepancy, not evidence
+of a new production acceptance or rejection difference.
+
+The correction exercises each detailed reference diagnostic explicitly and
+separately requires the selected native route's exact existing diagnostic.
+Unencodable caller-owned surrogate strings retain their original reference
+route. The subprocess reports every current test ID and all six outcome counts;
+both parent and child reject an empty suite and require complete execution with
+zero errors, failures, skips, expected failures and unexpected successes.
+The full native preflight test module is now included in the actual native CI
+applications step. The native ABI, public dispatch and scanner algorithms are
+unchanged. Development checks and the original failed evidence are kept under
+`review-evidence/hia-native-rewrite-20261111/v62-followup`.
+
+Published v62 commit `d6847ac891e0dd07217d179891bb763162211de2` has a separate
+GitHub observation: Actions run `42962692808` passed its source job with 278
+tests in 254.367 seconds, but the native job's cold replay failed at 180.156933
+seconds with 6/11 outer checks and 34/38 phases sealed. Completed phase reports
+contain 3,758 true checks and zero false checks; missing names/exports results
+are not counted as passes. All 570 cold source entries match that exact commit.
+Process cleanup completed in 61.809195 ms, with ECHILD observed and no remaining
+children or cleanup errors. The original 46,307,599-byte failure artifact has
+SHA-256 `345ea7e8635b6a4603e56eb6fa3f638bc2241e385983652bcb01fb4770929db6`.
+The complete artifact, original logs and scoped source/phase analysis are
+preserved. This timeout remains a failure; neither the 180-second deadline nor
+the two-worker budget was changed.
+
+### Batched signed/cast fixture construction
+
+The signed and scalar-cast batch constructor now uses the same private syntax
+parse/spelling helpers as the name-fixture transformation. Its grouping,
+rebasing, constant sharing, 12-case maximum and original 2,048-value/8,192-op
+limits are unchanged. This utility returns unverified syntax; early refusal of
+arbitrary invalid intermediate inputs is not its admission contract. Every
+actual final reference still uses the original public assembly/Core/VM gates.
+
+An independent replay of the before/after invocation ledgers compared all
+1,420 actual calls in original order: 710 Core checks, 346 VM executions and
+364 public assemblies. Inputs, keyword arguments and complete results or
+exception identities all match. The complete signed/cast reference is exactly
+5,808,503 bytes in both versions with SHA-256
+`d58330121ae82ece2364366ffe8c11aac8080164156bf1c846e5b76c2940060e`.
+All 52 signed and 58 cast batches, 236 traps and 18 refusals remain. The removed
+506 Core calls and 396 public assemblies belonged only to intermediate fixture
+construction; no actual VM execution was removed. A new negative control feeds
+a syntactically constructible bad helper through the unchanged consuming
+reference and observes its original Core SSA rejection. The existing test
+methods remain intact; the complete two affected test modules pass 14 tests.
+
+Four interleaved fresh-process panels each ran all 17 reference families with
+two workers. Every full 13,726,901-byte panel is byte-identical, SHA-256
+`805cb0d0ea1a32dfb4262b7b2d2f0e4e7460fd8ca89c7a1665e25645db3a0b60`.
+Observed baseline times were 30.501287 and 27.590464 seconds; candidate times
+were 26.281226 and 26.351774 seconds. These development measurements ran in a
+shared environment, including overlapping development work. They establish no
+specific CI speedup or complete cold qualification. All original ledgers,
+reference bytes, worker receipts, source manifests and independent reviews are
+retained with the follow-up evidence.
+
 The first published v58 tree was exactly
 `243ca1d7d25ba485681488ea330ff81167e0fff1`, committed as
 `f174f9b970e227a2c6d3b98ea115cedba7f4e316`. Its Actions run `42933658467`

@@ -1,5 +1,7 @@
 """Independent full-width signed/unsigned/unit semantics and unchanged boundaries."""
 import unittest
+import json
+from hashlib import sha256
 from tools.hia_selfhost_signed_cases import independent_reference,unbatched_cases,trap_cases,refusals,SIGNED_WIDTHS
 from tools.hia_selfhost_scalar_casts import independent_reference as cast_reference,unbatched_cases as cast_cases,WIDTHS
 
@@ -9,6 +11,17 @@ class SelfhostSignedTests(unittest.TestCase):
     def setUpClass(cls):
         cls.signed=independent_reference()
         cls.casts=cast_reference()
+
+    def test_complete_reference_bytes_match_the_preconstruction_change(self):
+        # Recorded from d6847ac before switching the pure batch construction
+        # helpers. These cover all source/input/output bytes, VM results,
+        # resource observations, traps, refusals, and their original ordering.
+        for value, expected in (
+            (self.signed, '9173097ab604e5fb04fda2a14ea037d5d9e040aaa2b61b792c159a3bd2be3a74'),
+            (self.casts, '46247c837dbf4925d0d0e5d3bda234079ee19766f82c1f5b25b4f8e7073d4a72'),
+        ):
+            encoded = json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+            self.assertEqual(sha256(encoded).hexdigest(), expected)
 
     def test_every_source_observation_survives_batching_once_with_all_bits_observed(self):
         for actual,expected in ((self.signed,unbatched_cases()),(self.casts,cast_cases())):

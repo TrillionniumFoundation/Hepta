@@ -78,6 +78,27 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
 
 
 class AssemblyConstructionBoundaryTests(unittest.TestCase):
+    def test_batch_construction_cannot_admit_a_bad_helper(self):
+        from tools.hia_selfhost_batch import batch_cases
+        from tools import hia_selfhost_signed_cases as signed
+        case = next(row for row in signed.unbatched_cases()
+                    if row['program'] == 'i8-unit-tuple')
+        case['source'] = case['source'].replace('ret(v1,v0)', 'ret(missing,v0)')
+        original = deepcopy(case)
+        with patch.object(assembly, 'verify_program',
+                          side_effect=AssertionError('fixture admitted Core')):
+            result = batch_cases([case])
+        self.assertEqual(case, original)
+        self.assertEqual(len(result), 1)
+        self.assertIs(type(result[0]['source']), str)
+        self.assertIn('ret(missing,v0)', result[0]['source'])
+        # The unchanged consuming witness still performs full public admission.
+        with patch.object(signed, 'cases', return_value=result):
+            with self.assertRaises(assembly.HIAAssemblyRejected) as caught:
+                signed.independent_reference()
+        self.assertEqual((caught.exception.code, caught.exception.phase),
+                         ('E_HIA_SSA', 'core_verification'))
+
     def test_private_syntax_documents_are_fresh_and_grant_no_admission(self):
         from tests.test_hia_agent_assembly import SOURCE
         from hepta.hia_program import VerifiedProgram
