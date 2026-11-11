@@ -1,0 +1,72 @@
+{
+  "actual_owner_run_note": "Owner reported first component12 run11PASS/1FAIL due a new source-test VerifiedProgram-vs-dict comparison; reviewer did not rerun it or mark it passed.",
+  "conclusion": "NO_NEW_PROVABLE_BLOCKER_WITHIN_DECLARED_SCOPE",
+  "examined": [
+    "Six HIA modes and all35 foreign observation opcodes",
+    "emit type membership and exact bytes/bytearray fast path; len(value) before len(data), rebind extend only after bounds",
+    "label type/length/contains, RHS len(data) before reobserving labels for assignment",
+    "initialize scratch admission then option admission and state assignment order",
+    "register exact type then mapping.get binding; builtin register numeric mapping",
+    "finalize live iterations, original contains/get separation, RHS add/sub before signed32, second LHS add before slice; bytes conversion before relocation copies",
+    "One-use observation permit consumed before foreign effect; malformed acknowledgement closes session",
+    "Original integer32 and64MiB ceilings preserved; no profile increase",
+    "Both selectors pinned by ContextVar and implementation identity; subclass ordinary methods remain original"
+  ],
+  "files": [
+    {
+      "git_blob_sha1": "57d9a7bdd0bf2700bdbe9437ce236ae296f9364b",
+      "path": "tools/generate_hia_machine_state.py",
+      "sha256": "ed6d2778a2afa984b97d12ce001a4743d843f2b528fc8f616ff897eb32d0a05b",
+      "size": 17793
+    },
+    {
+      "git_blob_sha1": "26f6cb1fec23093575998c9d2a25bbe0bfc4d378",
+      "path": "hepta/hia_machine_state_native.py",
+      "sha256": "b5c514836333185061892189676b3549adc480bce3252823b880dd2b217bcaec",
+      "size": 10317
+    },
+    {
+      "git_blob_sha1": "3f70b9bb494e98a737d49eba1dbab7ced4edc921",
+      "path": "hepta/hia_machine_x64.py",
+      "sha256": "57092e78096e2a98ee79c27164add60aaaca454b1d0c13e01f3e01c10873fd81",
+      "size": 13701
+    },
+    {
+      "git_blob_sha1": "6809ea898a19961e7f5a1feef92b0ab39489afb1",
+      "path": "hepta/hia_machine_encoding_native.py",
+      "sha256": "17489158acb535e83ff14b68edd87327ca02dd7273bdbadf07ea271f9162b3bb",
+      "size": 11539
+    },
+    {
+      "git_blob_sha1": "f5b6a30b241458193104a3846eb1b5944cc5c66a",
+      "path": "tests/fixtures/hia_machine_x64_state_608.py.txt",
+      "sha256": "83e3072c3a6cd806a66a0c2bcd206a92725040434d83877871bcd201533bf3ec",
+      "size": 12622
+    },
+    {
+      "git_blob_sha1": "114795860b53984ffb65d3cafcc03811408b8165",
+      "path": "docs/HIA_MACHINE_STATE_NATIVE.md",
+      "sha256": "af874924686da7f5629fc484d00ef28101b4887d53be40c7056f7d0ea94f402c",
+      "size": 2434
+    }
+  ],
+  "limitations": [
+    "No compiled image, native test, wheel, original51 caller or performance controls run by reviewer.",
+    "Object registry intentionally extends handle lifetime to invocation end; interpreter resource and allocation behavior remain hosted.",
+    "This review does not certify arbitrary private-state/module-global mutation or all-input equivalence.",
+    "Other instruction admission, append decisions, ELF/link/install/default activation remain distinct owners."
+  ],
+  "original_six_method_AST_equal": {
+    "__init__": true,
+    "_reg": true,
+    "emit": true,
+    "finalize": true,
+    "label": true,
+    "offset": true
+  },
+  "reviewer": "/root/hia_remote_audit",
+  "schema": "hia.machine-state-independent-static-review.v1",
+  "scope": "READ_ONLY_STATIC_NO_PRODUCT_EXECUTION",
+  "source_commit_reported_by_owner": "425771d549ebcaa9e1d86fa2dffeffb2de3cb1cd",
+  "source_root": "/workspace/scratch/hia-machine-state-native-20261111/source"
+}
