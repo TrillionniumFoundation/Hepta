@@ -762,6 +762,7 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     nodes = get(w, 248)
     relocations = get(w, 224)
     externals = get(w, 344)
+    interned_count = get(w, 480)
     bid = 0
     i = 0
     while get(w, 392) < get(w, 384) and get(w, 40) == 0:
@@ -775,7 +776,7 @@ def check_graph(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
             # variable() nor loan_live() can observe a future instruction's
             # stale capability. define() keeps its ordinary strict check.
             i = 0
-            while i < 2048:
+            while i < interned_count:
                 if get(w, VBASE + i * 16 + 8) == bid + 1:
                     put(w, VBASE + i * 16, 0)
                 i = i + 1
@@ -1632,13 +1633,14 @@ def loan_argument(w:mutbuf, n:u64, v:u64) -> u64:
 def loan_transfer(w:mutbuf, bid:u64, n:u64) -> u64:
     if get(w, 264) == 0:
         return 0
+    interned_count = get(w, 480)
     i = 0
     v = 0
     root = 0
     parent = 0
     packed = 0
     origin = 0
-    while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
+    while i < interned_count and (get(w, 280) != 0 or get(w, 352) != 0):
         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
             loan_argument(w, n, i)
         i = i + 1
