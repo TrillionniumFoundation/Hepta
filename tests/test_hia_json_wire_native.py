@@ -430,6 +430,50 @@ class WireNativeTests(unittest.TestCase):
         for maximum in (True, None, -1, MAXIMUM + 1, 1 << 100):
             self.assert_same(None, maximum)
 
+    def test_observations_are_once_per_request_and_never_after_terminal(self):
+        class Observer(ForeignGraphObserver):
+            def __init__(self, fail_once=False):
+                super().__init__()
+                self.calls = 0
+                self.fail_once = fail_once
+
+            def summary(self, handle):
+                self.calls += 1
+                if self.fail_once and self.calls == 1:
+                    raise RuntimeError('intentional foreign summary failure')
+                return super().summary(handle)
+
+        def create(fail_once=False):
+            observer = Observer(fail_once)
+            session = WireSession(self.image, observer, observer.register(None), 32,
+                                  ensure_ascii=False, sort_keys=True)
+            return session, observer
+
+        for case in ('before-request', 'repeat', 'bad-ack', 'foreign-error', 'completed'):
+            with self.subTest(case=case):
+                session, observer = create(case == 'foreign-error')
+                if case == 'completed':
+                    self.assertEqual(session.run(), b'null')
+                    self.assertTrue(session.finished)
+                    self.assertEqual(observer.calls, 2)  # Both HIA traversals.
+                elif case != 'before-request':
+                    self.assertEqual(session.step(), 1)
+                    if case == 'foreign-error':
+                        with self.assertRaisesRegex(RuntimeError, 'intentional foreign summary failure'):
+                            session.observe()
+                    else:
+                        packet = bytearray(session.observe())
+                        if case == 'bad-ack':
+                            struct.pack_into('<Q', packet, 8, 0)
+                            self.assertEqual(session.step(bytes(packet)), 199)
+                            self.assertTrue(session.finished)
+                    self.assertEqual(observer.calls, 1)
+                before = observer.calls
+                with self.assertRaises(RuntimeError):
+                    session.observe()
+                self.assertEqual(observer.calls, before)
+
+
     def test_private_buffer_lifetime_after_observer_exceptions_and_reentry(self):
         # The foreign callback can retain an exception traceback, and callers
         # can retain exported buffers after dropping the session. Neither

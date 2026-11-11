@@ -194,8 +194,12 @@ class WireCacheNativeTests(unittest.TestCase):
         value = session()
         self.assertEqual(value.step(), 1)
         packet = bytearray(value.observe())
+        with self.assertRaisesRegex(RuntimeError, 'no unconsumed observation'):
+            value.observe()
         struct.pack_into('<Q', packet, 0, native.MAGIC)
         self.assertEqual(value.step(bytes(packet)), 199)
+        with self.assertRaisesRegex(RuntimeError, 'terminal'):
+            value.observe()
 
         # A zero initial magic never authorizes a stale optional cache pointer
         # on the legacy protocol. Full new sessions still require zeroed state.
