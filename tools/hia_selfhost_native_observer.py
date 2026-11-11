@@ -31,6 +31,7 @@ def independent_reference():
     from hepta.hia_agent_assembly import assemble_program
     from hepta.hia_program import execute_program
     from tools.generate_hia_native_observer import reference_image
+    source = PACKER.read_bytes()
     image = reference_image()
     from tools.hia_selfhost_bulk import Body
     observations = []
@@ -55,13 +56,15 @@ def independent_reference():
         wrapper=('hia-asm.v1 hepta.hia.program.v8 observer_reference\n'
             +'fn reference_entry() -> ('+returns+') effects(alloc,read,write,trap) entry(b0)\n'
             +'block b0()\n'+body.text()+'  ret('+','.join(values)+')\nend\n'
-            +PACKER.read_text().split('\n',1)[1])
+            +source.decode().split('\n',1)[1])
         checked=assemble_program(wrapper.encode())
         observed=execute_program(checked,'reference_entry',[])
         if observed.get('status')!='returned' or observed['values']!=[len(image),*image[begin:end]]:
             raise AssertionError('independent VM did not reproduce exact observer ELF window')
         observations.append({'begin':begin,'end':end,'vm_core_sha256':checked.sha256,'result':observed})
-    return {'before_B0':True, 'packer_source_sha256':digest(PACKER.read_bytes()),
+    if PACKER.read_bytes() != source:
+        raise AssertionError('native observer reference source changed during VM observation')
+    return {'before_B0':True, 'packer_source_sha256':digest(source),
         'vm_windows':observations, 'expected_image_sha256':digest(image),
         'expected_image_bytes':len(image), 'every_output_byte_compared':True,
         'whole_stack_rewritten_in_hia':False, 'all_input_equivalence_proved':False}
@@ -70,18 +73,44 @@ def independent_reference():
 def build(directory, compiler, reference):
     from tools.qualify_hia_selfhost import compile_stage, invoke
     directory = Path(directory)
-    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, PACKER.read_bytes())
+    compiler = Path(compiler)
+    source, compiler_bytes = PACKER.read_bytes(), compiler.read_bytes()
+    source_sha, compiler_sha = digest(source), digest(compiler_bytes)
+    if reference.get('packer_source_sha256') != source_sha:
+        raise AssertionError('native observer reference source differs from compilation input')
+    packer, compilation = compile_stage(directory, 'native-observer-packer', compiler, source)
+    packer_bytes = packer.read_bytes()
+    packer_sha = digest(packer_bytes)
+    if (compilation.get('input_sha256') != source_sha
+            or compilation.get('image_sha256') != compiler_sha
+            or compilation.get('artifact_sha256') != compiler_sha
+            or compilation.get('produced_sha256') != packer_sha
+            or compilation.get('produced_bytes') != len(packer_bytes)):
+        raise AssertionError('native observer actual compilation input/output binding differs')
+    if PACKER.read_bytes() != source or compiler.read_bytes() != compiler_bytes:
+        raise AssertionError('native observer source or compiler changed during build')
     execution, output = invoke(directory, 'native-observer-emit', packer, b'')
     size = reference['expected_image_bytes']
     if (execution.get('status') != 'returned' or execution.get('abi_status') != 0
             or execution.get('core_u32') != size or not execution.get('source_unchanged')
+            or execution.get('artifact_sha256') != packer_sha
+            or execution.get('image_sha256') != packer_sha
+            or execution.get('input_sha256') != digest(b'')
             or digest(output[:size]) != reference['expected_image_sha256']):
         raise AssertionError('HIA packer output differs from independent VM')
+    if (PACKER.read_bytes() != source or compiler.read_bytes() != compiler_bytes
+            or packer.read_bytes() != packer_bytes):
+        raise AssertionError('native observer immutable build inputs changed before publication')
     executable = directory/'native-observer.elf'
     executable.write_bytes(output[:size])
     executable.chmod(0o700)
-    receipt = {'compiler_sha256':digest(Path(compiler).read_bytes()),
-        'source_sha256':digest(PACKER.read_bytes()), 'executable_sha256':digest(output[:size]),
+    if executable.read_bytes() != output[:size]:
+        raise AssertionError('native observer executable publication readback differs')
+    receipt = {'compiler_sha256':compiler_sha,
+        'source_sha256':source_sha, 'executable_sha256':digest(output[:size]),
+        'emitter_image_sha256':packer_sha,
+        'actual_compile_and_emit_inputs_match':True,
+        'immutable_source_compiler_and_emitter_read_back':True,
         'independent_reference_before_B0':reference['before_B0'],
         'native_compilation':compilation, 'native_emission':execution,
         'production_activated':False, 'whole_stack_rewritten_in_hia':False}

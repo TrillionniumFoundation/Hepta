@@ -35,6 +35,7 @@ CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
 # Explicit per-phase transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
+NATIVE_LINKED_OBSERVER = None
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -137,6 +138,11 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
     if NATIVE_OBSERVER is not None and image_format == 'flat-x86-64':
         from tools.hia_selfhost_native_observer import invoke as observe_native
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost':
+        from tools.hia_selfhost_linked_observer import invoke as observe_linked
+        return observe_linked(directory,label,NATIVE_LINKED_OBSERVER,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
             output_initial=output_initial,observe_trap_writes=observe_trap_writes)
     directory, image = Path(directory), Path(image)
@@ -456,6 +462,7 @@ def _phase_manifest_digest(manifest):
 
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
+             "linked_observer": directory / "linked-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
              "modified_source": directory / "modified-selfhost.hiaasm"}
     if family in PHASE_REFERENCE_FILES:
@@ -485,7 +492,7 @@ def qualification_phase(request_path):
             or request["compiler_label"] not in {"original", "modified"}):
         raise ValueError("unknown qualification phase request")
     family, label = request["family"], request["compiler_label"]
-    expected_inputs = {"native_observer", "compiler", "source", "sample", "modified_source"}
+    expected_inputs = {"native_observer", "linked_observer", "compiler", "source", "sample", "modified_source"}
     if family in PHASE_REFERENCE_FILES:
         expected_inputs.add("reference")
     if family == "elf":
@@ -503,8 +510,10 @@ def qualification_phase(request_path):
     # The module imported by family helpers must share this explicit binding.
     import tools.qualify_hia_selfhost as runtime
     runtime.NATIVE_OBSERVER = Path(request['inputs']['native_observer']['path'])
-    global NATIVE_OBSERVER
+    runtime.NATIVE_LINKED_OBSERVER = Path(request['inputs']['linked_observer']['path'])
+    global NATIVE_OBSERVER, NATIVE_LINKED_OBSERVER
     NATIVE_OBSERVER = runtime.NATIVE_OBSERVER
+    NATIVE_LINKED_OBSERVER = runtime.NATIVE_LINKED_OBSERVER
     compilers = ((label, compiler),)
     reference = json.loads(data["reference"]) if "reference" in data else None
     checks = {}
@@ -796,6 +805,11 @@ def qualify(output):
     native_observer_reference = observer_reference()
     (directory / 'independent-native-observer-reference.json').write_text(
         json.dumps(native_observer_reference,indent=2,sort_keys=True)+'\n')
+    from tools.hia_selfhost_linked_observer import independent_reference as linked_reference, build as build_linked_observer
+    linked_observer_reference = linked_reference(before_B0=True)
+    linked_observer_reference['completed_monotonic_ns'] = time.monotonic_ns()
+    (directory / 'independent-linked-observer-reference.json').write_text(
+        json.dumps(linked_observer_reference,indent=2,sort_keys=True)+'\n')
     seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
@@ -826,6 +840,12 @@ def qualify(output):
     checks['native_observer_independent_VM_reference_before_B0'] = native_observer_reference['before_B0']
     checks['native_observer_exact_HIA_emission'] = (
         digest(native_observer.read_bytes()) == native_observer_reference['expected_image_sha256'])
+    linked_observer, linked_observer_build = build_linked_observer(directory, original, linked_observer_reference)
+    checks['linked_observer_independent_VM_reference_before_B0'] = (
+        linked_observer_reference['before_B0']
+        and linked_observer_reference['completed_monotonic_ns'] <= seed_started_monotonic_ns)
+    checks['linked_observer_exact_HIA_emission'] = (
+        digest(linked_observer.read_bytes()) == linked_observer_reference['expected_image_sha256'])
     observations = []
     for label, compiler in (("original", original), ("modified", previous)):
         executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
@@ -914,6 +934,8 @@ def qualify(output):
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"],
         "native_observer_build": native_observer_build,
+        "linked_observer_build": linked_observer_build,
+        "linked_observer_reference": linked_observer_reference,
         "native_observer_reference": native_observer_reference, "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
         "checkout": checkout_identity(),
@@ -960,7 +982,8 @@ def qualify(output):
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
-            "shared_ELF_and_generation_controls": "retained independent stdlib loader",
+            "phase_linked_ELF_ABI_transport": "fresh sealed HIA-emitted ELF using system dlopen RTLD_NOW and dlsym",
+            "shared_ELF_and_generation_controls": "phase linked successors use the actual system dynamic loader; B0 and generation controls retain the independent stdlib loader",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
@@ -982,7 +1005,8 @@ def qualify(output):
                    "compiler_correctness_formally_proved": False},
         "trusted_dependencies": ["B0 Python HIA assembler, Core verifier, direct x86 emitter and ELF writer",
             "B0 GNU ld, libc and dynamic loader", "fresh HIA-emitted static ELF observer and operating system for phase flat ABI calls",
-            "stdlib ctypes/mmap retained for generation controls and shared ELF",
+            "fresh HIA-emitted dynamic ELF observer, libdl and system dynamic loader for phase linked successor ABI calls",
+            "stdlib ctypes/mmap retained for B0, generation controls and independent references",
             "owned ELF qualification uses GNU ld, the system dynamic loader and libc calloc/free",
             "host C compiler and assembler compile the separate allocator qualification witness only",
             "Linux x86-64 hardware, caller-owned exclusive buffers and resource limits"],

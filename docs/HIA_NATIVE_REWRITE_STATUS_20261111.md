@@ -1061,3 +1061,13 @@ acceptance can Python/Rust/other legacy production owners be removed. The
 inventory grants no deletion authority and does not mark an unimplemented path
 as retired or passed. The final repository should have one HIA-native product;
 this report records the work still needed to reach that state honestly.
+
+## v66 linked successor observer — isolated integration in progress
+
+The new candidate starts from exact d5da1eb760454ef3df5153c5e80eb046ddb389d9 (tree 71c9c3effb9ffa45c708e272f374302507d0d65a); all 2790 original file bytes and Git modes were checked before modification. It adds a HIA-emitted native transport for linked successor qualification calls using real system dlopen(RTLD_NOW)/dlsym. The original flat transport, B0/generation controls, two oracle workers, all 38 phases, complete suites and 180-second cold bound are retained.
+
+The isolated component passed all 14 actual native tests in 9.868249870 seconds under unchanged child limits. Eighteen independent VM windows observe every byte of the compact 2256-byte ELF. Controls include actual seals, RELRO and resource-limit observations, native constructor/relocations, trap writes and HIA compiler ELF self-rebuild. This component evidence does not qualify the integrated candidate. Full current-source source and cold gates remain pending at this revision.
+
+The full composite coordinator and namespace store remain under development. Complete native IR, type-request projection, type-response materialization and storage-call audit originals are preserved in recovery commit c71d82ff026d5bbb9bca28576b7301f2c505f3d4, with subsequent component revisions recorded separately. No production selector or old-stack deletion is authorized by this status update. Whole-stack closure remains OPEN.
+
+Independent review then found and reproduced an inherited source/compiler receipt binding race and a mixed-source VM-window reference in the observer build wrappers. The isolated candidate fixes both the existing flat observer and new linked observer using one immutable source/compiler snapshot, actual compile/emission receipt crosschecks and complete final readback. HIA/ELF bytes, ABI and native limits are unchanged. Both complete observer modules passed all 38 tests in 24.037136978 seconds; original failing review witnesses are retained separately. This is component validation, not a whole-stack or cold pass.

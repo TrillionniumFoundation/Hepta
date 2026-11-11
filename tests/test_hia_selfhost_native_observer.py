@@ -12,6 +12,7 @@ import subprocess
 from unittest.mock import patch
 
 from tools.hia_selfhost_native_observer import frame, execute, invoke as native_invoke, independent_reference, build
+from tools import hia_selfhost_native_observer as observer
 
 
 def _reference_observer():
@@ -130,6 +131,63 @@ class NativeObserverTests(unittest.TestCase):
         inspected=inspect_executable(self.executable.read_bytes())
         self.assertIsInstance(inspected,dict)
         self.assertFalse(self.build['whole_stack_rewritten_in_hia'])
+
+    def test_actual_builder_rejects_source_and_compiler_change_after_native_compile(self):
+        import tools.qualify_hia_selfhost as qualification
+        real_compile = qualification.compile_stage
+        outcomes = []
+        for target in ('source', 'compiler'):
+            directory = self.root / ('build-race-' + target)
+            directory.mkdir()
+            source = directory / 'source.hiaasm'
+            source.write_bytes(observer.PACKER.read_bytes())
+            compiler = directory / 'compiler.bin'
+            compiler.write_bytes(self.compiler.read_bytes())
+            calls = []
+            def mutate_after_real_compile(*args, **kwargs):
+                image, receipt = real_compile(*args, **kwargs)
+                calls.append(receipt)
+                path = source if target == 'source' else compiler
+                path.write_bytes(path.read_bytes() + b'\n')
+                return image, receipt
+            with patch.object(observer, 'PACKER', source), patch.object(qualification,
+                    'compile_stage', mutate_after_real_compile):
+                with self.assertRaisesRegex(AssertionError, 'source or compiler changed'):
+                    observer.build(directory, compiler, self.reference)
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(calls[0]['status'], 'returned')
+            self.assertFalse((directory / 'native-observer.elf').exists())
+            self.assertFalse((directory / 'native-observer-build.json').exists())
+            outcomes.append({'target': target, 'actual_native_compilations': len(calls),
+                'actual_compile': calls[0], 'changed_source_sha256': sha256(source.read_bytes()).hexdigest(),
+                'changed_compiler_sha256': sha256(compiler.read_bytes()).hexdigest(),
+                'refused_before_emission_or_publication': True})
+        (self.root / 'actual-builder-input-races.json').write_text(json.dumps(outcomes, indent=2, sort_keys=True) + '\n')
+
+    def test_independent_VM_uses_one_source_snapshot_and_rejects_late_change(self):
+        import hepta.hia_agent_assembly as assembly
+        directory = self.root / 'reference-source-race'
+        directory.mkdir()
+        source = directory / 'source.hiaasm'
+        original = observer.PACKER.read_bytes()
+        source.write_bytes(original)
+        real_assemble = assembly.assemble_program
+        wrappers = []
+        def mutate_after_real_assembly(raw):
+            checked = real_assemble(raw)
+            wrappers.append(sha256(raw).hexdigest())
+            self.assertTrue(raw.endswith(original.split(b'\n', 1)[1]))
+            if len(wrappers) == 1:
+                source.write_bytes(original + b'\n')
+            return checked
+        with patch.object(observer, 'PACKER', source), patch.object(assembly,
+                'assemble_program', mutate_after_real_assembly):
+            with self.assertRaisesRegex(AssertionError, 'reference source changed'):
+                observer.independent_reference()
+        self.assertEqual(len(wrappers), len(self.reference['vm_windows']))
+        (directory / 'result.json').write_text(json.dumps({'actual_VM_windows': len(wrappers),
+            'wrappers_sha256': wrappers, 'one_original_source_snapshot': True,
+            'final_source_change_refused': True}, indent=2, sort_keys=True) + '\n')
 
     def test_exact_full_foreign_return_source_output_and_workspace_observations(self):
         from tools.qualify_hia_selfhost import invoke
