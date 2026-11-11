@@ -1,4 +1,4 @@
-# Ordinary CLI control owner — recovery revision 4
+# Ordinary CLI control owner — versioned argv and installed-resource revision
 
 This is an explicit native control and presentation owner, not a complete native
 CLI release. Its ordinary entry is the existing `hia_main` through
@@ -7,8 +7,9 @@ CLI release. Its ordinary entry is the existing `hia_main` through
 remains available. A selected but missing, malformed or source-mismatched bundle
 fails closed; it does not retry through the retained parser.
 
-The frozen local development candidate is
-`fd4d6724ecb630b4727731db13fdfedbc05ee1f2`, from exact base
+The executed 17-method source candidate is
+`30a513ce68e97a21e96b2d80b1a3f079f3bb843a`
+(tree `42b403c14436106712fb73eed9a737ac4fc21005`), from exact base
 `e09c6faf5507fc4e38d8b7c36ba2650a1c0a10d6`.
 The old executor's earlier r1/r2/r3 source and 30-case observations remain
 historical and were not reused as passes for this revision.
@@ -63,9 +64,10 @@ The successful pretty JSON effect and the business functions in the last column
 are not claimed to have been ported by this change. Independently selected
 owners inside those functions retain their own source and qualification scope.
 
-## Current actual observations
+## Earlier 15-method observations, retained unchanged
 
-On Python 3.12.14, the exact candidate ran once under the unchanged process owner:
+On Python 3.12.14, the earlier candidate
+`fd4d6724ecb630b4727731db13fdfedbc05ee1f2` ran once under the unchanged process owner:
 15 loaded test IDs equal 15 executed IDs, all passed with zero failures, errors,
 skips, expected failures or unexpected successes. The source/Core VM controls,
 200 parser/presentation comparisons, all 15 actual actions and 23 file-result
@@ -87,10 +89,94 @@ passing tests relabel that run or provide a matching-source cold qualification.
 
 The native compiler's original limits are unchanged: 128 functions,
 1,536 blocks, 8,192 operations, 256 blocks per function, 2,048 SSA definitions
-per function and a 1 MiB source limit. Current control has 45 functions,
-1,030 blocks and 4,139 operations; formatter has 64 functions, 919 blocks and
+per function and a 1 MiB source limit. The 30a513ce control has 45 functions,
+1,034 blocks and 4,163 operations; formatter has 64 functions, 919 blocks and
 5,555 operations. Maximum per-function counts are 141 blocks and respectively
 600/617 SSA definitions. Both images were actually compiled and executed.
+
+## Version-specific negative-argument repair
+
+The original complete desktop run of
+`2963cfbffffd9c2d1e87dafbb82466c0daf21615` used real CPython 3.14.4.
+All 16 methods executed; two subcases in the original argv method failed:
+`verify -1.` and `verify -1e2`. The original argparse accepted each token as
+the input pathname, while the HIA implementation incorrectly reported a
+missing input. This original run remains HOLD. Its other methods, including
+all 15 actions, the original six caller methods and the additional color
+controls, passed. Both the inner owner and outer guardian exited naturally
+with exit 1, complete reaping, ECHILD and no remaining direct children.
+
+The repair preserves the exact runtime distinction. The official
+[CPython 3.12.14 argparse](https://github.com/python/cpython/blob/v3.12.14/Lib/argparse.py)
+uses `^-\d+$|^-\d*\.\d+$`; the HIA 312 branch retains its whole-token
+scanner and final-LF behavior. The official
+[3.14.4](https://github.com/python/cpython/blob/v3.14.4/Lib/argparse.py) and
+[3.14.10](https://github.com/python/cpython/blob/v3.14.10/Lib/argparse.py)
+use `-\.?\d` with `match`: after the minus and optional dot, one Unicode
+decimal digit is sufficient. The HIA 314/31410 branch implements that prefix
+rule using the existing pinned Unicode tables. The bridge does not classify
+these tokens. Twenty added subcases exercise arbitrary suffixes, incomplete
+prefixes, non-decimal characters, new Unicode 16 decimal digits, NUL,
+surrogates and option values. No original assertion or subcase was removed.
+
+The repaired 16-method candidate
+`4c674bc3bfbdb461291beb8118caa63fb242e2d1` passed once on CPython
+3.12.14: 16 loaded/executed IDs, zero anomalies, 1,189 main-process native
+returns and 12,085,081,694 ns under the original owner. Its distinct desktop
+request was issued under one fixed key. At this documentation checkpoint,
+the transport returned an MCP timeout without a job ID; its effect and
+terminal state remain UNKNOWN. It is not counted as a desktop pass or failure.
+The original request is not replayed under a new key.
+
+## Actual installed-wheel gate and complete 17-method run
+
+Candidate `30a513ce68e97a21e96b2d80b1a3f079f3bb843a` added one actual
+installed-wheel method and the two explicit package resources. The complete
+module then ran once on CPython 3.12.14: 17 loaded IDs exactly matched 17
+executed IDs; failures, errors, skips, expected failures and unexpected
+successes were all zero. The owned elapsed time was 13,991,315,411 ns.
+The original 180-second process owner and native profile were unchanged.
+Source and compiler observations were equal before/after; the leader exited
+normally, ECHILD was observed, and `remaining_direct_children` was empty.
+
+The method built a real wheel using the declared `setup.py` resource lists
+and installed it with pip using no index, no dependencies and no build
+isolation. It did not manually inject resources into the wheel. The actual
+wheel was 2,267,029 bytes with SHA-256
+`21122532b6123705364317b2c171295a6e345e6aab671f38a08aecbdeacaf413`.
+Both installed HIA sources were independently compared with their declared
+source bytes. The installed `console_scripts` entry `hia = hepta.cli:hia_main`
+ran under `-I -S -B` with an empty PATH, with imports of authoring tools and
+entry into the retained CLI and argparse forbidden.
+
+The isolated process made eight entry calls and observed 26 control-image
+returns plus 14 formatter-image returns. Its nine refusal cases separately
+cover changed/missing control and formatter sources, an invalid bundle
+schema, child-path traversal, incorrect child hash, missing selected bundle
+and empty selected bundle. Refusals occurred before native invocation or
+console output; the two resources and bundle were restored byte for byte.
+All three forbidden-entry lists remained empty. The main suite separately
+recorded 1,189 native returns; that count does not include the isolated
+installed child or pretend to count every original caller subprocess.
+
+The fixed receipt path is
+`<HEPTA_HIA_CLI_FIXTURE_EVIDENCE>/installed-control/report.json`, schema
+`hepta.hia.cli-installed-control.v1`, with successful status
+`PASS_INSTALLED_NATIVE_CLI_CONTROL`. It contains the original manifest path
+under the field `original_manifest`, the wheel identity, all three process
+records, source hashes before/after and the nested
+`hepta.hia.cli-installed-execution.v1` observation. The name
+`original_development_manifest` was changed before the first installed
+execution; no earlier execution report was rewritten.
+
+The local 17-method receipt SHA-256 is
+`7d660c18adb84d132e3f86e3a5e8094ae28ebca82d3222194ee1fc1a5be47748`.
+Complete raw trees are retained with typed regular/directory/symlink records;
+every regular archive member is independently read and hashed, with mode,
+UID, GID and mtime checked. The 16-method tree contains 567 members and
+17,095,798 regular bytes; the 17-method tree contains 1,456 members and
+54,889,994 regular bytes. Symlink targets are preserved as text and not
+followed or extracted. These retention operations do not rerun product tests.
 
 ## Presentation profiles and pending scope
 
@@ -106,7 +192,9 @@ to 3.14.4. The other argparse source difference concerns implicit program-name
 inference and cannot affect the ordinary entry's explicit `prog="hia"`.
 These are source observations, not proof of actual 3.14.10 execution.
 
-Actual desktop Python 3.14.4 validation is pending. Matching full-source cold,
-installed wheel resources, joint CI, all retained action-body replacement and
-final native-only release/cleanup remain pending. Existing code is not removed
-on the basis of this development result.
+The complete repaired desktop runtime result is not established by the local
+17-method evidence. Matching full-source cold, joint CI, actual 3.14.10
+execution, all retained action-body replacement and final native-only
+release/cleanup remain separate required work. Installed CLI resources have
+the actual local wheel evidence above; that does not qualify the whole runtime.
+Existing code is not removed on the basis of these development results.
