@@ -9,6 +9,12 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_kernel)
@@ -17,7 +23,6 @@ from tools.hia_selfhost_contract import CONTRACT_PATH,PROFILE,validate_contract
 from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'examples/hia_bootstrap/core_workspace_materialize.hepta'
 PACKER=ROOT/'examples/hia_bootstrap/core_workspace_cli_packer.hepta'
 
@@ -31,22 +36,28 @@ def build(output,compiler,cold_report):
             or str(SOURCE.relative_to(ROOT)) not in expected or str(PACKER.relative_to(ROOT)) not in expected):
         raise ValueError('completed matching-source cold qualification required for native workspace')
     admitted_sources=admit_cold_build(inputs[compiler],inputs[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix())!=sha256(inputs[p]).hexdigest()
+           for p in (SOURCE,PACKER)):
+        raise ValueError('native workspace source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifest=build_kernel(output/'materializer',compiler,cold_report,candidate='core-workspace-materialize')
-    metadata=json.loads(manifest.read_bytes());image=manifest.parent/metadata['image_path'];application=image.read_bytes()
+    manifest_raw=manifest.read_bytes()
+    metadata=json.loads(manifest_raw);image=manifest.parent/metadata['image_path'];application=image.read_bytes()
     if sha256(application).hexdigest()!=metadata['image_sha256']:raise ValueError('workspace materializer image changed')
     packer,compiled=compile_stage(output,'workspace-CLI-packer',compiler,inputs[PACKER])
+    packer_raw=packer.read_bytes()
     frame=struct.pack('<4Q',MAGIC,len(application),len(inputs[compiler]),1)+application+inputs[compiler]
     if len(frame)>BUNDLE_LIMIT:raise ValueError('workspace application bundle exceeds 2 MiB')
     # This separate trusted application packs two <=1-MiB images. It does not
     # broaden the existing 1-MiB compiler/qualification-child buffer profile.
-    native=NativeHiaJsonImage(packer.read_bytes(),sha256(packer.read_bytes()).hexdigest())
+    native=NativeHiaJsonImage(packer_raw,sha256(packer_raw).hexdigest())
     source=ctypes.create_string_buffer(frame,len(frame));arena=ctypes.create_string_buffer(BUNDLE_LIMIT)
     scratch=ctypes.create_string_buffer(1)
     size=native._entry(source,len(frame),arena,BUNDLE_LIMIT,scratch,1)
     if not 0<size<=BUNDLE_LIMIT:raise ValueError('native workspace packer refused image bundle')
     executable=ctypes.string_at(arena,size);inspection=inspect_executable(executable)
     if (any(p.read_bytes()!=b for p,b in inputs.items()) or image.read_bytes()!=application
+            or packer.read_bytes()!=packer_raw or manifest.read_bytes()!=manifest_raw
             or current_sources()!=admitted_sources):
         raise ValueError('native workspace build inputs changed')
     target=output/'hia-workspace-elf';target.write_bytes(executable);target.chmod(0o700)
@@ -54,7 +65,7 @@ def build(output,compiler,cold_report):
         'status':'NATIVE_WORKSPACE_ELF_FILTER_BUILT','output_profile':'elf-only',
         'executable':inspection,'executable_sha256':sha256(executable).hexdigest(),
         'input_sha256':{str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else p.name:sha256(b).hexdigest() for p,b in inputs.items()},
-        'materializer_image_sha256':sha256(application).hexdigest(),'packer_image_sha256':sha256(packer.read_bytes()).hexdigest(),
+        'materializer_image_sha256':sha256(application).hexdigest(),'packer_image_sha256':sha256(packer_raw).hexdigest(),
         'native_packer_compile_receipt':compiled,'frame_sha256':sha256(frame).hexdigest(),
         'bundle_profile_bytes':BUNDLE_LIMIT,'compiler_source_output_workspace_caps_unchanged':True,
         'trusted_in_process_build_packer':True,'runtime_foreign_payload_driver_or_second_executable_required':False,

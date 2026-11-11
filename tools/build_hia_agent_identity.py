@@ -4,7 +4,11 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-ROOT=Path(__file__).resolve().parents[1]
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
 
 
 def build(output:Path,compiler:Path,cold_report:Path)->Path:

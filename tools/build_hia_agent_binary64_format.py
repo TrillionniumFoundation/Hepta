@@ -3,39 +3,40 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
-from tools.qualify_hia_selfhost import compile_stage
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
+from tools.build_hia_json_preflight import admit_cold_build, current_sources
+from tools.qualify_hia_selfhost import compile_stage
+
 SOURCE = 'examples/hia_bootstrap/agent_binary64_format.hepta'
 
 
 def build(output, compiler, cold_report):
     compiler_raw = compiler.read_bytes()
     cold_raw = cold_report.read_bytes()
+    try:
+        sources = admit_cold_build(compiler_raw, cold_raw)
+    except ValueError as exc:
+        raise ValueError('completed matching-source cold qualification required for Agent binary64 printing') from exc
     cold = json.loads(cold_raw)
-    contract = validate_contract()
-    sources = {**contract['source_identity']['files'], CONTRACT_PATH: sha256((ROOT / CONTRACT_PATH).read_bytes()).hexdigest()}
-    required = {'export_manifest_matches_qualification', 'isolated_python_without_site',
-        'nested_full_qualification_pass', 'nested_process_exit_zero', 'no_ancestor_git_identity',
-        'no_bytecode_cache_created', 'no_inherited_home_or_python_cache', 'no_inherited_seed_or_successor_images',
-        'origin_hashes_preserved', 'owned_process_tree_cleanup_confirmed', 'source_export_hashes_preserved'}
-    if (type(cold) is not dict or cold.get('schema') != 'hepta.hia.selfhost-cold-replay.v1'
-            or cold.get('status') != 'COLD_SELFHOST_REPLAY_PASS' or cold.get('returncode') != 0
-            or cold.get('profile') != PROFILE or cold.get('source_manifest') != sources
-            or cold.get('qualification_wall_limit_seconds') != 180 or cold.get('cleanup_wall_limit_seconds') != 3
-            or type(cold.get('checks')) is not dict or set(cold['checks']) != required
-            or any(value is not True for value in cold['checks'].values())
-            or cold.get('generation_sha256') != [sha256(compiler_raw).hexdigest()] * 3):
+    if cold.get('qualification_wall_limit_seconds') != 180 or cold.get('cleanup_wall_limit_seconds') != 3:
         raise ValueError('completed matching-source cold qualification required for Agent binary64 printing')
     source = (ROOT / SOURCE).read_bytes()
+    if SOURCE not in sources or sha256(source).hexdigest() != sources[SOURCE]:
+        raise ValueError('Agent binary64 printing source differs from admitted cold source')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, 'agent-binary64-format', compiler, source)
+    image_bytes = image.read_bytes()
     if (compiler.read_bytes() != compiler_raw or cold_report.read_bytes() != cold_raw
-            or (ROOT / SOURCE).read_bytes() != source or validate_contract() != contract):
+            or (ROOT / SOURCE).read_bytes() != source or current_sources() != sources
+            or image.read_bytes() != image_bytes):
         raise ValueError('Agent binary64 printing native build custody changed')
     manifest = {'schema': 'hepta.hia.agent-binary64-format-native.v1', 'source_sha256': sha256(source).hexdigest(),
-        'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
+        'image_path': image.name, 'image_sha256': sha256(image_bytes).hexdigest(),
         'compiler_sha256': sha256(compiler_raw).hexdigest()}
     path = output / 'manifest.json'
     with path.open('x') as stream: json.dump(manifest, stream, indent=2, sort_keys=True); stream.write('\n')

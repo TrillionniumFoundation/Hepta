@@ -8,6 +8,12 @@ import ctypes
 from hashlib import sha256
 import json
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.build_hia_json_preflight import build as build_candidate
 import struct
 from tools.generate_hia_core_workspace_pipeline import MAGIC,BUNDLE_LIMIT
@@ -16,7 +22,6 @@ from tools.qualify_hia_selfhost import compile_stage
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from hepta.hia_json_preflight_native import NativeHiaJsonImage
 
-ROOT=Path(__file__).resolve().parents[1]
 SCHEMA='hepta.hia.core-workspace-pipeline-build.v2'
 SOURCES=('examples/hia_bootstrap/core_workspace_json.hepta',
          'examples/hia_bootstrap/core_admission.hepta',
@@ -45,13 +50,14 @@ def build(output,compiler,cold_report):
             or type(cold.get('checks')) is not dict or set(cold['checks'])!=required
             or any(value is not True for value in cold['checks'].values())
             or cold.get('generation_sha256')!=[sha256(pins[compiler]).hexdigest()]*3
-            or any(name not in sources for name in SOURCES)):
+            or any(sources.get(name)!=sha256(pins[ROOT/name]).hexdigest() for name in SOURCES)):
         raise ValueError('completed matching-source cold qualification required for native workspace pipeline')
     output.mkdir(mode=0o700)
-    images={}
+    images={};manifest_inputs={}
     for name,candidate in [('workspace','core-workspace-json'),('admission','core-admission'),('frontend','core-frontend')]:
         manifest=build_candidate(output/name,compiler,cold_report,candidate=candidate)
-        metadata=json.loads(manifest.read_bytes());path=manifest.parent/metadata['image_path'];raw=path.read_bytes()
+        manifest_inputs[manifest]=manifest.read_bytes()
+        metadata=json.loads(manifest_inputs[manifest]);path=manifest.parent/metadata['image_path'];raw=path.read_bytes()
         if sha256(raw).hexdigest()!=metadata['image_sha256']:
             raise ValueError('native workspace pipeline component image changed')
         images[name]=(path,raw)
@@ -67,6 +73,7 @@ def build(output,compiler,cold_report):
     if not 0<size<=BUNDLE_LIMIT:raise ValueError('native workspace pipeline packer refused frame')
     raw=ctypes.string_at(arena,size);inspection=inspect_executable(raw)
     if (any(path.read_bytes()!=before for path,before in pins.items()) or current_sources()!=sources
+            or any(path.read_bytes()!=before for path,before in manifest_inputs.items())
             or any(path.read_bytes()!=before for path,before in images.values())):
         raise ValueError('native workspace pipeline build custody changed')
     executable=output/'hia-workspace-compile'

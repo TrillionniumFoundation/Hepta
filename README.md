@@ -11,6 +11,10 @@ schema. Paired JSON projections use `.core.hepta` to avoid filename collisions.
 The `hia` command and `hepta.hia.*` protocol schemas retain their names.
 See [source naming and migration](docs/HIA_SOURCE_SUFFIX.md).
 
+The [current implementation and acceptance status](docs/CURRENT.md) is the
+single current-state index. Historical observations retain their exact commit
+identities and do not qualify a later candidate.
+
 ## Agent entry
 
 ```sh
@@ -71,5 +75,5 @@ are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
 Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current implementation and remaining owners](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
 Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

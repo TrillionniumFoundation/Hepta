@@ -10,12 +10,17 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_application)
 from tools.generate_hia_native_filter import MAGIC
 from tools.qualify_hia_selfhost import invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
-ROOT=Path(__file__).resolve().parents[1]
 
 
 def build(output:Path,compiler:Path,cold_report:Path)->Path:
@@ -23,12 +28,16 @@ def build(output:Path,compiler:Path,cold_report:Path)->Path:
         ROOT/'examples/hia_bootstrap/elf_static_linker.hepta',
         ROOT/'examples/hia_bootstrap/native_filter_packer.hepta')}
     admitted_sources=admit_cold_build(pins[compiler],pins[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix())!=sha256(pins[p]).hexdigest()
+           for p in pins if p not in (compiler,cold_report)):
+        raise ValueError('native linker source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifests={name:build_application(output/name,compiler,cold_report,candidate=name)
                for name in ('elf-linker','native-filter')}
-    applications={}
+    applications={};manifest_inputs={}
     for name,path in manifests.items():
-        manifest=json.loads(path.read_bytes());image=path.parent/manifest['image_path']
+        manifest_inputs[path]=path.read_bytes()
+        manifest=json.loads(manifest_inputs[path]);image=path.parent/manifest['image_path']
         applications[name]=(image,image.read_bytes(),manifest)
     image,raw,manifest=applications['elf-linker']
     frame=struct.pack('<2Q',MAGIC,len(raw))+raw
@@ -38,6 +47,7 @@ def build(output:Path,compiler:Path,cold_report:Path)->Path:
         raise ValueError('native filter packer refused the linker image')
     executable_raw=packed[:size];inspection=inspect_executable(executable_raw)
     if (any(p.read_bytes()!=before for p,before in pins.items())
+            or any(p.read_bytes()!=before for p,before in manifest_inputs.items())
             or current_sources()!=admitted_sources):
         raise ValueError('native linker build input changed')
     for p,raw,metadata in applications.values():

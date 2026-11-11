@@ -2,6 +2,12 @@
 from pathlib import Path
 from hashlib import sha256
 import argparse, json, struct
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
 from tools.generate_hia_core_workspace_json_cli import MAGIC
 from tools.build_hia_json_preflight import (admit_cold_build, current_sources,
                                            build as build_kernel)
@@ -9,7 +15,6 @@ from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 from tools.hia_selfhost_contract import CONTRACT_PATH, PROFILE, validate_contract
 
-ROOT = Path(__file__).resolve().parents[1]
 PACKER_SOURCE = ROOT / 'examples/hia_bootstrap/core_workspace_json_packer.hepta'
 
 
@@ -25,13 +30,18 @@ def build(output, compiler, cold_report):
     if qualification.get('profile') != PROFILE or qualification.get('source_manifest') != expected_sources:
         raise ValueError('cold qualification source identity does not match current source')
     admitted_sources = admit_cold_build(inputs[compiler], inputs[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix()) != sha256(raw).hexdigest()
+           for p, raw in inputs.items() if p not in (compiler, cold_report)):
+        raise ValueError('native workspace JSON source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifest = build_kernel(output / 'kernel', compiler, cold_report, candidate='core-workspace-json')
-    metadata = json.loads(manifest.read_bytes()); image = manifest.parent / metadata['image_path']
+    manifest_raw = manifest.read_bytes()
+    metadata = json.loads(manifest_raw); image = manifest.parent / metadata['image_path']
     application = image.read_bytes()
     if sha256(application).hexdigest() != metadata['image_sha256']:
         raise ValueError('native workspace JSON kernel image identity changed')
     packer, receipt = compile_stage(output, 'workspace-json-packer', compiler, inputs[PACKER_SOURCE])
+    packer_raw = packer.read_bytes()
     frame = struct.pack('<QQ', MAGIC, len(application)) + application
     actual, packed = invoke(output, 'workspace-json-pack', packer, frame)
     size = actual['core_u32']
@@ -39,6 +49,7 @@ def build(output, compiler, cold_report):
         raise ValueError('native workspace JSON packer refused image frame')
     executable = packed[:size]; inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in inputs.items()) or image.read_bytes() != application
+            or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):
         raise ValueError('native workspace JSON build inputs changed')
     path = output / 'hia-workspace-json'; path.write_bytes(executable); path.chmod(0o700)

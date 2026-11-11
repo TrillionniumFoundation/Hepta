@@ -15,6 +15,11 @@ from pathlib import Path
 import stat
 import struct
 import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_source_build import BUNDLE_MAGIC, PACK_MAGIC, ROLE_NAMES, LAYOUT
@@ -22,7 +27,6 @@ from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.hia_selfhost_contract import PROFILE
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT = Path(__file__).resolve().parents[1]
 SOURCES = (
     'examples/hia_bootstrap/source_build_policy.hepta',
     'examples/hia_bootstrap/selfhost.hepta',

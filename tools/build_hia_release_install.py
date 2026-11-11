@@ -10,13 +10,17 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import struct
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
 
 from tools.build_hia_json_preflight import admit_cold_build, current_sources
 from tools.generate_hia_release_install import MAGIC
 from tools.qualify_hia_selfhost import compile_stage, invoke
 from tools.qualify_hia_selfhost_cli import inspect_executable
 
-ROOT = Path(__file__).resolve().parents[1]
 SOURCES = (
     'examples/hia_bootstrap/release_install_policy.hepta',
     'examples/hia_bootstrap/release_install_packer.hepta',

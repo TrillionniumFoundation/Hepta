@@ -108,13 +108,15 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         raise ValueError('native candidate source changed after contract admission')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, protocol, compiler, source)
+    image_bytes = image.read_bytes()
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != raw or current_sources() != sources):
+            or cold_report.read_bytes() != raw or current_sources() != sources
+            or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
     protocol_version = '2' if candidate == 'agent-journal' else '1'
     manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
-                'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
+                'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({
