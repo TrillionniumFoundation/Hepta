@@ -31,6 +31,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/cli_format.hiaasm',
     'examples/hia_bootstrap/machine_encoding.hiaasm',
     'examples/hia_bootstrap/machine_state.hiaasm',
+    'examples/hia_bootstrap/machine_instructions.hiaasm',
     'examples/hia_bootstrap/machine_plan.hiaasm',
     'examples/hia_bootstrap/worker_report.hiaasm',
     'examples/hia_bootstrap/json_wire.hiaasm',

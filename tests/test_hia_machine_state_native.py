@@ -175,6 +175,49 @@ def mutable_observation(factory, case):
     return result
 
 
+
+def assert_terminal_after_native_bookkeeping_error(test, owner, make_session):
+    """Execute the real native entry, then fault only diagnostic accounting."""
+    original_entry = owner._entry
+    for failure in (KeyboardInterrupt, MemoryError):
+        entries = []
+        def actual_entry(*arguments):
+            entries.append(1)
+            return original_entry(*arguments)
+        class FailingCounter:
+            def __getitem__(self, key):
+                return 0
+            def __setitem__(self, key, value):
+                raise failure('injected after actual native transition')
+        with patch.object(owner, '_entry', actual_entry), patch.object(owner, 'transitions', FailingCounter()):
+            session = make_session()
+            with test.assertRaisesRegex(failure, 'injected after actual native transition'):
+                session.step()
+            test.assertEqual(entries, [1])
+            test.assertTrue(session.finished)
+            test.assertFalse(session.pending)
+            test.assertFalse(session.prepared)
+            workspace = bytes(session.workspace)
+            for action in (session.step, session.observe, lambda: session.step(session.packet)):
+                with test.assertRaises(RuntimeError):
+                    action()
+            test.assertEqual(entries, [1])
+            test.assertEqual(bytes(session.workspace), workspace)
+
+
+def assert_primitive_bridge_identity_bound(test, backend, names):
+    """Each actual bridge dependency must contribute its bytes to the key."""
+    expected = backend._implementation_hash()
+    original_read = Path.read_bytes
+    package = Path(reference.__file__).parent
+    for name in names:
+        target = package / name
+        def changed_read(path):
+            raw = original_read(path)
+            return raw + b'\n# identity observation only\n' if path == target else raw
+        with patch.object(Path, 'read_bytes', changed_read):
+            test.assertNotEqual(backend._implementation_hash(), expected, name)
+
 class MachineStateSourceTests(unittest.TestCase):
     def test_generated_source_and_original_compiler_limits(self):
         from hepta.hia_agent_assembly import assemble_program, render_assembly
@@ -408,6 +451,9 @@ class MachineStateNativeTests(unittest.TestCase):
             repeated = backend.emit_program_machine(checked)
         self.assertEqual(repeated.object_bytes, current.object_bytes)
         self.assertEqual(repeated.implementation_sha256, current.implementation_sha256)
+        with self.selected():
+            assert_primitive_bridge_identity_bound(
+                self, backend, ('hia_machine_state_native.py', 'hia_json_wire_native.py'))
 
     def test_malformed_ack_and_failed_effect_cannot_be_replayed(self):
         code = oracle().Code()
@@ -439,6 +485,8 @@ class MachineStateNativeTests(unittest.TestCase):
                 action()
         self.assertEqual(events, [('x', 0)])
         self.assertEqual(code.labels, {'x': 0})
+        assert_terminal_after_native_bookkeeping_error(
+            self, self.native, lambda: MachineStateSession(self.native, oracle().Code(), 3, 'x'))
 
     def test_warm_image_rechecks_package_source(self):
         from hepta import hia_machine_state_native as bridge

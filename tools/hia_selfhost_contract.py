@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v70-machine-state-development'
+PROFILE = 'selfhost-core-linux-x86_64-v71-machine-instructions-development'
 SOURCE_FILES = (
+    'tools/generate_hia_machine_instructions.py',
+    'tools/build_hia_machine_instructions.py',
+    'tools/qualify_hia_machine_instructions_callers.py',
+    'examples/hia_bootstrap/machine_instructions.hiaasm',
+    'tests/test_hia_machine_instructions_native.py',
+    'tests/fixtures/hia_machine_encoding_instructions_0d653c.py.txt',
+    'docs/HIA_MACHINE_INSTRUCTIONS_NATIVE.md',
     'tools/generate_hia_machine_state.py',
     'tools/build_hia_machine_state.py',
     'tools/qualify_hia_machine_state_callers.py',
@@ -639,6 +646,30 @@ def support_contract(root=ROOT):
             'ordinary_installation_manifest_profile': 'three exact string keys and digest strings',
             'all_Python_graph_resource_behavior_equivalent': False,
             'default_worker_changed': False,
+            'whole_native_delivery_qualified': False,
+        },
+        'machine_instruction_control': {
+            'source': 'examples/hia_bootstrap/machine_instructions.hiaasm',
+            'manifest_schema': 'hepta.hia.machine-instructions-native.v1',
+            'selection': 'explicit HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST plus native state and byte owners',
+            'protocol_magic': 'HIACIN01',
+            'public_instruction_modes': 41,
+            'native_owners': ['operand type, width, condition and symbol admission',
+                'foreign observation ordering, virtual calls and register re-observation',
+                'branch/fixup and relocation append decisions',
+                'single-use continuation and byte command selection'],
+            'original_code_image_limit_bytes': 67108864,
+            'original_branch_character_limit': 512,
+            'original_symbol_character_limit': 192,
+            'public_mutable_objects_are_not_shadowed': True,
+            'whole_emit_pins_three_selected_or_unselected_owners': True,
+            'backend_identity_binds_three_sources_and_images': True,
+            'hosted_owners': ['actual Python object, integer, text and foreign-effect primitives',
+                'runtime exception construction and exceptional signed-byte rejection',
+                'general lowering, ELF writing, linking, installation and default activation'],
+            'complete_Code_value_runtime_replaced': False,
+            'all_input_equivalence_proved': False,
+            'default_backend_changed': False,
             'whole_native_delivery_qualified': False,
         },
         'machine_state_control': {
