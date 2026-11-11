@@ -67,14 +67,14 @@ def constant_program():
 def call_program():
     """Reconstructed valid nominal call fixture; not claimed old fixture bytes."""
     pair = fixtures.record('Pair', [('left', 'u32'), ('right', 'u32')])
-    mix = f('mix', [('input', 'Pair')], ['u32', 'Pair'], [], [
+    mix = f('mix', [('input', 'Pair')], ['u32', 'Pair'], ['trap'], [
         b('entry', [('input', 'Pair')], [
             i('record.unpack', ['input'], [('left', 'u32'), ('right', 'u32')]),
             i('int.add.checked', ['left', 'right'], [('sum', 'u32')]),
             i('int.add.checked', ['sum', 'left'], [('answer', 'u32')]),
             i('record.make', ['right', 'left'], [('swapped', 'Pair')]),
         ], ret('answer', 'swapped'))])
-    caller = f('caller', [('left', 'u32'), ('right', 'u32')], ['u32'], [], [
+    caller = f('caller', [('left', 'u32'), ('right', 'u32')], ['u32'], ['trap'], [
         b('entry', [('left', 'u32'), ('right', 'u32')], [
             i('record.make', ['left', 'right'], [('pair', 'Pair')]),
             i('call', ['pair'], [('answer', 'u32'), ('swapped', 'Pair')], function='mix'),
@@ -133,7 +133,8 @@ class CallPrimitiveSourceTests(unittest.TestCase):
         function = ast.parse(textwrap.dedent(inspect.getsource(
             composite._Elaborator._reference_call_primitive))).body[0]
         branch = next(node for node in function.body if isinstance(node, ast.If))
-        self.assertEqual(sha256(ast.dump(branch, include_attributes=False).encode()).hexdigest(),
+        from tests.hia_reference_ast import reference_ast_dump
+        self.assertEqual(sha256(reference_ast_dump(branch).encode()).hexdigest(),
                          ORIGINAL_BRANCH_AST_SHA256)
         class ForbiddenKey:
             def __str__(self): raise AssertionError('transport displayed nominal identity')

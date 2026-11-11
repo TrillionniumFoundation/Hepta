@@ -6,7 +6,46 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v67 combined candidate: qualification pending
+## Current v68 integration: implementation and qualification pending
+
+The current profile is
+`selfhost-core-linux-x86_64-v68-worker-ledger-integration-pending`.
+Published v67 commit `3875e6bcd037d9d649e07ae5c4fcf7ce426f8210` is preserved
+in the actual ancestry. Worker/helper integration `b9108c53` is joined with
+that published source, followed by the reference-custody correction `aec8e044`
+and native admission/fixture correction `60e4179b`. Merge `43c63ac2` additionally
+joins the explicit slot ledger at `69e97bbc` without deleting an old owner.
+
+The published v67 GitHub run `43034132760` failed both jobs. Its source panel
+ran 470 tests with seven failures. Its native job passed cold replay in
+161.613083468 seconds, all eleven cold checks, 5,049 nested checks and 1,242
+language checks; its final 377-case nominal group had seven failures and three
+errors. Later groups were not executed. Complete original logs and the
+77,021,493-byte artifact remain retained. See
+`HIA_REFERENCE_CUSTODY_COMPATIBILITY_20261111.md` and
+`HIA_NATIVE_COMPOSITION_CI_20261111.md` for exact causes and bounded corrections.
+
+The worker bundle retains explicit selection and now includes the actual
+request owner; the checker identity covers all 26 integrated semantic native
+owners and their immutable mappings. The slot ledger owns generation/epoch,
+retained versions and reusable active leases on the original database/WAL.
+It remains opt-in: independent actual-image review found that direct APIs can
+accept longer slot names and other SQLite-bound values that its current
+192-byte native field rejects. A real retained long-slot lease can execute
+through the original API but not this candidate. This is an implementation gap,
+not a test exemption. Full direct-input replacement must close it first.
+
+The v5 qualification harness adds the ledger, worker-helper and checker groups,
+all 37 matching-source cold selectors, and retained slot evidence. It preserves
+the original 180/3-second cold limits and unrestricted 5,400-second full test
+discovery. Fresh combined-source qualification remains pending. Public runtime
+execution and complete input normalization are being implemented in separate
+worktrees and are not represented as completed by this source checkpoint.
+
+No default cutover, live-worker migration, all-input equivalence or old-owner
+deletion has been established.
+
+## Prior v67 integration checkpoint, before its published CI
 
 The recovered continuation and main `5831f52fada45e076f8f68f198a15c0585e6104f`
 are joined by the real merge `93128c470663bf9afe981b9bd4227c62c67b7f6e`.

@@ -102,7 +102,8 @@ class NominalOwnerRouteTests(unittest.TestCase):
             with self.subTest(method=method.__name__):
                 node = ast.parse(textwrap.dedent(inspect.getsource(method))).body[0]
                 body = ast.Module(body=node.body, type_ignores=[])
-                self.assertEqual(sha256(ast.dump(body, include_attributes=False).encode()).hexdigest(),
+                from tests.hia_reference_ast import reference_ast_dump
+                self.assertEqual(sha256(reference_ast_dump(body).encode()).hexdigest(),
                                  digest)
         original = inspect.getsource(composite._Elaborator._reference_main_function)
         original = original.replace('def _reference_main_function(', 'def function(', 1)

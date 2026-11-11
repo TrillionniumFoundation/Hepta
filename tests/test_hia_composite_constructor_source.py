@@ -38,7 +38,17 @@ class ConstructorSourceTests(unittest.TestCase):
     def test_retained_constructor_body_exact_and_bundle_indivisible(self):
         source = inspect.getsource(_Elaborator._reference_initialize)
         original = source.replace('def _reference_initialize(', 'def __init__(', 1)
+        # The unified constructor moved exactly this original four-line owner
+        # selection after all constructor routes and their conflict check. The
+        # unchanged nominal-admission reference remains independently pinned.
         self.assertEqual(sha256(original.encode()).hexdigest(),
+                         'f50b6efca4ed47d4f63abc94e9dfa4d8d7cbdd25b62bda0affe1aede4a7720b5')
+        moved = ('        from .hia_composite_functions_native import selected_composite_functions\n'
+                 '        function_owner = selected_composite_functions()\n'
+                 '        self._native_function_session = (None if function_owner is None else\n'
+                 '            function_owner.session(self, legacy=legacy))\n')
+        self.assertTrue(inspect.getsource(_Elaborator.__init__).endswith(moved))
+        self.assertEqual(sha256((original + moved).encode()).hexdigest(),
                          '1b94c6d4246baf5e8be8d0e23924181b94a3746807215d4e4cb017e1918f5842')
         with self.assertRaisesRegex(ValueError, 'both HIA kernels'):
             NativeCompositeConstructor({'owner': object()}, types_source_sha256='0'*64)

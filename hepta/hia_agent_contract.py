@@ -33,6 +33,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/execution_budget.hiaasm',
     'examples/hia_bootstrap/request_journal.hiaasm',
     'examples/hia_bootstrap/artifact_namespace.hiaasm',
+    'examples/hia_bootstrap/slot_ledger.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
@@ -112,9 +113,11 @@ def installation_manifest():
     for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
         entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
     from .hia_program_native import _implementation_hash
+    from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
             "backend_sha256": _implementation_hash(),
-            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]}
+            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"],
+            **native_helpers_identity()}
 
 
 _KEYWORDS = frozenset({"$schema", "type", "properties", "required", "additionalProperties",

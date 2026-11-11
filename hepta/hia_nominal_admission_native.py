@@ -51,8 +51,15 @@ class AdmissionResult:
     def admit(self):
         if self.error in (15,16):
             raise KeyError(self.value)
-        if self.error == 17:
-            raise TypeError("unhashable type: '" + self.value + "'")
+        if self.error in (17, 18):
+            # HIA has already selected the original failure site and exact
+            # built-in container type. Let that foreign operation provide its
+            # interpreter-specific exception, including CPython 3.14 context.
+            unhashable = [] if self.value == 'list' else {}
+            if self.error == 17:
+                {}[unhashable]
+            else:
+                unhashable in {'hepta.hia.composite.v3', 'hepta.hia.composite.v4'}
         if self.error:
             code, message = ERRORS[self.error]
             raise HIAProgramRejected(message, code)
@@ -197,7 +204,7 @@ class NativeNominalAdmission(NativeHiaJsonImage):
         if type(extent) is not int or not 80 <= extent <= OUTPUT_BYTES:
             rejected('invalid native extent/status ' + str(extent))
         magic, error, request, index, item, sequence, size, reserved = struct.unpack_from('<8Q', context.output)
-        if (magic != MAGIC or not 0 <= error <= 17 or not 0 <= request <= 12
+        if (magic != MAGIC or not 0 <= error <= 18 or not 0 <= request <= 12
                 or reserved or size != extent - 64 or error and request
                 or sequence < context.sequence or request and sequence != context.sequence + 1
                 or request not in (4,5,6,7,8) and index or request != 5 and item):
@@ -210,7 +217,7 @@ class NativeNominalAdmission(NativeHiaJsonImage):
             elif error == 16:
                 if type(value) not in (str,int,float,bool,type(None)):
                     raise ValueError('invalid missing foreign schema key')
-            elif error == 17:
+            elif error in (17,18):
                 if value not in ('list','dict'): raise ValueError('invalid foreign unhashable type')
             elif request == 1:
                 if type(value) is not list or any(type(name) is not str for name in value):

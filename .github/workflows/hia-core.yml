@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers worker_request release_install enum_match release_selection enum_operations record_operations record_transitions retirement_state task_operations composite_functions composite_constructor composite_outer call_primitive nominal_terminators nominal_module nominal_admission execution_budget request_journal task_helper_cache artifact_namespace slot_ledger; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -129,6 +129,9 @@ jobs:
               'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
               'tests.test_hia_request_journal_native.RequestJournalSourceTests',
               'tests.test_hia_artifact_namespace_native.ArtifactNamespaceSourceTests',
+              'tests.test_hia_slot_ledger_native.SlotLedgerSourceTests',
+              'tests.test_hia_worker_native_helpers.NativeWorkerHelperFixtureTests',
+              'tests.test_hia_checker_identity',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -208,6 +211,7 @@ jobs:
           PYTEST
         env:
           HEPTA_HIA_AGENT_STDIO_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native Core module graph and actual workspace projects
         run: python -B -m unittest tests.test_hia_core_module_graph_native -v
         env:
@@ -323,6 +327,7 @@ jobs:
               'tests.test_hia_execution_budget_native',
               'tests.test_hia_request_journal_native',
               'tests.test_hia_artifact_namespace_native',
+              'tests.test_hia_slot_ledger_native',
           ))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -331,6 +336,8 @@ jobs:
           HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_REQUEST_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_ARTIFACT_NAMESPACE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_SLOT_LEDGER_EVIDENCE: ${{ runner.temp }}/hia-slot-ledger
       - name: Native retained retirement state and actual resource custody
         run: |
           python -B - <<'PYRETIRE'
@@ -348,12 +355,16 @@ jobs:
           suite = unittest.defaultTestLoader.loadTestsFromNames((
               'tests.test_hia_worker_request_native',
               'tests.test_hia_worker_request_review',
+              'tests.test_hia_worker_native_helpers',
+              'tests.test_hia_checker_identity',
+              'tests.test_hia_checker_identity_agent',
           ))
           result = unittest.TextTestRunner(verbosity=2).run(suite)
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
           PYREQUEST
         env:
           HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_IDENTITY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native immutable release installation and recovery observations
         run: |
           python -B - <<'PYINSTALL'
@@ -395,5 +406,6 @@ jobs:
             ${{ runner.temp }}/hia-language.evidence/
             ${{ runner.temp }}/hia-nominal-fixture/
             ${{ runner.temp }}/hia-module-projects/
+            ${{ runner.temp }}/hia-slot-ledger/
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-release-selection/

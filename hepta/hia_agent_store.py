@@ -273,9 +273,12 @@ class AgentStore:
         from .hia_execution_budget import admitted_execution_budget, execution_budget_store
         from .hia_request_journal_native import admitted_request_journal, request_journal_store
         from .hia_artifact_namespace_native import admitted_artifact_namespace, artifact_namespace_store
+        from .hia_slot_ledger_native import admitted_slot_ledger, slot_ledger_store
         budget_admission = admitted_execution_budget()
         request_admission = admitted_request_journal()
         namespace_admission = admitted_artifact_namespace()
+        ledger_admission = admitted_slot_ledger(namespace_admission=namespace_admission,
+                                                request_admission=request_admission)
         supplied = Path(root).absolute()
         supplied.mkdir(mode=0o700, parents=True, exist_ok=True)
         if supplied.is_symlink():
@@ -370,6 +373,7 @@ class AgentStore:
         else:
             self.request_journal = request_journal_store(self, request_admission, shared_lock=self.lock)
         self.artifact_namespace = artifact_namespace_store(self, namespace_admission)
+        self.slot_ledger = slot_ledger_store(self, ledger_admission)
 
     @contextmanager
     def transaction(self):
@@ -423,6 +427,8 @@ class AgentStore:
                 self.db.execute("COMMIT")
 
     def close(self):
+        if self.slot_ledger is not None:
+            self.slot_ledger.close()
         if self.artifact_namespace is not None:
             self.artifact_namespace.close()
         if self.request_journal is not None:

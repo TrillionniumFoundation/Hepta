@@ -744,6 +744,8 @@ class HIAAgentService:
         return None
 
     def _hia_verify(self, args):
+        from .hia_checker_identity import checker_native_selection
+        native_selection = checker_native_selection()
         context = self._context(args["context"])
         self._profile(args["validation_profile"], "validation")
         program = self._program(args["candidate"])
@@ -804,6 +806,7 @@ class HIAAgentService:
                     "native_build": rebuilt, "no_llvm_or_external_assembler": True}
             else:
                 reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
+            evidence["native_checker_selection"] = native_selection
             scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
                 profile=args["validation_profile"], installation=self.identities, evidence=evidence)
             if evidence.get("method") == SAFE_CORE_METHOD and status == "proved" and self._remaining_ms(context) <= 0:
@@ -1315,6 +1318,12 @@ class HIAAgentService:
             "full_cost_ledger": ledger, "adopted": False}
 
     def _slot_snapshot(self, slot, *, _connection=None):
+        owner = self.store.slot_ledger
+        if owner is None:
+            return self._slot_snapshot_reference(slot, **_connection_arguments(_connection))
+        return owner.operate(1, self, slot=slot, connection=_connection).snapshot()
+
+    def _slot_snapshot_reference(self, slot, *, _connection=None):
         row = (self.store.db if _connection is None else _connection).execute("SELECT * FROM slots WHERE name=?", (slot,)).fetchone()
         if row is None:
             return {"target_slot": slot, "current": {"generation": "0", "epoch": "0"},
@@ -1332,6 +1341,13 @@ class HIAAgentService:
         return self._slot_snapshot(target_slot)
 
     def _conditional_slot(self, args, *, _connection=None):
+        owner = self.store.slot_ledger
+        if owner is None:
+            return self._conditional_slot_reference(args, **_connection_arguments(_connection))
+        return owner.operate(7, self, slot=args['target_slot'],
+            expected=args['expected_current'], connection=_connection).snapshot()
+
+    def _conditional_slot_reference(self, args, *, _connection=None):
         for name in ("generation", "epoch"):
             uint64(args["expected_current"][name], name)
         snapshot = self._slot_snapshot(args["target_slot"], **_connection_arguments(_connection))
@@ -1343,6 +1359,10 @@ class HIAAgentService:
         return snapshot
 
     def _hia_adopt(self, args, *, _connection=None):
+        target = self._hia_adopt_reference if self.store.slot_ledger is None else self._hia_adopt_native
+        return target(args, **_connection_arguments(_connection))
+
+    def _hia_adopt_reference(self, args, *, _connection=None):
         context = self._context(args["context"], **_connection_arguments(_connection))
         evaluation, _ = self.store.get_json(args["evaluation_receipt"], kind="evaluation-receipt", **_connection_arguments(_connection))
         if (evaluation["context"] != args["context"] or evaluation["candidate_artifact"] != args["candidate_artifact"]
@@ -1395,7 +1415,60 @@ class HIAAgentService:
         return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
                 "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}
 
+    def _hia_adopt_native(self, args, *, _connection=None):
+        """Existing foreign evidence checks, then the complete native ledger."""
+        context = self._context(args["context"], **_connection_arguments(_connection))
+        evaluation, _ = self.store.get_json(args["evaluation_receipt"], kind="evaluation-receipt", **_connection_arguments(_connection))
+        if (evaluation["context"] != args["context"] or evaluation["candidate_artifact"] != args["candidate_artifact"]
+                or evaluation["installation"] != self.identities):
+            reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
+        self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"], **_connection_arguments(_connection))
+        objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"], **_connection_arguments(_connection))
+        if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
+                or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
+                ({"improved", "unchanged"} if objective["allow_unchanged"] else {"improved"})):
+            reject("E_HIA_EVALUATION_REQUIRED", "evaluation did not meet the frozen correctness/performance acceptance", "adoption")
+        self.store.get(evaluation["measurements"], kind="measurements", **_connection_arguments(_connection))
+        self.store.get(evaluation["full_cost_ledger"], kind="cost-ledger", **_connection_arguments(_connection))
+        if objective.get("require_net_benefit", False):
+            reject("E_HIA_COST_INCOMPLETE", "full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass", "adoption")
+        _data, metadata, _program = self._native(args["candidate_artifact"], args["context"], **_connection_arguments(_connection))
+        _baseline_data, baseline, _baseline_program = self._native(evaluation["baseline_artifact"], args["context"], **_connection_arguments(_connection))
+        if metadata["signatures"] != baseline["signatures"]:
+            reject("E_HIA_ABI", "candidate and baseline are not ABI compatible", "adoption")
+        retained = self.store.slot_ledger.operate(2, self, slot=args['target_slot'],
+            context=args['context']['id'], expected=args['expected_current'],
+            candidate=args['candidate_artifact'], baseline=evaluation['baseline_artifact'],
+            abi=wire(metadata['signatures']), connection=_connection)
+        snapshot, current = retained.snapshot(), retained.current()
+        slot, candidate, baseline_ref = (snapshot['target_slot'], retained.reference(896), retained.reference(1072))
+        receipt = self.store.json({"schema": "hepta.hia.agent.adoption.v1", "context": args["context"],
+            "target_slot": slot, "previous": snapshot["current"], "current": current,
+            "active_artifact": candidate, "retained_baseline": baseline_ref,
+            "evaluation_receipt": args["evaluation_receipt"], "verification_receipts": args["verification_receipts"],
+            "future_calls_only": True, "in_flight_versions_retained": True,
+            "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt", **_connection_arguments(_connection))
+        return {"target_slot": slot, "previous": snapshot["current"], "current": current,
+                "active_artifact": candidate, "adoption_receipt": receipt, "future_calls_only": True}
+
+    def _hia_rollback_native(self, args, *, _connection=None):
+        retained = self.store.slot_ledger.operate(3, self, slot=args['target_slot'],
+            context=args['context']['id'], expected=args['expected_current'],
+            retained=args['retained_generation'], connection=_connection)
+        snapshot, current, artifact = retained.snapshot(), retained.current(), retained.reference(2048)
+        slot = snapshot['target_slot']
+        receipt = self.store.json({"schema": "hepta.hia.agent.rollback.v1", "context": args["context"],
+            "target_slot": slot, "previous": snapshot["current"], "current": current,
+            "active_artifact": artifact, "reason": args["reason"], "future_calls_only": True,
+            "past_effects_reversed": False, "in_flight_versions_retained": True}, "rollback-receipt", **_connection_arguments(_connection))
+        return {"target_slot": slot, "previous": snapshot["current"], "current": current,
+                "active_artifact": artifact, "rollback_receipt": receipt, "future_calls_only": True, "past_effects_reversed": False}
+
     def _hia_rollback(self, args, *, _connection=None):
+        target = self._hia_rollback_reference if self.store.slot_ledger is None else self._hia_rollback_native
+        return target(args, **_connection_arguments(_connection))
+
+    def _hia_rollback_reference(self, args, *, _connection=None):
         uint64(args["retained_generation"], "retained_generation")
         snapshot = self._conditional_slot(args, **_connection_arguments(_connection))
         if snapshot["active_artifact"] is None:
@@ -1423,6 +1496,13 @@ class HIAAgentService:
                 "active_artifact": artifact, "rollback_receipt": receipt, "future_calls_only": True, "past_effects_reversed": False}
 
     def acquire_slot(self, target_slot):
+        """Pin one retained native-ledger generation, then release its SQL lock."""
+        owner = self.store.slot_ledger
+        if owner is None:
+            return self._acquire_slot_reference(target_slot)
+        return owner.lease_transaction(4, self, slot=target_slot).lease()
+
+    def _acquire_slot_reference(self, target_slot):
         """Pin the observed active generation for a real future native call."""
         with self.store.transaction():
             snapshot = self._slot_snapshot(target_slot)
@@ -1436,6 +1516,12 @@ class HIAAgentService:
             return lease
 
     def _lease(self, lease):
+        owner = self.store.slot_ledger
+        if owner is None:
+            return self._lease_reference(lease)
+        return owner.operate(5, self, lease=lease).lease()
+
+    def _lease_reference(self, lease):
         keys(lease, ("id", "slot", "generation", "artifact"), label="generation lease")
         row = self.store.db.execute("SELECT * FROM leases WHERE id=?", (lease["id"],)).fetchone()
         if (row is None or row["active"] != 1 or row["slot"] != lease["slot"]
@@ -1483,6 +1569,13 @@ class HIAAgentService:
                 "termination_confirmed": result["termination_confirmed"], **external}
 
     def release_slot(self, lease):
+        owner = self.store.slot_ledger
+        if owner is None:
+            return self._release_slot_reference(lease)
+        retained = owner.lease_transaction(6, self, lease=lease).lease()
+        return {'released': True, 'generation': retained['generation'], 'artifact_retained': True}
+
+    def _release_slot_reference(self, lease):
         with self.store.transaction():
             lease = self._lease(lease)
             self.store.db.execute("UPDATE leases SET active=0 WHERE id=?", (lease["id"],))

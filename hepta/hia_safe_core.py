@@ -18,6 +18,7 @@ import tempfile
 import time
 
 from .hia_program import verify_program
+from .hia_checker_identity import checker_source_identity, checker_native_selection
 from .hia_safe_core_elf import bind_final_artifact
 from .hia_safe_core_x64 import Executor
 
@@ -93,8 +94,7 @@ CHECKER_SOURCE_FILES = (
 
 def _checker_source_identity():
     """Identify the consumer models separately from producer provenance."""
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            for name in CHECKER_SOURCE_FILES}
+    return checker_source_identity(CHECKER_SOURCE_FILES)
 
 
 class SafeCoreRejected(ValueError):
@@ -368,11 +368,12 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
     require(type(object_bytes) is bytes and type(final_bytes) is bytes,
             "object and final image must be immutable bytes, not mutable buffers or subclasses")
     require(type(timeout_ms) is int and 100 <= timeout_ms <= 60000, "timeout must be 100..60000 milliseconds")
+    identity = _checker_source_identity()
+    native_selection = checker_native_selection()
     checked = verify_program(document)
     _, artifact_profile, widths = _profile_configuration(profile_version)
     fn, blocks = _profile(checked, foreign_buffer_exports=foreign_buffer_exports,
                          profile_version=profile_version)
-    identity = _checker_source_identity()
     checker_identity = identity
     binding = bind_final_artifact(object_bytes, final_bytes, fn["name"])
     try:
@@ -421,7 +422,7 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
                    "final_image_sha256": sha256(final_bytes).hexdigest(),
                    "entry_symbol": fn["name"], "foreign_buffer_exports": [list(pair) for pair in foreign_buffer_exports]}
         checker = {"name": "hepta.hia_safe_core.validate_safe_core_artifact",
-                   "source_identity": checker_identity, "solver": solver_identity,
+                   "source_identity": checker_identity, "native_selection": native_selection, "solver": solver_identity,
                    "producer_reemission_used": False}
         return {"schema": SCHEMA, "profile": artifact_profile, "ok": status == "smt_validated",
                 "status": status, "complete": complete,
@@ -477,7 +478,8 @@ def validate_safe_core_artifact(document, object_bytes, final_bytes, *,
             raise SafeCoreRejected(name + ": " + result + (" (" + solver.reason_unknown() + ")" if result == "unknown" else ""),
                                    counterexample=counterexample,
                                    validation=report("refuted" if counterexample is not None else "unknown", complete=False))
-    require(identity == _checker_source_identity() and solver_identity == _solver_identity(z),
+    require(identity == _checker_source_identity() and native_selection == checker_native_selection()
+            and solver_identity == _solver_identity(z),
             "checker or solver source changed during validation")
     check_deadline()
     return report("smt_validated", complete=True)

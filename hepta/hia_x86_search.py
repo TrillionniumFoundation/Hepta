@@ -96,6 +96,8 @@ def _implementation_hash():
     root = Path(__file__).parent
     for name in _IMPLEMENTATION_INPUTS:
         digest.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
+    from .hia_checker_identity import checker_digest
+    digest.update(checker_digest().encode())
     return digest.hexdigest()
 
 

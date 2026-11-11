@@ -69,7 +69,8 @@ def reference_ast(function):
     for node in ast.walk(ast.Module(body=body, type_ignores=[])):
         if isinstance(node, ast.ImportFrom) and node.module == 'hepta.hia_task_helpers_native':
             node.module, node.level = 'hia_task_helpers_native', 1
-    return sha256(ast.dump(ast.Module(body=body, type_ignores=[])).encode()).hexdigest()
+    from tests.hia_reference_ast import reference_ast_dump
+    return sha256(reference_ast_dump(ast.Module(body=body, type_ignores=[])).encode()).hexdigest()
 
 
 def wire(value):

@@ -150,7 +150,7 @@ class NominalAdmissionAdapterTests(unittest.TestCase):
         good = self.frame()
         actual = self.image(good).step(self.context())
         self.assertEqual((actual.request, actual.sequence), (4, 1))
-        bad = [0, 0xfffffff1, good[:-1], self.frame(error=18), self.frame(request=13),
+        bad = [0, 0xfffffff1, good[:-1], self.frame(error=18), self.frame(error=19), self.frame(request=13),
                self.frame(error=1), self.frame(sequence=0), self.frame(sequence=2),
                self.frame(request=3, index=1), self.frame(item=1), self.frame(reserved=1),
                self.frame(delta=1), self.frame(value={}), self.frame(request=2),
@@ -365,7 +365,8 @@ class NominalAdmissionNativeTests(unittest.TestCase):
         modes=('false_then_true','second_interrupt','first_bad_module','first_missing_module',
                'first_missing_schema','second_bad_module','second_missing_functions',
                'second_missing_types','second_unknown_schema','second_null_schema',
-               'second_unhashable_schema','legacy_unhashable_schema','legacy_unknown_schema')
+               'second_unhashable_schema','second_unhashable_mapping_schema',
+               'legacy_unhashable_schema','legacy_unhashable_mapping_schema','legacy_unknown_schema')
         def run(mode,native):
             document=scalar_edges();document['schema']='hepta.hia.composite.v2'
             owner=object.__new__(composite._Elaborator);events=[]
@@ -384,7 +385,9 @@ class NominalAdmissionNativeTests(unittest.TestCase):
                     if mode in ('second_unknown_schema','legacy_unknown_schema'):document['schema']='changed'
                     if mode=='second_null_schema':document['schema']=None
                     if mode in ('second_unhashable_schema','legacy_unhashable_schema'):document['schema']=[]
-                    return mode in ('false_then_true','legacy_unhashable_schema','legacy_unknown_schema')
+                    if mode in ('second_unhashable_mapping_schema','legacy_unhashable_mapping_schema'):document['schema']={}
+                    return mode in ('false_then_true','legacy_unhashable_schema',
+                                    'legacy_unhashable_mapping_schema','legacy_unknown_schema')
             try:
                 if native:self.native.initialize(owner,document,legacy=Flag())
                 else:owner._reference_initialize(document,legacy=Flag())

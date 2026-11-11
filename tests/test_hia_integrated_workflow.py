@@ -117,18 +117,33 @@ class CoreWorkflowContractTests(unittest.TestCase):
             'tests.test_hia_composite_outer_integration',
             'tests.test_hia_composite_nominal_lifecycle',
         }
-        required = functions | elaboration | {
+        main_bundle = functions | elaboration | {
             'tests.test_hia_composite_types_native', 'tests.test_hia_composite_origins_native',
             'tests.test_hia_composite_signatures_native', 'tests.test_hia_task_helpers_native'}
+        integrated_owners = {
+            'tests.test_hia_composite_native_composition',
+            'tests.test_hia_enum_match_native', 'tests.test_hia_enum_operations_native',
+            'tests.test_hia_record_operations_native', 'tests.test_hia_record_transitions_native',
+            'tests.test_hia_task_operations_native', 'tests.test_hia_native_value_graph',
+            'tests.test_hia_nominal_owner_routes', 'tests.test_hia_call_primitive_native',
+            'tests.test_hia_nominal_terminators_native', 'tests.test_hia_nominal_module_native',
+            'tests.test_hia_nominal_admission_native', 'tests.test_hia_nominal_function_native',
+            'tests.test_hia_task_helper_cache_native',
+        }
+        required = main_bundle | integrated_owners
         self.assertEqual(set(names), required)
         self.assertEqual(len(names), len(required))
         from tools.hia_selfhost_contract import validate_contract
         contract = validate_contract()
         owner = contract['composite_function_lowering']
         self.assertEqual(set(owner['required_test_modules']), functions)
-        self.assertEqual(set(contract['composite_complete_elaboration']['required_test_modules']), required)
+        self.assertEqual(set(contract['composite_complete_elaboration']['required_test_modules']), main_bundle)
         for component in ('COMPOSITE_TYPES', 'TASK_HELPERS', 'COMPOSITE_FUNCTIONS',
-                          'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER'):
+                          'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
+                          'ENUM_MATCH', 'ENUM_OPERATIONS', 'RECORD_OPERATIONS',
+                          'RECORD_TRANSITIONS', 'TASK_OPERATIONS', 'CALL_PRIMITIVE',
+                          'NOMINAL_TERMINATORS', 'NOMINAL_MODULE', 'NOMINAL_ADMISSION',
+                          'NOMINAL_FUNCTION', 'TASK_HELPER_CACHE'):
             self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
                           step(name))
         self.assertIn('          HEPTA_HIA_COMPOSITE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-nominal-fixture',
@@ -172,6 +187,43 @@ class CoreWorkflowContractTests(unittest.TestCase):
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
+
+    def test_worker_checker_and_ledger_groups_use_matching_cold_and_reject_failed_outcomes(self):
+        groups = (
+            ('Native worker request admission and ordinary request continuity', 'PYREQUEST', {
+                'tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review',
+                'tests.test_hia_worker_native_helpers', 'tests.test_hia_checker_identity',
+                'tests.test_hia_checker_identity_agent'}, ('WORKER_REQUEST', 'AGENT_IDENTITY')),
+            ('Native durable execution budgets request journal and artifact namespace', 'PYJOURNAL', {
+                'tests.test_hia_execution_budget_native', 'tests.test_hia_request_journal_native',
+                'tests.test_hia_artifact_namespace_native', 'tests.test_hia_slot_ledger_native'},
+                ('EXECUTION_BUDGET', 'REQUEST_JOURNAL', 'ARTIFACT_NAMESPACE', 'SLOT_LEDGER')),
+        )
+        for name, marker, required, selectors in groups:
+            code = script(name).split("<<'" + marker + "'\n", 1)[1].rsplit('\n' + marker, 1)[0]
+            assignment = next(node for node in ast.parse(code).body if isinstance(node, ast.Assign)
+                              and any(isinstance(t, ast.Name) and t.id == 'suite' for t in node.targets))
+            names = ast.literal_eval(assignment.value.args[0])
+            self.assertEqual(set(names), required)
+            self.assertEqual(len(names), len(required))
+            lines = step(name)
+            for family in selectors:
+                self.assertIn('          HEPTA_HIA_' + family + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json', lines)
+            for successful, skipped, expected, status in (
+                    (True, [], [], 0), (False, [], [], 1),
+                    (True, ['skip'], [], 1), (True, [], ['expected failure'], 1)):
+                fixture = ('import sys,types\n'
+                    'result=types.SimpleNamespace(wasSuccessful=lambda:' + repr(successful) +
+                    ',skipped=' + repr(skipped) + ',expectedFailures=' + repr(expected) + ')\n'
+                    'sys.modules["unittest"]=types.SimpleNamespace('
+                    'TextTestRunner=lambda **kwargs:types.SimpleNamespace(run=lambda suite:result),'
+                    'defaultTestLoader=types.SimpleNamespace(loadTestsFromNames=lambda names:names))\n')
+                child = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', fixture + code],
+                                       capture_output=True, timeout=10)
+                self.assertEqual(child.returncode, status, child.stdout + child.stderr)
+        self.assertIn('slot_ledger', script('Regenerate actual HIA sources').split('for component in ', 1)[1].split('; do', 1)[0].split())
+        self.assertIn('            ${{ runner.temp }}/hia-slot-ledger/',
+                      step('Preserve actual cold failure and stage evidence'))
 
 
 if __name__ == '__main__':

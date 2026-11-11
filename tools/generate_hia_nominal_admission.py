@@ -120,9 +120,9 @@ def missing(w:mutbuf, key:u64) -> u64:
     put(w, P + 160, key)
     return refuse(w, 15)
 
-def unhashable(w:mutbuf, kind:u64) -> u64:
+def unhashable(w:mutbuf, kind:u64, error:u64) -> u64:
     put(w, P + 160, kind)
-    return refuse(w, 17)
+    return refuse(w, error)
 
 def fields(w:mutbuf, node:u64) -> u64:
     if tag(w, node) != 6:
@@ -179,7 +179,7 @@ def legacy_control(s:readbuf, w:mutbuf, second:bool) -> u64:
             ident = schema_id(w, schema)
             if ident == 0:
                 if tag(w, schema) == 5 or tag(w, schema) == 6:
-                    unhashable(w, tag(w, schema))
+                    unhashable(w, tag(w, schema), 17)
                 else:
                     refuse(w, 16)
                 return 1
@@ -209,7 +209,7 @@ def type_flags(w:mutbuf) -> u64:
     if schema == N:
         return missing(w, F_schema)
     if tag(w, schema) == 5 or tag(w, schema) == 6:
-        return unhashable(w, tag(w, schema))
+        return unhashable(w, tag(w, schema), 18)
     put(w, P + 40, schema_id(w, schema))
     return request(w, 12)
 
@@ -401,7 +401,7 @@ def render(o:mutbuf, w:mutbuf) -> u64:
             graph_string(o, w, L_functions)
     elif error == 16:
         graph_ref(o, w, field(w, get(w, P + 136), F_schema) - SOURCE_BASE)
-    elif error == 17:
+    elif error == 17 or error == 18:
         if get(w, P + 160) == 5:
             graph_string(o, w, L_list)
         else:

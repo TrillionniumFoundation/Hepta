@@ -119,17 +119,33 @@ class WorkerRequestNativeTests(unittest.TestCase):
 
     def call_worker(self, raw, state, *, selected=True, block_old=True, manifest=None):
         from hepta import hia_agent_worker as worker
+        from hepta.hia_native_helpers import ABI, SCHEMA as BUNDLE_SCHEMA, TARGET
         stdout, stderr = io.BytesIO(), io.StringIO()
+        arguments = ['--state-root', str(state), '--request-json-stdin']
+        if selected:
+            # The worker now admits only an explicit operator-pinned bundle.
+            # This changes fixture selection, not any request/replay assertion.
+            path = Path(manifest or self.manifest).absolute()
+            expected = sha256(path.read_bytes()).hexdigest() if path.is_file() else '0' * 64
+            bundle = self.folder / 'worker-helpers.json'
+            encoded = wire({'schema': BUNDLE_SCHEMA, 'target': TARGET, 'abi': ABI,
+                'helpers': [{'selector': SELECTOR, 'manifest_path': str(path),
+                             'manifest_sha256': expected}]})
+            bundle.write_bytes(encoded)
+            arguments += ['--native-helpers-manifest', str(bundle),
+                          '--expected-native-helpers-sha256', sha256(encoded).hexdigest()]
+        environment = {key: value for key, value in os.environ.items()
+                       if not (key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST'))}
         with ExitStack() as stack:
             stack.enter_context(patch.object(sys, 'stdin', SimpleNamespace(buffer=io.BytesIO(raw))))
             stack.enter_context(patch.object(sys, 'stdout', SimpleNamespace(buffer=stdout)))
             stack.enter_context(patch.object(sys, 'stderr', stderr))
-            stack.enter_context(patch.dict(os.environ, {SELECTOR: str(manifest or self.manifest) if selected else ''}))
+            stack.enter_context(patch.dict(os.environ, environment, clear=True))
             if selected and block_old:
                 for name in ('decode_data', 'keys', 'canonical_digest', 'sha256'):
                     stack.enter_context(patch.object(worker, name,
                         side_effect=AssertionError('old worker request owner called: ' + name)))
-            code = worker.main(['--state-root', str(state), '--request-json-stdin'])
+            code = worker.main(arguments)
         output = stdout.getvalue()
         return code, json.loads(output) if output else None, stderr.getvalue()
 

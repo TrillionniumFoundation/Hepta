@@ -78,6 +78,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'task-helpers': ('task_helpers', 'task-helpers'),
                   'task-helper-cache': ('task_helper_cache', 'task-helper-cache'),
                   'artifact-namespace': ('artifact_namespace', 'artifact-namespace'),
+                  'slot-ledger': ('slot_ledger', 'slot-ledger'),
                   'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
                   'composite-function-records': ('composite_function_records', 'composite-function-records'),
                   'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),

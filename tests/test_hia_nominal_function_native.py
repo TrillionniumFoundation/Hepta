@@ -123,7 +123,8 @@ class NominalFunctionSourceTests(unittest.TestCase):
 
     def test_original_function_ast_and_transport_identity(self):
         body = ast.parse(textwrap.dedent(inspect.getsource(composite._Elaborator._reference_function))).body[0].body
-        self.assertEqual(sha256(ast.dump(ast.Module(body=body, type_ignores=[])).encode()).hexdigest(),
+        from tests.hia_reference_ast import reference_ast_dump
+        self.assertEqual(sha256(reference_ast_dump(ast.Module(body=body, type_ignores=[])).encode()).hexdigest(),
                          REFERENCE_AST_SHA256)
         class ForbiddenKey:
             def __str__(self): raise AssertionError('semantic display key expanded')

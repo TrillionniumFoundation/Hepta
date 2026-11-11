@@ -276,6 +276,18 @@ _EFFECT_SQL = {
     'INSERT OR IGNORE INTO main.artifacts VALUES (?,?,?,?,?,?)': 'INSERT OR IGNORE INTO main.artifacts VALUES (?,?,?,?,?,?)',
     'SELECT * FROM main.artifacts WHERE id=?': 'SELECT * FROM main.artifacts WHERE id=?',
     'SELECT artifact FROM main.profiles WHERE id=? AND sha256=?': 'SELECT artifact FROM main.profiles WHERE id=? AND sha256=?',
+    # Slot-ledger aliases keep the same exact request connection. The one
+    # conditional update additionally binds the original row observed by HIA.
+    'SELECT * FROM main.slots WHERE name=?': 'SELECT * FROM main.slots WHERE name=?',
+    'SELECT artifact FROM main.versions WHERE slot=? AND generation=?': 'SELECT artifact FROM main.versions WHERE slot=? AND generation=?',
+    'SELECT COUNT(*) FROM main.leases WHERE slot=? AND active=1': 'SELECT COUNT(*) FROM main.leases WHERE slot=? AND active=1',
+    'INSERT INTO main.slots VALUES (?,?,?,?,?)': 'INSERT INTO main.slots VALUES (?,?,?,?,?)',
+    'INSERT INTO main.versions VALUES (?,?,?)': 'INSERT INTO main.versions VALUES (?,?,?)',
+    'SELECT generation FROM main.versions WHERE slot=?': 'SELECT generation FROM main.versions WHERE slot=?',
+    ('UPDATE main.slots SET generation=?,epoch=?,context_id=? WHERE name=? '
+     'AND generation=? AND epoch=? AND context_id=? AND abi_sha256=?'):
+    ('UPDATE main.slots SET generation=?,epoch=?,context_id=? WHERE name=? '
+     'AND generation=? AND epoch=? AND context_id=? AND abi_sha256=?'),
 }
 
 

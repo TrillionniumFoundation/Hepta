@@ -13,8 +13,13 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v67-native-unified-nominal-journal'
+PROFILE = 'selfhost-core-linux-x86_64-v68-worker-ledger-integration-pending'
 SOURCE_FILES = (
+    'examples/hia_bootstrap/slot_ledger.hiaasm',
+    'tools/generate_hia_slot_ledger.py',
+    'tools/build_hia_slot_ledger.py',
+    'tests/test_hia_slot_ledger_native.py',
+    'docs/HIA_SLOT_LEDGER_NATIVE.md',
     'examples/hia_bootstrap/artifact_namespace.hiaasm',
     'tools/generate_hia_artifact_namespace.py',
     'tools/build_hia_artifact_namespace.py',
@@ -24,6 +29,7 @@ SOURCE_FILES = (
     'tests/test_hia_native_value_graph.py',
     'docs/HIA_NATIVE_VALUE_GRAPH.md',
     'tests/test_hia_nominal_owner_routes.py',
+    'tests/hia_reference_ast.py',
     'examples/hia_bootstrap/call_primitive.hiaasm',
     'tests/test_hia_call_primitive_native.py',
     'docs/HIA_CALL_PRIMITIVE_NATIVE.md',
@@ -565,6 +571,25 @@ SOURCE_FILES = (
     'tests/test_hia_agent_binary64_format_native.py',
     'docs/HIA_AGENT_BINARY64_FORMAT_NATIVE.md',
     'tests/test_hia_agent_artifact_store_native.py',
+    'tools/hia_safe_core_cmovne_child.py',
+    'tools/qualify_hia_safe_core_cmovne.py',
+    'tools/replay_hia_original_select_fragments.py',
+    'tools/qualify_hia_original_select_fragments.py',
+    '.github/workflows/hia-compiler-extension.yml',
+    'docs/HIA_NATIVE_HELPER_WORKER.md',
+    'docs/HIA_COMPILER_EXTENSION_CONTRACT_20261111.md',
+    'tests/fixtures/hia_original_select_v1/bytesum.hiaasm',
+    'tests/test_hia_original_select_extension.py',
+    'tools/qualify_hia_original_select_extension.py',
+    'tools/hia_candidate_preflight.py',
+    'tools/generate_hia_agent_native_contract.py',
+    'tests/test_hia_candidate_preflight.py',
+    'tests/test_hia_candidate_evidence.py',
+    'tests/test_hia_checker_identity.py',
+    'tests/test_hia_checker_identity_agent.py',
+    'tests/test_hia_worker_native_helpers.py',
+    '.github/workflows/hia-candidate-bindings.yml',
+    'docs/HIA_UNIFIED_CANDIDATE_EVIDENCE.md',
 )
 
 
@@ -580,6 +605,42 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'native_slot_ledger': {
+            'source': 'examples/hia_bootstrap/slot_ledger.hiaasm',
+            'selection': 'explicit HEPTA_HIA_SLOT_LEDGER_MANIFEST with admitted namespace and request owners',
+            'integration_status': 'PENDING_COMBINED_SOURCE_AND_COMPLETE_DIRECT_API_DOMAIN',
+            'native_owners': ['slot observation and generation/epoch CAS',
+                              'first baseline and maximum retained generation',
+                              'rollback and reusable active lease admission/release',
+                              'exact effect preclaims, readback and namespace commit certificate'],
+            'durable_state': 'original main.slots, main.versions and main.leases; original database and WAL',
+            'borrowed_request_commit': False,
+            'store_lock_held_across_child': False,
+            'original_reference_bodies_retained': True,
+            'known_direct_api_gap': 'current native field holds at most 192 UTF-8 bytes; original direct API also accepts longer names and additional SQLite-bound values',
+            'arbitrary_direct_input_equivalence_qualified': False,
+            'default_changed': False,
+            'old_host_owners_removed': False,
+            'whole_native_delivery_qualified': False,
+        },
+        'native_worker_helper_bundle': {
+            'schema': 'hepta.hia.native-helpers.v1',
+            'integration_status': 'PENDING_FRESH_COMBINED_SOURCE_QUALIFICATION',
+            'selection': 'explicit administrator CLI bundle and exact bundle SHA256; ambient selectors refuse',
+            'single_image_helpers': 19,
+            'request_owner': 'HEPTA_HIA_WORKER_REQUEST_MANIFEST; existing six-argument NativeWorkerRequest',
+            'checker_native_owners': 26,
+            'checker_identity': 'complete declared source closure and actual immutable mapped image bytes, including both nominal owner families',
+            'terminal_attestation': 'recheck exact bundle, child manifests, source, image bytes and selections',
+            'unknown_effects': 'after service entry, failed terminal identity stays unknown and observes the original operation',
+            'outside_bundle_v1': ['composite types and multi-image composite bundles',
+                                  'nominal, record, enum and task dependency compositions',
+                                  'external publishers, namespace, journal, retirement and budget composition'],
+            'public_program_limits_unchanged': True,
+            'default_changed': False,
+            'old_host_owners_removed': False,
+            'whole_native_delivery_qualified': False,
+        },
         'native_artifact_namespace': {
             'source': 'examples/hia_bootstrap/artifact_namespace.hiaasm',
             'selection': 'explicit HEPTA_HIA_ARTIFACT_NAMESPACE_MANIFEST pinned for the store lifetime',
