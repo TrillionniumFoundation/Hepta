@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ctypes
 from dataclasses import dataclass
+from json import JSONDecodeError
 import math
 import os
 import struct
@@ -35,7 +36,7 @@ TOOLS = ('hia_describe', 'hia_artifact', 'hia_read', 'hia_context', 'hia_inspect
 
 def buffer_sizes(size):
     arena, _keys = arena_sizes(size, 262144, 128)
-    return HEADER_OFFSET + STATE_BYTES, max(arena, 4256) + PRIVATE_BYTES
+    return HEADER_OFFSET + STATE_BYTES, max(arena, 4256 + _keys) + PRIVATE_BYTES
 
 
 def _foreign_tool_types(tool):
@@ -90,7 +91,7 @@ class JournalSession:
         value = self._word(16)
         return TOOLS[value - 1] if 1 <= value <= len(TOOLS) else None
 
-    def _run(self, stage, raw=b'', foreign_types=b''):
+    def _run(self, stage, raw=b'', foreign_types=b'', *, data_profile=False):
         if type(raw) is not bytes or stage != 10 and len(raw) > MAX_BYTES:
             raise ValueError('journal JSON must be bytes within 8 MiB')
         output_size, scratch_size = buffer_sizes(0 if stage == 10 else len(raw))
@@ -109,7 +110,7 @@ class JournalSession:
                        foreign_types, len(foreign_types))
         struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 336, len(foreign_types))
         struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 344,
-                         bool(os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST')))
+                         data_profile)
         struct.pack_into('<2Q', scratch, 0, stage, sys.get_int_max_str_digits())
         code = self.image._entry(source, len(raw), output, output_size, scratch, scratch_size)
         if (ctypes.string_at(source, len(raw) + len(canary)) != raw + canary
@@ -127,6 +128,20 @@ class JournalSession:
             if stage != 10 or not 0 <= start < end <= len(raw) or reason not in reasons:
                 raise RuntimeError('invalid native UTF-8 codec diagnostic')
             raise UnicodeDecodeError('utf-8', raw, start, end, reasons[reason])
+        if code == 0xffffffe4:
+            reason, position, line, column = struct.unpack_from('<4Q', output, HEADER_OFFSET)
+            reasons = {9: 'Expecting value', 10: 'Expecting value', 12: 'Extra data',
+                       14: "Expecting ',' delimiter", 18: "Expecting ',' delimiter",
+                       16: 'Expecting property name enclosed in double quotes',
+                       17: "Expecting ':' delimiter"}
+            if stage != 3 or data_profile or reason not in reasons or position > len(raw):
+                raise RuntimeError('invalid native original JSON syntax diagnostic')
+            # HIA owns grammar, the original character position and line/column.
+            # This is only construction of the prior foreign exception object.
+            error = JSONDecodeError(reasons[reason], raw.decode('utf-8'), position)
+            if (error.lineno, error.colno) != (line, column):
+                raise RuntimeError('native original JSON position disagrees with foreign text')
+            raise error
         if code in (0xffffffe6, 0xffffffe5):
             if stage != 3:
                 raise RuntimeError('invalid native cached JSON structural diagnostic')
@@ -134,7 +149,7 @@ class JournalSession:
                 raise OverflowError('HIA JSON exceeds node/depth budget before decoding')
             raise ValueError('HIA JSON preflight: duplicate decoded object key')
         if code in (0xffffffff, 0xfffffffc, 0xfffffffe, 0xfffffff0, 0xffffffea):
-            if stage == 3 and os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST'):
+            if stage == 3 and data_profile:
                 # The existing explicit arena selector has a distinct public
                 # diagnostic ABI. HIA still makes the parse/budget decision.
                 if code == 0xfffffffe:
@@ -198,17 +213,26 @@ class JournalSession:
     def cached(self, raw):
         if type(raw) not in (bytes, str):
             raise AgentRejected('E_HIA_JSON', 'JSON data must be UTF-8 bytes or text')
+        selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
+        selected_data = os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST')
         payload = raw if type(raw) is bytes else raw.encode('utf-8')
-        if type(raw) is bytes and not os.environ.get('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST'):
+        if type(raw) is bytes and not selected_data:
             # Python's previous byte codec precedes its JSON byte budget. HIA
             # scans the full observed BLOB and supplies the exact error span.
             self._run(10, payload)
         if len(payload) > MAX_BYTES:
             raise AgentRejected('E_HIA_JSON', 'JSON data exceeds 8 MiB')
-        result = self._run(3, payload)
+        if selected_data:
+            from .hia_agent_data_json_native import installed_agent_data_json
+            installed_agent_data_json(selected_data)
+        else:
+            selected_preflight = os.environ.get('HEPTA_HIA_JSON_PREFLIGHT_MANIFEST')
+            if selected_preflight:
+                from .hia_json_preflight_native import installed_preflight
+                installed_preflight(selected_preflight)
+        result = self._run(3, payload, data_profile=bool(selected_data))
         # Preserve decode_data's lazy numeric-object conversion and diagnostic
         # precedence. This bridge does not parse syntax or decide replay.
-        selected = os.environ.get('HEPTA_HIA_AGENT_BINARY64_MANIFEST')
         converter = None
         def floating(text):
             nonlocal converter
@@ -257,11 +281,19 @@ class JournalSession:
             4: ('E_HIA_REJECTED', "unhashable type: 'list'"),
             5: ('E_HIA_REJECTED', "unhashable type: 'dict'"),
             7: ('E_HIA_JOURNAL_NATIVE', 'native journal catalog identity mismatch'),
+            8: ('E_HIA_REJECTED', "unhashable type: 'list'"),
+            9: ('E_HIA_REJECTED', "unhashable type: 'dict'"),
         }
         code = self._word(56)
         if code not in errors:
             raise RuntimeError('invalid native journal refusal')
         name, message = errors[code]
+        if code in (4, 5, 8, 9) and sys.version_info >= (3, 14):
+            # HIA supplies both the top-level key kind and first unhashable
+            # component. Only foreign interpreter exception wording varies.
+            component = {4: 'list', 5: 'dict', 8: 'list', 9: 'dict'}[code]
+            key_kind = 'tuple' if code in (8, 9) else component
+            message = "cannot use '" + key_kind + "' as a dict key (" + message + ')'
         raise AgentRejected(name, message, retry_action='observe_original' if code == 3 else 'correct_input')
 
 

@@ -109,6 +109,10 @@ HIA uses these facts to distinguish an unknown hashable tuple from its first
 nested unhashable list or dictionary. The bridge does not call Python hash or
 perform tool membership. Non-TEXT SQLite columns carry their actual storage
 class as foreign observations; HIA owns the resulting conflict/unknown choice.
+The HIA refusal distinguishes a directly unhashable key from a tuple containing
+the first unhashable component. Foreign exception framing follows the actual
+interpreter's dict-key wording (independently exercised on Python 3.12 and
+3.14); it does not perform another hash or membership test in the bridge.
 
 The raw JSON profile is 8 MiB, 262144 nodes and depth 128. The ordinary
 interpreter's integer conversion limit is supplied as a profile observation.
@@ -122,10 +126,16 @@ larger than 8 MiB without consuming the JSON arena or node budget. This preserve
 the original decode-before-size error order. The bridge constructs a
 UnicodeDecodeError from HIA's start, end and reason; it does not decode or scan
 the input. For cached grammar refusals, the image composes the shared HIA
-preflight reasons with an ordinary-number atom. The bridge maps fixed reason
-IDs to the existing diagnostic strings. The independently selected Agent-data
+preflight reasons with the complete HIA lexical number projection. When that
+projection repairs an invalid original number, HIA also supplies the original
+grammar reason, Unicode character offset, line and column; the bridge only
+constructs the existing foreign JSONDecodeError object. The independently selected Agent-data
 arena retains its distinct generic-error and size-before-codec profile; the
 operator's selector is a raw protocol observation, not a parse decision.
+Explicit Agent-data and preflight images are readmitted at cache consumption,
+after the prior codec/size guards and before grammar, even when the argument
+snapshot already admitted them. Mid-call manifest, image, source or selector
+changes cannot silently bypass the selected component's custody boundary.
 
 Response and cost-details output each have their own 8 MiB channel. Their
 combined size is not subject to a new 8 MiB limit. This avoids narrowing the
@@ -174,8 +184,9 @@ buffer canaries; maximum-size separate output channels; and installed wheel
 source/catalog binding with tools and the retained call owner forbidden.
 
 **tools/qualify_hia_agent_journal_callers.py** separately forces the selector
-through existing Agent service, proof, lease, machine-choice and campaign
-suites. It forbids the retained call owner, records actual native stage
+through existing Agent service, proof, lease, machine-choice, campaign,
+native candidate and both ordinary worker request suites (eight modules).
+It forbids the retained call owner, records actual native stage
 returns, requires all eleven tools to enter the selected driver, and reports
 all loaded, chosen and executed test IDs, failures, skips, expected failures,
 unexpected successes and explicit development exclusions. PASS requires a

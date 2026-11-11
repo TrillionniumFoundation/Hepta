@@ -448,6 +448,9 @@ class JournalNativeTests(unittest.TestCase):
                   '"', '"abc', '"abc\\', '"\\x"', '"\\u"', '"\\u12"',
                   '"\\uQQQQ"', '"\\ud800"', '"\\ud800\\u0041"', '"\\udc00"',
                   '"a\x01b"', '"\\u𐐷', '"\\u𐐷ab"',
+                  '"\\u"123456e7', '"\\uG"12345e7', '"\\u𐐷"12345e7', '"\\u00"12345e7',
+                  '--1.0', '[1.0,--2e0]', '["雪",--1.0]', '[1-1.0]', '{"a":1-1.0}',
+                  '10-1.0', '-1-1e0', '[--1.0,0]', '{"x":--1e0}', '\n[1,\n --2e1]',
                   '{"a":1,"\\u0061":2}', '[' * 129 + '0' + ']' * 129,
                   '{"x":1e400,"x":0}', '{"x":' + '9' * 4301 + ',"x":0}']
         payloads = syntax + [item.encode() for item in syntax[:30]] + [
@@ -496,6 +499,96 @@ class JournalNativeTests(unittest.TestCase):
                 self.assertEqual(str(actual.exception), str(expected))
             else:
                 self.assertEqual(session._run(10, payload).action, 13)
+
+    def test_cached_explicit_selectors_are_readmitted_after_argument_snapshot(self):
+        from hepta import hia_agent_data_json_native as data_module
+        from hepta import hia_json_preflight_native as preflight_module
+        from tools.build_hia_json_preflight import build as build_preflight
+        from tools.build_hia_agent_data_json import build as build_data
+        from tools.qualify_hia_selfhost import compile_stage
+        cold = os.environ.get(COLD)
+        if cold:
+            report = json.loads(Path(cold).read_bytes())
+            nested = json.loads(Path(report['nested_report']).read_bytes())
+            compiler = Path(nested['generations'][-1]['produced_image'])
+        else:
+            # Development composition uses the explicit build's retained raw
+            # request. It never obtains a new-source cold claim from its B3.
+            request = json.loads((self.manifest.parent / 'agent-journal.request.json').read_bytes())
+            compiler = Path(request['image'])
+            self.assertEqual(sha256(compiler.read_bytes()).hexdigest(),
+                             json.loads(self.manifest.read_bytes())['compiler_sha256'])
+        class ObservedDB:
+            def __init__(self, actual, change):
+                self.actual, self.change, self.changed = actual, change, False
+            def __getattr__(self, name):
+                return getattr(self.actual, name)
+            def execute(self, sql, *args):
+                result = self.actual.execute(sql, *args)
+                if sql.startswith('SELECT * FROM requests') and not self.changed:
+                    self.changed = True
+                    self.change()
+                return result
+        for name, module, selector, builder in (
+                ('data', data_module, 'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST', build_data),
+                ('preflight', preflight_module, 'HEPTA_HIA_JSON_PREFLIGHT_MANIFEST', build_preflight)):
+            folder = self.case / ('build-' + name)
+            if cold:
+                original_manifest = builder(folder, compiler, Path(cold))
+            else:
+                folder.mkdir()
+                label = 'agent-data-json' if name == 'data' else 'json-preflight'
+                image, _receipt = compile_stage(folder, label, compiler, module.SOURCE.read_bytes())
+                original_manifest = folder / 'manifest.json'
+                original_manifest.write_text(json.dumps({
+                    'schema': module.SCHEMA if name == 'data' else 'hepta.hia.json-preflight-native.v1',
+                    'source_sha256': sha256(module.SOURCE.read_bytes()).hexdigest(),
+                    'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
+                    'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}))
+            for fault in ('new-selector', 'selector-switch', 'manifest', 'source', 'image'):
+                observations = []
+                for native in (False, True):
+                    case = self.case / ('selector-%s-%s-%s' % (name, fault, native));case.mkdir()
+                    manifest = case / 'manifest.json'
+                    record = json.loads(original_manifest.read_bytes())
+                    image = case / record['image_path']
+                    image.write_bytes((original_manifest.parent / record['image_path']).read_bytes())
+                    manifest.write_bytes(original_manifest.read_bytes())
+                    source = case / 'source.hiaasm';source.write_bytes(module.SOURCE.read_bytes())
+                    service = HIAAgentService(case / 'state')
+                    args = {'request_key': 'selector-drift'}
+                    digest = sha256(independent_wire({'tool': 'hia_artifact', 'arguments': args})).hexdigest()
+                    key = sha256(independent_wire({'tool': 'hia_artifact', 'key': args['request_key']})).hexdigest()
+                    payload = '{"status":"rejected","result":7}'
+                    service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                        (key, digest, 'hia_artifact', 'completed', payload, '1'))
+                    def change():
+                        if fault in ('new-selector', 'selector-switch'):
+                            os.environ[selector] = str(self.case / ('missing-' + name))
+                        elif fault == 'manifest':
+                            manifest.write_text('{}')
+                        elif fault == 'source':
+                            source.write_bytes(source.read_bytes() + b'\n')
+                        else:
+                            image.write_bytes(image.read_bytes() + b'\x00')
+                    service.store.db = ObservedDB(service.store.db, change)
+                    with ExitStack() as stack:
+                        stack.enter_context(patch.object(module, 'SOURCE', source))
+                        stack.enter_context(patch.dict(os.environ,
+                            {selector: '' if fault == 'new-selector' else str(manifest)}))
+                        stack.enter_context(patch('hepta.hia_agent_service.time.monotonic_ns', side_effect=[1, 9]))
+                        stack.enter_context(patch.object(service, '_hia_artifact',
+                            side_effect=AssertionError('selected cached refusal reexecuted effect')))
+                        if native:
+                            stack.enter_context(self.selected())
+                        result = service.call('hia_artifact', args) if native else service._reference_call('hia_artifact', args)
+                    self.assertTrue(service.store.db.changed)
+                    self.assertEqual(result['status'], 'rejected')
+                    state = rows(service)
+                    self.assertEqual(state['requests'][0][4], payload)
+                    observations.append((wire(result), state))
+                    service.close()
+                self.assertEqual(observations[0], observations[1], (name, fault))
 
     def test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state(self):
         args = {'request_key': 'opaque-sqlite-columns'}

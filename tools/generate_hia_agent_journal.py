@@ -112,9 +112,12 @@ def copy_state(o:mutbuf, w:mutbuf) -> u64:
     return 0
 
 def cached_diagnostic(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
+    original_reason = get(w, 32)
+    original_position = get(w, 0)
+    size = mask_numbers(s, o)
     put(w, 48, 262144)
     put(w, 56, 128)
-    status = widen(diagnostic_preflight(s, o, w))
+    status = widen(diagnostic_preflight(o, w, size))
     if status == 1:
         put(o, 16777216, get(w, 32))
         return 4294967272
@@ -122,7 +125,79 @@ def cached_diagnostic(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
         return 4294967270
     if status == 4:
         return 4294967269
+    if status == 0:
+        return original_diagnostic(s, o, original_reason, original_position)
     return 4294967293
+
+def original_diagnostic(s:readbuf, o:mutbuf, reason:u64, end:u64) -> u64:
+    if end > length(s):
+        return 4294967293
+    position = 0
+    line = 1
+    column = 1
+    index = 0
+    while index < end:
+        ch = byte(s, index)
+        if (ch & 192) != 128:
+            position = position + 1
+            column = column + 1
+        if ch == 10:
+            line = line + 1
+            column = 1
+        index = index + 1
+    put(o, 16777216, reason)
+    put(o, 16777224, position)
+    put(o, 16777232, line)
+    put(o, 16777240, column)
+    return 4294967268
+
+def mask_numbers(s:readbuf, o:mutbuf) -> u64:
+    # Reproduce the ordinary-data lexical projection over the entire wire,
+    # including malformed strings whose lookahead reaches a later number.
+    index = 0
+    count = 0
+    while index < length(s):
+        ch = byte(s, index)
+        if ch == 34:
+            store(o, count, ch)
+            count = count + 1
+            index = index + 1
+            inside = True
+            while inside and index < length(s):
+                ch = byte(s, index)
+                store(o, count, ch)
+                count = count + 1
+                index = index + 1
+                if ch == 92 and index < length(s):
+                    store(o, count, byte(s, index))
+                    count = count + 1
+                    index = index + 1
+                else:
+                    if ch == 34:
+                        inside = False
+        else:
+            end = index + 1
+            fractional = False
+            if ch == 45 or (ch >= 48 and ch <= 57):
+                matched = atom(s, index)
+                if matched != 4294967295:
+                    end = matched
+                    scan = index
+                    while scan < end:
+                        unit = byte(s, scan)
+                        if unit == 46 or unit == 69 or unit == 101:
+                            fractional = True
+                        scan = scan + 1
+            if fractional:
+                store(o, count, 48)
+                count = count + 1
+                index = end
+            else:
+                while index < end:
+                    store(o, count, byte(s, index))
+                    count = count + 1
+                    index = index + 1
+    return count
 
 def utf8_failure(o:mutbuf, start:u64, end:u64, reason:u64) -> u64:
     put(o, 16777216, start)
@@ -355,9 +430,9 @@ def array_tool_error(w:mutbuf) -> u64:
         if tag > 3:
             return 4294967293
         if tag == 2:
-            return 4
+            return 8
         if tag == 3:
-            return 5
+            return 9
         index = index + 1
     return 1
 
@@ -511,11 +586,9 @@ def bind_catalog(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
 '''
 
 
-def diagnostic_program():
-    # Keep the shared HIA grammar/reason owner. Extend only its integer atom
-    # with the complete fractional/exponent prefixes consumed by decode_data's
-    # historical token mask; incomplete suffixes remain for the grammar owner
-    # to diagnose at the same structural position.
+def number_prefix_program():
+    # Complete numeric prefixes for the HIA lexical projection. Incomplete
+    # fractional/exponent suffixes stay in the projected input for preflight.
     tree = ast.parse(PREFLIGHT_SOURCE)
     atom = next(node for node in tree.body if node.name == 'atom')
     source = ast.unparse(atom)
@@ -553,7 +626,65 @@ def diagnostic_program():
                     going = False
     return index
 '''
-    tree.body[tree.body.index(atom)] = ast.parse(source).body[0]
+    return source
+
+
+def journal_data_source():
+    # Ordinary JSON uses the longest complete number prefix. The surrounding
+    # grammar diagnoses any incomplete suffix or missing separator. Reuse this
+    # one HIA atom for both original-wire decoding and the lexical projection.
+    tree = ast.parse(data_source())
+    for index, node in enumerate(tree.body):
+        if node.name == 'atom':
+            tree.body[index] = ast.parse(number_prefix_program()).body[0]
+            break
+    else:
+        raise ValueError('ordinary JSON atom disappeared')
+    return ast.unparse(tree)
+
+
+def diagnostic_program():
+    # The projection occupies output; its key table and stack share disjoint
+    # workspace regions. Each mutable owner is passed once. All grammar and
+    # Unicode reason decisions remain the unchanged shared integer preflight.
+    tree = ast.parse(PREFLIGHT_SOURCE)
+    parameters = {node.name: [arg.arg for arg in node.args.args] for node in tree.body}
+    class Projection(ast.NodeTransformer):
+        def visit_FunctionDef(self, node):
+            self.generic_visit(node)
+            if 's' in parameters[node.name]:
+                next(arg for arg in node.args.args if arg.arg == 's').annotation = ast.Name('mutbuf', ast.Load())
+                node.args.args.append(ast.arg(arg='size', annotation=ast.Name('u64', ast.Load())))
+            node.args.args = [arg for arg in node.args.args if arg.arg != 'o']
+            return node
+        def visit_Call(self, node):
+            self.generic_visit(node)
+            if isinstance(node.func, ast.Name):
+                name = node.func.id
+                if name == 'length' and isinstance(node.args[0], ast.Name):
+                    if node.args[0].id == 's':
+                        return ast.Name('size', ast.Load())
+                    if node.args[0].id == 'o':
+                        return ast.parse('length(w) - 4256 - 32768', mode='eval').body
+                if name in ('get', 'put') and isinstance(node.args[0], ast.Name) and node.args[0].id == 'o':
+                    node.args[0] = ast.Name('w', ast.Load())
+                    node.args[1] = ast.BinOp(ast.Constant(4256), ast.Add(), node.args[1])
+                if name in parameters:
+                    if 'o' in parameters[name]:
+                        node.args.pop(parameters[name].index('o'))
+                    if 's' in parameters[name]:
+                        node.args.append(ast.Name('size', ast.Load()))
+            return node
+    tree = ast.fix_missing_locations(Projection().visit(tree))
+    # The scalar buffer accessors are exactly the existing decoder accessors.
+    # Share them rather than consume extra blocks in the compiler's fixed
+    # 1536-block profile; fail authoring if either dependency changes them.
+    accessors = {node.name: ast.dump(node) for node in ast.parse(data_source()).body
+                 if node.name in ('get', 'put')}
+    for node in tree.body:
+        if node.name in accessors and ast.dump(node) != accessors[node.name]:
+            raise ValueError('diagnostic accessor no longer equals decoder accessor')
+    tree.body = [node for node in tree.body if node.name not in accessors]
     return renamed(ast.unparse(tree), 'diagnostic_')
 
 
@@ -567,7 +698,7 @@ def source_program():
         literal('key_prefix', b'{"key":'), literal('key_tool', b',"tool":'),
         literal('cost_prefix', b'{"error":'), literal('null_literal', b'null'),
         literal('cost_suffix', b',"replayed":false}'),
-        restore, canonical_program(), data_source(), diagnostic_program(),
+        restore, canonical_program(), journal_data_source(), diagnostic_program(),
         decimal_program(), format_program(), hash_program(),
     ))
 
