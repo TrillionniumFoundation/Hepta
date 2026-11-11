@@ -243,7 +243,7 @@ def complete_ids(report, expected, count):
     require(all(report.get(k) == [] for k in ANOMALIES), 'unittest anomalies are not empty')
 
 
-def validate_component(owner, report, expected, binding, context):
+def validate_component(owner, report, expected, binding, context, runtime_observations):
     config = OWNERS[owner]
     require(report.get('schema') == 'hepta.hia.store-page-component.v1' and report.get('owner') == owner,
             'component report schema/owner differs')
@@ -258,8 +258,9 @@ def validate_component(owner, report, expected, binding, context):
             'component source/cold inputs changed')
     require(report.get('build_binding') == binding and report.get('cold_inputs') == context['identities'],
             'component actual build binding differs')
-    require(type(report.get('runtime_observations')) is dict and report['runtime_observations'],
-            'retained component runtime observations missing')
+    require(type(runtime_observations) is dict and runtime_observations
+            and report.get('runtime_observations') == runtime_observations,
+            'retained component runtime observations differ from actual readback')
     return True
 
 

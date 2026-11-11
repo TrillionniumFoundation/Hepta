@@ -126,7 +126,15 @@ class StorePageCIGateTests(unittest.TestCase):
         self.assertEqual(len(gates.LEGACY_V8_GATES), 17); self.assertEqual(len(gates.SUCCESSOR_GATES), 21)
         ledger = gates.json_file(ROOT / 'docs/HIA_STORE_PAGE_QUALIFICATION_GATES.json')
         self.assertEqual(ledger['required_gates'], list(gates.SUCCESSOR_GATES))
-        self.assertEqual(ledger['cold_seconds'], 180); self.assertEqual(ledger['full_retained_seconds'], 10800)
+        self.assertEqual(ledger['cold_seconds'], 180)
+        self.assertEqual(ledger['controller_seconds'], 10800)
+        self.assertEqual(ledger['full_retained_seconds'], 5400)
+        suite = next(v for v in tree.body if isinstance(v, ast.FunctionDef) and v.name == 'suite')
+        timeouts = [keyword.value for node in ast.walk(suite) if isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name) and node.func.id == 'run'
+                    for keyword in node.keywords if keyword.arg == 'timeout']
+        self.assertEqual(len(timeouts), 1)
+        self.assertEqual(ast.dump(timeouts[0]), ast.dump(ast.parse('5400 if discover else 1800', mode='eval').body))
         self.assertFalse(ledger['v8_PASS_qualifies_new_owners']); self.assertFalse(ledger['actual_successor_run_completed'])
         clean = dict.fromkeys(gates.SUCCESSOR_GATES, True)
         self.assertTrue(gates.require_successor_gates(clean))
@@ -197,16 +205,18 @@ class StorePageCIGateTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as temporary:
                 folder = Path(temporary) / 'build'; context = synthetic_build(folder, owner)
                 binding = gates.inspect_build(owner, folder, context); report, ids = synthetic_component(owner, context, binding)
-                self.assertTrue(gates.validate_component(owner, report, ids, binding, context))
+                runtime = report['runtime_observations']
+                self.assertTrue(gates.validate_component(owner, report, ids, binding, context, runtime))
                 mutations = [(k, ['fixture anomaly']) for k in gates.ANOMALIES]
                 mutations += [('tests_run', len(ids) - 1), ('tests_loaded', True), ('chosen_test_ids', []),
                     ('executed_test_ids', ids[::-1]), ('loaded_test_ids', [ids[0]] * len(ids)),
                     ('scope', 'DEVELOPMENT_ONLY'), ('unittest_successful', False), ('loader_errors', ['missing']),
                     ('source_after', {}), ('source_preserved', False), ('cold_inputs_preserved', False),
-                    ('build_binding', {}), ('runtime_observations', {})]
+                    ('build_binding', {}), ('runtime_observations', {}),
+                    ('runtime_observations', {'fixture': 'different actual readback'})]
                 for key, value in mutations:
                     with self.subTest(owner=owner, key=key), self.assertRaises(ValueError):
-                        gates.validate_component(owner, dict(report, **{key: value}), ids, binding, context)
+                        gates.validate_component(owner, dict(report, **{key: value}), ids, binding, context, runtime)
 
     def test_original_67_caller_receipts_refuse_omissions_legacy_entries_and_missing_native_evidence(self):
         for owner in gates.OWNERS:

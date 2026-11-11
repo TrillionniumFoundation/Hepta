@@ -67,12 +67,13 @@ def main():
                                 for t, detail in ([item] if isinstance(item, tuple) else [(item, None)])]
             binding = gates.inspect_build(args.owner, args.evidence_dir / 'fixture' / config['fixture_build'], context)
             report['build_binding'] = binding
-            report['runtime_observations'] = gates.inspect_component_observations(args.owner, args.evidence_dir / 'fixture', binding, context)
+            runtime_observations = gates.inspect_component_observations(args.owner, args.evidence_dir / 'fixture', binding, context)
+            report['runtime_observations'] = runtime_observations
             report['source_after'] = current_sources()
             report['source_preserved'] = report['source_after'] == report['source_before']
             report['cold_inputs_preserved'] = gates.cold_inputs(args.cold_report) == context
             report['status'] = 'PASS'
-            gates.validate_component(args.owner, report, loaded, binding, context)
+            gates.validate_component(args.owner, report, loaded, binding, context, runtime_observations)
         else:
             loader = unittest.TestLoader()
             suite = loader.loadTestsFromNames(gates.CALLER_MODULES)

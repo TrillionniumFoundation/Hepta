@@ -579,7 +579,7 @@ def support_contract(root=ROOT):
             'current_source_cold_required_before_any_new_gate': True,
             'old_v8_PASS_closes_new_gates': False,
             'actual_successor_qualification_completed': False,
-            'cold_seconds': 180, 'full_retained_seconds': 10800,
+            'cold_seconds': 180, 'controller_seconds': 10800, 'full_retained_seconds': 5400,
         },
         'ordinary_artifact_read': {
             'source': 'examples/hia_bootstrap/artifact_page.hiaasm',
