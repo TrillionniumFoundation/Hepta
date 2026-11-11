@@ -135,7 +135,12 @@ operator's selector is a raw protocol observation, not a parse decision.
 Explicit Agent-data and preflight images are readmitted at cache consumption,
 after the prior codec/size guards and before grammar, even when the argument
 snapshot already admitted them. Mid-call manifest, image, source or selector
-changes cannot silently bypass the selected component's custody boundary.
+changes retain the selected loader's custody rules. An unchanged manifest key
+can retain its already admitted immutable mapping when the backing image file
+changes; this is the previous loader behavior, and cached replay still costs
+nothing. A changed manifest image reference must undergo fresh hash admission.
+The controls distinguish that replay from an actual admission rejection and
+check both response contents and whether a cost row was written.
 
 Response and cost-details output each have their own 8 MiB channel. Their
 combined size is not subject to a new 8 MiB limit. This avoids narrowing the

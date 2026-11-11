@@ -545,7 +545,7 @@ class JournalNativeTests(unittest.TestCase):
                     'source_sha256': sha256(module.SOURCE.read_bytes()).hexdigest(),
                     'image_path': image.name, 'image_sha256': sha256(image.read_bytes()).hexdigest(),
                     'compiler_sha256': sha256(compiler.read_bytes()).hexdigest()}))
-            for fault in ('new-selector', 'selector-switch', 'manifest', 'source', 'image'):
+            for fault in ('new-selector', 'selector-switch', 'manifest', 'source', 'warm-image', 'new-image'):
                 observations = []
                 for native in (False, True):
                     case = self.case / ('selector-%s-%s-%s' % (name, fault, native));case.mkdir()
@@ -569,8 +569,13 @@ class JournalNativeTests(unittest.TestCase):
                             manifest.write_text('{}')
                         elif fault == 'source':
                             source.write_bytes(source.read_bytes() + b'\n')
-                        else:
+                        elif fault == 'warm-image':
                             image.write_bytes(image.read_bytes() + b'\x00')
+                        else:
+                            damaged = case / 'new-damaged-image.bin'
+                            damaged.write_bytes(image.read_bytes() + b'\x00')
+                            changed = dict(record, image_path=damaged.name)
+                            manifest.write_text(json.dumps(changed))
                     service.store.db = ObservedDB(service.store.db, change)
                     with ExitStack() as stack:
                         stack.enter_context(patch.object(module, 'SOURCE', source))
@@ -583,9 +588,17 @@ class JournalNativeTests(unittest.TestCase):
                             stack.enter_context(self.selected())
                         result = service.call('hia_artifact', args) if native else service._reference_call('hia_artifact', args)
                     self.assertTrue(service.store.db.changed)
-                    self.assertEqual(result['status'], 'rejected')
                     state = rows(service)
                     self.assertEqual(state['requests'][0][4], payload)
+                    if fault == 'warm-image':
+                        # Both loaders retain the previously admitted immutable
+                        # mapping when the manifest key is unchanged.
+                        self.assertEqual(result, {'status': 'rejected', 'result': 7})
+                        self.assertEqual(state['costs'], [])
+                    else:
+                        self.assertEqual(result['status'], 'rejected')
+                        self.assertIn('error', result)
+                        self.assertEqual(len(state['costs']), 1)
                     observations.append((wire(result), state))
                     service.close()
                 self.assertEqual(observations[0], observations[1], (name, fault))
