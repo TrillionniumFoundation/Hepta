@@ -28,6 +28,7 @@ COLD_REPORT_FAMILIES = (
     'EXECUTION_BUDGET', 'REQUEST_JOURNAL', 'RETIREMENT_STATE',
     'WORKER_REQUEST', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
     'ARTIFACT_NAMESPACE', 'SLOT_LEDGER', 'AGENT_IDENTITY', 'PROGRAM_EXECUTION',
+    'STATIC_BUDGET',
 )
 
 
@@ -153,6 +154,9 @@ def run(name, args, *, timeout=1800):
         ('HEPTA_HIA_SLOT_LEDGER_EVIDENCE', 'slot-ledger'),
         ('HEPTA_HIA_PROGRAM_EXECUTION_EVIDENCE', 'program-execution'),
         ('HEPTA_HIA_PROGRAM_EXECUTION_SCALARS_OBSERVATIONS', 'program-execution-scalars'),
+        ('HEPTA_HIA_STATIC_BUDGET_EVIDENCE', 'static-budget'),
+        ('HEPTA_HIA_BIGINT_EVIDENCE', 'static-bigints'),
+        ('HEPTA_HIA_HEAP_GRAPHS_EVIDENCE', 'static-graphs'),
     ):
         step_environment[selector] = str(out / (name + '-' + suffix))
     owner = run_workflow_step(result['command'], cwd=root, env=step_environment,
@@ -298,6 +302,11 @@ if cold_ok:
     ok = run('language', ['tests/test_hia_selfhost_language_coverage.py', '--output', str(out / 'language.json')]) and ok
     ok = suite('native-applications', named[1]) and ok
     groups = {
+        'static-budget': ['tests.test_hia_static_budget_native',
+                          'tests.test_hia_static_budget_integration',
+                          'tests.test_hia_native_bigints',
+                          'tests.test_hia_heap_graphs_native',
+                          'tests.test_hia_native_binary_graph'],
         'program-execution': ['tests.test_hia_program_execution_native',
                               'tests.test_hia_program_execution_scalars',
                               'tests.test_hia_program_execution_integration'],

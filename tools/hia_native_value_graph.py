@@ -75,3 +75,26 @@ def graph_external_concat(o:mutbuf, w:mutbuf, identifiers:u64, count:u64) -> u64
         i = i + 1
     return 0
 '''
+
+# Opt-in encodings for owners that preserve a later foreign serialization
+# boundary. Existing BODY/EXTERNAL_BODY remain byte-for-byte unchanged.
+# BINARY_BODY uses the shared big_* arithmetic representation; append_byte is
+# the caller's ordinary checked byte writer at S+24.
+BINARY_BODY = r'''
+def graph_binary_integer(o:mutbuf, w:mutbuf, value:u64) -> u64:
+    count = big_byte_length(w, value)
+    graph_word(o, w, 12)
+    graph_word(o, w, count + 1)
+    append_byte(o, w, get(w, value))
+    index = 0
+    while index < count:
+        append_byte(o, w, big_byte(w, value, index))
+        index = index + 1
+    return 0
+
+def graph_object(o:mutbuf, w:mutbuf, identifier:u64) -> u64:
+    graph_word(o, w, 13)
+    graph_word(o, w, 8)
+    graph_word(o, w, identifier)
+    return 0
+'''

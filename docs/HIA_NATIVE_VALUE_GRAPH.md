@@ -54,7 +54,7 @@ cannot conceal excessive depth.
 
 ## Bounds
 
-Every byte arena retains the 8,388,608-node and depth-128 representation limits.
+By default each byte arena retains the 8,388,608-node and depth-128 representation limits.
 Newly materialized logical elements have a per-decode bound of 134,217,728.
 Ordinary output containers, source-node decoding, source-array concatenation,
 outer tuple materialization and external-array concatenation are charged.
@@ -83,3 +83,39 @@ Existing original-reference/concatenation tests, including 8,193 repeats of a
 512-element array, continue to pass. Existing checked call/primitive source is
 unchanged after adding the opt-in writers. These are representation controls;
 whole-profile cold qualification belongs to the profile using the new source.
+
+## Explicit binary integers and opaque foreign handles
+
+The static structural-budget owner opts into two additional tags. They are
+rejected by the unchanged default decoder. With `binary_integers=True`, tag 12
+contains a sign byte and a minimal little-endian magnitude. Zero has an empty
+magnitude and a zero sign. This represents arbitrary Python integers without
+triggering a decimal digit conversion policy before the original serialization
+point. The HIA signed-limb implementation computes those integers; the bridge
+only boxes the selected binary representation.
+
+With an explicit `NativeObjectPool`, tag 13 references the exact held Python
+object. This pool does not inspect, clone, compare or serialize the object.
+HIA requests the original foreign operation at the original decision point.
+The output binding protects HIA-created graph edges and scalars, while a tag-13
+object keeps its opaque identity and its owner's foreign custody contract.
+This does not turn opaque objects into admitted JSON or hide a hosted policy
+plan inside the packet.
+
+`NativeObjectPool.release(id)` releases only that handle's reference. A second
+handle holding the same object remains live. Released IDs are never reused,
+and a later `get` or reference to a released ID is rejected before foreign
+equality can run. The structural owner releases completed temporary sets,
+iterators and rows through issued HIA requests; an exception traceback retains
+the still-live foreign objects while native arenas and permissions are revoked.
+
+An owner may also explicitly select `extent_bounds=True`. In this mode a
+packet's node count is bounded by its actual byte length divided by the
+16-byte header size, and immediate children by the actual enclosing payload.
+There is no additional fixed node or logical-expansion quota. Header, extent,
+parent count, reference, canonical integer and depth checks still apply.
+Depth 128 remains the private representation bound. Each selecting owner must
+justify that depth from its admitted grammar and generated result shape; it
+cannot assume the public object normalization gate always bounds the final
+canonical graph. The static owner documents that argument and an actual
+accepted 262145-result Core witness in `HIA_STATIC_BUDGET_NATIVE.md`.

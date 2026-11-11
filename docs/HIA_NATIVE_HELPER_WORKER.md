@@ -112,6 +112,16 @@ current compiler, current whole-source cold gate or complete worker.
 
 ## v68 integration status
 
+The later pending v69 registration adds the full Core execution and complete
+structural-budget images. The bundle inventory now has 21 single-image helper
+kinds; the checker binds 28 native owner selections and the static/heap Python
+continuation dependencies. Installed static controls select both static policy
+and execution images from one exact bundle, forbid authoring imports and all
+retained structural entry points, and compare complete reports to independently
+obtained originals. The heap and final serialization continuations remain
+explicit foreign dependencies. This registry extension grants no default
+migration or matching-source cold qualification.
+
 The integration starts from the retained v67 owner tree and the real candidate
 merge at `8dae9d0b74f8520d1522548e0a04c0c077b3f074`, whose common ancestor is
 `5831f52fada45e076f8f68f198a15c0585e6104f`. All retained owners and native resources

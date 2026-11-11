@@ -183,13 +183,18 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
                      'hia-language.evidence/', 'hia-nominal-fixture/',
-                     'hia-module-projects/', 'hia-program-execution/', 'hia-program-execution-scalars/']:
+                     'hia-module-projects/', 'hia-program-execution/', 'hia-program-execution-scalars/',
+                     'hia-static-budget/', 'hia-static-bigints/', 'hia-static-graphs/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
 
     def test_worker_checker_and_ledger_groups_use_matching_cold_and_reject_failed_outcomes(self):
         groups = (
+            ('Native structural budgets arbitrary precision and installed composition', 'PYSTATIC', {
+                'tests.test_hia_static_budget_native', 'tests.test_hia_static_budget_integration',
+                'tests.test_hia_native_bigints', 'tests.test_hia_heap_graphs_native',
+                'tests.test_hia_native_binary_graph'}, ('STATIC_BUDGET',)),
             ('Native full Core execution and installed worker bindings', 'PYEXECUTION', {
                 'tests.test_hia_program_execution_native', 'tests.test_hia_program_execution_scalars',
                 'tests.test_hia_program_execution_integration'}, ('PROGRAM_EXECUTION',)),

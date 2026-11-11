@@ -35,6 +35,7 @@ CORE_SOURCE_FILES = (
     "hia_enum_operations_native.py", "hia_enum_match_native.py",
     "hia_task_operations_native.py", "hia_task_helper_cache_native.py",
     "hia_program_execution_native.py",
+    "hia_static_budget.py", "hia_static_budget_native.py", "hia_heap_bound.py",
 )
 
 # Exact verifier and checked-replay selectors. Finite-context checks also execute
@@ -42,6 +43,7 @@ CORE_SOURCE_FILES = (
 # New semantic delegations must extend this inventory before proof qualification.
 NATIVE_OWNERS = {
     "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "installed_program_execution"),
+    "HEPTA_HIA_STATIC_BUDGET_MANIFEST": ("hia_static_budget_native", "installed_static_budget"),
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST": ("hia_json_preflight_native", "installed_preflight"),
     "HEPTA_HIA_JSON_DECODE_MANIFEST": ("hia_json_decode_native", "installed_decoder"),
     "HEPTA_HIA_JSON_CANONICAL_MANIFEST": ("hia_json_canonical_native", "installed_canonicalizer"),

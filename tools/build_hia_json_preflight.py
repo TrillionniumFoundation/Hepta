@@ -64,6 +64,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     from tools.hia_selfhost_contract import PROFILE
     candidates = {'worker-request': ('worker_request', 'worker-request'),
                   'program-execution': ('program_execution', 'program-execution'),
+                  'static-budget': ('static_budget', 'static-budget'),
                   'enum-match': ('enum_match', 'enum-match'),
                   'enum-operations': ('enum_operations', 'enum-operations'),
                   'record-operations': ('record_operations', 'record-operations'),

@@ -88,7 +88,48 @@ class NativeValuePool:
         return self._values[identifier]
 
 
-def _index(raw, *, references=False):
+_RELEASED_OBJECT = object()
+
+
+class NativeObjectPool:
+    """Explicit opaque custody for native-requested foreign operations.
+
+    Unlike NativeValuePool, insertion does not decide JSON admissibility or
+    walk an object's contents. A later native-selected foreign operation may
+    itself reject that object. References preserve exact identity; the owner
+    must keep issued objects stable until their permission has been consumed.
+    This opt-in pool is representation-only and carries no implicit dispatch.
+    A native-requested release revokes one handle without reusing its ID;
+    live aliases remain independently owned and no finalizer is suppressed.
+    """
+    def __init__(self):
+        self._values = []
+
+    def add(self, value):
+        identifier = len(self._values)
+        self._values.append(value)
+        return identifier
+
+    def get(self, identifier):
+        if type(identifier) is not int or not 0 <= identifier < len(self._values):
+            raise ValueError('native object reference is outside the held pool')
+        value = self._values[identifier]
+        if value is _RELEASED_OBJECT:
+            raise ValueError('native object reference has been released')
+        return value
+
+    def release(self, identifier):
+        # Drop only the requested owned handle at its native-selected point.
+        # IDs are never reused; a later stale reference must not become None.
+        self.get(identifier)
+        self._values[identifier] = _RELEASED_OBJECT
+
+    def clear(self):
+        self._values.clear()
+
+
+def _index(raw, *, references=False, binary_integers=False, opaque_objects=False,
+           extent_bounds=False):
     if type(raw) is not bytes:
         raise ValueError('native object arena must contain exact bytes')
     nodes = {}
@@ -104,32 +145,40 @@ def _index(raw, *, references=False):
         if at > stop or stop - at < 16:
             raise ValueError('native object node header is truncated')
         kind, size = struct.unpack_from('<2Q', raw, at)
-        if kind > (11 if references else 7) or size > stop - at - 16:
+        allowed = (kind <= (11 if references else 7)
+                   or binary_integers and kind == 12
+                   or references and opaque_objects and kind == 13)
+        if not allowed or size > stop - at - 16:
             raise ValueError('native object node extent/kind differs')
         end = at + 16 + size
         frames[-1][1] -= 1
         nodes[at] = (kind, size, end)
-        if len(nodes) > MAX_NODES:
+        if len(nodes) > (len(raw) // 16 if extent_bounds else MAX_NODES):
             raise ValueError('native object node budget exceeded')
         if kind in (5, 6):
             if size < 8 or len(frames) >= MAX_DEPTH + 1:
                 raise ValueError('native object container/depth differs')
             count, = struct.unpack_from('<Q', raw, at + 16)
             children = count * (2 if kind == 6 else 1)
-            if children > MAX_NODES:
+            if children > ((size - 8) // 16 if extent_bounds else MAX_NODES):
                 raise ValueError('native object child budget exceeded')
             frames.append([end, children])
             at += 24
         else:
             if ((kind in (0, 7) and size) or
                     (kind == 1 and (size != 1 or raw[at + 16] > 1)) or
-                    (kind in (8, 10) and size != 8) or
+                    (kind in (8, 10, 13) and size != 8) or
                     (kind in (9, 11) and (size < 8 or size % 8))):
                 raise ValueError('native object scalar/reference extent differs')
             if kind in (9, 11):
                 count, = struct.unpack_from('<Q', raw, at + 16)
-                if count > MAX_NODES or size != 8 + count * 8:
+                if (not extent_bounds and count > MAX_NODES) or size != 8 + count * 8:
                     raise ValueError('native object concatenation extent differs')
+            if kind == 12:
+                if (size < 1 or raw[at + 16] > 1
+                        or size == 1 and raw[at + 16] != 0
+                        or size > 1 and raw[end - 1] == 0):
+                    raise ValueError('native binary integer is not canonical')
             at = end
     if at != len(raw):
         raise ValueError('native object arena has trailing bytes')
@@ -192,15 +241,19 @@ class NativeGraphBinding:
                         index += 1
 
 
-def decode_bound_native_graph(encoded, original, external=()):
+def decode_bound_native_graph(encoded, original, external=(), *, binary_integers=False,
+                               objects=None, extent_bounds=False):
     """Decode a value and retain its exact issued structural binding."""
     binding = NativeGraphBinding()
-    value = decode_native_graph(encoded, original, external, _binding=binding)
+    value = decode_native_graph(encoded, original, external, _binding=binding,
+                                binary_integers=binary_integers, objects=objects,
+                                extent_bounds=extent_bounds)
     binding._seal(value)
     return value, binding
 
 
-def decode_native_graph(encoded, original, external=(), *, _binding=None):
+def decode_native_graph(encoded, original, external=(), *, _binding=None,
+                        binary_integers=False, objects=None, extent_bounds=False):
     """Decode a complete native-produced object; original bytes are immutable.
 
     Tag 8 contains one u64 original-node offset. Tag 9 contains a u64 count
@@ -219,9 +272,29 @@ def decode_native_graph(encoded, original, external=(), *, _binding=None):
     are not copied or charged again against this invocation's expansion quota.
     Newly materialized arrays are charged, including source concatenations.
     This is a per-decode bound, not an aggregate bound on earlier owners.
+
+    Two explicit extensions preserve foreign-operation timing. With
+    binary_integers=True, tag 12 is a sign byte (0/1) and a minimal
+    little-endian magnitude; zero has only the zero sign byte. Materialization
+    uses int.from_bytes and does not apply Python's decimal conversion limit.
+    With an exact NativeObjectPool, output tag 13 holds one u64 opaque object
+    ID. Its contents are not traversed or copied, including non-JSON objects.
+    Native-produced surrounding containers retain ordinary structural binding.
+    Neither extension is enabled for existing callers by default.
+
+    extent_bounds=True derives node and immediate-child bounds from each
+    actual byte extent and removes the historical expanded-element quota.
+    Every materialized element is still explicitly selected by the native
+    graph and subject to real Python allocation. The 128-level representation
+    depth remains unchanged: an opting-in owner must establish that its
+    verified-input and generated-output grammar fits that bound. Existing
+    callers retain all previous quotas by default.
     """
-    source_nodes = _index(original)
-    output_nodes = _index(encoded, references=True)
+    if objects is not None and type(objects) is not NativeObjectPool:
+        raise ValueError('native opaque object pool must have exact custody type')
+    source_nodes = _index(original, binary_integers=binary_integers, extent_bounds=extent_bounds)
+    output_nodes = _index(encoded, references=True, binary_integers=binary_integers,
+                          opaque_objects=objects is not None, extent_bounds=extent_bounds)
     if type(external) not in (tuple, list, NativeValuePool):
         raise ValueError('native external pool must be a held exact sequence')
     cache = {}
@@ -230,7 +303,7 @@ def decode_native_graph(encoded, original, external=(), *, _binding=None):
 
     def charge(amount):
         nonlocal expanded
-        if amount > MAX_EXPANDED_ELEMENTS - expanded:
+        if not extent_bounds and amount > MAX_EXPANDED_ELEMENTS - expanded:
             raise ValueError('native object expanded-element budget exceeded')
         expanded += amount
 
@@ -274,6 +347,11 @@ def decode_native_graph(encoded, original, external=(), *, _binding=None):
             return value
         if kind == 4:
             return payload.decode('utf-8', 'surrogatepass')
+        if kind == 12:
+            value = int.from_bytes(payload[1:], 'little')
+            return -value if payload[0] else value
+        if kind == 13:
+            return objects.get(struct.unpack('<Q', payload)[0])
         if kind == 8:
             return source(struct.unpack('<Q', payload)[0])
         if kind == 9:

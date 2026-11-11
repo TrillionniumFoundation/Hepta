@@ -35,6 +35,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/artifact_namespace.hiaasm',
     'examples/hia_bootstrap/slot_ledger.hiaasm',
     'examples/hia_bootstrap/program_execution.hiaasm',
+    'examples/hia_bootstrap/static_budget.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
