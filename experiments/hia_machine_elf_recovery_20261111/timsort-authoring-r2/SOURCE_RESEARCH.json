@@ -1,0 +1,24 @@
+{
+  "schema": "hepta.hia.machine-elf-timsort-source-research.v1",
+  "status": "READ_ONLY_SOURCE_RESEARCH_NOT_RUNTIME_VALIDATION",
+  "sources": [
+    {
+      "url": "https://github.com/python/cpython/blob/v3.11.14/Python/errors.c",
+      "bytes": 51337,
+      "sha256": "e4fc46f9aad5c793aa3bbfc8138ca8f7785c999265af9136deb7988cfbb33561",
+      "artifact": "upstream/cpython-v3.11.14-Python-errors.c"
+    },
+    {
+      "url": "https://github.com/python/cpython/blob/v3.14.4/Python/errors.c",
+      "bytes": 57848,
+      "sha256": "5ef37b5d6fdcd7a6c55002eba9fe31ed70a5a7a76fa606a468ba3c4894384af0",
+      "artifact": "upstream/cpython-v3.14.4-Python-errors.c"
+    }
+  ],
+  "observations": [
+    "The official PyErr_GetHandledException returns a new reference; PyErr_SetHandledException retains a new reference and does not steal the supplied reference.",
+    "This source fact is used by the unexecuted mechanical observer to plan temporary-object cleanup under the preexisting handled exception. Its actual callback/finalizer/context behavior still requires execution.",
+    "Official listobject.c versions, CPython license, and the fixed tp_richcompare slot research are retained by the prior 8c2fb80b20d8be55bc945be110db21b09252f9bd checkpoint.",
+    "The HIA control algorithm uses version-specific run detection for CPython 3.11/3.12 versus 3.13/3.14. Foreign comparison trajectories and actual target runtime binding remain untested."
+  ]
+}

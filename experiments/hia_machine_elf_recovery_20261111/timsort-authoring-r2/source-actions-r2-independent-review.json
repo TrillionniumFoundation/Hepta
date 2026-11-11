@@ -1,0 +1,53 @@
+{
+  "schema": "hepta.hia.native-stack-source-actions-independent-review.v1",
+  "status": "STATIC_DELTA_CLEAR_NOT_PARSED_OR_EXECUTED",
+  "reviewed_at": "2026-11-11T22:00:17.876Z",
+  "reviewer": "native_install_owner",
+  "original_templates_commit": "c8d158507b464921867aad1b3995434fd1a8cd36",
+  "revised_templates_commit": "2be761fe33e3d25ab77255bbe9201d549584d016",
+  "revised_templates_tree": "aefaa7db886c5b39f6007d055d7fc061cfd6f290",
+  "inputs": {
+    "author_driver.py.template": {
+      "bytes": 21043,
+      "sha256": "0ea15a0c2295a83ff3f31c049168fcd493bf00e7a50be6bdf0bfc84c9a8d0fe7"
+    },
+    "publisher.py.template": {
+      "bytes": 37413,
+      "sha256": "cec1389b80bbbc1bf38e53a5119aaca5c871ac80295ac17c64b8e33f02b0dafc"
+    },
+    "workflow.yml.template": {
+      "bytes": 7586,
+      "sha256": "a89c7e297a90249d726ea4b2c0fed81dd0410ab7cd13d1be36f5e9ccaaeb3b42"
+    },
+    "REVIEW-RESOLUTION.json": {
+      "bytes": 2217,
+      "sha256": "58abefc7e8669faa0c46d0f40e7ee029da0b2eb210f15636fb936c9d5bbad52f"
+    }
+  },
+  "initial_findings": [
+    {
+      "id": "hold_product_slots",
+      "kind": "static_control_flow",
+      "description": "A normal False from author_success previously left the candidate map populated; only an exception cleared it."
+    },
+    {
+      "id": "failure_capture_before_admission",
+      "kind": "static_control_flow",
+      "description": "Strict filesystem row admission previously could stop on a mode/link/special-member refusal before retaining subsequent changed regular bytes."
+    }
+  ],
+  "verified_resolutions": [
+    "Every non-pass clears derived product slots and candidate admission; the observed candidate filesystem tree and original evidence remain separately reported.",
+    "Source capture now records each changed regular file before mode/link admission; symlink and special members receive typed lstat/readlink metadata and are not opened or followed.",
+    "Individual capture refusals/errors are collected before a complete capture inventory is written; subsequent product admission requires no capture error or refusal.",
+    "Publisher independently requires a complete accepted capture, exact regenerated contract source_identity.files equal to all bound source pins, and equal expected profiles in contract and coverage.",
+    "The frozen read-only authoring process remains separate from the fixed publisher; the publication token is confined to the final publisher step.",
+    "The workflow still uses create-event/attempt-one/fixed trigger, exact pinned control/source checkouts, original 180-second owner/3-second cleanup/120-second command budgets, 59 generators, and 11 synthetic accounting controls."
+  ],
+  "limitations": [
+    "Template placeholders, final source/profile/path counts, policy and control SHA are not yet frozen.",
+    "No AST parser, workflow, source generator, native image or product test was executed.",
+    "Capture errors remain explicit HOLD; the review does not claim recoverability of bytes that could not be read.",
+    "This review does not establish complete HIA-native delivery or qualify any earlier or future source snapshot."
+  ]
+}
