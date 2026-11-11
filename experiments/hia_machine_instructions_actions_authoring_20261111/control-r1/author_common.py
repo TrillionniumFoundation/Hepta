@@ -1,0 +1,187 @@
+"""Mechanical source/evidence checks for the isolated authoring controller."""
+from __future__ import annotations
+
+from hashlib import sha1, sha256
+import json
+import os
+from pathlib import Path, PurePosixPath
+import stat
+import subprocess
+
+BASE_COMMIT = "0d653c0987e941c7f6afb4db67e23fccf854f4e0"
+BASE_TREE = "821414603284a005f0957a1f0ac93c48c3c51e5a"
+PROTOTYPE_COMMIT = "93cb486293799da333f80f65351ba71d20f45547"
+POLICY_SHA256 = "4e4d69d0036479155ba13c304c12458994d42914b7422a28076e8f601653d355"
+OWNER_SHA256 = "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2"
+GOOD_AUTHOR_STATUS = "SOURCE_GENERATED_WITHIN_ORIGINAL_LIMITS_NOT_NATIVE_QUALIFIED"
+
+def require(value, message):
+    if not value:
+        raise RuntimeError(message)
+
+def digest(raw):
+    return sha256(raw).hexdigest()
+
+def blob(raw):
+    return sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+
+def wire(value):
+    return (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+def read_regular(path, *, single_link=True):
+    path = Path(path)
+    before = path.lstat()
+    require(stat.S_ISREG(before.st_mode) and (not single_link or before.st_nlink == 1),
+            "not an admitted regular file: " + str(path))
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd, "rb") as stream:
+        opened = os.fstat(stream.fileno())
+        require(identity(before) == identity(opened), "file changed while opening: " + str(path))
+        raw = stream.read()
+        after = os.fstat(stream.fileno())
+    require(identity(before) == identity(after) == identity(path.lstat()),
+            "file changed while reading: " + str(path))
+    return raw, before
+
+def relative_name(value):
+    require(type(value) is str and value and "\0" not in value and "\\" not in value, "invalid relative name")
+    item = PurePosixPath(value)
+    require(not item.is_absolute() and all(p not in {"", ".", ".."} for p in item.parts)
+            and item.as_posix() == value, "noncanonical relative name")
+    return item
+
+def below(root, value):
+    item = relative_name(value)
+    current = Path(root)
+    require(current.is_dir() and not current.is_symlink(), "unsafe root")
+    for part in item.parts[:-1]:
+        current = current / part
+        if current.exists():
+            require(current.is_dir() and not current.is_symlink(), "unsafe parent")
+        else:
+            current.mkdir(mode=0o700)
+    return current / item.name
+
+def create(path, raw, mode=0o600):
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+def save_new(path, value):
+    create(path, wire(value))
+
+def atomic_report(path, value):
+    path = Path(path)
+    temporary = path.with_name(path.name + ".next")
+    create(temporary, wire(value))
+    os.replace(temporary, path)
+    fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+def row(path, name, mode="100644"):
+    raw, info = read_regular(path)
+    require(mode == "100644" and not info.st_mode & 0o111, "unexpected source mode: " + name)
+    return {"path": name, "mode": mode, "git_blob": blob(raw), "bytes": len(raw),
+            "sha256": digest(raw), "posix_mode": stat.S_IMODE(info.st_mode)}
+
+def git(source, *arguments):
+    return subprocess.check_output(["/usr/bin/git", "-C", str(source), *arguments],
+                                   stdin=subprocess.DEVNULL)
+
+def base_entries(source):
+    require(git(source, "rev-parse", "HEAD").decode().strip() == BASE_COMMIT, "checkout HEAD differs")
+    require(git(source, "rev-parse", "HEAD^{tree}").decode().strip() == BASE_TREE, "checkout tree differs")
+    raw = git(source, "ls-tree", "-rz", "--full-tree", BASE_TREE)
+    entries = []
+    for value in raw.split(b"\0"):
+        if not value:
+            continue
+        header, name = value.split(b"\t", 1)
+        mode, kind, sha = header.decode().split()
+        name = name.decode("utf-8")
+        relative_name(name)
+        require(kind == "blob" and mode == "100644", "unsupported original source leaf")
+        entries.append({"path": name, "mode": mode, "git_blob": sha})
+    require(len(entries) == 3933 and len({r["path"] for r in entries}) == 3933, "base leaf count differs")
+    return sorted(entries, key=lambda r: r["path"])
+
+def index_snapshot(source):
+    raw = git(source, "ls-files", "--stage", "-z")
+    rows = []
+    for entry in raw.split(b"\0"):
+        if not entry:
+            continue
+        header, name = entry.split(b"\t", 1)
+        mode, expected, stage = header.decode().split()
+        name = name.decode("utf-8")
+        relative_name(name)
+        require(stage == "0", "unmerged index")
+        observed = row(Path(source) / name, name, mode)
+        require(observed["git_blob"] == expected, "source bytes differ from real index: " + name)
+        rows.append(observed)
+    return sorted(rows, key=lambda r: r["path"])
+
+def filesystem_snapshot(source):
+    rows = []
+    source = Path(source)
+    for directory, dirs, files in os.walk(source, followlinks=False):
+        here = Path(directory)
+        if here == source and ".git" in dirs:
+            dirs.remove(".git")
+        for name in dirs:
+            require(not (here / name).is_symlink(), "source directory symlink")
+        for name in files:
+            path = here / name
+            relative = path.relative_to(source).as_posix()
+            require(relative != ".git", "git worktree indirection is outside this checkout")
+            relative_name(relative)
+            rows.append(row(path, relative))
+    rows.sort(key=lambda r: r["path"])
+    return rows
+
+def check_unchanged_outside(base, after, allowed):
+    original = {r["path"]: r for r in base}
+    observed = {r["path"]: r for r in after}
+    require(len(observed) == len(after), "duplicate source names")
+    for name in set(original) | set(observed):
+        if name in allowed:
+            continue
+        old, new = original.get(name), observed.get(name)
+        require(old is not None and new is not None
+                and old["mode"] == new["mode"] and old["git_blob"] == new["git_blob"],
+                "unapproved source change: " + name)
+
+def natural_owner(result):
+    cleanup = result.get("cleanup", {})
+    events = result.get("events", [])
+    kinds = {"qualification_started", "owned_child_observed", "qualification_exit_observed", "owned_child_reaped"}
+    return (result.get("status") == "OWNED_PROCESS_COMPLETED" and result.get("returncode") == 0
+            and result.get("exit_observed_before_deadline") is True and result.get("timed_out") is False
+            and result.get("subreaper_enabled") is True
+            and not result.get("interrupted_signals") and not result.get("event_overflow")
+            and not result.get("owner_error") and isinstance(events, list) and bool(events)
+            and all(e.get("kind") in kinds for e in events)
+            and cleanup.get("attempted") is True and cleanup.get("complete") is True
+            and cleanup.get("observed_echild") is True and cleanup.get("leader_reaped") is True
+            and cleanup.get("deadline_exceeded") is False and cleanup.get("errors") == []
+            and cleanup.get("remaining_direct_children") == [])
+
+def load_policy(control):
+    raw, _ = read_regular(Path(control) / "policy.json")
+    require(digest(raw) == POLICY_SHA256, "frozen policy differs")
+    value = json.loads(raw)
+    require(value["base_commit"] == BASE_COMMIT and value["base_tree"] == BASE_TREE
+            and value["prototype_commit"] == PROTOTYPE_COMMIT, "fixed source pins differ")
+    require(len(value["files"]) == 15 and len(value["candidate_paths"]) == 18
+            and value["qualification_seconds"] == 180 and value["cleanup_seconds"] == 3
+            and value["command_seconds"] == 120, "authoring scope/budgets differ")
+    return value
