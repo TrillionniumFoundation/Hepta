@@ -1,0 +1,41 @@
+{
+  "schema": "hia.core-lowering-development-lifecycle-projection.v1",
+  "status": "STATIC_CORRECTION_WITH_ACTUAL_ORIGINAL_RECEIPT_COMPARISON",
+  "original_control_commit": "44439c2f4ea8d225cec062a6af72d77de7814c1b",
+  "original_prepare_job": "1a1cca3cf68-2564-fe7",
+  "product_commit": "9b350732ce1dac60ec5689838ab80b853d700751",
+  "product_or_generated_sources_changed": false,
+  "prepare_repeated": false,
+  "actual_comparison": {
+    "raw_bytes": 1492,
+    "raw_sha256": "369e901a42f1994492ef388489d72b4acefd84d6f51468ccc4388d2ce07c4972",
+    "wrapper_original_fields_equal": true,
+    "wrapper_receipt_sha256": "369e901a42f1994492ef388489d72b4acefd84d6f51468ccc4388d2ce07c4972",
+    "supervisor_returncode": 0,
+    "child_returncode": 0,
+    "old_whole_equality": false,
+    "after_projection_match": true,
+    "natural_events": [
+      "qualification_started",
+      "owned_child_observed",
+      "qualification_exit_observed",
+      "owned_child_reaped"
+    ],
+    "qualification_seconds": 180,
+    "cleanup_seconds": 3,
+    "product_execution_repeated": false
+  },
+  "patch": {
+    "files": [
+      "phase.py",
+      "aggregate.py"
+    ],
+    "change": "Bind raw lifecycle SHA, require observed supervisor_returncode0 and original returncode0, then compare every original field after excluding exactly the two wrapper-added fields. Preserve180/3 and all natural cleanup checks."
+  },
+  "phase_or_aggregate_execution": false,
+  "remote_original_artifact_bytes_custody": "Original32 images/compile receipts/full3984 source snapshots remain retained at the original desktop root. Small original report/control/lifecycle and SDK transport have been read back here; the full image archive has not yet been downloaded or published.",
+  "future_phase_input_count": 71,
+  "default_complete_once180_pass": false,
+  "cold_qualification": false,
+  "whole_native_delivery": false
+}
