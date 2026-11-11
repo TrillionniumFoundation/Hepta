@@ -218,7 +218,12 @@ class ReleaseSelectionKernelTests(unittest.TestCase):
         cls.temporary=None
         observations=os.environ.get('HEPTA_HIA_RELEASE_SELECTION_OBSERVATIONS')
         if observations:
-            cls.folder=Path(observations);cls.folder.mkdir(mode=0o700)
+            observation_root=Path(observations)
+            observation_root.mkdir(mode=0o700,exist_ok=True)
+            # Preserve independent class receipts in a shared CI artifact root.
+            # An existing class directory still refuses reuse or overwriting.
+            cls.folder=observation_root/cls.__name__
+            cls.folder.mkdir(mode=0o700)
         else:
             cls.temporary=tempfile.TemporaryDirectory(prefix='hia-selection-kernel-')
             cls.folder=Path(cls.temporary.name)
