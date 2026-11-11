@@ -34,11 +34,14 @@ CORE_SOURCE_FILES = (
     "hia_record_transitions_native.py", "hia_record_operations_native.py",
     "hia_enum_operations_native.py", "hia_enum_match_native.py",
     "hia_task_operations_native.py", "hia_task_helper_cache_native.py",
+    "hia_program_execution_native.py",
 )
 
-# Exact verifier selectors, not every unrelated HEPTA setting in the process.
-# New checker delegations must extend this inventory before proof qualification.
+# Exact verifier and checked-replay selectors. Finite-context checks also execute
+# the public VM; binding only its Python caller would omit a selected HIA image.
+# New semantic delegations must extend this inventory before proof qualification.
 NATIVE_OWNERS = {
+    "HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST": ("hia_program_execution_native", "installed_program_execution"),
     "HEPTA_HIA_JSON_PREFLIGHT_MANIFEST": ("hia_json_preflight_native", "installed_preflight"),
     "HEPTA_HIA_JSON_DECODE_MANIFEST": ("hia_json_decode_native", "installed_decoder"),
     "HEPTA_HIA_JSON_CANONICAL_MANIFEST": ("hia_json_canonical_native", "installed_canonicalizer"),

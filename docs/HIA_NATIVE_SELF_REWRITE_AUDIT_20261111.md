@@ -22,7 +22,31 @@ been removed from the active product tree before this work.
 
 ## Audit coverage
 
-### Current v67 integration boundary
+### Current v69 ownership boundary
+
+The current integration retains published v68 `e03c82d1`, adds the complete
+explicit HIA Core execution owner and installed worker bindings, and joins
+direct slot-ledger repair `66681872` through merge `705fb3d5`. The machine
+inventory records every indexed file and all statically visible Python module
+imports/selectors. It does not establish dynamic external caller closure or
+claim that every line has received a semantic proof.
+
+| Boundary | Current implementation and remaining qualification |
+| --- | --- |
+| Core execution | All 50 current opcodes, four terminators, call frames, loans, byte/chain resources and terminal values have an explicit HIA owner. Input normalization, selected verification and static admission remain separate dependencies. |
+| Direct slot/version/lease consumers | HIA owns the four direct routes with original object identities and exact temporary consumption. The original long-name and destructor counterexamples are retained; the repaired development candidate passed its own 24 native and nine source/VM controls. Complete current caller/cold qualification remains required. |
+| Worker installation | Exact administrator-pinned helper bundles, all 20 single-image helpers and 27 checker owners are registered. Multi-image compositions and external process owners remain outside this bundle version. |
+| Program normalization | The original public implementation is retained. Draft HIA snapshot/encoding controllers are undergoing observable lifetime, recursion and actual interpreter compatibility checks. They are not current production owners. |
+| Static and live heap resources | Original public owners remain. Draft HIA static coordination and native graph/integer/entry-payload components have bounded development observations; full public static, finite-context and live-root replacement is unfinished. |
+| Remaining hosted stack | Service orchestration, packaging and builds, external providers, process/network/database primitives and retained scalar proposal evaluation still require their own complete replacement or explicitly audited physical boundary. |
+| Qualification and deletion | Exact source/runtime/harness receipts govern qualification. Original GitHub cold failures, remote caller failures and corrected-component observations are not interchangeable. No whole-native default, live migration or old-owner deletion is authorized by a component panel. |
+
+The current status page records the exact source scopes and original failures.
+The complete requested deletion remains authorized after functional replacement
+and qualification are actually closed; no additional approval request is used
+as a substitute for that work.
+
+### Prior v67 integration boundary
 
 Main `5831f52fada45e076f8f68f198a15c0585e6104f` and the recovered
 `b99ff2134b7f526f6795ced78d03465177c889cd` history share the actual common

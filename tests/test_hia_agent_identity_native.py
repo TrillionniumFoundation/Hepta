@@ -177,7 +177,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
         from hepta.hia_native_helpers import SCHEMA as BUNDLE_SCHEMA, TARGET, ABI
         bundle=self.folder/'worker-helpers.json'
         bundle.write_text(json.dumps({'schema':BUNDLE_SCHEMA,'target':TARGET,'abi':ABI,
-            'helpers':[{'selector':SELECTOR,'manifest_path':self.manifest.name,
+            'helpers':[{'selector':SELECTOR,'manifest_path':self.manifest.relative_to(bundle.parent).as_posix(),
                         'manifest_sha256':sha256(self.manifest.read_bytes()).hexdigest()}]}),
             encoding='utf-8')
         bundle_sha256=sha256(bundle.read_bytes()).hexdigest()
@@ -194,6 +194,7 @@ class AgentIdentityNativeTests(unittest.TestCase):
             output=BytesIO();error=StringIO()
             with patch.object(worker.sys,'stdin',SimpleNamespace(buffer=BytesIO(store.wire(request)))),patch.object(worker.sys,'stdout',SimpleNamespace(buffer=output)),patch.object(worker.sys,'stderr',error):
                 code=worker.main(['--state-root',str(state),'--request-json-stdin',*helper_flags])
+            self.assertEqual(code,0,error.getvalue())
             return code,json.loads(output.getvalue()),state
         with patch.dict(os.environ,clean_env,clear=True),patch.object(store,'_reference_digest',side_effect=AssertionError('host digest fallback')),patch.object(store,'_reference_uint64',side_effect=AssertionError('host integer fallback')):
             code,report,state=run('real-worker-valid','hia_describe')

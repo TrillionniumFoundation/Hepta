@@ -6,7 +6,63 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
-## Current v68 integration: implementation and qualification pending
+## Current v69 integration: execution and direct-ledger qualification pending
+
+The current profile is
+`selfhost-core-linux-x86_64-v69-native-execution-integration-pending`.
+The published v68 source `e03c82d1b5b7026ead9a5942336d54273b1a6931`
+is preserved in the actual ancestry. The integration now contains the HIA
+execution owner for all 50 current Core opcodes and four terminators, its
+extent-derived packet/terminal correction `f5bb6d4a`, installed-wheel/worker
+binding controls, and direct-ledger lifecycle repair `66681872` with its
+evidence-only documentation `12f8fb66`. Merge `705fb3d5` joins that ledger
+history; no old owner or database row is removed.
+
+The execution integration at exact source `4e4e60f4` passed 61 component
+controls with zero failures, errors or skips. The scope includes 787 execution
+differentials, 30,584 scalar mathematical cases, actual installed wheel
+resources and a fresh isolated worker. These are explicit predecessor-compiler
+development observations, not a cold or whole-source pass. The original
+54-test/one-error run is retained separately. The subsequent identity-worker
+fixture correction `7d664e7d` fixes a nested cold manifest path; both flat and
+nested actual worker layouts, including fresh subprocesses, passed separately.
+
+The selected direct ledger no longer imposes the earlier 192-byte field on
+the four direct Python APIs. HIA owns original-object SQL binding order,
+short-circuit lease checks, temporary consumption and row release. A real
+temporary-result destructor previously changed the release decision; its
+original failed observation is retained. Repair `66681872` passed 24 scoped
+actual-native controls and nine independent source/VM controls on its own
+frozen development export. This includes long names, stateful SQLite adapters,
+original exception identity, installed wheels, concurrency and lost-return
+custody. The original 48-test caller failures remain failures and require a
+fresh complete integration run. These overlapping panels are not summed into
+a whole-product test count.
+
+The published v68 GitHub run `43050421476` has a separate retained result:
+all 488 source tests passed, but native cold replay exceeded the unchanged
+180-second budget, with completed owned cleanup. Its B1/B2/B3 bytes were
+equal; the incomplete nested qualification is still a failed run. An
+independent exact-e03 replay on `ai395` passed all eleven cold checks in
+approximately 123.6 seconds under the same 180/3-second limits. Its original
+244-test native-application group has one error from the nested identity
+fixture path fixed above. That independent full runner is still being
+observed; it has no final whole-source pass in this checkpoint.
+
+The v6 runner retains the v5 groups and adds full execution/installed-worker
+coverage with all 38 matching-source cold selectors. The original cold,
+component, full-discovery and whole-job limits remain unchanged. New source
+does not inherit either a preceding component result or a preceding cold pass.
+
+Full input normalization, public static-resource coordination and live-heap
+analysis are still separate work in progress. The entry-payload HIA graph/
+report kernel has independent development controls but is not connected to a
+public selector here. Hosted service, packaging, external provider and
+remaining foreign computation boundaries are not erased by these changes.
+Whole-native delivery, a default cutover, live-worker migration and old-owner
+deletion all remain unqualified.
+
+## Prior v68 integration checkpoint
 
 The current profile is
 `selfhost-core-linux-x86_64-v68-worker-ledger-integration-pending`.

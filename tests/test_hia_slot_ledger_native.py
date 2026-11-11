@@ -139,7 +139,6 @@ class Protocol:
         self.sequence, self.status = sequence, status
         self.words, self.bytes = struct.unpack('<64Q', returned[32:544]), returned[32:]
         return self.words
-
     def outcome(self, fields=(), *, known=1):
         action, token = self.words[5:7]
         self.send(2, token=token)
@@ -191,6 +190,77 @@ class Protocol:
         return self.send(4, known=1, fields=((4, certificate),))
 
 
+class DirectProtocol:
+    """Independent opaque-handle observations, with no production bridge."""
+    def __init__(self, engine, operation):
+        self.engine, self.operation, self.sequence = engine, operation, 0
+        self.scope = {} if operation in (8, 10) else dict(scope_kind=1, epoch=7, scope=SCOPE)
+        self.send(0)
+
+    def send(self, event, *, fields=(), known=0, token=0, **changes):
+        raw = packet(event, self.operation, sequence=0 if event == 90 else self.sequence,
+            fields=fields, known=known, token=token, **(self.scope | changes))
+        count, returned, state = self.engine.call(raw)
+        magic, self.status, self.sequence, extent = struct.unpack('<4Q', returned[:32])
+        assert magic == RESULT_MAGIC and count == 32 + extent and extent == 4096
+        assert returned[32:] == state[:extent]
+        self.words, self.bytes = struct.unpack('<64Q', returned[32:544]), returned[32:]
+        return self.words
+
+    def outcome(self, *, predicate=None, entropy=None, void=False):
+        action, token = self.words[5:7]
+        old_live, consumed = self.words[21], self.words[45]
+        self.send(2, token=token)
+        assert self.status == 0 and self.words[3:7] == (2, self.operation, action, token)
+        claimed = self.bytes
+        self.send(2, token=token)
+        assert self.status == 16 and self.bytes == claimed
+        value = 0 if void else self.words[20] + 1 if predicate is None else int(predicate)
+        result = self.send(3, known=1, token=token,
+            fields=((4, struct.pack('<Q', value) if entropy is None else entropy),))
+        expected_live = old_live ^ consumed
+        if predicate is None and entropy is None and not void:
+            expected_live |= 1 << (value - 1)
+        assert self.words[21] == expected_live
+        return result
+
+    def commit(self):
+        certificate = struct.pack('<12Q', *SCOPE_OWNER, 7, *SCOPE, 0, 0, 0, 0, 0, 0, 29)
+        return self.send(4, known=1, fields=((4, certificate),))
+
+
+def exercise_direct(test, make_engine):
+    missing = DirectProtocol(make_engine(), 8)
+    for expected in (100, 101):
+        test.assertEqual(missing.words[5], expected); missing.outcome()
+    missing.outcome(predicate=True)
+    test.assertEqual((missing.status, missing.words[3], missing.words[40]), (0, 4, 1))
+    lease = DirectProtocol(make_engine(), 11)
+    predicates = {200: True, 202: True, 205: False, 209: False,
+                  211: False, 215: False, 219: False, 224: False}
+    actions = [v for v in range(200, 231) if v not in (212, 216, 220, 225)] + [241, 231]
+    for action in actions:
+        test.assertEqual(lease.words[5], action)
+        if action in (215, 219, 224):
+            test.assertEqual(lease.words[45], (1 << (lease.words[33] - 1)) | (1 << (lease.words[34] - 1)))
+        lease.outcome(predicate=predicates.get(action), void=action in (241, 231))
+    test.assertEqual((lease.status, lease.words[3], lease.words[40], lease.words[37]), (0, 3, 3, 1))
+    before = lease.bytes
+    lease.send(3, known=1, token=1, fields=((4, struct.pack('<Q', 1)),))
+    test.assertEqual((lease.status, lease.bytes), (16, before))
+    lease.commit(); test.assertEqual((lease.status, lease.words[3]), (0, 4))
+    wrong = DirectProtocol(make_engine(), 10)
+    wrong.outcome(predicate=False)
+    test.assertEqual((wrong.status, wrong.words[3], wrong.words[36], wrong.words[37]), (11, 5, 1, 0))
+    unknown = DirectProtocol(make_engine(), 8)
+    token = unknown.words[6]; unknown.send(2, token=token)
+    before = unknown.bytes
+    unknown.send(3, known=1, token=token, fields=((4, struct.pack('<Q', 99)),))
+    test.assertEqual((unknown.status, unknown.bytes), (16, before))
+    unknown.send(5, known=1, token=token)
+    test.assertEqual((unknown.status, unknown.words[3]), (22, 5))
+
+
 def exercise_adoption(test, engine):
     baseline, candidate = reference('a'), reference('b')
     p = Protocol(engine, 2, candidate=candidate, baseline=baseline)
@@ -210,6 +280,9 @@ def exercise_adoption(test, engine):
 
 
 class SlotLedgerSourceTests(unittest.TestCase):
+    def test_independent_vm_direct_handle_lifecycle_and_foreign_error(self):
+        exercise_direct(self, VM)
+
     def test_generated_source_and_bootstrap_bounds(self):
         from hepta.hia_agent_assembly import render_assembly
         from tools.generate_hia_slot_ledger import document
@@ -394,6 +467,406 @@ class SlotLedgerNativeTests(unittest.TestCase):
     def test_actual_machine_first_adoption_and_wrong_outcome_replay(self):
         exercise_adoption(self, Machine(self.image))
 
+    def test_actual_machine_direct_handle_lifecycle_and_foreign_error(self):
+        exercise_direct(self, lambda: Machine(self.image))
+
+    def test_actual_direct_sqlite_binding_domain_matches_original(self):
+        from hepta.hia_agent_store import AgentRejected
+        values = [('long', 'x' * 65537), ('unicode', '雪' * 257), ('empty', ''),
+            ('nul', 'a\0b'), ('int', 7), ('bool', True), ('float', 1.25),
+            ('blob', b'b\0lob'), ('bytearray', bytearray(b'array')), ('view', memoryview(b'view')),
+            ('none', None), ('nan', float('nan')), ('inf', float('inf')),
+            ('overflow', 1 << 100), ('surrogate', '\ud800'), ('unsupported', object())]
+        observations = []
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('direct-reference')
+            native_service = self.service('direct-native')
+            for label, value in values:
+                returned = []
+                for service in (reference_service, native_service):
+                    try:
+                        result = service.inspect_slot(value)
+                    except Exception as error:
+                        returned.append(('raised', type(error).__name__, str(error)))
+                    else:
+                        self.assertIs(result['target_slot'], value)
+                        self.assertEqual(result['current'], {'generation': '0', 'epoch': '0'})
+                        returned.append(('returned', result['current'], result['active_artifact']))
+                self.assertEqual(returned[0], returned[1], label)
+                observations.append({'case': label, 'observations': returned})
+            # Affinity is observable: acquire returns the supplied integer,
+            # while the retained TEXT row supplies a string to lease admission.
+            for service in (reference_service, native_service):
+                ref = self.fixture_rows(service)
+                service.store.db.execute("UPDATE main.slots SET name='7'")
+                service.store.db.execute("UPDATE main.versions SET slot='7'")
+                with patch.object(service, '_native', return_value=(b'foreign', {}, None)):
+                    lease = service.acquire_slot(7)
+                self.assertIs(type(lease['slot']), int)
+                self.assertEqual(service.store.db.execute('SELECT slot FROM main.leases').fetchone()[0], '7')
+                with self.assertRaises(AgentRejected) as refused:
+                    service._lease(lease)
+                self.assertEqual(refused.exception.code, 'E_HIA_LEASE')
+                lease['slot'] = '7'
+                self.assertEqual(service._lease(lease)['artifact'], ref)
+                self.assertTrue(service.release_slot(lease)['released'])
+            (self.case / 'direct-domain.json').write_text(json.dumps(observations, indent=2) + '\n')
+
+    def test_actual_direct_stateful_adaptation_and_comparison_order(self):
+        events = []
+        class Bind:
+            def __init__(self, values):
+                self.values = iter(values)
+            def __conform__(self, protocol):
+                self_protocol = protocol
+                if self_protocol is not sqlite3.PrepareProtocol:
+                    raise AssertionError('wrong SQLite adaptation protocol')
+                value = next(self.values); events.append(('bind', value)); return value
+        class Truth:
+            def __init__(self, label): self.label = label
+            def __bool__(self): events.append(('truth', self.label)); return False
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('adapt-reference')
+            native_service = self.service('adapt-native')
+            transcripts = []
+            for service in (reference_service, native_service):
+                ref = self.fixture_rows(service)
+                service.store.db.execute("UPDATE main.slots SET name='first'")
+                service.store.db.execute("UPDATE main.versions SET slot='second'")
+                service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                    ('count-only', 'third', '3', wire(ref).decode()))
+                events.clear()
+                target = Bind(['first', 'second', 'third', 'fourth'])
+                with patch.object(service, '_native', return_value=(b'foreign', {}, None)):
+                    lease = service.acquire_slot(target)
+                self.assertIs(lease['slot'], target)
+                self.assertEqual(events, [('bind', name) for name in ('first', 'second', 'third', 'fourth')])
+                self.assertEqual(service.store.db.execute('SELECT slot FROM main.leases WHERE id=?',
+                    (lease['id'],)).fetchone()[0], 'fourth')
+                supplied = {'id': None, 'slot': 'wrong', 'generation': 'wrong', 'artifact': None}
+                class Compared:
+                    def __init__(self, label): self.label = label
+                    def __ne__(self, other):
+                        events.append(('compare', self.label))
+                        if self.label == 'slot': supplied['generation'] = Compared('generation')
+                        if self.label == 'generation': supplied['artifact'] = Compared('artifact')
+                        return Truth(self.label)
+                class Identifier:
+                    def __conform__(self, protocol):
+                        events.append(('bind-id', 'once'))
+                        supplied['slot'] = Compared('slot')
+                        return lease['id']
+                supplied['id'] = Identifier()
+                events.clear()
+                retained = service._lease(supplied)
+                self.assertEqual(retained, {**lease, 'slot': 'fourth'})
+                expected = [('bind-id', 'once'), ('compare', 'slot'), ('truth', 'slot'),
+                    ('compare', 'generation'), ('truth', 'generation'),
+                    ('compare', 'artifact'), ('truth', 'artifact')]
+                self.assertEqual(events, expected)
+                transcripts.append(events.copy())
+                self.assertTrue(service.release_slot(retained)['released'])
+            self.assertEqual(transcripts[0], transcripts[1])
+            (self.case / 'direct-foreign-order.json').write_text(json.dumps(transcripts, indent=2) + '\n')
+
+    def test_actual_direct_foreign_exception_and_zero_row_release_match_original(self):
+        from hepta.hia_agent_store import AgentRejected
+        class RaisingId:
+            def __init__(self, error): self.error = error
+            def __conform__(self, protocol): raise self.error
+        class RaisingComparison:
+            def __init__(self, error): self.error = error
+            def __ne__(self, other): raise self.error
+        class RaisingTruth:
+            def __init__(self, error): self.error = error
+            def __bool__(self): raise self.error
+        class Compared:
+            def __init__(self, result): self.result = result
+            def __ne__(self, other): return self.result
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('error-reference')
+            native_service = self.service('error-native')
+            observations = []
+            for service in (reference_service, native_service):
+                ref = self.fixture_rows(service)
+                lease = {'id': 'retained', 'slot': 'slot', 'generation': '3', 'artifact': ref}
+                service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                    ('retained', 'slot', '3', wire(ref).decode()))
+                for label, error, field, value in (
+                    ('binding', ValueError('original binding error'), 'id', RaisingId),
+                    ('comparison', TypeError('original comparison error'), 'slot', RaisingComparison),
+                    ('truth', RuntimeError('original truth error'), 'slot', lambda e: Compared(RaisingTruth(e))),
+                ):
+                    supplied = {**lease, field: value(error)}
+                    with self.assertRaises(type(error)) as raised:
+                        service.release_slot(supplied)
+                    self.assertIs(raised.exception, error)
+                    self.assertFalse(service.store.db.in_transaction)
+                    self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+                    self.assertEqual(service._lease(lease), lease)
+                # Registered adapters are consulted at each original execute.
+                # The historical API returned released=True even if the second
+                # binding selected no row. No extra caller binding is permitted.
+                calls = []
+                def adapt(value):
+                    calls.append(value)
+                    return value if len(calls) == 1 else 'no-such-row'
+                key = (str, sqlite3.PrepareProtocol)
+                original = sqlite3.adapters.get(key)
+                sqlite3.register_adapter(str, adapt)
+                try:
+                    released = service.release_slot(lease)
+                finally:
+                    if original is None: sqlite3.adapters.pop(key, None)
+                    else: sqlite3.adapters[key] = original
+                self.assertEqual(calls, ['retained', 'retained'])
+                self.assertEqual(released, {'released': True, 'generation': '3', 'artifact_retained': True})
+                self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+                self.assertTrue(service.release_slot(lease)['released'])
+                observations.append({'bindings': calls, 'legacy_response': released, 'active_after_zero_row_update': 1})
+            self.assertEqual(observations[0], observations[1])
+            (self.case / 'direct-error-and-affinity.json').write_text(json.dumps(observations, indent=2) + '\n')
+
+    def test_actual_direct_comparison_result_handoff_loss_keeps_opaque_custody(self):
+        from tests.test_hia_artifact_namespace_native import interrupt_opcode
+        import gc
+        import weakref
+        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
+        calls = []
+        class Compared:
+            def __ne__(self, other):
+                calls.append(other)
+                return False
+        with self.selected(), self.old_ledger_forbidden():
+            service = self.service(); ref = self.fixture_rows(service)
+            service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                ('retained', 'slot', '3', wire(ref).decode()))
+            compared = Compared(); reference_to_object = weakref.ref(compared)
+            supplied = {'id': 'retained', 'slot': compared, 'generation': '3', 'artifact': ref}
+            owner = service.store.slot_ledger
+            with interrupt_opcode(NativeSlotLedgerStore._direct_drive.__code__, 'STORE_ATTR', 'returned',
+                    predicate=lambda frame: frame.f_locals.get('action') == 215) as hits:
+                with self.assertRaises(SlotLedgerUnknown): service._lease(supplied)
+            self.assertEqual(len(hits), 1)
+            self.assertEqual(calls, ['slot'])
+            self.assertEqual((owner.pending.receipt.phase, owner.pending.receipt.action), (2, 215))
+            self.assertIs(owner.pending.objects[1], supplied)
+            del supplied, compared
+            gc.collect()
+            self.assertIsNotNone(reference_to_object())
+            with self.assertRaises(SlotLedgerUnknown): service._lease(owner.pending.objects[1])
+            self.assertEqual(calls, ['slot'])
+            self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+            (self.case / 'direct-comparison-loss.json').write_text(json.dumps({
+                'opcode_hits': hits, 'calls': calls, 'state': owner.snapshot(),
+                'original_input_rooted_after_gc': True}, indent=2) + '\n')
+
+    def test_actual_direct_comparison_temporary_finalizers_match_original(self):
+        from hepta.hia_agent_store import AgentRejected
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('temporary-reference')
+            native_service = self.service('temporary-native')
+            transcripts = []
+            for service in (reference_service, native_service):
+                ref = self.fixture_rows(service)
+                service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                    ('retained', 'slot', '3', wire(ref).decode()))
+                cases = []
+                for field, changed_field in (('slot', 'generation'), ('generation', 'artifact'), ('artifact', 'id')):
+                    events = []
+                    supplied = {'id': 'retained', 'slot': 'slot', 'generation': '3', 'artifact': ref}
+                    class Truth:
+                        def __bool__(self): events.append('truth'); return False
+                        def __del__(self):
+                            events.append('truth-finalized')
+                            supplied[changed_field] = 'wrong'
+                    class Compared:
+                        def __ne__(self, other): events.append('compare'); return Truth()
+                    supplied[field] = Compared()
+                    if field == 'artifact':
+                        result = service._lease(supplied)
+                        self.assertEqual(result['id'], 'retained')
+                        outcome = 'retained'
+                    else:
+                        with self.assertRaises(AgentRejected) as raised:
+                            service.release_slot(supplied)
+                        self.assertEqual(raised.exception.code, 'E_HIA_LEASE')
+                        outcome = raised.exception.code
+                    self.assertEqual(events, ['compare', 'truth', 'truth-finalized'])
+                    self.assertEqual(supplied[changed_field], 'wrong')
+                    self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+                    cases.append({'field': field, 'events': events.copy(), 'outcome': outcome})
+                transcripts.append(cases)
+            self.assertEqual(transcripts[0], transcripts[1])
+            (self.case / 'direct-finalizer-results.json').write_text(json.dumps(transcripts, indent=2) + '\n')
+
+    def test_actual_direct_consumed_operands_and_sql_parameters_match_original(self):
+        from hepta.hia_agent_store import AgentRejected
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('operand-reference')
+            native_service = self.service('operand-native')
+            transcripts = []
+            for service in (reference_service, native_service):
+                ref = self.fixture_rows(service)
+                service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                    ('retained', 'slot', '3', wire(ref).decode()))
+                events = []
+                supplied = {'id': 'retained', 'slot': None, 'generation': '3', 'artifact': ref}
+                class Truth:
+                    def __bool__(self):
+                        events.append(('truth', supplied['generation'])); return False
+                    def __del__(self): events.append(('truth-finalized', None))
+                class Compared:
+                    def __ne__(self, other):
+                        events.append(('compare', other))
+                        del supplied['slot']
+                        return Truth()
+                    def __del__(self):
+                        events.append(('operand-finalized', None))
+                        supplied['generation'] = 'wrong'
+                supplied['slot'] = Compared()
+                with self.assertRaises(AgentRejected) as raised:
+                    service.release_slot(supplied)
+                self.assertEqual(raised.exception.code, 'E_HIA_LEASE')
+                self.assertEqual(events, [('compare', 'slot'), ('operand-finalized', None),
+                    ('truth', 'wrong'), ('truth-finalized', None)])
+                compared_events = events.copy()
+                supplied = {'id': None, 'slot': 'slot', 'generation': '3', 'artifact': ref}
+                events.clear()
+                class Identifier:
+                    def __conform__(self, protocol):
+                        events.append(('bind', None)); supplied['id'] = 'retained'; return 'retained'
+                    def __del__(self):
+                        events.append(('parameter-finalized', None)); supplied['generation'] = 'wrong'
+                supplied['id'] = Identifier()
+                with self.assertRaises(AgentRejected) as raised:
+                    service.release_slot(supplied)
+                self.assertEqual(raised.exception.code, 'E_HIA_LEASE')
+                self.assertEqual(events, [('bind', None), ('parameter-finalized', None)])
+                self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+                transcripts.append({'comparison': compared_events, 'parameter': events.copy()})
+            self.assertEqual(transcripts[0], transcripts[1])
+            (self.case / 'direct-finalizer-operands.json').write_text(json.dumps(transcripts, indent=2) + '\n')
+
+    def test_actual_direct_unused_native_result_and_completed_custody_match_original(self):
+        import gc
+        import weakref
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                reference_service = self.service('scope-reference')
+            native_service = self.service('scope-native')
+            transcripts = []
+            for service in (reference_service, native_service):
+                self.fixture_rows(service)
+                events = []
+                class Target:
+                    inserted_slot = 'before-finalizer'
+                    calls = 0
+                    def __conform__(self, protocol):
+                        self.calls += 1
+                        value = 'slot' if self.calls < 4 else self.inserted_slot
+                        events.append(('bind', value)); return value
+                    def __del__(self): events.append(('target-finalized', None))
+                target = Target(); target_ref = weakref.ref(target)
+                class Unused:
+                    def __del__(self):
+                        events.append(('unused-finalized', None))
+                        target.inserted_slot = 'after-finalizer'
+                def checker(*args, **kwargs):
+                    events.append(('native-check', None)); return Unused()
+                with patch.object(service, '_native', side_effect=checker):
+                    lease = service.acquire_slot(target)
+                self.assertIs(lease['slot'], target)
+                self.assertEqual(service.store.db.execute('SELECT slot FROM main.leases').fetchone()[0], 'after-finalizer')
+                self.assertEqual(events, [('bind', 'slot')] * 3 +
+                    [('native-check', None), ('unused-finalized', None), ('bind', 'after-finalizer')])
+                del lease, target
+                gc.collect()
+                self.assertIsNone(target_ref())
+                self.assertEqual(events[-1], ('target-finalized', None))
+                if service.store.slot_ledger is not None:
+                    self.assertFalse(hasattr(service.store.slot_ledger.last, 'objects'))
+                    self.assertFalse(service.store.slot_ledger.snapshot()['pending'])
+                transcripts.append(events.copy())
+            self.assertEqual(transcripts[0], transcripts[1])
+            (self.case / 'direct-finalizer-scopes.json').write_text(json.dumps(transcripts, indent=2) + '\n')
+
+    def test_actual_direct_consumption_return_loss_never_replays(self):
+        from tests.test_hia_artifact_namespace_native import interrupt_opcode
+        from hepta.hia_slot_ledger_native import DirectLedgerState
+        calls = []
+        class Compared:
+            def __ne__(self, other): calls.append(other); return False
+        with self.selected(), self.old_ledger_forbidden():
+            service = self.service(); ref = self.fixture_rows(service)
+            service.store.db.execute('INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                ('retained', 'slot', '3', wire(ref).decode()))
+            supplied = {'id': 'retained', 'slot': Compared(), 'generation': '3', 'artifact': ref}
+            owner = service.store.slot_ledger
+            with interrupt_opcode(DirectLedgerState.take.__code__, 'RETURN_VALUE',
+                    predicate=lambda frame: frame.f_locals.get('word') == 34
+                    and frame.f_locals['r'].action == 215) as hits:
+                with self.assertRaises(SlotLedgerUnknown): service.release_slot(supplied)
+            self.assertEqual(len(hits), 1)
+            self.assertEqual(calls, [])
+            state = owner.pending
+            self.assertEqual((state.receipt.phase, state.receipt.action), (2, 215))
+            self.assertIs(state.objects[1], supplied)
+            self.assertNotIn(state.receipt.words[33], state.objects)
+            self.assertNotIn(state.receipt.words[34], state.objects)
+            self.assertNotEqual(state.receipt.words[45], 0)
+            with self.assertRaises(SlotLedgerUnknown): service.release_slot(supplied)
+            self.assertEqual(calls, [])
+            self.assertEqual(service.store.db.execute('SELECT active FROM main.leases').fetchone()[0], 1)
+            (self.case / 'direct-consumption-loss.json').write_text(json.dumps({
+                'opcode_hits': hits, 'calls': calls, 'state': owner.snapshot(),
+                'native_consumption_mask': state.receipt.words[45],
+                'remaining_handles': list(state.objects)}, indent=2) + '\n')
+
+    def test_actual_existing_unbounded_slot_invocation_and_release(self):
+        from tests.test_hia_agent_native_tools import AgentToolCase
+        from hepta.hia_agent_store import AgentRejected
+        with self.selected():
+            with patch.dict(os.environ, {SELECTOR: ''}):
+                case = AgentToolCase('runTest'); case.setUp()
+            try:
+                _, _, _, build, _ = case.build_pair()
+                artifact = build['native_artifact']
+                _, metadata, _ = case.service._native(artifact)
+                slot = 'retained/雪/' + 'x' * 65537
+                case.service.store.db.execute('INSERT INTO main.slots VALUES (?,?,?,?,?)',
+                    (slot, case.session.context['id'], '1', '1', sha256(wire(metadata['signatures'])).hexdigest()))
+                case.service.store.db.execute('INSERT INTO main.versions VALUES (?,?,?)',
+                    (slot, '1', wire(artifact).decode()))
+                old_lease = case.service.acquire_slot(slot)
+                from hepta.hia_agent_service import HIAAgentService
+                service = HIAAgentService(case.state_root, artifact_roots=(case.files_root,))
+                try:
+                    with self.old_ledger_forbidden():
+                        self.assertEqual(service.inspect_slot(slot)['active_artifact'], artifact)
+                        new_lease = service.acquire_slot(slot)
+                        results = [service.invoke_lease(lease, 'transform', [250]) for lease in (old_lease, new_lease)]
+                        for result in results:
+                            self.assertEqual((result['status'], result['values']), ('returned', [1]))
+                        for lease in (old_lease, new_lease):
+                            self.assertTrue(service.release_slot(lease)['released'])
+                            with self.assertRaises(AgentRejected) as refused:
+                                service._lease(lease)
+                            self.assertEqual(refused.exception.code, 'E_HIA_LEASE')
+                        self.assertEqual(service.inspect_slot(slot)['in_flight_leases'], 0)
+                        (self.case / 'direct-long-real-invocation.json').write_text(json.dumps({
+                            'slot_bytes': len(slot.encode()), 'real_native_checker_and_runner': True,
+                            'old_lease_admitted': True, 'new_lease_admitted': True, 'results': results}, indent=2) + '\n')
+                finally:
+                    service.close()
+            finally:
+                case.tearDown()
+
     def test_actual_machine_max_retained_generation_after_rollback(self):
         baseline, candidate = reference('a'), reference('b')
         p = Protocol(Machine(self.image), 2, expected=('0', '8'), candidate=candidate, baseline=baseline)
@@ -478,7 +951,7 @@ class SlotLedgerNativeTests(unittest.TestCase):
             with patch.object(service, '_native', return_value=(b'foreign', {}, None)), \
                     patch.object(owner, '_execute', side_effect=lost):
                 with self.assertRaises(SlotLedgerUnknown): service.acquire_slot('slot')
-            self.assertEqual(owner.pending.receipt.action, 14)
+            self.assertEqual(owner.pending.receipt.action, 124)
             self.assertEqual(owner.pending.receipt.phase, 2)
             self.assertTrue(owner.snapshot()['fenced'])
             self.assertEqual(service.store.db.execute('SELECT count(*) FROM main.leases').fetchone()[0], 0)
@@ -581,16 +1054,16 @@ class SlotLedgerNativeTests(unittest.TestCase):
                 owner = service.store.slot_ledger
                 def target(frame):
                     state = frame.f_locals['self']
-                    return frame.f_locals.get('event') == 3 and state.receipt is not None and state.receipt.action == 14
+                    return frame.f_locals.get('event') == 3 and state.receipt is not None and state.receipt.action == 124
                 with patch.object(service, '_native', return_value=(b'foreign', {}, None)), \
                         interrupt_opcode(LedgerState.call.__code__, opcode, name, predicate=target) as hits:
                     with self.assertRaises(SlotLedgerUnknown): service.acquire_slot('slot')
                 self.assertEqual(len(hits), 1)
-                self.assertEqual((owner.pending.receipt.phase, owner.pending.receipt.action), (2, 14))
-                # The native outcome did complete and selected readback. Losing
+                self.assertEqual((owner.pending.receipt.phase, owner.pending.receipt.action), (2, 124))
+                # The native outcome did complete and selected commit. Losing
                 # its Python receipt cannot make INSERT available a second time.
                 raw_words = struct.unpack('<64Q', owner.pending.buffer.raw[:512])
-                self.assertEqual((raw_words[3], raw_words[5], raw_words[37]), (1, 16, 1))
+                self.assertEqual((raw_words[3], raw_words[5], raw_words[37]), (3, 0, 1))
                 self.assertEqual(service.store.db.execute('SELECT count(*) FROM main.leases').fetchone()[0], 0)
                 with self.assertRaises(SlotLedgerUnknown): service.acquire_slot('slot')
                 (self.case / ('native-handoff-' + name + '.json')).write_text(json.dumps({
@@ -606,7 +1079,7 @@ class SlotLedgerNativeTests(unittest.TestCase):
                 with self.assertRaises(SlotLedgerUnknown): service.acquire_slot('slot')
                 observations.append(original.receipt.pending)
                 self.assertIs(owner.pending, original)
-                self.assertEqual(original.receipt.action, 4)
+                self.assertEqual(original.receipt.action, 120)
                 return b'foreign', {}, None
             with patch.object(service, '_native', side_effect=verify):
                 lease = service.acquire_slot('slot')

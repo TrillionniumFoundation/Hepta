@@ -18,6 +18,7 @@ from hepta.hia_safe_core import _checker_source_identity
 
 
 INTEGRATED_OWNERS = (
+    'HEPTA_HIA_PROGRAM_EXECUTION_MANIFEST',
     'HEPTA_HIA_NOMINAL_ADMISSION_MANIFEST', 'HEPTA_HIA_NOMINAL_FUNCTION_MANIFEST',
     'HEPTA_HIA_NOMINAL_MODULE_MANIFEST', 'HEPTA_HIA_NOMINAL_TERMINATORS_MANIFEST',
     'HEPTA_HIA_CALL_PRIMITIVE_MANIFEST', 'HEPTA_HIA_RECORD_TRANSITIONS_MANIFEST',
@@ -75,7 +76,8 @@ class CheckerDependencyIdentityTests(unittest.TestCase):
         for filename in ("hia_json_decode.py", "hia_json_canonical_native.py",
                          "hia_sha256_native.py", "hia_core_admission_native.py",
                          "hia_composite_function_tokens.py", "hia_native_value_graph.py",
-                         "hia_nominal_function_native.py", "hia_task_helper_cache_native.py"):
+                         "hia_nominal_function_native.py", "hia_task_helper_cache_native.py",
+                         "hia_program_execution_native.py"):
             def changed(path):
                 data = original_read(path)
                 return data + b"\n# dependency drift\n" if path.name == filename else data

@@ -1321,7 +1321,7 @@ class HIAAgentService:
         owner = self.store.slot_ledger
         if owner is None:
             return self._slot_snapshot_reference(slot, **_connection_arguments(_connection))
-        return owner.operate(1, self, slot=slot, connection=_connection).snapshot()
+        return owner.direct(8, self, slot, connection=_connection)
 
     def _slot_snapshot_reference(self, slot, *, _connection=None):
         row = (self.store.db if _connection is None else _connection).execute("SELECT * FROM slots WHERE name=?", (slot,)).fetchone()
@@ -1500,7 +1500,7 @@ class HIAAgentService:
         owner = self.store.slot_ledger
         if owner is None:
             return self._acquire_slot_reference(target_slot)
-        return owner.lease_transaction(4, self, slot=target_slot).lease()
+        return owner.direct_transaction(9, self, target_slot)
 
     def _acquire_slot_reference(self, target_slot):
         """Pin the observed active generation for a real future native call."""
@@ -1519,7 +1519,7 @@ class HIAAgentService:
         owner = self.store.slot_ledger
         if owner is None:
             return self._lease_reference(lease)
-        return owner.operate(5, self, lease=lease).lease()
+        return owner.direct(10, self, lease)
 
     def _lease_reference(self, lease):
         keys(lease, ("id", "slot", "generation", "artifact"), label="generation lease")
@@ -1572,7 +1572,7 @@ class HIAAgentService:
         owner = self.store.slot_ledger
         if owner is None:
             return self._release_slot_reference(lease)
-        retained = owner.lease_transaction(6, self, lease=lease).lease()
+        retained = owner.direct_transaction(11, self, lease)
         return {'released': True, 'generation': retained['generation'], 'artifact_retained': True}
 
     def _release_slot_reference(self, lease):

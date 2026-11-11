@@ -28,6 +28,10 @@ class SlotLedgerUnknown(RuntimeError):
     """Nonterminal custody failure, outside the service rejection formatter."""
 
 
+class _DirectCustodyError(SlotLedgerUnknown):
+    """Fixed transport refused a missing or unclaimed local object handle."""
+
+
 class NativeSlotLedgerImage(NativeHiaJsonImage):
     pass
 
@@ -188,7 +192,7 @@ class LedgerState:
                 raise SlotLedgerUnknown('native ledger rejected its bounded ABI')
             returned = ctypes.string_at(output, size)
             magic, status, sequence, extent = struct.unpack('<4Q', returned[:32])
-            if (magic != RESULT_MAGIC or status > 21 or extent < PREFIX or extent > len(self.buffer)
+            if (magic != RESULT_MAGIC or status > 22 or extent < PREFIX or extent > len(self.buffer)
                     or size != extent + 32):
                 raise SlotLedgerUnknown('native ledger has no exact retained receipt')
             owned = ctypes.string_at(self.buffer, extent)
@@ -207,6 +211,77 @@ class LedgerState:
         except BaseException as error:
             self.fence(error)
             raise
+
+
+class DirectLedgerState(LedgerState):
+    """Operation-local opaque custody; no coercion or slot byte ceiling.
+
+    A handle is allocated only for the next result expected by retained HIA.
+    HIA preclaims each transfer out of the registry before a foreign primitive.
+    Borrowed fields remain rooted; consumed temporaries retain the original
+    Python expression lifetime. Python/SQLite behavior is foreign; HIA owns
+    the order, branches and one-shot transfer authority.
+    """
+    def __init__(self, image, binding, original):
+        super().__init__(image, binding)
+        self.objects = {1: original}
+
+    def object(self, handle):
+        if type(handle) is not int or handle not in self.objects:
+            raise _DirectCustodyError('direct ledger object handle has no retained custody')
+        return self.objects[handle]
+
+    def take(self, word):
+        """Move exactly one HIA-preclaimed reference into its fixed expression.
+
+        Do not first assign the object to a Python local: its refcount must
+        leave the registry at the expression's operand boundary. A lost return
+        cannot restore the consumed native preclaim or authorize another pop.
+        """
+        r = self.receipt
+        if r is None or r.phase != 2 or not 22 <= word < 36:
+            raise _DirectCustodyError('direct object transfer has no native preclaim')
+        handle = r.words[word]
+        if not 1 <= handle <= 64 or not (r.words[45] & (1 << (handle - 1))) or handle not in self.objects:
+            raise _DirectCustodyError('direct object transfer is absent, consumed or unclaimed')
+        return self.objects.pop(handle)
+
+    def drop_claimed(self):
+        """Release completed row scopes in original local-creation order."""
+        r = self.receipt
+        if r is None or r.phase != 2 or r.action not in (240, 241):
+            raise _DirectCustodyError('direct row release has no native preclaim')
+        for handle in range(1, r.words[20] + 1):
+            if r.words[45] & (1 << (handle - 1)):
+                if handle not in self.objects:
+                    raise _DirectCustodyError('direct row scope was already released')
+                del self.objects[handle]
+
+    def result(self):
+        r = self.receipt
+        if r.status or r.phase not in (3, 4):
+            raise SlotLedgerUnknown('direct ledger result has no terminal native receipt')
+        if r.words[40] == 1:
+            return {'target_slot': self.object(1), 'current': {'generation': '0', 'epoch': '0'},
+                'active_artifact': None, 'context': None, 'in_flight_leases': 0,
+                'snapshot_is_adoption_authority': False}
+        if r.words[40] == 2:
+            return {'target_slot': self.object(1),
+                'current': {'generation': self.object(r.words[25]), 'epoch': self.object(r.words[26])},
+                'active_artifact': self.object(r.words[28]), 'context': self.object(r.words[27]),
+                'in_flight_leases': self.object(r.words[24]), 'snapshot_is_adoption_authority': False}
+        if r.words[40] == 3:
+            return {'id': self.object(r.words[29]), 'slot': self.object(r.words[30]),
+                'generation': self.object(r.words[31]), 'artifact': self.object(r.words[32])}
+        raise SlotLedgerUnknown('direct ledger result shape was not admitted by HIA')
+
+
+@dataclass(frozen=True)
+class LedgerCompletion:
+    """A completed diagnostic retains no foreign input, result or traceback."""
+    binding: LedgerBinding
+    receipt: LedgerReceipt
+    fenced: None = None
 
 
 class NativeSlotLedgerStore:
@@ -245,7 +320,7 @@ class NativeSlotLedgerStore:
     def _check_operation(self, state, connection):
         self.check()
         state.check()
-        if state.binding.operation_kind in (2, 3, 4, 6):
+        if state.binding.operation_kind in (2, 3, 4, 6, 9, 11):
             self.requests.check()
         if self.pending is not state:
             raise SlotLedgerUnknown('ledger operation custody changed')
@@ -322,8 +397,8 @@ class NativeSlotLedgerStore:
             error.pending_slot_snapshot = receipt.snapshot()
             raise error
         if status == 5:
-            raise AgentRejected('E_HIA_SLOT', 'slot has no active generation' if operation == 4 else
-                                'slot has no retained generation', 'admission' if operation == 4 else 'adoption')
+            raise AgentRejected('E_HIA_SLOT', 'slot has no active generation' if operation in (4, 9) else
+                                'slot has no retained generation', 'admission' if operation in (4, 9) else 'adoption')
         if status == 6:
             raise AgentRejected('E_HIA_GENERATION', 'requested generation is not retained', 'adoption')
         if status == 7:
@@ -340,18 +415,23 @@ class NativeSlotLedgerStore:
             raise AgentRejected('E_HIA_FIELDS', 'generation lease has missing or unknown fields')
         if status == 12:
             raise AgentRejected('E_HIA_SLOT', 'slot identifier is outside the selected 192-byte ledger profile')
-        if status == 21 and state.foreign_error is not None:
+        if status in (21, 22) and state.foreign_error is not None:
             raise state.foreign_error
         raise SlotLedgerUnknown('native ledger custody, row, sequence or effect outcome is unconfirmed')
 
     def _complete_owner(self, state):
         if self.pending is not state or state.receipt.phase not in (3, 4, 5):
             raise SlotLedgerUnknown('ledger cannot discharge a pending effect')
-        self.last = state
+        self.last = LedgerCompletion(state.binding, state.receipt)
         self.pending = None
 
     def _report_failure(self, state, error):
         from .hia_agent_store import AgentRejected
+        if (isinstance(state, DirectLedgerState) and state.fenced is None
+                and state.receipt is not None and state.receipt.phase == 5
+                and state.receipt.status == 22 and state.foreign_error is error):
+            self._complete_owner(state)
+            raise error
         if isinstance(error, AgentRejected) and state.receipt is not None and state.receipt.phase == 5:
             self._complete_owner(state)
             raise error
@@ -479,6 +559,201 @@ class NativeSlotLedgerStore:
                 self._complete_owner(state)
                 return receipt
             except BaseException as error:
+                self._report_failure(state, error)
+
+    def _direct_begin(self, operation, original, connection):
+        self.check()
+        if operation in (9, 11):
+            self.requests.check()
+        if self.pending is not None:
+            raise SlotLedgerUnknown('ledger already owns a pending operation')
+        nonce = struct.unpack('<2Q', os.urandom(16))
+        state = DirectLedgerState(self.image, self._binding(operation, connection, nonce), original)
+        self.pending = state
+        try:
+            state.call(0)
+            return state
+        except BaseException as error:
+            self._fence(state, error)
+            raise SlotLedgerUnknown('direct ledger admission has no confirmed receipt') from error
+
+    def _direct_effect(self, state, service, connection, action):
+        """Fixed foreign primitives only; no row/result admission decisions."""
+        from .hia_agent_store import decode_data, wire
+        r = state.receipt
+        at = lambda word: state.object(r.words[word])
+        original = state.object(1)
+        if action == 100:
+            return self._execute(connection, 'SELECT * FROM main.slots WHERE name=?', (original,))
+        if action in (101, 105, 107, 208):
+            return state.take(35).fetchone()
+        if action in (102, 209):
+            return at(22) is None
+        if action in (103, 109, 217, 228):
+            return at(22)['generation']
+        if action == 104:
+            return self._execute(connection,
+                'SELECT artifact FROM main.versions WHERE slot=? AND generation=?', (original, state.take(33)))
+        if action == 106:
+            return self._execute(connection,
+                'SELECT COUNT(*) FROM main.leases WHERE slot=? AND active=1', (original,))
+        if action == 108:
+            return state.take(33)[0]
+        if action == 110:
+            return at(22)['epoch']
+        if action == 111:
+            return at(23)['artifact']
+        if action in (112, 222, 230):
+            return decode_data(state.take(33))
+        if action == 113:
+            return at(22)['context_id']
+        if action == 114:
+            return at(28) is None
+        if action == 120:
+            service._native(at(28), **({} if connection is None else {'_connection': connection}))
+            return None
+        if action == 121:
+            return os.urandom(16)
+        if action == 122:
+            return r.field(1248, 38).decode('ascii')
+        if action == 123:
+            return wire(at(28)).decode()
+        if action == 124:
+            self._execute(connection, 'INSERT INTO main.leases VALUES (?,?,?,?,1)',
+                (at(29), original, at(25), state.take(33)))
+            return None
+        if action == 200:
+            return type(original) is dict
+        if action in (201, 203):
+            return set(original)
+        if action == 202:
+            if set(('id', 'slot', 'generation', 'artifact')) <= state.take(33):
+                return True
+            return False
+        if action == 204:
+            return state.take(33) - set(('id', 'slot', 'generation', 'artifact')) - set(())
+        if action == 205:
+            if state.take(33):
+                return True
+            return False
+        if action == 206:
+            return original['id']
+        if action == 207:
+            return self._execute(connection, 'SELECT * FROM main.leases WHERE id=?', (state.take(33),))
+        if action == 210:
+            return at(22)['active']
+        if action == 211:
+            if state.take(33) != 1:
+                return True
+            return False
+        if action in (213, 227):
+            return at(22)['slot']
+        if action == 214:
+            return original['slot']
+        if action in (215, 219, 224):
+            # One fixed conditional comparison preserves CPython's operand,
+            # rich-result and truth-conversion lifetimes. HIA owns which field
+            # is compared and whether the next comparison may run.
+            if state.take(33) != state.take(34):
+                return True
+            return False
+        if action == 218:
+            return original['generation']
+        if action in (221, 229):
+            return at(22)['artifact']
+        if action == 223:
+            return original['artifact']
+        if action == 226:
+            return at(22)['id']
+        if action == 231:
+            self._execute(connection, 'UPDATE main.leases SET active=0 WHERE id=?', (at(29),))
+            return None
+        if action in (240, 241):
+            state.drop_claimed()
+            return None
+        raise SlotLedgerUnknown('direct ledger requested an unknown fixed primitive')
+
+    def _direct_drive(self, state, service, connection):
+        predicates = (102, 114, 200, 202, 205, 209, 211, 215, 219, 224)
+        voids = (120, 124, 231, 240, 241)
+        while True:
+            receipt = state.receipt
+            if receipt.status:
+                self._reject(state)
+            if receipt.phase in (3, 4):
+                return receipt
+            self._check_operation(state, connection)
+            action, token = receipt.action, receipt.pending
+            claim = state.call(2, token=token)
+            if claim.status or claim.phase != 2 or claim.action != action or claim.pending != token:
+                raise SlotLedgerUnknown('direct ledger primitive preclaim was not confirmed')
+            self._check_operation(state, connection)
+            try:
+                state.returned = self._direct_effect(state, service, connection, action)
+            except _DirectCustodyError:
+                raise
+            except Exception as error:
+                # This is a returned foreign exception, not a reconstructed
+                # absence of an effect. BaseException/receipt loss stays unknown.
+                state.foreign_error = error
+                self._check_operation(state, connection)
+                refused = state.call(5, known=1, token=token)
+                if refused.status != 22 or refused.phase != 5:
+                    raise SlotLedgerUnknown('direct foreign exception has no matching native receipt') from error
+                self._reject(state)
+            self._check_operation(state, connection)
+            if action in predicates:
+                if type(state.returned) is not bool:
+                    raise SlotLedgerUnknown('direct predicate did not return an exact bool')
+                payload = struct.pack('<Q', int(state.returned))
+            elif action == 121:
+                if type(state.returned) is not bytes or len(state.returned) != 16:
+                    raise SlotLedgerUnknown('direct entropy did not return sixteen bytes')
+                payload = state.returned
+            elif action in voids:
+                if state.returned is not None:
+                    raise SlotLedgerUnknown('direct discarded result did not return its void receipt')
+                payload = struct.pack('<Q', 0)
+            else:
+                handle = state.receipt.words[20] + 1
+                if handle in state.objects:
+                    raise SlotLedgerUnknown('direct object result slot was already consumed')
+                state.objects[handle] = state.returned
+                payload = struct.pack('<Q', handle)
+            # Object results now have their sole transport reference in the
+            # registry; predicates/entropy/void have an immutable payload. Do
+            # not keep a second result reference through a later native take.
+            state.returned = None
+            state.call(3, known=1, token=token, fields=((4, payload),))
+
+    def direct(self, operation, service, original, *, connection=None):
+        with self.lock:
+            state = self._direct_begin(operation, original, connection)
+            try:
+                self._direct_drive(state, service, connection)
+                result = state.result()
+                self._complete_owner(state)
+                return result
+            except BaseException as error:
+                self._report_failure(state, error)
+
+    def direct_transaction(self, operation, service, original):
+        with self.lock:
+            self.check()
+            if self.pending is not None:
+                raise SlotLedgerUnknown('ledger already owns a pending operation')
+            state = None
+            try:
+                with self.namespace.transaction():
+                    state = self._direct_begin(operation, original, None)
+                    self._direct_drive(state, service, None)
+                self._committed(state)
+                result = state.result()
+                self._complete_owner(state)
+                return result
+            except BaseException as error:
+                if state is None:
+                    raise
                 self._report_failure(state, error)
 
     def _committed(self, state):

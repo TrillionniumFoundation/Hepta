@@ -19,6 +19,8 @@ def ledger_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         return 4294967293
     if read_word(s, 0) != @REQUEST_MAGIC@ or valid_frame(s) == 0:
         return invalid(o, 16)
+    if read_word(s, 120) >= 8 and read_word(s, 120) <= 11:
+        return direct_main(s, o, w)
     if read_word(s, 8) == 0:
         return initialize(s, o, w)
     if valid_state(w) == 0 or binding_matches(s, w) == 0:
@@ -108,7 +110,7 @@ def scope_valid(s:readbuf) -> u64:
             return 0
     if (operation == 2 or operation == 3) and kind != 2:
         return 0
-    if (operation == 4 or operation == 6) and kind != 1:
+    if (operation == 4 or operation == 6 or operation == 9 or operation == 11) and kind != 1:
         return 0
     return 1
 
@@ -441,6 +443,313 @@ def refusal(o:mutbuf, w:mutbuf, status:u64) -> u32:
     return advance(o, w, status)
 '''
 
+# Direct consumers retain original Python/SQLite objects as opaque handles. The
+# finite number of handles bounds the protocol, not the length/type of a slot,
+# row or lease field. Every branch and effect order below is executed by HIA.
+DIRECT = r'''
+def direct_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    event = read_word(s, 8)
+    if event == 0:
+        return direct_initialize(s, o, w)
+    if direct_valid_state(w) == 0 or binding_matches(s, w) == 0:
+        return invalid(o, 16)
+    if read_word(s, 144) != 0 or read_word(s, 152) != 0:
+        return answer(o, w, 16)
+    if event == 90:
+        if read_word(s, 16) != 0 or read_word(s, 24) != 0 or read_word(s, 128) != 0 or read_word(s, 136) != 0:
+            return answer(o, w, 16)
+        return answer(o, w, 0)
+    if read_word(s, 16) != get(w, 2) or get(w, 2) == 18446744073709551615:
+        return answer(o, w, 18)
+    if event == 4:
+        return direct_commit(s, o, w)
+    if read_word(s, 24) == 0 or read_word(s, 24) != get(w, 6):
+        return answer(o, w, 16)
+    if event == 2:
+        if get(w, 3) != 1 or read_word(s, 128) != 0 or read_word(s, 136) != 0:
+            return answer(o, w, 16)
+        set(w, 3, 2)
+        set(w, 36, get(w, 36) + 1)
+        if get(w, 5) == 124 or get(w, 5) == 231:
+            set(w, 37, get(w, 37) + 1)
+        return advance(o, w, 0)
+    if get(w, 3) != 2:
+        return answer(o, w, 16)
+    if event == 5:
+        if read_word(s, 128) != 1 or read_word(s, 136) != 0:
+            return answer(o, w, 16)
+        direct_consumed(w)
+        return refusal(o, w, 22)
+    if event != 3 or read_word(s, 128) != 1 or read_word(s, 136) != 1 or field_tag(s, 0) != 4:
+        return answer(o, w, 16)
+    if get(w, 5) == 121:
+        if field_size(s, 0) != 16:
+            return answer(o, w, 16)
+        lease_identifier(s, field_data(s, 0), w)
+        set(w, 34, 0)
+        return direct_stage(o, w, 122)
+    if field_size(s, 0) != 8:
+        return answer(o, w, 16)
+    value = read_word(s, field_data(s, 0))
+    action = get(w, 5)
+    if action == 120 or action == 124 or action == 231 or action == 240 or action == 241:
+        if value != 0:
+            return answer(o, w, 16)
+        direct_consumed(w)
+        return direct_void(o, w)
+    if action == 102 or action == 114 or action == 200 or action == 202 or action == 205 or action == 209 or action == 211 or action == 215 or action == 219 or action == 224:
+        if value > 1:
+            return answer(o, w, 16)
+        direct_consumed(w)
+        return direct_predicate(o, w, value)
+    if value == 0 or get(w, 20) == 64 or value != get(w, 20) + 1:
+        return answer(o, w, 16)
+    direct_consumed(w)
+    set(w, 21, get(w, 21) | (1 << (value - 1)))
+    if action < 200:
+        return direct_snapshot_outcome(o, w, value)
+    return direct_lease_outcome(o, w, value)
+
+def direct_initialize(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if read_word(s, 16) != 0 or read_word(s, 24) != 0 or read_word(s, 128) != 0 or read_word(s, 136) != 0 or read_word(s, 144) != 0 or read_word(s, 152) != 0 or scope_valid(s) == 0:
+        return invalid(o, 16)
+    if (read_word(s, 32) == 0 and read_word(s, 40) == 0) or (read_word(s, 48) == 0 and read_word(s, 56) == 0) or (read_word(s, 160) == 0 and read_word(s, 168) == 0):
+        return invalid(o, 16)
+    i = 0
+    while i < 4096:
+        if byte(w, i) != 0:
+            return invalid(o, 16)
+        i = i + 1
+    set(w, 0, @STATE_MAGIC@)
+    set(w, 1, 3)
+    set(w, 2, 1)
+    set(w, 4, read_word(s, 120))
+    i = 4
+    while i < 15:
+        set(w, i + 4, read_word(s, i * 8))
+        i = i + 1
+    set(w, 43, read_word(s, 160))
+    set(w, 44, read_word(s, 168))
+    set(w, 55, 4096)
+    set(w, 20, 1)
+    set(w, 21, 1)
+    if get(w, 4) == 8 or get(w, 4) == 9:
+        return direct_stage(o, w, 100)
+    return direct_stage(o, w, 200)
+
+def direct_valid_state(w:mutbuf) -> u64:
+    if get(w, 0) != @STATE_MAGIC@ or get(w, 1) != 3 or get(w, 2) == 0 or get(w, 3) < 1 or get(w, 3) > 6 or get(w, 4) < 8 or get(w, 4) > 11 or get(w, 7) > 22 or get(w, 55) != 4096 or get(w, 20) == 0 or get(w, 20) > 64:
+        return 0
+    if (get(w, 21) & 1) != 1 or (get(w, 20) < 64 and (get(w, 21) >> get(w, 20)) != 0):
+        return 0
+    if get(w, 6) > get(w, 2) or get(w, 36) > get(w, 2) or get(w, 37) > get(w, 36) or get(w, 14) > 3:
+        return 0
+    if get(w, 3) == 1 or get(w, 3) == 2:
+        if get(w, 6) == 0 or get(w, 7) != 0:
+            return 0
+        action = get(w, 5)
+        if action < 100 or action > 241 or (action > 114 and action < 120) or (action > 124 and action < 200) or (action > 231 and action < 240) or action == 212 or action == 216 or action == 220 or action == 225:
+            return 0
+        if get(w, 45) != direct_consume_mask(w, action) or (get(w, 45) & get(w, 21)) != get(w, 45):
+            return 0
+    elif get(w, 3) < 6:
+        if get(w, 5) != 0 or get(w, 6) != 0 or get(w, 45) != 0:
+            return 0
+    i = 22
+    while i < 36:
+        if get(w, i) > get(w, 20):
+            return 0
+        if get(w, i) != 0 and (get(w, 21) & (1 << (get(w, i) - 1))) == 0:
+            return 0
+        i = i + 1
+    if get(w, 19) != 0 or get(w, 38) != 0 or get(w, 39) != 0 or get(w, 40) > 3 or get(w, 42) != 0:
+        return 0
+    i = 46
+    while i < 63:
+        if i != 55 and get(w, i) != 0:
+            return 0
+        i = i + 1
+    if checksum(w) != get(w, 63):
+        return 0
+    return 1
+
+def direct_handle_bit(w:mutbuf, word:u64) -> u64:
+    handle = get(w, word)
+    if handle == 0 or handle > 64:
+        return 0
+    return 1 << (handle - 1)
+
+def direct_consume_mask(w:mutbuf, action:u64) -> u64:
+    if action == 101 or action == 105 or action == 107 or action == 208:
+        return direct_handle_bit(w, 35)
+    if action == 104 or action == 108 or action == 112 or action == 124 or action == 202 or action == 204 or action == 205 or action == 207 or action == 211 or action == 222 or action == 230:
+        return direct_handle_bit(w, 33)
+    if action == 215 or action == 219 or action == 224:
+        return direct_handle_bit(w, 33) | direct_handle_bit(w, 34)
+    if action == 240:
+        return direct_handle_bit(w, 22) | direct_handle_bit(w, 23)
+    if action == 241:
+        return direct_handle_bit(w, 22)
+    return 0
+
+def direct_stage(o:mutbuf, w:mutbuf, action:u64) -> u32:
+    set(w, 45, direct_consume_mask(w, action))
+    return stage(o, w, action)
+
+def direct_consumed(w:mutbuf) -> u64:
+    mask = get(w, 45)
+    set(w, 21, get(w, 21) ^ mask)
+    i = 22
+    while i < 36:
+        if (direct_handle_bit(w, i) & mask) != 0:
+            set(w, i, 0)
+        i = i + 1
+    set(w, 45, 0)
+    return 0
+
+def direct_capture(o:mutbuf, w:mutbuf, value:u64, target:u64, action:u64) -> u32:
+    set(w, 20, value)
+    set(w, target, value)
+    return direct_stage(o, w, action)
+
+def direct_done(o:mutbuf, w:mutbuf) -> u32:
+    phase = 4
+    if get(w, 4) == 9 or get(w, 4) == 11:
+        phase = 3
+    set(w, 3, phase)
+    set(w, 5, 0)
+    set(w, 6, 0)
+    set(w, 45, 0)
+    return advance(o, w, 0)
+
+def direct_predicate(o:mutbuf, w:mutbuf, value:u64) -> u32:
+    action = get(w, 5)
+    if action == 102:
+        if value == 1:
+            if get(w, 4) == 9:
+                return refusal(o, w, 5)
+            set(w, 40, 1)
+            return direct_done(o, w)
+        return direct_stage(o, w, 103)
+    if action == 114:
+        if value == 1:
+            return refusal(o, w, 5)
+        return direct_stage(o, w, 120)
+    if action == 200 or action == 202:
+        if value == 0:
+            return refusal(o, w, 11)
+        return direct_stage(o, w, action + 1)
+    if action == 205:
+        if value == 1:
+            return refusal(o, w, 11)
+        return direct_stage(o, w, 206)
+    if action == 209:
+        if value == 1:
+            return refusal(o, w, 10)
+        return direct_stage(o, w, 210)
+    if action == 211 or action == 215 or action == 219:
+        if value == 1:
+            return refusal(o, w, 10)
+        return direct_stage(o, w, action + 2)
+    if action == 224:
+        if value == 1:
+            return refusal(o, w, 10)
+        return direct_stage(o, w, 226)
+    return answer(o, w, 16)
+
+def direct_snapshot_outcome(o:mutbuf, w:mutbuf, value:u64) -> u32:
+    action = get(w, 5)
+    if action == 100 or action == 104 or action == 106:
+        return direct_capture(o, w, value, 35, action + 1)
+    if action == 101:
+        return direct_capture(o, w, value, 22, 102)
+    if action == 103:
+        return direct_capture(o, w, value, 33, 104)
+    if action == 105:
+        return direct_capture(o, w, value, 23, 106)
+    if action == 107:
+        return direct_capture(o, w, value, 33, 108)
+    if action == 108:
+        return direct_capture(o, w, value, 24, 109)
+    if action == 109:
+        return direct_capture(o, w, value, 25, 110)
+    if action == 110:
+        return direct_capture(o, w, value, 26, 111)
+    if action == 111:
+        return direct_capture(o, w, value, 33, 112)
+    if action == 112:
+        return direct_capture(o, w, value, 28, 113)
+    if action == 113:
+        set(w, 20, value)
+        set(w, 27, value)
+        set(w, 40, 2)
+        return direct_stage(o, w, 240)
+    if action == 122:
+        return direct_capture(o, w, value, 29, 123)
+    if action == 123:
+        return direct_capture(o, w, value, 33, 124)
+    return answer(o, w, 16)
+
+def direct_lease_outcome(o:mutbuf, w:mutbuf, value:u64) -> u32:
+    action = get(w, 5)
+    if action == 201 or action == 203 or action == 204 or action == 206 or action == 210 or action == 213 or action == 217 or action == 221 or action == 222 or action == 229:
+        return direct_capture(o, w, value, 33, action + 1)
+    if action == 214 or action == 218 or action == 223:
+        return direct_capture(o, w, value, 34, action + 1)
+    if action == 207:
+        return direct_capture(o, w, value, 35, 208)
+    if action == 208:
+        return direct_capture(o, w, value, 22, 209)
+    if action == 226:
+        return direct_capture(o, w, value, 29, 227)
+    if action == 227:
+        return direct_capture(o, w, value, 30, 228)
+    if action == 228:
+        return direct_capture(o, w, value, 31, 229)
+    if action == 230:
+        set(w, 20, value)
+        set(w, 32, value)
+        set(w, 40, 3)
+        return direct_stage(o, w, 241)
+    return answer(o, w, 16)
+
+def direct_void(o:mutbuf, w:mutbuf) -> u32:
+    action = get(w, 5)
+    if action == 120:
+        return direct_stage(o, w, 121)
+    if action == 124:
+        set(w, 30, 1)
+        set(w, 31, get(w, 25))
+        set(w, 32, get(w, 28))
+        set(w, 40, 3)
+        return direct_done(o, w)
+    if action == 240:
+        if get(w, 4) == 9:
+            return direct_stage(o, w, 114)
+        return direct_done(o, w)
+    if action == 241:
+        if get(w, 4) == 11:
+            return direct_stage(o, w, 231)
+        return direct_done(o, w)
+    if action == 231:
+        return direct_done(o, w)
+    return answer(o, w, 16)
+
+def direct_commit(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 3) != 3 or get(w, 14) != 1 or (get(w, 4) != 9 and get(w, 4) != 11):
+        return answer(o, w, 16)
+    if read_word(s, 24) != 0 or read_word(s, 128) != 1 or read_word(s, 136) != 1 or field_tag(s, 0) != 4 or field_size(s, 0) != 96:
+        return answer(o, w, 16)
+    at = field_data(s, 0)
+    if read_word(s, at) != get(w, 43) or read_word(s, at + 8) != get(w, 44) or read_word(s, at + 16) != get(w, 15) or read_word(s, at + 24) != get(w, 16) or read_word(s, at + 32) != get(w, 17):
+        return answer(o, w, 16)
+    if read_word(s, at + 40) != 0 or read_word(s, at + 48) != 0 or read_word(s, at + 56) != 0 or read_word(s, at + 64) == get(w, 15) or read_word(s, at + 72) != 0 or read_word(s, at + 80) != 0 or read_word(s, at + 88) == 0:
+        return answer(o, w, 16)
+    set(w, 41, read_word(s, at + 88))
+    set(w, 3, 4)
+    return advance(o, w, 0)
+'''
+
 HELPERS = r'''
 def valid_frame(s:readbuf) -> u64:
     count = read_word(s, 136)
@@ -712,7 +1021,7 @@ def source_program():
                       ('LEASE_PREFIX', b'lease-')):
         values[name + '_LOW'] = int.from_bytes(raw[:8], 'little')
         values[name + '_HIGH'] = int.from_bytes(raw[8:], 'little')
-    source = CORE + HELPERS
+    source = CORE + DIRECT + HELPERS
     for name, value in values.items():
         source = source.replace('@' + name + '@', str(value))
     return source

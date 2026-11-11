@@ -183,13 +183,16 @@ class CoreWorkflowContractTests(unittest.TestCase):
         self.assertIn('--output "$RUNNER_TEMP/hia-cold.json"', source)
         for path in ['hia-cold.json', 'hia-cold.cold/', 'hia-language.json', 'hia-language.assertions.json',
                      'hia-language.evidence/', 'hia-nominal-fixture/',
-                     'hia-module-projects/']:
+                     'hia-module-projects/', 'hia-program-execution/', 'hia-program-execution-scalars/']:
             self.assertIn('            ${{ runner.temp }}/' + path, lines)
         self.assertLess(source.index('tools/replay_hia_selfhost_cold.py'),
                         source.index('      - name: Preserve actual cold failure and stage evidence'))
 
     def test_worker_checker_and_ledger_groups_use_matching_cold_and_reject_failed_outcomes(self):
         groups = (
+            ('Native full Core execution and installed worker bindings', 'PYEXECUTION', {
+                'tests.test_hia_program_execution_native', 'tests.test_hia_program_execution_scalars',
+                'tests.test_hia_program_execution_integration'}, ('PROGRAM_EXECUTION',)),
             ('Native worker request admission and ordinary request continuity', 'PYREQUEST', {
                 'tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review',
                 'tests.test_hia_worker_native_helpers', 'tests.test_hia_checker_identity',
@@ -222,6 +225,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
                                        capture_output=True, timeout=10)
                 self.assertEqual(child.returncode, status, child.stdout + child.stderr)
         self.assertIn('slot_ledger', script('Regenerate actual HIA sources').split('for component in ', 1)[1].split('; do', 1)[0].split())
+        self.assertIn('program_execution', script('Regenerate actual HIA sources').split('for component in ', 1)[1].split('; do', 1)[0].split())
         self.assertIn('            ${{ runner.temp }}/hia-slot-ledger/',
                       step('Preserve actual cold failure and stage evidence'))
 
