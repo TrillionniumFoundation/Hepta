@@ -67,6 +67,14 @@ class HIAProgramNativeRejected(ValueError):
 
 
 def _reject(message, code="E_HIA_PROGRAM_NATIVE"):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_reject', (message, code))
+    return _reference_reject(message, code)
+
+
+def _reference_reject(message, code="E_HIA_PROGRAM_NATIVE"):
     raise HIAProgramNativeRejected(code + ": " + message)
 
 
@@ -79,6 +87,7 @@ def _implementation_hash():
         "hia_machine_x64.py", "hia_machine_encoding_native.py", "hia_machine_elf.py",
         "hia_machine_state_native.py", "hia_machine_instructions_native.py",
         "hia_json_wire_native.py",
+        "hia_core_lowering_native.py", "hia_core_lowering_selection.py",
         "hia_machine_plan.py", "hia_machine_plan_native.py",
         "hia_instruction_policy_native.py", "hia_json_preflight_native.py",
         "hia_native_byte_abi.py", "hia_agent_exec.py", "hia_static_budget.py",
@@ -91,19 +100,45 @@ def _implementation_hash():
     digest.update(b'native-machine-plan\0' + native_implementation_identity() + b'\0')
     from .hia_machine_x64 import native_implementation_identity as encoding_identity
     digest.update(b'native-machine-encoding\0' + encoding_identity() + b'\0')
+    from .hia_core_lowering_selection import native_implementation_identity as lowering_identity
+    digest.update(b'native-core-lowering\0' + lowering_identity(globals()) + b'\0')
     return digest.hexdigest()
 
 
 def _words(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_words', (typ,))
+    return _reference_words(typ)
+
+
+def _reference_words(typ):
     return 2 if typ in BYTE_RESOURCES else 1
 
 
 def _bounds(typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_bounds', (typ,))
+    return _reference_bounds(typ)
+
+
+def _reference_bounds(typ):
     bits = WIDTHS[typ]
     return (-(1 << (bits - 1)), (1 << (bits - 1)) - 1) if typ.startswith("i") else (0, (1 << bits) - 1)
 
 
 def _normalize(code, reg, typ):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_normalize', (code, reg, typ))
+    return _reference_normalize(code, reg, typ)
+
+
+def _reference_normalize(code, reg, typ):
     """Canonical full-register representation, including dirty incoming highs."""
     if typ == "unit":
         code.mov_imm(reg, 0)
@@ -116,6 +151,14 @@ def _normalize(code, reg, typ):
 
 
 def _prologue(code, frame):
+    from .hia_core_lowering_selection import active_core_lowering
+    owner = active_core_lowering()
+    if owner is not None:
+        return owner.invoke('_prologue', (code, frame))
+    return _reference_prologue(code, frame)
+
+
+def _reference_prologue(code, frame):
     code.push("rbp")
     code.mov_rr("rbp", "rsp")
     # Touch each 4-KiB interval so a large frame cannot jump a stack guard.
@@ -144,6 +187,14 @@ class HIAProgramMachine:
 
 
 class _Function:
+    def __new__(cls, parent, fn, index):
+        if cls is _Function:
+            from .hia_core_lowering_selection import selected_core_lowering
+            owner = selected_core_lowering(globals())
+            if owner is not None:
+                return object.__new__(owner.function_class(cls))
+        return object.__new__(cls)
+
     def __init__(self, parent, fn, index):
         self.parent, self.fn, self.index = parent, fn, index
         self.c = parent.c
@@ -688,7 +739,8 @@ def emit_program_machine(program, *, target=TARGET, machine_plan=None, foreign_b
     if target != TARGET:
         _reject("direct machine backend supports only x86_64 Linux", "E_HIA_PROGRAM_TARGET")
     from .hia_machine_x64 import native_encoding_scope
-    with native_encoding_scope():
+    from .hia_core_lowering_selection import native_core_lowering_scope
+    with native_encoding_scope(), native_core_lowering_scope(globals()):
         return _emit_program_machine_with_encoding(
             program, target=target, machine_plan=machine_plan,
             foreign_buffer_exports=foreign_buffer_exports)
