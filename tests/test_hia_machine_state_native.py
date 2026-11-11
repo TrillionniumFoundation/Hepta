@@ -218,6 +218,40 @@ def assert_primitive_bridge_identity_bound(test, backend, names):
         with patch.object(Path, 'read_bytes', changed_read):
             test.assertNotEqual(backend._implementation_hash(), expected, name)
 
+
+def assert_scope_source_admission_bound(test, backend, checked, bridges):
+    """Drift after actual owner selection must refuse before the first key."""
+    original_entry = backend._emit_program_machine_with_encoding
+    observations = []
+    for bridge in bridges:
+        raw = bridge.SOURCE.read_bytes()
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / bridge.SOURCE.name
+            source.write_bytes(raw)
+            entered = []
+            def drift_before_first_identity(*arguments, **keywords):
+                entered.append(1)
+                source.write_bytes(raw + b'\n')
+                return original_entry(*arguments, **keywords)
+            with patch.object(bridge, 'SOURCE', source), \
+                    patch.object(backend, '_emit_program_machine_with_encoding',
+                                 drift_before_first_identity), \
+                    patch.object(backend._Emitter, 'render',
+                                 side_effect=AssertionError('source drift reached emission')) as render:
+                with test.assertRaisesRegex(ValueError, 'source identity mismatch') as caught:
+                    backend.emit_program_machine(checked)
+                render.assert_not_called()
+                test.assertEqual(entered, [1])
+                observations.append({
+                    'owner': bridge.__name__,
+                    'admitted_source_sha256': sha256(raw).hexdigest(),
+                    'changed_source_sha256': sha256(source.read_bytes()).hexdigest(),
+                    'ordinary_emit_entries': len(entered),
+                    'emitter_entries': render.call_count,
+                    'refusal': str(caught.exception),
+                })
+    return observations
+
 class MachineStateSourceTests(unittest.TestCase):
     def test_generated_source_and_original_compiler_limits(self):
         from hepta.hia_agent_assembly import assemble_program, render_assembly
@@ -258,6 +292,36 @@ class MachineStateSourceTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'completed matching native cold'):
                 build(output, compiler, cold)
             self.assertFalse(output.exists())
+            # The loader's generic factory contract does not observe a returned
+            # object's overridable __class__ attribute.
+            from hepta import hia_json_preflight_native as loader
+            observations, factories = [], []
+            class ForeignFactoryResult:
+                @property
+                def __class__(self):
+                    observations.append('__class__')
+                    raise AssertionError('generic factory result was observed')
+            foreign = ForeignFactoryResult()
+            image_raw = b'inert generic factory input'
+            image = root / 'generic-image.bin'
+            image.write_bytes(image_raw)
+            image_sha = sha256(image_raw).hexdigest()
+            source_sha = sha256(b'generic factory source').hexdigest()
+            schema = 'hepta.hia.generic-factory-control.v1'
+            manifest_raw = json.dumps({
+                'schema': schema, 'source_sha256': source_sha,
+                'image_path': image.name, 'image_sha256': image_sha,
+                'compiler_sha256': '0' * 64,
+            }).encode()
+            def factory(actual_image, actual_sha):
+                factories.append((actual_image, actual_sha))
+                return foreign
+            actual = loader._load_manifest.__wrapped__(
+                str(root / 'generic-manifest.json'), manifest_raw,
+                source_sha, schema, factory)
+            self.assertIs(actual, foreign)
+            self.assertEqual(factories, [(image_raw, image_sha)])
+            self.assertEqual(observations, [])
 
     def test_unselected_and_subclasses_preserve_existing_owner(self):
         with patch.dict(os.environ, {SELECTOR: '', ENCODING_SELECTOR: ''}):
@@ -454,6 +518,10 @@ class MachineStateNativeTests(unittest.TestCase):
         with self.selected():
             assert_primitive_bridge_identity_bound(
                 self, backend, ('hia_machine_state_native.py', 'hia_json_wire_native.py'))
+            from hepta import hia_machine_encoding_native as encoding_bridge
+            from hepta import hia_machine_state_native as state_bridge
+            self.save('source-admission-window.json', assert_scope_source_admission_bound(
+                self, backend, checked, (encoding_bridge, state_bridge)))
 
     def test_malformed_ack_and_failed_effect_cannot_be_replayed(self):
         code = oracle().Code()

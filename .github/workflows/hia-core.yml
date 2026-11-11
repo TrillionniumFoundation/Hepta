@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install agent_journal json_wire worker_report machine_plan linked_observer machine_encoding cli_control cli_format agent_store_authority artifact_page; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -106,6 +106,9 @@ jobs:
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
               'tests.test_hia_cli_native.CliSourceTests',
               'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests',
+              'tests.test_hia_agent_store_authority_native.StoreAuthoritySourceTests',
+              'tests.test_hia_artifact_read_native.ArtifactReadSourceTests',
+              'tests.test_hia_store_page_gates',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -396,6 +399,48 @@ jobs:
             --cold-report "$RUNNER_TEMP/hia-cold.json" \
             --output "$RUNNER_TEMP/hia-json-wire-callers.json" \
             --evidence-dir "$RUNNER_TEMP/hia-json-wire-callers-evidence"
+      - name: Native Store reference URI and profile authority with retained cold fixtures
+        run: |
+          python -B tools/qualify_hia_store_page_ci.py component \
+            --owner authority --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-store-authority-components.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-store-authority-component-evidence"
+        env:
+          HEPTA_HIA_AGENT_STORE_AUTHORITY_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_STORE_AUTHORITY_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-store-authority-component-evidence/fixture
+      - name: Ordinary Store reference URI and profile authority callers with retained owners forbidden
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_agent_store_authority_callers \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-store-authority-callers.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-store-authority-callers-evidence"
+          python -B tools/qualify_hia_store_page_ci.py check-callers \
+            --owner authority --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --caller-report "$RUNNER_TEMP/hia-store-authority-callers.json" \
+            --output "$RUNNER_TEMP/hia-store-authority-caller-gate.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-store-authority-callers-evidence"
+      - name: Native ordinary artifact read and complete page boundaries with retained cold fixtures
+        run: |
+          python -B tools/qualify_hia_store_page_ci.py component \
+            --owner page --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-artifact-read-components.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-artifact-read-component-evidence"
+        env:
+          HEPTA_HIA_ARTIFACT_PAGE_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_ARTIFACT_PAGE_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-artifact-read-component-evidence/fixture
+      - name: Ordinary ordinary artifact read and complete page boundaries callers with retained owners forbidden
+        run: |
+          set -eu
+          python -B -m tools.qualify_hia_artifact_read_callers \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --output "$RUNNER_TEMP/hia-artifact-read-callers.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-artifact-read-callers-evidence"
+          python -B tools/qualify_hia_store_page_ci.py check-callers \
+            --owner page --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --caller-report "$RUNNER_TEMP/hia-artifact-read-callers.json" \
+            --output "$RUNNER_TEMP/hia-artifact-read-caller-gate.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-artifact-read-callers-evidence"
       - name: Preserve actual cold failure and stage evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -426,3 +471,13 @@ jobs:
             ${{ runner.temp }}/hia-machine-encoding-callers-evidence/
             ${{ runner.temp }}/hia-json-wire-callers.json
             ${{ runner.temp }}/hia-json-wire-callers-evidence/
+            ${{ runner.temp }}/hia-store-authority-components.json
+            ${{ runner.temp }}/hia-store-authority-component-evidence/
+            ${{ runner.temp }}/hia-store-authority-callers.json
+            ${{ runner.temp }}/hia-store-authority-callers-evidence/
+            ${{ runner.temp }}/hia-store-authority-caller-gate.json
+            ${{ runner.temp }}/hia-artifact-read-components.json
+            ${{ runner.temp }}/hia-artifact-read-component-evidence/
+            ${{ runner.temp }}/hia-artifact-read-callers.json
+            ${{ runner.temp }}/hia-artifact-read-callers-evidence/
+            ${{ runner.temp }}/hia-artifact-read-caller-gate.json

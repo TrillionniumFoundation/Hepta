@@ -369,6 +369,11 @@ class MachineInstructionsNativeTests(unittest.TestCase):
         with self.selected():
             state_tests.assert_primitive_bridge_identity_bound(self, backend, (
                 'hia_machine_state_native.py', 'hia_machine_instructions_native.py', 'hia_json_wire_native.py'))
+            from hepta import hia_machine_encoding_native as encoding_bridge
+            from hepta import hia_machine_state_native as state_bridge
+            from hepta import hia_machine_instructions_native as instruction_bridge
+            self.save('source-admission-window.json', state_tests.assert_scope_source_admission_bound(
+                self, backend, checked, (encoding_bridge, state_bridge, instruction_bridge)))
 
     def test_malformed_ack_and_failed_append_cannot_be_replayed(self):
         code = state_tests.oracle().Code()

@@ -98,13 +98,18 @@ def native_implementation_identity():
         return b''
     from hashlib import sha256
     from .hia_machine_encoding_native import SOURCE
-    identity = sha256(SOURCE.read_bytes()).hexdigest() + ':' + owner.image_sha256
+    def admitted_identity(image, source):
+        source_sha = sha256(source.read_bytes()).hexdigest()
+        if source_sha != image.admitted_source_sha256:
+            raise ValueError('native HIA machine source identity mismatch')
+        return source_sha + ':' + image.image_sha256
+    identity = admitted_identity(owner, SOURCE)
     if state is not None:
         from .hia_machine_state_native import SOURCE as STATE_SOURCE
-        identity += ':machine-state:' + sha256(STATE_SOURCE.read_bytes()).hexdigest() + ':' + state.image_sha256
+        identity += ':machine-state:' + admitted_identity(state, STATE_SOURCE)
     if instructions is not None:
         from .hia_machine_instructions_native import SOURCE as INSTRUCTION_SOURCE
-        identity += ':machine-instructions:' + sha256(INSTRUCTION_SOURCE.read_bytes()).hexdigest() + ':' + instructions.image_sha256
+        identity += ':machine-instructions:' + admitted_identity(instructions, INSTRUCTION_SOURCE)
     return identity.encode('ascii')
 
 
