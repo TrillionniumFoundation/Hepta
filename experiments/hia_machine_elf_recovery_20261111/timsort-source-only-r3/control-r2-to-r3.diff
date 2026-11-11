@@ -1,0 +1,240 @@
+--- timsort-source-only-r2/inputs/common.py
++++ timsort-source-only-r3/inputs/common.py
+ import stat
+ import types
+ 
++ROOT = Path('/home/qian-qi/he26elftimsortr3')
+-ROOT = Path('/home/qian-qi/he26elftimsortr2')
+ SOURCE = Path('/home/qian-qi/he26elfintegrationr2/source')
+ PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')
+ PYTHON_SHA = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
+ COMPILER = Path('/home/qian-qi/he26v67r2/q/cold.cold/qualification.evidence/B3.image.bin')
+ COMPILER_SHA = '0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8'
++KEY = 'hia-e26e-desktop-machine-elf-timsort-authoring-r3'
+-KEY = 'hia-e26e-desktop-machine-elf-timsort-authoring-r2'
+ PREVIOUS_REPORT = Path('/home/qian-qi/he26elfintegrationr2/report.json')
+ PREVIOUS_REPORT_SHA = 'be917c1c1702ff4fc9923717f4a3d79944bfc1ff63f357b67996063095e653fe'
+ PREVIOUS_GUARD = Path('/home/qian-qi/he26elfintegrationr2/guard/guardian.json')
+ PREVIOUS_GUARD_SHA = '174980724f756690b1fbb2fc0fad5b671e25909b87f93debd07b733fc8c6e7a0'
+ PREVIOUS_SNAPSHOT = Path('/home/qian-qi/he26elfintegrationr2/source-after-products.json')
+ PREVIOUS_SNAPSHOT_SHA = '9cd0f650d20dc3f458e013228a4706c1d746041a63d081169598435b8e6cbcca'
++PREVIOUS_PREPARATION = Path('/home/qian-qi/he26elfintegrationr2/source-preparation.json')
++PREVIOUS_PREPARATION_SHA = '231e825d586916af7bd91b07036689150f0bdb0552867f35e381e7257646b87c'
++PREVIOUS_CANDIDATE = Path('/home/qian-qi/he26elfintegrationr2/candidate-source-before.json')
++PREVIOUS_CANDIDATE_SHA = 'c321454b2ee0af67c82852fcd13175f81afff1b94499143d68d8936591feb92f'
++FAILED_AUTHORING_REPORT = Path('/home/qian-qi/he26elftimsortr2/report.json')
++FAILED_AUTHORING_REPORT_SHA = '9f381702b23a415bc37b80d6c35e69ffe566403e935428bbe6d3e3673960f0dc'
++FAILED_AUTHORING_GUARD = Path('/home/qian-qi/he26elftimsortr2/guard/guardian.json')
++FAILED_AUTHORING_GUARD_SHA = 'aed239fd1151d64db1ecbb7ba0878c15f543c63d399450477b80209c535c10e1'
+ OWNER_SHA = '36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2'
+ GUARDIAN_SHA = 'd0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023'
+ ORACLE_SHA = 'c77cc453d33058ccbeea9e056191001982892a3e59386958090122ccf487c101'
+...
+             and value.get('root') == str(ROOT) and value.get('source') == str(SOURCE)
+             and value.get('key') == KEY and value.get('controller_seconds') == 180,
+             'fixed authoring configuration differs')
++    require(value.get('previous_preparation_sha256') == PREVIOUS_PREPARATION_SHA
++            and value.get('previous_candidate_before_sha256') == PREVIOUS_CANDIDATE_SHA
++            and value.get('previous_failed_authoring_report_sha256') == FAILED_AUTHORING_REPORT_SHA
++            and value.get('previous_failed_authoring_guardian_sha256') == FAILED_AUTHORING_GUARD_SHA,
++            'fixed historical receipt binding differs')
+     require(value.get('source_count') == SOURCE_COUNT
+             and value.get('candidate_count') == NEW_COUNT
+             and value.get('expected_generated_functions') == 62
+
+--- timsort-source-only-r2/inputs/worker.py
++++ timsort-source-only-r3/inputs/worker.py
+     ROOT, SOURCE, PYTHON, PYTHON_SHA, COMPILER, COMPILER_SHA, KEY, GENERATED,
+     PREVIOUS_REPORT, PREVIOUS_REPORT_SHA, PREVIOUS_GUARD, PREVIOUS_GUARD_SHA,
+     PREVIOUS_SNAPSHOT, PREVIOUS_SNAPSHOT_SHA, SOURCE_COUNT, NEW_COUNT,
++    PREVIOUS_PREPARATION, PREVIOUS_PREPARATION_SHA, PREVIOUS_CANDIDATE, PREVIOUS_CANDIDATE_SHA,
++    FAILED_AUTHORING_REPORT, FAILED_AUTHORING_REPORT_SHA, FAILED_AUTHORING_GUARD, FAILED_AUTHORING_GUARD_SHA,
+     OVERLAYS, NEW_PATHS, LIMITS, ORACLE_SHA, checked_config, checked_relative,
+     create, environment, identity, natural_guardian, read_json, require,
+     stable_file, sync_directory, wire,
+...
+         'previous_report': stable_file(PREVIOUS_REPORT, PREVIOUS_REPORT_SHA)[0],
+         'previous_guardian': stable_file(PREVIOUS_GUARD, PREVIOUS_GUARD_SHA)[0],
+         'previous_source_snapshot': stable_file(PREVIOUS_SNAPSHOT, PREVIOUS_SNAPSHOT_SHA)[0],
++        'previous_preparation': stable_file(PREVIOUS_PREPARATION, PREVIOUS_PREPARATION_SHA)[0],
++        'previous_candidate_before': stable_file(PREVIOUS_CANDIDATE, PREVIOUS_CANDIDATE_SHA)[0],
++        'failed_authoring_report': stable_file(FAILED_AUTHORING_REPORT, FAILED_AUTHORING_REPORT_SHA)[0],
++        'failed_authoring_guardian': stable_file(FAILED_AUTHORING_GUARD, FAILED_AUTHORING_GUARD_SHA)[0],
+     }
+ 
+ 
+...
+             and prior.get('source_stable') is True
+             and prior.get('readonly_inputs_stable') is True
+             and natural_guardian(prior_guard), 'old completed source custody differs')
++    preparation, preparation_pin = read_json(PREVIOUS_PREPARATION, PREVIOUS_PREPARATION_SHA)
++    prepared, prepared_pin = read_json(PREVIOUS_CANDIDATE, PREVIOUS_CANDIDATE_SHA)
+     baseline, snapshot_pin = read_json(PREVIOUS_SNAPSHOT, PREVIOUS_SNAPSHOT_SHA)
++    require(preparation_pin['bytes'] == 8698 and prepared_pin['bytes'] == 2479941
++            and snapshot_pin['bytes'] == 2479764, 'actual prior receipt sizes differ')
++    require(prior['checks']['fresh_independent_source_preparation']['pass'] is True
++            and prior['checks']['fresh_independent_source_preparation']['report'] == preparation_pin,
++            'completed report does not bind the actual original preparation receipt')
++    require(preparation.get('schema') == 'hepta.hia.machine-elf.integration-source-preparation.v1'
++            and preparation.get('status') == 'DEVELOPMENT_SOURCE_PREPARED_NO_PRODUCT_EXECUTED'
++            and preparation.get('scope') == 'SOURCE_PREPARATION_ONLY_NOT_QUALIFICATION'
++            and preparation.get('base_commit') == '608157e52b0b94e0d294f6b99c4e809869f183aa'
++            and preparation.get('base_tree') == 'e7c29a60796a1a78946a2c667aa80df86529e532'
++            and preparation.get('product_commit') == '66f00357a9a847c816609238a5d433e5f435023c'
++            and preparation.get('complete_independent_clone_checked') is True
++            and preparation.get('original_source_state_stable') is True
++            and preparation.get('original_source_metadata_stable') is True
++            and preparation.get('native_executed') is False, 'actual historical source identity differs')
++    require(preparation['candidate_source'] == prepared_pin
++            and preparation['source_metadata']['candidate-source-before.json'] == prepared_pin,
++            'original preparation does not bind the actual complete candidate observation')
++    require(set(prepared) == {'schema', 'root', 'head', 'tree', 'files'}
++            and prepared.get('schema') == 'hepta.hia.machine-elf.authoring-source-observation.v1'
++            and prepared.get('root') == str(SOURCE)
++            and prepared.get('head') == preparation['base_commit']
++            and prepared.get('tree') == preparation['base_tree']
++            and type(prepared.get('files')) is dict
++            and len(prepared['files']) == SOURCE_COUNT, 'actual initial source observation differs')
++    require(set(baseline) == {'root', 'files'} and baseline.get('root') == str(SOURCE)
+-    require(baseline.get('schema') == 'hepta.hia.machine-elf.authoring-source-observation.v1'
+-            and baseline.get('root') == str(SOURCE)
+-            and baseline.get('head') == '608157e52b0b94e0d294f6b99c4e809869f183aa'
+-            and baseline.get('tree') == 'e7c29a60796a1a78946a2c667aa80df86529e532'
+             and type(baseline.get('files')) is dict
++            and len(baseline['files']) == SOURCE_COUNT
++            and baseline['files'] == prepared['files'],
++            'complete before/after 3932-file source mappings differ')
++    require(prior['source_after'] == snapshot_pin
++            and prior['source_before']['sha256'] == PREVIOUS_SNAPSHOT_SHA
++            and prior['source_before']['bytes'] == snapshot_pin['bytes'],
+-            and len(baseline['files']) == SOURCE_COUNT, 'actual prior source snapshot differs')
+-    require(prior['source_after']['sha256'] == PREVIOUS_SNAPSHOT_SHA,
+             'prior source report does not bind this complete file snapshot')
++    require(type(preparation.get('products_installed')) is dict
++            and len(preparation['products_installed']) == 12, 'original overlay denominator differs')
++    for relative, pin in preparation['products_installed'].items():
++        require(relative in prepared['files']
++                and all(prepared['files'][relative][field] == pin[field]
++                        for field in ('bytes', 'sha256')),
++                'original product delta does not match the complete source observation')
+     for relative, pin in baseline['files'].items():
+         checked_relative(relative)
+         require(pin['path'] == str(SOURCE / relative)
+...
+                 'invalid previous physical source member')
+     report['prior_completed_source_custody'] = {
+         'report': prior_pin, 'guardian': guard_pin, 'snapshot': snapshot_pin,
++        'preparation': preparation_pin, 'candidate_before': prepared_pin,
++        'complete_before_after_files_mapping_equal': True, 'source_members': SOURCE_COUNT,
++        'actual_post_snapshot_has_no_git_headers': True,
+         'product_results_inherited': False,
+     }
+     for path, digest, name in (
+         (PREVIOUS_REPORT, PREVIOUS_REPORT_SHA, 'prior-report-original.json'),
+         (PREVIOUS_GUARD, PREVIOUS_GUARD_SHA, 'prior-guardian-original.json'),
+         (PREVIOUS_SNAPSHOT, PREVIOUS_SNAPSHOT_SHA, 'prior-source-snapshot-original.json'),
++        (PREVIOUS_PREPARATION, PREVIOUS_PREPARATION_SHA, 'prior-source-preparation-original.json'),
++        (PREVIOUS_CANDIDATE, PREVIOUS_CANDIDATE_SHA, 'prior-candidate-before-original.json'),
++        (FAILED_AUTHORING_REPORT, FAILED_AUTHORING_REPORT_SHA, 'failed-authoring-r2-report-original.json'),
++        (FAILED_AUTHORING_GUARD, FAILED_AUTHORING_GUARD_SHA, 'failed-authoring-r2-guardian-original.json'),
+     ):
+         info, raw = stable_file(path, digest, collect=True)
+         create(ROOT / 'inputs' / name, raw)
+
+--- timsort-source-only-r2/bootstrap.py
++++ timsort-source-only-r3/bootstrap.py
+ import stat
+ import sys
+ 
++PAYLOAD_SHA = 'de35f5ceabd5de3c201190d8f4967addba436b50cfe0d4fb77bd729771935395'
++PAYLOAD_BYTES = 422580
++ROOT = Path('/home/qian-qi/he26elftimsortr3')
+-PAYLOAD_SHA = 'c8358d01ef5a2d05e6c2ce071f3ae2d326efa0f255e2083ad49c8f22cb708b61'
+-PAYLOAD_BYTES = 414953
+-ROOT = Path('/home/qian-qi/he26elftimsortr2')
+ PYTHON = Path('/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python')
+ PYTHON_SHA = 'b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493'
+ B3 = Path('/home/qian-qi/he26v67r2/q/cold.cold/qualification.evidence/B3.image.bin')
+ B3_SHA = '0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8'
++KEY = 'hia-e26e-desktop-machine-elf-timsort-authoring-r3'
+-KEY = 'hia-e26e-desktop-machine-elf-timsort-authoring-r2'
+ NAMES = {'common.py', 'complete_comparison_trajectories.py', 'complete_comparison_trajectory_inputs.json', 'guardian.py', 'oracle-608.py.txt', 'process_owner_impl.py', 'source-00.py.txt', 'source-01.py.txt', 'source-02.py.txt', 'source-03.py.txt', 'source-04.py.txt', 'source-05.py.txt', 'source-06.py.txt', 'source-07.py.txt', 'source-08.py.txt', 'source_worker.py', 'worker.py'}
+ 
+ 
+...
+         '174980724f756690b1fbb2fc0fad5b671e25909b87f93debd07b733fc8c6e7a0',
+     '/home/qian-qi/he26elfintegrationr2/source-after-products.json':
+         '9cd0f650d20dc3f458e013228a4706c1d746041a63d081169598435b8e6cbcca',
++    '/home/qian-qi/he26elfintegrationr2/source-preparation.json':
++        '231e825d586916af7bd91b07036689150f0bdb0552867f35e381e7257646b87c',
++    '/home/qian-qi/he26elfintegrationr2/candidate-source-before.json':
++        'c321454b2ee0af67c82852fcd13175f81afff1b94499143d68d8936591feb92f',
++    '/home/qian-qi/he26elftimsortr2/report.json':
++        '9f381702b23a415bc37b80d6c35e69ffe566403e935428bbe6d3e3673960f0dc',
++    '/home/qian-qi/he26elftimsortr2/guard/guardian.json':
++        'aed239fd1151d64db1ecbb7ba0878c15f543c63d399450477b80209c535c10e1',
+ }
+ for name, digest in prior_inputs.items():
+     pinned(Path(name), digest)
+
+--- timsort-source-only-r2/config.json
++++ timsort-source-only-r3/config.json
+   "compiler": "/home/qian-qi/he26v67r2/q/cold.cold/qualification.evidence/B3.image.bin",
+   "controller_seconds": 180,
+   "expected_generated_functions": 62,
++  "failed_control_job": "1a1ccf00e37-2564-10fe",
++  "failed_control_predecessor": "20522da85000ede2cc5e5362c90385a914a64b7f",
++  "failed_control_status": "ACTUAL_CONTROLLER_HOLD_BEFORE_GENERATION",
+   "files": {
+     "common.py": {
++      "git_blob_sha1": "53ec67b52909f6c70dd57671a3a243de688026e7",
++      "sha256": "3e9f49606293bc5c28758c541713121c0551799c21a3e02d488b06528bf5a313",
++      "size": 11803
+-      "git_blob_sha1": "f8607dd1a29e7e2b52709ef48a7706ea28885bbc",
+-      "sha256": "d7f8ced183f83bc31447ea4ef94af5aebc4c0530164fc26f727b6b3f6d179b44",
+-      "size": 10653
+     },
+     "complete_comparison_trajectories.py": {
+       "git_blob_sha1": "55af2272ec7657cb2cda29774eabeb3067082001",
+...
+       "size": 5564
+     },
+     "worker.py": {
++      "git_blob_sha1": "2827b510e20fdfafb34ced1955463a535f175a56",
++      "sha256": "a4f08b3ce0ccbec896b9ee4f3bc4605a4bfc9091f588fa86a7c1d1244d411d05",
++      "size": 20382
+-      "git_blob_sha1": "2d6dffc9516c709d039617fa4b672eea39750425",
+-      "sha256": "155936eb751280f440b2d36271f96e5145d36a0e93b3d1d3528538cdf9b13316",
+-      "size": 16386
+     }
+   },
+   "formal_source_consumer_claimed": false,
+   "full_git_object_closure_claimed": false,
++  "key": "hia-e26e-desktop-machine-elf-timsort-authoring-r3",
+-  "key": "hia-e26e-desktop-machine-elf-timsort-authoring-r2",
+   "limits": {
+     "blocks": 1536,
+     "functions": 128,
+...
+       "size": 15294
+     }
+   },
++  "previous_candidate_before_sha256": "c321454b2ee0af67c82852fcd13175f81afff1b94499143d68d8936591feb92f",
+   "previous_completed_job": "1a1cc80c36b-2564-f74",
+   "previous_completed_source_commit": "66f00357a9a847c816609238a5d433e5f435023c",
++  "previous_failed_authoring_guardian_sha256": "aed239fd1151d64db1ecbb7ba0878c15f543c63d399450477b80209c535c10e1",
++  "previous_failed_authoring_report_sha256": "9f381702b23a415bc37b80d6c35e69ffe566403e935428bbe6d3e3673960f0dc",
+   "previous_guardian_sha256": "174980724f756690b1fbb2fc0fad5b671e25909b87f93debd07b733fc8c6e7a0",
++  "previous_preparation_sha256": "231e825d586916af7bd91b07036689150f0bdb0552867f35e381e7257646b87c",
+   "previous_report_sha256": "be917c1c1702ff4fc9923717f4a3d79944bfc1ff63f357b67996063095e653fe",
+   "previous_source_snapshot_sha256": "9cd0f650d20dc3f458e013228a4706c1d746041a63d081169598435b8e6cbcca",
+   "prior_product_results_inherited": false,
+   "product_tests_executed": false,
+   "python": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
++  "receipt_binding_revision": "actual-preparation-to-candidate-before-to-post-products-complete-3932-file-mapping",
++  "root": "/home/qian-qi/he26elftimsortr3",
+-  "root": "/home/qian-qi/he26elftimsortr2",
+   "schema": "hepta.hia.machine-elf.sort-authoring-controller.v1",
+   "scope": "COMPLETE_PHYSICAL_SOURCE_LEAF_COPY_AND_AUTHORING_ONLY",
+   "source": "/home/qian-qi/he26elfintegrationr2/source",
+

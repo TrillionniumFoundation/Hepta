@@ -1,0 +1,76 @@
+{
+  "schema": "hepta.hia.machine-elf.sort-source-receipt-chain.v1",
+  "status": "STATIC_WIRING_NOT_EXECUTED",
+  "actual_completed_integration": {
+    "control_commit": "0b0e60b0eda71b89c6c1d303a2c8c338845b4fab",
+    "product_commit": "66f00357a9a847c816609238a5d433e5f435023c",
+    "job_id": "1a1cc80c36b-2564-f74",
+    "source_root": "/home/qian-qi/he26elfintegrationr2/source",
+    "results_not_inherited": true
+  },
+  "documents": [
+    {
+      "role": "completed integration report",
+      "path": "/home/qian-qi/he26elfintegrationr2/report.json",
+      "bytes": 25957,
+      "sha256": "be917c1c1702ff4fc9923717f4a3d79944bfc1ff63f357b67996063095e653fe",
+      "has_full_raw_original_here": true,
+      "link": "checks.fresh_independent_source_preparation.pass must be True and its report must equal the live original preparation pin"
+    },
+    {
+      "role": "original source preparation",
+      "path": "/home/qian-qi/he26elfintegrationr2/source-preparation.json",
+      "bytes": 8698,
+      "sha256": "231e825d586916af7bd91b07036689150f0bdb0552867f35e381e7257646b87c",
+      "has_full_raw_original_here": true,
+      "base_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+      "base_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+      "link": "candidate_source and source_metadata.candidate-source-before.json must both equal the live candidate-before pin; all twelve original product hashes/sizes must match its files"
+    },
+    {
+      "role": "complete initial candidate source observation",
+      "path": "/home/qian-qi/he26elfintegrationr2/candidate-source-before.json",
+      "bytes": 2479941,
+      "sha256": "c321454b2ee0af67c82852fcd13175f81afff1b94499143d68d8936591feb92f",
+      "has_full_raw_original_here": false,
+      "root_keys": [
+        "schema",
+        "root",
+        "head",
+        "tree",
+        "files"
+      ],
+      "members": 3932,
+      "link": "head/tree match the actual preparation; complete files dictionary equals the post-products dictionary, including path/resolved/bytes/SHA256/mode/identity"
+    },
+    {
+      "role": "complete post-products source observation",
+      "path": "/home/qian-qi/he26elfintegrationr2/source-after-products.json",
+      "bytes": 2479764,
+      "sha256": "9cd0f650d20dc3f458e013228a4706c1d746041a63d081169598435b8e6cbcca",
+      "has_full_raw_original_here": false,
+      "root_keys": [
+        "root",
+        "files"
+      ],
+      "members": 3932,
+      "link": "live pin equals completed report.source_after and its SHA/size equals report.source_before; complete physical source scan must still equal all records"
+    }
+  ],
+  "prior_failed_controller": {
+    "commit": "20522da85000ede2cc5e5362c90385a914a64b7f",
+    "job_id": "1a1ccf00e37-2564-10fe",
+    "actual_status": "HOLD",
+    "native_executed": false,
+    "generation_executed": false,
+    "originals_commit": "32ef14694624f5544d9599a2d2670ec4f14130ec",
+    "new_readonly_pins": {
+      "/home/qian-qi/he26elftimsortr2/report.json": "9f381702b23a415bc37b80d6c35e69ffe566403e935428bbe6d3e3673960f0dc",
+      "/home/qian-qi/he26elftimsortr2/guard/guardian.json": "aed239fd1151d64db1ecbb7ba0878c15f543c63d399450477b80209c535c10e1"
+    },
+    "wrapper_stdout_custody_gap_bytes": 450
+  },
+  "preservation": "New bootstrap and guardian pin all seven historical files. Worker records them before/after and copies their original bytes create-only under its inputs. No original file is mutated.",
+  "local_read_scope": "The complete original preparation/report and exact producers are included here verbatim. The two roughly 2.48 MB source observations have not been downloaded in this window; their external hashes and producers are fixed, and the new controller must independently read and compare their full actual maps before source copying.",
+  "history_not_rewritten": true
+}
