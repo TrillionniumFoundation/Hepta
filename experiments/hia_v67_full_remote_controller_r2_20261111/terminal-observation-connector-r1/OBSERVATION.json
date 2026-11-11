@@ -1,0 +1,114 @@
+{
+  "schema": "hia.v67.formal-r2.connector-terminal-observation.v1",
+  "status": "HOLD_COLD_STAGE_FAILED_INNER_CAUSE_PENDING",
+  "source_commit": "608157e52b0b94e0d294f6b99c4e809869f183aa",
+  "source_tree": "e7c29a60796a1a78946a2c667aa80df86529e532",
+  "preexecution_commit": "ad42c8f10f05e0b5631a681301cdb9c05970cfd0",
+  "job_id": "1a1cbbebbe7-2564-c93",
+  "host": "desktop",
+  "stable_key": "hia-e26e-desktop-v67-608157e5-full-qualification-r2",
+  "root": "/home/qian-qi/he26v67r2",
+  "h_terminal": {
+    "state": "failed",
+    "exit_code": 1,
+    "timed_out": false,
+    "cancelled": false,
+    "output_complete": true,
+    "output_durable": true,
+    "terminal_publication_confirmed": true,
+    "at_unix_ms": 1794420707232
+  },
+  "observed_stages": [
+    {
+      "name": "source-reproduction",
+      "returncode": 0,
+      "seconds": 81.16991371405311
+    },
+    {
+      "name": "source-contract",
+      "returncode": 0,
+      "seconds": 0.216551355086267
+    },
+    {
+      "name": "source-scope",
+      "returncode": 0,
+      "seconds": 12.148849205113947
+    },
+    {
+      "name": "source-tests",
+      "returncode": 0,
+      "seconds": 701.0681217568927
+    },
+    {
+      "name": "cold",
+      "returncode": 1,
+      "seconds": 181.10581162315793,
+      "outer_workflow_timed_out": false,
+      "inner_cold_report_not_yet_read": true
+    }
+  ],
+  "outer_guardian": {
+    "status": "HOLD",
+    "lifecycle_status": "QUALIFICATION_FAILED",
+    "returncode": 1,
+    "timed_out": false,
+    "exit_observed_before_deadline": true,
+    "subreaper_enabled": true,
+    "event_overflow": false,
+    "events": [
+      "qualification_started",
+      "owned_child_observed",
+      "qualification_exit_observed",
+      "owned_child_reaped"
+    ],
+    "interrupted_signals": [],
+    "cleanup": {
+      "attempted": true,
+      "complete": true,
+      "deadline_exceeded": false,
+      "elapsed_ns": 135416691,
+      "errors": [],
+      "leader_reaped": true,
+      "observed_echild": true,
+      "remaining_direct_children": []
+    },
+    "input_identity_preserved": true
+  },
+  "original_file_readback": [
+    {
+      "path": "/home/qian-qi/he26v67r2/guard/guardian.json",
+      "bytes": 15163,
+      "reported_sha256": "06e86e0fa1c06693d2146afc42e78c7dbbca7691f88038c242597aba81c047e3"
+    },
+    {
+      "path": "/home/qian-qi/he26v67r2/guard/child.stdout.log",
+      "bytes": 977,
+      "reported_sha256": "fb6de24e56a702f3c016476cd6ea2af13553974978b25a7d2507cfac18943ec1"
+    },
+    {
+      "path": "/home/qian-qi/he26v67r2/guard/child.stderr.log",
+      "bytes": 0,
+      "reported_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/qian-qi/he26v67r2/q/steps.json",
+      "bytes": 31777,
+      "reported_sha256": "9af4e6a11aaa53df3a9139b23ad80d77ff3208283f8512fd385ce4efd30e70cf"
+    }
+  ],
+  "source_preserved_reported": true,
+  "full_retained_suite_executed": false,
+  "product_replayed": false,
+  "controller_or_gate_modified": false,
+  "whole_native_delivery_qualified": false,
+  "local_executor": {
+    "state": "unavailable",
+    "cause_of_remote_failure_inferred": false,
+    "prior_workspace_raw_reports_unavailable_not_claimed_lost": true
+  },
+  "limitations": [
+    "This is the original terminal observation, not a complete cold failure diagnosis.",
+    "Source-test loaded/executed IDs and the inner cold report are pending independent complete readback.",
+    "Reported remote file SHA256 values are retained from the native read API; raw SDK strings are preserved byte-for-byte."
+  ]
+}
