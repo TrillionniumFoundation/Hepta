@@ -107,6 +107,25 @@ cold path builds from the complete matching source closure and retains its
 build when `--evidence-dir` names a new directory. The explicit development
 path cannot be relabelled as qualified cold.
 
-The original selected caller run has not yet completed at this checkpoint.
+The first selected caller run completed all 67 inherited/original test IDs in
+the five modules. It recorded one error because a declared historical GGUF
+provenance input was absent and one skip because pinned Z3 was absent. Those
+original observations remain a failed development gate. All eleven Agent tools
+entered the native store, but those original modules do not call `resolve_uri`;
+their test count is not presented as URI coverage.
+
+The next development candidate adds a separate mandatory real SQLite URI
+control without changing the original loaded test IDs. It compares issuance,
+known and unknown URI lookups, exact bytes, SQL traces, artifact metadata and
+close/reopen state while the selected side forbids all six retained owners.
+Its closure includes the generator, HIA source, bridge, builder, oracle fixture,
+dedicated tests and caller driver. The profile label is
+`selfhost-core-linux-x86_64-v68-agent-store-authority-development`; existing
+compiler limits and capabilities are unchanged. The 23 omitted declared
+historical files were hydrated from exact canonical Git leaves, and Z3
+`4.15.4.0` was installed into a private development environment before another
+caller run. This is still a partial development source population.
+
+The updated caller and URI gates have not executed at this source checkpoint.
 No complete equivalence, matching-source cold, complete regression or native
 durability pass is asserted.

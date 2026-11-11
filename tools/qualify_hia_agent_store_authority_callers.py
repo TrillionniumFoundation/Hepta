@@ -14,6 +14,7 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 if __package__ in {None, ''}:
@@ -35,6 +36,52 @@ def flatten(suite):
             yield from flatten(item)
         else:
             yield item
+
+
+def uri_control(folder, manifest):
+    """A separately named real SQLite control; it is not one of the old tests."""
+    from hepta import hia_agent_store as store_module
+    from hepta.hia_agent_store_authority_native import SELECTOR
+    folder.mkdir(mode=0o700)
+    counter = iter(range(1, 100))
+    observed_uuids = []
+    def next_uuid():
+        value = next(counter); observed_uuids.append(value); return uuid.UUID(int=value)
+    with patch.dict(os.environ, {SELECTOR: str(manifest) if manifest is not None else ''}), \
+         patch.object(store_module.uuid, 'uuid4', side_effect=next_uuid):
+        store = store_module.AgentStore(folder / 'state')
+        sql = []; store.db.set_trace_callback(sql.append)
+        try:
+            reference = store.put(b'URI-control\0\xff', 'data', {'authority': 'retained-issuance'})
+            before = [tuple(row) for row in store.db.execute('SELECT * FROM artifacts ORDER BY rowid')]
+            known = store.resolve_uri(reference['uri'])
+            read, metadata = store.get(known, kind='data')
+            try:
+                store.resolve_uri('never-issued://opaque-value')
+            except store_module.AgentRejected as exc:
+                unknown = {'code': exc.code, 'message': str(exc), 'phase': exc.phase,
+                           'retry_action': exc.retry_action}
+            else:
+                raise AssertionError('unknown URI acquired retained authority')
+            after = [tuple(row) for row in store.db.execute('SELECT * FROM artifacts ORDER BY rowid')]
+            if before != after:
+                raise AssertionError('URI read changed retained state')
+        finally:
+            store.close()
+        restarted = store_module.AgentStore(folder / 'state')
+        try:
+            reopened = [tuple(row) for row in restarted.db.execute('SELECT * FROM artifacts ORDER BY rowid')]
+        finally:
+            restarted.close()
+        if reopened != after or known != reference:
+            raise AssertionError('URI retained identity or restart state differs')
+        record = {'reference': reference, 'known': known, 'read_hex': read.hex(), 'metadata': metadata,
+                  'unknown': unknown, 'before': before, 'after': after, 'reopened': reopened,
+                  'sql': sql, 'uuid_values': observed_uuids,
+                  'files': {p.name: {'hex': p.read_bytes().hex(), 'mode': p.stat().st_mode & 0o777}
+                            for p in sorted((folder / 'state/artifacts').iterdir())}}
+    (folder / 'observations.json').write_text(json.dumps(record, indent=2, sort_keys=True) + '\n')
+    return record
 
 
 def main():
@@ -119,6 +166,11 @@ def main():
                 current[0] = test.id(); executed.append(test.id()); super().startTest(test)
             def stopTest(self, test):
                 super().stopTest(test); current[0] = 'outside-test'
+        # The baseline runs before the selected region. The native control
+        # below runs with exactly the same old-owner prohibitions as callers.
+        reference_uri = uri_control(folder / 'uri-reference', None)
+        native_uri = None
+        uri_failure = None
         start = time.monotonic()
         with ExitStack() as selected:
             selected.enter_context(patch.dict(os.environ, {SELECTOR: str(manifest)}))
@@ -128,14 +180,23 @@ def main():
             selected.enter_context(patch.object(StoreAuthoritySession, 'step', step))
             selected.enter_context(patch.object(HIAAgentService, 'call', call))
             result = unittest.TextTestRunner(verbosity=2, resultclass=Result).run(unittest.TestSuite(loaded))
+            current[0] = 'independent-uri-control'
+            try:
+                native_uri = uri_control(folder / 'uri-native', manifest)
+            except BaseException as exc:
+                import traceback
+                uri_failure = {'type': type(exc).__name__, 'message': str(exc), 'trace': traceback.format_exc()}
+            finally:
+                current[0] = 'outside-test'
         source_after = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_names}
         stable = source_before == source_after and manifest.read_bytes() == manifest_raw and sha256(executable.read_bytes()).hexdigest() == image_sha
         cold_stable = current_sources() == source_manifest if args.cold_report else None
         all_tools = set(TOOLS[:-1]) <= (set(tools_with_owner) | set(tools_without_owner))
         all_modes = set(modes) == set(METHODS) and all(count > 0 for count in modes.values())
+        uri_equal = uri_failure is None and native_uri == reference_uri
         anomalies = (result.errors, result.failures, result.skipped, result.expectedFailures, result.unexpectedSuccesses)
         passed = (result.testsRun == len(loaded_ids) and executed == loaded_ids and not any(anomalies)
-                  and not retained and all_modes and all_tools and stable and cold_stable is not False)
+                  and not retained and all_modes and all_tools and uri_equal and stable and cold_stable is not False)
         record = {
             'schema': 'hepta.hia.agent-store-authority-selected-callers.v1',
             'status': 'PASS' if passed else 'FAIL_OR_INCOMPLETE', 'scope': scope,
@@ -150,6 +211,9 @@ def main():
             'unexpected_successes': [test.id() for test in result.unexpectedSuccesses],
             'explicit_development_exclusions': {}, 'retained_owner_forbidden': True, 'retained_owner_entries': retained,
             'all_six_store_modes_entered_native': all_modes, 'actual_native_modes': dict(modes),
+            'independent_uri_control': {'status': 'PASS' if uri_equal else 'HOLD',
+                                        'part_of_original_loaded_ids': False,
+                                        'reference': reference_uri, 'native': native_uri, 'failure': uri_failure},
             'actual_native_step_returns': dict(steps), 'per_test_entries': {k: dict(v) for k, v in per_test.items()},
             'all_eleven_agent_tools_exercised': all_tools, 'agent_tools_with_native_store': dict(tools_with_owner),
             'agent_tools_without_native_store': dict(tools_without_owner),

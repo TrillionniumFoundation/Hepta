@@ -13,8 +13,15 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v67-cli-machine-bytes-cached-wire'
+PROFILE = 'selfhost-core-linux-x86_64-v68-agent-store-authority-development'
 SOURCE_FILES = (
+    'tools/generate_hia_agent_store_authority.py',
+    'tools/build_hia_agent_store_authority.py',
+    'tools/qualify_hia_agent_store_authority_callers.py',
+    'examples/hia_bootstrap/agent_store_authority.hiaasm',
+    'tests/test_hia_agent_store_authority_native.py',
+    'tests/fixtures/hia_agent_store_f689.py.txt',
+    'docs/HIA_AGENT_STORE_AUTHORITY_NATIVE.md',
     'tools/generate_hia_cli_control.py',
     'tools/hia_cli_control_phases.py',
     'tools/generate_hia_cli_format.py',
@@ -550,6 +557,45 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'agent_store_reference_and_profile_authority': {
+            'source': 'examples/hia_bootstrap/agent_store_authority.hiaasm',
+            'manifest_schema': 'hepta.hia.agent-store-authority-native.v2',
+            'protocol_magic': 'HIASTA02',
+            'selection': 'explicit HEPTA_HIA_AGENT_STORE_AUTHORITY_MANIFEST at each ordinary entry; selected admission failure does not fall back',
+            'ordinary_entries': ['AgentStore.put', 'AgentStore._ref', 'AgentStore.get',
+                                 'AgentStore.resolve_uri', 'AgentStore.profile', 'AgentStore.check_profile'],
+            'native_owners': ['reference projection and issuance',
+                'SQL query and parameter-graph selection',
+                'retained reference, kind and expected-profile authority',
+                'URI lookup and absent-row routing',
+                'file publication/read route and metadata decode ordering',
+                'builtin structural/scalar equality and requested foreign comparison observations'],
+            'maximum_artifact_bytes': 67108864,
+            'URI_grammar_added': False,
+            'keys_field_shape_admission_remains_hosted': True,
+            'nested_ordinary_entries_observe_their_own_selector': True,
+            'whole_outer_operation_selector_is_frozen': False,
+            'foreign_requests_consumed_before_effects': True,
+            'SQL_acknowledgements_follow_actual_success': True,
+            'terminal_or_failed_continuations_can_repeat_effects': False,
+            'hosted_owners': ['field-shape admission', 'SQLite schema, binding, locking, transactions and durability',
+                'unselected file publication and stable reads',
+                'independently selected JSON, bounded wire, SHA and artifact publication owners',
+                'UUID, object custody, attributes, item access, method dispatch and opaque callbacks'],
+            'foreign_extension_limits': ['arbitrary interpreter recursive-resource exhaustion thresholds',
+                'foreign dictionary keys without a stored-hash iteration primitive',
+                'object allocation identity, finalizer timing and adversarial private-state mutation'],
+            'original_caller_modules': ['tests.test_hia_agent_native_tools',
+                'tests.test_hia_agent_native_proof_contract', 'tests.test_hia_agent_native_lease_snapshot',
+                'tests.test_hia_agent_native_machine_choices', 'tests.test_hia_agent_native_campaign'],
+            'URI_control_is_separate_from_original_caller_test_ids': True,
+            'default_AgentStore_changed': False,
+            'whole_AgentStore_replaced': False,
+            'native_durability_implemented': False,
+            'all_Python_extension_inputs_equivalent': False,
+            'matching_source_cold_qualified': False,
+            'whole_native_delivery_qualified': False,
+        },
         'ordinary_cli_control_and_presentation': {
             'control_source': 'examples/hia_bootstrap/cli_control.hiaasm',
             'format_source': 'examples/hia_bootstrap/cli_format.hiaasm',
