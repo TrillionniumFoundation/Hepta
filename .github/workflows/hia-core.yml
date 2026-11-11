@@ -105,6 +105,7 @@ jobs:
               'tests.test_hia_agent_binary64_format_native.AgentBinary64FormatSourceTests',
               'tests.test_hia_agent_artifact_store_native.AgentArtifactStorePolicyTests',
               'tests.test_hia_worker_request_native.WorkerRequestSourceTests',
+              'tests.test_hia_worker_native_helpers.WorkerHelperSourceTests',
               'tests.test_hia_release_install.ReleaseInstallerSourceTests',
               'tests.test_hia_release_selection.ReleaseSelectionSourceTests',
               'tests.test_hia_release_selection_review.ReleaseSelectionReviewPolicyTests',
@@ -292,6 +293,22 @@ jobs:
           PYREQUEST
         env:
           HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native worker pinned helper custody and journal composition
+        run: |
+          python -B - <<'PYHELPERS'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_worker_native_helpers')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYHELPERS
+        env:
+          HEPTA_HIA_WORKER_HELPERS_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
       - name: Native request journal decisions and actual SQL crash controls
         run: |
           python -B - <<'PYJOURNAL'

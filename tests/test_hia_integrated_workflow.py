@@ -205,6 +205,16 @@ class CoreWorkflowContractTests(unittest.TestCase):
                                  capture_output=True, timeout=10)
             self.assertEqual(run.returncode, status, (case, run.stdout, run.stderr))
 
+    def test_worker_helper_ci_requires_cold_composition_and_zero_anomalies(self):
+        name = 'Native worker pinned helper custody and journal composition'
+        self._assert_complete_native_ci(name, 'PYHELPERS')
+        self.assertIn("loadTestsFromName('tests.test_hia_worker_native_helpers')", script(name))
+        for component in ('WORKER_HELPERS', 'WORKER_REQUEST', 'AGENT_JOURNAL'):
+            self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
+                          step(name))
+        self.assertIn('tests.test_hia_worker_native_helpers.WorkerHelperSourceTests',
+                      script('Core source and independent reference controls'))
+
     def test_actual_failure_archive_runs_after_cold_failure_without_continuing_test_steps(self):
         lines = step('Preserve actual cold failure and stage evidence')
         self.assertIn('        if: always()', lines)

@@ -168,6 +168,10 @@ def _installed_json_image(manifest_path: str, source: Path, schema: str, factory
     hide drift of the source it claims to implement. Loaded code stays pinned;
     changing its disk file does not replace an already immutable mapping.
     """
+    from .hia_native_helpers import pinned_image
+    selected = pinned_image(manifest_path, source, schema, factory)
+    if selected is not None:
+        return selected
     path = Path(manifest_path).resolve(strict=True)
     with path.open('rb') as handle:
         raw = handle.read(16385)

@@ -148,6 +148,17 @@ class AgentIdentityNativeTests(unittest.TestCase):
         from hepta import hia_agent_worker as worker,hia_agent_store as store
         from hepta.hia_agent_contract import installation_manifest
         identities=installation_manifest()
+        from hepta.hia_native_helpers import SCHEMA as BUNDLE_SCHEMA, TARGET, ABI
+        bundle=self.folder/'worker-helpers.json'
+        bundle.write_text(json.dumps({'schema':BUNDLE_SCHEMA,'target':TARGET,'abi':ABI,
+            'helpers':[{'selector':SELECTOR,'manifest_path':self.manifest.name,
+                        'manifest_sha256':sha256(self.manifest.read_bytes()).hexdigest()}]}),
+            encoding='utf-8')
+        bundle_sha256=sha256(bundle.read_bytes()).hexdigest()
+        helper_flags=['--native-helpers-manifest',str(bundle),
+                      '--expected-native-helpers-sha256',bundle_sha256]
+        clean_env={key:value for key,value in os.environ.items()
+                   if not (key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST'))}
         def run(name,tool,digest_override=None):
             state=self.folder/name
             request={'schema':'hia-agent-worker-request-v1','tool':tool,
@@ -156,9 +167,9 @@ class AgentIdentityNativeTests(unittest.TestCase):
             request['request_sha256']=sha256(store.wire(request)).hexdigest() if digest_override is None else digest_override
             output=BytesIO();error=StringIO()
             with patch.object(worker.sys,'stdin',SimpleNamespace(buffer=BytesIO(store.wire(request)))),patch.object(worker.sys,'stdout',SimpleNamespace(buffer=output)),patch.object(worker.sys,'stderr',error):
-                code=worker.main(['--state-root',str(state),'--request-json-stdin'])
+                code=worker.main(['--state-root',str(state),'--request-json-stdin',*helper_flags])
             return code,json.loads(output.getvalue()),state
-        with patch.dict(os.environ,{SELECTOR:str(self.manifest)}),patch.object(store,'_reference_digest',side_effect=AssertionError('host digest fallback')),patch.object(store,'_reference_uint64',side_effect=AssertionError('host integer fallback')):
+        with patch.dict(os.environ,clean_env,clear=True),patch.object(store,'_reference_digest',side_effect=AssertionError('host digest fallback')),patch.object(store,'_reference_uint64',side_effect=AssertionError('host integer fallback')):
             code,report,state=run('real-worker-valid','hia_describe')
             self.assertEqual(code,0);self.assertTrue(report['complete']);self.assertEqual(report['response']['status'],'completed',report)
             self.assertTrue(state.is_dir())
@@ -171,13 +182,13 @@ class AgentIdentityNativeTests(unittest.TestCase):
             import subprocess,sys
             from tests.test_hia_agent_entry import CHILD
             prefix=CHILD.split('from hepta.cli import')[0]
-            child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+"from hepta.hia_agent_worker import main\nresult=main(['--state-root',sys.argv[2],'--request-json-stdin'])\nassert not blocked.intersection(sys.modules)\nraise SystemExit(result)\n"
+            child='import sys\nsys.path.insert(0,sys.argv[1])\n'+prefix+"from hepta.hia_agent_worker import main\nresult=main(['--state-root',sys.argv[2],'--request-json-stdin','--native-helpers-manifest',sys.argv[3],'--expected-native-helpers-sha256',sys.argv[4]])\nassert not blocked.intersection(sys.modules)\nraise SystemExit(result)\n"
             req={'schema':'hia-agent-worker-request-v1','tool':'hia_describe',
                  'arguments':{'section':'language'},'profile_sha256':'a'*64,
                  'catalog_sha256':identities['catalog_sha256']}
             req['request_sha256']=sha256(store.wire(req)).hexdigest()
-            result=subprocess.run([sys.executable,'-I','-S','-B','-c',child,str(ROOT),str(self.folder/'fresh-worker')],input=store.wire(req),capture_output=True,timeout=15,cwd=self.folder,
-                env={'PATH':'','LANG':'C','LC_ALL':'C',SELECTOR:str(self.manifest)})
+            result=subprocess.run([sys.executable,'-I','-S','-B','-c',child,str(ROOT),str(self.folder/'fresh-worker'),str(bundle),bundle_sha256],input=store.wire(req),capture_output=True,timeout=15,cwd=self.folder,
+                env={'PATH':'','LANG':'C','LC_ALL':'C'})
             self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
             self.assertEqual(result.stderr,b'')
             self.assertEqual(json.loads(result.stdout)['response']['status'],'completed')

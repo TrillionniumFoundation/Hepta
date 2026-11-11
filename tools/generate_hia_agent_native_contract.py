@@ -205,7 +205,9 @@ NATIVE_SUBJECT = obj({'kind': {'const': 'native_artifact'}, 'backend_profile': P
                       'native_artifact': ARTIFACT, 'build_receipt': ARTIFACT})
 VERIFY_SUBJECT = {'oneOf': [CORE_SUBJECT, CANONICAL_SUBJECT, PLAN_SUBJECT, NATIVE_SUBJECT]}
 
-INSTALLATION = obj({'worker_sha256': SHA, 'backend_sha256': SHA, 'catalog_sha256': SHA})
+INSTALLATION = obj({'worker_sha256': SHA, 'backend_sha256': SHA, 'catalog_sha256': SHA,
+                    'native_helpers_sha256': SHA},
+                   ['worker_sha256', 'backend_sha256', 'catalog_sha256'])
 SCOPED_SUBJECT_FIELDS = {
     'context': CONTEXT, 'target_profile': PROFILE, 'candidate': ARTIFACT,
     'candidate_core_sha256': SHA, 'base_program': nullable(ARTIFACT),

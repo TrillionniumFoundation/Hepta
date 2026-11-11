@@ -77,6 +77,8 @@ development_selectors = ('HEPTA_HIA_AGENT_CANDIDATE_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_COMPOSITE_OUTER_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_SOURCE_BUILD_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_EXECUTION_BUDGET_DEVELOPMENT_COMPILER',
+                         'HEPTA_HIA_WORKER_HELPERS_DEVELOPMENT_MANIFEST',
+                         'HEPTA_HIA_WORKER_REQUEST_DEVELOPMENT_MANIFEST',
                          'HEPTA_HIA_AGENT_JOURNAL_DEVELOPMENT_MANIFEST')
 discarded_development_selectors = [name for name in development_selectors if name in environment]
 for development_selector in development_selectors:
@@ -97,7 +99,7 @@ for name in ('AGENT_STDIO', 'CORE_MODULE_GRAPH', 'CAPABILITY_RENAMING',
              'ARTIFACT_PUBLICATION', 'CORE_ADMISSION', 'CORE_ADMISSION_CLI',
              'CORE_PATCH', 'CORE_PATCH_CLI', 'CORE_PATCH_RESULT_CLI', 'COMPOSITE_TYPES',
              'TASK_HELPERS', 'COMPOSITE_FUNCTIONS', 'COMPOSITE_CONSTRUCTOR', 'COMPOSITE_OUTER',
-             'WORKER_REQUEST', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
+             'WORKER_REQUEST', 'WORKER_HELPERS', 'AGENT_JOURNAL', 'RELEASE_INSTALL', 'RELEASE_SELECTION',
              'SOURCE_BUILD', 'NOMINAL_JSON', 'EXECUTION_BUDGET'):
     environment['HEPTA_HIA_' + name + '_COLD_REPORT'] = str(cold)
 steps = []
@@ -254,6 +256,7 @@ if cold_ok:
     ok = suite('native-applications', named[1]) and ok
     groups = {
         'worker-request': ['tests.test_hia_worker_request_native', 'tests.test_hia_worker_request_review'],
+        'worker-helpers': ['tests.test_hia_worker_native_helpers'],
         'agent-journal': ['tests.test_hia_agent_journal_native'],
         'execution-budget': ['tests.test_hia_execution_budget_native'],
         'release-install': ['tests.test_hia_release_install'],

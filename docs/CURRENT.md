@@ -42,6 +42,7 @@ The `hia` executable and `hepta.hia.*` schema names are unchanged.
 | Native source build | Assembly bundle admission, embedded compiler and source/image self-pack in HIA | General structured-project build and initial bootstrap custody remain hosted |
 | Nominal Core | Selected type/helper/function/constructor/outer owners; raw JSON codec | Complete default routing, diagnostics and foreign-object/state transfer |
 | Agent service | Selected native identity, request, journal and publication kernels | Ordinary worker, eleven-tool service, SQLite effects, recovery and version ownership |
+| Worker helper selection | One pinned bundle routes existing helpers and current journal v2 through ordinary callers | Worker transport, service methods and SQLite remain hosted |
 | Release selection | Native immutable installation, compare-and-swap activation, previous-release rollback and status | Actual worker cutover, active references, service restart and old-owner retirement |
 
 The selfhost compiler is a bounded Linux x86-64 profile. It is not a proof of
@@ -96,7 +97,8 @@ that obsolete candidate document is removed as well. This is retirement of
 unintegrated experiments, not a claim that they were rewritten in HIA.
 Their original source remains in the Git history of the published base.
 
-The active package therefore has 155 Python modules. This count is an inventory,
+The active package has 156 Python modules, including the explicit
+[native helper bundle adapter](HIA_NATIVE_HELPER_WORKER.md). This count is an inventory,
 not a native-completion percentage. Required hosted modules are retained until
 replacement and ordinary-operation equivalence are established.
 
@@ -104,6 +106,14 @@ The two long historical status documents now point here and to their immutable
 original Git revisions. Current implementation status is maintained once.
 Original failure evidence, registered benchmarks, independent oracles, licences
 and fixed compiler fixtures remain available to the tests that consume them.
+
+The follow-up [AST and textual caller audit](HIA_ACTIVE_MODULE_AUDIT.json) found no further demonstrated unused
+production module. `__main__` is the module entry, `hia_agent_exec` is launched
+by the native program bridge, and `hia_core_api` is exercised in an isolated
+subprocess fixture. They must remain. Historical process logs and replay
+scripts still have fixed custody or test consumers. Repository suffix checks
+cover tracked sources and package resources; ordinary file input remains
+content-based and can read a valid program supplied under another suffix.
 
 ## Parallel implementation inventory
 
@@ -114,8 +124,9 @@ owners. PR #893 contains another journal owner, raw nominal JSON and native
 source-build components. Their shared build-custody fixes are integrated here;
 the remaining owners still require deliberate ABI/state/authority reconciliation.
 Deleting either branch's unique implementation is not an integration strategy.
-The separate in-progress worker/helper and slot/version/lease worktrees were
-not modified by this continuation.
+The worker/helper integration reuses the reviewed helper block without
+modifying its original worktree. The independent slot/version/lease candidate
+still requires state and journal reconciliation.
 
 ## Remaining acceptance work
 

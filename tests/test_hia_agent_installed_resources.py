@@ -127,6 +127,22 @@ class AgentInstalledResourceTests(unittest.TestCase):
         cls.print_manifest.write_text(json.dumps(dict(schema=PRINT_SCHEMA,
             source_sha256=sha256(PRINT_SOURCE.read_bytes()).hexdigest(),image_path=print_image.name,
             image_sha256=sha256(print_image.read_bytes()).hexdigest(),compiler_sha256=sha256(second.read_bytes()).hexdigest())))
+        from hepta.hia_native_helpers import SCHEMA as HELPERS_SCHEMA, TARGET as HELPERS_TARGET, ABI as HELPERS_ABI
+        cls.helpers_manifest=cls.native/'worker-helpers.json'
+        cls.helpers_manifest.write_text(json.dumps({
+            'schema':HELPERS_SCHEMA,'target':HELPERS_TARGET,'abi':HELPERS_ABI,
+            'helpers':[{'selector':selector,'manifest_path':manifest.name,
+                        'manifest_sha256':sha256(manifest.read_bytes()).hexdigest()}
+                       for selector,manifest in (
+                           ('HEPTA_HIA_AGENT_IDENTITY_MANIFEST',cls.manifest),
+                           ('HEPTA_HIA_AGENT_SLICE_MANIFEST',cls.slice_manifest),
+                           ('HEPTA_HIA_AGENT_DATA_JSON_MANIFEST',cls.data_manifest),
+                           ('HEPTA_HIA_AGENT_BINARY64_MANIFEST',cls.float_manifest),
+                           ('HEPTA_HIA_AGENT_BINARY64_FORMAT_MANIFEST',cls.print_manifest))]},
+            sort_keys=True),encoding='utf-8')
+        cls.helpers_sha256=sha256(cls.helpers_manifest.read_bytes()).hexdigest()
+        cls.helper_flags=('--native-helpers-manifest',str(cls.helpers_manifest),
+                          '--expected-native-helpers-sha256',cls.helpers_sha256)
         from tools.build_hia_artifact_publication import build,current_sources,SOURCES,OPERATIONS
         from tools.hia_selfhost_contract import PROFILE
         cls.publication=cls.native/'publication';cold_path=os.environ.get('HEPTA_HIA_ARTIFACT_PUBLICATION_COLD_REPORT')
@@ -346,6 +362,12 @@ elif sys.argv[2]=='slice':
     doc=__import__('json').loads(sys.stdin.buffer.read())
     print(__import__('json').dumps(editing.prepare_edit(doc,function='calculate',block='entry',output='y',fields=['op'])))
 else:
+    # Direct installed-helper controls above keep their explicit selectors.
+    # Worker entry receives only the administrator-pinned CLI bundle.
+    import os
+    for key in tuple(os.environ):
+        if key.startswith('HEPTA_HIA_') and key.endswith('_MANIFEST'):
+            del os.environ[key]
     result=main(['--state-root',sys.argv[2],'--request-json-stdin',*sys.argv[3:]])
     assert not blocked.intersection(sys.modules)
     raise SystemExit(result)
@@ -359,6 +381,10 @@ assert not blocked.intersection(sys.modules)
     def tearDownClass(cls):cls.temp.cleanup()
     @classmethod
     def invoke(cls,state,request,extra=(),timeout=15):
+        if str(state) not in ('identity','printing','publication','artifact-store','data',
+                              'source-build','nominal-json','source-bindings',
+                              'native-Core','native-Core-whole','slice'):
+            extra=(*cls.helper_flags,*extra)
         return subprocess.run([sys.executable,'-I','-S','-B','-c',cls.child,str(cls.installed),str(state),*extra],input=request,capture_output=True,timeout=timeout,cwd=cls.folder,
             env={'PATH':'','LANG':'C','LC_ALL':'C','HEPTA_HIA_AGENT_IDENTITY_MANIFEST':str(cls.manifest),'HEPTA_HIA_AGENT_SLICE_MANIFEST':str(cls.slice_manifest),
                  'HEPTA_HIA_AGENT_DATA_JSON_MANIFEST':str(cls.data_manifest),
@@ -567,7 +593,9 @@ assert not blocked.intersection(sys.modules)
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):
         state=self.folder/'valid';r=self.invoke(state,wire(self.request))
         self.assertEqual(r.returncode,0,r.stderr.decode(errors='replace'));self.assertEqual(r.stderr,b'')
-        self.assertEqual(json.loads(r.stdout)['response']['status'],'completed');self.assertTrue(state.is_dir())
+        report=json.loads(r.stdout)
+        self.assertEqual(report['native_helpers_sha256'],self.helpers_sha256)
+        self.assertEqual(report['response']['status'],'completed');self.assertTrue(state.is_dir())
 
     def test_real_installed_edit_query_without_reference_graph_algorithms(self):
         from tests.test_hia_edit_query import fixture
