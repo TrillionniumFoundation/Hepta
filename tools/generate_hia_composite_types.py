@@ -17,6 +17,7 @@ from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_sc
 
 MAGIC = int.from_bytes(b'HIATYP01', 'little')
 ORIGINS_MAGIC = int.from_bytes(b'HIALOR01', 'little')
+PARAMETERS_MAGIC = int.from_bytes(b'HIAPRM01', 'little')
 STATE_MAGIC = int.from_bytes(b'HIATYS01', 'little')
 OUTPUT_BYTES = 64 * 1024 * 1024
 WORKSPACE_BYTES = 128 * 1024 * 1024
@@ -45,8 +46,10 @@ PRIMITIVES = ('bool', 'unit', 'i8', 'i16', 'i32', 'i64', 'u8', 'u16',
               'u32', 'u64', 'isize', 'usize', 'buffer', 'readbuf', 'mutbuf', 'chain')
 KEYS = ('op', 'definitions', 'recursive_chain', 'partial_records', 'ref', 'base',
         'initialized', 'kind', 'name', 'params', 'fields', 'variants', 'state',
-        'result', 'poll', 'cancel', 'type', 'args', 'partial', 'returns', 'return_loans', 'param')
-LITERALS = {name:name for name in ('init', 'resolve', 'partial', 'origins', 'record', 'enum', 'task',
+        'result', 'poll', 'cancel', 'type', 'args', 'partial', 'returns', 'return_loans', 'param',
+        'task', 'functions')
+LITERALS = {name:name for name in ('init', 'resolve', 'partial', 'origins', 'parameters',
+                                  'task_protocol', 'pending', 'ready', 'record', 'enum', 'task',
                                   *PRIMITIVES)}
 LITERALS.update(reserved_core='__hia_', reserved_nominal='h2internal_')
 ERRORS = {
@@ -94,10 +97,17 @@ ERRORS = {
     42: ('E_HIA_LOAN', 'returned-loan path must traverse record fields'),
     43: ('E_HIA_LOAN', 'returned-loan path names no record field'),
     44: ('E_HIA_LOAN', 'returned-loan field must be an incoming loan with sufficient permission'),
+    45: ('E_HIA_FORMAT', 'parameters must be a list'),
+    46: ('E_HIA_SSA', 'duplicate nominal parameter'),
+    47: ('E_HIA_CALL', 'task protocol names a missing function'),
+    48: ('E_HIA_TYPE', 'task poll must consume one state and return one step enum'),
+    49: ('E_HIA_TYPE', 'task poll result must be pending(state) | ready(result)'),
+    50: ('E_HIA_TYPE', 'task cancellation must consume one state and return no values'),
 }
 
 CONSTANTS = {
     'N': (1 << 64) - 1, 'MAGIC': MAGIC, 'ORIGINS_MAGIC': ORIGINS_MAGIC, 'STATE_MAGIC': STATE_MAGIC,
+    'PARAMETERS_MAGIC': PARAMETERS_MAGIC,
     'O_BYTES': OUTPUT_BYTES, 'W_BYTES': WORKSPACE_BYTES,
     'INPUT_BYTES': MAX_COMMAND_BYTES,
     'Q': 32 * 1024 * 1024, 'D': 64 * 1024 * 1024,
@@ -171,6 +181,16 @@ def types_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             if admit_origins(s, w, root) == 0:
                 return 4294967281
             return render_origins(s, o, w, root)
+        elif text_is(w, operation, L_parameters) == 1:
+            if shape(w, root, K_op | K_params) == 0:
+                return 4294967281
+            params = field(w, root, K_params)
+            resolve_parameters(w, params)
+            return render_parameters(o, w, params)
+        elif text_is(w, operation, L_task_protocol) == 1:
+            result = task_protocol(s, w, root)
+            if result == N:
+                return 4294967281
         else:
             return 4294967281
     if error(w) != 0:
@@ -936,6 +956,145 @@ def input_id(s:readbuf, w:mutbuf, node:u64) -> u64:
         value = value * 10 + digit - 48
         i = i + 1
     return value
+
+def complete_id(s:readbuf, w:mutbuf, node:u64) -> u64:
+    identifier = input_id(s, w, node)
+    if identifier == 0 or identifier > get(w, S + 16) or get(w, type_at(identifier) + 37872) != 1:
+        return 0
+    return identifier
+
+def resolve_parameters(w:mutbuf, params:u64) -> u64:
+    if kind(w, params) != 5:
+        return reject(w, 45)
+    fill_range(w, ORIGIN_HASH, 1048576, 0)
+    item = child(w, params)
+    while item != N:
+        if shape(w, item, K_name | K_type) == 0:
+            return reject(w, 1)
+        name = field(w, item, K_name)
+        if name_ok(w, name) == 0:
+            return 0
+        index = text_hash(w, name) & 131071
+        while get(w, ORIGIN_HASH + index * 8) != 0:
+            if equal_text(w, name, get(w, ORIGIN_HASH + index * 8)) == 1:
+                return reject(w, 46)
+            index = (index + 1) & 131071
+        put(w, ORIGIN_HASH + index * 8, name)
+        identifier = resolve_type(w, field(w, item, K_type))
+        if error(w) != 0:
+            return 0
+        # Decoder parent indices are not used after decoding. Retain the
+        # resolved ID in that word of this command's parameter object only.
+        # Child/sibling links, keys, references and immutable definitions stay
+        # intact; later parameters resolve in the original source order.
+        put(w, item + 8, identifier)
+        item = next_node(w, item)
+    return 1
+
+def render_parameters(o:mutbuf, w:mutbuf, params:u64) -> u32:
+    extent = widen(render_result(o, w, 0))
+    if extent >= 4294967280:
+        return extent
+    put(w, S + 136, extent - 1)
+    emit_text(o, w, ',"params":[')
+    item = child(w, params)
+    emitted = 0
+    while item != N and error(w) == 0:
+        if emitted != 0:
+            append_byte(o, w, 44)
+        append_byte(o, w, 91)
+        emit_name(o, w, field(w, item, K_name))
+        append_byte(o, w, 44)
+        emit_number(o, w, get(w, item + 8))
+        append_byte(o, w, 93)
+        emitted = emitted + 1
+        item = next_node(w, item)
+    emit_text(o, w, ']}')
+    if get(w, S + 144) != 0:
+        return 4294967280
+    put(o, 0, PARAMETERS_MAGIC)
+    put(o, 16, emitted)
+    put(o, 24, get(w, S + 136) - 64)
+    return get(w, S + 136)
+
+def task_protocol(s:readbuf, w:mutbuf, root:u64) -> u64:
+    if shape(w, root, K_op | K_task | K_functions) == 0:
+        return N
+    task = complete_id(s, w, field(w, root, K_task))
+    if task == 0 or get(w, type_at(task)) != 3:
+        return N
+    functions = field(w, root, K_functions)
+    if kind(w, functions) != 5 or count(w, functions) > 1024:
+        return N
+    record = type_at(task)
+    poll = N
+    cancel = N
+    fill_range(w, ORIGIN_HASH, 1048576, 0)
+    item = child(w, functions)
+    while item != N:
+        if kind(w, item) != 5 or count(w, item) != 3:
+            return N
+        name = child(w, item)
+        if name_ok(w, name) == 0:
+            return N
+        index = text_hash(w, name) & 131071
+        while get(w, ORIGIN_HASH + index * 8) != 0:
+            if equal_text(w, name, get(w, ORIGIN_HASH + index * 8)) == 1:
+                return N
+            index = (index + 1) & 131071
+        put(w, ORIGIN_HASH + index * 8, name)
+        params = next_node(w, name)
+        returns = next_node(w, params)
+        if kind(w, params) != 5 or kind(w, returns) != 5:
+            return N
+        child_id = child(w, params)
+        while child_id != N:
+            if complete_id(s, w, child_id) == 0:
+                return N
+            child_id = next_node(w, child_id)
+        child_id = child(w, returns)
+        while child_id != N:
+            if complete_id(s, w, child_id) == 0:
+                return N
+            child_id = next_node(w, child_id)
+        if equal_text(w, name, get(w, record + 37824)) == 1:
+            poll = item
+        if equal_text(w, name, get(w, record + 37832)) == 1:
+            cancel = item
+        item = next_node(w, item)
+    if poll == N or cancel == N:
+        return reject(w, 47)
+    params = next_node(w, child(w, poll))
+    returns = next_node(w, params)
+    state = get(w, record + 37808)
+    if count(w, params) != 1 or input_id(s, w, child(w, params)) != state or count(w, returns) != 1:
+        return reject(w, 48)
+    step = input_id(s, w, child(w, returns))
+    step_record = type_at(step)
+    if get(w, step_record) != 2 or get(w, step_record + 37032) != 2:
+        return reject(w, 49)
+    pending = 0
+    ready = 0
+    index = 0
+    while index < 2:
+        variant = step_record + 37040 + index * 24
+        if get(w, variant + 16) != 1:
+            return reject(w, 49)
+        field_type = get(w, step_record + 4272 + get(w, variant + 8) * 16)
+        if text_is(w, get(w, variant), L_pending) == 1 and field_type == state:
+            pending = 1
+        elif text_is(w, get(w, variant), L_ready) == 1 and field_type == get(w, record + 37816):
+            ready = 1
+        else:
+            return reject(w, 49)
+        index = index + 1
+    if pending == 0 or ready == 0:
+        return reject(w, 49)
+    params = next_node(w, child(w, cancel))
+    returns = next_node(w, params)
+    if count(w, params) != 1 or input_id(s, w, child(w, params)) != state or count(w, returns) != 0:
+        return reject(w, 50)
+    return step
 
 def admit_origins(s:readbuf, w:mutbuf, root:u64) -> u64:
     expected = K_op | K_params | K_returns

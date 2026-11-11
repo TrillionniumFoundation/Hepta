@@ -329,6 +329,14 @@ def reordered_blocks(source, position='last'):
     """Preserve the graph and every operation, placing each entry last."""
     from hepta.hia_agent_assembly import assemble_program, render_assembly
     doc = assemble_program(source).as_dict()
+    _reorder_block_document(doc, position)
+    result = render_assembly(doc).encode()
+    assemble_program(result)
+    return result
+
+
+def _reorder_block_document(doc, position):
+    """Change declaration order only; callers choose their admission boundary."""
     for fn in doc['functions']:
         remaining = [b for b in fn['blocks'] if b['id'] != fn['entry']]
         entry = next(b for b in fn['blocks'] if b['id'] == fn['entry'])
@@ -341,9 +349,36 @@ def reordered_blocks(source, position='last'):
         else:
             raise ValueError('invalid entry declaration position')
         fn['blocks'] = remaining[:at] + [entry] + remaining[at:]
-    result = render_assembly(doc).encode()
-    assemble_program(result)
-    return result
+
+
+def _construct_fixture(source, edit, *arguments):
+    """Produce fresh syntax-only bytes for a separately admitted reference.
+
+    This private path grants no VerifiedProgram or qualification authority.
+    Every consuming Core/VM reference and every native execution retains its
+    complete admission. The public transformation helpers above keep their
+    original input, renderer round-trip and emitted-source checks.
+    """
+    from hepta.hia_agent_assembly import _parse_assembly_document, _render_assembly_document
+    doc = _parse_assembly_document(source)
+    edit(doc, *arguments)
+    return _render_assembly_document(doc).encode()
+
+
+def _construct_renamed_source(source, mapping):
+    return _construct_fixture(source, _rename_function_document, mapping)
+
+
+def _construct_renamed_values(source, spellings=None):
+    return _construct_fixture(source, _rename_value_document, spellings)
+
+
+def _construct_renamed_blocks(source, spellings=None):
+    return _construct_fixture(source, _rename_block_document, spellings)
+
+
+def _construct_reordered_blocks(source, position='last'):
+    return _construct_fixture(source, _reorder_block_document, position)
 
 
 def nonfirst_entry_source():
@@ -365,16 +400,16 @@ def entry_order_cases():
     for row in cfg_cases():
         if row['id'] not in {'queued-owner-and-local-loan', 'queued-chain-move-drop'}:
             rows.append({**row, 'id': 'entry-last-' + row['id'], 'program': 'entry-last-' + row['id'],
-                         'source': reordered_blocks(row['source']).decode()})
+                         'source': _construct_reordered_blocks(row['source']).decode()})
         if row['id'] in {'reverse-256-mut', 'reverse-1536-six-functions'}:
             rows.append({**row, 'id': 'entry-middle-' + row['id'], 'program': 'entry-middle-' + row['id'],
-                         'source': reordered_blocks(row['source'], 'middle').decode()})
+                         'source': _construct_reordered_blocks(row['source'], 'middle').decode()})
     for row in loan_cases():
         if row['program'] in {'loan-read-tail', 'loan-mut-tail'}:
             rows.append({**row, 'id': 'entry-last-' + row['id'], 'program': 'entry-last-' + row['program'],
-                         'source': reordered_blocks(row['source']).decode()})
+                         'source': _construct_reordered_blocks(row['source']).decode()})
     rows.append({'id': 'entry-last-parallel-scalar-tail', 'program': 'entry-last-parallel-scalar-tail',
-        'source': reordered_blocks(scalar_tail_source()).decode(), 'source_hex': '',
+        'source': _construct_reordered_blocks(scalar_tail_source()).decode(), 'source_hex': '',
         'initial_hex': 'a5', 'expected_hex': 'a5', 'expected_result': scalar_tail_expected(63)})
     return rows
 
@@ -412,8 +447,8 @@ def entry_order_refusals():
 def _block_spelling_seed():
     """Construct only the branch fixture shared by block-name controls.
 
-    This keeps both ordinary Core checks in renamed_values. Callers that need
-    one seed do not also author the unrelated maximal-CFG positive fixtures.
+    The consuming references keep their complete independent Core admissions.
+    Callers needing one seed do not also author unrelated maximal-CFG fixtures.
     """
     from tools.hia_selfhost_bulk import Body
     from tools.hia_selfhost_cases import HEADER
@@ -432,7 +467,7 @@ def _block_spelling_seed():
     source += 'end\n'
     # A typed end/block/ret name must not be a declaration or terminator during
     # discovery. The complete original parser still checks its real syntax.
-    return renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
+    return _construct_renamed_values(source.encode(), ['source', 'output', 'workspace', 'end', 'block', 'ret', 'branch'])
 
 
 _FIRST_BLOCK_SPELLINGS = ('entry', 'aaB', 'aba')
@@ -444,7 +479,7 @@ def block_cases():
     for i, spellings in enumerate((_FIRST_BLOCK_SPELLINGS, ['block', 'end', 'ret'],
             ['_', 'b00', 'b18446744073709551615'], ['b', 'prefix', 'prefix_more'],
             ['n' * 128, 'N' * 128, 'tail_' + 'z' * 123])):
-        changed = renamed_blocks(source, spellings)
+        changed = _construct_renamed_blocks(source, spellings)
         for data in (0, 73, 255):
             result = 17 if data == 0 else 73
             program = 'block-spellings-' + str(i)
@@ -458,14 +493,14 @@ def block_cases():
     for row in cfg_cases():
         if row['id'] in selected:
             rows.append({**row, 'id': 'named-' + row['id'], 'program': 'named-' + row['id'],
-                'source': renamed_blocks(renamed_values(row['source'].encode())).decode()})
+                'source': _construct_renamed_blocks(_construct_renamed_values(row['source'].encode())).decode()})
     if len(rows) != 24:
         raise AssertionError('block-name reference inventory changed')
     return rows
 
 
 def block_refusals():
-    source = renamed_blocks(_block_spelling_seed(), _FIRST_BLOCK_SPELLINGS).decode()
+    source = _construct_renamed_blocks(_block_spelling_seed(), _FIRST_BLOCK_SPELLINGS).decode()
     rows = []
     for name in ['n' * 129, '__hia_block', 'bad.name', 'bad-name', '1bad', '汉字']:
         rows.append({'id': 'block-invalid-' + str(len(rows)),
@@ -499,7 +534,7 @@ def core_observed_case(name, source):
 
 def value_cases():
     # These are ordinary source fixtures, not cached VerifiedPrograms or VM
-    # results. Every selected rename and every reference still runs its checks.
+    # results. Every completed reference still performs its own full admission.
     named_cases = cases()
     base = [row for row in named_cases if row['program'] == 'named-pair-0']
     spellings = [
@@ -515,11 +550,11 @@ def value_cases():
         for row in base:
             program = 'ssa-spellings-' + str(index)
             rows.append({**row, 'id': program + '-' + row['source_hex'], 'program': program,
-                         'source': renamed_values(row['source'].encode(), names).decode()})
+                         'source': _construct_renamed_values(row['source'].encode(), names).decode()})
     for row in named_cases:
         if row['program'].startswith('named-loan-'):
             rows.append({**row, 'id': 'ssa-' + row['id'], 'program': 'ssa-' + row['program'],
-                         'source': renamed_values(row['source'].encode()).decode()})
+                         'source': _construct_renamed_values(row['source'].encode()).decode()})
     full = _full_value_table_source()
     rows.append({'id': 'ssa-intern-table-full-2048', 'program': 'ssa-intern-table-full-2048',
                  'source': full, 'source_hex': '', 'initial_hex': 'a5',
@@ -574,7 +609,7 @@ def cases():
         source = (HEADER + b.text() + '  ret(' + result + ')\nend\n'
             + 'fn f1(v0:u32) -> (u32) effects() entry(b0)\nblock b0(v0:u32)\n'
             + '  v1:u32 = const() {"value":17}\n  v2:u32 = int.add.wrap(v0,v1)\n  ret(v2)\nend\n').encode()
-        source = renamed_source(source, {'f0': entry, 'f1': callee})
+        source = _construct_renamed_source(source, {'f0': entry, 'f1': callee})
         for byte in (0, 73, 255):
             add('named-pair-' + str(index), source, byte, 0, b'\xa5', bytes([(byte + 17) & 255]))
     # Real equal-hash, equal-length names must still compare all source bytes.
@@ -593,20 +628,20 @@ def cases():
         source += (f'fn f{fn}(v0:u32) -> (u32) effects() entry(b0)\nblock b0(v0:u32)\n'
             + f'  v1:u32 = const() {{"value":{amount}}}\n'
             + '  v2:u32 = int.add.wrap(v0,v1)\n  ret(v2)\nend\n')
-    source = renamed_source(source.encode(), {'f0': 'entry', 'f1': 'aaB', 'f2': 'aba'})
+    source = _construct_renamed_source(source.encode(), {'f0': 'entry', 'f1': 'aaB', 'f2': 'aba'})
     for byte in (0, 73, 255):
         add('equal-hash-distinct-functions', source, byte, 0, b'\xa5', bytes([(4 * byte + 124) & 255]))
     for row in loan_cases():
         if row['program'] not in {'loan-read-forward', 'loan-mut-cfg', 'loan-mut-tail'}:
             continue
-        from hepta.hia_agent_assembly import assemble_program
+        from hepta.hia_agent_assembly import _parse_assembly_document
         mapping = {fn['name']: 'lease_' + str(i) for i, fn in enumerate(
-            assemble_program(row['source'].encode()).as_dict()['functions'])}
-        source = renamed_source(row['source'].encode(), mapping)
+            _parse_assembly_document(row['source'].encode())['functions'])}
+        source = _construct_renamed_source(row['source'].encode(), mapping)
         rows.append({**row, 'id': 'named-' + row['id'], 'program': 'named-' + row['program'],
             'source': source.decode()})
     source = backward_chain_source()
-    source = renamed_source(source, {'f' + str(i): 'chain_node_' + str(i) for i in range(128)})
+    source = _construct_renamed_source(source, {'f' + str(i): 'chain_node_' + str(i) for i in range(128)})
     add('named-128-functions', source, 0, 127, b'\xa5', b'\xa5')
     return rows
 
@@ -771,13 +806,13 @@ def qualify_entry_layout(directory, compilers):
         elif label != 'original':
             raise ValueError('unknown compiler identity')
         for position in ('last', 'middle'):
-            source = reordered_blocks(canonical, position)
+            source = _construct_reordered_blocks(canonical, position)
             checked = assemble_program(source)
             resources = []
             for row in cfg_cases():
                 if row['id'] not in {'queued-owner-and-local-loan', 'queued-chain-move-drop'}:
                     continue
-                row = {**row, 'source': reordered_blocks(row['source'], position).decode()}
+                row = {**row, 'source': _construct_reordered_blocks(row['source'], position).decode()}
                 program = assemble_program(row['source'])
                 reference = execute_program(assemble_program(reference_source(row)), 'reference_entry', [])
                 if (reference['status'] != 'returned'

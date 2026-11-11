@@ -18,14 +18,17 @@ linearity, identity, cache membership or symbolic proof result.
 The same explicitly selected session also owns the complete v4
 `_Elaborator.loan_origins` decision: annotation inventory and order, original
 formal lookup, record-field traversal, flattened offsets and loan permission.
+It also owns complete nominal parameter-list admission and task-protocol
+signature relations, through the existing `parameters` and `check_task` call
+sites. These are described below; neither adapter repeats their algorithms.
 The remaining nominal elaborator still lowers operations, constructs helpers,
-checks task protocols against function signatures and binds the HIA-computed
-original formal/offset pairs to generated entry slots. The primitive verifier
-still admits the resulting Core program.
+and binds the HIA-computed original formal/offset pairs to generated entry
+slots. The primitive verifier still admits the resulting Core program.
 Request/JSON custody, the worker, storage, build/install control and default
 delivery remain separate responsibilities. This selection replaces the type
-owner and the returned-loan origin decision; it does not declare the entire
-composite elaborator or product native.
+owner, parameter admission, task-protocol relations and the returned-loan
+origin decision; it does not declare the entire composite elaborator or
+product native.
 
 ## Selection and source binding
 
@@ -167,6 +170,8 @@ The exact command shapes are:
 {"op":"resolve","ref":{"name":"Box","args":["buffer"]}}
 {"op":"partial","base":17,"initialized":["value"]}
 {"op":"origins","params":[["views",17]],"returns":[14],"return_loans":[{"param":"views","fields":["reader"]}]}
+{"op":"parameters","params":[{"name":"state","type":"State"}]}
+{"op":"task_protocol","task":19,"functions":[["poller",[17],[18]],["cancel",[17],[]]]}
 ```
 
 `base` is an exact completed type ID previously produced by that session. The
@@ -266,6 +271,106 @@ table occupies workspace bytes `[132710400, 133758976)`, within the existing
 128 MiB session and separate from all traversal stacks and persistent type or
 memo records. It is cleared for each origins command. Session words at offsets
 176 and 184 hold only the current result's temporary name node and offset.
+
+### Parameter-list admission
+
+The selected `parameters` command replaces the complete
+`_Elaborator.parameters` decision at every existing call site: function
+formals, block formals and instruction outputs. HIA checks that the submitted
+value is a list, then visits each item in source order. It checks exact
+`name`/`type` fields, validates the name, rejects duplicates, records the name,
+and resolves that item's original type reference before advancing to the next
+item. A type error in an earlier item therefore still precedes a duplicate or
+name error in a later item. Type resolution uses the same session, exact IDs,
+cache, active set and work counter as ordinary `resolve` calls.
+
+The adapter transmits the original parameter inventory. It does not check its
+names, decide duplicate membership or resolve references. A successful native
+result materializes `(name, _Type)` tuples using the HIA-issued IDs. A semantic
+refusal returns no partial parameter inventory, while retaining and emitting
+types that completed before that refusal. Subsequent commands see the same
+cache, unsuccessful active entries and partial-declaration work as the hosted
+reference. The hosted body remains `_reference_parameters`, used only when the
+native type session was not selected.
+
+The result header uses the distinct magic `HIAPRM01`; word 2 is the number of parameter
+pairs, or zero on refusal. The payload has exactly `types` and `params` arrays:
+
+```json
+{"types":[],"params":[["state",17]]}
+```
+
+`types` has the existing descriptor ABI and may contain newly completed types
+even on semantic refusal. The adapter validates and materializes that graph,
+checks the pair count and requires every returned ID to exist in the session.
+It rejects malformed frames and unknown IDs without fallback. Name and shape
+refusals retain their existing diagnostic categories and ordering; compact
+native errors 1, 5 and 6 can omit the hosted diagnostic's contextual label.
+
+No separate parameter quota is added. A parameter command adds 29 bytes and
+two value nodes to its input value. Even an otherwise minimally shaped public
+function with unchecked `returns`, `effects`, `entry` and `blocks` equal to
+`0` requires at least 141 bytes and 11 value nodes outside that parameter
+value. Thus every reachable parameter command is at least 112 bytes and nine
+nodes smaller than the complete public input. Its nesting depth is at least
+two levels smaller. An actual 8 MiB public-input test requires the HIA command
+to run and retain the original parameter-shape refusal.
+
+The per-command duplicate-name table reuses the scratch region described
+above; it is cleared before each inventory. Each admitted parameter object
+requires at least three value nodes, so the existing 131,072 slots cannot fill
+within the 262,144-node command bound. On successful resolution HIA stores the
+type ID in that parameter object's decoded-node parent word. The decoder has
+finished and this owner never reads parent words afterwards; child/sibling
+links, keys, references, original source bytes and the immutable definitions
+remain unchanged. No persistent type or memo region is reused for this scratch.
+The output pair array is smaller than the source parameter array, while the
+existing descriptor batch remains below 37 MiB. Together they fit the existing
+64 MiB output capacity without reducing public limits.
+
+### Task-protocol relations
+
+The selected `task_protocol` command replaces the complete
+`_Elaborator.check_task` decision. It runs for every concrete task declaration,
+including unused tasks, and at the existing task-helper check points. The
+adapter projects the already resolved function registry into
+`[function_name, parameter_type_ids, return_type_ids]` rows. It sends all rows;
+it does not look up the task's poll/cancel function or compare any signature.
+During ordinary construction, the `functions` and `signatures` dictionaries
+are populated together after each function's checks and retain the same keys.
+Subsequent lowering does not modify those registries.
+
+HIA finds both original function names, then applies the original decision
+order: both must exist; poll consumes exactly one matching state and returns
+exactly one result; that result must be an enum with exactly `pending(state)`
+and `ready(result)`, one field each; cancellation consumes exactly one matching
+state and returns nothing. Variant order and field names do not alter those
+relations. Exact native type IDs preserve distinctions between nominal types
+and generic applications even when their flattened layouts are equal or empty.
+The original task-policy messages and categories are retained for these four
+refusals, including when multiple conditions are invalid.
+
+Before this semantic decision, the private command validates its exact shape,
+the completed task ID, the already admitted registry's names, distinct rows,
+array shapes and completed type IDs. Forged, foreign-session or incomplete IDs
+never gain authority. Success uses the existing `HIATYP01` frame and returns
+the existing step enum ID. There are no new descriptors, cache entries or work
+steps; the adapter checks that the descriptor batch is empty and all counters
+are unchanged. A semantic refusal leaves that same state usable.
+
+The existing public limit of 1,024 functions also bounds this private registry.
+Replacing a parameter object with an ID drops its name and object framing;
+replacing any resolved type reference with its ID cannot increase its byte or
+node count. Each projected function row saves at least 60 bytes and three
+nodes, before accounting for removed parameter names and function bodies. With
+an ID at most 144, command framing outside the function array is 46 bytes;
+even the smallest complete program needs at least 72 bytes outside its original
+function array. Thus this command is smaller than its admitted public document
+by at least 86 bytes and four nodes. Its projected JSON has depth at most four:
+function names and primitive return IDs retain their original depth, and
+parameter objects/type references are replaced by scalar IDs. It introduces no
+depth beyond the public allowance of 64. Source snapshot tests and a full
+1,024-row registry exercise native lookup and unchanged-state behavior.
 
 | Source schema | `recursive_chain` | `partial_records` |
 | --- | --- | --- |
@@ -384,6 +489,16 @@ Native errors 1, 5 and 6 use the ABI's compact shape/name messages, so their
 English text can differ from the hosted helper's contextual labels such as
 `nominal returned-loan origin` or `returned-loan field`. The suite does not
 claim byte-for-byte equality of all exception messages.
+
+The parameter/protocol suite separately compares actual native execution with
+the retained hosted methods. It covers inventory/name/error order, the exact
+128-instantiation boundary, partial-declaration and unsuccessful-active state,
+source alias mutation, deterministic mixed histories, protocol lookup and
+variant permutations, nominal identity with equal layouts, malformed IDs and
+frames, the exact public byte boundary, and the full function-registry bound.
+Ordinary composite v1–v4 programs run with all four hosted semantic owners
+disabled. The installed-wheel control exercises task protocols, partial state
+and returned loans with checkout tools and those hosted owners unavailable.
 
 `HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST` is a test-only mechanism to
 reuse a current-source development image. It cannot be combined with

@@ -1,8 +1,8 @@
 """Explicit HIA nominal-type sessions and descriptor-only object transport.
 
 The HIA image owns declarations, reference resolution, layout, exact type
-interning, partial records, symbolic loan analysis, returned-loan origins and
-their stateful budgets.
+interning, partial records, symbolic loan analysis, parameter admission,
+task-protocol relations, returned-loan origins and their stateful budgets.
 This bridge never invokes the hosted type resolver.  The surrounding nominal
 elaborator, primitive verifier, JSON object custody and installation remain
 separate owners.
@@ -26,6 +26,7 @@ SCHEMA = 'hepta.hia.composite-types-native.v1'
 SELECTOR = 'HEPTA_HIA_COMPOSITE_TYPES_MANIFEST'
 MAGIC = int.from_bytes(b'HIATYP01', 'little')
 ORIGINS_MAGIC = int.from_bytes(b'HIALOR01', 'little')
+PARAMETERS_MAGIC = int.from_bytes(b'HIAPRM01', 'little')
 HEADER_BYTES = 64
 MAX_COMMAND_BYTES = (8 << 20) + 128
 OUTPUT_BYTES = 64 << 20
@@ -82,6 +83,12 @@ ERRORS = {
     42: ('E_HIA_LOAN', 'returned-loan path must traverse record fields'),
     43: ('E_HIA_LOAN', 'returned-loan path names no record field'),
     44: ('E_HIA_LOAN', 'returned-loan field must be an incoming loan with sufficient permission'),
+    45: ('E_HIA_FORMAT', 'parameters must be a list'),
+    46: ('E_HIA_SSA', 'duplicate nominal parameter'),
+    47: ('E_HIA_CALL', 'task protocol names a missing function'),
+    48: ('E_HIA_TYPE', 'task poll must consume one state and return one step enum'),
+    49: ('E_HIA_TYPE', 'task poll result must be pending(state) | ready(result)'),
+    50: ('E_HIA_TYPE', 'task cancellation must consume one state and return no values'),
 }
 
 
@@ -176,8 +183,11 @@ class NativeCompositeTypeSession:
 
     def _materialize(self, payload):
         """Decode the native DAG ABI; never compute layouts or type identities."""
-        from .hia_program_composite import _Type
         value = json.loads(payload, object_pairs_hook=_pairs, parse_constant=_constant)
+        self._materialize_value(value)
+
+    def _materialize_value(self, value):
+        from .hia_program_composite import _Type
         if type(value) is not dict or set(value) != {'types'} or type(value['types']) is not list:
             raise ValueError('invalid descriptor envelope')
         pending = {}
@@ -270,7 +280,19 @@ class NativeCompositeTypeSession:
                 raise ValueError('invalid original-parameter origin')
         return tuple(result)
 
-    def _command(self, command, *, result=True, origins=False):
+    def _parameter_payload(self, payload, *, count, error):
+        value = json.loads(payload, object_pairs_hook=_pairs, parse_constant=_constant)
+        if type(value) is not dict or set(value) != {'types', 'params'}:
+            raise ValueError('invalid parameter envelope')
+        pairs = self._field_pairs(value['params'])
+        if len(pairs) != count or (error and pairs):
+            raise ValueError('invalid parameter result count')
+        self._materialize_value({'types': value['types']})
+        if any(identifier not in self._types for _, identifier in pairs):
+            raise ValueError('unknown parameter type identity')
+        return tuple((name, self._types[identifier]) for name, identifier in pairs)
+
+    def _command(self, command, *, result=True, origins=False, parameters=False, stable=False):
         with self._lock:
             if self._closed or self._broken:
                 self._refuse_abi('session is closed or has a failed transport')
@@ -291,7 +313,8 @@ class NativeCompositeTypeSession:
                 self._refuse_abi('invalid native frame extent/status ' + str(extent))
             magic, error, identifier, size, cached, active, steps, reserved = struct.unpack_from(
                 '<8Q', self._output)
-            if magic != (ORIGINS_MAGIC if origins else MAGIC) or reserved or HEADER_BYTES + size != extent:
+            expected_magic = PARAMETERS_MAGIC if parameters else ORIGINS_MAGIC if origins else MAGIC
+            if magic != expected_magic or reserved or HEADER_BYTES + size != extent:
                 self._refuse_abi('invalid native frame header')
             if error and (error not in ERRORS or identifier != 0):
                 self._refuse_abi('unrecognized/inconsistent native semantic status ' + str(error))
@@ -301,11 +324,21 @@ class NativeCompositeTypeSession:
                     or (error and error not in {1, 5, 6, *range(37, 45)})
                     or identifier != (0 if error else origin_count)):
                 self._refuse_abi('invalid native origins status or changed resolver state')
+            if stable and (counters != self._observations or (error and error not in range(47, 51))):
+                self._refuse_abi('invalid task-protocol status or changed resolver state')
+            if parameters and error and error not in {*range(1, 37), 45, 46}:
+                self._refuse_abi('invalid parameter semantic status')
             try:
                 payload = ctypes.string_at(ctypes.addressof(self._output) + HEADER_BYTES, size)
                 if origins:
                     origin_result = self._origin_payload(payload,
                         count=0 if error else origin_count, names=origin_names)
+                elif parameters:
+                    parameter_result = self._parameter_payload(payload, count=identifier, error=error)
+                elif stable:
+                    value = json.loads(payload, object_pairs_hook=_pairs, parse_constant=_constant)
+                    if value != {'types': []}:
+                        raise ValueError('task protocol emitted unexpected type descriptors')
                 else:
                     self._materialize(payload)
             except (ValueError, TypeError, KeyError, UnicodeError, RecursionError) as exc:
@@ -316,12 +349,32 @@ class NativeCompositeTypeSession:
                 raise HIAProgramRejected(message, code)
             if origins:
                 return origin_result
+            if parameters:
+                return parameter_result
             if (result and identifier not in self._types) or (not result and identifier != 0):
                 self._refuse_abi('invalid native result identity')
             return self._types[identifier] if result else None
 
     def resolve(self, reference):
         return self._command({'op': 'resolve', 'ref': reference})
+
+    def parameters(self, value):
+        """Resolve the complete source parameter inventory in HIA order."""
+        return self._command({'op': 'parameters', 'params': value}, parameters=True)
+
+    def check_task(self, typ, signatures):
+        """Transport the already resolved registry; HIA looks up the protocol."""
+        with self._lock:
+            def identifier(value):
+                found = self._ids.get(id(value))
+                if found is None or self._types[found] is not value:
+                    self._refuse_abi('task-protocol type does not belong to this session')
+                return found
+            functions = [[name, [identifier(value) for _, value in params],
+                          [identifier(value) for value in returns]]
+                         for name, (params, returns) in signatures.items()]
+            return self._command({'op': 'task_protocol', 'task': identifier(typ),
+                                  'functions': functions}, stable=True)
 
     def partial_record(self, base, initialized):
         with self._lock:

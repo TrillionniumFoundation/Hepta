@@ -608,7 +608,7 @@ class CompositeTypesNativeTests(unittest.TestCase):
             '--target', str(installed), str(wheel)], cwd=self.folder, capture_output=True, timeout=120,
             env={**os.environ, 'PYTHONDONTWRITEBYTECODE': '1'})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        document = loan_fixtures.pair_program('mut')
+        document = loan_fixtures.task_program()
         with patch.dict(os.environ, {SELECTOR: ''}):
             expected = verify_core(document).canonical_bytes
         data = self.folder / 'installed-input.json'; data.write_bytes(wire(document))
@@ -627,6 +627,8 @@ assert Path(sys.argv[1]) in SOURCE.parents
 def absent(*args,**kwargs):raise AssertionError('host nominal type owner called')
 composite._Types=absent
 composite._Elaborator.loan_origins=absent
+composite._Elaborator._reference_parameters=absent
+composite._Elaborator._reference_check_task=absent
 try:result=verify_core(Path(sys.argv[2]).read_bytes())
 except HIAProgramRejected:
     if sys.argv[3]=='refuse':print('REFUSED')

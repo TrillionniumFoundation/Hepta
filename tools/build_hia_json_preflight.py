@@ -65,6 +65,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
     candidates = {'worker-request': ('worker_request', 'worker-request'),
                   'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
+                  'task-helpers': ('task_helpers', 'task-helpers'),
                   'instruction-policy': ('instruction_policy','instruction-policy'),
                   'core-workspace-materialize': ('core_workspace_materialize','core-workspace-materialize'),
                   'core-workspace-facts': ('core_workspace_facts','core-workspace-facts'),

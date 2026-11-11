@@ -52,6 +52,7 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/core_admission.hiaasm',
     'examples/hia_bootstrap/core_patch.hiaasm',
     'examples/hia_bootstrap/composite_types.hiaasm',
+    'examples/hia_bootstrap/task_helpers.hiaasm',
 )
 
 

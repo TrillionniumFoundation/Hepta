@@ -25,8 +25,12 @@ constructs the complete diagnostic bytes. Its explicit ordinary Agent route
 consumes and stores opaque payload bytes, preserving the existing request journal.
 An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
 owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions. The ordinary elaborator consumes
-its descriptors; operation lowering and the durable Agent remain hosted owners.
+obligations for all four composite versions, source-level returned-loan origins,
+parameter admission and task-protocol checks. A separately selected
+[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
+complete start, poll, cancel, join and close Core functions. The ordinary
+elaborator consumes their results; remaining operation lowering and the durable
+Agent remain hosted owners.
 An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
 owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
 admission while preserving the existing service's durable request identity.

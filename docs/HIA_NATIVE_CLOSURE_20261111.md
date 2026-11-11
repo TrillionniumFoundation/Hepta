@@ -42,7 +42,7 @@ failures, skips or expected failures, and its cold replay passed. The
 [original full readback](../review-evidence/hia-native-rewrite-20261111/v61/c80-qualification/full-readback.json)
 records the exact tree, all source identities and each step. This independent
 machine run does not erase the GitHub timeout, and neither baseline result
-qualifies the later merged v62 source.
+qualifies a later merged source.
 
 A current Runtime discovery read and exact manifest-byte hash check found
 different worker/backend identities from the frozen main source. The live
@@ -162,7 +162,7 @@ While this continuation was running, main advanced to
 `647885c5c3ff067b6477011123335ad5a1aef78e`. Its complete Git commit and tree
 identities were verified and merged, preserving the native composite-v4
 returned-loan origin decisions, the independent controls and evidence, and the
-equivalent structural-traversal changes. The combined current profile is
+equivalent structural-traversal changes. That combined profile is
 `selfhost-core-linux-x86_64-v62-native-request-release-origins`.
 All earlier v61 observations above remain attached to their earlier sources;
 they do not qualify this new merged profile.
@@ -197,16 +197,43 @@ All 41 source generators reproduce their checked-in bytes exactly after the
 merge. These checks preserve the existing admitted profile and explicitly do
 not establish the unavailable whole-v8 or whole-product claims.
 
-The complete current source-control suite passes **283/283 tests** under
+The complete v62 source-control suite passes **283/283 tests** under
 CPython 3.14.10, with no failures, errors, skips or expected failures. Its
 before/after declared-source hashes remain identical. The unit runner took
 394.074 seconds; preparation plus execution took 402.205244260 seconds.
+
+## Integration of native signatures and all five task helpers
+
+Main subsequently advanced to `d6847ac891e0dd07217d179891bb763162211de2`.
+Its exact commit, parent and tree were imported and verified before merging.
+The combined profile is now
+`selfhost-core-linux-x86_64-v63-native-request-release-signatures-helpers`.
+Incoming native nominal signatures and task-protocol admission, all five HIA
+start/poll/cancel/join/close helper bodies, their source-bound installation,
+ordinary error ordering and independent controls remain part of the merged
+source. Existing request admission and immutable release installation are
+retained in the same source closure.
+
+The new profile requires a fresh cold replay and matching native applications.
+Older v62 results remain historical evidence and do not qualify this source.
+The external v5 qualification runner includes both new native selectors and
+all signature/helper controls, alongside the worker-request and release-install
+groups. A combined-selector witness also exercises the native type session and
+task-helper generator together while refusing calls to their retained owners.
+No hosted production owner is retired by this merge.
+
+The first remote preparation for exact `179a84d` did not reach a test suite:
+its public HTTPS clone emitted `fatal: early EOF` and exceeded its 240-second
+clone deadline. The remote supervisor reported an incomplete stderr drain and
+`effect_unknown`. That observation remains an unknown remote effect and has
+no successful-test status. Any later source preparation uses its own pinned
+candidate and independent output directory.
 
 ## Remaining production owners and retirement gates
 
 | Owner | Current actual responsibility | Required closure before retirement |
 | --- | --- | --- |
-| `hia_program_composite._Elaborator` | Nominal SSA, record/enum operations, task helpers, partial tokens, binding native loan origins to generated entry slots and export eligibility | Complete HIA lowering for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
+| `hia_program_composite._Elaborator` | Nominal SSA, record/enum operations, partial tokens, binding native descriptors and loan origins to generated entry slots and export eligibility; type/signature admission and all five task-helper bodies have explicit native selectors | Complete HIA lowering for composite v1–v4, independent meaning/result/refusal controls and ordinary default integration |
 | General compiler/backend | Canonical machine plans, broader retained Core layouts, object/linking and target support beyond the selfhost profile | Native producers for every retained language and ABI target, with explicit profile boundaries, cross-target execution and source-matched qualification |
 | `HIAAgentService` and `AgentStore` | Tool methods, refs/namespaces, SQLite/WAL transactions, intents/completions, costs, slots, versions, leases, evaluation, adoption and rollback | Full native ordinary worker with same-key conflict, unknown outcomes, crash/restart, original-operation observation and state continuity |
 | Worker and foreign bridge | Administrator parsing, Python object materialization, service entry, installation readback and report serialization | Native complete request/report/service protocol with current code/profile pinning |

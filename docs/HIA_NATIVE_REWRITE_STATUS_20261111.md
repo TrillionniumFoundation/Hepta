@@ -306,6 +306,118 @@ contract in dependency order and checking the fixed point, all 71 focused
 source/adapter controls passed. Raw observations and source identities are
 retained under `review-evidence/hia-native-rewrite-20261111/v61`.
 
+The published v61 commit is
+`647885c5c3ff067b6477011123335ad5a1aef78e` (tree
+`1c7679357590a9105c666dea95105780b64098fc`). Its
+[Actions run 42958081511](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42958081511)
+passed all 268 source tests in 507.900 seconds, source reproduction and the
+contract/inventory checks. Its separate CodeQL run passed all four jobs.
+The native cold run failed at 180.191299 seconds: 32 of 38 phases completed
+and sealed, with 3,718 true and zero false checks in those completed reports.
+The two CLI phases started but did not return complete reports; the remaining
+name/export phases did not start. All 564 cold source entries were independently
+matched to that exact Git commit, and the 32 complete nested archive compressed
+bytes matched their producer receipts. This timing analysis does not claim a
+second replay of every nested member. Cleanup completed, and later native CI
+steps were skipped. The original 40,821,695-byte failure artifact has SHA-256
+`23afbe7694f1d549f27b5eafa8d23f4c536985492ac289307913803487d72aaa`.
+
+### v62 parameter, protocol and task-helper owners
+
+The selected type-session image now owns the complete ordered parameter
+admission and task-protocol checks. Parameter list/shape/name/duplicate checks
+and type resolution retain their original order, including partially resolved
+types, counters and usable session state after semantic refusals. `HIAPRM01`
+returns native-issued nominal identities and complete descriptors. Task checks
+consume the complete function-signature registry and compare exact nominal
+identities, poll/cancel arity, state/result types and the pending/ready enum
+protocol. Structurally identical but distinct nominal types remain distinct.
+The private transport introduces no additional public parameter limit. Its
+1,024-signature bound is the original public function bound.
+
+The frozen parameter/protocol HIA source has SHA-256
+`8fec677e2a7be2292241a4ecf51c0e4c807a63f945928dd3c8eb03a79a42d749`.
+Independent development review compared 3,023 semantic scenarios and eight raw
+ABI refusals, observing 10,579 actual native entries. Complete graphs/cache
+keys, counters, partial state, first errors and post-refusal usability agreed.
+Depth 32/33, 512/513 flattened slots, exact registry/type limits, phantom
+generics, nominal twins and input mutation boundaries were covered. This is
+an independent finite panel, not a proof over every input or a fresh cold pass.
+
+The separately selected [task-helper owner](HIA_TASK_HELPERS_NATIVE.md) now
+constructs complete `start`, `poll`, `cancel`, `join` and `close` Core functions
+in HIA. It owns generated names, blocks, guards, poll variants, effect sets,
+offsets, cancellation, inactive-slot cleanup and padding. The host transports
+resolved descriptors and copies the complete result. Exact counter/cache
+updates on partial refusal are preserved; no incomplete function is appended.
+Its frozen source has SHA-256
+`1f0a38ab1235de3ffc35ca3ca01ac327bbea3ceadac99a995d3b550b630790cd`.
+An independent 2,774-case panel, including 1,874 actual image entries, found
+no complete-result/error-text/state differences. It includes 70 maximum public
+layout controls and separately identifies 448 direct-loan controls that are
+unreachable through admitted task source.
+
+The two owners were also exercised together on six ordinary task documents:
+complete canonical/structured bytes agree, 34 VM execution/resource outcomes
+agree, and an actual installed wheel succeeds with the hosted type resolver,
+parameter/task checks, source loan-origin helper and task-helper generator
+disabled together. Missing/changed installed HIA resources refuse. An actual
+ELF comparison used the retained direct x86 backend with HIA-generated helpers:
+eight executions observed four allocations, four frees, four allocator refusals
+and no live allocations; four illegal transitions aborted. That backend remains
+a separate owner. The combined tests do not replace matching-source cold and
+full retained qualification.
+
+### Remove repeated fixture construction admissions
+
+The public assembly parser and renderer still perform all of their original
+source/syntax checks, complete Core admission, detached object handling and
+renderer round-trip verification. Private construction helpers now let the
+name/entry fixtures transform fresh syntax documents before their consuming
+reference performs its own complete admission. They return unverified bytes or
+objects, never `VerifiedProgram` authority. No admission, program execution or
+qualification result is cached.
+
+An independent static review matched the parser, renderer, actual reference
+consumers and negative corpus to their original ASTs. A 684-case public boundary
+panel retained complete return bytes or exception type/code/text/phase/line and
+actual verifier invocation counts. A separate complete invocation ledger found
+that all 150 retained public assembly witnesses and 137 retained Core gates
+match individually, including two direct generator admissions. The removed
+474 Core calls belong entirely to pure fixture construction. The 106 VM-positive
+controls, 40 bounded-profile refusal controls and four alpha assemblies remain;
+of those 40 controls, one is accepted by general Core, 15 stop at assembly syntax
+and 24 reach a semantic refusal. General Core admission is not relabelled as a
+bounded compiler-profile acceptance.
+
+Four interleaved runs of the unchanged 17-family reference worker harness each
+used two workers and returned exactly the same 13,726,901 aggregate bytes, SHA-256
+`805cb0d0ea1a32dfb4262b7b2d2f0e4e7460fd8ca89c7a1665e25645db3a0b60`.
+Measured old times were 37.765/35.245 seconds and new times 28.897/29.831 seconds.
+The median saving was 7.141 seconds (19.56%) for that local reference workload.
+All workers were fresh and source/contract checks ran in every round. This is
+not a complete cold qualification or a prediction of a specific CI wall time.
+
+Before this construction change, the first local integration invocation selected
+the entire contract-test module and consequently also ran its real cold replay.
+It passed 29 other controls but timed out at 180.153882 seconds with 35/38 phases
+sealed according to the original failure diagnostic. Cleanup completed in
+23.193 ms. Its original failure remains separate from the subsequent focused
+source group, which uses the same contract test class as CI. A live partial copy
+preserves 32 phase archives with 36,342 checked members; the earlier index records
+28 completions. These are distinct observation times. The complete final cold
+report/index was not retained by that temporary-directory unit test, and the
+partial copy is not labelled a complete final artifact or a pass. Neither the
+cold deadline nor the full retained suite was changed.
+
+After integration, all 40 HIA source generators and the inventory/contract fixed
+point reproduced successfully. The exact combined source then passed 29 focused
+source/adapter/installed-resource/workflow controls and all 53 selected native
+type/origin/signature/helper tests, with zero errors, failures, skips, expected
+failures or unexpected successes. The 570-entry source closure remained unchanged
+before and after those tests. These development results do not promote the
+pre-fix local timeout or the older GitHub timeout into a pass.
+
 The first published v58 tree was exactly
 `243ca1d7d25ba485681488ea330ff81167e0fff1`, committed as
 `f174f9b970e227a2c6d3b98ea115cedba7f4e316`. Its Actions run `42933658467`
@@ -380,7 +492,7 @@ deadline change or new cold pass.
 | --- | --- | --- |
 | Assembly/compiler | Direct x86-64 generation, resource checks, original/modified self-compilation, native `assemble` and the retained static x86-64 ELF ET_REL/RELA linker | Full retained language/composite lowering, linking beyond the existing static ELF profile and all claimed targets; retain the compiler's actual limits separately from the larger checker's limits |
 | Primitive Core admission | Declarations, 50 opcodes, SSA/CFG, calls/effects, ownership and loans; standalone checker | Nominal/composite normalization, complete object/diagnostic custody and independently justified equivalence for retained semantics |
-| Nominal types | Complete selected declaration/layout session for four composite versions, including unused/symbolic partial obligations and v4 source-path-to-slot returned-loan resolution | Complete operation/helper lowering, binding origins to generated Core entry names and default installed integration |
+| Nominal elaboration | Complete selected declaration/layout session, v4 source-path-to-slot returned-loan resolution, ordered parameter and task-protocol admission, and complete task-helper Core generation | Remaining function/operation lowering, binding origins to generated Core entry names, final aggregation/export eligibility and default installed integration |
 | Workspace/project build | Native module graph, naming/privacy, Core materialization and semantic compiler pipeline | Complete project build, library resolution, installation/upgrade/recovery and file/process ownership without hosted orchestration |
 | Agent editing | Native slice/snapshot/data helpers, snapshot-bound patches, complete patch diagnostics and explicit ordinary raw-byte candidate route | Remaining query, batch/impact orchestration, composite/import paths, default installation and ordinary full worker protocol |
 | Agent state | Native artifact hashing, no-replace file publication and content byte store | Metadata/ref encoding and issuance, namespace/kind authority, SQLite transactions/WAL, request intents, locks, costs, leases, slots, versions and uncertain-operation recovery |
@@ -407,8 +519,10 @@ continuation.
 admission. The explicitly selected native type session now owns nominal
 declarations, generic binding, finite layout, by-value cycles, stored loans and
 partial-declaration obligations; the no-selector path retains `_Types`.
+The selected type session also owns parameters and task-protocol admission,
+and the separately selected helper image generates the complete task helpers.
 `_Elaborator` still owns nominal SSA, record/enum transformations, inactive-slot
-cleanup, task helpers, partial tokens, generated entry-name origin binding and
+cleanup within ordinary functions, partial tokens, generated entry-name origin binding and
 export eligibility. Composite v1 lowers to primitive v6, v2/v3 to v7 and v4 to
 v8; changing those schemas would change the retained language.
 
@@ -430,7 +544,7 @@ native or qualify the current complete retained suite.
 ### Build and installed-runtime prerequisites
 
 `pyproject.toml` still installs the `hia-core` Python distribution with
-`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 24 kernel HIA
+`hia = hepta.cli:hia_main`. Wheel/sdist source custody packages 25 kernel HIA
 sources and the publisher's declared assets, but it is not a complete native
 self-rebuild kit: the selfhost source, general stdio/result packers, their build
 drivers and default installed native executables are not supplied through that
