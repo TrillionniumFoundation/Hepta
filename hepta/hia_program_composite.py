@@ -427,6 +427,13 @@ def _ret(values):
 
 class _Elaborator:
     def __init__(self, document, *, legacy=False):
+        from .hia_nominal_admission_native import selected_nominal_admission
+        selected = selected_nominal_admission()
+        if selected is not None:
+            return selected.initialize(self, document, legacy=legacy)
+        self._reference_initialize(document, legacy=legacy)
+
+    def _reference_initialize(self, document, *, legacy=False):
         _keys(document, {"schema", "module", "types", "functions"}, "nominal program")
         if type(document["schema"]) is not str or document["schema"] not in COMPOSITE_SCHEMAS:
             _reject("unsupported nominal program schema", "E_HIA_SCHEMA")
@@ -623,13 +630,15 @@ class _Elaborator:
             _reject("task cancellation must consume one state and return no values", "E_HIA_TYPE")
         return step
 
-    def helper(self, typ, operation):
+    def helper(self, typ, operation, *, require_native=False):
         key = (typ.key, operation)
         if key in self.helper_names:
             return self.helper_names[key]
         from .hia_task_helpers_native import selected_task_helpers
         selected = selected_task_helpers()
         if selected is None:
+            if require_native:
+                _reject("selected native function requires native task helper generation", "E_HIA_TYPE")
             return self._reference_helper(typ, operation)
         step = self.check_task(typ)
         result = selected.generate(typ, step, operation, self.serial,
@@ -752,6 +761,13 @@ class _Elaborator:
         return name
 
     def function(self, fn):
+        from .hia_nominal_function_native import selected_nominal_function
+        selected = selected_nominal_function()
+        if selected is not None:
+            return selected.lower(self, fn)
+        return self._reference_function(fn)
+
+    def _reference_function(self, fn):
         blocks = fn["blocks"]
         if type(blocks) is not list or not 1 <= len(blocks) <= MAX_BLOCKS:
             _reject("invalid nominal block inventory", "E_HIA_CFG")
@@ -879,69 +895,9 @@ class _Elaborator:
                     self.lower_enum_operation(ins, actual, declared, env, ops, consume, outputs)
                 elif op.startswith("task."):
                     self.lower_task_operation(ins, actual, declared, env, ops, consume, outputs)
-                elif op == "call":
-                    _keys(attrs, {"function"}, op)
-                    callee = _name(attrs["function"], "callee")
-                    if callee not in self.signatures:
-                        _reject("unknown nominal callee", "E_HIA_CALL")
-                    params, returns = self.signatures[callee]
-                    if tuple(v.typ for v in actual) != tuple(t for _, t in params):
-                        _reject("nominal call argument types differ", "E_HIA_CALL")
-                    names = outputs(ins, returns)
-                    for name, item in zip(args, actual):
-                        if item.typ.owns:
-                            consume(name)
-                    flat_out = []
-                    for name, typ in zip(names, returns):
-                        parts = (name,) if typ.kind == "primitive" else tuple(self.fresh() for _ in typ.flat)
-                        env[name] = _Value(typ, parts)
-                        flat_out.extend(zip(parts, typ.flat))
-                    ops.append(_ins("call", [x for v in actual for x in v.names], flat_out, function=callee))
                 else:
-                    if any(v.typ.kind != "primitive" for v in actual) or any(t.kind != "primitive" for _, t in declared):
-                        _reject("primitive instruction cannot reinterpret a nominal value", "E_HIA_TYPE")
-                    if op in {"owner.move", "owner.drop", "loan.end", "chain.try_push", "chain.pop"}:
-                        for name in args:
-                            consume(name)
-                    for name, typ in declared:
-                        env[name] = _Value(typ, (name,))
-                    ops.append({"op": op, "args": [x for v in actual for x in v.names],
-                                "out": [_param(name, typ.key) for name, typ in declared], "attrs": attrs})
-            term = block["term"]
-            if type(term) is not dict or type(term.get("op")) is not str:
-                _reject("missing nominal terminator", "E_HIA_CFG")
-            op = term["op"]
-            current = {"id": block["id"], "params": flattened[block["id"]], "ops": ops, "term": None}
-            result.append(current)
-            if op == "jump":
-                _keys(term, {"op", "target", "args"}, "jump")
-                target = edge({"target": term["target"], "args": term["args"]})
-                current["term"] = {"op": "jump", **target}
-            elif op == "branch":
-                _keys(term, {"op", "cond", "then", "else"}, "branch")
-                cond = value(term["cond"])
-                if cond.typ.key != "bool":
-                    _reject("nominal branch condition must be bool", "E_HIA_CFG")
-                current["term"] = {"op": "branch", "cond": cond.names[0],
-                                   "then": edge(term["then"]), "else": edge(term["else"])}
-            elif op == "ret":
-                _keys(term, {"op", "values"}, "return")
-                _names(term["values"], "return values")
-                values = [value(n) for n in term["values"]]
-                if tuple(v.typ for v in values) != self.signatures[fn["name"]][1]:
-                    _reject("nominal return types differ", "E_HIA_TYPE")
-                for name in term["values"]:
-                    consume(name)
-                if live_required():
-                    _reject("return leaves a live nominal value", "E_HIA_RESOURCE")
-                current["term"] = _ret([x for v in values for x in v.names])
-            elif op == "trap":
-                _keys(term, {"op", "code"}, "trap")
-                current["term"] = dict(term)
-            elif op == "match":
-                self.lower_enum_match(term, env, signatures, current, result, value, edge)
-            else:
-                _reject("unknown nominal terminator", "E_HIA_CFG")
+                    self.lower_call_primitive(ins, actual, declared, env, ops, consume, outputs)
+            self.lower_nominal_terminator(block, env, signatures, flattened, result, fn, value, consume, live_required, edge, ops)
         lowered = {"name": fn["name"], "params": flattened[fn["entry"]],
                    "returns": [p for t in self.signatures[fn["name"]][1] for p in t.flat],
                    "effects": fn["effects"], "entry": fn["entry"], "blocks": result}
@@ -952,6 +908,110 @@ class _Elaborator:
                 for typ, origin in zip(self.signatures[fn["name"]][1], self.return_origins[fn["name"]])
                 for _ in typ.flat]
         return lowered
+
+
+    def lower_call_primitive(self, ins, actual, declared, env, ops, consume, outputs):
+        from .hia_call_primitive_native import selected_call_primitive
+        selected = selected_call_primitive()
+        if selected is None:
+            return self._reference_call_primitive(ins, actual, declared, env, ops, consume, outputs)
+        lowered = selected.lower(ins["op"], ins["args"], ins["attrs"], actual, declared, self.serial,
+            signatures=self.signatures, reparse_outputs=lambda: self.parameters(ins["out"]))
+        self.serial = lowered.serial
+        ops.extend(lowered.ops)
+        for item, consumed in lowered.states:
+            item.consumed = consumed
+        env.update(lowered.bindings)
+        lowered.admit()
+
+
+    def _reference_call_primitive(self, ins, actual, declared, env, ops, consume, outputs):
+        op, args, attrs = ins["op"], ins["args"], ins["attrs"]
+        if op == "call":
+            _keys(attrs, {"function"}, op)
+            callee = _name(attrs["function"], "callee")
+            if callee not in self.signatures:
+                _reject("unknown nominal callee", "E_HIA_CALL")
+            params, returns = self.signatures[callee]
+            if tuple(v.typ for v in actual) != tuple(t for _, t in params):
+                _reject("nominal call argument types differ", "E_HIA_CALL")
+            names = outputs(ins, returns)
+            for name, item in zip(args, actual):
+                if item.typ.owns:
+                    consume(name)
+            flat_out = []
+            for name, typ in zip(names, returns):
+                parts = (name,) if typ.kind == "primitive" else tuple(self.fresh() for _ in typ.flat)
+                env[name] = _Value(typ, parts)
+                flat_out.extend(zip(parts, typ.flat))
+            ops.append(_ins("call", [x for v in actual for x in v.names], flat_out, function=callee))
+        else:
+            if any(v.typ.kind != "primitive" for v in actual) or any(t.kind != "primitive" for _, t in declared):
+                _reject("primitive instruction cannot reinterpret a nominal value", "E_HIA_TYPE")
+            if op in {"owner.move", "owner.drop", "loan.end", "chain.try_push", "chain.pop"}:
+                for name in args:
+                    consume(name)
+            for name, typ in declared:
+                env[name] = _Value(typ, (name,))
+            ops.append({"op": op, "args": [x for v in actual for x in v.names],
+                        "out": [_param(name, typ.key) for name, typ in declared], "attrs": attrs})
+
+
+    def lower_nominal_terminator(self, block, env, signatures, flattened, result, fn, value, consume, live_required, edge, ops):
+        from .hia_nominal_terminators_native import selected_nominal_terminators
+        selected = selected_nominal_terminators()
+        if selected is None:
+            return self._reference_nominal_terminator(block, env, signatures, flattened, result, fn, value, consume, live_required, edge, ops)
+        lowered = selected.lower(block["term"], env, signatures, self.signatures[fn["name"]][1], self.serial)
+        if not lowered.structured:
+            lowered.admit()
+        current = {"id": block["id"], "params": flattened[block["id"]], "ops": ops, "term": None}
+        result.append(current)
+        for item, consumed in lowered.states:
+            item.consumed = consumed
+        lowered.admit()
+        if lowered.request:
+            self.lower_enum_match(block["term"], env, signatures, current, result, value, edge)
+        else:
+            current["term"] = lowered.term
+
+
+    def _reference_nominal_terminator(self, block, env, signatures, flattened, result, fn, value, consume, live_required, edge, ops):
+        term = block["term"]
+        if type(term) is not dict or type(term.get("op")) is not str:
+            _reject("missing nominal terminator", "E_HIA_CFG")
+        op = term["op"]
+        current = {"id": block["id"], "params": flattened[block["id"]], "ops": ops, "term": None}
+        result.append(current)
+        if op == "jump":
+            _keys(term, {"op", "target", "args"}, "jump")
+            target = edge({"target": term["target"], "args": term["args"]})
+            current["term"] = {"op": "jump", **target}
+        elif op == "branch":
+            _keys(term, {"op", "cond", "then", "else"}, "branch")
+            cond = value(term["cond"])
+            if cond.typ.key != "bool":
+                _reject("nominal branch condition must be bool", "E_HIA_CFG")
+            current["term"] = {"op": "branch", "cond": cond.names[0],
+                               "then": edge(term["then"]), "else": edge(term["else"])}
+        elif op == "ret":
+            _keys(term, {"op", "values"}, "return")
+            _names(term["values"], "return values")
+            values = [value(n) for n in term["values"]]
+            if tuple(v.typ for v in values) != self.signatures[fn["name"]][1]:
+                _reject("nominal return types differ", "E_HIA_TYPE")
+            for name in term["values"]:
+                consume(name)
+            if live_required():
+                _reject("return leaves a live nominal value", "E_HIA_RESOURCE")
+            current["term"] = _ret([x for v in values for x in v.names])
+        elif op == "trap":
+            _keys(term, {"op", "code"}, "trap")
+            current["term"] = dict(term)
+        elif op == "match":
+            self.lower_enum_match(term, env, signatures, current, result, value, edge)
+        else:
+            _reject("unknown nominal terminator", "E_HIA_CFG")
 
     def lower_task_operation(self, ins, actual, declared, env, ops, consume, outputs):
         from .hia_task_operations_native import selected_task_operations
@@ -1290,6 +1350,13 @@ class _Elaborator:
             cursor += width
 
     def lower(self):
+        from .hia_nominal_module_native import selected_nominal_module
+        selected = selected_nominal_module()
+        if selected is not None:
+            return selected.lower(self)
+        return self._reference_lower()
+
+    def _reference_lower(self):
         functions = [self.function(fn) for fn in self.document["functions"]]
         functions += self.helpers
         if len(functions) > MAX_FUNCTIONS or any(len(f["blocks"]) > MAX_BLOCKS for f in functions):
@@ -1308,4 +1375,14 @@ def elaborate_program(document, *, legacy=False):
     before this function.  Direct callers gain no VerifiedProgram or execution
     authority from this function alone.
     """
-    return _Elaborator(document, legacy=legacy).lower()
+    # This public call owns its temporary native type session, including a
+    # constructor that fails after creating the session. Direct _Elaborator
+    # callers retain their explicit session lifetime and partial-state access.
+    owner = object.__new__(_Elaborator)
+    try:
+        _Elaborator.__init__(owner, document, legacy=legacy)
+        return owner.lower()
+    finally:
+        native_types = getattr(owner, 'native_types', None)
+        if native_types is not None:
+            native_types.close()

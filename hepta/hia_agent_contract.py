@@ -30,6 +30,8 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',
     'examples/hia_bootstrap/retirement_state.hiaasm',
+    'examples/hia_bootstrap/execution_budget.hiaasm',
+    'examples/hia_bootstrap/request_journal.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
@@ -58,7 +60,12 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/enum_operations.hiaasm',
     'examples/hia_bootstrap/record_operations.hiaasm',
     'examples/hia_bootstrap/record_transitions.hiaasm',
+    'examples/hia_bootstrap/nominal_terminators.hiaasm',
+    'examples/hia_bootstrap/nominal_function.hiaasm',
+    'examples/hia_bootstrap/call_primitive.hiaasm',
     'examples/hia_bootstrap/task_operations.hiaasm',
+    'examples/hia_bootstrap/nominal_module.hiaasm',
+    'examples/hia_bootstrap/nominal_admission.hiaasm',
 )
 
 
