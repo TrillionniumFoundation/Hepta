@@ -1,0 +1,251 @@
+{
+  "base_head": "4161e8d12d87906fde144f039da07908ad52d98a",
+  "base_tree": "1c6ab0228f012429149997d1f731833739f433eb",
+  "borrowed_source": "/home/qian-qi/he26v65r2/s",
+  "contract_refresh_executed": false,
+  "error": "process ownership did not close: fetch-exact-published-commits",
+  "error_type": "RuntimeError",
+  "original_evidence_pins_before": {
+    "/home/qian-qi/he26v65r2/guard/guardian.json": "ae721abf9b428acedb43fe99d5b072fed1de3299fd331b457410fdb5858519f1",
+    "/home/qian-qi/he26v65r2/q/QUALIFICATION.json": "d91d279d192a9fe6b6a7521d8732197bdc37f4af3a03a694cfccb15929748b60",
+    "/home/qian-qi/he26v65r2/q/cold.json": "938b9331e28e53442a21796acb319f3c9683fc26748cad49893b56873bf02ad4",
+    "/home/qian-qi/he26v65r2/q/source-tests.json": "a2a84183bbca9df57ee352524e874420c446cb472bba34a5abd04551556593de",
+    "/home/qian-qi/hia-native-closure-evidence/4161e8d12d87906fde144f039da07908ad52d98a/desktop-full-hold-r2-preservation-r3/PRESERVATION.json": "6edd6d762f9ca2f95c1b3c0b40d1cd543c83e030fa0ecba1a72a2c26507644de"
+  },
+  "qualification_executed": false,
+  "requested_commits": [
+    "6d7806e3d3295e760066c229d6d3fe389564ae48",
+    "b6c36189fb45adcf26c2528346d14021b9873b05",
+    "38c3a511bea4e1733fe9e3be8111f28c07de94d3",
+    "42e3b7a6ef529e0f7209ab41184b6bbc89425b02",
+    "90536547cf012b8fed6d63e06ede77f49f6b9ee4",
+    "6f92eca18aa4447d2f7eb920d680adcc546c41f8"
+  ],
+  "resolved_conflicts": [],
+  "root": "/home/qian-qi/he26v66r1",
+  "schema": "hia.desktop-v66-independent-source-preparation.v1",
+  "source": "/home/qian-qi/he26v66r1/s",
+  "started_unix_ns": 1794393256954231710,
+  "status": "PREPARATION_HOLD",
+  "steps": [
+    {
+      "label": "borrow-before",
+      "owner": {
+        "cleanup": {
+          "complete": true,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": []
+        },
+        "command": [
+          "/usr/bin/git",
+          "--no-replace-objects",
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "http.version=HTTP/1.1",
+          "-c",
+          "user.name=HIA Native Audit",
+          "-c",
+          "user.email=hia-native-audit@localhost",
+          "-c",
+          "commit.gpgsign=false",
+          "-C",
+          "/home/qian-qi/he26v65r2/s",
+          "rev-parse",
+          "HEAD",
+          "HEAD^{tree}"
+        ],
+        "cwd": "/home/qian-qi/he26v66r1",
+        "logs": {
+          "/home/qian-qi/he26v66r1/preparation-logs/borrow-before.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "/home/qian-qi/he26v66r1/preparation-logs/borrow-before.stdout.log": "f8e7b6a3e92f18bb038fa8ed7cdd452a6c8e7483571520ce0f5729cdbe2e91ea"
+        },
+        "returncode": 0,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 0.008329891134053469,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_COMPLETED",
+        "timed_out": false,
+        "workflow_seconds": 120
+      }
+    },
+    {
+      "label": "borrow-clean-before",
+      "owner": {
+        "cleanup": {
+          "complete": true,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": []
+        },
+        "command": [
+          "/usr/bin/git",
+          "--no-replace-objects",
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "http.version=HTTP/1.1",
+          "-c",
+          "user.name=HIA Native Audit",
+          "-c",
+          "user.email=hia-native-audit@localhost",
+          "-c",
+          "commit.gpgsign=false",
+          "-C",
+          "/home/qian-qi/he26v65r2/s",
+          "status",
+          "--porcelain=v1",
+          "--untracked-files=all"
+        ],
+        "cwd": "/home/qian-qi/he26v66r1",
+        "logs": {
+          "/home/qian-qi/he26v66r1/preparation-logs/borrow-clean-before.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "/home/qian-qi/he26v66r1/preparation-logs/borrow-clean-before.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "returncode": 0,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 1.5187555749434978,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_COMPLETED",
+        "timed_out": false,
+        "workflow_seconds": 120
+      }
+    },
+    {
+      "label": "independent-local-clone",
+      "owner": {
+        "cleanup": {
+          "complete": true,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": []
+        },
+        "command": [
+          "/usr/bin/git",
+          "-c",
+          "core.hooksPath=/dev/null",
+          "clone",
+          "--local",
+          "--no-hardlinks",
+          "--no-checkout",
+          "/home/qian-qi/he26v65r2/s",
+          "/home/qian-qi/he26v66r1/s"
+        ],
+        "cwd": "/home/qian-qi/he26v66r1",
+        "logs": {
+          "/home/qian-qi/he26v66r1/preparation-logs/independent-local-clone.stderr.log": "6591ec1917558c1818a57d9fafc3eca5df431dc98fa7dde6197ed3e4e18e7935",
+          "/home/qian-qi/he26v66r1/preparation-logs/independent-local-clone.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "returncode": 0,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 1.870401500025764,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_COMPLETED",
+        "timed_out": false,
+        "workflow_seconds": 300
+      }
+    },
+    {
+      "label": "shallow-observation",
+      "owner": {
+        "cleanup": {
+          "complete": true,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": []
+        },
+        "command": [
+          "/usr/bin/git",
+          "--no-replace-objects",
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "http.version=HTTP/1.1",
+          "-c",
+          "user.name=HIA Native Audit",
+          "-c",
+          "user.email=hia-native-audit@localhost",
+          "-c",
+          "commit.gpgsign=false",
+          "-C",
+          "/home/qian-qi/he26v66r1/s",
+          "rev-parse",
+          "--is-shallow-repository"
+        ],
+        "cwd": "/home/qian-qi/he26v66r1",
+        "logs": {
+          "/home/qian-qi/he26v66r1/preparation-logs/shallow-observation.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "/home/qian-qi/he26v66r1/preparation-logs/shallow-observation.stdout.log": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+        },
+        "returncode": 0,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 0.00427818694151938,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_COMPLETED",
+        "timed_out": false,
+        "workflow_seconds": 120
+      }
+    },
+    {
+      "label": "fetch-exact-published-commits",
+      "owner": {
+        "cleanup": {
+          "complete": false,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": [
+            "SIGTERM",
+            "SIGKILL"
+          ]
+        },
+        "command": [
+          "/usr/bin/git",
+          "--no-replace-objects",
+          "-c",
+          "core.hooksPath=/dev/null",
+          "-c",
+          "http.version=HTTP/1.1",
+          "-c",
+          "user.name=HIA Native Audit",
+          "-c",
+          "user.email=hia-native-audit@localhost",
+          "-c",
+          "commit.gpgsign=false",
+          "-C",
+          "/home/qian-qi/he26v66r1/s",
+          "fetch",
+          "--no-tags",
+          "--no-recurse-submodules",
+          "--unshallow",
+          "https://github.com/TrillionniumFoundation/Hepta.git",
+          "6d7806e3d3295e760066c229d6d3fe389564ae48",
+          "b6c36189fb45adcf26c2528346d14021b9873b05",
+          "38c3a511bea4e1733fe9e3be8111f28c07de94d3",
+          "42e3b7a6ef529e0f7209ab41184b6bbc89425b02",
+          "90536547cf012b8fed6d63e06ede77f49f6b9ee4",
+          "6f92eca18aa4447d2f7eb920d680adcc546c41f8"
+        ],
+        "cwd": "/home/qian-qi/he26v66r1",
+        "logs": {
+          "/home/qian-qi/he26v66r1/preparation-logs/fetch-exact-published-commits.stderr.log": "dbcc4dce38066a3223043b215a80a7acdd2dd1e2f52063de42801d63d931e5ff",
+          "/home/qian-qi/he26v66r1/preparation-logs/fetch-exact-published-commits.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "returncode": -15,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 903.0061027898919,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_HOLD",
+        "timed_out": true,
+        "workflow_seconds": 900
+      }
+    }
+  ],
+  "tests_executed": false,
+  "whole_native_delivery_qualified": false
+}

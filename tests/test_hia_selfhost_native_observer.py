@@ -9,6 +9,56 @@ import unittest
 from tools.hia_selfhost_native_observer import frame, execute, invoke as native_invoke, independent_reference, build
 
 
+class NativeObserverScopeTests(unittest.TestCase):
+    def test_nested_scope_routes_the_full_invoke_contract_and_restores_prior_owner(self):
+        from unittest.mock import patch
+        import tools.qualify_hia_selfhost as q
+        import tools.hia_selfhost_native_observer as native
+        outer, inner, prior, linked = (object() for _ in range(4))
+        directory, artifact = Path('unopened-directory'), Path('unopened-image')
+        source, preimage = b'original-input', b'XYZ'
+        result = ({'status': 'transport-observation'}, b'output')
+        with patch.object(q, 'NATIVE_OBSERVER', prior), patch.object(q, 'NATIVE_LINKED_OBSERVER', linked):
+            with patch.object(native, 'invoke', return_value=result) as selected:
+                with patch.object(q.subprocess, 'run', side_effect=AssertionError('retained loader entered')) as retained:
+                    with q._native_observer_scope(outer):
+                        self.assertIs(q.NATIVE_OBSERVER, outer)
+                        with q._native_observer_scope(inner):
+                            actual = q.invoke(directory, 'scoped-case', artifact, source,
+                                capacity=3, workspace_size=7, workspace_fill=90,
+                                output_initial=preimage, observe_trap_writes=True)
+                            self.assertIs(actual, result)
+                            self.assertIs(q.NATIVE_OBSERVER, inner)
+                        self.assertIs(q.NATIVE_OBSERVER, outer)
+                    self.assertIs(q.NATIVE_OBSERVER, prior)
+                    self.assertIs(q.NATIVE_LINKED_OBSERVER, linked)
+                    retained.assert_not_called()
+                selected.assert_called_once_with(directory, 'scoped-case', inner, artifact, source,
+                    capacity=3, workspace_size=7, workspace_fill=90,
+                    output_initial=preimage, observe_trap_writes=True)
+
+    def test_selected_native_baseexception_is_not_retried_by_the_retained_loader(self):
+        from unittest.mock import patch
+        import tools.qualify_hia_selfhost as q
+        import tools.hia_selfhost_native_observer as native
+        class ForeignStop(BaseException):
+            pass
+        failure = ForeignStop('original native transport failure')
+        prior, selected_owner, linked = object(), object(), object()
+        with patch.object(q, 'NATIVE_OBSERVER', prior), patch.object(q, 'NATIVE_LINKED_OBSERVER', linked):
+            with patch.object(native, 'invoke', side_effect=failure) as selected:
+                with patch.object(q.subprocess, 'run', side_effect=AssertionError('retained fallback entered')) as retained:
+                    with self.assertRaises(ForeignStop) as caught:
+                        with q._native_observer_scope(selected_owner):
+                            q.invoke(Path('unopened-directory'), 'failed-scope',
+                                     Path('unopened-image'), b'original-input')
+                    self.assertIs(caught.exception, failure)
+                    self.assertIs(q.NATIVE_OBSERVER, prior)
+                    self.assertIs(q.NATIVE_LINKED_OBSERVER, linked)
+                    selected.assert_called_once()
+                    retained.assert_not_called()
+
+
 @unittest.skipUnless(platform.system()=='Linux' and platform.machine().lower() in ('x86_64','amd64')
     and shutil.which('ld'), 'Linux x86-64 bootstrap required')
 class NativeObserverTests(unittest.TestCase):

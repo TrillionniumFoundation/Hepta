@@ -1,0 +1,84 @@
+{
+  "schema": "hepta.hia.machine-encoding-independent-static-review.v1",
+  "scope": "READ_ONLY_SOURCE_AND_RETAINED_REPORT_REVIEW_NO_NATIVE_RERUN_NO_ALL_INPUT_PROOF",
+  "canonical_commit": "382a4144c095165e06f44ea718c2baa4ad922e8f",
+  "pins": {
+    "generate_machine_encoding.py": "c8badfc2b4af90c12b41206ba51a20b30579b54eb5f9881e478f88c6af9b7558",
+    "native_encoding_bridge.py": "661c455c310d9971f5899ffdf399f508015e9c20e3ada41a7edb1e191769f165",
+    "observe_core_r1.py": "43e5faf30a963f6024f04a214532598fd32d96dc969a50721a6c838818546e08",
+    "observe_native_r1.py": "7ce2a8d25839de579515db7ccc68c6de88f22ee68ca4439252a7a1771d8e5e53",
+    "source-r1/machine_encoding.hiaasm": "af107d6bfd763bb6c1e294a5036f5a0a1c4fb45e0e1efe92aa61846abb032de1",
+    "core-r1/report.json": "8529a853033a6cd91c002a44584f1cf4ddcf7eb2ffe3022bed629f3177780fd0",
+    "native-r1/report.json": "eabbdaa303724de3ef6797370cc0d5d4ddc4a5ec24f4b637a8cc794e01e9d8ee",
+    "native-r1/machine-encoding.image.bin": "adfc2283804749354cdffd34c8fcaef48f409c8070d676b45e0a40c28ab87889"
+  },
+  "report_readback": {
+    "core_cases": 159,
+    "core_entries": 194,
+    "core_all_equal": true,
+    "native_cases": 159,
+    "native_all_equal": true,
+    "loaded": 51,
+    "executed": 51,
+    "tests_run": 51,
+    "loaded_executed_exact": true,
+    "unique_ids": true,
+    "anomalies": {
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "expectedFailures": 0,
+      "unexpectedSuccesses": 0,
+      "retained_encoding_entries": 0
+    },
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "source_stable_report": true,
+    "source_pins": 667,
+    "core_seconds": 1.5588944390001416,
+    "native_total_seconds": 15.062187397000343,
+    "native_test_seconds": 14.71782553399953
+  },
+  "ordinary_admitted_operand_review": {
+    "finding": "No blocking mismatch found in the 37 numeric commands by comparison to the retained Code implementation.",
+    "areas": [
+      "REX W/R/B and register ordering",
+      "RSP/R12 no-index SIB and signed disp32",
+      "movabs versus zero-extending mov32",
+      "ALU group mapping and signed imm8 boundary",
+      "shift immediate/CL groups",
+      "unary F7 groups",
+      "SETcc zeroing and second register observation",
+      "conditional move condition/order",
+      "push/pop/control opcodes",
+      "little-endian rel32 and fixed zero fields",
+      "alignment offset/power-of-two equivalence"
+    ],
+    "output_bound": "Admitted align emits at most 63 bytes; all other commands emit at most 10. Header+payload fits 80-byte output. Input/workspace extent and numeric admission occur before writes.",
+    "partial_state": "Ordinary branch/call prefix emit, fixup/relocation insertion, then zero field emit order matches retained methods. Finalize still copies data before patching and does not mutate Code.data."
+  },
+  "concrete_scope_gap": {
+    "kind": "SOURCE_DERIVED_FOREIGN_TRUTH_OBSERVATION_DIFFERENCE_NOT_EXECUTED",
+    "method": "NativeEncodedCode.alu_imm",
+    "old": "compact = self.alu_immediate == imm8_if_exact and signed_imm8_range; a falsy non-bool comparison result is retained and truth-tested again by if compact and the opcode conditional.",
+    "new": "mode = bool(comparison) observes that result only once, then HIA decides the range.",
+    "reachable_boundary": "Constructor admits exact str modes; the difference requires replacing the public mode attribute after construction or equivalent foreign mutation.",
+    "control_suggestion": "Install a comparator returning a false-then-true truth object; compare exact callback trace, errors and partial bytes with value 128. Do not label this ordinary exact-string mode regression."
+  },
+  "remaining_authorities": [
+    "Hosted constructor and operand admission",
+    "Hosted _reg/_condition, scratch mapping and foreign observations",
+    "Hosted labels, fixups, relocations and code storage/size enforcement",
+    "Inherited direct private _rr/_mem/_branch/_unary still use retained bytes outside selected public methods",
+    "Public raw emit still accepts caller bytes",
+    "No production selector, installed source/resource admission, or matching cold qualification yet"
+  ],
+  "next_focused_controls": [
+    "Root already owns malformed raw ABI and nonzero alignment controls; do not duplicate them.",
+    "Add code-limit partial prefix/fixup/relocation and SETcc partial MOV controls.",
+    "Add _reg ordering/second SETcc observation controls using a stateful scratch mapping.",
+    "Resolve or explicitly bound the ALU false-result truth behavior before extending foreign compatibility claims."
+  ],
+  "files_modified_in_reviewed_tree": [],
+  "finished_utc": "2026-11-11T13:30:00.628920+00:00",
+  "canonical_tree_prefix_only": "307c06a9"
+}

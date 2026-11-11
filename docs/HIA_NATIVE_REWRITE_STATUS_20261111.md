@@ -1,5 +1,75 @@
 # HIA native rewrite: current source, implementation and remaining owners
 
+## Current development integration — 2026-11-11
+
+**Whole HIA-native replacement, default activation and retirement of the old stack remain OPEN.** The current work moves complete selected control paths into checked-in HIA, tests them against their unchanged ordinary callers, and integrates the resulting source. A successful development component does not qualify the complete product or authorize removal of an owner that still has supported callers.
+
+The first complete source union is [`0c9b1b034731d2e602fc47f56be3b4a4ad41a16c`](https://github.com/TrillionniumFoundation/Hepta/commit/0c9b1b034731d2e602fc47f56be3b4a4ad41a16c), tree `2b9e34f3aa0471b15085dfd68e4e60b2e838a68e`. It has 4,012 file leaves: 88 explicit deltas against the 3,941-leaf instruction/state product, comprising 71 additions and 17 replacements. The full tree and branch ref were read back and every leaf mode/type/blob identity was checked. This is an assembled source snapshot, not an executed qualification.
+
+That union includes the actual 32 generated Core HIA sources, the state and instruction owners, the store/page owners, the ELF candidate, the shared source-admission repair, the stricter state/instruction qualifiers, and the cold-prefix observer change. It retains the original production alternatives and independent reference controls. The union's two generated global JSON documents are explicitly stale until regeneration. The successor workflow and complete qualification runner are being integrated separately; their future results must bind the final source tree.
+
+The contract's 602 explicit source paths contain no duplicates or missing paths in this union. Together with all production `hepta/**/*.py` files, the current declaration selects 769 distinct source files. This is a static path check, not an executed source-contract check. The same snapshot contains 168 production Python modules and 48 Rust files. Those counts measure retained source, not a migration percentage. The exact-608 source audit separately established 161 production Python modules, 481 nonexperimental Python files, 48 Rust files, 3,925 file leaves and 4,194 raw Git objects; that earlier full audit is preserved in [60aeeff4](https://github.com/TrillionniumFoundation/Hepta/commit/60aeeff4c56b4827ce36ffa4b31ea91fc5345c4d).
+
+### Complete successor source integration
+
+The follow-up integration adds the complete [30-gate source candidate](https://github.com/TrillionniumFoundation/Hepta/commit/c593dcce627bce44ba0e8177cdd9aba22f414fb0), its v9 runner and unchanged adjacent process/prerequisite helpers, together with the latest Core qualifier/documentation [9b350732](https://github.com/TrillionniumFoundation/Hepta/commit/9b350732ce1dac60ec5689838ab80b853d700751). The original four shared integration files are preserved except for the contract's ten new declared gate/runner source paths and its explicit qualification requirements. The two global derived JSON documents still require actual regeneration.
+
+The source declaration now contains 612 explicit paths and, with all 168 production Python modules, 779 distinct bound source files. This integration has 4,023 tracked file leaves including the new runner documentation. The original 21-key gate map is passed unchanged to its original reader; the complete 30-key map conjoins all nine new gates. Each of the five added complete product invocations has an explicit original 180/3-second owner. Core's full 12 + 51 + 50 route remains one invocation. CI retains and independently reads the actual owner request, natural exit, original receipt and completed cleanup.
+
+The isolated source-reproduction controller will run all 59 generators, regenerate contract → coverage → contract, perform the original contract/source-scope checks, and execute all eleven accounting controls plus the complete eighteen new compiler-gate source controls. Exact loaded/executed IDs and all five zero-anomaly checks are mandatory. These synthetic/source controls do not count as native execution. Source and pipeline code remain unparsed/unexecuted at this source freeze; no current-source cold or complete qualification result is asserted here.
+
+### Actual results and the exact source they cover
+
+| Responsibility | Actual observation | Remaining boundary |
+| --- | --- | --- |
+| Instruction source generation | GitHub Actions [43091589236](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43091589236) completed the new source-only authoring attempt. The resulting product is [7186dee2](https://github.com/TrillionniumFoundation/Hepta/commit/7186dee24f33173c25f2246a6dfe15eeda053992). All 41 instruction modes round-trip; the 200,255-byte HIA source has 40 functions, 597 blocks and 3,990 operations, within all original compiler limits. All 49 author originals were recovered and checked. | Source authoring is separate from native execution. The earlier failed desktop authoring attempt and its original counterexample remain retained. |
+| Native image preparation for 7186 | A fresh explicit development build produced the actual encoding, state and instruction images under the original 20-second wall/10-second CPU compile limits. Worker time was 22.630702004 s; the original 180/3-second owner returned naturally. Source, compiler and image/manifest bindings were stable. | The retained B3 came from the failed exact-608 cold run. Its bytes can serve an explicit development experiment; they do not establish a matching current-source cold result. |
+| Code mutable state on 7186 | 12/12 component tests and the unchanged five-module 51/51 callers passed; all five unittest anomaly categories were empty, exact loaded/executed identities matched, retained owner entries were empty. Worker time 76.471591114 s; owner time 77.247182078 s. | Applies to 7186. Later source-admission and qualifier changes require their own execution. |
+| All 41 public instruction controls on 7186 | 12/12 component tests and the unchanged 51/51 callers passed; all five anomaly categories were empty, exact loaded/executed identities matched, retained owner entries were empty. Worker time 110.280724752 s; owner time 110.756762932 s. | Applies to 7186, not automatically to the subsequent union. Original 3/5-second caller budgets and the 180-second owner were unchanged. |
+| Store authority and page/read integration | [a3ebd115](https://github.com/TrillionniumFoundation/Hepta/commit/a3ebd11545d48dedbed8dbdb0d2c01f39bd7e564) reproduced 55 generators and passed 38 original plus 12 new source controls. Its corrected gate integration passed all 13 necessary controls. Complete original custody is retained in [89fffa4f](https://github.com/TrillionniumFoundation/Hepta/commit/89fffa4f865090684217ffa1ea08347f9e3b4e0e). Original individual 67-caller component observations retain their own source identities. | The new combined source still requires matching-source cold and both complete selected-caller gates. SQL transactions, durability, filesystem ownership and ordinary service bodies remain hosted. |
+| General Core function lowering | The corrected original authoring job generated all 32 HIA units in 65.085734110 s. The archive contains 58 original members / 10,342,352 raw bytes. All 34 archive chunks, the complete gzip hash, member lengths/hashes and the 32 actual HIA files were recovered. The complete ordinary candidate with those exact sources is [02805856](https://github.com/TrillionniumFoundation/Hepta/commit/028058563592a853c7b4eeea145b35f5545aaa94). | No native or caller qualification is inferred from generation. The complete 12 + 51 + 50 groups and success accounting are pending for their own canonical candidate. Eighteen Python value primitives and the remaining emitter methods are still explicit owners. |
+| ELF writer | A new development execution of [66f00357](https://github.com/TrillionniumFoundation/Hepta/commit/66f00357a9a847c816609238a5d433e5f435023c), with controls [0b0e60b0](https://github.com/TrillionniumFoundation/Hepta/commit/0b0e60b0eda71b89c6c1d303a2c8c338845b4fab), completed all 20 new methods, the original 51 callers, a fresh image build and the actual old/new private effect-permission comparison. The whole new controller took 203.7767 s; boundary 4 took 124.3986 s and original 51 took 36.0858 s, each below its original 180-second group limit. The actual controller, process owner, source preparation, terminal ACK and logs are preserved in [765bb407](https://github.com/TrillionniumFoundation/Hepta/commit/765bb407cdaf3f7d35eb93cccce785de1f321d79). | This is a separately owned component development run with a new 900-second outer controller; the formal cold limit remains 180 seconds. Full foreign-object TimSort behavior, the final union and matching-source qualification remain open. |
+| Cold prefix observer | The original 75-case comparison for [c1d5569f](https://github.com/TrillionniumFoundation/Hepta/commit/c1d5569ff6d7de6ace669b929e02e3e7aac10eac) actually passed in both transports. All 150 separate processes were reaped; the 68 original checks matched, and the frozen worker compared 157 full-byte pairs, including seven produced images. Measured prefix time was 7.765729965 s for the retained transport and 3.344434360 s for the native transport. Complete original reports, exact report extraction, the original owner and the read-transport failure observation are retained in [448e06ef](https://github.com/TrillionniumFoundation/Hepta/commit/448e06ef8a90b284d98631ba0e09512ec91445a8). | The 4.421295605-second difference covers this prefix only. It is an explicit development experiment using retained compiler inputs. Fresh B0/generation chains and the complete 38-phase cold gate were not executed by this comparison. Binary payloads remain in the named original run; report custody does not claim a second download of all payload bytes. |
+
+The complete state and instruction reports are preserved with their original source/input/process bindings in [8700a4d5](https://github.com/TrillionniumFoundation/Hepta/commit/8700a4d56762dbdd567f2d7ae3039785b52d09f8). Their selected reports are respectively 184,726 bytes / SHA-256 `71e845b634c43f4a89c8c6565e881151f12ff930393bcd7b154216fad4746e84` and 186,496 bytes / `624f1192d359ec4dfeed6813b2fb331cf9b1317183260751f456d1fb944fa7a5`. The original start ACKs remain UNKNOWN, separately from the recovered actual completed process receipts and test reports. No fresh-key duplicate was dispatched.
+
+The original state/instruction class wrappers counted selected-call attempts before return. Their positive 6/37/41 operation keys are not labelled successful-return coverage. The stricter [f1512e89](https://github.com/TrillionniumFoundation/Hepta/commit/f1512e89528d383c8d0a6175e8f0cd52f65248fe) records normal returns by test group, actual image and operation; it also gives cold component setup the real cold report and clears the development selector. It binds the separate images built by component setup and the caller images before and after use. These new qualifier bytes have independent static review and eleven focused controls, but do not inherit the earlier 12 + 51 results.
+
+The latest Core qualifier and documentation are fixed in [9b350732](https://github.com/TrillionniumFoundation/Hepta/commit/9b350732ce1dac60ec5689838ab80b853d700751). They require 27 public lowering controls and a separately identified 28th private ABI constants witness, with actual admitted HIA step returns bound to the selected group, unit image and ABI. The default complete route still requires all 12 + 51 + 50 methods in one invocation. An explicitly selected development group returns `DEVELOPMENT_GROUP_PASS`; it is refused together with a cold report and cannot satisfy complete qualification. Multiple independent development owners cannot be relabelled as a successful single 180-second invocation.
+
+The shared source-admission repair [1aa0ff9f](https://github.com/TrillionniumFoundation/Hepta/commit/1aa0ff9fe7527da3a8941fa17d8d175a061f3919) records the source SHA admitted with an immutable image and compares it with the current installed source before implementation identity is accepted. This closes the identified window between selecting an owner and first hashing its implementation. Generic manifest factories preserve their previous observation behavior. The ELF run exercised its new source-window tests; the state/instruction union still needs its own complete run.
+
+### Original failure and acceptance constraints remain in force
+
+The formal exact-608 desktop request remains **HOLD**. Its 354 source tests passed; its cold stage timed out at 180.594321347 s with 26/38 phases complete and 12 pending. The original reports and cleanup are retained in [6156635d](https://github.com/TrillionniumFoundation/Hepta/commit/6156635db138a571d57feaedd4bcc3e19bf89eea). Neither the two passing exact-tree CI observations nor subsequent component development replaces that failed attempt.
+
+The integrated source retains the original 21 successor-gate mapping and conjoins nine additional component/caller gates: state 2, instructions 2, Core 3 and ELF 2. All 30 independently admitted gates must pass on the same qualified source. Cold remains **180 seconds / two workers / all 38 phases**; complete retained discovery remains **5,400 seconds**, with the **10,800-second** outer guardian. Original 3/5-second caller deadlines and compiler capacities remain unchanged. Loaded and executed test identities must match exactly, and failures/errors/skips/expected failures/unexpected successes must all be zero. Missing, failed, held or unknown attempts are preserved.
+
+The original compiler bounds remain 1 MiB source, 16,384 lines, 128 functions, 1,536 total blocks, 8,192 operations, 256 blocks per function, 2,048 unique SSA names per function and 16 parameters/edge arguments. A numeric SSA suffix is not the count of unique SSA names.
+
+### Work that still prevents deleting the old stack
+
+| Remaining owner | Required closure |
+| --- | --- |
+| Core backend and complete foreign-object semantics | Native qualification of the complete lowering path; remaining emitter methods; full ELF sorting schedule and its version-specific observable comparisons; removal of remaining Python value/control owners only after their actual ordinary paths close. |
+| Nominal normalization and object/materialization bridges | Complete native raw-JSON transport, result materialization and continuation ownership across every retained composite version, with original failure order and lifetime rules. |
+| Agent state and business execution | SQLite transactions/WAL, locks and leases, write intents, metadata/ref issuance, publication/restart, unknown-result recovery, evaluation/proof/adoption/rollback and all ordinary service bodies. |
+| Ordinary CLI and build tooling | All 15 business bodies, file/process authority, native build orchestration, clean-machine reconstruction, packaged ordinary entry and explicit bootstrap trust root. |
+| Runtime and deployment | Replacement of the separately maintained Rust `hepta-runtime` process/MCP owner; exact operation continuity, installation pins, real first use, upgrade/rollback/recovery and qualified cutover. Repository source observation does not certify the deployed process. |
+| Complete delivery | Final combined source generation, original cold and all component/caller gates, complete retained regression, ordinary installed behavior and recovery, followed by default activation and reference-aware removal of the old whole stack. |
+
+No supported old owner has been removed by this continuation. Historical evidence below retains its own source and date; its counts and open/closed statements are not promoted to the current union.
+
+## Historical context: v67 and earlier source snapshots
+
+The current v67 integration adds native ordinary CLI control/presentation,
+instruction-byte encoding and a bounded immutable wire-key cache to the v66
+owners. Each is explicitly selected and keeps a source-bound installed-resource
+contract. None replaces all hosted business, state, backend or deployment
+owners. The audited baseline and earlier observations remain in
+[the continuation audit](HIA_NATIVE_CLOSURE_20261111.md); all historical
+experiments and failures below retain their original source identities.
+
 Baseline audited on 2026-11-10 America/New_York:
 `c2d937e5eec734af5c1d5d0519afc7e3a91df58a`.
 The repository is `TrillionniumFoundation/Hepta`; product development continues
@@ -13,10 +83,195 @@ are real implementations. The installed `hia` entry, Agent request authority,
 build/install ownership and other retained components still contain Python.
 Removing those owners now would remove supported behavior, not finish its port.
 
-## Current continuation: v64 complete selected nominal integration
+## Current v67 integration and exact-source results
 
-The current source integrates the constructor and outer-program owners on top
-of v63 `31d81594997cfb6cce5ab62ea5aaba3bb7757af1`. Five explicitly selected
+The last published combined encoding source is
+`6e048234e19e4dbf02d1cf5040831fba07748f02`, tree
+`440f3fcb9014b2af6c788f78b993af6b25730d46`. Its complete recursive tree has
+3,611 leaves, 1,241 Python files, 160 production `hepta` Python modules,
+63 bootstrap HIA assembly files, 73 HIA assembly files overall and 12 HIA JSON
+programs. Those exact-source counts are not the counts of this later staged
+integration or a semantic completion percentage. The CLI adds another hosted
+adapter while moving its parser/control and formatter decisions into HIA.
+
+| Frozen source / observation | Actual result | Remaining qualification boundary |
+| --- | --- | --- |
+| `d2c22d0c4caea145295a8213c6c718eb55546ec9`, [CI 43024566228](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43024566228) | 346 source tests passed; cold 139.322747176 s, 11 checks, 38 phases and 5,051 nested checks; original 44 plan and 94 journal callers passed | Complete 89 wire callers failed one original lifecycle assertion: 7.074126838999746 s exceeded its unchanged 5 s limit. Entire run failed |
+| `6e048234e19e4dbf02d1cf5040831fba07748f02`, [CI 43038321007](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43038321007) | 51 generators reproduced bytes; 350 source tests ran with one AST-guard failure; original cold report passed in 132.140118786 s with 11 true checks and 5,051 true nested checks | The same guard failed in the nine-method native encoding component group. The qualifier correctly stopped before its 51 original callers; the later complete wire step did not run. Entire run failed |
+| Wire cache/lifecycle product `f6a79203c4c6b9fcb1f3e39ebc827f022c9c14f4`, preserved by `514a13be3c4f956a8efa95bbfeb8bc43be896e49` | Four complete modules, 50/50 tests, 61.349942 s; separately, all three original budget tests passed in 18.783 s total | Explicit development compiler reuse. The individual original 3/5 s limits were unchanged; the later combined-source 89-caller gate is still required |
+| CLI `30a513ce68e97a21e96b2d80b1a3f079f3bb843a` | Complete 17-method local module passed in 13.991315411 s, zero anomalies and unchanged source/compiler; actual wheel installation and isolated ordinary entry passed | CPython 3.12.14 development execution. Current-source cold, CPython 3.14 and complete retained regression remain separate gates |
+| Encoding reference repair `38dbc37edd1ad6467d519804c70d10a483d9da95` | All four original source methods passed on CPython 3.12.14, zero anomalies, 1.6819196899996314 s | Repairs the test's interpreter-dependent AST serialization; does not relabel either failed 6e job or establish a 3.14/cold pass |
+
+The d2 full original artifact is durably retained in
+`experiments/hia_v66_d2_ci_originals_20261111/`, including its original failed
+5-second assertion. The 6e original source/native logs, API observations and
+repair explanation are in
+`experiments/hia_machine_encoding_next_20261111/ci-6e-source-failure/`.
+All component development passes remain separate from exact-source cold
+qualification. A later successful run does not erase an earlier failed run.
+
+The first local combined source control at `f6893c2691e4038f924e44950c4ced845532ad0b`
+reproduced all 53 generators but ended HOLD: 39 methods with one stale workflow
+module-list failure. Its controller also mistakenly included the original cold
+self-test. That method passed, but its final temporary cold evidence was not
+retained; a live 28-phase snapshot is explicitly partial. The original report's
+source-only scope flag is corrected by its adjacent `SCOPE_CORRECTION.md`, not
+silently rewritten or promoted to a retained cold pass.
+
+The repaired source gate at `d03a2968cc7f79a11d5ca8714ccb89a0bdd46001`
+preserves the old five modules and requires both new modules, their cold/fixture
+bindings and all new evidence paths. Its separate source-only execution passed
+all 53 generators and 38 intended source methods in 77.79428683700098 seconds,
+with zero anomalies and all 682 declared-source-plus-contract bytes unchanged.
+The cold self-test remains in the unchanged full regression. These originals
+are under `experiments/hia_v67_qualification_runner_20261111/`.
+
+The checked-in `HIA_NATIVE_REWRITE_INVENTORY.json` still identifies its older
+snapshot in its own `git_head` field. It is historical evidence, not the
+complete inventory of this staged candidate. A new full inventory requires
+the complete exact-commit source checkout and is tracked independently from
+the declared compiler-source contract above.
+
+### New native owners and precise retained responsibilities
+
+| Owner | Implemented HIA responsibility | Retained production responsibility |
+| --- | --- | --- |
+| Ordinary CLI | All 15 action selections; version-specific negative argument recognition; option/help/error and Unicode/color/wrapping decisions; phase and acknowledgement control; native presentation | All 15 action business bodies, IO/publication, pretty JSON materialization, foreign objects and installed Python bridge |
+| Instruction-byte encoder | 37 x86-64 commands under the HIAX6402 protocol; exact machine bytes, displacement/immediate packing and native refusal before writes | Operand/register admission and foreign effects; mutable `Code` storage, labels/fixups/relocations; complete Core lowering, object/linking and execution ownership |
+| Wire-key cache | HIAWIR03 exact immutable-key reuse after successful mode-1 preflight, 1,024 bounded slots and native uncached fallback; no cached values | Actual foreign-object observation and IO; custom observers and explicit formatters retain their previous path; arbitrary internal/runtime mutation is not certified |
+| Qualification controller | Additional source/cold/image/installed-wheel admission for CLI and encoding, plus complete cache tests | Hosted validation machinery, not product migration. All original source, caller and regression gates remain mandatory |
+
+The CLI installed control uses an actual wheel and the declared packaging
+resources, then `-I -S -B`, empty PATH/PYTHONPATH and disabled retained
+CLI/parser/authoring entries. It executes both actual HIA images, eight ordinary
+calls and nine missing/changed resource or invalid-bundle refusals. Its wheel
+SHA-256 is `21122532b6123705364317b2c171295a6e345e6aab671f38a08aecbdeacaf413`.
+These observations establish that explicit development path only.
+
+The earlier CPython 3.14.4 desktop CLI run actually failed two original
+subcases, `verify -1.` and `verify -1e2`. The repair implements the two
+interpreters' different original negative-number rules in HIA and keeps the
+original assertions. The subsequent desktop start lost its transport
+acknowledgement and remains UNKNOWN; no new-key replay or invented job result
+is used. Its independent local 16-method pass and the later 17-method wheel
+pass are separate observations.
+
+The page-capacity development run completed five differential cases, including
+full 64 MiB ASCII and invalid-last-byte inputs, before executor continuity was
+lost. Its final 42-case report and original process-cleanup attestation do not
+exist. The run remains HOLD/UNKNOWN_EXECUTOR_CONTINUITY; the five observations
+do not qualify the unexecuted cases or establish SQL crash durability.
+
+### Gates before any supported-owner retirement
+
+The v8 external runner retains the original 10,800-second guardian, 180-second
+cold limit, two workers, all 38 phases, all original compiler limits and the
+94/44/89 journal/plan/wire caller denominators. The new encoding gate requires
+all 9 + 51 original methods, and CLI requires all 17 methods plus actual
+installed fixture custody. Every loaded test ID must execute with zero failures,
+errors, skips, expected failures and unexpected successes. Synthetic controller
+controls validate this admission code; they are not native execution evidence.
+
+Full-source preparation retains the exact Git commit bytes, real parent
+headers, complete tree/blob object closure and a genuine shallow HEAD boundary.
+It verifies actual source bytes/modes and the unchanged qualification runner's
+local-clone reproduction. This transport does not create an alternative
+commit identity or turn a partial source archive into a full source checkout.
+
+Complete standalone normalization/backend state and ELF production, AgentStore
+SQL/service authority, evaluation/adoption/proofs, all CLI business bodies,
+build/recovery/default activation and the separate Rust `hepta-runtime` remain
+open. The old supported production owners remain until those replacements,
+ordinary callers, installed recovery and actual cutover close. No owner is
+deleted on the strength of a scoped kernel, development run or inventory count.
+
+## Historical v66 candidate and exact v65 outcomes
+
+The last frozen combined source is `4161e8d12d87906fde144f039da07908ad52d98a`,
+tree `1c6ab0228f012429149997d1f731833739f433eb`. Its 634 declared source files
+plus support contract bind the v65 profile. The three actual executions below
+have different outcomes; a successful execution does not erase a timeout of the
+same source on another runner.
+
+| Exact-source execution | Source suite | Cold qualification | Complete workflow / regression |
+| --- | --- | --- | --- |
+| [GitHub push 42990498466](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42990498466) | 333 passed | 144.808616222 s; 11/11 wrapper checks; 38/38 phases; 5,049 nested checks | HIA workflow passed, including the language checks and all later native groups |
+| [GitHub PR 42990507317](https://github.com/TrillionniumFoundation/Hepta/actions/runs/42990507317), identical source tree | 333 passed | Timed out at 180.178016991 s; 6/11 wrapper checks; 34/38 phases complete | Failed; downstream native groups were skipped |
+| Independent desktop full run, attempt r2 | 333 loaded and executed in the same order; zero anomalies | Timed out at 180.501917585 s; 6/11 wrapper checks; 26/38 phases complete | HOLD; native and retained full regression suites were not executed |
+
+All three keep the original 180-second deadline, two cold workers, 38 phases
+and owned-process cleanup requirements. The desktop timeout's twelve pending
+phases are the original and modified signed, scalar-casts, explicit-traps, cli,
+names and exports phases. Incomplete wrapper attestations and unexecuted suites
+are not passing results or demonstrated semantic counterexamples.
+
+The [original GitHub receipts and independent replay](../experiments/hia_core_ci_4161_20261111/audit.json)
+retain both complete artifacts. Independent replay checked all 38 push archives
+and 34 PR archives, their member bytes/modes and exported source identities.
+The [desktop originals](../experiments/hia_v66_integration_20261111/desktop-v65-originals/)
+record its separate interpreter, original reports and complete cleanup. Its
+3,741 regular original files are preserved in a 32,451,512-byte archive with
+SHA-256 `cf02335c474101dd054c7b917b198b0dd8f398ea91f09e5f0ba4423c66c3946a`.
+Six private toolchain symlinks have separate lstat/readlink records; their targets
+were not followed by the archiver. The archival command's lost transport receipt
+is separate from the independently verified archive custody.
+
+### New native responsibilities and observed limits
+
+| Responsibility | Ordinary integration and retained boundary | Actual development evidence |
+| --- | --- | --- |
+| [Foreign-graph JSON wire](HIA_JSON_WIRE_NATIVE.md) | HIA owns graph admission, traversals, sorting, escaping, number conversion and output budgets; actual object observations and selected foreign effects remain hosted | Byte/refusal differential, independent Core VM, exact 8 MiB boundaries, installed resources and lazy observation controls; arbitrary stateful encoder hooks remain outside the admitted component profile |
+| [Worker control and reports](HIA_WORKER_REPORT_NATIVE.md) | Explicit native selection owns service/callback order, manifest comparison, exception precedence, report graph and output decisions; foreign calls, IO, service bodies and SQL remain hosted | Corrected active-exception and ambient-context counterexamples; wire plus worker classes ran 33 tests without anomalies on the corrected development source |
+| [Machine plans and register witnesses](HIA_MACHINE_PLAN_NATIVE.md) | Public plan/witness entries explicitly select HIA, with both retained semantic owners forbidden; verified Core custody, bounded plan capture and full machine encoding/linking remain hosted | 2,131 differential cases; unchanged original 44 caller tests; source/VM controls and a real installed wheel with missing/changed resource refusals |
+| [Linked qualification observer](../experiments/hia_linked_observer_20261111/EVIDENCE.md) | HIA drives resource/continuation policy and packs the executable; a fixed assembly bridge calls the system loader on the actual GNU-linked shared object | 14 new source/native controls; original signed phase passes all 326 checks under both observers, with identical old semantic fields and payload hashes |
+
+The corrected worker observations include actual same-exception rethrows and
+foreign callbacks that mutate the ambient exception-context chain. Original
+failed observations remain. The local temporary filesystem was reset before
+one 33-test fixture archive was uploaded. Surviving original logs, reports and
+counterexamples are preserved with an explicit
+[fixture-custody gap](../experiments/hia_worker_report_development_20261111/context-r4/README.md);
+the missing original fixture is not reconstructed and labelled as original.
+
+The linked signed-phase comparison reduced its 52 shared-object observations
+from 1.735399496 to 0.101399219 seconds. The whole measured stage changed from
+13.591783677 to 12.295290283 seconds, and the new observer's one-time build/VM
+work took 2.226221666 seconds. These are scoped measurements, not a claim that
+the new combined cold run passes. The complete 38-phase run still has to meet
+the unchanged deadline. The new observer also adds independent VM/native ELF
+packing checks without removing any prior phase check. Seeds and specialized
+allocator observations keep their separate original roles.
+
+The v66 contract and workflow bind all new sources, require the complete new
+native modules, preserve original loaded/executed test IDs, forbid every unittest
+anomaly, and run the original machine-plan/Agent callers against the selected
+native owner. An explicit component selection is not default activation or
+whole-product acceptance. Development compiler reuse cannot qualify changed
+source; the combined source needs a fresh matching cold result and full run.
+
+### Remaining owners before retirement
+
+| Product responsibility | Remaining implementation / gate |
+| --- | --- |
+| Ordinary CLI | All 15 supported actions still use the Python entry; the native five-operation stdio protocol is only a separate implemented surface |
+| Compiler and backend | Native kernels and compiler fixed points exist; complete standalone nominal normalization, all supported machine targets, code generation and object pipeline still have hosted owners |
+| Agent artifact authority | Ref issuance/lookup, URI resolution, profiles, metadata, SQLite durability and artifact page/service policy still have hosted responsibilities |
+| Worker and serialization | Explicit HIA paths exist; supported extension behavior, foreign IO/process control and ordinary installation/cutover remain to be closed |
+| Evaluation and adoption | Evaluation, leases, transactional adoption/rollback and the eleven ordinary service tool bodies are not all implemented by the journal decision kernel |
+| Build and release | The native immutable installer exists; complete build/authoring, release activation, recovery, upgrades and reference-aware retirement remain open |
+| Deployed runtime | The separately deployed Rust `hepta-runtime` process/MCP owner has not been replaced or cut over |
+| Whole delivery | Fresh combined-source cold, installed ordinary callers, retained full regressions, recovery and default activation must pass before supported old owners can be deleted |
+
+The source inventory counts retained code and records static callers. It does
+not convert those counts into a migration percentage, certify dynamic callers,
+or authorize deletion of supported behavior. None of the current component
+results is labelled as whole HIA-native completion.
+
+## Incoming v64 complete selected nominal integration
+
+Main `5831f52fada45e076f8f68f198a15c0585e6104f` integrates the constructor and
+outer-program owners on top of its v63 `31d81594997cfb6cce5ab62ea5aaba3bb7757af1`.
+That exact main commit is merged into this combined v65 candidate. Five explicitly selected
 owners now execute eleven HIA images: types/signatures, task helpers, complete
 functions, constructor admission and outer aggregation. Their responsibilities,
 dependency requirements, protocol bounds and remaining hosted custody are

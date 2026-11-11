@@ -37,6 +37,15 @@ aggregation, late limits, exports and primitive schema selection into HIA.
 Its five explicit owners use eleven images; the surrounding bridge retains
 foreign-object and packet custody. The default route and durable Agent remain
 hosted. Native normalization preserves the existing primitive Core recheck.
+An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
+owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
+admission while preserving the existing service's durable request identity.
+An explicit [native journal owner](docs/HIA_AGENT_JOURNAL_NATIVE.md) supplies
+reservation, replay, conflict and unknown decisions and canonical response/cost
+instructions; SQLite durability and tool effects retain their existing owners.
+The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
+checks and publishes a bounded immutable release from an operator-pinned bundle.
+It does not select the active worker or replace the service journal.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.

@@ -1,0 +1,108 @@
+{
+  "foreign_python314": {
+    "actual_python314_journal_service_wire_execution_in_this_review": false,
+    "actual_stdout_bytes": 562,
+    "actual_stdout_sha256": "b9a0515de16e8dea32a94b65553642ed8c9e2d2314c37aa010d1b768c3b7cc5a",
+    "full_raw_stdout_verified_against_hex": true,
+    "job": "1a1c979dede-2564-134",
+    "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "r9_reason_codes_4_5_8_9_static_mapping_matches": true,
+    "raw": "r9-python314-key-error-observations.json",
+    "six_builtin_membership_cases": true
+  },
+  "journal": {
+    "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+    "image_path": "agent-journal.image.bin",
+    "image_sha256": "7846c445c22236e2c9c694af5bb5928588c67ade966cbf8b0f96e389c09bcac8",
+    "schema": "hepta.hia.agent-journal-native.v2",
+    "source_sha256": "c9f03a97e9c190751b16cea03f119854708404900ce0e33e990e201030f3c96d"
+  },
+  "masked_valid_original_invalid_replay": {
+    "all_equal": true,
+    "cases": 4,
+    "raw": "r9-mask-accepts-malformed-observations.json"
+  },
+  "projection_replay": {
+    "all_equal": true,
+    "original_cases": 4,
+    "raw": "r9-projection-boundary-observations.json"
+  },
+  "retention": {
+    "archive": "r9-selector-sqlite-observations.tar.gz",
+    "archive_bytes": 4106032,
+    "archive_sha256": "b995c04d473bde3776e3dc627010b51e93ebb759fb893917bd199997792a8cab",
+    "every_member_independently_read": true,
+    "member_sha_mode_uid_gid_verified": true,
+    "members": 752,
+    "schema": "hia.journal.r9-selector-observation-retention.v1",
+    "source_before_after_verified": true,
+    "uncompressed_bytes_fully_read": 18521527
+  },
+  "schema": "hia.journal.independent-r9-review.v1",
+  "scope": "Finite independent development verification, not full rewrite closure or matching-source cold qualification. Frozen 93 original full HOLD remains unchanged.",
+  "selector_controls": {
+    "all_equal": true,
+    "business_effect_reentry_prohibited": true,
+    "cases": 10,
+    "compared": [
+      "actual returned response or exception",
+      "actual admission/environment event sequence",
+      "all requests and costs rows after close/reopen"
+    ],
+    "first_auditor_failure": {
+      "cause": "Auditor expected substring digest mismatch, but actual original loader reports native HIA JSON executable identity mismatch. The application source was not modified; second auditor fixes exact expected message and writes each raw observation before checking expectations.",
+      "log": "r9-selector-independent-r1.log",
+      "preserved": true,
+      "script": "r9-selector-snapshot-independent-probe-r1-original.py"
+    },
+    "fresh_image": "Two manifest image_path changes force fresh raw-manifest cache keys; corrupt image retains expected original SHA and is refused before replay, original cached response unchanged.",
+    "inside_cached_snapshot": "Six mutations after real cached loader admission preserve selected data branch and captured binary64 choice; missing captured binary64 is still attempted even when later disabled, newly enabled missing selector is not retroactive.",
+    "lanes_per_case": 2,
+    "native_retained_owner_prohibited": true,
+    "raw": "r9-selector-independent-audit.json",
+    "source_before_after_equal": true,
+    "warm_mapping": "Two unchanged manifest keys retain the already immutable mapping despite disk image append; exact cached completed result, zero costs."
+  },
+  "source_pins": {
+    "examples/hia_bootstrap/agent_data_json.hiaasm": {
+      "bytes": 92926,
+      "sha256": "bfb36b20e6e2def7a484c794b71f6ff7a202ecdc5452605bc0ad63251b03308e"
+    },
+    "examples/hia_bootstrap/agent_journal.hiaasm": {
+      "bytes": 400259,
+      "sha256": "c9f03a97e9c190751b16cea03f119854708404900ce0e33e990e201030f3c96d"
+    },
+    "examples/hia_bootstrap/json_preflight.hiaasm": {
+      "bytes": 61397,
+      "sha256": "6bb6f6cd0ff22c919fb4e8f8f7b08471d4552b06156050f267275b0b63715b20"
+    },
+    "hepta/hia_agent_binary64_native.py": {
+      "bytes": 1657,
+      "sha256": "9dcff53c4b144e8ca876d5d41745b45247bad4e748aea6c79dc20755fe53b6d9"
+    },
+    "hepta/hia_agent_data_json_native.py": {
+      "bytes": 3796,
+      "sha256": "5e777eb0b4c0cf31bb7e1fe9b5d224708de3da84261b9f8e531ef581ffb2165d"
+    },
+    "hepta/hia_agent_journal_native.py": {
+      "bytes": 22923,
+      "sha256": "1cbd3c43ad5439f6fcfa1455d0c10725d38f7ae2807e403d9d3f47cdba874d21"
+    },
+    "hepta/hia_agent_service.py": {
+      "bytes": 100742,
+      "sha256": "684caf496de7e3e7c8db1fd80ef616139cf13717aa5879bbd2d6ebf834df9330"
+    },
+    "hepta/hia_agent_store.py": {
+      "bytes": 20250,
+      "sha256": "fae25d48a6de7187ed465287c1491af74214ac8bf3eae2af921bd100a247b822"
+    },
+    "hepta/hia_json_decode_native.py": {
+      "bytes": 6765,
+      "sha256": "92bb24aa401f10341a39a2ba4b3c2550fbeecd4d73546e87558cac958bbc9d9e"
+    },
+    "hepta/hia_json_preflight_native.py": {
+      "bytes": 8267,
+      "sha256": "94d50a4ba1dcaa5c64e39554c52a28cf22105726b9234a83c6ad62308a31e5b5"
+    }
+  }
+}

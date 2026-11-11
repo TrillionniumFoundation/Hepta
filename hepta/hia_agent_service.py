@@ -236,6 +236,13 @@ class HIAAgentService:
                 "details_artifact": details}}
 
     def call(self, tool, arguments):
+        selected = os.environ.get('HEPTA_HIA_AGENT_JOURNAL_MANIFEST')
+        if selected:
+            from .hia_agent_journal_native import call_with_native_journal
+            return call_with_native_journal(self, tool, arguments, selected)
+        return self._reference_call(tool, arguments)
+
+    def _reference_call(self, tool, arguments):
         started = time.monotonic_ns()
         request_id = "unadmitted-" + uuid.uuid4().hex
         key, reserved, context_id, response = None, False, None, None
@@ -391,6 +398,13 @@ class HIAAgentService:
                 "execution_authority_granted": False}
 
     def _hia_read(self, args):
+        selected = os.environ.get('HEPTA_HIA_ARTIFACT_PAGE_MANIFEST')
+        if selected:
+            from .hia_artifact_page_native import installed_artifact_page
+            return installed_artifact_page(selected).read(self, args)
+        return self._reference_hia_read(args)
+
+    def _reference_hia_read(self, args):
         ref = args["artifact"]
         data, _ = self.store.get(ref)
         offset = 0

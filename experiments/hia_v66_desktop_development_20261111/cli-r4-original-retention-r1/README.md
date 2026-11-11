@@ -1,0 +1,11 @@
+# Original desktop CLI r4 failure custody
+
+The original 2963 CLI run remains HOLD: two Python3.14 negative-number argv subcases failed. This later operation only preserves its finished private run directory. The exact canonical typed helper retained 603 nodes: 535 regular files, 67 directories and one symlink target as text, without following or extracting that link. All 21,680,858 regular bytes and all modes were independently read back from the archive. No product tests or source edits were performed.
+
+The archive is held at `/home/qian-qi/he26-cli-r4-retention-r1/originals/originals.tar.gz` on desktop: 1,954,685 bytes, SHA256 3318a25076b486aefb298867e4fdfa06bc57dea25fa33ee386ddaa8a3a7a66c7. Its complete typed manifest is adjacent `retention.json`, 287,401 bytes, SHA256 ecf4ac35069eeacd90417db5f240a5550a10d77303d4707eb2b526462dce6a41. These two complete archives remain on that ordinary home filesystem; this Git checkpoint contains the actual small receipts and the original read-result payload, not a replacement or claimed local copy of the remote archive.
+
+The preserved failure's four independently recorded original hashes match exactly. The preservation driver and its unchanged guardian finished naturally with exit 0, ECHILD, empty remaining children, no signal-killed descendant/overflow/error and stable inputs. The small receipt bytes were retrieved via supported read operation 3428ae6a897a4828664c086e397137d3cbfc1a99779d837690bd86f471363add. Its immutable original native SDK payload is 8,758 bytes, SHA256 65fa1e8baf54ab78c77c5cd79aa94d7d6395a7b32fed44cc4829501b0ec4cecb. File data are independent snapshots; no atomic multi-file snapshot is claimed.
+
+Both original `h.process_start` acknowledgement and its exact same-key reconciliation timed out at MCP transport. Their stable key is `hia-e26e-desktop-cli-2963cfbf-r4-originals-retention-r1`. An authoritative wrapper job ID/publication status was not obtained and remains UNKNOWN. This missing acknowledgement is kept separate from the actual observed archive custody and natural guardian completion. Neither the original product HOLD nor this unknown wrapper acknowledgement is relabeled.
+
+Independent r4/r5 controller reviews are included with their exact original scope. They are static reviews and are not product test results. The product's whole native delivery remains unqualified.

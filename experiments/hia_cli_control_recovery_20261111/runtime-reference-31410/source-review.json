@@ -1,0 +1,23 @@
+{
+  "schema": "hia.cli.cpython-presentation-source-review.v1",
+  "status": "SOURCE_REVIEW_ONLY_NOT_PYTHON_31410_EXECUTION",
+  "references": {
+    "old": "https://github.com/python/cpython/blob/v3.14.4/Lib/argparse.py",
+    "new": "https://github.com/python/cpython/blob/v3.14.10/Lib/argparse.py",
+    "color": "https://github.com/python/cpython/blob/v3.14.10/Lib/_colorize.py",
+    "unicode": "https://github.com/python/cpython/blob/v3.14.10/Objects/unicodetype_db.h"
+  },
+  "argparse_3144_sha256": "004c71bc1c56b62aa2cdbfd2fd9908204ea1cb93a578380d6a2148c45cbe0a71",
+  "argparse_31410_sha256": "b9f0fa53be3d7c9c10a71a8eecc538a27c32fbe7abe337818d0d36e138bfc5c5",
+  "colorize_exact_same": true,
+  "unicode_classification_db_exact_same": true,
+  "affected_difference": "The 3.14.10 choice-list values use repr(str(choice)); all HIA choices are fixed ASCII strings without quotes or backslashes. Native profile 31410 adds single quotes around each such choice.",
+  "unaffected_difference": "The additional _prog_name branch cannot apply to the ordinary CLI because it passes explicit prog='hia'.",
+  "native_profile_ids": {
+    "3.12.14": 312,
+    "3.14.4": 314,
+    "3.14.10": 31410
+  },
+  "actual_31410_product_execution": false,
+  "old_r3_observations_reused": false
+}

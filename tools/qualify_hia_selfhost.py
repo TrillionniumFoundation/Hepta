@@ -8,7 +8,9 @@ translates a successor or substitutes for a native generation.
 from __future__ import annotations
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
+from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
@@ -18,6 +20,7 @@ import shutil
 import struct
 import subprocess
 import sys
+from threading import BoundedSemaphore
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,8 +34,9 @@ SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
-# Explicit per-phase transport; never enabled for seed or generation controls.
+# Explicit post-build qualification transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
+NATIVE_LINKED_OBSERVER = None
 QUALIFICATION_WORKERS = 2
 QUALIFICATION_FAMILIES = ("capacity", "cfg", "elf", "chain", "owned", "bulk",
                           "loan", "resource", "tail", "select", "effects", "multi", "keyword", "signed", "scalar-casts", "explicit-traps", "cli", "names", "exports")
@@ -54,6 +58,18 @@ PHASE_REFERENCE_FILES = {
     "signed": "independent-signed-reference.json",
     "scalar-casts": "independent-scalar-cast-reference.json",
 }
+
+
+@contextmanager
+def _native_observer_scope(observer):
+    """Bind only an already-built flat observer and restore the exact prior value."""
+    global NATIVE_OBSERVER
+    previous = NATIVE_OBSERVER
+    NATIVE_OBSERVER = observer
+    try:
+        yield
+    finally:
+        NATIVE_OBSERVER = previous
 
 
 def digest(data):
@@ -137,6 +153,12 @@ def invoke(directory, label, image, source, *, image_format="flat-x86-64",
         return observe_native(directory,label,NATIVE_OBSERVER,image,source,capacity=capacity,
             workspace_size=workspace_size,workspace_fill=workspace_fill,
             output_initial=output_initial,observe_trap_writes=observe_trap_writes)
+    if NATIVE_LINKED_OBSERVER is not None and image_format == 'linked-selfhost':
+        from tools.hia_selfhost_native_observer import invoke as observe_native
+        return observe_native(directory,label,NATIVE_LINKED_OBSERVER,image,source,capacity=capacity,
+            workspace_size=workspace_size,workspace_fill=workspace_fill,
+            output_initial=output_initial,observe_trap_writes=observe_trap_writes,
+            image_format='linked-selfhost')
     directory, image = Path(directory), Path(image)
     source_path, output_path = directory / (label + ".input.bin"), directory / (label + ".output.bin")
     request_path = directory / (label + ".request.json")
@@ -454,6 +476,7 @@ def _phase_manifest_digest(manifest):
 
 def _phase_inputs(directory, family, compiler, label):
     paths = {"native_observer": directory / "native-observer.elf",
+             "linked_observer": directory / "linked-observer.elf",
              "compiler": compiler, "source": SOURCE, "sample": SAMPLE,
              "modified_source": directory / "modified-selfhost.hiaasm"}
     if family in PHASE_REFERENCE_FILES:
@@ -483,7 +506,7 @@ def qualification_phase(request_path):
             or request["compiler_label"] not in {"original", "modified"}):
         raise ValueError("unknown qualification phase request")
     family, label = request["family"], request["compiler_label"]
-    expected_inputs = {"native_observer", "compiler", "source", "sample", "modified_source"}
+    expected_inputs = {"native_observer", "linked_observer", "compiler", "source", "sample", "modified_source"}
     if family in PHASE_REFERENCE_FILES:
         expected_inputs.add("reference")
     if family == "elf":
@@ -501,8 +524,10 @@ def qualification_phase(request_path):
     # The module imported by family helpers must share this explicit binding.
     import tools.qualify_hia_selfhost as runtime
     runtime.NATIVE_OBSERVER = Path(request['inputs']['native_observer']['path'])
-    global NATIVE_OBSERVER
+    runtime.NATIVE_LINKED_OBSERVER = Path(request['inputs']['linked_observer']['path'])
+    global NATIVE_OBSERVER, NATIVE_LINKED_OBSERVER
     NATIVE_OBSERVER = runtime.NATIVE_OBSERVER
+    NATIVE_LINKED_OBSERVER = runtime.NATIVE_LINKED_OBSERVER
     compilers = ((label, compiler),)
     reference = json.loads(data["reference"]) if "reference" in data else None
     checks = {}
@@ -602,14 +627,57 @@ def qualification_phase(request_path):
             "fresh_host_oracle_process": True, "successor_process_reuse": False}
 
 
-def _run_qualification_phase(directory, family, label, compiler, manifest_digest):
+@dataclass(frozen=True)
+class _PendingPhaseArchive:
+    future: object
+
+
+class _PhaseArchivePool:
+    """One archiver, at most two unsealed completed phases, no native calls.
+
+    Holding an oracle slot while archiving a stopped child unnecessarily
+    serializes native work behind filesystem/compression work. The separate
+    bounded lane retains every byte and all seal/replay checks. Its queue can
+    add at most two phase directories to the two currently executing phases;
+    a phase is not completed in the index until its archive succeeds.
+    """
+    def __init__(self):
+        self._slots = BoundedSemaphore(2)
+        self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="hia-stage-archive")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exception):
+        self._pool.shutdown(wait=True)
+
+    def submit(self, function, *arguments):
+        self._slots.acquire()
+        try:
+            future = self._pool.submit(function, *arguments)
+        except BaseException:
+            self._slots.release()
+            raise
+        future.add_done_callback(lambda completed: self._slots.release())
+        return _PendingPhaseArchive(future)
+
+
+def _seal_qualification_phase(phase_directory, archive_token, receipt_path, report, receipt):
+    from tools.hia_evidence_archive import archive_completed_stage
+    receipt["raw_artifacts"] = archive_completed_stage(phase_directory, archive_token)
+    receipt["archive_completed_monotonic_ns"] = time.monotonic_ns()
+    receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+    return report, receipt
+
+
+def _run_qualification_phase(directory, family, label, compiler, manifest_digest, archives=None):
     stem = "phase-" + family + "-" + label
     phase_directory = directory / "phase-runs" / (family + "-" + label)
     phase_directory.mkdir(parents=True, exist_ok=False, mode=0o700)
     # Only this newly constructed stage may be losslessly packed after its
     # direct worker exits. Existing/frozen evidence is never swept or mutated.
     import secrets
-    from tools.hia_evidence_archive import OWNER, archive_completed_stage
+    from tools.hia_evidence_archive import OWNER
     archive_token = secrets.token_hex(32)
     (phase_directory / OWNER).write_text(archive_token)
     request = {"schema": "hepta.hia.selfhost-phase-request.v1", "family": family,
@@ -649,10 +717,10 @@ def _run_qualification_phase(directory, family, label, compiler, manifest_digest
             or report.get("fresh_host_oracle_process") is not True
             or report.get("successor_process_reuse") is not False):
         raise AssertionError("qualification phase receipt identity differs: " + stem)
-    archive = archive_completed_stage(phase_directory, archive_token)
-    receipt["raw_artifacts"] = archive
-    (directory / (stem + ".process.json")).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-    return report, receipt
+    arguments = (phase_directory, archive_token, directory / (stem + ".process.json"), report, receipt)
+    if archives is not None:
+        return archives.submit(_seal_qualification_phase, *arguments)
+    return _seal_qualification_phase(*arguments)
 
 
 def _merge_qualification_phases(results, checks):
@@ -685,6 +753,7 @@ def _collect_qualification_phases(directory, scheduled):
                 "process_receipt": str(directory / ("phase-" + family + "-" + label + ".process.json"))}
                for family, label, _ in scheduled]
     order = {future: position for position, (_, _, future) in enumerate(scheduled)}
+    observed = set(order)
     results, failures, control_exceptions = {}, [], []
 
     def retain():
@@ -696,23 +765,33 @@ def _collect_qualification_phases(directory, scheduled):
         temporary.replace(index_path)
 
     retain()
-    for future in as_completed(order):
-        position = order[future]
-        entry = entries[position]
-        try:
-            result = future.result()
-        except BaseException as error:
-            # Worker exceptions are data until all futures have been observed.
-            # Control exceptions remain exceptions and are re-raised below.
-            entry.update(state="exception", exception_type=type(error).__module__ + "." + type(error).__qualname__,
-                         exception_message=str(error))
-            failures.append(entry.copy())
-            if not isinstance(error, Exception):
-                control_exceptions.append(error)
-        else:
-            results[position] = result
-            entry.update(state="completed", report_status=result[0].get("status"))
-        retain()
+    while order:
+        done, _ = wait(order, return_when=FIRST_COMPLETED)
+        for future in done:
+            position = order.pop(future)
+            entry = entries[position]
+            try:
+                result = future.result()
+                if type(result) is _PendingPhaseArchive:
+                    if result.future in observed:
+                        raise AssertionError("qualification archive future reused")
+                    observed.add(result.future)
+                    order[result.future] = position
+                    # The actual native work has ended, but raw evidence is
+                    # not sealed yet. Keep the same pending index entry.
+                    continue
+            except BaseException as error:
+                # Worker/seal exceptions are data until all known futures
+                # have been observed. Control exceptions remain exceptions.
+                entry.update(state="exception", exception_type=type(error).__module__ + "." + type(error).__qualname__,
+                             exception_message=str(error))
+                failures.append(entry.copy())
+                if not isinstance(error, Exception):
+                    control_exceptions.append(error)
+            else:
+                results[position] = result
+                entry.update(state="completed", report_status=result[0].get("status"))
+            retain()
     if control_exceptions:
         raise control_exceptions[0]
     if failures:
@@ -740,6 +819,10 @@ def qualify(output):
     native_observer_reference = observer_reference()
     (directory / 'independent-native-observer-reference.json').write_text(
         json.dumps(native_observer_reference,indent=2,sort_keys=True)+'\n')
+    from tools.hia_selfhost_linked_observer import independent_reference as linked_reference, build as build_linked_observer
+    linked_observer_reference = linked_reference()
+    (directory / 'independent-linked-observer-reference.json').write_text(
+        json.dumps(linked_observer_reference,indent=2,sort_keys=True)+'\n')
     seed_started_monotonic_ns = time.monotonic_ns()
     seed, seed_receipt = build_seed(directory, source)
     stages = []
@@ -770,65 +853,71 @@ def qualify(output):
     checks['native_observer_independent_VM_reference_before_B0'] = native_observer_reference['before_B0']
     checks['native_observer_exact_HIA_emission'] = (
         digest(native_observer.read_bytes()) == native_observer_reference['expected_image_sha256'])
-    observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
-        observations.append(compilation)
-        for index, data in enumerate((b"", b"HIA native bootstrap", bytes(range(256)) * 4)):
-            result, raw = invoke(directory, label + "-sample-" + str(index), executable, data, capacity=1, workspace_size=1)
-            correct = result.get("status") == "returned" and result.get("core_u32") == hash_reference(data) and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged")
-            checks[label + "_behavior_" + str(index)] = bool(correct)
-            observations.append(result)
-    rejected = []
-    for label, bad in invalid_sources(sample).items():
-        result, raw = invoke(directory, "reject-" + label, original, bad)
-        good = result.get("status") == "returned" and result.get("core_u32") == INVALID and result.get("output_unchanged") and result.get("source_unchanged")
-        checks["reject_" + label] = bool(good)
-        rejected.append(result)
-    readonly_image, readonly_build = compile_stage(directory, "readonly-call-code", original, readonly_call_source())
-    readonly, _ = invoke(directory, "readonly-call", readonly_image, b"readonly alias", capacity=0, workspace_size=0)
-    checks["readonly_call_alias_remains_legal"] = (readonly.get("status") == "returned"
-        and readonly.get("core_u32") == 2 * len(b"readonly alias") and readonly.get("source_unchanged"))
-    call_observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        executable, compilation = compile_stage(directory, label + "-backward-bytesum",
-                                                compiler, backward_bytesum_source(sample))
-        call_observations.append(compilation)
-        for index, data in enumerate((b"", b"HIA backward calls", bytes(range(256)) * 4)):
-            result, raw = invoke(directory, label + "-backward-sample-" + str(index),
-                                 executable, data, capacity=1, workspace_size=1)
-            checks[label + "_backward_call_behavior_" + str(index)] = (
-                result.get("status") == "returned" and result.get("core_u32") == hash_reference(data)
-                and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged"))
+    linked_observer, linked_observer_build = build_linked_observer(directory, original, linked_observer_reference)
+    checks['linked_observer_independent_VM_reference_before_B0'] = linked_observer_reference['before_B0']
+    checks['linked_observer_exact_HIA_emission'] = (
+        digest(linked_observer.read_bytes()) == linked_observer_build['actual_policy_vm_packing']['output_sha256'])
+    with _native_observer_scope(native_observer):
+        observations = []
+        for label, compiler in (("original", original), ("modified", previous)):
+            executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
+            observations.append(compilation)
+            for index, data in enumerate((b"", b"HIA native bootstrap", bytes(range(256)) * 4)):
+                result, raw = invoke(directory, label + "-sample-" + str(index), executable, data, capacity=1, workspace_size=1)
+                correct = result.get("status") == "returned" and result.get("core_u32") == hash_reference(data) and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged")
+                checks[label + "_behavior_" + str(index)] = bool(correct)
+                observations.append(result)
+        rejected = []
+        for label, bad in invalid_sources(sample).items():
+            result, raw = invoke(directory, "reject-" + label, original, bad)
+            good = result.get("status") == "returned" and result.get("core_u32") == INVALID and result.get("output_unchanged") and result.get("source_unchanged")
+            checks["reject_" + label] = bool(good)
+            rejected.append(result)
+        readonly_image, readonly_build = compile_stage(directory, "readonly-call-code", original, readonly_call_source())
+        readonly, _ = invoke(directory, "readonly-call", readonly_image, b"readonly alias", capacity=0, workspace_size=0)
+        checks["readonly_call_alias_remains_legal"] = (readonly.get("status") == "returned"
+            and readonly.get("core_u32") == 2 * len(b"readonly alias") and readonly.get("source_unchanged"))
+        call_observations = []
+        for label, compiler in (("original", original), ("modified", previous)):
+            executable, compilation = compile_stage(directory, label + "-backward-bytesum",
+                                                    compiler, backward_bytesum_source(sample))
+            call_observations.append(compilation)
+            for index, data in enumerate((b"", b"HIA backward calls", bytes(range(256)) * 4)):
+                result, raw = invoke(directory, label + "-backward-sample-" + str(index),
+                                     executable, data, capacity=1, workspace_size=1)
+                checks[label + "_backward_call_behavior_" + str(index)] = (
+                    result.get("status") == "returned" and result.get("core_u32") == hash_reference(data)
+                    and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged"))
+                call_observations.append(result)
+            executable, compilation = compile_stage(directory, label + "-full-call-depth",
+                                                    compiler, backward_chain_source())
+            call_observations.append(compilation)
+            result, _ = invoke(directory, label + "-full-call-depth-run", executable, b"",
+                               capacity=0, workspace_size=0)
+            checks[label + "_128_function_backward_chain"] = (
+                result.get("status") == "returned" and result.get("core_u32") == 127)
             call_observations.append(result)
-        executable, compilation = compile_stage(directory, label + "-full-call-depth",
-                                                compiler, backward_chain_source())
-        call_observations.append(compilation)
-        result, _ = invoke(directory, label + "-full-call-depth-run", executable, b"",
-                           capacity=0, workspace_size=0)
-        checks[label + "_128_function_backward_chain"] = (
-            result.get("status") == "returned" and result.get("core_u32") == 127)
-        call_observations.append(result)
-        for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
-            result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
-            checks[label + "_reject_" + case] = (result.get("status") == "returned"
-                and result.get("core_u32") == INVALID and result.get("output_unchanged")
-                and result.get("source_unchanged"))
-            call_observations.append(result)
-    small, _ = invoke(directory, "short-output", original, source, capacity=stages[2]["produced_bytes"] - 1)
-    checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
-    workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
-    checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
+            for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
+                result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
+                checks[label + "_reject_" + case] = (result.get("status") == "returned"
+                    and result.get("core_u32") == INVALID and result.get("output_unchanged")
+                    and result.get("source_unchanged"))
+                call_observations.append(result)
+        small, _ = invoke(directory, "short-output", original, source, capacity=stages[2]["produced_bytes"] - 1)
+        checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
+        workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
+        checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
     # B0 and both three-generation chains above remain strictly sequential.
     # Only independent qualification families are scheduled concurrently, and
     # each family gets a new Python process so VM/reference instrumentation and
     # globals cannot leak between families. Every native invocation stays fresh.
     manifest_digest = _phase_manifest_digest(before)
-    with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
-        scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest))
-                     for family in QUALIFICATION_FAMILIES
-                     for label, compiler in (("original", original), ("modified", previous))]
-        phase_results = _collect_qualification_phases(directory, scheduled)
+    with _PhaseArchivePool() as archives:
+        with ThreadPoolExecutor(max_workers=QUALIFICATION_WORKERS) as pool:
+            scheduled = [(family, label, pool.submit(_run_qualification_phase, directory, family, label, compiler, manifest_digest, archives))
+                         for family in QUALIFICATION_FAMILIES
+                         for label, compiler in (("original", original), ("modified", previous))]
+            phase_results = _collect_qualification_phases(directory, scheduled)
     phases = _merge_qualification_phases(phase_results, checks)
 
     def phase_observations(family):
@@ -857,6 +946,8 @@ def qualify(output):
         "status": "SELF_HOSTED_FIXED_CORE_PASS" if all(checks.values()) else "FAIL",
         "profile": contract["profile"],
         "native_observer_build": native_observer_build,
+        "linked_observer_build": linked_observer_build,
+        "linked_observer_reference": linked_observer_reference,
         "native_observer_reference": native_observer_reference, "target": contract["target"], "abi": contract["abi"],
         "support_contract": {"path": CONTRACT_PATH, "sha256": before[CONTRACT_PATH]},
         "checkout": checkout_identity(),
@@ -893,13 +984,18 @@ def qualify(output):
         "capacity_observations": [small, workspace], "elapsed_ns": time.monotonic_ns() - started,
         "qualification_scheduling": {
             "maximum_host_oracle_workers": QUALIFICATION_WORKERS,
+            "maximum_archive_workers": 1,
+            "maximum_pending_archives": 2,
+            "maximum_unsealed_phase_directories": QUALIFICATION_WORKERS + 2,
+            "phase_completed_only_after_verified_archive": True,
             "fresh_seed_and_generation_chain_sequential": True,
             "independent_references_completed_before_B0": all(r["completed_monotonic_ns"] <= seed_started_monotonic_ns for r in reference_receipts),
             "seed_started_monotonic_ns": seed_started_monotonic_ns,
             "reference_processes": reference_receipts,
             "native_child_processes_reused": False,
             "phase_flat_ABI_transport": "fresh sealed HIA-emitted syscall-only ELF",
-            "shared_ELF_and_generation_controls": "retained independent stdlib loader",
+            "phase_linked_ELF_transport": "fresh sealed HIA policy ELF; actual system dlopen/dlsym/dlclose",
+            "seed_generation_and_specialized_allocator_controls": "retained independent stdlib loaders",
             "phase_inventory": [family + "-" + label for family in QUALIFICATION_FAMILIES
                                 for label in ("original", "modified")],
             "phases": [receipt for report, receipt in phase_results],
