@@ -38,9 +38,10 @@ existing identities. Native selection is not enabled by default.
 The example digest is a placeholder. Actual admission requires lowercase
 64-character hexadecimal digests. Paths may be absolute or relative to the
 containing pinned manifest; parent traversal and control characters refuse.
-The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty
+The exact allowlist is `HELPERS` in `hepta/hia_native_helpers.py`. Its twenty-one
 current single-image contracts include the original nineteen helper adapters
-and the current **agent-journal-native.v2** owner. A source test imports each
+and the current **agent-journal-native.v2** and **execution-budget-native.v1** owners.
+A source test imports each
 actual factory and checks its `.hepta` source against the packaged resources.
 Unknown selectors, duplicate entries, extra fields and old journal schemas
 refuse. Multi-image owners require their own explicit custody integration.
@@ -80,15 +81,23 @@ an older journal image is correctly refused with the new catalog.
 ## Verification
 
 `tests/test_hia_worker_native_helpers.py` exercises real HIA identity, request
-and current journal images through the original worker and service. Controls
+and current journal and execution-budget images through the original worker and service. Controls
 include hosted-reference refusal, SQLite mutation counts, restart/replay,
 conflicts, post-effect image drift, cache precedence and process/thread custody.
+The combined control poisons both hosted journal and budget owners, performs
+an actual native evaluation, checks the original SQLite budget and request
+rows, then restarts the original worker and observes the same response without
+executing the child again. The installed bundle control additionally uses
+packaged journal/budget sources with all authoring imports forbidden; its small
+budget accounting outcome is an explicitly labeled host fixture, separate
+from the real native evaluation control.
 The installed-resource regression retains its real wheel installation and
 native helper calls with authoring modules unavailable.
 
 The required CI and complete qualification runner select
 `HEPTA_HIA_WORKER_HELPERS_COLD_REPORT`, `HEPTA_HIA_WORKER_REQUEST_COLD_REPORT`
-and `HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT` from the same current-source replay.
+`HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT` and `HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT`
+from the same current-source replay.
 The helper CI step requires a complete nonempty run and no failures, errors,
 skips, expected failures or unexpected successes. Explicit development images
 and local B0/B1/B2 builds remain development observations; they cannot override

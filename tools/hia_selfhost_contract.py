@@ -698,8 +698,9 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 20,
+            'supported_single_image_selectors': 21,
             'current_journal_schema': 'hepta.hia.agent-journal-native.v2',
+            'execution_budget_schema': 'hepta.hia.execution-budget-native.v1',
             'selection': 'operator-pinned explicit bundle; every ambient manifest refuses',
             'custody': 'whole bundle, child manifests, packaged sources and executable bytes',
             'scope': 'one request in the original process and thread; exclusive and restored on exit',

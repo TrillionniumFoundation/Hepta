@@ -48,6 +48,7 @@ HELPERS = {
     "HEPTA_HIA_CORE_PATCH_MANIFEST": ("hia_core_patch_native", "NativeCorePatch"),
     "HEPTA_HIA_TASK_HELPERS_MANIFEST": ("hia_task_helpers_native", "NativeTaskHelpers"),
     "HEPTA_HIA_AGENT_JOURNAL_MANIFEST": ("hia_agent_journal_native", "NativeAgentJournal"),
+    "HEPTA_HIA_EXECUTION_BUDGET_MANIFEST": ("hia_execution_budget_native", "NativeExecutionBudgetImage"),
 }
 _ACTIVE = None
 _SCOPE_LOCK = threading.Lock()

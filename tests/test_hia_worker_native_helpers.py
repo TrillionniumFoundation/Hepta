@@ -5,6 +5,7 @@ images. Explicit development manifests and local seed builds remain developer
 observations, not a completed cold replay or a whole-language compiler proof.
 """
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from copy import deepcopy
 from hashlib import sha256
 import json
@@ -53,7 +54,7 @@ class WorkerHelperSourceTests(unittest.TestCase):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 20)
+        self.assertEqual(len(HELPERS), 21)
         for selector, (name, factory_name) in HELPERS.items():
             with self.subTest(selector=selector):
                 module = importlib.import_module('hepta.' + name)
@@ -65,6 +66,8 @@ class WorkerHelperSourceTests(unittest.TestCase):
                 self.assertIsInstance(module.SCHEMA, str)
         from hepta.hia_agent_journal_native import SCHEMA as journal_schema
         self.assertEqual(journal_schema, 'hepta.hia.agent-journal-native.v2')
+        from hepta.hia_execution_budget_native import SCHEMA as budget_schema
+        self.assertEqual(budget_schema, 'hepta.hia.execution-budget-native.v1')
 
     def test_unselected_scope_rejects_nested_and_foreign_thread_requests(self):
         with native_helpers_scope():
@@ -637,6 +640,203 @@ raise SystemExit(main(sys.argv[1:]))
         self.assertEqual((run.returncode, run.stdout), (2, b''))
         self.assertIn(b'does not match its selected contract', run.stderr)
         self.assertFalse((self.root / 'state').exists())
+
+
+class NativeWorkerBudgetBundleTests(NativeWorkerJournalBundleTests):
+    """Actual ordinary service/worker continuity with both selected HIA owners."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        from tests.test_hia_execution_budget_native import ExecutionBudgetNativeTests
+        cls.budget_fixture = type('WorkerBundleBudgetFixture', (), {})
+        cold = os.environ.get(COLD)
+        environment = {'HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT': cold} if cold else {}
+        with patch.dict(os.environ, environment):
+            ExecutionBudgetNativeTests.setUpClass.__func__(cls.budget_fixture)
+        cls.budget_manifest = cls.budget_fixture.manifest
+
+    @classmethod
+    def tearDownClass(cls):
+        from tests.test_hia_execution_budget_native import ExecutionBudgetNativeTests
+        ExecutionBudgetNativeTests.tearDownClass.__func__(cls.budget_fixture)
+        super().tearDownClass()
+
+    def setUp(self):
+        super().setUp()
+        from hepta.hia_execution_budget_native import SELECTOR as budget_selector
+        self.value['helpers'].append({'selector': budget_selector,
+            'manifest_path': str(self.budget_manifest),
+            'manifest_sha256': sha256(self.budget_manifest.read_bytes()).hexdigest()})
+        self.write_bundle()
+
+    def forbidden_references(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta import hia_execution_budget as reference
+        stack = ExitStack()
+        stack.enter_context(patch.object(HIAAgentService, '_reference_call',
+                                        side_effect=AssertionError('host journal entered')))
+        for cls, names in (
+                (reference._ReferenceExecutionBudgetStore, ('__init__', 'create', 'claim', 'observe')),
+                (reference._ReferenceBudgetClaim, ('__init__', 'run', 'complete'))):
+            for name in names:
+                stack.enter_context(patch.object(cls, name, side_effect=AssertionError('host budget entered')))
+        return stack
+
+    def test_actual_native_evaluation_budget_and_worker_replay_share_one_bundle(self):
+        import sqlite3
+        from hepta.hia_agent_contract import installation_manifest
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_execution_budget_native import BudgetState
+        from hepta import hia_agent_runner
+        from tests.test_hia_agent_native_tools import AgentToolCase
+        before_environment = dict(os.environ)
+        case = AgentToolCase('runTest')
+        try:
+            with patch.dict(os.environ, self.clean_env, clear=True), \
+                    native_helpers_scope(str(self.bundle), self.digest), self.forbidden_references():
+                case.setUp()
+                pins = installation_manifest()
+                _base, _candidate, baseline, build, receipts = case.build_pair()
+                arguments = case.session.arguments(baseline_artifact=baseline['native_artifact'],
+                    candidate_artifact=build['native_artifact'], build_receipt=build['build_receipt'],
+                    verification_receipts=receipts)
+                context = arguments['context']['id']
+                before = dict(case.service.store.db.execute(
+                    'SELECT * FROM execution_budgets WHERE context_id=?', (context,)).fetchone())
+                count_before = case.service.store.db.execute('SELECT count(*) FROM requests').fetchone()[0]
+                self.assertEqual((before['used_native_ns'], before['owner']), ('0', None))
+                actual, events = [], []
+                run_native, call_budget = hia_agent_runner.run_native_batch, BudgetState.call
+                def observed(*args, **kwargs):
+                    result = run_native(*args, **kwargs)
+                    if kwargs.get('_mode') != 'reference': actual.append(result)
+                    return result
+                def budget_event(state, event, **kwargs):
+                    result = call_budget(state, event, **kwargs)
+                    events.append(event)
+                    return result
+                with patch.object(hia_agent_runner, 'run_native_batch', side_effect=observed), \
+                        patch.object(BudgetState, 'call', budget_event):
+                    first = case.service.call('hia_evaluate', arguments)
+                self.assertEqual(first['status'], 'completed', first)
+                self.assertGreaterEqual(len(actual), 1)
+                self.assertTrue(all(row['started'] and row['termination_confirmed'] for row in actual))
+                self.assertIn(6, events)
+                after = dict(case.service.store.db.execute(
+                    'SELECT * FROM execution_budgets WHERE context_id=?', (context,)).fetchone())
+                self.assertGreater(int(after['used_native_ns']), 0)
+                self.assertIsNone(after['owner'])
+                count_after = case.service.store.db.execute('SELECT count(*) FROM requests').fetchone()[0]
+                self.assertEqual(count_after, count_before + 1)
+                case.service.close()
+                case.service = HIAAgentService(case.state_root, artifact_roots=(case.files_root,))
+                with patch.object(hia_agent_runner, 'run_native_batch', side_effect=AssertionError('replayed effect')):
+                    self.assertEqual(case.service.call('hia_evaluate', arguments), first)
+                self.assertEqual(dict(case.service.store.db.execute(
+                    'SELECT * FROM execution_budgets WHERE context_id=?', (context,)).fetchone()), after)
+                self.assertEqual(case.service.store.db.execute('SELECT count(*) FROM requests').fetchone()[0], count_after)
+                self.assertEqual(native_helpers_identity()['native_helpers_sha256'], self.digest)
+                case.service.close()
+            self.assertEqual(dict(os.environ), before_environment)
+            script = '''import sys
+from hepta.hia_agent_service import HIAAgentService
+from hepta.hia_agent_worker import main
+from hepta import hia_execution_budget as reference,hia_agent_runner
+def forbidden(*args,**kwargs): raise AssertionError("host policy or replayed native effect")
+HIAAgentService._reference_call=forbidden
+reference._ReferenceExecutionBudgetStore.__init__=forbidden
+reference._ReferenceBudgetClaim.__init__=forbidden
+hia_agent_runner.run_native_batch=forbidden
+raise SystemExit(main(sys.argv[1:]))
+'''
+            request = self.envelope(pins, 'hia_evaluate', arguments)
+            run = subprocess.run([sys.executable, '-B', '-E', '-s', '-c', script,
+                '--state-root', str(case.state_root), '--request-json-stdin', *self.flags()],
+                input=encoded(request), capture_output=True, cwd=ROOT, env=self.clean_env, timeout=60)
+            self.assertEqual(run.returncode, 0, run.stderr.decode())
+            report = json.loads(run.stdout)
+            self.assertEqual(report['native_helpers_sha256'], self.digest)
+            self.assertEqual(report['response'], first)
+            with sqlite3.connect(case.state_root / 'state.sqlite3') as connection:
+                connection.row_factory = sqlite3.Row
+                self.assertEqual(dict(connection.execute('SELECT * FROM execution_budgets WHERE context_id=?',
+                                                        (context,)).fetchone()), after)
+                self.assertEqual(connection.execute('SELECT count(*) FROM requests').fetchone()[0], count_after)
+        finally:
+            if hasattr(case, 'service'): case.tearDown()
+
+    def test_external_budget_or_journal_selector_refuses_before_worker_state(self):
+        for selector in ('HEPTA_HIA_AGENT_JOURNAL_MANIFEST', 'HEPTA_HIA_EXECUTION_BUDGET_MANIFEST'):
+            with self.subTest(selector=selector):
+                result = self.worker(env={**self.clean_env, selector: '/ambient/cannot/override.json'})
+                self.assertEqual((result.returncode, result.stdout), (2, b''))
+                self.assertIn(b'explicit pinned bundle', result.stderr)
+                self.assertFalse((self.root / 'state').exists())
+
+    def test_installed_bundle_uses_packaged_journal_budget_and_original_service(self):
+        from tests.test_hia_agent_installed_resources import AgentInstalledResourceTests as fixture
+        fixture.setUpClass()
+        try:
+            program = r'''import importlib.abc,json,os,sys
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+class NoAuthoring(importlib.abc.MetaPathFinder):
+    def find_spec(self,fullname,path=None,target=None):
+        if fullname=='tools' or fullname.startswith('tools.'):
+            raise AssertionError('installed bundle imported authoring code')
+sys.meta_path.insert(0,NoAuthoring())
+from hepta.hia_native_helpers import native_helpers_scope,native_helpers_identity
+from hepta.hia_agent_service import HIAAgentService
+from hepta.hia_agent_journal_native import SOURCE as JOURNAL_SOURCE
+from hepta.hia_execution_budget_native import SOURCE as BUDGET_SOURCE
+from hepta import hia_execution_budget as reference
+for source in (JOURNAL_SOURCE,BUDGET_SOURCE): assert Path(sys.argv[1]) in source.parents,source
+def forbidden(*args,**kwargs): raise AssertionError('installed bundle used hosted policy')
+HIAAgentService._reference_call=forbidden
+reference._ReferenceExecutionBudgetStore.__init__=forbidden
+reference._ReferenceBudgetClaim.__init__=forbidden
+context='ctx-'+'1'*32
+before=dict(os.environ)
+with native_helpers_scope(sys.argv[2],sys.argv[3]):
+    service=HIAAgentService(sys.argv[4])
+    args={'catalog_sha256':service.catalog_sha256,'artifact_profile':service.profiles['artifact'],
+          'request_key':'installed-bundle','source':{'kind':'utf8','text':'native journal and budget'}}
+    first=service.call('hia_artifact',args)
+    assert first['status']=='completed',first
+    budget=service.store.execution_budgets
+    budget.create(context)
+    claim=budget.claim(context,'a'*64,1000,0)
+    # An explicit host-outcome fixture checks accounting transport; the separate
+    # ordinary evaluation control executes the actual HIA native child.
+    claim.run(lambda **kwargs:{'wall_ns':'7','termination_confirmed':True},now=0,total_ms=1000)
+    claim.complete()
+    after=budget.observe(context)
+    assert after['used_native_ns']=='7' and after['owner'] is None,after
+    service.close()
+    assert native_helpers_identity()['native_helpers_sha256']==sys.argv[3]
+assert dict(os.environ)==before
+with native_helpers_scope(sys.argv[2],sys.argv[3]):
+    service=HIAAgentService(sys.argv[4])
+    assert service.call('hia_artifact',args)==first
+    assert service.store.execution_budgets.observe(context)==after
+    assert service.store.db.execute('SELECT count(*) FROM requests').fetchone()[0]==1
+    service.close()
+assert dict(os.environ)==before
+assert not any(name=='tools' or name.startswith('tools.') for name in sys.modules)
+print(json.dumps({'artifact_response':first,'budget':after,'helper_sha256':sys.argv[3],
+                  'budget_outcome_is_explicit_fixture':True},sort_keys=True))
+'''
+            result = subprocess.run([sys.executable, '-I', '-S', '-B', '-c', program,
+                str(fixture.installed), str(self.bundle), self.digest, str(self.root / 'installed-state')],
+                capture_output=True, cwd=self.root, env={'PATH': '', 'LANG': 'C', 'LC_ALL': 'C'}, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            report = json.loads(result.stdout)
+            self.assertEqual(report['helper_sha256'], self.digest)
+            self.assertEqual(report['budget']['used_native_ns'], '7')
+            self.assertIs(report['budget_outcome_is_explicit_fixture'], True)
+        finally:
+            fixture.tearDownClass()
 
 
 if __name__ == "__main__":

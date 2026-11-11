@@ -209,7 +209,7 @@ class CoreWorkflowContractTests(unittest.TestCase):
         name = 'Native worker pinned helper custody and journal composition'
         self._assert_complete_native_ci(name, 'PYHELPERS')
         self.assertIn("loadTestsFromName('tests.test_hia_worker_native_helpers')", script(name))
-        for component in ('WORKER_HELPERS', 'WORKER_REQUEST', 'AGENT_JOURNAL'):
+        for component in ('WORKER_HELPERS', 'WORKER_REQUEST', 'AGENT_JOURNAL', 'EXECUTION_BUDGET'):
             self.assertIn('          HEPTA_HIA_' + component + '_COLD_REPORT: ${{ runner.temp }}/hia-cold.json',
                           step(name))
         self.assertIn('tests.test_hia_worker_native_helpers.WorkerHelperSourceTests',
