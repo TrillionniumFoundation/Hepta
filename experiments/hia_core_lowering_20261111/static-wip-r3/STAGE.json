@@ -1,0 +1,53 @@
+{
+  "schema": "hepta.hia.core-lowering-static-revision.v1",
+  "status": "UNEXECUTED_R3_TYPE_CORRECTION",
+  "prior_source_commit": "7d73eabbfed50254a5a94e555fff17405b8a6892",
+  "original_actual_hold_commit": "55e39d6a65ff848ee7596c548ddbf98e391bcbdf",
+  "root_cause_inference": "Generated internal start() and dispatch() return u32 while Builder literals are u64; direct compare.ne requires matching equality types. First actual Core verifier refusal is preserved.",
+  "changes": [
+    {
+      "line": 135,
+      "before": "    dispatch = ['def start(s:readbuf, w:mutbuf) -> u32:']",
+      "after": "    dispatch = ['def start(s:readbuf, w:mutbuf) -> u64:']"
+    },
+    {
+      "line": 139,
+      "before": "        lines = ['def start_' + str(group_index) + '(s:readbuf, w:mutbuf) -> u32:']",
+      "after": "        lines = ['def start_' + str(group_index) + '(s:readbuf, w:mutbuf) -> u64:']"
+    },
+    {
+      "line": 258,
+      "before": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u32:',",
+      "after": "        lines = ['def group_' + str(number) + '(w:mutbuf, o:mutbuf) -> u64:',"
+    },
+    {
+      "line": 265,
+      "before": "    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u32:',",
+      "after": "    lines = ['def dispatch(w:mutbuf, o:mutbuf) -> u64:',"
+    },
+    {
+      "line": 273,
+      "before": "        'def start(s:readbuf, w:mutbuf) -> u32:\\n    return ' + str(ABI) + '\\n')",
+      "after": "        'def start(s:readbuf, w:mutbuf) -> u64:\\n    return ' + str(ABI) + '\\n')"
+    }
+  ],
+  "old_generator_sha256": "5fdd8e3fe1d9b83f90a4fca148c7b722622db1bec6e5bead8939ace84dd39261",
+  "new_generator_sha256": "a9982d31fed39bde3d3b0ef4901078cf81a83079a530561191daad6f198b2faf",
+  "same_generator_bytes": 16038,
+  "unchanged": [
+    "public u32 entry return",
+    "HIALOW01 ABI",
+    "all policy and IR instructions",
+    "runtime bridge",
+    "original 22+5 oracle",
+    "compiler/verifier and all limits"
+  ],
+  "execution": {
+    "generated": false,
+    "core_vm": false,
+    "native_compiler": false,
+    "product_tests": false,
+    "cold": false
+  },
+  "github_automatic_runs_are_separate": true
+}
