@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/home/qian-qi/he26v66r1/control/prepare_source.py", line 219, in <module>
+    run('fetch-exact-published-commits', git(SOURCE, *fetch, REPOSITORY, *COMMITS), seconds=900)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26v66r1/control/prepare_source.py", line 127, in run
+    require(owner.get('timed_out') is False and owner.get('cleanup', {}).get('complete') is True
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            and owner['cleanup'].get('errors') == [] and owner['cleanup'].get('signalled') == [],
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'process ownership did not close: ' + label)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/qian-qi/he26v66r1/control/prepare_source.py", line 56, in require
+    raise RuntimeError(message)
+RuntimeError: process ownership did not close: fetch-exact-published-commits
