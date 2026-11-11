@@ -8,6 +8,7 @@ translates a successor or substitutes for a native generation.
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, FIRST_COMPLETED, wait
 from dataclasses import dataclass
 from hashlib import sha256
@@ -33,7 +34,7 @@ SAMPLE = ROOT / "examples/hia_bootstrap/bytesum.hiaasm"
 CHILD = ROOT / "tools/hia_selfhost_child.py"
 CAPACITY = 1 << 20
 INVALID, NO_SPACE = 0xffffffff, 0xfffffffe
-# Explicit per-phase transport; never enabled for seed or generation controls.
+# Explicit post-build qualification transport; never enabled for seed or generation controls.
 NATIVE_OBSERVER = None
 NATIVE_LINKED_OBSERVER = None
 QUALIFICATION_WORKERS = 2
@@ -57,6 +58,18 @@ PHASE_REFERENCE_FILES = {
     "signed": "independent-signed-reference.json",
     "scalar-casts": "independent-scalar-cast-reference.json",
 }
+
+
+@contextmanager
+def _native_observer_scope(observer):
+    """Bind only an already-built flat observer and restore the exact prior value."""
+    global NATIVE_OBSERVER
+    previous = NATIVE_OBSERVER
+    NATIVE_OBSERVER = observer
+    try:
+        yield
+    finally:
+        NATIVE_OBSERVER = previous
 
 
 def digest(data):
@@ -844,55 +857,56 @@ def qualify(output):
     checks['linked_observer_independent_VM_reference_before_B0'] = linked_observer_reference['before_B0']
     checks['linked_observer_exact_HIA_emission'] = (
         digest(linked_observer.read_bytes()) == linked_observer_build['actual_policy_vm_packing']['output_sha256'])
-    observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
-        observations.append(compilation)
-        for index, data in enumerate((b"", b"HIA native bootstrap", bytes(range(256)) * 4)):
-            result, raw = invoke(directory, label + "-sample-" + str(index), executable, data, capacity=1, workspace_size=1)
-            correct = result.get("status") == "returned" and result.get("core_u32") == hash_reference(data) and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged")
-            checks[label + "_behavior_" + str(index)] = bool(correct)
-            observations.append(result)
-    rejected = []
-    for label, bad in invalid_sources(sample).items():
-        result, raw = invoke(directory, "reject-" + label, original, bad)
-        good = result.get("status") == "returned" and result.get("core_u32") == INVALID and result.get("output_unchanged") and result.get("source_unchanged")
-        checks["reject_" + label] = bool(good)
-        rejected.append(result)
-    readonly_image, readonly_build = compile_stage(directory, "readonly-call-code", original, readonly_call_source())
-    readonly, _ = invoke(directory, "readonly-call", readonly_image, b"readonly alias", capacity=0, workspace_size=0)
-    checks["readonly_call_alias_remains_legal"] = (readonly.get("status") == "returned"
-        and readonly.get("core_u32") == 2 * len(b"readonly alias") and readonly.get("source_unchanged"))
-    call_observations = []
-    for label, compiler in (("original", original), ("modified", previous)):
-        executable, compilation = compile_stage(directory, label + "-backward-bytesum",
-                                                compiler, backward_bytesum_source(sample))
-        call_observations.append(compilation)
-        for index, data in enumerate((b"", b"HIA backward calls", bytes(range(256)) * 4)):
-            result, raw = invoke(directory, label + "-backward-sample-" + str(index),
-                                 executable, data, capacity=1, workspace_size=1)
-            checks[label + "_backward_call_behavior_" + str(index)] = (
-                result.get("status") == "returned" and result.get("core_u32") == hash_reference(data)
-                and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged"))
+    with _native_observer_scope(native_observer):
+        observations = []
+        for label, compiler in (("original", original), ("modified", previous)):
+            executable, compilation = compile_stage(directory, label + "-bytesum", compiler, sample)
+            observations.append(compilation)
+            for index, data in enumerate((b"", b"HIA native bootstrap", bytes(range(256)) * 4)):
+                result, raw = invoke(directory, label + "-sample-" + str(index), executable, data, capacity=1, workspace_size=1)
+                correct = result.get("status") == "returned" and result.get("core_u32") == hash_reference(data) and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged")
+                checks[label + "_behavior_" + str(index)] = bool(correct)
+                observations.append(result)
+        rejected = []
+        for label, bad in invalid_sources(sample).items():
+            result, raw = invoke(directory, "reject-" + label, original, bad)
+            good = result.get("status") == "returned" and result.get("core_u32") == INVALID and result.get("output_unchanged") and result.get("source_unchanged")
+            checks["reject_" + label] = bool(good)
+            rejected.append(result)
+        readonly_image, readonly_build = compile_stage(directory, "readonly-call-code", original, readonly_call_source())
+        readonly, _ = invoke(directory, "readonly-call", readonly_image, b"readonly alias", capacity=0, workspace_size=0)
+        checks["readonly_call_alias_remains_legal"] = (readonly.get("status") == "returned"
+            and readonly.get("core_u32") == 2 * len(b"readonly alias") and readonly.get("source_unchanged"))
+        call_observations = []
+        for label, compiler in (("original", original), ("modified", previous)):
+            executable, compilation = compile_stage(directory, label + "-backward-bytesum",
+                                                    compiler, backward_bytesum_source(sample))
+            call_observations.append(compilation)
+            for index, data in enumerate((b"", b"HIA backward calls", bytes(range(256)) * 4)):
+                result, raw = invoke(directory, label + "-backward-sample-" + str(index),
+                                     executable, data, capacity=1, workspace_size=1)
+                checks[label + "_backward_call_behavior_" + str(index)] = (
+                    result.get("status") == "returned" and result.get("core_u32") == hash_reference(data)
+                    and raw == bytes([hash_reference(data) & 255]) and result.get("source_unchanged"))
+                call_observations.append(result)
+            executable, compilation = compile_stage(directory, label + "-full-call-depth",
+                                                    compiler, backward_chain_source())
+            call_observations.append(compilation)
+            result, _ = invoke(directory, label + "-full-call-depth-run", executable, b"",
+                               capacity=0, workspace_size=0)
+            checks[label + "_128_function_backward_chain"] = (
+                result.get("status") == "returned" and result.get("core_u32") == 127)
             call_observations.append(result)
-        executable, compilation = compile_stage(directory, label + "-full-call-depth",
-                                                compiler, backward_chain_source())
-        call_observations.append(compilation)
-        result, _ = invoke(directory, label + "-full-call-depth-run", executable, b"",
-                           capacity=0, workspace_size=0)
-        checks[label + "_128_function_backward_chain"] = (
-            result.get("status") == "returned" and result.get("core_u32") == 127)
-        call_observations.append(result)
-        for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
-            result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
-            checks[label + "_reject_" + case] = (result.get("status") == "returned"
-                and result.get("core_u32") == INVALID and result.get("output_unchanged")
-                and result.get("source_unchanged"))
-            call_observations.append(result)
-    small, _ = invoke(directory, "short-output", original, source, capacity=stages[2]["produced_bytes"] - 1)
-    checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
-    workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
-    checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
+            for case, bad in {**call_graph_invalid_sources(sample), **recursion_refusals()}.items():
+                result, _ = invoke(directory, label + "-reject-" + case, compiler, bad)
+                checks[label + "_reject_" + case] = (result.get("status") == "returned"
+                    and result.get("core_u32") == INVALID and result.get("output_unchanged")
+                    and result.get("source_unchanged"))
+                call_observations.append(result)
+        small, _ = invoke(directory, "short-output", original, source, capacity=stages[2]["produced_bytes"] - 1)
+        checks["short_output_is_transactional"] = small.get("status") == "returned" and small.get("core_u32") == NO_SPACE and small.get("output_unchanged")
+        workspace, _ = invoke(directory, "short-workspace", original, source, workspace_size=1024)
+        checks["short_workspace_rejected"] = workspace.get("status") == "returned" and workspace.get("core_u32") == NO_SPACE and workspace.get("output_unchanged")
     # B0 and both three-generation chains above remain strictly sequential.
     # Only independent qualification families are scheduled concurrently, and
     # each family gets a new Python process so VM/reference instrumentation and
