@@ -412,6 +412,29 @@ class MachineElfNativeTests(_Fixture, unittest.TestCase):
             'same_identity_oracle': _machine(same_identity_oracle), 'frozen': _machine(frozen),
         })
 
+    def test_pinned_owner_refuses_source_drift_before_first_identity(self):
+        directory = self.folder / 'pinned-source-window'
+        directory.mkdir()
+        source = directory / 'machine_elf.hiaasm'
+        original = SOURCE.read_bytes()
+        source.write_bytes(original)
+        with patch.object(bridge, 'SOURCE', source), self.selected():
+            with public.native_elf_scope():
+                before = self.native.calls.copy()
+                self.assertEqual(self.native.admitted_source_sha256, sha256(original).hexdigest())
+                source.write_bytes(original + b'\n')
+                try:
+                    with self.assertRaisesRegex(ValueError, 'changed after admission'):
+                        public.native_implementation_identity()
+                    from hepta import hia_program_native as backend
+                    with self.assertRaisesRegex(ValueError, 'changed after admission'):
+                        backend._implementation_hash()
+                    self.assertEqual(self.native.calls, before)
+                finally:
+                    source.write_bytes(original)
+                self.assertEqual(public.native_implementation_identity(),
+                    (sha256(original).hexdigest() + ':' + self.native.image_sha256).encode())
+
     def test_cached_image_rebinds_installed_source_and_forged_manifest(self):
         directory = self.folder / 'source-binding'
         directory.mkdir()
@@ -431,6 +454,24 @@ class MachineElfNativeTests(_Fixture, unittest.TestCase):
         forged.write_text(json.dumps(value))
         with self.assertRaisesRegex(ValueError, 'source identity mismatch'):
             installed_machine_elf(str(forged))
+        warmed = directory / 'warm'
+        warmed.mkdir()
+        manifest_value = json.loads(self.manifest.read_bytes())
+        image_name = manifest_value['image_path']
+        image_path = warmed / 'image.bin'
+        image_raw = (self.manifest.parent / image_name).read_bytes()
+        image_path.write_bytes(image_raw)
+        manifest_value['image_path'] = image_path.name
+        warm_manifest = warmed / 'manifest.json'
+        warm_manifest.write_text(json.dumps(manifest_value))
+        mapped = installed_machine_elf(str(warm_manifest))
+        image_path.write_bytes(image_raw[:-1] + bytes([image_raw[-1] ^ 1]))
+        self.assertIs(installed_machine_elf(str(warm_manifest)), mapped)
+        result = mapped.write(b'\xc3',
+            [{'name': 'entry', 'offset': 0, 'size': 1, 'global': True}], [])
+        self.assertEqual(result, _ORACLE(b'\xc3',
+            [{'name': 'entry', 'offset': 0, 'size': 1, 'global': True}], []))
+        image_path.write_bytes(image_raw)
 
     def test_real_installed_wheel_isolated_empty_path_without_old_writer(self):
         from hepta.hia_agent_contract import (

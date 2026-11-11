@@ -180,8 +180,10 @@ def native_implementation_identity():
         return b''
     from hashlib import sha256
     from .hia_machine_elf_native import SOURCE
-    return (sha256(SOURCE.read_bytes()).hexdigest() + ':' +
-            owner.image_sha256).encode('ascii')
+    current_source = sha256(SOURCE.read_bytes()).hexdigest()
+    if current_source != owner.admitted_source_sha256:
+        raise ValueError('native ELF selected source changed after admission')
+    return (owner.admitted_source_sha256 + ':' + owner.image_sha256).encode('ascii')
 
 
 def write_elf_object(code, symbols, relocations, *, text_alignment=16):

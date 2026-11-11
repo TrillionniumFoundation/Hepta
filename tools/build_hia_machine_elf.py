@@ -23,6 +23,7 @@ SCHEMA = 'hepta.hia.machine-elf-native.v1'
 OWNED_SOURCE_FILES = (
     SOURCE, 'tools/generate_hia_machine_elf.py',
     'hepta/hia_machine_elf.py', 'hepta/hia_machine_elf_native.py',
+    'hepta/hia_json_preflight_native.py',
     'tools/build_hia_machine_elf.py', 'tools/qualify_hia_machine_elf.py',
     'tests/test_hia_machine_elf_native.py', 'tests/hia_machine_elf_cases.json',
     'hepta/hia_program_native.py', 'hepta/hia_agent_contract.py',
