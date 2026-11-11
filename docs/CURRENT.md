@@ -116,6 +116,14 @@ their receipts are preserved.
 | `tests/`, `formal/`, `benchmarks/`, `rust/` | Coverage, independent oracles, supported reference profiles and comparisons |
 | `experiments/`, `review-evidence/`, `evidence/` | Consumer-bound frozen inputs, provenance and original observations |
 
+The [stateful process retirement](../review-evidence/hia-native-cleanup-20261111/retired-stateful-process-files.json)
+removes 74 superseded experiment files (979,347 bytes of historical payload).
+The one protocol still consumed by the current qualification inventory is
+retained byte for byte at `tests/fixtures/hia_stateful_protocol/PROTOCOL.json`.
+Its explicit inventory binding preserves the inventory's member count. The
+retirement ledger records all 75 original Git objects and the exact consumer
+change; this cleanup removes no production module or active HIA source.
+
 The [retained-directory ownership record](../review-evidence/hia-native-cleanup-20261111/retained-directory-ownership.json)
 identifies why the remaining research/evidence directories are required.
 They are not installed as product modules. Build outputs and caches are

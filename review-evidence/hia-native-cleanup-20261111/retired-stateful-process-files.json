@@ -1,0 +1,925 @@
+{
+  "audit_inputs": {
+    "/tmp/hia-a4f12-delivery-20261111/root-stateful-consumers-c815-01/RESULT.json": {
+      "bytes": 3287,
+      "git_blob": "ba00193445370c6281402be125b014c091f4da97",
+      "mode": 384,
+      "sha256": "7f974ab0535de4a3ffd1b901417da42b731c09af3815f0350fcfccd43d320f34"
+    },
+    "/tmp/hia-a4f12-delivery-20261111/root-stateful-consumers-c815-01/candidate-files.json": {
+      "bytes": 26787,
+      "git_blob": "b5b780c8e19e8d71c9380a2a66736849ad46d74c",
+      "mode": 384,
+      "sha256": "9b3e9e9bd7c320d38f1f1c83d4049a891b283b35b044ea16aceb599053ec5421"
+    },
+    "/tmp/hia-a4f12-delivery-20261111/stateful-generic-c815-review-01/CONCLUSION.json": {
+      "bytes": 5425,
+      "git_blob": "0678bbea3b5841ccb6210323569ccab17f8d4f48",
+      "mode": 384,
+      "sha256": "9d2b208a142282e9fce0dcbe475150b0cc6b16f685a6a93d9e9350ac91c3f231"
+    },
+    "/tmp/hia-a4f12-delivery-20261111/stateful-generic-c815-review-01/RESULT.json": {
+      "bytes": 2172,
+      "git_blob": "df848c33f0dfff87fe7935f62283caaf0664e855",
+      "mode": 384,
+      "sha256": "e9f4ae4fd4c3586c41629f5374a975caac611581adabcaa35c02afddf39c3f32"
+    }
+  },
+  "candidate_bytes": 982444,
+  "candidate_directory": "experiments/hia_stateful_eval",
+  "candidate_files": 75,
+  "consumer_change": {
+    "after": {
+      "bytes": 15323,
+      "git_blob": "e2e40ec11f6e2588884d294ceb2359f82804ff8b",
+      "mode": 384,
+      "sha256": "708265e3a332ba19b9af363c54d3bba36991c1f6c81eb61f29f99c7ea379b7e1"
+    },
+    "before": {
+      "bytes": 15313,
+      "git_blob": "253223e8d55102a5d529366ac16cb63940a417ba",
+      "mode": 384,
+      "sha256": "6ef69c2c247867447016b4b92639df2c674a14d7a8fe39614b247efd2068bf0c"
+    },
+    "path": "tools/qualify_hia_verified_increment.py"
+  },
+  "historical_recovery": "Every original path is recoverable from source_commit and its exact Git blob below; no Git history was rewritten.",
+  "independent_consumer_review": {
+    "candidate": {
+      "bytes": 982444,
+      "current_required_files": 1,
+      "directory": "experiments/hia_stateful_eval",
+      "files": 75
+    },
+    "ci": {
+      "candidate_required_paths": [],
+      "scope": "explicit current source/native test selections and feedback cohort; whole-source guards bind the chosen current revision rather than requiring historical process payload",
+      "workflows": [
+        ".github/workflows/hia-core.yml",
+        ".github/workflows/hia-ndu-feedback.yml"
+      ]
+    },
+    "deleted_files": 0,
+    "dynamic_readers": [
+      {
+        "path": "tools/check_hia_core_only.py",
+        "scope": "enumerates present Python/HIA files, reports actual inventory; does not require old 75 paths; moved protocol is data, not a HIA program schema"
+      },
+      {
+        "path": "experiments/hia_five_deliverables_20261030/agent_replication/rebind_sources.py",
+        "scope": "candidate Python copies can appear only in diagnostic new_python_files_outside_snapshot; none is in the 31 registered sources or 543 frozen snapshot files; exit gate checks registered_sources_match"
+      },
+      {
+        "path": "experiments/hia_agent_toolstudy_v8_20261029/support.py",
+        "scope": "ROOT/experiments/directory uses a fixed named v4-v7 cohort, not stateful"
+      },
+      {
+        "path": "experiments/hia_agent_toolstudy_v9_20261029/support.py",
+        "scope": "fixed v4-v8 named cohort, not stateful"
+      },
+      {
+        "path": "experiments/hia_agent_toolstudy_v11_20261030/support.py",
+        "scope": "fixed v4-v9 named cohort plus own provenance; v12/v13 extend that closure"
+      },
+      {
+        "path": "tools/qualify_hia_structured_controls.py",
+        "scope": "dynamic string constructs only hia_agent_factorial_v4/v5/v6"
+      },
+      {
+        "path": "tools/qualify_hia_agent_three_arm.py",
+        "scope": "fixed glob patterns for assembly/matched/optimizer experiment inputs, not stateful"
+      }
+    ],
+    "native_calls": 0,
+    "packaging": {
+      "candidate_directory_packaged": false,
+      "manifest_explicit_docs_native_resources_and_tools": true,
+      "pyproject_packages": [
+        "hepta"
+      ],
+      "qualifier_is_repository_tool_not_installed_entry": true,
+      "required_packaging_change": false
+    },
+    "project_tests_executed": 0,
+    "required_consumer_change": {
+      "current_lines": [
+        224,
+        250
+      ],
+      "expected_inventory_changes": [
+        "old Protocol key removed",
+        "new Protocol key added with identical digest",
+        "qualifier's own source digest changes because its body changes"
+      ],
+      "function": "inventory",
+      "path": "tools/qualify_hia_verified_increment.py",
+      "preserve": "all other selectors, input paths, hash checks, absence errors, and total inventory cardinality",
+      "replace": "remove stateful round3 from directory enumeration; add exactly the new Protocol path before hashing"
+    },
+    "required_relocation": {
+      "bytes": 3097,
+      "from": "experiments/hia_stateful_eval/round3_20261028/PROTOCOL.json",
+      "git_blob": "27586976663d8bff0a722fbe13eb388580bc1d46",
+      "original_bytes_must_be_preserved": true,
+      "schema": "hepta.hia.registered-followup.protocol.v1",
+      "sha256": "50217b19d8b638792b7af6c3c53365d01cc3b238480a83a2f5fca0cd00849062",
+      "to": "tests/fixtures/hia_stateful_protocol/PROTOCOL.json"
+    },
+    "retirement": {
+      "immutable_receipts_rewritten": false,
+      "net_payload_bytes_removed": 979347,
+      "net_tracked_file_reduction": 74,
+      "original_75_paths_must_remain_provable_from_git": true,
+      "remaining_process_files": 74
+    },
+    "schema": "hepta.stateful-retirement-independent-audit.v1",
+    "scope_notes": [
+      "Current v70 source-contract absence separately confirmed by root; this audit reads fixed c815 identities and does not relabel it as v70 execution.",
+      "No original benchmark, oracle, negative-control receipt, or source snapshot is edited; the 74 retired process files remain in exact Git history."
+    ],
+    "set_checks": {
+      "archive_path_migrations": {
+        "count": 2,
+        "intersection": []
+      },
+      "evidence_logical": {
+        "count": 611,
+        "intersection": []
+      },
+      "evidence_physical": {
+        "count": 611,
+        "intersection": []
+      },
+      "full_c815_cold_source_map": {
+        "count": 698,
+        "intersection": []
+      },
+      "literal_SOURCE_FILES_tuple": {
+        "count": 536,
+        "intersection": []
+      },
+      "qualifier_in_cold_source_map": false,
+      "replication_registered_sources": {
+        "count": 31,
+        "intersection": []
+      },
+      "replication_snapshot_files": {
+        "count": 543,
+        "intersection": []
+      },
+      "suffix_migrations": {
+        "count": 87,
+        "intersection": []
+      }
+    },
+    "source_audit": {
+      "bound_files": 1034,
+      "generic_reader_candidates": 110,
+      "parse_errors": [],
+      "protocol_mentions": 193,
+      "raw_SOURCE_FILES_count_note": "raw AST count 536 is only the explicit tuple; file_digests additionally includes the whole hepta package; full accepted c815 cold map is 698 including its contract",
+      "raw_result": "/tmp/hia-a4f12-delivery-20261111/stateful-generic-c815-review-01/RESULT.json",
+      "raw_result_sha256": "e9f4ae4fd4c3586c41629f5374a975caac611581adabcaa35c02afddf39c3f32",
+      "source_preserved": true
+    },
+    "source_commit": "c815d8e3637bbcabcee0639b95f87d496f133338",
+    "source_modified": false,
+    "source_tree": "a048a8a25648e13e5f20bc2f9a927d51201e1aa1",
+    "status": "NO_BLOCKING_CURRENT_CONSUMER_AFTER_EXACT_PROTOCOL_RELOCATION"
+  },
+  "original_files": [
+    {
+      "action": "retired",
+      "bytes": 2808,
+      "git_blob": "b6d5b61b87d5214e661cc912ed9fa08c08de4687",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/ARCHIVE-attempt05.json",
+      "sha256": "5f9fb4a32160c4725c1d8760235400ea76c92bb9072c18868272cbd6f70b178b"
+    },
+    {
+      "action": "retired",
+      "bytes": 1995,
+      "git_blob": "a85e927c46f5cf1e3b979ac54c03ab4f31a4c133",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/ARCHIVE-through-attempt04.json",
+      "sha256": "1f2c9be139fc50ff7592171aeed03232ba890c73195c7fd5cba73f8763c15bba"
+    },
+    {
+      "action": "retired",
+      "bytes": 2808,
+      "git_blob": "b6d5b61b87d5214e661cc912ed9fa08c08de4687",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/ARCHIVE.json",
+      "sha256": "5f9fb4a32160c4725c1d8760235400ea76c92bb9072c18868272cbd6f70b178b"
+    },
+    {
+      "action": "retired",
+      "bytes": 3748,
+      "git_blob": "a10e8aa4445f366e74599f3e7d5addb22bfcedcc",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/FINAL_ACCEPTANCE.json",
+      "sha256": "501dff05a02cb248e423f7b5d75d2fc4525fa1fa2377e06f77a9640aa3229d0d"
+    },
+    {
+      "action": "retired",
+      "bytes": 5249,
+      "git_blob": "44f48c6d6c93232151f16ca526315b592bd1894d",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/RAW_MEMBERS-attempt05.json",
+      "sha256": "48c0cad3ceaf53985df4d740d17831e7c2982a6a56c41d3bbcca434302d804b3"
+    },
+    {
+      "action": "retired",
+      "bytes": 18432,
+      "git_blob": "73e52f9a1d385e652cdb124c968a5a146fb278ea",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/RAW_MEMBERS-through-attempt04.json",
+      "sha256": "f158e3243e8414a825d7d16e2d6c7808f3b4a3041af1d3312279006960986c17"
+    },
+    {
+      "action": "retired",
+      "bytes": 5249,
+      "git_blob": "44f48c6d6c93232151f16ca526315b592bd1894d",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/RAW_MEMBERS.json",
+      "sha256": "48c0cad3ceaf53985df4d740d17831e7c2982a6a56c41d3bbcca434302d804b3"
+    },
+    {
+      "action": "retired",
+      "bytes": 7940,
+      "git_blob": "6c140f1557f054074ff7e2e70058d79edea0951e",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/README.md",
+      "sha256": "b90739efaa16db6130e199f675284bbf079276faa1768c0c7d973b0c11ced364"
+    },
+    {
+      "action": "retired",
+      "bytes": 4486,
+      "git_blob": "ba0b8fb63b701fe6ec5d7c6ad845fbc35aa22f30",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/baseline.core.json",
+      "sha256": "c83b8344addd22ac08800b0442e69de9ff19fed334c4c3921af380394157ae44"
+    },
+    {
+      "action": "retired",
+      "bytes": 19010,
+      "git_blob": "0823140253a0ed83571cfe43dd3c28d13f7eb6d6",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/bound-source/hia_adaptive.py",
+      "sha256": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246"
+    },
+    {
+      "action": "retired",
+      "bytes": 34498,
+      "git_blob": "b89f97f307382fe74e5fbecc270e70db8c186c4a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/bound-source/hia_stateful.py",
+      "sha256": "73b7eff4466402dc28f9f9a5b6ae7a597eaa405d4957eb59817e7dd6ea32d374"
+    },
+    {
+      "action": "retired",
+      "bytes": 13306,
+      "git_blob": "92a27da03c55a6f5909be7656634d2f430ef3599",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/bound-source/qualify_hia_stateful.py",
+      "sha256": "604b1f48d8985e1ec72bc7fd03076f8bf8edc9adb6a1710d2a24a565b30c959a"
+    },
+    {
+      "action": "retired",
+      "bytes": 274,
+      "git_blob": "6e7f491b9d2e34bc76d5909721e8d2f67ceff4db",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/bound-source/reconstruction.json",
+      "sha256": "94b1ccdaa538e3311ee303947157b109cea8bf294679dc4e42c8928dbc829706"
+    },
+    {
+      "action": "retired",
+      "bytes": 3247,
+      "git_blob": "3fd324ca35ef712cd7f51e3d92fc5e1b3de9fd8a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/candidate.core.json",
+      "sha256": "8b21c24989c366cbc46f86f589f490e0bdde4186c8b4dd1e59ea6ba297e8d92a"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/performance-runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 43085,
+      "git_blob": "bf6c57642855fc6fecec4806a8f4551eee7421d1",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/qualification.json",
+      "sha256": "f2e36639dd15c1f431408e04378b23ac3b7ed2b9890c316410d6647b0068c576"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 455,
+      "git_blob": "7a0b2b4e5e44f709e405c8b1e0b2915c81566d9a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt01/superseded.json",
+      "sha256": "feae309ab238e81c63d9039680c49fd054530b5cf19b7afd1ac9f8ffb15e7e60"
+    },
+    {
+      "action": "retired",
+      "bytes": 4486,
+      "git_blob": "ba0b8fb63b701fe6ec5d7c6ad845fbc35aa22f30",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/baseline.core.json",
+      "sha256": "c83b8344addd22ac08800b0442e69de9ff19fed334c4c3921af380394157ae44"
+    },
+    {
+      "action": "retired",
+      "bytes": 19010,
+      "git_blob": "0823140253a0ed83571cfe43dd3c28d13f7eb6d6",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/bound-source/hia_adaptive.py",
+      "sha256": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246"
+    },
+    {
+      "action": "retired",
+      "bytes": 37122,
+      "git_blob": "a9891c6c92b14ff01e03a184fee72dd665c58f78",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/bound-source/hia_stateful.py",
+      "sha256": "05787aa1f9db5b924ffaa6267aaa4af7904ac92725aad0c2fa3f2fadaccd2a5f"
+    },
+    {
+      "action": "retired",
+      "bytes": 13306,
+      "git_blob": "92a27da03c55a6f5909be7656634d2f430ef3599",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/bound-source/qualify_hia_stateful.py",
+      "sha256": "604b1f48d8985e1ec72bc7fd03076f8bf8edc9adb6a1710d2a24a565b30c959a"
+    },
+    {
+      "action": "retired",
+      "bytes": 3247,
+      "git_blob": "3fd324ca35ef712cd7f51e3d92fc5e1b3de9fd8a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/candidate.core.json",
+      "sha256": "8b21c24989c366cbc46f86f589f490e0bdde4186c8b4dd1e59ea6ba297e8d92a"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/performance-runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 43012,
+      "git_blob": "4017c160f9b0a6fb0cdfd40e5ba5a0707f19e6a1",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/qualification.json",
+      "sha256": "a11cfd87291c3d3da9f7442d0f7579f005b187096af6414fe3cc3bb2c67a9daa"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 392,
+      "git_blob": "38ab4877d31146b7fbee623a1fc28eb60b8c8b93",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt02/superseded.json",
+      "sha256": "ef72254a69a122d4f8bfb30ffa09acc279efa0ffdcda09ece0bd25ccb6be8899"
+    },
+    {
+      "action": "retired",
+      "bytes": 4486,
+      "git_blob": "ba0b8fb63b701fe6ec5d7c6ad845fbc35aa22f30",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/baseline.core.json",
+      "sha256": "c83b8344addd22ac08800b0442e69de9ff19fed334c4c3921af380394157ae44"
+    },
+    {
+      "action": "retired",
+      "bytes": 19010,
+      "git_blob": "0823140253a0ed83571cfe43dd3c28d13f7eb6d6",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/bound-source/hia_adaptive.py",
+      "sha256": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246"
+    },
+    {
+      "action": "retired",
+      "bytes": 37445,
+      "git_blob": "a005038b7074f50086025dea486e486669da0efa",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/bound-source/hia_stateful.py",
+      "sha256": "ba2e36b68c6efe047e95c4f6b0e28ee08aab120365365470c13297af887c0e28"
+    },
+    {
+      "action": "retired",
+      "bytes": 13514,
+      "git_blob": "9134316693e8fb6638e9ea53fc898e3f35c6deba",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/bound-source/qualify_hia_stateful.py",
+      "sha256": "d1ed427b4e9a569039799aa4281095540a15f019bc96783be438a9b78a023ec8"
+    },
+    {
+      "action": "retired",
+      "bytes": 3247,
+      "git_blob": "3fd324ca35ef712cd7f51e3d92fc5e1b3de9fd8a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/candidate.core.json",
+      "sha256": "8b21c24989c366cbc46f86f589f490e0bdde4186c8b4dd1e59ea6ba297e8d92a"
+    },
+    {
+      "action": "retired",
+      "bytes": 1160,
+      "git_blob": "ec1f55eb70b687d0499bdffbbc28ac93ea28243e",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/disassembly/baseline.txt",
+      "sha256": "f2e05c352cec2789327a082c718949f46615c9934098040ff7fd53d4ce031155"
+    },
+    {
+      "action": "retired",
+      "bytes": 399,
+      "git_blob": "9d029723b4934dd9596c84e0c2204901cd3b2457",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/disassembly/candidate.txt",
+      "sha256": "b049842dc5a651ad5a19d3cdf8b154679bf1982382b8de19c679adb8a2df7785"
+    },
+    {
+      "action": "retired",
+      "bytes": 3140,
+      "git_blob": "f02d1e21a1e951f191192de4c4e8d89232a7055b",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/disassembly/comparison.json",
+      "sha256": "8457f4b85c69a7efc20e677f891fad33179bf7aa135774907c3a2b526501ebe3"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/performance-runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 43134,
+      "git_blob": "83aa2f0267b318748b454eea85461f53c0d34833",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/qualification.json",
+      "sha256": "bc27445ffd5aee31364cfcbd34512f3e55b22042485c9189c68ed4e0afbee652"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 432,
+      "git_blob": "344ee36cd1668fbe8768d55e26ade9387087f7c7",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03/superseded.json",
+      "sha256": "b759780c6b2578328c6a75c607bcf0887c8d9350ec90b072d62b0e3a4332d462"
+    },
+    {
+      "action": "retired",
+      "bytes": 1402,
+      "git_blob": "e77bd990fece9a69efa25b72356cd052498ad2fd",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt03_registration.json",
+      "sha256": "6775b43fbd2feeca0f13c476b608c71de25388262cd5b77f5b1af0427c850539"
+    },
+    {
+      "action": "retired",
+      "bytes": 4486,
+      "git_blob": "ba0b8fb63b701fe6ec5d7c6ad845fbc35aa22f30",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/baseline.core.json",
+      "sha256": "c83b8344addd22ac08800b0442e69de9ff19fed334c4c3921af380394157ae44"
+    },
+    {
+      "action": "retired",
+      "bytes": 19010,
+      "git_blob": "0823140253a0ed83571cfe43dd3c28d13f7eb6d6",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/bound-source/hepta/hia_adaptive.py",
+      "sha256": "79936ef7509d8f4f208c96b43ec854e6e768e09926fb4fca16a1686978226246"
+    },
+    {
+      "action": "retired",
+      "bytes": 37445,
+      "git_blob": "a005038b7074f50086025dea486e486669da0efa",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/bound-source/hepta/hia_stateful.py",
+      "sha256": "ba2e36b68c6efe047e95c4f6b0e28ee08aab120365365470c13297af887c0e28"
+    },
+    {
+      "action": "retired",
+      "bytes": 15513,
+      "git_blob": "d678ba0195f566abb247792da3876d0c4a4d1c4a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/bound-source/tools/qualify_hia_stateful.py",
+      "sha256": "c24a059bde2b93547fac9a281e41f376a79bf23d7059f17ff8e6806b786bdc31"
+    },
+    {
+      "action": "retired",
+      "bytes": 3247,
+      "git_blob": "3fd324ca35ef712cd7f51e3d92fc5e1b3de9fd8a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/candidate.core.json",
+      "sha256": "8b21c24989c366cbc46f86f589f490e0bdde4186c8b4dd1e59ea6ba297e8d92a"
+    },
+    {
+      "action": "retired",
+      "bytes": 2695,
+      "git_blob": "28336ed268831a881cd166e61c6cb8304885df53",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/final_acceptance_at_qualification.json",
+      "sha256": "8eba0c2f586717f81d492bcc626ba9af8dbf081d78cd9b05258f741b42838b9d"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/performance-runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 69964,
+      "git_blob": "7c738bff3a4f68cd8d982f7c47e799cd421adaa1",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/qualification.json",
+      "sha256": "3273f18032c29f008fa7ea54b119fce610a05b8fa413c8429273536e325300a1"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 320,
+      "git_blob": "653baf0c49c94813b6fcc1bd8638f3456bbfb1d7",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04/superseded.json",
+      "sha256": "a33a7a16add0eb02729bd76dc48aee785b67c6b947abb5d28c53c78db9b25f13"
+    },
+    {
+      "action": "retired",
+      "bytes": 1715,
+      "git_blob": "1ce3fae22798aa824a8127ff14f7de81c0ec0c99",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt04_registration.json",
+      "sha256": "b10bf54cb75f6a0ff57bc525eafdcf4922d50ddee5ebdf9cdc37c2bf81dd08fa"
+    },
+    {
+      "action": "retired",
+      "bytes": 4486,
+      "git_blob": "ba0b8fb63b701fe6ec5d7c6ad845fbc35aa22f30",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/baseline.core.json",
+      "sha256": "c83b8344addd22ac08800b0442e69de9ff19fed334c4c3921af380394157ae44"
+    },
+    {
+      "action": "retired",
+      "bytes": 19568,
+      "git_blob": "83ea96a4dfb96a0bca6d3fc0ab0ea6c419e7964c",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/bound-source/hepta/hia_adaptive.py",
+      "sha256": "5dccab7880d75c6d37389a1d8261e56a948b75d7dca3591f8cfb12e73194f892"
+    },
+    {
+      "action": "retired",
+      "bytes": 37926,
+      "git_blob": "07875a5db257cb971bb4441e23783567000596d2",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/bound-source/hepta/hia_stateful.py",
+      "sha256": "8a3a0f6bd2068e6070b5f51f4be22cdf53090bb54abb8b84afaa80bdcc51b96e"
+    },
+    {
+      "action": "retired",
+      "bytes": 5363,
+      "git_blob": "1d37b304bed9b1a252e3d1e172617711bf50523e",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/bound-source/hepta/native_mapping_identity.py",
+      "sha256": "23ae4a968e0f72ff378d0fd7db43aa9a1b8fc7a61d045ad872d8d81ab611f80a"
+    },
+    {
+      "action": "retired",
+      "bytes": 15513,
+      "git_blob": "d678ba0195f566abb247792da3876d0c4a4d1c4a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/bound-source/tools/qualify_hia_stateful.py",
+      "sha256": "c24a059bde2b93547fac9a281e41f376a79bf23d7059f17ff8e6806b786bdc31"
+    },
+    {
+      "action": "retired",
+      "bytes": 3247,
+      "git_blob": "3fd324ca35ef712cd7f51e3d92fc5e1b3de9fd8a",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/candidate.core.json",
+      "sha256": "8b21c24989c366cbc46f86f589f490e0bdde4186c8b4dd1e59ea6ba297e8d92a"
+    },
+    {
+      "action": "retired",
+      "bytes": 1455,
+      "git_blob": "810ff80048d1093fede9ce3145c942933fec00f3",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/execution_identity.json",
+      "sha256": "b603d389baa214ba5bf1020b59298682ec06a0c2ac5528a8dc5d4b2e0fc61a1d"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/performance-runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 73583,
+      "git_blob": "f5ce2f4eaf398f2716471d403d89ec0901f3cfe7",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/qualification.json",
+      "sha256": "9e50c78b7b36f3d1e63c980c663e1921b8724e22cda799b3de264217f634f1df"
+    },
+    {
+      "action": "retired",
+      "bytes": 2399,
+      "git_blob": "4064c9230954fe78bcf10383b1a34ca7db57a9b4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05/runtime/owned-driver.c",
+      "sha256": "e70cf7daf7752886d862dfb9ecae08a21db4fe025db64ba67d4821803b3cdce3"
+    },
+    {
+      "action": "retired",
+      "bytes": 2607,
+      "git_blob": "27cd1325de651a8bf2c0fa637d2ae63178e830d9",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/attempt05_registration.json",
+      "sha256": "222e80fef98f15aa5d88350589b651704cb75131ab03435926279ed8ce94ff7b"
+    },
+    {
+      "action": "retired",
+      "bytes": 742,
+      "git_blob": "261aef93dfc4ec3c7b464e68faa87122ed186b93",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/registration.json",
+      "sha256": "721f01004acac3c6c93c9892310f35f94d5042a68e4620acd3bb7c4f8f6accfb"
+    },
+    {
+      "action": "retired",
+      "bytes": 449,
+      "git_blob": "c6c43c26ae79c282afeeedbbfb4ee8c51f9fc86c",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/review/frozen_stateful_identity.json",
+      "sha256": "aa48852083f8c82cbc0e06e87697591fa110413dcc628fc1528679dedca8fb55"
+    },
+    {
+      "action": "retired",
+      "bytes": 5023,
+      "git_blob": "f656ae1302996dac862896189cb5639c117c6eca",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/review/guarded_counterexamples.json",
+      "sha256": "fa570a581d955bd504e59ab0b3436d87f4d1b37ee52e793bc6fd2a30ef2e724f"
+    },
+    {
+      "action": "retired",
+      "bytes": 1394,
+      "git_blob": "8015ea2a25fe4840f95441541559fbe2a7b1d7db",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/review/guarded_review.md",
+      "sha256": "bb8e259030fd0b35c87d5bedb6b6281011601ccfe0129720748eee25c37e8bc4"
+    },
+    {
+      "action": "retired",
+      "bytes": 513,
+      "git_blob": "b8d362d8630f1cda3c5bdaf9a62b3025ac2f33b6",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/next_20261028/review/reviewed_source_bindings.json",
+      "sha256": "94869fc357fbb95cce7929e430f2388a4f11ae19c1648a4ae56c2939021a79e0"
+    },
+    {
+      "action": "relocated_with_identical_bytes",
+      "bytes": 3097,
+      "git_blob": "27586976663d8bff0a722fbe13eb388580bc1d46",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round3_20261028/PROTOCOL.json",
+      "sha256": "50217b19d8b638792b7af6c3c53365d01cc3b238480a83a2f5fca0cd00849062"
+    },
+    {
+      "action": "retired",
+      "bytes": 1004,
+      "git_blob": "0f7a2114b230b98ecb5cb8d3c069b4b599f50ca9",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round3_20261028/README.md",
+      "sha256": "9a04201fb6cdd2f1b2f772d2eb815a7a941b1675ce7ad5f20e6d8c8b9167c71b"
+    },
+    {
+      "action": "retired",
+      "bytes": 86686,
+      "git_blob": "ae9af78607a0345d7aac63d596f7ffeaf180ca5e",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/ARCHIVE.json",
+      "sha256": "36a51c1752e76d0d5d5ba4bc8076f6824f14027049c9111936b17a9534b01961"
+    },
+    {
+      "action": "retired",
+      "bytes": 4053,
+      "git_blob": "e8df4d2a1729dd13444cff364c963e5e2fc4091f",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/PROTOCOL.json",
+      "sha256": "dbbec01eb65e46b28ecdcbd05a073594b3c26a998ee00bd068859612c0e37f80"
+    },
+    {
+      "action": "retired",
+      "bytes": 5330,
+      "git_blob": "1b242e3bdab10c1eace167b6bdc14ffb8c17987f",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/READOUT.json",
+      "sha256": "566c9da28bd79563ef2fb18b8abd3be6df1f5adc55c409403ca8390866e0f950"
+    },
+    {
+      "action": "retired",
+      "bytes": 19311,
+      "git_blob": "e4c84ae9b8a36e0d2beefc42cc5d5bc52b50410b",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/REGISTRATION.json",
+      "sha256": "817e81044d67c3f795752e0588f5ddff2fc787be81fcc63fae8be48bcdeab967"
+    },
+    {
+      "action": "retired",
+      "bytes": 75754,
+      "git_blob": "fa0d5b1c63bb42946c2d3b634d8b3e71c2dd06f4",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/ROOT_COST_AUDIT.json",
+      "sha256": "6c9eb477168ee3ffd4aba5843660720e9493145a903593edc44744767c75768a"
+    },
+    {
+      "action": "retired",
+      "bytes": 22421,
+      "git_blob": "2d5ed93c849e213d434779b0fc0546dc5013c4bf",
+      "git_mode": "100644",
+      "mode": 384,
+      "path": "experiments/hia_stateful_eval/round4_20261030/audit_cost.py",
+      "sha256": "f5af68bd3af7d23d67826cce63181c0cfcc64ea9d7761577b72b906997c677d5"
+    }
+  ],
+  "qualification_inventory_comparison": {
+    "added_keys": [
+      "tests/fixtures/hia_stateful_protocol/PROTOCOL.json"
+    ],
+    "after_members": 708,
+    "after_method": {
+      "ast_sha256": "dfeaa9ad5b574739b74f5dbad13739ce0c6f83ef3bdfa38a7ddcebe9aca3dd74",
+      "execution": "Unmodified MODULES, selector_source and inventory AST from the actual file",
+      "project_imports_executed": false,
+      "source_sha256": "708265e3a332ba19b9af363c54d3bba36991c1f6c81eb61f29f99c7ea379b7e1",
+      "tests_executed": 0
+    },
+    "before_members": 708,
+    "before_method": {
+      "ast_sha256": "b9e1f421d6b0dad0a8da0eeb26e9382f26ecca86b1ec1e80144efbf003c1e07d",
+      "execution": "Unmodified MODULES, selector_source and inventory AST from the actual file",
+      "project_imports_executed": false,
+      "source_sha256": "6ef69c2c247867447016b4b92639df2c674a14d7a8fe39614b247efd2068bf0c",
+      "tests_executed": 0
+    },
+    "changed_common_members": {
+      "tools/qualify_hia_verified_increment.py": {
+        "after": "708265e3a332ba19b9af363c54d3bba36991c1f6c81eb61f29f99c7ea379b7e1",
+        "before": "6ef69c2c247867447016b4b92639df2c674a14d7a8fe39614b247efd2068bf0c"
+      }
+    },
+    "other_members_and_digests_preserved": true,
+    "protocol_bytes_preserved": true,
+    "removed_keys": [
+      "experiments/hia_stateful_eval/round3_20261028/PROTOCOL.json"
+    ]
+  },
+  "relocation": {
+    "bytes": 3097,
+    "bytes_unchanged": true,
+    "from": "experiments/hia_stateful_eval/round3_20261028/PROTOCOL.json",
+    "git_blob": "27586976663d8bff0a722fbe13eb388580bc1d46",
+    "mode": 384,
+    "sha256": "50217b19d8b638792b7af6c3c53365d01cc3b238480a83a2f5fca0cd00849062",
+    "to": "tests/fixtures/hia_stateful_protocol/PROTOCOL.json"
+  },
+  "retired_process_files": 74,
+  "retired_process_payload_bytes": 979347,
+  "schema": "hepta.hia.stateful-process-retirement.v1",
+  "source_commit": "0d2964473d6d5c268cbfe202ebaa532b380b255c",
+  "source_tree": "2acce3886c5bf4d829a8c2bbf79580da4cb51e40",
+  "status": "REVIEWED_PROCESS_FILES_RETIRED_PROTOCOL_PRESERVED",
+  "validation_scope": {
+    "active_hia_sources_removed": 0,
+    "earlier_receipts_changed": false,
+    "native_executions": 0,
+    "original_pure_inventory_function_executed_before_and_after": true,
+    "production_activated": false,
+    "production_modules_removed": 0,
+    "project_tests_executed": 0,
+    "test_ids_or_budgets_changed": false,
+    "whole_native_delivery_qualified": false
+  }
+}
