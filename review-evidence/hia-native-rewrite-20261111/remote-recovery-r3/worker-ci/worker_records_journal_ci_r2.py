@@ -17,10 +17,10 @@ PINS={
     "gitsha": "c86f3db86034d71a0e5966341d2a532f65c88fa5"
   },
   "restore": {
-    "path": "worker_ci_restore_r1.py",
-    "bytes": 7621,
-    "sha256": "f7456e8e5e39cb284e4447d3b6e2898748dd5b93cdfbb3ce0c35016a11d37ddb",
-    "gitsha": "07785fec88f5471c237e29198eeaf30e7b8a2b81"
+    "path": "worker_ci_restore_r2.py",
+    "bytes": 8761,
+    "sha256": "bc44552bb7a61e983227b27da4adc321c435cf76e2d30ec4def6c1345bcafa10",
+    "gitsha": "3c4b0e5b979f8107065a7e0144faaf5d9ca0668d"
   },
   "compile": {
     "path": "compile_worker_peers_ci_r1.py",
@@ -89,7 +89,7 @@ try:
         driver=dict(bytes=len(self_raw),sha256=digest(self_raw),gitsha=gitsha(self_raw))))
     own=Path(context["base"])/"worker-ci-source"
     index=materialize("dependency_index",own/"worker_ci_dependencies_r2.json")
-    restore=materialize("restore",own/"worker_ci_restore_r1.py")
+    restore=materialize("restore",own/"worker_ci_restore_r2.py")
     compile_script=materialize("compile",own/"compile_worker_peers_ci_r1.py")
     common.run("worker-exact-dependency-restore",[sys.executable,"-B",restore,output/"context.json",index],timeout=300)
     work=Path(context["base"])/"worker-recovery/work-r2"

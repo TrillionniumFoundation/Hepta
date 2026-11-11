@@ -1,0 +1,64 @@
+{
+  "schema": "hia-worker-ci-failure-observation-v1",
+  "run": 43101326649,
+  "job": 130793296793,
+  "head": "469b31f499289acf5e7dc2e2b6b70a1f06c7bd7b",
+  "status": "FAIL",
+  "environment": "exact CPython 3.12.14/GitHub Actions",
+  "common_git_sha": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+  "common_steps_passed": [
+    "checkout-pinned-baseline",
+    "restore-exact-published-root-archives",
+    "import-exact-reference-objects",
+    "restore-exact-reference"
+  ],
+  "first_failure": {
+    "label": "worker-exact-dependency-restore",
+    "returncode": 1,
+    "timed_out": false,
+    "error": "FileNotFoundError",
+    "source_line": 116,
+    "path_suffix": "native-agent-worker-next/development/worker_request_harness.py",
+    "expected_source_sha256": "f16900f5ad10b217014180ef44971a962de3d5c9793a3af3e94a6b5ce49bfa7c"
+  },
+  "compiler_invocations": 0,
+  "native_entries": 0,
+  "records_cases": 0,
+  "bridge_cases": 0,
+  "log": {
+    "path": "worker-469b31f-attempt1.github-job.log",
+    "bytes": 46630,
+    "sha256": "7e25d9b21663c48fe1c3d01cd50b182dc0ff1e46761d9a6cb8cee2de8c4b7ca3",
+    "gitsha": "4f40aca60d5ae992b2283eab482f35c8da47cd94"
+  },
+  "artifact": {
+    "id": 13892571874,
+    "name": "hia-worker-recovery-43101326649-1",
+    "zip_bytes": 43639707,
+    "zip_sha256": "4714aa3b0467b93c0d0b8771300359c814b688ab1753dc76cb3a0b8601c04dd4",
+    "evidence_tar_bytes": 5080868,
+    "evidence_tar_sha256": "38084bc9ae2887fe1a5d500ce3a9f4e7d71f50fae50f43a56c7b3b82ba43fc96",
+    "members": 37,
+    "source": "actual GitHub job upload/custody logs",
+    "independent_zip_readback": false
+  },
+  "fix": {
+    "restore": {
+      "path": "worker_ci_restore_r2.py",
+      "bytes": 8761,
+      "sha256": "bc44552bb7a61e983227b27da4adc321c435cf76e2d30ec4def6c1345bcafa10",
+      "gitsha": "3c4b0e5b979f8107065a7e0144faaf5d9ca0668d"
+    },
+    "driver": {
+      "path": "worker_records_journal_ci_r4.py",
+      "bytes": 10011,
+      "sha256": "16225bf15b57914f3a012847e69a3c9c25adcd7a218e228135a3b61c13778ce1",
+      "gitsha": "e84e80fd93f2d169fe03fcbfbad22772a16ed9b4",
+      "only_change": "restore-r2 exact pinned mechanics snapshot recovery; unchanged common/test/authoring/limits"
+    },
+    "executed": false,
+    "original_sha_gate_removed": false,
+    "namespace_closed": false,
+    "whole_worker_closed": false
+  }
+}

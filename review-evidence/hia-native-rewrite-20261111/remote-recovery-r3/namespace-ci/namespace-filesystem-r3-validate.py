@@ -144,7 +144,7 @@ try:
     assert receipt["input_sha256"]==receipt["source_sha256"]==sha(source)
     assert receipt["artifact_sha256"]==sha(compiler_raw)
     assert receipt["produced_sha256"]==sha(actual)
-    assert receipt["limits"]["cpu_seconds"]==10 and receipt["limits"]["address_space_bytes"]==256<<20
+    assert receipt["limits"]["cpu_seconds"]==10 and receipt["limits"]["address_bytes"]==256<<20
     compile_request=json.loads((directory/"namespace-filesystem-r3.request.json").read_bytes())
     assert compile_request["capacity"]==compile_request["workspace_size"]==1<<20
     assert receipt["runner_sha256"]==sha(pathlib.Path(CHILD).read_bytes())

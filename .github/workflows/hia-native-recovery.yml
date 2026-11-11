@@ -13,12 +13,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: hia-independent-recovery-${{ github.ref }}
+  group: hia-independent-recovery-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
 
   candidate:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:candidate]')
     name: Candidate 17 + retained 87 + private 44 + byte boundaries 2
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -62,6 +67,11 @@ jobs:
           compression-level: 0
 
   cli:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:cli]')
     name: Reconstructed CLI components and actual seven-image entry
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -105,6 +115,11 @@ jobs:
           compression-level: 0
 
   namespace:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace]')
     name: Namespace filesystem VM and actual native owner
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -148,6 +163,11 @@ jobs:
           compression-level: 0
 
   worker:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker]')
     name: Worker records and actual journal bridge
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -186,6 +206,47 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-worker-recovery
             ${{ runner.temp }}/hia-worker-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  diagnostic:
+    name: Read exact original CLI generation failure
+    if: contains(github.event.head_commit.message, '[hia-ci:diagnostic]')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted diagnostic source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Download exact retained prior CLI artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13892287301'
+          run-id: '43101326649'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/prior-cli
+      - name: Read pinned original nested failure
+        shell: bash
+        run: >-
+          python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/read_original_cli_failure_r1.py
+          --download "$RUNNER_TEMP/prior-cli"
+          --output "$RUNNER_TEMP/cli-original-failure"
+          2>&1 | tee "$RUNNER_TEMP/cli-original-failure-driver.log"
+      - name: Preserve exact original failure readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-original-cli-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/cli-original-failure
+            ${{ runner.temp }}/cli-original-failure-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

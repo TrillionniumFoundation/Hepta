@@ -1,0 +1,72 @@
+{
+  "schema": "hia-cli-independent-ci-first-failure-v2",
+  "status": "FAIL",
+  "scope": "NEW_CI_ACTUAL_COMPONENTS_AND_FIRST_ENTRY_BUILD_FAILURE",
+  "repository": "TrillionniumFoundation/Hepta",
+  "commit": "469b31f499289acf5e7dc2e2b6b70a1f06c7bd7b",
+  "run_id": 43101326649,
+  "job_id": 130793278379,
+  "log": {
+    "git_blob": "2495bcd34b745b18a805d7f31effa7f4ae13a9f7",
+    "bytes": 50986,
+    "sha256": "7a71625f094b768ac8be1354aa862ce543b5f4694a597d2b4942b28302fe36f8"
+  },
+  "actual_component_results": [
+    {
+      "group": "capture",
+      "status": "PASS",
+      "cases": 358,
+      "actual_native_entries": 1061,
+      "elapsed_ns": 667038722
+    },
+    {
+      "group": "wire-pretty",
+      "status": "PASS",
+      "cases": 397,
+      "actual_native_entries": 2395,
+      "elapsed_ns": 21950433077
+    },
+    {
+      "group": "file",
+      "status": "PASS",
+      "cases": 212,
+      "actual_native_entries": 1340,
+      "elapsed_ns": 1820273152
+    }
+  ],
+  "actual_component_totals": {
+    "cases": 967,
+    "actual_native_entries": 4796
+  },
+  "entry": {
+    "status": "BUILD_FAILED_BEFORE_ENTRY_TEST",
+    "actual_native_entry_test_cases": 0,
+    "build_step": "cli-seven-image-build",
+    "returncode": 1,
+    "timed_out": false,
+    "elapsed_ns": 616369575,
+    "reported_exception": "AssertionError: generate_hia_cli_entry.py",
+    "source": "development/build_cli_entry_reconstructed_r3.py",
+    "line": 73,
+    "actual_nested_stderr_status": "PRESERVED_IN_ORIGINAL_ARTIFACT_NOT_YET_DECODED",
+    "root_cause": "UNDETERMINED"
+  },
+  "artifact": {
+    "id": 13892287301,
+    "name": "hia-cli-recovery-43101326649-1",
+    "zip_bytes": 49340674,
+    "zip_sha256": "29e371c06e5285d37f3d6565d93e0e61b3790fdefaa2fa5e7cd10d77c4f5d4c2",
+    "archive_bytes": 7522140,
+    "archive_sha256": "6d03b8ae26f437d3474ba169e0daa8a1561421474ed3ff447d72f52f2ed891e1",
+    "archive_members": 6053,
+    "archive_original_bytes": 60723728,
+    "custody_source": "actual CI finish log; independent archive extraction pending"
+  },
+  "claims": {
+    "matching_source_cold_qualified": false,
+    "whole_stack_closed": false,
+    "installed_entry_activated": false,
+    "prior_ROG_tests_inherited": false
+  },
+  "next_step": "Read exact saved nested generator stderr from original artifact; after a confirmed fix run entry-only continuation with no repetition or inheritance of the three passed component groups."
+}

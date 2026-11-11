@@ -1,0 +1,76 @@
+{
+  "schema": "hia.namespace-ci-attempt.v2",
+  "head": "469b31f499289acf5e7dc2e2b6b70a1f06c7bd7b",
+  "run": 43101326649,
+  "job": 130793278066,
+  "job_status": "completed",
+  "job_conclusion": "failure",
+  "scope": "New independent recovery CI; original ROG full unchanged FAIL/HOLD",
+  "common_git_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+  "completed_observed_steps": [
+    "checkout-pinned-baseline",
+    "restore-exact-published-root-archives",
+    "import-exact-reference-objects",
+    "restore-exact-reference",
+    "namespace-fs-r3-generate"
+  ],
+  "failed_step": {
+    "label": "namespace-fs-r3-vm-b3-native",
+    "returncode": 1,
+    "timed_out": false,
+    "elapsed_ns": 39209184532,
+    "traceback_last_line": "KeyError: 'address_space_bytes'",
+    "file": "namespace-filesystem-r3-validate.py",
+    "line": 147,
+    "classification": "VALIDATOR_RECEIPT_SCHEMA_KEY_MISMATCH",
+    "basis": "Frozen exact 0ef child writes limits.address_bytes; the new validator used a nonexistent longer key."
+  },
+  "new_execution_scope": {
+    "generation_returned_successfully": true,
+    "all_vm_group_assertion_passed_before_compilation": true,
+    "expected_frozen_vm_methods": 14,
+    "exact_vm_test_count_and_entry_count_from_raw_json": "NOT_YET_READ_BY_THIS_AGENT",
+    "b3_compile_stage_calls_returned": 1,
+    "paired_filesystem_image_entries": 0,
+    "fixed_syscall_carrier_processes": 0
+  },
+  "fix": {
+    "validator_git_blob": "546fd4a8418e50b8f2a3ecb619d90013ff232276",
+    "launcher_git_blob": "b714a9b5d5b98038f8c0c0377f56b130d57dd0dd",
+    "exact_change": "address_space_bytes -> address_bytes; launcher validator identity only",
+    "limits_assertion": "cpu_seconds == 10 and address_bytes == 256 << 20",
+    "retained_20wall_1MiB_gate": true,
+    "bundle_and_kernel_and_14tests_unchanged": true,
+    "new_fix_executed": false,
+    "receipt_schema_source": {
+      "commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+      "path": "tools/hia_selfhost_child.py",
+      "git_blob": "2ecbf3a04680eceee0537cb3d621073bac9c52f4"
+    }
+  },
+  "original_decoded_log": {
+    "git_blob": "3f2096d41fe908a44bd5dcc3404bf8e465f3e663",
+    "bytes": 46487,
+    "sha256": "feea7623d104e31a8e51d75905b8493daeaf2b0caaf7b3f7841131404c34c9cd",
+    "scope": "complete decoded GitHub job log, not original ZIP bytes"
+  },
+  "artifact": {
+    "id": 13893045534,
+    "bytes": 49190722,
+    "sha256": "cc1ae0383b2c3e25614973cbb87d19f55f9857e22e9e64f02831ba0b5163a3c0",
+    "reported_inner": {
+      "bytes": 5751592,
+      "sha256": "b8c8b061be1ea0e5128cc4f86ba71b1454fa6ffbce19f863ef0d49f018be2d64",
+      "members": 143,
+      "original_bytes": 43352265,
+      "index_bytes": 45798,
+      "index_sha256": "e45e5cbd5a71c9fff9ab16a7593ea63d3c969f88c297ba1a2905507152cf0c61"
+    },
+    "independent_archive_replay": "NOT_DONE_BY_THIS_AGENT"
+  },
+  "actions": {
+    "rerun": false,
+    "h_calls": 0,
+    "refs_changed": false
+  }
+}
