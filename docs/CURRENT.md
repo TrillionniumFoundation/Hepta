@@ -19,13 +19,15 @@ was `5831f52fada45e076f8f68f198a15c0585e6104f`; a candidate is not main adoption
 The exact current compiler/source identity is the checked
 [Selfhost-Core contract](HIA_SELFHOST_CORE_SUPPORT.json).
 
-All 99 current language sources use `.hepta`: 72 assembly sources and 27
+All 95 current language sources use `.hepta`: 70 assembly sources and 25
 structured Core sources. There are no active `.HIA`, `.hia`, `.hiaasm` or
 `.hia.json` files. Assembly retains its `hia-asm.v1` header, structured Core
 retains its explicit schema, and paired JSON projections use `.core.hepta`.
-The [87-file migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) preserves each
-renamed source byte for byte. The eight later assembly sources are new inputs,
-not entries fabricated into that historical rename map.
+The [87-file migration map](HIA_SOURCE_SUFFIX_MIGRATION.json) records the original
+byte-for-byte rename. Four sources in an obsolete experiment snapshot were
+subsequently retired with their exact Git objects preserved in the cleanup
+ledger. The eight later assembly sources are new inputs, not entries fabricated
+into that historical rename map.
 Four existing structured examples whose names ended in plain `.json` are also
 renamed byte for byte. Their Python and Rust consumers use `.hepta`; the source
 gate rejects program/composite JSON documents with a `.json` suffix in current
@@ -161,14 +163,18 @@ subprocess fixture. They must remain. Repository suffix checks
 cover tracked sources and package resources; ordinary file input remains
 content-based and can read a valid program supplied under another suffix.
 
-Seven superseded v60–v67 snapshot directories and seven old qualification,
-preparation and source-check scripts are also removed from the current tree:
-262 files, 52,712,062 bytes. The [retirement ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json)
-binds each retired path to its unchanged original Git object at `ec484121`.
+Sixty superseded snapshot directories and seven old qualification, preparation
+and source-check scripts are removed from the current tree: 1,022 files,
+90,691,056 bytes. The [retirement ledger](../review-evidence/hia-native-cleanup-20261111/retired-development-versions.json)
+binds each retired path to its unchanged original Git object at `ec484121` or
+`06b1e9b2`. Historical documentation links point to those fixed Git snapshots.
 The current entry is `run_hia_qualification_v4.py` with its adjacent
 `workflow_process.py`. Current runtime, tests, CI and declared source inputs
-have no consumer of the retired physical files. Required NDU archives,
-registered research inputs and model provenance remain in their declared paths.
+have no consumer of the retired physical files. The
+[retained-directory ownership record](../review-evidence/hia-native-cleanup-20261111/retained-directory-ownership.json)
+identifies the actual callers and input provenance for the 31 retained research
+and evidence directories. Required NDU archives, registered research inputs and
+model provenance remain in their declared paths.
 
 The remaining directories have distinct current responsibilities:
 

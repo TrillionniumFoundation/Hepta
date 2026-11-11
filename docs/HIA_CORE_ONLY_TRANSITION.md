@@ -26,8 +26,8 @@ obsolete mixed-source/archive acceptance shells, restore the exact negative
 reconciliation fixture and keep pure Core research controls executable. They do
 not inherit a claim that the earlier pin executed those follow-ups.
 
-See [the scoped receipt](../review-evidence/hia-core-only-transition-20261110/summary.json),
-[exact payload mapping](../review-evidence/hia-core-only-transition-20261110/source-equivalence.json)
+See [the scoped receipt](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-transition-20261110/summary.json),
+[exact payload mapping](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-transition-20261110/source-equivalence.json)
 and [explicit retired test identities](HIA_CORE_ONLY_RETIRED_TEST_SCOPE.json).
 
 ## Retained regression and open work

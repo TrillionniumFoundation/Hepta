@@ -8,7 +8,7 @@ Clang/LLVM 路线，继续修复工程阻塞并执行实际实验。**目前不�
 代码及可重建文本证据发布在 [Draft PR #360](https://github.com/TrillionniumFoundation/Hepta/pull/360)。
 原始实验继续属于原始提交。公开 API 创建的提交可能与本地提交有不同元数据，
 只有明确核对 Git tree 后才记录同树关系，不把本地测量重新命名为公开 HEAD 的测量。
-机器可读状态见 [BLOCKERS_20261029.json](../experiments/hia_next_closure/BLOCKERS_20261029.json)。
+机器可读状态见 [BLOCKERS_20261029.json](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_next_closure/BLOCKERS_20261029.json)。
 
 ## 1. 统一 Core 与版本归属
 

@@ -34,7 +34,7 @@ replayed. All 40 nested lossless stage archives were independently replayed
 retained, not rewritten as passes. Archive SHA-256:
 `055c626eec460fc8eefcf8a6201365b075dfa8322ea42ca202a0559ab6f28526`.
 
-See `review-evidence/hia-agent-snapshot-20261110/summary.json` and the exact
+See [review-evidence/hia-agent-snapshot-20261110/summary.json](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-agent-snapshot-20261110/summary.json) and the exact
 274-input source manifest for the bounded acceptance and byte-equivalence
 boundary of metadata-only descendants. The archive is retained locally, not
 a published GitHub attachment.

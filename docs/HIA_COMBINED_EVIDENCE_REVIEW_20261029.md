@@ -34,8 +34,8 @@ The full command, interpreter identity, source identity, file inventory digest,
 per-dataset reconstruction details and source differences are retained in
 EVIDENCE_AUDIT.json (historical path `../experiments/hia_next_convergence_review_20261029/EVIDENCE_AUDIT.json`; not shipped in this tree).
 The independent reader is retained byte-for-byte as
-[audit_evidence.py](../experiments/hia_next_convergence_review_20261029/audit_evidence.py).
-The separate [regression receipt](../experiments/hia_next_convergence_review_20261029/LIGHT_REGRESSION.json)
+[audit_evidence.py](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_next_convergence_review_20261029/audit_evidence.py).
+The separate [regression receipt](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_next_convergence_review_20261029/LIGHT_REGRESSION.json)
 and raw unittest log (historical path `../experiments/hia_next_convergence_review_20261029/LIGHT_REGRESSION.log`; not shipped in this tree)
 identify exactly which suites ran.
 

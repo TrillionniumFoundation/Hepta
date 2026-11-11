@@ -3,7 +3,7 @@
 Implementation `07a8aad59075c7eb770fbe60b564676f165aff17` passed all 12 local
 component stages in 339.360 seconds, separately from 131 source-job tests
 (171.333 seconds). All 282 cold/source payloads remain unchanged in this
-metadata-only publication. See `review-evidence/hia-agent-snapshot-json-20261110/`.
+metadata-only publication. See [review-evidence/hia-agent-snapshot-json-20261110/](https://github.com/TrillionniumFoundation/Hepta/tree/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-agent-snapshot-json-20261110).
 
 The actual source-only original/modified cold replay passed all 11 outer and
 5,049 native checks under the unchanged 180-second qualification plus 3-second

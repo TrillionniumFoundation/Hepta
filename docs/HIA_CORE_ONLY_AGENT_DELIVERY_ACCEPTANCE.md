@@ -34,9 +34,9 @@ CI now always retains an explicit metadata/log/phase-report allowlist, compresse
 with seven-day retention, not images/raw trees/phase ZIPs. This supplies failure
 observations; timing remains OPEN. Two workers, limits and witnesses are unchanged.
 
-See the [scoped receipt](../review-evidence/hia-core-only-agent-delivery-20261110/summary.json),
-[exact payload mapping](../review-evidence/hia-core-only-agent-delivery-20261110/source-equivalence.json)
-and [retained native bytes](../review-evidence/hia-core-only-agent-delivery-20261110/native-identity-observations.json).
+See the [scoped receipt](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-agent-delivery-20261110/summary.json),
+[exact payload mapping](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-agent-delivery-20261110/source-equivalence.json)
+and [retained native bytes](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-agent-delivery-20261110/native-identity-observations.json).
 There are 128 transitional Python modules. Native editing/persistence,
 module/build/runtime coverage, clean-machine real-project acceptance and final
 production-stack retirement remain OPEN. No production/main/service activation.

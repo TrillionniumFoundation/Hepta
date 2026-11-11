@@ -18,7 +18,7 @@ checks, 1,242 assembly witnesses and source assertions, actual Core/Agent/edit/
 process/stdio/linker regressions, default/selected Agent calls, installed native
 profiles, a genuine source distribution and wheel, installed local edits and
 strict selected-native workers are bound in
-`../review-evidence/hia-whole-selfhost-20261109/core-installed-agent-summary.json`.
+[../review-evidence/hia-whole-selfhost-20261109/core-installed-agent-summary.json](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-whole-selfhost-20261109/core-installed-agent-summary.json).
 All qualified cold source payloads are preserved through this metadata follow-up.
 
 Installation still uses Python/setuptools and the worker still owns JSON/schema,

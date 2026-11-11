@@ -35,5 +35,5 @@ persistence, Core module/build/runtime coverage and clean-machine project
 acceptance must close before retiring the old production implementation.
 No service, main or release activation.
 
-See [scoped receipt](../review-evidence/hia-core-only-agent-slice-20261110/summary.json)
-and [exact payload mapping](../review-evidence/hia-core-only-agent-slice-20261110/source-equivalence.json).
+See [scoped receipt](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-agent-slice-20261110/summary.json)
+and [exact payload mapping](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/review-evidence/hia-core-only-agent-slice-20261110/source-equivalence.json).

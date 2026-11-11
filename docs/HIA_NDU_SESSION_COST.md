@@ -73,7 +73,7 @@ ELF 身份控制使用明确标注的 C 传输夹具，不计成原生 NDU 算�
 `compiler_vs_fixed_or_light_acceptance_changed` 与 `native_ndu_advantage_established`
 在本轮结果中均为 `false`。安全授权也未改变。
 
-证据目录：`experiments/hia_ndu_session_eval/round4_20261030/`。
+证据目录：[experiments/hia_ndu_session_eval/round4_20261030/](https://github.com/TrillionniumFoundation/Hepta/tree/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_ndu_session_eval/round4_20261030)。
 `RESULT.json` 保留每组实际生命周期与分摊成本，`REGISTRATION.json` 和 `PROTOCOL.json`
 保留运行前登记。`trial01.tar.xz` 保存原始请求、320 个完整回复、实际原生 ELF、构建清单
 和执行源码，共 18 个成员、7,837,198 个原始字节，压缩后 501,864 字节。

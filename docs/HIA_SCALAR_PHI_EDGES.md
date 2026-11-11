@@ -37,7 +37,7 @@ that commit found three malformed variants incorrectly accepted: an earlier
 PHI dependency, that dependency on a constant-false branch, and the duplicate
 CFG-edge case. All four legal fixture variants compiled and agreed with the
 Core interpreter and independent arithmetic expectations on 384 native calls.
-The [retained evidence](../experiments/hia_scalar_phi_edges_20261105/README.md)
+The [retained evidence](https://github.com/TrillionniumFoundation/Hepta/blob/06b1e9b284f612c47a2205e79c8685d8b366d9de/experiments/hia_scalar_phi_edges_20261105/README.md)
 also preserves protocol v1 and explains why its constant-branch case was
 semantically `refuted`, rather than an additional `verified` failure.
 
