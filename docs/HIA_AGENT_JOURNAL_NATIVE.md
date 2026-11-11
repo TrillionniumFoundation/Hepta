@@ -93,6 +93,13 @@ The session's 512-byte state is private to one call. The image carries it
 between phases; the host does not synthesize digest matches or replay states.
 State cannot be supplied through ordinary tool arguments.
 
+The Python-call boundary additionally supplies raw builtin type tags for a
+tuple-valued tool argument, because JSON itself erases tuple/list distinctions.
+HIA uses these facts to distinguish an unknown hashable tuple from its first
+nested unhashable list or dictionary. The bridge does not call Python hash or
+perform tool membership. Non-TEXT SQLite columns carry their actual storage
+class as foreign observations; HIA owns the resulting conflict/unknown choice.
+
 The raw JSON profile is 8 MiB, 262144 nodes and depth 128. The ordinary
 interpreter's integer conversion limit is supplied as a profile observation.
 All finite binary64 values use the composed HIA conversion/printing kernels

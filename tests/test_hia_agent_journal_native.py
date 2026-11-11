@@ -214,6 +214,12 @@ class JournalNativeTests(unittest.TestCase):
         cases = [
             ('unknown', {'request_key': 'key'}),
             ([], {'request_key': 'key'}),
+            ((), {'request_key': 'tuple-empty'}),
+            (('x',), {'request_key': 'tuple-scalar'}),
+            ((('x', 1, None),), {'request_key': 'tuple-nested'}),
+            ((['x'], {}), {'request_key': 'tuple-list-first'}),
+            (({}, ['x']), {'request_key': 'tuple-dict-first'}),
+            (((('x',), []),), {'request_key': 'tuple-nested-list'}),
             ('hia_artifact', {'request_key': 'unicode-雪', 'catalog_sha256': catalog}),
             ('hia_artifact', {'request_key': 'claim-first', 'unknown': True}),
             ('hia_artifact', {'request_key': 'claim-first', 'unknown': False}),
@@ -411,6 +417,30 @@ class JournalNativeTests(unittest.TestCase):
                     outcomes.append((outcome, rows(service)))
                 self.assertEqual(outcomes[0], outcomes[1], (number, missing_converter, payload))
 
+    def test_real_SQLite_non_TEXT_observations_preserve_conflict_before_state(self):
+        args = {'request_key': 'opaque-sqlite-columns'}
+        expected_digest = sha256(independent_wire({'tool': 'hia_artifact', 'arguments': args})).hexdigest()
+        key = sha256(independent_wire({'tool': 'hia_artifact', 'key': args['request_key']})).hexdigest()
+        cases = [(expected_digest.encode(), 'completed', 'E_HIA_REQUEST_CONFLICT'),
+                 (expected_digest.encode(), b'completed', 'E_HIA_REQUEST_CONFLICT'),
+                 (float('inf'), 'completed', 'E_HIA_REQUEST_CONFLICT'),
+                 (expected_digest, b'completed', 'E_HIA_REQUEST_UNKNOWN')]
+        for index, (digest, state, code) in enumerate(cases):
+            observations = []
+            for native in (False, True):
+                service = HIAAgentService(self.case / ('sqlite-types-%s-%s' % (index, native)))
+                self.addCleanup(service.close)
+                service.store.db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?)',
+                    (key, digest, 'hia_artifact', state, '{"status":"rejected"}', '1'))
+                with ExitStack() as stack:
+                    stack.enter_context(patch('hepta.hia_agent_service.time.monotonic_ns', side_effect=[1, 9]))
+                    if native:
+                        stack.enter_context(self.selected())
+                    result = service.call('hia_artifact', args) if native else service._reference_call('hia_artifact', args)
+                self.assertEqual(result['error']['code'], code)
+                observations.append((result, rows(service)))
+            self.assertEqual(observations[0], observations[1])
+
     def test_real_process_kill_after_effect_preserves_running_intent(self):
         from tools.hia_agent_native_qualification import Session, ToolClient
         with self.selected():
@@ -482,6 +512,24 @@ s.call('hia_artifact',json.loads(sys.argv[3]))
         self.assertGreater(len(result.response) + len(result.cost_details), MAX_BYTES)
         self.assertLessEqual(len(result.response), MAX_BYTES)
         self.assertLessEqual(len(result.cost_details), MAX_BYTES)
+
+    def test_raw_numeric_expansion_refuses_before_channel_overwrite(self):
+        script = r'''
+import pathlib,resource,sys
+resource.setrlimit(resource.RLIMIT_AS,(384 << 20,384 << 20))
+from hepta.hia_agent_journal_native import installed_agent_journal,MAX_BYTES
+image=installed_agent_journal(sys.argv[1])
+raw=b'{"status":"rejected","error":{"a":"'+b'x'*(MAX_BYTES-8000)+b'","z":['+b','.join([b'1e15']*1000)+b']}}'
+assert len(raw)<MAX_BYTES
+try:image.session()._run(8,raw)
+except ValueError as exc:assert str(exc)=='E_HIA_EDIT: JSON encoding exceeds byte budget',exc
+else:raise AssertionError('expanded canonical response exceeded its independent channel')
+print('REFUSED_WITH_INPUT_AND_OUTPUT_CANARIES_INTACT')
+'''
+        result = subprocess.run([sys.executable, '-B', '-c', script, str(self.manifest)],
+                                cwd=ROOT, capture_output=True, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(b'CANARIES_INTACT', result.stdout)
 
     def test_native_ABI_canaries_and_instruction_header_refuse_corruption(self):
         original = self.image._entry

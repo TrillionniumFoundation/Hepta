@@ -37,6 +37,8 @@ def agent_journal(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     stage = get(w, 0)
     digits = get(w, 8)
     p = length(w) - 32768
+    if get(w, p + 336) > 262144 or length(w) < 64 + bound * 56 + length(s) + 32768 + get(w, p + 336):
+        return 4294967293
     if get(w, p) == 0:
         put(w, p, MAGIC_VALUE)
     if get(w, p) != MAGIC_VALUE or stage > 9:
@@ -218,8 +220,13 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
     if kind == 4:
         code = tool_code(w, get(w, record + 24), get(w, record + 32))
     put(w, p + 16, code)
+    if get(w, p + 336) != 0 and kind != 5:
+        return 4294967293
     if kind == 5:
-        return refuse(w, 4)
+        error = array_tool_error(w)
+        if error == 4294967293:
+            return error
+        return refuse(w, error)
     if kind == 6:
         return refuse(w, 5)
     if code == 0:
@@ -256,6 +263,27 @@ def prepare(s:readbuf, o:mutbuf, w:mutbuf) -> u64:
                 return instruction(w, 2)
     put(w, p + 8, 4)
     return instruction(w, 1)
+
+def array_tool_error(w:mutbuf) -> u64:
+    # JSON erases Python tuple/list distinctions. The trusted bridge supplies
+    # only raw type tags in source preorder; HIA decides the membership error.
+    p = length(w) - 32768
+    count = get(w, p + 336)
+    if count == 0:
+        return 4
+    if byte(w, p - count) != 1:
+        return 4294967293
+    index = 0
+    while index < count:
+        tag = byte(w, p - count + index)
+        if tag > 3:
+            return 4294967293
+        if tag == 2:
+            return 4
+        if tag == 3:
+            return 5
+        index = index + 1
+    return 1
 
 def observe_row(w:mutbuf) -> u64:
     p = length(w) - 32768

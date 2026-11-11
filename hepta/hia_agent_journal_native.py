@@ -38,6 +38,22 @@ def buffer_sizes(size):
     return HEADER_OFFSET + STATE_BYTES, arena + PRIVATE_BYTES
 
 
+def _foreign_tool_types(tool):
+    """Raw builtin type observations; no hash, membership or replay decision."""
+    if type(tool) is not tuple:
+        return b''
+    pending, tags = [tool], bytearray()
+    while pending:
+        value = pending.pop()
+        kind = type(value)
+        tags.append({tuple: 1, list: 2, dict: 3}.get(kind, 0))
+        if kind in (tuple, list):
+            pending.extend(reversed(value))
+        elif kind is dict:
+            pending.extend(reversed(tuple(value.values())))
+    return bytes(tags)
+
+
 @dataclass(frozen=True)
 class Instruction:
     action: int
@@ -74,10 +90,13 @@ class JournalSession:
         value = self._word(16)
         return TOOLS[value - 1] if 1 <= value <= len(TOOLS) else None
 
-    def _run(self, stage, raw=b''):
+    def _run(self, stage, raw=b'', foreign_types=b''):
         if type(raw) is not bytes or len(raw) > MAX_BYTES:
             raise ValueError('journal JSON must be bytes within 8 MiB')
         output_size, scratch_size = buffer_sizes(len(raw))
+        if type(foreign_types) is not bytes or len(foreign_types) > 262144 or stage != 0 and foreign_types:
+            raise RuntimeError('invalid journal foreign-type observation')
+        scratch_size += len(foreign_types)
         canary = bytes(range(64))
         source = ctypes.create_string_buffer(raw + canary)
         output = ctypes.create_string_buffer(output_size + len(canary))
@@ -86,6 +105,9 @@ class JournalSession:
         ctypes.memmove(ctypes.addressof(scratch) + scratch_size, canary, len(canary))
         ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES,
                        self._state, STATE_BYTES)
+        ctypes.memmove(ctypes.addressof(scratch) + scratch_size - PRIVATE_BYTES - len(foreign_types),
+                       foreign_types, len(foreign_types))
+        struct.pack_into('<Q', scratch, scratch_size - PRIVATE_BYTES + 336, len(foreign_types))
         struct.pack_into('<2Q', scratch, 0, stage, sys.get_int_max_str_digits())
         code = self.image._entry(source, len(raw), output, output_size, scratch, scratch_size)
         if (ctypes.string_at(source, len(raw) + len(canary)) != raw + canary
@@ -130,13 +152,17 @@ class JournalSession:
                            ctypes.string_at(ctypes.addressof(output) + MAX_BYTES, word(280)),
                            {0: None, 1: 'completed', 2: 'rejected'}[word(264)], arena)
 
-    def prepare(self, raw):
-        return self._run(0, raw)
+    def prepare(self, raw, foreign_types=b''):
+        return self._run(0, raw, foreign_types)
 
     def lookup(self, row):
         # Actual observed columns, not a hosted comparison or decision.
+        # Preserve non-TEXT SQLite storage classes without trying to JSON
+        # encode BLOB or infinite REAL values. HIA rejects their type itself.
+        def observed(value):
+            return value if type(value) is str else {'sqlite_storage_class': type(value).__name__}
         return self._run(1, wire(None if row is None else
-                               {'digest': row['digest'], 'state': row['state']}))
+                               {'digest': observed(row['digest']), 'state': observed(row['state'])}))
 
     def reserved(self):
         return self._run(2)
@@ -249,7 +275,8 @@ def call_with_native_journal(service, tool, arguments, manifest):
     try:
         # Existing foreign snapshot and its error order remain explicit.
         arguments = hosted.decode_data(wire(arguments))
-        step = native_step(session.prepare, wire({'tool': tool, 'arguments': arguments}))
+        original = wire({'tool': tool, 'arguments': arguments})
+        step = native_step(session.prepare, original, _foreign_tool_types(tool))
         request_id = session.request_id
         if step.action == REFUSE:
             session.raise_refusal()

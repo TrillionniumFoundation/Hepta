@@ -97,8 +97,8 @@ def main():
             by_case.setdefault(current[0], Counter())['selected_driver'] += 1
             return original_driver(service, tool, arguments, selected)
 
-        def stage(session, number, raw=b''):
-            result = original_stage(session, number, raw)
+        def stage(session, number, raw=b'', foreign_types=b''):
+            result = original_stage(session, number, raw, foreign_types)
             stages[str(number)] += 1
             by_case.setdefault(current[0], Counter())['native_stage'] += 1
             return result
