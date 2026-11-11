@@ -149,7 +149,7 @@ jobs:
         env:
           HIA_CI_OUTPUT: ${{ runner.temp }}/hia-cli-recovery
           HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
-        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/development/ci_cli_reconstruction_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-driver.log"
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/cli/ci/ci_cli_recovery_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-cli-driver.log"
       - name: Preserve complete independent success or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -851,7 +851,7 @@ jobs:
         with:
           python-version: '3.14.10'
       - name: Install actual package and wheel builder
-        run: python -m pip install -e . wheel
+        run: python -m pip install -e . setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
       - name: Run all twenty original source and installed resource tests
         shell: bash
         env:
@@ -865,6 +865,272 @@ jobs:
           path: |
             ${{ runner.temp }}/hia-installed-resource-followup
             ${{ runner.temp }}/hia-installed-resource-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+  namespace_getlk:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:namespace-getlk]')
+    name: New F_GETLK kernel and complete physical filesystem carrier
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Download exact passed filesystem carrier predecessor
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13893997012'
+          run-id: '43105934854'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-namespace-getlk-predecessor-408
+      - name: Compile and execute extended filesystem protocol and actual GETLK
+        shell: bash
+        env:
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-getlk-recovery
+          HIA_NAMESPACE_PREDECESSOR_DIR: ${{ runner.temp }}/hia-namespace-getlk-predecessor-408
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-r4-ci.py 2>&1 | tee "$RUNNER_TEMP/hia-namespace-getlk-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-namespace-getlk-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-namespace-getlk-recovery
+            ${{ runner.temp }}/hia-namespace-getlk-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+  program_integration:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:program-integration]')
+    name: Actual A admission projection and wire through native carrier
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out submitted recovery source and history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check out the independent exact reference
+        uses: actions/checkout@v4
+        with:
+          ref: 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5
+          path: ci-reference-source
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Install the declared development solver
+        run: python -m pip install z3-solver==4.15.4.0
+      - name: Download exact original CLI wire component evidence
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13892287301'
+          run-id: '43101326649'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-A-component-download/wire
+      - name: Download exact passed private projector evidence
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13895662425'
+          run-id: '43109366132'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-A-component-download/projector
+      - name: Run real A service in fixed native context carrier
+        shell: bash
+        env:
+          HIA_A_COMPONENT_DOWNLOAD_DIR: ${{ runner.temp }}/hia-A-component-download
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-program-integration-recovery
+          HIA_CI_COMMON: ${{ github.workspace }}/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/ci_recovery_common_r1.py
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/program-integration/ci_program_service_actual_r1.py 2>&1 | tee "$RUNNER_TEMP/hia-program-integration-driver.log"
+      - name: Preserve complete independent success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-program-integration-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-program-integration-recovery
+            ${{ runner.temp }}/hia-program-integration-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  inode_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:inode-readback]')
+    name: Read exact original inode policy and physical provider evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out exact submitted reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original artifact
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: '13896704251'
+          run-id: '43113333444'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/hia-inode-c442
+      - name: Verify and read original evidence without test execution
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_NAMESPACE_INODE_READBACK_DIR: ${{ runner.temp }}/hia-inode-c442
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-inode-readback-output
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-inode-r2-readback.py 2>&1 | tee "$RUNNER_TEMP/hia-inode-readback-driver.log"
+      - name: Retain complete original evidence and readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-inode-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/hia-inode-readback-output
+            ${{ runner.temp }}/hia-inode-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  cold_current_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:cold-current-readback]')
+    name: Read exact current original cold failure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original archive bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13898190121/zip > "$RUNNER_TEMP/c442-cold-original.zip"
+      - name: Verify original ZIP and read original cold result
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_exact_c442_cold_r1.py --zip "$RUNNER_TEMP/c442-cold-original.zip" --output "$RUNNER_TEMP/hia-cold-current-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-cold-current-readback-driver.log"
+      - name: Retain original archive and complete readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-cold-current-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/c442-cold-original.zip
+            ${{ runner.temp }}/hia-cold-current-readback-output
+            ${{ runner.temp }}/hia-cold-current-readback-driver.log
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+
+  worker_component_readback:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[hia-ci:') ||
+      contains(github.event.head_commit.message, '[hia-ci:all]') ||
+      contains(github.event.head_commit.message, '[hia-ci:worker-component-readback]')
+    name: Read exact completed worker component evidence
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out submitted reader
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install exact CPython 3.12.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+      - name: Download exact original archive bytes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/TrillionniumFoundation/Hepta/actions/artifacts/13898125721/zip > "$RUNNER_TEMP/c442-worker-components-original.zip"
+      - name: Verify original ZIP and read exact component results
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/read_exact_c442_worker_r1.py --kind components --zip "$RUNNER_TEMP/c442-worker-components-original.zip" --output "$RUNNER_TEMP/hia-worker-component-readback-output" 2>&1 | tee "$RUNNER_TEMP/hia-worker-component-readback-driver.log"
+      - name: Retain original archive and complete readback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-worker-component-readback-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/c442-worker-components-original.zip
+            ${{ runner.temp }}/hia-worker-component-readback-output
+            ${{ runner.temp }}/hia-worker-component-readback-driver.log
           if-no-files-found: error
           retention-days: 90
           compression-level: 0

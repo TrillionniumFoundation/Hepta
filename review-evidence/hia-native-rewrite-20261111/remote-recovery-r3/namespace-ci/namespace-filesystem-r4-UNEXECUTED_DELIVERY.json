@@ -1,0 +1,123 @@
+{
+  "schema": "hia.namespace-fs-r4-delivery.v1",
+  "status": "NEW_UNEXECUTED_SOURCES_ALL_REMOTE_BYTES_READ_BACK",
+  "scope": "Add actual F_GETLK required by namespace DMS/migration fencing; all22 old primitives retained unchanged; no Store/SQLite migration closure claim",
+  "files": [
+    {
+      "name": "namespace-filesystem-r4-generator.py",
+      "target": "tools/generate_hia_agent_namespace_filesystem_r4.py",
+      "blob": "76f06947a0127878740f4fcd97401be1830295c5",
+      "bytes": 22300,
+      "sha256": "06d4b13cf61d3ad8b8f02892b6259653e6b71b089fbf5f665c7b73dbad95bfc7"
+    },
+    {
+      "name": "namespace-filesystem-r4-protocol.py",
+      "target": "tests/test_hia_agent_namespace_filesystem_r4.py",
+      "blob": "474bf61af7fab0c69f938f948fbcce4823f9d7c3",
+      "bytes": 21478,
+      "sha256": "afcb7a6ed3f51db56deeade0094b38983b4dc94d59f6c78f2e40ed38a40f0315"
+    },
+    {
+      "name": "namespace-filesystem-r4-abi.json",
+      "target": "docs/HIA_AGENT_NAMESPACE_FILESYSTEM_R4_ABI.json",
+      "blob": "02266a61416a719c7e0327a058bad5e18dc54a19",
+      "bytes": 3537,
+      "sha256": "c55fd2d2027d264629c16f55719fe4f982eef82f759db90acea94493651dc3ef"
+    },
+    {
+      "name": "namespace-filesystem-r4-validate.py",
+      "target": null,
+      "blob": "059e856fcdf23d27a1bdb577d20bfdcaf2d1a1d6",
+      "bytes": 11901,
+      "sha256": "d1fc34b1f4af890995f114943a827e41272951884e66c49eb3e7c890d611af21"
+    },
+    {
+      "name": "namespace-filesystem-r4-executor.S",
+      "target": null,
+      "blob": "acb98d8b4b7dc6a52de790288d0c15d705980acb",
+      "bytes": 20874,
+      "sha256": "b2389a0528c5a22960d978c95aaf97c32bc1f829fe49ac80e70f8a31fa6228cb"
+    },
+    {
+      "name": "namespace-filesystem-r4-packer.py",
+      "target": null,
+      "blob": "4fcc35ed36568f592251e458052ed891b003defe",
+      "bytes": 4505,
+      "sha256": "32d433607cb544f00113a5de1a36add37934667b49f3ee012a733d4470f46a8a"
+    },
+    {
+      "name": "namespace-filesystem-r4-build.py",
+      "target": null,
+      "blob": "63fce5dc4713399b0531de82e9ed98a1a7de66b8",
+      "bytes": 16510,
+      "sha256": "e1e75271aed34ffa44cad32945aef2792f4135487ab1745555a18c5e730d56bf"
+    },
+    {
+      "name": "namespace-filesystem-r4-native.py",
+      "target": null,
+      "blob": "00742a2204780501456091f74339797740e19db5",
+      "bytes": 31800,
+      "sha256": "f6156010bf69c326ea08c0cab0402235cd1f8be0735a3f2d6b0e45684ec67b07"
+    },
+    {
+      "name": "namespace-filesystem-r4-replay.py",
+      "target": null,
+      "blob": "b1c4ec8f6bdca8bfadd1fd0e58ec55de891ffb8d",
+      "bytes": 7977,
+      "sha256": "74513037d67aae79d0d53b951689584feae21ec93756bf91ebedb4d4d79d9ef6"
+    },
+    {
+      "name": "namespace-filesystem-r4-ci.py",
+      "target": null,
+      "blob": "d1193802d8abf1b9783317acd85cff596f39ca8c",
+      "bytes": 22282,
+      "sha256": "686ef6f116c888d23312e2ce89f02794fec844b736d44c7fd42d8b2da0c3f9c9",
+      "status": "NEW_SOURCE_ZERO_AST_EXECUTION"
+    }
+  ],
+  "diff": {
+    "kernel": "Only max op22→23,op23 shares typed fd/range validation,32-byte preallocation,full32-byte ACK raw+typed materialization; existing op1..22 branches unchanged",
+    "executor": "Only maxop23,dispatcher23,actual F_GETLK5 syscall72,32-byte output span checked before syscall,payload32 on successful result; no errno retry or conflict policy",
+    "replay": "Add exact op23→syscall72 mapping; no masks/removal",
+    "protocol": "All14 original protocol methods retained,4 GETLK methods added",
+    "physical": "All10 original native methods retained,2 actual GETLK tests added: foreign writer pid/no acquire and own-process lock invisible/retained",
+    "new_counts": "None until actual CI; no counts inherited from597/408"
+  },
+  "ci": {
+    "job_name": "namespace_getlk",
+    "python": "3.12.14",
+    "dependency": "same declared z3-solver4.15.4.0",
+    "common_git_blob": "61373d6c6dfe9bf3f6b3ef3813da612d15abdb2e",
+    "common_env": "HIA_CI_COMMON exact absolute current recovery common",
+    "output_env": "HIA_CI_OUTPUT=${{ runner.temp }}/hia-namespace-getlk-recovery",
+    "predecessor_env": "HIA_NAMESPACE_PREDECESSOR_DIR=${{ runner.temp }}/hia-namespace-getlk-predecessor-408",
+    "predecessor_artifact_id": 13893997012,
+    "predecessor_run_id": 43105934854,
+    "download": "actions/download-artifact@v4 with exact artifact-ids/run-id/github-token. Direct downloaded layout or exactly literal previous artifact wrapper accepted, no arbitrary recursive search.",
+    "command": "python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-filesystem-r4-ci.py",
+    "timeout_minutes": 45,
+    "resource_limits": "common1CPU/1GiB preserved; original B3 actual10CPU20wall256MiB with request outputcapacity/workspace1MiB; original source limits untouched; no cold180/2worker change",
+    "plan": [
+      "verifyall616 original members,bytes,mode,sha and preserve old raw seal",
+      "fresh source generation+18VM methods",
+      "actual originalB3 compile+18full-byte paired native methods",
+      "actual as/zero-relocations+HIApacker8controls",
+      "all12 actual physical process methods, all23primitives",
+      "all actual native entries replay exact complete output/workspace against CoreVM; source/guards/pins readback; full success/failure seal"
+    ]
+  },
+  "existing_dependencies": [
+    {
+      "path": "namespace-filesystem-carrier-client.py",
+      "blob": "e2ad618d57469727d46d04dbdba7c8f85b4f973c",
+      "sha256": "00981a3f7bbd195dd5522858d6c032e19a4789900317ff8637be1d811a77893d",
+      "bytes": 11458
+    }
+  ],
+  "source_history": {
+    "unexecuted_native_harness_before_23_mapping_pin": "66b764bec51cee2a74476abbde04ad801acb0465",
+    "active_native_harness": "00742a2204780501456091f74339797740e19db5",
+    "reason": "New actual op23 trace requires explicit replayer23→syscall72; original historical replayer kept immutable"
+  },
+  "next": "Fixed native coordinator will join inode policy and actual FS issuer without external raw-close/fcntl bypass. This extension provides F_GETLK bytes, not that coordinator or DMS migration by itself."
+}

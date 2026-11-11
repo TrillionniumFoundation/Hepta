@@ -594,17 +594,30 @@ def publication_step(o:mutbuf, w:mutbuf) -> u64:
         return start_result(w, 3, 0, 0, 0, 1, 0, B_PUBLIC_JSON, 0, get(w, A_PUBLIC_BYTES))
     return refuse(w, 2080)
 
+def quotient_ten(value:u64) -> u64:
+    quotient = 0
+    remainder = 0
+    bit = 64
+    while bit != 0:
+        bit = bit - 1
+        remainder = remainder * 2 + ((value >> bit) & 1)
+        if remainder >= 10:
+            remainder = remainder - 10
+            quotient = quotient | (1 << bit)
+    return quotient
+
 def decimal_text(w:mutbuf, at:u64, value:u64) -> u64:
     digits = 1
     remaining = value
     while remaining >= 10:
-        remaining = remaining // 10
+        remaining = quotient_ten(remaining)
         digits = digits + 1
     index = digits
     while index != 0:
         index = index - 1
-        store(w, at + index, 48 + value % 10)
-        value = value // 10
+        quotient = quotient_ten(value)
+        store(w, at + index, 48 + (value - quotient * 10))
+        value = quotient
     return digits
 '''
 

@@ -15,10 +15,18 @@ spec=importlib.util.spec_from_file_location("finite_fixture_common",SHARED)
 common=importlib.util.module_from_spec(spec);spec.loader.exec_module(common)
 KEEP={"word","get","put","zero","refuse","args","event","acknowledge","cap","inside",
       "grow","release","copy","protect","view","wire8"}
-COMMON="\n".join(ast.unparse(node) for node in ast.parse(common.COMMON).body if node.name in KEEP)+"\n"
-COMMON=COMMON.replace("pending != 1 and pending != 14 and word(s, 40) != 0",
-    "pending != 1 and pending != 14 and pending != 15 and word(s, 40) != 0")
-assert "pending != 15" in COMMON
+# Exact AST adaptation: unparse inserts parentheses in the original predicate.
+# Retain every other shared acknowledgement check, including correlation.
+_nodes=[node for node in ast.parse(common.COMMON).body if node.name in KEEP]
+_acks=[node for node in _nodes if node.name=="acknowledge"]
+assert len(_acks)==1
+_before=ast.parse("pending != 1 and pending != 14 and word(s, 40) != 0",mode="eval").body
+_after=ast.parse("pending != 1 and pending != 14 and pending != 15 and word(s, 40) != 0",mode="eval").body
+_matches=[node for node in ast.walk(_acks[0]) if isinstance(node,ast.If)
+          and ast.dump(node.test)==ast.dump(_before)]
+assert len(_matches)==1,("one original nonzero-return guard",len(_matches))
+_matches[0].test=_after
+COMMON="\n".join(ast.unparse(node) for node in _nodes)+"\n"
 def magic(s):return int.from_bytes(s.encode(),"little")
 def constants(mode,service,work):
     result=dict(common.CONSTANTS)

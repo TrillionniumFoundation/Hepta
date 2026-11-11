@@ -22,8 +22,8 @@ FILES={
     "sha256": "5b2f167e569e60f80d5b8db662f2807c295fb6075716fe6679338ce319c5e654"
   },
   "tools/cli_business_fixture_owners.py": {
-    "bytes": 15117,
-    "sha256": "962c78206ee21c657d3b3641735829689fbfb5afa350c0c14a4d95a41a116c24"
+    "bytes": 15621,
+    "sha256": "fd66d47a9675567df0b1a2dc42cd33c40a3dba0ca85bfebfe9d29ec112703a67"
   },
   "tests/test_hia_cli_finite_carrier.py": {
     "bytes": 21326,

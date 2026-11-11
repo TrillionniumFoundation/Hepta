@@ -1,0 +1,85 @@
+{
+  "schema": "hia.namespace-filesystem-getlk-extension.v1",
+  "status": "NEW_SOURCE_ZERO_AST_VM_B3_NATIVE",
+  "base": {
+    "kernel_generator_blob": "26d7c3b8fe64730b585260e84754331221eb383c",
+    "carrier_blob": "2c12d781ef6d3948d3d4a0ccfb863388b1142cf0",
+    "original_kernel_ci": {
+      "run": 43103197988,
+      "job": 130799678514
+    },
+    "original_carrier_ci": {
+      "run": 43105934854,
+      "job": 130809129948
+    },
+    "inherit_execution_counts": false
+  },
+  "compatibility": {
+    "magic": "HIANFR03",
+    "abi": 3,
+    "existing_operations": "1..22 unchanged",
+    "new_operation": 23,
+    "handle_format": "unchanged monotonic token; FD0 valid",
+    "record_and_byte_quotas": "none added",
+    "scope": "Raw physical F_GETLK readback required by future SQLite DMS fencing; not DMS policy or complete migration"
+  },
+  "operation": {
+    "name": "fcntl_getlk",
+    "input_args": [
+      "issued FS fd token",
+      "F_RDLCK0 / F_WRLCK1 / F_UNLCK2 query input, raw kernel errors preserved",
+      "nonnegative signed64 start",
+      "nonnegative signed64 length"
+    ],
+    "input_body_bytes": 0,
+    "mechanics": "x86-64 fcntl syscall72,commandF_GETLK5; 32-byte struct flock zeroed; type16-bit,whenceSEEK_SET0,start64,len64,pid32; exact output logical view >=32 checked before syscall",
+    "native_result": "one actual syscall, no EINTR retry, raw errno unchanged",
+    "complete_payload_bytes": 32,
+    "typed_header_words": {
+      "8": "l_type low16 unsigned",
+      "9": "l_whence unsigned16",
+      "10": "l_start raw64 bits",
+      "11": "l_len raw64 bits",
+      "12": "l_pid raw32 bits",
+      "16": "payloadBytes32"
+    },
+    "raw_payload": "all32 bytes preserved, including padding and signed bit encodings; no silent narrowing or reformatting",
+    "policy": "l_type/conflict/writer admission remains in the subsequent HIA policy; raw FS layer does not claim a returned pid is identity/authentication",
+    "grow": "reserve288 output bytes before issuing actual syscall; GROW retains original source and sysseq does not advance until invocation"
+  },
+  "sources": [
+    {
+      "role": "generator",
+      "git_blob": "76f06947a0127878740f4fcd97401be1830295c5",
+      "bytes": 22300,
+      "sha256": "06d4b13cf61d3ad8b8f02892b6259653e6b71b089fbf5f665c7b73dbad95bfc7",
+      "status": "NEW_SOURCE_ZERO_AST_VM_B3_NATIVE"
+    },
+    {
+      "role": "fixed_executor",
+      "git_blob": "acb98d8b4b7dc6a52de790288d0c15d705980acb",
+      "bytes": 20874,
+      "sha256": "b2389a0528c5a22960d978c95aaf97c32bc1f829fe49ac80e70f8a31fa6228cb",
+      "status": "NEW_SOURCE_ZERO_AST_VM_B3_NATIVE"
+    },
+    {
+      "role": "protocol_fixture",
+      "git_blob": "474bf61af7fab0c69f938f948fbcce4823f9d7c3",
+      "bytes": 21478,
+      "sha256": "afcb7a6ed3f51db56deeade0094b38983b4dc94d59f6c78f2e40ed38a40f0315",
+      "status": "NEW_SOURCE_ZERO_AST_VM_B3_NATIVE"
+    }
+  ],
+  "verification_prepared": {
+    "protocol_methods": 18,
+    "retained_original_methods": 14,
+    "new_methods": 4,
+    "planned": "whole VM/native return+output+workspace+guard equality; retain original22 actual primitive tests, add actual foreign writer/unlocked/same-process invisible-owner/error GETLK controls",
+    "actual_execution": "none"
+  },
+  "open": [
+    "actual assembly/B3 compilation and all regression required",
+    "ordinary fixed FENCE coordinator still being authored",
+    "old SQLite WAL DMS lock/shared memory and migration require full policy and real old-writer fencing; no claim based only on GETLK primitive"
+  ]
+}

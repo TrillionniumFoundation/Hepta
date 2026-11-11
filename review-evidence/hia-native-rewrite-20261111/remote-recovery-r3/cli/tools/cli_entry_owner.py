@@ -1,10 +1,11 @@
-"""New HIA CLI continuation owner: reconstructed development revision r4.
+"""New HIA CLI continuation owner: reconstructed development revision r5.
 No activation or whole CLI closure is claimed. The fixed executor implements
 only captured OS bytes, slots, primitive syscalls and HIA-selected output.
 Successful file input currently produces an explicit unresolved service request.
-This revision keeps internal dispatch results u64, including comparison with zero.
-The external entry and actual component ABI remain u32; numeric values and phases
-are unchanged. The prior exact CI generation/type failure remains preserved.
+This revision changes only the shared acknowledgement predicate for primitive
+operation 16, by one asserted AST edit before unparse. Every other common check,
+HIA phase, file owner and error presentation remains unchanged. The original
+actual ENOENT rejection and its complete diagnostic frame remain preserved.
 """
 from pathlib import Path
 import ast,importlib.util
@@ -26,9 +27,19 @@ _fields=('ACTION','EXIT','SOURCE_SLOT','SOURCE_AT','SOURCE_BYTES','RESULT_AT','R
 CONSTANTS.update({'S_'+name:12288+i*8 for i,name in enumerate(_fields)})
 _names={'word','get','put','zero','refuse','args','event','acknowledge','cap','inside',
  'grow','release','clear','copy','protect','invoke','view','wire8'}
-COMMON='\n'.join(ast.unparse(n) for n in ast.parse(_shared.COMMON).body if n.name in _names)+'\n'
-COMMON=COMMON.replace('pending != 1 and pending != 14 and word(s, 40) != 0',
- 'pending != 1 and pending != 14 and pending != 16 and word(s, 40) != 0')
+# Adapt the one acknowledgement predicate in the AST before rendering it.
+# ast.unparse may add parentheses; textual replacement after unparsing is not
+# a semantic source edit and previously left raw ENOENT returns rejected.
+_common_nodes=[n for n in ast.parse(_shared.COMMON).body if n.name in _names]
+_ack_nodes=[n for n in _common_nodes if n.name == 'acknowledge']
+assert len(_ack_nodes) == 1
+_ack_before=ast.parse('pending != 1 and pending != 14 and word(s, 40) != 0',mode='eval').body
+_ack_after=ast.parse('pending != 1 and pending != 14 and pending != 16 and word(s, 40) != 0',mode='eval').body
+_ack_matches=[n for n in ast.walk(_ack_nodes[0]) if isinstance(n,ast.If)
+              and ast.dump(n.test) == ast.dump(_ack_before)]
+assert len(_ack_matches) == 1, ('exact acknowledgement predicate',len(_ack_matches))
+_ack_matches[0].test=_ack_after
+COMMON='\n'.join(ast.unparse(n) for n in _common_nodes)+'\n'
 BODY=r'''
 def entry(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(w) < MIN_WORK or length(o) != 128:

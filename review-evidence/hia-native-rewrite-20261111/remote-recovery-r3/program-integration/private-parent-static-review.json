@@ -1,0 +1,35 @@
+{
+  "schema": "hia.cli.A-private-parent-static-review.v1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_STATIC_SCOPE",
+  "reviewer": "native_checker",
+  "native_entries": 0,
+  "source_mutations": 0,
+  "sources": [
+    {
+      "blob": "89454281cf76c9b696756f344cf7648c3892f0d4",
+      "bytes": 5908,
+      "sha256": "4b38eeb115ba9d18b2410c7aa49802eaab2ee5aa250406b2cad8aa323533b033",
+      "scope": "complete private HIA parent issuer"
+    },
+    {
+      "blob": "0c3b89fa11a8675fe2b8b62a7d9eaebe85e390ae",
+      "bytes": 25113,
+      "sha256": "db907f8360975cdea1a02e5743ea5d781463f0db9ac8ea02c2fde2cb7c0a050b",
+      "scope": "reference corpus, final complete event/payload comparison, native process limits and cleanup only"
+    }
+  ],
+  "findings": [
+    "The initial 128-byte command uses a parent sequence three actual events ahead (COPY, PROTECT, BEGIN). Its three borrowed input extents match the separately created program/argv/parser views. Empty program input uses the existing logical-empty readonly slot.",
+    "The private parser rows use the fixed 1024-byte inventory offset and 32-byte row stride. Field 2 is absent for verify/inspect and defined with absent ownership for normalize. This is an explicit test issuer, not actual public parser execution.",
+    "BEGIN ACK checks the service identity/lease, actual role 56, final lifecycle, owned target 15, complete extent, parent sequence and reserved words before using the result. The result event checks its entire envelope extent and actual child sequence before RETIRE.",
+    "RETIRE retains the parent's owned readonly result. The issuer re-reads its header afterward, restores/releases an input only after retirement, and returns the entire owned envelope through the fixed terminal view.",
+    "The test's primary comparison is complete output bytes after exact event fields, with parsed JSON equality only as an additional check. Counts are 25 inputs by three actions: 51 accepted and 24 rejected planned outcomes. Publication is explicitly absent.",
+    "Fresh native invocations use the original 90 CPU seconds and 1 GiB address bound, parent-death signal with parent identity check, and finally kill/wait cleanup. These are static observations, not newly measured results."
+  ],
+  "limits": [
+    "The A service itself, program admission logic, projection semantics, asset reader and full build graph are outside this narrow review.",
+    "The result's domain/exit/format semantics are checked by the independent full test comparison; the mechanical carrier remains opaque.",
+    "The fixed parser packet does not prove real CLI startup/argv/file behavior.",
+    "No actual ELF execution or publication success is claimed."
+  ]
+}

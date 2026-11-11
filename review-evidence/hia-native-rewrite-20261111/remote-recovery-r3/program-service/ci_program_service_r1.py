@@ -17,7 +17,7 @@ status="FAIL";details=dict(scope="NEW_A_ROOT_COMPILE_AND_PRIVATE_NATIVE_CONTROLS
 try:
     context=common.prepare()
     programs=[
-      ("generate-A-service-root","generate_program_service_r1.py","7697d1b04b41955f230f61dc126f915301127ac2",root/"development/source-r1.json",300),
+      ("generate-A-service-root","generate_program_service_r1.py","2a2609ec9f2d96980b70a777019b15506f65f5fa",root/"development/source-r1.json",300),
       ("compile-A-service-root","compile_program_service_r1.py","50b2f008e8d4b08fb4880ace05f371eec49c476c",root/"development/compile-r1/summary.json",120),
       ("native-A-private-controls","test_program_service_private_r1.py","077113930bad3488b4ca261554a18a2c7077bef6",root/"development/private-native-r1/summary.json",180)]
     for label,name,pin,report_path,timeout in programs:

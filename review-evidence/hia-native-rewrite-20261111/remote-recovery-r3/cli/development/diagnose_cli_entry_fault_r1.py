@@ -15,6 +15,7 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--bundle",required=True,type=Path)
     p.add_argument("--out",required=True,type=Path)
+    p.add_argument("--failed-entry",required=True,type=Path)
     args=p.parse_args()
     out=args.out.resolve();out.mkdir(parents=True,exist_ok=False)
     bundle_raw=args.bundle.read_bytes();bundle=json.loads(bundle_raw)
@@ -162,11 +163,19 @@ diag_write_failed:
         resource.setrlimit(resource.RLIMIT_CPU,(10,10))
         resource.setrlimit(resource.RLIMIT_CORE,(0,0))
     process=None;started=time.monotonic_ns()
-    argv=[str(exe),"verify",str(out/"absent-input")]
-    assert not (out/"absent-input").exists()
+    original_process=json.loads(read(args.failed_entry/"cases/smoke-file-refusal/native/process.json"))
+    original_argv=original_process["argv"]
+    assert len(original_argv)==2 and original_argv[0]=="verify"
+    assert original_process["tty_columns"] is None and not original_process["close_stdin"]
+    assert not Path(original_argv[1]).exists()
+    argv=[str(exe),*original_argv]
+    original_env=original_process["env"]
+    save(out/"reproduced-input.json",dict(argv=original_argv,env=original_env,
+        original_process=original_process,changed_argv0=str(exe),
+        cwd_note="original absolute missing-file argv is preserved; destroyed temporary cwd is not recreated"))
     with (out/"stdout.bin").open("wb") as stdout,(out/"stderr.bin").open("wb") as stderr:
         try:
-            process=subprocess.Popen(argv,cwd=out,env={"PATH":"","HOME":str(out),"LC_ALL":"C.UTF-8"},
+            process=subprocess.Popen(argv,cwd=out,env=original_env,
                 stdin=subprocess.DEVNULL,stdout=stdout,stderr=stderr,
                 start_new_session=True,preexec_fn=child_setup)
             deadline=time.monotonic()+30
