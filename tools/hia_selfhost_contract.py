@@ -13,8 +13,20 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v60-native-composite-type-sessions'
+PROFILE = 'selfhost-core-linux-x86_64-v61-native-request-release-install'
 SOURCE_FILES = (
+    'tools/generate_hia_worker_request.py',
+    'examples/hia_bootstrap/worker_request.hiaasm',
+    'tests/test_hia_worker_request_native.py',
+    'tests/test_hia_worker_request_review.py',
+    'docs/HIA_WORKER_REQUEST_NATIVE.md',
+    'tools/generate_hia_release_install.py',
+    'tools/hia_release_install_syscalls.S',
+    'tools/build_hia_release_install.py',
+    'examples/hia_bootstrap/release_install_policy.hiaasm',
+    'examples/hia_bootstrap/release_install_packer.hiaasm',
+    'tests/test_hia_release_install.py',
+    'docs/HIA_RELEASE_INSTALL_NATIVE.md',
     'tools/generate_hia_composite_types.py',
     'examples/hia_bootstrap/composite_types.hiaasm',
     'tests/test_hia_composite_types_native.py',
@@ -444,6 +456,39 @@ def file_digests(root=ROOT):
 
 def support_contract(root=ROOT):
     return {
+        'worker_request_admission': {
+            'source': 'examples/hia_bootstrap/worker_request.hiaasm',
+            'selection': 'explicit HEPTA_HIA_WORKER_REQUEST_MANIFEST; no fallback',
+            'request_schema': 'hia-agent-worker-request-v1',
+            'native_payload_owners': ['JSON syntax and arena', 'finite binary64 parsing and printing',
+                'canonical UTF-8 JSON', 'request fields and SHA-256', 'catalog and tool admission'],
+            'maximum_input_bytes': 8388608,
+            'maximum_nodes': 262144,
+            'maximum_depth': 128,
+            'maximum_tool_unicode_codepoints': 128,
+            'canonical_budget_applies_to': 'five-field digest input, not a reencoded six-field envelope',
+            'integer_conversion_limit': 'actual trusted host int digit profile; zero means unlimited within wire budget',
+            'source_preorder_arena_restored_on_parsed_returns': True,
+            'service_journal_foreign_objects_and_report_serialization_are_hosted': True,
+            'default_worker_changed': False,
+        },
+        'immutable_release_installation': {
+            'policy': 'examples/hia_bootstrap/release_install_policy.hiaasm',
+            'packer': 'examples/hia_bootstrap/release_install_packer.hiaasm',
+            'fixed_syscall_adapter': 'tools/hia_release_install_syscalls.S',
+            'target': 'Linux x86-64',
+            'package_magic': 'HIAREL01',
+            'maximum_package_bytes': 67108864,
+            'maximum_files': 256,
+            'maximum_name_bytes': 127,
+            'file_modes': [256, 320],
+            'operator_package_sha256_required': True,
+            'publication': 'renameat2 RENAME_NOREPLACE; complete-directory readback and fsync',
+            'recovery_observation': 'explicit read-only verify against the same package identity',
+            'runtime_python_libc_or_child_required': False,
+            'authoring_and_build_custody_are_hosted': True,
+            'activation_worker_migration_and_retirement_implemented': False,
+        },
         'agent_candidate_patch_result': {
             'source': 'examples/hia_bootstrap/core_patch.hiaasm',
             'standalone_packer': 'examples/hia_bootstrap/core_patch_result_cli_packer.hiaasm',

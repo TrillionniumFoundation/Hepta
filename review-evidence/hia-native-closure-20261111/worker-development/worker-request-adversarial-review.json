@@ -1,0 +1,106 @@
+{
+  "purpose": "independent adversarial worker-request review; development images, no cold or deployed-native claim",
+  "repository": "TrillionniumFoundation/Hepta",
+  "baseline": "c80eb2ecc5d08421a3d124c879edb33cefff2267",
+  "review_test": "tests/test_hia_worker_request_review.py",
+  "findings": [
+    {
+      "id": "R1",
+      "severity": "blocking",
+      "state": "fixed by parent implementation; independently passed actual native v4 regression",
+      "image_manifest": "/workspace/scratch/e26ed3e2edcf/worker-development-v1/manifest.json",
+      "finding": "Canonical object sort mutates arena sibling pointers, violating source-preorder materialization ABI for unsorted objects. Correctly signed ordinary requests fail with ValueError invalid HIA JSON value arena. Post-digest semantic rejection also loses correlation request.",
+      "reproducer": {
+        "root_order": [
+          "schema",
+          "tool",
+          "arguments",
+          "profile_sha256",
+          "catalog_sha256",
+          "request_sha256"
+        ],
+        "arguments": {
+          "z": 0,
+          "a": 1
+        }
+      },
+      "required_fix": "Restore original source-order container-first-child/sibling fields before returning any parsed request arena; preserve existing materializer checks."
+    },
+    {
+      "id": "R2",
+      "severity": "blocking compatibility",
+      "state": "fixed by parent implementation; independently passed actual native v4 regression",
+      "image_manifest": "/workspace/scratch/e26ed3e2edcf/worker-development-v2/manifest.json",
+      "finding": "Admission unnecessarily canonicalizes and enforces byte budget on complete six-field envelope after five-field digest input has already passed. This shrinks original admitted input domain.",
+      "actual_witness": {
+        "raw_bytes": 8388608,
+        "complete_canonical_bytes": 8388622,
+        "digest_input_bytes": 8388538,
+        "old_decode_digest_seconds": 4.618299708999984,
+        "native_v2_seconds": 10.195949874998405,
+        "old_result": "accepted through request digest gate",
+        "native_v2_result": "canonical output budget rejection"
+      },
+      "required_fix": "Admission mode validates the five-field digest bytes then returns the complete restored arena without serializing full envelope again. Canonicalization-only mode retains full-wire budget."
+    },
+    {
+      "id": "R3",
+      "severity": "visible semantic parity",
+      "state": "fixed by parent implementation; independently passed actual native v4 regression",
+      "finding": "One native digest-error code merged invalid field syntax and hash mismatch messages; previous worker has distinct messages.",
+      "required_messages": [
+        "invalid worker digest field",
+        "worker request digest mismatch"
+      ]
+    },
+    {
+      "id": "R4",
+      "severity": "public admission API fail-closed",
+      "state": "fixed by parent implementation; independently passed actual native v4 regression",
+      "finding": "admit(raw, None) uses None as canonicalization mode sentinel and skips all request policy checks, then materializes arbitrary JSON. Existing worker passes a valid installation catalog and is not currently exposed.",
+      "required_fix": "Public admit rejects missing trusted catalog before invoking _run; None remains private canonicalize sentinel."
+    }
+  ],
+  "pre_fix_numeric_checks": {
+    "image": "worker-development-v1",
+    "finite_binary64_patterns": 256,
+    "seed": 74117,
+    "pass": true,
+    "seconds": 0.8838244899998244,
+    "additional_checks": [
+      "signed zero",
+      "smallest subnormal",
+      "smallest normal boundary",
+      "maximum finite",
+      "shortest formatting thresholds",
+      "underflow",
+      "overflow-boundary rounding",
+      "long mantissa",
+      "very long leading fractional zeros"
+    ],
+    "scope": "differential sample coverage only; no all-input proof"
+  },
+  "pending": null,
+  "review_test_count": 12,
+  "test_result": {
+    "manifest": {
+      "compiler_sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8",
+      "image_path": "worker-request.image.bin",
+      "image_sha256": "a206d5e0a54fa67a30655461ff970e1810e38070a86972d7b0f3d631b6b6e1dd",
+      "schema": "hepta.hia.worker-request-native.v1",
+      "source_sha256": "15cc75c20908baf38adbfe5f4039e6e80e2fefe56e9486ed5bdbc1e1c2edcadf"
+    },
+    "tests": 12,
+    "elapsed_seconds": 12.517,
+    "status": "PASS",
+    "log": "/workspace/scratch/e26ed3e2edcf/hia_remote_audit/worker-request-review-v4.log",
+    "test_commit": "8f505f3",
+    "test_commit_scope": "only tests/test_hia_worker_request_review.py",
+    "qualification_scope": "development image; no cold or deployment claim from this run"
+  },
+  "remaining_limits": [
+    "Full worker service, journal, foreign object materialization, output report encoding and Runtime process custody are retained owners.",
+    "256 deterministic finite binary64 patterns and selected decimal boundaries are sampled differential evidence, not an all-input proof.",
+    "Full allowed input profiles still need performance assessment against the actual runtime process deadline; this review preserves unchanged structural/byte bounds and found no new failure in tested cases."
+  ]
+}
