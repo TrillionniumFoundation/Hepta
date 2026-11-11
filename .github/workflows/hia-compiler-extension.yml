@@ -7,6 +7,7 @@ on:
       - 'hepta/**'
       - 'tools/**'
       - 'tests/test_hia_original_select_extension.py'
+      - 'tests/test_hia_original_select_fragments.py'
       - 'tests/fixtures/hia_original_select_v1/**'
       - 'docs/HIA_SELFHOST_CORE_SUPPORT.json'
       - '.github/workflows/hia-compiler-extension.yml'
@@ -64,10 +65,13 @@ jobs:
           python -B tools/generate_hia_selfhost_contract.py --check 2>&1 | tee "$RUNNER_TEMP/hia-compiler-extension/source-contract.log"
           python -B - <<'PY' 2>&1 | tee "$RUNNER_TEMP/hia-compiler-extension/unit-tests.log"
           import json, os, pathlib, unittest
-          suite = unittest.defaultTestLoader.loadTestsFromName("tests.test_hia_original_select_extension")
+          names = ("tests.test_hia_original_select_extension", "tests.test_hia_original_select_fragments")
+          suite = unittest.defaultTestLoader.loadTestsFromNames(names)
+          expected = suite.countTestCases()
           result = unittest.TextTestRunner(verbosity=2).run(suite)
-          passed = result.wasSuccessful() and result.testsRun == 6 and not result.skipped and not result.expectedFailures
-          summary = {"tests": result.testsRun, "failures": len(result.failures), "errors": len(result.errors),
+          passed = result.wasSuccessful() and result.testsRun == expected and expected > 6 and not result.skipped and not result.expectedFailures
+          summary = {"tests": result.testsRun, "expected_tests": expected, "modules": names,
+                     "failures": len(result.failures), "errors": len(result.errors),
                      "skips": len(result.skipped), "expected_failures": len(result.expectedFailures),
                      "passed": passed, "native_qualification_is_separate": True}
           (pathlib.Path(os.environ["RUNNER_TEMP"]) / "hia-compiler-extension/unit-tests.json").write_text(

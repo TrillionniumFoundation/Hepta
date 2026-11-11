@@ -34,6 +34,23 @@ points and retain their own raw artifacts and exact manifest. Their formal
 scope does not grow merely because the maintenance runner consumes them.
 No projection is represented as a complete generated-program proof.
 
+Each complete generated-program observation must also satisfy its actual
+byte ABI: integer status zero, a zero-extended low-u32 return, exactly eight
+expected output bytes, the declared empty workspace, and unchanged input.
+The image, input and output digests are checked against the actual bytes.
+Fresh replay separately compares the original child stdout, the augmented
+invocation receipt, the retained input/output files and the witness row.
+Python equality between booleans and integers cannot satisfy a typed status
+field or erase a change to the original JSON observation.
+
+An independent 24-byte x86 negative control writes the expected output and
+returns the correct low word with a nonzero upper status word. The former
+whole-output predicate accepted this real execution. The current producer and
+replay both reject it. This control is explicitly hand-written machine code;
+it is not attributed to either historical compiler. Historical successful
+observations must be inspected individually before concluding that this gate
+defect invalidated any of their recorded results.
+
 ## Checker and compiler bindings
 
 Each side records its actual compiler source and seed image identity, seed
@@ -70,7 +87,8 @@ pins before looking for the three exact input byte strings. It never extracts
 archive-controlled filesystem paths.
 
 ```sh
-python -B -m unittest tests.test_hia_original_select_extension -v
+python -B -m unittest tests.test_hia_original_select_extension \
+  tests.test_hia_original_select_fragments -v
 python -B tools/qualify_hia_original_select_extension.py \
   --historical-archive /absolute/path/to/original-raw-evidence.zip \
   --output NEW_OUTPUT_DIRECTORY

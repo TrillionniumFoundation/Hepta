@@ -23,7 +23,8 @@ def replay(source, expected_manifest_sha256, output):
         raise ValueError("a fresh isolated source-only import prefix is required")
     sys.path.insert(0, str(ROOT))
     from tools.qualify_hia_original_select_fragments import (
-        HASHES, SCHEMA, WIDTHS, digest, projection_object, require, save, select_fragment)
+        HASHES, SCHEMA, WIDTHS, digest, projection_object, require, save, select_fragment,
+        replay_complete_output_observation)
     from hepta.hia_safe_core import validate_safe_core_artifact
     from hepta.hia_safe_core_elf import bind_final_artifact
     from tools.hia_selfhost_select import select_cases
@@ -87,14 +88,11 @@ def replay(source, expected_manifest_sha256, output):
         require([row["case"] for row in witnesses] == cases, "whole-output finite case inventory changed")
         for index, case in enumerate(cases):
             label = "whole-output-case-" + str(index)
-            actual = json.loads((directory / (label + ".stdout.log")).read_bytes())
             value = int(case["expected"])
             expected_input = (bytes([int(case["condition"])]) + int(case["left"]).to_bytes(8, "little")
                               + int(case["right"]).to_bytes(8, "little"))
-            require((directory / (label + ".input.bin")).read_bytes() == expected_input
-                    and (directory / (label + ".output.bin")).read_bytes() == value.to_bytes(8, "little")
-                    and actual.get("status") == "returned" and actual.get("core_u32") == value & 0xffffffff
-                    and actual.get("source_unchanged") is True, "retained whole-output observation differs")
+            replay_complete_output_observation(directory, label, witnesses[index],
+                image_bytes=image, input_bytes=expected_input, expected=value)
         case = {"type": typ, "kind": "frozen-c1-copied-fragment"}
         native = json.loads((directory / "native-process.json").read_bytes())
         observed = json.loads(native["stdout"])
