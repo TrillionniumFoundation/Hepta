@@ -85,6 +85,42 @@ class HiaSourceSuffixTests(unittest.TestCase):
                     check(root)
                 path.unlink()
 
+    def test_current_structured_sources_cannot_bypass_suffix_check_as_json(self):
+        with source_tree() as root:
+            for directory in ('examples', 'tests/fixtures', 'formal', 'benchmarks'):
+                parent = root / directory
+                parent.mkdir(parents=True, exist_ok=True)
+                for composite, version in ((False, 8), (True, 4)):
+                    for suffix in ('.json', '.JSON'):
+                        path = parent / ('source' + suffix)
+                        path.write_text(json.dumps(scalar_document(version, composite=composite)))
+                        with self.subTest(directory=directory, composite=composite, suffix=suffix):
+                            with self.assertRaisesRegex(ValueError, 'noncanonical HIA source suffix'):
+                                check(root)
+                        path.unlink()
+
+    def test_source_suffix_does_not_reclassify_data_or_frozen_experiment_programs(self):
+        with source_tree() as root:
+            records = {
+                'examples/request.json': {'schema': 'hepta.hia.patch.v1', 'edits': []},
+                'tests/fixtures/manifest.json': {'sources': ['source.hepta']},
+                'formal/report.json': {'schema': 'hepta.hia.proof-result.v1'},
+                'benchmarks/workload.json': {'cases': []},
+                'experiments/original/baseline.json': scalar_document(8),
+                'review-evidence/original/candidate.core.json': scalar_document(4, composite=True),
+            }
+            original = {}
+            for name, document in records.items():
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                original[name] = json.dumps(document).encode()
+                path.write_bytes(original[name])
+            result = check(root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['hia_source_files'], 0)
+            for name, raw in original.items():
+                self.assertEqual((root / name).read_bytes(), raw)
+
     def test_canonical_suffix_does_not_admit_header_only_receipts_or_removed_source(self):
         # Runtime concatenation keeps this a used negative case rather than a
         # retained source-language fixture in the authored Core-only tree.

@@ -147,7 +147,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     output = args.output.resolve()
-    excluded = {"docs/HIA_NATIVE_REWRITE_INVENTORY.json", "docs/HIA_NATIVE_REWRITE_STATUS_20261111.md"}
+    excluded = {"docs/HIA_NATIVE_REWRITE_INVENTORY.json"}
     if output.is_relative_to(ROOT):
         excluded.add(output.relative_to(ROOT).as_posix())
     result = inventory(excluded)

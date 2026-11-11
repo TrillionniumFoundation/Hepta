@@ -1,0 +1,28 @@
+"""Build the HIA candidate budget only from a matching complete cold report."""
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+if __package__ in {None, ''}:
+    sys.path.insert(0, str(ROOT))
+
+
+def build(output: Path, compiler: Path, cold_report: Path) -> Path:
+    from tools.build_hia_json_preflight import build as build_kernel
+    return build_kernel(output, compiler, cold_report, candidate='candidate-budget')
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--compiler', type=Path, required=True)
+    parser.add_argument('--cold-report', type=Path, required=True)
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    print(build(args.output.resolve(), args.compiler.resolve(), args.cold_report.resolve()))
+
+
+if __name__ == '__main__':
+    main()

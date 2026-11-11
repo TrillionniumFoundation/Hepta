@@ -120,14 +120,26 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
         code=_admission[1]
     fd=None
     try:
-        fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
-        view=memoryview(code)
-        while view:
-            written=os.write(fd,view)
-            if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
-            view=view[written:]
-        fcntl.fcntl(fd,fcntl.F_ADD_SEALS,
-            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)
+        try:
+            fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
+            view=memoryview(code)
+            while view:
+                written=os.write(fd,view)
+                if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
+                view=view[written:]
+            # Linux UAPI numbers remain available when Python was built with
+            # headers that omit the fcntl names. Only name lookup falls back;
+            # the actual kernel seals and admitted bytes must be read back.
+            required=(getattr(fcntl,'F_SEAL_WRITE',0x0008)
+                      |getattr(fcntl,'F_SEAL_GROW',0x0004)
+                      |getattr(fcntl,'F_SEAL_SHRINK',0x0002)
+                      |getattr(fcntl,'F_SEAL_SEAL',0x0001))
+            fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),required)
+            if (fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))&required!=required
+                    or os.fstat(fd).st_size!=len(code) or os.pread(fd,len(code),0)!=code):
+                _reject('E_PUBLISH_NATIVE_CUSTODY','sealed executable bytes or seals differ')
+        except (OSError,AttributeError) as exc:
+            raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],

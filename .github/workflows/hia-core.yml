@@ -11,7 +11,7 @@ jobs:
       - name: Regenerate actual HIA sources
         run: |
           set -eu
-          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection agent_journal source_build nominal_json; do
+          for component in core_workspace_pipeline core_workspace_facts core_workspace_facts_cli core_workspace_materialize core_workspace_cli capability_renaming core_module_graph core_workspace_json core_workspace_json_cli agent_identity agent_slice elf_linker native_filter core_json_cli agent_stdio agent_snapshot agent_snapshot_json agent_snapshot_json_cli sha256_stream native_observer sha256 json_preflight json_decode json_canonical core_json_frontend selfhost agent_binary64 agent_data_json instruction_policy program_shape function_shape artifact_publication core_admission_cli core_admission agent_binary64_format core_patch core_patch_cli core_patch_result_cli composite_types task_helpers composite_functions composite_constructor composite_outer worker_request release_install release_selection agent_journal execution_budget candidate_budget source_build nominal_json; do
             python -B -m "tools.generate_hia_$component"
           done
           git diff --exit-code
@@ -78,6 +78,7 @@ jobs:
               'tests.test_hia_function_shape_native.FunctionShapeSourceTests',
               'tests.test_hia_artifact_publication_native.ArtifactPublicationPolicyTests',
               'tests.test_hia_artifact_publication_route.PublicationRouteSourceTests',
+              'tests.test_hia_artifact_publication_route.PublicationSealedDescriptorTests',
               'tests.test_hia_core_admission_native.CoreAdmissionSourceTests',
               'tests.test_hia_core_admission_cli.CoreAdmissionCliSourceTests',
               'tests.test_hia_core_patch_native.CorePatchSourceTests',
@@ -99,6 +100,8 @@ jobs:
               'tests.test_hia_composite_outer_source.OuterSourceTests',
               'tests.test_hia_composite_outer_native.OuterFrameTests',
               'tests.test_hia_native_builder_source_binding',
+              'tests.test_hia_compile_stage_custody',
+              'tests.test_hia_retained_evidence',
               'tests.test_hia_standalone_builder_source_binding',
               'tests.test_hia_sha256_builder_source_binding',
               'tests.test_hia_source_build_entrypoint',
@@ -111,6 +114,8 @@ jobs:
               'tests.test_hia_source_build.SourceBuilderSourceTests',
               'tests.test_hia_nominal_json_native.NominalJSONSourceTests',
               'tests.test_hia_agent_journal_native.JournalSourceTests',
+              'tests.test_hia_execution_budget_native.ExecutionBudgetSourceTests',
+              'tests.test_hia_candidate_budget_native.CandidateBudgetSourceTests',
           )
           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
           raise SystemExit(0 if result.wasSuccessful() and not result.skipped and not result.expectedFailures else 1)
@@ -305,6 +310,21 @@ jobs:
           PYJOURNAL
         env:
           HEPTA_HIA_AGENT_JOURNAL_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native execution budgets and both request-journal lifecycles
+        run: |
+          python -B - <<'PYBUDGET'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_execution_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYBUDGET
+        env:
+          HEPTA_HIA_EXECUTION_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_EXECUTION_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-execution-budget
       - name: Ordinary Agent callers with native journal and retained owner forbidden
         run: |
           python -B tools/qualify_hia_agent_journal_callers.py \
@@ -322,6 +342,21 @@ jobs:
           HEPTA_HIA_CORE_PATCH_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_CORE_PATCH_RESULT_CLI_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
           HEPTA_HIA_WORKER_REQUEST_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+      - name: Native candidate budgets and ordinary request replay
+        run: |
+          python -B - <<'PYCANDIDATE'
+          import unittest
+          suite = unittest.defaultTestLoader.loadTestsFromName('tests.test_hia_candidate_budget_native')
+          expected = suite.countTestCases()
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          complete = result.testsRun == expected and expected > 0
+          clean = not (result.errors or result.failures or result.skipped or
+                       result.expectedFailures or result.unexpectedSuccesses)
+          raise SystemExit(0 if complete and clean and result.wasSuccessful() else 1)
+          PYCANDIDATE
+        env:
+          HEPTA_HIA_CANDIDATE_BUDGET_COLD_REPORT: ${{ runner.temp }}/hia-cold.json
+          HEPTA_HIA_CANDIDATE_BUDGET_EVIDENCE: ${{ runner.temp }}/hia-candidate-budget
       - name: Native immutable release installation and recovery observations
         run: |
           python -B - <<'PYINSTALL'
@@ -403,6 +438,8 @@ jobs:
             ${{ runner.temp }}/hia-release-install/
             ${{ runner.temp }}/hia-release-selection/
             ${{ runner.temp }}/hia-source-build/
+            ${{ runner.temp }}/hia-execution-budget/
+            ${{ runner.temp }}/hia-candidate-budget/
             ${{ runner.temp }}/hia-nominal-json/
             ${{ runner.temp }}/hia-nominal-json-ingress/
             ${{ runner.temp }}/hia-journal-callers.json

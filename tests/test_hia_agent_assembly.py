@@ -75,7 +75,7 @@ class HIAAgentAssemblyTests(unittest.TestCase):
         self.assertEqual(original.canonical_bytes, restored.canonical_bytes)
 
     def test_recursive_chain_v7_roundtrip_and_failure_paths(self):
-        original = verify_program((ROOT / "examples/hia_recursive_chain/core_v7.json").read_bytes())
+        original = verify_program((ROOT / "examples/hia_recursive_chain/core_v7.hepta").read_bytes())
         restored = assemble_program(render_assembly(original))
         self.assertEqual(original.canonical_bytes, restored.canonical_bytes)
         for count in (0, 1, 7):
@@ -136,7 +136,7 @@ class HIAAgentAssemblyTests(unittest.TestCase):
                 assemble_program(SOURCE.replace("hepta.hia.program.v6", schema))
         with self.assertRaises(HIAAssemblyRejected):
             render_assembly(arithmetic())
-        composite = (ROOT / "examples/hia_recursive_chain/composite_v2.json").read_bytes()
+        composite = (ROOT / "examples/hia_recursive_chain/composite_v2.hepta").read_bytes()
         with self.assertRaises(HIAAssemblyRejected):
             render_assembly(composite)
 

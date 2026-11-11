@@ -37,6 +37,27 @@ support contract binds the migration document, machine-readable rename map and
 consumer tests. Full qualification independently regenerates all workflow-listed
 sources and checks the complete committed Git tree, raw blobs and file modes.
 
+## Structured source names
+
+Four current examples originally used the generic `.json` suffix. They are
+complete executable Core programs, not observation records, and now also use
+`.hepta` with their source bytes preserved:
+
+| Current source | Previous suffix |
+| --- | --- |
+| `examples/hia_recursive_chain/composite_v2.hepta` | `.json` |
+| `examples/hia_recursive_chain/core_v7.hepta` | `.json` |
+| `examples/hia_returned_loans/core_v8.hepta` | `.json` |
+| `examples/hia_returned_loans/returned_nested_field.hepta` | `.json` |
+
+Python tests, Rust embedded fixtures and current documentation resolve these
+canonical paths. The source gate examines JSON documents in `examples`,
+`tests`, `formal` and `benchmarks`; a primitive/composite program schema must
+use `.hepta`. Ordinary JSON requests, manifests, workloads and reports remain
+JSON. Frozen `experiments` and `review-evidence` observations keep their original
+filenames and byte identities. The original 87-file migration map remains an
+unchanged record of its earlier migration base.
+
 ## Historical evidence
 
 Immutable historical receipts, patch archives and their manifests retain their
