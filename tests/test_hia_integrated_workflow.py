@@ -38,6 +38,11 @@ class CoreWorkflowContractTests(unittest.TestCase):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory(prefix='hia-ci-shell-') as d:
                 root = Path(d)
                 (root / 'tools').mkdir()
+                (root / 'tests').mkdir()
+                (root / 'tools/generate_hia_selfhost_contract.py').write_text(
+                    "import sys\nprint('fixture-contract', *sys.argv[1:])\n")
+                (root / 'tests/test_hia_selfhost_language_coverage.py').write_text(
+                    "import sys\nprint('fixture-coverage', *sys.argv[1:])\n")
                 (root / 'marker').write_text('committed bytes')
                 for i, name in enumerate(components):
                     code = ''
@@ -58,6 +63,11 @@ class CoreWorkflowContractTests(unittest.TestCase):
                 result = subprocess.run(['bash', '--noprofile', '--norc', '-c', command], cwd=root,
                                         env=env, capture_output=True, timeout=20)
                 self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                self.assertEqual(
+                    [line for line in result.stdout.splitlines() if line.startswith(b'fixture-')],
+                    [] if mode == 'failure' else [
+                        b'fixture-contract', b'fixture-coverage --generate-inventory',
+                        b'fixture-contract', b'fixture-contract --check'])
 
     def test_actual_native_ci_runner_rejects_failed_skipped_and_expected_failure_outcomes(self):
         source = script('Native applications and actual Core memory controls')
