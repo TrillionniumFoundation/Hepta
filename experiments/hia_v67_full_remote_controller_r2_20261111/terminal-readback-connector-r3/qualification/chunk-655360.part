@@ -1,0 +1,103 @@
+_journal_native.JournalSourceTests', 'tests.test_hia_json_wire_native.WireSourceTests', 'tests.test_hia_worker_report_native.WorkerReportSourceTests', 'tests.test_hia_machine_plan_native.MachinePlanSourceTests', 'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests', 'tests.test_hia_cli_native.CliSourceTests', 'tests.test_hia_selfhost_linked_observer.LinkedObserverSourceTests']\nRESULT='/home/qian-qi/he26v67r2/q/source-tests.json'\nimport json,unittest\nloader=unittest.defaultTestLoader\nsuite=loader.discover('tests',top_level_dir='.') if DISCOVER else loader.loadTestsFromNames(NAMES)\ndef flatten(group):\n    for test in group:\n        if isinstance(test,unittest.TestSuite):\n            yield from flatten(test)\n        else:\n            yield test\ntests=list(flatten(suite))\nloaded=[test.id() for test in tests]\nexecuted=[]\nclass Result(unittest.TextTestResult):\n    def startTest(self,test):\n        executed.append(test.id())\n        super().startTest(test)\nr=unittest.TextTestRunner(verbosity=2,resultclass=Result).run(unittest.TestSuite(tests))\nvalue={'tests_run':r.testsRun,'successful':r.wasSuccessful(),\n       'expected_test_count':len(loaded),'loaded_test_ids':loaded,\n       'executed_test_ids':executed,\n       'errors':[{'test':str(t),'traceback':s} for t,s in r.errors],\n       'failures':[{'test':str(t),'traceback':s} for t,s in r.failures],\n       'skipped':[{'test':str(t),'reason':s} for t,s in r.skipped],\n       'expected_failures':[str(t) for t,s in r.expectedFailures],\n       'unexpected_successes':[str(t) for t in r.unexpectedSuccesses]}\nopen(RESULT,'w').write(json.dumps(value,indent=2)+'\\n')\nraise SystemExit(0 if r.testsRun > 0 and r.testsRun==len(loaded) and loaded==executed\n                 and r.wasSuccessful() and not r.skipped and not r.expectedFailures\n                 and not r.unexpectedSuccesses else 1)\n"
+        ],
+        "cwd": "/home/qian-qi/he26v67r2/s",
+        "logs": {
+          "/home/qian-qi/he26v67r2/q/source-tests.stderr.log": "c0122a70c6f3f099072a942238134e3b82450fedcc20dc8166040aedeea7b874",
+          "/home/qian-qi/he26v67r2/q/source-tests.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "returncode": 0,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 701.0669836958405,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_COMPLETED",
+        "timed_out": false,
+        "workflow_seconds": 1800
+      },
+      "passed": true,
+      "returncode": 0,
+      "seconds": 701.0681217568927,
+      "stderr": {
+        "path": "/home/qian-qi/he26v67r2/q/source-tests.stderr.log",
+        "sha256": "c0122a70c6f3f099072a942238134e3b82450fedcc20dc8166040aedeea7b874"
+      },
+      "stdout": {
+        "path": "/home/qian-qi/he26v67r2/q/source-tests.stdout.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "suite_result": {
+        "completed": true,
+        "discovery": false,
+        "exact_loaded_executed_ids": true,
+        "expected_test_count": 354,
+        "passed": true,
+        "result": {
+          "path": "/home/qian-qi/he26v67r2/q/source-tests.json",
+          "sha256": "32c6c00660847d1b349599f24b40ea16409dc041749b7d98938377b159b51be8"
+        },
+        "tests_run": 354
+      },
+      "timeout": false
+    },
+    {
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "tools/replay_hia_selfhost_cold.py",
+        "--output",
+        "/home/qian-qi/he26v67r2/q/cold.json"
+      ],
+      "composite_fixture_evidence": "/home/qian-qi/he26v67r2/q/cold-composite-fixtures",
+      "name": "cold",
+      "new_owner_fixture_evidence": {
+        "CLI": "/home/qian-qi/he26v67r2/q/cold-cli-fixtures",
+        "JSON_WIRE": "/home/qian-qi/he26v67r2/q/cold-json-wire-fixtures",
+        "JSON_WIRE_CACHE": "/home/qian-qi/he26v67r2/q/cold-json-wire-cache-fixtures",
+        "JSON_WIRE_ENTRY": "/home/qian-qi/he26v67r2/q/cold-json-wire-entry-fixtures",
+        "MACHINE_ENCODING": "/home/qian-qi/he26v67r2/q/cold-machine-encoding-fixtures",
+        "MACHINE_PLAN": "/home/qian-qi/he26v67r2/q/cold-machine-plan-fixtures",
+        "WORKER_REPORT": "/home/qian-qi/he26v67r2/q/cold-worker-report-fixtures"
+      },
+      "owner": {
+        "cleanup": {
+          "complete": true,
+          "errors": [],
+          "full_process_tree_claimed": false,
+          "scope": "started POSIX process group only",
+          "signalled": []
+        },
+        "command": [
+          "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+          "-B",
+          "tools/replay_hia_selfhost_cold.py",
+          "--output",
+          "/home/qian-qi/he26v67r2/q/cold.json"
+        ],
+        "cwd": "/home/qian-qi/he26v67r2/s",
+        "logs": {
+          "/home/qian-qi/he26v67r2/q/cold.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "/home/qian-qi/he26v67r2/q/cold.stdout.log": "6b09880fe24df4c5c0bc1a9462a72cf2804a7c023b6bc1d5be4ef0dd40bf6164"
+        },
+        "returncode": 1,
+        "schema": "hepta.hia.external-workflow-process.v1",
+        "seconds": 181.1047009548638,
+        "selfhost_qualification_gate_modified": false,
+        "status": "WORKFLOW_STEP_HOLD",
+        "timed_out": false,
+        "workflow_seconds": 240
+      },
+      "passed": false,
+      "returncode": 1,
+      "seconds": 181.10581162315793,
+      "stderr": {
+        "path": "/home/qian-qi/he26v67r2/q/cold.stderr.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "stdout": {
+        "path": "/home/qian-qi/he26v67r2/q/cold.stdout.log",
+        "sha256": "6b09880fe24df4c5c0bc1a9462a72cf2804a7c023b6bc1d5be4ef0dd40bf6164"
+      },
+      "timeout": false
+    }
+  ],
+  "whole_native_delivery_qualified": false
+}
