@@ -2,6 +2,8 @@
 from copy import deepcopy
 from hashlib import sha256
 import json
+import lzma
+from pathlib import Path
 import unittest
 from unittest.mock import patch
 
@@ -61,11 +63,18 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
         # Captured from the original c80eb2e three-pass transformation, before
         # composing its fixture edits. These identities include all functions,
         # SSA uses, formal return origins, blocks, entries and explicit edges.
-        from tools.generate_hia_selfhost import document
-        from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
-        _, table = document()
-        mapping = {number: name for name, number in table.items()}
-        source = SOURCE.read_bytes()
+        # These are historical transformation pins, so hold their original
+        # compiler and mapping instead of applying them to a changed compiler.
+        # The live compiler is independently checked below through all three
+        # original public transformation boundaries.
+        from tools.qualify_hia_selfhost import mutate_compiler
+        fixture = json.loads(lzma.decompress((Path(__file__).parent / 'fixtures' /
+            'hia_reference_compiler_v64.json.xz').read_bytes()))
+        self.assertEqual(fixture['schema'], 'hepta.hia.reference-compiler-fixture.v1')
+        self.assertEqual(fixture['captured_from_commit'], 'd4f6ac0fcbf232ba4fae4510515f4eb9404cc8b2')
+        source = fixture['source'].encode()
+        self.assertEqual(sha256(source).hexdigest(), fixture['source_sha256'])
+        mapping = fixture['function_mapping']
         cases = (
             (source, 'b9fab42fc7ab22ff19525cf0bc0b3dc7e92511ac12d51df038a608412902a7f1',
              'bbd534f4799bc2fc76e787e21ba7a8cab79b4d3e38e2b41bbd22a1decb316063'),
@@ -78,6 +87,22 @@ class ReferenceFixturePreservationTests(unittest.TestCase):
                 self.assertEqual(len(rendered), 769584)
                 self.assertEqual(sha256(rendered).hexdigest(), source_hash)
                 self.assertEqual(assembly.assemble_program(rendered).sha256, core_hash)
+
+    def test_current_compiler_original_three_passes_match_complete_composed_bytes(self):
+        from tools.generate_hia_selfhost import document
+        from tools.qualify_hia_selfhost import SOURCE, mutate_compiler
+        _, table = document()
+        mapping = {number: name for name, number in table.items()}
+        source = SOURCE.read_bytes()
+        for actual in (source, mutate_compiler(source)):
+            with self.subTest(source=sha256(actual).hexdigest()):
+                functions = names.renamed_source(actual, mapping)
+                values = names.renamed_values(functions)
+                expected = names.renamed_blocks(values)
+                rendered = names.renamed_compiler(actual, mapping)
+                self.assertEqual(rendered, expected)
+                self.assertEqual(assembly.assemble_program(rendered).sha256,
+                                 assembly.assemble_program(expected).sha256)
 
     def test_composed_renames_cannot_admit_an_invalid_final_program(self):
         source = (b'hia-asm.v1 hepta.hia.program.v8 fixture\n'

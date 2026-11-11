@@ -75,6 +75,7 @@ SOURCE_FILES = (
     'tests/test_hia_structure_traversal.py',
     'tests/test_hia_native_builder_source_binding.py',
     'tests/test_hia_reference_fixture_efficiency.py',
+    'tests/fixtures/hia_reference_compiler_v64.json.xz',
     'docs/HIA_COMPOSITE_TYPES_NATIVE.md',
     'tools/generate_hia_core_patch_result_cli.py',
     'tools/build_hia_core_patch_result_cli.py',

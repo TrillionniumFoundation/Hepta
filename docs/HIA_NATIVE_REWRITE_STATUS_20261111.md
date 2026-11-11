@@ -6,6 +6,34 @@ remain unfinished. The source audit and remaining ownership boundaries are in
 [the audit](HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md). File counts are an
 inventory, not a native-completion percentage.
 
+## v65 source-bound observations and retained fixture correction
+
+Candidate `2ecda852a3eb69d27e25802daab26856a18db033`, tree
+`13def5861bea96793809ccd4118eddf5eebfe134`, passed a fresh source-only cold replay
+in 150.028493 seconds: all eleven checks, all 5,049 nested checks, original and
+modified fixed points, unchanged 180/3-second budgets, and preserved source
+bytes. Its compiler B1/B2/B3 digest is
+`81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109`.
+All 171 selected native nominal/retirement controls passed in 326.380 seconds,
+with no skips or expected failures and all tracked source bytes unchanged.
+
+The same candidate's 350-test source panel failed with two subtest records in
+one historical fixture test: the new compiler's renamed source has 770,549
+bytes, while both frozen v64 assertions require 769,584. The original failure
+is retained. This correction keeps the old source/Core digest assertions
+unchanged and supplies their exact original compiler source and function
+mapping as a compressed test-only fixture. A separate current-source test
+compares the composed transformation with all three original public passes
+for both the current and modified compiler. These paths share the individual
+rename helpers; the unchanged historical SHA controls remain the independent
+byte anchor. The corrected 14-test fixture panel passed in 25.634 seconds.
+The first v65 preparation attempt was separately refused before any export
+because the regenerated language inventory was not yet rebound in the contract.
+
+The fixture correction changes the complete source identity. It therefore
+requires a new frozen head and fresh cold/full qualification. The preceding
+results remain attached to `2ecda852`; no pass is transferred to the new head.
+
 ## Qualified v64 source
 
 The following results belong to commit
