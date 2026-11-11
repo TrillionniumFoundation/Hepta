@@ -1,0 +1,798 @@
+{
+  "budgets": {
+    "compiler_child_cpu_seconds": 10,
+    "compiler_child_wall_seconds": 20,
+    "external_controller_seconds": 300,
+    "foreign_phase_controls_seconds": 20,
+    "original_51_seconds": 180,
+    "reconstructed_55_seconds": 20
+  },
+  "checks": {
+    "baseline_actual_native_compile": true,
+    "fixed_actual_native_compile": true,
+    "four_original_counterexamples_and_fixed_observations": true,
+    "original_51_and_full_metadata": true,
+    "reconstructed_new_55": true
+  },
+  "commands": [
+    {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "/home/qian-qi/he26elfnr1/control/compile.py",
+        "--compiler",
+        "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+        "--output",
+        "/home/qian-qi/he26elfnr1/fixed-build"
+      ],
+      "cwd": "/home/qian-qi/he26elfrecoverr1/source",
+      "logs": {
+        "/home/qian-qi/he26elfnr1/build-fixed.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qian-qi/he26elfnr1/build-fixed.stdout": "e336a70827ad9112c40550c2339cdf0c7f5d1e5882c146a5f9fd1391eb4a861c"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 1.369418147020042,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 40
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "/home/qian-qi/he26elfnr1/control/controls55.py",
+        "--manifest",
+        "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "--inputs",
+        "/home/qian-qi/he26elfnr1/control/cases55.json",
+        "--oracle",
+        "/home/qian-qi/he26elfnr1/control/oracle.py.txt",
+        "--report",
+        "/home/qian-qi/he26elfnr1/reconstructed-55.json"
+      ],
+      "cwd": "/home/qian-qi/he26elfrecoverr1/source",
+      "logs": {
+        "/home/qian-qi/he26elfnr1/reconstructed-55.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qian-qi/he26elfnr1/reconstructed-55.stdout": "a01ee794a1136af97036bcabb21fe3879d35ecfe1ae1e6d1488a9bb24d64386c"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 0.5161559388507158,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 20
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "/home/qian-qi/he26elfnr1/control/original51.py",
+        "--manifest",
+        "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "--inventory",
+        "/home/qian-qi/he26elfnr1/control/original51.json",
+        "--oracle",
+        "/home/qian-qi/he26elfnr1/control/oracle.py.txt",
+        "--output",
+        "/home/qian-qi/he26elfnr1/original-51"
+      ],
+      "cwd": "/home/qian-qi/he26elfrecoverr1/source",
+      "logs": {
+        "/home/qian-qi/he26elfnr1/original-51.stderr": "7baa32e1217c5905cd7d9c121140e77e140bfcc3d60ab9ee877e423007b90013",
+        "/home/qian-qi/he26elfnr1/original-51.stdout": "c6193f6bb3849fc47aa5147bde4537a6275c9509aea1449864de3be2221a61fa"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 36.20672956504859,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 180
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "/home/qian-qi/he26elfnr1/control/compile.py",
+        "--compiler",
+        "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+        "--output",
+        "/home/qian-qi/he26elfnr1/baseline-build",
+        "--generator",
+        "/home/qian-qi/he26elfnr1/control/generator-before.py.txt",
+        "--generator-sha256",
+        "8bcda88d89db86c43d970e052e77cfcf5a98ef1b063356f6aad9c75b490ec87e"
+      ],
+      "cwd": "/home/qian-qi/he26elfrecoverr1/source",
+      "logs": {
+        "/home/qian-qi/he26elfnr1/build-baseline.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qian-qi/he26elfnr1/build-baseline.stdout": "ca3e105cb2f61d28c7f7641f1b25e7c1dbbda0e1b54cfd8a9816b17f25d5f963"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 2.8721451689489186,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 40
+    },
+    {
+      "cleanup": {
+        "complete": true,
+        "errors": [],
+        "full_process_tree_claimed": false,
+        "scope": "started POSIX process group only",
+        "signalled": []
+      },
+      "command": [
+        "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+        "-B",
+        "/home/qian-qi/he26elfnr1/control/foreign_phase.py",
+        "--manifest",
+        "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "--baseline-build",
+        "/home/qian-qi/he26elfnr1/baseline-build",
+        "--oracle",
+        "/home/qian-qi/he26elfnr1/control/oracle.py.txt",
+        "--report",
+        "/home/qian-qi/he26elfnr1/foreign-phase.json"
+      ],
+      "cwd": "/home/qian-qi/he26elfrecoverr1/source",
+      "logs": {
+        "/home/qian-qi/he26elfnr1/foreign-phase.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "/home/qian-qi/he26elfnr1/foreign-phase.stdout": "b95b79601c6286f403842af472f30cfd1d3e02f98e0a304c3a61cee0c2aff5b6"
+      },
+      "returncode": 0,
+      "schema": "hepta.hia.external-workflow-process.v1",
+      "seconds": 0.21513339993543923,
+      "selfhost_qualification_gate_modified": false,
+      "status": "WORKFLOW_STEP_COMPLETED",
+      "timed_out": false,
+      "workflow_seconds": 20
+    }
+  ],
+  "development_builds_after": {
+    "baseline": {
+      "image": {
+        "bytes": 267778,
+        "identity": [
+          2050,
+          14347550,
+          33152,
+          1000,
+          1,
+          267778,
+          1794427006076175342,
+          1794427006076175342
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/machine-elf.image.bin",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/machine-elf.image.bin",
+        "sha256": "641eebbc7e1a6ec89f898e8ef7c42b294e8b238f78e65a908e40c023a9164f7a"
+      },
+      "manifest": {
+        "bytes": 353,
+        "identity": [
+          2050,
+          14347551,
+          33024,
+          1000,
+          1,
+          353,
+          1794427006087551211,
+          1794427006087551211
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/manifest.json",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/manifest.json",
+        "sha256": "bb88338aef270c813a1e30d159dad9b80c55eb3327690670cb789948d5853449"
+      },
+      "record": {
+        "bytes": 8044,
+        "identity": [
+          2050,
+          14347552,
+          33024,
+          1000,
+          1,
+          8044,
+          1794427006123565800,
+          1794427006123565800
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/build.json",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/build.json",
+        "sha256": "bdb9479adbc5b0c004401c1481755874503cb37aac283356e86f6e36f5d04c57"
+      },
+      "source": {
+        "bytes": 202965,
+        "identity": [
+          2050,
+          14347543,
+          33024,
+          1000,
+          1,
+          202965,
+          1794427005327045268,
+          1794427005327045268
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/source.hiaasm",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/source.hiaasm",
+        "sha256": "eb0b48fe45e0966d40671cbede09cc0609a79aafd6b259dbbc9098d3cb4dce42"
+      }
+    },
+    "fixed": {
+      "image": {
+        "bytes": 269358,
+        "identity": [
+          2050,
+          14347535,
+          33152,
+          1000,
+          1,
+          269358,
+          1794426966528587506,
+          1794426966528587506
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/machine-elf.image.bin",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/machine-elf.image.bin",
+        "sha256": "6d1ee8d10cd39b3019ab6a643e084b6b2fed991e449d1d74d179bda27a44a12c"
+      },
+      "manifest": {
+        "bytes": 353,
+        "identity": [
+          2050,
+          14347536,
+          33024,
+          1000,
+          1,
+          353,
+          1794426966534946541,
+          1794426966534946541
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "sha256": "9ce9be3ccfdb295dd5720c2c351918eaf5003c261db06ae10f1a86b813437d1a"
+      },
+      "record": {
+        "bytes": 8018,
+        "identity": [
+          2050,
+          14347537,
+          33024,
+          1000,
+          1,
+          8018,
+          1794426966537169344,
+          1794426966537169344
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/build.json",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/build.json",
+        "sha256": "abc8b1670ca1b9661e59ffc6a6de36cb98dfbe695e3cc721f235bed0de817d52"
+      },
+      "source": {
+        "bytes": 204143,
+        "identity": [
+          2050,
+          14347528,
+          33024,
+          1000,
+          1,
+          204143,
+          1794426965871376536,
+          1794426965871376536
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/source.hiaasm",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/source.hiaasm",
+        "sha256": "af122cb4340ca351a07e3148e699730e4ed652f3c3c4deebdc5837dee693c6e3"
+      }
+    }
+  },
+  "development_builds_before": {
+    "baseline": {
+      "image": {
+        "bytes": 267778,
+        "identity": [
+          2050,
+          14347550,
+          33152,
+          1000,
+          1,
+          267778,
+          1794427006076175342,
+          1794427006076175342
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/machine-elf.image.bin",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/machine-elf.image.bin",
+        "sha256": "641eebbc7e1a6ec89f898e8ef7c42b294e8b238f78e65a908e40c023a9164f7a"
+      },
+      "manifest": {
+        "bytes": 353,
+        "identity": [
+          2050,
+          14347551,
+          33024,
+          1000,
+          1,
+          353,
+          1794427006087551211,
+          1794427006087551211
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/manifest.json",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/manifest.json",
+        "sha256": "bb88338aef270c813a1e30d159dad9b80c55eb3327690670cb789948d5853449"
+      },
+      "record": {
+        "bytes": 8044,
+        "identity": [
+          2050,
+          14347552,
+          33024,
+          1000,
+          1,
+          8044,
+          1794427006123565800,
+          1794427006123565800
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/build.json",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/build.json",
+        "sha256": "bdb9479adbc5b0c004401c1481755874503cb37aac283356e86f6e36f5d04c57"
+      },
+      "source": {
+        "bytes": 202965,
+        "identity": [
+          2050,
+          14347543,
+          33024,
+          1000,
+          1,
+          202965,
+          1794427005327045268,
+          1794427005327045268
+        ],
+        "path": "/home/qian-qi/he26elfnr1/baseline-build/source.hiaasm",
+        "resolved": "/home/qian-qi/he26elfnr1/baseline-build/source.hiaasm",
+        "sha256": "eb0b48fe45e0966d40671cbede09cc0609a79aafd6b259dbbc9098d3cb4dce42"
+      }
+    },
+    "fixed": {
+      "image": {
+        "bytes": 269358,
+        "identity": [
+          2050,
+          14347535,
+          33152,
+          1000,
+          1,
+          269358,
+          1794426966528587506,
+          1794426966528587506
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/machine-elf.image.bin",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/machine-elf.image.bin",
+        "sha256": "6d1ee8d10cd39b3019ab6a643e084b6b2fed991e449d1d74d179bda27a44a12c"
+      },
+      "manifest": {
+        "bytes": 353,
+        "identity": [
+          2050,
+          14347536,
+          33024,
+          1000,
+          1,
+          353,
+          1794426966534946541,
+          1794426966534946541
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/manifest.json",
+        "sha256": "9ce9be3ccfdb295dd5720c2c351918eaf5003c261db06ae10f1a86b813437d1a"
+      },
+      "record": {
+        "bytes": 8018,
+        "identity": [
+          2050,
+          14347537,
+          33024,
+          1000,
+          1,
+          8018,
+          1794426966537169344,
+          1794426966537169344
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/build.json",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/build.json",
+        "sha256": "abc8b1670ca1b9661e59ffc6a6de36cb98dfbe695e3cc721f235bed0de817d52"
+      },
+      "source": {
+        "bytes": 204143,
+        "identity": [
+          2050,
+          14347528,
+          33024,
+          1000,
+          1,
+          204143,
+          1794426965871376536,
+          1794426965871376536
+        ],
+        "path": "/home/qian-qi/he26elfnr1/fixed-build/source.hiaasm",
+        "resolved": "/home/qian-qi/he26elfnr1/fixed-build/source.hiaasm",
+        "sha256": "af122cb4340ca351a07e3148e699730e4ed652f3c3c4deebdc5837dee693c6e3"
+      }
+    }
+  },
+  "development_builds_stable": true,
+  "key": "hia-e26e-desktop-machine-elf-native-reconstructed-r1",
+  "readonly_inputs_after": {
+    "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json": {
+      "bytes": 2445887,
+      "identity": [
+        2050,
+        9372735,
+        33024,
+        1000,
+        1,
+        2445887,
+        1794425587068873923,
+        1794425587068873923
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json",
+      "sha256": "27060abc8dd9bd4a27944d55177641921aa88b25c3406a6539f4f6a96a15dea2"
+    },
+    "/home/qian-qi/he26elfrecoverr1/guard/guardian.json": {
+      "bytes": 6188,
+      "identity": [
+        2050,
+        9372733,
+        33152,
+        1000,
+        1,
+        6188,
+        1794425591671043544,
+        1794425591671043544
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/guard/guardian.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/guard/guardian.json",
+      "sha256": "1bd56484a7d79e3649b8da6f6ea4bf9a35c15ae41b34ca7da8ff30af73281ee1"
+    },
+    "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin": {
+      "bytes": 668608,
+      "identity": [
+        2050,
+        9372730,
+        33024,
+        1000,
+        1,
+        668608,
+        1794425581738999198,
+        1794425581738999198
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+      "sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+    },
+    "/home/qian-qi/he26elfrecoverr1/report.json": {
+      "bytes": 13672,
+      "identity": [
+        2050,
+        9372738,
+        33024,
+        1000,
+        1,
+        13672,
+        1794425591289983035,
+        1794425591292055402
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/report.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/report.json",
+      "sha256": "f23e363b9ee9eb0be46edff9e46668bf26e079a1e816b84dccb5e46176646aa4"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm": {
+      "bytes": 204143,
+      "identity": [
+        2050,
+        14327162,
+        33152,
+        1000,
+        1,
+        204143,
+        1794425583389127903,
+        1794425583389127903
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm",
+      "sha256": "af122cb4340ca351a07e3148e699730e4ed652f3c3c4deebdc5837dee693c6e3"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py": {
+      "bytes": 7775,
+      "identity": [
+        2050,
+        14328034,
+        33188,
+        1000,
+        1,
+        7775,
+        1794425581734495924,
+        1794425581735354528
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py",
+      "sha256": "54733d9aafcd3041e63108252cf319df02b5e38f05bc3bbf595248c94beea170"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py": {
+      "bytes": 12970,
+      "identity": [
+        2050,
+        14328033,
+        33188,
+        1000,
+        1,
+        12970,
+        1794425581729871756,
+        1794425581729871756
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py",
+      "sha256": "498d643b9394c8b4f2777eb7c76583bad75e1c04d34fca82f6f8fb0ecb76cde7"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py": {
+      "bytes": 43190,
+      "identity": [
+        2050,
+        11339112,
+        33188,
+        1000,
+        1,
+        43190,
+        1794425581722810624,
+        1794425581722810624
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py",
+      "sha256": "7394812b9786f57aa9f41651183cc2f9e64f7a2835e35512a7028903044cf8cb"
+    },
+    "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python": {
+      "bytes": 32369944,
+      "identity": [
+        2050,
+        59694332,
+        33261,
+        1000,
+        1,
+        32369944,
+        1794390023211368249,
+        1794390023211368249
+      ],
+      "path": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+      "resolved": "/home/qian-qi/hia-e26e-python314-linux-r1/install/bin/python3.14",
+      "sha256": "b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493"
+    }
+  },
+  "readonly_inputs_before": {
+    "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json": {
+      "bytes": 2445887,
+      "identity": [
+        2050,
+        9372735,
+        33024,
+        1000,
+        1,
+        2445887,
+        1794425587068873923,
+        1794425587068873923
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/candidate-source-after.json",
+      "sha256": "27060abc8dd9bd4a27944d55177641921aa88b25c3406a6539f4f6a96a15dea2"
+    },
+    "/home/qian-qi/he26elfrecoverr1/guard/guardian.json": {
+      "bytes": 6188,
+      "identity": [
+        2050,
+        9372733,
+        33152,
+        1000,
+        1,
+        6188,
+        1794425591671043544,
+        1794425591671043544
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/guard/guardian.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/guard/guardian.json",
+      "sha256": "1bd56484a7d79e3649b8da6f6ea4bf9a35c15ae41b34ca7da8ff30af73281ee1"
+    },
+    "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin": {
+      "bytes": 668608,
+      "identity": [
+        2050,
+        9372730,
+        33024,
+        1000,
+        1,
+        668608,
+        1794425581738999198,
+        1794425581738999198
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/inputs/B3.image.bin",
+      "sha256": "0e09ccca227d8f8ed7e7fa37111d2c44e1329517b19763bd9f280d00135591c8"
+    },
+    "/home/qian-qi/he26elfrecoverr1/report.json": {
+      "bytes": 13672,
+      "identity": [
+        2050,
+        9372738,
+        33024,
+        1000,
+        1,
+        13672,
+        1794425591289983035,
+        1794425591292055402
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/report.json",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/report.json",
+      "sha256": "f23e363b9ee9eb0be46edff9e46668bf26e079a1e816b84dccb5e46176646aa4"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm": {
+      "bytes": 204143,
+      "identity": [
+        2050,
+        14327162,
+        33152,
+        1000,
+        1,
+        204143,
+        1794425583389127903,
+        1794425583389127903
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/examples/hia_bootstrap/machine_elf.hiaasm",
+      "sha256": "af122cb4340ca351a07e3148e699730e4ed652f3c3c4deebdc5837dee693c6e3"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py": {
+      "bytes": 7775,
+      "identity": [
+        2050,
+        14328034,
+        33188,
+        1000,
+        1,
+        7775,
+        1794425581734495924,
+        1794425581735354528
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf.py",
+      "sha256": "54733d9aafcd3041e63108252cf319df02b5e38f05bc3bbf595248c94beea170"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py": {
+      "bytes": 12970,
+      "identity": [
+        2050,
+        14328033,
+        33188,
+        1000,
+        1,
+        12970,
+        1794425581729871756,
+        1794425581729871756
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/hepta/hia_machine_elf_native.py",
+      "sha256": "498d643b9394c8b4f2777eb7c76583bad75e1c04d34fca82f6f8fb0ecb76cde7"
+    },
+    "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py": {
+      "bytes": 43190,
+      "identity": [
+        2050,
+        11339112,
+        33188,
+        1000,
+        1,
+        43190,
+        1794425581722810624,
+        1794425581722810624
+      ],
+      "path": "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py",
+      "resolved": "/home/qian-qi/he26elfrecoverr1/source/tools/generate_hia_machine_elf.py",
+      "sha256": "7394812b9786f57aa9f41651183cc2f9e64f7a2835e35512a7028903044cf8cb"
+    },
+    "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python": {
+      "bytes": 32369944,
+      "identity": [
+        2050,
+        59694332,
+        33261,
+        1000,
+        1,
+        32369944,
+        1794390023211368249,
+        1794390023211368249
+      ],
+      "path": "/home/qian-qi/hia-e26e-python314-linux-r1/venv/bin/python",
+      "resolved": "/home/qian-qi/hia-e26e-python314-linux-r1/install/bin/python3.14",
+      "sha256": "b2d6bc2ad950753c5ea407a30788165d8f59c110ca4e90fbad14c8c75376a493"
+    }
+  },
+  "root": "/home/qian-qi/he26elfnr1",
+  "schema": "hepta.hia.machine-elf.reconstructed-development.v1",
+  "scope": "RECONSTRUCTED_COMPONENT_DEVELOPMENT_NOT_FULL_QUALIFICATION",
+  "scope_boundaries": {
+    "cold_qualification_executed": false,
+    "full_64mib_65536_runtime_boundaries_closed": false,
+    "full_foreign_timsort_schedule_closed": false,
+    "historical_55_51_results_inherited": false,
+    "installed_wheel_executed": false,
+    "matching_current_cold": false,
+    "private_step_precondition_lifetime_closed": false,
+    "whole_native_delivery_qualified": false,
+    "whole_writer_qualified": false
+  },
+  "seconds": 47.54288858710788,
+  "source": "/home/qian-qi/he26elfrecoverr1/source",
+  "source_after": {
+    "bytes": 2445710,
+    "identity": [
+      2050,
+      12911724,
+      33024,
+      1000,
+      1,
+      2445710,
+      1794427008788883648,
+      1794427008788883648
+    ],
+    "path": "/home/qian-qi/he26elfnr1/source-after.json",
+    "resolved": "/home/qian-qi/he26elfnr1/source-after.json",
+    "sha256": "d65ed6ec246e3f043e00cd4b3f5abb25a467bf1968e5b5e7bbe47033d1116e2c"
+  },
+  "source_authoring_commit": "1b120342aa467ebab91180d102ea338d5b136c2a",
+  "source_before": {
+    "bytes": 2445710,
+    "identity": [
+      2050,
+      12911709,
+      33024,
+      1000,
+      1,
+      2445710,
+      1794426965195474460,
+      1794426965195474460
+    ],
+    "path": "/home/qian-qi/he26elfnr1/source-before.json",
+    "resolved": "/home/qian-qi/he26elfnr1/source-before.json",
+    "sha256": "d65ed6ec246e3f043e00cd4b3f5abb25a467bf1968e5b5e7bbe47033d1116e2c"
+  },
+  "source_stable": true,
+  "status": "COMPONENT_DEVELOPMENT_PASS_PENDING_EXTERNAL_GUARDIAN"
+}
