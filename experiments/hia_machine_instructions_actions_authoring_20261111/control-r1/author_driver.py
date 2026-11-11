@@ -129,7 +129,7 @@ def prepare(args):
                                    "available_inodes": fs.f_favail, "device": root.stat().st_dev}
         require(fs.f_bavail * fs.f_frsize >= 2 * (1 << 30), "authoring storage below original request")
         setup["base"] = {"commit": BASE_COMMIT, "tree": BASE_TREE, "leaves": len(entries)}
-        for name in ("commands", "candidate", "private-home"):
+        for name in ("commands", "candidate"):
             (root / name).mkdir(mode=0o700)
         for source_name, destination in (("policy.json", "policy.original.json"),
              ("prototype-status.original.json", "prototype-status.original.json"),
@@ -138,7 +138,7 @@ def prepare(args):
             create(root / destination, raw)
         environment = {
             "PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
-            "PYTHONDONTWRITEBYTECODE": "1", "HOME": str(root / "private-home"),
+            "PYTHONDONTWRITEBYTECODE": "1",
             "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
             "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0",
         }
@@ -206,10 +206,20 @@ def run(args):
         report["owner_source_preserved"] = read_regular(owner_path)[0] == owner_raw
         report["control_after"] = control_state(args.control_commit)
         report["control_preserved"] = report["control_after"] == before
-        worker_raw, _ = read_regular(root / "worker-report.json")
-        worker = json.loads(worker_raw)
-        report["worker_report_sha256"] = digest(worker_raw)
-        report["worker_status"] = worker.get("status")
+        worker = None
+        try:
+            worker_raw, _ = read_regular(root / "worker-report.json")
+            worker = json.loads(worker_raw)
+            require(type(worker) is dict, "worker report is not an object")
+            report["worker_report_sha256"] = digest(worker_raw)
+            report["worker_status"] = worker.get("status")
+        except BaseException:
+            # A timed-out worker may never finish its report. Once the
+            # original owner has reaped all children, retain actual source
+            # and raw logs independently of that missing report; keep HOLD.
+            worker = None
+            report["worker_report_error"] = traceback.format_exc()
+            report["worker_status"] = None
         cleanup = life.get("cleanup", {})
         require(cleanup.get("complete") is True and cleanup.get("observed_echild") is True
                 and cleanup.get("remaining_direct_children") == [], "source capture requires closed ownership")
@@ -239,14 +249,15 @@ def run(args):
                   "not_claimed_checked_out_canonical_candidate_commit": True}
         save_new(root / "CANDIDATE-EXPORT.json", export)
         report["candidate_export_sha256"] = digest((root / "CANDIDATE-EXPORT.json").read_bytes())
-        if worker.get("status") == GOOD_AUTHOR_STATUS:
+        if worker is not None and worker.get("status") == GOOD_AUTHOR_STATUS:
             expected_raw, _ = read_regular(root / "candidate-source-leaves.json")
             require(json.loads(expected_raw) == after, "post-owner source differs from worker source")
             require(len(after) == 3941 and len(exported) == 18
                     and worker["candidate_index_tree"] == export["actual_index_tree"],
                     "complete candidate closure differs")
         okay = (report["natural_owner_success"] and report["owner_source_preserved"]
-                and report["control_preserved"] and worker.get("status") == GOOD_AUTHOR_STATUS
+                and report["control_preserved"] and worker is not None
+                and worker.get("status") == GOOD_AUTHOR_STATUS
                 and worker.get("frozen_inputs_preserved") is True)
         report["status"] = GOOD_AUTHOR_STATUS if okay else "HOLD"
     except BaseException:

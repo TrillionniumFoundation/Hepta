@@ -307,7 +307,7 @@ def author_success(policy, files, exported, snapshot, result, author_job_result,
             and command[5] == request["root"] and command[6] == request["source"],
             "authoring command is not the frozen isolated worker")
     expected_env = {"PATH": "/usr/bin:/bin", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
-        "PYTHONDONTWRITEBYTECODE": "1", "HOME": request["root"] + "/private-home",
+        "PYTHONDONTWRITEBYTECODE": "1",
         "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0"}
     require(request["env"] == expected_env, "author child environment differs")
@@ -463,6 +463,7 @@ def main():
                               source_leaf_count=len(snapshot), candidate_files=len(candidate),
                               original_files=len(manifest["files"]))
         except BaseException:
+            source_pass = False
             candidate = {}
             validation["candidate_root_files_admitted"] = False
             validation["exception"] = traceback.format_exc()

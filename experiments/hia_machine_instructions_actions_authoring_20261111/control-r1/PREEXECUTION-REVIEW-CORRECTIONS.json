@@ -1,0 +1,28 @@
+{
+  "schema": "hia.instructions-actions.preexecution-review-corrections.v1",
+  "status": "STATIC_UNEXECUTED",
+  "previous_control_commit": "531be79b10b0585ce27b8c829ecd5f2f5e8d558e",
+  "previous_workflow_commit": "1cdf2d8d37c72b58c2f6a82f7a3dd1e09633e494",
+  "previous_trigger_created": false,
+  "previous_code_executed": false,
+  "root_review": [
+    {
+      "issue": "A later independent candidate-tree mismatch could retain source_pass=True from the earlier author_success return.",
+      "fix": "Every author-validation exception explicitly resets source_pass=False before candidate files are discarded; publication remains HOLD."
+    },
+    {
+      "issue": "The draft child environment reassigned HOME, contrary to this session's variable rule.",
+      "fix": "Remove the HOME entry from both the child environment and publisher expected environment; remove the unused private-home directory. GIT_CONFIG_GLOBAL=/dev/null stays unchanged."
+    },
+    {
+      "issue": "A missing/invalid worker report prevented collection even after the original owner proved ECHILD.",
+      "fix": "Record the report error separately. After closed ownership, capture actual source/candidate/logs independently. Missing report cannot satisfy the author success conjunction."
+    }
+  ],
+  "product_inputs_unchanged": true,
+  "policy_sha256": "4e4d69d0036479155ba13c304c12458994d42914b7422a28076e8f601653d355",
+  "original_180_second_owner_unchanged": true,
+  "original_caps_function_unchanged": true,
+  "native_compilation_executed": false,
+  "product_tests_executed": false
+}
