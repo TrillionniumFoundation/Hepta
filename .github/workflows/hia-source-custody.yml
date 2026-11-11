@@ -1,0 +1,84 @@
+name: HIA exact Git source custody
+
+on:
+  push:
+    branches:
+      - 'codex/hia-source-custody-*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-exact-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out the exact event commit and its real shallow boundary
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Export all Git objects and independently reconstruct the checkout
+        id: package
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          python3 -I -S -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          import subprocess, sys
+          source = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          root = Path(os.environ['RUNNER_TEMP']) / 'hia-source-custody-artifact'
+          root.mkdir(mode=0o700, exist_ok=False)
+          package = root / 'package'
+          destination = Path(os.environ['RUNNER_TEMP']) / 'hia-source-custody-reconstructed'
+          reproduction = Path(os.environ['RUNNER_TEMP']) / 'hia-source-custody-clone-reproduction'
+          tool = source / 'experiments/hia_git_source_package_20261111/source_package.py'
+          commit = os.environ['GITHUB_SHA']
+          subprocess.run([sys.executable, '-I', '-S', '-B', str(tool), 'export',
+                          '--source-root', str(source), '--output-dir', str(package),
+                          '--expected-commit', commit], check=True)
+          raw = (package / 'manifest.json').read_bytes()
+          manifest = json.loads(raw)
+          manifest_sha = hashlib.sha256(raw).hexdigest()
+          subprocess.run([sys.executable, '-I', '-S', '-B', str(package / 'source-package.py'),
+                          'materialize', '--package', str(package),
+                          '--destination', str(destination), '--expected-commit', commit,
+                          '--reproduction-destination', str(reproduction),
+                          '--expected-tree', manifest['tree'], '--manifest-sha256', manifest_sha,
+                          '--report', str(root / 'reconstruction.json')], check=True)
+          receipt = {
+              'schema': 'hepta.hia.actions-source-custody.v1',
+              'status': 'PASS', 'qualification_executed': False,
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'commit': commit, 'tree': manifest['tree'],
+              'manifest_sha256': manifest_sha, 'pack': manifest['pack'],
+              'counts': manifest['counts'],
+              'workflow_ref': os.environ['GITHUB_WORKFLOW_REF'],
+              'workflow_sha': os.environ['GITHUB_WORKFLOW_SHA'],
+              'run_id': os.environ['GITHUB_RUN_ID'],
+              'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'event_name': os.environ['GITHUB_EVENT_NAME'],
+              'shallow_boundary': manifest['shallow']['exported_boundary'],
+              'ancestor_history_included': False,
+          }
+          with (root / 'IDENTITY.json').open('x') as stream:
+              json.dump(receipt, stream, sort_keys=True, indent=2)
+              stream.write('\n')
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+      - name: Preserve package and any original failure receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-source-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/hia-source-custody-artifact/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
