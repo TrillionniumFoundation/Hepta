@@ -8,6 +8,9 @@ from hashlib import sha256
 import inspect
 import json
 import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 import tempfile
 import unittest
@@ -86,6 +89,36 @@ def observe(factory, row):
                   relocations=[dict(item) for item in value.relocations])
     return result
 
+
+def observe_foreign_alu(factory, values, immediate, rebind):
+    code = factory()
+    events = []
+    class Truth:
+        def __init__(self):
+            self.count = 0
+        def __bool__(self):
+            self.count += 1
+            answer = values[min(self.count - 1, len(values) - 1)]
+            events.append(['truth', self.count, answer])
+            if rebind and self.count == 3:
+                def replacement(value):
+                    events.append(['replacement_emit', value.hex()])
+                code.emit = replacement
+                events.append(['emit_rebound'])
+            return answer
+    truth = Truth()
+    class Option:
+        def __eq__(self, other):
+            events.append(['option_equality', other])
+            return truth
+    code.alu_immediate = Option()
+    error = None
+    try:
+        code.alu_imm('add', 'r10', immediate)
+    except BaseException as exc:
+        error = {'type': type(exc).__name__, 'message': str(exc)}
+    return {'data_hex': code.data.hex(), 'events': events, 'exception': error,
+            'labels': code.labels, 'fixups': code.fixups, 'relocations': code.relocations}
 
 class MachineEncodingSourceTests(unittest.TestCase):
     def test_retained_reference_methods_are_unchanged(self):
@@ -239,6 +272,112 @@ class MachineEncodingNativeTests(unittest.TestCase):
             path.write_text(json.dumps(forged))
             with self.assertRaisesRegex(ValueError, 'source identity mismatch'):
                 installed_machine_encoding(str(path))
+
+
+    def test_foreign_ALU_truth_error_and_emit_binding_order(self):
+        rows = [
+            ([False, False, False], 7, False),
+            ([False, True, False], 7, False),
+            ([False, False, True], 7, False),
+            ([False, True, False], 128, False),
+            ([False, False, False], 7, True),
+        ]
+        with patch.dict(os.environ, {SELECTOR: ''}):
+            expected = [observe_foreign_alu(reference.Code, *row) for row in rows]
+        with self.selected():
+            for row, wanted in zip(rows, expected):
+                with self.subTest(values=row):
+                    self.assertEqual(observe_foreign_alu(reference.Code, *row), wanted)
+
+    def test_actual_installed_wheel_without_authoring_or_source_fallback(self):
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
+        from tests.test_hia_machine_plan import call_document
+        root = Path(__file__).resolve().parents[1]
+        case = self.folder / 'installed-control'
+        case.mkdir()
+        source = case / 'source'
+        source.mkdir()
+        shutil.copytree(root / 'hepta', source / 'hepta', ignore=shutil.ignore_patterns('__pycache__'))
+        resources = tuple('docs/' + name for name in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        for name in (*resources, 'setup.py', 'pyproject.toml', 'MANIFEST.in'):
+            target = source / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(root / name, target)
+        packaging_python = os.environ.get('HEPTA_HIA_TEST_PACKAGING_PYTHON', sys.executable)
+        wheels, installed = case / 'wheels', case / 'installed'
+        records = []
+        def command(arguments, label, *, env=None):
+            result = subprocess.run(arguments, cwd=case, env=env, capture_output=True, timeout=120)
+            (case / (label + '.stdout')).write_bytes(result.stdout)
+            (case / (label + '.stderr')).write_bytes(result.stderr)
+            records.append({'argv': arguments, 'returncode': result.returncode,
+                'stdout_sha256': sha256(result.stdout).hexdigest(),
+                'stderr_sha256': sha256(result.stderr).hexdigest()})
+            (case / 'processes.json').write_text(json.dumps(records, indent=2, sort_keys=True) + '\n')
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            return result
+        command([packaging_python, '-B', '-m', 'pip', 'wheel', '--no-cache-dir', '--no-deps',
+            '--no-index', '--no-build-isolation', '--wheel-dir', str(wheels), str(source)], 'wheel-build')
+        wheel, = wheels.glob('*.whl')
+        command([packaging_python, '-B', '-m', 'pip', 'install', '--no-cache-dir', '--no-deps',
+            '--no-index', '--target', str(installed), str(wheel)], 'wheel-install')
+        inputs = case / 'core.json'
+        inputs.write_text(json.dumps(call_document()))
+        child = """import importlib.abc,inspect,json,os,sys
+from hashlib import sha256
+from pathlib import Path
+sys.path.insert(0,sys.argv[1])
+class NoTools(importlib.abc.MetaPathFinder):
+    def find_spec(self,fullname,path=None,target=None):
+        if fullname=='tools' or fullname.startswith('tools.'):
+            raise AssertionError('installed encoding imported authoring tools')
+sys.meta_path.insert(0,NoTools())
+from hepta import hia_machine_x64 as reference
+from hepta.hia_machine_encoding_native import SOURCE,SELECTOR,installed_machine_encoding
+from hepta.hia_program import verify_program
+from hepta.hia_program_native import emit_program_machine
+assert Path(sys.argv[1]) in SOURCE.parents
+def forbidden(*args,**kwargs):
+    raise AssertionError('retained instruction encoder entered installed execution')
+for name,member in tuple(reference.Code.__dict__.items()):
+    if inspect.isfunction(member) and name not in {'__new__','__init__','_reg','emit','label'}:
+        setattr(reference.Code,name,forbidden)
+os.environ[SELECTOR]=sys.argv[2]
+code=reference.Code()
+code.mov_imm('rax',42)
+code.ret()
+assert code.finalize()[0]==bytes.fromhex('48b82a00000000000000c3')
+machine=emit_program_machine(verify_program(json.loads(Path(sys.argv[3]).read_bytes())))
+assert machine.object_bytes[:4]==b'\\x7fELF'
+native=installed_machine_encoding(sys.argv[2])
+assert native.calls['mov_imm']>0 and native.calls['rel32']>0
+original=SOURCE.read_bytes()
+SOURCE.write_bytes(original+b'\\n')
+try:installed_machine_encoding(sys.argv[2])
+except ValueError:pass
+else:raise AssertionError('warm image hid changed installed source')
+SOURCE.write_bytes(original)
+SOURCE.unlink()
+try:installed_machine_encoding(sys.argv[2])
+except FileNotFoundError:pass
+else:raise AssertionError('missing installed source used checkout fallback')
+SOURCE.write_bytes(original)
+print(json.dumps({'status':'INSTALLED_NATIVE_MACHINE_ENCODING_PASS',
+ 'image_sha256':native.image_sha256,'source_sha256':sha256(original).hexdigest(),
+ 'object_sha256':sha256(machine.object_bytes).hexdigest(),
+ 'isolated_without_site':bool(sys.flags.isolated and sys.flags.no_site),
+ 'empty_PATH':os.environ['PATH']=='','authoring_forbidden':True,
+ 'retained_encoding_forbidden':True,'native_calls':dict(native.calls)}))
+"""
+        script = case / 'installed-control.py'
+        script.write_text(child)
+        env = {key: value for key, value in os.environ.items() if not key.startswith('HEPTA_HIA_')}
+        env.update(PATH='', PYTHONPATH='')
+        result = command([sys.executable, '-I', '-S', '-B', str(script), str(installed),
+                          str(self.manifest), str(inputs)], 'installed-execution', env=env)
+        observed_result = json.loads(result.stdout)
+        self.assertEqual(observed_result['status'], 'INSTALLED_NATIVE_MACHINE_ENCODING_PASS')
+        self.assertTrue(observed_result['isolated_without_site'])
 
 
 if __name__ == '__main__':
