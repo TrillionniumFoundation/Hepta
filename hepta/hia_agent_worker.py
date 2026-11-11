@@ -25,7 +25,21 @@ def main(argv=None):
     parser.add_argument("--expected-worker-sha256")
     parser.add_argument("--expected-backend-sha256")
     parser.add_argument("--expected-catalog-sha256")
+    parser.add_argument("--native-helpers-manifest")
+    parser.add_argument("--expected-native-helpers-sha256")
     args = parser.parse_args(argv)
+    from .hia_native_helpers import native_helpers_scope
+    try:
+        with native_helpers_scope(args.native_helpers_manifest, args.expected_native_helpers_sha256):
+            return _run(parser, args)
+    except (ValueError, OSError, TypeError, OverflowError, RecursionError) as exc:
+        # No authenticated envelope, or terminal rendering could not complete.
+        # A partial report cannot become a correlated success.
+        sys.stderr.write(str(exc)[:4096] + "\n")
+        return 2
+
+
+def _run(parser, args):
     identities = installation_manifest()
     if args.installation_manifest:
         if args.request_json_stdin:
@@ -84,6 +98,8 @@ def main(argv=None):
         "request_sha256": request["request_sha256"], "profile_sha256": request["profile_sha256"],
         "catalog_sha256": request["catalog_sha256"], "backend_sha256": identities["backend_sha256"],
         "worker_sha256": identities["worker_sha256"], "complete": True, "response": response}
+    if "native_helpers_sha256" in identities:
+        report["native_helpers_sha256"] = identities["native_helpers_sha256"]
     sys.stdout.buffer.write(wire(report) + b"\n")
     return 0
 

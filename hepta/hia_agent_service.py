@@ -674,6 +674,8 @@ class HIAAgentService:
         return None
 
     def _hia_verify(self, args):
+        from .hia_checker_identity import checker_native_selection
+        native_selection = checker_native_selection()
         context = self._context(args["context"])
         self._profile(args["validation_profile"], "validation")
         program = self._program(args["candidate"])
@@ -734,6 +736,7 @@ class HIAAgentService:
                     "native_build": rebuilt, "no_llvm_or_external_assembler": True}
             else:
                 reject("E_HIA_CLAIM", "unimplemented verification claim", "verification")
+            evidence["native_checker_selection"] = native_selection
             scoped = proof_result(claim=claim, status=status, domain=domain, subject=scoped_subject,
                 profile=args["validation_profile"], installation=self.identities, evidence=evidence)
             if evidence.get("method") == SAFE_CORE_METHOD and status == "proved" and self._remaining_ms(context) <= 0:
