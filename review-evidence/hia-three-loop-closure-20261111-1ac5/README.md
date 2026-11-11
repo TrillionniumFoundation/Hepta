@@ -1,6 +1,6 @@
 # HIA three-loop candidate evidence — 2026-11-11
 
-This branch retains observations for fixed source candidates. Its evidence commit is not the source commit that was tested. The final full native and Runtime gates are still being observed at this checkpoint.
+This branch retains observations for fixed source candidates. Its evidence commit is not the source commit that was tested. The complete original Hepta Core/native gates and both joint MCP runs have passed. The broader Runtime CI is still being observed at this checkpoint.
 
 ## Frozen candidate pair
 
@@ -15,10 +15,10 @@ The code changes are reviewed in [Hepta PR #890](https://github.com/Trillionnium
 ## Results already checked
 
 - The exact Hepta candidate passed 146 binding/proof/worker controls with zero failures, errors or skips; independent catalog regeneration passed 79 checks. The actual source contract covers 634 files.
-- Both original source-control jobs passed 307 tests. The current native groups remain separately observed until their original terminal results arrive.
+- Both original source-control jobs passed 307 tests. Both complete original native jobs passed all 14 groups, 581 tests each. Both cold reports passed 11 outer checks, 5049 nested checks and 38 phases under the unchanged 180+3-second budget; their actual wall times were 114.891022179 and 125.604975686 seconds. Language qualification passed 1242 checks plus 10 separate assertions in each run. All 635 exported files (634 contract sources plus the contract itself) were matched to the fixed Git tree.
 - The original C0/C1 compiler extension qualified its registered finite domain: 2 old source images preserved byte for byte, 18 old native observations, 4 old refusal observations, 5 new-source admission deltas and 64 complete new-program observations. The 200 projection observations are separately counted.
 - The local proof covers 25 typed-subject obligation instances, representing 8 distinct query hashes. Fresh replay does not increase that count. The original four-claim Agent gate remains HOLD.
-- The same Runtime/Hepta pair completed both real stdio MCP/OpenSSH/systemd/native-helper/consumer runs. Their retained report has 10 successful checks, 39 scripted HIA calls covering 11 tools, and 4 MCP sessions. The complete Runtime evidence is being archived separately.
+- The same Runtime/Hepta pair completed both real stdio MCP/OpenSSH/systemd/native-helper/consumer runs. Their retained report has 10 successful checks, 39 scripted HIA calls covering 11 tools, and 4 MCP sessions. The complete 64,587,283-byte original push artifact is preserved as 16 exact raw parts in the [Runtime evidence branch](https://github.com/TrillionniumFoundation/hepta-runtime/tree/55e2621028fa0848b90a45fbba2fb0a1bcb56af4/review-evidence/hia-common-candidate-20261111-1ac5), alongside both runs' complete original reports and audits.
 - The worker's JSON adapter, durable journal and service policy remain hosted Python. The selected helpers and generated consumer programs execute actual HIA machine code. There is no complete pure-native-worker, production-activation, fresh-model or net-performance-gain claim.
 
 ## Retained original observations
@@ -27,6 +27,7 @@ The code changes are reviewed in [Hepta PR #890](https://github.com/Trillionnium
 | --- | --- |
 | [bindings](bindings/) | Original 139-test and successor 146-test complete job logs and exact GitHub artifact ZIPs. |
 | [initial-2ccedfe5](initial-2ccedfe5/INDEX.json) | The first candidate's two real installed-worker fixture failures, successful cold/language stages, all four full job logs, process-owner records and losslessly compressed original reports. These results are not transferred to the successor. |
+| [final-8dae9d0b](final-8dae9d0b/INDEX.json) | Both complete original Core/native runs, source and image byte audits, cold/language/owner reports and exact per-group counts. |
 | [upgrade](upgrade/INDEX.json) | Complete original compiler-extension artifact, independent read-only audit, raw member manifest, source bindings, original qualification and domain reports. |
 | [checker](checker/) | Recovered local checker/proof observations and explicit limits on unavailable early logs. |
 | [local-overlay](local-overlay/) | Local 68-test run plus exact patched blob identities; source-qualified CI is recorded separately. |
