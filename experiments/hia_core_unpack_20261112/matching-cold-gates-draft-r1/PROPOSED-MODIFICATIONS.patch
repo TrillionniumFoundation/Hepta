@@ -1,0 +1,165 @@
+--- a/.github/workflows/hia-core.yml
++++ b/.github/workflows/hia-core.yml
+@@ -119,6 +119,7 @@
+               'tests.test_hia_machine_elf_native.MachineElfSourceTests',
+               'tests.test_hia_core_lowering_native.CoreLoweringSourceTests',
+               'tests.test_hia_core_unpack_native.UnpackCompositionSourceTests',
++              'tests.test_hia_core_unpack_gates',
+               'tests.test_hia_compiler_owner_gates',
+           )
+           result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromNames(names))
+@@ -498,6 +499,20 @@
+             --evidence-dir "$RUNNER_TEMP/hia-machine-elf-callers-evidence" \
+             --process-evidence "$RUNNER_TEMP/hia-machine-elf-callers-owner" \
+             --output "$RUNNER_TEMP/hia-machine-elf-caller-gate.json"
++      - name: Matching-cold UNPACK with the original complete Core116
++        run: |
++          set -eu
++          python -B tools/qualify_hia_core_unpack_ci.py owned-callers \
++            --cold-report "$RUNNER_TEMP/hia-cold.json" \
++            --evidence-dir "$RUNNER_TEMP/hia-core-unpack-evidence" \
++            --output "$RUNNER_TEMP/hia-core-unpack-callers-admission.json"
++      - name: Complete 18 UNPACK controls and independent two-gate conjunction
++        run: |
++          set -eu
++          python -B tools/qualify_hia_core_unpack_ci.py owned-component \
++            --cold-report "$RUNNER_TEMP/hia-cold.json" \
++            --evidence-dir "$RUNNER_TEMP/hia-core-unpack-evidence" \
++            --output "$RUNNER_TEMP/hia-core-unpack-gates.json"
+       - name: Preserve actual cold failure and stage evidence
+         if: always()
+         uses: actions/upload-artifact@v4
+@@ -545,6 +560,9 @@
+             ${{ runner.temp }}/hia-machine-instructions-gate.json
+             ${{ runner.temp }}/hia-core-lowering-callers-evidence/
+             ${{ runner.temp }}/hia-core-lowering-gate.json
++            ${{ runner.temp }}/hia-core-unpack-evidence/
++            ${{ runner.temp }}/hia-core-unpack-callers-admission.json
++            ${{ runner.temp }}/hia-core-unpack-gates.json
+             ${{ runner.temp }}/hia-machine-elf-component-evidence/
+             ${{ runner.temp }}/hia-machine-elf-component-gate.json
+             ${{ runner.temp }}/hia-machine-elf-callers-evidence/
+--- a/tests/test_hia_core_unpack_native.py
++++ b/tests/test_hia_core_unpack_native.py
+@@ -98,6 +98,17 @@
+     def setUpClass(cls):
+         core_path = os.environ.get('HEPTA_HIA_CORE_LOWERING_DEVELOPMENT_MANIFEST') or os.environ.get(core.SELECTOR)
+         unpack_path = os.environ.get(selection.SELECTOR)
++        cold = os.environ.get('HEPTA_HIA_CORE_UNPACK_COLD_REPORT')
++        matched = os.environ.get('HEPTA_HIA_CORE_UNPACK_MATCHING_CALLER_EVIDENCE')
++        if not core_path and not unpack_path and (cold or matched):
++            if not cold or not matched:
++                raise AssertionError('complete retained UNPACK needs both matching-cold evidence inputs')
++            from tools import hia_core_unpack_gates as gates
++            context = gates.cold_inputs(Path(cold))
++            actual = gates.inspect_all(Path(matched), Path(cold), context)
++            binding = gates.component_binding(actual['callers'])
++            core_path = binding['Core39']['bundle_files'][0]['path']
++            unpack_path = binding['UNPACK']['files'][0]['path']
+         if not core_path or not unpack_path:
+             raise unittest.SkipTest('requires explicit paired Core and UNPACK manifests')
+         cls.core_manifest = Path(core_path).resolve(strict=True)
+@@ -110,7 +121,8 @@
+             temporary = tempfile.TemporaryDirectory(prefix='unpack-composition-')
+             cls.addClassCleanup(temporary.cleanup)
+             cls.folder = Path(temporary.name)
+-        cls.owner = core.installed_core_lowering(cls.core_manifest, vars(backend))
++        with patch.dict(os.environ, {selection.SELECTOR: str(cls.unpack_manifest)}):
++            cls.owner = core.installed_core_lowering(cls.core_manifest, vars(backend))
+         if cls.owner.unpack is None:
+             raise AssertionError('paired explicit Core admission lost the UNPACK owner')
+         cls.companion = cls.owner.unpack
+--- a/tools/hia_compiler_owner_gates.py
++++ b/tools/hia_compiler_owner_gates.py
+@@ -588,7 +588,7 @@
+             'abi_file': source_record(ABI_SOURCE, context)}
+ 
+ 
+-def inspect_core_observations(evidence, context, component):
++def inspect_core_observations(evidence, context, component, *, unpack_manifest=None):
+     fixture = Path(evidence) / 'component-fixture'
+     case = fixture / 'installed-control'
+     expected = json_file(case / 'expected.json')
+@@ -599,10 +599,17 @@
+     require(expected.get('python') == py
+             and expected.get('resources') == {name: context['source_manifest'][name] for name in resources}
+             and type(expected.get('document')) is dict, 'installed Core input inventory differs')
++    installed_arguments = [component['bundle_files'][0]['path'], case / 'expected.json']
++    if unpack_manifest is not None:
++        from tools.hia_core_unpack_gates import companion_build
++        companion = companion_build(Path(unpack_manifest).parent, context)
++        require(companion['files'][0]['path'] == str(Path(unpack_manifest).resolve(strict=True)),
++                'explicit installed companion is not the admitted matching-cold manifest')
++        installed_arguments.append(companion['files'][0]['path'])
+     package = installed_package(case, context, resources, 'installed-child.py',
+         literal_script(OWNERS['core']['module'], name='INSTALLED_CHILD'),
+         ('wheel-build', 'wheel-install', 'installed-execution'),
+-        [component['bundle_files'][0]['path'], case / 'expected.json'])
++        installed_arguments)
+     observed = json_file(case / 'report.json')
+     require(observed == json_file(case / 'installed-execution.stdout')
+             and observed.get('status') == 'INSTALLED_CORE_LOWERING_PASS'
+@@ -987,7 +994,7 @@
+             'each_group_claimed_to_cover_every_mode': False}
+ 
+ 
+-def inspect_core_callers(evidence, context, expected):
++def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None):
+     from hepta.hia_core_lowering_selection import ABI_SOURCE, checked_abi
+     from tools.qualify_hia_core_lowering_callers import COMPONENT_IDS, ORIGINAL_COMPONENT_IDS
+     evidence = Path(evidence).resolve(strict=True)
+@@ -1037,7 +1044,8 @@
+             'Core original caller bundle input bytes differ')
+     abi = checked_abi((ROOT / ABI_SOURCE).read_bytes())
+     counters = validate_core_steps(report, builds, abi)
+-    runtime = inspect_core_observations(evidence, context, builds['component'])
++    runtime = inspect_core_observations(evidence, context, builds['component'],
++                                        unpack_manifest=unpack_manifest)
+     return {'owner': 'core', 'gates': {name: True for name in OWNERS['core']['gates']},
+             'producer_report': file_record(evidence / 'report.json'), 'groups': expected,
+             'actual_builds': builds, 'native_observations': counters, 'component_runtime': runtime,
+--- a/tools/hia_selfhost_contract.py
++++ b/tools/hia_selfhost_contract.py
+@@ -19,6 +19,13 @@
+     'tools/hia_core_unpack_transaction.S',
+     'tools/build_hia_core_unpack.py',
+     'tools/qualify_hia_core_unpack_callers.py',
++    'tools/hia_core_unpack_gates.py',
++    'tools/qualify_hia_core_unpack_ci.py',
++    'tools/hia_core_unpack_controls/finite_controls.py',
++    'tools/hia_core_unpack_controls/finite_launcher.py',
++    'tests/test_hia_core_unpack_gates.py',
++    'docs/HIA_CORE_UNPACK_QUALIFICATION_GATES.json',
++    'experiments/hia_native_successor_runner_20261111/run_hia_qualification_v10.py',
+     'tests/test_hia_core_unpack_native.py',
+     'tests/fixtures/hia_core_lowering_native_before_unpack.py.txt',
+     'tests/fixtures/hia_core_unpack_core39.json',
+@@ -746,6 +753,28 @@
+             'new_source_window_controls_executed': False,
+             'whole_native_delivery_qualified': False,
+         },
++        'matching_cold_core_unpack_qualification_requirements': {
++            'reader': 'tools/hia_core_unpack_gates.py',
++            'ci_adapter': 'tools/qualify_hia_core_unpack_ci.py',
++            'full_runner': 'experiments/hia_native_successor_runner_20261111/run_hia_qualification_v10.py',
++            'old_mandatory_gates_preserved': 30,
++            'additional_mandatory_gates': 2,
++            'complete_component_groups': [4, 6, 8],
++            'complete_component_methods': 18,
++            'finite_control_source_preserved_exactly': True,
++            'composition_source_methods': 2,
++            'composition_native_methods': 6,
++            'original_complete_caller_groups': [15, 51, 50],
++            'same_cold_B3_Core39_and_UNPACK_required': True,
++            'both_gates_require_complete116_and_composition': True,
++            'phase_qualification_seconds': 180,
++            'phase_cleanup_seconds': 3,
++            'separate_product_owners': 2,
++            'runtime_version': '3.14.4',
++            'development_capsule_accepted': False,
++            'CPython_object_runtime_still_hosted': True,
++            'current_source_matching_cold_pass_claimed': False,
++        },
+         'explicit_core_unpack_companion': {
+             'source': 'examples/hia_bootstrap/core_unpack.hiaasm',
+             'abi_source': 'hepta/hia_core_unpack_abi.json',

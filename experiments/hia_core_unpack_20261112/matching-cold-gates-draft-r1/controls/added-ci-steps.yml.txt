@@ -1,0 +1,14 @@
+      - name: Matching-cold UNPACK with the original complete Core116
+        run: |
+          set -eu
+          python -B tools/qualify_hia_core_unpack_ci.py owned-callers \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-core-unpack-evidence" \
+            --output "$RUNNER_TEMP/hia-core-unpack-callers-admission.json"
+      - name: Complete 18 UNPACK controls and independent two-gate conjunction
+        run: |
+          set -eu
+          python -B tools/qualify_hia_core_unpack_ci.py owned-component \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-core-unpack-evidence" \
+            --output "$RUNNER_TEMP/hia-core-unpack-gates.json"

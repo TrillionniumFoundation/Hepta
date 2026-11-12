@@ -1,0 +1,10 @@
+[
+  [
+    "        if not core_path or not unpack_path:\n            raise unittest.SkipTest('requires explicit paired Core and UNPACK manifests')\n",
+    "        cold = os.environ.get('HEPTA_HIA_CORE_UNPACK_COLD_REPORT')\n        matched = os.environ.get('HEPTA_HIA_CORE_UNPACK_MATCHING_CALLER_EVIDENCE')\n        if not core_path and not unpack_path and (cold or matched):\n            if not cold or not matched:\n                raise AssertionError('complete retained UNPACK needs both matching-cold evidence inputs')\n            from tools import hia_core_unpack_gates as gates\n            context = gates.cold_inputs(Path(cold))\n            actual = gates.inspect_all(Path(matched), Path(cold), context)\n            binding = gates.component_binding(actual['callers'])\n            core_path = binding['Core39']['bundle_files'][0]['path']\n            unpack_path = binding['UNPACK']['files'][0]['path']\n        if not core_path or not unpack_path:\n            raise unittest.SkipTest('requires explicit paired Core and UNPACK manifests')\n"
+  ],
+  [
+    "        cls.owner = core.installed_core_lowering(cls.core_manifest, vars(backend))\n",
+    "        with patch.dict(os.environ, {selection.SELECTOR: str(cls.unpack_manifest)}):\n            cls.owner = core.installed_core_lowering(cls.core_manifest, vars(backend))\n"
+  ]
+]

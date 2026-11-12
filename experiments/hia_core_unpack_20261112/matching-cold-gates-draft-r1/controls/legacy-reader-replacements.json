@@ -1,0 +1,22 @@
+[
+  [
+    "def inspect_core_observations(evidence, context, component):",
+    "def inspect_core_observations(evidence, context, component, *, unpack_manifest=None):"
+  ],
+  [
+    "    package = installed_package(case, context, resources, 'installed-child.py',\n",
+    "    installed_arguments = [component['bundle_files'][0]['path'], case / 'expected.json']\n    if unpack_manifest is not None:\n        from tools.hia_core_unpack_gates import companion_build\n        companion = companion_build(Path(unpack_manifest).parent, context)\n        require(companion['files'][0]['path'] == str(Path(unpack_manifest).resolve(strict=True)),\n                'explicit installed companion is not the admitted matching-cold manifest')\n        installed_arguments.append(companion['files'][0]['path'])\n    package = installed_package(case, context, resources, 'installed-child.py',\n"
+  ],
+  [
+    "        [component['bundle_files'][0]['path'], case / 'expected.json'])",
+    "        installed_arguments)"
+  ],
+  [
+    "def inspect_core_callers(evidence, context, expected):",
+    "def inspect_core_callers(evidence, context, expected, *, unpack_manifest=None):"
+  ],
+  [
+    "    runtime = inspect_core_observations(evidence, context, builds['component'])",
+    "    runtime = inspect_core_observations(evidence, context, builds['component'],\n                                        unpack_manifest=unpack_manifest)"
+  ]
+]
