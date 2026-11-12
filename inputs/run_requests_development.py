@@ -20,9 +20,9 @@ import zlib
 from source_custody import digest, wire, write, safe, metadata, files, admit_git_snapshot
 from workflow_process import run_workflow_step
 
-BASE = '64f67ae897c3cb49d45a1e1a4622db974812e3fe'
-TREE = 'b7cf3502931d5fae8f58444b0af04cc642414a4a'
-PARENT = '4b19af89a766593f7d5f1cc2db256e81aba7afcb'
+BASE = '65ceb711e47548f85ecf6b2ec2ae90f11dd50743'
+TREE = '49a48cef565b78d0a353822026ec525789768840'
+PARENT = '64f67ae897c3cb49d45a1e1a4622db974812e3fe'
 COMPILER = '81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
 COMPILER_PACKET = 'df542582525e52f7855f2746ae9dc7501f6835e41aa46b209e59f2e121177b8b'
 NEW_SELECTORS = (
@@ -32,7 +32,13 @@ NEW_SELECTORS = (
     'tests.test_hia_proof_contract_native.ProofContractSourceTests.test_core_and_mechanism_roles_have_exact_provider_edges',
     'tests.test_hia_service_context_builder.ServiceContextAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope',
     'tests.test_hia_service_emission_builder.ServiceEmissionAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope',
-    'tests.test_hia_service_verification_builder.ServiceVerificationAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope')
+    'tests.test_hia_service_verification_builder.ServiceVerificationAdapterTests.test_held_service_selection_does_not_change_default_core_checker_scope',
+    'tests.test_hia_joint_owner_integration.JointOwnerIntegrationSourceTests')
+COMPATIBILITY_SELECTORS = (
+    'tests.test_hia_native_build_native.NativeBuildSourceTests',
+    'tests.test_hia_native_byte_abi_native.NativeByteABISourceTests',
+    'tests.test_hia_proof_contract_native.ProofContractSourceTests',
+    'tests.test_hia_service_verification_native.ServiceVerificationSourceTests')
 GENERATED = frozenset(('examples/hia_bootstrap/service_requests.hiaasm',
     'hepta/hia_service_requests_foreign.py','docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json',
     'docs/HIA_SELFHOST_CORE_SUPPORT.json'))
@@ -72,7 +78,7 @@ def source_packet(inputs):
     if len(raw)!=index['wrapper']['bytes'] or digest(raw)!=index['wrapper']['sha256']:
         raise ValueError('source wrapper differs')
     value = json.loads(unpack(json.loads(raw)))
-    if value['base_commit']!=BASE or value['base_tree']!=TREE or len(value['base_manifest'])!=3255:
+    if value['base_commit']!=BASE or value['base_tree']!=TREE or len(value['base_manifest'])!=3257:
         raise ValueError('source packet base differs')
     return value
 
@@ -173,7 +179,7 @@ def main():
     work=args.workspace.absolute(); work.mkdir(mode=0o700,exist_ok=False)
     (work/'snapshots').mkdir()
     before_inputs=files(inputs)
-    report={'schema':'hia.requests.actual-interpreter-development.v81.r1','status':'STARTED',
+    report={'schema':'hia.requests.actual-interpreter-development.v81.r2','status':'STARTED',
         'python':sys.version,'profile':args.profile,'commands':[],
         'current_source_cold':False,'whole_native':False,'production_activated':False,
         'original_work_limit_seconds':1800,'original_compiler_limit_seconds':20}
@@ -210,7 +216,11 @@ def main():
             groups=[]
             groups.append(run_group(source,inputs,work,report,'source-controls',
                 [str(inputs/'run_controls.py'),'--source',str(source),
-                 '--output',str(work/'source-control-observations'),'--expected','34',*NEW_SELECTORS],environment))
+                 '--output',str(work/'source-control-observations'),'--expected','40',*NEW_SELECTORS],environment))
+            groups.append(run_group(source,inputs,work,report,'changed-compatibility-source-controls',
+                [str(inputs/'run_controls.py'),'--source',str(source),
+                 '--output',str(work/'changed-compatibility-source-observations'),'--expected','27',
+                 *COMPATIBILITY_SELECTORS],environment))
             built=run_group(source,inputs,work,report,'actual-build',
                 ['tools/build_hia_service_requests.py','--compiler',str(compiler),
                  '--output',str(work/'image'),'--development'],environment)

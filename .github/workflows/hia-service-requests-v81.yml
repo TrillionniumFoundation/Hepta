@@ -1,7 +1,7 @@
 name: Exact eight-body service requests development
 on:
   push:
-    branches: [codex/hia-service-requests-v81-r1-20261112-dda7]
+    branches: [codex/hia-service-requests-v81-r2-20261112-dda7]
 permissions:
   contents: read
 jobs:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/Hepta
-          ref: 64f67ae897c3cb49d45a1e1a4622db974812e3fe
+          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
           path: base
           persist-credentials: false
           fetch-depth: 1
@@ -43,6 +43,7 @@ jobs:
             ${{ runner.temp }}/requests-native314
             harness/inputs
             harness/README.md
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
   default311:
@@ -61,7 +62,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: TrillionniumFoundation/Hepta
-          ref: 64f67ae897c3cb49d45a1e1a4622db974812e3fe
+          ref: 65ceb711e47548f85ecf6b2ec2ae90f11dd50743
           path: base
           persist-credentials: false
           fetch-depth: 1
@@ -80,5 +81,6 @@ jobs:
             ${{ runner.temp }}/requests-default311
             harness/inputs
             harness/README.md
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 90

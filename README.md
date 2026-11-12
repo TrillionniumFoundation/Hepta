@@ -1,23 +1,23 @@
-# Independent eight-body requests development
+# Requests R2 actual interpreter development
 
-This branch contains a finite development harness, not the product branch.
-It admits the exact published 64f67 commit/tree/parent and all 3255 real Git
-source blobs before applying a frozen complete-source delta. No old production
-file is deleted. No fake Git metadata is created in the exported test source.
+This independent harness checks out the real published 65ceb711 source and
+verifies all 3257 Git paths, modes, bytes, commit, tree and parent before applying
+the complete frozen Requests R2 delta. No old production path is deleted.
 
-The native job records actual CPython 3.14.4 and unchanged prerequisite versions.
-It generates the two request component assets, regenerates the existing source
-inventory, and runs the complete 34 source/adapter/qualifier/registration controls,
-11 actual native controls, the original Agent 48, namespace 35 and ledger 48
-caller groups. Their original numerical budgets, 20-second compiler limit,
-1800-second group limit, original byte guards and ordered IDs remain intact.
-The original namespace/ledger budget failures are not suppressed.
+R2 composes the original eight Requests bodies with the published GLOBAL repair,
+explicit source/install registration and four lazy fixed-port import changes.
+Actual Python 3.14.4 runs all 40 source controls, 27 source controls for the four
+changed compatibility modules (one overlaps the 40), the original 11 native component
+controls, a fresh build under 20 seconds, and unchanged original 48/35/48 callers.
+Actual Python 3.11 runs the original eight default callers and an exact native
+ABI refusal check with real entry/effect observations. Original 1800-second work
+limits and all inner business budgets are preserved. Failures do not skip later
+caller groups. Hidden source files are included in both retained artifacts.
 
-The separate actual Python 3.11 job checks default imports and examples, the
-original eight artifact callers, and explicit unsupported-native ABI refusal
-before any request business effect. It does not assert Python 3.11 native support.
+R1 failures remain recorded in run 43304848915: namespace 33/35 and ledger 45/48
+on actual 3.14.4; default original eight errors and a separate harness message
+predicate failure on actual 3.11.18. No R1 result is transferred to R2.
 
-All raw failures, actual machine-return observations, source snapshots, compiler
-receipts and custody guards are retained. A run does not transfer qualification
-to any other source tree, combined owner graph, current-source cold build,
-installed default service or whole native product. Whole closure remains false.
+This is component development evidence. Current-source cold bootstrap, complete
+installed replacement, default native activation and whole-native closure are
+not claimed. The old production tree and exact original test bodies remain.
