@@ -79,3 +79,13 @@ Evaluation-local for-loop exhaustion/break/continue/else control and iterator
 retirement. Original nine bodies, shared compilers, prior tests and limits are
 unchanged. The separate pre/post helper-binding hypothesis remains unfixed so
 this run can observe it on an actual native image before a later correction.
+
+## R5 independent actual-source follow-up
+
+The preceding sections are immutable historical descriptions. R3 run43276697184 completed all generators, observed 8/8 Native, and retained the 24 helper matrix (14 equal / 10 differing). Source discovery and Agent collection had nine incorrect new qualifier ID literals; namespace35 and ledger48 each had two genuine pre-encoding budget failures, and both native-timeout cases passed. The full original artifact and log are preserved in custody ad58c1f14c99c23bbc482656f90c055cd6bf1c1f.
+
+The current 26-file R5 source fixes definition-time helper anchors, records the original store definition before service import, and preserves existence-first GLOBAL semantics. Metadata comes only from original definitions. The qualifier corrects the nine ID literals without changing any original method or deadline. The original nine bodies have no with/try/finally regions; unreviewed regions are explicitly refused during authoring. General region semantics are not inferred.
+
+R4 additionally exposed 10 real import-module-retirement differences in 18 original native/oracle observations. Their full original record is aa45730f1561fa30fa67f2ba32f658224e6daac1. The Evaluation-only author now accepts exactly the two reviewed full IMPORT_FROM port definitions and emits the version which moves its module formal to the interpreter stack before importing. Shared Build/Core/Byte/Verification inputs are unchanged.
+
+Local CPython3.12.14 independently passed 47 Source/Adapter/resource controls and all 12 Native controls, including the original 24 helper observations, 12 fresh store-before-service import routes, eight original loop lifetime comparisons and 18 original import-lifetime observations. These results do not qualify CPython3.14.4. This new workflow reexecutes the full source group, original external24, all12 Native methods and the separate original48/35/48 groups. Original compile20, ordinary1800 and internal deadlines remain unchanged. No source/cold/default qualification is inherited from the development dependency or any earlier run.
