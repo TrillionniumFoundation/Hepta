@@ -1,0 +1,84 @@
+{
+  "schema": "hia.actions.small-original-log-supply-draft.v1",
+  "status": "DRAFT_UNEXECUTED_AWAITING_ACTUAL_SMALL_ARTIFACT_PINS",
+  "original_small_run": 43128015294,
+  "original_small_attempt": 1,
+  "original_small_workflow_commit": "2c26958e14e5b84e03c02811a4f081dd9adc3ac1",
+  "original_control_commit": "4126571681bfcbee2dbc65cc71d844e16dbae19c",
+  "original_policy_sha256": "26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df",
+  "artifact_id": null,
+  "zip_bytes": null,
+  "zip_sha256": null,
+  "final_original_sha256": null,
+  "artifact_external_pins_must_be_supplied": true,
+  "old_large_artifacts_downloaded": false,
+  "source_or_product_executed": false,
+  "original_large_artifact_ids": [
+    13901601239,
+    13900618647
+  ],
+  "target_paths": [
+    "hia-machine-elf-caller-gate.json",
+    "hia-machine-elf-callers-evidence/report.json",
+    "hia-machine-elf-callers-owner/run-result.json",
+    "hia-machine-elf-callers-owner/process-owner.json",
+    "hia-machine-elf-callers-owner/stdout.log",
+    "hia-machine-elf-callers-owner/stderr.log",
+    "hia-machine-elf-callers-owner/process-owner.json.stdout.log",
+    "hia-machine-elf-callers-owner/process-owner.json.stderr.log"
+  ],
+  "validation": [
+    "external complete small ZIP size/SHA",
+    "complete safe <=65 flat-member inventory",
+    "all FINAL captured bytes/SHA and exact fixed source-path inventory",
+    "two selected-originals.zip complete member CRC/SHA if complete markers are present",
+    "explicit partial raw fallback and preserved original HOLD",
+    "independent full original ZIP readback and source/control identities",
+    "900/3 natural guardian before token-free framing"
+  ],
+  "limits": {
+    "outer_owner_seconds": 900,
+    "cleanup_seconds": 3,
+    "max_public_payload_bytes": 503316480,
+    "max_frame_data_bytes": 8388608,
+    "frame_bytes": 24576,
+    "max_stdout_bytes": 12582912
+  },
+  "frame": {
+    "prefix": "HIA_ORIGINAL_FRAME_V1",
+    "encoding": "base64",
+    "fields": [
+      "path",
+      "offset",
+      "length",
+      "sha256",
+      "base64"
+    ],
+    "file_manifest_fields": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "complete_terminal_required": true
+  },
+  "dispatch_requested": false,
+  "original_operation_status_observed": "QUEUED_NO_STEPS_AT_2026-11-12T00:45:14Z",
+  "implemented_sources": {
+    "worker": {
+      "bytes": 29235,
+      "sha256": "2a339449d9ab461ad3d349ee8b2801e2dfd714fb51c144a121cc158851166f93",
+      "git_blob_sha1": "77fe753ffcc097fa45389be0968279d7c966c544"
+    },
+    "controller": {
+      "bytes": 30786,
+      "sha256": "552355c5697b936f4db2201ca9bc2f43c2c64d943a288c7a1984bb5f5eb1e94c",
+      "git_blob_sha1": "ed5d1ecf11790449b25b0bf047e10d0827ae17d7"
+    }
+  },
+  "planned_frame_target_count": 23,
+  "extra_control_original_count_maximum": 5,
+  "partial_custody_rule": "Original CUSTODY_HOLD remains explicit; use independently verified captured raw files when complete selected archive is unavailable. A new reader failure is FRAMING_HOLD. No source/product result is reclassified.",
+  "final_end_rule": "Terminal frame is printed only after all raw source SHA/readbacks, source inventory after-read and the new receipt fsync/readback.",
+  "no_current_run_modified": true,
+  "old_workflow_commit": "2c26958e14e5b84e03c02811a4f081dd9adc3ac1"
+}
