@@ -1,72 +1,27 @@
-# HIA Core
+# Isolated service verification development
 
-Typed abstract assembly and structured Core for AI agents. HIA checks explicit
-control flow, types, capabilities, ownership and borrowed resources before
-machine-code generation. There is no high-level source language or migration
-frontend in this tree.
+This harness checks the exact 4b19af89a766593f7d5f1cc2db256e81aba7afcb commit, tree,
+parent, and all 3153 original Git blobs and modes before applying the frozen
+40-path cumulative verification source. The reconstructed 3185-file inventory
+must match its complete source packet before any development-only literal source
+registration. Only the support contract is regenerated after those declarations.
 
-## Agent entry
+The target is actual CPython 3.14.4 on Ubuntu 24.04 x86-64, with real Clang 20,
+GNU ld, Z3 4.15.4.0, jsonschema 4.26.0 and the other explicitly pinned workflow
+dependencies. The actual retained 81b6 B3 is restored from exact bytes and used
+only as a DEVELOPMENT compiler, with the original 20-second child limit.
 
-```sh
-python -m pip install .
-hia capabilities
-hia check-assembly examples/hia_bootstrap/bytesum.hiaasm
-hia verify examples/hia_program/counter.hia
-```
+The 43 frozen Source/Adapter/Native controls include real SQLite/public proofs,
+held image/manifest/source custody, ordinary and mapping call lifetimes, actual
+claim/ACK loss, complete VM/native frames, and a real installed wheel. Their
+240-second group and the original source-owned Agent48 1800-second group remain
+separate. Failure or timeout in the component group is recorded and does not
+prevent the original Agent group from running, provided source custody remains
+intact. Any failed command makes the final result fail; no original test limits,
+assertions, test definitions, or anomalous outcomes are relaxed or skipped.
 
-The `hia` entry is currently a Python-hosted bridge. The independently built
-HIA-native stdio application supports `capabilities`, `verify`, `compile`,
-`render-assembly` and direct HIA-source `assemble` on
-Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
-The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
-snapshot-bound edits with native whole-Core checks of both base and candidate.
-The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
-constructs the complete diagnostic bytes. Its explicit ordinary Agent route
-consumes and stores opaque payload bytes, preserving the existing request journal.
-An explicitly selected [native nominal type session](docs/HIA_COMPOSITE_TYPES_NATIVE.md)
-owns declaration checks, generic binding, finite layouts and partial-record
-obligations for all four composite versions, source-level returned-loan origins,
-parameter admission and task-protocol checks. A separately selected
-[native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. Two explicit
-native nominal routes are retained during integration: the
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) and
-the [individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md).
-The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-moves constructor admission, ordered signatures, complete function/helper
-aggregation, late limits, exports and primitive schema selection into HIA.
-An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
-owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
-admission. Separate native request journal and execution budget owners retain
-the existing service's transaction and foreign-resource boundaries.
-The [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) checks and
-publishes a bounded immutable release from an operator-pinned bundle.
-Default selection and whole-stack delivery remain unqualified; the old owners
-are retained until the corresponding complete replacement is qualified.
-Full native Agent editing/persistence, modules/build, runtime and installation
-acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
-the Agent entry. Standalone Core research backends remain explicitly scoped.
-
-## Source and native qualification
-
-```sh
-python -B tools/check_hia_core_only.py
-python -B tools/generate_hia_selfhost_contract.py --check
-python -B tools/replay_hia_selfhost_cold.py --output /var/tmp/NEW-hia-cold.json
-python -B tests/test_hia_selfhost_language_coverage.py --output /var/tmp/NEW-hia-language.json
-```
-
-Cold qualification preserves original and modified-source native fixed points,
-independent reference controls and resource refusal witnesses. Source contracts
-are identities, not correctness or release approvals. Old high-level-specific
-CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
-
-Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current audit, implementation and remaining owners](docs/HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md).
-Earlier source-bound observations remain in the [rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
-The selected [native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md) produces
-complete match control flow; other nominal operations remain separate owners.
-The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) implements
-explicit status, compare-and-swap activation and previous-version rollback for
-verified immutable releases. Ordinary CLI/service migration remains open.
-Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).
+All source, consumed compiler/image/manifest/receipt, harness input identities,
+before/after observations, original raw output and the full development source
+export are retained. This is not current-source cold qualification, default
+native activation, all-input equivalence, whole-stack closure, live deployment,
+or authorization to delete retained reference owners.
