@@ -1,0 +1,259 @@
+
+def amended(checked,version=3,**changes):
+ result=plan_for(checked,version);result.update(changes);return result
+def shape_group(s):
+ doc=program(scalar_function())
+ roots=[None,True,0,0.0,"{}",b"{}",[],(),DictSubclass()]
+ for i,value in enumerate(roots):s.exact("top-exact-type-"+str(i),doc,lambda c,v=value:v,1)
+ for i,value in enumerate((None,True,1,{},[],"","future","HEPTA.HIA.AGENT.MACHINE-PLAN.V3")):
+  s.exact("unknown-schema-"+str(i),doc,lambda c,v=value:amended(c,schema=v),3)
+
+def field_group(s):
+ doc=program(scalar_function())
+ for version in range(1,5):
+  s.exact("version-"+str(version),doc,lambda c,v=version:plan_for(c,v))
+  for key in (("schema","core_sha256","block_order") if version==1 else
+      ("schema","core_sha256","block_order","function_order","scratch_registers","instruction_selection","function_alignment")
+        +(("value_registers",) if version>=3 else ())):
+   def missing(c,key=key,v=version):
+    result=plan_for(c,v);del result[key];return result
+   s.exact("v"+str(version)+"-missing-"+key,doc,missing,3 if key=="schema" else 4)
+  s.exact("v"+str(version)+"-extra",doc,lambda c,v=version:amended(c,v,unreviewed=0),4)
+
+def hash_group(s):
+ doc=program(scalar_function())
+ for i,value in enumerate((None,False,0,{},[],"","0"*64,"A"*64)):
+  s.exact("different-Core-"+str(i),doc,lambda c,v=value:amended(c,core_sha256=v),5)
+
+def choice_group(s,variant):
+ doc=program(scalar_function("z"),function("a"));rows=[]
+ for move,alu,align,swap,order in itertools.product(("movabs","mov32_if_exact"),
+       ("imm32","imm8_if_exact"),(1,16,32,64),(False,True),(False,True)):
+  rows.append((2,move,alu,align,swap,order,"branch"))
+ for version in(3,4):
+  for move,alu,align,swap,select in itertools.product(("movabs","mov32_if_exact"),
+       ("imm32","imm8_if_exact"),(1,16,32,64),(False,True),("branch","cmov_scalar")):
+   rows.append((version,move,alu,align,swap,False,select))
+ assert len(rows)==192
+ for index,row in list(enumerate(rows))[variant*16:(variant+1)*16]:
+  def make(c,row=row):
+   version,move,alu,align,swap,order,select=row;p=plan_for(c,version)
+   p["instruction_selection"]={"move_immediate":move,"alu_immediate":alu}
+   if version>=3:p["instruction_selection"]["scalar_select"]=select
+   p["scratch_registers"]={"r10":"r11","r11":"r10"} if swap else {"r10":"r10","r11":"r11"}
+   p["function_alignment"]=align
+   if order:p["function_order"].reverse()
+   return p
+  s.exact("complete-reviewed-choice-"+str(index),doc,make)
+
+def block_group(s):
+ doc=program(scalar_function())
+ for i,value in enumerate((None,True,[],"")):
+  s.exact("block-map-kind-"+str(i),doc,lambda c,v=value:amended(c,block_order=v),6)
+ s.exact("v1-empty-block-map",doc,lambda c:amended(c,1,block_order={}),6)
+ s.exact("unknown-block-function",doc,lambda c:amended(c,block_order={"foreign":[]}),7)
+ for i,value in enumerate(([],["entry","entry"],[0],["wrong"],[True])):
+  s.exact("bad-block-permutation-"+str(i),doc,lambda c,v=value:amended(c,block_order={"f":v}),8)
+ for version in range(1,5):s.exact("valid-layout-v"+str(version),doc,lambda c,v=version:plan_for(c,v))
+
+def layout_group(s):
+ doc=s.F.edge_case()
+ for order in itertools.permutations(("entry","loop_block","end")):
+  s.exact("three-block-order-"+"/".join(order),doc,lambda c,o=list(order):amended(c,block_order={"f":o}))
+ for variant in(0,1):
+  two=program(scalar_function("a"),function("z"))
+  def make(c,variant=variant):
+   p=plan_for(c);p["block_order"]={"foreign":[]} if variant==0 else {"a":["wrong"],"foreign":[]}
+   p["function_order"].reverse();return p
+  s.exact("sorted-block-map-first-"+str(variant),two,make,7 if variant==0 else 8)
+ def reverse_insertion(c):
+  p=plan_for(c);p["block_order"]={"z":["entry"],"a":["entry"]};p["function_order"].reverse()
+  return dict(reversed(list(p.items())))
+ s.exact("full-plan-and-block-dict-insertion-reversed",program(scalar_function("a"),function("z")),reverse_insertion)
+ shared=["entry"]
+ s.exact("immutable-alias-block-orders",program(scalar_function("a"),function("z")),
+    lambda c:amended(c,block_order={"a":shared,"z":shared}))
+
+def order_group(s):
+ doc=program(scalar_function())
+ for i,value in enumerate((None,0,{},[],["f","f"],["wrong"],[0],[True])):
+  s.exact("bad-function-permutation-"+str(i),doc,lambda c,v=value:amended(c,function_order=v),9)
+ for i,value in enumerate((None,0,[],{},{"r10":"r10"},{"r10":"r10","r11":"r10"},
+        {"r10":"r11","r11":"rax"},{"r10":1,"r11":"r11"},{"r10":"r10","r11":"r11","rax":"rax"})):
+  s.exact("scratch-not-bijection-"+str(i),doc,lambda c,v=value:amended(c,scratch_registers=v),10)
+
+def invalid_choice_group(s,variant):
+ doc=program(scalar_function());rows=[]
+ for i,value in enumerate((None,{},[],{"move_immediate":"movabs"},
+      {"move_immediate":"movabs","alu_immediate":"imm32"},
+      {"move_immediate":"movabs","alu_immediate":"imm32","scalar_select":"branch","x":0})):
+  rows.append(("shape-"+str(i),11,"instruction_selection",value))
+ for field,code,values in(
+   ("move_immediate",12,(None,True,0,{},[],"xor","MOVABS")),
+   ("alu_immediate",13,(None,False,0,{},[],"truncate","IMM32")),
+   ("function_alignment",14,(True,False,0,-1,2,8,65,4096,1<<100,"16",None)),
+   ("scalar_select",15,(None,True,0,{},[],"cmov","BRANCH"))):
+  for i,value in enumerate(values):rows.append((field+"-"+str(i),code,field,value))
+ assert len(rows)==38
+ for label,code,field,value in rows[variant*19:(variant+1)*19]:
+  def make(c,field=field,value=value):
+   p=plan_for(c)
+   if field in("instruction_selection","function_alignment"):p[field]=value
+   else:p["instruction_selection"][field]=value
+   return p
+  s.exact(label,doc,make,code)
+
+def assignment_group(s):
+ doc=program(scalar_function())
+ for i,value in enumerate((None,True,[],0,"")):
+  s.exact("assignment-map-kind-"+str(i),doc,lambda c,v=value:amended(c,value_registers=v),16)
+ s.exact("all-unknown-keys-before-any-mapping",doc,
+    lambda c:amended(c,value_registers={"f":0,"foreign":{}}),17)
+ s.exact("unicode-unknown-function",doc,lambda c:amended(c,value_registers={"\u03bb":{}}),17)
+ for i,value in enumerate((None,True,[],0,"")):
+  s.exact("per-function-map-kind-"+str(i),doc,lambda c,v=value:amended(c,value_registers={"f":v}),18)
+ for i,reg in enumerate((None,True,0,[],{},"rax","r10","r8","r9")):
+  s.exact("v3-register-domain-"+str(i),doc,lambda c,r=reg:amended(c,value_registers={"f":{"x":r}}),18)
+ s.exact("undefined-SSA",doc,lambda c:amended(c,value_registers={"f":{"missing":"rbx"}}),21)
+ # All keys are checked before per-function mapping, after canonical key sorting.
+ s.exact("unknown-z-before-invalid-known-a",program(scalar_function("a")),
+    lambda c:amended(c,value_registers={"z":{},"a":{"x":"rax"}}),17)
+ s.exact("empty-explicit-map",doc,lambda c:amended(c,value_registers={"f":{}}))
+
+def interval_document():
+ p=[parameter("b","u64"),parameter("a","u64")]
+ ops=[operation("const",out=[parameter("z","u64")],attrs={"value":1}),
+      operation("const",out=[parameter("c","u64")],attrs={"value":2}),
+      operation("int.add.wrap",["z","c"],[parameter("v","u64")])]
+ return program(function("f",p,ops,["u64"],dict(op="ret",values=["v"])))
+def interval_group(s):
+ doc=interval_document()
+ for reg in REGISTERS:
+  s.exact("noninterfering-dead-param-"+reg,doc,
+   lambda c,r=reg:amended(c,4,value_registers={"f":{"a":r,"z":r}}))
+ for label,mapping in(
+   ("same-entry",{"a":"rbx","b":"rbx"}),
+   ("dead-output-clobbers-live-input",{"z":"rbx","c":"rbx"}),
+   ("input-output-inclusive",{"z":"rbx","v":"rbx"}),
+   ("other-input-output-inclusive",{"c":"r15","v":"r15"}),
+   ("register-order-before-name-order",{"a":"r12","b":"r12","z":"rbx","c":"rbx"}),
+   ("reverse-map-insertion",{"v":"rbx","z":"rbx"})):
+  s.exact(label,doc,lambda c,m=mapping:amended(c,4,value_registers={"f":m}),22)
+ # Separate blocks have independent intervals, including branch and backedge arguments.
+ edge=s.F.edge_case()
+ for reg in REGISTERS:
+  s.exact("staged-edges-"+reg,edge,lambda c,r=reg:amended(c,4,
+     block_order={"f":["end","loop_block","entry"]},value_registers={"f":{"a":r,"x":r,"u":r}}))
+ s.exact("original-Core-block-order-first",edge,lambda c:amended(c,4,
+     block_order={"f":["end","loop_block","entry"]},value_registers={"f":{"a":"rbx","b":"rbx","u":"rbx","v":"rbx"}}),
+     22,"E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
+ def tie(c):
+  p=plan_for(c,4);p["value_registers"]={"f":{"b":"rbx","a":"rbx"}};return p
+ s.exact("same-start-lexicographic-tie",doc,tie,22,
+     "E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
+
+LEAF=(
+ "const","int.add.wrap","int.add.checked","int.sub.wrap","int.sub.checked",
+ "int.mul.wrap","int.mul.checked","int.div.checked","int.rem.checked",
+ "int.shl.checked","int.shr.checked","int.neg.checked","int.cast",
+ "bit.and","bit.or","bit.xor","bit.not","compare.eq","compare.ne","compare.lt","compare.le","compare.gt","compare.ge",
+ "bool.and","bool.or","bool.not","select","buffer.len","buffer.load","buffer.store")
+def leaf_document(op):
+ attrs={};outs=["u64"];types_=["u64","u64"]
+ if op=="const":types_=[];attrs={"value":7}
+ elif op in("int.neg.checked","bit.not"):types_=["u64"]
+ elif op=="int.cast":types_=["i64"];outs=["u32"];attrs={"mode":"wrap"}
+ elif op.startswith("compare."):outs=["bool"]
+ elif op.startswith("bool."):types_=["bool"] if op=="bool.not" else ["bool","bool"];outs=["bool"]
+ elif op=="select":types_=["bool","u64","u64"]
+ elif op=="buffer.len":types_=["readbuf"];outs=["usize"]
+ elif op=="buffer.load":types_=["readbuf","usize"];outs=["u8"]
+ elif op=="buffer.store":types_=["mutbuf","usize","u8"];outs=[]
+ p=[parameter("p"+str(i),t) for i,t in enumerate(types_)]
+ out=[parameter("v"+str(i),t) for i,t in enumerate(outs)]
+ params=p+[parameter("marker","u64")]
+ return program(function("f",params,[operation(op,[p["name"] for p in p],out,attrs)],outs,
+   dict(op="ret",values=[x["name"] for x in out]),["alloc","read","trap","write"]))
+def leaf_group(s,variant):
+ assert set(LEAF)==s.plan.LEAF_VALUE_OPS and len(LEAF)==30
+ for i,op in list(enumerate(LEAF))[variant*15:(variant+1)*15]:
+  s.exact("leaf-op-"+str(i)+"-"+op,leaf_document(op),
+    lambda c:amended(c,4,value_registers={"f":{"marker":"r8"}}))
+
+RESOURCES=(
+ ("buffer.new",["usize"],["buffer"]),("buffer.try_new",["usize"],["buffer","bool"]),
+ ("buffer.len",["buffer"],["usize"]),("buffer.len",["readbuf"],["usize"]),("buffer.len",["mutbuf"],["usize"]),
+ ("borrow.read",["buffer"],["readbuf"]),("borrow.read",["readbuf"],["readbuf"]),("borrow.read",["mutbuf"],["readbuf"]),
+ ("borrow.mut",["buffer"],["mutbuf"]),("borrow.mut",["mutbuf"],["mutbuf"]),
+ ("owner.move",["buffer"],["buffer"]),("owner.move",["chain"],["chain"]),
+ ("owner.drop",["buffer"],[]),("owner.drop",["chain"],[]),
+ ("buffer.load",["readbuf","usize"],["u8"]),("buffer.store",["mutbuf","usize","u8"],[]),
+ ("buffer.fill",["mutbuf","u8"],[]),("buffer.copy",["mutbuf","readbuf","usize"],[]),
+ ("buffer.move_within",["mutbuf","usize","usize","usize"],[]),("buffer.swap",["mutbuf","usize","usize"],[]),
+ ("buffer.copy_range",["mutbuf","readbuf","usize","usize","usize"],[]),("buffer.fill_range",["mutbuf","usize","usize","u8"],[]),
+ ("chain.empty",[],["chain"]),("chain.try_push",["chain","buffer"],["chain","buffer","bool"]),
+ ("chain.pop",["chain"],["chain","buffer","bool"]),("chain.is_empty",["chain"],["bool"]),
+ ("chain.head_read",["chain"],["readbuf"]),("chain.head_mut",["chain"],["mutbuf"]))
+def resource_group(s,variant):
+ rows=[]
+ for i,(op,types_,outtypes) in enumerate(RESOURCES):
+  p=[parameter("p"+str(i),t) for i,t in enumerate(types_)]
+  out=[parameter("v"+str(i),t) for i,t in enumerate(outtypes)]
+  d=program(function("f",p+[parameter("marker","u64")],
+     [operation(op,[x["name"] for x in p],out)],term=dict(op="trap",code="user"),
+     effects=["alloc","read","trap","write"]))
+  expected=19 if op not in LEAF else (20 if "buffer" in types_ else None)
+  rows.append(("resource-"+str(i)+"-"+op,d,expected))
+ for borrow,typ in(("borrow.read","readbuf"),("borrow.mut","mutbuf")):
+  d=program(function("f",[parameter("owner","buffer"),parameter("marker","u64")],
+    [operation(borrow,["owner"],[parameter("view",typ)]),operation("loan.end",["view"])],
+    term=dict(op="trap",code="user"),effects=["alloc","read","trap","write"]))
+  rows.append(("loan-end-"+typ,d,19))
+ assert len(rows)==30
+ for label,d,expected in rows[variant*15:(variant+1)*15]:
+  s.exact(label,d,lambda c:amended(c,4,value_registers={"f":{"marker":"r9"}}),expected)
+
+def type_group(s):
+ types_=("u8","u16","u32","u64","i8","i16","i32","i64","usize","isize","bool","unit","buffer","readbuf","mutbuf","chain")
+ for typ in types_:
+  d=program(function("f",[parameter("x",typ),parameter("marker","u64")],
+       term=dict(op="trap",code="user"),effects=["trap"]))
+  s.exact("assigned-definition-type-"+typ,d,
+    lambda c:amended(c,value_registers={"f":{"x":"rbx"}}),None if typ in s.plan.VALUE_TYPES else 21)
+  s.exact("leaf-parameter-type-"+typ,d,
+    lambda c:amended(c,4,value_registers={"f":{"marker":"r8"}}),
+    None if typ in s.plan.VALUE_TYPES|{"readbuf","mutbuf"} else 20)
+ for typ in("u64","unit","buffer","readbuf","mutbuf","chain"):
+  d=program(function("f",[parameter("marker","u64")],returns=[typ],
+       term=dict(op="trap",code="user"),effects=["trap"]))
+  # Borrowed return provenance is required even on a trapping function.
+  if typ in("readbuf","mutbuf"):
+   d["functions"][0]["params"].append(parameter("borrowed",typ))
+   d["functions"][0]["blocks"][0]["params"]=d["functions"][0]["params"]
+   d["functions"][0]["return_loans"]=["borrowed"]
+  s.exact("leaf-return-type-"+typ,d,
+    lambda c:amended(c,4,value_registers={"f":{"marker":"r8"}}),None if typ=="u64" else 20)
+
+def first_error_group(s):
+ d=program(scalar_function());rows=[]
+ def add(label,error,edit):rows.append((label,error,edit))
+ add("schema-before-fields",3,lambda p:p.update(schema="bad",extra=0))
+ add("fields-before-hash",4,lambda p:p.update(core_sha256="",extra=0))
+ add("hash-before-layout",5,lambda p:p.update(core_sha256="",block_order=None))
+ add("layout-before-function",6,lambda p:p.update(block_order=None,function_order=[]))
+ add("function-before-scratch",9,lambda p:p.update(function_order=[],scratch_registers=None))
+ add("scratch-before-choices",10,lambda p:p.update(scratch_registers=None,instruction_selection=None))
+ add("choices-before-alignment",11,lambda p:p.update(instruction_selection={},function_alignment=0))
+ add("move-before-alu",12,lambda p:p["instruction_selection"].update(move_immediate="bad",alu_immediate="bad"))
+ add("alu-before-alignment",13,lambda p:(p["instruction_selection"].update(alu_immediate="bad"),p.update(function_alignment=0)))
+ add("alignment-before-select",14,lambda p:(p["instruction_selection"].update(scalar_select="bad"),p.update(function_alignment=0)))
+ add("select-before-assignments",15,lambda p:(p["instruction_selection"].update(scalar_select="bad"),p.update(value_registers=None)))
+ add("unknown-before-invalid-mapping",17,lambda p:p.update(value_registers={"f":None,"z":{}}))
+ add("wire-before-schema-surrogate",2,lambda p:p.update(schema="bad",extra="\ud800"))
+ add("snapshot-before-schema-float",2,lambda p:p.update(schema="bad",extra=0.0))
+ add("snapshot-before-fields-tuple",2,lambda p:p.update(extra=()))
+ add("snapshot-before-move-subclass",2,lambda p:p["instruction_selection"].update(move_immediate=s.F.InheritedStr("movabs")))
+ for label,error,edit in rows:
+  def make(c,edit=edit):
+   p=plan_for(c);edit(p);return p
+  s.exact(label,d,make,error)

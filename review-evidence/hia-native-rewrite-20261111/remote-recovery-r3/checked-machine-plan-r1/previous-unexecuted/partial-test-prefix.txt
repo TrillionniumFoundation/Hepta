@@ -1,0 +1,265 @@
+"""Actual native snapshot -> GraphWire -> checked-plan continuation differential.
+
+The reference runs first. During native execution its admission/plan functions
+are disabled. Python captures exact object tags and transports only actual HIA
+events; it never supplies a canonical plan, a semantic ACK or an expected result.
+Every actual entry retains all three complete operands before and after in
+losslessly verified page CAS, including actual readonly source and canaries.
+"""
+from pathlib import Path
+from hashlib import sha256
+import argparse,copy,ctypes,itertools,json,resource,signal,stat,struct,sys,time,traceback,types
+sys.dont_write_bytecode=True
+BAD=0xfffffffd
+GROW=0xfffffffe
+MASK=(1<<64)-1
+LIMIT=8<<20
+PLAN_LEASE=17
+CONTROL_LEASE=19
+REQUEST=1
+BUILD_SHA="3e4fc3fae2b8c382956328887eb0bc4fee61dac64c1f808294f7984ee950148b"
+HARNESS_SHA="f4c0a87fc178b52b00afb25903ed597de4c886c6d295829b0b36160c7da4c515"
+FRAME_SHA="b3d590336e647df0804ef51c62b73ca2236abdfe8774161d4fd155cf0a5fbee6"
+PLAN_SHA="ae3e54c4dc3299ba9b6d0a9b4caec55e26f3233e5699d3a0cab7deb1337efb8a"
+CORE_SHA="76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92"
+SCHEMAS=("hepta.hia.agent.block-layout.v1","hepta.hia.agent.machine-plan.v2",
+ "hepta.hia.agent.machine-plan.v3","hepta.hia.agent.machine-plan.v4")
+REGISTERS=("rbx","r12","r13","r14","r15","r8","r9")
+ERRORS=(
+ "plan must be an object","plan requires bounded plain JSON data","unknown plan schema",
+ "plan has missing or unreviewed fields","plan belongs to a different Core","invalid block order map",
+ "unknown function in block order","block order must name every member exactly once",
+ "function order must name every member exactly once","scratch assignment must bijectively rename only r10 and r11",
+ "instruction choices must be explicit and complete","unreviewed immediate move encoding",
+ "unreviewed immediate arithmetic encoding","unreviewed function alignment","unreviewed scalar select encoding",
+ "value_registers must be a function map","unknown function in value register assignment",
+ "value registers must be explicit assignments admitted by this plan version",
+ "caller-clobbered value registers require a leaf opcode whitelist; no calls, swap or allocation/bulk helpers",
+ "leaf registers require scalar/borrowed parameters and scalar returns",
+ "register assignment requires an existing integer or boolean SSA value","interfering values ")
+def magic(s):return int.from_bytes(s.encode("ascii"),"little")
+def digest(raw):return sha256(raw).hexdigest()
+def save(path,value):
+ path.parent.mkdir(parents=True,exist_ok=True)
+ path.write_text(json.dumps(value,sort_keys=True,indent=2,ensure_ascii=True)+"\n")
+def q(raw,at=0):return struct.unpack_from("<Q",raw,at)[0]
+def changed(raw,at,value):
+ out=bytearray(raw);struct.pack_into("<Q",out,at,value);return bytes(out)
+def loaded(name,path,expected):
+ raw=Path(path).read_bytes();assert digest(raw)==expected,(str(path),digest(raw),expected)
+ module=types.ModuleType(name);module.__file__=str(path);sys.modules[name]=module
+ exec(compile(raw,str(path),"exec"),module.__dict__);return module
+def canonical(value):return json.dumps(value,sort_keys=True,separators=(",",":"),ensure_ascii=False,allow_nan=False).encode("utf-8")
+def initial(graph,core_sha,digits,request=REQUEST):
+ head=bytearray(struct.pack("<16Q",magic("HIAMPB01"),1,CONTROL_LEASE,request,
+       PLAN_LEASE,q(graph,24),len(graph),digits,*([0]*8)))
+ head[64:96]=bytes.fromhex(core_sha)
+ return bytes(head)+graph
+def parameter(name,typ):return dict(name=name,type=typ)
+def operation(name,args=(),out=(),attrs=None):return dict(op=name,args=list(args),out=list(out),attrs={} if attrs is None else attrs)
+def function(name="f",params=(),ops=(),returns=(),term=None,effects=(),blocks=None):
+ params=list(params);ops=list(ops);term=dict(op="ret",values=[]) if term is None else term
+ blocks=[dict(id="entry",params=params,ops=ops,term=term)] if blocks is None else blocks
+ return dict(name=name,params=params,returns=list(returns),effects=list(effects),
+             entry=blocks[0]["id"],blocks=blocks)
+def program(*functions):return dict(schema="hepta.hia.program.v8",module="checked_plan",functions=list(functions))
+def scalar_function(name="f"):
+ p=parameter("x","u64")
+ return function(name,[p],returns=["u64"],term=dict(op="ret",values=["x"]))
+def plan_for(checked,version=3):
+ d=checked.as_dict()
+ result=dict(schema=SCHEMAS[version-1],core_sha256=checked.sha256,block_order={})
+ if version==1:result["block_order"]={d["functions"][0]["name"]:[b["id"] for b in d["functions"][0]["blocks"]]}
+ if version>=2:
+  result.update(function_order=[f["name"] for f in d["functions"]],
+   scratch_registers={"r10":"r10","r11":"r11"},
+   instruction_selection={"move_immediate":"movabs","alu_immediate":"imm32"},function_alignment=1)
+ if version>=3:
+  result["instruction_selection"]["scalar_select"]="branch";result["value_registers"]={}
+ return result
+def error_code(text):
+ prefix="E_HIA_MACHINE_PLAN: "
+ assert text.startswith(prefix),text
+ body=text[len(prefix):]
+ for i,value in enumerate(ERRORS,1):
+  if body==value or (i==22 and body.startswith(value)):return i
+ raise AssertionError(("unmapped original error",text))
+def visited(value):
+ count=0;pending=[value]
+ while pending:
+  item=pending.pop();count+=1
+  if type(item) is dict:pending.extend(item.values())
+  elif type(item) is list:pending.extend(item)
+ return count
+class DictSubclass(dict):pass
+class ListSubclass(list):pass
+class IntSubclass(int):pass
+
+class Suite:
+ def __init__(self,args):
+  self.args=args;self.root=Path(__file__).resolve().parents[1];self.out=args.out
+  self.pins={};self.cases=[];self.calls={str(i):0 for i in range(1,6)}
+  self.entries=0;self.admitted=0;self.protocol=0;self.grows={};self.covered_errors=set()
+  self.pure_grows=0;self.wire_grows=0;self.closed=False
+  self.pin(__file__)
+  self.build=loaded("checked_plan_build_reference",self.root/"tools/build_hia_checked_plan.py",BUILD_SHA)
+  self.pin(self.root/"tools/build_hia_checked_plan.py",BUILD_SHA)
+  for name,h in self.build.PINS.items():self.pin(self.root/name,h)
+  frozen={p.resolve():self.pin(p) for prefix in("hepta","tools")
+    for p in sorted((args.reference/prefix).rglob("*.py"))}
+  sys.meta_path.insert(0,self.build.FrozenImports(args.reference,frozen))
+  from hepta import hia_program,hia_machine_plan
+  assert digest(self.pin(Path(hia_program.__file__)))==CORE_SHA
+  assert digest(self.pin(Path(hia_machine_plan.__file__)))==PLAN_SHA
+  self.core=hia_program;self.plan=hia_machine_plan
+  self.verify=hia_program.verify_program;self.validate=hia_machine_plan.validate_plan
+  self.H=loaded("checked_plan_actual_mechanics",self.root/"tests/plan_mechanical_harness.py",HARNESS_SHA)
+  self.F=self.H.F
+  self.pin(self.root/"tests/plan_mechanical_harness.py",HARNESS_SHA)
+  self.pin(self.root/"tests/function_frame_test_reference.py",FRAME_SHA)
+  doc=json.loads(self.pin(args.assets))
+  assert doc["schema"]=="hia-plan-development-runtime-assets-v1"
+  assert set(doc["roles"])=={str(i) for i in range(1,6)}
+  for number,row in doc["roles"].items():
+   m=row["manifest"]
+   assert m["schema"]=="hia-checked-machine-plan-development-component-v1" and m["status"]=="BUILT_ONLY"
+   assert m["role"]==int(number)
+   for kind in("source","image"):
+    raw=self.pin(m[kind+"_path"],m[kind+"_sha256"]);assert len(raw)==m[kind+"_bytes"]
+ def pin(self,path,expected=None):
+  path=Path(path).absolute();info=path.lstat()
+  assert stat.S_ISREG(info.st_mode) and not path.is_symlink()
+  raw=path.read_bytes()
+  if expected is not None:assert digest(raw)==expected,(str(path),digest(raw),expected)
+  if path in self.pins:assert self.pins[path]==(raw,stat.S_IMODE(info.st_mode))
+  else:
+   self.pins[path]=(raw,stat.S_IMODE(info.st_mode))
+   target=self.out/"source"/str(len(self.pins))/path.name;target.parent.mkdir(parents=True)
+   target.write_bytes(raw);target.chmod(stat.S_IMODE(info.st_mode))
+  return raw
+ def guard(self):
+  def forbidden(*args,**kw):raise AssertionError("host plan/Core admission used during actual native continuation")
+  saved=[]
+  for module,name in((self.core,"verify_program"),(self.core,"_decode"),
+      (self.plan,"validate_plan"),(self.plan,"register_assignment_witness")):
+   saved.append((module,name,getattr(module,name)));setattr(module,name,forbidden)
+  return saved
+ def unguard(self,saved):
+  for module,name,value in saved:setattr(module,name,value)
+ def count(self,actual):
+  self.entries+=actual.entries
+  for role,count in actual.calls.items():self.calls[str(role)]+=count
+ def exact(self,label,doc,make=None,expected_error=None,digits=None,expected_text=None):
+  checked=self.verify(doc);self.admitted+=1
+  submitted=plan_for(checked) if make is None else make(checked)
+  digits=sys.get_int_max_str_digits() if digits is None else digits
+  old_digits=sys.get_int_max_str_digits();sys.set_int_max_str_digits(digits)
+  case=self.out/"cases"/("%04d"%len(self.cases));case.mkdir(parents=True)
+  actual=None;observer=[]
+  try:
+   expected=None;error=None
+   try:expected=self.validate(checked,submitted)
+   except self.plan.MachinePlanRejected as exc:error=dict(type=type(exc).__name__,text=str(exc),code=error_code(str(exc)))
+   if expected_error is not None:assert error is not None and error["code"]==expected_error,(label,error,expected_error)
+   if expected_text is not None:assert error is not None and error["text"]==expected_text
+   expected_wire=None if error else canonical(expected)
+   graph=self.F.capture([checked.as_dict(),submitted],PLAN_LEASE);wire=initial(graph,checked.sha256,digits)
+   graph_view=self.F.Graph(graph);core_id,plan_id=graph_view.children(q(graph,24))
+   save(case/"oracle.json",dict(label=label,core_sha256=checked.sha256,error=error,
+      canonical_bytes=None if error else len(expected_wire),canonical_sha256=None if error else digest(expected_wire),
+      integer_digits=digits,reference_before_native=True))
+   (case/"input.graph").write_bytes(graph);(case/"input.begin").write_bytes(wire)
+   (case/"admitted-core.json").write_bytes(checked.canonical_bytes)
+   if expected_wire is not None:(case/"expected.canonical").write_bytes(expected_wire)
+   actual=self.H.Mechanical(self.args.assets,self.args.reference,case/"full-CAS")
+   def observe(mechanic,event,ack):
+    fields=struct.unpack("<16Q",event)
+    if fields[1]==2:
+     key=str(fields[4]);self.grows[key]=self.grows.get(key,0)+1
+    if fields[1]==1:
+     role=fields[4];reply=ack[64:]
+     observer.append(dict(role=role,returned=q(ack,40),event=list(struct.unpack("<16Q",reply))))
+     if role in(2,3):
+      command=mechanic.read(fields[8],0,fields[9])
+      assert len(command)==64 and q(command)==magic("HIAGWC01")
+      assert tuple(q(command,i) for i in(8,16,24,32,40,48,56))==(PLAN_LEASE,REQUEST,plan_id,LIMIT,2,digits,0)
+      if q(reply,8)==1:self.wire_grows+=1
+     if role==4 and q(reply,16)==1:self.pure_grows+=1
+    return ack
+   saved=self.guard()
+   try:result=actual.run(wire,intercept=observe)
+   finally:self.unguard(saved)
+   assert result["status"]=="TERMINAL",(label,result,observer)
+   terminal=struct.unpack("<16Q",result["event"])
+   assert terminal[:3]==(magic("HIACDE01"),7,CONTROL_LEASE)
+   assert terminal[7]==0 and terminal[9:13]==(REQUEST,PLAN_LEASE,plan_id,core_id)
+   assert actual.read(1,0,len(wire))==wire and actual.slots[1]["readonly"]
+   if error is None:
+    expected_version=SCHEMAS.index(expected["schema"])+1
+    assert terminal[4:9]==(0,0,9,0,256)
+    assert terminal[13:]==(expected_version,len(expected_wire),visited(expected))
+    raw=result["payload"];assert len(raw)==256
+    words=struct.unpack("<32Q",raw)
+    assert words[:16]==(magic("HIAMPD01"),1,CONTROL_LEASE,REQUEST,PLAN_LEASE,1,128,len(graph),
+         core_id,plan_id,expected_version,8,0,len(expected_wire),7,0)
+    assert raw[128:160]==bytes.fromhex(checked.sha256)
+    assert words[20:24]==(visited(expected),digits,2,LIMIT) and words[24:]==(0,)*8
+    for slot in(7,8,9):assert actual.slots[slot]["readonly"]
+    assert actual.read(8,0,len(expected_wire))==expected_wire
+    peer=actual.read(7,1024,128)
+    assert struct.unpack("<8Q",peer[:64])==(magic("HIAMPR01"),1,PLAN_LEASE,REQUEST,core_id,plan_id,expected_version,len(graph))
+    assert peer[64:96]==bytes.fromhex(checked.sha256) and peer[96:]==bytes(32)
+    (case/"actual.canonical").write_bytes(actual.read(8,0,len(expected_wire)))
+    roles=[r["role"] for r in observer]
+    assert roles[0]==1 and 2 in roles and 3 in roles and roles[-1]==4
+    assert max(i for i,r in enumerate(roles) if r in(2,3))<min(i for i,r in enumerate(roles) if r==4)
+   else:
+    self.covered_errors.add(error["code"])
+    raw=error["text"].encode("utf-8")
+    assert terminal[4:9]==(3,error["code"],10,0,len(raw)),(label,terminal,error)
+    assert result["payload"]==raw
+    assert actual.slots[10]["readonly"]
+    roles=[r["role"] for r in observer]
+    assert roles[0]==1
+    if error["code"]==1:assert roles==[1]
+    if error["code"]<=2:assert 4 not in roles
+    else:assert 2 in roles and 3 in roles and roles[-1]==4
+   row=dict(label=label,status="PASS",kind="ACTUAL_REFERENCE_ADMITTED_CORE_AND_PLAN",
+       error=error,native_entries=actual.entries,by_role=actual.calls,
+       complete_canonical_equal=error is None,complete_original_error_equal=error is not None,
+       integer_digits=digits,actual_peer_events=observer)
+   actual.evidence.case(row);self.cases.append(row);save(case/"result.json",row)
+  finally:
+   sys.set_int_max_str_digits(old_digits)
+   if actual is not None:
+    self.count(actual);save(case/"evidence.json",actual.close())
+ def private_bad(self,label,wire,intercept=None):
+  case=self.out/"cases"/("%04d"%len(self.cases));case.mkdir(parents=True)
+  actual=self.H.Mechanical(self.args.assets,self.args.reference,case/"full-CAS")
+  try:
+   (case/"input.begin").write_bytes(wire)
+   saved=self.guard()
+   try:result=actual.run(wire,intercept=intercept)
+   finally:self.unguard(saved)
+   assert result["status"]=="PRIVATE_BAD",(label,result)
+   if intercept is not None:assert actual.interceptions==1
+   repeat=actual.last_original_ack or wire
+   a=actual.buffers.allocate(len(repeat),repeat,True)
+   try:
+    returned=actual.native(5,(a,actual.slots[3],actual.slots[2]),(a,actual.slots[3],actual.slots[2]),
+      ("private-repeat","slot3","slot2"))
+    assert returned==BAD
+   finally:actual.buffers.close(a)
+   row=dict(label=label,status="PASS",kind="PRIVATE_PERMANENT_BAD",
+      native_entries=actual.entries,by_role=actual.calls,interceptions=actual.interceptions)
+   actual.evidence.case(row);self.cases.append(row);self.protocol+=1;save(case/"result.json",row)
+  finally:self.count(actual);save(case/"evidence.json",actual.close())
+ def finish(self):
+  rows=[]
+  for path,(raw,mode) in self.pins.items():
+   now=path.read_bytes()
+   rows.append(dict(path=str(path),bytes=len(raw),sha256=digest(raw),mode=mode,
+      same=now==raw and stat.S_IMODE(path.stat().st_mode)==mode))
+  save(self.out/"source-before-after.json",rows)
+  assert all(r["same"] for r in rows)
+  return dict(files=len(rows),all_bytes_and_modes_equal=True)

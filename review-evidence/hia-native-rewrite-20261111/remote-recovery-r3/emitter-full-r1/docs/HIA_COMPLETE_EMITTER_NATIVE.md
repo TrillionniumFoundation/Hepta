@@ -399,3 +399,43 @@ accd7056db33d832632d9017ff2ece5c3803fdff6379168419bae0cd0f7888b0
 summaries are preserved separately. This section records an observed original
 failure and a new unexecuted repair/verification design; it does not assert a
 new result.
+
+
+## FOLLOW41: two additional groups, then a second fixture refusal
+
+The exact FOLLOW41 run 43189935529 / job 131086387011 ended FAIL. Its complete
+43774-member FOLLOW39 readback passed. All eleven fresh production source/image
+pairs and the fresh fixed C carrier passed the exact original byte-identity
+checks. Only late4 and late5 completed: one case each, respectively 450 and 281
+native entries. These 2 cases / 731 entries remain observations of FOLLOW41.
+
+The next original late6 fixture used function name abort. The exact reference
+Core rejects that name before creating an Emitter, with
+E_HIA_NAME: function collides with native runtime symbol. This failed group has
+zero native entries and remains preserved. The production owners are unchanged.
+
+The new fixture uses _init. This name is outside the exact Core reserved runtime
+set, satisfies its identifier rule, and is in the exact backend loader-hook
+set. The new test checks those two reference sets, independently verifies Core
+and its scalar eligibility before native execution, and retains the original
+complete oracle/native error, Code and registry equality. It additionally
+requires the full loader-hook refusal text, both completed function frames in
+normal/_init order, and the already-emitted normal wrapper. This tests the same
+late wrapper gate without bypassing Core admission.
+
+The next run has nine remaining groups / 60 cases: late6, late7, profile0 and
+protocol0..5. It must read every byte/mode of the complete FOLLOW39 and FOLLOW41
+encoded archives and their ledgers, verify all original group/source/asset
+bindings, rebuild all eleven kernels, and require each fresh full source/image
+and all invariant compilation receipts to equal BOTH preceding runs. The
+50 protocol cases retain the full per-entry CAS requirements; 10 semantic or
+profile cases retain all exact event/ACK/final-slot bytes and verified lossless
+trace encoding. No previously passed semantic group is executed again.
+
+The coverage account names all three runs separately: FOLLOW39 44 groups /
+670 cases, FOLLOW41 2 groups / 2 cases, and the new 9-group result when actually
+completed. It never labels that union as a single 55-group PASS. All native,
+compiler, byte, symbol, function, workspace and evidence gates are unchanged.
+This source revision, its nine-group CI and the FOLLOW41 reader have not yet
+been executed at delivery. Full public backend, installation and cold closure
+remain open.

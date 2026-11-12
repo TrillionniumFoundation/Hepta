@@ -1,0 +1,65 @@
+{
+  "schema": "hia-full-retained37-reader-narrow-static-review-v1",
+  "scope": "ONLY_READER_SCHEMA_PATH_MEMORY_AND_SOURCE_SYNTAX_READING",
+  "reviewed": [
+    {
+      "role": "reader",
+      "bytes": 9464,
+      "sha256": "2795fe05abca2c5509f448823918938ab70b5c89745222d18ea4a378ea227d1b",
+      "gitsha": "2311eb9918226759579100cb319ca880d398ad7f"
+    },
+    {
+      "role": "seal",
+      "bytes": 7346,
+      "sha256": "7d785b25b86836d992fffb1dcd8f7daea7eb386c23e208562085d0fad346a8eb",
+      "gitsha": "a3c2e4a92339c2ad96bfe78671c6c2482bdba799"
+    },
+    {
+      "role": "runner",
+      "bytes": 20328,
+      "sha256": "e204d9fbcaa76cf2acde363e7205b31378939126be20ee615f5dafbaad788877",
+      "gitsha": "9bf24a8b81f26b86ee250c48066f0ce3232b9b35"
+    }
+  ],
+  "observed_execution": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "target_executions": 0
+  },
+  "findings": [
+    {
+      "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_SCOPE",
+      "detail": "custody schema and requested key names match the exact streamed-artifact producer; qualification prefix matches original seal roots; runner actually produces the selected JSON/log paths."
+    },
+    {
+      "status": "SOURCE_ORDER_CHECK",
+      "detail": "28 steps follows original runner: initial 7, 19 named suite groups, selected callers, full retained discovery. Qualification flags and empty arrays match original runner outputs."
+    },
+    {
+      "status": "STREAMED_MEMORY_CHECK",
+      "detail": "Large archive fingerprints use hashlib.file_digest; tar uses r|xz and clears archive.members after each member; file payloads use 1 MiB chunks. Selected outputs stream to disk, while names set stores only 33,465 paths. No whole-archive read_bytes or accumulated TarInfo list was found."
+    },
+    {
+      "status": "FAILURE_SCOPE",
+      "detail": "Reader captures original error and marks FAIL, attempts final input checks when initial snapshot completed. selected reports can be partial on failure; no target executions are authorized."
+    }
+  ],
+  "limits": {
+    "CPU_seconds": 90,
+    "wall_seconds_external": 180,
+    "address_bytes": 1073741824,
+    "core_bytes": 0,
+    "limits_are_unchanged": true
+  },
+  "not_claimed": [
+    "No actual archive verification or test-count observation.",
+    "No execution proof that the 90CPU/180wall budget suffices.",
+    "No independent outer ZIP readback; reader reports it as false.",
+    "No native-only or whole-delivery qualification."
+  ],
+  "source_changes": false,
+  "reviewer": "/root/native_checker"
+}

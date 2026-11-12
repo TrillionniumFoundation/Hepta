@@ -1,7 +1,7 @@
-"""Remaining eleven original Emitter groups after an exact failed-run readback.
-The previous 44 groups remain the observations of FOLLOW39, not this run's counts.
-All eleven production HIA sources/images must be byte-identical before the tail
-is executed. No production difference or changed limit enables partial coverage.
+"""Nine remaining original Emitter groups after exact FOLLOW39 and FOLLOW41 readbacks.
+The preceding 44 and 2 groups remain separate observations of their failed runs.
+All eleven production HIA source/image pairs must match BOTH prior runs before
+this tail is executed. No production difference enables partial coverage.
 """
 from pathlib import Path
 from hashlib import sha1,sha256
@@ -22,9 +22,9 @@ FILES=[
   {
     "path": "docs/HIA_COMPLETE_EMITTER_NATIVE.md",
     "mode": "100644",
-    "bytes": 21212,
-    "sha256": "52075ded20d4a46ee8c1f343d7eafa5971c8a8672123685054ffc41efc047682",
-    "gitsha": "9050fd67250b80bc11449c368545383599f8f4fc"
+    "bytes": 23661,
+    "sha256": "bce568f9014d36a4682b505d15cc843e8f62c96dd241ee73b2c867803a2d754a",
+    "gitsha": "208c093042aba6cbe61e53de1198ca60909cc767"
   },
   {
     "path": "reference/hia_machine_plan.py",
@@ -99,9 +99,9 @@ FILES=[
   {
     "path": "tests/test_hia_complete_emitter.py",
     "mode": "100644",
-    "bytes": 29947,
-    "sha256": "9715d73aa19b36acccf05404497010503c146a18137ccca75a8d11f0d804bc41",
-    "gitsha": "28152bad4ec34225f76ff852d0e24fad876087d2"
+    "bytes": 30508,
+    "sha256": "cff0e69a89fcbeefbbbe69b522cf775fa0621cda65ab1dca49b1f90aab0bd716",
+    "gitsha": "9609ecf8271ff49fcad1f5e8730bc2b2180f1ca4"
   },
   {
     "path": "tests/wrapper_test_reference.py",
@@ -242,6 +242,27 @@ FILES=[
     "bytes": 29760,
     "sha256": "d44389458f0ead3f4b290bfd183a0e3158c73561344d9b3e909bafadd4a19722",
     "gitsha": "98a99f9ee214cb8cf70a402acf5f0167f8696a00"
+  },
+  {
+    "path": "ci/read_emitter41_originals.py",
+    "mode": "100644",
+    "bytes": 15768,
+    "sha256": "6241f504292c1fdd6a27daeade9b1271eec06e7cb305a97c2d94cf7caae7372b",
+    "gitsha": "ea4084cc1d3e924ae0786d395c3de0bbd97641b1"
+  },
+  {
+    "path": "evidence/follow41-baseline.json",
+    "mode": "100644",
+    "bytes": 57443,
+    "sha256": "7484b1d6640dde68f748beb928574d601dbce3c3a352465e95b3f5d9bc8cfe26",
+    "gitsha": "637c67cc6eb258114e7f4febbec09c3e96321c9a"
+  },
+  {
+    "path": "evidence/follow41-test-original.py",
+    "mode": "100644",
+    "bytes": 29947,
+    "sha256": "9715d73aa19b36acccf05404497010503c146a18137ccca75a8d11f0d804bc41",
+    "gitsha": "28152bad4ec34225f76ff852d0e24fad876087d2"
   }
 ]
 SCHEDULE=[["cross",0,2,0],["scalars",0,24,0],["scalars",1,24,0],["scalars",2,24,0],["scalars",3,24,0],["scalars",4,24,0],["scalars",5,24,0],["scalars",6,24,0],["scalars",7,24,0],["scalars",8,24,0],["scalars",9,24,0],["casts",0,20,0],["casts",1,20,0],["casts",2,20,0],["casts",3,20,0],["casts",4,20,0],["casts",5,20,0],["casts",6,20,0],["casts",7,20,0],["casts",8,20,0],["casts",9,20,0],["boolean",0,32,0],["resources",0,30,0],["edges",0,21,0],["calls",0,12,0],["selection",0,16,0],["inventory",0,1,0],["inventory",1,1,0],["inventory",2,1,0],["inventory",3,1,0],["inventory",4,1,0],["borrowed",0,9,0],["borrowed",1,9,0],["borrowed",2,9,0],["borrowed",3,9,0],["borrowed",4,9,0],["borrowed",5,9,0],["borrowed",6,9,0],["borrowed",7,9,0],["manifest",0,36,0],["late",0,1,0],["late",1,1,0],["late",2,1,0],["late",3,1,0],["late",4,1,0],["late",5,1,0],["late",6,1,0],["late",7,1,0],["profile",0,8,0],["protocol",0,20,20],["protocol",1,8,8],["protocol",2,7,7],["protocol",3,5,5],["protocol",4,5,5],["protocol",5,5,5]]
@@ -344,15 +365,18 @@ def case_rows(directory,value):
 OLD_FIXTURE="   doc=self.M.doc(self.W.fixture([\"readbuf\"],[\"u32\"],\"zz\")[\"functions\"][0],\n                 self.W.fixture([\"mutbuf\"],[\"u32\"],\"aa\")[\"functions\"][0])\n   doc[\"exports\"]=[\"zz\",\"aa\"];self.exact(\"missing-exports-sort-first\",doc)"
 NEW_FIXTURE="   doc=self.M.doc(self.W.fixture([\"u32\"],[\"u32\",\"u64\"],\"zz\")[\"functions\"][0],\n                 self.W.fixture([\"u64\"],[\"u64\",\"u32\"],\"aa\")[\"functions\"][0])\n   doc[\"exports\"]=[\"zz\",\"aa\"];self.exact(\"missing-exports-sort-first\",doc)\n   assert self.cases[-1][\"error\"]==dict(type=\"HIAProgramNativeRejected\",domain=2,\n       text=\"E_HIA_PROGRAM_ABI: explicit exports have signatures outside the native C ABI: aa, zz\")"
 
+OLD_RESERVED="   doc=self.M.doc(self.M.fn(\"normal\"),self.M.fn(\"abort\"))\n   self.exact(\"reserved-after-complete-function-loop\",doc)"
+NEW_RESERVED="   doc=self.M.doc(self.M.fn(\"normal\"),self.M.fn(\"_init\"))\n   from hepta import hia_program as core_reference\n   assert \"abort\" in core_reference._RESERVED_FUNCTIONS\n   assert \"_init\" not in core_reference._RESERVED_FUNCTIONS and \"_init\" in self.original._LOADER_HOOKS\n   assert \"_init\" in self.verify(doc).scalar_entrypoints\n   row=self.exact(\"reserved-after-complete-function-loop\",doc)\n   assert row[\"error\"]==dict(type=\"HIAProgramNativeRejected\",domain=2,\n       text=\"E_HIA_PROGRAM_ABI: export conflicts with the closed runtime or loader ABI\")\n   assert [name for name,frame in row[\"registry\"][\"frames\"]]==[\"normal\",\"_init\"]\n   assert row[\"registry\"][\"exports\"]==[\"normal\"]"
 def fixture_delta(project):
  old=(project/"evidence/follow39-test-original.py").read_bytes()
+ middle=(project/"evidence/follow41-test-original.py").read_bytes()
  new=(project/"tests/test_hia_complete_emitter.py").read_bytes()
- old_fragment=OLD_FIXTURE.encode()
- new_fragment=NEW_FIXTURE.encode()
- assert old.count(old_fragment)==1
- assert old.replace(old_fragment,new_fragment,1)==new
- return dict(old_test_git=git_blob(old),new_test_git=git_blob(new),
-             only_one_exact_fixture_replacement=True,all_other_tests_and_assertions_byte_identical=True)
+ assert old.count(OLD_FIXTURE.encode())==1
+ assert old.replace(OLD_FIXTURE.encode(),NEW_FIXTURE.encode(),1)==middle
+ assert middle.count(OLD_RESERVED.encode())==1
+ assert middle.replace(OLD_RESERVED.encode(),NEW_RESERVED.encode(),1)==new
+ return dict(old_test_git=git_blob(old),previous_test_git=git_blob(middle),new_test_git=git_blob(new),
+     two_exact_fixture_only_revisions=True,all_other_tests_and_assertions_byte_identical=True)
 
 def production_pair(component,m,build,old):
  previous=old["manifest"]
@@ -402,18 +426,20 @@ def main():
  common.PINS[common_path]=common_raw;common.PINS[seal_path]=seal_raw
  common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
  project=None;status="FAIL"
- report=dict(scope="FRESH_EMITTER_REMAINING_11_GROUPS_AFTER_EXACT_FOLLOW39_READBACK",status="INCOMPLETE",
-     expected_groups=11,expected_cases=62,expected_private_controls=50,expected_fresh_B3_compilations=11,
+ report=dict(scope="FRESH_EMITTER_REMAINING_9_GROUPS_AFTER_EXACT_FOLLOW39_AND_41_READBACK",status="INCOMPLETE",
+     expected_groups=9,expected_cases=60,expected_private_controls=50,expected_fresh_B3_compilations=11,
      previous_run=43184755381,previous_job=131069068249,previous_run_remains_FAILED=True,
      previous_observed_PASS_groups=44,previous_observed_cases=670,single_run_55_group_PASS=False,
      actual_new_compilations=0,actual_cases=0,actual_native_entries=0,actual_private_controls=0,
-     groups={},builds={},old_results_inherited=False,old_39_Function_groups_rerun=False,
+     groups={},builds={},old_results_inherited=False,old_44_Emitter_groups_rerun=False,
+     old_late4_and_late5_rerun=False,previous_follow41_run=43189935529,previous_follow41_job=131086387011,
+     previous_follow41_passed_groups=2,previous_follow41_passed_cases=2,old_39_Function_groups_rerun=False,
      old_26_wrapper_groups_rerun=False,full_public_backend=False,installed=False,cold=False,
      host_instruction_symbol_or_ELF_encoding=False,C_mechanics_is_development_TCB=True,
      source_Graph_must_be_actual_immutable_admitted_Core_and_checked_plan=True,header_is_authentication=False)
  try:
   context=common.prepare()
-  mine=Path(context["base"])/"complete-emitter-recovery-r3";mine.mkdir()
+  mine=Path(context["base"])/"complete-emitter-recovery-r4";mine.mkdir()
   project=mine/"native-emitter-next";project.mkdir()
   for row in FILES:
    source=common.materialize(SOURCE_PREFIX+row["path"],row["gitsha"],project/row["path"])
@@ -442,14 +468,38 @@ def main():
   baseline=json.loads((project/"evidence/follow39-baseline.json").read_bytes())
   assert SCHEDULE==baseline["planned_all_55"]
   assert SCHEDULE[:44]==baseline["passed_first_44"]==old["actual_original_passed_groups"]
-  tail=SCHEDULE[44:]
-  assert tail==baseline["remaining_11"] and len(tail)==11 and sum(x[2] for x in tail)==62 and sum(x[3] for x in tail)==50
+  assert SCHEDULE[44:]==baseline["remaining_11"]
+  baseline41=json.loads((project/"evidence/follow41-baseline.json").read_bytes())
+  assert baseline41["planned_all_55"]==SCHEDULE and baseline41["passed_before_failure"]==SCHEDULE[44:46]
+  tail=SCHEDULE[46:]
+  assert tail==baseline41["remaining_9"] and len(tail)==9 and sum(x[2] for x in tail)==60 and sum(x[3] for x in tail)==50
+  originals41=project/"development/follow41-readonly"
+  try:
+   common.run("emitter-follow41-exact-originals",[context["python"],"-B",project/"ci/read_emitter41_originals.py",
+       "--artifact-directory",Path(os.environ["HIA_EMITTER41_ORIGINALS"]).resolve(),
+       "--baseline",project/"evidence/follow41-baseline.json","--out",originals41],
+       cwd=project,timeout=180,env=env)
+  finally:
+   report["follow41_readback"]=summary(originals41,"HIA_EMITTER41_EXACT_ORIGINAL_READBACK")
+  old41=report["follow41_readback"]
+  assert old41["status"]=="PASS" and old41["native_entries"]==old41["VM_entries"]==old41["product_imports"]==old41["subprocesses"]==0
+  assert old41["limits"]==dict(**LIMITS,wall=180)
+  assert old41["all_members"]==7985 and old41["all_member_bytes"]==404149551
+  assert old41["actual_original_passed_groups"]==SCHEDULE[44:46]
+  assert old41["actual_original_passed_cases"]==2 and old41["actual_original_native_entries"]==731
+  assert old41["all_original_gate_source_snapshots_verified"] and old41["full_tar_bytes_modes_and_SHA256_equal"]
+  assert old41["all_3_original_groups_bound_to_the_same_eleven_actual_images"]
+  assert old41["complete_original_encoded_inputs_preserved"] and old41["full_tar_readback_completed"]
+  assert old41["all_recorded_inputs_after_checked_equal"]
+  old_pairs41=json.loads((originals41/"actual-source-image-pairs.json").read_bytes())
+  assert set(old_pairs41)==set(COMPONENTS)
+  report["production_identity_follow41"]={}
   old_pairs=json.loads((originals/"actual-source-image-pairs.json").read_bytes())
   assert set(old_pairs)==set(COMPONENTS)
   report["production_identity"]={}
   roles={}
   for index,component in enumerate(COMPONENTS,1):
-   build=project/"development"/("build-"+component+"-r3")
+   build=project/"development"/("build-"+component+"-r4")
    try:
     common.run("emitter-fresh-"+component,[context["python"],"-B",project/"tools/build_hia_complete_emitter.py",
        "--reference",context["reference"],"--compiler",context["compiler"],"--out",build,"--component",component],
@@ -480,12 +530,13 @@ def main():
    for typ in("source","image"):
     assert 0<m[typ+"_bytes"]<=1<<20 and file_hash(m[typ+"_path"])=={"bytes":m[typ+"_bytes"],"sha256":m[typ+"_sha256"]}
    report["production_identity"][component]=production_pair(component,m,build,old_pairs[component])
+   report["production_identity_follow41"][component]=production_pair(component,m,build,old_pairs41[component])
    roles[str(index)]=dict(name=component,manifest=m)
   assert report["actual_new_compilations"]==11 and set(roles)=={str(i) for i in range(1,12)}
   assets=project/"development/runtime-assets.json"
   save(assets,dict(schema="hia-emitter-development-runtime-assets-v1",roles=roles,
        actual_fresh_B3_compilations=11,old_results_inherited=False))
-  nativebuild=project/"development/native-mechanics-build-r3"
+  nativebuild=project/"development/native-mechanics-build-r4"
   c_label="emitter-development-C-mechanics-build"
   common.run(c_label,[context["python"],"-B",project/"tools/build_emitter_native_mechanics.py",
       "--stage","build","--source",project/"tools/emitter_native_mechanics.c","--out",nativebuild],
@@ -501,10 +552,12 @@ def main():
   assert report["C_mechanics_build"]["executable"]==baseline["actual_C_build"]["executable"]
   assert carrier.read_bytes()==Path(old["old_C_executable"]).read_bytes()
   assert stat.S_IMODE(carrier.stat().st_mode)==stat.S_IMODE(Path(old["old_C_executable"]).stat().st_mode)
+  assert carrier.read_bytes()==Path(old41["old_C_executable"]).read_bytes()
+  assert stat.S_IMODE(carrier.stat().st_mode)==stat.S_IMODE(Path(old41["old_C_executable"]).stat().st_mode)
   report["development_carrier_complete_original_bytes_equal"]=True
   assert len(SCHEDULE)==55 and sum(r[2] for r in SCHEDULE)==732 and sum(r[3] for r in SCHEDULE)==50
   for group,variant,count,private in tail:
-   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r3")
+   label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r4")
    try:
     common.run("emitter-whole-"+label,[context["python"],"-B",project/"tests/test_hia_complete_emitter.py",
        "--assets",assets,"--carrier",carrier,"--reference",context["reference"],"--out",out,
@@ -525,25 +578,30 @@ def main():
    assert value["original_group_limits_include_evidence_encoding"]
    assert not any(value[k] for k in("full_public_backend","installed","cold","host_instruction_or_ELF_generation"))
    value["independent_case_readback"]=case_rows(out,value)
-  assert len(report["groups"])==11 and (report["actual_cases"],report["actual_private_controls"])==(62,50)
+  assert len(report["groups"])==9 and (report["actual_cases"],report["actual_private_controls"])==(60,50)
   cats={name:sum(v["case_categories"].get(name,0) for v in report["groups"].values())
      for name in("WHOLE_NATIVE_EMITTER","PRIVATE_EMITTER_PROFILE","PRIVATE_EMITTER_PERMANENT_BAD")}
-  assert cats==dict(WHOLE_NATIVE_EMITTER=4,PRIVATE_EMITTER_PROFILE=8,PRIVATE_EMITTER_PERMANENT_BAD=50)
+  assert cats==dict(WHOLE_NATIVE_EMITTER=2,PRIVATE_EMITTER_PROFILE=8,PRIVATE_EMITTER_PERMANENT_BAD=50)
   assert sum(v["independent_case_readback"]["crosscheck_cases"] for v in report["groups"].values())==0
   assert sum(v["independent_case_readback"]["python_full_CAS_cases"] for v in report["groups"].values())==50
-  assert sum(v["independent_case_readback"]["lossless_raw_files"] for v in report["groups"].values())==24
+  assert sum(v["independent_case_readback"]["lossless_raw_files"] for v in report["groups"].values())==20
   check_pairs_after(report["production_identity"])
+  check_pairs_after(report["production_identity_follow41"])
+  assert carrier.read_bytes()==Path(old41["old_C_executable"]).read_bytes()
   assert carrier.read_bytes()==Path(old["old_C_executable"]).read_bytes()
   assert file_hash(carrier)==baseline["actual_C_build"]["executable"]
   fixture_delta(project)
   previous=old["actual_original_passed_groups"]
   assert not ({(g,v) for g,v,_,_ in previous}&{(g,v) for g,v,_,_ in tail})
-  assert previous+tail==SCHEDULE
-  report["two_distinct_run_coverage"]=dict(
+  middle=old41["actual_original_passed_groups"]
+  assert previous+middle+tail==SCHEDULE
+  assert len({(g,v) for g,v,_,_ in previous+middle+tail})==55
+  report["three_distinct_run_coverage"]=dict(
       same_eleven_production_source_and_image_bytes_before_after=True,
       previous=dict(run=43184755381,job=131069068249,status="FAIL",passed_groups=previous,
                     passed_cases=670,native_entries=1549752),
-      current=dict(groups=tail,cases=62,native_entries=report["actual_native_entries"]),
+      middle=dict(run=43189935529,job=131086387011,status="FAIL",passed_groups=middle,passed_cases=2,native_entries=731),
+      current=dict(groups=tail,cases=60,native_entries=report["actual_native_entries"]),
       original_schedule_55_covered_without_omission=True,
       combined_cases=732,single_run_55_group_PASS=False)
 
@@ -562,6 +620,6 @@ def main():
  finally:
   roots={}
   if project is not None and project.exists():roots["emitter-full"]=project
-  seal.finish(common,"emitter-full-r3-tail11",status,report,roots=roots)
+  seal.finish(common,"emitter-full-r4-tail9",status,report,roots=roots)
  if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

@@ -1,0 +1,100 @@
+{
+  "schema": "hia-checked-plan-semantic-narrow-static-review-v1",
+  "reviewer": "audit_selfhost",
+  "status": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_SCOPE",
+  "source": {
+    "gitsha": "f7eac3d992da5855174845e6861f19fa5d115631",
+    "bytes": 40924,
+    "sha256": "8fd64a521afb771255d112e40fe7586b1c46c69f343fe5bdd6d42e643d205336"
+  },
+  "reference": {
+    "gitsha": "61833e8bf8497089461bad9eb2347c82a233e8b2",
+    "bytes": 13270,
+    "sha256": "ae3e54c4dc3299ba9b6d0a9b4caec55e26f3233e5699d3a0cab7deb1337efb8a"
+  },
+  "execution": {
+    "ast": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "source_mutations": 0
+  },
+  "scope": [
+    "canonical sorted-map semantic iteration and first-error order",
+    "closed-block inclusive register lifetime admission and interference witness ordering"
+  ],
+  "not_reviewed": [
+    "snapshot gate completeness",
+    "actual GraphWire pipeline and digest/source provenance",
+    "fixed controller",
+    "backend emission or staged edge copy implementation",
+    "public admission or installed distribution",
+    "runtime profile and performance"
+  ],
+  "assumptions": [
+    "Both inputs are actual private immutable issued Graph values.",
+    "Core has already passed complete original admission, including unique SSA names and closed-block uses.",
+    "The caller completes the exact original snapshot and bounded canonical JSON wire with flags 2, 8 MiB and actual integer digit profile before semantic entry.",
+    "String keys reaching semantic comparisons are valid Unicode scalar UTF-8; unsupported surrogate encodings are rejected by the required prior wire path.",
+    "This owner does not export the complete Python register_assignment_witness JSON; acceptance and first diagnostic are the narrow reviewed surface."
+  ],
+  "findings": [
+    {
+      "area": "Canonical map iteration",
+      "functions": [
+        "less",
+        "next_entry",
+        "block_orders",
+        "value_registers"
+      ],
+      "conclusion": "next_entry selects the least key strictly greater than the previous key and therefore visits each distinct valid key in ascending UTF-8 byte order. That order equals Python code-point ordering for the required valid scalar UTF-8 domain. Block-order checks therefore retain the canonical decoded dictionary order when choosing unknown-function versus permutation errors. Value-register function mappings use the same ascending selection after the all-function-name precheck."
+    },
+    {
+      "area": "Mapping gates",
+      "functions": [
+        "mapping_shape",
+        "leaf_check",
+        "assign_values"
+      ],
+      "conclusion": "The initial all-function-name rejection precedes any per-function mapping work. Per-function mapping shape/register-set checks precede leaf opcode/type restrictions, then assigned-value definition/scalar checks, then lifetimes. Internal loops which do not sort produce the same single fixed error for every failing member; they do not interleave a later error class. This matches the reviewed reference order under admitted Core and validated Graph preconditions."
+    },
+    {
+      "area": "Definition and end points",
+      "functions": [
+        "count_definitions",
+        "fill_definitions",
+        "add_definitions",
+        "use_value",
+        "use_list",
+        "use_terminal",
+        "lifetimes"
+      ],
+      "conclusion": "Parameters start at 0; operation outputs start at their 1-based operation position; every end initially equals its start, preserving dead writes. Sequential operation argument reads advance ends in operation order. Ret values, jump args, and branch condition/then/else args end at len(ops)+1. All uses bind the definition's block; ranges remain independent across blocks. The reviewer does not infer actual emitted staged edge copies from this policy alone."
+    },
+    {
+      "area": "Interference and exact first pair",
+      "functions": [
+        "vector_less",
+        "sift",
+        "check_intervals"
+      ],
+      "conclusion": "The heap order is register code, first position, then value name. Register codes follow the same allowed tuple rbx,r12,r13,r14,r15,r8,r9; the max-heap extraction produces ascending order. Adjacent equal-register pairs reject when left.last >= right.first, exactly the complement of the reference strict '<' acceptance. Thus inputs/outputs at one instruction, simultaneous parameters, and dead definitions remain inclusive. Within each block the first reported register/pair follows the original register iteration and (first,value) sort."
+    }
+  ],
+  "remaining_proofs": [
+    "Actual generation/B3 and complete native/oracle controls are pending.",
+    "The required canonical wire/immutable Core service join must be proven by its own actual pipeline.",
+    "No source-header equality is treated as external authenticity."
+  ],
+  "source_readback": {
+    "whole_utf8_blobs_checked": true,
+    "git_sha_and_sha256_and_byte_count": true,
+    "raw_sources_retained_in_original_Git_blobs": true,
+    "after_full_readback_exact": [
+      "f7eac3d992da5855174845e6861f19fa5d115631",
+      "61833e8bf8497089461bad9eb2347c82a233e8b2"
+    ]
+  },
+  "review_note": "Old 57dd source was not used and receives no conclusion. This report is bound only to f7eac3d992da5855174845e6861f19fa5d115631."
+}

@@ -1,8 +1,31 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW42）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW43）
 
 ## 当前结论
 
-**整套仍为 OPEN。普通补丁协调器已有完整独立 CI 通过；Function、wrapper 和命名空间若干域已有明确进展。完整 Emitter、Worker、普通 Store/SQL、安装与全部公开入口仍未闭合。当前生产入口仍依赖 Python，本提交不激活新生产入口、不删除旧实现。**
+**整套仍为 OPEN。完整保留版28阶段回归和固定Worker程序服务已实际通过；impact仍有一个大输入CPU阻塞，issuedFS物理整组仍超时，完整Emitter与公开诊断、Store/SQL、各平台/API、原生安装和冷启动尚未闭合。生产入口仍依赖Python，本提交生产激活0、旧实现删除0。**
+
+## FOLLOW43 最新状态（2026-11-12 10:09:04 UTC）
+
+本提交以 FOLLOW42 `115bf63f3a43959276286348232045598c861e2c`、树 `88ad6a560169409825d0c35515c5dcd44a911182` 的完整5,953文件为唯一父状态。整套 OPEN、生产激活0、删除0；本节更新后文历史状态，所有旧失败和未执行草稿仍保留。
+
+### 已取得的实际结果
+
+- 完整保留版回归 run43180758665/job131055860427 已实际 SUCCESS：28个阶段全部 returncode=0、没有超时、源码保全。原 full discovery runner `9bf24a8b81f26b86ee250c48066f0ce3232b9b35` 20,328B 未改；其通过条件仍要求 tests_loaded=tests_run>0，errors/failures/skips/expected failures/unexpected successes 全空。当前日志只给28阶段，精确测试数必须从已完成原包读取，不能填旧4,157或推算。原封包33,465成员、30,113文件、3,713,148,003原bytes，XZ1,195,190,880B，SHA256 52cb5aefa90e5f022905a2f29a38b1541a789444925b83f7e8c301bc6a866ebb。新增只读全包reader，0目标重执行。最初4,157/187errors/1failure/18skips的FAIL/HOLD仍原样保留。
+- Worker42 P16/P17/P18 job131094562109 SUCCESS：6次原0e09 B3（含实际HIA packer）、5组113新case，83个实际ELF进程和38次私有entry。全payload比较和源码/镜像before-after完成。这只证明固定服务面板，不等于普通Worker、全部peer或初始化整链已通过。
+- impact41 job131086386743 实际FAIL：13组中12组PASS，共328个完整case，329个实际ELF进程。graph-long-report现已通过，整组CPU80.319085秒；large-valid完整组CPU94.990324秒、0已完成case，仍超过原90秒。完整原log398,336B与13原JSON已保全；该case原process退出/流字节需读既有artifact，当前不猜。没有扩大预算或去掉oracle CPU。
+- Emitter41 原11次fresh B3和两份既有source/image/invariant比较通过；late4、late5完成2case/731entry。late6原fixture名abort被精确Core以E_HIA_NAME提前拒绝，0该case原生entry，原FAIL保留。只把fixture改成必须先证明Core允许、wrapper禁止的_init，下一轮只跑后9组60case/50private controls。39/41两个完整原包先后读回，先前成功组不重跑、不混成单轮55组成功。
+- issuedFS42 job131094562125实际FAIL：6次fresh role B3、1次HIA packer/33entry、84×旧VM/新VM/原生对照均通过；后续physical+完整trace replay在原900秒处被终止，900.009650691秒wall、897.888822秒CPU、-9、stdout/stderr均0、完整physical结果INCOMPLETE。具体最后case和等待命令UNKNOWN，必须读取已有4,272成员包；不重复900秒目标、不声称超时根因。
+- diagnostic42原件reader实际SUCCESS/PASS_READ_ONLY：73份原件、70份与旧40原字节相同、3份新增真实program admission/publication/lower-stream作者；3包完整成员与before-after校验完成。只是读取，0HIA/B3/native。原reader40失败仍保留。
+
+### 本提交新增且尚未执行的接入
+
+- Worker初始化→实际program桥：23次fresh原0e09 B3，4组129新case/27个实际program ELF进程的计划；从Registry BORROW完整插入顺序GraphWire进入固定服务，再把真实receipt/Core/raw input导入为issued values。普通Worker的其它8个Store/effect peers仍未闭合。
+- checked machine plan：5次fresh原35ee B3、55组679case/119private controls的计划；原1024函数、4096block、262144node、8MiB、64depth、各+1和原数字限制均保留。完整输入、输出、三operand逐entry前后缓冲和CAS纳入实际验证。15份active Python作者只是开发作者，不等于已原生通过。
+- 私有固定诊断目录：181条原native-adapter enum全文，3组233case/595实际私有entry的计划；2次fresh B3包含一个只构建、不执行的A continuation。已确认适配器通用文本并不覆盖公开类型名/字段上下文；其PASS也不能证明公开错误全文等价。group6/9与A实际carrier接入仍OPEN。
+- 实际P16诊断接入：7次fresh原0e09 B3、10组281case/151实际ELF进程的计划；真实child终止后调role51 R/W/W，只修该权限位并要求其它carrier字节反向恢复。4个已知公开context差异保持严格原oracle，实际不一致必须FAIL；62个候选固定文本也不能在host先断言而跳过native。各group独立继续，全部失败原件保全。
+- namespace已完成reader压缩输出器只读取既有40/41 artifacts；完整原件仍保全，console控制在900,000B内，不再盲目拉取已触发Transport closed的巨型日志。不执行原target。
+
+新源码到本次发布前均为0 AST/0 HIA generation/0 B3/0 native；实际状态由该提交CI产生。selected syntax共636份，workflow128 jobs/128个原Ubuntu24.04 x86_64域检查；本次选择7个明确tag。原B3 10CPU/20wall/256MiB、完整组90CPU/180wall/1GiB、physical900wall和全部profile未变；不存在128 ops/block新门槛。全量原生安装、冷启动、各平台/API、普通Store/SQL/unixOpen、完整公开CLI和真实Emitter整链仍须完成。下面保留历史审计与原始异常记录。
 
 ## FOLLOW42 最新状态（2026-11-12 09:30:41 UTC）
 

@@ -1,0 +1,96 @@
+{
+  "schema": "hia-worker-program-public-context-static-observation-r1",
+  "source_review_only": true,
+  "AST_executions": 0,
+  "generation": 0,
+  "B3_compiles": 0,
+  "native_entries": 0,
+  "reference_commit": "0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5",
+  "sources": [
+    {
+      "path": "original_reference/hepta/hia_program.py",
+      "mode": "100644",
+      "gitsha": "5d0027f4453759e4156a3496e64215c441a727e4",
+      "bytes": 45247,
+      "sha256": "76a222745e13fe29825a661be206243f137ada7b57292b07ab7513a40146fb92",
+      "classification": "EXACT_ORIGINAL_0EF_READONLY_REFERENCE_NO_NEW_EXECUTION"
+    },
+    {
+      "path": "original_reference/hepta/hia_program_composite.py",
+      "mode": "100644",
+      "gitsha": "b06d009e403e77288a19eb929e6296bf68532db3",
+      "bytes": 68738,
+      "sha256": "cc5ab4c8dc68214e8868aab30405820c3662572de63952dec5f1fd1aaf180951",
+      "classification": "EXACT_ORIGINAL_0EF_READONLY_REFERENCE_NO_NEW_EXECUTION"
+    },
+    {
+      "path": "original_reference/tools/generate_hia_composite_types.py",
+      "mode": "100644",
+      "gitsha": "bcae24eb4bf540d05c80a42e5712983e4199cdae",
+      "bytes": 68113,
+      "sha256": "8989302bfd890ca9fa43662413a27c88c740c0060cb7631b7c1e4ef332cfa3e7",
+      "classification": "EXACT_ORIGINAL_0EF_READONLY_REFERENCE_NO_NEW_EXECUTION"
+    },
+    {
+      "path": "diagnostic_reference/hia_composite_types_native.py",
+      "mode": "100644",
+      "gitsha": "4356801b4bbbce98ea2651af9c29d57a01fef472",
+      "bytes": 22463,
+      "sha256": "3b40690bc0164a78b96b3a46729a59c0afae0172eeae5218d264e4b9dfc65ae3",
+      "classification": "EXACT_RETAINED_SOURCE_DEPENDENCY"
+    }
+  ],
+  "differences": [
+    {
+      "label": "nominal-type-name",
+      "error": [
+        2,
+        5
+      ],
+      "original_public_text": "E_HIA_NAME: nominal type: invalid/reserved ASCII identifier",
+      "native_adapter_text": "E_HIA_NAME: invalid/reserved ASCII identifier",
+      "original_where": "nominal type"
+    },
+    {
+      "label": "nominal-type-inventory",
+      "error": [
+        2,
+        1
+      ],
+      "original_public_text": "E_HIA_FORMAT: nominal type: expected exactly fields, kind, name, params",
+      "native_adapter_text": "E_HIA_FORMAT: nominal type object has an unexpected field inventory",
+      "original_where": "nominal type"
+    },
+    {
+      "label": "field-name",
+      "error": [
+        2,
+        5
+      ],
+      "original_public_text": "E_HIA_NAME: field: invalid/reserved ASCII identifier",
+      "native_adapter_text": "E_HIA_NAME: invalid/reserved ASCII identifier",
+      "original_where": "field"
+    },
+    {
+      "label": "type-parameter-name",
+      "error": [
+        2,
+        5
+      ],
+      "original_public_text": "E_HIA_NAME: type parameter: invalid/reserved ASCII identifier",
+      "native_adapter_text": "E_HIA_NAME: invalid/reserved ASCII identifier",
+      "original_where": "type parameter"
+    }
+  ],
+  "conclusion": "Fixed native-adapter enum messages do not establish public exception-text equivalence. Four dedicated strict tests preserve original public expected bytes and fail on mismatches.",
+  "new_protocol_is_private_fixed_issuer_only": true,
+  "requested_followup": "Issue first-error contextual data from the actual type owner before cleanup; carry a bound native capsule through the child. No hosted where reconstruction or public-oracle replacement.",
+  "not_implemented_here": {
+    "native_type_context": true,
+    "all_public_diagnostics": true,
+    "group6": true,
+    "group9": true,
+    "ordinary_Worker": true,
+    "namespace_authority": true
+  }
+}

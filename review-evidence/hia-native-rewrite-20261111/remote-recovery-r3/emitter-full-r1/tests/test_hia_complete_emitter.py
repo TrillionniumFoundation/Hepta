@@ -354,8 +354,16 @@ class Suite:
   elif variant==5:
    doc=self.W.fixture(["readbuf"],["u32"],"skip");self.exact("zero-scalar-entry",doc)
   elif variant==6:
-   doc=self.M.doc(self.M.fn("normal"),self.M.fn("abort"))
-   self.exact("reserved-after-complete-function-loop",doc)
+   doc=self.M.doc(self.M.fn("normal"),self.M.fn("_init"))
+   from hepta import hia_program as core_reference
+   assert "abort" in core_reference._RESERVED_FUNCTIONS
+   assert "_init" not in core_reference._RESERVED_FUNCTIONS and "_init" in self.original._LOADER_HOOKS
+   assert "_init" in self.verify(doc).scalar_entrypoints
+   row=self.exact("reserved-after-complete-function-loop",doc)
+   assert row["error"]==dict(type="HIAProgramNativeRejected",domain=2,
+       text="E_HIA_PROGRAM_ABI: export conflicts with the closed runtime or loader ABI")
+   assert [name for name,frame in row["registry"]["frames"]]==["normal","_init"]
+   assert row["registry"]["exports"]==["normal"]
   else:
    doc=self.M.doc(self.M.fn("normal"),self.W.fixture(["readbuf"],["u32"],"_init")["functions"][0])
    plan=self.F.machine_plan(doc);plan["function_alignment"]=64
