@@ -1,0 +1,74 @@
+name: Isolated service emission lifetime development v77 r6
+on:
+  push:
+    branches:
+      - codex/hia-emission-lifetime-v77-r6-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  emission-development:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Verify actual Linux Ubuntu 24.04 x86_64 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, platform
+          release = platform.freedesktop_os_release()
+          observed = {
+              "system": platform.system(),
+              "architecture": platform.machine(),
+              "distribution": release.get("ID"),
+              "version_id": release.get("VERSION_ID"),
+          }
+          Path("runner-platform.json").write_text(json.dumps(observed, sort_keys=True, indent=2) + "\n")
+          print(json.dumps(observed, sort_keys=True))
+          if observed != {"system": "Linux", "architecture": "x86_64", "distribution": "ubuntu", "version_id": "24.04"}:
+              raise RuntimeError("emission development requires actual Linux Ubuntu 24.04 x86_64")
+          PY
+      - name: Checkout isolated harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact current product source
+        uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Install original Clang 20 native execution prerequisites
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/hia-llvm.asc" https://apt.llvm.org/llvm-snapshot.gpg.key
+          fingerprint=$(gpg --show-keys --with-colons "$RUNNER_TEMP/hia-llvm.asc" | awk -F: '$1 == "fpr" { print $10; exit }')
+          test "$fingerprint" = 6084F3CF814B57C1CF12EFD515CF4D18AF4F7421
+          sudo install -m 0644 "$RUNNER_TEMP/hia-llvm.asc" /usr/share/keyrings/hia-llvm.asc
+          printf '%s\n' 'deb [arch=amd64 signed-by=/usr/share/keyrings/hia-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-20 main' | sudo tee /etc/apt/sources.list.d/hia-llvm20.list
+          sudo apt-get update
+          sudo apt-get install -y binutils gcc clang-20 libclang-rt-20-dev strace
+          printf 'CLANG=/usr/bin/clang-20\nHEPTA_CLANG=/usr/bin/clang-20\n' >> "$GITHUB_ENV"
+      - name: Install original pinned Python prerequisites
+        run: python -m pip install setuptools==78.1.1 wheel==0.46.3 z3-solver==4.15.4.0 jsonschema==4.26.0
+      - name: Actual original45, lifetime7, generator12, named16, public-default16 and original Agent48 controls
+        run: >-
+          python -B harness/inputs/run_emission_development.py
+          --source source --inputs harness/inputs --output emission-development-evidence
+      - name: Retain complete original evidence and exact inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-emission-v77-r6-development-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            emission-development-evidence
+            harness/inputs
+            runner-platform.json
+          if-no-files-found: error
