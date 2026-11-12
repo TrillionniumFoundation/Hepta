@@ -1,0 +1,152 @@
+--- r2/retain.py
++++ r3/retain.py
+@@ -7,6 +7,7 @@
+ from __future__ import annotations
+ 
+ import argparse
++import errno
+ import gzip
+ from hashlib import sha256
+ import io
+@@ -24,12 +25,23 @@
+ 
+ def inventory(root):
+     rows = []
++    by_path = {}
++    def permission_error(error):
++        require(isinstance(error, PermissionError) and error.errno in {errno.EACCES, errno.EPERM},
++                "only an actual permission refusal can be retained as unreadable metadata")
++        return {"type": type(error).__name__, "errno": error.errno, "message": str(error)}
+     def append(path):
+         info = path.lstat()
+         row = {"path": path.relative_to(root).as_posix(), "identity": list(identity(info))}
+         if stat.S_ISREG(info.st_mode):
+-            row.update(kind="regular", **{key: value for key, value in file_record(path).items()
+-                                          if key in ("bytes", "sha256")})
++            row["kind"] = "regular"
++            try:
++                row.update({key: value for key, value in file_record(path).items()
++                            if key in ("bytes", "sha256")})
++            except PermissionError as error:
++                # Preserve the observed type/identity and the full refusal, not
++                # invented empty bytes or a hash. Never change permissions here.
++                row.update(bytes=info.st_size, read_error=permission_error(error))
+         elif stat.S_ISDIR(info.st_mode):
+             row["kind"] = "directory"
+         elif stat.S_ISLNK(info.st_mode):
+@@ -39,14 +51,25 @@
+         else:
+             row.update(kind="special", rdev=info.st_rdev, no_open_performed=True)
+         require(list(identity(path.lstat())) == row["identity"], "member changed while catalogued")
++        require(row["path"] not in by_path, "duplicate observed custody path")
+         rows.append(row)
++        by_path[row["path"]] = row
+     def walk_error(error):
+-        raise error
++        detail = permission_error(error)
++        path = Path(error.filename)
++        require(path.is_absolute() and path.is_relative_to(root), "unlisted directory escaped custody root")
++        relative = path.relative_to(root).as_posix()
++        if relative not in by_path:
++            append(path)
++        row = by_path[relative]
++        require(row["kind"] == "directory", "directory traversal refusal has a different type")
++        row["traversal_error"] = detail
+     for directory, dirs, files in os.walk(root, followlinks=False, onerror=walk_error):
+         dirs.sort()
+         files.sort()
+         directory = Path(directory)
+-        append(directory)
++        if directory.relative_to(root).as_posix() not in by_path:
++            append(directory)
+         for name in list(dirs):
+             path = directory / name
+             if not stat.S_ISDIR(path.lstat().st_mode):
+@@ -103,14 +126,20 @@
+             originals["errors"][name] = traceback.format_exc()
+     create(original_directory / "COPIES.json", wire(originals))
+     rows = inventory(root)
++    unreadable = [row["path"] for row in rows if "read_error" in row]
++    unlisted = [row["path"] for row in rows if "traversal_error" in row]
++    complete = not unreadable and not unlisted
+     manifest = wire({"schema": "hia.v87.full-retained-typed-custody.v1", "originals": rows,
+                      "closed_original_guardian": guardian_pin, "original_guardian_request": request_pin,
+-                     "all_regular_bytes_selected": True, "special_nodes_are_metadata": True,
++                     "all_regular_bytes_selected": complete, "special_nodes_are_metadata": True,
++                     "unreadable_regular_paths": unreadable, "unlisted_directory_paths": unlisted,
++                     "full_namespace_observed": not unlisted, "permissions_or_ownership_changed": False,
+                      "tar_mtime_is_whole_seconds_original_ns_retained_in_manifest": True,
+                      "direct_extraction_authorized": False, "product_execution_performed": False})
+     catalog_pin = create(public / "ORIGINAL-CATALOG.json", manifest)
+     destination = public / "full-retained-originals.tar.gz"
+-    expected = {row["path"]: row for row in rows if row["path"] != "." and row["kind"] != "special"}
++    expected = {row["path"]: row for row in rows if row["path"] != "."
++                and row["kind"] != "special" and "read_error" not in row}
+     with parent_fd(destination) as (parent, name, stable):
+         descriptor = os.open(name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC,
+                              0o600, dir_fd=parent)
+@@ -195,11 +224,15 @@
+     require(inventory(root) == rows and file_record(destination) == archive_pin,
+             "original namespace/bytes or sealed archive changed during readback")
+     report = {"schema": "hia.v87.full-retained-custody-result.v1",
+-              "status": "COMPLETE_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN",
++              "status": ("COMPLETE_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN" if complete
++                         else "PARTIAL_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN"),
+               "archive": archive_pin, "catalog": catalog_pin, "regular_bytes": regular_bytes,
+               "original_members": len(rows), "archive_members": len(seen),
+               "special_metadata_only": sum(row["kind"] == "special" for row in rows),
+-              "all_regular_bytes_read_back": True, "original_namespace_preserved": True,
++              "all_regular_bytes_read_back": complete, "all_selected_regular_bytes_read_back": True,
++              "unreadable_regular_paths": unreadable, "unlisted_directory_paths": unlisted,
++              "full_namespace_observed": not unlisted, "permissions_or_ownership_changed": False,
++              "original_namespace_preserved": True,
+               "whole_native_delivery_qualified": False, "product_execution_performed": False}
+     create(public / "CUSTODY.json", wire(report))
+ 
+--- r2/controller.py
++++ r3/controller.py
+@@ -372,9 +372,11 @@
+         custody_guardian, result["custody_guardian"] = read_json(public / "custody-guard/guardian.json")
+         natural_guardian(custody_guardian, custody_config)
+         custody, result["custody_report"] = read_json(public / "CUSTODY.json")
+-        require(custody.get("status") == "COMPLETE_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN"
+-                and custody.get("all_regular_bytes_read_back") is True
+-                and custody.get("original_namespace_preserved") is True, "complete typed custody missing")
++        require(custody.get("status") in {"COMPLETE_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN",
++                                         "PARTIAL_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN"}
++                and custody.get("all_selected_regular_bytes_read_back") is True
++                and custody.get("original_namespace_preserved") is True,
++                "typed readable originals were not retained")
+         require(custody["archive"]["path"] == str(public / "full-retained-originals.tar.gz")
+                 and custody["catalog"]["path"] == str(public / "ORIGINAL-CATALOG.json"),
+                 "custody output paths differ")
+@@ -382,7 +384,20 @@
+                 "sealed custody archive identity changed")
+         catalog, catalog_pin = read_json(Path(custody["catalog"]["path"]), custody["catalog"], limit=128 << 20)
+         require(catalog_pin == custody["catalog"], "typed original catalog identity changed")
+-        result["complete_custody"] = True
++        result["custody_archive_verified"] = True
++        unreadable = [row["path"] for row in catalog["originals"] if "read_error" in row]
++        unlisted = [row["path"] for row in catalog["originals"] if "traversal_error" in row]
++        complete = not unreadable and not unlisted
++        require(custody.get("unreadable_regular_paths") == catalog.get("unreadable_regular_paths") == unreadable
++                and custody.get("unlisted_directory_paths") == catalog.get("unlisted_directory_paths") == unlisted
++                and custody.get("all_regular_bytes_read_back") is complete
++                and catalog.get("all_regular_bytes_selected") is complete
++                and custody.get("status") == ("COMPLETE_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN" if complete
++                                              else "PARTIAL_TYPED_ORIGINALS_PENDING_CUSTODY_GUARDIAN"),
++                "partial/complete original custody classification differs")
++        result["complete_custody"] = complete
++        result["unreadable_regular_paths"] = unreadable
++        result["unlisted_directory_paths"] = unlisted
+         request, unused = read_json(public / "GUARDIAN-REQUEST.json")
+         guardian, result["qualification_guardian"] = read_json(root / "guard/guardian.json")
+         require(catalog["closed_original_guardian"] == result["qualification_guardian"]
+@@ -412,6 +427,7 @@
+             result["original_qualification_status"] = q.get("status")
+         except FileNotFoundError:
+             result["original_qualification_status"] = "MISSING_ORIGINAL_REPORT"
++        require(result["complete_custody"], "partial original custody cannot qualify the full run")
+         natural_guardian(guardian, request)
+         require(guardian.get("status") == "GUARDIAN_FULL_RETAINED_PASS", "original full guardian did not pass")
+         result["qualification"] = qualification(root, policy, catalog, guardian)

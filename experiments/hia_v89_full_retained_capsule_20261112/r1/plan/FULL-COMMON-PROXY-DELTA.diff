@@ -1,0 +1,40 @@
+--- v87-original/full_common.py
++++ v88-candidate/full_common.py
+@@ -11,6 +11,7 @@
+ import os
+ from pathlib import Path
+ import stat
++import urllib.parse
+ 
+ 
+ GUARDIAN_SHA256 = "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023"
+@@ -191,6 +192,29 @@
+         allowed |= {"http_proxy", "https_proxy", "all_proxy", "no_proxy",
+                     "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"}
+     result = {key: value for key, value in os.environ.items() if key in allowed}
++    # This runs before any original guardian/workflow request can serialize the
++    # returned environment. Keep configured proxy bytes unchanged; refuse a
++    # credential-bearing value rather than deleting or bypassing the proxy.
++    for key in ("http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
++        if key not in result:
++            continue
++        value = result[key]
++        require(type(value) is str and not any(ord(ch) < 32 or ord(ch) == 127 for ch in value),
++                "malformed proxy cannot enter retained capsule requests")
++        if not value:
++            continue
++        # urllib also accepts a scheme-less host:port or user:pass@host:port.
++        # Normalize only the validation view, never the inherited value.
++        candidate = value if "://" in value or value.startswith("//") else "//" + value
++        try:
++            parsed = urllib.parse.urlsplit(candidate)
++            parsed_port = parsed.port
++            has_host = bool(parsed.hostname)
++        except (ValueError, UnicodeError):
++            raise ValueError("malformed proxy cannot enter retained capsule requests") from None
++        require(has_host and parsed.username is None and parsed.password is None
++                and not parsed.query and not parsed.fragment,
++                "credential-bearing proxy cannot enter retained capsule requests")
+     result.update(PYTHONDONTWRITEBYTECODE="1", PYTHONUNBUFFERED="1", PYTHONNOUSERSITE="1",
+                   LANG="C.UTF-8", LC_ALL="C.UTF-8", GIT_TERMINAL_PROMPT="0",
+                   GIT_NO_LAZY_FETCH="1", GIT_OPTIONAL_LOCKS="0", GIT_CONFIG_GLOBAL="/dev/null",
