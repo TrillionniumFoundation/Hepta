@@ -325,6 +325,11 @@ def run(name, argv, *, check=True, cwd=None):
         for key, path in (("stdout", stdout), ("stderr", stderr), ("receipt", receipt)):
             row[key] = ({"path": path.name, **file_identity(path)} if path.is_file()
                         else {"path": path.name, "missing": True})
+        if not row.get("passed", False):
+            row["original_stream_bytes_on_failure"] = {
+                key: {**file_identity(path), "encoding": "base64",
+                      "data": base64.b64encode(path.read_bytes()).decode("ascii")}
+                for key, path in (("stdout", stdout), ("stderr", stderr)) if path.is_file()}
         checkpoint()
         live({key: row.get(key) for key in
               ("serial", "name", "status", "returncode", "timed_out",

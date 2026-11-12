@@ -186,6 +186,19 @@ def main():
                 'path': path, 'before': identity(before.encode('utf-8')),
                 'after': identity(after.encode('utf-8')),
                 'complete_ast_including_positions_equal': True})
+        report['documentation_reference_repairs'] = []
+        for fix in plan.get('documentation_reference_repairs', ()):
+            path = fix['path']
+            before = owners[fix['before_owner']][path]['content']
+            after = derived[path]['content']
+            edit = fix['exact_replacement']
+            require(before.count(edit['before']) == 1
+                    and before.replace(edit['before'], edit['after']) == after,
+                    'documentation correction exceeds its exact reviewed text: ' + path)
+            require(identity(before.encode('utf-8')) == fix['before']
+                    and identity(after.encode('utf-8')) == fix['after'],
+                    'documentation correction identity differs')
+            report['documentation_reference_repairs'].append(fix)
         result = []
         for path, selected in sorted(plan['selected_files'].items()):
             source = derived if selected['owner'] == 'semantic-union' else owners[selected['owner']]

@@ -18,7 +18,7 @@ and Git blob. `inputs/MERGE-PLAN.json` identifies the exact source chosen for ea
 of 112 overlay paths. Mechanical union files are stored in
 `inputs/derived-sources.json`; their metadata is equally pinned.
 The expected pre-generation index tree is
-`e0da2630916be12071d2d37173cc033d371ead11`, with 3239 files.
+`be497004503dba10759a5107caa43714910f511b`, with 3239 files.
 
 The original 46-file pure Core closure remains intact. Seventeen backend and
 execution-mechanism files are separately named; all 63 combined identity inputs
@@ -55,3 +55,13 @@ Lossless numbered compressed JSON log chunks support recovery of generated repor
 This stage does not run current-source cold replay or the full retained suite.
 It does not enable native defaults, migrate live state, remove legacy code, or
 claim the union has inherited any prior machine qualification.
+
+## Preserved first attempt
+
+Run 43263350672 completed composition and exact authored-tree verification, then
+failed the unchanged Core-only guard before generators or tests. Its exact
+569-byte error named a documentation reference to a .py.txt fixture. This revision
+changes only that reference wording; the fixture and executable policy bytes are
+unchanged. Complete original custody is Git blob
+`832c91b2da8cd08d236d739031dc9c62e69b0fcd`. Failed child stdout and stderr now also
+appear losslessly inside the source report, after the original child has ended.

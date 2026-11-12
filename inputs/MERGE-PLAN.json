@@ -6,7 +6,7 @@
   "base_files": 3153,
   "overlay_file_count": 112,
   "authored_total_files": 3239,
-  "frozen_input_tree": "e0da2630916be12071d2d37173cc033d371ead11",
+  "frozen_input_tree": "be497004503dba10759a5107caa43714910f511b",
   "selected_files": {
     ".github/workflows/hia-core.yml": {
       "owner": "semantic-union",
@@ -18,12 +18,12 @@
       }
     },
     "docs/HIA_CORE_EMITTER_NATIVE.md": {
-      "owner": "emitter_r4",
+      "owner": "semantic-union",
       "expected": {
         "mode": "100644",
-        "bytes": 4914,
-        "sha256": "04c8582d6f5d3e84f0fb95bdc0ad81515878780a5d08e22191214c44885a8078",
-        "blob": "f6edc023186abdf7332cd3dc1b9644c16157eb10"
+        "bytes": 4942,
+        "sha256": "cb4d6c380cb122cc6861ed11924b54bf84da64b65bf825a356df7d5a53a08610",
+        "blob": "2649a14216793c41f4d3c193001200b040b138d3"
       }
     },
     "docs/HIA_CORE_LOWERING_NATIVE.md": {
@@ -1316,5 +1316,27 @@
     "joint_native_tests": false,
     "whole_native": false,
     "source_ref_created": false
-  }
+  },
+  "documentation_reference_repairs": [
+    {
+      "path": "docs/HIA_CORE_EMITTER_NATIVE.md",
+      "before_owner": "emitter_r4",
+      "before": {
+        "bytes": 4914,
+        "sha256": "04c8582d6f5d3e84f0fb95bdc0ad81515878780a5d08e22191214c44885a8078",
+        "blob": "f6edc023186abdf7332cd3dc1b9644c16157eb10"
+      },
+      "after": {
+        "bytes": 4942,
+        "sha256": "cb4d6c380cb122cc6861ed11924b54bf84da64b65bf825a356df7d5a53a08610",
+        "blob": "2649a14216793c41f4d3c193001200b040b138d3"
+      },
+      "exact_replacement": {
+        "before": "`tests/fixtures/hia_program_emitter_v76.py.txt`. Runtime selection never\n",
+        "after": "the text fixture named `hia_program_emitter_v76.py.txt` in `tests/fixtures`.\nRuntime selection never\n"
+      },
+      "reason": "Original Core-only documentation checker treats the .py prefix of a .py.txt fixture as an executable script; retain the exact fixture file and describe its text-file role unambiguously.",
+      "original_failure_custody_blob": "832c91b2da8cd08d236d739031dc9c62e69b0fcd"
+    }
+  ]
 }
