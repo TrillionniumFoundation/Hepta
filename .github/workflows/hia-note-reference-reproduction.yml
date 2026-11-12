@@ -1,0 +1,58 @@
+name: Reproduce exact frozen HIA note reference
+"on":
+  push:
+    branches:
+      - codex/hia-note-reference-reproduction-v75-20261112-dda7
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Exact independent harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Exact complete original source
+        uses: actions/checkout@v4
+        with:
+          path: source
+          ref: 7e9c5a796a29746d169f9db97392ec774f627c03
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Confirm actual environment and install declared independent compilers
+        shell: bash
+        run: |
+          set -euo pipefail
+          . /etc/os-release
+          test "$ID" = ubuntu
+          test "$VERSION_ID" = 24.04
+          test "$(uname -m)" = x86_64
+          mkdir -m 700 "$RUNNER_TEMP/hia-reference-prerequisites"
+          sudo apt-get update 2>&1 | tee "$RUNNER_TEMP/hia-reference-prerequisites/apt-update.log"
+          apt-cache policy gcc-12 gcc-13 gcc-14 clang-18 binutils > "$RUNNER_TEMP/hia-reference-prerequisites/package-policy.txt"
+          sudo apt-get install -y gcc-12 gcc-13 gcc-14 clang-18 binutils 2>&1 | tee "$RUNNER_TEMP/hia-reference-prerequisites/apt-install.log"
+          dpkg-query -W gcc-12 gcc-13 gcc-14 clang-18 binutils > "$RUNNER_TEMP/hia-reference-prerequisites/installed-packages.txt"
+      - name: Reproduce frozen reference without executing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -I -S -B "$GITHUB_WORKSPACE/harness/reproduce_note_reference.py"
+      - name: Preserve every observed image and original command
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-note-reference-reproduction-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+          include-hidden-files: true
+          path: |
+            ${{ runner.temp }}/hia-reference-prerequisites
+            ${{ runner.temp }}/hia-reference-reproduction
