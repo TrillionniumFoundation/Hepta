@@ -1,0 +1,65 @@
+{
+  "schema": "hepta.hia.peer-static-review.v1",
+  "reviewer": "native_install_owner",
+  "status": "STATIC_CLEAR_WITH_DECLARED_COMPONENT_PRECONDITIONS",
+  "source_commit": "8357db004130819a82f44451e8b6e552aa93f100",
+  "source_tree": "678ee13278596e8136418ec3f9b835dedb0e8078",
+  "source_prefix": "experiments/hia_json_pretty_20261112/bulk-source-r4/",
+  "assembly": {
+    "bytes": 21222,
+    "sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+    "git_blob_sha1": "bcd2d847458dbb5d365793d35f9e539a826ddaf3"
+  },
+  "predecessor": "72c6bb2d1ebb510da6dd22597a82e3f388206eb6",
+  "original_static_finding": "For admitted valid compact JSON quoted_abcd and output capacity 1, r3 bulk span failure reported source cursor 6 instead of the original byte-at-a-time failure offset 1.",
+  "exact_checks": {
+    "sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+    "bytes": 21222,
+    "helpers_f1_through_f6_identical": true,
+    "five_flush_failure_edges_match": true,
+    "f7_invariant": "On status 3 only, use span_start + max(0, output_capacity - prior_output_counter), otherwise preserve cursor. f6 rejects before updating prior counter. Under admitted span bounds, failing positive count exceeds room, so failure position lies within the pending source span and cannot overflow.",
+    "scope": "static source review; root-owned V8 observations not rerun; no native execution; failure output remains invalid/discarded; no equivalence claim for unadmitted invalid compact JSON or overlapping ABI buffers"
+  },
+  "checked_failure_blocks": [
+    {
+      "head": "b10(v78:readbuf,v79:mutbuf,v80:mutbuf,v81:usize,v82:usize)",
+      "body": "  v84:usize = int.sub.wrap(v81,v82)\n  v85:u64 = call(v79,v80,v78,v82,v84) {\"function\":\"f6\"}\n  v86:u64 = const() {\"value\":0}\n  v87:bool = compare.eq(v85,v86)\n  branch v87 b7() b9(v79,v80,v82,v81,v85)\n"
+    },
+    {
+      "head": "b15(v136:readbuf,v137:mutbuf,v138:mutbuf,v139:usize,v140:usize,v141:u8,v142:usize)",
+      "body": "  v458:usize = int.sub.wrap(v139,v142)\n  v459:u64 = call(v137,v138,v136,v142,v458) {\"function\":\"f6\"}\n  v460:u64 = const() {\"value\":0}\n  v461:bool = compare.eq(v459,v460)\n  branch v461 b43(v136,v137,v138,v139,v140,v141,v142) b9(v137,v138,v142,v139,v459)\n"
+    },
+    {
+      "head": "b25(v252:readbuf,v253:mutbuf,v254:mutbuf,v255:usize,v256:usize,v257:u8,v258:usize)",
+      "body": "  v469:usize = int.sub.wrap(v255,v258)\n  v470:u64 = call(v253,v254,v252,v258,v469) {\"function\":\"f6\"}\n  v471:u64 = const() {\"value\":0}\n  v472:bool = compare.eq(v470,v471)\n  branch v472 b44(v252,v253,v254,v255,v256,v257,v258) b9(v253,v254,v258,v255,v470)\n"
+    },
+    {
+      "head": "b31(v321:readbuf,v322:mutbuf,v323:mutbuf,v324:usize,v325:usize,v326:u8,v327:usize)",
+      "body": "  v480:usize = int.sub.wrap(v324,v327)\n  v481:u64 = call(v322,v323,v321,v327,v480) {\"function\":\"f6\"}\n  v482:u64 = const() {\"value\":0}\n  v483:bool = compare.eq(v481,v482)\n  branch v483 b45(v321,v322,v323,v324,v325,v326,v327) b9(v322,v323,v327,v324,v481)\n"
+    },
+    {
+      "head": "b36(v371:readbuf,v372:mutbuf,v373:mutbuf,v374:usize,v375:usize,v376:u8,v377:usize)",
+      "body": "  v491:usize = int.sub.wrap(v374,v377)\n  v492:u64 = call(v372,v373,v371,v377,v491) {\"function\":\"f6\"}\n  v493:u64 = const() {\"value\":0}\n  v494:bool = compare.eq(v492,v493)\n  branch v494 b46(v371,v372,v373,v374,v375,v376,v377) b9(v372,v373,v377,v374,v492)\n"
+    }
+  ],
+  "reasoning": [
+    "All six pre-existing helper bodies f1 through f6 remain byte-identical.",
+    "All five f6 failure edges now pass the actual output buffer, workspace, current pending span start, current cursor, and returned status to shared f7.",
+    "f6 returns status 3 before writing the span or changing the prior output count. f7 consequently computes span_start + max(0, output_capacity - prior_output_count).",
+    "For an admitted bounded span, status 3 means the positive span count exceeds available space. The corrected offset therefore falls inside that pending source span; it cannot overflow under the existing input bound.",
+    "Non-capacity statuses retain the prior cursor-based error position. The unsuccessful output bytes and reported length remain invalid and must be discarded.",
+    "This does not add a claim about malformed unadmitted wire refusal priority, overlapping buffers, arbitrary workspace corruption, or native execution."
+  ],
+  "original_root_observations": "Root reported actual V8 r2/r4 equality for 477 small-capacity and 8 maximum-depth capacity cases plus 33 ordinary fixtures. This reviewer did not rerun those observations or convert them into native timing evidence.",
+  "unchanged_queued_native_request": {
+    "run_id": 43134139906,
+    "workflow_commit": "96dd9660a0c18f4a679e53f68a3a3355255acdeb",
+    "modified": false
+  },
+  "executed_by_reviewer": {
+    "python_parse": false,
+    "Core_VM": false,
+    "native_compilation": false,
+    "native_execution": false
+  }
+}

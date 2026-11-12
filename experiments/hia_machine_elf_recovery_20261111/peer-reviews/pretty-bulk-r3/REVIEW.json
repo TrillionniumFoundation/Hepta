@@ -1,0 +1,84 @@
+{
+  "schema": "hepta.hia.peer-static-review.v1",
+  "scope": "EXACT_PRETTY_R3_SOURCE_AND_BULK_RANGE_REVIEW_NO_PARSE_OR_EXECUTION",
+  "source_commit": "72c6bb2d1ebb510da6dd22597a82e3f388206eb6",
+  "input_checks": [
+    {
+      "name": "assembly",
+      "bytes": 20124,
+      "sha256": "dccf5a93dcdeed7877c9ec05d261cff06257dd53d980b89fcfcb614a1d732f73",
+      "git_blob_sha1": "4ad31b1e5e03e778ff3c1b4066527ee81a0f91a9"
+    },
+    {
+      "name": "document",
+      "bytes": 169241,
+      "sha256": "3896d533951504c194abda96fd94bdc9a49edeb9212e99a37095f6a7b6ef030e",
+      "git_blob_sha1": "c2c2079ff0b16edc49837749fe124438c3666e47"
+    },
+    {
+      "name": "design",
+      "bytes": 2881,
+      "sha256": "67ea68f9679c33bdccf66218025820bf4885d26c789a798f621d6d027a9e04c4",
+      "git_blob_sha1": "660341e42eb3dc09c6ef21acb7d7ca5ff1ed1c87"
+    },
+    {
+      "name": "readme",
+      "bytes": 2826,
+      "sha256": "f97b1a6017d1f4108ba8f4abe7d034037eb43588ca032962e76df4109392a048",
+      "git_blob_sha1": "1014513a0be3c54ddb697f38501b551a6008b9d4"
+    }
+  ],
+  "reviewer_execution": {
+    "python_parse": false,
+    "public_Core": false,
+    "IR_interpretation": false,
+    "native_compile": false,
+    "native_run": false,
+    "h": false
+  },
+  "structural_observation": {
+    "functions": 7,
+    "blocks": 80,
+    "max_blocks": 46,
+    "operations": 293,
+    "max_ssa": 488,
+    "max_args": 8,
+    "edge_errors": []
+  },
+  "examined": [
+    "Actual canonical acffa hia_opcodes.py defines copy_range arguments (mutbuf,readbuf,usize,usize,usize) and fill_range (mutbuf,usize,usize,u8), with distinct destination/source guard for copy.",
+    "Actual general native bulk lowering independently confirms destination/source/offset operand order. The pretty f6 call uses output/source/current-output-length/span-start/span-size in that exact order.",
+    "The HIA scan preserves 0 <= span_start <= source_cursor <= source_length along the examined entry, quoted/atomic, empty-container and structural delimiter paths. The previously missing close edge now forwards its span-start parameter.",
+    "Quoted state tracks escaped backslashes/quotes without flushing inside a string. Structural punctuation flushes only the preceding literal span and advances start after the explicitly emitted punctuation.",
+    "Positive copy count is checked against wrapped output-length addition and complete destination extent before copying; mode 0 counts without touching the output allocation.",
+    "Indentation emits the existing newline then uses a complete destination-range check and fill_range. Source length bounds the attainable nesting depth; the doubled indentation count cannot reach usize wrap within the declared 8MiB input.",
+    "Correctness relies on the explicitly documented immutable/private/disjoint buffers. No new alias admission or arbitrary overlapping-buffer claim was established.",
+    "Entry refusal preserves the prior distinction: workspace shorter than 32 bytes is untouched; invalid mode or oversized input can leave an earlier out_length. Only status zero authorizes output/length."
+  ],
+  "findings": [
+    {
+      "status": "STATIC_OBSERVABLE_DIFFERENCE_REQUIRES_CONTRACT_DECISION",
+      "id": "refusal_offset_after_bulk_flush",
+      "input": {
+        "wire": "\"abcd\"",
+        "mode": 1,
+        "output_capacity": 1,
+        "workspace_at_least": 32
+      },
+      "derived_r2": {
+        "status": 3,
+        "error_offset": 1,
+        "out_length": 1
+      },
+      "derived_r3": {
+        "status": 3,
+        "error_offset": 6,
+        "out_length": 0
+      },
+      "explanation": "The old byte emitter reaches the first unwritable source byte during scanning; r3 copies the complete span at end and passes the current end cursor to f5. Invalid output bytes/length were explicitly excluded, but the documentation did not explicitly state whether error_offset retains original per-byte semantics.",
+      "actual_reproduction": false,
+      "recommendation": "Either preserve exact failure offset/priority in a new HIA revision and measure real controls, or explicitly define r3's private diagnostic as the failed flush position without claiming whole failure metadata equivalence. The already queued baseline run and source stay unchanged."
+    }
+  ],
+  "limits": "This is not a public Core verifier result, native proof, performance measurement, full quoted-JSON parser audit or replacement for the complete queued 31-case run. Existing reported V8 results belong to the producer's independent development evidence and were not re-executed here."
+}
