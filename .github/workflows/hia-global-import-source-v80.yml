@@ -1,9 +1,9 @@
-name: HIA recoverable owner and Proof source integration V79
+name: HIA GLOBAL and import source integration V80
 
 "on":
   push:
     branches:
-      - codex/hia-recoverable-proof-source-v79-r2-20261112-dda7
+      - codex/hia-global-import-source-v80-r1-20261112-dda7
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   source:
-    name: Exact recoverable owner and Proof source generation
+    name: Exact GLOBAL and import source generation
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -27,7 +27,7 @@ jobs:
         id: source
         uses: actions/checkout@v4
         with:
-          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          ref: 64f67ae897c3cb49d45a1e1a4622db974812e3fe
           path: source
           persist-credentials: false
           fetch-depth: 2
@@ -52,7 +52,7 @@ jobs:
           root = Path(os.environ["GITHUB_WORKSPACE"])
           out = root / "evidence"
           stdout, stderr = out / "composition.stdout", out / "composition.stderr"
-          command = [sys.executable, "-B", str(root / "harness/tools/compose_recoverable_owners.py"),
+          command = [sys.executable, "-B", str(root / "harness/tools/compose_global_repairs.py"),
                      "--harness", str(root / "harness"),
                      "--output", str(out / "composition")]
           with stdout.open("xb") as first, stderr.open("xb") as second:
@@ -76,10 +76,10 @@ jobs:
           root = Path(os.environ["GITHUB_WORKSPACE"])
           out = root / "evidence"
           overlay = root / "harness/overlay/source-overlay.json"
-          command = [sys.executable, "-B", str(root / "harness/tools/hia_source_integration_v78.py"),
+          command = [sys.executable, "-B", str(root / "harness/tools/hia_source_integration_v80.py"),
                      "--source", str(root / "source"),
-                     "--expected-commit", "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
-                     "--expected-tree", "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c",
+                     "--expected-commit", "64f67ae897c3cb49d45a1e1a4622db974812e3fe",
+                     "--expected-tree", "b7cf3502931d5fae8f58444b0af04cc642414a4a",
                      "--overlay", str(overlay), "--overlay-sha256", sha256(overlay.read_bytes()).hexdigest(),
                      "--output", str(out / "source-generation"), "--install-dependencies"]
           stdout, stderr = out / "driver.stdout", out / "driver.stderr"
@@ -124,14 +124,14 @@ jobs:
                           native_default=False, historical_results_transferred=False)
           (out / "WORKFLOW-OUTCOMES.json").write_text(
               json.dumps(outcomes, sort_keys=True, indent=2) + "\n")
-          driver = root / "harness/tools/hia_source_integration_v78.py"
+          driver = root / "harness/tools/hia_source_integration_v80.py"
           overlay = root / "harness/overlay/source-overlay.json"
           exported = False
           if driver.is_file():
               digest = sha256(overlay.read_bytes()).hexdigest() if overlay.is_file() else "0" * 64
               command = [sys.executable, "-B", str(driver), "--source", str(root / "source"),
-                         "--expected-commit", "4b19af89a766593f7d5f1cc2db256e81aba7afcb",
-                         "--expected-tree", "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c",
+                         "--expected-commit", "64f67ae897c3cb49d45a1e1a4622db974812e3fe",
+                         "--expected-tree", "b7cf3502931d5fae8f58444b0af04cc642414a4a",
                          "--overlay", str(overlay), "--overlay-sha256", digest,
                          "--output", str(out / "source-generation"), "--export-only"]
               try:
@@ -155,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: hia-recoverable-proof-source-${{ github.run_id }}-${{ github.run_attempt }}
+          name: hia-global-import-source-${{ github.run_id }}-${{ github.run_attempt }}
           path: evidence/
           include-hidden-files: true
           if-no-files-found: error

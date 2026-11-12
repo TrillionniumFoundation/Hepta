@@ -1,0 +1,58 @@
+{
+  "changes": [
+    {
+      "after": "Build a reviewable source tree from published 64f67 plus exact GLOBAL/import repairs.",
+      "before": "Build a reviewable source tree from exact 4b plus a finite pinned overlay."
+    },
+    {
+      "after": "BASE_COMMIT = \"64f67ae897c3cb49d45a1e1a4622db974812e3fe\"",
+      "before": "BASE_COMMIT = \"4b19af89a766593f7d5f1cc2db256e81aba7afcb\""
+    },
+    {
+      "after": "BASE_TREE = \"b7cf3502931d5fae8f58444b0af04cc642414a4a\"",
+      "before": "BASE_TREE = \"1bc7c90996e1910ad66ba771b0bfee1d5bfa655c\""
+    },
+    {
+      "after": "BASE_FILE_COUNT = 3255",
+      "before": "BASE_FILE_COUNT = 3153"
+    },
+    {
+      "after": "SCHEMA = \"hepta.hia.source-generation-v80.v1\"",
+      "before": "SCHEMA = \"hepta.hia.source-generation-v78.v1\""
+    },
+    {
+      "after": "require(args.expected_commit == BASE_COMMIT, \"v80 requires exact published 64f67 base\")",
+      "before": "require(args.expected_commit == BASE_COMMIT, \"v78 requires exact 4b base\")"
+    },
+    {
+      "after": "require(args.expected_tree == BASE_TREE, \"v80 requires the exact published 64f67 tree\")",
+      "before": "require(args.expected_tree == BASE_TREE, \"v78 requires the exact 4b tree\")"
+    },
+    {
+      "after": "def check_harness_inputs():\n    harness = Path(__file__).resolve().parents[1]\n    index_path = harness / \"inputs\" / \"INPUTS.json\"\n    index = json.loads(index_path.read_bytes(), object_pairs_hook=strict_pairs)\n    require(index.get(\"schema\") == \"hia.global-import.harness-inputs.v80.r1\", \"wrong harness inventory\")\n    paths = {name: harness / name for name in index[\"files\"]}\n    for name, path in paths.items():\n        require(identity(path.read_bytes()) == index[\"files\"][name], \"harness input changed: \" + name)\n    paths[\"input_index\"] = index_path\n    paths[\"overlay\"] = Path(REPORT[\"overlay_input\"][\"path\"])\n    supervisor = harness / \"tools\" / \"workflow_process.py\"\n    require(supervisor == Path(workflow_process.__file__).resolve()\n            and supervisor == Path(__file__).with_name(\"workflow_process.py\"), \"wrong adjacent supervisor\")\n    require(digest(supervisor.read_bytes()) == SUPERVISOR_SHA256, \"original process supervisor bytes changed\")\n    return {name: {\"path\": str(path), **file_identity(path)} for name, path in paths.items()}",
+      "before": "def check_harness_inputs():\n    paths = {\n        \"driver\": Path(__file__).resolve(),\n        \"workflow_process\": Path(workflow_process.__file__).resolve(),\n        \"workflow\": Path(__file__).resolve().parents[1] / \".github\" / \"workflows\" / \"hia-recoverable-proof-source-v79.yml\",\n        \"overlay\": Path(REPORT[\"overlay_input\"][\"path\"]),\n        \"expected_source_ids\": Path(__file__).resolve().parents[1] / \"overlay\" / \"expected-source-ids.json\",\n    }\n    harness = Path(__file__).resolve().parents[1]\n    paths[\"composition_driver\"] = harness / \"tools\" / \"compose_recoverable_owners.py\"\n    paths[\"input_index\"] = harness / \"inputs\" / \"INPUTS.json\"\n    paths[\"merge_plan\"] = harness / \"inputs\" / \"MERGE-PLAN.json\"\n    paths[\"config\"] = harness / \"inputs\" / \"CONFIG.json\"\n    paths[\"external_finish_fixture\"] = harness / \"inputs\" / \"probe_native_finish.py\"\n    paths[\"harness_readme\"] = harness / \"README.md\"\n    index = json.loads(paths[\"input_index\"].read_bytes(), object_pairs_hook=strict_pairs)\n    for key, entry in {**index[\"owners\"], \"derived\": index[\"derived\"]}.items():\n        path = harness / entry[\"path\"]\n        require(identity(path.read_bytes()) == entry[\"identity\"], \"input source packet differs: \" + key)\n        paths[\"packet_\" + key] = path\n    require(paths[\"workflow_process\"] == paths[\"driver\"].with_name(\"workflow_process.py\"),\n            \"workflow supervisor is not adjacent to this driver\")\n    require(digest(paths[\"workflow_process\"].read_bytes()) == SUPERVISOR_SHA256,\n            \"original process supervisor bytes changed\")\n    return {name: {\"path\": str(path), **file_identity(path)}\n            for name, path in paths.items()}\n"
+    },
+    {
+      "after": "(OUT / (\"harness-\" + name.replace(\"/\", \"__\") + suffix)).write_bytes(Path(row[\"path\"]).read_bytes())",
+      "before": "(OUT / (\"harness-\" + name + suffix)).write_bytes(Path(row[\"path\"]).read_bytes())"
+    },
+    {
+      "after": "    require(len(frozen_control_ids[\"previous_joint_ordered_ids\"]) == 860\n            and len(frozen_control_ids[\"previous_joint_selectors\"]) == 171,\n            \"previous published source inventory denominator differs\")\n    preserve_subsequence(frozen_control_ids[\"previous_joint_ordered_ids\"],\n                         frozen_control_ids[\"ordered_ids\"], \"published 860 exact source IDs\")\n    preserve_subsequence(frozen_control_ids[\"previous_joint_selectors\"],\n                         controls[\"executed_selectors\"], \"published 171 source selectors\")\n    controls[\"previous_published_source_tests\"] = 860\n    controls[\"previous_published_order_preserved\"] = True\n    controls[\"previous_successful_joint_selectors\"] = frozen_control_ids[\"original_selectors\"]\n",
+      "before": "    controls[\"previous_successful_joint_selectors\"] = frozen_control_ids[\"original_selectors\"]\n"
+    },
+    {
+      "after": "NEW_HELPER_SOURCE_NEGATIVE_CHILD = '\\nimport io\\nimport json\\nfrom pathlib import Path\\nimport sys\\nimport unittest\\nfrom unittest.mock import patch\\nsource = Path(sys.argv[1]).resolve(strict=True)\\ntarget = Path(sys.argv[2])\\nsys.path.insert(0, str(source))\\nfrom tools import hia_selfhost_contract as contract\\nfrom tests.test_hia_joint_owner_integration import JointOwnerIntegrationSourceTests\\nmissing = \"tests/hia_native_name_resolution.py\"\\nassert contract.SOURCE_FILES.count(missing) == 1\\noriginal = contract.SOURCE_FILES\\nmethod = \"test_every_required_cold_builder_input_is_in_the_actual_fresh_closure\"\\nstream = io.StringIO()\\nwith patch.object(contract, \"SOURCE_FILES\", tuple(name for name in original if name != missing)):\\n    result = unittest.TextTestRunner(stream=stream, verbosity=2).run(\\n        unittest.TestSuite([JointOwnerIntegrationSourceTests(method)]))\\nassert contract.SOURCE_FILES is original\\nfailures = [{\"test\": test.id(), \"traceback\": text} for test, text in result.failures]\\nerrors = [{\"test\": test.id(), \"traceback\": text} for test, text in result.errors]\\nexpected = (result.testsRun == 1 and len(failures) == 3 and not errors\\n            and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses\\n            and all(missing in row[\"test\"] and \"not found in\" in row[\"traceback\"] for row in failures)\\n            and all(any(builder in row[\"test\"] for row in failures) for builder in\\n                    (\"build_hia_native_build\", \"build_hia_native_byte_abi\", \"build_hia_service_verification\")))\\nrecord = {\"schema\": \"hia.joint-required-source-negative.v1\",\\n          \"scope\": \"DIAGNOSTIC_EXPECTED_REJECTION_NOT_BUSINESS_QUALIFICATION\",\\n          \"status\": \"PASS\" if expected else \"FAIL\", \"tests_run\": result.testsRun,\\n          \"expected_failures_observed\": failures, \"unexpected_errors\": errors,\\n          \"original_body_and_assertions_unchanged\": True,\\n          \"temporary_in_memory_source_inventory_omission\": missing,\\n          \"files_changed\": False, \"inventory_restored\": contract.SOURCE_FILES is original,\\n          \"stdout\": stream.getvalue()}\\ntarget.write_text(json.dumps(record, sort_keys=True, indent=2) + \"\\\\n\")\\nprint(stream.getvalue(), end=\"\")\\nprint(json.dumps({key: record[key] for key in (\"scope\", \"status\", \"tests_run\")}, sort_keys=True))\\nraise SystemExit(0 if expected else 1)\\n'\n\nCONTROL_CHILD = r\"\"\"",
+      "before": "CONTROL_CHILD = r\"\"\""
+    },
+    {
+      "after": "    helper_result = OUT / \"new-helper-source-negative.json\"\n    (OUT / \"new-helper-source-negative-child.py\").write_text(\n        NEW_HELPER_SOURCE_NEGATIVE_CHILD, encoding=\"utf-8\")\n    helper_negative, _ = run(\"new-helper-source-closure-expected-rejection\", [\n        sys.executable, \"-I\", \"-B\", \"-c\", NEW_HELPER_SOURCE_NEGATIVE_CHILD, str(SOURCE),\n        str(helper_result)], check=False)\n    if not helper_negative[\"passed\"]:\n        failed_checks.append(\"new-helper-source-closure-expected-rejection\")\n    if helper_result.is_file():\n        value = json.loads(helper_result.read_bytes(), object_pairs_hook=strict_pairs)\n        REPORT[\"new_helper_source_negative\"] = {\n            \"path\": helper_result.name, **file_identity(helper_result), \"summary\": value}\n        if value.get(\"status\") != \"PASS\":\n            failed_checks.append(\"new-helper-source-closure-negative-outcome\")\n    else:\n        failed_checks.append(\"new-helper-source-closure-negative-report-missing\")\n    observe(\"after-new-helper-source-negative\", PRE_STAGE, ())\n    child_result = OUT / \"source-controls.json\"\n",
+      "before": "    child_result = OUT / \"source-controls.json\"\n"
+    }
+  ],
+  "new_helper_negative_added": true,
+  "original_764_ids_retained": true,
+  "original_blob": "1fc7da6f701761938a36419af8a8ba49c127192b",
+  "original_negative_preserved": true,
+  "previous_860_ids_retained": true,
+  "source_step_seconds": 1800
+}

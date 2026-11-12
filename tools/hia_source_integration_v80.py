@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a reviewable source tree from exact 4b plus a finite pinned overlay.
+"""Build a reviewable source tree from published 64f67 plus exact GLOBAL/import repairs.
 
 This stage performs source generation and source/ordinary-reference controls.
 It does not create a source commit, run cold replay, or grant native/default/
@@ -28,16 +28,16 @@ import zlib
 
 import workflow_process
 
-BASE_COMMIT = "4b19af89a766593f7d5f1cc2db256e81aba7afcb"
-BASE_TREE = "1bc7c90996e1910ad66ba771b0bfee1d5bfa655c"
+BASE_COMMIT = "64f67ae897c3cb49d45a1e1a4622db974812e3fe"
+BASE_TREE = "b7cf3502931d5fae8f58444b0af04cc642414a4a"
 PROTECTED_SOURCE_PATHS = frozenset(("tools/check_hia_core_only.py",))
-BASE_FILE_COUNT = 3153
+BASE_FILE_COUNT = 3255
 HARNESS_CONFIG = json.loads((Path(__file__).resolve().parents[1] / "inputs" / "CONFIG.json").read_bytes())
 FROZEN_INPUT_TREE = HARNESS_CONFIG["frozen_input_tree"]
 EXPECTED_GENERATORS = HARNESS_CONFIG["expected_generators"]
 EXPECTED_SELECTORS = HARNESS_CONFIG["expected_selectors"]
 EXPECTED_TESTS = HARNESS_CONFIG["expected_tests"]
-SCHEMA = "hepta.hia.source-generation-v78.v1"
+SCHEMA = "hepta.hia.source-generation-v80.v1"
 OVERLAY_SCHEMA = "hepta.hia.source-overlay.v1"
 STEP_SECONDS = 1800
 SUPERVISOR_SHA256 = "f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80"
@@ -151,6 +151,8 @@ print(stream.getvalue(), end="")
 print(json.dumps({key: record[key] for key in ("scope", "status", "tests_run")}, sort_keys=True))
 raise SystemExit(0 if expected else 1)
 """
+
+NEW_HELPER_SOURCE_NEGATIVE_CHILD = '\nimport io\nimport json\nfrom pathlib import Path\nimport sys\nimport unittest\nfrom unittest.mock import patch\nsource = Path(sys.argv[1]).resolve(strict=True)\ntarget = Path(sys.argv[2])\nsys.path.insert(0, str(source))\nfrom tools import hia_selfhost_contract as contract\nfrom tests.test_hia_joint_owner_integration import JointOwnerIntegrationSourceTests\nmissing = "tests/hia_native_name_resolution.py"\nassert contract.SOURCE_FILES.count(missing) == 1\noriginal = contract.SOURCE_FILES\nmethod = "test_every_required_cold_builder_input_is_in_the_actual_fresh_closure"\nstream = io.StringIO()\nwith patch.object(contract, "SOURCE_FILES", tuple(name for name in original if name != missing)):\n    result = unittest.TextTestRunner(stream=stream, verbosity=2).run(\n        unittest.TestSuite([JointOwnerIntegrationSourceTests(method)]))\nassert contract.SOURCE_FILES is original\nfailures = [{"test": test.id(), "traceback": text} for test, text in result.failures]\nerrors = [{"test": test.id(), "traceback": text} for test, text in result.errors]\nexpected = (result.testsRun == 1 and len(failures) == 3 and not errors\n            and not result.skipped and not result.expectedFailures and not result.unexpectedSuccesses\n            and all(missing in row["test"] and "not found in" in row["traceback"] for row in failures)\n            and all(any(builder in row["test"] for row in failures) for builder in\n                    ("build_hia_native_build", "build_hia_native_byte_abi", "build_hia_service_verification")))\nrecord = {"schema": "hia.joint-required-source-negative.v1",\n          "scope": "DIAGNOSTIC_EXPECTED_REJECTION_NOT_BUSINESS_QUALIFICATION",\n          "status": "PASS" if expected else "FAIL", "tests_run": result.testsRun,\n          "expected_failures_observed": failures, "unexpected_errors": errors,\n          "original_body_and_assertions_unchanged": True,\n          "temporary_in_memory_source_inventory_omission": missing,\n          "files_changed": False, "inventory_restored": contract.SOURCE_FILES is original,\n          "stdout": stream.getvalue()}\ntarget.write_text(json.dumps(record, sort_keys=True, indent=2) + "\\n")\nprint(stream.getvalue(), end="")\nprint(json.dumps({key: record[key] for key in ("scope", "status", "tests_run")}, sort_keys=True))\nraise SystemExit(0 if expected else 1)\n'
 
 CONTROL_CHILD = r"""
 import json
@@ -723,32 +725,20 @@ def prerequisite_state():
 
 
 def check_harness_inputs():
-    paths = {
-        "driver": Path(__file__).resolve(),
-        "workflow_process": Path(workflow_process.__file__).resolve(),
-        "workflow": Path(__file__).resolve().parents[1] / ".github" / "workflows" / "hia-recoverable-proof-source-v79.yml",
-        "overlay": Path(REPORT["overlay_input"]["path"]),
-        "expected_source_ids": Path(__file__).resolve().parents[1] / "overlay" / "expected-source-ids.json",
-    }
     harness = Path(__file__).resolve().parents[1]
-    paths["composition_driver"] = harness / "tools" / "compose_recoverable_owners.py"
-    paths["input_index"] = harness / "inputs" / "INPUTS.json"
-    paths["merge_plan"] = harness / "inputs" / "MERGE-PLAN.json"
-    paths["config"] = harness / "inputs" / "CONFIG.json"
-    paths["external_finish_fixture"] = harness / "inputs" / "probe_native_finish.py"
-    paths["harness_readme"] = harness / "README.md"
-    index = json.loads(paths["input_index"].read_bytes(), object_pairs_hook=strict_pairs)
-    for key, entry in {**index["owners"], "derived": index["derived"]}.items():
-        path = harness / entry["path"]
-        require(identity(path.read_bytes()) == entry["identity"], "input source packet differs: " + key)
-        paths["packet_" + key] = path
-    require(paths["workflow_process"] == paths["driver"].with_name("workflow_process.py"),
-            "workflow supervisor is not adjacent to this driver")
-    require(digest(paths["workflow_process"].read_bytes()) == SUPERVISOR_SHA256,
-            "original process supervisor bytes changed")
-    return {name: {"path": str(path), **file_identity(path)}
-            for name, path in paths.items()}
-
+    index_path = harness / "inputs" / "INPUTS.json"
+    index = json.loads(index_path.read_bytes(), object_pairs_hook=strict_pairs)
+    require(index.get("schema") == "hia.global-import.harness-inputs.v80.r1", "wrong harness inventory")
+    paths = {name: harness / name for name in index["files"]}
+    for name, path in paths.items():
+        require(identity(path.read_bytes()) == index["files"][name], "harness input changed: " + name)
+    paths["input_index"] = index_path
+    paths["overlay"] = Path(REPORT["overlay_input"]["path"])
+    supervisor = harness / "tools" / "workflow_process.py"
+    require(supervisor == Path(workflow_process.__file__).resolve()
+            and supervisor == Path(__file__).with_name("workflow_process.py"), "wrong adjacent supervisor")
+    require(digest(supervisor.read_bytes()) == SUPERVISOR_SHA256, "original process supervisor bytes changed")
+    return {name: {"path": str(path), **file_identity(path)} for name, path in paths.items()}
 
 def support_snapshot():
     value = json.loads((SOURCE / GENERATED_DOCS[1]).read_bytes(),
@@ -770,8 +760,8 @@ def perform(args):
     global SOURCE, ENV, BASE_ROWS, BEFORE, OVERLAY, OVERLAY_RAW, GENERATOR_BASELINE, PRE_STAGE
     SOURCE = Path(args.source).resolve(strict=True)
     require(SOURCE.is_dir(), "product source is not a directory")
-    require(args.expected_commit == BASE_COMMIT, "v78 requires exact 4b base")
-    require(args.expected_tree == BASE_TREE, "v78 requires the exact 4b tree")
+    require(args.expected_commit == BASE_COMMIT, "v80 requires exact published 64f67 base")
+    require(args.expected_tree == BASE_TREE, "v80 requires the exact published 64f67 tree")
     require((SOURCE / ".git").is_dir() and not (SOURCE / ".git").is_symlink(),
             "an exclusive complete checkout with its own .git directory is required")
     ENV, discarded = environment()
@@ -828,7 +818,7 @@ def perform(args):
     for name, row in REPORT["harness_before"].items():
         if name != "overlay":
             suffix = ".yml" if name == "workflow" else ".json" if name == "expected_source_ids" else ".py"
-            (OUT / ("harness-" + name + suffix)).write_bytes(Path(row["path"]).read_bytes())
+            (OUT / ("harness-" + name.replace("/", "__") + suffix)).write_bytes(Path(row["path"]).read_bytes())
     touched = {row["path"] for row in OVERLAY["files"]} | MAX_GENERATED_PATHS
     for path in sorted(touched & set(BEFORE)):
         raw, mode, posix = read_path(path)
@@ -888,6 +878,15 @@ def perform(args):
             and len(frozen_control_ids["original_ordered_ids"]) == 764
             and len(frozen_control_ids["ordered_ids"]) == EXPECTED_TESTS,
             "original/new frozen source inventory denominator differs")
+    require(len(frozen_control_ids["previous_joint_ordered_ids"]) == 860
+            and len(frozen_control_ids["previous_joint_selectors"]) == 171,
+            "previous published source inventory denominator differs")
+    preserve_subsequence(frozen_control_ids["previous_joint_ordered_ids"],
+                         frozen_control_ids["ordered_ids"], "published 860 exact source IDs")
+    preserve_subsequence(frozen_control_ids["previous_joint_selectors"],
+                         controls["executed_selectors"], "published 171 source selectors")
+    controls["previous_published_source_tests"] = 860
+    controls["previous_published_order_preserved"] = True
     controls["previous_successful_joint_selectors"] = frozen_control_ids["original_selectors"]
     controls["previous_successful_joint_selector_order_preserved"] = True
     REPORT["source_control_inventory"] = controls
@@ -1001,6 +1000,23 @@ def perform(args):
     else:
         failed_checks.append("required-source-closure-negative-report-missing")
     observe("after-required-source-negative", PRE_STAGE, ())
+    helper_result = OUT / "new-helper-source-negative.json"
+    (OUT / "new-helper-source-negative-child.py").write_text(
+        NEW_HELPER_SOURCE_NEGATIVE_CHILD, encoding="utf-8")
+    helper_negative, _ = run("new-helper-source-closure-expected-rejection", [
+        sys.executable, "-I", "-B", "-c", NEW_HELPER_SOURCE_NEGATIVE_CHILD, str(SOURCE),
+        str(helper_result)], check=False)
+    if not helper_negative["passed"]:
+        failed_checks.append("new-helper-source-closure-expected-rejection")
+    if helper_result.is_file():
+        value = json.loads(helper_result.read_bytes(), object_pairs_hook=strict_pairs)
+        REPORT["new_helper_source_negative"] = {
+            "path": helper_result.name, **file_identity(helper_result), "summary": value}
+        if value.get("status") != "PASS":
+            failed_checks.append("new-helper-source-closure-negative-outcome")
+    else:
+        failed_checks.append("new-helper-source-closure-negative-report-missing")
+    observe("after-new-helper-source-negative", PRE_STAGE, ())
     child_result = OUT / "source-controls.json"
     (OUT / "source-controls-child.py").write_text(CONTROL_CHILD, encoding="utf-8")
     row, _ = run("complete-original-and-additional-source-controls", [
