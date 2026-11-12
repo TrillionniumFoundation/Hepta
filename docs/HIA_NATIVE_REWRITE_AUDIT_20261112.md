@@ -1,10 +1,20 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW52）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW52A）
 
 ## 当前结论
 
 **整套仍为 OPEN。156个生产模块尚未完成原生安装替换；完整工具链、公开CLI/API、真实Worker/FS/Store/SQL、跨平台与原生安装/冷启动仍须闭合。生产激活0、旧实现删除0。已通过的私有组件、原件读取及旧保留版4,157项回归都不能替代全原生交付。**
 
-## FOLLOW52 最新状态（2026-11-12 13:38:39 UTC）
+## FOLLOW52A 调度前配置修复
+
+FOLLOW52提交 `45cdebf584f4f56f4316b0f4c5c9e59d1314433b` 的recovery run43229928880实际在创建时FAIL，jobs API完整返回0；六项恢复门均0目标执行。独立语法job131222248956也实际FAIL：检查器第104行要求固定marker `SOURCE_SYNTAX_ONLY_NO_SEMANTIC_QUALIFICATION`，本轮元数据误将其改为说明性状态，故Python AST_files=0。完整24,222B日志、原summary及原workflow/manifest字节均保留在ci-followup-r52a；旧失败不转写PASS。
+
+本补丁只恢复manifest的固定status字符串，并将backend50_originals两项 `runner.temp` 环境值从job env移到reader step env。download/upload采用同一个runner.temp绝对路径。GitHub官方Context availability明确job env不支持runner，而step env/with支持；这是已确认的源码配置错误。接口未提供本次服务器validation annotation，报告不虚构具体注解或已执行验证结果。四处workflow文本变更完整逆回原431,508B，新workflow431,581B；其余147job逐字不变，148job的steps之前均无runner表达式。
+
+832份活动源码的全部path/mode/bytes/Git/SHA行保持完全一致；6个selected tags、全部原case/control、90CPU/180wall/1GiB、B3和原900聚合门保持不变。根提交新配置触发真实调度后再按实际结果判断。原完整第52轮checkpoint仍为历史提交前记录；本补丁未把未运行源码记为AST/B3/native通过。当前整套OPEN，156个生产模块仍未完成原生安装替换，激活0、删除0。
+
+主资料：[GitHub Contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability)，2026-11-12实际读取。
+
+## FOLLOW52 提交前历史记录（2026-11-12 13:38:39 UTC）
 
 父提交 `969bebebdd71f5bf185dd5e22ef990cfc0a6bc0b`，tree `e217d3d18f3c1d046c9a4073c1add67d7cc5a0c5`，7,318文件。本轮保存第51轮真实结果，提交六项完整重跑或零目标原件读取。新源码仍未执行，不能把静态审查写成Python AST、HIA生成、B3或native通过。
 

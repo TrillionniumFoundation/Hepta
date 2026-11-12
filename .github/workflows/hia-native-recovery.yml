@@ -9216,8 +9216,6 @@ jobs:
       actions: read
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      HIA_BACKEND50_ORIGINALS: ${{ runner.temp }}/hia-backend50-original-input
-      HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend50-original-readback
     steps:
       - name: Require the original Ubuntu 24.04 x86_64 execution domain
         shell: bash
@@ -9245,9 +9243,12 @@ jobs:
           run-id: '43220473879'
           repository: TrillionniumFoundation/Hepta
           github-token: ${{ github.token }}
-          path: ${{ env.HIA_BACKEND50_ORIGINALS }}
+          path: ${{ runner.temp }}/hia-backend50-original-input
       - name: Verify complete original inner archive and recorded buffers
         shell: bash
+        env:
+          HIA_BACKEND50_ORIGINALS: ${{ runner.temp }}/hia-backend50-original-input
+          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend50-original-readback
         run: |
           set -euo pipefail
           timeout --signal=TERM --kill-after=5s 180s python -I -B "$GITHUB_WORKSPACE/review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/backend-join-r1/ci/read_backend50_originals.py" \
@@ -9262,8 +9263,8 @@ jobs:
         with:
           name: hia-backend50-original-readback-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ env.HIA_BACKEND50_ORIGINALS }}
-            ${{ env.HIA_CI_OUTPUT }}
+            ${{ runner.temp }}/hia-backend50-original-input
+            ${{ runner.temp }}/hia-backend50-original-readback
             ${{ runner.temp }}/hia-backend50-original-readback-driver.log
           if-no-files-found: error
           retention-days: 90

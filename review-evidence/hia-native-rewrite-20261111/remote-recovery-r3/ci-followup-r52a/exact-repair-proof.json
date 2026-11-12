@@ -1,0 +1,94 @@
+{
+  "schema": "hia-follow52a-workflow-and-manifest-minimal-repair-v1",
+  "parent": "45cdebf584f4f56f4316b0f4c5c9e59d1314433b",
+  "actual_original_recovery": {
+    "run_id": 43229928880,
+    "status": "FAILURE_BEFORE_ANY_JOB",
+    "jobs": 0,
+    "new_B3": 0,
+    "new_native": 0
+  },
+  "actual_original_syntax": {
+    "run_id": 43229931945,
+    "job_id": 131222248956,
+    "status": "FAILED_BEFORE_AST",
+    "AST_files": 0,
+    "first_failure": "fixed inventory.status marker mismatch"
+  },
+  "workflow_exact_changes": [
+    [
+      "      HIA_BACKEND50_ORIGINALS: ${{ runner.temp }}/hia-backend50-original-input\n      HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend50-original-readback\n",
+      ""
+    ],
+    [
+      "          path: ${{ env.HIA_BACKEND50_ORIGINALS }}\n",
+      "          path: ${{ runner.temp }}/hia-backend50-original-input\n"
+    ],
+    [
+      "      - name: Verify complete original inner archive and recorded buffers\n        shell: bash\n        run: |\n",
+      "      - name: Verify complete original inner archive and recorded buffers\n        shell: bash\n        env:\n          HIA_BACKEND50_ORIGINALS: ${{ runner.temp }}/hia-backend50-original-input\n          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-backend50-original-readback\n        run: |\n"
+    ],
+    [
+      "            ${{ env.HIA_BACKEND50_ORIGINALS }}\n            ${{ env.HIA_CI_OUTPUT }}\n",
+      "            ${{ runner.temp }}/hia-backend50-original-input\n            ${{ runner.temp }}/hia-backend50-original-readback\n"
+    ]
+  ],
+  "workflow_complete_inverse_equal": true,
+  "workflow_all_other_147_jobs_exact_bytes_equal": true,
+  "workflow_all_148_job_level_runner_expressions_absent": true,
+  "workflow_context_primary_reference": "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability",
+  "server_workflow_validation_annotation": "UNAVAILABLE; cause identified as a confirmed source-level context violation, not quoted as an observed server annotation",
+  "syntax_only_exact_status_marker_change": {
+    "before": "\"status\": \"FOLLOW52_SUBMITTED_SOURCE_NOT_YET_AST_CHECKED\"",
+    "after": "\"status\": \"SOURCE_SYNTAX_ONLY_NO_SEMANTIC_QUALIFICATION\"",
+    "complete_inverse_equal": true,
+    "all_832_files_exactly_unchanged": true
+  },
+  "selected_tags": [
+    "worker-program-type-context-join",
+    "worker-typejoin50-original-readback",
+    "namespace-issued-fs-request-bridge",
+    "backend-join",
+    "backend50-originals",
+    "implementation-files"
+  ],
+  "all_subject_and_readback_scripts_unchanged": true,
+  "all_limits_unchanged": true,
+  "actual_execution_after_fix": 0,
+  "whole_stack_closed": false,
+  "activation": 0,
+  "deletions": 0,
+  "source_pins": {
+    "old_workflow": {
+      "bytes": 431508,
+      "gitsha": "6a0282042ea8baf93aadd868bf83b67d4336152b",
+      "sha256": "d2129563603ef9b29321c4d190987ede846216f491cdb7a04c5b233c1d6c292f"
+    },
+    "new_workflow": {
+      "bytes": 431581,
+      "gitsha": "f162e564c70b8a4a6e45f6a528612738b8ac0d0b",
+      "sha256": "dba4ded96dc814f2ac7f5dff145a3b3ebc106c26ebf68afcf6bef39083aa8491"
+    },
+    "old_syntax": {
+      "bytes": 301654,
+      "gitsha": "c3b319f6c972a6c6fd748885b4bdf7dad4285017",
+      "sha256": "2b56f7ff9e135f4bbf0a35a79efaf1b2fac48ce2073ad6ba19660b29ccc35ed0"
+    },
+    "new_syntax": {
+      "bytes": 301653,
+      "gitsha": "4ca3a75e78d3ded3aace5cbdd6f5758aa2668b89",
+      "sha256": "a515f04d5765fc9d00c188cfa98da74e870e9f4ef0b209c363914c73ca4935d7"
+    }
+  },
+  "syntax_failure_log": {
+    "bytes": 24222,
+    "gitsha": "e54a9a5c47480aa9ca0ea0bb303436f97f484a58",
+    "sha256": "e065686ffaab476c867c8960f13cc2b4e8a340c02a9edc1f5bb35a2829bf9fa9"
+  },
+  "syntax_failure_artifact": {
+    "id": 13950225628,
+    "ZIP_bytes": 56678,
+    "ZIP_SHA256": "cd2ec19df2aa8c2ab48c20a655ef40ccf8cc67073686a971a25af346dff5686d",
+    "independent_ZIP_readback": false
+  }
+}
