@@ -62,7 +62,8 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'candidate-budget': ('candidate_budget', 'candidate-budget'),
+    candidates = {'machine-encoding': ('machine_encoding', 'machine-encoding'),
+                  'candidate-budget': ('candidate_budget', 'candidate-budget'),
                   'agent-journal': ('agent_journal', 'agent-journal'),
                   'execution-budget': ('execution_budget', 'execution-budget'),
                   'retirement-state': ('retirement_state', 'retirement-state'),
@@ -116,7 +117,7 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
             or cold_report.read_bytes() != raw or current_sources() != sources
             or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
-    protocol_version = '2' if candidate == 'agent-journal' else '1'
+    protocol_version = '2' if candidate in ('agent-journal', 'machine-encoding') else '1'
     manifest = {'schema': 'hepta.hia.' + protocol + '-native.v' + protocol_version,
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
                 'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}

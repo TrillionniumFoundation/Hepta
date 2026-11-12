@@ -158,7 +158,12 @@ def _load_manifest(path: str, raw: bytes, source_sha: str, schema: str, factory)
     image_path = Path(path).parent / value['image_path']
     with image_path.open('rb') as handle:
         image = handle.read(MAX_IMAGE_BYTES + 1)
-    return factory(image, value['image_sha256'])
+    selected = factory(image, value['image_sha256'])
+    # Bind the package source captured in this cache key to native image
+    # identity. Exact type inspection must not observe a foreign __class__.
+    if issubclass(type(selected), NativeHiaJsonImage):
+        selected.admitted_source_sha256 = source_sha
+    return selected
 
 
 def _installed_json_image(manifest_path: str, source: Path, schema: str, factory):

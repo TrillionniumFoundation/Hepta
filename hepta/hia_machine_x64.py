@@ -6,6 +6,9 @@ the executable/disassembly tests check its admitted instruction surface.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+import os
 import re
 import struct
 
@@ -22,6 +25,92 @@ _CONDITIONS = {
 }
 _SYMBOL = re.compile(r"[A-Za-z_][A-Za-z_0-9]{0,191}\Z")
 MAX_CODE_BYTES = 64 * 1024 * 1024
+
+
+_UNSELECTED = object()
+_NATIVE_OWNER = ContextVar('hia_machine_encoding_native_owner', default=_UNSELECTED)
+_NATIVE_SELECTOR = 'HEPTA_HIA_MACHINE_ENCODING_MANIFEST'
+_NATIVE_STATE_OWNER = ContextVar('hia_machine_state_native_owner', default=_UNSELECTED)
+_NATIVE_STATE_SELECTOR = 'HEPTA_HIA_MACHINE_STATE_MANIFEST'
+_NATIVE_INSTRUCTION_OWNER = ContextVar('hia_machine_instructions_native_owner', default=_UNSELECTED)
+_NATIVE_INSTRUCTION_SELECTOR = 'HEPTA_HIA_MACHINE_INSTRUCTIONS_MANIFEST'
+
+
+def _selected_owner():
+    owner = _NATIVE_OWNER.get()
+    if owner is not _UNSELECTED:
+        return owner
+    path = os.environ.get(_NATIVE_SELECTOR)
+    if not path:
+        return None
+    from .hia_machine_encoding_native import installed_machine_encoding
+    return installed_machine_encoding(path)
+
+
+def _selected_state_owner(encoding):
+    state = _NATIVE_STATE_OWNER.get()
+    if state is not _UNSELECTED:
+        return state
+    path = os.environ.get(_NATIVE_STATE_SELECTOR)
+    if not path:
+        return None
+    if encoding is None:
+        raise MachineEncodingError('native Code state requires the native instruction byte owner')
+    from .hia_machine_state_native import installed_machine_state
+    return installed_machine_state(path)
+
+
+def _selected_instruction_owner(encoding, state):
+    owner = _NATIVE_INSTRUCTION_OWNER.get()
+    if owner is not _UNSELECTED:
+        return owner
+    path = os.environ.get(_NATIVE_INSTRUCTION_SELECTOR)
+    if not path:
+        return None
+    if encoding is None or state is None:
+        raise MachineEncodingError('native instruction control requires native Code state and instruction bytes')
+    from .hia_machine_instructions_native import installed_machine_instructions
+    return installed_machine_instructions(path)
+
+
+@contextmanager
+def native_encoding_scope():
+    """Pin one explicit selection, including no selection, across a whole emit."""
+    owner = _selected_owner()
+    state = _selected_state_owner(owner)
+    instructions = _selected_instruction_owner(owner, state)
+    token = _NATIVE_OWNER.set(owner)
+    state_token = _NATIVE_STATE_OWNER.set(state)
+    instruction_token = _NATIVE_INSTRUCTION_OWNER.set(instructions)
+    try:
+        yield
+    finally:
+        _NATIVE_INSTRUCTION_OWNER.reset(instruction_token)
+        _NATIVE_STATE_OWNER.reset(state_token)
+        _NATIVE_OWNER.reset(token)
+
+
+def native_implementation_identity():
+    owner = _selected_owner()
+    state = _selected_state_owner(owner)
+    instructions = _selected_instruction_owner(owner, state)
+    if owner is None:
+        return b''
+    from hashlib import sha256
+    from .hia_machine_encoding_native import SOURCE
+    def admitted_identity(image, source):
+        source_sha = sha256(source.read_bytes()).hexdigest()
+        if source_sha != image.admitted_source_sha256:
+            raise ValueError('native HIA machine source identity mismatch')
+        return source_sha + ':' + image.image_sha256
+    identity = admitted_identity(owner, SOURCE)
+    if state is not None:
+        from .hia_machine_state_native import SOURCE as STATE_SOURCE
+        identity += ':machine-state:' + admitted_identity(state, STATE_SOURCE)
+    if instructions is not None:
+        from .hia_machine_instructions_native import SOURCE as INSTRUCTION_SOURCE
+        identity += ':machine-instructions:' + admitted_identity(instructions, INSTRUCTION_SOURCE)
+    return identity.encode('ascii')
 
 
 class MachineEncodingError(ValueError):
@@ -54,6 +143,18 @@ class Code:
     implicit indexed addressing. ``finalize`` does not mutate the image and
     therefore produces identical bytes on repeated calls.
     """
+
+    def __new__(cls, *args, **kwargs):
+        # Existing subclasses keep their own virtual instruction methods.
+        # Only an ordinary Code construction selects this explicit byte owner.
+        if cls is Code:
+            owner = _selected_owner()
+            state = _selected_state_owner(owner)
+            instructions = _selected_instruction_owner(owner, state)
+            if owner is not None:
+                from .hia_machine_encoding_native import selected_code_class
+                return object.__new__(selected_code_class(owner, state, instructions))
+        return object.__new__(cls)
 
     def __init__(self, *, scratch_registers=None, move_immediate="movabs", alu_immediate="imm32"):
         # Both registers are explicit scratch operands, never implicit ISA or

@@ -255,3 +255,25 @@ this section is NOT a successful execution receipt. See
 SQLite durability, installation/hash IO, arbitrary foreign observations, runtime
 process management and other listed foreign owners remain open. Do not remove
 them, claim whole-native completion, or activate this candidate on that basis.
+
+
+## v77 machine byte/state/instruction integration (unqualified candidate)
+
+Three explicitly selected HIA owners now cover instruction bytes, six mutable
+Code state operations, and 41 instruction/control operations. The actual Code
+methods remain AST-identical references; unrelated Core lowering, plan and ELF
+branch implementations are not copied over the current backend. The current
+backend gains a whole-emission selection scope and includes each bridge's bytes
+and admitted source/image identity in its implementation key. The original
+target check is performed once at scope entry; the retained emission body is
+otherwise unchanged. Generic native-image loading records its captured source
+SHA using exact type checks, without observing foreign __class__ callbacks.
+
+All three sources are lowercase .hepta and packaged. Installed-wheel fixtures
+include complete source/compiler build resources. Initial source controls
+found a missing central machine-encoding builder registration; the registration
+now selects the actual v2 image schema, with the unchanged cold-admission gate.
+Original failed development output remains external evidence. This is NOT a
+matching-source native execution receipt or whole-stack replacement. Primitive
+object observation, retained lowering/ELF, worker-bundle custody of these three
+owners and default activation remain separate responsibilities.

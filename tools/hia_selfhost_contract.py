@@ -13,8 +13,29 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v76-native-worker-report-custody'
+PROFILE = 'selfhost-core-linux-x86_64-v77-native-machine-kernels'
 SOURCE_FILES = (
+    'docs/HIA_MACHINE_ENCODING_NATIVE.md',
+    'examples/hia_bootstrap/machine_encoding.hepta',
+    'tests/test_hia_machine_encoding_native.py',
+    'tools/build_hia_machine_encoding.py',
+    'tools/generate_hia_machine_encoding.py',
+    'docs/HIA_MACHINE_STATE_NATIVE.md',
+    'examples/hia_bootstrap/machine_state.hepta',
+    'tests/test_hia_machine_state_native.py',
+    'tools/build_hia_machine_state.py',
+    'tools/generate_hia_machine_state.py',
+    'docs/HIA_MACHINE_INSTRUCTIONS_NATIVE.md',
+    'examples/hia_bootstrap/machine_instructions.hepta',
+    'tests/test_hia_machine_instructions_native.py',
+    'tools/build_hia_machine_instructions.py',
+    'tools/generate_hia_machine_instructions.py',
+    'tools/qualify_hia_machine_encoding_native_callers.py',
+    'tools/qualify_hia_machine_state_callers.py',
+    'tools/qualify_hia_machine_instructions_callers.py',
+    'tests/fixtures/hia_machine_x64_e09.py.txt',
+    'tests/fixtures/hia_machine_x64_state_608.py.txt',
+    'tests/fixtures/hia_machine_encoding_instructions_0d653c.py.txt',
     'docs/HIA_WORKER_REPORT_NATIVE.md',
     'examples/hia_bootstrap/worker_report.hepta',
     'tools/build_hia_worker_report.py',
