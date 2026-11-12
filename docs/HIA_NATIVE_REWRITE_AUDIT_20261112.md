@@ -1,16 +1,16 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW37）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW38）
 
 ## 当前结论
 
 **整套仍为 OPEN。普通补丁协调器已有完整独立 CI 通过；Function、wrapper 和命名空间若干域已有明确进展。完整 Emitter、Worker、普通 Store/SQL、安装与全部公开入口仍未闭合。当前生产入口仍依赖 Python，本提交不激活新生产入口、不删除旧实现。**
 
-本轮基于父提交 23c0d3a3e8ea11d2c6fa1286623b2cfeba1d359f，完整树 d46b8640f48e8c8d41cdcdf55a59a112c0c078b2。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。最终新增/恢复文件身份见本提交 ci-followup-r37/publication-manifest.json。
+FOLLOW37 已发布为 e3ea7f33f1d7bf3350e4b54a9a8d3522746223c7，完整树 f13b040a6f98ee39bef6f4db81f60d33a0dbd098、5,249文件；它基于父提交23c0d3a3e8ea11d2c6fa1286623b2cfeba1d359f完成恢复。本轮FOLLOW38以该已发布恢复点为父提交。独立完整基线始终固定为 0ef9541b2fc12f4b01ab5078b05d0b304cfa90f5，树 6ef9e1713065436a3b1886fe9edcf0a4a1120773，共2,798文件。FOLLOW37完整新增/恢复文件身份见 ci-followup-r37/publication-manifest.json；本轮新增源码身份见 ci-followup-r38/publication-manifest.json。
 
 本地计算环境在本轮工作中容量耗尽，随后正式 unavailable。失联前未取得终态的任务保持 UNKNOWN，不重放或推断成功。已落入 Git 的源码/证据继续用于独立 CI；尚未完成封包的本地记录不被描述为完整可恢复证据。
 
 ## 全量盘点与恢复出的真实缺口
 
-对完整父树的只读审计实际读了5,025文件、558,946,765字节：1,917个Python文件中1,914个可解析，153个生产Python模块均可解析；另有60个.hiaasm和12个.hia。全部原始Git blob、模式、SHA256在读取前后相等。3个历史语法错误被逐项报告并保留，不通过删除历史失败来获得通过。
+对FOLLOW36完整父树的只读审计实际读了5,025文件、558,946,765字节：1,917个Python文件中1,914个可解析，153个生产Python模块均可解析；另有60个.hiaasm和12个.hia。全部原始Git blob、模式、SHA256在读取前后相等。3个历史语法错误被逐项报告并保留，不通过删除历史失败来获得通过。
 
 完整9,445,685字节本地静态清单的SHA256为 e0df484a5318eec4aaf73bfc082aca13dc352a9ad7bafb06df4dc7c252b2926d；该大清单尚未取得持久化回读点时环境离线，不能据此声称文件目前可恢复。新CI审计会重新生成完整清单和全部生产模块投影。静态解析不等于逐函数语义审计或完整HIA替代。
 
@@ -84,10 +84,28 @@ FOLLOW34原冷启动完整读回为11/11、38/38阶段，164.068272474秒；FOLL
 
 FOLLOW36全树审计读回器在读取Git pack时受原1GiB地址空间限制而失败，未进入AST扫描。新修复只为各Git命令设置16MiB映射窗口和64MiB映射总量，不改资源门、不修改全局Git配置。此前本地含相同修复的版本完成静态与原始失败档案读回；当前精确CI版仍须新的实际运行。
 
+## FOLLOW38：新增组合源码与精确验收入口
+
+本轮新增组合均为**源码已完整Git回读、0次新AST/生成/B3/native执行**。完整Emitter的早期单案本地观察、原八案initializer的超预算exit0和其它旧组件结果均不继承到新组合。391项活动Python源将在新提交上独立解析；112个恢复工作流job保留同一Ubuntu24.04/x86_64强制域门，本次只选择五个新组合job。
+
+| 新组合 | 必须实际执行的门 | 当前未闭合范围 |
+| --- | --- | --- |
+| initializer完整剩余八案 | 11次fresh B3、原八案逐案完整比较、实测父子聚合CPU严格<90秒 | 原95.352369 CPU秒观察不改成PASS；普通Worker/Store未闭合 |
+| P12资源初始化 | 13次fresh B3；2 semantic、1 capacity、52 protocol；实际HIA metadata op3与registry reserve/merge | 其余11种initializer peer及实际put/SQL结果仍foreign |
+| completed-FSTAT adoption | 原40组加20组，60 VM与60 paired；1 B3、1原C参考 | 私有接口方案，真实OS syscall为0；不是既有双FSTAT缺陷修复 |
+| 全局描述符复用物理链 | 6角色+1packer B3，33packer与84组三方；原18 physical加10新组 | 实际TAKE_UNUSED/复用绑定，空C字符串stat、完整unixOpen回退仍OPEN |
+| 完整Emitter十一核 | 11 fresh B3、55组732案、50私有控制、2个全缓冲区双载体交叉 | 外层原输入再验、checked machine plan、独立对象检查与public build发布仍OPEN |
+
+Emitter的大边界载体保存完整命令/ACK与最终全部slots；该覆盖不被描述为每次入口全部工作区快照。原Function39组与wrapper26组的完整旧证据门仍保留。新增重复临时证据只有在无损编码后完整解压逐字节核验通过才回收原临时副本，原raw身份及编码件目录保留；不删除旧回归证据。
+
+最新源码复核还确认了公共错误路径缺口：当前private program terminal的composite groups1..6/9只传数值拒绝，缺少原上下文的完整诊断文本。正向程序链通过不能覆盖这部分公共行为。后续Worker P16/P17/P18、public CLI B/C/D与原生对象检查继续独立推进，不以宿主猜测诊断来填补。
+
+FOLLOW37的49个二进制文件已在只读CI43180354999/job131054530017全部回读，32,054,646字节的大小、Git SHA、SHA256和模式一致。完整保留回归已由FOLLOW37 run43180758665启动；在其终态及完整原件未读取前，原4,157项结果仍为FAIL/HOLD。
+
 ## 最终闭合和清理门
 
 B3保持10CPU秒/20wall秒/256MiB，源/输出/工作区各1MiB。Bootstrap保持128functions、1536blocks、8192operations、每函数256blocks、每block16参数、SSA<2048；不存在额外128operations/block门。公共1024函数与Bootstrap容量分别验收。普通配对原90CPU/180wall/1GiB、物理原900秒聚合门不变。
 
 完整公开入口、编译/执行/存储/Worker、工具链、安装、更新与恢复都必须有实际HIA承接。随后需要在旧业务实现不可调用的环境中执行完整功能、冷启动、故障、平台和安装验收，并绑定可重建的HIA源、镜像、安装包与精确提交。Python作者、现有安装器、机械汇编和当前产品入口仍是待替换依赖。
 
-**FOLLOW37只恢复覆盖、提交修复、保存原件并启动后续验收；激活0个新生产入口，删除0个仓库文件。**
+**FOLLOW37恢复覆盖并保全原件；FOLLOW38继续提交真实HIA组合与独立验收。整套仍OPEN，激活0个新生产入口，删除0个仓库文件。**

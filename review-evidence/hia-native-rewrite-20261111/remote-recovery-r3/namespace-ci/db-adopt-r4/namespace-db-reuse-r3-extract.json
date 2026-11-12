@@ -1,0 +1,135 @@
+{
+  "schema": "hia.namespace-db-reuse-exact-C-extract.v1",
+  "status": "NEW_RECONSTRUCTED_SOURCE_ZERO_COMPILE_OR_EXECUTION",
+  "full_reference": {
+    "repository": "sqlite/sqlite",
+    "commit": "f3d536d37825302e31ed0eddd811c689f38f85a3",
+    "path": "src/os_unix.c",
+    "git_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2",
+    "bytes": 283843,
+    "sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9"
+  },
+  "functions": [
+    {
+      "name": "sqliteErrorFromPosixError",
+      "start": 29777,
+      "end": 30412,
+      "bytes": 635,
+      "sha256": "c43b1b87f67c6a09284aebd8f11a64e2cc98a31cf64b2b145df0436e87e9921f"
+    },
+    {
+      "name": "robust_close",
+      "start": 46659,
+      "end": 46857,
+      "bytes": 198,
+      "sha256": "c1717f71ca1d07dd201144dfe2ce6203e351ebe05e6ba36aa01aef55442f8517"
+    },
+    {
+      "name": "storeLastErrno",
+      "start": 46978,
+      "end": 47064,
+      "bytes": 86,
+      "sha256": "4725cc50084e95001ff09219b3a4a281f5f1b17e957e1b8816823d834c98740a"
+    },
+    {
+      "name": "closePendingFds",
+      "start": 47149,
+      "end": 47468,
+      "bytes": 319,
+      "sha256": "540257480e98d1a26e074d9fc913a6cffb04fd293348400f8142f630326ee070"
+    },
+    {
+      "name": "releaseInodeInfo",
+      "start": 47680,
+      "end": 48499,
+      "bytes": 819,
+      "sha256": "d80bfb74c348ca442d19cd2916ad3970c102f615a99aff0d32c9010b19d5ff07"
+    },
+    {
+      "name": "findInodeInfo",
+      "start": 48802,
+      "end": 51707,
+      "bytes": 2905,
+      "sha256": "7e6a26b7504960b2fcbf86dc761357bee6a415e17716f53f5f434060606f9812"
+    },
+    {
+      "name": "unixCheckReservedLock",
+      "start": 53357,
+      "end": 54425,
+      "bytes": 1068,
+      "sha256": "fed799d3bca26dd394424a9745d366fa11aea0835d4806812c992b619a4632ac"
+    },
+    {
+      "name": "unixFileLock",
+      "start": 56781,
+      "end": 57527,
+      "bytes": 746,
+      "sha256": "eb0e495a0e8d1433e2b991d7e03c3c4bb4bd754c2d8cd221d40b14702995ec12"
+    },
+    {
+      "name": "unixLock",
+      "start": 58319,
+      "end": 66170,
+      "bytes": 7851,
+      "sha256": "f2782853d789054061271e927b0a07038ce86b2f2aa8d33c14c56a279c7bc104"
+    },
+    {
+      "name": "setPendingFd",
+      "start": 66268,
+      "end": 66544,
+      "bytes": 276,
+      "sha256": "1f18a0bc022a2e306b6597b66df8fc4330e36e62a63d254a3a5d338d9e1600f9"
+    },
+    {
+      "name": "posixUnlock",
+      "start": 67172,
+      "end": 72367,
+      "bytes": 5195,
+      "sha256": "ce029c15d90951b07aaab7e5eb51b5f0b78bca8efca29abaeb729d0f50ffc255"
+    },
+    {
+      "name": "unixUnlock",
+      "start": 72623,
+      "end": 72825,
+      "bytes": 202,
+      "sha256": "8daac17085b864318dbd6a7a94793169ed4ad7ab2f6a3e53316897f6c8f9a9dc"
+    },
+    {
+      "name": "closeUnixFile",
+      "start": 73352,
+      "end": 74122,
+      "bytes": 770,
+      "sha256": "31345502bce4a875a59d60559789a47850b5b69f769580944604ab440b53ddd7"
+    },
+    {
+      "name": "unixClose",
+      "start": 74146,
+      "end": 75149,
+      "bytes": 1003,
+      "sha256": "4c2c343f651083a07c882a0926d316344d7c3d3001b10363b67ba1052fdd043b"
+    },
+    {
+      "name": "findReusableFd",
+      "start": 206604,
+      "end": 208382,
+      "bytes": 1778,
+      "sha256": "9f5e31aa282dea8249ff8852ead6bef7987fbc5deb113b0664682ea56ea1f35a"
+    }
+  ],
+  "actual_source_bytes": 36095,
+  "actual_source_sha256": "989c2db0e13f2a19f9af3f79066a733a0e03e14c732ae745dc44c64dc4ff578f",
+  "whole_sqlite_claimed": false,
+  "real_syscalls_claimed": false,
+  "original_function_bytes_unchanged": true,
+  "explicit_standins": [
+    "controlled fstat/fcntl/close providers; no actual OS policy execution",
+    "serialized mutex macros",
+    "malloc bookkeeping quarantines actual free until case reset for observations",
+    "DB mmap/nFetchOut/verifyDbFile diagnostics excluded explicitly, not an ordinary close claim",
+    "fixture wrappers provide exact integer/byte protocol only; reference functions choose all locking transitions",
+    "findReusableFd receives successful controlled same-inode osStat; separate stat-call counter is observed, no OS claim",
+    "Original returned UnixUnusedFd allocation is retained by fixture and reused by oracle_register; dynamic fixture bookkeeping is not a replacement malloc owner"
+  ],
+  "new_native_HIA_entries": 0,
+  "new_C_oracle_entries": 0
+}

@@ -1,0 +1,94 @@
+{
+  "schema": "hia.namespace.completed-fstat-adoption.source-delta.v1",
+  "status": "NEW_SOURCE_ZERO_EXECUTION",
+  "predecessor": {
+    "generator": "ba5452a46daa5532cb6a83f0a0ecf2e780f35959",
+    "protocol": "43e85d83883d89cdd6c274925f82043c849c3bc9",
+    "planned_original_gate": "40VM+40paired; unchanged900s aggregate"
+  },
+  "source": {
+    "path": "namespace-db-adopt-r4-generator.py",
+    "blob": "ce44c2cdcb0fcb94cda064128dada7dfe089a21d",
+    "bytes": 39322,
+    "sha256": "e1ee5b8fdcdc3fcc9e84858a565921e07f25f36dfe7ade0eb78f9848cbed10e6"
+  },
+  "delta": {
+    "same": [
+      "db_zero",
+      "db_slot",
+      "db_find",
+      "db_token_exists",
+      "db_pending_valid",
+      "db_register_prepare",
+      "db_issue",
+      "db_system_lock",
+      "db_errno",
+      "db_lock_error",
+      "db_lock_step",
+      "db_unlock_end",
+      "db_unlock_step",
+      "db_close_step",
+      "db_drain_step",
+      "db_reserved_step",
+      "db_status_u64",
+      "db_drive",
+      "db_ack_shape",
+      "db_peer_valid",
+      "db_peer",
+      "db_reject",
+      "db_emit",
+      "db_take_unused"
+    ],
+    "changed": [
+      "db_node",
+      "db_steady",
+      "db_finish"
+    ],
+    "added": [
+      "db_adopt_valid",
+      "db_adopt_prepare"
+    ],
+    "old_functions": 27,
+    "new_functions": 29
+  },
+  "guard_reasoning": [
+    "Minimum1536 workspace checked before any saved source byte write; the full912-byte packet occupies512..1423.",
+    "Phase6 is reachable only after validating the complete successful actual-FSTAT-shaped payload and accepting the original strict caller/source header. Retry compares all912bytes against saved owned bytes, then rechecks FS state before commit.",
+    "The original source128 payload size equals656. Canonical request256+completedFSheader256+stat144 gives total912 exactly. Trailing capacity is not accepted as this source packet.",
+    "The new phase checks row cap before cap+16 and multiply128, so no added overflow precedes rejection.",
+    "Original FScall and syscall watermarks advance only at successful adoption commit; there is no new emitted filesystem action, no fabricated result or stat reread.",
+    "Original child actioncounter stays0 for adoption. Ordinary commands preserve their own per-call action behavior and have unchanged algorithm bodies.",
+    "Cleanup preserves original output-before-clear ordering and clears exactly256 saved bytes for old commands,912 only for adoption."
+  ],
+  "mandatory_validation": [
+    "The original32 DB2 method bodies are compared byte-for-byte against retained r3. The entire original40 r3 methods are inherited without override.",
+    "Twenty additional41..60 test methods are disjoint from original40 and actual loader must report60nonempty uniqueIDs in each VM/paired group, no errors/failures/skips/expected/unexpected outcomes.",
+    "The original15 C policy functions are extracted from exact os_unix_3461_original.c unchanged. Adoption semantic calls invoke original REGISTER/FSTAT once; this controlled provider is not a real OS syscall.",
+    "ActualB3 image must be freshly generated from this source, remain within original128/1536/8192/256/16 profile, and compile under10CPU20wall256MiB with1MiB buffers.",
+    "Every paired entry compares full return,output,workspace,canaries and unchangedROinput; no timing/mutation field is masked.",
+    "The fixed global native parent/physical single-stat proof is still separate and required."
+  ],
+  "unexecuted_draft_correction": {
+    "protocol_blob": "c68773ed89c17acb51b4335e16d82820e3e7129f",
+    "issue": "Negative duplicate-token helper advanced the original fixture's call counter before later legal calls. Corrected to build that negative packet on a private clone; no production behavior or observed result changed.",
+    "executions": 0
+  },
+  "actual_execution": {
+    "AST": 0,
+    "generation": 0,
+    "C": 0,
+    "VM": 0,
+    "B3": 0,
+    "native": 0,
+    "physical": 0
+  },
+  "no_prior_observation_inherited": true,
+  "still_open": [
+    "actualglobalinodeissuer",
+    "fullunixOpen",
+    "physicalStore",
+    "all31SQLordinaryroute",
+    "SQLite migration/removal"
+  ],
+  "ref_mutations": 0
+}

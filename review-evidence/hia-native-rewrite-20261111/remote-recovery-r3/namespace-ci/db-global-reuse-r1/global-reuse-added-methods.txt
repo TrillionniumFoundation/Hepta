@@ -1,0 +1,239 @@
+
+        def take_reusable(self,c,path,flags=2):
+            header,payload=c.call(10,a=flags,body=os.fsencode(path))
+            self.assertEqual(header[14],0)
+            if not payload:
+                self.assertEqual(header[20:22],(0,0))
+                return 0,header,None
+            self.assertEqual(len(payload),256)
+            row=struct.unpack("<32Q",payload)
+            self.assertEqual((row[0],row[1],row[8],row[9],row[22]),
+                (int.from_bytes(b"HIANDB01","little"),0,0,0,1))
+            self.assertEqual(row[24],1)
+            self.assertFalse(any(row[29:]))
+            return row[10],header,row
+
+        def register_existing_token(self,c,path,token,readonly=False,unix_excl=False):
+            before=len(fs_events(c.output,15))
+            header,row=c.database(3,token=token,flags=int(readonly)+2*int(unix_excl))
+            self.assertEqual(len(fs_events(c.output,15))-before,1)
+            info=path.stat()
+            self.assertEqual(header[20:22],(info.st_dev,info.st_ino))
+            self.assertGreater(header[14],0)
+            self.assertGreater(row[10],0)
+            return header[14],header,row
+
+        def test_19_empty_inode_directory_has_no_path_stat(self):
+            missing=self.fx/"not-present"
+            with self.carrier() as c:
+                before=list(fs_events(c.output))
+                token,header,row=self.take_reusable(c,missing,2)
+                self.assertEqual(token,0);self.assertIsNone(row)
+                self.assertEqual(fs_events(c.output),before)
+            r=replay_instance(c.output)
+            self.assertEqual(r["entries_by_role"]["5"],0)
+            self.assertEqual(r["actual_DB_context_retirements"],[])
+
+        def test_20_stat_failure_is_a_miss_then_same_session_is_usable(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,handle,_,_=self.register(c,path)
+                before=len(fs_events(c.output,18))
+                token,_,row=self.take_reusable(c,self.fx/"missing",2)
+                self.assertEqual(token,0);self.assertIsNone(row)
+                events=fs_events(c.output,18)
+                self.assertEqual(len(events)-before,1)
+                self.assertEqual(events[-1]["raw_return"],(-errno.ENOENT)&MASK)
+                token,_,row=self.take_reusable(c,path,2)
+                self.assertEqual(token,0);self.assertIsNotNone(row)
+                c.database(4,handle,target=1);c.database(5,handle,target=0)
+                c.database(7,handle)
+            replay_instance(c.output)
+
+        def test_21_existing_other_inode_does_not_create_a_DB_context(self):
+            path=self.database("selected");other=self.database("other")
+            with self.carrier() as c:
+                _,handle,original,_=self.register(c,path)
+                token,header,row=self.take_reusable(c,other,2)
+                self.assertEqual(token,0);self.assertIsNone(row)
+                self.assertEqual(header[20:22],(0,0))
+                token,header,row=self.take_reusable(c,path,2)
+                self.assertEqual(token,0);self.assertIsNotNone(row)
+                self.assertEqual(header[25],original[25])
+                c.database(7,handle)
+            r=replay_instance(c.output)
+            self.assertEqual(len([v for v in r["outer_db_contexts"] if v["role"]==5]),1)
+            self.assertEqual(len(fs_events(c.output,18)),2)
+
+        def test_22_actual_LIFO_first_matching_readonly_and_full_flags(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,keeper,_,_=self.register(c,path)
+                t1,h1,_,_=self.register(c,path)
+                t2,h2,_,_=self.register(c,path,readonly=True)
+                t3,h3,_,_=self.register(c,path)
+                c.database(4,keeper,target=1)
+                for handle in (h1,h2,h3):c.database(7,handle)
+                before=len(fs_events(c.output,8))
+                for flags in (0,3):
+                    token,_,state=self.take_reusable(c,path,flags)
+                    self.assertEqual(token,0);self.assertIsNotNone(state)
+                    self.assertEqual(state[12:15],(1,1,1))
+                taken=[]
+                for flags,expected in ((0x40000002,t3),(2,t1),(1,t2)):
+                    token,_,state=self.take_reusable(c,path,flags)
+                    self.assertEqual(token,expected);taken.append(token)
+                    self.assertEqual(state[12:15],(1,1,1))
+                self.assertEqual(len(fs_events(c.output,8)),before)
+                new=[]
+                for token,readonly,old_handle in ((t3,False,h3),(t1,False,h1),(t2,True,h2)):
+                    handle,_,_=self.register_existing_token(c,path,token,readonly)
+                    self.assertGreater(handle,old_handle);new.append(handle)
+                self.assertEqual(len(set(new)),3)
+                token,_,_=self.take_reusable(c,path,2);self.assertEqual(token,0)
+                c.database(5,keeper,target=0)
+                for handle in (*new,keeper):c.database(7,handle)
+            r=replay_instance(c.output)
+            self.assertEqual(len(r["actual_DB_context_retirements"]),1)
+            self.assertEqual(len(fs_events(c.output,1)),4)
+            self.assertEqual(len(fs_events(c.output,15)),7)
+            self.assertEqual(len(fs_events(c.output,18)),6)
+            self.assertEqual(len(fs_events(c.output,8)),4)
+
+        def test_23_path_stat_follows_hardlink_and_symlink_aliases(self):
+            path=self.database();hard=self.fx/"hard";link=self.fx/"link"
+            os.link(path,hard);link.symlink_to(hard)
+            with self.carrier() as c:
+                _,keeper,original,_=self.register(c,path)
+                token,old,_,_=self.register(c,hard)
+                c.database(4,keeper,target=1);c.database(7,old)
+                reused,header,state=self.take_reusable(c,link,2)
+                self.assertEqual(reused,token)
+                self.assertEqual(header[20:22],original[20:22])
+                handle,again,_=self.register_existing_token(c,link,token)
+                self.assertEqual(again[25],original[25])
+                self.assertGreater(handle,old)
+                c.database(5,keeper,target=0)
+                c.database(7,handle);c.database(7,keeper)
+            r=replay_instance(c.output)
+            self.assertEqual(len(r["actual_DB_context_retirements"]),1)
+            self.assertEqual(len(fs_events(c.output,18)),1)
+
+        def test_24_retired_directory_uses_empty_fast_path_again(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,handle,old,_=self.register(c,path)
+                c.database(7,handle)
+                before=len(fs_events(c.output,18))
+                token,_,row=self.take_reusable(c,path,2)
+                self.assertEqual(token,0);self.assertIsNone(row)
+                self.assertEqual(len(fs_events(c.output,18)),before)
+                _,new,header,_=self.register(c,path)
+                self.assertGreater(header[25],old[25])
+                self.assertGreater(new,handle)
+                c.database(7,new)
+            r=replay_instance(c.output)
+            self.assertEqual(len(r["actual_DB_context_retirements"]),2)
+
+        def test_25_failed_unlock_ghost_never_reissues_the_old_handle(self):
+            path=self.database()
+            launcher,baseline=self.tracer("reuse-baseline")
+            with self.carrier(launcher=launcher) as c:
+                _,owner,_,_=self.register(c,path)
+                _,other,_,_=self.register(c,path)
+                c.database(4,owner,target=1);c.database(4,owner,target=4)
+                c.database(7,owner);c.database(7,other)
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"fcntl",lambda line:
+                "F_SETLK" in line and "F_UNLCK" in line and
+                f"l_start={PENDING}," in line and re.search(r"l_len=2(?:[,}])",line) is not None)
+            save(self.case/"selected-failed-unlock.json",selected)
+            launcher,log=self.tracer("reuse-fault",
+                f"inject=fcntl:error=EIO:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                original_token,owner,_,_=self.register(failed,path)
+                _,other,_,_=self.register(failed,path)
+                failed.database(4,owner,target=1);failed.database(4,owner,target=4)
+                _,closed=failed.database(7,owner)
+                self.assertEqual(closed[12:16],(1,1,1,4))
+                token,_,taken=self.take_reusable(failed,path,2)
+                self.assertEqual(token,original_token)
+                self.assertEqual(taken[12:16],closed[12:16])
+                fresh,_,_=self.register_existing_token(failed,path,token)
+                self.assertGreater(fresh,owner)
+                before=len(fs_events(failed.output,17))
+                failed.database(4,fresh,target=1,expect_code=5)
+                self.assertEqual(len(fs_events(failed.output,17)),before)
+                failed.database(7,other)
+                _,last=failed.database(7,fresh)
+                self.assertEqual(last[24],4);self.assertEqual(last[12:16],(0,0,0,0))
+            self.assertIn("INJECTED",log.read_text())
+            r=replay_instance(failed.output)
+            self.assertEqual(len(r["actual_DB_context_retirements"]),1)
+            self.assertEqual(len([x for x in fs_events(failed.output,17)
+                if x["raw_return"]==(-errno.EIO)&MASK]),1)
+
+        def test_26_global_reuse_malformed_source_is_persistently_refused(self):
+            cases=[
+                dict(label="embedded-NUL",handle=0,flags=2,body=b"not"+bytes([0])+b"a-path"),
+                dict(label="non-u32-flags",handle=0,flags=1<<32,body=b"path"),
+                dict(label="unexpected-handle",handle=1,flags=2,body=b"path"),
+            ]
+            for case in cases:
+                with self.subTest(case=case["label"]):
+                    with self.carrier() as c:
+                        raw=transport.frame(10,session=c.session,call=1,lease=1001,
+                            handle=case["handle"],a=case["flags"],body=case["body"])
+                        header,_=c.request(raw,label=case["label"])
+                        self.assertEqual(header[1],0xfffffffd)
+                        header,_=c.request(transport.frame(10,session=c.session,call=2,
+                            lease=1002,a=2,body=b"path"),label="after-poison")
+                        self.assertEqual(header[1],0xfffffffd)
+                    self.assertEqual(fs_events(c.output),[])
+                    replay_instance(c.output)
+
+        def test_27_deferred_reuse_beyond_initial_row_capacity(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,keeper,_,_=self.register(c,path)
+                pending=[self.register(c,path)[:2] for _ in range(17)]
+                c.database(4,keeper,target=1)
+                for token,handle in pending:c.database(7,handle)
+                new=[]
+                for expected,old in reversed(pending):
+                    token,_,state=self.take_reusable(c,path,2)
+                    self.assertEqual(token,expected)
+                    handle,_,_=self.register_existing_token(c,path,token)
+                    self.assertGreater(handle,old);new.append(handle)
+                token,_,_=self.take_reusable(c,path,2);self.assertEqual(token,0)
+                c.database(5,keeper,target=0)
+                for handle in (*new,keeper):c.database(7,handle)
+            r=replay_instance(c.output)
+            self.assertGreater(r["outer_DB_growth"]["5"],0)
+            self.assertGreater(r["outer_DB_growth"]["6"],0)
+            self.assertEqual(len(fs_events(c.output,1)),18)
+            self.assertEqual(len(fs_events(c.output,15)),35)
+            self.assertEqual(len(fs_events(c.output,18)),18)
+            self.assertEqual(len(fs_events(c.output,8)),18)
+
+        def test_28_path_replacement_does_not_consume_old_inode_unused_fd(self):
+            path=self.database();original_alias=self.fx/"original-alias"
+            os.link(path,original_alias)
+            with self.carrier() as c:
+                _,keeper,original,_=self.register(c,path)
+                token,old,_,_=self.register(c,path)
+                c.database(4,keeper,target=1);c.database(7,old)
+                path.unlink();path.write_bytes(b"replacement-inode")
+                self.assertNotEqual(path.stat().st_ino,original_alias.stat().st_ino)
+                missing,_,row=self.take_reusable(c,path,2)
+                self.assertEqual(missing,0);self.assertIsNone(row)
+                reused,header,_=self.take_reusable(c,original_alias,2)
+                self.assertEqual(reused,token)
+                self.assertEqual(header[20:22],original[20:22])
+                handle,_,_=self.register_existing_token(c,original_alias,token)
+                c.database(5,keeper,target=0)
+                c.database(7,handle);c.database(7,keeper)
+            r=replay_instance(c.output)
+            self.assertEqual(len(r["actual_DB_context_retirements"]),1)
+            self.assertEqual(path.read_bytes(),b"replacement-inode")
+            self.assertEqual(original_alias.read_bytes(),b"namespace-main-db-physical")
