@@ -1,0 +1,58 @@
+{
+  "checks": [
+    "The candidate SHA equals e2e1e4473ea18935e51c490117890073ced0454c38d3ce0054ed83e6b6bb4c2c.",
+    "The complete A1-to-candidate diff adds only the B0 direct-native identity checks, three actual child image/source/full-output SHA checks, and the full child-stdout projection comparison.",
+    "Actual build_seed calls the existing direct-native publisher, then adds source/seed/Python/support/module receipts; schema/kind/output/artifact bytes and SHA match the new reader fields.",
+    "Actual prepare_native requires both original observer globals to be None before the three compile_stage calls, so the original hia_selfhost_child JSON path applies.",
+    "The original invoke adds exactly case,input_sha256,input_bytes,artifact_sha256,format,runner_sha256,wall_elapsed_ns. compile_stage adds exactly produced_image,produced_bytes,produced_sha256. All ten are projected out and every remaining receipt field must equal the actual complete child stdout dictionary.",
+    "The child actual result emits image_sha256,source_sha256,output_sha256 and the same NATIVE_LIMITS; the new reader hashes actual predecessor bytes, actual source bytes and the complete one-MiB output to bind them.",
+    "All three fixed request dictionaries remain exact, the actual input remains byte-equal, produced image matches the actual full output prefix, and actual B1/B2 images remain byte-equal.",
+    "No original limits, complete compiler denominator or development-only/B3-not-claimed scope was weakened in this delta."
+  ],
+  "pins": {
+    "candidate": {
+      "bytes": 15765,
+      "git_blob_sha": "56f193dbb66e0e7cd29bd1b25849f81337234096",
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/control/native_support.py",
+      "sha256": "e2e1e4473ea18935e51c490117890073ced0454c38d3ce0054ed83e6b6bb4c2c"
+    },
+    "child": {
+      "bytes": 6791,
+      "git_blob_sha": "2ecbf3a04680eceee0537cb3d621073bac9c52f4",
+      "path": "/workspace/scratch/e26ed3e2edcf/Hepta/tools/hia_selfhost_child.py",
+      "sha256": "1d298396e97b6d362bcd51121eff1d2f411305133fadb1c974477b2dd9052c29"
+    },
+    "prepare": {
+      "bytes": 13082,
+      "git_blob_sha": "337317b7b02091999738ffff2ef573a4cd980b6a",
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/control/prepare_native.py",
+      "sha256": "8b3b49d68e9a8e02e1af10e6b222cfa8d44a666df284b402ae851927e7d5509c"
+    },
+    "prior": {
+      "bytes": 14421,
+      "git_blob_sha": "f1acbf6d24f791026a05d92afac2529e16c82387",
+      "path": "/workspace/scratch/e26ed3e2edcf/bounded-read-actions-r1/authoring/unexecuted-A1/native_support.py",
+      "sha256": "d231bbdf27de6d909c7e3974ecccef5b8b62577db4de0c99d4012389ef4999be"
+    },
+    "qualify": {
+      "bytes": 64518,
+      "git_blob_sha": "3e87830a006fe3a08af2d541c86fbd79404d9a50",
+      "path": "/workspace/scratch/e26ed3e2edcf/Hepta/tools/qualify_hia_selfhost.py",
+      "sha256": "a1c76c165856927bfbaded5610568fa79456f15e1eb356dda7a8b882bb602c92"
+    },
+    "seed_publisher": {
+      "bytes": 50211,
+      "git_blob_sha": "290f6c806dc89c6e5b376e9353383a86b42c1e02",
+      "path": "/workspace/scratch/e26ed3e2edcf/Hepta/hepta/hia_program_native.py",
+      "sha256": "d58058760c02f65aa406dd54a0d0fa40cea5df0f4b8191696d21a784e71e8344"
+    }
+  },
+  "reviewer": "cold_ci_closure",
+  "schema": "hia.bounded-read-compiler-bundle-independent-static-review.v1",
+  "scope": [
+    "Only observe_compiler_bundle and its added receipt bindings, with the cited producer call path, were reviewed.",
+    "AST parsing was used to inspect source text. No product module was imported, no guardian/compile/native caller ran, and the peer synthetic controls were not rerun.",
+    "This does not qualify the whole bounded-read candidate or claim the new controls have executed."
+  ],
+  "status": "STATIC_CLEAR_FOR_ENUMERATED_RECEIPT_JOINS"
+}
