@@ -1,0 +1,119 @@
+{
+  "schema": "hia.json-pretty-byte-bridge-native-controls.v1",
+  "status": "UNPARSED_UNEXECUTED_NO_WORKFLOW",
+  "source_candidate": "9704596acc4470bd0042838586602e26bac7b3d1",
+  "actual_r4_reference": {
+    "run": 43145616377,
+    "job": 130942602806,
+    "HIA_sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+    "native_image_sha256": "a98b066da08dd29757fe4ef801704c66be69f0aed350290e8672aca6e9a59555",
+    "original37_result": "ACTUAL_PASS",
+    "bridge_executed_in_that_run": false
+  },
+  "API": "NativeJsonPretty.format_admitted_compact(exact_bytes) -> bytes_without_newline",
+  "precondition": "already admitted compact UTF-8 JSON wire; the formatter is not a complete JSON parser",
+  "HIA_input_byte_profile": 8388608,
+  "output_limit": "successful HIA measurement bounded only by addressable allocation; no added 8 MiB output limit",
+  "guard_contract": "Check actual status before reading workspace output length; discard failed output and length; require successful measurement/emission equality",
+  "installed_resource_admission": "Uses existing _installed_json_image for new explicit source/schema; package integration and installed-resource qualification are still OPEN",
+  "planned_new_controls": [
+    {
+      "id": "bridge_original_positive_layouts",
+      "scope": "17 prior positive admitted-wire fixtures through the new bridge"
+    },
+    {
+      "id": "bridge_expansion_above_8MiB",
+      "scope": "131199-byte valid compact nested array becomes 8593534-byte output, exact independent SHA"
+    },
+    {
+      "id": "bridge_refusal_before_output_allocation",
+      "scope": "Actual HIA malformed-wire refusal must not allocate from any partial output-length field"
+    },
+    {
+      "id": "bridge_repeated_refusal_and_success",
+      "scope": "Same image survives bad wire and over-input-cap refusals with later exact success"
+    },
+    {
+      "id": "bridge_two_concurrent_private_workspaces",
+      "scope": "Two actual calls retain different live workspace addresses and exact output"
+    },
+    {
+      "id": "bridge_explicit_input_type",
+      "scope": "New byte ABI type admission; not an assertion about the old CLI object domain"
+    }
+  ],
+  "original37_preserved": true,
+  "planned_complete_methods": 43,
+  "original_native_case_child_seconds": 5,
+  "original_outer_seconds": 180,
+  "original_cleanup_seconds": 3,
+  "original_compile_wall_seconds": 20,
+  "original_compile_CPU_seconds": 10,
+  "whole_CLI_json_domain_replaced": false,
+  "cold_qualified": false,
+  "default_activation": false,
+  "old_owner_deleted": false,
+  "control_prefix": "experiments/hia_json_pretty_20261112/native-development-r4",
+  "controls": {
+    "authoring.py": {
+      "bytes": 29969,
+      "sha256": "392476f82a3a7524f61c258a2d53c1db040275b4037760fbbee6e76fea56d860",
+      "git_blob_sha1": "e8a8d894af209601336011300b59091d4f85cb3b"
+    },
+    "controller.py": {
+      "bytes": 36316,
+      "sha256": "2b4caca20ebb8fd46c7c0a89c2d2e1afd8af1d9956da28fcb233218f3ef2bd57",
+      "git_blob_sha1": "06255fda26347df3a57d9565af6d18bfc8448b0c"
+    },
+    "diagnostics.py": {
+      "bytes": 15625,
+      "sha256": "500a47d005a7187ba3332c1ca78291172a932d017a77a2b8fbc2ea83138c6e64",
+      "git_blob_sha1": "717536c3e290f2e5b3e0308917c57f31519dd9c8"
+    },
+    "native_cases.py": {
+      "bytes": 22638,
+      "sha256": "f2b34e2b4e782ee6e680d6fdff1c8a7a300fd5fedfd007dd1270e20cec0eb406",
+      "git_blob_sha1": "ec2371c462d91d9f3556c20320a33280e362a64f"
+    },
+    "json_pretty.hiaasm": {
+      "bytes": 21222,
+      "sha256": "2a8b2180cb15947c90961a55927241e8198f32a046484127d83b16fa880e9303",
+      "git_blob_sha1": "bcd2d847458dbb5d365793d35f9e539a826ddaf3"
+    },
+    "json_pretty.hia.json": {
+      "bytes": 178508,
+      "sha256": "b88e7e33d8e0867d0c2db0525282f45cb2f5e64a39696955c693fe1d6cb813fd",
+      "git_blob_sha1": "8be3c56331676ec25003f9cb61a3e7ed47de085a"
+    },
+    "cases.json": {
+      "bytes": 180528,
+      "sha256": "3ba550c9ec3999f37973268e34b6bbc997dec8a0baa7d9079a42cb46b567a71a",
+      "git_blob_sha1": "1e60dd3cdfb93c62ba18f58becae39aa8a59f5f5"
+    },
+    "guardian.py": {
+      "bytes": 10257,
+      "sha256": "d0b56d24905895ad59120f401d006badfdb1df5b3e0ab17a80e8414da78a1023",
+      "git_blob_sha1": "1a7b8588871d1a0eb485dacc2dac2f1fe373b8a7"
+    },
+    "process_owner_impl.py": {
+      "bytes": 17601,
+      "sha256": "36946082b3345f45ee2b28f1f810a22936d182a586cd0404154dfb01b3bd53a2",
+      "git_blob_sha1": "6f600ab75894859b9840c0311cc8891a67b6c53a"
+    },
+    "byte_bridge.py": {
+      "bytes": 4244,
+      "sha256": "a8ed958219ef5a147433d0ffd201b54b573271780d7ec3be9026f41fa0c36e40",
+      "git_blob_sha1": "ea1c2651b9ca5e1f49f56e4a97391c8d234bb321"
+    }
+  },
+  "policy_sha256": "41a80bc361d77e16ad0b0b3c3e653e89259ea9f348c6d9f4ec0859e282827efd",
+  "original37_fields_and_order_unchanged": true,
+  "full_case_count": 43,
+  "scope_notes": [
+    "The staged byte bridge module is source-pinned outside the unchanged 4023-leaf product candidate.",
+    "One of the six new tests is host-side exact-byte type admission and deliberately makes no native call.",
+    "The other five new tests perform 47 real native invocations; all original 37 tests and their 61 guarded invocations are retained.",
+    "No original CLI caller, installed resource, cold or whole-native qualification is established by these new development controls."
+  ],
+  "bridge_peer_review_sha256": "5aae88e7cb9eb2f6ef054991ebde253bd9c35d378e5fde9f81fe6df8cf77b645"
+}
