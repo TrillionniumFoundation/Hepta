@@ -59,11 +59,12 @@ class NumericComparisonIntegrationSourceTests(unittest.TestCase):
         from hepta import hia_core_compare_selection as selection
         baseline = json.loads(BASELINE.read_bytes())
         added = [selection.ABI_SOURCE, selection.HIA_SOURCE]
-        self.assertEqual(len(NATIVE_SOURCE_FILES), 94)
-        self.assertEqual(len(set(NATIVE_SOURCE_FILES)), 94)
-        self.assertEqual([name for name in NATIVE_SOURCE_FILES if name not in added], baseline['native_resources'])
+        integer_added = ['hepta/hia_core_integer_abi.json', 'examples/hia_bootstrap/core_integer.hiaasm']
+        self.assertEqual(len(NATIVE_SOURCE_FILES), 96)
+        self.assertEqual(len(set(NATIVE_SOURCE_FILES)), 96)
+        self.assertEqual([name for name in NATIVE_SOURCE_FILES if name not in added], baseline['native_resources'] + integer_added)
         lines = (ROOT / 'MANIFEST.in').read_text().splitlines()
-        self.assertEqual([line for line in lines if line not in ['include ' + name for name in added]],
+        self.assertEqual([line for line in lines if line not in ['include ' + name for name in added + integer_added]],
                          baseline['manifest_lines'])
         self.assertTrue(all(lines.count('include ' + name) == 1 for name in added))
         self.assertEqual(installed.BUNDLED_SOURCE_BINDINGS['core_compare'],
@@ -82,7 +83,7 @@ class NumericComparisonIntegrationSourceTests(unittest.TestCase):
         from tools import generate_hia_core_compare as author
         from tools import hia_compiler_owner_gates as gates
         baseline = json.loads(BASELINE.read_bytes())
-        self.assertEqual(list(gates.SOURCE_GENERATORS), baseline['generator_prefix'] + ['core_compare'])
+        self.assertEqual(list(gates.SOURCE_GENERATORS), baseline['generator_prefix'] + ['core_compare', 'core_integer'])
         workflow = (ROOT / '.github/workflows/hia-core.yml').read_text()
         actual = re.search(r'for component in ([^;]+); do', workflow).group(1).split()
         self.assertEqual(actual, list(gates.SOURCE_GENERATORS))
@@ -118,8 +119,21 @@ class NumericComparisonIntegrationSourceTests(unittest.TestCase):
         before, after = methods(old), methods(current)
         self.assertEqual(set(before), set(after))
         self.assertEqual(len(before), 11)
+        integer_extension = ast.parse("""
+for code in (11, 12):
+    integer_branch = next(node for node in new_primitive.body if isinstance(node, ast.If)
+        and ast.dump(node.test) == ast.dump(ast.parse('opcode == ' + str(code), mode='eval').body))
+    self.assertEqual(len(integer_branch.body), 3)
+    self.assertIsInstance(integer_branch.body[1], ast.If)
+    del integer_branch.body[1]
+""").body[0]
         for name in before:
-            self.assertEqual(ast.dump(before[name]), ast.dump(after[name]), name)
+            current_method = deepcopy(after[name])
+            if name == 'ExactNumericComparisonSourceTests.test_complete_Core39_outer_protocol_and_original116_are_unchanged':
+                extensions = [node for node in current_method.body if ast.dump(node) == ast.dump(integer_extension)]
+                self.assertEqual(len(extensions), 1)
+                current_method.body.remove(extensions[0])
+            self.assertEqual(ast.dump(before[name]), ast.dump(current_method), name)
         baseline = json.loads(BASELINE.read_bytes())
         ids = ['tests.test_hia_core_compare_source.' + name for name in sorted(after)]
         self.assertEqual(ids, baseline['numeric_source11'])

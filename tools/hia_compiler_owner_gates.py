@@ -81,7 +81,7 @@ LEGACY_SOURCE_GENERATORS = (
     'machine_elf',
     'core_lowering',
 )
-SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read', 'core_unpack', 'core_compare')
+SOURCE_GENERATORS = LEGACY_SOURCE_GENERATORS + ('bounded_read', 'core_unpack', 'core_compare', 'core_integer')
 require = previous.require
 json_file = previous.json_file
 child_path = previous.child_path

@@ -179,6 +179,12 @@ class ExactNumericComparisonSourceTests(unittest.TestCase):
         self.assertEqual(len(branch.body), 3)
         self.assertIsInstance(branch.body[1], ast.If)
         del branch.body[1]
+        for code in (11, 12):
+            integer_branch = next(node for node in new_primitive.body if isinstance(node, ast.If)
+                and ast.dump(node.test) == ast.dump(ast.parse('opcode == ' + str(code), mode='eval').body))
+            self.assertEqual(len(integer_branch.body), 3)
+            self.assertIsInstance(integer_branch.body[1], ast.If)
+            del integer_branch.body[1]
         self.assertEqual(ast.dump(old_class), ast.dump(new_class))
         self.assertEqual(outer.FRAME.size, 128)
         # Original full caller source is read as bytes, not replaced or loaded.

@@ -1,0 +1,567 @@
+"""Source/Core-VM controls for the isolated integer owner, not Core116.
+
+This file is frozen before execution. It never loads native code or invokes a
+native compiler. The complete old method population and limits are retained.
+"""
+from __future__ import annotations
+
+import ast
+import copy
+import ctypes
+from hashlib import sha256
+import json
+import operator
+import os
+from pathlib import Path
+import struct
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+import warnings
+
+from hepta import hia_core_integer_native as bridge
+from hepta.hia_agent_assembly import assemble_program, render_assembly
+from hepta.hia_program import verify_program
+from hepta.hia_program_runtime import _Machine, _Owner, _View
+from tools import generate_hia_core_integer as author
+
+ROOT = Path(os.environ['HEPTA_INTEGER_DRAFT_ROOT'])
+EVIDENCE = Path(os.environ['HEPTA_INTEGER_SOURCE_EVIDENCE'])
+EXPECTED_NAMES = (
+    'test_bool_warning_and_warning_as_error_keep_the_original_call',
+    'test_carry_borrow_sign_and_window_boundaries',
+    'test_exact_type_target_and_inplace_guards',
+    'test_generated_Core_roundtrip_and_complete_original_caps',
+    'test_minimal_signed_bytes_and_complete_cancellation',
+    'test_one_use_transport_entry_and_materialization_failures_seal',
+    'test_original_population_and_unrelated_lowering_bodies_unchanged',
+    'test_read_and_write_ack_corruption_permanently_refuse',
+    'test_target_operand_order_and_first_exception_are_unchanged',
+    'test_zero_small_and_all_four_operations_match_original_operators',
+)
+
+
+def original(operation, left, right=None):
+    if operation == 1:
+        return operator.add(left, right)
+    if operation == 2:
+        return operator.sub(left, right)
+    if operation == 3:
+        return operator.neg(left)
+    return operator.invert(left)
+
+
+def operand_record(value):
+    if value is None:
+        return None
+    words = (value.bit_length() + 31) // 32
+    raw = abs(value).to_bytes(words * 4, 'little')
+    return {'descriptor': list(bridge.summary(value)), 'magnitude_hex': raw.hex()}
+
+
+def primitive_source(raw):
+    document = ast.parse(raw)
+    cls = next(n for n in document.body if isinstance(n, ast.ClassDef) and n.name == 'LoweringSession')
+    fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_primitive')
+    namespace = {'_integer_binary_eligible': bridge.eligible_binary,
+                 '_integer_unary_eligible': bridge.eligible_unary}
+    exec(compile(ast.Module(body=[copy.deepcopy(fn)], type_ignores=[]),
+                 '<frozen-integer-dispatch-control>', 'exec'), namespace)
+    return namespace['_primitive'], namespace
+
+
+class VMImage:
+    image_sha256 = 'SOURCE_CORE_VM_NOT_A_NATIVE_IMAGE'
+
+    def __init__(self, program):
+        self.program = program
+        self.calls = []
+
+    def raw_entry(self, packet, state=None):
+        before = bytes(640) if state is None else bytes(state)
+        owners = [_Owner(-1, bytearray(packet)), _Owner(-2, bytearray(256)),
+                  _Owner(-3, bytearray(before))]
+        machine = _Machine(self.program, 1_000_000, 1 << 20, None, 256)
+        result = machine.invoke(self.program.as_dict()['functions'][0], [
+            _View(owners[0], False), _View(owners[1], True), _View(owners[2], True)])[0]
+        output, after = bytes(owners[1].data), bytes(owners[2].data)
+        self.calls.append({'status': result, 'input_hex': bytes(packet).hex(),
+                           'output_hex': output.hex(), 'workspace_before_hex': before.hex(),
+                           'workspace_after_hex': after.hex()})
+        return result, output, after
+
+    def _entry(self, source, size, output, output_size, workspace, workspace_size):
+        if (size, output_size, workspace_size) != (256, 256, 640):
+            raise AssertionError('integer transport extents differ')
+        result, raw_output, raw_state = self.raw_entry(
+            ctypes.string_at(source, size), ctypes.string_at(workspace, workspace_size))
+        ctypes.memmove(output, raw_output, output_size)
+        ctypes.memmove(workspace, raw_state, workspace_size)
+        return result
+
+
+def caught_reentry_controls(test, program):
+    """The native-shaped leaf returns; a caught inner close must stay final.
+
+    These use the public Core VM adapter, not a native image. Their full actual
+    VM buffers are retained separately from the original 90 arithmetic cases.
+    """
+    observations = []
+
+    def fresh(left=1, right=2):
+        vm = VMImage(program)
+        return bridge.IntegerSession(vm, 1, left, right), vm
+
+    def close_during_leaf(session):
+        try:
+            session.observe()
+        except RuntimeError as error:
+            observations.append(type(error).__name__)
+        else:
+            raise AssertionError('illegal recursive observation unexpectedly returned')
+
+    def closed(label, session, vm):
+        test.assertTrue(session._closed)
+        test.assertIsNone(session._epoch)
+        test.assertTrue(session.finished)
+        test.assertFalse(session.pending)
+        test.assertFalse(session.finish_pending)
+        test.assertIsNone(session.next_packet)
+        test.assertIsNone(session.request)
+        test.assertFalse(hasattr(session, 'returned'))
+        count = len(vm.calls)
+        for action in (lambda: session.step(bytes(256)), session.observe,
+                       session.finish, session.run):
+            with test.assertRaises(RuntimeError):
+                action()
+        test.assertEqual(len(vm.calls), count)
+        type(test).negative_rows.append({
+            'kind': 'caught-reentry-permanent-closure', 'leaf': label,
+            'session_closed': session._closed, 'finish_permission': session.finish_pending,
+            'caught_inner_exceptions': list(observations),
+            'entry_original_buffers': list(vm.calls),
+            'actual_steps': list(session.actual_steps),
+            'actual_reads': list(session.actual_reads),
+            'actual_writes': list(session.actual_writes)})
+        observations.clear()
+
+    for wanted, label in ((1, 'entry-read'), (0, 'entry-valid-DONE')):
+        s, vm = fresh()
+        original_entry = vm._entry
+        def entry(*args):
+            status = original_entry(*args)
+            if status == wanted:
+                close_during_leaf(s)
+            return status
+        s.image = SimpleNamespace(_entry=entry)
+        with test.assertRaises(RuntimeError): s.run()
+        test.assertEqual(vm.calls[-1]['status'], wanted)
+        closed(label, s, vm)
+
+    for wanted, label in ((1, 'step-ledger-read'), (0, 'step-ledger-valid-DONE')):
+        s, vm = fresh()
+        class Ledger(list):
+            def append(self, row):
+                list.append(self, row)
+                if row[1] == wanted: close_during_leaf(s)
+        s.actual_steps = Ledger()
+        with test.assertRaises(RuntimeError): s.run()
+        test.assertEqual(vm.calls[-1]['status'], wanted)
+        closed(label, s, vm)
+
+    s, vm = fresh()
+    class Image:
+        @property
+        def _entry(self):
+            close_during_leaf(s)
+            return vm._entry
+    s.image = Image()
+    with test.assertRaises(RuntimeError): s.step(s.next_packet)
+    test.assertEqual(vm.calls, [])
+    closed('entry-binding-before-call', s, vm)
+
+    s, vm = fresh()
+    original_move = bridge.ctypes.memmove
+    def move(*args):
+        result = original_move(*args)
+        close_during_leaf(s)
+        return result
+    with patch.object(bridge.ctypes, 'memmove', move):
+        with test.assertRaises(RuntimeError): s.step(s.next_packet)
+    test.assertEqual(vm.calls, [])
+    closed('input-memmove', s, vm)
+
+    for leaf in ('_limbs', '_ABS', '_TO_BYTES', 'read-ledger', 'read-packet-pack'):
+        s, vm = fresh()
+        test.assertEqual(s.step(s.next_packet), 1)
+        if leaf == '_limbs':
+            original_read = s._limbs
+            def read(*args):
+                result = original_read(*args)
+                close_during_leaf(s)
+                return result
+            s._limbs = read
+            with test.assertRaises(RuntimeError): s.observe()
+        elif leaf in ('_ABS', '_TO_BYTES'):
+            original_leaf = getattr(bridge, leaf)
+            def representation(*args, **kwargs):
+                result = original_leaf(*args, **kwargs)
+                close_during_leaf(s)
+                return result
+            with patch.object(bridge, leaf, representation):
+                with test.assertRaises(RuntimeError): s.observe()
+        elif leaf == 'read-ledger':
+            class Ledger(list):
+                def append(self, row):
+                    list.append(self, row)
+                    close_during_leaf(s)
+            s.actual_reads = Ledger()
+            with test.assertRaises(RuntimeError): s.observe()
+        else:
+            original_frame = bridge.FRAME
+            def pack(*args):
+                result = original_frame.pack(*args)
+                close_during_leaf(s)
+                return result
+            with patch.object(bridge, 'FRAME', SimpleNamespace(
+                    pack=pack, unpack_from=original_frame.unpack_from)):
+                with test.assertRaises(RuntimeError): s.observe()
+        closed(leaf, s, vm)
+
+    for leaf in ('result-extend', 'write-ledger', 'write-packet-pack'):
+        s, vm = fresh(0, 0)
+        test.assertEqual(s.step(s.next_packet), 2)
+        if leaf == 'result-extend':
+            class Buffer(bytearray):
+                def extend(self, raw):
+                    bytearray.extend(self, raw)
+                    close_during_leaf(s)
+            s._result_bytes = Buffer()
+            with test.assertRaises(RuntimeError): s.observe()
+        elif leaf == 'write-ledger':
+            class Ledger(list):
+                def append(self, row):
+                    list.append(self, row)
+                    close_during_leaf(s)
+            s.actual_writes = Ledger()
+            with test.assertRaises(RuntimeError): s.observe()
+        else:
+            original_frame = bridge.FRAME
+            def pack(*args):
+                result = original_frame.pack(*args)
+                close_during_leaf(s)
+                return result
+            with patch.object(bridge, 'FRAME', SimpleNamespace(
+                    pack=pack, unpack_from=original_frame.unpack_from)):
+                with test.assertRaises(RuntimeError): s.observe()
+        closed(leaf, s, vm)
+
+    for leaf in ('_BYTES', '_FROM_BYTES'):
+        s, vm = fresh()
+        packet = s.next_packet
+        while s.step(packet) != 0: packet = s.observe()
+        test.assertFalse(s._closed)
+        test.assertTrue(s.finished and s.finish_pending)
+        original_leaf = getattr(bridge, leaf)
+        def materialize(*args, **kwargs):
+            result = original_leaf(*args, **kwargs)
+            close_during_leaf(s)
+            return result
+        with patch.object(bridge, leaf, materialize):
+            with test.assertRaises(RuntimeError): s.finish()
+        closed(leaf, s, vm)
+
+    s, vm = fresh()
+    original_entry = vm._entry
+    primary = KeyboardInterrupt('original leaf exception after caught recursive close')
+    def entry_and_raise(*args):
+        original_entry(*args)
+        close_during_leaf(s)
+        raise primary
+    s.image = SimpleNamespace(_entry=entry_and_raise)
+    with test.assertRaises(KeyboardInterrupt) as caught: s.step(s.next_packet)
+    test.assertIs(caught.exception, primary)
+    closed('original-BaseException-priority', s, vm)
+
+    s, vm = fresh()
+    test.assertEqual(s.run(), 3)
+    test.assertTrue(s._closed)
+    test.assertIsNone(s._epoch)
+    test.assertFalse(s.finish_pending)
+    with test.assertRaises(RuntimeError): s.finish()
+    type(test).negative_rows.append({'kind': 'normal-DONE-then-single-finish',
+        'session_closed': s._closed, 'entry_original_buffers': vm.calls,
+        'actual_steps': s.actual_steps, 'actual_reads': s.actual_reads,
+        'actual_writes': s.actual_writes})
+
+
+class ExactIntegerSourceTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        EVIDENCE.mkdir(mode=0o700)
+        (EVIDENCE / 'authoring-source.py.txt').write_text(author.source())
+        cls.document = author.document()
+        (EVIDENCE / 'document.json').write_text(json.dumps(cls.document, sort_keys=True) + '\n')
+        cls.assembly = render_assembly(cls.document)
+        (EVIDENCE / 'core_integer.hiaasm').write_text(cls.assembly)
+        cls.program = verify_program(cls.document)
+        cls.rows = []
+        cls.negative_rows = []
+        cls.old_primitive, cls.old_namespace = primitive_source(
+            (ROOT / 'reference/hia_core_lowering_before_integer.py.txt').read_bytes())
+        cls.new_primitive, cls.new_namespace = primitive_source(
+            (ROOT / 'integration/hepta/hia_core_lowering_native.py').read_bytes())
+
+    @classmethod
+    def tearDownClass(cls):
+        (EVIDENCE / 'VM-CASES.json').write_text(json.dumps({
+            'schema': 'hepta.hia.core-integer-source-vm-cases.v1',
+            'native_executed': False, 'compiler_executed': False,
+            'complete_Core116_executed': False, 'case_count': len(cls.rows),
+            'cases': cls.rows, 'negative_controls': cls.negative_rows}, sort_keys=True, indent=2) + '\n')
+
+    def integer(self, operation, left, right=None):
+        expected = original(operation, left, right)
+        vm = VMImage(self.program)
+        session = bridge.IntegerSession(vm, operation, left, right)
+        actual = session.run()
+        self.assertIs(type(actual), int)
+        self.assertEqual(actual, expected)
+        full = bytes(session._result_bytes)
+        raw = full[:session.result_extent]
+        self.assertEqual(int.from_bytes(raw, 'little', signed=True), expected)
+        self.assertEqual(len(full), session.total_words * 4)
+        self.assertEqual(sum(row[2] for row in session.actual_writes), session.total_words)
+        self.assertEqual([row[1] for row in session.actual_writes],
+                         list(range(0, session.total_words, 32)))
+        self.assertTrue(all(1 <= row[3] <= 32 for row in session.actual_reads))
+        self.assertTrue(all(1 <= row[2] <= 32 for row in session.actual_writes))
+        type(self).rows.append({'operation': operation, 'left': operand_record(left),
+            'right': operand_record(right), 'result_signed_hex': raw.hex(),
+            'complete_output_hex': full.hex(), 'canonical_bytes': session.result_extent,
+            'actual_steps': session.actual_steps, 'actual_reads': session.actual_reads,
+            'actual_writes': session.actual_writes, 'entry_original_buffers': vm.calls})
+        return session
+
+    def test_zero_small_and_all_four_operations_match_original_operators(self):
+        values = (-257, -256, -129, -128, -1, 0, 1, 127, 128, 255, 256)
+        for left, right in zip(values, reversed(values)):
+            for operation in (1, 2):
+                self.integer(operation, left, right)
+        for value in values:
+            self.integer(3, value)
+            self.integer(4, value)
+
+    def test_carry_borrow_sign_and_window_boundaries(self):
+        for bits in (31, 32, 63, 64, 1023, 1024, 1025, 2048):
+            value = 1 << bits
+            self.integer(1, value - 1, 1)
+            self.integer(2, value, 1)
+            self.integer(1, -value, -1)
+            self.integer(2, -value, -1)
+        self.integer(3, 1 << 1024)
+        self.integer(4, -(1 << 1024))
+
+    def test_minimal_signed_bytes_and_complete_cancellation(self):
+        for value in (0, 127, 128, 255, 256, -1, -128, -129, -256, -(1 << 1024)):
+            s = self.integer(1, value, 0)
+            raw = bytes(s._result_bytes)[:s.result_extent]
+            if len(raw) > 1:
+                shorter = raw[:-1]
+                self.assertNotEqual(int.from_bytes(shorter, 'little', signed=True), value)
+        s = self.integer(2, (1 << 2048) + 3, (1 << 2048) + 3)
+        self.assertEqual((s.result_extent, bytes(s._result_bytes[:1])), (1, b'\x00'))
+        self.assertGreater(len(s._result_bytes), 128)
+
+    def test_generated_Core_roundtrip_and_complete_original_caps(self):
+        self.assertEqual(assemble_program(self.assembly).as_dict(), self.program.as_dict())
+        self.assertLessEqual(len(self.assembly.encode()), 1 << 20)
+        self.assertLessEqual(len(self.assembly.splitlines()), 16384)
+        functions = self.document['functions']
+        blocks = [b for f in functions for b in f['blocks']]
+        self.assertLessEqual(len(functions), 128)
+        self.assertLessEqual(len(blocks), 1536)
+        self.assertLessEqual(sum(len(b['ops']) for b in blocks), 8192)
+        def walk(x):
+            if isinstance(x, dict):
+                for key, value in x.items():
+                    if key in ('args', 'params') and isinstance(value, list):
+                        self.assertLessEqual(len(value), 16)
+                    yield from walk(value)
+            elif isinstance(x, list):
+                for value in x: yield from walk(value)
+            elif isinstance(x, str) and x.startswith('v') and x[1:].isdigit():
+                yield int(x[1:])
+        self.assertLessEqual(max(walk(self.document)), 2047)
+        for f in functions:
+            self.assertLessEqual(len(f['blocks']), 256)
+            self.assertLessEqual(len(f['returns']), 3)
+            for b in f['blocks']:
+                for op in b['ops']: self.assertLessEqual(len(op.get('out', [])), 3)
+        abi = json.loads((ROOT / 'inputs/hepta/hia_core_integer_abi.json').read_bytes())
+        self.assertEqual((abi['input_bytes'], abi['output_bytes'], abi['workspace_bytes']), (256, 256, 640))
+        self.assertIsNone(abi['integer_value_policy_cap'])
+        self.assertEqual(abi['ordinary_Core_packet_bytes_unchanged'], 128)
+
+    def test_exact_type_target_and_inplace_guards(self):
+        class Foreign:
+            def __getattribute__(self, name):
+                raise AssertionError('guard observed a foreign attribute')
+        class SubInt(int): pass
+        for value in (False, True, 1.0, SubInt(1), Foreign()):
+            self.assertFalse(bridge.eligible_binary(1, operator.add, value, 1))
+            self.assertFalse(bridge.eligible_binary(2, operator.sub, 1, value))
+            self.assertFalse(bridge.eligible_unary(2, operator.neg, value))
+            self.assertFalse(bridge.eligible_unary(3, operator.invert, value))
+        for operation in (129, 130, True, 1.0, 0, 3):
+            self.assertFalse(bridge.eligible_binary(operation, operator.add, 1, 2))
+        self.assertFalse(bridge.eligible_unary(1, operator.pos, 1))
+        self.assertFalse(bridge.eligible_binary(1, lambda a, b: 3, 1, 2))
+        self.assertTrue(bridge.eligible_binary(1, operator.add, 1, 2))
+        self.assertTrue(bridge.eligible_unary(3, operator.invert, 1))
+
+    def test_bool_warning_and_warning_as_error_keep_the_original_call(self):
+        expected = json.loads((ROOT / 'reference/cpython/PINS.json').read_bytes())
+        bodies = [row['bool_invert'] for row in expected]
+        self.assertEqual(bodies, [bodies[0]] * 3)
+        self.assertIn('PyErr_WarnEx(PyExc_DeprecationWarning', bodies[0])
+        self.assertIn('return NULL;', bodies[0])
+        self.assertIn('PyLong_Type.tp_as_number->nb_invert', bodies[0])
+        for action in ('always', 'error'):
+            for value in (False, True):
+                observations = []
+                for fn, ns in ((type(self).old_primitive, self.old_namespace),
+                               (type(self).new_primitive, self.new_namespace)):
+                    def forbidden(*args): raise AssertionError('bool entered integer HIA')
+                    fake = SimpleNamespace(value=lambda handle: value,
+                        owner=SimpleNamespace(integer=SimpleNamespace(unary=forbidden)))
+                    ns['_UNARY'] = {3: operator.invert}
+                    with warnings.catch_warnings(record=True) as seen:
+                        warnings.simplefilter(action, DeprecationWarning)
+                        try: outcome = ('value', fn(fake, 12, (3, 1), ()))
+                        except BaseException as error: outcome = ('error', type(error), str(error))
+                    observations.append((outcome, [(r.category, str(r.message)) for r in seen]))
+                self.assertEqual(observations[0], observations[1])
+                if action == 'error': self.assertEqual(observations[0][0][1], DeprecationWarning)
+                else: self.assertEqual(len(observations[0][1]), 1)
+
+    def test_target_operand_order_and_first_exception_are_unchanged(self):
+        for opcode, operation in ((11, 1), (11, 129), (12, 2), (12, 1)):
+            for fail in ('none', 'lookup', 'left', 'right', 'target'):
+                if opcode == 12 and fail == 'right': continue
+                problem = BaseException('original ' + fail)
+                runs = []
+                for fn, ns in ((type(self).old_primitive, self.old_namespace),
+                               (type(self).new_primitive, self.new_namespace)):
+                    trace = []
+                    def target(*args):
+                        trace.append(('target', args))
+                        if fail == 'target': raise problem
+                        return ('foreign', args)
+                    class Registry(dict):
+                        def __getitem__(self, key):
+                            trace.append(('lookup', key))
+                            if fail == 'lookup': raise problem
+                            return target
+                    registry = Registry()
+                    def get(handle):
+                        trace.append(('get', handle))
+                        if fail == ('left' if handle == 1 else 'right'): raise problem
+                        registry[operation] = lambda *args: (_ for _ in ()).throw(AssertionError('rebound'))
+                        return handle + 10
+                    def forbidden(*args): raise AssertionError('foreign target entered HIA')
+                    fake = SimpleNamespace(value=get, owner=SimpleNamespace(integer=SimpleNamespace(binary=forbidden, unary=forbidden)))
+                    ns['_BINARY' if opcode == 11 else '_UNARY'] = registry
+                    args = (operation, 1, 2) if opcode == 11 else (operation, 1)
+                    try: outcome = ('value', fn(fake, opcode, args, ()))
+                    except BaseException as error: outcome = ('error', type(error), error.args, error is problem)
+                    runs.append((trace, outcome))
+                self.assertEqual(runs[0], runs[1])
+
+    def test_read_and_write_ack_corruption_permanently_refuse(self):
+        vm = VMImage(self.program)
+        s = bridge.IntegerSession(vm, 1, 1 << 80, 1)
+        status, output, state = vm.raw_entry(s.next_packet)
+        self.assertEqual(status, 1)
+        header = bridge.FRAME.unpack_from(output)
+        side, start, count = header[3:6]
+        raw = s._limbs(side, start, count)
+        good = bridge.FRAME.pack(bridge.MAGIC, 1, header[1], side, start, count, *([0] * 10)) + raw + bytes(128-len(raw))
+        for offset in (0, 8, 16, 24, 32, 40, 48, 255):
+            bad = bytearray(good); bad[offset] ^= 1
+            rc, out, closed = vm.raw_entry(bad, state)
+            self.assertEqual(rc, bridge.REFUSAL)
+            self.assertEqual(struct.unpack_from('<Q', closed, 8)[0], 99)
+            self.assertEqual(vm.raw_entry(good, closed)[0], bridge.REFUSAL)
+            type(self).negative_rows.append({'kind': 'read-ack', 'offset': offset,
+                'input_hex': bad.hex(), 'before_hex': state.hex(), 'output_hex': out.hex(),
+                'after_hex': closed.hex(), 'status': rc, 'replay_status': bridge.REFUSAL})
+        s = bridge.IntegerSession(VMImage(self.program), 1, 0, 0)
+        self.assertEqual(s.step(s.next_packet), 2)
+        state = s.state.raw
+        good = s.observe()
+        for offset in (0, 8, 16, 24, 32, 40, 255):
+            bad = bytearray(good); bad[offset] ^= 1
+            rc, out, closed = vm.raw_entry(bad, state)
+            self.assertEqual(rc, bridge.REFUSAL)
+            self.assertEqual(vm.raw_entry(good, closed)[0], bridge.REFUSAL)
+            type(self).negative_rows.append({'kind': 'write-ack', 'offset': offset,
+                'input_hex': bad.hex(), 'before_hex': state.hex(), 'output_hex': out.hex(),
+                'after_hex': closed.hex(), 'status': rc, 'replay_status': bridge.REFUSAL})
+
+    def test_one_use_transport_entry_and_materialization_failures_seal(self):
+        for error_type in (MemoryError, KeyboardInterrupt, SystemExit, RuntimeError):
+            s = bridge.IntegerSession(VMImage(self.program), 3, 1 << 80)
+            self.assertEqual(s.step(s.next_packet), 1)
+            def fail(*args): raise error_type('transport failed')
+            s._limbs = fail
+            with self.assertRaises(error_type): s.observe()
+            self.assertTrue(s.finished)
+            for action in (lambda: s.observe(), lambda: s.step(bytes(256)), lambda: s.finish()):
+                with self.assertRaises(RuntimeError): action()
+            vm = VMImage(self.program)
+            s = bridge.IntegerSession(vm, 1, 1, 2)
+            class FailingLedger(list):
+                def append(self, row): raise error_type('post-entry ledger')
+            s.actual_steps = FailingLedger()
+            with self.assertRaises(error_type): s.step(s.next_packet)
+            self.assertEqual(len(vm.calls), 1)
+            self.assertTrue(s.finished)
+            with self.assertRaises(RuntimeError): s.observe()
+            type(self).negative_rows.append({'kind': 'post-entry-ledger',
+                'exception': error_type.__name__, 'entry_original_buffers': vm.calls,
+                'session_closed': s.finished})
+        s = bridge.IntegerSession(VMImage(self.program), 4, 7)
+        packet = s.next_packet
+        while s.step(packet) != 0: packet = s.observe()
+        with patch.object(bridge, '_FROM_BYTES', side_effect=MemoryError('materialization')):
+            with self.assertRaises(MemoryError): s.finish()
+        with self.assertRaises(RuntimeError): s.finish()
+        s = self.integer(1, 1, 2)
+        with self.assertRaises(RuntimeError): s.finish()
+        caught_reentry_controls(self, self.program)
+
+    def test_original_population_and_unrelated_lowering_bodies_unchanged(self):
+        old = ast.parse((ROOT / 'reference/hia_core_lowering_before_integer.py.txt').read_bytes())
+        new = ast.parse((ROOT / 'integration/hepta/hia_core_lowering_native.py').read_bytes())
+        new.body[:] = [n for n in new.body if not (isinstance(n, ast.ImportFrom) and n.module == 'hia_core_integer_native')]
+        cls = next(n for n in new.body if isinstance(n, ast.ClassDef) and n.name == 'LoweringSession')
+        fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '_primitive')
+        for code in (11, 12):
+            branch = next(n for n in fn.body if isinstance(n, ast.If) and ast.dump(n.test) == ast.dump(ast.parse('opcode == '+str(code), mode='eval').body))
+            self.assertEqual(len(branch.body), 3)
+            self.assertIsInstance(branch.body[1], ast.If)
+            del branch.body[1]
+        cls = next(n for n in new.body if isinstance(n, ast.ClassDef) and n.name == 'NativeCoreLowering')
+        fn = next(n for n in cls.body if isinstance(n, ast.FunctionDef) and n.name == '__init__')
+        index = next(i for i,n in enumerate(fn.args.kwonlyargs) if n.arg == 'integer')
+        del fn.args.kwonlyargs[index]; del fn.args.kw_defaults[index]
+        fn.body[:] = [n for n in fn.body if not (isinstance(n, ast.Assign) and len(n.targets)==1 and isinstance(n.targets[0],ast.Attribute) and n.targets[0].attr=='integer')]
+        self.assertEqual(ast.dump(new), ast.dump(old))
+        population = json.loads((ROOT / 'reference/ORIGINAL-POPULATION.json').read_bytes())
+        self.assertEqual([len(population['original_methods'][k]) for k in ('COMPONENT_IDS','ORIGINAL_IDS','CORE_IDS')], [15,51,50])
+        self.assertEqual((population['total'], population['original_gates']), (116,32))
+
+
+if __name__ == '__main__':
+    unittest.main()

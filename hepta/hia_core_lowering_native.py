@@ -14,6 +14,8 @@ import struct
 from types import FunctionType
 
 from .hia_core_compare_native import eligible as _numeric_comparison_eligible
+from .hia_core_integer_native import eligible_binary as _integer_binary_eligible
+from .hia_core_integer_native import eligible_unary as _integer_unary_eligible
 
 MAGIC = int.from_bytes(b'HIALOW02', 'little')
 POOL_MAGIC = int.from_bytes(b'HIALIT01', 'little')
@@ -324,9 +326,24 @@ class LoweringSession:
             return int(bool(get(value))), ()
         if opcode == 11:
             operation, left, right = args
+            if self.owner.integer is not None:
+                # Match original callable lookup, left read, right read order.
+                # The eligibility guard never re-reads operands or the registry.
+                target = _BINARY[operation]
+                observed_left = get(left)
+                observed_right = get(right)
+                if _integer_binary_eligible(operation, target, observed_left, observed_right):
+                    return 0, (self.owner.integer.binary(operation, observed_left, observed_right),)
+                return 0, (target(observed_left, observed_right),)
             return 0, (_BINARY[operation](get(left), get(right)),)
         if opcode == 12:
             operation, value = args
+            if self.owner.integer is not None:
+                target = _UNARY[operation]
+                observed = get(value)
+                if _integer_unary_eligible(operation, target, observed):
+                    return 0, (self.owner.integer.unary(operation, observed),)
+                return 0, (target(observed),)
             return 0, (_UNARY[operation](get(value)),)
         if opcode == 13:
             operation, left, right = args
@@ -395,7 +412,7 @@ class LoweringSession:
 class NativeCoreLowering:
     """Composition of admitted images and explicitly hosted object primitives."""
 
-    def __init__(self, images, pool, abi, namespace, *, unpack=None, numeric_compare=None):
+    def __init__(self, images, pool, abi, namespace, *, unpack=None, numeric_compare=None, integer=None):
         if type(abi) is not dict or abi.get('schema') != 'hepta.hia.core-lowering-abi.v2':
             raise ValueError('native lowering ABI metadata differs')
         if abi.get('protocol_magic') != MAGIC or abi.get('pool_magic') != POOL_MAGIC or abi.get('packet_bytes') != 128:
@@ -412,6 +429,7 @@ class NativeCoreLowering:
         self.namespace = namespace
         self.unpack = unpack
         self.numeric_compare = numeric_compare
+        self.integer = integer
         output = ctypes.create_string_buffer(abi['pool_bytes'])
         empty = ctypes.create_string_buffer(1)
         count = pool._entry(empty, 0, output, len(output), empty, 0)

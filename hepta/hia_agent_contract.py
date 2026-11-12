@@ -121,6 +121,8 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_constructor_render.hiaasm',
     'examples/hia_bootstrap/composite_outer_owner.hiaasm',
     'examples/hia_bootstrap/composite_outer_render.hiaasm',
+    'hepta/hia_core_integer_abi.json',
+    'examples/hia_bootstrap/core_integer.hiaasm',
 )
 
 

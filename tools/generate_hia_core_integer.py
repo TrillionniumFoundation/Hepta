@@ -1,0 +1,330 @@
+"""Author a streaming signed-integer ADD/SUB/NEG/INVERT HIA owner.
+
+The input is the existing exact-int sign/magnitude descriptor and 32-limb
+window convention. HIA performs all arithmetic and chooses every input/output
+window and the minimal signed-byte result extent. Python does not run SOURCE.
+This independent ABI has a 256-byte output, not comparison's 128-byte output.
+"""
+from __future__ import annotations
+
+import ast
+from pathlib import Path
+
+from hepta.hia_agent_assembly import render_assembly
+from tools.generate_hia_selfhost import Builder, compact_authoring_cfg, total_scalar_functions
+
+MAGIC = int.from_bytes(b'HIAINT01', 'little')
+SOURCE = r'''
+def integer(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
+    if length(s) != 256 or length(o) != 256 or length(w) != 640:
+        return refuse(w)
+    if read(s, 0) != INTEGER_MAGIC:
+        return refuse(w)
+    if get(w, 0) == 0:
+        at = 0
+        while at < 640:
+            if get(w, at) != 0:
+                return refuse(w)
+            at = at + 8
+        if read(s, 8) != 0 or read(s, 16) != 0:
+            return refuse(w)
+        operation = read(s, 24)
+        if operation < 1 or operation > 4:
+            return refuse(w)
+        at = 80
+        while at < 256:
+            if read(s, at) != 0:
+                return refuse(w)
+            at = at + 8
+        side = 0
+        while side < 2:
+            record = 32 + side * 24
+            kind = read(s, record)
+            words = read(s, record + 8)
+            scalar = read(s, record + 16)
+            top = scalar & 63
+            # This is the u64 byte-address arithmetic boundary, not an integer
+            # value policy cap. An actual Python object cannot reach it.
+            if kind != 2 or words > 4611686018427387902 or scalar > 127 or top > 32:
+                return refuse(w)
+            if words == 0:
+                if scalar != 0:
+                    return refuse(w)
+            elif top == 0:
+                return refuse(w)
+            if operation >= 3 and side == 1 and (words != 0 or scalar != 0):
+                return refuse(w)
+            put(w, record, kind)
+            put(w, record + 8, words)
+            put(w, record + 16, scalar)
+            put(w, 128 + side * 8, scalar >> 6)
+            side = side + 1
+        left_words = get(w, 40)
+        right_words = get(w, 64)
+        maximum = choose(left_words > right_words, left_words, right_words)
+        put(w, 0, INTEGER_MAGIC)
+        put(w, 8, 10)
+        put(w, 24, operation)
+        put(w, 80, maximum + 1)
+        put(w, 144, choose(operation == 2 or operation == 3, 1, 0))
+    else:
+        if get(w, 0) != INTEGER_MAGIC or get(w, 8) == 99:
+            return refuse(w)
+        phase = get(w, 8)
+        if phase == 11 or phase == 13:
+            if read(s, 8) != 1 or read(s, 16) != get(w, 16):
+                return refuse(w)
+            if read(s, 24) != get(w, 120) or read(s, 32) != get(w, 104) or read(s, 40) != get(w, 112):
+                return refuse(w)
+            at = 48
+            while at < 128:
+                if read(s, at) != 0:
+                    return refuse(w)
+                at = at + 8
+            count = get(w, 112)
+            at = 128 + count * 4
+            while at < 256:
+                if byte(s, at) != 0:
+                    return refuse(w)
+                at = at + 1
+            side = get(w, 120)
+            index = 0
+            while index < count:
+                put32(w, 256 + side * 128 + index * 4, read32(s, 128 + index * 4))
+                index = index + 1
+            words = get(w, 40 + side * 24)
+            if get(w, 104) + count == words:
+                top_word = get32(w, 256 + side * 128 + (count - 1) * 4)
+                if bit_length(top_word) != (get(w, 48 + side * 24) & 63):
+                    return refuse(w)
+            put(w, 8, choose(phase == 11, 12, 14))
+        elif phase == 21:
+            if read(s, 8) != 2 or read(s, 16) != get(w, 16):
+                return refuse(w)
+            if read(s, 24) != get(w, 88) or read(s, 32) != get(w, 96):
+                return refuse(w)
+            at = 40
+            while at < 256:
+                if read(s, at) != 0:
+                    return refuse(w)
+                at = at + 8
+            put(w, 88, get(w, 88) + get(w, 96))
+            put(w, 8, 10)
+        else:
+            return refuse(w)
+    while True:
+        phase = get(w, 8)
+        if phase == 10:
+            offset = get(w, 88)
+            total = get(w, 80)
+            if offset == total:
+                return complete(o, w)
+            if offset > total:
+                return refuse(w)
+            remaining = total - offset
+            count = choose(remaining < 32, remaining, 32)
+            put(w, 96, count)
+            at = 256
+            while at < 640:
+                put(w, at, 0)
+                at = at + 8
+            left_words = get(w, 40)
+            if offset < left_words:
+                available = left_words - offset
+                return request_read(o, w, 0, offset, choose(available < count, available, count), 11)
+            put(w, 8, 12)
+        elif phase == 12:
+            offset = get(w, 88)
+            count = get(w, 96)
+            right_words = get(w, 64)
+            if offset < right_words:
+                available = right_words - offset
+                return request_read(o, w, 1, offset, choose(available < count, available, count), 13)
+            put(w, 8, 14)
+        elif phase == 14:
+            operation = get(w, 24)
+            index = 0
+            while index < get(w, 96):
+                left = signed_word(w, 0, get32(w, 256 + index * 4))
+                right = signed_word(w, 1, get32(w, 384 + index * 4))
+                carry = get(w, 144)
+                result = 0
+                if operation == 1:
+                    result = left + right + carry
+                elif operation == 2:
+                    result = left + (right ^ 4294967295) + carry
+                elif operation == 3:
+                    result = (left ^ 4294967295) + carry
+                else:
+                    result = left ^ 4294967295
+                put(w, 144, result >> 32)
+                word = result & 4294967295
+                put32(w, 512 + index * 4, word)
+                observe_result_word(w, get(w, 88) + index, word)
+                index = index + 1
+            return request_write(o, w)
+        else:
+            return refuse(w)
+    return refuse(w)
+
+def signed_word(w:mutbuf, side:u64, magnitude:u64) -> u64:
+    if get(w, 48 + side * 24) >> 6 == 0:
+        return magnitude
+    carry_at = 128 + side * 8
+    value = (magnitude ^ 4294967295) + get(w, carry_at)
+    put(w, carry_at, value >> 32)
+    return value & 4294967295
+
+def observe_result_word(w:mutbuf, offset:u64, word:u64) -> u64:
+    index = 0
+    while index < 4:
+        value = (word >> (index * 8)) & 255
+        end = offset * 4 + index + 1
+        if value != 0:
+            put(w, 152, end)
+            put(w, 160, value)
+        if value != 255:
+            put(w, 168, end)
+            put(w, 176, value)
+        put(w, 184, value)
+        index = index + 1
+    return 0
+
+def request_read(o:mutbuf, w:mutbuf, side:u64, start:u64, count:u64, phase:u64) -> u32:
+    if side > 1 or count == 0 or count > 32 or get(w, 16) == 18446744073709551615:
+        return refuse(w)
+    words = get(w, 40 + side * 24)
+    if start >= words or count > words - start:
+        return refuse(w)
+    seq = get(w, 16) + 1
+    put(w, 16, seq)
+    put(w, 8, phase)
+    put(w, 104, start)
+    put(w, 112, count)
+    put(w, 120, side)
+    clear_output(o)
+    put(o, 0, INTEGER_MAGIC)
+    put(o, 8, seq)
+    put(o, 16, 1)
+    put(o, 24, side)
+    put(o, 32, start)
+    put(o, 40, count)
+    return 1
+
+def request_write(o:mutbuf, w:mutbuf) -> u32:
+    if get(w, 16) == 18446744073709551615:
+        return refuse(w)
+    seq = get(w, 16) + 1
+    put(w, 16, seq)
+    put(w, 8, 21)
+    clear_output(o)
+    put(o, 0, INTEGER_MAGIC)
+    put(o, 8, seq)
+    put(o, 16, 2)
+    put(o, 24, get(w, 88))
+    put(o, 32, get(w, 96))
+    index = 0
+    while index < get(w, 96):
+        put32(o, 128 + index * 4, get32(w, 512 + index * 4))
+        index = index + 1
+    return 2
+
+def complete(o:mutbuf, w:mutbuf) -> u32:
+    last = get(w, 184)
+    if last != 0 and last != 255:
+        return refuse(w)
+    sign = last >> 7
+    extent = 1
+    if sign == 0:
+        if get(w, 152) != 0:
+            extent = get(w, 152) + choose(get(w, 160) >= 128, 1, 0)
+    elif get(w, 168) != 0:
+        extent = get(w, 168) + choose(get(w, 176) < 128, 1, 0)
+    total_bytes = get(w, 80) * 4
+    if extent == 0 or extent > total_bytes or get(w, 88) != get(w, 80):
+        return refuse(w)
+    put(w, 8, 99)
+    clear_output(o)
+    put(o, 0, INTEGER_MAGIC)
+    put(o, 8, get(w, 16))
+    put(o, 24, get(w, 24))
+    put(o, 32, extent)
+    put(o, 40, get(w, 80))
+    put(o, 48, sign)
+    put(o, 56, total_bytes)
+    return 0
+
+def clear_output(o:mutbuf) -> u64:
+    at = 0
+    while at < 256:
+        put(o, at, 0)
+        at = at + 8
+    return 0
+
+def bit_length(value:u64) -> u64:
+    count = 0
+    while value != 0:
+        value = value >> 1
+        count = count + 1
+    return count
+
+def refuse(w:mutbuf) -> u32:
+    if length(w) == 640:
+        put(w, 8, 99)
+    return 4294967293
+
+WORD_HELPERS
+'''
+
+
+def source():
+    helpers = []
+    for name, buffer_type, width in (
+            ('read', 'readbuf', 8), ('get', 'mutbuf', 8),
+            ('read32', 'readbuf', 4), ('get32', 'mutbuf', 4)):
+        helpers.extend([f'def {name}(w:{buffer_type}, index:u64) -> u64:', '    value = 0'])
+        for i in range(width):
+            helpers.append(f'    value = value | (byte(w, index + {i}) << {i * 8})')
+        helpers.append('    return value')
+    for name, width in (('put', 8), ('put32', 4)):
+        helpers.append(f'def {name}(w:mutbuf, index:u64, value:u64) -> u64:')
+        for i in range(width):
+            helpers.append(f'    store(w, index + {i}, value >> {i * 8})')
+        helpers.append('    return value')
+    return SOURCE.replace('INTEGER_MAGIC', str(MAGIC)).replace('WORD_HELPERS', '\n'.join(helpers))
+
+
+def document():
+    nodes = ast.parse(source()).body
+    names = {node.name: 'f' + str(i) for i, node in enumerate(nodes)}
+    signatures = {node.name: ([arg.annotation.id for arg in node.args.args], node.returns.id)
+                  for node in nodes}
+    total = total_scalar_functions(nodes)
+    functions = []
+    for node in nodes:
+        builder = Builder(node, names, signatures, total)
+        builder.statements(node.body)
+        functions.append({'name': names[node.name], 'params': [builder.param(p) for p in builder.params],
+            'returns': [builder.returns], 'effects': ['read', 'write', 'trap'],
+            'entry': 'b0', 'blocks': builder.blocks})
+    return compact_authoring_cfg({'schema': 'hepta.hia.program.v8',
+                                  'module': 'core_integer', 'functions': functions})
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    output = args.output
+    mode = 'x'
+    if output is None:
+        output = Path(__file__).resolve().parents[1] / 'examples/hia_bootstrap/core_integer.hiaasm'
+        mode = 'w'
+    with output.open(mode) as stream:
+        stream.write(render_assembly(document()))
+    print(output.name, output.stat().st_size)
+
+
+if __name__ == '__main__':
+    main()
