@@ -1,0 +1,11 @@
+# Small failed-reader diagnostic decoder
+
+This is the receiver for the frozen 25d75 A / edde83a B diagnostic stream. It does not modify either frozen controller or workflow. The actual operation identity must be supplied from the independently read Actions run; the synthetic test run number is never an actual run assertion.
+
+The decoder validates the fixed 20 possible original diagnostic targets plus five current reader controls, exact historical control byte hashes and Git blob identities, the 512 KiB raw / 1 MiB framed-output caps, canonical base64, contiguous ordered frames, and complete END counts. It retains each recovered file as its original bytes. JSON nanosecond and unsigned 64-bit decimal text is not reserialized as a reconstructed original. All 39 assembly bodies and the source ABI body are excluded from this diagnostic stream.
+
+`decode-log.js` declares `decodeCoreFailedReaderDiagnostics(log, expected, pins, H)`. The `expected` object supplies run_id, control_commit, workflow_commit, policy_sha256, and branch. `pins` is the separately hash-checked frozen asset-pins.json. H supplies utf8, sha256, and sha1; the two saved helper bodies can be evaluated with the same fresh V8 module wrapper used in the recorded controls. `synthetic-controls.js` returns the control function, which takes that decoder, pins, policy, and H.
+
+The complete saved synthetic observation contains twelve fixtures and their exact raw log strings. Two valid framing streams preserve explicit failure scope and exact Unicode/64-bit decimal file bytes; ten malformed streams are refused. This is V8-only framing validation: no Python parsing, h access, network transfer, native compiler, project code, or product tests were executed by the controls. No actual new Actions log has been decoded at this checkpoint. The decoder's acceptance does not replace the producer's ZIP, source, ownership, or cleanup validation. A framed DIAGNOSTIC_HOLD remains HOLD, and the original run43152508792 remains failure.
+
+The separately recorded V8 read-dispatch SyntaxError happened before any remote read call in that cell. The corrected read then verified the already created Git objects. It is unrelated to product execution or the frozen A/B code.
