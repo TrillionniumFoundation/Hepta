@@ -1,0 +1,51 @@
+{
+  "schema": "hia.peer-review.core-native-diagnostic-parent-chain.v1",
+  "status": "STATIC_DELTA_CLEAR_NO_EXECUTION",
+  "reviewed_source": {
+    "git_blob_sha1": "b58ab736108ec7bdb7ed429fda80c8160f0ac291",
+    "bytes": 16428,
+    "sha256": "7c0e001b2633a42a31332210eed6eda8af938d885c28ebb15828a217d1ebc135"
+  },
+  "predecessor": {
+    "git_blob_sha1": "9a3101fae7c5b866cd9572747d595fba0023743d",
+    "bytes": 13465,
+    "sha256": "6496d1142f5da92d832b4886383432522f6add28a0a05396c8e4c5744f589b31"
+  },
+  "common_dependency": {
+    "commit": "b2726c61d0ab6ad557ae5d3c00bec3d793584a37",
+    "path": "experiments/hia_core_emitter_20261111/native-development-static-r2/inputs/common.py",
+    "bytes": 16331,
+    "sha256": "1a8783998ff1e34e1fae573b7b7d08133770fa32f9a87b7a5e0820e1fe105a1f",
+    "git_blob_sha1": "ea4a401d187b3559cfdde118e2626a806a4cb7fb",
+    "identity_unchanged": true,
+    "blob_unchanged": true,
+    "closed_owner_unchanged": true
+  },
+  "finding_in_prior_unexecuted_source": {
+    "kind": "INTERMEDIATE_DIRECTORY_ALIAS_NOT_REJECTED_BY_LEAF_NOFOLLOW",
+    "description": "The prior fixed original() used common.read with O_NOFOLLOW only on the leaf; the top checks did not cover callers/component-fixture and installed-control. The four installed originals could therefore resolve through an unchecked intermediate symlink. No runtime reproduction or product failure was claimed."
+  },
+  "actual_static_delta": {
+    "whole_delta_exact": true,
+    "only_import_helper_and_fixed_original_read_changed": true,
+    "paths_denominator_and_stage_gate_text_unchanged": true,
+    "tail_boundary_and_frames_text_unchanged": true,
+    "parsed_or_executed": false
+  },
+  "checked": [
+    "All fixed35 original paths now use read_fixed_original, opened through held directory descriptors starting at /.",
+    "Every traversed directory uses O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC. Before and after reading, each parent/name relationship is compared against the held child descriptor identity (device/inode/mode/uid/gid).",
+    "The leaf uses O_NOFOLLOW|O_NONBLOCK|O_CLOEXEC; it must be an owned regular file with nlink1. Its name binding, descriptor identity, size/mtime/ctime are checked before and after the exact-size read.",
+    "The read reserves remaining raw budget before reading and never reads an extra EOF byte beyond the admitted original size; oversized inputs are explicitly omitted without admitted content.",
+    "All acquired descriptors close in reverse order in finally. Per-file exceptions remain explicit READ_REFUSED/MISSING observations; the reader does not turn errors into product PASS.",
+    "Original fixed35 population, 8MiB raw and12MiB stdout limits, per-phase exact request/context and closed ECHILD gates, and the entire final framing section remain byte-identical.",
+    "Imported identity/blob/closed_owner were read from actual b272 common source and their full function texts match the previously reviewed exact e03f versions."
+  ],
+  "limitations": [
+    "No Python parse, syscall controls, filesystem race tests, source generation, native compilation, product tests, h calls or workflow trigger were executed by this review.",
+    "This conclusion covers the new diagnostic original-file read path. It does not approve an unreviewed create/write/execution parent-chain adapter or the complete116 development workflow.",
+    "Before/after descriptor identity checks do not claim immunity to privileged namespace manipulation, hard SIGKILL, host loss, or changes invisible between snapshots.",
+    "The predecessor remains an unexecuted draft with this static gap; no actual historical result was rewritten."
+  ],
+  "root_and_peer_notifications": "The exact reviewed b58 blob and narrow scope were sent to root and the Core owner."
+}
