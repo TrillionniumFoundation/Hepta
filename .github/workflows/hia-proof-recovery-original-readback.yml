@@ -1,0 +1,27 @@
+name: HIA Proof recovery original artifact readback
+on:
+  push:
+    branches:
+      - codex/hia-proof-recovery-v79-r1-readback-20261112-dda7
+permissions:
+  contents: read
+  actions: read
+jobs:
+  read-original:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify the original complete artifact without project execution
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 -B export_original.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hia-proof-recovery-v79-r1-original-readback-${{ github.run_id }}
+          path: original-proof-readback
+          if-no-files-found: error
+          compression-level: 0
