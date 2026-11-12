@@ -121,8 +121,9 @@ const result=value(0);ws();if(p!==raw.length)fail();return result;
 function exact970Field(node,key){if(!node||node[0]!=="object")throw new Error("lossless object expected");const pair=node[1].find(x=>x[0]===key);if(!pair)throw new Error("lossless key missing "+key);return pair[1];}
 function equal970JSONNodes(a,b){return JSON.stringify(a)===JSON.stringify(b);}
 
-function wire970ExactNode(node, level=0) {
+function wire970ExactNode(node, level) {
 "use strict";
+if(level===undefined)level=0;
 const indent="  ".repeat(level),next="  ".repeat(level+1);
 function quoted(s){return JSON.stringify(s).replace(/[\u007f-\uffff]/g,c=>"\\u"+c.charCodeAt(0).toString(16).padStart(4,"0"));}
 switch(node[0]){
