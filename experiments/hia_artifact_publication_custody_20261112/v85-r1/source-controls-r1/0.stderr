@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/generate_hia_selfhost_contract.py", line 30, in <module>
+    main()
+  File "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/generate_hia_selfhost_contract.py", line 22, in main
+    contract = support_contract()
+               ^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/hia_selfhost_contract.py", line 1901, in support_contract
+    "files": file_digests(root),
+             ^^^^^^^^^^^^^^^^^^
+  File "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/hia_selfhost_contract.py", line 680, in file_digests
+    return {path: sha256((root / path).read_bytes()).hexdigest() for path in paths}
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/hia-publication-custody-v85-20261112-r1/source/experiments/hia_agent_toolstudy_v11_20261030/provenance/GGUF_ACQUISITION.json'

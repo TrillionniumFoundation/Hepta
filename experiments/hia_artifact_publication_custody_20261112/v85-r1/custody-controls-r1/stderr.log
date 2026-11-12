@@ -1,0 +1,26 @@
+test_create_only_output_refuses_existing_and_parent_alias (__main__.CustodyControls.test_create_only_output_refuses_existing_and_parent_alias) ... ok
+test_declared_source_mismatch_is_not_accepted (__main__.CustodyControls.test_declared_source_mismatch_is_not_accepted) ... ok
+test_default_temporary_directory_still_removes (__main__.CustodyControls.test_default_temporary_directory_still_removes) ... ok
+test_direct_popen_manual_stdin_and_communicate_timeout_preserved (__main__.CustodyControls.test_direct_popen_manual_stdin_and_communicate_timeout_preserved) ... ok
+test_explicit_temporary_directory_retains_after_cleanup (__main__.CustodyControls.test_explicit_temporary_directory_retains_after_cleanup) ... ok
+test_live_runner_only_fixed_metadata_is_retained (__main__.CustodyControls.test_live_runner_only_fixed_metadata_is_retained) ... ok
+test_reader_rejects_symlink_parent_leaf_and_fifo_without_blocking (__main__.CustodyControls.test_reader_rejects_symlink_parent_leaf_and_fifo_without_blocking) ... ok
+test_real_run_bytes_and_original_timeout_argument (__main__.CustodyControls.test_real_run_bytes_and_original_timeout_argument) ... ok
+test_real_timeout_keeps_original_kill_wait_and_partial_output (__main__.CustodyControls.test_real_timeout_keeps_original_kill_wait_and_partial_output) ... ok
+test_regular_change_during_archive_is_hold_and_partial_archive_is_kept (__main__.CustodyControls.test_regular_change_during_archive_is_hold_and_partial_archive_is_kept) ... ok
+test_sealed_memfd_original_bytes_survive_route_delegation (__main__.CustodyControls.test_sealed_memfd_original_bytes_survive_route_delegation) ... ERROR
+test_typed_archive_reads_every_regular_byte_and_never_opens_fifo (__main__.CustodyControls.test_typed_archive_reads_every_regular_byte_and_never_opens_fifo) ... ok
+
+======================================================================
+ERROR: test_sealed_memfd_original_bytes_survive_route_delegation (__main__.CustodyControls.test_sealed_memfd_original_bytes_survive_route_delegation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/hia-publication-custody-v85-20261112-r1/test_custody_controls.py", line 129, in test_sealed_memfd_original_bytes_survive_route_delegation
+    fcntl.fcntl(fd, fcntl.F_ADD_SEALS, fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL)
+                    ^^^^^^^^^^^^^^^^^
+AttributeError: module 'fcntl' has no attribute 'F_ADD_SEALS'
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.345s
+
+FAILED (errors=1)

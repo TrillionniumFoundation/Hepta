@@ -1,0 +1,27 @@
+2026-11-12T09:41:56.5441819Z ERROR: test_quota_is_original_64MiB_and_never_applied_to_generic_publisher (tests.test_hia_agent_artifact_store_native.AgentArtifactStoreKernelTests.test_quota_is_original_64MiB_and_never_applied_to_generic_publisher)
+2026-11-12T09:41:56.5443592Z ----------------------------------------------------------------------
+2026-11-12T09:41:56.5444379Z Traceback (most recent call last):
+2026-11-12T09:41:56.5452430Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_agent_artifact_store_native.py", line 122, in test_quota_is_original_64MiB_and_never_applied_to_generic_publisher
+2026-11-12T09:41:56.5453639Z     self.assertEqual(json.loads(self.run_store('store-put',accepted).stdout),expected)
+2026-11-12T09:41:56.5454613Z                                 ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T09:41:56.5455393Z   File "/home/runner/work/Hepta/Hepta/tests/test_hia_agent_artifact_store_native.py", line 61, in run_store
+2026-11-12T09:41:56.5456506Z     result=subprocess.run([*prefix,str(self.app),op,str(root or self.root),digest],input=wire,capture_output=True,env={'PATH':''},timeout=60)
+2026-11-12T09:41:56.5457312Z   File "/opt/hostedtoolcache/Python/3.14.10/x64/lib/python3.14/subprocess.py", line 557, in run
+2026-11-12T09:41:56.5458221Z     stdout, stderr = process.communicate(input, timeout=timeout)
+2026-11-12T09:41:56.5458592Z                      ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T09:41:56.5459256Z   File "/opt/hostedtoolcache/Python/3.14.10/x64/lib/python3.14/subprocess.py", line 1221, in communicate
+2026-11-12T09:41:56.5459805Z     stdout, stderr = self._communicate(input, endtime, timeout)
+2026-11-12T09:41:56.5460158Z                      ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T09:41:56.5460670Z   File "/opt/hostedtoolcache/Python/3.14.10/x64/lib/python3.14/subprocess.py", line 2154, in _communicate
+2026-11-12T09:41:56.5461227Z     self._check_timeout(endtime, orig_timeout, stdout, stderr)
+2026-11-12T09:41:56.5461576Z     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-12T09:41:56.5462096Z   File "/opt/hostedtoolcache/Python/3.14.10/x64/lib/python3.14/subprocess.py", line 1268, in _check_timeout
+2026-11-12T09:41:56.5462601Z     raise TimeoutExpired(
+2026-11-12T09:41:56.5462825Z     ...<2 lines>...
+2026-11-12T09:41:56.5463082Z             stderr=b''.join(stderr_seq) if stderr_seq else None)
+2026-11-12T09:41:56.5464300Z subprocess.TimeoutExpired: Command '['/tmp/hia-publication-kernel-sp58ul90/build/hia-artifact', 'store-put', '/tmp/hia-publication-kernel-sp58ul90/store-case-5/artifacts', '-']' timed out after 60 seconds
+2026-11-12T09:41:56.5465091Z 
+2026-11-12T09:41:56.5465247Z ----------------------------------------------------------------------
+2026-11-12T09:41:56.5465587Z Ran 39 tests in 100.554s
+2026-11-12T09:41:56.5465742Z 
+2026-11-12T09:41:56.5465833Z FAILED (errors=1)
