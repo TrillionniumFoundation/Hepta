@@ -4,6 +4,39 @@ The six original SQLite C bodies are the reference. This does not issue real
 namespace leases, call SQLite for storage, or close the ordinary Store gap.
 """
 from __future__ import annotations
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:namespace-unixopen-actual-native-issuer]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"namespace_unixopen_native_parent_r1","selector":"[hia-ci:namespace-unixopen-actual-native-issuer]","scope":"Actual nine-role UnixOpen getpid prefix; 28 fresh physical processes and fixed continuation refusals","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-native-parent-r2/ci_namespace_unixopen_parent_r2.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-actual-native-issuer-gate-r1/ci_actual_unixopen.py","mode":"100644","bytes":25390,"gitsha":"f3a704a39724c2467dae487718dcd03de7369220","sha256":"9f48a7d6bea74c476e37b11adb9001a69a46ed1eeb6a88264a61bc45042032ba"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 import sys
 sys.dont_write_bytecode=True
 import hashlib,importlib.util,json,os,stat,time,traceback

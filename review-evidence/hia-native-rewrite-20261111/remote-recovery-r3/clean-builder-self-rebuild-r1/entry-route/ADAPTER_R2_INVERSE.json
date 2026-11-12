@@ -1,0 +1,34 @@
+{
+  "before": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/previous-unexecuted/clean_build_original_source_entry_adapter_r1.py",
+    "mode": "100644",
+    "bytes": 7604,
+    "sha256": "5f05459ce865d9264bac88bdc85dd340a1c5b271daeec571caaa6b0736328a58",
+    "gitsha": "1309eccf3acee4c3948f4fecc0121ccccbeee158",
+    "classification": "SUPERSEDED_SOURCE_ONLY_BEFORE_EXACT_SYSTEMEXIT_TYPE_CHECK"
+  },
+  "after": {
+    "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/ci/clean_build_original_source_entry_adapter_r1.py",
+    "mode": "100644",
+    "bytes": 7680,
+    "sha256": "bb5c881d68a55648d05cc099ec8eec8235ec41a1d18cba6ad6b9a258061820b5",
+    "gitsha": "61be560284d3094c4ec6180965bf42e253f7fb0b",
+    "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+  },
+  "edits": [
+    {
+      "before": "import os\nfrom pathlib",
+      "after": "import os\nimport operator\nfrom pathlib"
+    },
+    {
+      "before": "            if exc.code not in (None, 0):\n",
+      "after": "            if not (exc.code is None or isinstance(exc.code, int) and operator.index(exc.code) == 0):\n"
+    }
+  ],
+  "inverse_entire_source_equal": true,
+  "reason": "Only None or an actual integer with operator.index(code)==0 is a successful SystemExit; float or complex zero is not accepted.",
+  "AST_runs": 0,
+  "target_runs": 0,
+  "schema": "hia-clean-builder-source-entry-adapter-exit-type-only-inverse-r1",
+  "classification": "TEXT_ONLY_NO_AST_OR_EXECUTION"
+}

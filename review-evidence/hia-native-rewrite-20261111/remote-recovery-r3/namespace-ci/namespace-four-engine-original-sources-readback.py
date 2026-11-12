@@ -5,6 +5,39 @@ every original payload member, and complete before/after identities are checked.
 Only the selected final text bytes are exported for subsequent source authoring.
 """
 from __future__ import annotations
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:clean-builder-r13-original-readback]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"namespace_engine_original_sources_r1","selector":"[hia-ci:clean-builder-r13-original-readback]","scope":"Read only the complete R13 clean-builder original archive: 814 members and 21 exact text exports; zero native qualification","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/ci/clean_build_original_source_entry_adapter_r1.py","mode":"100644","bytes":7680,"gitsha":"61be560284d3094c4ec6180965bf42e253f7fb0b","sha256":"bb5c881d68a55648d05cc099ec8eec8235ec41a1d18cba6ad6b9a258061820b5"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 import base64,hashlib,io,json,os,resource,stat,tarfile,time,traceback
 from pathlib import Path,PurePosixPath
 CONFIG=json.loads("[{\"label\":\"transactions\",\"archive\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3.tar.xz\",\"git_blob\":\"610d42ed4bea8900b7ef795d762660b765a051a6\",\"bytes\":3839412},\"custody\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r7/namespace-transactions-r3-custody.json\",\"git_blob\":\"afdba10b037564625918f8fe5ff5d1a3404b0336\"},\"original_files\":95,\"original_bytes\":8743225,\"selected\":[{\"name\":\"transactions/local-native-r2/compile/source/tools/generate_hia_agent_namespace_transactions.py\",\"bytes\":20643,\"sha256\":\"07daa89c57d049cab5b874128ec95dacdf9a42d762e333b9e8aac31c08f50db3\",\"mode\":420},{\"name\":\"transactions/local-native-r2/compile/source/docs/HIA_AGENT_NAMESPACE_TRANSACTIONS.md\",\"bytes\":10496,\"sha256\":\"293f18a61ff0a34d7a09258f641e8b127e95fc6264369416263de02ae036c887\",\"mode\":420}]},{\"label\":\"log\",\"archive\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/development.tar.xz\",\"git_blob\":\"6f72cee652911ecb02cbddd227d2b0a26517241c\",\"bytes\":2175548},\"custody\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r12/namespace-log/custody.json\",\"git_blob\":\"2149ab7e75d2db15e8af51b570dda78f4fe2ed0a\"},\"original_files\":102,\"original_bytes\":9174709,\"selected\":[{\"name\":\"log/authoring-r2/source/tools/generate_hia_agent_namespace_log.py\",\"bytes\":17269,\"sha256\":\"5634b5f126cd32e30956f54825c756ad68f634f33e60b975a9de072b28ae29e8\",\"mode\":420},{\"name\":\"log/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_PHYSICAL.md\",\"bytes\":7917,\"sha256\":\"428e1cd13484d27d95b43ec618e5e1906ddfa57aa4846ca8f52fe4852e462779\",\"mode\":420},{\"name\":\"log/authoring-r2/source/tests/test_hia_agent_namespace_log.py\",\"bytes\":14600,\"sha256\":\"80fd94ca0fb6c828694ff8bafdc4e19ad1d69d75f91bcf9f7c1a454e2a8f91f6\",\"mode\":420}]},{\"label\":\"views\",\"archive\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/development.tar.xz\",\"git_blob\":\"bce24d49664ae72bdb020159a1008651594157a2\",\"bytes\":2572864},\"custody\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r13/namespace-views/custody.json\",\"git_blob\":\"d4c86ea603aa8f60fbd36a8f39ed62d6529adb95\"},\"original_files\":96,\"original_bytes\":11025017,\"selected\":[{\"name\":\"views/authoring-r2/source/tools/generate_hia_agent_namespace_views.py\",\"bytes\":22801,\"sha256\":\"50b387993a0dcc5316503deb4c286c642e2a278e5dba6441b1774e2828226588\",\"mode\":420},{\"name\":\"views/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_VIEWS.md\",\"bytes\":11090,\"sha256\":\"8924dc8a6624b37a165ad25c3424fac099888a2b189d2d479e4ca89b8eaf7f2a\",\"mode\":420},{\"name\":\"views/authoring-r2/source/tests/test_hia_agent_namespace_views.py\",\"bytes\":21375,\"sha256\":\"7cd1db8908d0d896e77e8268ccf4a17351da265ad10cbd3eae8b2335fe466f60\",\"mode\":420}]},{\"label\":\"commit\",\"archive\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/development.tar.xz\",\"git_blob\":\"800349b90e10ff70e454c4df84131bb2327a0d41\",\"bytes\":2162412},\"custody\":{\"path\":\"review-evidence/hia-native-rewrite-20261111/reconstructed-components-r14/namespace-commit/custody.json\",\"git_blob\":\"cfd31d62a081e41206c18ec1c21a7fa4ef14a5c4\"},\"original_files\":102,\"original_bytes\":14552924,\"selected\":[{\"name\":\"commit/authoring-r2/source/tools/generate_hia_agent_namespace_commit.py\",\"bytes\":28098,\"sha256\":\"36ca9a5a52e72769fb02f2090fbec8e53e9f29431705b8de35b773ea7d825fe9\",\"mode\":420},{\"name\":\"commit/authoring-r2/source/docs/HIA_AGENT_NAMESPACE_COMMIT.md\",\"bytes\":8923,\"sha256\":\"c9bdc9d790e332aa189a1338505e28a740cc5bdfe5c2821b092b9d1f15601397\",\"mode\":420}]}]")

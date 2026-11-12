@@ -90,7 +90,7 @@ def import_inventory(reference,index):
                         full=".".join(v for v in (module,alias.name) if v)
                         if alias.name!="*" and any(p.is_file() for p in (
                                 project/Path(*full.split(".")).with_suffix(".py"),
-                                reference/Path(*full.split(".")).with_suffix(".py")):
+                                reference/Path(*full.split(".")).with_suffix(".py"))):
                             imports.append(full)
         for module in imports:
             root=module.split(".")[0]

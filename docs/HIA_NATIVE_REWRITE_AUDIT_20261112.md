@@ -1,3 +1,57 @@
+# HIA 原生重写当前状态：FOLLOW55B（2026-11-12 16:44:06 UTC）
+
+**整套仍为 OPEN；156 个生产 Python 模块尚未完成原生安装替换，生产激活 0，旧实现删除 0。** 本次只修复实际前置阻断、增加明确的验证入口和恢复自重建所需原件。此前已经通过的组件仍按其原始范围记录，不能替代公开入口、安装和完整自举闭合。
+
+## 最新实际结果
+
+FOLLOW55A 的已发布 HEAD 为 `1981d68a887c273b3b0a0b42c937f00f35aa9238`，完整 tree 为 `96cb44773618e68141c4ce454f41d396df1b8eb4`。source-syntax run43258384277/job131322704426 实际 FAIL：976 项中975项通过完整身份核对和 AST 检查；唯一源错误是显式旧语言 Group9 CI 的 line91 开始的 `any(generator)` 少一个右括号。根完整读回三个 job 日志，并将每个日志里的975条成功身份按原 inventory 顺序逐项比对。其原日志、原 JSON 与修复前源码都保留，未重新序列化原日志中的 JSON/u64。
+
+Recovery run43258384286 的 backend job131322724816 和 Core/Graph job131322726355 均在 step6 源检查失败，实际目标步骤 SKIPPED；这两个 job 的新 HIA 生成、B3、VM、native 目标执行均为0。它们没有取得新的组件结果。独立 Core run43258384245 的 source job131322704114 已 SUCCESS：331项测试（489.011秒）及原源码检查通过，仍报告156个 package Python 文件、1,098个基线 Python 源文件、whole_native_delivery_qualified=false。该 Core run 的 native job 在本次审计冻结读取时仍 IN_PROGRESS，其后来终态须另行读取。
+
+修复后的 Group9 CI 为 `50a4bcb675817653dd599c7fe27faf4d11a079a4`（17,276 B）。相对原 `19a465fcdc04153023573c22ba211bf0a1037bce` 只在字节偏移5570加入一个 `)`；完整正向和反向核对均相等。HIA、原 oracle、案例、源索引与预算不变。修后 AST 与目标资格只能由本次真实 CI 给出。
+
+## 本次明确选择的六个任务
+
+工作流全文保持 FOLLOW54 的 `019910d04637d8ad0357d3ee528fbbc4e2325e75`（453,682 B，155 jobs）。活动 Python 源清单为979：保留原976条路径，其中971条身份不变、5条更新，另加共享入口、R13读取器和R13适配器3条。历史失败稿和未执行草稿保留但不进入活动清单。本次通过六个既有 job 运行五个原生验证目标和一次原件读取，目标内容如下。
+
+| 既有 job key | 本次实际目标 | 选中的新来源或边界 |
+|---|---|---|
+| backend_current_program_graph | 当前类型→Core/Graph176 | 保留原计划；修正后的 canonical ACK 作者与全部固定输入 |
+| backend_join | 完整 post-Core backend134 | 原133例保留，新增公开 entrypoint 对照一例 |
+| ordinary_impact_ascii_fast_r1 | 九角色 HIA 同值调用优化 | 新 identity selector；15次计划B3、2次HIA打包、原13组329例全新执行 |
+| namespace_unixopen_native_parent_r1 | 实际九角色 UnixOpen 发行首段 | 新 actual-issuer selector；10次计划B3、45打包控制、28次物理进程；仅 getpid 前缀及拒绝/续接 |
+| worker_program_diagnostics_r1 | 显式旧语言 Group9 诊断 | 新 explicit-legacy selector；4次计划B3、22公开例、48私有控制；code4仅私有 |
+| namespace_engine_original_sources_r1 | R13构建器原件完整读取 | 新 clean-builder-r13-original-readback selector；19分片、814成员、21份完整文本；0原目标重放 |
+
+四个入口只在真实 push 的精确新 selector 存在时转到固定目标；同时验证 event.after、head_commit.id、GITHUB_SHA、GITHUB_JOB、目标路径与完整 mode/bytes/Git/SHA。新 selector 缺席时运行保留的原正文。各原正文都有完整逐字逆向；目标自身测试和资源门不变。运行日志明确输出实际目标及入口源码身份；既有 job 显示名称不构成旧测试被重新执行的证据。
+
+共享入口 `25282eda1b7b97627d7791a47fe2c2bc21bcd6a3` 的独立源码审查发现并修复两个边界：非整数零的 SystemExit 不能被吞成成功；caller/helper/target/event 的运行后复核须分别尝试并保留最初异常。修前与修后审查分别为 `97080a850df090ef966a29ba999d1651cf07a634`、`f631b75b71ecc3adff5bd24277f53240ade82710`。独立审查只覆盖其所列两条 caller；根另行核对了 R9/R13 路由、固定pin和全部正文逆向。这里的源码核对不是 Python AST 或原生执行结果。
+
+## 真实自重建仍须补齐
+
+R13原 handoff `b2ad8f1cc93f483cc1d28e1598e300a3411023f2` 明确记录 `builder_is_retained_bootstrap_copy=true`，支持合同/策略尚未由 HIA 再生成。现有构建器副本不能证明从自身HIA源重新生成自己。根已完整读取原 custody/handoff，核对814成员、661文件、171,212,656原文件字节，以及21份目标原文共122,826字节的路径/mode/长度/SHA。19个归档分片在当前完整树中的路径、mode、Git和长度全部相符；归档payload的完整读取和解压仍要由本次实际读取器完成，未假称本地已取到二进制。
+
+固定原读取器为 `000e69637368430989638dda6cfa3cab767fe9cd`，配置为 `c78665dee0eac5c7d9bbf03f5ae77359bebacab9`，适配器为 `61be560284d3094c4ec6180965bf42e253f7fb0b`。适配器逐字固定读取器和配置的前后身份，只向checkout外新目录传入原参数并运行标准库读取器，保持90CPU/180wall/1GiB和完整输出后的预算检查。读取成功只恢复原件，不重放旧编译、测试、安装或组件资格。随后必须以实际HIA源码生成新构建器，保留七条原recipe，验证完整ELF/kit、修改自身HIA源的真实结果、二代固定点与安装后重建。
+
+## 仍未闭合的整套链路
+
+| 链路 | 当前证据与下一步 |
+|---|---|
+| 一个当前完整 program/Core/Graph 入口 | 新single56已具备43旧源/镜像读回、47镜像组合与完整原mode/tree保留的源码；26组283例及独立原模式对照仍待实际执行。 |
+| 完整backend事务与实现文件 | 23角色的真实执行后文件/SHA链继续接合；公开第二次完整emit、全部实现文件前后核对、输出写入/独立检查/发布后的完整事务尚未闭合。 |
+| UnixOpen、Store、SQL、迁移 | 九角色首段先实际运行；十二角色真实open/fstat/close的新门已形成独立源候选，低FD真实logger配置及其它非raw peers仍待完成。组件FS42的原通过不能代替普通Store/SQL整套。 |
+| 构建与安装 | R13保留bootstrap副本问题仍在；原生自己构建自己、策略生成、最终安装入口和Python不可调用环境下的整套回归待完成。 |
+| 公开CLI和Worker接口 | 15个原公开动作与11个Worker工具须在最终同一原生安装上证明完整兼容，不能以单独私有入口或旧组件并集代替。 |
+| 最终清理 | 只有上述同一整套资格成立后才切换默认入口并删除旧业务/作者/构建依赖；目前删除0。 |
+
+B3原限制仍为10CPU/20wall/256MiB，源/输出/work各不超过1MiB；bootstrap128函数/1536blocks/8192ops等限制保留，公开1024函数另列，不添加每block128ops规则。原成对完整进程树资源门、原42组900wall总门和独立封存门按各自原范围保留；已有 `<=90` 判断没有被改写成严格 `<90` 宣称。新增严格门按自身源码单独记载。
+
+全部新写入只限源码修复、验证入口、恢复器和证据。完整旧树路径保留，156生产模块与安装入口未替换。本次发布仍须完成所有新blob全文校验、全树构造/读回、commit读回、期望旧HEAD为1981的CAS以及ref读回；创建对象本身不代表已发布或已启动CI。
+
+## 前一轮审计与冻结候选历史
+
+下文保留 FOLLOW55A 以及更早候选的原计划和实测证据。其“158jobs”等描述属于未发布的新工作流候选；本次实际工作流始终为155jobs，选中六项。
+
 # HIA 原生重写当前状态：FOLLOW55A（2026-11-12 16:24:14 UTC）
 
 **整套OPEN；156生产Python模块的安装替换尚未完成，生产激活0，旧实现删除0。**

@@ -1,0 +1,126 @@
+{
+  "schema": "hia.independent.explicit-entry-router.static-review.v1",
+  "reviewer": "audit_runtime",
+  "review_kind": "READ_ONLY_EXACT_SOURCE_AND_INVERSE_NO_PYTHON_OR_TARGET_EXECUTION",
+  "reviewed_sources": [
+    {
+      "blob": "a5f7cc8cb780fb3fbbede532c2865c4a22f27999",
+      "bytes": 6744,
+      "sha256": "31508372f9385d98dc9367ebe9460043805cdd9c48b7c6838cffecb3df9777b8",
+      "raw_NUL_count": 0
+    },
+    {
+      "blob": "a315da84fc195f5fa840ab70884d86172a7f8ea5",
+      "bytes": 21629,
+      "sha256": "04976dafba3f42c8de5bcb1413815ccbf045d5bda4214c9debf5b313a0292efb",
+      "raw_NUL_count": 0
+    },
+    {
+      "blob": "343cd8f28d2093868e6188a020ff70611bc38207",
+      "bytes": 14562,
+      "sha256": "8a0378fdc5529650f9e4be5f154ed67ca03078475467f5947e02e54fb2cea0ea",
+      "raw_NUL_count": 0
+    },
+    {
+      "blob": "5ad2f37a8c6c14f9734d70c41855422e0c9a632a",
+      "bytes": 21687,
+      "sha256": "e2ded11943a6300c62657db1c8ac0d5bb58e3a1bbc160525f135bd2174511a56",
+      "raw_NUL_count": 0
+    },
+    {
+      "blob": "f3a704a39724c2467dae487718dcd03de7369220",
+      "bytes": 25390,
+      "sha256": "9f48a7d6bea74c476e37b11adb9001a69a46ed1eeb6a88264a61bc45042032ba",
+      "raw_NUL_count": 0
+    }
+  ],
+  "original_callers": [
+    {
+      "new": {
+        "blob": "a315da84fc195f5fa840ab70884d86172a7f8ea5",
+        "bytes": 21629,
+        "sha256": "04976dafba3f42c8de5bcb1413815ccbf045d5bda4214c9debf5b313a0292efb"
+      },
+      "old": {
+        "blob": "313ba68a9f981efaa1f633b3e52470b5bde2936f",
+        "bytes": 19137,
+        "sha256": "8e0993d6646284d649c74535f6fa14aa6e6927109f3db4f83f541fa7fc223474"
+      },
+      "block_start": 92,
+      "block_bytes": 2492,
+      "raw_nuls": false,
+      "slash_zero_bytes_literals": 2,
+      "prefix": "\"\"\"Full original thirteen-group qualification of seven exact HIA ASCII reader additions.\"\"\"\n\n"
+    },
+    {
+      "new": {
+        "blob": "343cd8f28d2093868e6188a020ff70611bc38207",
+        "bytes": 14562,
+        "sha256": "8a0378fdc5529650f9e4be5f154ed67ca03078475467f5947e02e54fb2cea0ea"
+      },
+      "old": {
+        "blob": "b9a14c4d1feb51beb099fb84e027caaf1b9ab4f2",
+        "bytes": 12013,
+        "sha256": "5b89c2aff39b24a324e1457de3d3b46c81a8466a13ee749db4047fb0119aa0c7"
+      },
+      "block_start": 271,
+      "block_bytes": 2549,
+      "raw_nuls": false,
+      "slash_zero_bytes_literals": 2,
+      "prefix": "\"\"\"Fresh selected unixOpen parent component gate; all 18 effects are foreign.\n\nThe six original SQLite C bodies are the reference. This does not issue real\nnamespace leases, call SQLite for storage, or close the ordinary Store gap.\n\"\"\"\nfrom __future__ import annotations\n\n"
+    }
+  ],
+  "execution": {
+    "AST": 0,
+    "Python_compilations": 0,
+    "target": 0,
+    "HIA": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "workflow": 0
+  },
+  "readback": "All five specified source blobs and both reconstructed old callers fetched in full and Git/SHA256/byte length checked. One initial helper GET returned a transport error; one subsequent GET succeeded. Mistaken candidate inverse IDs including an extra newline returned 404; corrected inverse removes the one inserted preceding newline and is exact against the published old bytes.",
+  "findings": [
+    {
+      "id": "R1_SYSTEMEXIT_NONINTEGER_ZERO",
+      "classification": "CONFIRMED_STATIC_GENERIC_EXCEPTION_PROPAGATION_GAP",
+      "source": "a5f7cc8cb780fb3fbbede532c2865c4a22f27999",
+      "expression": "exc.code not in (None, 0)",
+      "explanation": "Tuple membership uses equality. A SystemExit code of float 0.0 or complex 0j compares equal to integer zero and is swallowed. CPython 3.12.14 tests PyLong_Check, so these non-integer code objects print and exit 1. This source can therefore normalize that target failure to SystemExit(0). No claim that either currently pinned driver's ordinary exit reaches this case; no counterexample was executed.",
+      "requested_correction": "Only treat None or actual integer-zero codes as success, retaining Python bool/int behavior and propagating other original SystemExit exceptions."
+    },
+    {
+      "id": "R1_AFTER_FAILFAST",
+      "classification": "CONFIRMED_STATIC_FAILURE_CUSTODY_LIMIT_NOT_FALSE_PASS",
+      "source": "a5f7cc8cb780fb3fbbede532c2865c4a22f27999",
+      "explanation": "One outer try encloses all three _source calls and the event after-read. A failure at the first path skips later after-reads. It does preserve primary target failure and fails a previously successful target, so no false PASS was found here. The implementation must not claim that all three after-checks completed on each failure path.",
+      "requested_correction": "Independently attempt all three source after-reads and event read, retain each error while preserving the original target exception or first after error."
+    }
+  ],
+  "checks": [
+    "Caller insertion point is after the original module docstring and any __future__ import; exact deletion of each complete inserted block including its leading newline reconstructs original full bytes.",
+    "Both callers contain source text b\"\\0\", not literal NUL bytes. The fixed helper identity tuple matches the full downloaded helper (6744 bytes, exact Git and SHA256). Parentheses and quote closures in the inserted blocks were visually checked; this is not an AST result.",
+    "Non-main import skips the preamble. Non-push returns before event-file access. A valid push event with absent selector returns to the byte-identical old body, although the new preamble has performed its stdlib imports and event read.",
+    "Selected routing requires the exact fixed selector, matching head_commit.id/event.after/GITHUB_SHA, a 40-character lowercase hexadecimal head, and exact GITHUB_JOB.",
+    "Root/caller/target path relationships and path normalization are checked. Each _source read refuses symlinks, requires a regular mode0644 file, reads all bytes, compares dev/inode/mode/size/mtime/ctime across lstat and fstat, then compares target mode/bytes/Git/SHA256.",
+    "Helper full bytes used for compile are re-read and compared in dispatch. Caller/helper/target must be three distinct paths.",
+    "runpy.run_path(..., run_name='__main__') selects the actual target path and target __file__; fixed targets' relative inputs use their own actual __file__. Target drivers and their budgets, cases and source identities are unchanged by the preamble.",
+    "Target normal return or recognised zero SystemExit gets after-checks before router exit. Non-SystemExit BaseException and nonzero integer SystemExit retain object/traceback; additional after errors are notes. Successful target followed by after-check or report failure raises that failure.",
+    "No subprocess, native compiler, target budget adjustment, permission change, source mutation, ref update, workflow replacement, or result inheritance is implemented in this router."
+  ],
+  "scope_limits": [
+    "This review does not requalify target driver semantics, old body tests, workflow guards, inputs, compiler or native components.",
+    "Normal GitHub push envelope and an exclusive CI checkout are preconditions. The helper compares target bytes before and after but runpy opens the path separately; this is source custody, not an adversarial concurrent-file authorization primitive.",
+    "Complete before/after is conditional on reaching these phases. Early pin failures stop before executing any target; failure after-check completeness is the explicit R1_AFTER_FAILFAST item.",
+    "No runtime claim for the router or nine-role target; no remote job launched or retried."
+  ],
+  "cpython_reference": {
+    "url": "https://api.github.com/repos/python/cpython/contents/Python/pythonrun.c?ref=v3.12.14",
+    "bytes": 54367,
+    "git": "89287bace08b09178c96bf9821b4b10966aa8c65",
+    "sha256": "1d4908ececee516b8ff5dd14d811f062814166caa96f82e747e00fb30f0c966b",
+    "function": "_Py_HandleSystemExit",
+    "checked_source_behavior": "None returns exitcode0. PyLong_Check selects integer conversion. The else branch prints object and sets exitcode=1. The fetched tag content was read in full; no separate tag-to-commit authentication is claimed."
+  }
+}

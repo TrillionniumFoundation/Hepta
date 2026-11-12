@@ -1,0 +1,91 @@
+{
+  "schema": "hia.independent.explicit-entry-router.static-revision-review.v2",
+  "parent_report": {
+    "blob": "97080a850df090ef966a29ba999d1651cf07a634",
+    "bytes": 8200,
+    "sha256": "ba26a74da4a0d44bb00996ec9cb85c4718c9dc38b9972617f321b134f5701124",
+    "mode": "100644"
+  },
+  "reviewer": "audit_runtime",
+  "helper_old": {
+    "blob": "a5f7cc8cb780fb3fbbede532c2865c4a22f27999",
+    "bytes": 6744,
+    "sha256": "31508372f9385d98dc9367ebe9460043805cdd9c48b7c6838cffecb3df9777b8"
+  },
+  "helper_new": {
+    "blob": "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3",
+    "bytes": 7494,
+    "sha256": "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"
+  },
+  "helper_changes": [
+    {
+      "before": "import os\n",
+      "after": "import os\nimport operator\n"
+    },
+    {
+      "before": "        if not isinstance(exc, SystemExit) or exc.code not in (None, 0):\n",
+      "after": "        if not (isinstance(exc, SystemExit) and (exc.code is None or\n                isinstance(exc.code, int) and operator.index(exc.code) == 0)):\n"
+    },
+    {
+      "before": "    after_error = None\n    try:\n        observed = []\n        for expected, original in originals:\n            current, raw = _source(root, expected[\"path\"], expected)\n            if raw != original:\n                raise RuntimeError(\"routed source full bytes changed after target\")\n            observed.append(current)\n        if event_file.read_bytes() != event_raw:\n            raise RuntimeError(\"push event changed after target\")\n        receipt[\"source_after\"] = observed\n        receipt[\"status\"] = \"ENTRY_RETURNED_ZERO\" if primary is None else \"ENTRY_PROPAGATES_TARGET_FAILURE\"\n        receipt[\"target_failure_class\"] = None if primary is None else type(primary).__name__\n        print(\"HIA_EXPLICIT_SOURCE_ENTRY_AFTER \" + json.dumps(receipt, sort_keys=True), flush=True)\n    except BaseException as exc:\n        after_error = exc\n",
+      "after": "    after_error = None\n    after_errors = []\n    observed = []\n\n    def remember_after(label: str, exc: BaseException) -> None:\n        nonlocal after_error\n        if after_error is None:\n            after_error = exc\n        after_errors.append({\"scope\": label, \"class\": type(exc).__name__, \"message\": str(exc)})\n\n    for expected, original in originals:\n        try:\n            current, raw = _source(root, expected[\"path\"], expected)\n            if raw != original:\n                raise RuntimeError(\"routed source full bytes changed after target\")\n            observed.append(current)\n        except BaseException as exc:\n            remember_after(expected[\"path\"], exc)\n    try:\n        if event_file.read_bytes() != event_raw:\n            raise RuntimeError(\"push event changed after target\")\n    except BaseException as exc:\n        remember_after(\"push-event\", exc)\n    receipt[\"source_after\"] = observed\n    receipt[\"source_after_errors\"] = after_errors\n    receipt[\"target_returned_zero\"] = primary is None\n    receipt[\"target_failure_class\"] = None if primary is None else type(primary).__name__\n    receipt[\"status\"] = (\"ENTRY_SOURCE_READBACK_FAILED\" if after_error is not None else\n                         \"ENTRY_RETURNED_ZERO\" if primary is None else \"ENTRY_PROPAGATES_TARGET_FAILURE\")\n    try:\n        print(\"HIA_EXPLICIT_SOURCE_ENTRY_AFTER \" + json.dumps(receipt, sort_keys=True), flush=True)\n    except BaseException as exc:\n        remember_after(\"after-receipt-output\", exc)\n"
+    }
+  ],
+  "helper_exact_unique_forward_and_reverse": true,
+  "callers": [
+    {
+      "old": {
+        "blob": "a315da84fc195f5fa840ab70884d86172a7f8ea5",
+        "bytes": 21629,
+        "sha256": "04976dafba3f42c8de5bcb1413815ccbf045d5bda4214c9debf5b313a0292efb"
+      },
+      "new": {
+        "blob": "ed076bc5ed1cf1da1c041ea0d1a2816e31c75131",
+        "bytes": 21629,
+        "sha256": "beb8c1afa31205fa939f2ae682c2272d19f352bc62980364bf10bed359a365a0"
+      },
+      "exact_only_helper_tuple_replacement": true,
+      "entire_inverse_equal": true
+    },
+    {
+      "old": {
+        "blob": "343cd8f28d2093868e6188a020ff70611bc38207",
+        "bytes": 14562,
+        "sha256": "8a0378fdc5529650f9e4be5f154ed67ca03078475467f5947e02e54fb2cea0ea"
+      },
+      "new": {
+        "blob": "88420f655ca6188a3cb04754cb28498d7eac8bd5",
+        "bytes": 14562,
+        "sha256": "aa7c62f7f2f4a0616fbf6f2564877a466d939ca05027a4d602badfd58b7a0c8b"
+      },
+      "exact_only_helper_tuple_replacement": true,
+      "entire_inverse_equal": true
+    }
+  ],
+  "conclusion": "NO_CONFIRMED_BLOCKER_IN_REVIEWED_REVISION_DELTA",
+  "resolved_findings": [
+    {
+      "id": "R1_SYSTEMEXIT_NONINTEGER_ZERO",
+      "checked": "The success predicate requires SystemExit and either code is None or isinstance(code,int) with operator.index(code)==0. float0.0 and complex0j are excluded before equality; boolFalse is accepted under Python integer semantics. The caught original exception/traceback is still propagated otherwise."
+    },
+    {
+      "id": "R1_AFTER_FAILFAST",
+      "checked": "Each caller/helper/target source read has its own try/except, then event after-read and receipt output each have their own try/except. First after_error is retained; all collected source/event failures are reported. A previous target failure remains the primary; otherwise any after error prevents SystemExit(0)."
+    }
+  ],
+  "unchanged_scope": "All original dispatch selection/head/job/path/target identity/runpy behavior and target drivers are unchanged. New caller changes are solely the helper length/Git/SHA tuple. No target budgets, cases, source files, workflow contents or refs changed in this review.",
+  "compatibility": "Module docstrings/future position and literal b\"\\0\" spelling remain unchanged; no embedded NUL. Three helper edits and each caller tuple substitution were checked programmatically as text with full inverse, not by compiling Python.",
+  "execution": {
+    "AST": 0,
+    "Python": 0,
+    "project": 0,
+    "target": 0,
+    "HIA": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "workflow": 0
+  },
+  "not_reviewed": "Root's R9 and R13 caller routing tables/pins are outside these two callers. Full target algorithms and CI envelope are not requalified. Original exclusive-checkout/source-custody precondition remains; no adversarial concurrent-file guarantee.",
+  "after_error_scope_note": "Collected source_after contains only successful full reads. If output itself fails, the process still fails but the previously attempted stdout record cannot be retroactively amended; source custody is not falsely promoted."
+}

@@ -1,0 +1,124 @@
+{
+  "schema": "hia-clean-builder-r13-existing-readonly-carrier-binding-r1",
+  "status": "SOURCE_ONLY_NO_ROUTED_RUN_YET",
+  "basis": {
+    "head": "1981d68a887c273b3b0a0b42c937f00f35aa9238",
+    "tree": "96cb44773618e68141c4ce454f41d396df1b8eb4",
+    "tree_truncated": false,
+    "workflow": {
+      "path": ".github/workflows/hia-native-recovery.yml",
+      "mode": "100644",
+      "bytes": 453682,
+      "gitsha": "019910d04637d8ad0357d3ee528fbbc4e2325e75",
+      "sha256": "d9f82fec8b655b232e3e26f8a0408dd906809e98ba1d8cc77bf579f8198c3636"
+    },
+    "carrier": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py",
+      "mode": "100644",
+      "gitsha": "f3db94a20e1c948c764d630da82687e4ab138332",
+      "bytes": 11816,
+      "sha256": "159e430264c1c8ee1dd8ea769bb1c009c21098663634427a101d21903d3dc076"
+    }
+  },
+  "route": {
+    "selector": "[hia-ci:clean-builder-r13-original-readback]",
+    "job": "namespace_engine_original_sources_r1",
+    "caller_path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py",
+    "target": {
+      "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/ci/clean_build_original_source_entry_adapter_r1.py",
+      "mode": "100644",
+      "bytes": 7680,
+      "sha256": "bb5c881d68a55648d05cc099ec8eec8235ec41a1d18cba6ad6b9a258061820b5",
+      "gitsha": "61be560284d3094c4ec6180965bf42e253f7fb0b",
+      "classification": "NEW_R3_0_AST_0_GENERATION_0_B3_0_NATIVE"
+    },
+    "scope": "Read every original R13 clean-builder archive member and export 21 exact original texts; no original compiler, image, installer or tests executed."
+  },
+  "workflow_activation_selector": "[hia-ci:namespace-engine-original-sources]",
+  "both_selectors_required_in_root_new_commit_message": true,
+  "original_job_block_utf8": "  namespace_engine_original_sources_r1:\n    if: >-\n      github.event_name == 'workflow_dispatch' ||\n      !contains(github.event.head_commit.message, '[hia-ci:') ||\n      contains(github.event.head_commit.message, '[hia-ci:all]') ||\n      contains(github.event.head_commit.message, '[hia-ci:namespace-engine-original-sources]')\n    name: Read complete four original namespace engines without target execution\n    runs-on: ubuntu-latest\n    timeout-minutes: 25\n    permissions:\n      contents: read\n      actions: read\n    steps:\n      - name: Require the original Ubuntu 24.04 x86_64 execution domain\n        shell: bash\n        run: |\n          set -euo pipefail\n          . /etc/os-release\n          test \"$ID\" = ubuntu\n          test \"$VERSION_ID\" = 24.04\n          test \"$(uname -m)\" = x86_64\n          test \"${ImageOS:?}\" = ubuntu24\n          printf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\\n' \"$ID\" \"$VERSION_ID\" \"$(uname -m)\" \"$ImageOS\" \"${ImageVersion:?}\"\n      - name: Check out submitted diagnostic or reader\n        uses: actions/checkout@v4\n        with:\n          fetch-depth: 1\n          persist-credentials: false\n      - name: Install exact CPython 3.12.14\n        uses: actions/setup-python@v5\n        with:\n          python-version: '3.12.14'\n      - name: Execute bounded independent evidence task\n        shell: bash\n        env:\n          PYTHONDONTWRITEBYTECODE: '1'\n          HIA_CI_OUTPUT: ${{ runner.temp }}/hia-namespace-engine-original-sources\n        run: timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/namespace-four-engine-original-sources-readback.py 2>&1 | tee \"$RUNNER_TEMP/hia-namespace-engine-original-sources-driver.log\"\n      - name: Retain original input and complete new evidence\n        if: always()\n        uses: actions/upload-artifact@v4\n        with:\n          name: hia-namespace-engine-original-sources-${{ github.run_id }}-${{ github.run_attempt }}\n          path: |\n            ${{ runner.temp }}/hia-namespace-engine-original-sources\n            ${{ runner.temp }}/hia-namespace-engine-original-sources-driver.log\n          if-no-files-found: error\n          retention-days: 90\n          compression-level: 0\n\n",
+  "original_job_block_sha256": "93a72ecf55d2480deb364c05f8bb292eaa44ebff1d9715bc418838aa3efb81b1",
+  "fixed_workflow_facts": {
+    "workflow_modified_by_this_delivery": false,
+    "download_before_target": false,
+    "original_carrier_target_not_executed_on_explicit_route": true,
+    "python": "3.12.14",
+    "runner_domain": "Existing Ubuntu24.04 x86_64 guard unchanged",
+    "outer_command": "timeout --signal=TERM --kill-after=5s 180s python -B <exact caller>",
+    "job_timeout_minutes": 25,
+    "HIA_CI_OUTPUT": "${{ runner.temp }}/hia-namespace-engine-original-sources",
+    "always_upload": [
+      "${{ runner.temp }}/hia-namespace-engine-original-sources",
+      "${{ runner.temp }}/hia-namespace-engine-original-sources-driver.log"
+    ],
+    "artifact_name": "hia-namespace-engine-original-sources-${{ github.run_id }}-${{ github.run_attempt }}",
+    "retention_days": 90,
+    "compression_level": 0
+  },
+  "adapter_contract": {
+    "stdlib_only": true,
+    "source_input_full_bytes_mode_git_sha_before_and_after": [
+      {
+        "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/ci/read_original_clean_build_r1.py",
+        "mode": 420,
+        "bytes": 22753,
+        "gitsha": "000e69637368430989638dda6cfa3cab767fe9cd",
+        "sha256": "8339257f6031e5eea44dcf088f65ab494994194645b71dfea62755702f291b3e"
+      },
+      {
+        "path": "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/clean-builder-self-rebuild-r1/ci/original-inputs.json",
+        "mode": 420,
+        "bytes": 11485,
+        "gitsha": "c78665dee0eac5c7d9bbf03f5ae77359bebacab9",
+        "sha256": "61a08494ceeb3b3142ecd312881375d206e0fe0ed8d5d685fd90a69f8051d9f5"
+      }
+    ],
+    "new_empty_output_child": "clean-build-r13-originals-r1",
+    "argv": [
+      "<pinned reader absolute path>",
+      "--repo",
+      "<resolved GITHUB_WORKSPACE>",
+      "--out",
+      "<resolved HIA_CI_OUTPUT>/clean-build-r13-originals-r1"
+    ],
+    "reader_config": "Pinned reader default sibling original-inputs.json, also independently pinned by the adapter.",
+    "sys_argv_restored_on_every_reader_exit": true,
+    "only_none_or_actual_integer_zero_SystemExit_is_success": true,
+    "first_failure_preserved_with_independent_after_checks": true,
+    "adapter_after_stdout_aggregate_CPU_seconds_lt": 90,
+    "adapter_after_stdout_elapsed_ns_lt": 180000000000,
+    "reader_original_limits_unchanged": true
+  },
+  "root_owned_integration": {
+    "helper": "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3",
+    "helper_bytes": 7494,
+    "helper_sha256": "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1",
+    "preamble_and_actual_caller_new_pin": "Root creates and independently validates the explicit route; old caller bytes are retained as an exact original.",
+    "source_before_after": "Router owns exact actual push/head/job/selector plus caller/helper/adapter full source identities. Adapter additionally owns reader/config complete before/after identities.",
+    "refs_updated_by_this_agent": false
+  },
+  "expected_original_scope": {
+    "members": 814,
+    "files": 661,
+    "directories": 153,
+    "raw_file_bytes": 171212656,
+    "text_exports": 21,
+    "text_export_bytes": 122826,
+    "whole_archive_bytes": 57162628,
+    "whole_archive_sha256": "721d89da963f863e3760d9577f3585b0cd9d6f3c71a36ee597d975baf12e388b",
+    "binary_payloads_actually_read_in_this_delivery": 0,
+    "source_originals_available_for_implementation": "Still pending the actual reader; expected identities are not recovered source text."
+  },
+  "qualification": {
+    "AST": 0,
+    "generation": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0,
+    "original_archive_readback": 0,
+    "source_rebuild": 0,
+    "install": 0,
+    "whole_Worker_closed": false,
+    "default_activation": false
+  }
+}

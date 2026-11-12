@@ -1,4 +1,37 @@
 """Full original thirteen-group qualification of seven exact HIA ASCII reader additions."""
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:ordinary-impact-identity-casts]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"ordinary_impact_ascii_fast_r1","selector":"[hia-ci:ordinary-impact-identity-casts]","scope":"Nine exact HIA identity-cast candidates; fresh original thirteen groups and 329 cases","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-ascii-fast-r1/ci_ordinary_impact_ascii_r1.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ordinary-impact-identity-casts-r1/ci_ordinary_impact_identity_r1.py","mode":"100644","bytes":21687,"gitsha":"5ad2f37a8c6c14f9734d70c41855422e0c9a632a","sha256":"e2ded11943a6300c62657db1c8ac0d5bb58e3a1bbc160525f135bd2174511a56"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 from pathlib import Path
 from hashlib import sha1,sha256
 import importlib.util,json,os,sys,traceback

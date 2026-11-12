@@ -5,6 +5,39 @@ whose source/image identities must equal actual FOLLOW44. Its 177 passing cases
 and83 FOLLOW45 private successes are not reexecuted or inherited; four public contextual-text failures remain open.
 """
 from __future__ import annotations
+
+# BEGIN HIA EXPLICIT SOURCE ENTRY ROUTE R1
+if __name__ == "__main__":
+    def _hia_explicit_source_entry_r1():
+        import hashlib as _hashlib
+        import json as _json
+        import os as _os
+        from pathlib import Path as _Path
+        import stat as _stat
+        import types as _types
+        if _os.environ.get("GITHUB_EVENT_NAME") != "push":
+            return
+        _event_raw = _Path(_os.environ["GITHUB_EVENT_PATH"]).read_bytes()
+        _event = _json.loads(_event_raw)
+        if "[hia-ci:worker-explicit-legacy-diagnostics]" not in _event.get("head_commit", {}).get("message", ""):
+            return
+        _root = _Path(_os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+        _helper = _root / "review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/ci/explicit_gate_entry_router_r1.py"
+        _mode = _helper.lstat().st_mode
+        if _helper.is_symlink() or not _stat.S_ISREG(_mode) or _stat.S_IMODE(_mode) != 0o644:
+            raise RuntimeError("explicit entry helper must be regular mode 100644")
+        _raw = _helper.read_bytes()
+        if (len(_raw), _hashlib.sha1(b"blob " + str(len(_raw)).encode("ascii") + b"\0" + _raw).hexdigest(), _hashlib.sha256(_raw).hexdigest()) != (7494, "25282eda1b7b97627d7791a47fe2c2bc21bcd6a3", "662bc010dd5893a046b9353b528902e33b6fd8d79b4a76e5e6cea99843c742c1"):
+            raise RuntimeError("explicit entry helper full pin mismatch")
+        _module = _types.ModuleType("hia_explicit_source_entry_router_r1")
+        _module.__file__ = str(_helper)
+        exec(compile(_raw, str(_helper), "exec"), _module.__dict__)
+        _module.dispatch({"job":"worker_program_diagnostics_r1","selector":"[hia-ci:worker-explicit-legacy-diagnostics]","scope":"Explicit legacy Group9 original import diagnostics; four fresh B3 images, 22 public cases and 48 private controls","caller_path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-program-diagnostics-r3/worker_program_diagnostics_ci_r3.py","target":{"path":"review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/worker-explicit-legacy-diagnostics-r2/ci/worker_explicit_legacy_group9_ci_r1.py","mode":"100644","bytes":17276,"gitsha":"50a4bcb675817653dd599c7fe27faf4d11a079a4","sha256":"e80de7346870ca6b9ed82f2e53e9b13a660c1c5dde79ea186c167b6b7886dee2"}}, __file__, _event_raw, _raw)
+        raise RuntimeError("selected explicit route returned without an exit")
+    _hia_explicit_source_entry_r1()
+    del _hia_explicit_source_entry_r1
+# END HIA EXPLICIT SOURCE ENTRY ROUTE R1
+
 import ast,importlib.util,json,os,stat,subprocess,sys,traceback
 from hashlib import sha1,sha256
 from pathlib import Path
