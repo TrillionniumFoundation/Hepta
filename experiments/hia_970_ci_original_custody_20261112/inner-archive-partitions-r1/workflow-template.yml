@@ -1,0 +1,81 @@
+name: HIA exact970 sealed inner ZIP partitions
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_slices:
+    name: Retain original inner ZIP slice ${{ matrix.partition }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        partition: ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18']
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-970-inner-archive-parts-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: CONTROL_COMMIT_PLACEHOLDER
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create the new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/inner-archive-partitions-r1/controller.py prepare --root "$RUNNER_TEMP/hia-970-inner-archive-parts-r1-${{ matrix.partition }}" --policy-sha256 178653ca3919761b8a3967c82e301eb8a61c1ff026402d45b0d825ae6d3ddd2e --control-commit CONTROL_COMMIT_PLACEHOLDER --partition "${{ matrix.partition }}"
+      - name: Read only the sealed 22 MB HOLD small artifact under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/inner-archive-partitions-r1/controller.py run --root "$RUNNER_TEMP/hia-970-inner-archive-parts-r1-${{ matrix.partition }}" --policy-sha256 178653ca3919761b8a3967c82e301eb8a61c1ff026402d45b0d825ae6d3ddd2e --control-commit CONTROL_COMMIT_PLACEHOLDER --partition "${{ matrix.partition }}"
+      - name: Preserve original HOLD and frame one fixed binary slice plus five controls after closed cleanup
+        if: always()
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/inner-archive-partitions-r1/controller.py finalize --root "$RUNNER_TEMP/hia-970-inner-archive-parts-r1-${{ matrix.partition }}" --policy-sha256 178653ca3919761b8a3967c82e301eb8a61c1ff026402d45b0d825ae6d3ddd2e --control-commit CONTROL_COMMIT_PLACEHOLDER --partition "${{ matrix.partition }}"
+      - name: Preserve the sealed small ZIP and bounded metadata originals including HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-970-inner-archive-slice-${{ matrix.partition }}-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-970-inner-archive-parts-public-r1-${{ matrix.partition }}/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
