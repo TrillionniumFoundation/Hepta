@@ -99,13 +99,53 @@ and the legacy nominal guard remain. Both Core patch builders obtain the public
 schema constant. Other diagnostic equivalence, whole `verify_program`
 equivalence and production activation remain unqualified.
 
-All 56 source generators remain mandatory. The query and metadata generation
+All 60 source generators remain mandatory. The query and metadata generation
 commands retain their required output/inventory arguments. Their complete
 source proofs run in a subsequent mandatory workflow step, so the generator
 shell contract can still exercise its original clean, mutation and first-failure
 fixtures. The ASCII lexer oracle uses a forward-only quoted-string scan and
 retains the original token spans and rejection rules; a long escape-sequence
 regression covers incomplete strings.
+
+## Published v77 and helper-contract correction
+
+The published v77 commit is
+`494a69067732a282eb7af245fa9c156339a72bb9`, with tree
+`f29f0d7f3859213519a356f001208c7b2c206c23`. It contains 105 `.hepta`
+sources and 170 production Python modules. Its matching-source local cold run
+passed all 11 checks with 767 bound inputs under the unchanged 180-second
+qualification and 3-second cleanup limits. The four added component scopes
+are explicit JSON wire serialization, selected inspection reports after original
+program admission, selected exact-byte Core verification, and the private
+SQLite platform component. Ordinary defaults and whole-product claims remain
+unchanged.
+
+The [v77 PR workflow](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43274218046)
+passed cold qualification and the new component groups. Both its source job
+and its later worker-helper native group failed the same original assertion:
+the test expected 27 registered helpers while the runtime registry contained
+29. Subsequent native steps were skipped. The separate research workflow and
+CodeQL check passed; those results do not make the source/native workflow pass.
+
+The source-bound retained run for this v77 commit started and stopped all
+4,595 original ordered IDs under the unchanged 5,400-second owner. It recorded
+4,594 passing tests, 67,604 passing subtests and the same single helper-count
+failure, with zero errors, skips, expected failures or unexpected successes.
+The tests took 2,405.245851449 seconds; the original owner took
+2,408.03772434 seconds within its 5,400-second limit, without a timeout.
+Owned process-group cleanup completed, and the source, cold evidence and all
+4,572 bound inputs were preserved. This is a failed full run.
+The earlier `4a53f109555fa5567fb1fa98cfe6eeef1f5fefa6` retained result remains
+a separate pass of 4,529 tests in 2,375.305 seconds.
+
+This correction aligns the fixed helper assertion and support-contract count
+with the actual 29-entry registry, retains the original per-helper source and
+schema assertions, and adds exact factory/dependency controls and a direct
+contract-to-registry count check. The isolated precursor passed its one
+original method and 34 subtests without native mapping. That focused result
+does not qualify this corrected source: matching-source cold, CI and complete
+retained acceptance remain required. No production owner, fixture or evidence
+is removed by this correction.
 
 ## Original evidence and source-specific acceptance
 

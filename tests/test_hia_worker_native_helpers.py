@@ -93,7 +93,11 @@ class WorkerHelperSourceTests(unittest.TestCase):
         import importlib
         from hepta.hia_agent_contract import NATIVE_SOURCE_FILES
         from hepta.hia_json_preflight_native import NativeHiaJsonImage
-        self.assertEqual(len(HELPERS), 27)
+        self.assertEqual(len(HELPERS), 29)
+        from tools.hia_selfhost_contract import support_contract
+        self.assertEqual(
+            support_contract()['native_worker_helper_bundle']['supported_single_image_selectors'],
+            len(HELPERS))
         for selector, (name, factory_name) in HELPERS.items():
             with self.subTest(selector=selector):
                 module = importlib.import_module('hepta.' + name)
@@ -113,6 +117,67 @@ class WorkerHelperSourceTests(unittest.TestCase):
         module_name, factory_name = HELPERS['HEPTA_HIA_AGENT_SNAPSHOT_MANIFEST']
         self.assertIs(getattr(importlib.import_module('hepta.' + module_name), factory_name),
                       NativeAgentSnapshot)
+
+        from hepta import hia_cli_inspect_native as inspect
+        from hepta import hia_core_bytes_native as core_bytes
+        from hepta import hia_core_admission_native as admission
+        for selector, names, factory in (
+                ('HEPTA_HIA_CLI_INSPECT_MANIFEST',
+                 ('hia_cli_inspect_native', 'NativeCliInspect'), inspect.NativeCliInspect),
+                ('HEPTA_HIA_CORE_BYTES_MANIFEST',
+                 ('hia_core_bytes_native', 'NativeCoreBytes'), core_bytes.NativeCoreBytes)):
+            with self.subTest(new_selector=selector):
+                self.assertEqual(HELPERS[selector], names)
+                self.assertIs(getattr(importlib.import_module('hepta.' + names[0]), names[1]),
+                              factory)
+
+        with tempfile.TemporaryDirectory(prefix='hia-core-bytes-closure-source-') as temporary:
+            folder = Path(temporary)
+            image_bytes = b'pre-mapping closure control; not native code'
+            image = folder / 'unmapped.bin'
+            image.write_bytes(image_bytes)
+            manifests = {}
+            for key, module, relative in (
+                    ('bytes', core_bytes, 'manifest.json'),
+                    ('adjacent', admission, 'admission-manifest.json'),
+                    ('wrong_name', admission, 'wrong-admission.json'),
+                    ('wrong_parent', admission, 'other/admission-manifest.json')):
+                path = folder / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                raw = encoded({'schema': module.SCHEMA,
+                    'source_sha256': sha256(module.SOURCE.read_bytes()).hexdigest(),
+                    'image_path': str(image), 'image_sha256': sha256(image_bytes).hexdigest(),
+                    'compiler_sha256': '0' * 64})
+                path.write_bytes(raw)
+                manifests[key] = {'selector': module.SELECTOR, 'manifest_path': str(path),
+                                  'manifest_sha256': sha256(raw).hexdigest()}
+            bundle = folder / 'bundle.json'
+            for dependency in (None, 'wrong_name', 'wrong_parent'):
+                with self.subTest(core_bytes_dependency=dependency):
+                    entries = [manifests['bytes']]
+                    if dependency is not None:
+                        entries.append(manifests[dependency])
+                    raw = encoded({'schema': SCHEMA, 'target': TARGET, 'abi': ABI,
+                                   'helpers': entries})
+                    bundle.write_bytes(raw)
+                    with patch('hepta.hia_native_helpers.importlib.import_module',
+                               side_effect=AssertionError('adapter imported before dependency closure')) as imports:
+                        with self.assertRaisesRegex(
+                                ValueError, '^native Core bytes requires its exact adjacent admission helper$'):
+                            NativeHelpersBinding(str(bundle), sha256(raw).hexdigest())
+                    imports.assert_not_called()
+
+            raw = encoded({'schema': SCHEMA, 'target': TARGET, 'abi': ABI,
+                           'helpers': [manifests['bytes'], manifests['adjacent']]})
+            bundle.write_bytes(raw)
+            with patch.object(core_bytes.NativeCoreBytes, '__init__',
+                              side_effect=RuntimeError('adjacent closure reached mapping boundary')) as mapping, \
+                    patch.object(admission.NativeCoreAdmission, '__init__',
+                                 side_effect=AssertionError('second mapping entered')) as second_mapping:
+                with self.assertRaisesRegex(RuntimeError, '^adjacent closure reached mapping boundary$'):
+                    NativeHelpersBinding(str(bundle), sha256(raw).hexdigest())
+            mapping.assert_called_once_with(image_bytes, sha256(image_bytes).hexdigest())
+            second_mapping.assert_not_called()
 
     def test_patch_factory_view_identity_refuses_before_any_mapping(self):
         import hepta.hia_agent_candidate_native as candidate

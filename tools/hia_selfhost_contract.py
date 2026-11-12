@@ -879,7 +879,7 @@ def support_contract(root=ROOT):
         'native_worker_helper_bundle': {
             'implementation': 'hepta/hia_native_helpers.py',
             'schema': 'hepta.hia.native-helpers.v1',
-            'supported_single_image_selectors': 27,
+            'supported_single_image_selectors': 29,
             'current_journal_schema': 'hepta.hia.agent-journal-native.v2',
             'execution_budget_schema': 'hepta.hia.execution-budget-native.v1',
             'candidate_budget_schema': 'hepta.hia.candidate-budget-native.v1',
