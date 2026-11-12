@@ -1,0 +1,67 @@
+{
+  "scope": "REAL_SHORT_CHILD_AND_METADATA_CONTROLS_ONLY_NO_PRODUCT",
+  "pins": [
+    {
+      "path": "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/probe_launch_identity.py",
+      "bytes": 4275,
+      "sha256": "64f1dad7167a8589a28e60335f326fd4a82f2cbb65f4ae34ef6c4041c7fd073b"
+    },
+    {
+      "path": "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/check_original_probe.py",
+      "bytes": 2126,
+      "sha256": "747a4fbfdf2b979fc6ccc0223e31ac3f22c982fb3986159d8bffe901c4f1812c"
+    },
+    {
+      "path": "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/test_launch_controls.py",
+      "bytes": 6268,
+      "sha256": "3cbb6da2685f3917163de6be8d15df5ae549edfb3f144bc5369585c2f993ccce"
+    },
+    {
+      "path": "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/hia_artifact_publication_custody.py",
+      "bytes": 21037,
+      "sha256": "15252431bc7ee7996f59062189a064160eaa4f4c62e998502275f79a4b50c0b1"
+    },
+    {
+      "path": "/tmp/hia-publication-custody-v85-20261112-r1/source/tools/qualify_hia_artifact_publication_tests.py",
+      "bytes": 29101,
+      "sha256": "91c5a2a0964a510f196152eb3726e9bd6407e8e5f8c0c40ed3be21aab22882e2"
+    }
+  ],
+  "commands": [
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-I",
+      "-S",
+      "-B",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/probe_launch_identity.py",
+      "--module-root",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original",
+      "--mode",
+      "raise",
+      "--output",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original-real-raise"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-I",
+      "-S",
+      "-B",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/check_original_probe.py",
+      "--module-root",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original",
+      "--probe",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original-real-raise",
+      "--output",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original-refusal-control"
+    ],
+    [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "-B",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/test_launch_controls.py",
+      "--output",
+      "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/fixed-controls-r1"
+    ]
+  ],
+  "each_control_command_timeout": 20,
+  "original_product_timeout_changed": false
+}

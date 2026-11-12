@@ -1,0 +1,54 @@
+{
+  "HIA_or_product_executed": false,
+  "actual_child_pid": 5,
+  "actual_child_returncode_before_finish": null,
+  "control_cleanup_identity_absent": true,
+  "control_cleanup_returncode": 0,
+  "control_observed_os_identity": {
+    "pgrp": 1,
+    "pid": 5,
+    "ppid": 4,
+    "session": 1,
+    "starttime": 1241352,
+    "state": "R"
+  },
+  "exception": "Traceback (most recent call last):\n  File \"/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/probe_launch_identity.py\", line 45, in main\n    completed=subprocess.run([str(program),'store-put',str(release),'-'],input=b'complete offered input',\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original/tools/hia_artifact_publication_custody.py\", line 326, in run\n    result = _REAL_RUN(*popenargs, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py\", line 548, in run\n    with Popen(*popenargs, **kwargs) as process:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original/tools/hia_artifact_publication_custody.py\", line 323, in launch\n    return _ObservedPopen(call, *args, **options)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original/tools/hia_artifact_publication_custody.py\", line 260, in __init__\n    call.pid_identity = process_identity(self.pid)\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py\", line 1139, in __call__\n    return self._mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py\", line 1143, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py\", line 1204, in _execute_mock_call\n    result = effect(*args, **kwargs)\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/probe_launch_identity.py\", line 41, in fault\n    if args.mode=='raise':raise OSError('controlled /proc identity failure after real Popen')\n                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nOSError: controlled /proc identity failure after real Popen\n",
+  "mode": "raise",
+  "producer_RUN": {
+    "calls": [
+      {
+        "descendants_seen": [],
+        "direct_child_reaped_observed": false,
+        "events": 2,
+        "full_process_tree_cleanup_claimed": false,
+        "ordinal": 0,
+        "path": "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original-real-raise/records/calls/00000",
+        "process": null,
+        "record_errors": [],
+        "request": "/tmp/hia-publication-custody-v85-20261112-r1/launch-identity-r5/original-real-raise/records/calls/00000/request.json",
+        "returncode": null,
+        "test_id": "real-launch-identity-raise"
+      }
+    ],
+    "end_ns": 1794482770756276638,
+    "errors": [],
+    "fixtures": [],
+    "full_process_tree_cleanup_claimed": false,
+    "known_direct_children_reaped": true,
+    "original_timeouts_changed": false,
+    "runner": {
+      "pgrp": 1,
+      "pid": 4,
+      "ppid": 3,
+      "session": 1,
+      "starttime": 1241342,
+      "state": "R"
+    },
+    "schema": "hepta.hia.publication-test-custody.v1",
+    "status": "TESTS_FAIL_OR_CUSTODY_HOLD",
+    "test_result_successful": false,
+    "tests": [],
+    "tests_run": 1
+  },
+  "real_child_executed": true
+}
