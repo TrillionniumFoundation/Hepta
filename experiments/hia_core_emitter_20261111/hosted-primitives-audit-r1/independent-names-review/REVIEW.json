@@ -1,0 +1,169 @@
+{
+  "schema": "hepta.hia.selfhost-names-independent-static-review.v1",
+  "status": "NARROW_STATIC_CLEAR_NO_EXECUTION",
+  "reviewer": "hia_remote_audit",
+  "baseline_commit": "bde0f67740e12b91c0d60cf72b1af0ba9a4b4742",
+  "sources": [
+    {
+      "path": "tools/generate_hia_selfhost.py",
+      "size": 81991,
+      "sha256": "d9ede90b8b1d71674bd9f3d7c992f20bd5de7caef39e447bc112eaca7be77f32",
+      "git_blob_sha1": "08455f39278c4d428ea312137887c53d964d4466"
+    },
+    {
+      "path": "tools/hia_selfhost_names.py",
+      "size": 43350,
+      "sha256": "3fb7d15d3b25ddd86950665534aff2c15d40d625c9684e4a21287be70b193d1a",
+      "git_blob_sha1": "140e425add5c9b075d90848dc297943683e51c3a"
+    },
+    {
+      "path": "tools/hia_selfhost_cfg_worklist.py",
+      "size": 12150,
+      "sha256": "4cf1b908088438485e9f5e03937c0ec5a2adf40367437a55f95ea2982a6018e5",
+      "git_blob_sha1": "8d0b08468d9097656e9b9cc6c59b601a4910f1fb"
+    },
+    {
+      "path": "tools/hia_selfhost_multi_results.py",
+      "size": 21747,
+      "sha256": "59163d4a11bc7fdf21ce4cee3bda75ffce5c0de371ac58d1e65fa7f87673274f",
+      "git_blob_sha1": "1dac7fb2fb0985076288e9ca6a8fd62a8bc081dc"
+    },
+    {
+      "path": "tools/hia_selfhost_owned_elf.py",
+      "size": 7494,
+      "sha256": "7faa48f93664b3804d250d29dd6bd7a7c0b58b13e6c9849445b3ab19ac09f0ff",
+      "git_blob_sha1": "01e8d83ecb086f7ab6ea1dc6949711aa645eca3d"
+    }
+  ],
+  "candidate": {
+    "size": 82193,
+    "sha256": "9337d6704e47c4257b8b3723c0676809e1ba31914d6cfa6b13e07f2789b03ec2",
+    "git_blob_sha1": "19876107428018182d8dd0bf99eee65167489ded"
+  },
+  "diff": {
+    "candidate": {
+      "size": 82193,
+      "sha256": "9337d6704e47c4257b8b3723c0676809e1ba31914d6cfa6b13e07f2789b03ec2",
+      "git_blob_sha1": "19876107428018182d8dd0bf99eee65167489ded"
+    },
+    "baseline": {
+      "path": "tools/generate_hia_selfhost.py",
+      "size": 81991,
+      "sha256": "d9ede90b8b1d71674bd9f3d7c992f20bd5de7caef39e447bc112eaca7be77f32",
+      "git_blob_sha1": "08455f39278c4d428ea312137887c53d964d4466"
+    },
+    "reverse_projection_equal": true,
+    "changes": [
+      {
+        "function": "check_graph",
+        "before_size": 1989,
+        "after_size": 2051
+      },
+      {
+        "function": "loan_access",
+        "before_size": 270,
+        "after_size": 305
+      },
+      {
+        "function": "loan_borrow",
+        "before_size": 418,
+        "after_size": 453
+      },
+      {
+        "function": "loan_transfer",
+        "before_size": 1701,
+        "after_size": 1736
+      },
+      {
+        "function": "owner_free",
+        "before_size": 319,
+        "after_size": 354
+      }
+    ],
+    "parsed": false,
+    "generated": false,
+    "native_executed": false
+  },
+  "scope": "Only the five dense-value scan bounds and adjacent identifier/definition invariant. Does not certify generation, Core caps, native output equivalence, timing, arbitrary mutated private workspace, or complete selfhost behavior.",
+  "checks": [
+    {
+      "name": "exact_delta",
+      "result": true,
+      "detail": "Replacing the candidate bodies of check_graph, loan_access, loan_borrow, loan_transfer and owner_free with the baseline bodies reconstructs the whole baseline81991 bytes exactly. The candidate is82193 bytes and contains five bound substitutions plus six scan_limit assignments."
+    },
+    {
+      "name": "full_clear_retained",
+      "result": true,
+      "detail": "parse_function resets w[480] and still clears all2048 hash occupancy and VBASE type words; read_value_name's2048 capacity/probe limit and loan_ancestor's2048 depth limit are unchanged."
+    },
+    {
+      "name": "dense_success_domain",
+      "result": true,
+      "detail": "New names get the current count before increment; exact existing hits return that earlier index. Forward references and definitions share the table. With sticky error40==0, every produced/used slot has index<count, and the untouched type tail is zero."
+    },
+    {
+      "name": "definition_provenance",
+      "result": true,
+      "detail": "Direct parameter/instruction definitions and stored multi/owned output IDs originate from the same expect/read_value_name path. owned_define_outputs checks the sticky error before writes; direct define can still run after a malformed name, covered separately."
+    },
+    {
+      "name": "check_graph_fresh_bound",
+      "result": true,
+      "detail": "The new bound is read inside each unchecked-block replay immediately before the original scan. Its loop neither interns names nor changes count. On the valid entry path, omitted tail rows have zero type, so any original zero stores leave the same bytes."
+    },
+    {
+      "name": "loan_scans_fresh_bound",
+      "result": true,
+      "detail": "Each of four scans reads count after its original early conditions/local initializations. No called helper in those scan loops interns a new identifier. Valid slots outside count are not live because resource_type(type0)==0."
+    },
+    {
+      "name": "malformed_name_zero_result",
+      "result": true,
+      "detail": "The dense invariant is not claimed after error. read_value_name may return0 without increment, then a caller can reach define(slot0). However error40 is already nonzero. Omitted four-loan-loop effects are only read-only tests and sticky fail/loan_argument/loan_ancestor; fail does not overwrite existing code/offset. The unchanged later phases still reject. check_graph is guarded by error40==0."
+    },
+    {
+      "name": "not_new_lookup_capacity",
+      "result": true,
+      "detail": "The candidate uses the existing dense count; it does not resize the2048 hash table, change collision resolution, replace exact-byte comparison, or alter any source/output/workspace/cap limit."
+    }
+  ],
+  "complexity": [
+    {
+      "function": "lookup_identifier",
+      "fact": "Linear dense search over count with a stored32-bit hash filter and exact length/byte comparison. Block use count<=256; function use count<=128. It is not a hash-table lookup."
+    },
+    {
+      "function": "read_value_name",
+      "fact": "Already uses a2048-slot open-address table with exact length/byte matching and linear probing. Expected few probes is not an all-input bound; worst case remains2048 probes. It reuses dense IDs for definitions and uses, including replay."
+    },
+    {
+      "function": "read_block_name",
+      "fact": "Still calls the linear lookup_identifier over the per-function block map. Discovering B distinct labels incurs the usual sum0..B-1 search count, and later references/definitions scan that same bounded map. A separate exact-byte block index is a possible later owner change, not part of this patch."
+    },
+    {
+      "function": "reverse-1536-six-functions fixture",
+      "fact": "The source is six copies of the256-block borrowed-buffer reverse fixture. The namespace bound is per function, not a single1536-block map. Renaming values/blocks preserves those counts. No new measured timing is inferred from this source analysis."
+    }
+  ],
+  "untouched_limits": {
+    "value_slots": 2048,
+    "blocks_per_function": 256,
+    "total_blocks": 1536,
+    "functions": 128,
+    "input_output_workspace_bytes": 1048576
+  },
+  "runtime_test_claims": {
+    "Python_parse": false,
+    "HIA_generation": false,
+    "Core_caps": false,
+    "native_compile": false,
+    "native_execution": false,
+    "performance_improvement": false
+  },
+  "followups": [
+    "Actual authoring/Core/caps check for added locals remains necessary",
+    "Run frozen valid and malformed controls against actual images with the original denominator and time limits",
+    "Do not label block-name indexing complete: it remains linear and unchanged"
+  ],
+  "evidence_method": "Git-fetched complete raw sources and candidate blob were hashed locally in V8; static function-body inverse projection was actually executed in V8. No project code was executed for this review."
+}

@@ -1,0 +1,314 @@
+{
+  "schema": "hepta.hia.core-hosted-primitives.scope-audit.v1",
+  "status": "SOURCE_SCOPE_AND_IMPLEMENTATION_PLAN_ONLY",
+  "candidate": "946f3fd08b63846305d3cbf920b61ceed1e696f0",
+  "evidence_checkpoint": "842be83dc63de511d4a4fcb461ddf546e4689d91",
+  "evidence_prefix": "experiments/hia_core_emitter_20261111/native-development-r3/actual-run43175231100",
+  "verified_execution_scope": {
+    "explicit_development_only": true,
+    "run_id": 43175231100,
+    "units": 39,
+    "public_modes": 33,
+    "private_modes": 3,
+    "methods": 116,
+    "original_groups": [
+      15,
+      51,
+      50
+    ],
+    "preparation_report_seconds": 16.384195745,
+    "complete_report_seconds": 96.67554662,
+    "owner_seconds": 180,
+    "owner_grace_seconds": 3,
+    "compile_wall_seconds": 20,
+    "compile_cpu_seconds": 10,
+    "matching_source_cold": false,
+    "full_retained_qualification": false,
+    "all_python_eliminated": false
+  },
+  "inventory": {
+    "source_pins": [
+      {
+        "path": "tools/hia_core_lowering_ir.py",
+        "size": 24460,
+        "sha256": "8c70ac7cf57bfb7ee2c89796bbde3b928a4ae543a7c68da7a94b4dea40659ca7",
+        "git_blob_sha1": "2c7214119763ca26d0ce56d81a349ffee7285982"
+      },
+      {
+        "path": "tools/hia_core_lowering_policy.py",
+        "size": 27319,
+        "sha256": "9da1b04b5044bcd7d41c9cb19af09b5de1b2dfd63da3b63fc10a02fb2dba6e9d",
+        "git_blob_sha1": "4bd67ca0dc56b3beaf1af3be59ea40aca536a544"
+      },
+      {
+        "path": "tools/generate_hia_core_lowering.py",
+        "size": 16918,
+        "sha256": "03912aead3b5fb1a9c539560f62a51a5e942c3b36f9675666d3278248259019f",
+        "git_blob_sha1": "ec7903aea42a0dd96c68f4f728dd2a0b5949c429"
+      },
+      {
+        "path": "hepta/hia_core_lowering_native.py",
+        "size": 24345,
+        "sha256": "7190753bc1e8c70e6918ef2b798a8e0dd8c006794a6b94a7dbce957ca1fdb019",
+        "git_blob_sha1": "603a5358af567602a9e24ad63fc20971f3839ab5"
+      },
+      {
+        "path": "hepta/hia_core_lowering_selection.py",
+        "size": 10332,
+        "sha256": "d6a8524757bc95dc40bc9c2f4631b5609b1b9f9e3bd931c278766c9c67bb7e4e",
+        "git_blob_sha1": "a60ac4a3f05498b8efafba615f939e75cb902db0"
+      }
+    ],
+    "new_scan_pin": {
+      "size": 994482,
+      "sha256": "e94eafffc12380b91685d8c627fef9a9fae59b801706a8bd9e6520825f364de1",
+      "git_blob_sha1": "e68ac90d83a9003a04505ab3c0b6603aa4855752"
+    },
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "modes": 36,
+    "ir_instructions": 2428,
+    "literal_count": 312,
+    "effect_sites": 1830,
+    "static_counts_are_not_runtime_frequencies": true
+  },
+  "primitives": [
+    {
+      "opcode": 1,
+      "name": "GLOBAL",
+      "static_effect_sites": 102,
+      "current_hosted_operation": "Ordered helper-map, module namespace and builtins lookup, then NameError construction.",
+      "possible_HIA_owner": "HIA can own lookup order and miss/error selection; map containment/getitem, exact attribute effect and exception construction remain explicit leaves.",
+      "critical_semantics": "No eager name cache; preserve live namespace mutation and distinguish AttributeError from errors raised by mapping operations.",
+      "dependency": "policy"
+    },
+    {
+      "opcode": 2,
+      "name": "ATTR",
+      "static_effect_sites": 495,
+      "current_hosted_operation": "getattr(object, name).",
+      "possible_HIA_owner": "A complete object lookup owner needs MRO, data/non-data descriptors, instance storage and __getattr__ fallback; isolated exact-object layouts may come first.",
+      "critical_semantics": "Descriptors and metaclass hooks, bound method identity, exception timing and mutation prevent treating this as a scalar read.",
+      "dependency": "object-runtime"
+    },
+    {
+      "opcode": 3,
+      "name": "SET_ATTR",
+      "static_effect_sites": 34,
+      "current_hosted_operation": "setattr(object, name, assigned).",
+      "possible_HIA_owner": "Object-runtime owner can choose descriptor versus instance storage and mutation order; actual foreign descriptor calls stay explicit.",
+      "critical_semantics": "__setattr__, descriptors, deletion/replacement finalizers and read-only errors.",
+      "dependency": "object-runtime"
+    },
+    {
+      "opcode": 4,
+      "name": "ITEM",
+      "static_effect_sites": 236,
+      "current_hosted_operation": "object[key].",
+      "possible_HIA_owner": "HIA container/text owners must handle index conversion, bounds, slices, dictionary lookup and result identity.",
+      "critical_semantics": "Exact container type does not remove key/index/equality hooks; dict and sequence subclass dispatch differ.",
+      "dependency": "container-runtime"
+    },
+    {
+      "opcode": 5,
+      "name": "SET_ITEM",
+      "static_effect_sites": 7,
+      "current_hosted_operation": "object[key] = assigned.",
+      "possible_HIA_owner": "HIA container owner chooses indexed mutation/resize/hash collision and replacement sequence.",
+      "critical_semantics": "__setitem__, __index__, hash/equality, mutation during lookup and overwritten-object release.",
+      "dependency": "container-runtime"
+    },
+    {
+      "opcode": 6,
+      "name": "CALL",
+      "static_effect_sites": 463,
+      "current_hosted_operation": "Dynamic target(*positional, optional keyword/mapping), up to four direct positional arguments.",
+      "possible_HIA_owner": "Keep a documented foreign call transport; migrate named callees only through separately admitted complete owners.",
+      "critical_semantics": "Binding error order, **mapping protocol, descriptors, arbitrary callable effects and reentrancy cannot be replaced by a generic native label.",
+      "dependency": "foreign-runtime"
+    },
+    {
+      "opcode": 7,
+      "name": "PACK",
+      "static_effect_sites": 60,
+      "current_hosted_operation": "Build list/tuple/set/dict from HIA-selected handle vector.",
+      "possible_HIA_owner": "HIA can own construction loops and pair/insertion decisions; a collection allocator/ownership layer is required for full replacement.",
+      "critical_semantics": "Set/dict hashing and equality, duplicate keys, insertion order, allocation failure and partial cleanup.",
+      "dependency": "container-runtime"
+    },
+    {
+      "opcode": 8,
+      "name": "ITER",
+      "static_effect_sites": 52,
+      "current_hosted_operation": "iter(object).",
+      "possible_HIA_owner": "A full iterator-acquisition owner needs type-slot/legacy sequence dispatch; raw foreign iterator acquisition can remain a named observation for other owners.",
+      "critical_semantics": "__iter__ call/result validation, sequence fallback and exact error semantics.",
+      "dependency": "foreign-runtime"
+    },
+    {
+      "opcode": 9,
+      "name": "NEXT",
+      "static_effect_sites": 52,
+      "current_hosted_operation": "next(iterator), with StopIteration converted to exhaustion flag.",
+      "possible_HIA_owner": "HIA can own exhaustion/error continuation once a primitive yields value/exhaustion/error without changing handled exception state.",
+      "critical_semantics": "StopIteration subclasses, PEP479 generator behavior, arbitrary next callbacks and lifetime of exception/value objects.",
+      "dependency": "exception-runtime"
+    },
+    {
+      "opcode": 10,
+      "name": "TRUTH",
+      "static_effect_sites": 123,
+      "current_hosted_operation": "int(bool(object)).",
+      "possible_HIA_owner": "HIA truth owner needs live exact-type observations, length/number facts, and explicit foreign truth/length effects.",
+      "critical_semantics": "No assumption that mutable handle slots1/2/3 retain None/False/True; __bool__/__len__ ordering and invalid returns must be preserved.",
+      "dependency": "scalar-and-slot-runtime"
+    },
+    {
+      "opcode": 11,
+      "name": "BINARY",
+      "static_effect_sites": 80,
+      "current_hosted_operation": "24 ordinary/in-place operator choices; current policy uses8 suboperations.",
+      "possible_HIA_owner": "A signed arbitrary-precision numeric owner can implement integer operations; a broader operation owner also needs sequence/text and reflected/in-place dispatch.",
+      "critical_semantics": "Overflow/zero/shift errors, bool/int distinction, NotImplemented/subtype priority, float/complex behavior, object identity and foreign operators.",
+      "dependency": "scalar-and-slot-runtime"
+    },
+    {
+      "opcode": 12,
+      "name": "UNARY",
+      "static_effect_sites": 9,
+      "current_hosted_operation": "operator.pos/neg/invert; current policy usesneg only.",
+      "possible_HIA_owner": "A signed scalar runtime can own complete unary operation decisions, with explicit foreign slot invocation.",
+      "critical_semantics": "Arbitrary precision, bool conversion, numeric subclasses, NotImplemented/error text and float signed-zero/NaN.",
+      "dependency": "scalar-and-slot-runtime"
+    },
+    {
+      "opcode": 13,
+      "name": "COMPARE",
+      "static_effect_sites": 83,
+      "current_hosted_operation": "eq/ne/lt/le/gt/ge plus in/not-in.",
+      "possible_HIA_owner": "HIA scalar/container comparison owners need type-specific result construction and explicit foreign comparisons/membership.",
+      "critical_semantics": "__ne__ is independent of not __eq__; rich comparison may return an opaque object; membership returns bool and can iterate/hash/compare.",
+      "dependency": "scalar-container-and-slot-runtime"
+    },
+    {
+      "opcode": 14,
+      "name": "UNPACK",
+      "static_effect_sites": 20,
+      "current_hosted_operation": "CPython fixed assignment unpack of1..4 targets; current policy20 sites.",
+      "possible_HIA_owner": "Recommended next complete bounded control owner: acquisition, n+1 fetches, cardinality decisions, diagnostic choice, ordered cleanup and result publication in HIA.",
+      "critical_semantics": "Requires raw slot/type facts, faithful pending-error and temporary-reference handling, and explicit3.12/3.14 diagnostic profiles.",
+      "dependency": "recommended-next"
+    },
+    {
+      "opcode": 15,
+      "name": "SLICE",
+      "static_effect_sites": 2,
+      "current_hosted_operation": "Allocate slice(low, high, step); no index normalization here.",
+      "possible_HIA_owner": "HIA can own a slice value representation after handle/value storage exists; exporting a real Python slice still requires allocation.",
+      "critical_semantics": "Do not invoke __index__ or normalize at construction, since the current slice constructor stores arbitrary component objects.",
+      "dependency": "value-allocation"
+    },
+    {
+      "opcode": 16,
+      "name": "APPEND",
+      "static_effect_sites": 6,
+      "current_hosted_operation": "list.append(object, item), deliberately bypassing overridden .append lookup.",
+      "possible_HIA_owner": "HIA-owned list storage/mutation can eventually replace it; otherwise retain the exact base-list append observation.",
+      "critical_semantics": "Accepts list subclasses, bypasses their append override; allocation and old storage lifetime remain observable.",
+      "dependency": "container-runtime"
+    },
+    {
+      "opcode": 17,
+      "name": "IMPORT",
+      "static_effect_sites": 3,
+      "current_hosted_operation": "Three actual relative imports: VALUE_REGISTERS, code_options, emit_wrapper.",
+      "possible_HIA_owner": "Keep module import as an explicit external effect; HIA selects the import and its original point.",
+      "critical_semantics": "Import hooks, sys.modules identity, circular import state and side effects are Python runtime semantics.",
+      "dependency": "foreign-runtime"
+    },
+    {
+      "opcode": 18,
+      "name": "RAISE",
+      "static_effect_sites": 1,
+      "current_hosted_operation": "raise exception/class selected by HIA.",
+      "possible_HIA_owner": "HIA can decide rejection/error construction; the Python boundary still needs faithful final exception raising.",
+      "critical_semantics": "Exception class instantiation, active handled context, cause/context cycles and traceback behavior cannot be replaced by returning a code.",
+      "dependency": "exception-runtime"
+    },
+    {
+      "opcode": 19,
+      "name": "GENERATOR",
+      "static_effect_sites": 2,
+      "current_hosted_operation": "Create a real Python generator whose body decisions and yields are HIA-controlled.",
+      "possible_HIA_owner": "Retain suspension/throw/close transport as an explicit runtime seam until a generator/object runtime exists.",
+      "critical_semantics": "Lazy outer iterator evaluation, send/throw/close, GeneratorExit, PEP479 and generator-frame lifetime.",
+      "dependency": "foreign-runtime"
+    }
+  ],
+  "non_opcode_hosted_boundaries": [
+    "Literal decoding and Python object construction in _decode_pool",
+    "Mutable values/handles/modes/namespace/literals and strong reference lifetime",
+    "Ordinary Python method binding and class allocation, including the preserved f6bed binding repairs",
+    "Real Python generator object suspension/throw/close/PEP479 transport",
+    "Dynamic calls may enter separately native Code/ELF owners or arbitrary Python callbacks; no generic whole-native claim",
+    "The existing emit_wrapper import/call retains its separate byte-ABI ownership boundary"
+  ],
+  "recommendation": {
+    "owner": "Complete fixed positional UNPACK control, admitted arities1..4",
+    "reason": "Bounded full operation with20 existing sites and concrete hidden Python decisions; does not rely on mutable singleton handles or merely rename a Python primitive.",
+    "integration": "Prefer a separately admitted HIA value-control image behind the existing outer opcode14 observation, preserving the outer one-shot boundary. No final ABI or image count is asserted before source/generation. If the old39 control sources remain byte-identical, record that fact separately; the composed product/bridge/hash/installed evidence still requires a new run.",
+    "HIA_owned": [
+      "arity admission",
+      "iterator acquisition request order",
+      "fetch count and n+1 excess probe",
+      "short/exact/long decision",
+      "version-specific diagnostic selection and text",
+      "ordered release plan for partial items/excess item/iterator",
+      "single result or error publication"
+    ],
+    "explicitly_foreign": [
+      "raw iterator acquisition/next effects",
+      "raw exact-type, iteration-slot and sequence-slot facts",
+      "mechanical object/exception allocation and ref operations",
+      "final foreign exception raising"
+    ],
+    "required_design_before_code": [
+      "Version-bound exact facts for PyObject_GetIter/PyIter_Next behavior and TypeError rewriting, without calling user __getattribute__ or __len__ early",
+      "A pending-error capsule and cleanup protocol preserving the old exception/cleanup observation context",
+      "Temporary references must not enter the session-long strong registry merely because a next() occurred",
+      "No split of the old visible opcode14 observe call into externally replayable half-effects",
+      "Explicit source/image/ABI identity for the new owner and no retained-unpack fallback under selection"
+    ],
+    "primary_source_difference": "CPython3.14.4 adds got N to the too-many-values error for exact list/tuple/dict when actual size>N;3.12.14 uses only expected N. These are source observations, not a new executed differential.",
+    "gates": [
+      "Retain15+51+50 complete default gate in one180+3 owner",
+      "Retain original20wall/10CPU/1MiB compile constraints and all Core caps",
+      "Add separate finite type/arity/iterator error/mutation/lifetime/context/lifecycle controls, without renaming or removing original IDs",
+      "Poison retained Python assignment-unpack implementation; require actual new HIA entry/normal-step evidence and old-owner zero",
+      "Retain installed -I -S -B/emptyPATH and full resource/source identity checks",
+      "Record first real failure and actual new units/blocks/instructions; do not raise limits"
+    ]
+  },
+  "do_not_adopt": [
+    "Previously BLOCKED singleton TRUTH shortcut relying on mutable handle identities",
+    "An exact-builtin label for containers whose elements/keys still have foreign hooks",
+    "Integer truncation to u64 as a substitute for Python arbitrary precision",
+    "not eq as a substitute for ne",
+    "Dropping host calls based on static call-site counts",
+    "Treating static source review as an all-input or performance proof"
+  ],
+  "current_revision_changes": {
+    "product_paths_changed": [],
+    "default_selection_changed": false,
+    "generated_HIA": false,
+    "compiled_native": false,
+    "ran_product_tests": false,
+    "executed_read_only_IR_inventory": true
+  },
+  "custody": {
+    "previous_unsealed_local_IR_raw_inaccessible": true,
+    "original_counts_only_observed_before_reset": true,
+    "new_inventory_is_separate_actual_scan": true,
+    "new_scan_source_pins_match": true,
+    "existing842_originals_durable": true
+  }
+}
