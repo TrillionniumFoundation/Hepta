@@ -1,6 +1,6 @@
 {
   "schema": "hia.cli-json.remote-source-r3c.v1.static-byte-checks",
-  "status": "V8_STATIC_BYTE_AND_BINDING_CHECKS_ONLY",
+  "status": "V8_STATIC_BINDINGS_PLUS_EXPLICIT_LOCAL_AST_ONLY",
   "checks": [
     [
       "exact source count",
@@ -57,11 +57,32 @@
     [
       "unchanged worker no local import/execution in this authoring turn",
       true
+    ],
+    [
+      "three actual Python AST parses (controller A2,A1,worker)",
+      true
+    ],
+    [
+      "only two controller functions changed by full AST comparison",
+      true
+    ],
+    [
+      "exactly three official Actions now SHA-pinned",
+      true
+    ],
+    [
+      "official action.yml raw blobs match each fixed commit tree",
+      true
+    ],
+    [
+      "failure original priority keeps whole-file512KiB/1MiB budget unchanged",
+      true
     ]
   ],
   "source_generation_executed": false,
   "python_parse_executed": false,
   "C_compilation_executed": false,
   "native_executed": false,
-  "parent": "62ac5111cd6316c7815e9c6f7d80f77e083decb7"
+  "parent": "62ac5111cd6316c7815e9c6f7d80f77e083decb7",
+  "Python_parse_executed": true
 }

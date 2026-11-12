@@ -792,7 +792,7 @@ def capture_closed(root, public, policy):
     return ledger
 
 
-def copy_small_originals(root, public, custody, policy):
+def copy_small_originals(root, public, custody, policy, *, failure):
     order = ['actual/REPORT.json', 'guardian/guardian.json']
     order += ['actual/' + label + '.hiaasm' for label in ('sort', 'text', 'note', 'cgraph')]
     order += ['actual/' + label + '.caps.json' for label, _ in policy['components']]
@@ -801,6 +801,13 @@ def copy_small_originals(root, public, custody, policy):
     order += ['RUN.json', 'SETUP.json', 'guardian/REQUEST.json',
               'guardian/child.stdout.log', 'guardian/child.stderr.log',
               'guardian.stdout.log', 'guardian.stderr.log']
+    require(type(failure) is bool, 'exact source failure selection flag required')
+    if failure:
+        priority = ['actual/error.txt']
+        priority += ['actual/' + label + '.error.txt' for label, _ in policy['components']]
+        priority += ['guardian/child.stderr.log', 'guardian.stderr.log',
+                     'actual/REPORT.json', 'guardian/guardian.json']
+        order = priority + [name for name in order if name not in priority]
     private_directory(public / 'small')
     rows = []
     used = 0
@@ -827,6 +834,7 @@ def copy_small_originals(root, public, custody, policy):
         rows.append(row)
     return {'schema': SCHEMA + '.small-selection', 'rows': rows,
             'raw_selected_bytes': used, 'whole_files_only': True,
+            'failure_originals_prioritized': failure,
             'raw_limit': SMALL_RAW, 'stdout_limit': SMALL_STDOUT,
             'complete_originals_are_in_artifact_not_all_stdout': True}
 
@@ -871,7 +879,10 @@ def finalize(args):
         try:
             custody = capture_closed(root, public, policy)
             final['custody'] = create(public / 'CUSTODY.json', wire(custody))
-            selection = copy_small_originals(root, public, custody, policy)
+            selection = copy_small_originals(
+                root, public, custody, policy,
+                failure=bool(final['errors'] or custody['errors']
+                             or final['source_acceptance'] is None))
             final['small_selection'] = create(public / 'SMALL.json', wire(selection))
             if custody['errors']:
                 final['errors'].append({'phase': 'custody', 'type': 'IncompleteOriginals',
