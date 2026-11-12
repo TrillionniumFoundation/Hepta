@@ -1,8 +1,46 @@
-# HIA 全量原生重写审计（2026-11-12，FOLLOW48）
+# HIA 全量原生重写审计（2026-11-12，FOLLOW49）
 
 ## 当前结论
 
-**整套仍为 OPEN。完整保留版4,157项回归原件已完整核实；固定程序服务、UnixOpen父层和P16私有controls已在各自限定范围通过，Emitter三轮覆盖55组732案。真实FS/Store/SQL、公开上下文、impact大输入CPU、完整工具链/平台/API和HIA原生安装仍待闭合。生产激活0、旧实现删除0。**
+**整套仍为 OPEN。156个生产模块尚未完成原生安装替换；真实FS/Store/SQL、公开上下文、impact大输入CPU、完整工具链/平台/API和HIA原生安装仍待闭合。生产激活0、旧实现删除0。完整保留版4,157项回归是先前保留产品的证据，不能代表当前提交或全原生交付。**
+
+## FOLLOW49 最新状态（2026-11-12 12:04:32 UTC）
+
+父提交为 `e035dfd0e2603adcf2bfcb28958afaddffe9fb62`，tree `a80210cfcba140ebe413914767a86815b6f152f5`，6,655个文件。第47轮六项任务已终结：初始化桥、计时诊断和两项只读原件reader成功；checked-plan和独立type-context失败。第48轮backend/type-context两个新组合都失败；Core48 source成功、native cold失败（6/11）。这些失败均保留原件，以下修复尚未执行。
+
+### 已独立核实的实际结果与限制
+
+- checked-plan47已fresh编译5核，21个完整组355案/15,886次实际native entry通过；intervals另有20案/928次entry实际通过，但组未完成，组覆盖及union计数为0。两处测试调用把text作为digits位置实参传给sys.set_int_max_str_digits，后续被TypeError阻断。完整原55组679案/119私有控制不删减。第49轮只修两处expected_text关键字，先读全83,803成员原归档，再确认5份fresh HIA源/镜像完整相同，才可继承原21组；剩余34组324案/119私有控制重新实际执行，intervals完整23案重跑，不重复计旧partial20。
+- 初始化/程序桥47成功：23次fresh B3、1次实际HIA packer、4组129案、16,883次实际HIA entry及27个实际program ELF。语义/错误/容量/协议四组完整通过。入口仍含Python机械初始化和受控私有Graph issuer，8个其余peer id仍是foreign，namespace/SQL预声明，真实namespace entry为0；不据此关闭普通初始化、完整Worker或Store。
+- 独立type-context47为3次fresh B3、6组54案270次实际entry通过，覆盖33个上下文tuple和6操作。第7组私有controls在entry之前因54条与64断言不符而失败。第49轮保留原54条文字/顺序和两处64断言，新增10条有意义控制；只运行64个私有控制，计划68次entry，先确认3份原HIA源/镜像。54案公共语义不在该新任务重跑或继承为新结果。
+- namespace两个原件reader均成功，完整解封71条原始stream、1,070,595B，逐份gzip CRC/ISIZE及raw SHA/Git身份一致。原45失败与46成功身份分别保存。18个成本样本、1,451,479 VM steps的带profile自身计时为7.574093403秒，operation约46.15%，invoke约15.29%，两层scalar校验约12.89%；这是样本的插桩耗时，不能外推原900秒整套，也没有新B3/VM/native资格。
+- impact计时诊断47成功，其63份语义HIA镜像保持原样；1次fresh B3、1次实际packer，执行原小例、计时同小例、计时大例3个真实ELF。两小例完整exit/stdout/stderr相同，大例8,370,475B输入以更紧的剩余CPU预算返回-9；整个捕获进程树86.048422 CPU秒。大例记录511个完整128B帧、255对、已配对76,555,717,726ns，最后约8,225,740,111ns未配对。最后before帧指向stage3/role27，但不能由它断言当时仍执行该调用。带计时开销的诊断通过不改变原未插桩大例90CPU失败。
+
+### 第48轮组合及当前Core的实际失败
+
+backend首次组合已实际完成17个fresh B3 compile-only（11 Emitter、5 plan、1 inventory）。随后post HIA静态profile显示17参数，原门为16，遂在该核B3之前失败；post B3=0，整个新组合语义case/entry=0。已完整保存654,227B原log、18份原build JSON及174B原profile。后续以HIA helper拆分修复参数活跃度，原门不变，本轮不重复执行该组合。
+
+type-context程序组合在生成前导入冻结lower-services时缺失原 `tools.hia_composite_lowering_driver_helper`。精确缺件为15,664B、SHA256 `fb392ada8b16cfaeedbdbfb55b46786c5923a8959f3cc32057f13383b5fa75df`；本次0 B3/packer/semantic，计划413案全部未执行。这与47轮私有54/64测试缺口是两件事。第49轮只读完整R9/R10原归档（共5,389成员、4,391文件、115,107,529B），查找该helper及原raw driver；查找ABSENT也是明确结果，不能伪称恢复依赖。没有伪造原作者或把R7单独ledger当作已读取完整原归档。
+
+Core48 run43210143623的source job成功；native job131155352486的cold检查FAIL，仅6/11，generation hash列表为空。完整40,434B日志已保存，原artifact13940703193为54,245,802B、ZIP SHA256 `4eec8d75658d48abe01c9518efa4362ba97b9b534576cc1d5b9deacde4a514cc`，producer报告3,928文件。原完整cold报告尚待独立读取；日志显示Python3.14.10/clang20，仅记录环境值，不归因。第37轮旧Core成功仍保留，不作为当前HEAD绿色结论。
+
+### 第49轮新增实际入口
+
+五项tag分别为checked-machine-plan、worker-type-context、namespace-unixopen-raw-fs-framer、ordinary-impact-timing47-readback、lowering-original-authoring-readback。旧Emitter/P16/桥接成功不重复执行或计数。
+
+FS9/private raw framer首次使用真实共享FS，计划6角色+packer+framer共8次fresh B3、原10源证明、33packer控制、原84条旧VM/新VM/新native逐字相等。继而19个实际物理窗口、26个原始效果、7个同context OS错误续接、80个负私有controls及1个显式private UID0正例。它仍使用PRIVATE_PENDING fixture，fixed native issuer尚未实现；普通UnixOpen/Store不闭合，原42/900完整门仍须另行通过。每份已保存并reap完整的receipt核child CPU<90；实际900秒总门从首个subject阶段之前开始，至最终source-after检查后结束，超限即FAIL。30分钟workflow外框仅容纳准备/900门/封存，不放大原语义预算。
+
+计时47原件reader将流式核完整3,249成员/373,984,770B，保留4份完整summary及三组process/timing.raw/stdout/stderr原字节，恢复14份实际HIA role源码（2/22/24/25/26/27/44/46/56/57/58/59/60/63）。它没有目标执行，也不宣称已经实现性能修复。两份新只读reader都保留finally里的self/input/output after-check和原90CPU/180wall/1GiB门。
+
+### 发布完整性与未完成边界
+
+784份活动Python均按严格码点排序核完整仓库路径、mode、bytes和Git身份；根审查发现并修正17条checked-plan包内相对路径，源码不变。141个workflow jobs保留141个Ubuntu24/x86_64域门。新增原件与源码完整核bytes/Git SHA1/SHA256。
+
+4,703,393B checked-plan原log的整blob GET曾返回Transport closed且未盲重试；根独立全文GET十个连续原字节片段，再拼接核完整原bytes/Git SHA1/SHA256。原整blob和所有片段同时保留。该项明确记作完整分片回读，不能称根本次已直接全文GET整blob。全部原JSON及u64字节不经重序列化，derived观察另存。
+
+原B3 10CPU/20wall/256MiB及源/输出/工作各1MiB、Bootstrap128functions/1536blocks/8192ops/256blocks-per-function/16params/SSA<2048、公共1024函数、整组90CPU/180wall/1GiB和物理900wall全部不变；从无128ops/block门。公开CLI、原生初始化、Worker完整请求/工具组合、真实namespace/Store/31SQL、公开backend、各平台/API、原生安装/升级/冷启动/全回归继续OPEN，当前不删除旧实现。
+
+证据：[第47轮](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43208616674)、[第48轮组合](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43210143604)、[Core48](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43210143623)。详细身份、原件范围和新门见本轮checkpoint、root-static-review、delivery manifests及publication manifest。
 
 ## FOLLOW48 最新状态（2026-11-12 11:31:22 UTC）
 

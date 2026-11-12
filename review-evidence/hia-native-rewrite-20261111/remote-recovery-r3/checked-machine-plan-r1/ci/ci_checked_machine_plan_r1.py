@@ -1,4 +1,7 @@
-"""Fresh five-image checked-machine-plan CI. No earlier component result is inherited."""
+"""Complete original47 readback, five byte-identical fresh images, and remaining34 groups.
+The original interval partial20 are preserved but never credited as a complete group.
+The full55 inventory and all original target limits remain unchanged.
+"""
 from pathlib import Path
 from hashlib import sha1,sha256
 import ast,base64,json,os,stat,struct,sys,traceback,types
@@ -47,9 +50,9 @@ FILES=[
   {
     "path": "tests/test_hia_checked_plan.py",
     "mode": "100644",
-    "bytes": 49766,
-    "sha256": "26c2ccc3f7d6da64934eaeb0547b84df10a515790f404e103e59777d2402b2d2",
-    "gitsha": "f0abb87090dd2d24b73e4e760a483622dac589a7"
+    "bytes": 49794,
+    "sha256": "cde8d34e01dc9ac7d39e61bf244f8d1c6f3f6ea5566ab2944b62f2dfaec61f47",
+    "gitsha": "f7af47780e9ffa308b008b8f0d5bd6fd6d60b9f7"
   },
   {
     "path": "docs/HIA_CHECKED_MACHINE_PLAN_NATIVE.md",
@@ -134,9 +137,29 @@ FILES=[
     "bytes": 2791,
     "sha256": "ceafde9ccf11f5d58de8519821e8b29061de9c967c636a63901735c93f3f419b",
     "gitsha": "13174e28113ed390ba0522e4d39096764fe6cce1"
+  },
+  {
+    "path": "ci/read_checked_plan47_originals.py",
+    "mode": "100644",
+    "bytes": 28156,
+    "sha256": "9eb9df28d1380a22102696be12cfe38d5a2acfcb99bc5d6d6ab030ee08da45c7",
+    "gitsha": "b2a4ae4875d374c91a8d46a8a55ab19fd17e8f37"
+  },
+  {
+    "path": "ci/checked_plan47_originals.json",
+    "mode": "100644",
+    "bytes": 48049,
+    "sha256": "63020bb68c4732a3d2ce96e309772424a8346f6374e74cec2efe5366d90470cb",
+    "gitsha": "f975f03dcabc67e684630e66c0c519d2279d5a31"
   }
 ]
 SCHEDULE=[["shape",0,17,0],["fields",0,34,0],["hash",0,8,0],["choices",0,16,0],["choices",1,16,0],["choices",2,16,0],["choices",3,16,0],["choices",4,16,0],["choices",5,16,0],["choices",6,16,0],["choices",7,16,0],["choices",8,16,0],["choices",9,16,0],["choices",10,16,0],["choices",11,16,0],["blocks",0,15,0],["layout",0,10,0],["order",0,17,0],["invalidchoices",0,19,0],["invalidchoices",1,19,0],["assignments",0,24,0],["intervals",0,23,0],["leaf",0,15,0],["leaf",1,15,0],["resources",0,15,0],["resources",1,15,0],["calls",0,4,0],["types",0,38,0],["firsterror",0,16,0],["snapshot",0,34,0],["depth",0,6,0],["digits",0,8,0],["digits",1,8,0],["nodes",0,1,0],["nodes",1,1,0],["bytes",0,1,0],["bytes",1,1,0],["integerbytes",0,1,0],["scale",0,1,0],["scale",1,1,0],["scale",2,1,0],["initial",0,12,12],["initial",1,12,12],["ack",0,10,10],["snapshotprotocol",0,8,8],["snapshotprotocol",1,8,8],["wireprotocol",0,8,8],["wireprotocol",1,8,8],["growprotocol",0,8,8],["growprotocol",1,8,8],["growprotocol",2,2,2],["semanticprotocol",0,8,8],["semanticprotocol",1,8,8],["descriptor",0,13,13],["outputprotocol",0,6,6]]
+PRIOR_READER_GIT="b2a4ae4875d374c91a8d46a8a55ab19fd17e8f37"
+PRIOR_MANIFEST_GIT="f975f03dcabc67e684630e66c0c519d2279d5a31"
+OLD_TEST_GIT="f0abb87090dd2d24b73e4e760a483622dac589a7"
+OLD_DRIVER_GIT="399dcb1d23b4331d3269cfa72fe060228a2f6288"
+RETAINED=SCHEDULE[:21]
+REMAINING=SCHEDULE[21:]
 def digest(raw):return sha256(raw).hexdigest()
 def git_blob(raw):return sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()
 def save(path,value):
@@ -303,6 +326,71 @@ def case_rows(directory,value):
       trace_records_and_originals_correlated=True,all_cases_full_intermediate_CAS=True,
       encoded_CAS_pages_retained_for_complete_archive_readback=True)
 
+def exact_file_equal(a,b):
+ a=Path(a);b=Path(b)
+ assert identity(a)==identity(b),(str(a),str(b),identity(a),identity(b))
+ assert stat.S_IMODE(a.stat().st_mode)==stat.S_IMODE(b.stat().st_mode)
+ with a.open("rb") as x,b.open("rb") as y:
+  while True:
+   raw=x.read(1<<18);assert y.read(len(raw) if raw else 1)==raw
+   if not raw:break
+
+def fixture_delta(project,prior):
+ old=Path(prior["old_runtime_assets_path"]).parents[1]/"tests/test_hia_checked_plan.py"
+ original=old.read_bytes();assert git_blob(original)==OLD_TEST_GIT
+ fixed=(project/"tests/test_hia_checked_plan.py").read_bytes()
+ before=original.splitlines(keepends=True);after=fixed.splitlines(keepends=True)
+ assert len(before)==len(after)
+ changes=[]
+ for number,(a,b) in enumerate(zip(before,after),1):
+  if a!=b:
+   assert b.replace(b"expected_text=",b"",1)==a and b.count(b"expected_text=")==1
+   changes.append(dict(line=number,before=a.decode(),after=b.decode()))
+ assert [r["line"] for r in changes]==[415,419]
+ restored=list(after)
+ for row in changes:restored[row["line"]-1]=row["before"].encode()
+ assert b"".join(restored)==original
+ return dict(changes=changes,complete_inverse_original_equal=True,
+     original_test_git=OLD_TEST_GIT,new_test_git=git_blob(fixed),
+     all_55_groups_and_every_assertion_retained=True,
+     original_partial_20_not_double_counted=True)
+
+def prior_readback_gate(project,context,common,env,report):
+ incoming=Path(os.environ["HIA_CHECKED_PLAN47_ORIGINALS"]).resolve()
+ reader=project/"ci/read_checked_plan47_originals.py";manifest=project/"ci/checked_plan47_originals.json"
+ assert git_blob(reader.read_bytes())==PRIOR_READER_GIT and git_blob(manifest.read_bytes())==PRIOR_MANIFEST_GIT
+ out=project/"development/prior47-readback"
+ try:
+  common.run("checked-plan47-complete-original-readback",[context["python"],"-B",reader,
+      "--input",incoming,"--out",out,"--manifest",manifest],cwd=project,timeout=180,env=env)
+ finally:
+  path=out/"readback.json"
+  if path.exists():
+   raw=path.read_bytes()
+   print("HIA_CHECKED_PLAN47_READBACK_ORIGINAL "+raw.decode().strip(),flush=True)
+   report["prior47_readback"]=json.loads(raw)
+ prior=report["prior47_readback"]
+ assert prior["status"]=="PASS"
+ assert (prior["members"],prior["original_bytes"])==(83803,1350967814)
+ assert (prior["complete_group_count"],prior["credited_prior_cases"],prior["credited_prior_native_entries"],
+     prior["credited_prior_private_controls"])==(21,355,15886,0)
+ assert (prior["all_observed_cases_readback"],prior["all_observed_native_entries_readback"])==(375,16814)
+ assert prior["incomplete_group"]["cases"]==20 and prior["incomplete_group"]["native_entries"]==928
+ assert prior["incomplete_group"]["credited_complete_groups"]==prior["incomplete_group"]["credited_union_cases"]==0
+ assert prior["limits"]==dict(**LIMITS,wall=180)
+ assert prior["elapsed_CPU_seconds"]<90 and prior["elapsed_wall_seconds"]<180
+ for key in("all_inputs_after_equal","all_tar_members_bytes_modes_SHA256_readback",
+     "full_original_archive_and_ledger_copied_and_readback_before_semantic_checks",
+     "all_encoded_CAS_pages_bounded_decoded_and_hashed","every_actual_operand_complete_bytes_reconstructed_and_SHA256_checked",
+     "original_image_source_copies_bound_to_all_cases","original_case_oracle_and_canonical_assertions_read_and_bound",
+     "original_failure_preserved","partial_20_not_counted_as_completed_group"):
+  assert prior[key]
+ assert not prior["partial_readback"] and prior["target_executions"]==prior["compiler_executions"]==prior["native_entries"]==prior["VM_entries"]==0
+ assert prior["original_full_schedule"]==SCHEDULE and prior["remaining_full_schedule"]==REMAINING
+ assert [[r["group"],r["variant"],r["cases"],r["private_controls"]] for r in prior["complete_groups"]]==RETAINED
+ report["fixture_keyword_only_inverse_proof"]=fixture_delta(project,prior)
+ return prior
+
 def main():
  common_path=Path(os.environ["HIA_CI_COMMON"]).resolve()
  common,common_raw=loaded("checked_plan_ci_common",common_path,COMMON_GIT)
@@ -310,16 +398,20 @@ def main():
  seal,seal_raw=loaded("checked_plan_stream_seal",seal_path,SEAL_GIT)
  common.PINS[common_path]=common_raw;common.PINS[seal_path]=seal_raw
  common.PINS[Path(__file__).resolve()]=Path(__file__).read_bytes()
- project=None;status="FAIL"
- report=dict(scope="FRESH_CHECKED_MACHINE_PLAN_FIVE_IMAGE_NATIVE_COMPONENT",status="INCOMPLETE",
-     planned_groups=55,planned_cases=679,planned_private_controls=119,
+ project=None;status="FAIL";prior=None
+ report=dict(scope="CHECKED_MACHINE_PLAN_PRIOR21_EXACT_READBACK_AND_FRESH_REMAINING34",status="INCOMPLETE",
+     planned_groups=34,planned_cases=324,planned_private_controls=119,
+     full_inventory_groups=55,full_inventory_cases=679,full_inventory_private_controls=119,
+     original47_failure_preserved=True,original_partial20_not_counted_as_completed_group=True,
+     old_groups_credited_only_after_complete_archive_and_fresh_five_byte_equality=True,
+     this_is_not_a_single_run_55_group_result=True,
      builds={},groups={},actual_compilations=0,actual_cases=0,actual_native_entries=0,actual_private_controls=0,
      old_results_inherited=False,full_public_backend=False,actual_Core_admission_join=False,
      public_foreign_Graph_capture=False,public_Emitter_join=False,
      standalone_preservation_witness_JSON=False,installed=False,cold=False)
  try:
   context=common.prepare()
-  mine=Path(context["base"])/"checked-machine-plan-recovery-r2";mine.mkdir()
+  mine=Path(context["base"])/"checked-machine-plan-recovery-r3";mine.mkdir()
   project=mine/"native-checked-plan-next";project.mkdir()
   for row in FILES:
    source=common.materialize(SOURCE_PREFIX+row["path"],row["gitsha"],project/row["path"])
@@ -332,6 +424,9 @@ def main():
   schedule_assign=next(n for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=="SCHEDULE" for t in n.targets))
   assert ast.literal_eval(schedule_assign.value)==SCHEDULE
   env=dict(PYTHONDONTWRITEBYTECODE="1",PYTHONPATH=context["reference"],LC_ALL="C.UTF-8",LANG="C.UTF-8")
+  assert len(RETAINED)==21 and sum(r[2] for r in RETAINED)==355 and sum(r[3] for r in RETAINED)==0
+  assert len(REMAINING)==34 and sum(r[2] for r in REMAINING)==324 and sum(r[3] for r in REMAINING)==119
+  prior=prior_readback_gate(project,context,common,env,report)
   roles={};pairs={}
   for i,component in enumerate(COMPONENTS,1):
    build=project/"development"/("build-"+component+"-r2")
@@ -368,16 +463,23 @@ def main():
    if component in WIRE:expected_author=WIRE[component]["sha256"]
    assert m["author_sha256"]==expected_author
    report["builds"][component]["independent_gate_readback"]=gates(build,m)
+   for kind in("source","image"):
+    exact_file_equal(m[kind+"_path"],prior["actual_source_image_pairs"][component][kind]["path"])
+   report["builds"][component]["full_prior47_HIA_and_image_byte_equal"]=True
    if component in WIRE:
     report["builds"][component]["independent_SSA_inverse_readback"]=alpha_readback(build,m)
    roles[str(i)]=dict(name=component,manifest=m)
    pairs[component]={kind:dict(path=m[kind+"_path"],bytes=m[kind+"_bytes"],sha256=m[kind+"_sha256"],
          mode=stat.S_IMODE(Path(m[kind+"_path"]).stat().st_mode)) for kind in("source","image")}
   assert report["actual_compilations"]==5
+  assert all(v["full_prior47_HIA_and_image_byte_equal"] for v in report["builds"].values())
+  report["prior_complete_groups_credited"]=prior["complete_groups"]
+  report["prior_credited_cases"]=355;report["prior_credited_native_entries"]=15886
+  report["prior_credited_private_controls"]=0;report["old_results_inherited"]=True
   assets=project/"development/runtime-assets.json"
   save(assets,dict(schema="hia-plan-development-runtime-assets-v1",roles=roles,
        actual_fresh_B3_compilations=5,old_results_inherited=False))
-  for group,variant,count,private in SCHEDULE:
+  for group,variant,count,private in REMAINING:
    label=group+"-"+str(variant);out=project/"development"/("native-"+label+"-r2")
    try:
     common.run("checked-plan-native-"+label,[context["python"],"-B",project/"tests/test_hia_checked_plan.py",
@@ -402,18 +504,27 @@ def main():
        "actual_native_Core_admission_join","public_foreign_graph_capture",
        "public_emitter_join","standalone_preservation_witness_JSON","installed","cold","all_prior_pass_counts_inherited"))
    report["groups"][label]["independent_case_readback"]=case_rows(out,value)
-  assert (len(report["groups"]),report["actual_cases"],report["actual_private_controls"])==(55,679,119)
-  error_codes=sorted({x for group in report["groups"].values() for x in group["covered_public_error_codes"]})
+  assert (len(report["groups"]),report["actual_cases"],report["actual_private_controls"])==(34,324,119)
+  union_inventory=[[r["group"],r["variant"],r["cases"],r["private_controls"]] for r in prior["complete_groups"]]+REMAINING
+  assert union_inventory==SCHEDULE and len({(r[0],r[1]) for r in union_inventory})==55
+  error_codes=sorted({x for group in list(report["groups"].values())+prior["complete_groups"] for x in group["covered_public_error_codes"]})
   assert error_codes==list(range(1,23))
   for component,pair in pairs.items():
    for kind,row in pair.items():
     assert identity(row["path"])=={k:row[k] for k in("bytes","sha256")}
     assert stat.S_IMODE(Path(row["path"]).stat().st_mode)==row["mode"]
+    exact_file_equal(row["path"],prior["actual_source_image_pairs"][component][kind]["path"])
   for row in FILES:
    raw=(project/row["path"]).read_bytes()
    assert (len(raw),digest(raw),git_blob(raw))==(row["bytes"],row["sha256"],row["gitsha"])
    assert stat.S_IMODE((project/row["path"]).stat().st_mode)==(int(row["mode"],8)&0o777)
-  report.update(status="PASS",all_original_22_error_texts_exercised=True,
+  report.update(status="PASS",all_original_22_error_texts_exercised_across_distinct_runs=True,
+      union_inventory=union_inventory,union_groups=55,union_cases=679,union_private_controls=119,
+      union_native_entries=15886+report["actual_native_entries"],
+      prior47_complete_source_image_readback_and_fresh_before_after_equal=True,
+      fresh_complete_groups=34,fresh_complete_cases=324,fresh_private_controls=119,
+      original_interval_partial20_observations_excluded_from_union=True,
+      full_original55_inventory_coverage_without_duplicate_group_credit=True,
       all_five_production_sources_images_before_after_equal=True,actual_source_image_pairs=pairs,
       actual_by_role={str(i):sum(v["by_role"][str(i)] for v in report["groups"].values()) for i in range(1,6)},
       canonical_HIA_document_profile_image_and_receipts_retained=True,
@@ -427,6 +538,6 @@ def main():
  finally:
   roots={}
   if project is not None and project.exists():roots["checked-plan"]=project
-  seal.finish(common,"checked-machine-plan-r2",status,report,roots=roots)
+  seal.finish(common,"checked-machine-plan-remaining34-r3",status,report,roots=roots)
  if status!="PASS":raise SystemExit(1)
 if __name__=="__main__":main()

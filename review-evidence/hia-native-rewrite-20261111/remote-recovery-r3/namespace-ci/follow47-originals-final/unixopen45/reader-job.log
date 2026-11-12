@@ -1,0 +1,293 @@
+﻿2026-11-12T11:23:21.8211975Z Current runner version: '2.338.2'
+2026-11-12T11:23:21.8235300Z ##[group]Runner Image Provisioner
+2026-11-12T11:23:21.8236015Z Hosted Compute Agent
+2026-11-12T11:23:21.8236643Z Version: 20261028.624
+2026-11-12T11:23:21.8237189Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-12T11:23:21.8238181Z Build Date: 2026-10-28T21:51:42Z
+2026-11-12T11:23:21.8238783Z Worker ID: {4b508990-a601-4ada-994a-f76afdb54cc9}
+2026-11-12T11:23:21.8239396Z Region: westus3
+2026-11-12T11:23:21.8239955Z Cloud: Azure
+2026-11-12T11:23:21.8240418Z ##[endgroup]
+2026-11-12T11:23:21.8241999Z ##[group]Operating System
+2026-11-12T11:23:21.8242561Z Ubuntu
+2026-11-12T11:23:21.8243024Z 24.04.5
+2026-11-12T11:23:21.8243531Z LTS
+2026-11-12T11:23:21.8243977Z ##[endgroup]
+2026-11-12T11:23:21.8244430Z ##[group]Runner Image
+2026-11-12T11:23:21.8245063Z Image: ubuntu-24.04
+2026-11-12T11:23:21.8245615Z Version: 20261101.360.1
+2026-11-12T11:23:21.8246688Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-12T11:23:21.8247951Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-12T11:23:21.8248856Z ##[endgroup]
+2026-11-12T11:23:21.8249832Z ##[group]GITHUB_TOKEN Permissions
+2026-11-12T11:23:21.8252010Z Actions: read
+2026-11-12T11:23:21.8252532Z Contents: read
+2026-11-12T11:23:21.8253077Z Metadata: read
+2026-11-12T11:23:21.8253556Z ##[endgroup]
+2026-11-12T11:23:21.8255375Z Secret source: Actions
+2026-11-12T11:23:21.8256264Z Cache mode: write
+2026-11-12T11:23:21.8256847Z Prepare workflow directory
+2026-11-12T11:23:21.8596222Z Prepare all required actions
+2026-11-12T11:23:21.8651355Z Getting action download info
+2026-11-12T11:23:22.1776868Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-12T11:23:22.2878422Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-12T11:23:22.5105275Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+2026-11-12T11:23:23.1562251Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-12T11:23:23.5117729Z Complete job name: Read complete original UnixOpen45 authoring failure without target execution
+2026-11-12T11:23:23.5750370Z ##[group]Run set -euo pipefail
+2026-11-12T11:23:23.5750971Z [36;1mset -euo pipefail[0m
+2026-11-12T11:23:23.5751826Z [36;1m. /etc/os-release[0m
+2026-11-12T11:23:23.5752237Z [36;1mtest "$ID" = ubuntu[0m
+2026-11-12T11:23:23.5752664Z [36;1mtest "$VERSION_ID" = 24.04[0m
+2026-11-12T11:23:23.5753115Z [36;1mtest "$(uname -m)" = x86_64[0m
+2026-11-12T11:23:23.5753583Z [36;1mtest "${ImageOS:?}" = ubuntu24[0m
+2026-11-12T11:23:23.5754500Z [36;1mprintf 'HIA_RUNNER_DOMAIN id=%s version=%s architecture=%s image=%s image_version=%s\n' "$ID" "$VERSION_ID" "$(uname -m)" "$ImageOS" "${ImageVersion:?}"[0m
+2026-11-12T11:23:23.5776837Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T11:23:23.5777601Z env:
+2026-11-12T11:23:23.5777973Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:23.5778377Z ##[endgroup]
+2026-11-12T11:23:23.5907845Z HIA_RUNNER_DOMAIN id=ubuntu version=24.04 architecture=x86_64 image=ubuntu24 image_version=20261101.360.1
+2026-11-12T11:23:23.6102808Z ##[group]Run actions/checkout@v4
+2026-11-12T11:23:23.6103326Z with:
+2026-11-12T11:23:23.6103671Z   fetch-depth: 1
+2026-11-12T11:23:23.6104052Z   persist-credentials: false
+2026-11-12T11:23:23.6104506Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T11:23:23.6107575Z   token: ***
+2026-11-12T11:23:23.6107934Z   ssh-strict: true
+2026-11-12T11:23:23.6108299Z   ssh-user: git
+2026-11-12T11:23:23.6108654Z   clean: true
+2026-11-12T11:23:23.6109012Z   sparse-checkout-cone-mode: true
+2026-11-12T11:23:23.6109437Z   fetch-tags: false
+2026-11-12T11:23:23.6109798Z   show-progress: true
+2026-11-12T11:23:23.6110158Z   lfs: false
+2026-11-12T11:23:23.6110495Z   submodules: false
+2026-11-12T11:23:23.6110880Z   set-safe-directory: true
+2026-11-12T11:23:23.6111682Z   allow-unsafe-pr-checkout: false
+2026-11-12T11:23:23.6112095Z env:
+2026-11-12T11:23:23.6112441Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:23.6112837Z ##[endgroup]
+2026-11-12T11:23:23.8462405Z Syncing repository: TrillionniumFoundation/Hepta
+2026-11-12T11:23:23.8463996Z ##[group]Getting Git version info
+2026-11-12T11:23:23.8464543Z Working directory is '/home/runner/work/Hepta/Hepta'
+2026-11-12T11:23:23.8465324Z [command]/usr/bin/git version
+2026-11-12T11:23:23.8983231Z git version 2.56.0
+2026-11-12T11:23:23.8987751Z ##[endgroup]
+2026-11-12T11:23:23.9005608Z Temporarily overriding HOME='/home/runner/work/_temp/d197174a-7ddb-4b68-9b8f-1a8fdec73772' before making global git config changes
+2026-11-12T11:23:23.9012418Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:23:23.9014008Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T11:23:23.9214437Z Deleting the contents of '/home/runner/work/Hepta/Hepta'
+2026-11-12T11:23:23.9218137Z ##[group]Initializing the repository
+2026-11-12T11:23:23.9219905Z [command]/usr/bin/git init /home/runner/work/Hepta/Hepta
+2026-11-12T11:23:23.9539179Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-12T11:23:23.9540272Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-12T11:23:23.9541214Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-12T11:23:23.9541826Z hint: call:
+2026-11-12T11:23:23.9542154Z hint:
+2026-11-12T11:23:23.9542603Z hint: 	git config --global init.defaultBranch <name>
+2026-11-12T11:23:23.9543116Z hint:
+2026-11-12T11:23:23.9543744Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-12T11:23:23.9544739Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-12T11:23:23.9545367Z hint:
+2026-11-12T11:23:23.9545707Z hint: 	git branch -m <name>
+2026-11-12T11:23:23.9546116Z hint:
+2026-11-12T11:23:23.9546618Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-12T11:23:23.9547415Z Initialized empty Git repository in /home/runner/work/Hepta/Hepta/.git/
+2026-11-12T11:23:23.9555273Z [command]/usr/bin/git remote add origin https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:23:23.9603566Z ##[endgroup]
+2026-11-12T11:23:23.9604221Z ##[group]Disabling automatic garbage collection
+2026-11-12T11:23:23.9606654Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-12T11:23:23.9717453Z ##[endgroup]
+2026-11-12T11:23:23.9718734Z ##[group]Setting up auth
+2026-11-12T11:23:23.9719479Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:23:23.9721552Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:23:24.0008766Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:23:24.0047011Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:23:24.0257598Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:23:24.0298640Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:23:24.0508603Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-12T11:23:24.0660779Z ##[endgroup]
+2026-11-12T11:23:24.0662018Z ##[group]Fetching the repository
+2026-11-12T11:23:24.0672955Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +58a5b2b462d312f77f9b0431aa230a7bfa1af993:refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T11:23:37.4889584Z From https://github.com/TrillionniumFoundation/Hepta
+2026-11-12T11:23:37.4890550Z  * [new ref]         58a5b2b462d312f77f9b0431aa230a7bfa1af993 -> origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T11:23:37.4893891Z ##[endgroup]
+2026-11-12T11:23:37.4894535Z ##[group]Determining the checkout info
+2026-11-12T11:23:37.4897775Z ##[endgroup]
+2026-11-12T11:23:37.4908554Z [command]/usr/bin/git sparse-checkout disable
+2026-11-12T11:23:37.4967571Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-12T11:23:37.5002142Z ##[group]Checking out the ref
+2026-11-12T11:23:37.5006807Z [command]/usr/bin/git checkout --progress --force -B recovery/hia-function-9acdfa-20261111 refs/remotes/origin/recovery/hia-function-9acdfa-20261111
+2026-11-12T11:23:38.5130832Z Updating files:  87% (5722/6529)
+2026-11-12T11:23:38.5169433Z Updating files:  88% (5746/6529)
+2026-11-12T11:23:38.5214954Z Updating files:  89% (5811/6529)
+2026-11-12T11:23:38.5253318Z Updating files:  90% (5877/6529)
+2026-11-12T11:23:38.5291269Z Updating files:  91% (5942/6529)
+2026-11-12T11:23:38.5332119Z Updating files:  92% (6007/6529)
+2026-11-12T11:23:38.5377331Z Updating files:  93% (6072/6529)
+2026-11-12T11:23:38.5418680Z Updating files:  94% (6138/6529)
+2026-11-12T11:23:38.5446041Z Updating files:  95% (6203/6529)
+2026-11-12T11:23:38.5494848Z Updating files:  96% (6268/6529)
+2026-11-12T11:23:38.5537839Z Updating files:  97% (6334/6529)
+2026-11-12T11:23:38.5588874Z Updating files:  98% (6399/6529)
+2026-11-12T11:23:38.5645632Z Updating files:  99% (6464/6529)
+2026-11-12T11:23:38.5646077Z Updating files: 100% (6529/6529)
+2026-11-12T11:23:38.5651973Z Updating files: 100% (6529/6529), done.
+2026-11-12T11:23:38.5728361Z Switched to a new branch 'recovery/hia-function-9acdfa-20261111'
+2026-11-12T11:23:38.5849568Z branch 'recovery/hia-function-9acdfa-20261111' set up to track 'origin/recovery/hia-function-9acdfa-20261111'.
+2026-11-12T11:23:38.5965041Z ##[endgroup]
+2026-11-12T11:23:38.6015802Z [command]/usr/bin/git log -1 --format=%H
+2026-11-12T11:23:38.6049309Z 58a5b2b462d312f77f9b0431aa230a7bfa1af993
+2026-11-12T11:23:38.6058633Z ##[group]Removing auth
+2026-11-12T11:23:38.6062576Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:23:38.6099562Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:23:38.6322035Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:23:38.6353181Z http.https://github.com/.extraheader
+2026-11-12T11:23:38.6359294Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-12T11:23:38.6397038Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:23:38.6614077Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:23:38.6653465Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:23:38.6869525Z ##[endgroup]
+2026-11-12T11:23:38.7369850Z ##[group]Run actions/setup-python@v5
+2026-11-12T11:23:38.7370105Z with:
+2026-11-12T11:23:38.7370292Z   python-version: 3.12.14
+2026-11-12T11:23:38.7370496Z   check-latest: false
+2026-11-12T11:23:38.7372606Z   token: ***
+2026-11-12T11:23:38.7372797Z   update-environment: true
+2026-11-12T11:23:38.7373007Z   allow-prereleases: false
+2026-11-12T11:23:38.7373213Z   freethreaded: false
+2026-11-12T11:23:38.7373392Z env:
+2026-11-12T11:23:38.7373561Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:38.7373759Z ##[endgroup]
+2026-11-12T11:23:38.8507735Z ##[group]Installed versions
+2026-11-12T11:23:38.8682268Z Version 3.12.14 was not found in the local cache
+2026-11-12T11:23:38.8898584Z (node:2228) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:23:38.8899568Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:23:40.0622699Z Version 3.12.14 is available for downloading
+2026-11-12T11:23:40.0623667Z Download from "https://github.com/actions/python-versions/releases/download/3.12.14-31661455385/python-3.12.14-linux-24.04-x64.tar.gz"
+2026-11-12T11:23:40.7367287Z Extract downloaded archive
+2026-11-12T11:23:40.7476431Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/f18c8f6b-0631-4890-9bae-736c2b03bdda -f /home/runner/work/_temp/a4cf6101-1e7f-40e2-a755-41e6c2a37126
+2026-11-12T11:23:42.3903834Z Execute installation script
+2026-11-12T11:23:42.3998001Z Check if Python hostedtoolcache folder exist...
+2026-11-12T11:23:42.3998612Z Create Python 3.12.14 folder
+2026-11-12T11:23:42.4010007Z Copy Python binaries to hostedtoolcache folder
+2026-11-12T11:23:42.7683625Z Create additional symlinks (Required for the UsePythonVersion Azure Pipelines task and the setup-python GitHub Action)
+2026-11-12T11:23:42.7720056Z Upgrading pip...
+2026-11-12T11:23:44.3295402Z Collecting pip
+2026-11-12T11:23:44.3771772Z Downloading pip-26.3-py3-none-any.whl.metadata (4.6 kB)
+2026-11-12T11:23:44.3909893Z Downloading pip-26.3-py3-none-any.whl (2.0 MB)
+2026-11-12T11:23:44.4500399Z ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.0/2.0 MB 49.4 MB/s eta 0:00:00
+2026-11-12T11:23:44.4500778Z 
+2026-11-12T11:23:44.4657262Z Installing collected packages: pip
+2026-11-12T11:23:44.4657705Z Attempting uninstall: pip
+2026-11-12T11:23:44.4673742Z Found existing installation: pip 25.0.1
+2026-11-12T11:23:44.4930887Z Uninstalling pip-25.0.1:
+2026-11-12T11:23:44.4977552Z Successfully uninstalled pip-25.0.1
+2026-11-12T11:23:45.3058682Z Successfully installed pip-26.3
+2026-11-12T11:23:45.3712087Z Create complete file
+2026-11-12T11:23:45.3745884Z Successfully set up CPython (3.12.14)
+2026-11-12T11:23:45.3747144Z ##[endgroup]
+2026-11-12T11:23:45.3955056Z ##[group]Run actions/download-artifact@v4
+2026-11-12T11:23:45.3955308Z with:
+2026-11-12T11:23:45.3955481Z   artifact-ids: 13935987059
+2026-11-12T11:23:45.3955679Z   run-id: 43201563676
+2026-11-12T11:23:45.3957567Z   github-token: ***
+2026-11-12T11:23:45.3957831Z   path: /home/runner/work/_temp/hia-unixopen-follow45-originals
+2026-11-12T11:23:45.3958118Z   merge-multiple: false
+2026-11-12T11:23:45.3958334Z   repository: TrillionniumFoundation/Hepta
+2026-11-12T11:23:45.3958559Z env:
+2026-11-12T11:23:45.3958728Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:45.3958982Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:45.3959349Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T11:23:45.3959692Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:45.3959995Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:45.3960347Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:45.3960647Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T11:23:45.3960899Z ##[endgroup]
+2026-11-12T11:23:45.5264215Z Downloading artifacts by ID
+2026-11-12T11:23:45.5268256Z Fetching artifact list for workflow run 43201563676 in repository TrillionniumFoundation/Hepta
+2026-11-12T11:23:45.5345397Z (node:2283) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:23:45.5346270Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:23:45.5498812Z (node:2283) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T11:23:45.9402724Z Found 4 artifact(s)
+2026-11-12T11:23:45.9403375Z Preparing to download the following artifacts:
+2026-11-12T11:23:45.9404403Z - hia-namespace-unixopen-native-parent-recovery-43201563676-1 (ID: 13935987059, Size: 58378569, Expected Digest: sha256:32be8415df27b414d445f9399449891cdfe4611794bca01a0002b99ffbdf6509)
+2026-11-12T11:23:45.9436762Z Downloading artifact '13935987059' from 'TrillionniumFoundation/Hepta'
+2026-11-12T11:23:46.3268217Z Redirecting to blob download url: https://productionresultssa7.blob.core.windows.net/actions-results/b5cfc69b-b4a7-8192-abfa-292ba04ac8e8/workflow-job-run-e4dca3ea-3039-5591-804a-082b2756ddb4/artifacts/e232b2fb09674fec4af5e3ed599217647649657edba0377935ad3fb6f7697c0e.zip
+2026-11-12T11:23:46.3270508Z Starting download of artifact to: /home/runner/work/_temp/hia-unixopen-follow45-originals/hia-namespace-unixopen-native-parent-recovery-43201563676-1
+2026-11-12T11:23:46.5881483Z (node:2283) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-11-12T11:23:48.4981428Z SHA256 digest of downloaded artifact is 32be8415df27b414d445f9399449891cdfe4611794bca01a0002b99ffbdf6509
+2026-11-12T11:23:48.4982160Z Artifact download completed successfully.
+2026-11-12T11:23:48.4982550Z Total of 1 artifact(s) downloaded
+2026-11-12T11:23:48.4987867Z Download artifact has finished successfully
+2026-11-12T11:23:48.5143665Z ##[group]Run timeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py 2>&1 | tee "$RUNNER_TEMP/hia-unixopen-follow45-readback-driver.log"
+2026-11-12T11:23:48.5145129Z [36;1mtimeout --signal=TERM --kill-after=5s 180s python -B review-evidence/hia-native-rewrite-20261111/remote-recovery-r3/namespace-ci/unixopen-follow45-original-readback/read_unixopen_follow45.py 2>&1 | tee "$RUNNER_TEMP/hia-unixopen-follow45-readback-driver.log"[0m
+2026-11-12T11:23:48.5164730Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-12T11:23:48.5165017Z env:
+2026-11-12T11:23:48.5165197Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:48.5165457Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:48.5165789Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T11:23:48.5166156Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:48.5166465Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:48.5166757Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:48.5167055Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T11:23:48.5167444Z   HIA_NAMESPACE_UNIXOPEN45_ORIGINALS: /home/runner/work/_temp/hia-unixopen-follow45-originals
+2026-11-12T11:23:48.5167925Z   HIA_NAMESPACE_UNIXOPEN45_READBACK_OUTPUT: /home/runner/work/_temp/hia-unixopen-follow45-readback
+2026-11-12T11:23:48.5168280Z ##[endgroup]
+2026-11-12T11:23:49.2380826Z HIA_UNIXOPEN45_RAW_SUMMARY {"base64": "ewogICJDUFVfbnMiOiAxNTUyNjIxNjUsCiAgIkNfY2FzZXMiOiAwLAogICJWTV9lbnRyaWVzIjogMCwKICAiYWN0dWFsX2lzc3VlZF9uYW1lc3BhY2VfYXV0aG9yaXRpZXMiOiAwLAogICJhY3R1YWxfbGltaXRzIjogewogICAgImFkZHJlc3MiOiBbCiAgICAgIDEwNzM3NDE4MjQsCiAgICAgIDEwNzM3NDE4MjQKICAgIF0sCiAgICAiY29yZSI6IFsKICAgICAgMCwKICAgICAgMAogICAgXSwKICAgICJjcHUiOiBbCiAgICAgIDkwLAogICAgICA5MAogICAgXQogIH0sCiAgImFjdHVhbF9uYW1lc3BhY2Vfc3lzY2FsbHMiOiAwLAogICJjYXNlc19jb21wbGV0ZWQiOiBbXSwKICAiZXJyb3IiOiAiQnJlYWsoKSIsCiAgImVycm9yX2NsYXNzIjogIlZhbHVlRXJyb3IiLAogICJmYWlsdXJlcyI6IFtdLAogICJmcmVzaF9CM19jb21waWxlcyI6IDAsCiAgImluaGVyaXRlZF9jb3VudHMiOiBmYWxzZSwKICAibGltaXRzIjogewogICAgIlZNX2FyZW5hX2J5dGVzIjogMzM1NTQ0MzIsCiAgICAiVk1fc3RlcHMiOiA0MDAwMDAwLAogICAgImFkZHJlc3NfYnl0ZXMiOiAxMDczNzQxODI0LAogICAgImNvcmVfYnl0ZXMiOiAwLAogICAgImNwdV9zZWNvbmRzIjogOTAsCiAgICAid2FsbF9zZWNvbmRzIjogMTgwCiAgfSwKICAibW9kZSI6ICJidWlsZCIsCiAgIm5hdGl2ZV9lbnRyaWVzIjogMCwKICAicHJvdG9jb2xfY29udHJvbHMiOiAwLAogICJzY2hlbWEiOiAiaGlhLm5hbWVzcGFjZS51bml4b3Blbi5wYXJlbnQuY29tcG9uZW50LnYxIiwKICAic2NvcGUiOiAiT1JJR0lOQUxfQ19DT05UUk9MX0ZMT1dfV0lUSF9FWFBMSUNJVF9GT1JFSUdOX0VGRkVDVFNfTk9UX09SRElOQVJZX1NUT1JFIiwKICAic291cmNlX3BpbnMiOiBbCiAgICB7CiAgICAgICJieXRlcyI6IDIyMzUsCiAgICAgICJtb2RlIjogNDIwLAogICAgICAicGF0aCI6ICIvaG9tZS9ydW5uZXIvd29yay9fdGVtcC9oaWEtbmFtZXNwYWNlLXVuaXhvcGVuLW5hdGl2ZS1wYXJlbnQtcmVjb3ZlcnkvdW5peG9wZW4tbmF0aXZlLXBhcmVudC1yMS9jb250ZXh0Lmpzb24iLAogICAgICAic2hhMjU2IjogIjdhZDNhMWUyZDkzNTRiODllZTc3MmI0NjQ1N2EwODExNTM3NmE4MWY2MTlhMjkwZmM0MjQyMDJkMjVkYjM0OTEiCiAgICB9LAogICAgewogICAgICAiYnl0ZXMiOiAyNDg3NywKICAgICAgIm1vZGUiOiA0MjAsCiAgICAgICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9uYW1lc3BhY2UtdW5peG9wZW4tdmFsaWRhdGUucHkiLAogICAgICAic2hhMjU2IjogImNiNjA5ZDVjMDMyNWNjYTQxODEyZDhmZWNkYzQ3NjRiYzAxYzgzMDFjYTcwYjJmMjVmMmJjMjlkMWRiZDgxMzEiCiAgICB9LAogICAgewogICAgICAiYnl0ZXMiOiAxMTYyMywKICAgICAgIm1vZGUiOiA0MjAsCiAgICAgICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL3Rvb2xzL2dlbmVyYXRlX2hpYV9hZ2VudF9uYW1lc3BhY2Vfc3RvcmUucHkiLAogICAgICAic2hhMjU2IjogIjdjM2YwMjk5MjkxY2Y0Yjk5ZDVjMjI5NjM1MWRjZmQ1ZTQ3MTUwN2Q0OTAzYWI5ZGExNzE0MjBjMTI2YzVjNTAiCiAgICB9LAogICAgewogICAgICAiYnl0ZXMiOiAyNzgwMiwKICAgICAgIm1vZGUiOiA0MjAsCiAgICAgICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL3Rvb2xzL2dlbmVyYXRlX2hpYV9hZ2VudF9uYW1lc3BhY2Vfb2JqZWN0cy5weSIsCiAgICAgICJzaGEyNTYiOiAiMjMyMGEwMzYzZDMxMmYxZjA3YjQ4Y2MzNzBmMDZhYzdkYmFlZGVmYTI4NDM3YzI4MjMwZmZmNmZiYTRkYzNkZSIKICAgIH0sCiAgICB7CiAgICAgICJieXRlcyI6IDk3NjYsCiAgICAgICJtb2RlIjogNDIwLAogICAgICAicGF0aCI6ICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9uYW1lc3BhY2UtdW5peG9wZW4tcGFyZW50LXIxLXNvdXJjZS9pbnB1dHMvbmFtZXNwYWNlLXVuaXhvcGVuLWZpeHR1cmVzLnB5IiwKICAgICAgInNoYTI1NiI6ICJlNDMwOTk3NmZkY2YzNGMwMjUzZmFjMjY1ZmNjMDkyNDQ0ZGQyYzM5N2M5NzdlNmUxYjVhMTQ1OTc0ZjYzY2RjIgogICAgfSwKICAgIHsKICAgICAgImJ5dGVzIjogMTgxOTEsCiAgICAgICJtb2RlIjogNDIwLAogICAgICAicGF0aCI6ICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9uYW1lc3BhY2UtdW5peG9wZW4tcGFyZW50LXIxLXNvdXJjZS9pbnB1dHMvbmFtZXNwYWNlLXVuaXhvcGVuLW9yaWdpbmFsLWMtcmVmZXJlbmNlLnB5IiwKICAgICAgInNoYTI1NiI6ICIzYjAyMzk0MWE4MmQyMmU5M2M5YmRiY2YyMDNiMmFkYWU1NWI0MmRhNjlhZGVkZWE5ODEyNmZiNDY3YzVjNjkzIgogICAgfSwKICAgIHsKICAgICAgImJ5dGVzIjogMjgzODQzLAogICAgICAibW9kZSI6IDQyMCwKICAgICAgInBhdGgiOiAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvaW5wdXRzL2RlcGVuZGVuY2llcy9vc191bml4XzM0NjFfb3JpZ2luYWwuYyIsCiAgICAgICJzaGEyNTYiOiAiODNlNGY5OTVjMGNmYzEzNjJiNDYzMjBkOTc5YjM4MzQ5YWM1YjFjNmE3YzBiMTJjYmMyYzQ1NzdjNmMxM2VmOSIKICAgIH0sCiAgICB7CiAgICAgICJieXRlcyI6IDI1MTYzLAogICAgICAibW9kZSI6IDQyMCwKICAgICAgInBhdGgiOiAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvdG9vbHMvZ2VuZXJhdGVfaGlhX2FnZW50X25hbWVzcGFjZV91bml4b3Blbl9wYXJlbnQucHkiLAogICAgICAic2hhMjU2IjogImJkMzg0NzllY2IxNTMyNjM0ZTk3NWM5YTg4MmI5NmJmMDNmYjljMTRjMDFkNzhlMjg1YjgzMjQ0MzQ2NWRkYjAiCiAgICB9CiAgXSwKICAic291cmNlX3BpbnNfdW5jaGFuZ2VkIjogdHJ1ZSwKICAic3RhdHVzIjogIkZBSUwiLAogICJ0cmFjZWJhY2siOiAiVHJhY2ViYWNrIChtb3N0IHJlY2VudCBjYWxsIGxhc3QpOlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvaW5wdXRzL25hbWVzcGFjZS11bml4b3Blbi12YWxpZGF0ZS5weVwiLCBsaW5lIDg0LCBpbiBtYWluXG4gICAgZG9jdW1lbnQ9YXV0aG9yLmRvY3VtZW50KClcbiAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvdG9vbHMvZ2VuZXJhdGVfaGlhX2FnZW50X25hbWVzcGFjZV91bml4b3Blbl9wYXJlbnQucHlcIiwgbGluZSA3MzcsIGluIGRvY3VtZW50XG4gICAgYj1PYmplY3RCdWlsZGVyKG5vZGUsbmFtZXMsc2lnbmF0dXJlcyx0b3RhbCk7Yi5zdGF0ZW1lbnRzKG5vZGUuYm9keSlcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weVwiLCBsaW5lIDE5ODYsIGluIHN0YXRlbWVudHNcbiAgICBzZWxmLmJsb2NrLHNlbGYuZW52PXllcyx5ZTsgc2VsZi5zdGF0ZW1lbnRzKHMuYm9keSk7IHliLHllbmQ9c2VsZi5ibG9jayxkaWN0KHNlbGYuZW52KVxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weVwiLCBsaW5lIDIwMTAsIGluIHN0YXRlbWVudHNcbiAgICBzZWxmLmJsb2NrLHNlbGYuZW52PWJvZHksYmU7IHNlbGYuc3RhdGVtZW50cyhzLmJvZHkpXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weVwiLCBsaW5lIDE5ODYsIGluIHN0YXRlbWVudHNcbiAgICBzZWxmLmJsb2NrLHNlbGYuZW52PXllcyx5ZTsgc2VsZi5zdGF0ZW1lbnRzKHMuYm9keSk7IHliLHllbmQ9c2VsZi5ibG9jayxkaWN0KHNlbGYuZW52KVxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlxuICBGaWxlIFwiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weVwiLCBsaW5lIDIwMTMsIGluIHN0YXRlbWVudHNcbiAgICBlbHNlOiByYWlzZSBWYWx1ZUVycm9yKGFzdC5kdW1wKHMpKVxuICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXG5WYWx1ZUVycm9yOiBCcmVhaygpXG4iLAogICJ3YWxsX25zIjogMTYyNTMxNjQ3LAogICJ3aG9sZV9zdG9yZV9jbG9zZWQiOiBmYWxzZQp9Cg==", "bytes": 4954, "git": "4300ac70db9b724d811e637e570e7cc267dd8697", "sha256": "06a811f886313934d0f0a5cac9728707dda2772adaa273562d54a81e004b46cb"}
+2026-11-12T11:23:49.2728317Z HIA_UNIXOPEN45_RAW_STREAM {"base64": "VHJhY2ViYWNrIChtb3N0IHJlY2VudCBjYWxsIGxhc3QpOgogIEZpbGUgIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9uYW1lc3BhY2UtdW5peG9wZW4tdmFsaWRhdGUucHkiLCBsaW5lIDg0LCBpbiBtYWluCiAgICBkb2N1bWVudD1hdXRob3IuZG9jdW1lbnQoKQogICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl4KICBGaWxlICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9uYW1lc3BhY2UtdW5peG9wZW4tcGFyZW50LXIxLXNvdXJjZS90b29scy9nZW5lcmF0ZV9oaWFfYWdlbnRfbmFtZXNwYWNlX3VuaXhvcGVuX3BhcmVudC5weSIsIGxpbmUgNzM3LCBpbiBkb2N1bWVudAogICAgYj1PYmplY3RCdWlsZGVyKG5vZGUsbmFtZXMsc2lnbmF0dXJlcyx0b3RhbCk7Yi5zdGF0ZW1lbnRzKG5vZGUuYm9keSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eCiAgRmlsZSAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weSIsIGxpbmUgMTk4NiwgaW4gc3RhdGVtZW50cwogICAgc2VsZi5ibG9jayxzZWxmLmVudj15ZXMseWU7IHNlbGYuc3RhdGVtZW50cyhzLmJvZHkpOyB5Yix5ZW5kPXNlbGYuYmxvY2ssZGljdChzZWxmLmVudikKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXgogIEZpbGUgIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL3Jvb3QtcmVjb3ZlcnkvcmVmZXJlbmNlLTBlZi1yMi90b29scy9nZW5lcmF0ZV9oaWFfc2VsZmhvc3QucHkiLCBsaW5lIDIwMTAsIGluIHN0YXRlbWVudHMKICAgIHNlbGYuYmxvY2ssc2VsZi5lbnY9Ym9keSxiZTsgc2VsZi5zdGF0ZW1lbnRzKHMuYm9keSkKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl4KICBGaWxlICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9yb290LXJlY292ZXJ5L3JlZmVyZW5jZS0wZWYtcjIvdG9vbHMvZ2VuZXJhdGVfaGlhX3NlbGZob3N0LnB5IiwgbGluZSAxOTg2LCBpbiBzdGF0ZW1lbnRzCiAgICBzZWxmLmJsb2NrLHNlbGYuZW52PXllcyx5ZTsgc2VsZi5zdGF0ZW1lbnRzKHMuYm9keSk7IHliLHllbmQ9c2VsZi5ibG9jayxkaWN0KHNlbGYuZW52KQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eCiAgRmlsZSAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvcm9vdC1yZWNvdmVyeS9yZWZlcmVuY2UtMGVmLXIyL3Rvb2xzL2dlbmVyYXRlX2hpYV9zZWxmaG9zdC5weSIsIGxpbmUgMjAxMywgaW4gc3RhdGVtZW50cwogICAgZWxzZTogcmFpc2UgVmFsdWVFcnJvcihhc3QuZHVtcChzKSkKICAgICAgICAgIF5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eClZhbHVlRXJyb3I6IEJyZWFrKCkK", "bytes": 1668, "git": "769f1a363c5767445da45455e0a1152a86cb99e0", "member": "run/steps/unixopen-parent-fresh-HIA-B3-and-original-six-body-C/stderr.log", "sha256": "909c84247e193f967f3bc6afe40a3633b32dccbf58c1dbdd279910a8fb0f0237"}
+2026-11-12T11:23:49.3017289Z HIA_UNIXOPEN45_RAW_STREAM {"base64": "SElBX1VOSVhPUEVOX1BBUkVOVF9SRVNVTFQgeyJDUFVfbnMiOiAxNTUyNjIxNjUsICJDX2Nhc2VzIjogMCwgIlZNX2VudHJpZXMiOiAwLCAiYWN0dWFsX2lzc3VlZF9uYW1lc3BhY2VfYXV0aG9yaXRpZXMiOiAwLCAiYWN0dWFsX2xpbWl0cyI6IHsiYWRkcmVzcyI6IFsxMDczNzQxODI0LCAxMDczNzQxODI0XSwgImNvcmUiOiBbMCwgMF0sICJjcHUiOiBbOTAsIDkwXX0sICJhY3R1YWxfbmFtZXNwYWNlX3N5c2NhbGxzIjogMCwgImNhc2VzX2NvbXBsZXRlZCI6IFtdLCAiZXJyb3IiOiAiQnJlYWsoKSIsICJlcnJvcl9jbGFzcyI6ICJWYWx1ZUVycm9yIiwgImZhaWx1cmVzIjogW10sICJmcmVzaF9CM19jb21waWxlcyI6IDAsICJpbmhlcml0ZWRfY291bnRzIjogZmFsc2UsICJsaW1pdHMiOiB7IlZNX2FyZW5hX2J5dGVzIjogMzM1NTQ0MzIsICJWTV9zdGVwcyI6IDQwMDAwMDAsICJhZGRyZXNzX2J5dGVzIjogMTA3Mzc0MTgyNCwgImNvcmVfYnl0ZXMiOiAwLCAiY3B1X3NlY29uZHMiOiA5MCwgIndhbGxfc2Vjb25kcyI6IDE4MH0sICJtb2RlIjogImJ1aWxkIiwgIm5hdGl2ZV9lbnRyaWVzIjogMCwgInByb3RvY29sX2NvbnRyb2xzIjogMCwgInNjaGVtYSI6ICJoaWEubmFtZXNwYWNlLnVuaXhvcGVuLnBhcmVudC5jb21wb25lbnQudjEiLCAic2NvcGUiOiAiT1JJR0lOQUxfQ19DT05UUk9MX0ZMT1dfV0lUSF9FWFBMSUNJVF9GT1JFSUdOX0VGRkVDVFNfTk9UX09SRElOQVJZX1NUT1JFIiwgInNvdXJjZV9waW5zIjogW3siYnl0ZXMiOiAyMjM1LCAibW9kZSI6IDQyMCwgInBhdGgiOiAiL2hvbWUvcnVubmVyL3dvcmsvX3RlbXAvaGlhLW5hbWVzcGFjZS11bml4b3Blbi1uYXRpdmUtcGFyZW50LXJlY292ZXJ5L3VuaXhvcGVuLW5hdGl2ZS1wYXJlbnQtcjEvY29udGV4dC5qc29uIiwgInNoYTI1NiI6ICI3YWQzYTFlMmQ5MzU0Yjg5ZWU3NzJiNDY0NTdhMDgxMTUzNzZhODFmNjE5YTI5MGZjNDI0MjAyZDI1ZGIzNDkxIn0sIHsiYnl0ZXMiOiAyNDg3NywgIm1vZGUiOiA0MjAsICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9uYW1lc3BhY2UtdW5peG9wZW4tdmFsaWRhdGUucHkiLCAic2hhMjU2IjogImNiNjA5ZDVjMDMyNWNjYTQxODEyZDhmZWNkYzQ3NjRiYzAxYzgzMDFjYTcwYjJmMjVmMmJjMjlkMWRiZDgxMzEifSwgeyJieXRlcyI6IDExNjIzLCAibW9kZSI6IDQyMCwgInBhdGgiOiAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvdG9vbHMvZ2VuZXJhdGVfaGlhX2FnZW50X25hbWVzcGFjZV9zdG9yZS5weSIsICJzaGEyNTYiOiAiN2MzZjAyOTkyOTFjZjRiOTlkNWMyMjk2MzUxZGNmZDVlNDcxNTA3ZDQ5MDNhYjlkYTE3MTQyMGMxMjZjNWM1MCJ9LCB7ImJ5dGVzIjogMjc4MDIsICJtb2RlIjogNDIwLCAicGF0aCI6ICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9uYW1lc3BhY2UtdW5peG9wZW4tcGFyZW50LXIxLXNvdXJjZS90b29scy9nZW5lcmF0ZV9oaWFfYWdlbnRfbmFtZXNwYWNlX29iamVjdHMucHkiLCAic2hhMjU2IjogIjIzMjBhMDM2M2QzMTJmMWYwN2I0OGNjMzcwZjA2YWM3ZGJhZWRlZmEyODQzN2MyODIzMGZmZjZmYmE0ZGMzZGUifSwgeyJieXRlcyI6IDk3NjYsICJtb2RlIjogNDIwLCAicGF0aCI6ICIvdmFyL3RtcC9oaWE5YWNkZmEtbmF0aXZlLXJlc3VtZS1hM2M2MTEzNi0yMDI2MTExMS9uYW1lc3BhY2UtdW5peG9wZW4tcGFyZW50LXIxLXNvdXJjZS9pbnB1dHMvbmFtZXNwYWNlLXVuaXhvcGVuLWZpeHR1cmVzLnB5IiwgInNoYTI1NiI6ICJlNDMwOTk3NmZkY2YzNGMwMjUzZmFjMjY1ZmNjMDkyNDQ0ZGQyYzM5N2M5NzdlNmUxYjVhMTQ1OTc0ZjYzY2RjIn0sIHsiYnl0ZXMiOiAxODE5MSwgIm1vZGUiOiA0MjAsICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9uYW1lc3BhY2UtdW5peG9wZW4tb3JpZ2luYWwtYy1yZWZlcmVuY2UucHkiLCAic2hhMjU2IjogIjNiMDIzOTQxYTgyZDIyZTkzYzliZGJjZjIwM2IyYWRhZTU1YjQyZGE2OWFkZWRlYTk4MTI2ZmI0NjdjNWM2OTMifSwgeyJieXRlcyI6IDI4Mzg0MywgIm1vZGUiOiA0MjAsICJwYXRoIjogIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9kZXBlbmRlbmNpZXMvb3NfdW5peF8zNDYxX29yaWdpbmFsLmMiLCAic2hhMjU2IjogIjgzZTRmOTk1YzBjZmMxMzYyYjQ2MzIwZDk3OWIzODM0OWFjNWIxYzZhN2MwYjEyY2JjMmM0NTc3YzZjMTNlZjkifSwgeyJieXRlcyI6IDI1MTYzLCAibW9kZSI6IDQyMCwgInBhdGgiOiAiL3Zhci90bXAvaGlhOWFjZGZhLW5hdGl2ZS1yZXN1bWUtYTNjNjExMzYtMjAyNjExMTEvbmFtZXNwYWNlLXVuaXhvcGVuLXBhcmVudC1yMS1zb3VyY2UvdG9vbHMvZ2VuZXJhdGVfaGlhX2FnZW50X25hbWVzcGFjZV91bml4b3Blbl9wYXJlbnQucHkiLCAic2hhMjU2IjogImJkMzg0NzllY2IxNTMyNjM0ZTk3NWM5YTg4MmI5NmJmMDNmYjljMTRjMDFkNzhlMjg1YjgzMjQ0MzQ2NWRkYjAifV0sICJzb3VyY2VfcGluc191bmNoYW5nZWQiOiB0cnVlLCAic3RhdHVzIjogIkZBSUwiLCAidHJhY2ViYWNrIjogIlRyYWNlYmFjayAobW9zdCByZWNlbnQgY2FsbCBsYXN0KTpcbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL2lucHV0cy9uYW1lc3BhY2UtdW5peG9wZW4tdmFsaWRhdGUucHlcIiwgbGluZSA4NCwgaW4gbWFpblxuICAgIGRvY3VtZW50PWF1dGhvci5kb2N1bWVudCgpXG4gICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5cbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL25hbWVzcGFjZS11bml4b3Blbi1wYXJlbnQtcjEtc291cmNlL3Rvb2xzL2dlbmVyYXRlX2hpYV9hZ2VudF9uYW1lc3BhY2VfdW5peG9wZW5fcGFyZW50LnB5XCIsIGxpbmUgNzM3LCBpbiBkb2N1bWVudFxuICAgIGI9T2JqZWN0QnVpbGRlcihub2RlLG5hbWVzLHNpZ25hdHVyZXMsdG90YWwpO2Iuc3RhdGVtZW50cyhub2RlLmJvZHkpXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5cbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL3Jvb3QtcmVjb3ZlcnkvcmVmZXJlbmNlLTBlZi1yMi90b29scy9nZW5lcmF0ZV9oaWFfc2VsZmhvc3QucHlcIiwgbGluZSAxOTg2LCBpbiBzdGF0ZW1lbnRzXG4gICAgc2VsZi5ibG9jayxzZWxmLmVudj15ZXMseWU7IHNlbGYuc3RhdGVtZW50cyhzLmJvZHkpOyB5Yix5ZW5kPXNlbGYuYmxvY2ssZGljdChzZWxmLmVudilcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5cbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL3Jvb3QtcmVjb3ZlcnkvcmVmZXJlbmNlLTBlZi1yMi90b29scy9nZW5lcmF0ZV9oaWFfc2VsZmhvc3QucHlcIiwgbGluZSAyMDEwLCBpbiBzdGF0ZW1lbnRzXG4gICAgc2VsZi5ibG9jayxzZWxmLmVudj1ib2R5LGJlOyBzZWxmLnN0YXRlbWVudHMocy5ib2R5KVxuICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5cbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL3Jvb3QtcmVjb3ZlcnkvcmVmZXJlbmNlLTBlZi1yMi90b29scy9nZW5lcmF0ZV9oaWFfc2VsZmhvc3QucHlcIiwgbGluZSAxOTg2LCBpbiBzdGF0ZW1lbnRzXG4gICAgc2VsZi5ibG9jayxzZWxmLmVudj15ZXMseWU7IHNlbGYuc3RhdGVtZW50cyhzLmJvZHkpOyB5Yix5ZW5kPXNlbGYuYmxvY2ssZGljdChzZWxmLmVudilcbiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5cbiAgRmlsZSBcIi92YXIvdG1wL2hpYTlhY2RmYS1uYXRpdmUtcmVzdW1lLWEzYzYxMTM2LTIwMjYxMTExL3Jvb3QtcmVjb3ZlcnkvcmVmZXJlbmNlLTBlZi1yMi90b29scy9nZW5lcmF0ZV9oaWFfc2VsZmhvc3QucHlcIiwgbGluZSAyMDEzLCBpbiBzdGF0ZW1lbnRzXG4gICAgZWxzZTogcmFpc2UgVmFsdWVFcnJvcihhc3QuZHVtcChzKSlcbiAgICAgICAgICBeXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXl5eXlxuVmFsdWVFcnJvcjogQnJlYWsoKVxuIiwgIndhbGxfbnMiOiAxNjI1MzE2NDcsICJ3aG9sZV9zdG9yZV9jbG9zZWQiOiBmYWxzZX0K", "bytes": 4557, "git": "933495247b5ca6eecfd8c25bd6ca28ee0fda9971", "member": "run/steps/unixopen-parent-fresh-HIA-B3-and-original-six-body-C/stdout.log", "sha256": "495090faceba9e800b7abdf7b95321eaff60e54bf75d117f790c09f5f2a37db6"}
+2026-11-12T11:23:49.3714611Z HIA_UNIXOPEN45_ORIGINAL_READBACK {"B3_entries": 0, "VM_entries": 0, "ZIP_scope": "actions/download-artifact transport; only inner archive and member bytes independently replayed", "after_check_errors": [], "all_inputs_unchanged": true, "all_members_verified": true, "native_entries": 0, "no_target_reexecution": true, "original_build_process_and_streams": [{"bytes": 963, "git_blob_sha1": "4664cc5d3f04bf4fd161f2b565bb27cd27dbb5ee", "member": "run/steps/unixopen-parent-fresh-HIA-B3-and-original-six-body-C/process.json", "mode": 420, "sha256": "4578bd05c34dbcd9645ad2ef509520f8b62bebefbe69538ea28f90c9327f8f17"}, {"bytes": 1668, "git_blob_sha1": "769f1a363c5767445da45455e0a1152a86cb99e0", "member": "run/steps/unixopen-parent-fresh-HIA-B3-and-original-six-body-C/stderr.log", "mode": 420, "sha256": "909c84247e193f967f3bc6afe40a3633b32dccbf58c1dbdd279910a8fb0f0237"}, {"bytes": 4557, "git_blob_sha1": "933495247b5ca6eecfd8c25bd6ca28ee0fda9971", "member": "run/steps/unixopen-parent-fresh-HIA-B3-and-original-six-body-C/stdout.log", "mode": 420, "sha256": "495090faceba9e800b7abdf7b95321eaff60e54bf75d117f790c09f5f2a37db6"}], "original_complete_summary": {"bytes": 4954, "git_blob_sha1": "4300ac70db9b724d811e637e570e7cc267dd8697", "member": "run/unixopen-native-parent-r1/build/summary.json", "mode": 420, "sha256": "06a811f886313934d0f0a5cac9728707dda2772adaa273562d54a81e004b46cb"}, "original_complete_summary_json": {"CPU_ns": 155262165, "C_cases": 0, "VM_entries": 0, "actual_issued_namespace_authorities": 0, "actual_limits": {"address": [1073741824, 1073741824], "core": [0, 0], "cpu": [90, 90]}, "actual_namespace_syscalls": 0, "cases_completed": [], "error": "Break()", "error_class": "ValueError", "failures": [], "fresh_B3_compiles": 0, "inherited_counts": false, "limits": {"VM_arena_bytes": 33554432, "VM_steps": 4000000, "address_bytes": 1073741824, "core_bytes": 0, "cpu_seconds": 90, "wall_seconds": 180}, "mode": "build", "native_entries": 0, "protocol_controls": 0, "schema": "hia.namespace.unixopen.parent.component.v1", "scope": "ORIGINAL_C_CONTROL_FLOW_WITH_EXPLICIT_FOREIGN_EFFECTS_NOT_ORDINARY_STORE", "source_pins": [{"bytes": 2235, "mode": 420, "path": "/home/runner/work/_temp/hia-namespace-unixopen-native-parent-recovery/unixopen-native-parent-r1/context.json", "sha256": "7ad3a1e2d9354b89ee772b46457a08115376a81f619a290fc424202d25db3491"}, {"bytes": 24877, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/inputs/namespace-unixopen-validate.py", "sha256": "cb609d5c0325cca41812d8fecdc4764bc01c8301ca70b2f25f2bc29d1dbd8131"}, {"bytes": 11623, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/tools/generate_hia_agent_namespace_store.py", "sha256": "7c3f0299291cf4b99d5c2296351dcfd5e471507d4903ab9da171420c126c5c50"}, {"bytes": 27802, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/tools/generate_hia_agent_namespace_objects.py", "sha256": "2320a0363d312f1f07b48cc370f06ac7dbaedefa28437c28230fff6fba4dc3de"}, {"bytes": 9766, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/inputs/namespace-unixopen-fixtures.py", "sha256": "e4309976fdcf34c0253fac265fcc092444dd2c397c977e6e1b5a145974f63cdc"}, {"bytes": 18191, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/inputs/namespace-unixopen-original-c-reference.py", "sha256": "3b023941a82d22e93c9bdbcf203b2adae55b42da69adedea98126fb467c5c693"}, {"bytes": 283843, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/inputs/dependencies/os_unix_3461_original.c", "sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9"}, {"bytes": 25163, "mode": 420, "path": "/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/tools/generate_hia_agent_namespace_unixopen_parent.py", "sha256": "bd38479ecb1532634e975c9a882b96bf03fb9c14c01d78e285b832443465ddb0"}], "source_pins_unchanged": true, "status": "FAIL", "traceback": "Traceback (most recent call last):\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/inputs/namespace-unixopen-validate.py\", line 84, in main\n    document=author.document()\n             ^^^^^^^^^^^^^^^^^\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/namespace-unixopen-parent-r1-source/tools/generate_hia_agent_namespace_unixopen_parent.py\", line 737, in document\n    b=ObjectBuilder(node,names,signatures,total);b.statements(node.body)\n                                                 ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py\", line 1986, in statements\n    self.block,self.env=yes,ye; self.statements(s.body); yb,yend=self.block,dict(self.env)\n                                ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py\", line 2010, in statements\n    self.block,self.env=body,be; self.statements(s.body)\n                                 ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py\", line 1986, in statements\n    self.block,self.env=yes,ye; self.statements(s.body); yb,yend=self.block,dict(self.env)\n                                ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/var/tmp/hia9acdfa-native-resume-a3c61136-20261111/root-recovery/reference-0ef-r2/tools/generate_hia_selfhost.py\", line 2013, in statements\n    else: raise ValueError(ast.dump(s))\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nValueError: Break()\n", "wall_ns": 162531647, "whole_store_closed": false}, "original_target_status": "FAIL", "raw_original_copies_complete": true, "schema": "hia.namespace.unixopen.follow45.original-readback.v1", "source": {"ZIP_bytes": 58378569, "ZIP_sha256": "32be8415df27b414d445f9399449891cdfe4611794bca01a0002b99ffbdf6509", "archive_bytes": 5178304, "archive_sha256": "6a65af7281419e20edbba5f60ba21e1dcedaaf80c84ed65605ee6dd42dfffab9", "artifact": 13935987059, "index_bytes": 15033, "index_sha256": "1a8db9bfeb5c5b9fc933b6e4c2232e58da8af0d621ef20bcb6d39482fc446764", "job": 131126031828, "members": 47, "raw_bytes": 39092043, "run": 43201563676}, "status": "PASS_READBACK_ONLY"}
+2026-11-12T11:23:49.4645433Z ##[group]Run actions/upload-artifact@v4
+2026-11-12T11:23:49.4645683Z with:
+2026-11-12T11:23:49.4645895Z   name: hia-unixopen-follow45-readback-43208616674-1
+2026-11-12T11:23:49.4646400Z   path: /home/runner/work/_temp/hia-unixopen-follow45-readback
+/home/runner/work/_temp/hia-unixopen-follow45-readback-driver.log
+
+2026-11-12T11:23:49.4646882Z   if-no-files-found: error
+2026-11-12T11:23:49.4647080Z   retention-days: 90
+2026-11-12T11:23:49.4647261Z   compression-level: 0
+2026-11-12T11:23:49.4647445Z   overwrite: false
+2026-11-12T11:23:49.4647625Z   include-hidden-files: false
+2026-11-12T11:23:49.4647817Z env:
+2026-11-12T11:23:49.4647984Z   PYTHONDONTWRITEBYTECODE: 1
+2026-11-12T11:23:49.4648232Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:49.4648576Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-11-12T11:23:49.4648903Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:49.4649245Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:49.4649538Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-11-12T11:23:49.4649828Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-11-12T11:23:49.4650084Z ##[endgroup]
+2026-11-12T11:23:49.6050439Z (node:2301) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:23:49.6051225Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:23:49.6144066Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-12T11:23:49.6146354Z The least common ancestor is /home/runner/work/_temp. This will be the root directory of the artifact
+2026-11-12T11:23:49.6147291Z With the provided path, there will be 13 files uploaded
+2026-11-12T11:23:49.6151636Z Artifact name is valid!
+2026-11-12T11:23:49.6152330Z Root directory input is valid!
+2026-11-12T11:23:49.9491136Z Beginning upload of artifact content to blob storage
+2026-11-12T11:23:49.9978696Z (node:2301) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-12T11:23:50.6456337Z Uploaded bytes 8388608
+2026-11-12T11:23:50.7281211Z Uploaded bytes 10451558
+2026-11-12T11:23:50.7844772Z Finished uploading artifact content to blob storage!
+2026-11-12T11:23:50.7846008Z SHA256 digest of uploaded artifact zip is b7d2901ffd46ee086c6f96dcb5b4050bcf2cd2c7a04c25131eff39a4ecd23cb5
+2026-11-12T11:23:50.7846969Z Finalizing artifact upload
+2026-11-12T11:23:51.1324499Z Artifact hia-unixopen-follow45-readback-43208616674-1.zip successfully finalized. Artifact ID 13939342967
+2026-11-12T11:23:51.1325487Z Artifact hia-unixopen-follow45-readback-43208616674-1 has been successfully uploaded! Final size is 10451558 bytes. Artifact ID is 13939342967
+2026-11-12T11:23:51.1329975Z Artifact download URL: https://github.com/TrillionniumFoundation/Hepta/actions/runs/43208616674/artifacts/13939342967
+2026-11-12T11:23:51.1507474Z Post job cleanup.
+2026-11-12T11:23:51.2530743Z (node:2314) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-12T11:23:51.2532149Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-12T11:23:51.2708042Z Post job cleanup.
+2026-11-12T11:23:51.3462815Z [command]/usr/bin/git version
+2026-11-12T11:23:51.3522346Z git version 2.56.0
+2026-11-12T11:23:51.3579910Z Temporarily overriding HOME='/home/runner/work/_temp/f61d6edf-5b72-4938-99dd-39d5905f32ab' before making global git config changes
+2026-11-12T11:23:51.3595430Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-12T11:23:51.3598553Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/Hepta/Hepta
+2026-11-12T11:23:51.3622525Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-12T11:23:51.3681253Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-12T11:23:51.4067657Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-12T11:23:51.4138415Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-12T11:23:51.4429121Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-12T11:23:51.4476736Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-12T11:23:51.4852584Z Cleaning up orphan processes
+2026-11-12T11:23:51.5171883Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/download-artifact@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -1,0 +1,65 @@
+{
+  "schema": "hia.namespace.raw-fs-framer.source-review.v1",
+  "status": "AUTHOR_STATIC_REVIEW_ONLY_UNEXECUTED",
+  "source_inputs": {
+    "blob": "d410ef486d1299e3b65b325e4d674b58c7dab334",
+    "bytes": 8331,
+    "sha256": "26936f044b668b2b62d370add86be6b4b6a4c7c036fe119360229aa1e33c089f",
+    "mode": "100644"
+  },
+  "active_CI": {
+    "blob": "d6be9d90ddbbe8055cbbafc38e012768a3e3ae35",
+    "bytes": 15324,
+    "sha256": "adf5c6892226913c4b29d8fbffdc2f9fff93a9b3fd1b28076be95af577fe9033",
+    "mode": "100644"
+  },
+  "reviewed_sources": [
+    "18f176eb647fe70710b0b4ae39f442052041e02c",
+    "de8629320367e7e630d671fea433894e4cd0ee28",
+    "286ae1565227192ff9f1e4d04fa09890c9bd3280",
+    "3d0aba7fb95166410e96cebd46205ce963264287",
+    "2a90270091a2b6fb35cedaf96f92b2565a1ef883",
+    "d6be9d90ddbbe8055cbbafc38e012768a3e3ae35",
+    "119dbeab473291acab2b183ffa293563f5d49090"
+  ],
+  "findings": [
+    {
+      "revision": "CI r1",
+      "kind": "PRE_EXECUTION_SOURCE_OMISSION",
+      "finding": "Existing six-role builder reads evidence/compiler/B3.image.bin. The first draft only checked context.compiler and omitted that checked copy.",
+      "resolution": "CI r2 copies exact 669556 bytes, validates SHA/readback/mode, records both original and copy pins; source before/after includes them."
+    },
+    {
+      "revision": "CI r2",
+      "kind": "PRE_EXECUTION_GATE_COMPLETENESS",
+      "finding": "First raw-FS combination draft had not yet invoked the original DMS transfer ten pure source-proof controls.",
+      "resolution": "CI r3 invokes new exact DMS10 transfer of the original ten controls before build. All old guard/body/origin/rejection assertions retained."
+    }
+  ],
+  "manual_inventory": {
+    "physical": 19,
+    "known_error_continuations": 7,
+    "negative_protocol": 80,
+    "private_UID_zero": 1,
+    "original_native_packer": 33,
+    "original_three_way_each": 84,
+    "pure_source_proof": 10
+  },
+  "independent_review": {
+    "FixtureIssuer": "NOT_REVIEWED_THIS_REVISION; peer expressly unavailable",
+    "whole_framer": "NOT_INDEPENDENTLY_REVIEWED",
+    "actual_execution": 0
+  },
+  "boundaries": {
+    "private_pending_fixture": true,
+    "actual_FS_identity_required": true,
+    "installed_issuer": false,
+    "complete_unixOpen": false,
+    "ordinary_Store": false,
+    "old42_qualification": false,
+    "source_only_no_PASS_claim": true
+  },
+  "preserved_limits": true,
+  "reference_VM_unchanged": true,
+  "no_optimization_active": true
+}

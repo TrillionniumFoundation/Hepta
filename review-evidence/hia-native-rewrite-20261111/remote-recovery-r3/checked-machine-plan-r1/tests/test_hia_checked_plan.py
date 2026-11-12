@@ -412,11 +412,11 @@ def interval_group(s):
      block_order={"f":["end","loop_block","entry"]},value_registers={"f":{"a":r,"x":r,"u":r}}))
  s.exact("original-Core-block-order-first",edge,lambda c:amended(c,4,
      block_order={"f":["end","loop_block","entry"]},value_registers={"f":{"a":"rbx","b":"rbx","u":"rbx","v":"rbx"}}),
-     22,"E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
+     22,expected_text="E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
  def tie(c):
   p=plan_for(c,4);p["value_registers"]={"f":{"b":"rbx","a":"rbx"}};return p
  s.exact("same-start-lexicographic-tie",doc,tie,22,
-     "E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
+     expected_text="E_HIA_MACHINE_PLAN: interfering values f/entry: a and b share rbx")
 
  # A terminator use extends the original parameter across a later dead write.
  fn_name="f"+"n"*127;block_name="b"+"k"*127

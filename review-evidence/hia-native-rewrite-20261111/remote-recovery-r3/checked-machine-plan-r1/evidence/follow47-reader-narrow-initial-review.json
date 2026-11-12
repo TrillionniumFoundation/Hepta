@@ -1,0 +1,53 @@
+{
+  "schema": "hia.independent.checked-plan47-reader.narrow-review.v1",
+  "reviewed_source": {
+    "blob": "fce669c752f5163a20f4a077c8abb23a8adfce01",
+    "bytes": 27756,
+    "sha256": "c6d216ca5f7f169f8ada58d0ff1fb5c1a2ab76f3dbcdc38370a6844029754c47",
+    "mode": "100644"
+  },
+  "reviewer": "audit_runtime",
+  "scope": [
+    "identity/copy_original",
+    "main early archive+ledger preservation",
+    "main finally per-input after-check and report persistence",
+    "semantics complete21 versus incomplete intervals20 accounting"
+  ],
+  "not_reviewed": [
+    "complete CAS reconstruction logic",
+    "all mechanical ACK identities",
+    "all compiler/target semantics",
+    "new tail execution"
+  ],
+  "actual_executions": {
+    "AST": 0,
+    "B3": 0,
+    "VM": 0,
+    "HIA": 0,
+    "OS_target": 0
+  },
+  "findings": [
+    {
+      "id": "manifest-used-versus-copied-bytes",
+      "kind": "STATIC_CUSTODY_GAP",
+      "ordinary_reachability": "not established; private immutable CI inputs are expected",
+      "fact": "main first reads manifest raw and checks Git identity, then separately takes identity(args.manifest). If the path changes between reads, the parsed bytes and the subsequently copied file can differ without an immediate equality check.",
+      "required_narrow_fix": "Require the before and copied manifest identities to equal MANIFEST_GIT and compare copied manifest to the exact initial raw bytes. Preserve source-only original."
+    },
+    {
+      "id": "unguarded-final-self-read",
+      "kind": "STATIC_FAILURE_REPORTING_GAP",
+      "ordinary_reachability": "not established",
+      "fact": "finally completes guarded per-input after-checks, then calls identity(__file__) again outside any guard while constructing report. A missing/nonregular own source can raise at this point and prevent writing the original failure report.",
+      "required_narrow_fix": "Use an already guarded self identity observation or catch the final source-read error and preserve the original report and after-check failures."
+    }
+  ],
+  "positive_scope": [
+    "Whole pinned archive and ledger copies plus full byte/mode readback precede tar parsing and target semantics.",
+    "Each listed original input gets an independent guarded after-check; a failure does not abort the remaining loop.",
+    "The reader verifies and reports all 375 observed cases/16814 entries, while only the 21 complete groups/355 cases/15886 entries receive completed-group credit.",
+    "The failed intervals group retains its TypeError, 20 cases and 928 entries, explicitly zero credited complete groups and union cases.",
+    "No compiler, VM, HIA or oracle target execution occurs in the reviewed reader paths."
+  ],
+  "conclusion": "Two narrow source corrections requested before claiming full used-input custody and failure-report preservation; no other confirmed issue in the stated read scope. This is not target qualification."
+}

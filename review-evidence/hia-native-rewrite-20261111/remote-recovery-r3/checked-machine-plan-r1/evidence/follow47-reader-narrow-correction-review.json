@@ -1,0 +1,48 @@
+{
+  "schema": "hia.independent.checked-plan47-reader.narrow-fix-review.v1",
+  "old_source": "fce669c752f5163a20f4a077c8abb23a8adfce01",
+  "new_source": {
+    "blob": "b2a4ae4875d374c91a8d46a8a55ab19fd17e8f37",
+    "bytes": 28156,
+    "sha256": "9eb9df28d1380a22102696be12cfe38d5a2acfcb99bc5d6d6ab030ee08da45c7"
+  },
+  "earlier_review": {
+    "blob": "12c7488d3bba29e59374f6bffdcd7d0281cb210d",
+    "bytes": 2921,
+    "sha256": "c89cfd3f7a17340ab94fe71990fbd188443003eccc9df4545f8310274405ed95",
+    "mode": "100644"
+  },
+  "exact_whole_source_difference": [
+    {
+      "old": " before={};primary=None;reader=None",
+      "new": " before={};primary=None;reader=None;reader_path=Path(__file__).resolve()"
+    },
+    {
+      "old": "  before[args.manifest]=identity(args.manifest);before[Path(__file__).resolve()]=identity(__file__)",
+      "new": "  before[args.manifest]=identity(args.manifest);assert before[args.manifest][\"gitsha\"]==MANIFEST_GIT\n  before[reader_path]=identity(reader_path)"
+    },
+    {
+      "old": "  copy_original(args.manifest,originals/\"input-manifest.json\")",
+      "new": "  copied_manifest=copy_original(args.manifest,originals/\"input-manifest.json\")\n  assert copied_manifest[\"gitsha\"]==MANIFEST_GIT\n  assert (originals/\"input-manifest.json\").read_bytes()==raw\n  assert identity(originals/\"input-manifest.json\")[\"gitsha\"]==MANIFEST_GIT"
+    },
+    {
+      "old": "     partial_readback=report[\"status\"]!=\"PASS\",reader_source=identity(__file__))",
+      "new": "     partial_readback=report[\"status\"]!=\"PASS\",reader_source_before=before.get(reader_path),\n     reader_source_after=next((item[\"after\"] for item in after if item[\"path\"]==str(reader_path)),None))"
+    }
+  ],
+  "complete_reverse_reconstruction_equal": true,
+  "conclusion": "The two previously reported narrow gaps are addressed: all manifest use/copy observations bind the fixed Git identity and copied bytes match the initial raw; finally reports only already protected own-source observations. Other source bytes are identical.",
+  "preserved_scope": "Early full archive/ledger preservation, per-input continued after-checks and complete21 versus failed intervals20 accounting.",
+  "not_reviewed": [
+    "whole CAS correctness",
+    "target native semantics",
+    "new remaining34 execution"
+  ],
+  "actual_executions": {
+    "AST": 0,
+    "B3": 0,
+    "VM": 0,
+    "native": 0
+  },
+  "new_confirmed_blockers_in_reviewed_diff": []
+}
