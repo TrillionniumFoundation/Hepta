@@ -1,0 +1,143 @@
+{
+  "schema": "hepta.hia.independent-static-review.v1",
+  "status": "STATIC_CLEAR_UNPARSED_UNEXECUTED",
+  "reviewer": "/root/native_install_owner",
+  "review_date_utc": "2026-11-12",
+  "subject": {
+    "commit": "239b209611ab216c2ffb0e531f07f9b8add7632a",
+    "tree": "f090bf344f7c16ea4a64ea8d3bde91178f7ed420",
+    "leaf_count": 4546,
+    "prefix": "experiments/hia_json_pretty_20261112/native-development-r4/",
+    "actual_read_sources": [
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/native_cases.py",
+        "bytes": 22638,
+        "sha256": "f2b34e2b4e782ee6e680d6fdff1c8a7a300fd5fedfd007dd1270e20cec0eb406",
+        "git_blob_sha1": "ec2371c462d91d9f3556c20320a33280e362a64f"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/authoring.py",
+        "bytes": 29969,
+        "sha256": "392476f82a3a7524f61c258a2d53c1db040275b4037760fbbee6e76fea56d860",
+        "git_blob_sha1": "e8a8d894af209601336011300b59091d4f85cb3b"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/controller.py",
+        "bytes": 36316,
+        "sha256": "2b4caca20ebb8fd46c7c0a89c2d2e1afd8af1d9956da28fcb233218f3ef2bd57",
+        "git_blob_sha1": "06255fda26347df3a57d9565af6d18bfc8448b0c"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/policy.json",
+        "bytes": 8777,
+        "sha256": "41a80bc361d77e16ad0b0b3c3e653e89259ea9f348c6d9f4ec0859e282827efd",
+        "git_blob_sha1": "1f9fff9fd78a67d7e16b1adefc3d67a0436f5601"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/cases.json",
+        "bytes": 180528,
+        "sha256": "3ba550c9ec3999f37973268e34b6bbc997dec8a0baa7d9079a42cb46b567a71a",
+        "git_blob_sha1": "1e60dd3cdfb93c62ba18f58becae39aa8a59f5f5"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/byte_bridge.py",
+        "bytes": 4244,
+        "sha256": "a8ed958219ef5a147433d0ffd201b54b573271780d7ec3be9026f41fa0c36e40",
+        "git_blob_sha1": "ea1c2651b9ca5e1f49f56e4a97391c8d234bb321"
+      },
+      {
+        "path": "experiments/hia_json_pretty_20261112/native-development-r4/diagnostics.py",
+        "bytes": 15625,
+        "sha256": "500a47d005a7187ba3332c1ca78291172a932d017a77a2b8fbc2ea83138c6e64",
+        "git_blob_sha1": "717536c3e290f2e5b3e0308917c57f31519dd9c8"
+      }
+    ],
+    "all_policy_control_entries_match_tree": true
+  },
+  "parent_component_control": "5f0f3d3717b2fdf638cc1a37a773dfe7a9c79575",
+  "delta_scope": "Six new exact-byte bridge controls after all original 37, with actual native calls accounted separately from the host-only type admission case.",
+  "original_population": {
+    "fixture_prefix_exact": true,
+    "original_loop_body_exact": true,
+    "body_bytes": 7225,
+    "body_sha256": "b91557f7a68b9dbde3d902a327f60fff2ded72ea1b57173616645e2532741e8b",
+    "old_fixture_sha256": "2b57e39747455fe2065258ad8c517ee783c90d744611bc6efacb656f446e73ed"
+  },
+  "actual_execution_during_review": {
+    "Python_parse": false,
+    "Python_import": false,
+    "compiler": false,
+    "HIA_native": false,
+    "product_tests": false,
+    "h_request": false,
+    "workflow_trigger": false,
+    "V8_descriptor_byte_materialization": true
+  },
+  "cases": [
+    {
+      "id": "bridge_original_positive_layouts",
+      "new_native_entries": 34,
+      "mechanism": "All 17 earlier positive fixtures execute real bridge measure and emit and compare full expected bytes."
+    },
+    {
+      "id": "bridge_expansion_above_8MiB",
+      "new_native_entries": 2,
+      "mechanism": "Independently constructs complete compact input and pretty expected output, checks their fixed size/SHA, runs both actual HIA modes and confirms the emitted descriptor capacity exceeds 8 MiB.",
+      "independent_reviewer_materialization": {
+        "input_bytes": 131199,
+        "input_sha256": "c5659595d7abad6e4b7d93b78ed2d0ffdeefef63193df3b17b9ef420111f76ff",
+        "output_bytes": 8593534,
+        "output_sha256": "c039c67e0525739cc8c657b63fffc578669f54ac912218da5b118afb57ab45ae",
+        "independent_JS_descriptor_materialization_only": true,
+        "native_execution": false
+      }
+    },
+    {
+      "id": "bridge_refusal_before_output_allocation",
+      "new_native_entries": 1,
+      "mechanism": "An unmatched nonempty array reaches actual HIA measurement status 2. The temporary allocation observer calls the original allocator unchanged and verifies no allocation larger than the 161-byte workspace. Restoration occurs in finally."
+    },
+    {
+      "id": "bridge_repeated_refusal_and_success",
+      "new_native_entries": 6,
+      "mechanism": "The same image instance observes statuses [2,0,0,1,0,0] for malformed input, valid null, over-input-cap rejection and a later valid object. Failed extents are not admitted."
+    },
+    {
+      "id": "bridge_two_concurrent_private_workspaces",
+      "new_native_entries": 4,
+      "mechanism": "Two real worker threads meet a 2-second Barrier at mode 0 after workspace allocation. Each retained live workspace has one measurement and one emission; exact outputs and two distinct addresses are required. The 5-second complete child deadline is unchanged."
+    },
+    {
+      "id": "bridge_explicit_input_type",
+      "new_native_entries": 0,
+      "mechanism": "Five non-exact-bytes values are rejected with TypeError before any native call; a bytes-subclass length hook must not run. This is explicitly a new byte ABI control, not original CLI-domain coverage."
+    }
+  ],
+  "denominator": {
+    "original_methods": 37,
+    "new_methods": 6,
+    "total_methods": 43,
+    "original_actual_entry_records": 61,
+    "new_five_native_cases": 47,
+    "new_host_type_case": 0,
+    "total_actual_entry_records": 108
+  },
+  "binding_checks": [
+    "Policy is pinned by byte SHA; its ten control records match the actual complete Git tree.",
+    "The exact previously reviewed a8ed byte bridge is copied to evidence, passed with --bridge and --bridge-sha256 and verified before module loading and again after cases.",
+    "Original image and fixture hashes are also command arguments and independently checked in the child.",
+    "The worker validates loaded/executed IDs, exact case rows and order, all five anomaly fields, bridge source/image/fixture identity and the 61+47 population.",
+    "The finalizer independently re-reads the original report, actual image, bridge source, native child stdout/stderr and cases, reconstructs the exact native-child argv and checks the same complete 43/61/47 conjunction.",
+    "The controller requires each original call's source and guard preservation; new bridge calls explicitly do not claim the older guard regions. All new native call records require actual entry and unchanged source. The last host-only case must have no native entry.",
+    "The A2 IO block and closed_owner function are byte-for-byte unchanged from the prior reviewed/actually executed control; no filesystem adversary test is inherited.",
+    "Current full 4023-member source identities remain bound before and after. The fresh B0/B1/B2 path, 20-second compiler wall and original CPU gate, outer 180/3 and native child timeout=5 remain unchanged."
+  ],
+  "limitations": [
+    "No Python parse, HIA compilation or native execution of these 43 controls occurred during review.",
+    "Prior actual 37-case results cannot qualify the new bridge or these six new cases.",
+    "This component requires admitted compact UTF-8 bytes and does not replace original CLI graph/text semantics.",
+    "The new module is loaded from a pinned staged file; installed-resource admission, public selector and cold qualification are not exercised.",
+    "The fixed intended workflow B and trigger had not been provided at review time; this receipt is for A239b and the actual code/policy only."
+  ],
+  "whole_native_delivery_qualified": false
+}
