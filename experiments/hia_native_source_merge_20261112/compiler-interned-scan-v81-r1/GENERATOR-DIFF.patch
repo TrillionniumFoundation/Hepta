@@ -1,0 +1,61 @@
+--- v79/tools/generate_hia_selfhost.py
++++ v81/tools/generate_hia_selfhost.py
+@@ -764,6 +764,7 @@
+     externals = get(w, 344)
+     bid = 0
+     i = 0
++    scan_limit = 0
+     while get(w, 392) < get(w, 384) and get(w, 40) == 0:
+         bid = get(w, QBASE + get(w, 392) * 8)
+         put(w, 392, get(w, 392) + 1)
+@@ -774,8 +775,9 @@
+             # Clear only this block's definitions before replay so neither
+             # variable() nor loan_live() can observe a future instruction's
+             # stale capability. define() keeps its ordinary strict check.
++            scan_limit = get(w, 480)
+             i = 0
+-            while i < 2048:
++            while i < scan_limit:
+                 if get(w, VBASE + i * 16 + 8) == bid + 1:
+                     put(w, VBASE + i * 16, 0)
+                 i = i + 1
+@@ -1474,7 +1476,8 @@
+     if get(w, 264) == 0 or get(w, 280) == 0:
+         return 0
+     i = 0
+-    while i < 2048:
++    scan_limit = get(w, 480)
++    while i < scan_limit:
+         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24 + 8) == v + 1:
+             return fail(w, 62)
+         i = i + 1
+@@ -1525,7 +1528,8 @@
+         return 0
+     i = 0
+     root = get(w, CAPBASE + a * 24)
+-    while i < 2048:
++    scan_limit = get(w, 480)
++    while i < scan_limit:
+         if loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == root:
+             if loan_ancestor(w, i, a) == 0:
+                 if t == 7 or get(w, VBASE + i * 16) == 7:
+@@ -1638,7 +1642,8 @@
+     parent = 0
+     packed = 0
+     origin = 0
+-    while i < 2048 and (get(w, 280) != 0 or get(w, 352) != 0):
++    scan_limit = get(w, 480)
++    while i < scan_limit and (get(w, 280) != 0 or get(w, 352) != 0):
+         if loan_live(w, i) == 1 and (get(w, CAPBASE + i * 24 + 8) != 0 or owner_type(get(w, VBASE + i * 16)) == 1):
+             loan_argument(w, n, i)
+         i = i + 1
+@@ -1686,7 +1691,8 @@
+     if get(w, 264) == 0:
+         return 0
+     i = 0
+-    while i < 2048:
++    scan_limit = get(w, 480)
++    while i < scan_limit:
+         if i != v and loan_live(w, i) == 1 and get(w, CAPBASE + i * 24) == v:
+             return fail(w, 62)
+         i = i + 1
