@@ -1,0 +1,25 @@
+{
+  "schema": "hepta.core.r3.path-order-primary-source-audit.v1",
+  "scope": "Read-only primary-source review; no Python3.14 execution claim",
+  "sources": {
+    "cpython314-pathlib.py.txt": {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Lib/pathlib/__init__.py",
+      "bytes": 46807,
+      "sha256": "042a4d0a5e1ef66778daa86dc269af205bd42d06e793e53d8b99dff4c45928ca",
+      "git_blob_sha1": "0d763d1f0dcaa55bb3b2fe3eadf8a133d668eafb"
+    },
+    "cpython314-importlib-metadata.py.txt": {
+      "url": "https://raw.githubusercontent.com/python/cpython/v3.14.4/Lib/importlib/metadata/__init__.py",
+      "bytes": 34091,
+      "sha256": "5476c7c22a65f9e8b5a07b799336d87fa70e792758fd95b161b53b530e3b2654",
+      "git_blob_sha1": "8ce62dd864fc2735dc4c863909b0622b4f5f4548"
+    }
+  },
+  "facts": {
+    "PackagePath_base": "pathlib.PurePosixPath",
+    "PurePath_lt": "self._parts_normcase < other._parts_normcase",
+    "parts": "self._str_normcase.split(self.parser.sep)",
+    "expected_semantics": "component-wise lexicographic sequence comparison",
+    "matches_current_fixed_controller_40_order": true
+  }
+}
