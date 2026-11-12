@@ -49,7 +49,7 @@ _V8_CHAIN_OPS = frozenset({
 })
 
 
-def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
+def _reference_audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
     """Check the entire already-verified module against one reviewed domain.
 
     This never replaces Core's alias, origin, CFG or effect validation. The
@@ -165,7 +165,7 @@ def _bound_function(fn: dict, calculated: dict[str, dict]) -> dict:
             "max_call_depth": entry["depth"]}
 
 
-def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
+def _reference_qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
     """Bound ONLY root-inclusive synchronous HIA VM frames in v1..v8.
 
     The canonical executable Core is fully reverified. The direct call graph
@@ -243,7 +243,7 @@ def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
     return report
 
 
-def analyze_static_budget(program, *, max_allocator_interactions=None,
+def _reference_analyze_static_budget(program, *, max_allocator_interactions=None,
                           max_vm_ticks=None, max_call_depth=None,
                           max_live_heap_bytes=None) -> dict:
     """Reverify canonical HIA and reject any unbounded control/call graph.
@@ -342,7 +342,7 @@ def analyze_static_budget(program, *, max_allocator_interactions=None,
 
 
 
-def qualify_bounded_resources(program, *, limits: dict) -> dict:
+def _reference_qualify_bounded_resources(program, *, limits: dict) -> dict:
     """Compose existing analyses for every explicit public scalar export.
 
     This is an optional production admission profile, not another Core or
@@ -434,3 +434,41 @@ def qualify_bounded_resources(program, *, limits: dict) -> dict:
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
     return report
+
+
+def _audit_resource_profile(document: dict, *, schema: str, allow_chain: bool) -> None:
+    from .hia_static_budget_native import selected_static_budget
+    selected = selected_static_budget()
+    if selected is None:
+        return _reference_audit_resource_profile(document, schema=schema, allow_chain=allow_chain)
+    return selected.audit_resource_profile(document, schema=schema, allow_chain=allow_chain)
+
+
+def qualify_vm_call_depth(program, *, max_call_depth: int) -> dict:
+    from .hia_static_budget_native import selected_static_budget
+    selected = selected_static_budget()
+    if selected is None:
+        return _reference_qualify_vm_call_depth(program, max_call_depth=max_call_depth)
+    return selected.qualify_vm_call_depth(program, max_call_depth=max_call_depth)
+
+
+def analyze_static_budget(program, *, max_allocator_interactions=None,
+                          max_vm_ticks=None, max_call_depth=None,
+                          max_live_heap_bytes=None) -> dict:
+    from .hia_static_budget_native import selected_static_budget
+    selected = selected_static_budget()
+    if selected is None:
+        return _reference_analyze_static_budget(program,
+            max_allocator_interactions=max_allocator_interactions, max_vm_ticks=max_vm_ticks,
+            max_call_depth=max_call_depth, max_live_heap_bytes=max_live_heap_bytes)
+    return selected.analyze_static_budget(program,
+        max_allocator_interactions=max_allocator_interactions, max_vm_ticks=max_vm_ticks,
+        max_call_depth=max_call_depth, max_live_heap_bytes=max_live_heap_bytes)
+
+
+def qualify_bounded_resources(program, *, limits: dict) -> dict:
+    from .hia_static_budget_native import selected_static_budget
+    selected = selected_static_budget()
+    if selected is None:
+        return _reference_qualify_bounded_resources(program, limits=limits)
+    return selected.qualify_bounded_resources(program, limits=limits)

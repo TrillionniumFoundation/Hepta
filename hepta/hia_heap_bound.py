@@ -984,7 +984,7 @@ class _FiniteInvocationAnalysis:
         return result
 
 
-def analyze_constant_live_heap(program) -> dict:
+def _reference_analyze_constant_live_heap(program) -> dict:
     """Bound all function entries; verified program is the *sole* admission.
 
     The result's integer is a conservative peak of requested live HIA buffer
@@ -1007,7 +1007,7 @@ def analyze_constant_live_heap(program) -> dict:
     return {fn["name"]: calculated[fn["name"]] for fn in functions}
 
 
-def qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
+def _reference_qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
     """Admit ONLY a finite requested-live-HIA-byte budget.
 
     Unlike analyze_static_budget this narrow admission may cover cyclic
@@ -1048,7 +1048,7 @@ def qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
     }
 
 
-def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_bytes: int) -> dict:
+def _reference_qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_bytes: int) -> dict:
     """Bound one scalar public v8 entry across borrowed-call boundaries.
 
     Reuse the existing interval/CFG analyzer with a distinct local-peak
@@ -1127,7 +1127,7 @@ def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_byte
     return report
 
 
-def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
+def _reference_qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
                                          max_live_heap_bytes: int) -> dict:
     """Bound one exact scalar invocation of acyclic, chain-free primitive v7.
 
@@ -1149,7 +1149,7 @@ def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
         parameter_loan_returns=False)
 
 
-def qualify_finite_entry_live_heap_budget_v8(program, function: str, arguments, *,
+def _reference_qualify_finite_entry_live_heap_budget_v8(program, function: str, arguments, *,
                                             max_live_heap_bytes: int) -> dict:
     """Bound one exact v8 invocation with owned and parameter-loan returns.
 
@@ -1167,7 +1167,7 @@ def qualify_finite_entry_live_heap_budget_v8(program, function: str, arguments, 
         parameter_loan_returns=True)
 
 
-def qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents(
+def _reference_qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents(
         program, function: str, arguments, *, max_live_heap_bytes: int) -> dict:
     """Bound v8 calls that allocate from caller-root-derived borrowed lengths.
 
@@ -1366,7 +1366,7 @@ def _payload_components(edges: dict[str, set[str]]) -> list[list[str]]:
     return sorted(components)
 
 
-def analyze_entry_payload_bound(program, function: str) -> dict:
+def _reference_analyze_entry_payload_bound(program, function: str) -> dict:
     """Bound v1 scalar-entry allocation requests and logical byte payload.
 
     Reverify the actual Core; audit every definition against a closed v1
@@ -1518,3 +1518,148 @@ def analyze_entry_payload_bound(program, function: str) -> dict:
                      ensure_ascii=False, allow_nan=False).encode("utf-8")
     report["sha256"] = sha256(raw).hexdigest()
     return report
+
+
+# The selected public owner pins all four images before its HIA continuations.
+# Public finite wrappers retain their original arguments local, as before.
+
+def analyze_constant_live_heap(program) -> dict:
+    """Bound all function entries; verified program is the *sole* admission.
+
+    The result's integer is a conservative peak of requested live HIA buffer
+    payload bytes on normal, nontrapping CFG paths. It never bounds allocator
+    metadata, transient OS memory or native process RSS.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_analyze_constant_live_heap(program)
+    return native.call(0, program)
+
+
+def qualify_live_heap_budget(program, *, max_live_heap_bytes: int) -> dict:
+    """Admit ONLY a finite requested-live-HIA-byte budget.
+
+    Unlike analyze_static_budget this narrow admission may cover cyclic
+    block-scoped buffers, but says nothing about allocation *count*, VM
+    steps, termination or process RSS. The immutable reverified Program
+    is the sole input to the analyzer; caller-supplied receipts are ignored.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_qualify_live_heap_budget(program, max_live_heap_bytes=max_live_heap_bytes)
+    return native.call(1, program, limit=max_live_heap_bytes)
+
+
+def qualify_entry_live_heap_budget(program, function: str, *, max_live_heap_bytes: int) -> dict:
+    """Bound one scalar public v8 entry across borrowed-call boundaries.
+
+    Reuse the existing interval/CFG analyzer with a distinct local-peak
+    summary meaning. Caller-owned loan roots have UNKNOWN extents, not zero
+    lengths. Private summaries count only their additional local payload;
+    at each call that peak is added to the caller's still-live local owners.
+    The public scalar entry has no external resource inputs, so its local
+    peak is a bound on the total live HIA byte payload for that invocation.
+
+    Owned call inputs/results, chains, recursion and allocations depending on
+    unbounded external lengths remain unqualified. Return contracts are
+    checked by canonical Core and used only to retain caller-root extents.
+    The existing all-function v1 heap admission is deliberately unchanged.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_qualify_entry_live_heap_budget(program, function, max_live_heap_bytes=max_live_heap_bytes)
+    return native.call(2, program, function, limit=max_live_heap_bytes)
+
+
+def qualify_finite_entry_live_heap_budget(program, function: str, arguments, *,
+                                         max_live_heap_bytes: int) -> dict:
+    """Bound one exact scalar invocation of acyclic, chain-free primitive v7.
+
+    This is deliberately a separate contract from both historical all-function
+    heap admission and v8 borrowed-local summaries. Private owners may move
+    into and out of calls: the existing transfer tracks their finite extents
+    and returned scalar intervals in a bounded, memoized calling context.
+    Borrowed actuals keep their root payload in the caller; their callee-local
+    root is UNKNOWN and is never used as a zero or exact allocation extent.
+
+    Every syntactic branch is conservatively included. Thus the bound covers
+    allocation failure, explicit cleanup, traps and execution-budget prefixes;
+    it neither proves branch reachability nor promises cleanup after a stop.
+    The exact scalar arguments are part of the certificate, not a claim over
+    every input value or arbitrary external resource extents.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_qualify_finite_entry_live_heap_budget(program, function, arguments, max_live_heap_bytes=max_live_heap_bytes)
+    return native.call(3, program, function, arguments, limit=max_live_heap_bytes)
+
+
+def qualify_finite_entry_live_heap_budget_v8(program, function: str, arguments, *,
+                                            max_live_heap_bytes: int) -> dict:
+    """Bound one exact v8 invocation with owned and parameter-loan returns.
+
+    This separate contract composes already legal v8 resource transitions; it
+    adds no Core operation or execution rule. Moving an owner into a call
+    removes it from the caller's sum before adding the callee's peak. Incoming
+    borrowed roots stay counted in that caller. Every returned loan reconnects
+    to its canonical return_loans actual, including after nested calls and CFG
+    renaming. The selected entry must remain scalar and all module CFG/call
+    graphs must be acyclic and chain-free. Legacy v7 invocation and v8 local
+    summary admissions retain their original versions and scope.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_qualify_finite_entry_live_heap_budget_v8(program, function, arguments, max_live_heap_bytes=max_live_heap_bytes)
+    return native.call(4, program, function, arguments, limit=max_live_heap_bytes)
+
+
+def qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents(
+        program, function: str, arguments, *, max_live_heap_bytes: int) -> dict:
+    """Bound v8 calls that allocate from caller-root-derived borrowed lengths.
+
+    This opt-in v3 contract retains the finite v8 owner/returned-loan rules and
+    additionally propagates each actual borrowed root's established upper
+    extent. Incoming loans remain caller-owned and add no local payload.
+    Bounds participate in the call-context memo key, survive canonical CFG
+    root renaming and nested calls, and produce [0, upper] length intervals,
+    never assumed exact lengths. Public entries and arguments remain scalar;
+    no caller-supplied resource size annotation is accepted as authority.
+
+    The historical v1/v2 contracts, execution semantics, whole-module byte
+    profile, acyclic graphs and finite analysis limits remain unchanged.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_qualify_finite_entry_live_heap_budget_v8_with_borrowed_extents(program, function, arguments, max_live_heap_bytes=max_live_heap_bytes)
+    return native.call(5, program, function, arguments, limit=max_live_heap_bytes)
+
+
+def analyze_entry_payload_bound(program, function: str) -> dict:
+    """Bound v1 scalar-entry allocation requests and logical byte payload.
+
+    Reverify the actual Core; audit every definition against a closed v1
+    inventory; reject recursion, nonlocal/dynamic sizes and allocator-bearing
+    operations/calls in CFG cycles. Each remaining allocating block executes
+    at most once per invocation. Sum all branch sites and callee summaries,
+    counting each syntactic call site separately. No branch feasibility,
+    termination, destructor completion or incoming private-owner extent is
+    assumed. A scalar entry starts without external owners, so live payload
+    is at most the cumulative requested payload at every finite trace prefix.
+
+    This is a checkable structural analysis conditional on the canonical Core
+    checker and its operational semantics, not a language-soundness theorem or
+    a native optimization/installation authority. Existing budget admissions
+    retain their previous acceptance domains.
+    """
+    from .hia_heap_bound_native import selected_heap_bound
+    native = selected_heap_bound()
+    if native is None:
+        return _reference_analyze_entry_payload_bound(program, function)
+    return native.call(6, program, function)
+

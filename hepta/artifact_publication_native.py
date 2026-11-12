@@ -8,6 +8,20 @@ from hashlib import sha256
 import fcntl,json,os,re,struct,subprocess
 from pathlib import Path
 
+from .artifact_publication import PublicationRejected
+
+
+class NativePublicationRefusal(PublicationRejected):
+    """An actual returned process result; this never authorizes effect replay.
+
+    A caller may distinguish a confirmed read-only refusal from a lost process
+    or receipt handoff. The original exception superclass and text are retained.
+    No such distinction proves that a mutating publication had no effects.
+    """
+    def __init__(self, message, operation, returncode):
+        super().__init__(message)
+        self.operation, self.returncode = operation, returncode
+
 
 NATIVE_PUBLICATION_OPERATIONS = ('publish','verify','withdraw','store-put','store-get','store-hash')
 NATIVE_PUBLICATION_SOURCES = (
@@ -26,7 +40,7 @@ def _installed_source_custody(root):
     different checkout. The full build-source manifest remains bound through
     the exact package-owned contract; it is not a claim those tools are installed.
     """
-    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,PUBLICATION_BUILD_FILES
+    from .hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_BUILD_FILES,COMPILER_BUILD_FILES,PUBLICATION_BUILD_FILES
     from .hia_json_preflight_native import _source_resource_path
     contract_name='docs/HIA_SELFHOST_CORE_SUPPORT.json'
     contract_path=_source_resource_path(contract_name);raw=contract_path.read_bytes()
@@ -40,12 +54,16 @@ def _installed_source_custody(root):
     expected_python={n for n in files if n.startswith('hepta/') and n.endswith('.py')}
     if actual_python!=expected_python:
         _reject('E_PUBLISH_NATIVE_CUSTODY','installed production module inventory changed')
-    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+PUBLICATION_BUILD_FILES
-    for name in (*sorted(actual_python),*assets):
-        if name==contract_name:continue  # The outer manifest binds this exact JSON.
-        path=root/name if name in actual_python else _source_resource_path(name)
-        if name not in files or sha256(path.read_bytes()).hexdigest()!=files[name]:
-            _reject('E_PUBLISH_NATIVE_CUSTODY','installed production or build-input bytes changed')
+    assets=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+COMPILER_BUILD_FILES+PUBLICATION_BUILD_FILES
+    # A declared Python resource has two installed roles. Check the ordinary
+    # module first, then its actual data copy; one matching path cannot stand
+    # in for both. Both hashes must equal the same already-bound source entry.
+    for package_role,names in ((True,sorted(actual_python)),(False,assets)):
+        for name in names:
+            if name==contract_name:continue  # The outer manifest binds this exact JSON.
+            path=root/name if package_role else _source_resource_path(name)
+            if name not in files or sha256(path.read_bytes()).hexdigest()!=files[name]:
+                _reject('E_PUBLISH_NATIVE_CUSTODY','installed production or build-input bytes changed')
     if contract_path.read_bytes()!=raw:
         _reject('E_PUBLISH_NATIVE_CUSTODY','installed source contract changed during admission')
     return contract['profile'],{**files,contract_name:sha256(raw).hexdigest()}
@@ -120,14 +138,26 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
         code=_admission[1]
     fd=None
     try:
-        fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
-        view=memoryview(code)
-        while view:
-            written=os.write(fd,view)
-            if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
-            view=view[written:]
-        fcntl.fcntl(fd,fcntl.F_ADD_SEALS,
-            fcntl.F_SEAL_WRITE|fcntl.F_SEAL_GROW|fcntl.F_SEAL_SHRINK|fcntl.F_SEAL_SEAL)
+        try:
+            fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
+            view=memoryview(code)
+            while view:
+                written=os.write(fd,view)
+                if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
+                view=view[written:]
+            # Linux UAPI numbers remain available when Python was built with
+            # headers that omit the fcntl names. Only name lookup falls back;
+            # the actual kernel seals and admitted bytes must be read back.
+            required=(getattr(fcntl,'F_SEAL_WRITE',0x0008)
+                      |getattr(fcntl,'F_SEAL_GROW',0x0004)
+                      |getattr(fcntl,'F_SEAL_SHRINK',0x0002)
+                      |getattr(fcntl,'F_SEAL_SEAL',0x0001))
+            fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),required)
+            if (fcntl.fcntl(fd,getattr(fcntl,'F_GET_SEALS',1034))&required!=required
+                    or os.fstat(fd).st_size!=len(code) or os.pread(fd,len(code),0)!=code):
+                _reject('E_PUBLISH_NATIVE_CUSTODY','sealed executable bytes or seals differ')
+        except (OSError,AttributeError) as exc:
+            raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],
@@ -142,8 +172,9 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
     codes={10:'E_PUBLISH_IDENTITY',11:'E_PUBLISH_BYTES',12:'E_PUBLISH_RACE',
            14:'E_PUBLISH_LINK',15:'E_PUBLISH_IO',16:'E_PUBLISH_INPUT',17:'E_PUBLISH_LIMIT',64:'E_PUBLISH_INPUT'}
     if result.returncode or result.stderr:
-        _reject(codes.get(result.returncode,'E_PUBLISH_IO'),
-                'native '+operation+' refused or I/O failed; no automatic replay')
+        raise NativePublicationRefusal(codes.get(result.returncode,'E_PUBLISH_IO')+': '+
+            'native '+operation+' refused or I/O failed; no automatic replay',
+            operation, result.returncode)
     return result.stdout
 
 

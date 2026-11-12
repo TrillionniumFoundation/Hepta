@@ -35,7 +35,7 @@ DEVELOPMENT = 'HEPTA_HIA_COMPOSITE_FUNCTIONS_DEVELOPMENT_MANIFEST'
 TYPE_DEVELOPMENT = 'HEPTA_HIA_COMPOSITE_TYPES_DEVELOPMENT_MANIFEST'
 HELPER_DEVELOPMENT = 'HEPTA_HIA_TASK_HELPERS_DEVELOPMENT_MANIFEST'
 COLD_REPORT = 'HEPTA_HIA_COMPOSITE_FUNCTIONS_COLD_REPORT'
-HOST_METHODS = ('_reference_function', '_reference_parameters', '_reference_check_task',
+HOST_METHODS = ('_reference_function', '_reference_main_function', '_reference_helper_cache', '_reference_parameters', '_reference_check_task',
     'loan_origins', '_reference_helper', 'fresh', 'reserve_values', 'flat_parameters',
     'constant', 'zeros', 'drop_padding', 'helper')
 
@@ -261,8 +261,8 @@ class FunctionSourceTests(unittest.TestCase):
 
     def test_original_body_and_indivisible_bundle(self):
         from hepta.hia_composite_functions_native import NativeCompositeFunctions
-        original = inspect.getsource(composite._Elaborator._reference_function)
-        original = original.replace('def _reference_function(', 'def function(', 1).rstrip('\n') + '\n'
+        original = inspect.getsource(composite._Elaborator._reference_main_function)
+        original = original.replace('def _reference_main_function(', 'def function(', 1).rstrip('\n') + '\n'
         self.assertEqual(sha256(original.encode()).hexdigest(),
             'b7336fb540911f220fef676d082c1a365d4712703ba5f08faeff3ac985913972')
         with self.assertRaisesRegex(ValueError, 'every HIA kernel'):
@@ -367,8 +367,8 @@ class CompleteNativeFunctionTests(unittest.TestCase):
                                  (expected.exception.code, str(expected.exception)))
 
     def test_real_sdist_to_installed_wheel_and_each_source_or_image_custody_refusal(self):
-        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, PUBLICATION_BUILD_FILES
-        resource_names = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + PUBLICATION_BUILD_FILES
+        from hepta.hia_agent_contract import DISCOVERY_FILES, NATIVE_SOURCE_FILES, SOURCE_BUILD_FILES, COMPILER_BUILD_FILES, PUBLICATION_BUILD_FILES
+        resource_names = tuple('docs/' + n for n in DISCOVERY_FILES) + NATIVE_SOURCE_FILES + SOURCE_BUILD_FILES + COMPILER_BUILD_FILES + PUBLICATION_BUILD_FILES
         for name in KERNELS:
             self.assertIn('examples/hia_bootstrap/composite_function_' + name + '.hiaasm', resource_names)
         with tempfile.TemporaryDirectory(prefix='hia-function-wheel-') as directory:
@@ -427,7 +427,7 @@ from hepta.hia_composite_functions_native import SOURCES
 assert all(Path(sys.argv[1]) in p.parents for p in SOURCES.values())
 def absent(*args,**kwargs):raise AssertionError('host nominal semantic owner invoked')
 c._Types=absent
-for name in ('_reference_function','_reference_parameters','_reference_check_task','loan_origins',
+for name in ('_reference_function','_reference_main_function','_reference_helper_cache','_reference_parameters','_reference_check_task','loan_origins',
  '_reference_helper','fresh','reserve_values','flat_parameters','constant','zeros','drop_padding','helper'):
  setattr(c._Elaborator,name,absent)
 try:

@@ -178,11 +178,15 @@ class ArtifactPublicationKernelTests(unittest.TestCase):
         self.app=old
         # A real machine-code object, produced and linked by external independent
         # compilers, witnesses bytes relevant to downstream native artifacts.
+        # Resolve the qualified tool from the test environment before executing
+        # the copied native application with its deliberately empty PATH.
+        compiler=shutil.which('clang-20')
+        self.assertIsNotNone(compiler, 'qualified clang-20 is required')
         source=self.case/'real.c';source.write_text('int answer(void){return 42;}\n')
-        obj=self.case/'real.o';subprocess.run(['/usr/bin/clang-20','-c',str(source),'-o',str(obj)],check=True,capture_output=True)
+        obj=self.case/'real.o';subprocess.run([compiler,'-c',str(source),'-o',str(obj)],check=True,capture_output=True)
         self.run_app(stage=obj,wire=obj.read_bytes());self.assertEqual(self.dest.read_bytes(),obj.read_bytes())
         main=self.case/'main.c';main.write_text('int answer(void);int main(void){return answer();}\n')
-        exe=self.case/'real';subprocess.run(['/usr/bin/clang-20',str(main),str(self.dest),'-o',str(exe)],check=True,capture_output=True)
+        exe=self.case/'real';subprocess.run([compiler,str(main),str(self.dest),'-o',str(exe)],check=True,capture_output=True)
         self.assertEqual(subprocess.run([str(exe)],env={'PATH':''},timeout=10).returncode,42)
 
     def test_refuses_missing_extra_changed_bytes_same_path_and_existing_entries(self):

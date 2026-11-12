@@ -62,9 +62,29 @@ def admit_cold_build(compiler_bytes: bytes, cold_bytes: bytes):
 def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflight') -> Path:
     from tools.qualify_hia_selfhost import compile_stage
     from tools.hia_selfhost_contract import PROFILE
-    candidates = {'core-admission': ('core_admission', 'core-admission'),
+    candidates = {'machine-plan': ('machine_plan', 'machine-plan'),
+                  'worker-request': ('worker_request', 'worker-request'),
+                  'program-execution': ('program_execution', 'program-execution'),
+                  'static-budget': ('static_budget', 'static-budget'),
+                  'heap-bound': ('heap_bound', 'heap-bound'),
+                  'heap-live-engine': ('heap_live_engine', 'heap-live-engine'),
+                  'heap-payload': ('heap_payload', 'heap-payload'),
+                  'enum-match': ('enum_match', 'enum-match'),
+                  'enum-operations': ('enum_operations', 'enum-operations'),
+                  'record-operations': ('record_operations', 'record-operations'),
+                  'record-transitions': ('record_transitions', 'record-transitions'),
+                  'nominal-terminators': ('nominal_terminators', 'nominal-terminators'),
+                  'nominal-function': ('nominal_function', 'nominal-function'),
+                  'call-primitive': ('call_primitive', 'call-primitive'),
+                  'task-operations': ('task_operations', 'task-operations'),
+                  'nominal-module': ('nominal_module', 'nominal-module'),
+                  'nominal-admission': ('nominal_admission', 'nominal-admission'),
+                  'core-admission': ('core_admission', 'core-admission'),
                   'composite-types': ('composite_types', 'composite-types'),
                   'task-helpers': ('task_helpers', 'task-helpers'),
+                  'task-helper-cache': ('task_helper_cache', 'task-helper-cache'),
+                  'artifact-namespace': ('artifact_namespace', 'artifact-namespace'),
+                  'slot-ledger': ('slot_ledger', 'slot-ledger'),
                   'composite-function-admit': ('composite_function_admit', 'composite-function-admit'),
                   'composite-function-records': ('composite_function_records', 'composite-function-records'),
                   'composite-function-advanced': ('composite_function_advanced', 'composite-function-advanced'),
@@ -81,6 +101,9 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
                   'function-shape': ('function_shape', 'function-shape'),
                   'capability-renaming': ('capability_renaming', 'capability-renaming'),
                   'agent-slice': ('agent_slice', 'agent-slice'),
+                  'retirement-state': ('retirement_state', 'retirement-state'),
+                  'execution-budget': ('execution_budget', 'execution-budget'),
+                  'request-journal': ('request_journal', 'request-journal'),
                   'core-workspace-json': ('core_workspace_json', 'core-workspace-json'),
                   'core-module-graph': ('core_module_graph', 'core-module-graph'),
                   'preflight': ('json_preflight', 'json-preflight'),
@@ -106,12 +129,14 @@ def build(output: Path, compiler: Path, cold_report: Path, *, candidate='preflig
         raise ValueError('native candidate source changed after contract admission')
     output.mkdir(mode=0o700)
     image, receipt = compile_stage(output, protocol, compiler, source)
+    image_bytes = image.read_bytes()
     if (source_path.read_bytes() != source or compiler.read_bytes() != compiler_bytes
-            or cold_report.read_bytes() != raw or current_sources() != sources):
+            or cold_report.read_bytes() != raw or current_sources() != sources
+            or image.read_bytes() != image_bytes):
         raise ValueError('native candidate build inputs changed')
     manifest = {'schema': 'hepta.hia.' + protocol + '-native.v1',
                 'source_sha256': sha256(source).hexdigest(), 'image_path': image.name,
-                'image_sha256': sha256(image.read_bytes()).hexdigest(), 'compiler_sha256': compiler_sha}
+                'image_sha256': sha256(image_bytes).hexdigest(), 'compiler_sha256': compiler_sha}
     path = output / 'manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (output / 'build.json').write_text(json.dumps({

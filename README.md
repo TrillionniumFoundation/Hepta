@@ -28,15 +28,21 @@ owns declaration checks, generic binding, finite layouts and partial-record
 obligations for all four composite versions, source-level returned-loan origins,
 parameter admission and task-protocol checks. A separately selected
 [native task-helper generator](docs/HIA_TASK_HELPERS_NATIVE.md) constructs the
-complete start, poll, cancel, join and close Core functions. The selected
-[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) owns
-nominal SSA/CFG, record/enum/partial/task operations, terminators and generated
-entry-name loan binding in HIA. The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
-also moves constructor admission, ordered signatures, complete function/helper
+complete start, poll, cancel, join and close Core functions. Two explicit
+native nominal routes are retained during integration: the
+[complete function bundle](docs/HIA_COMPOSITE_FUNCTION_NATIVE_DESIGN.md) and
+the [individual nominal owners](docs/HIA_NOMINAL_FUNCTION_NATIVE.md).
+The [complete selected nominal route](docs/HIA_COMPOSITE_NATIVE_INTEGRATION.md)
+moves constructor admission, ordered signatures, complete function/helper
 aggregation, late limits, exports and primitive schema selection into HIA.
-Its five explicit owners use eleven images; the surrounding bridge retains
-foreign-object and packet custody. The default route and durable Agent remain
-hosted. Native normalization preserves the existing primitive Core recheck.
+An explicitly selected [native worker request kernel](docs/HIA_WORKER_REQUEST_NATIVE.md)
+owns ordinary JSON, finite binary64 canonical bytes, request digests and envelope
+admission. Separate native request journal and execution budget owners retain
+the existing service's transaction and foreign-resource boundaries.
+The [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md) checks and
+publishes a bounded immutable release from an operator-pinned bundle.
+Default selection and whole-stack delivery remain unqualified; the old owners
+are retained until the corresponding complete replacement is qualified.
 Full native Agent editing/persistence, modules/build, runtime and installation
 acceptance are still open. No interpreter, Rust or LLVM fallback is selected by
 the Agent entry. Standalone Core research backends remain explicitly scoped.
@@ -56,5 +62,11 @@ are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
 Repository cleanup: [current audit](docs/HIA_REPOSITORY_CLEANUP_20261110.md).
-Native rewrite: [current implementation and remaining owners](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+Native rewrite: [current audit, implementation and remaining owners](docs/HIA_NATIVE_SELF_REWRITE_AUDIT_20261111.md).
+Earlier source-bound observations remain in the [rewrite history](docs/HIA_NATIVE_REWRITE_STATUS_20261111.md).
+The selected [native enum-match owner](docs/HIA_ENUM_MATCH_NATIVE.md) produces
+complete match control flow; other nominal operations remain separate owners.
+The [native release selector](docs/HIA_RELEASE_SELECTION_NATIVE.md) implements
+explicit status, compare-and-swap activation and previous-version rollback for
+verified immutable releases. Ordinary CLI/service migration remains open.
 Runtime integration: [compatibility and upgrade requirements](docs/HIA_RUNTIME_COMPATIBILITY_AUDIT_20261110.md).

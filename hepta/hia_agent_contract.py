@@ -27,7 +27,27 @@ DISCOVERY_FILES = (
 
 
 NATIVE_SOURCE_FILES = (
+    'examples/hia_bootstrap/machine_elf.hiaasm',
+    'examples/hia_bootstrap/cli_control.hiaasm',
+    'examples/hia_bootstrap/cli_format.hiaasm',
+    'examples/hia_bootstrap/machine_encoding.hiaasm',
+    'examples/hia_bootstrap/machine_state.hiaasm',
+    'examples/hia_bootstrap/machine_instructions.hiaasm',
+    'examples/hia_bootstrap/machine_plan.hiaasm',
+    'examples/hia_bootstrap/service_context.hiaasm',
+    'examples/hia_bootstrap/source_admission.hiaasm',
+    'examples/hia_bootstrap/worker_request.hiaasm',
     'examples/hia_bootstrap/agent_identity.hiaasm',
+    'examples/hia_bootstrap/retirement_state.hiaasm',
+    'examples/hia_bootstrap/execution_budget.hiaasm',
+    'examples/hia_bootstrap/request_journal.hiaasm',
+    'examples/hia_bootstrap/artifact_namespace.hiaasm',
+    'examples/hia_bootstrap/slot_ledger.hiaasm',
+    'examples/hia_bootstrap/program_execution.hiaasm',
+    'examples/hia_bootstrap/static_budget.hiaasm',
+    'examples/hia_bootstrap/heap_bound.hiaasm',
+    'examples/hia_bootstrap/heap_live_engine.hiaasm',
+    'examples/hia_bootstrap/heap_payload.hiaasm',
     'examples/hia_bootstrap/agent_slice.hiaasm',
     'examples/hia_bootstrap/agent_data_json.hiaasm',
     'examples/hia_bootstrap/agent_binary64.hiaasm',
@@ -52,6 +72,17 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/core_patch.hiaasm',
     'examples/hia_bootstrap/composite_types.hiaasm',
     'examples/hia_bootstrap/task_helpers.hiaasm',
+    'examples/hia_bootstrap/task_helper_cache.hiaasm',
+    'examples/hia_bootstrap/enum_match.hiaasm',
+    'examples/hia_bootstrap/enum_operations.hiaasm',
+    'examples/hia_bootstrap/record_operations.hiaasm',
+    'examples/hia_bootstrap/record_transitions.hiaasm',
+    'examples/hia_bootstrap/nominal_terminators.hiaasm',
+    'examples/hia_bootstrap/nominal_function.hiaasm',
+    'examples/hia_bootstrap/call_primitive.hiaasm',
+    'examples/hia_bootstrap/task_operations.hiaasm',
+    'examples/hia_bootstrap/nominal_module.hiaasm',
+    'examples/hia_bootstrap/nominal_admission.hiaasm',
     'examples/hia_bootstrap/composite_function_admit.hiaasm',
     'examples/hia_bootstrap/composite_function_records.hiaasm',
     'examples/hia_bootstrap/composite_function_advanced.hiaasm',
@@ -61,11 +92,30 @@ NATIVE_SOURCE_FILES = (
     'examples/hia_bootstrap/composite_constructor_render.hiaasm',
     'examples/hia_bootstrap/composite_outer_owner.hiaasm',
     'examples/hia_bootstrap/composite_outer_render.hiaasm',
+    'examples/hia_bootstrap/core_json_bytes.hiaasm',
+    'examples/hia_bootstrap/nominal_json.hiaasm',
+    'examples/hia_bootstrap/program_normalization.hiaasm',
+    'examples/hia_bootstrap/cpython_note_packer.hiaasm',
+    'hepta/hia_program_normalization_notes.py',
 )
 
 
 # Build-input custody assets, not loadable native image adapters. The streaming
 # SHA source is already in NATIVE_SOURCE_FILES and is deliberately not repeated.
+# Native source-builder resources are data, never executable Python modules.
+# Existing shared compiler bytes retain their .hiaasm source identity.
+SOURCE_BUILD_FILES = (
+    'examples/hia_bootstrap/source_build_policy.hiaasm',
+    'examples/hia_bootstrap/selfhost.hiaasm',
+    'examples/hia_bootstrap/source_build_packer.hiaasm',
+)
+
+# The explicit Core JSON compiler additionally owns this packer resource.
+COMPILER_BUILD_FILES = (
+    'examples/hia_bootstrap/core_json_cli_packer.hiaasm',
+)
+
+
 PUBLICATION_BUILD_FILES = (
     'examples/hia_bootstrap/artifact_publication_policy.hiaasm',
     'examples/hia_bootstrap/artifact_publication_packer.hiaasm',
@@ -93,12 +143,23 @@ def installation_manifest():
     for filename in DISCOVERY_FILES:
         path = _agent_resource_path("docs/" + filename)
         entries["docs/" + filename] = sha256(path.read_bytes()).hexdigest()
-    for native_source in (*NATIVE_SOURCE_FILES, *PUBLICATION_BUILD_FILES):
-        entries[native_source] = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+    for native_source in (*NATIVE_SOURCE_FILES, *SOURCE_BUILD_FILES, *COMPILER_BUILD_FILES, *PUBLICATION_BUILD_FILES):
+        # A Python file can be both an imported module and a packaged source
+        # resource. Preserve the existing identity key only when both actual
+        # copies agree; a data copy cannot replace a missing/changed module.
+        package_source = native_source.startswith("hepta/") and native_source.endswith(".py")
+        if package_source and native_source not in entries:
+            raise ValueError("installed source resource has no package module: " + native_source)
+        resource_digest = sha256(_agent_resource_path(native_source).read_bytes()).hexdigest()
+        if package_source and entries[native_source] != resource_digest:
+            raise ValueError("installed package module and source resource differ: " + native_source)
+        entries[native_source] = resource_digest
     from .hia_program_native import _implementation_hash
+    from .hia_native_helpers import native_helpers_identity
     return {"worker_sha256": sha256(wire(entries)).hexdigest(),
             "backend_sha256": _implementation_hash(),
-            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"]}
+            "catalog_sha256": entries["docs/HIA_AGENT_NATIVE_TOOL_CATALOG.json"],
+            **native_helpers_identity()}
 
 
 _KEYWORDS = frozenset({"$schema", "type", "properties", "required", "additionalProperties",

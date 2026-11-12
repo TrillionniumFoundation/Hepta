@@ -29,10 +29,20 @@ class SelfhostContractTests(unittest.TestCase):
 
     def test_release_freeze_inventory_covers_the_complete_selfhost_closure(self):
         from tools.hia_release import BOOTSTRAP_FILES
+        from tools.hia_selfhost_contract import SOURCE_FILES
         declared = validate_contract()["source_identity"]["files"]
-        # The public freeze reads its own explicit inventory. A newly declared
-        # selfhost helper must be present there before a release can be locked.
-        self.assertEqual(set(BOOTSTRAP_FILES) - {CONTRACT_PATH},
+        explicit, bootstrap = set(SOURCE_FILES), set(BOOTSTRAP_FILES)
+        package = {path.relative_to(ROOT).as_posix()
+                   for path in (ROOT / "hepta").rglob("*.py")}
+        # Bootstrap is the explicit release inventory, not a prefix partition.
+        # Package modules can also be explicit native/build data resources;
+        # those names must remain in both the full package closure and release.
+        self.assertEqual(len(BOOTSTRAP_FILES), len(bootstrap))
+        self.assertEqual(bootstrap, explicit | {CONTRACT_PATH})
+        self.assertEqual(set(declared), explicit | package)
+        # Retain the original complete non-package coverage constraint too.
+        self.assertEqual({name for name in bootstrap
+                          if name != CONTRACT_PATH and not name.startswith("hepta/")},
                          {name for name in declared if not name.startswith("hepta/")})
 
     def test_contract_binds_support_and_complete_seed_source_closure(self):

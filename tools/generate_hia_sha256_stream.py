@@ -14,6 +14,36 @@ MAX_TOTAL = (1 << 61) - 1
 MAGIC = 0x3153484132353648
 
 
+# A stream may cover the full Agent 64 MiB quota. Keep the original one-shot
+# authoring constants and algebra unchanged; only this stream uses these
+# straight-line, checked u8 accesses. The order, full u64 width and layout are
+# identical to the retained byte loops. No native-width memory primitive or
+# foreign hash is introduced.
+STREAM_WORD_HELPERS = r'''
+def get(w:mutbuf, index:u64) -> u64:
+    value = byte(w, index)
+    value = value | (byte(w, index + 1) << 8)
+    value = value | (byte(w, index + 2) << 16)
+    value = value | (byte(w, index + 3) << 24)
+    value = value | (byte(w, index + 4) << 32)
+    value = value | (byte(w, index + 5) << 40)
+    value = value | (byte(w, index + 6) << 48)
+    value = value | (byte(w, index + 7) << 56)
+    return value
+
+def put(w:mutbuf, index:u64, value:u64) -> u64:
+    store(w, index, value & 255)
+    store(w, index + 1, (value >> 8) & 255)
+    store(w, index + 2, (value >> 16) & 255)
+    store(w, index + 3, (value >> 24) & 255)
+    store(w, index + 4, (value >> 32) & 255)
+    store(w, index + 5, (value >> 40) & 255)
+    store(w, index + 6, (value >> 48) & 255)
+    store(w, index + 7, (value >> 56) & 255)
+    return 0
+'''
+
+
 def source_program():
     source = '''def stream(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
     if length(s) < 1 or length(s) > 8388609 or length(o) < 32 or length(w) < 1184:
@@ -101,7 +131,8 @@ def compress(w:mutbuf) -> u64:
     for i, name in enumerate('abcdefgh'):
         source += f'    put(w, {1024 + i * 8}, (get(w, {1024 + i * 8}) + {name}) & 4294967295)\n'
     source += '    return 0\n'
-    return source + HELPERS[HELPERS.index('\ndef rotate'):]
+    return (source + HELPERS[HELPERS.index('\ndef rotate'):HELPERS.index('\ndef get')]
+            + STREAM_WORD_HELPERS)
 
 
 def document():

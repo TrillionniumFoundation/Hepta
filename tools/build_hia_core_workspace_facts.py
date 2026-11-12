@@ -23,18 +23,24 @@ def build(output,compiler,cold_report):
             or str(SOURCE.relative_to(ROOT)) not in expected or str(PACKER.relative_to(ROOT)) not in expected):
         raise ValueError('completed matching-source cold qualification required for workspace JSON')
     admitted_sources=admit_cold_build(inputs[compiler],inputs[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix())!=sha256(inputs[p]).hexdigest()
+           for p in (SOURCE,PACKER)):
+        raise ValueError('workspace JSON source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifest=build_kernel(output/'kernel',compiler,cold_report,candidate='core-workspace-facts')
-    metadata=json.loads(manifest.read_bytes());image=manifest.parent/metadata['image_path'];application=image.read_bytes()
+    manifest_raw=manifest.read_bytes()
+    metadata=json.loads(manifest_raw);image=manifest.parent/metadata['image_path'];application=image.read_bytes()
     if sha256(application).hexdigest()!=metadata['image_sha256']:
         raise ValueError('workspace JSON kernel image changed')
     packer,compiled=compile_stage(output,'workspace-json-packer',compiler,inputs[PACKER])
+    packer_raw=packer.read_bytes()
     packed,arena=invoke(output,'workspace-json-pack',packer,struct.pack('<QQ',MAGIC,len(application))+application)
     size=packed['core_u32']
     if not 0<size<=1<<20:
         raise ValueError('workspace JSON native packer refused image')
     executable=arena[:size];inspection=inspect_executable(executable)
     if (any(p.read_bytes()!=b for p,b in inputs.items()) or image.read_bytes()!=application
+            or packer.read_bytes()!=packer_raw or manifest.read_bytes()!=manifest_raw
             or current_sources()!=admitted_sources):
         raise ValueError('workspace JSON build inputs changed')
     target=output/'hia-workspace-json';target.write_bytes(executable);target.chmod(0o700)

@@ -29,8 +29,8 @@ def _primitive_implementation_identity():
              "hia_json_preflight.py", "hia_program_composite.py",
              "hia_program_runtime.py", "hia_bounded_memory.py",
              "hia_optimization.py", "hia_program_llvm.py")
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            for name in names}
+    from .hia_checker_identity import checker_source_identity
+    return checker_source_identity(names)
 
 
 def _call_implementation_identity():
@@ -39,8 +39,8 @@ def _call_implementation_identity():
              "hia_translation_validation.py", "hia_program.py", "hia_capability_flow.py", "hia_opcodes.py",
              "hia_schema.py", "hia_json_preflight.py", "hia_program_runtime.py",
              "hia_bounded_memory.py", "hia_optimization.py", "hia_program_llvm.py")
-    return {name: sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-            for name in names}
+    from .hia_checker_identity import checker_source_identity
+    return checker_source_identity(names)
 
 
 def _implementation_digest():

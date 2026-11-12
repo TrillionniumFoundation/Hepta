@@ -25,13 +25,18 @@ def build(output, compiler, cold_report):
     if qualification.get('profile') != PROFILE or qualification.get('source_manifest') != expected_sources:
         raise ValueError('cold qualification source identity does not match current source')
     admitted_sources = admit_cold_build(inputs[compiler], inputs[cold_report])
+    if any(admitted_sources.get(p.relative_to(ROOT).as_posix()) != sha256(raw).hexdigest()
+           for p, raw in inputs.items() if p not in (compiler, cold_report)):
+        raise ValueError('native snapshot JSON source differs from admitted cold source')
     output.mkdir(mode=0o700)
     manifest = build_kernel(output / 'kernel', compiler, cold_report, candidate='agent-snapshot-json')
-    metadata = json.loads(manifest.read_bytes()); image = manifest.parent / metadata['image_path']
+    manifest_raw = manifest.read_bytes()
+    metadata = json.loads(manifest_raw); image = manifest.parent / metadata['image_path']
     application = image.read_bytes()
     if sha256(application).hexdigest() != metadata['image_sha256']:
         raise ValueError('native snapshot JSON kernel image identity changed')
     packer, receipt = compile_stage(output, 'snapshot-json-packer', compiler, inputs[PACKER_SOURCE])
+    packer_raw = packer.read_bytes()
     frame = struct.pack('<QQ', MAGIC, len(application)) + application
     actual, packed = invoke(output, 'snapshot-json-pack', packer, frame)
     size = actual['core_u32']
@@ -39,6 +44,7 @@ def build(output, compiler, cold_report):
         raise ValueError('native snapshot JSON packer refused image frame')
     executable = packed[:size]; inspection = inspect_executable(executable)
     if (any(p.read_bytes() != raw for p, raw in inputs.items()) or image.read_bytes() != application
+            or packer.read_bytes() != packer_raw or manifest.read_bytes() != manifest_raw
             or current_sources() != admitted_sources):
         raise ValueError('native snapshot JSON build inputs changed')
     path = output / 'hia-snapshot-json'; path.write_bytes(executable); path.chmod(0o700)
