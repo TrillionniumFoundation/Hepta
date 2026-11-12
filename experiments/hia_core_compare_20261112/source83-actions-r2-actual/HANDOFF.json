@@ -1,0 +1,103 @@
+{
+  "schema": "hepta.hia.numeric-source83-r2-actual-handoff.v1",
+  "status": "COMPLETE_CUSTODY_OF_ACTUAL_FAILED_QUALIFICATION",
+  "run_id": 43272140755,
+  "job_id": 131371182832,
+  "attempt": 1,
+  "event": "create",
+  "head": "2f73340a8ec74a648e0e47f299be0449f77ea0cd",
+  "branch": "codex/hia-core-numeric-source83-run-r2-20261112-e26e",
+  "artifact": {
+    "id": 13967823822,
+    "size": 12878630,
+    "sha256": "d88ae1b7f649f0e78ceef094c184950488152e9b94a0f1034ed6081c2268b6eb",
+    "members": 1910,
+    "expanded_bytes": 47885373
+  },
+  "lifecycle": {
+    "status": "QUALIFICATION_FAILED",
+    "returncode": 1,
+    "timed_out": false,
+    "worker_seconds": 167.277860626,
+    "natural_events": 4,
+    "ECHILD": true,
+    "remaining": [],
+    "errors": []
+  },
+  "source_result": {
+    "expected": 83,
+    "loaded": 83,
+    "executed": 83,
+    "failures": 4,
+    "errors": 5,
+    "other_anomalies": 0,
+    "generators_completed": 62,
+    "derive_commands_completed": 4,
+    "idempotence_commands_completed": 4,
+    "source_test_command": 71
+  },
+  "audit": {
+    "checks": 10825,
+    "raw_pin_joins": 2337,
+    "complete_zip_crc_and_sha": true,
+    "source_bodies": 1653,
+    "other_originals": 257,
+    "other_original_bytes": 7693455,
+    "small_channel_complete_files": 27,
+    "small_channel_frames": 70,
+    "small_channel_raw_bytes": 464261
+  },
+  "causes": [
+    {
+      "kind": "MISSING_ORIGINAL_FIXTURES",
+      "method": "tests.test_hia_compiler_owner_gates.CompilerOwnerGateTests.test_v9_adjacent_original_helpers_are_byte_identical",
+      "paths": [
+        "experiments/hia_v67_qualification_runner_20261111/guardian.py",
+        "experiments/hia_v67_qualification_runner_20261111/process_owner_impl.py",
+        "experiments/hia_v67_qualification_runner_20261111/workflow_process.py",
+        "experiments/hia_v67_qualification_runner_20261111/qualification_prerequisites.py",
+        "experiments/hia_v67_qualification_runner_20261111/native_owner_gates.py"
+      ],
+      "count": 5
+    },
+    {
+      "kind": "CONTROL_POISON_BLOCKED_REQUIRED_NEGATIVE_COMMANDS",
+      "method": "tests.test_hia_store_page_gates.StorePageCIGateTests.test_real_command_rejects_bad_cold_and_development_before_creating_evidence",
+      "cases": 4,
+      "original_per_command_timeout": 10,
+      "scope": "authority/page × development false/true; original subprocess.run calls were rejected by the source controller's blanket Popen poison"
+    }
+  ],
+  "derived_documents": {
+    "status": "ACTUAL_FAILED_RUN_OUTPUTS_NOT_A_PUBLISHED_PASS_CANDIDATE",
+    "paths": [
+      "docs/HIA_SELFHOST_CORE_SUPPORT.json",
+      "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json"
+    ],
+    "full_originals_preserved": true
+  },
+  "next_revision": {
+    "status": "NOT_EXECUTED_NOT_TRIGGERED",
+    "preserve_expected_ids": 83,
+    "preserve_generators": 62,
+    "preserve_owner_seconds": 180,
+    "preserve_cleanup_seconds": 3,
+    "preserve_original_tests": true,
+    "required_changes": [
+      "add the five exact original fixture files to source closure",
+      "permit and record only the four exact original negative-admission Python commands; retain other native/compiler/process refusals",
+      "do not describe the revised execution scope as zero-process"
+    ]
+  },
+  "claims": {
+    "numeric_native": false,
+    "Core39": false,
+    "original18": false,
+    "original116": false,
+    "installed": false,
+    "cold": false,
+    "whole_runtime": false,
+    "reexecution": false
+  }
+}
+
