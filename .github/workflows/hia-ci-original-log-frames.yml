@@ -1,0 +1,72 @@
+name: HIA exact original ELF failure log frames
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  frame_originals:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-acffa-elf-ci-original-frames-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed small-original control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: e92c7aaac4dff59dbf379f7de7a733c6a2e161b4
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen control bytes and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/small-log-reader-r1/controller.py prepare --root "$RUNNER_TEMP/hia-acffa-small-original-log-r1" --policy-sha256 75d6da9f1c2261191a71e15b9f537e3d50f317aabc06ef2b3bad38bae143b74b --control-commit e92c7aaac4dff59dbf379f7de7a733c6a2e161b4
+      - name: Read the one sealed small artifact under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/small-log-reader-r1/controller.py run --root "$RUNNER_TEMP/hia-acffa-small-original-log-r1" --policy-sha256 75d6da9f1c2261191a71e15b9f537e3d50f317aabc06ef2b3bad38bae143b74b --control-commit e92c7aaac4dff59dbf379f7de7a733c6a2e161b4
+      - name: Verify original bytes and emit bounded frames only after closed cleanup
+        if: always()
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/small-log-reader-r1/controller.py finalize --root "$RUNNER_TEMP/hia-acffa-small-original-log-r1" --policy-sha256 75d6da9f1c2261191a71e15b9f537e3d50f317aabc06ef2b3bad38bae143b74b --control-commit e92c7aaac4dff59dbf379f7de7a733c6a2e161b4
+      - name: Preserve the read-only framing receipt including HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-acffa-elf-original-log-frames-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-acffa-small-original-log-receipts-r1/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
