@@ -50,7 +50,14 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
     if len(frame) > LIMIT:
         raise ValueError('qualified images exceed unchanged packer source capacity')
     result, packed = invoke(output, 'native-pack', packer, frame)
-    if not 0 < result['core_u32'] <= LIMIT or result['core_u32'] != len(packed[:result['core_u32']]):
+    if (result.get('status') != 'returned'
+            or type(result.get('abi_status')) is not int or result['abi_status'] != 0
+            or type(result.get('core_u32')) is not int
+            or not 0 < result['core_u32'] <= LIMIT
+            or result['core_u32'] != len(packed[:result['core_u32']])
+            or result.get('image_sha256') != sha256(packer_raw).hexdigest()
+            or result.get('source_sha256') != sha256(frame).hexdigest()
+            or result.get('source_unchanged') is not True):
         raise ValueError('native HIA packer rejected image frame')
     executable_bytes = packed[:result['core_u32']]
     inspection = inspect_executable(executable_bytes)
@@ -79,6 +86,17 @@ def build(output: Path, compiler: Path, cold_report: Path, *, output_profile='fl
         'production_activated':False, 'whole_production_cli_replaced':False,
         'whole_stack_rewritten_in_hia':False}
     (output/'build.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+    if output_profile == 'elf':
+        from hepta.hia_program_selfhost import SOURCE_FILES, manifest_value
+        selection = manifest_value(executable,
+            compiler_sha256=report['compiler_sha256'], frontend_sha256=report['frontend_sha256'],
+            packer_sha256=report['packer_sha256'], cold_report_sha256=report['cold_report_sha256'],
+            source_sha256={name: admitted_sources[name] for name in SOURCE_FILES})
+        if (executable.read_bytes() != executable_bytes
+                or current_sources() != admitted_sources):
+            raise ValueError('native JSON compiler selection changed before publication')
+        with (output/'compiler-manifest.json').open('x') as stream:
+            stream.write(json.dumps(selection, indent=2, sort_keys=True)+'\n')
     return executable
 
 

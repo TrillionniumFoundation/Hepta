@@ -28,6 +28,11 @@ The `hia` entry is currently a Python-hosted bridge. The independently built
 HIA-native stdio application supports `capabilities`, `verify`, `compile`,
 `render-assembly` and direct HIA-source `assemble` on
 Linux x86-64 without Python at runtime; see [native stdio](docs/HIA_AGENT_STDIO_NATIVE.md).
+The ordinary `hia build --backend selfhost` route can explicitly select an
+operator-pinned HIA compiler for bounded primitive Core v8 ELF objects. Its
+native frontend and code generator execute without the Python emitter or an
+external linker; the CLI, admission and publication bridge remain hosted.
+See [native compiler selection and its supported profile](docs/HIA_PROGRAM_SELFHOST_BUILD.md).
 The separate [native patch application](docs/HIA_CORE_PATCH_CLI.md) performs
 snapshot-bound edits with native whole-Core checks of both base and candidate.
 The [native patch-result application](docs/HIA_CORE_PATCH_RESULT_CLI.md) also
@@ -59,6 +64,9 @@ kernels and that journal through ordinary worker callers. Selected
 SQLite accounting and unknown-outcome fencing. Selected
 [candidate attempt budgets](docs/HIA_CANDIDATE_BUDGET_NATIVE.md) preserve the
 original context counter, request replay and committed charges. Selected
+[slot and lease state](docs/HIA_SLOT_LEDGER_NATIVE.md) also owns adoption's
+evaluation-completion, outcome and net-benefit decisions, while the existing
+store retains SQLite effects, receipt binding and request replay. Selected
 [retirement state](docs/HIA_RETIREMENT_STATE_NATIVE.md) owns release decisions
 while the original process retains actual foreign resources and system calls.
 The separate [native release installer](docs/HIA_RELEASE_INSTALL_NATIVE.md)
@@ -86,6 +94,6 @@ independent reference controls and resource refusal witnesses. Source contracts
 are identities, not correctness or release approvals. Old high-level-specific
 CI projections are retired, not reported as passed. [Scope](docs/HIA_CORE_ONLY_SCOPE.md).
 
-Repository cleanup: [current audit](docs/CURRENT.md#repository-cleanup).
+Repository cleanup: [current audit](docs/CURRENT.md#repository-ownership-and-cleanup).
 Native rewrite: [current implementation and remaining owners](docs/CURRENT.md).
-Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#runtime-integration).
+Runtime integration: [compatibility and upgrade requirements](docs/CURRENT.md#remaining-product-acceptance).

@@ -1080,7 +1080,17 @@ def next_token(s:readbuf, w:mutbuf) -> u64:
         if pos >= n or byte(s, pos) != 34:
             return fail(w, 47)
         put(w, 0, pos + 1)
-    kind = keyword(s, begin, pos - begin)
+    # The whole word and closing quote were checked above. Numeric SSA,
+    # function and block spellings cannot be keywords; source_program checks
+    # that table invariant before authoring. Identifier admission stays in
+    # identifier(), including its length, suffix and reserved-name checks.
+    if pos - begin >= 2:
+        c = byte(s, begin)
+        val = byte(s, begin + 1)
+        if (c == 118 or c == 102 or c == 98) and val >= 48 and val <= 57:
+            kind = 261
+    if kind == 0:
+        kind = keyword(s, begin, pos - begin)
     if kind == 0:
         kind = 261
     if quoted == 1:
@@ -1776,6 +1786,11 @@ SOURCE += EXPORTS_SOURCE
 
 
 def source_program():
+    # The scanner shortcut excludes only these exact first two ASCII bytes.
+    # Fail authoring if future keywords would make that exclusion unsound.
+    for word in W:
+        if len(word) >= 2 and word[0] in 'vfb' and '0' <= word[1] <= '9':
+            raise ValueError('numeric identifier prefix conflicts with keyword: ' + word)
     text = SOURCE.replace('KEYWORD_FUNCTION', keyword_source(W))
     for k,v in W.items(): text = text.replace('@'+k+'@', str(v))
     for key in ['FBASE','FSTRIDE','BBASE','BSTRIDE','VBASE','ARGS','FIXBASE','CBASE','CSTATE','CAPBASE','KBASE','CAPTMP','QBASE','ORIGINBASE','BLOCKORIGIN',

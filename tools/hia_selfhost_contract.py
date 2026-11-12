@@ -13,7 +13,7 @@ from tools.hia_selfhost_limits import (MAX_INSTRUCTIONS, MAX_CORE_NODES,
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = "docs/HIA_SELFHOST_CORE_SUPPORT.json"
-PROFILE = 'selfhost-core-linux-x86_64-v70-native-slot-ledger-state'
+PROFILE = 'selfhost-core-linux-x86_64-v71-native-cli-build-adoption-policy'
 SOURCE_FILES = (
     'tools/qualify_hia_original_select_fragments.py',
     'tools/replay_hia_original_select_fragments.py',
@@ -405,6 +405,8 @@ SOURCE_FILES = (
     'MANIFEST.in',
     'docs/HIA_AGENT_IDENTITY_NATIVE.md',
     'docs/HIA_AGENT_INSTALLED_RESOURCES.md',
+    'docs/HIA_PROGRAM_SELFHOST_BUILD.md',
+    'tests/test_hia_program_selfhost.py',
     'examples/hia_bootstrap/agent_identity.hepta',
     'setup.py',
     'tests/test_hia_agent_identity_native.py',

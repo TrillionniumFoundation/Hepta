@@ -1328,14 +1328,16 @@ class HIAAgentService:
             reject("E_HIA_RECEIPT_BINDING", "evaluation does not authorize this candidate/context", "adoption")
         self._build_receipt(evaluation["build_receipt"], args["context"], args["candidate_artifact"])
         objective = self._required_claims(context, args["candidate_artifact"], args["verification_receipts"], evaluation["baseline_core_sha256"])
-        if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
-                or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
-                ({"improved", "unchanged"} if objective["allow_unchanged"] else {"improved"})):
-            reject("E_HIA_EVALUATION_REQUIRED", "evaluation did not meet the frozen correctness/performance acceptance", "adoption")
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_evaluation(evaluation, objective)
+        else:
+            self._reference_adoption_evaluation(evaluation, objective)
         self.store.get(evaluation["measurements"], kind="measurements")
         self.store.get(evaluation["full_cost_ledger"], kind="cost-ledger")
-        if objective.get("require_net_benefit", False):
-            reject("E_HIA_COST_INCOMPLETE", "full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass", "adoption")
+        if self._slot_ledger is not None:
+            self._slot_ledger.admit_net_benefit(objective)
+        else:
+            self._reference_adoption_net_benefit(objective)
         _data, metadata, _program = self._native(args["candidate_artifact"], args["context"])
         _baseline_data, baseline, _baseline_program = self._native(evaluation["baseline_artifact"], args["context"])
         if metadata["signatures"] != baseline["signatures"]:
@@ -1354,6 +1356,16 @@ class HIAAgentService:
             "consumer_api": "acquire_slot -> invoke_lease -> release_slot"}, "adoption-receipt")
         return {"target_slot": args["target_slot"], "previous": snapshot["current"], "current": current,
                 "active_artifact": args["candidate_artifact"], "adoption_receipt": receipt, "future_calls_only": True}
+
+    def _reference_adoption_evaluation(self, evaluation, objective):
+        if (not evaluation["report_complete"] or not evaluation["planned_workload_complete"]
+                or not evaluation["termination_confirmed"] or evaluation["outcome"] not in
+                ({"improved", "unchanged"} if objective["allow_unchanged"] else {"improved"})):
+            reject("E_HIA_EVALUATION_REQUIRED", "evaluation did not meet the frozen correctness/performance acceptance", "adoption")
+
+    def _reference_adoption_net_benefit(self, objective):
+        if objective.get("require_net_benefit", False):
+            reject("E_HIA_COST_INCOMPLETE", "full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass", "adoption")
 
     def _reference_slot_adopt(self, args, snapshot, evaluation, abi):
         if snapshot["active_artifact"] is None:

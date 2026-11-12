@@ -44,6 +44,7 @@ COLD_SELECTORS = (
     "HEPTA_HIA_RETIREMENT_STATE_COLD_REPORT",
 )
 REFERENCE_SLOT_METHODS = (
+    "_reference_adoption_evaluation", "_reference_adoption_net_benefit",
     "_reference_slot_snapshot", "_reference_slot_conditional",
     "_reference_slot_adopt", "_reference_slot_rollback",
     "_reference_slot_acquire", "_reference_slot_lease",
@@ -411,6 +412,77 @@ class SlotLedgerNativeIntegrationTests(unittest.TestCase):
         self.assertFalse(result.errors or result.failures or result.skipped or
                          result.expectedFailures or result.unexpectedSuccesses, output.getvalue())
         self.assertTrue(self.transitions, "retained real slot callers did not enter native image")
+
+    def test_real_evaluation_acceptance_and_refusal_replay_keep_original_state(self):
+        objective = {"schema": "hepta.hia.agent.objective.v1", "metric": "artifact_bytes",
+            "required_claims": ["core_admission", "encoding_check"],
+            "allow_unchanged": True, "min_improvement_ratio": 0.0}
+        same = add_program(optimized=True)
+        cases = (
+            ("unchanged-accepted", same, same, objective, None, "unchanged", None),
+            ("unchanged-refused", same, same, objective | {"allow_unchanged": False},
+             None, "unchanged", "E_HIA_EVALUATION_REQUIRED"),
+            ("net-benefit-refused", same, same, objective | {"require_net_benefit": True},
+             None, "unchanged", "E_HIA_COST_INCOMPLETE"),
+            ("incorrect-refused", add_program(), add_program(optimized=True, increment=8),
+             objective, None, "incorrect", "E_HIA_EVALUATION_REQUIRED"),
+            ("incomplete-refused", add_program(), same, objective,
+             {"max_native_wall_ms": 1}, "budget_exceeded", "E_HIA_EVALUATION_REQUIRED"),
+        )
+        for native_journal in (False, True):
+            with self.journal(native_journal):
+                for label, source, candidate, goal, budget, outcome, error in cases:
+                    with self.subTest(native_journal=native_journal, case=label):
+                        name = label + ("-native-journal" if native_journal else "-journal")
+                        service, session = self.service(name)
+                        case = AgentToolCase()
+                        case.service, case.session = service, session
+                        _base, _candidate, baseline, built, receipts = case.build_pair(
+                            document=source, candidate=candidate, objective=goal, budget=budget)
+                        evaluation = session.evaluate(baseline, built, receipts=receipts)
+                        self.assertEqual(evaluation["outcome"], outcome)
+                        pair = {"built": built, "receipts": receipts, "evaluation": evaluation}
+                        arguments = self.adopt_arguments(session, pair, "evaluation",
+                                                        {"generation": "0", "epoch": "0"})
+                        before = state_rows(service)
+                        at = len(self.transitions)
+                        response = service.call("hia_adopt", arguments)
+                        operations = [int.from_bytes(bytes.fromhex(row["request_hex"])[8:16], "little")
+                                      for row in self.transitions[at:]]
+                        self.assertTrue(operations)
+                        self.assertEqual(operations[0], 17)
+                        if error is None:
+                            self.assertEqual(response["status"], "completed", response)
+                            self.assertEqual(response["result"]["current"], {"generation": "1", "epoch": "1"})
+                            self.assertEqual(operations[:5], [17, 17, 17, 18, 19])
+                            lease = service.acquire_slot("evaluation")
+                            invoked = service.invoke_lease(lease, "transform", [250])
+                            self.assertEqual(invoked["values"], [1])
+                            self.assertEqual(invoked["artifact"], built["native_artifact"])
+                            service.release_slot(lease)
+                        else:
+                            self.assertEqual(response["error"]["code"], error, response)
+                            self.assertEqual(state_rows(service), before)
+                            self.assertNotIn(12, operations, "rejected evaluation reached adoption mutation")
+                            if label == "incomplete-refused":
+                                self.assertEqual(operations, [17, 17])
+                            elif error == "E_HIA_COST_INCOMPLETE":
+                                self.assertEqual(operations, [17, 17, 17, 18, 19])
+                            else:
+                                self.assertEqual(operations, [17, 17, 17, 18])
+                        service.close()
+                        self.services.remove(service)
+                        restarted = HIAAgentService(self.root / name,
+                                                   artifact_roots=(self.root / (name + "-files"),))
+                        self.services.append(restarted)
+                        before_replay = database_rows(restarted)
+                        at = len(self.transitions)
+                        self.assertEqual(restarted.call("hia_adopt", arguments), response)
+                        self.assertEqual(database_rows(restarted), before_replay)
+                        self.assertEqual(len(self.transitions), at, "replay repeated native admission or effects")
+                        self.observations.append({"case": label, "native_journal": native_journal,
+                            "actual_evaluation": evaluation, "adoption": response,
+                            "native_operations": operations, "restart_rows": before_replay})
 
     def test_all_retained_numeric_generations_stream_and_u64_exhaustion_is_atomic(self):
         service, session = self.service()

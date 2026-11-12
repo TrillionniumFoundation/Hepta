@@ -6,6 +6,9 @@ from hepta.hia_agent_contract import DISCOVERY_FILES,NATIVE_SOURCE_FILES,SOURCE_
 from hepta.hia_agent_store import wire
 ROOT=Path(__file__).resolve().parents[1]
 RESOURCES=tuple('docs/'+n for n in DISCOVERY_FILES)+NATIVE_SOURCE_FILES+SOURCE_BUILD_FILES+PUBLICATION_BUILD_FILES
+# Source-distribution test inputs are not installed Agent resources and must
+# never expand the worker's production source identity or _data payload.
+SDIST_SUPPORT_FILES=('tests/fixtures/hia_compiler_rename_reference.json.gz',)
 BUNDLED_SOURCE_BINDINGS={
     'composite_function_admit':('hepta.hia_composite_functions_native','admit'),
     'composite_function_records':('hepta.hia_composite_functions_native','records'),
@@ -29,8 +32,12 @@ class AgentInstalledResourceSourceTests(unittest.TestCase):
         self.assertEqual(namespace['agent_resources'](),RESOURCES)
 
     def test_sdist_manifest_explicitly_preserves_every_agent_resource(self):
-        declared={line.removeprefix('include ') for line in (ROOT/'MANIFEST.in').read_text().splitlines() if line.startswith('include ')}
-        self.assertEqual(declared,set(RESOURCES));self.assertEqual(len(declared),len(RESOURCES))
+        declared=[line.removeprefix('include ') for line in (ROOT/'MANIFEST.in').read_text().splitlines() if line.startswith('include ')]
+        self.assertTrue(set(RESOURCES).isdisjoint(SDIST_SUPPORT_FILES))
+        self.assertEqual(set(declared),set(RESOURCES)|set(SDIST_SUPPORT_FILES))
+        self.assertEqual(len(declared),len(RESOURCES)+len(SDIST_SUPPORT_FILES))
+        for name in SDIST_SUPPORT_FILES:
+            self.assertTrue((ROOT/name).is_file(),name)
 
     def test_every_actual_worker_asset_is_in_source_release_and_shared_identity(self):
         from tools.hia_selfhost_contract import SOURCE_FILES,CONTRACT_PATH
@@ -69,7 +76,7 @@ class AgentInstalledResourceTests(unittest.TestCase):
         cls.temp=tempfile.TemporaryDirectory(prefix='hia-installed-resources-');cls.folder=Path(cls.temp.name)
         source=cls.folder/'source';source.mkdir();cls.source=source
         shutil.copytree(ROOT/'hepta',source/'hepta',ignore=shutil.ignore_patterns('__pycache__'))
-        for name in (*RESOURCES,'setup.py','pyproject.toml','MANIFEST.in'):
+        for name in (*RESOURCES,*SDIST_SUPPORT_FILES,'setup.py','pyproject.toml','MANIFEST.in'):
             target=source/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,target)
         def build(name,args):
             with (cls.folder/(name+'.log')).open('xb') as out:
@@ -81,7 +88,8 @@ class AgentInstalledResourceTests(unittest.TestCase):
         archive,=(cls.folder/'sdist').glob('*.tar.gz')
         with tarfile.open(archive) as tar:
             paths=tar.getnames();prefix=paths[0].split('/')[0]+'/'
-            for name in RESOURCES:assert tar.extractfile(prefix+name).read()==(ROOT/name).read_bytes()
+            for name in (*RESOURCES,*SDIST_SUPPORT_FILES):
+                assert tar.extractfile(prefix+name).read()==(ROOT/name).read_bytes()
         build('wheel',['-m','pip','wheel','--no-deps','--no-build-isolation','--wheel-dir',cls.folder/'wheels',archive])
         wheel,=(cls.folder/'wheels').glob('*.whl');cls.wheel=wheel;cls.installed=cls.folder/'installed'
         build('install',['-m','pip','install','--no-deps','--no-index','--target',cls.installed,wheel])
@@ -585,9 +593,15 @@ assert not blocked.intersection(sys.modules)
 
     def test_wheel_resources_are_exact_and_worker_identity_matches_source(self):
         with zipfile.ZipFile(self.wheel) as z:
+            bundled={name.removeprefix('hepta/_data/') for name in z.namelist()
+                     if name.startswith('hepta/_data/') and not name.endswith('/')}
+            self.assertEqual(bundled,set(RESOURCES))
             for name in RESOURCES:
                 self.assertEqual(z.read('hepta/_data/'+name),(ROOT/name).read_bytes())
                 self.assertEqual((self.installed/'hepta/_data'/name).read_bytes(),(ROOT/name).read_bytes())
+            for name in SDIST_SUPPORT_FILES:
+                self.assertNotIn(name,z.namelist())
+                self.assertFalse((self.installed/name).exists())
         self.assertEqual(self.identity,installation_manifest())
 
     def test_real_installed_native_worker_without_checkout_or_reference_predicates(self):

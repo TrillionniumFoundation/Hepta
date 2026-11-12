@@ -201,6 +201,36 @@ def malformed(engine):
     return rows
 
 
+def evaluation_witnesses(engine):
+    """Independent Python value semantics versus actual HIA byte decisions."""
+    from hepta.hia_agent_store import wire
+    values = (None, False, True, 0, -0.0, 0.0, 1, -2, 10 ** 100,
+              1e-300, -1e-300, "", "false", "雪", [], [False], {}, {"x": 0})
+    rows = []
+    def check(opcode, fields, expected):
+        raw = request_packet(opcode, fields)
+        result = engine.call(raw)
+        header, returned = decode(result)
+        if (header[1], header[2], header[4:6], returned, header[7]) != (
+                expected, 0, (0, 0), (), opcode):
+            raise AssertionError((opcode, fields, expected, header, returned))
+        rows.append((raw, result))
+    for value in values:
+        check(17, (wire(value),), 0 if bool(value) else 14)
+        check(19, (wire(value),), 15 if bool(value) else 0)
+    for outcome in ("improved", "unchanged", "incorrect", "IMPROVED", "", None, 0, True, [], {}):
+        for allow in (False, True, 0, "", [], [False], {"x": 0}):
+            try:
+                eligible = outcome in ({"improved", "unchanged"} if allow else {"improved"})
+                expected = 0 if eligible else 14
+            except TypeError:
+                expected = 16 if type(outcome) is list else 17
+            check(18, (wire(outcome), wire(allow)), expected)
+    for raw in (b'', b'undefined', b'01', b'-', b'1.', b'1e', b'1e+', b'"', b'['):
+        check(17, (raw,), 12)
+    return rows
+
+
 class SlotLedgerSourceTests(unittest.TestCase):
     def test_exact_generated_source_and_independent_vm_decisions(self):
         from tools.generate_hia_slot_ledger import document
@@ -211,6 +241,49 @@ class SlotLedgerSourceTests(unittest.TestCase):
 
     def test_independent_vm_refuses_wrapped_lengths_and_partial_publication(self):
         self.assertGreater(len(malformed(VM())), 10)
+
+    def test_independent_vm_admits_evaluation_values_and_outcomes(self):
+        self.assertGreater(len(evaluation_witnesses(VM())), 100)
+
+    def test_evaluation_adapter_preserves_reference_errors_and_short_circuit(self):
+        from hepta.hia_agent_service import HIAAgentService
+        from hepta.hia_slot_ledger_native import NativeSlotLedgerStore
+        class VMImage:
+            def transition(self, raw, state=None):
+                result = VM().call(raw)
+                header, fields = decode(result)
+                return SlotLedgerReceipt(header[1], header[2], header[4:6], fields, result[1])
+        driver = NativeSlotLedgerStore(None, VMImage())
+        def observed(function, *args):
+            try:
+                function(*args)
+                return ('accepted',)
+            except Exception as error:
+                return (type(error).__name__, str(error), getattr(error, 'code', None),
+                        getattr(error, 'phase', None), getattr(error, 'retry_action', None))
+        evaluation = dict(report_complete=True, planned_workload_complete=True,
+                          termination_confirmed=True, outcome='improved')
+        cases = [(evaluation, {'allow_unchanged': True}),
+                 ({}, {}), ({'report_complete': False}, {}),
+                 ({'report_complete': True}, {}),
+                 ({'report_complete': True, 'planned_workload_complete': []}, {}),
+                 ({'report_complete': True, 'planned_workload_complete': True}, {}),
+                 (evaluation | {'termination_confirmed': 0}, {}),
+                 (evaluation | {'outcome': []}, {}),
+                 (evaluation | {'outcome': []}, {'allow_unchanged': False}),
+                 (evaluation | {'outcome': {}}, {'allow_unchanged': True}),
+                 (evaluation | {'outcome': 'unchanged'}, {'allow_unchanged': False}),
+                 (evaluation | {'outcome': 'unchanged'}, {'allow_unchanged': [False]}),
+                 (evaluation | {'outcome': 'incorrect'}, {'allow_unchanged': True})]
+        reference = lambda value, objective: HIAAgentService._reference_adoption_evaluation(None, value, objective)
+        for value, objective in cases:
+            with self.subTest(value=value, objective=objective):
+                self.assertEqual(observed(driver.admit_evaluation, value, objective),
+                                 observed(reference, value, objective))
+        reference_net = lambda objective: HIAAgentService._reference_adoption_net_benefit(None, objective)
+        for objective in ({}, {'require_net_benefit': False}, {'require_net_benefit': True},
+                          {'require_net_benefit': 0}, {'require_net_benefit': {}}):
+            self.assertEqual(observed(driver.admit_net_benefit, objective), observed(reference_net, objective))
 
     def test_bad_cold_builder_refuses_before_output_or_compilation(self):
         from tools.build_hia_slot_ledger import build
@@ -414,6 +487,15 @@ class SlotLedgerNativeTests(unittest.TestCase):
 
     def test_actual_machine_refuses_wrapped_lengths_without_partial_output(self):
         self.assertEqual(malformed(Machine(self.image)), malformed(VM()))
+
+    def test_actual_evaluation_policy_matches_independent_value_semantics(self):
+        reference = evaluation_witnesses(VM())
+        actual = evaluation_witnesses(Machine(self.image))
+        self.assertEqual(actual, reference)
+        (self.folder / 'native-evaluation-witnesses.json').write_text(json.dumps([
+            {'request_hex': request.hex(), 'return': result[0],
+             'output_hex': result[1].hex(), 'state_hex': result[2].hex()}
+            for request, result in actual], indent=2, sort_keys=True) + '\n')
 
     def test_actual_image_receipts_bind_frozen_state_and_full_descriptors(self):
         state = ctypes.create_string_buffer(STATE_BYTES)

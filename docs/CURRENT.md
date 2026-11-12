@@ -28,20 +28,31 @@ byte-preserving renames from later additions and retirements. Frozen protocols
 and receipts retain their original names and bytes. The ordinary `hia`
 command and existing schema identifiers keep their public names.
 
-Publication is tracked in
-[draft PR #893](https://github.com/TrillionniumFoundation/Hepta/pull/893).
+The single integration entry is
+[draft PR #893](https://github.com/TrillionniumFoundation/Hepta/pull/893),
+at `0d2964473d6d5c268cbfe202ebaa532b380b255c` when this follow-up began.
+This follow-up advances that same integration branch with the audited changes.
 A published branch is source availability; runtime adoption requires the
 separate controls below.
+
+At the audit's remote read, `main` remained
+`5831f52fada45e076f8f68f198a15c0585e6104f`, with 60 `.hiaasm`, 12 `.hia`
+and 11 `.hia.json` files, no `.HIA` and no `.hepta`. The integrated base has
+96 `.hepta` sources (71 assembly and 25 structured), and no retired physical
+suffixes. Main's state and the integration branch's state must not be conflated.
+The audit inventories every retained path, parses all retained Python and
+records static caller edges; dynamic caller closure and a semantic audit of
+every source line are not established by those counts.
 
 ## Implementation boundary
 
 | Area | Implemented capability | Remaining boundary |
 | --- | --- | --- |
 | Self-compilation | HIA scanner, parser, checker and x86-64 emitter; original/modified-source fixed points | Explicit seed, bounded language/target profile and allocator assumptions |
-| Applications and source build | Core checking/patching, workspace operations, native stdio, ELF linking, release installation and assembly source/image self-pack | Common ordinary entry, general structured-project build and complete installed lifecycle |
+| Applications and source build | Core checking/patching, workspace operations, native stdio, ELF linking, release installation, assembly source/image self-pack and explicit ordinary selfhost object builds | Default CLI/worker, general structured-project build and complete installed lifecycle |
 | Nominal and JSON operations | Selected type/helper/function/constructor/outer owners and raw JSON codecs | Default routing, diagnostics and all foreign-object/state transfers |
 | Worker helpers and retained state | Pinned native identity/request/journal/budget/retirement helpers and ordinary snapshot/patch factory views | Hosted transport, SQLite effects, process/resource ownership and complete service migration |
-| Slot, version and lease state | HIA ledger kernel with a hosted store/effect adapter | Matching-source qualification, ordinary-worker equivalence and durable restart/adoption/cutover |
+| Slot, version and lease state | HIA ledger kernel and adoption evaluation policy with a hosted store/effect adapter | Default routing, complete receipt/proof admission, SQLite effects and running-worker cutover |
 | Release selection | Immutable installation, compare-and-swap selection, previous-release rollback and status | Running-worker identity, active references, restart and old-owner retirement |
 
 The selfhost profile is bounded Linux x86-64. It does not establish
@@ -50,6 +61,29 @@ The ordinary entry remains `hia = hepta.cli:hia_main`. Its worker serves the
 eleven-tool protocol through hosted owners and selected native adapters; the
 five-command [native stdio application](HIA_AGENT_STDIO_NATIVE.md) has a separate
 protocol.
+
+The explicit
+[selfhost build route](HIA_PROGRAM_SELFHOST_BUILD.md) admits an independently
+pinned compiler manifest, captures and seals the exact native executable, and
+uses HIA's frontend and emitter to produce a bounded primitive Core v8 ELF
+object. It rejects unsupported input and never silently falls back to the
+Python emitter. The operator pin is an identity decision, not a correctness
+proof. Input verification, CLI transport and publication remain hosted; the
+ordinary service's general direct backend is unchanged.
+
+The selected [slot ledger](HIA_SLOT_LEDGER_NATIVE.md) now consumes complete
+canonical JSON values to decide evaluation completeness, allowed outcomes and
+unmet net benefit. Python does not supply precalculated eligibility flags.
+Existing field-access order, error identity, SQLite effects and exact request
+replay remain part of the contract. These selected decisions do not replace
+full receipt, proof, native-artifact or ABI admission.
+
+The final comparison with the separate budget/cleanup candidate
+`5386be50a1faddc0d986af3c04cad37a4ac6c102` found one additional publisher
+custody check to retain. The selected native publisher now checks exact
+descriptor length and complete executable bytes after applying and reading
+back the required kernel seals. Missing sealing APIs and construction failures
+refuse as `E_PUBLISH_NATIVE_CUSTODY` before a child or publication effect.
 
 Current interfaces are defined by the
 [native helper contract](HIA_NATIVE_HELPER_WORKER.md),
@@ -68,6 +102,23 @@ recorded source, host, inputs and scope. Cold qualification retains its
 180-second limit plus 3 seconds for owned cleanup; the complete retained suite
 keeps its 5,400-second owner limit. Exact loaded/executed identities and zero
 anomalies are required.
+
+The inherited `0d296447` GitHub run
+[43114973799](https://github.com/TrillionniumFoundation/Hepta/actions/runs/43114973799)
+passed its cold and language gates, but its source and native-application jobs
+each failed the same sdist resource assertion. The correction separates the
+independent historical gzip oracle from installed production resources while
+retaining exact membership and duplicate checks. The sdist keeps the oracle;
+the wheel's resource subtree contains only production resources.
+
+A separate local baseline replay of the same `0d296447` source reached the
+unchanged 180-second owner limit and reported `QUALIFICATION_TIMEOUT` at
+180.398390018 seconds. Its 34 completed phases passed; the complete cold gate
+failed, with six of eleven wrapper checks passing. Owned-process cleanup
+confirmed no surviving children. This timeout remains a failure independent
+of the successful GitHub run. The scanner change only avoids keyword packing
+for identifier prefixes that cannot be keywords; it does not change cases,
+the two-worker bound, the 180-second limit or the three-second cleanup reserve.
 
 | Frozen source | Complete retained result | Original failure |
 | --- | --- | --- |
@@ -108,6 +159,17 @@ bind removed paths to exact Git objects, hashes and consumer checks. Old source
 and reports remain recoverable through Git history; original failures and
 their receipts are preserved.
 
+The additional
+[integration-checkpoint retirements](../review-evidence/hia-native-cleanup-20261111/retired-integration-checkpoints.json)
+remove eleven superseded staged-delivery narratives, 112,049 bytes, with no
+current code, test, package, contract or active-document consumers. Their two
+original source-map references are retained unchanged. Current feature
+contracts, independent reviews, raw failures, studies and oracles remain.
+Common build outputs and Python/tool caches are ignored by the active tree.
+The unused 3,555-byte experimental LLVM wrapper emitter was also retired into
+the development ledger after confirming no retained caller or source/package
+registration. Its historical source-map references remain unchanged.
+
 | Location | Current responsibility |
 | --- | --- |
 | `hepta/` | Ordinary entry, service, verifier and adapters with actual callers |
@@ -128,6 +190,25 @@ files without restoring obsolete files; current-path verification still
 reports 574 missing paths and does not substitute history for a current file.
 
 ## Remaining product acceptance
+
+The remaining hosted owners have active consumers; their removal is not
+authorized by component test success:
+
+| Boundary | Current owner | Required replacement |
+| --- | --- | --- |
+| Ordinary CLI and default build | `cli.hia_main`, `hia_program.verify_program`, `hia_program_native` | Preserve all fifteen CLI actions, diagnostics and the complete admitted build profile. The selfhost object route is explicit and bounded. |
+| Eleven-tool worker and proofs | `hia_agent_worker`, `HIAAgentService.call`, `_compile`, `_hia_verify` | Preserve request dispatch, proofs, reports and installation-bound backend identities through a native worker. |
+| Durable state and replay | `AgentStore`, `_reference_call`, `call_with_native_journal` | Preserve the actual SQLite connection, schema, transactions, exact completed replay and unknown outcomes under the replacement effect owner. |
+| Adoption, slots and leases | `_hia_adopt`, `_hia_rollback`, `acquire_slot`, `invoke_lease`, `release_slot` | Complete receipt/context/proof/artifact/ABI admission and actual invocation/effects around the selected HIA ledger. |
+| Native execution and process cleanup | `hia_agent_runner.run_native_batch` | Replace the subprocess launched as `sys.executable -m hepta.hia_agent_runner`, including limits, snapshots, termination and report inspection. |
+| Resident multiversion runtime | `ScalarMultiversionRuntime`, `GenerationLease`, `hia_native_retirement` | Transfer actual libraries, function references, sealed descriptors and cleanup uncertainty held by optimizer and scalar-state consumers. |
+| Release selection and running worker | Native release selector and the separate hosted worker | Connect the selection record to restart, old-request routing, active references, running-image readback and confirmed old-owner retirement. |
+
+`_context`, `_verification`, `_native` and `_build_inputs` bind durable objects
+to `installation_manifest`. A changed selection pointer cannot rebind old
+contexts, proof receipts or artifacts to new code. Migration must preserve each
+old request and generation's original implementation identity until its replay
+and live references are finished.
 
 1. Reconcile remaining native owners and ordinary callers, including graph
    payload, helper, slot/version/lease and state authority.

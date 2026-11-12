@@ -86,13 +86,14 @@ class NativeSlotLedger(NativeHiaJsonImage):
             _custody('native slot result contains unclaimed bytes')
         allowed_errors = {1: {2}, 3: {3}, 4: {4}, 5: {5}, 6: {8, 9},
             7: {2}, 8: {2}, 9: {6, 7}, 10: {10}, 11: {13},
-            13: {11}, 14: {11}, 15: {8}, 16: {11}}
+            13: {11}, 14: {11}, 15: {8}, 16: {11},
+            17: {14}, 18: {14, 16, 17}, 19: {15}}
         if status:
             if (status not in allowed_errors.get(opcode, set()) | {12} or action or count or b
                     or (status == 2 and a not in {1, 2}) or (status != 2 and a)):
                 _custody('native slot refusal has an invalid operation shape')
         else:
-            if opcode not in range(1, 17):
+            if opcode not in range(1, 20):
                 _custody('native slot result admits an unknown operation')
             expected_action, expected_fields = 0, 0
             if opcode == 2:
@@ -191,6 +192,9 @@ def _raise(receipt, labels=()):
         if not 0 <= index < len(labels):
             _custody('native range refusal lacks its field label')
         raise AgentRejected('E_HIA_RANGE', labels[index] + ' must be a canonical u64 decimal string')
+    if status in {16, 17}:
+        kind = 'list' if status == 16 else 'dict'
+        raise TypeError("unhashable type: '" + kind + "'")
     messages = {
         3: ('E_HIA_GENERATION_STALE', 'slot changed; read the retained current snapshot and choose a fresh conditional request', 'adoption'),
         4: ('E_HIA_ABI', 'candidate changes the live slot ABI', 'adoption'),
@@ -202,6 +206,8 @@ def _raise(receipt, labels=()):
         10: ('E_HIA_GENERATION', 'requested generation is not retained', 'adoption'),
         11: ('E_HIA_LEASE', 'lease is released, unknown or modified', 'admission'),
         13: ('E_HIA_ABI', 'retained generation is not ABI compatible', 'adoption'),
+        14: ('E_HIA_EVALUATION_REQUIRED', 'evaluation did not meet the frozen correctness/performance acceptance', 'adoption'),
+        15: ('E_HIA_COST_INCOMPLETE', 'full model/discovery/adoption/future-use cost is not established by this prefix; net-benefit requirement cannot pass', 'adoption'),
     }
     if status not in messages:
         _custody('native slot state or frame custody failed')
@@ -315,6 +321,21 @@ class NativeSlotLedgerStore:
         self._call(7, fields, flags=1 if target is None else 2, token=token,
             state=workspace, labels=('epoch',) if target is None else ('epoch', 'retained_generation'))
         return workspace, token
+
+    def admit_evaluation(self, evaluation, objective):
+        from .hia_agent_store import wire
+        # Each original field is read only after the previous native decision
+        # accepts it. This preserves short-circuit error/field-access order.
+        # The encoder passes full values; HIA owns truthiness and eligibility.
+        for name in ('report_complete', 'planned_workload_complete', 'termination_confirmed'):
+            self._call(17, (wire(evaluation[name]),))
+        outcome = evaluation['outcome']
+        allow_unchanged = objective['allow_unchanged']
+        self._call(18, (wire(outcome), wire(allow_unchanged)))
+
+    def admit_net_benefit(self, objective):
+        from .hia_agent_store import wire
+        self._call(19, (wire(objective.get('require_net_benefit', False)),))
 
     def adopt(self, args, snapshot, evaluation, abi, native):
         from .hia_agent_store import wire

@@ -131,14 +131,21 @@ def _execute_native(manifest,operation,stage,destination,expected,_admission=Non
         code=_admission[1]
     fd=None
     try:
-        fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
-        view=memoryview(code)
-        while view:
-            written=os.write(fd,view)
-            if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
-            view=view[written:]
-        fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),_EXECUTABLE_SEALS)
-        _require_sealed_executable(fd)
+        try:
+            fd=os.memfd_create('hia-artifact-publication',os.MFD_CLOEXEC|os.MFD_ALLOW_SEALING)
+            view=memoryview(code)
+            while view:
+                written=os.write(fd,view)
+                if written<=0:_reject('E_PUBLISH_NATIVE_CUSTODY','could not seal selected executable')
+                view=view[written:]
+            fcntl.fcntl(fd,getattr(fcntl,'F_ADD_SEALS',1033),_EXECUTABLE_SEALS)
+            _require_sealed_executable(fd)
+            # Read the actual sealed descriptor, not the mutable source path.
+            # Complete kernel seals freeze the bytes before this identity check.
+            if os.fstat(fd).st_size!=len(code) or os.pread(fd,len(code)+1,0)!=code:
+                _reject('E_PUBLISH_NATIVE_CUSTODY','sealed executable bytes or extent differ')
+        except (OSError,AttributeError) as exc:
+            raise PublicationRejected('E_PUBLISH_NATIVE_CUSTODY: sealed executable snapshot unavailable') from exc
         # No new wall-time or payload-size profile is imposed by this custody
         # bridge. Original synchronous filesystem operations are not replayed.
         result=subprocess.run(['/proc/self/fd/'+str(fd),operation,os.fspath(stage),os.fspath(destination)],

@@ -41,7 +41,7 @@ def slot_main(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
 def valid_packet(s:readbuf) -> u64:
     op = read_word(s, 8)
     count = read_word(s, 16)
-    if op == 0 or op > 16 or count > 7:
+    if op == 0 or op > 19 or count > 7:
         return 0
     if read_word(s, 48) != 0 or read_word(s, 56) != 0 or read_word(s, 96) != 0 or read_word(s, 104) != 0 or read_word(s, 112) != 0 or read_word(s, 120) != 0:
         return 0
@@ -89,7 +89,105 @@ def stateless(s:readbuf, o:mutbuf, w:mutbuf, op:u64, count:u64, flags:u64, a:u64
         return acquire_request(s, o, w, op, count, flags, a, b)
     if op == 16:
         return lease_keys_request(s, o, w, op, count, flags, a, b)
+    if op >= 17 and op <= 19:
+        return evaluation_request(s, o, w, op, count, flags, a, b)
     return answer(o, 12, 0, 0, 0, op)
+
+def evaluation_request(s:readbuf, o:mutbuf, w:mutbuf, op:u64, count:u64, flags:u64, a:u64, b:u64) -> u32:
+    if flags != 0 or a != 0 or b != 0:
+        return answer(o, 12, 0, 0, 0, op)
+    if op == 18:
+        if count != 2:
+            return answer(o, 12, 0, 0, 0, op)
+        allow = json_truth(s, 1)
+        if allow == 2 or json_truth(s, 0) == 2:
+            return answer(o, 12, 0, 0, 0, op)
+        first = byte(s, field_start(s, 0))
+        # Retain the original membership operation's unhashable-value error.
+        # The service must not turn corrupt receipt arrays/objects into a new
+        # successful evaluation or a fabricated ordinary rejection.
+        if first == 91:
+            return answer(o, 16, 0, 0, 0, op)
+        if first == 123:
+            return answer(o, 17, 0, 0, 0, op)
+        if json_literal(s, 0, 4) != 0:
+            return answer(o, 0, 0, 0, 0, op)
+        if allow != 0 and json_literal(s, 0, 5) != 0:
+            return answer(o, 0, 0, 0, 0, op)
+        return answer(o, 14, 0, 0, 0, op)
+    if count != 1:
+        return answer(o, 12, 0, 0, 0, op)
+    truth = json_truth(s, 0)
+    if truth == 2:
+        return answer(o, 12, 0, 0, 0, op)
+    if op == 17 and truth == 0:
+        return answer(o, 14, 0, 0, 0, op)
+    if op == 19 and truth != 0:
+        return answer(o, 15, 0, 0, 0, op)
+    return answer(o, 0, 0, 0, 0, op)
+
+def json_truth(s:readbuf, field:u64) -> u64:
+    # The ordinary bounded JSON encoder supplies complete canonical values;
+    # this policy consumes their bytes, never a hosted truth/equality flag.
+    # Syntax/tree admission remains with that existing foreign-object bridge.
+    size = field_size(s, field)
+    if size == 0:
+        return 2
+    at = field_start(s, field)
+    first = byte(s, at)
+    if json_literal(s, field, 1) != 0 or json_literal(s, field, 2) != 0:
+        return 0
+    if json_literal(s, field, 3) != 0:
+        return 1
+    if first == 34 or first == 91 or first == 123:
+        closing = first
+        if first == 91:
+            closing = 93
+        if first == 123:
+            closing = 125
+        if size < 2 or byte(s, at + size - 1) != closing:
+            return 2
+        if size == 2:
+            return 0
+        return 1
+    return json_number_truth(s, at, size)
+
+def json_number_truth(s:readbuf, at:u64, size:u64) -> u64:
+    i = 0
+    nonzero = 0
+    if byte(s, at) == 45:
+        i = 1
+    if i == size:
+        return 2
+    first = byte(s, at + i)
+    if first < 48 or first > 57:
+        return 2
+    i = i + 1
+    if first != 48:
+        nonzero = 1
+        while i < size and byte(s, at + i) >= 48 and byte(s, at + i) <= 57:
+            i = i + 1
+    if i < size and byte(s, at + i) == 46:
+        i = i + 1
+        start = i
+        while i < size and byte(s, at + i) >= 48 and byte(s, at + i) <= 57:
+            if byte(s, at + i) != 48:
+                nonzero = 1
+            i = i + 1
+        if i == start:
+            return 2
+    if i < size and (byte(s, at + i) == 101 or byte(s, at + i) == 69):
+        i = i + 1
+        if i < size and (byte(s, at + i) == 43 or byte(s, at + i) == 45):
+            i = i + 1
+        start = i
+        while i < size and byte(s, at + i) >= 48 and byte(s, at + i) <= 57:
+            i = i + 1
+        if i == start:
+            return 2
+    if i != size:
+        return 2
+    return nonzero
 
 def u64_request(s:readbuf, o:mutbuf, w:mutbuf, op:u64, count:u64, flags:u64, a:u64, b:u64) -> u32:
     if (count != 1 and count != 2) or flags == 0 or flags > 3 or a != 0 or b != 0:
@@ -445,7 +543,17 @@ def source_program():
         power.extend(('    if index == ' + str(i) + ':',
                       '        return ' + str(10 ** (19 - i))))
     power.append('    return 1')
-    return source + '\n' + '\n'.join(power) + '\n'
+    literals = ['def json_literal(s:readbuf, field:u64, kind:u64) -> u64:',
+                '    at = field_start(s, field)', '    size = field_size(s, field)']
+    for kind, raw in enumerate((b'null', b'false', b'true', b'"improved"', b'"unchanged"'), 1):
+        literals.extend(('    if kind == ' + str(kind) + ':',
+                         '        if size != ' + str(len(raw)) + ':',
+                         '            return 0'))
+        expression = ' or '.join('byte(s, at + ' + str(i) + ') != ' + str(value)
+                                 for i, value in enumerate(raw))
+        literals.extend(('        if ' + expression + ':', '            return 0', '        return 1'))
+    literals.append('    return 0')
+    return source + '\n' + '\n'.join(power + [''] + literals) + '\n'
 
 def document():
     nodes = ast.parse(source_program()).body
