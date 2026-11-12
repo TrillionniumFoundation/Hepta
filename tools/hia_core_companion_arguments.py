@@ -1,7 +1,9 @@
 """Explicit qualification-only arguments for the installed Core child.
 
 The original no-companion and positional UNPACK forms stay byte-compatible.
-Numeric qualification uses a named, exact two-companion schema. It cannot
+Numeric qualification uses a named, exact two-companion schema. Integer
+qualification uses a distinct three-companion schema, preserving every v1
+return value and requiring all three explicit paths. Neither form can
 silently disable the original UNPACK observations by changing argv length.
 No selector is admitted and no executable image is loaded by this module.
 """
@@ -32,17 +34,26 @@ def parse_installed_companions(arguments):
             result[key] = value
         return result
     value = json.loads(arguments[1], object_pairs_hook=pairs)
+    if type(value) is dict and value.get('schema') == 'hepta.hia.core-lowering-installed-companions.v2':
+        schema = 'hepta.hia.core-lowering-installed-companions.v2'
+        keys = keys | {'integer_manifest'}
     if type(value) is not dict or set(value) != keys or value.get('schema') != schema:
         raise ValueError('installed companion schema differs')
-    for key in ('unpack_manifest', 'numeric_compare_manifest'):
+    for key in sorted(keys - {'schema'}):
         item = value[key]
         if type(item) is not str or not item or '\0' in item or not Path(item).is_absolute():
-            raise ValueError('both installed companions require explicit absolute manifests')
+            raise ValueError('all named installed companions require explicit absolute manifests')
     return value
 
 
-def installed_companion_arguments(unpack_manifest=None, numeric_compare_manifest=None):
-    if numeric_compare_manifest is None:
+def installed_companion_arguments(unpack_manifest=None, numeric_compare_manifest=None, integer_manifest=None):
+    if integer_manifest is not None:
+        value = {'schema': 'hepta.hia.core-lowering-installed-companions.v2',
+                 'unpack_manifest': unpack_manifest,
+                 'numeric_compare_manifest': numeric_compare_manifest,
+                 'integer_manifest': integer_manifest}
+        result = ['--companions-json', json.dumps(value, sort_keys=True, separators=(',', ':'))]
+    elif numeric_compare_manifest is None:
         result = [] if unpack_manifest is None else [unpack_manifest]
     else:
         value = {'schema': 'hepta.hia.core-lowering-installed-companions.v1',

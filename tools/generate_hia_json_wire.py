@@ -15,10 +15,12 @@ from tools.generate_hia_worker_request import format_program
 SOURCE_PATH = 'examples/hia_bootstrap/json_wire.hiaasm'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
+KEY_SUMMARY_MAGIC = int.from_bytes(b'HIAWIR04', 'little')
 # Header slots are part of the versioned continuation protocol. Arrays follow
 # the fixed header; the last 8192 bytes are the independently authored printer.
 FIELDS = {
-    'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
+    'MAGIC': MAGIC, 'CACHED_MAGIC': CACHED_MAGIC,
+    'KEY_SUMMARY_MAGIC': KEY_SUMMARY_MAGIC, 'AWAIT': 8, 'SEQ': 16, 'PHASE': 24,
     'MAX': 32, 'BUDGET': 40, 'ASCII': 48, 'SORT': 56, 'RENDERER': 64,
     'ROOT': 72, 'NODES': 80, 'QUEUED': 88, 'SP': 96, 'ACTIVE': 104,
     'OUT': 112, 'H': 120, 'DEPTH': 128, 'KIND': 136, 'SIZE': 144,
@@ -39,6 +41,8 @@ FIELDS = {
     'CMP_INDEX': 624, 'CMP_LESS': 632, 'CMP_LEN': 640,
     'CACHE_BASE': 648, 'CACHE_HITS': 656, 'CACHE_MISSES': 664,
     'CACHE_STORES': 672, 'CACHE_BYTES': 163840,
+    'KEY_SUMMARY_READY': 680, 'KEY_SUMMARY_SIZE': 688,
+    'KEY_SUMMARY_HITS': 696, 'KEY_SUMMARY_MISSES': 704,
     'ACTIVE_BASE': 1024, 'FRAME_BASE': 4096,
 }
 
@@ -52,7 +56,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         if read64(s, 0) == MAGIC:
             if length(s) != 104:
                 return 199
-        elif read64(s, 0) == CACHED_MAGIC:
+        elif read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
             if length(s) != 112 or read64(s, 104) != 1:
                 return 199
         else:
@@ -76,7 +80,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
             return 118
         if read64(s, 96) == 2:
             return 119
-        if read64(s, 0) == CACHED_MAGIC and read64(s, 96) != 0:
+        if (read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC) and read64(s, 96) != 0:
             return 199
         budget = choose(maximum < 262144, maximum, 262144)
         slots = 2
@@ -88,12 +92,14 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         temp_a = table + slots * 8
         temp_b = temp_a + maximum + 64
         limbs = temp_b + maximum + 64
-        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192 + choose(read64(s, 0) == CACHED_MAGIC, CACHE_BYTES, 0)
+        required = limbs + ((maximum * 4 + 31) >> 5) * 4 + 64 + 8192
+        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
+            required = required + CACHE_BYTES
         if length(w) != required or length(o) < maximum:
             return 199
         put(w, 0, read64(s, 0))
         put(w, CACHE_BASE, 0)
-        if read64(s, 0) == CACHED_MAGIC:
+        if read64(s, 0) == CACHED_MAGIC or read64(s, 0) == KEY_SUMMARY_MAGIC:
             put(w, CACHE_BASE, required - 8192 - CACHE_BYTES)
         put(w, MAX, maximum)
         put(w, BUDGET, budget)
@@ -112,7 +118,7 @@ def json_wire(s:readbuf, o:mutbuf, w:mutbuf) -> u32:
         push(w, read64(s, 24), 0, 0)
         put(w, PHASE, 1)
     else:
-        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
+        if (get(w, 0) != MAGIC and get(w, 0) != CACHED_MAGIC and get(w, 0) != KEY_SUMMARY_MAGIC) or get(w, AWAIT) == 0 or length(s) < 56:
             return 199
         opcode = get(w, AWAIT)
         if read64(s, 0) != get(w, 0) or read64(s, 8) != get(w, SEQ) or read64(s, 16) != opcode:
@@ -164,6 +170,53 @@ def ask(w:mutbuf, opcode:u64, handle:u64, index:u64, count:u64, part:u64, phase:
     put(w, REQ_PART, part)
     put(w, PHASE, phase)
     return 1
+
+def key_summary(w:mutbuf, handle:u64, next:u64) -> u64:
+    # Only protocol 04 may omit a SUMMARY, and only for the exact string
+    # whose immutable-key preflight already completed in this workspace.
+    # Legacy 02/03 retain even their unused header bytes and request order.
+    if get(w, 0) == KEY_SUMMARY_MAGIC:
+        put(w, KEY_SUMMARY_READY, 0)
+        base = get(w, CACHE_BASE)
+        if base != 0 and handle != 0:
+            slot = base + (handle & 1023) * 160
+            if get(w, slot) == handle:
+                size = get(w, slot + 8)
+                count = get(w, slot + 16)
+                width = get(w, slot + 24)
+                if size <= 32 and count <= 128 and width >= 2 and width <= get(w, MAX):
+                    put(w, KEY_SUMMARY_SIZE, size)
+                    put(w, KEY_SUMMARY_READY, 1)
+                    put(w, KEY_SUMMARY_HITS, get(w, KEY_SUMMARY_HITS) + 1)
+                    put(w, PHASE, next)
+                    return 0
+        put(w, KEY_SUMMARY_MISSES, get(w, KEY_SUMMARY_MISSES) + 1)
+    return ask(w, 1, handle, 0, 0, 0, next)
+
+def key_fact(s:readbuf, w:mutbuf, offset:u64) -> u64:
+    if get(w, 0) == KEY_SUMMARY_MAGIC and get(w, KEY_SUMMARY_READY) != 0:
+        if offset == 24:
+            return 4
+        if offset == 32:
+            return get(w, KEY_SUMMARY_SIZE)
+        return 0
+    return read64(s, offset)
+
+def key_norm_begin(s:readbuf, w:mutbuf, handle:u64, role:u64, target:u64, next:u64) -> u64:
+    if get(w, 0) != KEY_SUMMARY_MAGIC or get(w, KEY_SUMMARY_READY) == 0:
+        return norm_begin(s, w, handle, role, target, next)
+    put(w, N_H, handle)
+    put(w, N_KIND, 4)
+    put(w, N_SIZE, get(w, KEY_SUMMARY_SIZE))
+    put(w, N_A, 0)
+    put(w, N_B, 0)
+    put(w, N_ROLE, role)
+    put(w, N_TARGET, target)
+    put(w, N_RETURN, next)
+    put(w, N_COUNT, 0)
+    put(w, N_TEXT, 0)
+    put(w, PHASE, 20)
+    return 0
 
 def push(w:mutbuf, handle:u64, depth:u64, leaving:u64) -> u64:
     index = get(w, SP)
@@ -263,10 +316,10 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
         if read64(s, 24) == 0:
             return 199
         put(w, KEY_H, read64(s, 24))
-        return ask(w, 1, read64(s, 24), 0, 0, 0, 12)
+        return key_summary(w, read64(s, 24), 12)
     if phase == 12:
-        put(w, KEY_KIND, read64(s, 24))
-        return norm_begin(s, w, get(w, KEY_H), 0, get(w, TEMP_A), 13)
+        put(w, KEY_KIND, key_fact(s, w, 24))
+        return key_norm_begin(s, w, get(w, KEY_H), 0, get(w, TEMP_A), 13)
     if phase == 13:
         put(w, KEY_LEN, get(w, N_COUNT))
         put(w, KEY_TEXT, get(w, N_TEXT))
@@ -304,11 +357,11 @@ def preflight(s:readbuf, w:mutbuf, phase:u64) -> u64:
             if get(w, record + 24) != 0:
                 handle = get(w, record + 24)
             put(w, N_H, handle)
-            return ask(w, 1, handle, 0, 0, 0, 15)
+            return key_summary(w, handle, 15)
         put(w, PROBE, (slot + 1) & (get(w, HASH_SLOTS) - 1))
         return 0
     if phase == 15:
-        return norm_begin(s, w, get(w, N_H), 1, get(w, TEMP_B), 16)
+        return key_norm_begin(s, w, get(w, N_H), 1, get(w, TEMP_B), 16)
     if phase == 16:
         if get(w, N_COUNT) == get(w, KEY_LEN):
             index = 0
@@ -888,11 +941,11 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             if read64(s, 24) == 0:
                 return 199
             put(w, record + 8, read64(s, 24))
-            return ask(w, 1, get(w, record), 0, 0, 0, 114)
-        put(w, record + 16, read64(s, 24))
-        put(w, record + 24, read64(s, 32))
-        put(w, record + 32, read64(s, 40))
-        put(w, record + 40, read64(s, 48))
+            return key_summary(w, get(w, record), 114)
+        put(w, record + 16, key_fact(s, w, 24))
+        put(w, record + 24, key_fact(s, w, 32))
+        put(w, record + 32, key_fact(s, w, 40))
+        put(w, record + 40, key_fact(s, w, 48))
         put(w, record + 48, choose(index + 1 == get(w, frame + 16), 0, record + 64))
         put(w, frame + 24, index + 1)
         put(w, PHASE, 111)
@@ -917,7 +970,7 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
             put(w, frame + 48, get(w, record))
             put(w, frame + 56, get(w, record + 8))
             put(w, frame + 40, get(w, record + 48))
-            return ask(w, 1, get(w, record), 0, 0, 0, 143)
+            return key_summary(w, get(w, record), 143)
         return ask(w, 2, get(w, frame), index, 0, 0, 141)
     if phase == 141:
         frame = frame_at(w)
@@ -926,10 +979,10 @@ def encode(s:readbuf, o:mutbuf, w:mutbuf, phase:u64) -> u64:
     if phase == 142:
         frame = frame_at(w)
         put(w, frame + 56, read64(s, 24))
-        return ask(w, 1, get(w, frame + 48), 0, 0, 0, 143)
+        return key_summary(w, get(w, frame + 48), 143)
     if phase == 143:
         frame = frame_at(w)
-        return norm_begin(s, w, get(w, frame + 48), 3, get(w, TEMP_A), 144)
+        return key_norm_begin(s, w, get(w, frame + 48), 3, get(w, TEMP_A), 144)
     if phase == 144:
         frame = frame_at(w)
         if get(w, frame + 24) != 0:

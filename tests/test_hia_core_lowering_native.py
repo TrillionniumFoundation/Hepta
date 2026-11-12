@@ -581,9 +581,11 @@ class CoreLoweringNativeTests(unittest.TestCase):
         from tools.hia_core_companion_arguments import installed_companion_arguments
         unpack_manifest = os.environ.get('HEPTA_HIA_CORE_UNPACK_MANIFEST')
         numeric_manifest = os.environ.get('HEPTA_HIA_CORE_COMPARE_MANIFEST')
+        integer_manifest = os.environ.get('HEPTA_HIA_CORE_INTEGER_MANIFEST')
         installed_arguments.extend(installed_companion_arguments(
             str(Path(unpack_manifest).resolve(strict=True)) if unpack_manifest else None,
-            str(Path(numeric_manifest).resolve(strict=True)) if numeric_manifest else None))
+            str(Path(numeric_manifest).resolve(strict=True)) if numeric_manifest else None,
+            str(Path(integer_manifest).resolve(strict=True)) if integer_manifest is not None else None))
         result = run(installed_arguments, 'installed-execution', env)
         observed = json.loads(result.stdout)
         self.assertEqual(observed['status'], 'INSTALLED_CORE_LOWERING_PASS')
@@ -878,12 +880,15 @@ def parse_installed_companions(arguments):
             result[key] = value
         return result
     value = json.loads(arguments[1], object_pairs_hook=pairs)
+    if type(value) is dict and value.get('schema') == 'hepta.hia.core-lowering-installed-companions.v2':
+        schema = 'hepta.hia.core-lowering-installed-companions.v2'
+        keys = keys | {'integer_manifest'}
     if type(value) is not dict or set(value) != keys or value.get('schema') != schema:
         raise ValueError('installed companion schema differs')
-    for key in ('unpack_manifest', 'numeric_compare_manifest'):
+    for key in sorted(keys - {'schema'}):
         item = value[key]
         if type(item) is not str or not item or '\0' in item or not Path(item).is_absolute():
-            raise ValueError('both installed companions require explicit absolute manifests')
+            raise ValueError('all named installed companions require explicit absolute manifests')
     return value
 companions=parse_installed_companions(sys.argv[4:])
 sys.path.insert(0,sys.argv[1])
@@ -989,6 +994,89 @@ if companions['numeric_compare_manifest'] is not None:
     NumericCompareSession.step=numeric_step
     numeric_outer._numeric_comparison_eligible=numeric_eligible
     numeric_outer.LoweringSession._primitive=numeric_primitive
+integer_observations=None
+if companions.get('integer_manifest') is not None:
+    from collections import Counter
+    from hepta import hia_core_lowering_native as integer_outer
+    from hepta import hia_core_integer_native as integer_primitive
+    from hepta.hia_core_integer_selection import SELECTOR as INTEGER_SELECTOR
+    from hepta.hia_core_integer_selection import implementation_identity as integer_identity
+    os.environ[INTEGER_SELECTOR]=companions['integer_manifest']
+    integer_steps,integer_finishes=Counter(),Counter()
+    integer_effects=[]
+    retained_integer_target_entries=[]
+    integer_context=[None]
+    integer_phase=['ordinary']
+    original_integer_step=integer_primitive.IntegerSession.step
+    original_integer_finish=integer_primitive.IntegerSession.finish
+    original_integer_primitive=integer_outer.LoweringSession._primitive
+    original_integer_binary=integer_outer._integer_binary_eligible
+    original_integer_unary=integer_outer._integer_unary_eligible
+    integer_probe_targets=(*integer_primitive._BINARY_TARGETS,*integer_primitive._UNARY_TARGETS)
+    def integer_step(session,packet):
+        status=original_integer_step(session,packet)
+        integer_steps[(integer_phase[0],session.operation,session.image.image_sha256,status)]+=1
+        current=integer_context[0]
+        if integer_phase[0]=='ordinary':
+            assert current is not None and current['eligible']
+            assert session.operation==current['native_operation']
+            if status==0:
+                current['done_returns']+=1
+                assert current['done_returns']==1
+        return status
+    def integer_finish(session):
+        value=original_integer_finish(session)
+        integer_finishes[(integer_phase[0],session.operation,session.image.image_sha256)]+=1
+        current=integer_context[0]
+        if integer_phase[0]=='ordinary':
+            assert current is not None and current['eligible']
+            assert session.operation==current['native_operation']
+            current['finish_returns']+=1
+            assert current['done_returns']==current['finish_returns']==1
+        return value
+    def integer_eligibility(opcode,operation,target,admitted):
+        current=integer_context[0]
+        if admitted and current is not None:
+            assert (current['opcode'],current['operation'])==(opcode,operation) and not current['eligible']
+            current['target'],current['eligible']=target,True
+            current['native_operation']=operation if opcode==11 else operation+1
+        return admitted
+    def integer_binary(operation,target,left,right):
+        return integer_eligibility(11,operation,target,original_integer_binary(operation,target,left,right))
+    def integer_unary(operation,target,value):
+        return integer_eligibility(12,operation,target,original_integer_unary(operation,target,value))
+    def integer_profile(frame,event,value):
+        current=integer_context[0]
+        if event=='c_call' and ((current is not None and value is current['target'])
+                or (integer_phase[0]=='window-probe' and any(value is target for target in integer_probe_targets))):
+            retained_integer_target_entries.append(integer_phase[0])
+            raise AssertionError('retained builtin integer operator entered its HIA-owned effect')
+    def integer_dispatch(session,opcode,arguments,vector):
+        if opcode not in (11,12):
+            return original_integer_primitive(session,opcode,arguments,vector)
+        previous=integer_context[0]
+        current={'opcode':opcode,'operation':arguments[0],'native_operation':None,
+                 'target':None,'eligible':False,'returned':False,'done_returns':0,'finish_returns':0}
+        integer_context[0]=current
+        previous_profile=sys.getprofile()
+        try:
+            sys.setprofile(integer_profile)
+            result=original_integer_primitive(session,opcode,arguments,vector)
+            if current['eligible']:
+                assert current['done_returns']==current['finish_returns']==1
+            current['returned']=True
+            return result
+        finally:
+            sys.setprofile(previous_profile)
+            integer_context[0]=previous
+            if current['eligible']:
+                integer_effects.append({key:current[key] for key in (
+                    'opcode','operation','native_operation','returned','done_returns','finish_returns')})
+    integer_primitive.IntegerSession.step=integer_step
+    integer_primitive.IntegerSession.finish=integer_finish
+    integer_outer._integer_binary_eligible=integer_binary
+    integer_outer._integer_unary_eligible=integer_unary
+    integer_outer.LoweringSession._primitive=integer_dispatch
 os.environ[SELECTOR]=sys.argv[2]
 owner=installed_core_lowering(sys.argv[2],vars(backend))
 machine=backend.emit_program_machine(verify_program(expected['document']))
@@ -1089,6 +1177,71 @@ if companions['numeric_compare_manifest'] is not None:
       'retained_builtin_target_forbidden':True,'retained_builtin_target_entries':retained_numeric_target_entries,
       'refusals':rejected,'restored_identity_sha256':sha256(identity_before).hexdigest(),
       'CPython_object_primitives_still_hosted':True}
+if companions.get('integer_manifest') is not None:
+    from hepta.hia_core_integer_selection import ABI_SOURCE as INTEGER_ABI,HIA_SOURCE as INTEGER_SOURCE
+    from hepta.hia_core_integer_selection import BRIDGE_SOURCE as INTEGER_BRIDGE,SELECTION_SOURCE as INTEGER_SELECTION
+    assert owner.integer is not None and integer_effects and not retained_integer_target_entries
+    integer_image=owner.integer.image.image_sha256
+    assert integer_steps and integer_finishes
+    assert all(identity==integer_image for phase,operation,identity,status in integer_steps)
+    assert all(identity==integer_image for phase,operation,identity in integer_finishes)
+    assert all(row['returned'] and row['done_returns']==row['finish_returns']==1 for row in integer_effects)
+    # Four separate installed companion probes, never counted as ordinary emit.
+    magnitude=1<<1025
+    smaller=magnitude-1
+    negative=-magnitude
+    probes=[(1,smaller,1,magnitude),(2,magnitude,1,smaller),
+            (3,magnitude,None,negative),(4,smaller,None,negative)]
+    integer_phase[0]='window-probe'
+    previous_profile=sys.getprofile()
+    try:
+        sys.setprofile(integer_profile)
+        for operation,left,right,wanted in probes:
+            actual=(owner.integer.binary(operation,left,right) if operation<=2
+                    else owner.integer.unary(operation-1,left))
+            assert type(actual) is int and actual==wanted
+    finally:sys.setprofile(previous_profile)
+    assert all(identity==integer_image for phase,operation,identity,status in integer_steps)
+    assert all(identity==integer_image for phase,operation,identity in integer_finishes)
+    for operation in (1,2,3,4):
+        assert all(integer_steps.get(('window-probe',operation,integer_image,status),0)>=2 for status in (1,2))
+        assert integer_steps[('window-probe',operation,integer_image,0)]==1
+        assert integer_finishes[('window-probe',operation,integer_image)]==1
+    integer_identity_before=integer_identity(owner.integer)
+    rejected=[]
+    for relative in (INTEGER_ABI,INTEGER_SOURCE,INTEGER_BRIDGE,INTEGER_SELECTION):
+        path=(root/relative if relative in (INTEGER_BRIDGE,INTEGER_SELECTION) else _source_resource_path(relative))
+        assert root in path.parents
+        original=path.read_bytes()
+        try:
+            path.write_bytes(original+b'\n')
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except ValueError:rejected.append(relative+':changed')
+            else:raise AssertionError('warm integer source change was ignored')
+            path.unlink()
+            try:installed_core_lowering(sys.argv[2],vars(backend))
+            except FileNotFoundError:rejected.append(relative+':missing')
+            else:raise AssertionError('missing integer source fell back to checkout')
+        finally:path.write_bytes(original)
+    assert integer_identity(owner.integer)==integer_identity_before
+    integer_observations={
+      'schema':'hepta.hia.core-integer-installed-observation.v1',
+      **vars(owner.integer._admitted_integer),
+      'actual_step_semantics':'IntegerSession.step returned normally after admitted HIA output validation; not a raw entry return or whole-method PASS.',
+      'finish_return_semantics':'IntegerSession.finish returned the materialized exact int normally; separate from a native DONE step.',
+      'ordinary_eligible_effects':integer_effects,
+      'step_returns':[dict(phase=key[0],native_operation=key[1],image_sha256=key[2],status=key[3],count=count)
+                      for key,count in sorted(integer_steps.items())],
+      'finish_returns':[dict(phase=key[0],native_operation=key[1],image_sha256=key[2],count=count)
+                        for key,count in sorted(integer_finishes.items())],
+      'window_probes':[
+        {'operation':1,'left':'(1<<1025)-1','right':'1','result':'1<<1025'},
+        {'operation':2,'left':'1<<1025','right':'1','result':'(1<<1025)-1'},
+        {'operation':3,'left':'1<<1025','right':None,'result':'-(1<<1025)'},
+        {'operation':4,'left':'(1<<1025)-1','right':None,'result':'-(1<<1025)'}],
+      'retained_builtin_target_forbidden':True,'retained_builtin_target_entries':retained_integer_target_entries,
+      'refusals':rejected,'restored_identity_sha256':sha256(integer_identity_before).hexdigest(),
+      'CPython_object_primitives_still_hosted':True}
 assert sys.flags.isolated and sys.flags.no_site and os.environ['PATH']==''
 print(json.dumps({'status':'INSTALLED_CORE_LOWERING_PASS','units':len(owner._admitted_bundle.images),
  'source_sha256':dict(owner._admitted_bundle.source_hashes),'abi_sha256':owner._admitted_bundle.abi_sha256,
@@ -1097,7 +1250,8 @@ print(json.dumps({'status':'INSTALLED_CORE_LOWERING_PASS','units':len(owner._adm
  'resource_files':len(expected['resources']),'actual_native_steps':len(entries),
  'retained_lowering_forbidden':True,'authoring_forbidden':True,'isolated_without_site':True,'empty_PATH':True,
  'companion_arguments':companions,
- 'unpack_observations':unpack_observations,'numeric_compare_observations':numeric_compare_observations}))
+ 'unpack_observations':unpack_observations,'numeric_compare_observations':numeric_compare_observations,
+ 'integer_observations':integer_observations}))
 '''
 
 

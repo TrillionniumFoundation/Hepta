@@ -55,6 +55,19 @@ SOURCE_FILES = (
     'tests/test_hia_core_unpack_native.py', 'tests/test_hia_core_lowering_native.py',
     'tests/test_hia_core_unpack_gates.py', 'docs/HIA_CORE_UNPACK_QUALIFICATION_GATES.json',
     FINITE_CONTROL, FINITE_LAUNCHER)
+SOURCE_FILES += (
+    'tools/hia_core_companion_arguments.py',
+    'tools/qualify_hia_core_compare_callers.py', 'tools/hia_core_compare_qualification.py',
+    'tools/build_hia_core_compare.py', 'tools/qualify_hia_core_integer_callers.py',
+    'tools/hia_core_integer_qualification.py', 'tools/build_hia_core_integer.py',
+    'hepta/hia_core_lowering_native.py', 'hepta/hia_core_lowering_selection.py',
+    'hepta/hia_core_unpack_abi.json', 'examples/hia_bootstrap/core_unpack.hiaasm',
+    'hepta/hia_core_unpack_native.py', 'hepta/hia_core_unpack_selection.py',
+    'hepta/hia_core_compare_abi.json', 'examples/hia_bootstrap/core_compare.hiaasm',
+    'hepta/hia_core_compare_native.py', 'hepta/hia_core_compare_selection.py',
+    'hepta/hia_core_integer_abi.json', 'examples/hia_bootstrap/core_integer.hiaasm',
+    'hepta/hia_core_integer_native.py', 'hepta/hia_core_integer_selection.py',
+    'tests/test_hia_core_integer_native_integration.py')
 
 
 def no_errors(value):
@@ -357,7 +370,7 @@ def validate_installed(value, binding):
     return value
 
 
-def inspect_callers(base, cold, context, *, numeric_manifest=None):
+def inspect_callers(base, cold, context, *, numeric_manifest=None, integer_manifest=None):
     evidence = Path(base).resolve(strict=True) / 'callers'
     admit_dependencies(context)
     groups = caller_groups()
@@ -366,7 +379,7 @@ def inspect_callers(base, cold, context, *, numeric_manifest=None):
     ledger = validate_callers(report, groups, companion, context, cold, evidence)
     core = previous.inspect_core_callers(evidence / 'core-callers', context, groups,
                                         unpack_manifest=companion['files'][0]['path'],
-                                        numeric_manifest=numeric_manifest)
+                                        numeric_manifest=numeric_manifest, integer_manifest=integer_manifest)
     require(report.get('original_report') == size_pin(evidence / 'core-callers/report.json'),
             'UNPACK original Core116 report pin differs')
     progress_binding = progress.inspect_progress(evidence, groups, report['original_report'])
@@ -387,7 +400,18 @@ def inspect_callers(base, cold, context, *, numeric_manifest=None):
 
 def component_binding(callers):
     """Reuse this new cold caller bundle; do not claim another compiler execution."""
-    return {'Core39': callers['core']['actual_builds']['caller'], 'UNPACK': callers['companion']}
+    value = {'Core39': callers['core']['actual_builds']['caller'], 'UNPACK': callers['companion']}
+    selected = callers.get('selected_companions')
+    if selected is not None:
+        value.update(Numeric=selected['numeric_build'], Integer=selected['integer_build'])
+    return value
+
+
+def inspect_selected_callers(base, cold, context):
+    """The mandatory current path reads all three companions and every original caller."""
+    from tools.hia_core_integer_qualification import inspect_selected
+    admit_dependencies(context)
+    return inspect_selected(Path(base).resolve(strict=True) / 'callers', cold, context)
 
 
 def validate_component(report, ids, binding, context, callers_pin):
@@ -438,7 +462,7 @@ def owned_command(part, cold, base):
     require(part in ('callers', 'component'), 'unknown UNPACK product phase')
     cold, base = Path(cold).resolve(strict=True), Path(base).resolve()
     if part == 'callers':
-        return [sys.executable, '-B', '-m', 'tools.qualify_hia_core_unpack_callers',
+        return [sys.executable, '-B', '-m', 'tools.qualify_hia_core_integer_callers',
                 '--cold-report', str(cold), '--evidence', str(base / 'callers')]
     return [sys.executable, '-B', str(ROOT / 'tools/qualify_hia_core_unpack_ci.py'),
             'component-child', '--cold-report', str(cold), '--evidence-dir', str(base)]
@@ -520,7 +544,7 @@ def inspect_owned(part, cold, base, context):
 def inspect_all(base, cold, context):
     source_now(context)
     owners_before = {part: inspect_owned(part, cold, base, context) for part in ('callers', 'component')}
-    callers = inspect_callers(base, cold, context)
+    callers = inspect_selected_callers(base, cold, context)
     component_path = Path(base).resolve(strict=True) / 'component'
     report = json_file(component_path / 'report.json')
     ids = expected_component_ids()

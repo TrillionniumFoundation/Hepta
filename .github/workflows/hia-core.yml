@@ -108,6 +108,7 @@ jobs:
               'tests.test_hia_release_install.ReleaseInstallerSourceTests',
               'tests.test_hia_agent_journal_native.JournalSourceTests',
               'tests.test_hia_json_wire_native.WireSourceTests',
+              'tests.test_hia_json_wire_key_summary.WireKeySummarySourceTests',
               'tests.test_hia_worker_report_native.WorkerReportSourceTests',
               'tests.test_hia_machine_plan_native.MachinePlanSourceTests',
               'tests.test_hia_machine_encoding_native.MachineEncodingSourceTests',
@@ -126,6 +127,7 @@ jobs:
               'tests.test_hia_core_compare_lifecycle.NumericComparisonLifecycleSourceTests',
               'tests.test_hia_core_integer_source.ExactIntegerSourceTests',
               'tests.test_hia_core_integer_integration.IntegerIntegrationSourceTests',
+              'tests.test_hia_core_integer_native_integration.IntegerNativeIntegrationSourceTests',
               'tests.test_hia_core_unpack_gates',
               'tests.test_hia_core_unpack_progress.UnpackQualificationProgressTests',
               'tests.test_hia_compiler_owner_gates',
@@ -411,6 +413,11 @@ jobs:
           HEPTA_HIA_WORKER_REPORT_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-worker-report-fixture
           HEPTA_HIA_MACHINE_PLAN_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-machine-plan-fixture
           HEPTA_HIA_CLI_FIXTURE_EVIDENCE: ${{ runner.temp }}/hia-cli-fixture
+      - name: Protocol 04 complete six native controls under a separate process owner
+        run: |
+          python -B tools/qualify_hia_json_wire_key_summary.py \
+            --cold-report "$RUNNER_TEMP/hia-cold.json" \
+            --evidence-dir "$RUNNER_TEMP/hia-json-wire-key-summary-evidence"
       - name: Ordinary machine-plan and Agent callers with retained plan owners forbidden
         run: |
           python -B tools/qualify_hia_machine_plan_native_callers.py \
@@ -548,6 +555,7 @@ jobs:
             ${{ runner.temp }}/hia-json-wire-fixture/
             ${{ runner.temp }}/hia-json-wire-cache-fixture/
             ${{ runner.temp }}/hia-json-wire-entry-fixture/
+            ${{ runner.temp }}/hia-json-wire-key-summary-evidence/
             ${{ runner.temp }}/hia-worker-report-fixture/
             ${{ runner.temp }}/hia-machine-plan-fixture/
             ${{ runner.temp }}/hia-cli-fixture/

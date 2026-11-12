@@ -55,7 +55,7 @@ def execute_owned(part, cold, base, context):
     if part == 'component':
         # This phase cannot start on a report-only or split/development result.
         gates.inspect_owned('callers', cold, base, context)
-        gates.inspect_callers(base, cold, context)
+        gates.inspect_selected_callers(base, cold, context)
     base.mkdir(mode=0o700, parents=True, exist_ok=(part == 'component'))
     directory = base / (part + '-owner')
     directory.mkdir(mode=0o700, exist_ok=False)
@@ -93,11 +93,13 @@ def execute_owned(part, cold, base, context):
 def execute_component(cold, base, context):
     from hepta import hia_core_lowering_selection as core
     from hepta import hia_core_unpack_selection as selection
+    from hepta import hia_core_compare_selection as numeric_selection
+    from hepta import hia_core_integer_selection as integer_selection
     from hepta import hia_core_unpack_native as primitive
     base = Path(base).resolve(strict=True)
     runtime = gates.runtime_identity()
     caller_owner = gates.inspect_owned('callers', cold, base, context)
-    callers = gates.inspect_callers(base, cold, context)
+    callers = gates.inspect_selected_callers(base, cold, context)
     before = gates.component_binding(callers)
     ids = gates.expected_component_ids()
     directory = base / 'component'
@@ -153,6 +155,8 @@ def execute_component(cold, base, context):
         environment = owned_environment(os.environ, cold)
         environment.update({core.SELECTOR: before['Core39']['bundle_files'][0]['path'],
             selection.SELECTOR: before['UNPACK']['files'][0]['path'],
+            numeric_selection.SELECTOR: before['Numeric']['files'][0]['path'],
+            integer_selection.SELECTOR: before['Integer']['files'][0]['path'],
             'HEPTA_HIA_CORE_UNPACK_FIXTURE_EVIDENCE': str(directory / 'fixture')})
         with patch.dict(os.environ, environment, clear=True), \
                 patch.object(primitive.UnpackSession, '_step', record_step), \
@@ -177,7 +181,7 @@ def execute_component(cold, base, context):
         report['actual_UNPACK_step_returns'] = [dict(test=key[0], image_sha256=key[1], status=key[2], count=n)
                                                for key, n in sorted(returns.items())]
         try:
-            after_callers = gates.inspect_callers(base, cold, context)
+            after_callers = gates.inspect_selected_callers(base, cold, context)
             report['build_bindings_after'] = gates.component_binding(after_callers)
             report['builds_preserved'] = before == report['build_bindings_after']
             gates.require(callers == after_callers
@@ -242,7 +246,7 @@ def main():
             part = 'callers' if args.operation == 'owned-callers' else 'component'
             execute_owned(part, args.cold_report, args.evidence_dir, context)
         if args.operation == 'owned-callers':
-            report['caller_readback'] = gates.inspect_callers(args.evidence_dir, args.cold_report, context)
+            report['caller_readback'] = gates.inspect_selected_callers(args.evidence_dir, args.cold_report, context)
             report['process_owner'] = gates.inspect_owned('callers', args.cold_report, args.evidence_dir, context)
             report['status'] = 'CALLERS_READBACK_ACCEPTED_PENDING_COMPOSITION'
         else:

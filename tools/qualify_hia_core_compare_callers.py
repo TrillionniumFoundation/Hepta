@@ -53,7 +53,7 @@ class NumericCallObservation:
         original_eligible = outer._numeric_comparison_eligible
         original_step = primitive.NumericCompareSession.step
         original_start = unittest.TextTestResult.startTest
-        original_stop = unittest.TextTestResult.stopTest
+        original_stop = unittest.TextTestResult.__dict__.get('stopTest')
         original_run = unittest.TextTestRunner.run
         expected_groups = {label: tuple(name for name, group in self.groups.items() if group == label)
                            for label in dict.fromkeys(self.groups.values())}
@@ -86,6 +86,10 @@ class NumericCallObservation:
 
         def stop(result, test):
             try:
+                # Preserve a later ProgressRecorder hook on the inherited base.
+                # An already-installed outer observer remains an explicit link.
+                if original_stop is None:
+                    return super(unittest.TextTestResult, result).stopTest(test)
                 return original_stop(result, test)
             finally:
                 if test.id() in self.groups:
@@ -196,12 +200,15 @@ def main():
     mode.add_argument('--core-development-manifest', type=Path)
     parser.add_argument('--unpack-development-manifest', type=Path)
     parser.add_argument('--numeric-development-manifest', type=Path)
+    parser.add_argument('--integer-manifest', type=Path)
     parser.add_argument('--evidence', type=Path, required=True)
     args = parser.parse_args()
     development = (args.core_development_manifest, args.unpack_development_manifest,
                    args.numeric_development_manifest)
     if args.cold_report and any(development) or not args.cold_report and not all(development):
         parser.error('cold accepts no development manifests; development requires all three explicitly')
+    if args.integer_manifest is not None and args.cold_report is None:
+        parser.error('the additional integer manifest requires its matching-source cold report')
     from hepta import hia_core_lowering_native as outer
     from hepta import hia_core_compare_native as primitive
     from hepta import hia_core_compare_selection as selection
@@ -231,6 +238,7 @@ def main():
     started = time.monotonic()
     sources_before = original.source_pins()
     files, before, companion = [], [], None
+    integer_path, integer_binding = None, None
     try:
         if args.cold_report:
             from tools.build_hia_core_compare import build
@@ -240,6 +248,13 @@ def main():
             binding = reader.companion_build(manifest.parent, context)
             report['matching_cold_inputs'] = context['identities']
             report['matching_cold_build'] = binding
+            if args.integer_manifest is not None:
+                from tools.hia_core_integer_qualification import companion_build as integer_build
+                integer_path = args.integer_manifest.resolve(strict=True)
+                integer_binding = integer_build(integer_path.parent, context)
+                if integer_binding['files'][0]['path'] != str(integer_path):
+                    raise ValueError('explicit integer path is not its matching-cold manifest')
+                report['matching_integer_build'] = integer_binding
             arguments = ['--cold-report', str(args.cold_report.resolve())]
         else:
             manifest = args.numeric_development_manifest.resolve(strict=True)
@@ -258,7 +273,11 @@ def main():
         argv = ['qualify_hia_core_unpack_callers.py', *arguments, '--evidence', str(directory / 'callers')]
         report['original_UNPACK_qualifier_argv'] = argv
         with ExitStack() as stack:
-            stack.enter_context(patch.dict(os.environ, {selection.SELECTOR: str(manifest)}))
+            selectors = {selection.SELECTOR: str(manifest)}
+            if integer_path is not None:
+                from hepta.hia_core_integer_selection import SELECTOR as INTEGER_SELECTOR
+                selectors[INTEGER_SELECTOR] = str(integer_path)
+            stack.enter_context(patch.dict(os.environ, selectors))
             stack.enter_context(patch.object(sys, 'argv', argv))
             stack.enter_context(observer.observe())
             report['complete_UNPACK_wrapper_calls'] += 1
@@ -279,12 +298,17 @@ def main():
         report['installed_report'] = pin(installed_path)
         report['installed_numeric_observation'] = installed.get('numeric_compare_observations')
         report['installed_UNPACK_observation'] = installed.get('unpack_observations')
+        report['installed_integer_observation'] = installed.get('integer_observations')
         if report['installed_UNPACK_observation'] != unpack_value.get('installed_observation'):
             raise ValueError('the installed dual-companion path lost the original UNPACK observation')
         if args.cold_report:
             reader.validate_installed(report['installed_numeric_observation'], binding)
+            if integer_binding is not None:
+                from tools.hia_core_integer_qualification import validate_installed as integer_installed
+                integer_installed(report['installed_integer_observation'], integer_binding)
             report['independent_current_cold_readback'] = unpack_reader.inspect_callers(
-                directory, args.cold_report, context, numeric_manifest=manifest)
+                directory, args.cold_report, context, numeric_manifest=manifest,
+                integer_manifest=integer_path)
         else:
             # This remains a development report. Its independent executor must
             # read all installed inputs, source refusals and the full originals.

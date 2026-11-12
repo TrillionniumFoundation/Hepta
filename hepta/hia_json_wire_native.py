@@ -21,6 +21,7 @@ SCHEMA = 'hepta.hia.json-wire-native.v1'
 SELECTOR = 'HEPTA_HIA_JSON_WIRE_MANIFEST'
 MAGIC = int.from_bytes(b'HIAWIR02', 'little')
 CACHED_MAGIC = int.from_bytes(b'HIAWIR03', 'little')
+KEY_SUMMARY_MAGIC = int.from_bytes(b'HIAWIR04', 'little')
 KEY_CACHE_BYTES = 1024 * 160
 MAXIMUM = 8 << 20
 NONE, BOOL, INT, FLOAT, STRING, LIST, TUPLE, DICT, OPAQUE = range(9)
@@ -36,7 +37,9 @@ ORDINARY_PROFILE = {
     'arbitrary_renderer_callbacks': 'explicit_native_profile_refusal',
     'unselected_owner': 'retained_reference',
     'entire_python_call_domain_replaced': False,
-    'immutable_key_cache': 'HIAWIR03_only_for_fresh_stable_builtin_observer_without_renderer',
+    'immutable_key_cache': 'HIAWIR04_key_facts_and_text_only_for_fresh_stable_builtin_observer_without_renderer',
+    'legacy_key_cache_protocol': 'HIAWIR03_keeps_every_SUMMARY_observation',
+    'key_fact_cache_lifetime': 'one_fresh_zeroed_session_after_original_exact_string_key_preflight',
 }
 
 REASONS = {
@@ -266,11 +269,14 @@ def _private_zeroed_buffer(size):
 class WireSession:
     """Opaque HIA continuation plus protocol transport, independently testable."""
     def __init__(self, image, observer, root, maximum, *, ensure_ascii, sort_keys,
-                 float_renderer=None, _renderer_profile=None, _builtin_keys=False):
+                 float_renderer=None, _renderer_profile=None, _builtin_keys=False,
+                 _builtin_key_summaries=False):
         self.image, self.observer = image, observer
         self.float_renderer = float_renderer
         self.key_cache = _builtin_keys is True and _immutable_key_capability(observer, float_renderer)
-        self._protocol_magic = CACHED_MAGIC if self.key_cache else MAGIC
+        self.key_summary_cache = self.key_cache and _builtin_key_summaries is True
+        self._protocol_magic = (KEY_SUMMARY_MAGIC if self.key_summary_cache else
+                                CACHED_MAGIC if self.key_cache else MAGIC)
         output_size, workspace_size = buffer_sizes(maximum, key_cache=self.key_cache)
         self.output_size = output_size
         self.output = _private_zeroed_buffer(max(1, output_size))
@@ -386,7 +392,7 @@ class NativeJsonWire(NativeHiaJsonImage):
         return WireSession(self, observer, observer.register(value), maximum,
                            ensure_ascii=ensure_ascii, sort_keys=sort_keys,
                            float_renderer=float_renderer, _renderer_profile=profile,
-                           _builtin_keys=True).run()
+                           _builtin_keys=True, _builtin_key_summaries=True).run()
 
 
 def installed_json_wire(path):

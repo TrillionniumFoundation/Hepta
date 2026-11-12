@@ -240,5 +240,5 @@ class WireCacheNativeTests(unittest.TestCase):
                 patch.object(program_tools, '_reference_bounded_json_wire', side_effect=AssertionError('retained owner entered')), \
                 patch.object(json.JSONEncoder, 'iterencode', side_effect=AssertionError('host encoder entered')):
             self.assertEqual(self.image.encode_ordinary(value, 4096, ensure_ascii=False), expected)
-        self.assertEqual(seen, [(True, native.CACHED_MAGIC)])
+        self.assertEqual(seen, [(True, native.KEY_SUMMARY_MAGIC)])
 

@@ -51,6 +51,31 @@ native image. Current matching-source cold, integrated full Core116, installed
 integer behavior and default activation remain unqualified until their own
 complete original execution evidence is obtained.
 
+The matching-cold qualifier now enters the numeric qualifier once, which enters
+the UNPACK qualifier once and then the complete original Core116 once. All
+three companions share the actual current B3 compiler and current source
+manifest. This chain remains inside the existing 180-second caller owner with
+3-second cleanup. The original 18 component methods use the existing second
+owner with the same limits; the original 32 mandatory gates are unchanged.
+
+`tools/qualify_hia_core_integer_callers.py` observes the original exact-type
+eligibility decision without repeating target lookup or operand reads. A
+normal `IntegerSession.step` return, a native DONE status, a normal `finish`
+return, the outer primitive return and the complete method result have separate
+records. A raw native entry that later fails output validation is not a normal
+step return. A DONE followed by a failed result construction is not a successful
+materialization. `tools/hia_core_integer_qualification.py` independently joins
+the full six compile originals, image, nested reports, current source identities
+and installed results before accepting the observation.
+
+The installed v2 argument schema names all three manifests explicitly. Its
+integer observations include the ordinary caller, four separate 1025-bit
+window probes and eight changed-or-missing source refusals with restoration.
+The four probes must each observe at least two READ and two WRITE returns,
+one DONE and one successful materialization. They do not add to or replace any
+of the original 116 methods. Fifteen additional source and synthetic controls
+check this qualification machinery; they provide no native execution evidence.
+
 ## Remaining runtime work
 
 Python still owns object identity, registry entries, allocation, reference
