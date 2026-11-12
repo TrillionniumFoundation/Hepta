@@ -1,0 +1,75 @@
+name: HIA sealed970 HOLD bounded small-artifact diagnostic
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  retain_originals:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-970-small-diagnostic-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out the exact reviewed custody control without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 849469953c3af4a77f6b04be09d89a05e1ffd1bb
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen controls and create the new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/small-diagnostic-r1/controller.py prepare --root "$RUNNER_TEMP/hia-970-small-diagnostic-r1" --policy-sha256 d2bc49171a03d94b6c3fca3128c3c1379bed7a1966d1ac1768e1d0ffd207a1c0 --control-commit 849469953c3af4a77f6b04be09d89a05e1ffd1bb
+      - name: Read only the sealed 22 MB HOLD small artifact under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/small-diagnostic-r1/controller.py run --root "$RUNNER_TEMP/hia-970-small-diagnostic-r1" --policy-sha256 d2bc49171a03d94b6c3fca3128c3c1379bed7a1966d1ac1768e1d0ffd207a1c0 --control-commit 849469953c3af4a77f6b04be09d89a05e1ffd1bb
+      - name: Preserve the original HOLD and frame fixed13+5 diagnostics within512KiB after closed cleanup
+        if: always()
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          unset LD_LIBRARY_PATH LD_PRELOAD
+          python -I -S -B control/experiments/hia_970_ci_original_custody_20261112/small-diagnostic-r1/controller.py finalize --root "$RUNNER_TEMP/hia-970-small-diagnostic-r1" --policy-sha256 d2bc49171a03d94b6c3fca3128c3c1379bed7a1966d1ac1768e1d0ffd207a1c0 --control-commit 849469953c3af4a77f6b04be09d89a05e1ffd1bb
+      - name: Preserve the sealed small ZIP and bounded diagnostic originals including HOLD
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-970-small-diagnostic-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-970-small-diagnostic-public-r1/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
