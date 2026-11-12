@@ -24,7 +24,7 @@ import zlib
 
 HEAD = '4b19af89a766593f7d5f1cc2db256e81aba7afcb'
 TREE = '1bc7c90996e1910ad66ba771b0bfee1d5bfa655c'
-PACKET_SHA = 'dbcb8dc0115b15c712b944e09f5cd56004e10f3e677eb59c98cadfe75319628c'
+PACKET_SHA = 'f6375cb348edd203134ef1f11dc1e349d84d633be75115bedc3b4fd33f3b8bcc'
 COMPILER_SHA = '81b6fad94493546b5bf3f858248f25b19aded88bf8f3aaad18140aa317dac109'
 SUPERVISOR_SHA = 'f3ebc453de2d2c9ecd3825547e301c122b6c7fa05af1aacd9103b8a67893ee80'
 INPUTS = Path(__file__).resolve().parent
@@ -143,7 +143,7 @@ def tool_inputs():
 
 def decode_source_packet():
     raw = (INPUTS / 'source-packet.json').read_bytes()
-    if len(raw) != 925269 or sha(raw) != PACKET_SHA:
+    if len(raw) != 926281 or sha(raw) != PACKET_SHA:
         raise AssertionError('frozen exact frozen overlay packet changed')
     wrapper = json.loads(raw)
     compressed = base64.b64decode(wrapper['data'], validate=True)

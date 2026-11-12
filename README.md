@@ -1,3 +1,5 @@
 # Independent Core emitter development
 
 This isolated harness requires actual CPython 3.14.4 and an authentic checkout of exact product commit 4b19af89a766593f7d5f1cc2db256e81aba7afcb. It applies the byte-bound source overlay and builds seven development images with the retained 81b6 compiler under the unchanged 20-second child limit. The complete 15-component module and original 51 plus 50 callers run under the original 1800-second process supervisor. All source files, modes, images, manifests, tools, full reports and raw outcomes are retained. It is not a current-source cold report, native default activation, legacy deletion, or whole native closure.
+
+R4 retains the actual R3 run43228339862 failure. Ordinary foreign calls now transfer their temporary operands after their native claim, preserving the original interpreter parameter retirement order. The original two failing 3.14 subcases remain in the unchanged test method. All call operands must be unique temporary slots and exactly match their declared consume inventory; the mapping-preparation phase retains its callee until the separate call. This new candidate still needs its own actual 3.14 outcome.
