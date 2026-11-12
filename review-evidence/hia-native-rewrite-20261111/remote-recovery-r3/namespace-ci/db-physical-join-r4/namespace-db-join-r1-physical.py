@@ -1,0 +1,722 @@
+"""New actual six-role DB inode / DMS / mapping / memory / FS physical gate.
+
+Only HIA chooses policy and continuations. Python supplies explicit fixtures,
+observes real other-process POSIX locks and SQLite conflicts, records all bytes,
+then replays every actual HIA entry with the retained VM. This is a private
+predecessor gate, not complete unixOpen, SQL migration or ordinary AgentStore.
+"""
+from __future__ import annotations
+import sys
+sys.dont_write_bytecode=True
+import argparse,errno,fcntl,hashlib,importlib.util,json,os,re,shutil,sqlite3,stat,struct
+import traceback,unittest
+from pathlib import Path
+CLIENT_SHA="e5cad29b23957856c3a3ae08645eb7a14a62f6b0263fe67720a9560b88e58270"
+REPLAY_SHA="3886e4af2d36ec42c7db076e954dd4ab7459f065c64e5847e83bb470b83db570"
+INNER_SHA="0b9bab8e16b0174c54062d56c5042afdaea35a1e936932bbd31ade04f06436a6"
+EXPECTED_TESTS=18
+MASK=(1<<64)-1
+PENDING=1073741824
+RESERVED=PENDING+1
+SHARED=PENDING+2
+def sha(raw):return hashlib.sha256(raw).hexdigest()
+def save(path,value):
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    path.write_text(json.dumps(value,sort_keys=True,indent=2)+"\n")
+def main():
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--context",type=Path,required=True)
+    parser.add_argument("--client",type=Path,required=True)
+    parser.add_argument("--replay",type=Path,required=True)
+    parser.add_argument("--inner-replay",type=Path,required=True)
+    args=parser.parse_args()
+    assert sys.version_info[:3]==(3,12,14)
+    pins={}
+    def pin(path,expected=None):
+        path=Path(path).absolute();info=path.lstat()
+        assert stat.S_ISREG(info.st_mode) and not path.is_symlink()
+        path=path.resolve();raw=path.read_bytes()
+        row=dict(bytes=len(raw),sha256=sha(raw),mode=stat.S_IMODE(info.st_mode))
+        if expected is not None:assert row["sha256"]==expected,(str(path),row,expected)
+        if str(path) in pins:assert pins[str(path)]==row
+        pins[str(path)]=row;return raw
+    def module(name,path,expected):
+        raw=pin(path,expected);spec=importlib.util.spec_from_file_location(name,path)
+        value=importlib.util.module_from_spec(spec);sys.modules[name]=value
+        exec(compile(raw,str(path),"exec"),value.__dict__);return value
+    context=json.loads(pin(args.context));ref=Path(context["reference"])
+    evidence=Path(context["namespace_evidence"]);out=evidence/"db-join-native-r1"
+    out.mkdir();(out/"source").mkdir();cas=out/"cas";cas.mkdir()
+    fixtures=Path(context["namespace_fixtures"]).resolve()
+    assert fixtures.is_relative_to(Path(context["base"]).resolve())
+    assert not fixtures.is_relative_to(Path(context["output"]).resolve())
+    fixtures.mkdir(parents=False,exist_ok=False)
+    built=json.loads(pin(evidence/"db-join-build-r1/summary.json"))
+    assert built["status"]=="PASS_BUILD_ONLY" and built["source_pins_unchanged"]
+    assert built["fresh_role_compiles"]==6 and built["packer_entries"]==len(built["packer_controls"])==33
+    executable=Path(built["executable"]["path"]);pin(executable,built["executable"]["sha256"])
+    assert stat.S_IMODE(executable.stat().st_mode)==0o755
+    sys.path.insert(0,str(ref))
+    transport=module("namespace_db_join_actual_client",args.client,CLIENT_SHA)
+    replayer=module("namespace_db_join_full_replayer",args.replay,REPLAY_SHA)
+    inner=module("namespace_db_join_unchanged_inner_replayer",args.inner_replay,INNER_SHA)
+    from hepta.hia_agent_assembly import assemble_program
+    programs={}
+    for role in (1,2,3,4,5,6):
+        row=built["exact_roles"][str(role)]
+        source=pin(row["source"]["path"],row["source"]["sha256"])
+        image=pin(row["image"]["path"],row["image"]["sha256"])
+        assert len(source)==row["source"]["bytes"] and len(image)==row["image"]["bytes"]
+        programs[role]=assemble_program(source)
+    pin(__file__)
+    for value in tuple(sys.modules.values()):
+        filename=getattr(value,"__file__",None)
+        if filename:
+            path=Path(filename).resolve()
+            if path.is_relative_to(ref) and path.suffix==".py":pin(path)
+    for number,(path,row) in enumerate(list(pins.items())):
+        target=out/"source"/str(number)/Path(path).name;target.parent.mkdir(parents=True)
+        target.write_bytes(Path(path).read_bytes());target.chmod(row["mode"])
+    with sqlite3.connect(":memory:") as conn:
+        sqlite_identity=dict(version=sqlite3.sqlite_version,
+            source_id=conn.execute("select sqlite_source_id()").fetchone()[0],
+            compile_options=[row[0] for row in conn.execute("pragma compile_options")])
+    report=dict(status="INCOMPLETE",scope="NEW_ACTUAL_FIXED_SIX_ROLE_DB_DMS_FS_PRIVATE_PREDECESSOR",
+        sqlite=sqlite_identity,legacy_sqlite3461_claimed=False,ordinary_store_closed=False,
+        full_sql31_closed=False,root_policy_closed=False,unixOpen_and_findReusableFd_closed=False,
+        migration_closed=False,python_router_used=False,counts_inherited=False,
+        actual_euid=os.geteuid(),actual_page=os.sysconf("SC_PAGE_SIZE"),
+        fixture_capture="regular bytes CAS plus exact lstat metadata and hardlink topology; live fixtures outside archive",
+        native_limits=transport.LIMITS,vm_steps_per_original_entry=4000000,vm_arena_bytes=32<<20,
+        replay=[],process_limit_readbacks=[],observations={},source_before=pins)
+    def trace_records(directory):
+        path=Path(directory)/"trace.bin";size=path.stat().st_size;events=[];entries=[];pending={}
+        with path.open("rb") as stream:
+            def take(n):
+                raw=stream.read(n);assert len(raw)==n;return raw
+            while stream.tell()<size:
+                h=struct.unpack("<12Q",take(96));role=replayer.MAGICS[h[0]]
+                key=(role,h[9])
+                if h[1]==1:take(h[3]);take(h[4]);take(h[5])
+                elif h[1]==2:
+                    output=take(h[4]);work=take(h[5])
+                    entry=dict(role=role,node=h[8],context=h[9],serial=h[2],code=h[6],
+                        output=output,work=work,trace_offset=stream.tell()-len(output)-len(work)-96)
+                    entries.append(entry)
+                    if role in (1,3) and h[6]==1:pending[key]=entry
+                elif h[1]==3:
+                    assert role in (1,3) and key in pending
+                    e=pending.pop(key);ack=take(h[3]);words=struct.unpack_from("<32Q",e["output"])
+                    events.append(dict(role=role,node=h[8],context=h[9],operation=h[5],raw_return=h[6],
+                        syscall=h[4],sequence=h[7],event=list(words),event_sha256=sha(e["output"][:256]),
+                        ack_sha256=sha(ack),arguments=list(words[8:12] if role==1 else words[9:15])))
+                else:assert h[1]==4
+            assert stream.tell()==size
+        assert path.stat().st_size==size
+        return events,entries
+    def replay_instance(directory):
+        directory=Path(directory);process=json.loads((directory/"process.json").read_bytes())
+        assert process["limits"]==transport.LIMITS
+        assert (process["limits"]["cpu_seconds"],process["limits"]["wall_seconds"])==(90,180)
+        assert (process["limits"]["address_bytes"],process["limits"]["core_bytes"])==(1<<30,0)
+        assert not process["wall_kill_sent"] and process["watchdog_error"] is None
+        actual=process["actual_native_identity"];assert actual is not None
+        assert actual["actual_limits"]==dict(cpu=[90,90],address=[1<<30,1<<30],core=[0,0])
+        result=replayer.replay(directory,programs,inner)
+        assert result["native_entries"]==result["vm_entries"]>0 and result["no_masks"]
+        report["process_limit_readbacks"].append(dict(path=str(directory/"process.json"),
+            sha256=sha((directory/"process.json").read_bytes()),native_pid=actual["pid"],
+            limits=process["limits"],actual=actual["actual_limits"],
+            wait_status=process["wait_status"],returncode=process["returncode"]))
+        report["replay"].append(result)
+        save(out/"summary.json",report)
+        return result
+    def snapshot(root,label,destination):
+        rows=[]
+        for path in [root,*sorted(root.rglob("*"))]:
+            info=path.lstat();row=dict(path="." if path==root else path.relative_to(root).as_posix(),
+                type=stat.S_IFMT(info.st_mode),mode=stat.S_IMODE(info.st_mode),uid=info.st_uid,gid=info.st_gid,
+                device=info.st_dev,inode=info.st_ino,nlink=info.st_nlink,bytes=info.st_size)
+            if stat.S_ISREG(info.st_mode):
+                raw=path.read_bytes();digest=sha(raw);target=cas/digest
+                if not target.exists():target.write_bytes(raw)
+                assert target.read_bytes()==raw
+                row.update(sha256=digest,content_bytes=len(raw),cas="cas/"+digest)
+            elif stat.S_ISLNK(info.st_mode):row["target_hex"]=os.fsencode(os.readlink(path)).hex()
+            rows.append(row)
+        save(destination/(label+".json"),rows)
+    def lock_bytes(kind,offset,count):
+        return struct.pack("<hh4xqqi4x",kind,os.SEEK_SET,offset,count,0)
+    def query(fd,offset=SHARED,count=510):
+        return struct.unpack("<hh4xqqi4x",fcntl.fcntl(fd,fcntl.F_GETLK,
+            lock_bytes(fcntl.F_WRLCK,offset,count)))
+    def lock(fd,kind,offset,count):
+        return fcntl.fcntl(fd,fcntl.F_SETLK,lock_bytes(kind,offset,count))
+    def fs_events(directory,op=None):
+        return [e for e in trace_records(directory)[0] if e["role"]==1 and (op is None or e["operation"]==op)]
+    def syscall_ordinal(path,name,predicate,*,last=False):
+        raw=path.read_bytes();count=0;matches=[]
+        for line in raw.decode().splitlines():
+            if re.match(r"^"+re.escape(name)+r"\(",line):
+                count+=1
+                if predicate(line):matches.append((count,line))
+        assert matches,(name,raw)
+        ordinal,line=matches[-1 if last else 0]
+        return dict(syscall=name,ordinal=ordinal,line=line,source_bytes=len(raw),source_sha256=sha(raw))
+    def read_owned_mapping(carrier,address,size,label):
+        assert 0<=address<=MASK and 0<=size<=32768
+        p=Path("/proc")/str(carrier.owned_native_pid())
+        raw=(p/"maps").read_bytes();(carrier.output/(label+".maps")).write_bytes(raw)
+        matches=[]
+        for line in raw.decode().splitlines():
+            fields=line.split();first,last=(int(v,16) for v in fields[0].split("-"))
+            if first<=address and address+size<=last:matches.append(fields)
+        assert len(matches)==1 and "r" in matches[0][1]
+        descriptor=os.open(p/"mem",os.O_RDONLY|os.O_CLOEXEC)
+        try:content=os.pread(descriptor,size,address)
+        finally:os.close(descriptor)
+        assert len(content)==size;(carrier.output/(label+".bin")).write_bytes(content)
+        return content
+    class ActualJoin(unittest.TestCase):
+        def setUp(self):
+            self.case=out/self._testMethodName;self.case.mkdir()
+            self.fx=fixtures/self._testMethodName;self.fx.mkdir();self.created=0
+            snapshot(self.fx,"before",self.case)
+        def tearDown(self):snapshot(self.fx,"after",self.case)
+        def carrier(self,**kwargs):
+            self.created+=1
+            return transport.Carrier(executable,self.case/("native-"+str(self.created)),self.fx,**kwargs)
+        def database(self,name="db",content=b"namespace-main-db-physical"):
+            path=self.fx/name;path.write_bytes(content);return path
+        def open_token(self,c,path,readonly=False):
+            result,_=c.filesystem(1,b=(os.O_RDONLY if readonly else os.O_RDWR)|os.O_CLOEXEC,
+                c=0o600,body=os.fsencode(path))
+            self.assertGreater(result[8],0);return result[8]
+        def register(self,c,path,readonly=False,unix_excl=False):
+            token=self.open_token(c,path,readonly)
+            before=len(fs_events(c.output,15))
+            header,row=c.database(3,token=token,flags=int(readonly)+2*int(unix_excl))
+            self.assertEqual(len(fs_events(c.output,15))-before,1)
+            info=path.stat();self.assertEqual(header[20:22],(info.st_dev,info.st_ino))
+            self.assertGreater(header[14],0);self.assertGreater(row[10],0)
+            self.assertGreater(header[25],0)
+            return token,header[14],header,row
+        def check_lock(self,c,fd,kind,offset=SHARED,count=510):
+            result=query(fd,offset,count);self.assertEqual(result[0],kind)
+            if kind!=fcntl.F_UNLCK:self.assertEqual(result[4],c.owned_native_pid())
+            save(self.case/("observation-"+str(len(report["observations"]))+".json"),
+                dict(actual_query=list(result),native_pid=c.owned_native_pid(),offset=offset,count=count))
+            report["observations"][self.id()+":"+str(len(report["observations"]))]=list(result)
+        def dms(self,c,command,handle,*,a=0,b=0,d=0,expect_code=0,expect_errno=0):
+            _,payload=c.call(9,handle,a=command,b=a,c=b,d=d,expect_code=expect_code,expect_errno=expect_errno)
+            self.assertGreaterEqual(len(payload),256)
+            h=struct.unpack_from("<32Q",payload)
+            self.assertEqual(h[0],int.from_bytes(b"HIANDM03","little"))
+            self.assertEqual((h[1],h[6],h[7]),(0,expect_code,expect_errno))
+            return h
+        def attach(self,c,path,handle):
+            _,payload=c.call(8,handle,body=os.fsencode(path))
+            h=struct.unpack_from("<32Q",payload)
+            self.assertEqual((h[0],h[1],h[6],h[7]),
+                (int.from_bytes(b"HIANDM03","little"),0,0,0))
+            self.assertGreater(h[8],0);return h
+        def tracer(self,label,inject=None):
+            path=self.case/(label+".strace");binary=shutil.which("strace")
+            self.assertIsNotNone(binary,"mandatory actual strace; no skip fallback")
+            command=[binary,"-qq","-s","256","-o",str(path),
+                "-e","trace=fcntl,fstat,ftruncate,mmap,munmap,close,openat,pwrite64"]
+            if inject:command.extend(["-e",inject])
+            return command,path
+
+        def test_01_exact_one_fstat_fd_zero_and_actual_retirement(self):
+            path=self.database()
+            with self.carrier() as c:
+                self.assertEqual(fs_events(c.output),[])
+                token=self.open_token(c,path)
+                self.assertEqual(fs_events(c.output,1)[0]["raw_return"],0)
+                read,raw=c.filesystem(2,a=token,b=len(path.read_bytes()),c=0)
+                self.assertEqual(raw,path.read_bytes());self.assertEqual(read[8],len(raw))
+                header,row=c.database(3,token=token)
+                self.assertEqual(len(fs_events(c.output,15)),1)
+                info=path.stat();self.assertEqual(header[20:22],(info.st_dev,info.st_ino))
+                self.assertEqual(row[12:16],(1,0,0,0))
+                close,result=c.database(7,header[14])
+                self.assertEqual(result[24],4);self.assertEqual(result[12:16],(0,0,0,0))
+                maps,fds=c.snapshot_owned_process("after-retire")
+                self.assertFalse(any(x["target"]==str(path) for x in fds))
+                self.assertFalse(any("w" in line.split()[1] and "x" in line.split()[1]
+                    for line in maps.decode().splitlines()))
+                self.assertGreater(close[24],0)
+            replay=replay_instance(c.output)
+            self.assertEqual(len(replay["actual_DB_context_retirements"]),1)
+            self.assertEqual(replay["entries_by_role"]["2"],0)
+            self.assertEqual(replay["entries_by_role"]["3"],0)
+            self.assertEqual(path.read_bytes(),b"namespace-main-db-physical")
+
+        def test_02_local_shared_shortcut_and_LIFO_deferred_close(self):
+            path=self.database();parent=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+            try:
+                with self.carrier() as c:
+                    ta,a,ha,_=self.register(c,path)
+                    tb,b,hb,_=self.register(c,path)
+                    tc,d,hd,_=self.register(c,path)
+                    self.assertEqual(ha[25],hb[25]);self.assertEqual(ha[25],hd[25])
+                    actual_fds=[x["raw_return"] for x in fs_events(c.output,1)]
+                    c.database(4,a,target=1);before=len(fs_events(c.output,17))
+                    _,result=c.database(4,b,target=1)
+                    self.assertEqual(result[12:16],(3,2,2,1))
+                    self.assertEqual(len(fs_events(c.output,17)),before)
+                    self.check_lock(c,parent,fcntl.F_RDLCK)
+                    before_close=len(fs_events(c.output,8))
+                    c.database(7,b);c.database(7,d)
+                    self.assertEqual(len(fs_events(c.output,8)),before_close)
+                    self.check_lock(c,parent,fcntl.F_RDLCK)
+                    c.database(5,a,target=0)
+                    closed=[x["arguments"][0] for x in fs_events(c.output,8)]
+                    self.assertEqual(closed,[actual_fds[2],actual_fds[1]])
+                    self.check_lock(c,parent,fcntl.F_UNLCK)
+                    c.database(7,a)
+                    self.assertEqual([x["arguments"][0] for x in fs_events(c.output,8)],
+                        [actual_fds[2],actual_fds[1],actual_fds[0]])
+                replay_instance(c.output)
+            finally:os.close(parent)
+
+        def test_03_reserved_pending_busy_then_explicit_retry(self):
+            path=self.database();parent=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+            try:
+                with self.carrier() as c:
+                    _,a,_,_=self.register(c,path);_,b,_,_=self.register(c,path)
+                    _,d,_,_=self.register(c,path)
+                    c.database(4,a,target=1);c.database(4,b,target=1);c.database(4,a,target=2)
+                    _,busy=c.database(4,a,target=4,expect_code=5)
+                    self.assertEqual(busy[15],3)
+                    self.check_lock(c,parent,fcntl.F_WRLCK,PENDING,1)
+                    c.database(4,d,target=1,expect_code=5)
+                    c.database(7,b);c.database(7,d)
+                    c.database(4,a,target=4)
+                    self.check_lock(c,parent,fcntl.F_WRLCK)
+                    c.database(5,a,target=1)
+                    self.check_lock(c,parent,fcntl.F_RDLCK)
+                    self.check_lock(c,parent,fcntl.F_UNLCK,PENDING,2)
+                    c.database(7,a);self.check_lock(c,parent,fcntl.F_UNLCK)
+                replay_instance(c.output)
+            finally:os.close(parent)
+
+        def test_04_foreign_shared_conflict_releases_temporary_pending(self):
+            path=self.database();parent=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+            try:
+                lock(parent,fcntl.F_WRLCK,SHARED,510)
+                with self.carrier() as c:
+                    _,handle,_,_=self.register(c,path)
+                    c.database(4,handle,target=1,expect_code=5,expect_errno=errno.EAGAIN)
+                    self.check_lock(c,parent,fcntl.F_UNLCK,PENDING,1)
+                    events=fs_events(c.output,17)
+                    self.assertEqual(len(events),3)
+                    self.assertEqual(events[-1]["arguments"][1:],[2,PENDING,1])
+                    lock(parent,fcntl.F_UNLCK,SHARED,510)
+                    c.database(4,handle,target=1)
+                    self.check_lock(c,parent,fcntl.F_RDLCK)
+                    c.database(7,handle);self.check_lock(c,parent,fcntl.F_UNLCK)
+                replay_instance(c.output)
+            finally:os.close(parent)
+
+        def test_05_foreign_GETLK_and_local_reserved_shortcut(self):
+            path=self.database();parent=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+            try:
+                with self.carrier() as c:
+                    _,a,_,_=self.register(c,path);_,b,_,_=self.register(c,path)
+                    lock(parent,fcntl.F_WRLCK,RESERVED,1)
+                    _,held=c.database(6,a);self.assertEqual(held[10],1)
+                    self.assertEqual(len(fs_events(c.output,23)),1)
+                    lock(parent,fcntl.F_UNLCK,RESERVED,1)
+                    _,free=c.database(6,a);self.assertEqual(free[10],0)
+                    c.database(4,a,target=1);c.database(4,a,target=2)
+                    before=len(fs_events(c.output,23))
+                    _,held=c.database(6,b);self.assertEqual(held[10],1)
+                    self.assertEqual(len(fs_events(c.output,23)),before)
+                    c.database(7,b);c.database(7,a)
+                replay_instance(c.output)
+            finally:os.close(parent)
+
+        def test_06_unix_excl_process_lock_survives_logical_unlock(self):
+            path=self.database();parent=os.open(path,os.O_RDWR|os.O_CLOEXEC)
+            try:
+                with self.carrier() as c:
+                    _,a,_,_=self.register(c,path,unix_excl=True)
+                    _,b,_,_=self.register(c,path,unix_excl=True)
+                    c.database(4,a,target=1);c.database(4,b,target=1)
+                    self.check_lock(c,parent,fcntl.F_WRLCK)
+                    c.database(5,a,target=0)
+                    _,state=c.database(5,b,target=0)
+                    self.assertEqual(state[25],1);self.assertEqual(state[14],1)
+                    self.check_lock(c,parent,fcntl.F_WRLCK)
+                    c.database(7,a);self.check_lock(c,parent,fcntl.F_WRLCK)
+                    c.database(7,b);self.check_lock(c,parent,fcntl.F_UNLCK)
+                events=fs_events(c.output,17)
+                self.assertEqual(len(events),1)
+                self.assertEqual(events[0]["arguments"][1:],[1,SHARED,510])
+                replay_instance(c.output)
+            finally:os.close(parent)
+
+        def test_07_actual_hardlink_alias_and_distinct_inode_contexts(self):
+            path=self.database();alias=self.fx/"hardlink";os.link(path,alias)
+            other=self.database("other");p1=os.open(path,os.O_RDWR);p2=os.open(other,os.O_RDWR)
+            try:
+                with self.carrier() as c:
+                    _,a,ha,_=self.register(c,path);_,b,hb,_=self.register(c,alias)
+                    _,d,hd,_=self.register(c,other)
+                    self.assertEqual(ha[20:22],hb[20:22]);self.assertEqual(ha[25],hb[25])
+                    self.assertNotEqual(ha[20:22],hd[20:22]);self.assertNotEqual(ha[25],hd[25])
+                    c.database(4,a,target=1);c.database(4,d,target=1)
+                    self.check_lock(c,p1,fcntl.F_RDLCK);self.check_lock(c,p2,fcntl.F_RDLCK)
+                    c.database(7,b);self.check_lock(c,p1,fcntl.F_RDLCK)
+                    c.database(7,a);self.check_lock(c,p1,fcntl.F_UNLCK)
+                    self.check_lock(c,p2,fcntl.F_RDLCK);c.database(7,d)
+                    self.check_lock(c,p2,fcntl.F_UNLCK)
+                result=replay_instance(c.output)
+                self.assertEqual(len(result["actual_DB_context_retirements"]),2)
+            finally:os.close(p1);os.close(p2)
+
+        def test_08_readonly_actual_write_lock_errno_preserved(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,handle,_,_=self.register(c,path,readonly=True)
+                c.database(4,handle,target=1)
+                _,failed=c.database(4,handle,target=4,expect_code=3850,expect_errno=errno.EBADF)
+                self.assertEqual(failed[8:10],(3850,errno.EBADF))
+                c.database(7,handle)
+            failed=[x for x in fs_events(c.output,17) if x["raw_return"]==(-errno.EBADF)&MASK]
+            self.assertEqual(len(failed),1)
+            replay_instance(c.output)
+
+        def test_09_registered_token_raw_close_bypass_is_permanently_refused(self):
+            path=self.database()
+            with self.carrier() as c:
+                token,_,_,_=self.register(c,path)
+                before=len(fs_events(c.output))
+                raw=transport.frame(2,session=c.session,call=c.call_number+1,
+                    lease=1000+c.call_number+1,a=8,b=token)
+                header,_=c.request(raw,label="forbidden-registered-close")
+                self.assertEqual(header[1],0xfffffffd)
+                header,_=c.request(transport.frame(1,session=c.session,a=171,b=183),
+                    label="after-persistent-refusal")
+                self.assertEqual(header[1],0xfffffffd)
+                self.assertEqual(len(fs_events(c.output)),before)
+                _,fds=c.snapshot_owned_process("poison-still-owned-before-exit")
+                self.assertTrue(any(row["target"]==str(path) for row in fds))
+            result=replay_instance(c.output)
+            self.assertEqual(result["actual_DB_context_retirements"],[])
+            report["observations"]["poison_exit_cleanup_not_ordinary_retirement"]=True
+
+        def test_10_actual_DMS_map_barrier_and_detach_precede_DB_close(self):
+            path=self.database()
+            with self.carrier() as c:
+                _,handle,_,_=self.register(c,path)
+                self.attach(c,path,handle)
+                a=self.dms(c,14,handle,a=0,b=1,d=32768)
+                self.assertGreater(a[23],0)
+                self.dms(c,15,handle)
+                fd=os.open(str(path)+"-shm",os.O_RDWR)
+                try:self.assertEqual(os.pwrite(fd,b"actual-shared-view",0),18)
+                finally:os.close(fd)
+                events=trace_records(c.output)[0]
+                maps=[x for x in events if x["role"]==3 and x["operation"]==1
+                    and x["arguments"][1]==32768 and x["arguments"][3]==1
+                    and x["arguments"][5]==0 and x["raw_return"]<MASK-4094]
+                self.assertTrue(maps)
+                self.assertEqual(read_owned_mapping(c,maps[-1]["raw_return"],18,"actual-shared-view"),
+                    b"actual-shared-view")
+                actual_dbfd=fs_events(c.output,1)[0]["raw_return"]
+                c.database(7,handle)
+                events=trace_records(c.output)[0]
+                unmaps=[i for i,x in enumerate(events) if x["role"]==3 and x["operation"]==3]
+                closes=[i for i,x in enumerate(events) if x["role"]==1 and x["operation"]==8
+                    and x["arguments"][0]==actual_dbfd]
+                self.assertTrue(unmaps);self.assertEqual(len(closes),1)
+                self.assertLess(max(unmaps),closes[0])
+            result=replay_instance(c.output)
+            self.assertGreater(result["entries_by_role"]["2"],0)
+            self.assertGreater(result["entries_by_role"]["3"],0)
+            self.assertEqual(len(result["actual_DB_context_retirements"]),1)
+            self.assertEqual(len(result["unchanged_inner_replayer"]["exact_retirements"]),1)
+
+        def test_11_actual_SQLite_DELETE_writer_and_main_DB_locks(self):
+            path=self.fx/"database.sqlite";conn=sqlite3.connect(path,timeout=0,isolation_level=None)
+            try:
+                self.assertEqual(conn.execute("pragma journal_mode=delete").fetchone()[0],"delete")
+                conn.execute("create table retained(x)");conn.execute("insert into retained values(7)")
+                with self.carrier() as c:
+                    _,handle,_,_=self.register(c,path)
+                    c.database(4,handle,target=1)
+                    with self.assertRaises(sqlite3.OperationalError) as caught:conn.execute("begin exclusive")
+                    self.assertEqual(caught.exception.sqlite_errorcode,sqlite3.SQLITE_BUSY)
+                    c.database(5,handle,target=0)
+                    conn.execute("begin immediate")
+                    _,reserved=c.database(6,handle);self.assertEqual(reserved[10],1)
+                    conn.execute("rollback")
+                    c.database(4,handle,target=1);c.database(4,handle,target=2)
+                    with self.assertRaises(sqlite3.OperationalError) as caught:conn.execute("begin immediate")
+                    self.assertEqual(caught.exception.sqlite_errorcode,sqlite3.SQLITE_BUSY)
+                    c.database(5,handle,target=0)
+                    conn.execute("begin immediate");conn.execute("rollback")
+                    c.database(7,handle)
+                self.assertEqual(conn.execute("select * from retained").fetchall(),[(7,)])
+                replay_instance(c.output)
+                report["observations"]["actual_SQLite_DELETE_conflict_both_directions"]=True
+            finally:conn.close()
+
+        def test_12_actual_SQLite_WAL_writer_shared_namespace_lifecycle(self):
+            path=self.fx/"database.sqlite";conn=sqlite3.connect(path,timeout=0,isolation_level=None)
+            try:
+                self.assertEqual(conn.execute("pragma journal_mode=wal").fetchone()[0],"wal")
+                conn.execute("create table retained(x)");conn.execute("insert into retained values(9)")
+                conn.execute("begin immediate")
+                before=Path(str(path)+"-shm").read_bytes();(self.case/"sqlite-before-shm.bin").write_bytes(before)
+                with self.carrier() as c:
+                    _,handle,_,_=self.register(c,path);c.database(4,handle,target=1)
+                    self.attach(c,path,handle)
+                    after=Path(str(path)+"-shm").read_bytes();(self.case/"sqlite-after-attach-shm.bin").write_bytes(after)
+                    self.assertEqual(after,before)
+                    self.dms(c,14,handle,a=0,b=0,d=32768)
+                    self.dms(c,4,handle,a=2,b=0,d=1,expect_code=5,expect_errno=errno.EAGAIN)
+                    conn.execute("commit")
+                    self.dms(c,4,handle,a=2,b=0,d=1)
+                    with self.assertRaises(sqlite3.OperationalError) as caught:conn.execute("begin immediate")
+                    self.assertEqual(caught.exception.sqlite_errorcode,sqlite3.SQLITE_BUSY)
+                    self.dms(c,5,handle,a=2,b=0,d=1)
+                    conn.execute("begin immediate");conn.execute("rollback")
+                    c.database(7,handle)
+                self.assertEqual(conn.execute("select * from retained").fetchall(),[(9,)])
+                replay_instance(c.output)
+                report["observations"]["actual_SQLite_WAL_conflict_both_directions"]=True
+            finally:conn.close()
+
+        def test_13_actual_FSTAT_fault_before_inode_commit(self):
+            path=self.database()
+            launcher,baseline=self.tracer("baseline")
+            with self.carrier(launcher=launcher) as c:
+                _,handle,_,_=self.register(c,path);c.database(7,handle)
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"fstat",lambda line:True)
+            save(self.case/"selected-fstat.json",selected)
+            launcher,log=self.tracer("fault",f"inject=fstat:error=EIO:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                token=self.open_token(failed,path)
+                header,row=failed.database(3,token=token,expect_code=10,expect_errno=errno.EIO)
+                self.assertIsNone(row);self.assertEqual(header[20:22],(0,0))
+                failed.filesystem(8,a=token)
+            self.assertIn("INJECTED",log.read_text())
+            errors=[e for e in fs_events(failed.output,15) if e["raw_return"]==(-errno.EIO)&MASK]
+            self.assertEqual(len(errors),1)
+            result=replay_instance(failed.output)
+            self.assertEqual(result["entries_by_role"]["5"],0)
+            self.assertEqual(result["actual_DB_context_retirements"],[])
+
+        def test_14_actual_fcntl_EINTR_is_known_busy_without_implicit_retry(self):
+            path=self.database();launcher,baseline=self.tracer("baseline")
+            with self.carrier(launcher=launcher) as c:
+                _,handle,_,_=self.register(c,path);c.database(4,handle,target=1);c.database(7,handle)
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"fcntl",
+                lambda line:"F_SETLK" in line and "F_RDLCK" in line and f"l_start={PENDING}," in line)
+            save(self.case/"selected-fcntl.json",selected)
+            launcher,log=self.tracer("fault",f"inject=fcntl:error=EINTR:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                _,handle,_,_=self.register(failed,path)
+                before=len(fs_events(failed.output,17))
+                failed.database(4,handle,target=1,expect_code=5,expect_errno=errno.EINTR)
+                after=fs_events(failed.output,17)
+                self.assertEqual(len(after)-before,1)
+                self.assertEqual(after[-1]["raw_return"],(-errno.EINTR)&MASK)
+                failed.database(4,handle,target=1);failed.database(7,handle)
+            self.assertIn("INJECTED",log.read_text());replay_instance(failed.output)
+
+        def test_15_actual_GETLK_failure_retains_error_and_later_call_is_usable(self):
+            path=self.database();launcher,baseline=self.tracer("baseline")
+            with self.carrier(launcher=launcher) as c:
+                _,handle,_,_=self.register(c,path)
+                _,state=c.database(6,handle);self.assertEqual(state[10],0);c.database(7,handle)
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"fcntl",
+                lambda line:"F_GETLK" in line and f"l_start={RESERVED}," in line)
+            save(self.case/"selected-getlk.json",selected)
+            launcher,log=self.tracer("fault",f"inject=fcntl:error=EIO:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                _,handle,_,_=self.register(failed,path)
+                _,state=failed.database(6,handle,expect_code=3594,expect_errno=errno.EIO)
+                self.assertEqual(state[10],0)
+                _,state=failed.database(6,handle);self.assertEqual(state[10],0)
+                failed.database(7,handle)
+            self.assertIn("INJECTED",log.read_text())
+            errors=[e for e in fs_events(failed.output,23) if e["raw_return"]==(-errno.EIO)&MASK]
+            self.assertEqual(len(errors),1);replay_instance(failed.output)
+
+        def test_16_actual_close_EINTR_is_not_retried_and_kernel_exit_scope_is_explicit(self):
+            path=self.database();launcher,baseline=self.tracer("baseline")
+            with self.carrier(launcher=launcher) as c:
+                _,handle,_,_=self.register(c,path)
+                actual_fd=fs_events(c.output,1)[0]["raw_return"]
+                c.database(7,handle)
+            replay_instance(c.output)
+            selected=syscall_ordinal(baseline,"close",
+                lambda line:line.startswith(f"close({actual_fd})"),last=True)
+            save(self.case/"selected-close.json",selected)
+            launcher,log=self.tracer("fault",f"inject=close:error=EINTR:when={selected['ordinal']}")
+            with self.carrier(launcher=launcher) as failed:
+                _,handle,_,_=self.register(failed,path)
+                _,state=failed.database(7,handle)
+                self.assertEqual(state[20],errno.EINTR)
+                self.assertEqual(state[24],4)
+                errors=[e for e in fs_events(failed.output,8) if e["raw_return"]==(-errno.EINTR)&MASK]
+                self.assertEqual(len(errors),1)
+                self.assertEqual(len(fs_events(failed.output,8)),1)
+                _,descriptors=failed.snapshot_owned_process("injected-close-not-executed")
+                # strace deliberately suppresses the actual close. The HIA
+                # ownership token is retired once, and the OS fd survives
+                # until process exit; this is not an ordinary-success claim.
+                self.assertTrue(any(row["target"]==str(path) for row in descriptors))
+            self.assertIn("INJECTED",log.read_text())
+            result=replay_instance(failed.output)
+            self.assertEqual(len(result["actual_DB_context_retirements"]),1)
+            report["observations"]["injected_close_EINTR_no_retry_original_ignored_error_retained"]=True
+
+        def test_17_dynamic_inode_index_and_more_than_initial_DB_row_capacity(self):
+            paths=[self.database("inode-"+str(i)) for i in range(9)]
+            with self.carrier() as c:
+                handles=[];generations=[]
+                for path in paths:
+                    _,handle,h,_=self.register(c,path)
+                    handles.append(handle);generations.append(h[25])
+                self.assertEqual(len(set(generations)),9)
+                for _ in range(16):
+                    _,handle,h,_=self.register(c,paths[0])
+                    self.assertEqual(h[25],generations[0]);handles.append(handle)
+                self.assertEqual(len(handles),25);self.assertEqual(len(set(handles)),25)
+                self.assertEqual(len(fs_events(c.output,15)),25)
+                for handle in handles:c.database(7,handle)
+                _,fds=c.snapshot_owned_process("all-dynamic-contexts-retired")
+                names=set(map(str,paths))
+                self.assertFalse(any(row["target"] in names for row in fds))
+            result=replay_instance(c.output)
+            self.assertEqual(len(result["actual_DB_context_retirements"]),9)
+            self.assertGreater(result["outer_DB_growth"]["5"],0)
+            self.assertGreater(result["outer_DB_growth"]["6"],0)
+            nodes=[row for row in result["outer_db_contexts"] if row["role"]==5]
+            self.assertEqual(len(nodes),9);self.assertTrue(all(row["retired"] for row in nodes))
+            self.assertEqual(len(fs_events(c.output,8)),25)
+
+        def test_18_reserved_header_persistent_refusal_and_abort_cleanup_faults(self):
+            with self.carrier() as c:
+                raw=bytearray(transport.frame(2,session=c.session,call=1,lease=1001,a=16))
+                struct.pack_into("<Q",raw,248,1)
+                h,_=c.request(raw,label="reserved-header");self.assertEqual(h[1],0xfffffffd)
+                h,_=c.request(transport.frame(1,session=c.session,a=171,b=183),label="after-poison")
+                self.assertEqual(h[1],0xfffffffd)
+            self.assertEqual(fs_events(c.output),[]);replay_instance(c.output)
+            # These are separate non-native fault controls for the exact r4
+            # cleanup implementation, not additional native process counts.
+            controls=[]
+            for label in ("evidence","watchdog-and-evidence","reap-and-evidence"):
+                closed=[]
+                class Stream:
+                    def __init__(self,name):self.name=name;self.closed=False
+                    def close(self):self.closed=True;closed.append(self.name)
+                class Process:
+                    stdin=Stream("stdin");stdout=Stream("stdout")
+                obj=object.__new__(transport.Carrier)
+                obj.output=self.case/("cleanup-"+label);obj.process=Process()
+                obj._ready_read,obj._ready_write=os.pipe2(os.O_CLOEXEC)
+                descriptors=(obj._ready_read,obj._ready_write)
+                obj.trace_file=Stream("trace");obj.native_identity=None
+                obj._watchdog_fired=False;obj._wall_kill_sent=False;obj._watchdog_error=None
+                primary=RuntimeError("controlled-"+label)
+                evidence_error=OSError(errno.ENOSPC,"controlled evidence write failure")
+                def reap(*args,**kwargs):
+                    if label=="reap-and-evidence":raise primary
+                    return dict(returncode=0,wait_status=0)
+                def watchdog():
+                    if label=="watchdog-and-evidence":raise primary
+                def bad_save(*args,**kwargs):raise evidence_error
+                obj._reap=reap;obj._stop_watchdog=watchdog
+                original_save=transport.save;transport.save=bad_save
+                caught=None
+                try:
+                    try:obj.abort()
+                    except BaseException as error:caught=error
+                finally:transport.save=original_save
+                expected=evidence_error if label=="evidence" else primary
+                self.assertIs(caught,expected)
+                self.assertEqual(closed,["stdin","stdout","trace"])
+                self.assertIsNone(obj._ready_read);self.assertIsNone(obj._ready_write)
+                for descriptor in descriptors:
+                    with self.assertRaises(OSError) as error:os.fstat(descriptor)
+                    self.assertEqual(error.exception.errno,errno.EBADF)
+                notes=getattr(caught,"__notes__",[])
+                if label!="evidence":self.assertTrue(any("evidence" in note for note in notes))
+                controls.append(dict(label=label,original_exception_identity=True,
+                    all_three_streams_closed=True,two_ready_descriptors_consumed_and_closed=True,
+                    notes=notes,native_entries=0))
+            self.assertEqual(len(controls),3)
+            save(self.case/"abort-cleanup-pure-controls.json",controls)
+            report["abort_cleanup_pure_controls"]=controls
+
+    try:
+        suite=unittest.defaultTestLoader.loadTestsFromTestCase(ActualJoin)
+        ids=[test.id() for test in suite]
+        assert len(ids)==len(set(ids))==EXPECTED_TESTS>0
+        with (out/"tests.stderr.log").open("w") as stream:
+            result=unittest.TextTestRunner(stream=stream,verbosity=2).run(suite)
+        tests=dict(test_ids=ids,tests_loaded=len(ids),tests_run=result.testsRun,
+            failures=[(t.id(),v) for t,v in result.failures],
+            errors=[(t.id(),v) for t,v in result.errors],
+            skipped=[(t.id(),v) for t,v in result.skipped],
+            expected_failures=[(t.id(),v) for t,v in result.expectedFailures],
+            unexpected_successes=[t.id() for t in result.unexpectedSuccesses])
+        report["tests"]=tests
+        save(out/"summary.json",report)
+        assert result.wasSuccessful() and result.testsRun==EXPECTED_TESTS>0
+        assert not any(tests[key] for key in
+            ("failures","errors","skipped","expected_failures","unexpected_successes"))
+        process_paths={str(path.parent) for path in out.glob("test_*/native-*/process.json")}
+        replayed={str(Path(row["path"]).parent) for row in report["process_limit_readbacks"]}
+        assert process_paths==replayed and len(process_paths)==len(report["replay"])>0
+        report.update(status="PASS",native_entries=sum(row["native_entries"] for row in report["replay"]),
+            vm_entries=sum(row["vm_entries"] for row in report["replay"]),
+            actual_primitive_acks=sum(row["unchanged_inner_replayer"]["actual_primitive_acks"]
+                for row in report["replay"]),process_traces=len(report["replay"]),
+            entries_by_role={str(role):sum(row["entries_by_role"][str(role)] for row in report["replay"])
+                for role in (1,2,3,4,5,6)},
+            completed_outer_child_links=sum(len(row["complete_outer_links"]) for row in report["replay"]),
+            completed_inner_child_links=sum(len(row["unchanged_inner_replayer"]["exact_completed_child_links"])
+                for row in report["replay"]),
+            actual_DB_retirements=sum(len(row["actual_DB_context_retirements"]) for row in report["replay"]),
+            actual_inner_retirements=sum(len(row["unchanged_inner_replayer"]["exact_retirements"])
+                for row in report["replay"]),
+            all_actual_trace_processes_fully_replayed=True,
+            abort_cleanup_pure_control_count=len(report["abort_cleanup_pure_controls"]))
+        assert report["native_entries"]==report["vm_entries"]>0
+        assert report["actual_primitive_acks"]>0 and report["abort_cleanup_pure_control_count"]==3
+        assert all(report["entries_by_role"][str(role)]>0 for role in (1,2,3,4,5,6))
+    except BaseException as error:
+        report.update(status="FAIL",error_class=type(error).__name__,error=str(error),
+            traceback=traceback.format_exc())
+        traceback.print_exc()
+        if (out/"tests.stderr.log").exists():
+            print((out/"tests.stderr.log").read_text(),file=sys.stderr,flush=True)
+    finally:
+        after={}
+        for path in pins:
+            try:
+                info=Path(path).lstat();assert stat.S_ISREG(info.st_mode) and not Path(path).is_symlink()
+                raw=Path(path).read_bytes()
+                after[path]=dict(bytes=len(raw),sha256=sha(raw),mode=stat.S_IMODE(info.st_mode))
+            except BaseException as error:
+                after[path]=dict(error_class=type(error).__name__,error=str(error))
+        report.update(source_before=pins,source_after=after,source_pins_unchanged=pins==after)
+        if pins!=after:report["status"]="FAIL"
+        save(out/"summary.json",report)
+        print(json.dumps(dict(status=report["status"],tests_run=report.get("tests",{}).get("tests_run"),
+            native_entries=report.get("native_entries"),actual_primitive_acks=report.get("actual_primitive_acks"),
+            process_traces=len(report["replay"]),python_router_used=False,ordinary_store_closed=False)),flush=True)
+    return 0 if report["status"]=="PASS" else 1
+if __name__=="__main__":raise SystemExit(main())

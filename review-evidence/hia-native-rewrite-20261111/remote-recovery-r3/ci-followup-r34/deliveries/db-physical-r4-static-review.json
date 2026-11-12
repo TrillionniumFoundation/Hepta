@@ -1,0 +1,30 @@
+{
+  "schema": "hepta.native-static-review.v1",
+  "status": "NO_CONFIRMED_BLOCKER_IN_NARROW_DIFF",
+  "scope": "LOCAL_DEFINED_SYMBOL_CALL_WITHOUT_RELOCATION",
+  "original": {
+    "blob": "d1dc951159eb0a940fe2b2c22254ac3482b56bd2",
+    "bytes": 63587,
+    "sha256": "733baf89f39e859bccb20c812c85412ab7d0cee49c7544a0e635879dbff90862"
+  },
+  "revised": {
+    "blob": "35c28fc0dd6ec2125453668f2bb21d3298bd0455",
+    "bytes": 63619,
+    "sha256": "098bf0c3fcea4aeeb8f2b0a4f9aae62a634734c4c94bdafb0695a2624c3f55a8"
+  },
+  "findings": [
+    "Both full sources were read from their immutable Git blobs.",
+    "The revised source equals the original after exactly one call target replacement and one immediately adjacent local alias label insertion.",
+    "The original global label remains exported and still names the same instruction address. The alias is immediately adjacent without instruction/data emission.",
+    "The sole internal call now refers to the local assembler symbol. This permits assembly-time same-section binding without relying on the global symbol's link-time preemption rules."
+  ],
+  "boundaries": {
+    "ast": 0,
+    "assembler": 0,
+    "native": 0,
+    "no_original_object_reexecution": true,
+    "no_claim_fresh_zero_relocations_observed": true,
+    "no_complete_carrier_review": true,
+    "no_namespace_closure": true
+  }
+}

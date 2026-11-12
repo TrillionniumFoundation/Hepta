@@ -1,0 +1,103 @@
+{
+  "schema": "hia-namespace-linux-robust-open-private-continuation-v1",
+  "status": "NEW_CI_SOURCE_UNEXECUTED_NO_AST_GENERATION_VM_B3_NATIVE_OR_OS",
+  "scope": "Complete selected Linux SQLite robust_open policy; full unixOpen/URI/tempname/open registration, ordinary Store, SQL31 and migration remain OPEN",
+  "source": {
+    "sqlite": "3.46.1",
+    "os_unix_blob": "9e7ba05d6882b1f3c310b99102e8ecbf7f830af2",
+    "os_unix_sha256": "83e4f995c0cfc1362b46320d979b38349ac5b1c6a7c0b12cbc2c4577c6c13ef9",
+    "function_bytes": 984,
+    "function_sha256": "227f8ee18e4ed3838cdec84ecd47254f4642b4d7fc23ef40e5d8ee130310cfe1",
+    "reference_policy_text_unchanged": true,
+    "linux_abi": "x86_64; minimum fd3; default0644; O_CLOEXEC524288; O_EXCL128; O_CREAT64"
+  },
+  "ownership": [
+    "All retries and branches are HIA. FS7 issues tokens and performs raw syscalls through the fixed mechanical carrier.",
+    "The full path is raw non-NUL bytes; empty path reaches actual openat via new raw operation28 rather than a fabricated ENOENT. Original1..27 behavior is retained by separate source revision.",
+    "A fresh one-shot robust context is issued by one trusted serial coordinator; this draft does not add an OS process or an arbitrary child capability.",
+    "Source/ACK bytes are private immutable issued leases, not external authentication. Nonce/call/action/header consistency alone cannot authenticate a foreign buffer.",
+    "FS context and temporary refill descriptors belong to the shared namespace process. A successful /dev/null refill token is not returned or prematurely closed by this owner.",
+    "The warning callback happens after the low descriptor CLOSE and before /dev/null OPEN. HIA renders the full original warning bytes; a typed warning ACK reports the callback errno. Ordinary no-callback logger leaves errno unchanged."
+  ],
+  "request_header_bytes": 256,
+  "workspace_minimum": 1024,
+  "request": {
+    "magic": "HIANRO01",
+    "command": "1 BEGIN;2 completed FS ACK;3 completed warning ACK;4 unknown result poison",
+    "nonce_words": "offset16,24",
+    "call": "offset32 nonzero",
+    "action": "offset40 exact issued monotonic number",
+    "op": "offset48",
+    "return_status": "offset56",
+    "begin_flags": "offset64 u32",
+    "begin_mode": "offset72 u32",
+    "begin_errno": "offset80 Linux errno0..4095",
+    "begin_FS_nonce": "offset96,104",
+    "begin_FS_call_action": "offset112,120",
+    "payload_bytes": "offset128 exact",
+    "issuer_context_lease": "offset136 nonzero",
+    "reserved": "offset144..255 zero; ACK also zero64..127 except warning errno at64",
+    "payload": "BEGIN raw pathname; FS ACK full actual FS output256/400 bytes; warning/unknown no payload"
+  },
+  "event": {
+    "status": "0 terminal,1 actual FS request,2 GROW,3 actual warning callback,0xfffffffd permanent refusal",
+    "payload": "status1 complete FS7 input;status3 exact non-NUL warning string, followed by a NUL outside logical payload",
+    "FS_op28": "complete openat result with both logical token and actual fd; permits empty C string, otherwise identical to op25",
+    "FS_request_lease": "equals robust action",
+    "FS_counter": "one fresh FS call/syscall serial per issued primitive",
+    "original_path_extent": "workspace1024 onward; dynamic exact GROW, no new pathname quota"
+  },
+  "stages": {
+    "10": "OPEN original flags|CLOEXEC; only EINTR retries",
+    "20": "low fd and EXCL|CREATE: UNLINK ignored",
+    "21": "CLOSE consumed once regardless known error",
+    "22": "warning full text and errno ACK",
+    "23": "raw /dev/null O_RDONLY, original m, no CLOEXEC and no EINTR retry",
+    "30": "if m!=0 actual FSTAT; failure ignored",
+    "31": "if successful FSTAT,size0,(mode&0777)!=m then FCHMOD; result ignored"
+  },
+  "result": "logical token at64, rawfd at72 (-1 on failure), last_errno at80, phase at88, warnings96, retained refill count104, current FS counters112/120; success does not clear errno",
+  "growth": "Only output/workspace allocation requests; GROW retains the same immutable input/source generation and never invokes a primitive again. Ordinary carrier must preserve source identity. Modified private header replays are refused; bytes are not a substitute for actual immutable issuer custody.",
+  "limits": "Actual future process90CPU/180wall/1GiB/core0; B3 10CPU/20wall/256MiB/1MiB; original Core profile unchanged. This source-only checkpoint records zero executions.",
+  "known_open_integration": [
+    "FS7 HIA and raw op28 carrier patch have not been assembled or executed.",
+    "The separate six-role relocation issue has a source-only same-address local-alias repair, still awaiting its physical gate. This pure policy/FS gate does not assemble or execute any carrier.",
+    "Full unixOpen still needs reusable descriptor handoff timing, create-mode/URI, tempdir/PRNG, RO fallback, DB registration and warning order before ordinary Store replacement.",
+    "Controlled C raw-return provider performs zero actual filesystem syscalls. Real physical join is a separate future gate."
+  ],
+  "draft_corrections": [
+    {
+      "blob": "7bc82d3fc16f2e330a3c774bd971115379b1cd62",
+      "status": "UNEXECUTED_DRAFT",
+      "issue": "Hand-computed path/warning literal constants corrected with bytewise encoding before final source, and a new empty-path raw FS operation added. No old execution count inherited."
+    },
+    {
+      "blob": "a680eee9ac0c82eb20df99ac9a98411e7a7fab4b",
+      "status": "UNEXECUTED_SOURCE",
+      "issue": "The new op28 open reservation was omitted from the steady phase2 slot check. New source adds op28 to that exact branch; original op1/25 behavior remains."
+    },
+    {
+      "blob": "cb9cb4cc8adedd60c634f7da188700d89476410b",
+      "status": "UNEXECUTED_TEST_DRAFT",
+      "issue": "Raw provider must translate libc -1/error to raw -errno for actual FS ACK; full uint32 mode above0777 always requires FCHMOD after successful zero-size FSTAT. Corrected fixtures before first execution."
+    }
+  ],
+  "validation_plan": {
+    "selected_C_semantic_cases": 117,
+    "private_protocol_controls": 542,
+    "direct_FS_compatibility_and_new_raw_controls": 16,
+    "full_return_output_workspace_canaries": true,
+    "actual_FS7_VM_and_native_completed_replies": true,
+    "controlled_C_raw_provider": true,
+    "no_whole_SQLite_claim": true,
+    "policy_actual_OS_syscalls": 0,
+    "original_profile_limits": {
+      "functions": 128,
+      "blocks": 1536,
+      "ops": 8192,
+      "max_blocks": 256,
+      "max_block_params": 16
+    },
+    "new_counts_inherited": false
+  }
+}
