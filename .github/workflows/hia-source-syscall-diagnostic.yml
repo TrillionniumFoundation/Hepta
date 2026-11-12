@@ -1,0 +1,52 @@
+name: HIA exact-source syscall diagnostic
+
+on:
+  push:
+    branches: [codex/hia-source-syscall-diagnostic-v77-20261112-dda7]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-source-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated diagnostic harness
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Checkout exact read-only product
+        uses: actions/checkout@v4
+        with:
+          ref: 4b19af89a766593f7d5f1cc2db256e81aba7afcb
+          path: source
+          persist-credentials: false
+      - name: Set up exact CPython
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.4'
+      - name: Ensure observer prerequisite
+        shell: bash
+        run: |
+          if ! command -v strace >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends strace
+          fi
+          strace --version
+          python -I -B -c 'import sys; assert sys.implementation.name == "cpython" and sys.version_info[:3] == (3, 14, 4); print(sys.version)'
+      - name: Observe one original scan between two unobserved scans
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python -I -B harness/run_diagnostic.py --source "$GITHUB_WORKSPACE/source" --output "$GITHUB_WORKSPACE/evidence"
+      - name: Preserve all original diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hia-source-syscall-diagnostic-v77-${{ github.run_id }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30
