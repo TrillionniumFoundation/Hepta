@@ -1,0 +1,35 @@
+{
+  "schema": "hepta.hia.core-unpack-local-execution-plan.v1",
+  "status": "FROZEN_UNEXECUTED",
+  "product_static_commit": "9ef173c85dc8d4bcbb856533933589975aeb182d",
+  "base_source_commit": "d0e110e19f9433baaf202a0f605671c7205b4cff",
+  "source_root": "/tmp/hia-core-unpack-native-20261112-r1/source",
+  "controller": {
+    "path": "experiments/hia_core_unpack_20261112/static-r1/run_source_control.py",
+    "size": 5152,
+    "sha256": "831a6dd7acf6e855f803678ce6ceee5f9e6c72537eb814d4dcac1d6f05f225e8",
+    "git_blob_sha1": "d4ace4f5157a955cf15ca938c44447d41be0a974"
+  },
+  "phases": [
+    {
+      "name": "source",
+      "qualification_seconds": 180,
+      "cleanup_seconds": 3,
+      "native": false
+    },
+    {
+      "name": "shim",
+      "qualification_seconds": 180,
+      "cleanup_seconds": 3,
+      "actual_fixed_machine_primitive": true,
+      "test_methods": 4,
+      "native_HIA": false
+    }
+  ],
+  "no_native_HIA_or_116_yet": true,
+  "limits_unchanged": true,
+  "notes": [
+    "Source control uses original Builder/render/Core APIs and original caps. Source failure is retained; there is no fallback to a larger compiler.",
+    "Shim control uses exactly the frozen assembly/literal bytes; no product owner is invoked."
+  ]
+}
