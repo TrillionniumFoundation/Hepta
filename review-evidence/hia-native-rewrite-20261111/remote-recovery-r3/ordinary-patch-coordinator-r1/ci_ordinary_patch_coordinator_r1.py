@@ -25,9 +25,9 @@ FILES=[
   },
   {
     "path": "test_ordinary_patch_coordinator_r1.py",
-    "gitsha": "623753e2db67a8656de87696fc3bb3060b4a73f5",
+    "gitsha": "496ed8ebea4fdb9b9d01fa7489e859be78423d12",
     "bytes": 16272,
-    "sha256": "025422580e2c90620c1d8edbb54cd01db0c4d50438038e5619b32350967dd9d6"
+    "sha256": "269d1d9dc3222ab1c76c068c42ad342dff8de8d12ea0b20f5b6dda91efa8498f"
   },
   {
     "path": "generate_ordinary_patch_packer_r1.py",

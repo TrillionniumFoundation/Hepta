@@ -1,0 +1,72 @@
+{
+  "schema": "hia.namespace.six-role-packer.scalar-liveness-proof.v1",
+  "status": "NEW_SOURCE_AND_TESTS_NOT_EXECUTED",
+  "original_failure": {
+    "head": "7d94fc8e3d2ec92429b887d1f59a58ad55a76866",
+    "run": 43162559333,
+    "job": 130996905266,
+    "source_blob": "5849c58932cd0b324b875b3a0c5c12e877a2322b",
+    "source_sha256": "571d421e5ffbcf4df571e32ee4305013615e6c49f7dd2785ff39f54fd590ecd6",
+    "profile": {
+      "functions": 48,
+      "blocks": 180,
+      "ops": 4694,
+      "max_blocks": 124,
+      "max_block_params": 23
+    },
+    "original_max_block_params_limit": 16,
+    "fresh_role_compiles": 6,
+    "packer_entries": 0,
+    "actual_carrier_processes": 0,
+    "zero_relocations_gate_passed_before_profile": true,
+    "log_blob": "d7c1332159f7ee145d41fab0dd0f6708c668e291"
+  },
+  "new_source": {
+    "blob": "e016b5a8e8b63d9f3cfc25bbbfc3322e3a97f21a",
+    "bytes": 5254,
+    "sha256": "7ee31252530dfd1e45ae2e447626f11de6dd516f2c2f86f8d56cd9f86e56e211",
+    "full_text_readback": true
+  },
+  "unchanged": "Only source_program changes in the packer; prefix_and_table, exact ASM SHA, literal bytes, Builder/document and all limits are identical. Builder changes only the exact new packer SHA. The original 33 actual-image packer controls and 18 fixed-process tests are retained.",
+  "validation_proof": [
+    "The unchanged outer length/header/reserved checks precede all writes. checked_total examines exactly six records in role order1..6. Every record must have24 bytes, exact role, zero reserved, positive size<=1MiB, and an in-bounds payload; final source end must match length. Every original validation refusal therefore remains0xffffffff with unchanged output/workspace.",
+    "Let P be align16(len(prefix)), and size_i the checked record sizes. Both versions compute pos_1=P, pos_(i+1)=align16(pos_i+size_i), total=pos_6+size_6. The streaming recurrence align16(total)+size_i is the same because P is aligned. The fixed template assertion proves all sums and u32 return below2^32; it is a fact about this exact private template, not a new input or language limit.",
+    "Every loop index starts64, consumes24+positive checked size, never exceeds source length, and stops after six iterations. Source bytes are the same immutable read view for validation and publication; no peer or allocator runs between those calls.",
+    "The capacity refusal0xfffffffe still occurs only after full validation and before any writes. Valid output writes preserve original order: exact prefix literals, total at96/104, all six table entries, then each zero padding span and image bytes in role order. All table/image/padding indices are within total.",
+    "The workspace is neither read nor written in either version. No acceptance, refusal result, ordinary output byte, capacity policy, ABI, executable source, role source, or process/compiler/profile budget is weakened."
+  ],
+  "new_test": {
+    "blob": "d52f61250c83e5b3399432475386d276c7085090",
+    "planned_cases": 84,
+    "old_VM": 84,
+    "new_VM": 84,
+    "new_native": 84,
+    "old_native_compiles": 0,
+    "complete_source_output_workspace_and_canaries": true,
+    "initial_output_nonzero": true,
+    "work_lengths": [
+      0,
+      1,
+      7,
+      8,
+      63,
+      64,
+      65
+    ],
+    "includes": "24 complete payloads +24 short outputs +32 independent header/role/size/reserved mutations +4 source extent controls",
+    "no_actual_counts_inherited": true,
+    "process_limits": {
+      "cpu_seconds": 90,
+      "wall_seconds": 180,
+      "address_bytes": 1073741824,
+      "VM_steps": 4000000,
+      "VM_arena_bytes": 33554432
+    }
+  },
+  "independent_static_review": {
+    "blob": "a2e57e176d6da6cbbcf9e27ce4cdcf0ab484f645",
+    "bytes": 2455,
+    "sha256": "450c522ae96c4bf61361910332f68ea416e4cd9a86f23113eda148d1e8d2511c",
+    "scope": "complete old/new source_program; no confirmed issue;0AST/0generation/B3/VM/native"
+  }
+}
