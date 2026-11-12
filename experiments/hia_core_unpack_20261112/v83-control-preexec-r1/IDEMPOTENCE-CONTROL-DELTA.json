@@ -1,0 +1,17 @@
+{
+  "changed_control_functions": [
+    "preparation.main",
+    "verify.source_idempotence (new)",
+    "verify.preparation_core39",
+    "verify.selected_callers (exact-int arity)",
+    "controller.create_phase",
+    "controller.setup_record"
+  ],
+  "limits_or_test_ids_changed": false,
+  "new_requirement": "complete initial=before=derived=after; tree is actual published candidate; all source pins include two generated JSON",
+  "old_draft": "1a5d996cf667c56f1096c6888093cd55eb972bb5",
+  "old_source_delta_gate": "    require(before == initial and derived == after and before['metadata'] == derived['metadata']\n            and before['physical'] == derived['physical']\n            and tree_identity(before['rows']) == policy['candidate']['tree']\n            and tree_identity(derived['rows']) == derived['actual_worktree_tree']\n            and derived['actual_worktree_tree'] == report['derived_worktree_tree'],\n            'complete original/derived physical source identity differs')\n    changes = [{'path': old['path'], 'before': old, 'after': new}\n               for old, new in zip(before['rows'], derived['rows']) if old != new]\n    require(len(before['rows']) == len(derived['rows']) == policy['candidate']['leaves']\n            and [row['path'] for row in changes] == sorted(GENERATED)\n            and changes == report['derived_source_delta']\n            and all(row['before']['mode'] == row['after']['mode']\n                    and row['before']['posix_mode'] == row['after']['posix_mode'] for row in changes),\n            'actual source derivation changed more than the two fixed JSON inventories')\n",
+  "product_native_or_cold_executed": false,
+  "schema": "hepta.hia.core-unpack-control-delta.v1",
+  "unexecuted_checker_seed_alias_correction": "attempt and normal ledgers are now independent synthetic lists; no prior checker execution"
+}
