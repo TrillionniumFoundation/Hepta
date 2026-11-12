@@ -50,3 +50,21 @@ not returned. Twelve primitive observations preserve the first ten and add the
 actual placeholder/literal-index observation plus an invalid-kind-constant
 negative control. The same original43 and original48 definitions and limits
 remain unchanged; no prior native or cold qualification is transferred.
+
+## R4 successor: actual public fallback regression
+
+The R5 actual CPython3.14.4 run 43246829658 passed fixed12, frozen43 and original48.
+Those groups did not cover the newly found default replay carrier collision.
+The frozen default wrapper overwrote its arguments formal with its own carrier,
+deleted that local, then attempted to call through it. The original observation
+includes four complete controlled-provider outcomes and a separate real SQLite
+cached proof whose retained original replay succeeds while the public wrapper
+raises UnboundLocalError. They remain complete immutable original evidence.
+
+This revision only renames the owned carrier, preserving argument retirement and
+ordinary CALL order. A new separate Source2 module retains those two scopes and
+does not replace or edit a single method in the frozen43 or original48. Its 60s
+supervisor is independent; original compiler20/profile60/component240/Agent1800
+limits are unchanged. All four groups run even if a previous group fails or
+times out, and any such result keeps the overall report failed. Current cold,
+whole-stack, default activation, deletion and live deployment remain false.

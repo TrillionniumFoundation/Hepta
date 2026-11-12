@@ -64,9 +64,9 @@ class VerificationCIDriverTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertEqual(driver.digest((HERE / name).read_bytes()), expected)
         overlay = driver.read_overlay(HERE / 'verification-overlay.json')
-        self.assertEqual(len(overlay['files']), 40)
-        self.assertEqual(len(overlay['source_manifest']), 3185)
-        self.assertEqual(sum(row['before'] is None for row in overlay['files'].values()), 32)
+        self.assertEqual(len(overlay['files']), 41)
+        self.assertEqual(len(overlay['source_manifest']), 3186)
+        self.assertEqual(sum(row['before'] is None for row in overlay['files'].values()), 33)
         for name, row in overlay['files'].items():
             raw = row['text'].encode()
             self.assertEqual(len(raw), row['bytes'], name)
@@ -83,7 +83,7 @@ class VerificationCIDriverTests(unittest.TestCase):
         tree = ast.parse((HERE/'run_verification_development.py').read_bytes())
         main = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'main')
         selected = []
-        expected = [('fixed-foreign-profile-12', 60), ('component-43', 240), ('original-agent-48', 1800)]
+        expected = [('fixed-foreign-profile-12', 60), ('default-reference-replay-2', 60), ('component-43', 240), ('original-agent-48', 1800)]
         for n in ast.walk(main):
             if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == 'command' and n.args and isinstance(n.args[0], ast.Constant) and n.args[0].value in dict(expected):
                 options = {item.arg: ast.literal_eval(item.value) for item in n.keywords if item.arg in ('seconds', 'allow_failure')}

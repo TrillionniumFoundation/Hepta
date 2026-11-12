@@ -27,9 +27,9 @@ BASE = '4b19af89a766593f7d5f1cc2db256e81aba7afcb'
 TREE = '1bc7c90996e1910ad66ba771b0bfee1d5bfa655c'
 BASE_PARENT = '5f7f95367e8e395863801487e969d286b9091110'
 BASE_FILES = 3153
-OVERLAY_SHA = '0cc0baed7473860c3ba65ce9b9205fad8cef8639d2dc730836a851bf4aa00a43'
-OVERLAY_BYTES = 2444834
-OVERLAY_SOURCE_SHA = '9f39f57494a81600fbd7d103c8b35afb97565cf68fa6e934e51d0831a784b085'
+OVERLAY_SHA = '1f6e199a21b0a0dac0197b18dd63947244f779919e6d223ff99afb84391836f8'
+OVERLAY_BYTES = 2449043
+OVERLAY_SOURCE_SHA = 'f7c6242157adefbd5c8a3e2dca36eb3b42de92298e853c794b3e5c5ec8479af4'
 COMPONENT_SHA = 'a580ab7c0b57f0609c4f9fe4bf5a6b0de092bf4e56d783591cc0b6ce8842ae91'
 COMPILER_PACKET_SHA = 'df542582525e52f7855f2746ae9dc7501f6835e41aa46b209e59f2e121177b8b'
 ORIGINAL_SUITE_SHA = '9397c321d04b2c55c3cf297065c27a12ef58908f10e14d546a9cad765493e7e4'
@@ -144,12 +144,12 @@ def read_overlay(path):
             or expected['git_blob_sha'] != sha1(b'blob ' + str(len(body)).encode() + b'\0' + body).hexdigest()):
         raise ValueError('complete frozen source capsule bytes differ')
     value = json.loads(body)
-    if (value['schema'] != 'hia.service-verification.cumulative-development-overlay.r5'
+    if (value['schema'] != 'hia.service-verification.cumulative-development-overlay.r6'
             or value['base_commit'] != BASE or value['base_tree'] != TREE
-            or value['base_file_count'] != BASE_FILES or value['source_file_count'] != 3185
-            or value['deleted'] != [] or len(value['files']) != 40
-            or len(value['source_manifest']) != 3185):
-        raise ValueError('exact 40-path cumulative verification source required')
+            or value['base_file_count'] != BASE_FILES or value['source_file_count'] != 3186
+            or value['deleted'] != [] or len(value['files']) != 41
+            or len(value['source_manifest']) != 3186):
+        raise ValueError('exact 41-path cumulative verification source required')
     for name, row in value['files'].items():
         safe(name)
         text = row['text'].encode('utf-8')
@@ -183,7 +183,7 @@ def main():
     inputs = args.inputs.resolve(strict=True)
     out = args.output.absolute()
     out.mkdir(mode=0o700, exist_ok=False)
-    report = {'schema': 'hia.service-verification.v78.development-ci.r3',
+    report = {'schema': 'hia.service-verification.v78.development-ci.r4',
               'status': 'STARTED', 'source_base': BASE, 'source_tree': TREE,
               'base_parent': BASE_PARENT, 'python': sys.version,
               'platform': platform.platform(), 'commands': [],
@@ -192,7 +192,7 @@ def main():
               'all_input_equivalence_proved': False, 'live_deployment': False,
               'legacy_deletion': False, 'original_test_ids_and_assertions_preserved': True,
               'frozen_component_r3_definitions_preserved': True,
-              'cumulative_overlay_paths': 40, 'cumulative_overlay_source_files': 3185,
+              'cumulative_overlay_paths': 41, 'cumulative_overlay_source_files': 3186,
               'compiler_child_timeout_seconds': 20,
               'component_supervisor_seconds': 240, 'original_agent_supervisor_seconds': 1800}
     expected = None
@@ -307,7 +307,7 @@ def main():
         reconstructed = files(root)
         if ({name: source_identity(row) for name, row in reconstructed.items()}
                 != {name: source_identity(row) for name, row in overlay['source_manifest'].items()}):
-            raise ValueError('complete 3185-file cumulative source reconstruction differs')
+            raise ValueError('complete 3186-file cumulative source reconstruction differs')
         write(out / 'source-reconstructed-before-development-registration.json', wire(reconstructed))
         # Literal edits preserve the real setup.py resource reader and all five
         # existing resource roles. Only this isolated development export changes.
@@ -317,7 +317,7 @@ def main():
             'SOURCE_FILES', tuple(selected_sources) + tuple(original_suite['files']))
         write(out / 'literal-development-registration.json', wire([native_edit, source_edit]))
         post_overlay = files(root)
-        if len(post_overlay) != 3185:
+        if len(post_overlay) != 3186:
             raise ValueError('unexpected owner source inventory')
         overlay_changed = {name for name in set(original) | set(post_overlay)
                            if original.get(name) != post_overlay.get(name)}
@@ -391,6 +391,12 @@ def main():
             '--output', out / 'fixed-foreign-profile-12'],
             seconds=60, environment=env, allow_failure=True)
         guard('after-fixed-foreign-profile-12')
+        command('default-reference-replay-2', [sys.executable, '-B', inputs / 'run_default_replay_controls.py',
+            '--source', root,
+            '--test-source', root / 'tests/test_hia_service_verification_default_replay.py',
+            '--output', out / 'default-reference-replay-2'],
+            seconds=60, environment=env, allow_failure=True)
+        guard('after-default-reference-replay-2')
         command('component-43', [sys.executable, '-B', inputs / 'run_verification_group.py',
             '--source', root, '--denominator', inputs / 'component-43.json',
             '--output', out / 'component-43'], seconds=240, environment=component_env, allow_failure=True)
@@ -403,11 +409,17 @@ def main():
         guard('after-original-agent-48')
         report['fixed_foreign_profile'] = json.loads((out / 'fixed-foreign-profile-12/REPORT.json').read_bytes())
         report['component'] = json.loads((out / 'component-43/REPORT.json').read_bytes())
+        report['default_reference_replay'] = json.loads((out / 'default-reference-replay-2/REPORT.json').read_bytes())
         report['original_agent'] = json.loads((out / 'original-agent-48/report.json').read_bytes())
         if (report['fixed_foreign_profile']['status'] != 'PASS'
                 or len(report['fixed_foreign_profile']['observations']) != 12
                 or report['fixed_foreign_profile']['inputs_unchanged'] is not True):
             raise ValueError('actual fixed CPython primitive profile controls failed')
+        if (report['default_reference_replay']['status'] != 'PASS'
+                or report['default_reference_replay']['tests_run'] != 2
+                or report['default_reference_replay']['source_unchanged'] is not True
+                or report['default_reference_replay']['test_source_unchanged'] is not True):
+            raise ValueError('separate actual default-reference replay controls failed')
         if report['component']['status'] != 'PASS' or report['component']['tests_run'] != 43:
             raise ValueError('complete verification component group failed')
         if (report['original_agent']['status'] != 'DEVELOPMENT_CALLERS_PASS'
