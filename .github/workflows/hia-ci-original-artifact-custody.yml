@@ -1,0 +1,72 @@
+name: HIA exact historical ELF CI artifact custody
+
+on: [create]
+
+permissions: {}
+
+jobs:
+  recover_originals:
+    if: >-
+      ${{ github.repository == 'TrillionniumFoundation/Hepta' &&
+          github.event_name == 'create' &&
+          github.event.ref_type == 'branch' &&
+          github.event.ref == 'codex/hia-acffa-elf-ci-original-custody-run-r1-20261112-e26e' &&
+          github.run_attempt == '1' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Check out exact reviewed control A2 without persisted credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: TrillionniumFoundation/Hepta
+          ref: 4126571681bfcbee2dbc65cc71d844e16dbae19c
+          path: control
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          submodules: false
+          lfs: false
+          show-progress: false
+      - name: Set up the fixed custody interpreter
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.14.4'
+          check-latest: false
+      - name: Verify frozen control bytes and create new private custody roots
+        timeout-minutes: 5
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/control-r1/controller.py prepare --root "$RUNNER_TEMP/hia-acffa-elf-originals-actions-r1" --policy-sha256 26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df --control-commit 4126571681bfcbee2dbc65cc71d844e16dbae19c
+      - name: Read the two original artifacts once under the original 900-second guardian
+        id: owned_collection
+        timeout-minutes: 16
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+          HIA_CUSTODY_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/control-r1/controller.py run --root "$RUNNER_TEMP/hia-acffa-elf-originals-actions-r1" --policy-sha256 26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df --control-commit 4126571681bfcbee2dbc65cc71d844e16dbae19c
+      - name: Verify natural cleanup and preserve bounded small originals including HOLD
+        if: always()
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          HIA_CUSTODY_WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          python -I -S -B control/experiments/hia_ci_original_artifacts_actions_20261112/control-r1/controller.py finalize --root "$RUNNER_TEMP/hia-acffa-elf-originals-actions-r1" --policy-sha256 26e37ca1cda26363318163ce369d6d0f7deb53b98800f9cb8632ef5e9f5a96df --control-commit 4126571681bfcbee2dbc65cc71d844e16dbae19c
+      - name: Upload only bounded small evidence and never the original large ZIPs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hia-acffa-elf-originals-small-${{ github.run_id }}-1
+          path: '${{ runner.temp }}/hia-acffa-elf-originals-small-r1/'
+          if-no-files-found: error
+          include-hidden-files: false
+          compression-level: 0
+          retention-days: 14
+          overwrite: false
