@@ -1,0 +1,72 @@
+{
+  "schema": "hia.core-pretty-combined-derivation.v1",
+  "status": "SOURCE_MERGED_AND_IDENTITY_DOCUMENTS_REGENERATED",
+  "profile": "selfhost-core-linux-x86_64-v76-native-core-emitter-json-pretty-development",
+  "runtime": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "native_resources": 88,
+  "declared_sources": 629,
+  "manifest_include_rows": 103,
+  "source_identity_count": 797,
+  "before": {
+    "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": "7fd2470f93c30f6f214d3917e0dcf13b375d772d6e87e19d971034f70be02cc3",
+    "docs/HIA_SELFHOST_CORE_SUPPORT.json": "54a44cea1d69f7528714883f1a5482d506010e48651301e0a1d54d48f79f713e"
+  },
+  "after": {
+    "docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json": {
+      "bytes": 176652,
+      "sha256": "32d343b37dd019d39733c6d02e28488fc48482df7bb6a2959f8dd8564c116caf"
+    },
+    "docs/HIA_SELFHOST_CORE_SUPPORT.json": {
+      "bytes": 175364,
+      "sha256": "5e859eafb7d2f6a50778859452508fddf684371165dc28865db9350dd3276a6a"
+    }
+  },
+  "commands": [
+    {
+      "label": "coverage",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-I",
+        "-S",
+        "-B",
+        "tests/test_hia_selfhost_language_coverage.py",
+        "--generate-inventory"
+      ],
+      "returncode": 0,
+      "wall_elapsed_ns": 2725400242,
+      "stdout": "{\"inventory\": \"docs/HIA_SELFHOST_LANGUAGE_COVERAGE.json\", \"sha256\": \"32d343b37dd019d39733c6d02e28488fc48482df7bb6a2959f8dd8564c116caf\"}\n",
+      "stderr": ""
+    },
+    {
+      "label": "support",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-I",
+        "-S",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py"
+      ],
+      "returncode": 0,
+      "wall_elapsed_ns": 106187658,
+      "stdout": "{\"mode\": \"written\", \"path\": \"docs/HIA_SELFHOST_CORE_SUPPORT.json\", \"profile\": \"selfhost-core-linux-x86_64-v76-native-core-emitter-json-pretty-development\", \"source_files\": 797}\n",
+      "stderr": ""
+    },
+    {
+      "label": "support-check",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "-I",
+        "-S",
+        "-B",
+        "tools/generate_hia_selfhost_contract.py",
+        "--check"
+      ],
+      "returncode": 0,
+      "wall_elapsed_ns": 93125637,
+      "stdout": "{\"mode\": \"checked\", \"path\": \"docs/HIA_SELFHOST_CORE_SUPPORT.json\", \"profile\": \"selfhost-core-linux-x86_64-v76-native-core-emitter-json-pretty-development\", \"source_files\": 797}\n",
+      "stderr": ""
+    }
+  ],
+  "native_or_cold_execution": false,
+  "qualification_claimed": false
+}
